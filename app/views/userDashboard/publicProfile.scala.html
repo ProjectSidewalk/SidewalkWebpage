@@ -114,9 +114,11 @@
   @* Label popup stack (shared common/label-detail + pano-viewer), loaded directly like the redesign's other src. *@
   @common.labelPopup(admin = false)
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
   @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
   } else if (commonData.imagerySource == PanoSource.Mapillary) {
     <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
     <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
@@ -136,6 +138,7 @@
   <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
   <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
   <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
+  <script src='@assets.path("js/common/LabelTypePicker.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 

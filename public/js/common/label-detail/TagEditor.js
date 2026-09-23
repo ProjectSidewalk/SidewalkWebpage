@@ -1,4 +1,12 @@
 /**
+ * One of the city's tags, as /label/tags lists it.
+ * @typedef {object} TagOption
+ * @property {string} tag
+ * @property {string} label_type
+ * @property {?string} mutually_exclusive_with
+ */
+
+/**
  * Inline tag editor for the label detail card (#2575).
  *
  * While open, it fills the card's tag area with every tag the label's type offers with the label's current tags
@@ -6,7 +14,7 @@
  * done and decides whether anything changed; the editor never talks to the server itself.
  */
 class TagEditor {
-  /** @type {?Promise<Map<string, Object[]>>} The city's tags grouped by label type; fetched once per page. */
+  /** @type {?Promise<Map<string, TagOption[]>>} The city's tags grouped by label type; fetched once per page. */
   static #tagsByType = null;
 
   #container;
@@ -24,7 +32,7 @@ class TagEditor {
 
   /**
    * The city's tags, grouped by label type name. `/label/tags` is the same source Explore's context menu reads.
-   * @returns {Promise<Map<string, Object[]>>}
+   * @returns {Promise<Map<string, TagOption[]>>}
    */
   static #loadTags() {
     if (!TagEditor.#tagsByType) {
@@ -88,7 +96,7 @@ class TagEditor {
   }
 
   /**
-   * @param {Object[]} tags - The tags offered for the label type, each `{tag, mutually_exclusive_with}`.
+   * @param {TagOption[]} tags - The tags offered for the label type.
    */
   #render(tags) {
     const pills = new Map();

@@ -30,6 +30,11 @@
   "continue": "Fortfahren",
   "delete": "Löschen",
   "done": "Fertig",
+  "unsaved-changes": {
+    "message": "Du hast ungespeicherte Änderungen. Möchtest du sie speichern, bevor du diese Seite verlässt?",
+    "save": "Speichern und verlassen",
+    "leave": "Verlassen"
+  },
   "badges": {
     "congratulations": "Glückwunsch!",
     "you-earned": "Du hast das Abzeichen „{{badge}}“ erhalten!",
@@ -89,6 +94,7 @@
   "only": "Nur",
   "image-capture-date": "Datum der Bildaufnahme",
   "drag-to-look-around": "Ziehen Sie, um sich umzusehen",
+  "loading-imagery": "Bilder werden geladen …",
   "hide-label": "Beschriftung ausblenden",
   "show-label": "Beschriftung einblenden",
   "hide-label-tooltip": "Blendet die Beschriftung vorübergehend aus, um zu sehen, was darunter liegt.",
@@ -102,7 +108,7 @@
   "bad": "Schlecht",
   "yes": "Ja",
   "no": "Nein",
-  "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, prüfen Sie es daher selbst.",
+  "ai-generated-label-tooltip": "Dieses Label wurde von der KI erstellt. KI kann Fehler machen, beurteilen Sie daher selbst, ob es korrekt ist.",
   "tag": {
     "narrow": "schmal",
     "points into traffic": "auf Querverkehr ausgerichtet",
@@ -200,9 +206,13 @@
     "pano-address": "Adresse",
     "view-in-gsv": "Ansicht in Google Street View",
     "view-in-mapillary": "Ansicht in Mapillary",
+    "view-in-panoramax": "Ansicht in Panoramax",
     "city": "Stadt",
     "copy-to-clipboard": "In die Zwischenablage kopieren",
     "copied-to-clipboard": "Daten wurden in Zwischenablage kopiert"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(wird in einem neuen Tab geöffnet)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "RICHTIGES BEISPIEL",
@@ -337,5 +347,49 @@
     "on-facebook": "Auf Facebook teilen",
     "on-linkedin": "Auf LinkedIn teilen",
     "via-email": "Per E-Mail teilen"
+  },
+  "mini-card": {
+    "no-image": "Kein Bild",
+    "open": "Dieses Label öffnen: {{label}}",
+    "votes": "Dieses Label validieren",
+    "no-image-to-judge": "Kein Bild, um dieses Label zu beurteilen",
+    "vote-failed": "Deine Stimme wurde nicht gespeichert. Bitte versuche es erneut."
+  },
+  "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal.",
+  "label-type-picker": {
+    "current": "{{labelType}} (aktueller Typ)",
+    "change": "ändern",
+    "change-type": "Etikettentyp ändern",
+    "change-type-hint": "Tags, die nicht zum neuen Typ passen, werden entfernt. Eine Bewertung bleibt nur zwischen Typen erhalten, die gleich bewertet werden."
+  },
+  "access-score-spotlight": {
+    "subtitle-regions": "Die Gehwege jedes Quartiers werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
+    "subtitle-streets": "Die Gehwege jeder Straße werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
+    "subtitle-one-region": "Diese Stadt ist als ein einziges Quartier kartiert, es gibt also nur eine Bewertung.",
+    "units-label": "Quartiere oder Straßen einordnen",
+    "unit-regions": "Quartiere",
+    "unit-streets": "Straßen",
+    "highest": "Höchste Werte (ab {{score}})",
+    "lowest": "Niedrigste Werte (unter {{score}})",
+    "ranked-so-far": "Bisher eingeordnet",
+    "closest": "Kurz vor der Einordnung",
+    "empty-highest-regions": "Noch kein Quartier erreicht {{score}} oder mehr.",
+    "empty-highest-streets": "Noch keine Straße erreicht {{score}} oder mehr.",
+    "empty-lowest-regions": "Kein Quartier liegt unter {{score}}.",
+    "empty-lowest-streets": "Keine Straße liegt unter {{score}}.",
+    "count-regions": "Nur Quartiere, die zu mindestens {{percent}}% erkundet sind, werden eingeordnet – bisher {{qualifying}} von {{total}}.",
+    "count-streets": "Nur Straßen von mindestens {{minLength}} mit mehreren kartierten Merkmalen werden eingeordnet – bisher {{qualifying}} von {{total}}.",
+    "updated-nightly": "Täglich nachts aktualisiert",
+    "updated-info": "Die Bewertungen werden jede Nacht aus allen bis dahin gesetzten Markierungen neu berechnet. Eine Markierung, die Sie heute hinzufügen, zählt morgen.",
+    "updated-last": "Zuletzt aktualisiert am {{date}}.",
+    "cta-regions": "Alle Quartiere im AccessScore-Werkzeug ansehen",
+    "cta-streets": "Alle Straßen im AccessScore-Werkzeug ansehen",
+    "explore": "Erkunden",
+    "explore-region": "{{name}} erkunden",
+    "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} Straßen · {{clusters}} Cluster",
+    "region-sub-pending": "{{length}} Straßen · {{percent}}% erkundet",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Straße ohne Namen"
   }
 }

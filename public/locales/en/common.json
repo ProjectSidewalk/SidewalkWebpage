@@ -30,6 +30,11 @@
   "continue": "Continue",
   "delete": "Delete",
   "done": "Done",
+  "unsaved-changes": {
+    "message": "You have unsaved changes. Would you like to save them before leaving this page?",
+    "save": "Save and leave",
+    "leave": "Leave"
+  },
   "badges": {
     "congratulations": "Congratulations!",
     "you-earned": "You earned the “{{badge}}” badge!",
@@ -89,6 +94,7 @@
   "only": "Only",
   "image-capture-date": "Image Capture Date",
   "drag-to-look-around": "Drag to look around",
+  "loading-imagery": "Loading imagery...",
   "hide-label": "Hide Label",
   "show-label": "Show Label",
   "hide-label-tooltip": "Temporarily hide the label to see what's underneath.",
@@ -102,7 +108,7 @@
   "bad": "Bad",
   "yes": "Yes",
   "no": "No",
-  "ai-generated-label-tooltip": "This label was AI generated. AI can make mistakes, so please make your own assessment.",
+  "ai-generated-label-tooltip": "This label was AI generated. AI can make mistakes, so please make your own judgment about correctness.",
   "tag": {
     "narrow": "narrow",
     "points into traffic": "points into cross traffic",
@@ -200,9 +206,13 @@
     "pano-address": "Address",
     "view-in-gsv": "View in Google Street View",
     "view-in-mapillary": "View in Mapillary",
+    "view-in-panoramax": "View in Panoramax",
     "city": "City",
     "copy-to-clipboard": "Copy to clipboard",
     "copied-to-clipboard": "Data copied to your clipboard!"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(opens in a new tab)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "CORRECT EXAMPLE",
@@ -337,5 +347,49 @@
     "on-facebook": "Share on Facebook",
     "on-linkedin": "Share on LinkedIn",
     "via-email": "Share via email"
+  },
+  "mini-card": {
+    "no-image": "No image",
+    "open": "Open this label: {{label}}",
+    "votes": "Validate this label",
+    "no-image-to-judge": "No image to judge this label by",
+    "vote-failed": "Your vote didn't save. Please try again."
+  },
+  "download-already-preparing": "This file is already being prepared for another request. Please try again shortly.",
+  "label-type-picker": {
+    "current": "{{labelType}} (current type)",
+    "change": "change",
+    "change-type": "Change label type",
+    "change-type-hint": "Tags that don't fit the new type are removed. A rating carries over only between types rated the same way."
+  },
+  "access-score-spotlight": {
+    "subtitle-regions": "Each neighborhood's sidewalks are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",
+    "subtitle-streets": "Each street's sidewalks are scored from 0 to 100 by our <a href=\"{{href}}\">AccessScore</a> algorithm (100 is best).",
+    "subtitle-one-region": "This city is mapped as a single neighborhood, so there is one score to show.",
+    "units-label": "Rank neighborhoods or streets",
+    "unit-regions": "Neighborhoods",
+    "unit-streets": "Streets",
+    "highest": "Highest scores ({{score}}+)",
+    "lowest": "Lowest scores (under {{score}})",
+    "ranked-so-far": "Ranked so far",
+    "closest": "Closest to being ranked",
+    "empty-highest-regions": "No neighborhood scores {{score}} or above yet.",
+    "empty-highest-streets": "No street scores {{score}} or above yet.",
+    "empty-lowest-regions": "No neighborhood scores under {{score}}.",
+    "empty-lowest-streets": "No street scores under {{score}}.",
+    "count-regions": "Only neighborhoods at least {{percent}}% explored are ranked — {{qualifying}} of {{total}} so far.",
+    "count-streets": "Only streets at least {{minLength}} long with several mapped features are ranked — {{qualifying}} of {{total}} so far.",
+    "updated-nightly": "Updated nightly",
+    "updated-info": "Scores are recomputed every night from all labels placed so far. A label you add today counts tomorrow.",
+    "updated-last": "Last updated {{date}}.",
+    "cta-regions": "See every neighborhood in the AccessScore tool",
+    "cta-streets": "See every street in the AccessScore tool",
+    "explore": "Explore",
+    "explore-region": "Explore {{name}}",
+    "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} of streets · {{clusters}} clusters",
+    "region-sub-pending": "{{length}} of streets · {{percent}}% explored",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Unnamed street"
   }
 }

@@ -69,9 +69,9 @@
   background: var(--color-orange-400);
 }
 
+/* Unsure is the pale asphalt it is in Gallery, the label card, and mobile Validate. */
 #validate-unsure-button.chosen {
-  background: var(--color-neutral-900);
-  color: var(--color-neutral-white);
+  background: var(--color-asphalt-200);
 }
 
 /* Only show hover states on non-touch devices. */
@@ -93,12 +93,11 @@
   }
 
   #validate-unsure-button:hover {
-    background: var(--color-neutral-700);
-    color: var(--color-neutral-white);
+    background: var(--color-asphalt-100);
   }
 
   #validate-unsure-button.chosen:hover {
-    background: var(--color-neutral-900);
+    background: var(--color-asphalt-200);
   }
 }
 
@@ -199,16 +198,20 @@
 }
 
 .remove-tag-x {
+  display: flex;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-neutral-black);
   cursor: pointer;
-  width: calc(9px * var(--ui-scale));
-  height: calc(9px * var(--ui-scale));
-  fill: var(--color-neutral-black);
 }
 
-.remove-tag-x svg {
-  display: block;
-  width: 100%;
-  height: 100%;
+/* The X is its own span because a mask hides everything it covers, which on the button would include its focus ring. */
+.remove-tag-x__icon {
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+  -webkit-mask-image: url("../../../images/icons/cross.svg");
+  mask-image: url("../../../images/icons/cross.svg");
 }
 
 .selectize-dropdown-content {
@@ -285,13 +288,12 @@
 }
 
 #unsure-reason-options .validation-reason-button.chosen {
-  background: var(--color-neutral-900);
+  background: var(--color-asphalt-200);
   border: none;
-  color: var(--color-neutral-white);
 }
 
 #add-unsure-comment.chosen {
-  border-color: var(--color-orange-900) !important;
+  border-color: var(--color-asphalt-300) !important;
 }
 
 /* Only show hover states on non-touch devices. Same CSS as for chosen state. */
@@ -315,21 +317,20 @@
   }
 
   #unsure-reason-options .validation-reason-button:hover {
-    background: var(--color-neutral-700);
+    background: var(--color-asphalt-100);
     border: none;
-    color: var(--color-neutral-white);
   }
 
   #unsure-reason-options .validation-reason-button.chosen:hover {
-    background: var(--color-neutral-900);
+    background: var(--color-asphalt-200);
   }
 
   #add-unsure-comment:hover {
-    border-color: var(--color-neutral-700) !important;
+    border-color: var(--color-asphalt-200) !important;
   }
 
   #add-unsure-comment.chosen:hover {
-    border-color: var(--color-neutral-900) !important;
+    border-color: var(--color-asphalt-300) !important;
   }
 }
 

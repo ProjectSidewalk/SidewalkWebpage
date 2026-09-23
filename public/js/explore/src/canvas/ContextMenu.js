@@ -25,7 +25,7 @@ class ContextMenu {
   #shareWidget = null;
 
   /**
-   * @param {Object} uiContextMenu - jQuery-wrapped context menu UI elements.
+   * @param {Record<string, JQuery>} uiContextMenu - jQuery-wrapped context menu UI elements.
    */
   constructor(uiContextMenu) {
     this.#menuWindow = uiContextMenu.holder;
@@ -244,7 +244,7 @@ class ContextMenu {
 
   /**
    * Records tag ID when clicked and updates tag color.
-   * @param {Event} e
+   * @param {JQuery.ClickEvent} e
    */
   #handleTagClick(e) {
     let labelTags = this.#status.targetLabel.getProperty('tagIds');
@@ -398,12 +398,13 @@ class ContextMenu {
   }
 
   /**
-   * Returns true if rating severity is currently disabled.
+   * Returns true if the open label can't be rated: its type has no rating, or the tutorial hasn't reached its rating.
    * @returns {boolean}
    */
   isRatingSeverityDisabled() {
-    return this.#status.ratingSeverityEnabledForTutorialLabel
-      !== this.#status.targetLabel.getProperty('tutorialLabelNumber');
+    const label = this.#status.targetLabel;
+    if (!label || !util.misc.labelTypeHasSeverity(label.getLabelType())) return true;
+    return this.#status.ratingSeverityEnabledForTutorialLabel !== label.getProperty('tutorialLabelNumber');
   }
 
   /**
@@ -416,7 +417,7 @@ class ContextMenu {
 
   /**
    * Sets the color of a label's tags based off of tags that were chosen.
-   * @param {Object} label - Current label being modified.
+   * @param {Label} label - Current label being modified.
    */
   #setTagColor(label) {
     const labelTags = label.getProperty('tagIds');
@@ -438,7 +439,7 @@ class ContextMenu {
 
   /**
    * Sets the description and value of the tag based on the label type.
-   * @param {Object} label - Current label being modified.
+   * @param {Label} label - Current label being modified.
    */
   #setTags(label) {
     const maxTags = 17;
@@ -510,7 +511,10 @@ class ContextMenu {
                 keyChar = tagText[underlineIndex + underlineClassOffset];
                 tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
               }
-              const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', { c: keyChar });
+              // The tooltip is built with `html: true`, so its shortcut letter is escaped on the way in.
+              const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {
+                c: keyChar, interpolation: { escapeValue: true },
+              });
               const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`;
 
               // Create the tooltip. 'auto top' flips it below the tag if it would clip the viewport top.
@@ -583,7 +587,7 @@ class ContextMenu {
 
   /**
    * Show the context menu.
-   * @param {Object} targetLabel - The label whose context menu should be shown.
+   * @param {Label} targetLabel - The label whose context menu should be shown.
    */
   show(targetLabel) {
     this.#setStatus('targetLabel', null);
@@ -673,10 +677,9 @@ class ContextMenu {
   /**
    * Builds the header's share control. Unlike the hover card's, this one is only ever pointed at a label the menu
    * has actually opened for, so it re-points once per open rather than per frame.
-   * @private
    */
   #initShareWidget() {
-    const trigger = document.getElementById('context-menu-share');
+    const trigger = /** @type {HTMLButtonElement} */ (document.getElementById('context-menu-share'));
     if (!trigger || typeof ShareWidget === 'undefined') return;
     trigger.addEventListener('click', () => {
       // Only the opening click. The same handler runs on the click that dismisses the popover, which is not a share.
@@ -700,7 +703,6 @@ class ContextMenu {
    * Points the share control at the label this menu is open for, or hides it when that label can never have a
    * public URL (tutorial labels are never submitted).
    * @param {Label} label
-   * @private
    */
   #pointShareAtLabel(label) {
     const shareable = !svl.isOnboarding() && !label.isDeleted();

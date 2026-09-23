@@ -15,8 +15,8 @@ class Compass {
   };
 
   /**
-   * @param {Object} navigationService - NavigationService module.
-   * @param {Object} taskContainer - TaskContainer module.
+   * @param {object} navigationService - NavigationService module.
+   * @param {object} taskContainer - TaskContainer module.
    */
   constructor(navigationService, taskContainer) {
     this.#navigationService = navigationService;
@@ -59,11 +59,8 @@ class Compass {
    */
   getTargetAngle() {
     const task = this.#taskContainer.getCurrentTask();
-    const geometry = task.getFeature();
     const latlng = svl.panoViewer.getPosition();
-    const startLatLng = turf.point(task.getFurthestPointReached().geometry.coordinates);
-    const streetEnd = turf.point([task.getEndCoordinate().lng, task.getEndCoordinate().lat]);
-    const remainder = turf.cleanCoords(turf.lineSlice(startLatLng, streetEnd, geometry));
+    const remainder = NavigationService.remainderOfStreet(task);
 
     // Get the point representing 15 meters further along the street (or the endpoint if there's fewer than 15m).
     const distIncrement = Math.min(0.015, turf.length(remainder));
@@ -141,9 +138,9 @@ class Compass {
 
   #makeTheLabelBeforeJumpMessageBoxClickable() {
     let jumpMessageOnclick;
-    if (svl.neighborhoodModel.isRouteOrNeighborhoodComplete()) {
+    if (svl.regionModel.isRouteOrRegionComplete()) {
       jumpMessageOnclick = () => {
-        svl.missionController.wrapUpRouteOrNeighborhood();
+        svl.missionController.wrapUpRouteOrRegion();
       };
     } else {
       jumpMessageOnclick = this.#jumpToTheNewTask;
@@ -231,10 +228,10 @@ class Compass {
   }
 
   #setLabelBeforeJumpMessage() {
-    if (svl.neighborhoodModel.isRouteComplete) {
+    if (svl.regionModel.isRouteComplete) {
       this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-route')}</div>`);
-    } else if (svl.neighborhoodModel.isNeighborhoodComplete) {
-      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-neighborhood')}</div>`);
+    } else if (svl.regionModel.isRegionComplete) {
+      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-region')}</div>`);
     } else {
       this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-street')}</div>`);
     }

@@ -68,8 +68,7 @@
     "add-note": "💬 Agregar una nota",
     "note-placeholder": "Agrega una nota sobre esta etiqueta (opcional)…",
     "save-note": "Guardar nota",
-    "popup-heading": "Tu etiqueta fue validada como incorrecta. ¿Estás de acuerdo en que fue un error?",
-    "your-label": "Tu etiqueta: {{type}}"
+    "popup-heading": "Tu etiqueta fue validada como incorrecta. ¿Estás de acuerdo en que fue un error?"
   },
   "settings-form": {
     "saving": "Guardando…",
@@ -81,6 +80,9 @@
     "create-failed": "No se pudo crear el equipo. Inténtalo de nuevo.",
     "network-error": "Error de red; inténtalo de nuevo."
   },
+  "team-leave-confirm-open": "¿Salir de \"{{name}}\"? Podrás volver a unirte más adelante desde esta misma lista.",
+  "team-leave-confirm-closed": "¿Salir de \"{{name}}\"? No está aceptando nuevos miembros, así que no podrás volver a unirte por tu cuenta.",
+  "team-leave": "Salir del equipo",
   "stories": {
     "none": "Aún no has escrito ninguna historia. Abre una etiqueta en el mapa y elige “Escribe tu historia”."
   },

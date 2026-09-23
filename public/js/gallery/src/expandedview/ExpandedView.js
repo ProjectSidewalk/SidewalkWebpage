@@ -17,10 +17,10 @@ class ExpandedView {
   #currUsername;
 
   /**
-   * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
-   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
+   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
+   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    */
   constructor(uiModal, panoViewerType, viewerAccessToken, currUsername) {
     this.#uiModal = uiModal;
@@ -32,10 +32,10 @@ class ExpandedView {
 
   /**
    * Creates an ExpandedView and initializes its LabelDetail controller.
-   * @param {jQuery} uiModal The `.gallery-expanded-view` container element.
-   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
+   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
+   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    * @returns {Promise<ExpandedView>}
    */
   static async create(uiModal, panoViewerType, viewerAccessToken, currUsername) {
@@ -62,10 +62,15 @@ class ExpandedView {
       currUsername: this.#currUsername,
       onVote: this.#handleVote,
       onEdit: this.#handleEdit,
+      onDelete: this.#handleDelete,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
       showLabelMapLink: true,
       showExploreHereLink: true,
+      // This host hides its panel with CSS rather than closing a <dialog>, so the card can't tell on its own
+      // whether it is on screen — and its keyboard shortcuts (#5194) must not vote on the last-shown label after
+      // the panel has been closed.
+      isOpen: () => this.open,
     });
 
     // Expose panoManager for Keyboard.js zoom shortcuts.
@@ -74,10 +79,10 @@ class ExpandedView {
     // Wire paging buttons.
     this.leftArrow = root.querySelector('.label-detail__paging--prev');
     this.rightArrow = root.querySelector('.label-detail__paging--next');
-    this.leftArrowDisabled = false;
-    this.rightArrowDisabled = false;
-    if (this.leftArrow) this.leftArrow.addEventListener('click', () => this.previousLabel(false));
-    if (this.rightArrow) this.rightArrow.addEventListener('click', () => this.nextLabel(false));
+    // A click whose `detail` is 0 didn't come from a pointer: it's the card's arrow-key shortcut (#5194), or Enter
+    // or Space on the focused arrow. Both stay logged as keyboard shortcuts rather than clicks.
+    if (this.leftArrow) this.leftArrow.addEventListener('click', (e) => this.previousLabel(e.detail === 0));
+    if (this.rightArrow) this.rightArrow.addEventListener('click', (e) => this.nextLabel(e.detail === 0));
 
     // Wire close button.
     const closeBtn = root.querySelector('[data-action="close-label-detail"]');
@@ -86,6 +91,10 @@ class ExpandedView {
     // Capture a ?labelId= deep link now: the initial query's refreshUI() closes the expanded view, which also
     // scrubs the param from the URL, so it must be read before that and acted on after (restoreFromUrl()).
     this.initialUrlLabelId = LabelDetail.urlLabelId();
+    // That label is what this visit is for, so start its viewer (the billable, deferred part of LabelDetail's
+    // init) now rather than after the cards have rendered. The container is visibility:hidden, which keeps its
+    // layout, so the viewer can still measure it. Bounded so a provider that never loads can't hold the cards.
+    if (this.initialUrlLabelId) await this.panoManager.warmUp(PopupPanoManager.DEEP_LINK_BUILD_WAIT_MS);
   }
 
   /**
@@ -102,7 +111,6 @@ class ExpandedView {
     // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
     if (this.leftArrow) this.leftArrow.disabled = true;
-    this.leftArrowDisabled = true;
     LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
     this.labelDetail.showLabel(labelId, 'GalleryExpanded')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
@@ -145,10 +153,13 @@ class ExpandedView {
       tags: p.tags,
       ai_generated: p.ai_generated,
       crop_url: card.getCropUrl(),
+      crop_marker: card.getCropMarker(),
       backup_image: card.getBackupImageData(),
       pano_data: p.pano_data,
       from_current_user: p.from_current_user,
       can_edit: p.can_edit,
+      deleted: p.deleted,
+      can_restore: p.can_restore,
       expired: p.expired,
       comments: p.comments,
     };
@@ -165,13 +176,27 @@ class ExpandedView {
   };
 
   /**
-   * Called by LabelDetail after a successful edit (#2575). Syncs the new severity and tags onto the small card.
-   * @param {Object} meta - The label's metadata with its new severity and tags.
+   * Called by LabelDetail after a successful edit (#2575, #3671); syncs the small card.
+   * @param {{label_type: string, severity: ?number, tags: string[]}} meta - The label's metadata as it now stands.
    */
   #handleEdit = (meta) => {
     if (this.refCard) {
+      this.refCard.updateLabelType(meta.label_type);
       this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
     }
+  };
+
+  /**
+   * Called by LabelDetail after a delete or restore (#3591); syncs the small card, incl. an admin delete's Disagree.
+   * Looked up by id, since paging while the request was in flight may have moved refCard on to a neighbor.
+   * @param {{label_id: number, deleted: boolean, can_restore: boolean, user_validation: ?string}} meta - The
+   *     label's metadata as it now stands.
+   */
+  #handleDelete = (meta) => {
+    const card = sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id);
+    if (!card) return;
+    card.setDeleted(!!meta.deleted, !!meta.can_restore);
+    card.updateUserValidation(meta.user_validation ?? null);
   };
 
   /**
@@ -246,17 +271,11 @@ class ExpandedView {
 
   /**
    * Tries to update the current card to the given input index.
-   * @param {number} index The index of the card to update to.
+   * @param {number} index - The index of the card to update to.
    */
   #updateExpandedViewCardByIndex(index) {
-    if (this.leftArrow) {
-      this.leftArrow.disabled = false;
-      this.leftArrowDisabled = false;
-    }
-    if (this.rightArrow) {
-      this.rightArrow.disabled = false;
-      this.rightArrowDisabled = false;
-    }
+    if (this.leftArrow) this.leftArrow.disabled = false;
+    if (this.rightArrow) this.rightArrow.disabled = false;
     this.cardIndex = index;
     this.refCard = sg.cardContainer.getCardByIndex(this.cardIndex);
 
@@ -269,24 +288,18 @@ class ExpandedView {
 
     this.#openExpandedView();
 
-    if (this.cardIndex === 0) {
-      if (this.leftArrow) this.leftArrow.disabled = true;
-      this.leftArrowDisabled = true;
-    }
+    if (this.cardIndex === 0 && this.leftArrow) this.leftArrow.disabled = true;
 
     if (sg.cardContainer.isLastPage()) {
       const page = sg.cardContainer.getCurrentPage();
       const lastCardIndex = (page - 1) * ExpandedView.#cardsPerPage + sg.cardContainer.getCurrentPageCards().length - 1;
-      if (this.cardIndex === lastCardIndex) {
-        if (this.rightArrow) this.rightArrow.disabled = true;
-        this.rightArrowDisabled = true;
-      }
+      if (this.cardIndex === lastCardIndex && this.rightArrow) this.rightArrow.disabled = true;
     }
   }
 
   /**
    * Updates the index of the current label being displayed in the expanded view.
-   * @param {number} newIndex The new index of the card being displayed.
+   * @param {number} newIndex - The new index of the card being displayed.
    */
   updateCardIndex(newIndex) {
     this.#updateExpandedViewCardByIndex(newIndex);
@@ -294,7 +307,7 @@ class ExpandedView {
 
   /**
    * Moves to the next label.
-   * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
+   * @param {boolean} keyboardShortcut - Whether the action came from a keyboard shortcut.
    */
   nextLabel(keyboardShortcut) {
     sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
@@ -310,7 +323,7 @@ class ExpandedView {
 
   /**
    * Moves to the previous label.
-   * @param {boolean} keyboardShortcut Whether the action came from a keyboard shortcut.
+   * @param {boolean} keyboardShortcut - Whether the action came from a keyboard shortcut.
    */
   previousLabel(keyboardShortcut) {
     sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
@@ -373,17 +386,5 @@ class ExpandedView {
     this.pendingCardIndex = undefined;
     this.#uiModal.css('visibility', 'visible');
     this.#updateExpandedViewCardByIndex(idx);
-  }
-
-  /**
-   * Programmatically triggers a validation from the expanded view (used by Keyboard.js shortcuts).
-   * Clicks the corresponding pano overlay button in the LabelDetail markup, which goes through
-   * LabelDetail's normal vote flow (including the onVote callback that syncs back to the card).
-   * @param {'Agree'|'Disagree'|'Unsure'} action
-   */
-  validate(action) {
-    if (!this.open) return;
-    const btn = this.#root.querySelector(`.label-detail__pano-overlay-button--${action.toLowerCase()}`);
-    if (btn && !btn.disabled) btn.click();
   }
 }

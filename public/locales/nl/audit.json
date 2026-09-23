@@ -108,9 +108,9 @@
   },
   "mission-complete": {
     "title-generic": "Missie geslaagd!",
-    "title-neighborhood-complete": "Bravo! Je hebt de {{neighborhoodName}} -buurt voltooid!",
+    "title-region-complete": "Bravo! Je hebt de {{regionName}} -buurt voltooid!",
     "title-route-complete": "Bravo! Je hebt je route voltooid!",
-    "subtitle": "Verken {{distance}} van {{neighborhoodName}}",
+    "subtitle": "Verken {{distance}} van {{regionName}}",
     "badge-alt": "Je missiebadge",
     "legend-title": "Missievoortgang",
     "legend-this-mission": "Deze missie",
@@ -149,14 +149,32 @@
       "message-route": "Verken {{routeName}}",
       "exit-route": "Aangepaste route verlaten",
       "header-free-explore": "Vrij verkennen",
-      "message": "Zoek __PLACEHOLDER__ voor {{neighborhoodName}}"
+      "message": "Zoek __PLACEHOLDER__ voor {{regionName}}"
     },
     "route-resume": {
       "message": "Je aangepaste route “{{routeName}}” wordt hervat waar je was gebleven.",
       "exit": "Aangepaste route verlaten"
     },
     "mission-resume": {
-      "message": "Je missie in {{neighborhoodName}} wordt hervat — nog {{distanceLeft, distance(style: small)}} te gaan."
+      "message": "Je missie in {{regionName}} wordt hervat — nog {{distanceLeft, distance(style: small)}} te gaan."
+    },
+    "route-unavailable": {
+      "message": "Die route is niet beschikbaar. Mogelijk is hij verwijderd."
+    },
+    "reaudit": {
+      "title": "Deze straat heeft nieuwere beelden",
+      "message-you": "Jij hebt deze straat voor het laatst in {{lastMapped}} beoordeeld, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "message-you-no-dates": "Jij hebt deze straat eerder beoordeeld, maar de beelden zijn sindsdien vernieuwd. Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "message-others": "Deze straat is voor het laatst in {{lastMapped}} beoordeeld, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "message-others-no-dates": "Deze straat is eerder beoordeeld, maar de beelden zijn sindsdien vernieuwd. Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is."
+    },
+    "pano-date-note": {
+      "image-date": "Beeld: {{date}}",
+      "needs-reassessment": "Nieuwe beoordeling nodig",
+      "already-assessed": "Al beoordeeld",
+      "already-assessed-tip": "Jij hebt deze locatie voor het laatst in {{assessedDate}} beoordeeld, en de beelden ({{captureDate}}) zijn sinds die beoordeling niet veranderd. Voeg gerust nieuwe labels toe als je iets ziet!",
+      "needs-reassessment-tip-you": "Jij hebt deze locatie voor het laatst in {{assessedDate}} beoordeeld, maar de beelden hier zijn nieuwer ({{captureDate}}). Beoordeel de locatie opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "needs-reassessment-tip-others": "Een gebruiker heeft deze locatie voor het laatst in {{assessedDate}} beoordeeld, maar de beelden hier zijn nieuwer ({{captureDate}}). Beoordeel de locatie opnieuw, zodat we kunnen analyseren wat er veranderd is."
     },
     "minimap": {
       "coach-dismiss": "Begrepen",
@@ -172,7 +190,23 @@
       "legend-ahead": "Resterende route",
       "legend-you": "U + kijkrichting",
       "legend-visited": "Bezochte locatie",
-      "legend-unseen": "Nog niet bekeken"
+      "legend-unseen": "Nog niet bekeken",
+      "legend-next-stops": "Stops op uw route",
+      "forward-crumb-title": "Ga vooruit naar stop {{rank}}",
+      "legend-other-links": "Andere richtingen",
+      "legend-faced": "Gevuld: waar vooruit u heen brengt",
+      "legend-earlier-labels": "Mijn eerdere labels",
+      "link-crumb-title": "Ga naar dit panorama",
+      "legend-next-step": "Lichtblauw: volgende stap (spatiebalk)",
+      "route-stop-title": "Stop {{rank}} op uw route",
+      "breadcrumb-title": "Bezocht: klik om hierheen terug te gaan",
+      "label-marker-title": "{{labelType}}-label: klik om te bekijken",
+      "label-marker-title-prior": "“{{labelType}}”-label uit een eerdere missie",
+      "label-marker-title-outdated": "Oud “{{labelType}}”-label op een straat met nieuwe beelden",
+      "route-start-flag": "Start van de route",
+      "route-finish-flag": "Einde van de route",
+      "mission-start-flag": "Waar deze missie begon",
+      "mission-finish-flag": "Waar deze missie eindigt"
     },
     "stats": {
       "leaderboard-cta": "Bekijk het scorebord van de gemeenschap"
@@ -187,7 +221,7 @@
       "next-distance": "Verken {{distance}} om de volgende te verdienen.",
       "earned-all": "Je hebt het hoogste niveau van deze badge bereikt — geweldig gedaan!"
     },
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "Wijk voortgang",
       "you-tooltip": "Jouw bijdragen",
       "community-tooltip": "Bijdragen van de gemeenschap"
@@ -299,14 +333,14 @@
       "u-turn": "Keer om",
       "end-route": "Je bent aan het einde van je route! Kijk helemaal om je heen om te voltooien, of <b>klik hier om nu te voltooien.</b>",
       "route-finish-look-around": "Laatste halte! Kijk helemaal om je heen om je route te voltooien.",
-      "end-neighborhood": "Je hebt deze hele buurt verkend! Voltooi het labelen van dit kruispunt en <b>klik hier om de buurt te voltooien.</b>",
+      "end-region": "Je hebt deze hele buurt verkend! Voltooi het labelen van dit kruispunt en <b>klik hier om de buurt te voltooien.</b>",
       "end-street": "We moeten u verhuizen naar een nieuwe locatie. Voltooi het labelen van dit kruispunt en <b>klik hier om naar een nieuwe locatie te gaan.</b>",
       "far-away": "Oh oh, je bent nogal ver weg van de route. <b>Klik hier om terug te gaan.</b>"
     }
   },
   "popup": {
     "start-title": "Laten we eraan beginnen!",
-    "start-body": "We hebben je verplaatst naar een straat in {{neighborhood}}, {{city}}! Je staat momenteel op het kruispunt. Vind en label alle trottoir opritten en toegankelijkheidsproblemen op dit kruispunt.",
+    "start-body": "We hebben je verplaatst naar een straat in {{region}}, {{city}}! Je staat momenteel op het kruispunt. Vind en label alle trottoir opritten en toegankelijkheidsproblemen op dit kruispunt.",
     "step-title": "Laten we vooruit verplaatsen!",
     "step-body": "Het lijkt erop dat je het hele kruispunt hebt bekeken, dus het is tijd om andere gebieden te verkennen. Beweeg je in de richting van de rode lijn die gehighlight is op de kaart.",
     "both-sides-title": "Bekijk alsjeblieft beide kanten van de straat",
@@ -336,11 +370,12 @@
     "free-explore-no-imagery": "Er zijn geen straatbeelden meer in deze richting. Kijk rond of ga de andere kant op.",
     "stuck-suggestion": "Als je niet met de pijlen kunt bewegen, probeer dan op de navigatie-aanwijzingen rechtsonder te klikken. Of probeer te klikken op de vastgelopen knop aan de linkerkant.",
     "imagery-skip-limit": "Meerdere straten achter elkaar hadden geen beelden, dus verplaatsen we je niet meer automatisch. Probeer een ander deel van de kaart of herlaad de pagina om opnieuw te beginnen.",
-    "imagery-load-failed": "We konden de straatbeelden nu niet laden. Probeer het over een paar minuten opnieuw."
+    "imagery-load-failed": "We konden de straatbeelden nu niet laden. Probeer het over een paar minuten opnieuw.",
+    "imagery-session-expired": "Je sessie voor straatbeelden is verlopen en kon niet worden vernieuwd. Herlaad de pagina om verder te gaan; je werk tot nu toe is opgeslagen."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "ONTDEK MISSIE",
-    "mst-instruction-2": "Label deze toegankelijkheidsvoorzieningen in {{neighborhood}}",
+    "mst-instruction-2": "Label deze toegankelijkheidsvoorzieningen in {{region}}",
     "example-type-label-incorrect": "VEEL VOORKOMENDE FOUT",
     "label-on-image-title-incorrect": "Veel voorkomende fout",
     "label-on-image-description-correct": "Plaats een etiket",

@@ -3,7 +3,39 @@ package service
 import play.api.{Configuration, Environment, Logger}
 
 import java.io.File
+import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException}
 import javax.inject.{Inject, Singleton}
+
+/**
+ * How the cached previews behind `/label/:id/image` are named. Everything that reads or sweeps the cache directory
+ * goes through here, so the sweep can only ever touch files this object named — never the branded fallback or an
+ * in-flight `.tmp` that `ImageUtils.writeJpeg` is still filling.
+ */
+object ShareImageCache {
+
+  /**
+   * Bump when previews already on disk would be built differently today: the cache has no expiry, so a wrong one is
+   * otherwise served for good. 2 = #3095 (still-based previews had the marker up to 60 px off).
+   */
+  val Generation: Int = 2
+
+  // Generation 1 predates the suffix, so its files are the bare `share_<id>.jpg`.
+  private val PreviewName = """share_(-?\d+)(?:_g(\d+))?\.jpg""".r
+
+  /** The file name of a label's preview under `generation`. */
+  def fileName(labelId: Int, generation: Int = Generation): String =
+    if (generation == 1) s"share_$labelId.jpg" else s"share_${labelId}_g$generation.jpg"
+
+  /**
+   * The generation a cached preview was built under, or `None` for anything else in the directory: the fallback, a
+   * temp file, a stray. A `_g1` suffix is a stray too — nothing here ever spelled generation 1 that way.
+   */
+  def generationOf(file: File): Option[Int] = file.getName match {
+    case PreviewName(_, null)              => Some(1)
+    case PreviewName(_, g) if g.toInt >= 2 => Some(g.toInt)
+    case _                                 => None
+  }
+}
 
 /**
  * Locates — and invalidates — the disk cache of social-preview images behind `/label/:id/image` (#456).
@@ -30,16 +62,47 @@ class ShareImageCache @Inject() (config: Configuration, environment: Environment
   def dir: File = new File(MediaDirs.baseDir(config, environment, "share.image.directory"), configService.getCityId)
 
   /** The cached preview for a label, which may or may not exist. */
-  def fileFor(labelId: Int): File = new File(dir, s"share_$labelId.jpg")
+  def fileFor(labelId: Int): File = new File(dir, ShareImageCache.fileName(labelId))
+
+  /**
+   * Makes the label's newest earlier-generation preview its current one, when nothing better can be built: a
+   * crop-less label whose pano has expired since has no other imagery left, and a marker a little off beats the
+   * branded logo. Renaming rather than serving in place keeps the label a disk hit — otherwise every crawler fetch
+   * would repeat the metadata read and the billed Static API call that just failed. A transient failure pins the old
+   * preview the same way, which is what every request did before generations existed; a crop landing still clears it.
+   *
+   * @return The current-generation file if it exists afterwards — promoted here, or written by a concurrent build
+   *         that won the rename — else `None`.
+   */
+  def promoteLegacy(labelId: Int): Option[File] = {
+    val current = fileFor(labelId)
+    legacyFiles(labelId).filter(_.exists()).lastOption.foreach { legacy =>
+      try {
+        // Not ATOMIC_MOVE: on Linux that is rename(2), which silently replaces a target a concurrent build just wrote.
+        val _ = Files.move(legacy.toPath, current.toPath)
+      } catch {
+        case _: FileAlreadyExistsException => // A concurrent build wrote the real thing; keep it.
+        case _: NoSuchFileException        => // A concurrent build dropped the legacy file first; nothing to promote.
+      }
+    }
+    Option(current).filter(_.exists())
+  }
+
+  /** Drops every earlier-generation preview for a label; called once its current-generation replacement exists. */
+  def dropLegacy(labelId: Int): Unit = legacyFiles(labelId).foreach(delete)
 
   /**
    * Drops the cached preview for a label so the next request rebuilds it. A no-op when nothing is cached, which is
    * the common case — most labels are never shared, so most crops have no preview to invalidate.
    */
   def invalidate(labelId: Int): Unit = {
-    val file = fileFor(labelId)
-    if (file.exists() && !file.delete()) {
-      logger.warn(s"Could not invalidate cached share image: ${file.getPath}")
-    }
+    delete(fileFor(labelId))
+    dropLegacy(labelId)
   }
+
+  private def legacyFiles(labelId: Int): Seq[File] =
+    (1 until ShareImageCache.Generation).map(g => new File(dir, ShareImageCache.fileName(labelId, g)))
+
+  private def delete(file: File): Unit =
+    if (file.exists() && !file.delete()) logger.warn(s"Could not delete cached share image: ${file.getPath}")
 }

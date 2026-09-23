@@ -27,7 +27,7 @@
   "street-count-in-region_other": "{{count}} straten in {{region}}",
   "see-all-routes_other": "Bekijk alle {{count}} routes in je dashboard",
   "copied-to-clipboard": "Gekopieerd naar het klembord!",
-  "one-neighborhood-warning": "Een route kan op dit moment slechts straten uit één buurt hebben.",
+  "one-region-warning": "Een route kan op dit moment slechts straten uit één buurt hebben.",
   "route-name-default": "Route in {{region}}",
   "route-name-streets": "{{start}} naar {{end}}",
   "save-error": "Er ging iets mis bij het opslaan. Probeer het opnieuw.",

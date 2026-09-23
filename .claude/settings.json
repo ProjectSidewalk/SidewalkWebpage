@@ -26,7 +26,8 @@
       "Bash(gh label list:*)"
     ],
     "deny": [
-      "Read(docker-compose.override.yml)"
+      "Read(docker-compose.override.yml)",
+      "Read(ga-service-account.json)"
     ]
   },
   "enabledPlugins": {

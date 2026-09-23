@@ -1,5 +1,6 @@
 {
   "search-placeholder": "Nach Adresse oder Ort suchen",
+  "search-pin": "Gesuchter Ort",
   "explore-here": "Gehwege hier erkunden",
   "explore-here-short": "Hier erkunden",
   "explore-here-brief": "Erkunden",
@@ -8,6 +9,8 @@
   "zoom-in-for-labels": "Zoomen Sie hinein, um Beschriftungen zu sehen",
   "loading-elapsed": "{{seconds}} s vergangen",
   "load-failed": "Die Kartendaten konnten nicht geladen werden.",
+  "waiting-for-scores": "Warten auf die Bewertungen dieser Stadt …",
+  "waiting-for-scores-retry": "Die Bewertungen sind noch nicht bereit — neuer Versuch in {{seconds}} s …",
   "retry": "Erneut versuchen",
   "is-correct": "Ist diese Beschriftung richtig?",
   "label-type": "Beschriftungskategorie",
@@ -15,7 +18,15 @@
   "legend": "Legende",
   "streets": "Straßen",
   "audited-street": "Geprüfte Strasse",
-  "outdated-street": "Geprüfte Strasse, neuere Bilder verfügbar",
+  "outdated-street-name": "Strasse braucht erneute Prüfung",
+  "outdated-street-note": "Neuere Bilder verfügbar",
+  "outdated-street-tooltip": "Wurde geprüft, bevor neuere Street-View-Bilder verfügbar waren. Erkunde sie erneut, um zu sehen, ob sich hier etwas verändert hat.",
+  "reaudit-card-title": "Strasse braucht erneute Prüfung",
+  "reaudit-card-last-mapped": "Zuletzt geprüft",
+  "reaudit-card-new-imagery": "Neue Bilder",
+  "reaudit-card-found": "Beim letzten Mal hier gefunden:",
+  "reaudit-card-none": "Beim letzten Mal wurde hier nichts markiert.",
+  "reaudit-card-explore": "Diese Strasse erkunden",
   "unaudited-street": "Ungeprüfte Strasse",
   "not-applicable-abbr": "k.A.",
   "deselect-all": "Alle abwählen",
@@ -80,7 +91,7 @@
   "edit-failed": "Die Änderung konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.",
   "edit-failed-short": "Nicht gespeichert",
   "no-imagery-disabled": "Sie können nicht validieren oder kommentieren, wenn für diese Beschriftung keine Bilddaten verfügbar sind",
-  "no-imagery-edit-disabled": "Sie können diese Beschriftung nicht bewerten und ihre Tags nicht bearbeiten, wenn keine Bilddaten verfügbar sind",
+  "no-imagery-edit-disabled": "Sie können diese Beschriftung nicht bewerten, bearbeiten oder löschen, wenn keine Bilddaten verfügbar sind",
   "admin-only": "Nur Admin",
   "not-admin-validated": "Nicht von einem Administrator validiert",
   "download": {
@@ -165,5 +176,19 @@
       "photo-too-large": "Dieses Foto ist zu groß zum Hochladen.",
       "photo-invalid": "Wir konnten diese Datei nicht als Bild lesen (JPEG oder PNG)."
     }
-  }
+  },
+  "edit-type-changed": "Geändert zu {{labelType}}",
+  "edit-undo": "Rückgängig",
+  "edit-conflict-short": "Etikettentyp anderswo geändert",
+  "edit-conflict": "Der Typ dieses Etiketts wurde anderswo geändert, daher zeigt die Karte jetzt seinen aktuellen Stand.",
+  "delete-label": "Beschriftung löschen",
+  "delete-label-confirm": "Möchten Sie diese Beschriftung wirklich löschen?",
+  "delete-label-confirm-admin": "Möchten Sie diese Beschriftung wirklich löschen? Ihre Bewertung „Nicht einverstanden“ wird dazu gespeichert.",
+  "delete-label-failed": "Die Beschriftung konnte nicht gelöscht werden. Bitte versuchen Sie es erneut.",
+  "restore-label": "Beschriftung wiederherstellen",
+  "restore-label-brief": "Wiederherstellen",
+  "restore-label-failed": "Die Beschriftung konnte nicht wiederhergestellt werden. Bitte versuchen Sie es erneut.",
+  "you-deleted-label": "Sie haben diese Beschriftung gelöscht",
+  "label-was-deleted": "Diese Beschriftung wurde gelöscht",
+  "deleted-label-disabled": "Diese Beschriftung wurde gelöscht und kann erst nach der Wiederherstellung validiert oder bearbeitet werden"
 }

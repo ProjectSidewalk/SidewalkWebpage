@@ -3,7 +3,7 @@ package formats.json
 import models.user._
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import service.{CityHours, CrossCityHours}
+import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTotals, UserSearchResult}
 
 import java.time.OffsetDateTime
 
@@ -11,7 +11,8 @@ object UserFormats {
 
   /**
    * The Settings page's save (`POST /dashboard/settings`). The privacy flags are required so a body that omits one
-   * can't silently reset it; `teamId` null means no team, and the other optional fields mean "not touching it".
+   * can't silently reset it, and every optional field means "not touching it" — `teamId` included, since leaving a
+   * team is its own action (`UserProfileController.leaveTeam`).
    */
   case class SettingsSubmission(
       username: Option[String],
@@ -42,13 +43,17 @@ object UserFormats {
   }
   implicit val roleWrites: Writes[Role.Value] = Writes(role => JsString(role.toString))
 
+  implicit val measurementSystemReads: Reads[MeasurementSystem.Value]   = Reads.enumNameReads(MeasurementSystem)
+  implicit val measurementSystemWrites: Writes[MeasurementSystem.Value] = Writes.enumNameWrites
+
   implicit val sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String] and
       (JsPath \ "email").read[String] and
       (JsPath \ "role").read[Role.Value] and
       (JsPath \ "community_service").read[Boolean] and
-      (JsPath \ "infra3d_access").read[Boolean]
+      (JsPath \ "infra3d_access").read[Boolean] and
+      (JsPath \ "measurement_system").readNullable[MeasurementSystem.Value]
   )(SidewalkUserWithRole.apply _)
 
   implicit val sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = (
@@ -57,7 +62,8 @@ object UserFormats {
       (JsPath \ "email").write[String] and
       (JsPath \ "role").write[Role.Value] and
       (JsPath \ "community_service").write[Boolean] and
-      (JsPath \ "infra3d_access").write[Boolean]
+      (JsPath \ "infra3d_access").write[Boolean] and
+      (JsPath \ "measurement_system").writeNullable[MeasurementSystem.Value]
   )(unlift(SidewalkUserWithRole.unapply))
 
   implicit val userStatsWrites: Writes[UserStatsForAdminPage] = (
@@ -85,6 +91,56 @@ object UserFormats {
       (JsPath \ "open").write[Boolean] and
       (JsPath \ "visible").write[Boolean]
   )(unlift(Team.unapply))
+
+  /**
+   * The admin team page's payload (`/adminapi/team/:teamId`, #5381), snake_case throughout. Accuracy travels as raw
+   * (validated, agreed) counts, not a percentage, so the team's rate can pool its members' judged labels rather than
+   * average rates that describe different amounts of work.
+   */
+  implicit val teamMemberStatsWrites: Writes[TeamMemberStats] = (
+    (__ \ "user_id").write[String] and
+      (__ \ "username").write[String] and
+      (__ \ "role").write[Role.Value] and
+      (__ \ "labels").write[Int] and
+      (__ \ "validations").write[Int] and
+      (__ \ "distance_meters").write[Double] and
+      (__ \ "labels_validated").write[Int] and
+      (__ \ "labels_agreed").write[Int] and
+      (__ \ "last_active").writeNullable[OffsetDateTime] and
+      (__ \ "high_quality").write[Boolean] and
+      (__ \ "excluded").write[Boolean]
+  )(unlift(TeamMemberStats.unapply))
+
+  implicit val teamTotalsWrites: Writes[TeamTotals] = (
+    (__ \ "members").write[Int] and
+      (__ \ "labels").write[Int] and
+      (__ \ "validations").write[Int] and
+      (__ \ "distance_meters").write[Double] and
+      (__ \ "labels_validated").write[Int] and
+      (__ \ "labels_agreed").write[Int]
+  )(unlift(TeamTotals.unapply))
+
+  implicit val teamOverviewWrites: Writes[TeamOverview] = Writes { overview =>
+    Json.obj(
+      "team" -> Json.obj(
+        "team_id"     -> overview.team.teamId,
+        "name"        -> overview.team.name,
+        "description" -> overview.team.description,
+        "open"        -> overview.team.open,
+        "visible"     -> overview.team.visible
+      ),
+      "members" -> Json.toJson(overview.members),
+      "totals"  -> Json.toJson(overview.totals)
+    )
+  }
+
+  implicit val userSearchResultWrites: Writes[UserSearchResult] = (
+    (__ \ "user_id").write[String] and
+      (__ \ "username").write[String] and
+      (__ \ "email").write[String] and
+      (__ \ "role").write[Role.Value] and
+      (__ \ "team").writeNullable[String]
+  )(unlift(UserSearchResult.unapply))
 
   implicit val cityHoursWrites: Writes[CityHours] = (
     (JsPath \ "city_id").write[String] and

@@ -2,6 +2,7 @@ package models.utils
 
 import com.google.inject.ImplementedBy
 import models.api.{AggregateStats, LabelTypeStats}
+import models.label.LabelTypeEnum
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -417,9 +418,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * (reusing [[getLabelTypeStatsBySchema]]), and the weekly trend (`getCityWeeklyTrendBySchema`).
    *
    * AI is determined by the shared `sidewalk_login` role (`user_role.role = 'AI'`), not anything in the city schema — so
-   * those joins are intentionally not schema-qualified, matching `getCityDailyLabelStatsBySchema`. `COUNT(DISTINCT
-   * label_id)` is used for label counts so the AI-role LEFT JOINs can never fan a label out if a user carries more than
-   * one role row.
+   * those joins are intentionally not schema-qualified, matching `getCityDailyLabelStatsBySchema`. `user_role` has one
+   * row per user, so the AI-role LEFT JOINs can't fan a label out; `COUNT(DISTINCT label_id)` is belt and braces.
    *
    * @param schema The database schema name for the target city (e.g. "sidewalk_seattle").
    * @return       DBIO yielding a complete CityScorecard. `lastActivity` is None for a schema with no activity;
@@ -524,10 +524,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
-                 -- Denominator for "% with severity": only types that CAN take a severity. The three excluded here
-                 -- mirror UtilitiesSidewalk.js LABEL_TYPES_WITHOUT_SEVERITY (NoSidewalk, Signal, Occlusion).
+                 -- Denominator for "% with severity": only types that CAN take a rating, per LabelTypeEnum.
                  COUNT(DISTINCT label.label_id) FILTER (
-                     WHERE NOT #${labelTypeSql.labelIsOneOf(Seq("NoSidewalk", "Signal", "Occlusion"))}
+                     WHERE #${labelTypeSql.labelIsOneOf(LabelTypeEnum.ratedTypeNames)}
                  ) AS severity_eligible,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE cardinality(label.tags) > 0) AS with_tags,
                  -- Denominator for "% with tags": only types that CAN take tags, i.e. types that have any tag defined
@@ -547,8 +546,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       ) AS label_counts, (
           -- val_count / val_7d / val_30d are ALL validations (the activity volume, incl. AI). agree_count and
           -- disagree_count are HUMAN-only (role != 'AI'): the agreement/disagreement quality signal is about whether
-          -- people concur; AI verdicts are reported separately (ai_val_counts). COUNT(DISTINCT ...) guards against the
-          -- role LEFT JOIN fanning a validation out if a user carries more than one role row.
+          -- people concur; AI verdicts are reported separately (ai_val_counts). user_role has one row per user, so the
+          -- role LEFT JOIN can't fan a validation out; COUNT(DISTINCT ...) is belt and braces.
           SELECT COUNT(DISTINCT label_validation.label_validation_id) AS val_count,
                  COUNT(DISTINCT label_validation.label_validation_id)
                      FILTER (WHERE validation_result::text = 'Agree'    AND user_role.role IS DISTINCT FROM 'AI') AS agree_count,
@@ -758,10 +757,10 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * driving CTE's name rather than being a constant.** `user_role` runs to millions of rows and is ~99.9% `Anonymous`
    * (5.73M of 5.74M in prod), so a body that grouped every user — or even filtered on the role names — would aggregate
    * millions of rows, and these queries run once per city schema across ~56 schemas per cache refresh. Restricting to
-   * the handful of users active in the window keeps it index lookups on `user_role_user_id_idx` instead.
+   * the handful of users active in the window keeps it index lookups on `user_role_user_id_key` instead.
    *
-   * `BOOL_OR` + `GROUP BY` rather than a join on role name: a user with several role rows must yield exactly one row
-   * here, or the join would fan their activity out and double-count it.
+   * `BOOL_OR` + `GROUP BY` rather than a join on role name, so each user yields exactly one row here whatever the
+   * role table holds.
    *
    * @param activityCte Name of the preceding CTE holding the active users, with an `activity_user_id` column.
    * @return            The CTE body, for interpolation into a `WITH` list after `activityCte`.

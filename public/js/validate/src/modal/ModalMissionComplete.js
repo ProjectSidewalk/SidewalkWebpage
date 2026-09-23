@@ -6,9 +6,9 @@ class ModalMissionComplete {
   #language;
 
   /**
-   * @param {object} uiModalMissionComplete Mission-complete modal UI elements.
-   * @param {object} user Current user.
-   * @param {string} [language] Language code passed on to the mission start tutorial.
+   * @param {object} uiModalMissionComplete - Mission-complete modal UI elements.
+   * @param {object} user - Current user.
+   * @param {string} [language] - Language code passed on to the mission start tutorial.
    */
   constructor(uiModalMissionComplete, user, language = 'en') {
     this.#uiModalMissionComplete = uiModalMissionComplete;
@@ -58,12 +58,12 @@ class ModalMissionComplete {
    * The badge and its wording are mobile's; the desktop screen has neither element, so those calls land on empty
    * jQuery sets and it keeps the bare number its table column expects.
    *
-   * @param {number} total The validator's all-time validation count.
+   * @param {number} total - The validator's all-time validation count.
    */
   #showStanding(total) {
     const ui = this.#uiModalMissionComplete;
     ui.yourOverallTotalCount.html(util.isMobile()
-      ? i18next.t('mission-complete.all-time', { count: total })
+      ? i18next.t('mission-complete.all-time', { count: total, interpolation: { escapeValue: true } })
       : total);
 
     const { badge, next, fraction, remaining } = BadgeAchievements.getProgress('validations', total);
@@ -98,7 +98,7 @@ class ModalMissionComplete {
 
   /**
    * Displays the mission complete screen.
-   * @param {Mission} mission Object for the mission that was just completed.
+   * @param {Mission} mission - Object for the mission that was just completed.
    */
   show(mission) {
     // Disable keyboard on mobile.
@@ -108,7 +108,9 @@ class ModalMissionComplete {
     }
     const totalLabels = mission.getProperty('agreeCount') + mission.getProperty('disagreeCount')
       + mission.getProperty('unsureCount');
-    const message = i18next.t(`mission-complete.body-${mission.getProperty('labelType')}`, { n: totalLabels });
+    const message = i18next.t(`mission-complete.body-${mission.getProperty('labelType')}`, {
+      n: totalLabels, interpolation: { escapeValue: true },
+    });
 
     // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
     // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.

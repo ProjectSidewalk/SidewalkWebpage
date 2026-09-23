@@ -119,7 +119,7 @@ describe('CommunityListPage', () => {
         expect(document.getElementById('community-no-results').hidden).toBe(true);
     });
 
-    test('search is case-insensitive and matches any card text (e.g. the neighborhood name)', () => {
+    test('search is case-insensitive and matches any card text (e.g. the region name)', () => {
         setupDom(THREE_CARDS);
         newCommunityPage();
         search('bEtA sQuArE');
@@ -176,10 +176,11 @@ describe('CommunityListPage', () => {
 
 describe('StoryListPage', () => {
     /** A story card with the pieces StoryListPage touches; heights are stubbed per-test for the clamp check. */
-    function storyCard({ id, storyId, text = 'story text', typeColor = '#78B0EA' }) {
+    function storyCard({ id, storyId, text = 'story text', typeColor = '#78B0EA', photo = null }) {
         return `
             <li class="community-card story-card" ${storyId ? `data-story-id="${storyId}"` : ''}
                 data-created="${id}" data-region="R" data-labeltype="Obstacle">
+                ${photo ? `<img class="story-card__photo" src="${photo}" alt="">` : ''}
                 <div class="story-card__body">
                     <p class="story-card__text">${text}</p>
                     <a class="story-card__location" href="/labelMap?labelId=${id}" data-label-id="${id}">loc</a>
@@ -203,6 +204,32 @@ describe('StoryListPage', () => {
         const chip = document.querySelector('.community-chip--type');
         // jsdom normalizes the #RRGGBB + 20%-alpha suffix into rgba(); the exact channels come from #78B0EA.
         expect(chip.style.backgroundColor).toBe('rgba(120, 176, 234, 0.2)');
+    });
+
+    // A story's label preview is a Street View still, which 404s once the pano expires (#5327). The photo is a
+    // cover image across the top of the card, so a broken-image icon there reads as a page fault.
+    test('drops a card photo that fails to load, leaving the rest of the card and its neighbours alone', () => {
+        setupDom(storyCard({ id: '1', photo: '/expired.jpg' }) + storyCard({ id: '2', photo: '/fine.jpg' }));
+        new window.StoryListPage().init();
+        const [expired, fine] = Array.from(document.querySelectorAll('.story-card__photo'));
+
+        expired.dispatchEvent(new window.Event('error'));
+
+        expect(Array.from(document.querySelectorAll('.story-card__photo'))).toEqual([fine]);
+        expect(document.querySelectorAll('.story-card').length).toBe(2);
+    });
+
+    // The page's script tag is at the bottom of the document, so a photo can settle before any listener exists.
+    test('drops a photo that had already failed by the time the page script ran', () => {
+        setupDom(storyCard({ id: '1', photo: '/expired.jpg' }));
+        const photo = document.querySelector('.story-card__photo');
+        // jsdom fetches no images, so the settled-and-failed state has to be stood up by hand.
+        Object.defineProperty(photo, 'complete', { value: true });
+        Object.defineProperty(photo, 'naturalWidth', { value: 0 });
+
+        new window.StoryListPage().init();
+
+        expect(document.querySelector('.story-card__photo')).toBeNull();
     });
 
     test('adds a read-more toggle only to stories that overflow the clamp, and it expands/collapses', () => {
@@ -349,15 +376,15 @@ describe('StoryListPage', () => {
         /** Loads the real ShareWidget (the page builds one per card) plus the collaborators it reaches for. */
         function loadShareWidget() {
             window.eval(`${SHARE_SRC}\nwindow.ShareWidget = ShareWidget;`);
-            // The share text key resolves with the excerpt interpolated; everything else echoes its key. Mimics
-            // real i18next's default HTML-escaping of interpolated values (off only when the call opts out), so a
-            // call that forgot `escapeValue: false` ships visible entities here too, not just in production.
+            // The share text key resolves with the excerpt interpolated; everything else echoes its key. Mimics how
+            // the app configures i18next — values verbatim unless the call asks for escaping — so a share string
+            // that wrongly opted into it would ship visible entities here too, not just in production.
             const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/'/g, '&#39;');
             window.i18next = {
                 t: (key, opts) => {
                     if (!opts || opts.excerpt === undefined) return key;
-                    const raw = opts.interpolation && opts.interpolation.escapeValue === false;
-                    return `shared:${raw ? opts.excerpt : esc(opts.excerpt)}`;
+                    const escapes = opts.interpolation && opts.interpolation.escapeValue === true;
+                    return `shared:${escapes ? esc(opts.excerpt) : opts.excerpt}`;
                 },
             };
             window.matchMedia = jest.fn().mockReturnValue({ matches: false }); // jsdom has none; act as desktop.
@@ -391,8 +418,8 @@ describe('StoryListPage', () => {
             const setTarget = jest.spyOn(window.ShareWidget.prototype, 'setTarget');
             new window.StoryListPage().init();
 
-            // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so i18next's default
-            // interpolation escaping would ship "It&#39;s icy &amp;…" verbatim — the call must opt out of it.
+            // The text feeds only plain-text sinks (intent URLs, mailto, the native sheet), so escaping it would
+            // ship "It&#39;s icy &amp;…" verbatim — the call must leave the storyteller's words alone.
             expect(setTarget.mock.calls[0][0].text).toBe("shared:It's icy & the ramp is blocked.");
         });
 

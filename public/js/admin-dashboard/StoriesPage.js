@@ -13,7 +13,7 @@ class StoriesPage {
   #queueEl;
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} opts.feedUrl - The /adminapi/stories endpoint (with any ?n= cap baked in).
    */
   constructor(opts) {
@@ -27,7 +27,7 @@ class StoriesPage {
   }
 
   /**
-   * @param {{showLabel: function(number, string): Promise}} popup - A LabelPopup instance.
+   * @param {{showLabel: (labelId: number, source: string) => Promise<void>}} popup - A LabelPopup instance.
    */
   setLabelPopup(popup) {
     this.#labelPopup = popup;
@@ -47,7 +47,7 @@ class StoriesPage {
   }
 
   /**
-   * @param {Array<Object>} stories - StoryForAdmin payloads, newest first.
+   * @param {Array<Record<string, any>>} stories - StoryForAdmin payloads, newest first.
    */
   #render(stories) {
     const hiddenCount = stories.filter((s) => s.hidden).length;
@@ -63,7 +63,7 @@ class StoriesPage {
   }
 
   /**
-   * @param {Object} story - A StoryForAdmin payload.
+   * @param {Record<string, any>} story - A StoryForAdmin payload.
    * @returns {HTMLElement}
    */
   #buildRow(story) {

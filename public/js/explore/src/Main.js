@@ -3,6 +3,9 @@
  * first mission or the onboarding tutorial.
  */
 class Main {
+  // sessionStorage key for an unresolvable-?routeId= notice waiting out the tutorial (#5156).
+  static #ROUTE_UNAVAILABLE_KEY = 'sidewalk.routeUnavailable';
+
   #params;
 
   // Initialize things that need data loading.
@@ -14,7 +17,7 @@ class Main {
   #onboardingStates = null;
 
   /**
-   * @param {Object} params - Page params injected by explore.scala.html.
+   * @param {Record<string, any>} params - Page params injected by explore.scala.html.
    */
   constructor(params) {
     this.#params = params;
@@ -42,7 +45,9 @@ class Main {
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
-    svl.STREETVIEW_MAX_DISTANCE = 25; // 25 meters.
+    // Pano search radius in meters. GsvViewer also rejects any reply farther than this, since Google's radius is only
+    // a hint (#5114); scripts/check_streets_for_imagery.py and Task.ON_STREET_MAX_DISTANCE_M mirror it.
+    svl.STREETVIEW_MAX_DISTANCE = 25;
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
     svl.CONNECTED_TASK_THRESHOLD = 0.025; // 25 meters.
 
@@ -73,8 +78,8 @@ class Main {
     svl.user = new User(params.user);
 
     // Models
-    svl.neighborhoodModel = new NeighborhoodModel();
-    svl.neighborhoodModel.setAsRouteOrNeighborhood(svl.userRouteId ? 'route' : 'neighborhood');
+    svl.regionModel = new RegionModel();
+    svl.regionModel.setAsRouteOrRegion(svl.userRouteId ? 'route' : 'region');
     svl.missionModel = new MissionModel();
 
     svl.alertController = new AlertController();
@@ -123,9 +128,9 @@ class Main {
     // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
     svl.iconsPreloaded = Label.preloadIcons();
 
-    svl.navigationService = new NavigationService(svl.neighborhoodModel, svl.ui.streetview);
+    svl.navigationService = new NavigationService(svl.regionModel, svl.ui.streetview);
 
-    svl.taskContainer = new TaskContainer(svl.neighborhoodModel, svl, svl.tracker);
+    svl.taskContainer = new TaskContainer(svl.regionModel, svl, svl.tracker);
     svl.taskContainer._tasks.push(newTask);
     svl.taskContainer.setCurrentTask(newTask);
     svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
@@ -143,7 +148,7 @@ class Main {
       'status-current-mission-completion-bar-filler', 'status-current-mission-completion-rate',
     );
     svl.missionProgressBar.update(0);
-    svl.neighborhoodProgressBar = new NeighborhoodProgressBar();
+    svl.regionProgressBar = new RegionProgressBar();
     svl.missionPanel = new MissionPanel();
 
     svl.contextMenu = new ContextMenu(svl.ui.contextMenu);
@@ -151,18 +156,19 @@ class Main {
     // Game effects
     svl.audioEffect = new AudioEffect(svl.storage);
 
-    const neighborhood = new Neighborhood({
+    const region = new Region({
       regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName,
     });
-    svl.neighborhoodModel.setCurrentNeighborhood(neighborhood);
+    svl.regionModel.setCurrentRegion(region);
 
     svl.observedArea = new ObservedArea(svl.ui.minimap);
     svl.minimapLegend = new MinimapLegend(svl.ui.minimap, svl.tracker);
     svl.routeOverview = new RouteOverview(svl.ui.minimap, svl.tracker);
+    svl.forwardCrumbs = new ForwardCrumbs(svl.navigationService, svl.tracker);
 
     // Mission
     svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
-    svl.missionController = new MissionController(svl.missionModel, svl.neighborhoodModel,
+    svl.missionController = new MissionController(svl.missionModel, svl.regionModel,
       svl.missionContainer, svl.tracker);
     svl.missionModel.createAMission(params.mission); // create current mission and set as current
     svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoStore,
@@ -176,6 +182,7 @@ class Main {
     }
     svl.popUpMessage = new PopUpMessage(svl.taskContainer, svl.tracker);
     svl.aiGuidance = new AiGuidance(svl.tracker, svl.popUpMessage);
+    svl.reauditNotice = new ReauditNotice(svl.tracker);
 
     // Logs when the page's focus changes.
     const logPageFocus = () => {
@@ -201,10 +208,12 @@ class Main {
     // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
     svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout());
 
-    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, () => svl.panoViewer,
+    // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
+    // capture date and the audit note is the one place it would read as belonging to neither (#5413).
+    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.datePill, () => svl.panoViewer,
       () => svl.panoViewer.getPosition(), () => svl.panoViewer.getPanoId(),
       () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
-      () => svl.neighborhoodModel.currentNeighborhood().getRegionId(),
+      () => svl.regionModel.currentRegion().getRegionId(),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('captureDate'),
       () => svl.panoStore.getPanoData(svl.panoViewer.getPanoId()).getProperty('address'),
       () => svl.panoViewer.getPov(), true,
@@ -219,6 +228,16 @@ class Main {
       },
     );
 
+    svl.panoDateNote = new PanoDateNote(svl.tracker, svl.ui.streetview.dateHolder[0],
+      svl.ui.streetview.datePill[0], svl.ui.streetview.date[0]);
+    // The first pano and the first task both land before this line, so their own updates find no note to draw on and
+    // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
+    const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
+    svl.panoDateNote.update(
+      initialCaptureDate ? initialCaptureDate.format('YYYY-MM-DD') : null,
+      svl.taskContainer.getCurrentTask(),
+    );
+
     // Speed limit
     svl.speedLimit = new SpeedLimit(() => svl.panoViewer, () => svl.panoViewer.getPosition(), svl.isOnboarding,
       params.countryId, { taskContainer: svl.taskContainer });
@@ -230,7 +249,7 @@ class Main {
     svl.keyboard = new KeyboardManager(
       svl, svl.canvas, svl.contextMenu, svl.navigationService, svl.ribbon, svl.zoomControl,
     );
-    this.#loadData(svl.taskContainer, svl.missionModel, svl.neighborhoodModel, svl.contextMenu);
+    this.#loadData(svl.taskContainer, svl.missionModel, svl.regionModel, svl.contextMenu);
 
     $('#navbar-retake-tutorial-btn').on('click', () => {
       window.location.replace('/explore?retakeTutorial=true');
@@ -258,8 +277,8 @@ class Main {
     this.#updateURL();
   }
 
-  #loadData(taskContainer, missionModel, neighborhoodModel, contextMenu) {
-    // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the neighborhood.
+  #loadData(taskContainer, missionModel, regionModel, contextMenu) {
+    // If in the tutorial, we already have the tutorial task. If not, get the rest of the tasks in the region.
     if (svl.isOnboarding()) {
       this.#loadingTasksCompleted = true;
       this.#handleDataLoadComplete();
@@ -268,7 +287,7 @@ class Main {
         this.#loadingTasksCompleted = true;
         this.#handleDataLoadComplete();
         // Plant start/finish flags on the minimap so a route walk shows where it begins and ends.
-        if (svl.neighborhoodModel.isRoute) {
+        if (svl.regionModel.isRoute) {
           const endpoints = taskContainer.getRouteEndpoints();
           if (endpoints) svl.minimap.showRouteEndpoints(endpoints.start, endpoints.finish);
         }
@@ -276,7 +295,7 @@ class Main {
     }
 
     // Fetch the user's completed missions.
-    missionModel.fetchCompletedMissionsInNeighborhood(() => {
+    missionModel.fetchCompletedMissionsInRegion(() => {
       this.#loadingMissionsCompleted = true;
       this.#handleDataLoadComplete();
     });
@@ -297,6 +316,47 @@ class Main {
       onSkip: () => this.#skipTutorial(),
     });
     svl.tutorialIntro.show();
+  }
+
+  /**
+   * Holds an unresolvable-?routeId= notice (#5156) over the tutorial, which is where a first-time visitor following
+   * a stale share link lands.
+   *
+   * Saying it now would be saying it into the tutorial intro and then throwing it away: onboarding takes over the
+   * whole session and ends by reloading a bare /explore, which carries no trace of the route that was asked for.
+   * Waiting is also what a *valid* route does here — its walk is set up, suppressed for the tutorial's sake (#4816),
+   * and picked up on that same reload. sessionStorage rather than a field because of that reload; per tab, so a
+   * notice never outlives the browsing session that earned it.
+   */
+  #parkRouteUnavailableNotice() {
+    if (!this.#params.routeUnavailable) return;
+    try {
+      window.sessionStorage.setItem(Main.#ROUTE_UNAVAILABLE_KEY, '1');
+    } catch {
+      // Storage throws outright in some privacy modes. A notice that can't cross the reload is lost; it must never
+      // be the thing that breaks Explore.
+    }
+  }
+
+  /**
+   * Whether this load owes the user the unresolvable-?routeId= notice — this visit's own, or one held over the
+   * tutorial by [[#parkRouteUnavailableNotice]]. Consumed as it is read, so it shows once.
+   *
+   * A held notice is dropped once a route has resolved: the user asked again and got one, so the earlier failure is
+   * news about a route they have already moved past — and reporting it would take the place of the resume toast,
+   * which belongs to the route they are actually in.
+   *
+   * @returns {boolean} True when the toast should be shown.
+   */
+  #takeRouteUnavailableNotice() {
+    const asked = Boolean(this.#params.routeUnavailable);
+    try {
+      const parked = window.sessionStorage.getItem(Main.#ROUTE_UNAVAILABLE_KEY) === '1';
+      if (parked) window.sessionStorage.removeItem(Main.#ROUTE_UNAVAILABLE_KEY);
+      return asked || (parked && !this.#params.routeId);
+    } catch {
+      return asked;
+    }
   }
 
   /**
@@ -329,27 +389,27 @@ class Main {
     svl.onboarding.start();
   }
 
-  #startTheMission(mission, neighborhood) {
+  #startTheMission(mission, region) {
     svl.ui.minimap.holder.css('backgroundColor', '#e5e3df');
 
     // Popup the message explaining the goal of the current mission.
     if (svl.missionContainer.isTheFirstMission()) {
-      neighborhood = svl.neighborhoodModel.currentNeighborhood();
+      region = svl.regionModel.currentRegion();
       svl.initialMissionInstruction = new InitialMissionInstruction(
         svl.compass, svl.navigationService, svl.popUpMessage,
         svl.taskContainer, svl.labelContainer, svl.aiGuidance, svl.tracker,
       );
-      svl.initialMissionInstruction.start(neighborhood);
+      svl.initialMissionInstruction.start(region);
     } else {
       // Show AI guidance message for the first street. Handled by InitialMissionInstruction if 1st mission.
       svl.aiGuidance.showAiGuidanceMessage();
     }
 
-    svl.missionModel.updateMissionProgress(mission, neighborhood);
+    svl.missionModel.updateMissionProgress(mission, region);
     svl.missionPanel.setMessage(mission);
     svl.minimap.updateMissionProgress(mission);
 
-    svl.labelContainer.fetchLabelsToResumeMission(neighborhood.getRegionId(), () => {
+    svl.labelContainer.fetchLabelsToResumeMission(region.getRegionId(), () => {
       svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
       // Wait for the icon cache before this first paint (resolves immediately if already warm).
       svl.iconsPreloaded.then(() => {
@@ -359,7 +419,7 @@ class Main {
 
     svl.taskContainer.renderAllTasks();
     const distance = svl.taskContainer.getCompletedTaskDistance();
-    svl.overallStats.setNeighborhoodAuditedDistance(distance);
+    svl.overallStats.setRegionAuditedDistance(distance);
 
     // Prefetch Mapillary data on images along the street to improve load times for images along the street.
     svl.navigationService.prefetchAlongStreet(svl.taskContainer.getCurrentTask().getFeature());
@@ -368,9 +428,9 @@ class Main {
   // This is a callback function that is executed after every loading process is done.
   #handleDataLoadComplete() {
     if (this.#loadingTasksCompleted && this.#loadingMissionsCompleted && this.#loadLabelTags) {
-      // Mark neighborhood as complete if there are no streets left with max priority (= 1).
+      // Mark region as complete if there are no streets left with max priority (= 1).
       if (!svl.taskContainer.hasMaxPriorityTask()) {
-        svl.neighborhoodModel.setNeighborhoodCompleteAcrossAllUsers();
+        svl.regionModel.setRegionCompleteAcrossAllUsers();
       }
 
       // Set up a few initial views now that everything has loaded. A seeded POV (the labeler's stored view from the
@@ -387,6 +447,8 @@ class Main {
       svl.observedArea.update();
       svl.compass.update();
       svl.compass.enableCompassClick();
+      // The first task was set before the crumbs existed, so draw the ones ahead now (#4669).
+      svl.forwardCrumbs.refresh();
       // Re-render the nav arrows now that the compass and task exist, so the route-forward arrow is highlighted on
       // the very first pano too — PanoManager's own initial resetNavArrows ran before those were wired up. (#4671)
       svl.panoManager.resetNavArrows();
@@ -398,11 +460,12 @@ class Main {
       // Check if the user has completed the onboarding tutorial.
       const mission = svl.missionContainer.getCurrentMission();
       if (mission.getProperty('missionType') === 'auditOnboarding') {
+        this.#parkRouteUnavailableNotice();
         this.#startTutorialIntro();
       } else {
         this.#calculateAndSetTasksMissionsOffset();
 
-        const currentNeighborhood = svl.neighborhoodModel.currentNeighborhood();
+        const currentRegion = svl.regionModel.currentRegion();
         if (svl.isExploreAddressMode()) {
           // Free exploration (#4451): hide the mission progress UI, and skip the mission-start modal (its copy
           // interpolates a mission distance, which this mission type doesn't have).
@@ -410,13 +473,14 @@ class Main {
           document.getElementById('compass-message-holder').classList.add('ps-hidden');
           svl.tracker.push('ExploreAddress_SessionStart');
           // Name the place when the search supplied one — "dropped near Teaneck High School" orients the user far
-          // better than a generic greeting. The name comes from a URL param and lands in innerHTML, so it must stay
-          // an i18next interpolation: the default escapeValue escapes it, while the <b> in the string itself renders.
+          // better than a generic greeting. The name comes from a URL param and the alert banner renders its
+          // message as HTML, so the value is escaped here while the <b> in the string itself renders.
           const placeName = this.#params.startPlaceName;
           const startMessage = placeName
-            ? i18next.t('popup.free-explore-start-named', { placeName })
+            ? i18next.t('popup.free-explore-start-named', { placeName, interpolation: { escapeValue: true } })
             : i18next.t('popup.free-explore-start');
           svl.alertController.showAlert(startMessage, 'exploreAddressStart', true);
+          svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
         } else {
           // Initialize explore mission screens focused on a randomized label type, though users can switch between
           // them.
@@ -430,13 +494,26 @@ class Main {
             && (missionProgressM > 0 || Boolean(this.#params.task.properties.audit_task_id));
           new MissionStartTutorial('audit', labelType, {
             nLength: currentMission.getDistance('miles'),
-            neighborhood: currentNeighborhood.getProperty('name'),
+            region: currentRegion.getProperty('name'),
             resuming,
           }, svl, this.#params.language);
 
-          // Toasts telling the user this visit resumed something in progress (#4833), deferred until the
-          // mission-start screen closes so they aren't missed underneath it.
-          if (svl.userRouteId && this.#params.routeResumed) {
+          // Toasts telling the user this visit resumed something in progress (#4833), or that the route the URL
+          // asked for could not be opened (#5156), deferred until the mission-start screen closes so they aren't
+          // missed underneath it. At most one of these three shows: the dropped-route news outranks a resume note the
+          // sidebar's route name already carries. The re-audit notice (#4895) is raised alongside them and `Toast`
+          // queues it behind whichever took the spot, so no duration arithmetic is needed here.
+          if (this.#takeRouteUnavailableNotice()) {
+            document.addEventListener('ps:mission-start-tutorial:done', () => {
+              svl.tracker.push('RouteUnavailableToast_Shown');
+              Toast.show({
+                message: i18next.t('right-ui.route-unavailable.message'),
+                reference: document.getElementById('pano'),
+                dark: true,
+                duration: 10000,
+              });
+            }, { once: true });
+          } else if (svl.userRouteId && this.#params.routeResumed) {
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteResumeToast_Shown');
               Toast.show({
@@ -458,7 +535,7 @@ class Main {
               svl.tracker.push('MissionResumeToast_Shown');
               Toast.show({
                 message: i18next.t('right-ui.mission-resume.message', {
-                  neighborhoodName: currentNeighborhood.getProperty('name'),
+                  regionName: currentRegion.getProperty('name'),
                   distanceLeft: Math.max(currentMission.getDistance('meters') - missionProgressM, 0),
                 }),
                 reference: document.getElementById('pano'),
@@ -467,9 +544,12 @@ class Main {
               });
             }, { once: true });
           }
+          document.addEventListener('ps:mission-start-tutorial:done', () => {
+            svl.reauditNotice.showForTask(svl.taskContainer.getCurrentTask());
+          }, { once: true });
         }
 
-        this.#startTheMission(mission, currentNeighborhood);
+        this.#startTheMission(mission, currentRegion);
       }
 
       // Update the observed area now that everything has loaded.
@@ -501,11 +581,15 @@ class Main {
        */
       svl.relayout = () => {
         applyExploreScale();
+        // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
+        // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
+        // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
+        svl.panoViewer?.resize();
+        svl.panoViewer?.repaint();
         // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
         if (svl.canvas) svl.canvas.resize();
         if (svl.onboarding) svl.onboarding.resize();
         if (svl.observedArea) svl.observedArea.update();
-        if (svl.panoViewer) svl.panoViewer.resize();
       };
       svl.relayout();
       // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
@@ -514,15 +598,28 @@ class Main {
       }
       window.dispatchEvent(new Event('resize'));
 
+      // Attached below the synthetic resize above, so page load never logs one: nothing was resized there, and the
+      // rescale, re-raster and repaint that event stands in for have just been run inline.
       let resizeRasterTimer;
       window.addEventListener('resize', () => {
         applyExploreScale();
         clearTimeout(resizeRasterTimer);
         resizeRasterTimer = setTimeout(() => {
+          // The viewer hears about the settled size, after the rescale above has changed its box — telling it per
+          // event would describe the box it already had, and the last event of a drag would go unanswered. It also
+          // keeps the providers whose resize() is a full re-measure (Mapillary, Infra3d, Panoramax) off the event
+          // firehose. The repaint is GSV's #2468 workaround; PanoViewer.repaint() is a no-op elsewhere.
+          svl.panoViewer.resize();
+          svl.panoViewer.repaint();
           if (svl.canvas) svl.canvas.resize();
           if (svl.onboarding) svl.onboarding.resize();
           if (svl.observedArea) svl.observedArea.update();
-          if (svl.panoViewer) svl.panoViewer.resize();
+          // Logged on the settled size rather than per event, so a window drag is one line (#5367). The repaint
+          // above bypasses the POV path that logs POV_Changed, so none follows this one.
+          svl.tracker.push('Window_Resized', {
+            width: document.documentElement.clientWidth,
+            height: document.documentElement.clientHeight,
+          });
         }, 150);
       });
     }
@@ -592,6 +689,7 @@ class Main {
     svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
     svl.ui.minimap.legendCard = $('#minimap-legend-card');
     svl.ui.minimap.legendClose = $('#minimap-legend-close');
+    svl.ui.minimap.legendEarlierLabels = $('#minimap-legend-earlier-labels');
     svl.ui.minimap.routeOverview = $('#minimap-route-overview');
     svl.ui.minimap.routeOverviewCanvas = $('#minimap-route-overview-canvas');
 
@@ -603,6 +701,7 @@ class Main {
     svl.ui.streetview.modeSwitchWalk = $('#mode-switch-button-walk');
     svl.ui.streetview.navArrows = $('#arrow-group');
     svl.ui.streetview.dateHolder = $('#svl-panorama-date-holder');
+    svl.ui.streetview.datePill = $('#svl-panorama-date-pill');
     svl.ui.streetview.date = $('#svl-panorama-date');
 
     // Canvas for the labeling area.

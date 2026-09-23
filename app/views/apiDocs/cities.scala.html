@@ -32,13 +32,13 @@
 
     @common.cityPopupTemplate()
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
     @* Styles the city popups this map shares with the landing page and /cities. *@
     <link rel="stylesheet" href='@assets.path("css/components/deployment-map.css")'>
     <link rel="stylesheet" href='@assets.path("css/pages/api-docs/cities.css")'>
     @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
        set: the language plugin and the ps-map bundle both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
     <script src='@assets.path("js/ps-map/build/ps-map.js")' defer></script>
     <script>
@@ -94,12 +94,6 @@
         <span class="format-icon">🗺️</span> GeoJSON
         <span class="format-hint">For mapping applications</span>
       </button>
-    </div>
-
-    <div id="download-status" class="status-container status-loading ps-hidden">
-      <div class="loading-spinner"></div>
-      <div class="status-message">Preparing your download...</div>
-      <div class="status-progress">This should only take a few seconds.</div>
     </div>
   </div>
 
@@ -172,6 +166,23 @@
         "west": -81
       }
     },
+    {
+      "city_id": "taipei",
+      "country_id": "taiwan",
+      "city_name_short": "Taipei",
+      "city_name_formatted": "Taipei, Taiwan",
+      "url": null, // Not publicly launched, so no address is published.
+      "visibility": "private",
+      "center_lat": 25.04,
+      "center_lng": 121.51,
+      "zoom": 12.75,
+      "bounds": {
+        "north": 25.3,
+        "south": 24.9,
+        "east": 121.7,
+        "west": 121.3
+      }
+    },
     // ... more cities
   ]
 }</code></pre>
@@ -193,7 +204,7 @@
           <tr><td><code>country_id</code></td><td><code>string</code></td><td>Identifier for the country where the city is located.</td></tr>
           <tr><td><code>city_name_short</code></td><td><code>string</code></td><td>Short name of the city.</td></tr>
           <tr><td><code>city_name_formatted</code></td><td><code>string</code></td><td>Full formatted name of the city, including state/province or country information.</td></tr>
-          <tr><td><code>url</code></td><td><code>string</code></td><td>URL for the city's Project Sidewalk instance.</td></tr>
+          <tr><td><code>url</code></td><td><code>string | null</code></td><td>URL for the city's Project Sidewalk instance. <code>null</code> unless <code>visibility</code> is <code>public</code>; the CSV renders that as an empty cell.</td></tr>
           <tr><td><code>visibility</code></td><td><code>string</code></td><td>Visibility status of the city: <code>public</code> or <code>private</code>.</td></tr>
           <tr><td><code>center_lat</code></td><td><code>number | null</code></td><td>Latitude of the city's center point. Present only if geographic information is available.</td></tr>
           <tr><td><code>center_lng</code></td><td><code>number | null</code></td><td>Longitude of the city's center point. Present only if geographic information is available.</td></tr>
@@ -212,6 +223,7 @@
     <pre tabindex="0"><code class="language-csv">city_id,country_id,city_name_short,city_name_formatted,url,visibility,center_lat,center_lng,zoom,bounds.north,bounds.south,bounds.east,bounds.west
 teaneck-nj,usa,Teaneck,"Teaneck, NJ",https://sidewalk-teaneck.cs.washington.edu,public,40.888,-74.015,12.75,41.4,40.4,-73.5,-74.5
 pittsburgh-pa,usa,Pittsburgh,"Pittsburgh, PA",https://sidewalk-pittsburgh-test.cs.washington.edu,public,40.435,-79.96,11.75,41,40,-79,-81
+taipei,taiwan,Taipei,"Taipei, Taiwan",,private,25.04,121.51,12.75,25.3,24.9,121.7,121.3
 ...</code></pre>
 
     <h4 id="response-geojson">GeoJSON Format <a href="#response-geojson" class="permalink">#</a></h4>

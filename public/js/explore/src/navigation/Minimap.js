@@ -10,7 +10,7 @@ class Minimap {
   /** @type {number} */
   static #DEFAULT_ZOOM = 18;
 
-  // Zoom floor while fitted to the whole route/neighborhood; far below MIN_ZOOM, which only bounds manual zooming.
+  // Zoom floor while fitted to the whole route/region; far below MIN_ZOOM, which only bounds manual zooming.
   /** @type {number} */
   static #OVERVIEW_MIN_ZOOM = 12;
 
@@ -19,13 +19,19 @@ class Minimap {
   static #START_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-start.svg');
   static #FINISH_FLAG_SRC = util.assetPath('images/icons/routebuilder/flag-end.svg');
 
+  /**
+   * A neighborhood mission's start and finish flags, planted on first use and moved after; see updateMissionFlags().
+   * @type {{start: ?google.maps.marker.AdvancedMarkerElement, finish: ?google.maps.marker.AdvancedMarkerElement}}
+   */
+  #missionFlags = { start: null, finish: null };
+
   /** @type {google.maps.Map} */
   #map;
 
   /** @type {number} */
   #minimapPaneBlinkInterval;
 
-  /** True while the minimap is fitted to the whole route/neighborhood instead of following the user. */
+  /** True while the minimap is fitted to the whole route/region instead of following the user. */
   #overviewMode = false;
 
   /**
@@ -138,7 +144,7 @@ class Minimap {
   }
 
   /**
-   * Fits the minimap to all loaded streets (the route when on one, the neighborhood otherwise) so the user can see
+   * Fits the minimap to all loaded streets (the route when on one, the region otherwise) so the user can see
    * overall progress at a glance. The fog/FOV/ring overlays are hidden via the minimap-overview class while fitted —
    * they only make sense at street zoom, centered on the user.
    */
@@ -181,18 +187,18 @@ class Minimap {
   }
 
   /**
-   * Bounds framing "your route": on a designated route, every loaded street; on a neighborhood audit, the current
+   * Bounds framing "your route": on a designated route, every loaded street; on a region audit, the current
    * mission's streets plus the one you're on (the region as a whole would zoom out far past the route — #4639).
    * @returns {google.maps.LatLngBounds|null} Null if no street geometry is available yet.
    */
   #streetBounds() {
     if (!svl.taskContainer) return null;
     let tasks;
-    if (svl.neighborhoodModel && svl.neighborhoodModel.isRoute) {
+    if (svl.regionModel && svl.regionModel.isRoute) {
       // On a designated route every loaded street IS the route, so fit them all.
       tasks = svl.taskContainer.getTasks();
     } else {
-      // A neighborhood audit loads the entire region; fit just this mission's streets plus the street you're on. Early
+      // A region audit loads the entire region; fit just this mission's streets plus the street you're on. Early
       // in a mission that's essentially the current street — i.e. a normal street-level view, not the whole region.
       const mission = svl.missionContainer && svl.missionContainer.getCurrentMission();
       tasks = ((mission && mission.getRoute()) || []).slice();
@@ -214,6 +220,7 @@ class Minimap {
    * @param {Mission} mission - The current mission.
    */
   updateMissionProgress(mission) {
+    this.updateMissionFlags(mission);
     const totalMeters = mission.getDistance('meters');
     // Free-exploration missions (#4451) have no distance target; a "0/0" progress bar would be meaningless, so hide it.
     if (!totalMeters) {
@@ -236,7 +243,9 @@ class Minimap {
 
   /**
    * Resets the mission-progress bar to 0% for a freshly started mission, mirroring the sidebar bar's reset when the
-   * mission-complete modal closes. Shows "0 / <target>" so the new mission's length is visible right away.
+   * mission-complete modal closes. Shows "0 / <target>" so the new mission's length is visible right away, and
+   * re-plants the flags for the new mission: its start is where the last one finished, so the red finish flag the
+   * user just reached becomes the green start flag without waiting for their next step (#5378).
    * @param {Mission} [mission] - The newly started mission; if absent, the distance label is cleared.
    */
   resetMissionProgress(mission) {
@@ -244,6 +253,7 @@ class Minimap {
     svl.ui.minimap.missionProgressPercent.text('0%');
     svl.ui.minimap.missionProgress.attr('aria-valuenow', 0);
     if (mission) {
+      this.updateMissionFlags(mission);
       const totalMeters = mission.getDistance('meters');
       svl.ui.minimap.missionProgressDistance.text(
         i18next.t('common:distance-progress', { done: 0, total: totalMeters }),
@@ -291,27 +301,94 @@ class Minimap {
 
   /**
    * Draws the route's start and finish flags on the minimap (routes only), reusing the same flag icons the user
-   * placed while building the route so building and walking read as one experience. Each flag is planted with its
-   * pole base on the point (AdvancedMarkerElement's default bottom-center anchor matches RouteBuilder's icon-anchor).
-   * The flags are decorative reinforcement of route status already conveyed textually (progress bar, finish toast,
-   * compass message), so their images are marked decorative (empty alt) for screen readers.
+   * placed while building the route so building and walking read as one experience. The flags reinforce route
+   * status already conveyed textually (progress bar, finish toast, compass message); their tooltip names them for
+   * anyone hovering.
    * @param {{lat: number, lng: number}} start - Route start (first street's walking-start coordinate).
    * @param {{lat: number, lng: number}} finish - Route finish (last street's walking-end coordinate).
    */
   showRouteEndpoints(start, finish) {
-    const plantFlag = (latLng, src) => {
-      const content = document.createElement('img');
-      content.src = src;
-      content.alt = '';
-      content.style.width = `${Minimap.#ROUTE_FLAG_SIZE_PX}px`;
-      return new google.maps.marker.AdvancedMarkerElement({
-        position: new google.maps.LatLng(latLng.lat, latLng.lng),
-        map: this.#map,
-        content,
-      });
-    };
-    plantFlag(start, Minimap.#START_FLAG_SRC);
-    plantFlag(finish, Minimap.#FINISH_FLAG_SRC);
+    this.#plantFlag(start, Minimap.#START_FLAG_SRC, i18next.t('audit:right-ui.minimap.route-start-flag'));
+    this.#plantFlag(finish, Minimap.#FINISH_FLAG_SRC, i18next.t('audit:right-ui.minimap.route-finish-flag'));
+  }
+
+  /**
+   * Plants a neighborhood mission's start and finish flags, so a mission reads the way a RouteBuilder route does.
+   * The start is where the mission began (recorded on the task it began on, and persisted with it). The finish is
+   * only knowable once the mission's remaining distance fits on the current street, since a neighborhood mission
+   * picks each next street as it goes; until then no finish flag shows. Routes keep their whole-route flags; the
+   * tutorial and free exploration have no mission to frame.
+   * @param {Mission} mission - The current mission.
+   */
+  updateMissionFlags(mission) {
+    const noMissionToFrame = (svl.regionModel && svl.regionModel.isRoute) || !svl.taskContainer
+      || (svl.isOnboarding && svl.isOnboarding()) || (svl.isExploreAddressMode && svl.isExploreAddressMode());
+    if (noMissionToFrame) return;
+    const missionId = mission.getProperty('missionId');
+    const startTask = svl.taskContainer.getTasks().find((task) => task.getMissionStart(missionId));
+    this.#placeFlag('start', startTask ? startTask.getMissionStart(missionId) : null,
+      Minimap.#START_FLAG_SRC, 'mission-start-flag');
+    this.#placeFlag('finish', Minimap.missionFinish(mission, svl.taskContainer.getCurrentTask()),
+      Minimap.#FINISH_FLAG_SRC, 'mission-finish-flag');
+  }
+
+  /**
+   * Where a mission will end, once that point lies on the current street: the mission's remaining distance walked
+   * along the street from the furthest point reached. Null while a later, not-yet-chosen street will carry the end.
+   * @param {Mission} mission - The current mission.
+   * @param {?Task} task - The current task.
+   * @returns {?{lat: number, lng: number}}
+   */
+  static missionFinish(mission, task) {
+    const totalMeters = mission.getDistance('meters');
+    if (!totalMeters || !task) return null;
+    const remainingKm = Math.max(0, totalMeters - (mission.getProperty('distanceProgress') || 0)) / 1000;
+    const remainder = NavigationService.remainderOfStreet(task);
+    if (remainingKm > turf.length(remainder)) return null;
+    const [lng, lat] = turf.along(remainder, remainingKm).geometry.coordinates;
+    return { lat, lng };
+  }
+
+  /**
+   * Plants, moves, or hides one of the mission flags.
+   * @param {'start'|'finish'} which - Which flag.
+   * @param {?{lat: number, lng: number}} latLng - Where it goes, or null to hide it.
+   * @param {string} src - The flag image.
+   * @param {string} i18nKey - Key under audit:right-ui.minimap for its tooltip.
+   */
+  #placeFlag(which, latLng, src, i18nKey) {
+    const flag = this.#missionFlags[which];
+    if (!latLng) {
+      if (flag) flag.map = null;
+      return;
+    }
+    if (!flag) {
+      this.#missionFlags[which] = this.#plantFlag(latLng, src, i18next.t(`audit:right-ui.minimap.${i18nKey}`));
+      return;
+    }
+    flag.position = new google.maps.LatLng(latLng.lat, latLng.lng);
+    flag.map = this.#map;
+  }
+
+  /**
+   * One flag marker, planted with its pole base on the point (AdvancedMarkerElement's default bottom-center anchor
+   * matches RouteBuilder's icon-anchor).
+   * @param {{lat: number, lng: number}} latLng - Where to plant it.
+   * @param {string} src - The flag image.
+   * @param {string} title - Hover tooltip and accessible name.
+   * @returns {google.maps.marker.AdvancedMarkerElement}
+   */
+  #plantFlag(latLng, src, title) {
+    const content = document.createElement('img');
+    content.src = src;
+    content.alt = title;
+    content.style.width = `${Minimap.#ROUTE_FLAG_SIZE_PX}px`;
+    return new google.maps.marker.AdvancedMarkerElement({
+      position: new google.maps.LatLng(latLng.lat, latLng.lng),
+      map: this.#map,
+      content,
+      title,
+    });
   }
 
   /**

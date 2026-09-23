@@ -6,7 +6,7 @@
  * Hover/click a street to see its score and per-type cluster breakdown.
  *
  * @requires A DOM element with id 'access-score-streets-preview'
- * @requires mapbox-gl and js/api-docs/apiDocsMap.js
+ * @requires mapbox-gl, js/api-docs/apiDocsMap.js, and js/common/utilities.js (util.escapeHTML)
  */
 
 (function () {
@@ -79,7 +79,7 @@
       mapElement.id = 'access-score-streets-map';
       container.appendChild(mapElement);
 
-      const bounds = features.length ? ApiDocsMap.featureCollectionBounds(features) : null;
+      const bounds = features.length ? featureCollectionBounds({ type: 'FeatureCollection', features }) : null;
       const map = await ApiDocsMap.create({
         container: mapElement,
         mapboxApiKey: config.mapboxApiKey,
@@ -126,10 +126,19 @@
         const breakdown = Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${k}: ${counts[k]}`).join(', ')
           || 'no scored features';
 
+        // Slope comes from an elevation model, so an unaudited street has it too; a bridge or a gap has none (#5223).
+        const percent = (grade) => `${(grade * 100).toFixed(1)}%`;
+        const slope = typeof p.mean_grade === 'number'
+          ? `<p><strong>Slope:</strong> mean ${percent(p.mean_grade)}, max ${percent(p.max_grade)}</p>`
+          : '';
+
+        // The name is the OSM way's `name` tag, which anyone can edit, so it is never trusted into markup.
+        const name = p.street_name ? `${util.escapeHTML(p.street_name)} · ` : '';
         ApiDocsMap.popup(map, e.lngLat, `
-          <h4>Street ${p.street_edge_id}</h4>
+          <h4>${name}Street ${p.street_edge_id}</h4>
           <p><span class="as-score">${score}</span> AccessScore</p>
           <p><strong>Audits:</strong> ${p.audit_count} &nbsp; <strong>Labels:</strong> ${p.label_count}</p>
+          ${slope}
           <p class="as-breakdown"><strong>Clusters:</strong> ${breakdown}</p>
         `);
       });

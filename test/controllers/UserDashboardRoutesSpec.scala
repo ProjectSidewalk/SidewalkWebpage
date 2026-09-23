@@ -50,7 +50,10 @@ class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
       status(route(app, FakeRequest(GET, "/leaderboard")).get) mustBe OK
     }
 
-    Seq("/dashboard/settings", "/userapi/mistakeVote", "/userapi/mistakeNote").foreach { path =>
+    Seq(
+      "/dashboard/settings", "/dashboard/settings/password", "/dashboard/settings/signOutOtherDevices",
+      "/userapi/mistakeVote", "/userapi/mistakeNote"
+    ).foreach { path =>
       // Only "not 404" here: an unauthenticated write is answered 401 rather than bounced, so the client can mint a
       // session and retry instead of having its submission swallowed by a followed redirect (ControllerUtils
       // .anonSignupRedirect). That contract belongs to those specs; this one is about the route existing.

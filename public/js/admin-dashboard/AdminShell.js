@@ -1,7 +1,8 @@
 /**
  * Shell behaviors for the redesigned admin dashboard (#4272): builds the right-hand "On this page" table of
  * contents from the page's headings, highlights the active section on scroll (scroll-spy), smooth-scrolls anchor
- * clicks past the fixed navbar, and adds the left nav's mobile disclosure (sidebarDisclosure.js).
+ * clicks past the fixed navbar, keeps a deep link's target in place while sections above it are still loading, and
+ * adds the left nav's mobile disclosure (sidebarDisclosure.js).
  *
  * This is a clean ES6 reimplementation of the equivalent api-docs.js logic, operating on the same .api-* markup so
  * the look and behavior match. It self-initializes on DOMContentLoaded.
@@ -15,6 +16,15 @@ class AdminShell {
   #headings = [];
   #tocLinks = [];
   #scrollSpyAttached = false;
+  /** The deep link's target while it is still being held in place; null once the reader has taken over. */
+  #deepLinkTarget = null;
+  /**
+   * Where the hold last put the page — scroll offset and page height — so a later scroll event can be told apart:
+   * the reader's (same height, new offset) from scroll anchoring making room for a section (new height).
+   *
+   * @type {{ scrollY: number, height: number } | null}
+   */
+  #held = null;
 
   init() {
     this.#content = document.querySelector('.page-content');
@@ -24,6 +34,7 @@ class AdminShell {
     this.#buildTableOfContents();
     this.#setupScrollSpy();
     this.#setupSmoothScrolling();
+    this.#keepDeepLinkTargetInView();
     initSidebarDisclosure();
     this.#localizeDeployTimes();
   }
@@ -38,6 +49,7 @@ class AdminShell {
     document.querySelectorAll('.deploy-strip time[datetime]').forEach((el) => {
       const date = new Date(el.getAttribute('datetime'));
       if (Number.isNaN(date.getTime())) return;
+      /** @type {Intl.DateTimeFormatOptions} */
       const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
       el.textContent = el.dataset.format === 'date'
         ? date.toLocaleDateString(undefined, { ...dateOpts, timeZone: 'UTC' })
@@ -46,10 +58,10 @@ class AdminShell {
   }
 
   /**
-     * Builds the TOC from the section headings (h2/h3.page-heading with ids) inside the main content area. Scoped to
-     * .page-heading so headings inside closed <dialog>s (e.g. the dashboard's create-team dialog) stay out — a hidden
-     * heading has offsetTop 0, which would also wedge the scroll-spy on its TOC entry forever.
-     */
+   * Builds the TOC from the section headings (h2/h3.page-heading with ids) inside the main content area. Scoped to
+   * .page-heading so headings inside closed <dialog>s (e.g. the dashboard's create-team dialog) stay out — a hidden
+   * heading has offsetTop 0, which would also wedge the scroll-spy on its TOC entry forever.
+   */
   #buildTableOfContents() {
     if (!this.#tocList) return;
     this.#tocList.replaceChildren();
@@ -126,7 +138,7 @@ class AdminShell {
    */
   #setupSmoothScrolling() {
     document.querySelectorAll('.page-content a.permalink[href^="#"]')
-      .forEach((anchor) => this.#bindSmoothScroll(anchor));
+      .forEach((anchor) => this.#bindSmoothScroll(/** @type {HTMLAnchorElement} */ (anchor)));
   }
 
   /** @param {HTMLAnchorElement} anchor - An in-page anchor whose href is a fragment. */
@@ -136,12 +148,81 @@ class AdminShell {
       const target = document.getElementById(id);
       if (!target) return;
       e.preventDefault();
+      // The reader chose a destination. replaceState below fires no hashchange, and an activation without a pointer
+      // or key event (element.click(), voice control) reaches here with the deep-link hold still armed.
+      this.#deepLinkTarget = null;
       const top = target.offsetTop - AdminShell.#NAVBAR_OFFSET;
       // Jump instantly for users who prefer reduced motion (WCAG 2.3.3).
       const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       window.scrollTo({ top, behavior: reduceMotion ? 'auto' : 'smooth' });
       history.replaceState(null, '', `#${id}`);
     });
+  }
+
+  /**
+   * Holds a deep link's target where the browser put it while the sections above it are still landing (#5001).
+   *
+   * The browser scrolls to `location.hash` exactly once, at load, but on these pages whole sections render after
+   * that: the dashboard's cross-city breakdown flips from `hidden` when its fan-out answers, the mistake gallery and
+   * badges fill in from their fetches, and each one that lands above the target pushes it down the page. Browser
+   * scroll anchoring doesn't cover a section unhiding (and Safari has none), so this re-scrolls the target into
+   * position each time the content column changes height — until the reader scrolls, presses a key, or touches the
+   * page, the one signal that where they are is now deliberate. A hash change re-arms it, so a deep link into a
+   * section that hasn't rendered yet lands once it does.
+   *
+   * A scroll the hold didn't make also counts as the reader taking over: a scrollbar drag in Firefox, a screen
+   * reader's browse-mode navigation, and find-in-page all move the page without a pointer, key, or wheel event, and
+   * on a page that re-renders on a timer (Admin → Health) an undisarmed hold would keep pulling them back forever.
+   * Scroll anchoring also moves the page, though, and its scroll event lands before the observer's callback in the
+   * same frame, so a scroll is only the reader's when the page height didn't change with it.
+   */
+  #keepDeepLinkTargetInView() {
+    if (typeof ResizeObserver === 'undefined') return;
+    const arm = () => {
+      this.#deepLinkTarget = AdminShell.#fragmentTarget();
+      this.#held = null;
+    };
+    const disarm = () => {
+      this.#deepLinkTarget = null;
+    };
+    ['wheel', 'touchstart', 'keydown', 'pointerdown'].forEach((type) => {
+      window.addEventListener(type, disarm, { passive: true });
+    });
+    window.addEventListener('scroll', () => {
+      if (!this.#held || document.documentElement.scrollHeight !== this.#held.height) return;
+      if (Math.abs(window.scrollY - this.#held.scrollY) > 1) disarm();
+    }, { passive: true });
+    window.addEventListener('hashchange', arm);
+    // scrollIntoView honours the headings' scroll-margin-top, so this lands exactly where the browser's own fragment
+    // scroll did. A target inside a still-hidden section is a no-op until that section shows.
+    new ResizeObserver(() => {
+      if (!this.#deepLinkTarget) return;
+      this.#deepLinkTarget.scrollIntoView();
+      this.#held = { scrollY: window.scrollY, height: document.documentElement.scrollHeight };
+    }).observe(this.#content);
+    // A reload or history traversal restores the reader's last position instead of scrolling to the fragment, and
+    // the observer's first delivery would throw that position away. (bfcache returns keep this object's own state.)
+    const [navEntry] = /** @type {PerformanceNavigationTiming[]} */ (performance.getEntriesByType?.('navigation') ?? []);
+    const navType = navEntry?.type;
+    if (navType !== 'reload' && navType !== 'back_forward') arm();
+  }
+
+  /**
+   * The element the URL fragment names, looked up the way the browser does: percent-decoded first, then as written,
+   * so an id containing a literal `%` still matches.
+   *
+   * @returns {HTMLElement|null} The target, or null when the fragment is empty or names nothing.
+   */
+  static #fragmentTarget() {
+    const id = window.location.hash.slice(1);
+    if (!id) return null;
+    let decoded = id;
+    try {
+      decoded = decodeURIComponent(id);
+    } catch {
+      // A malformed percent-escape can still be an id as written.
+    }
+    return document.getElementById(decoded) ?? document.getElementById(id);
   }
 
   // ---- Shared formatting helpers ------------------------------------------------------------------------------
@@ -196,14 +277,14 @@ class AdminShell {
    * How long ago a timestamp was, falling back to a plain date once "N days ago" stops being the useful reading.
    *
    * @param {string|number|Date} ts - Anything the Date constructor accepts.
-   * @param {Object} [opts]
+   * @param {object} [opts]
    * @param {string} [opts.invalid] - What to return for an unparseable timestamp; defaults to echoing the input.
    * @param {boolean} [opts.withYear=true] - Include the year in the date fallback.
    * @returns {string} A relative time ("just now", "12m ago", "3h ago", "5d ago") or a formatted date.
    */
   static relativeTime(ts, opts = {}) {
     const date = new Date(ts);
-    if (isNaN(date)) return AdminShell.nil(opts.invalid) ? String(ts) : opts.invalid;
+    if (isNaN(date.getTime())) return AdminShell.nil(opts.invalid) ? String(ts) : opts.invalid;
     const secs = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
     if (secs < 60) return 'just now';
     const mins = Math.floor(secs / 60);
@@ -212,6 +293,7 @@ class AdminShell {
     if (hrs < 24) return `${hrs}h ago`;
     const days = Math.floor(hrs / 24);
     if (days < 7) return `${days}d ago`;
+    /** @type {Intl.DateTimeFormatOptions} */
     const dateOpts = { month: 'short', day: 'numeric' };
     if (opts.withYear !== false) dateOpts.year = 'numeric';
     return date.toLocaleDateString(undefined, dateOpts);
@@ -250,7 +332,7 @@ class AdminShell {
   /**
    * A job's last-run state as a toned badge, with overdue outranking whatever that last run reported.
    *
-   * @param {Object} job - One `nightly_jobs` entry.
+   * @param {Record<string, any>} job - One `nightly_jobs` entry.
    * @returns {string} The badge's HTML.
    */
   static jobStatusBadge(job) {
@@ -274,7 +356,7 @@ class AdminShell {
    * code works, not that anything is still firing it, so it is reported beside the schedule's record instead of in
    * place of it.
    *
-   * @param {Object} job - One `nightly_jobs` entry.
+   * @param {Record<string, any>} job - One `nightly_jobs` entry.
    * @returns {string} HTML: the scheduled run's age, with a muted manual-run note appended when one exists.
    */
   static jobLastRun(job) {
@@ -288,7 +370,7 @@ class AdminShell {
    * A run's own counts, flattened to `key: value` pairs. Every job reports a different shape, so this renders whatever
    * it stored rather than naming fields a panel would have to be taught one by one.
    *
-   * @param {Object} job - One `nightly_jobs` entry.
+   * @param {Record<string, any>} job - One `nightly_jobs` entry.
    * @returns {string} Plain text (the caller escapes it): the error when the run failed, else its counts.
    */
   static jobDetails(job) {
@@ -302,6 +384,47 @@ class AdminShell {
         return `${key.replace(/_/g, ' ')}: ${shown}`;
       });
     return parts.length > 0 ? parts.join(', ') : '—';
+  }
+
+  /**
+   * @param {string|number|Date} ts - A timestamp, or null.
+   * @returns {number} Epoch millis for sorting; 0 for an absent or unparseable timestamp.
+   */
+  static ts(ts) {
+    if (AdminShell.nil(ts)) return 0;
+    const t = Date.parse(String(ts));
+    return isNaN(t) ? 0 : t;
+  }
+
+  /** @returns {Promise<any>} The endpoint's parsed JSON body. */
+  static async fetchJson(url) {
+    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
+    return resp.json();
+  }
+
+  /**
+   * Throws an Error carrying the server's message on a non-2xx response, so the caller can say why it didn't happen.
+   *
+   * @param {string} url - Endpoint to call.
+   * @param {string} method - HTTP method.
+   * @param {object} [body] - JSON body, when the endpoint takes one.
+   * @returns {Promise<any>} The parsed response body, or {} for an empty one.
+   */
+  static async mutate(url, method, body) {
+    const opts = { method, headers: { Accept: 'application/json' } };
+    if (body !== undefined) {
+      opts.headers['Content-Type'] = 'application/json; charset=utf-8';
+      opts.body = JSON.stringify(body);
+    }
+    const resp = await fetch(url, opts);
+    const text = await resp.text();
+    if (!resp.ok) throw new Error(text || `HTTP ${resp.status}`);
+    try {
+      return text ? JSON.parse(text) : {};
+    } catch {
+      return {};
+    }
   }
 
   /**

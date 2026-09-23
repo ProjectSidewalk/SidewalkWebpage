@@ -41,7 +41,6 @@
     }
   </script>
 
-  @common.icons()
   @common.missionStartTutorial()
   @common.panoInfoPopover()
 
@@ -122,9 +121,9 @@
         </div>
       </div>
     </div>
-    <div id="already-completed-neighborhood-overlay">
+    <div id="already-completed-region-overlay">
       <div class="overlay-text">
-        <div id="already-completed-neighborhood-text">
+        <div id="already-completed-region-text">
           <p><span class="overlay-header">Neighborhood Already Complete!</span></p>
           <p>You already audited this entire neighborhood! We are going to send you to a neighborhood that could use some auditing.</p>
           <span class="overlay-option" id="accept-redirect">OK</span>
@@ -211,7 +210,7 @@
         </div>
       </div>
       <div id="action-stack-control-holder"></div>
-      @* Right-hand sidebar: current mission, global stats, badge progress, and the neighborhood minimap. *@
+      @* Right-hand sidebar: current mission, global stats, badge progress, and the region minimap. *@
       <div id="explore-sidebar" class="audit-selectable">
         @* Global user stats, matching the user dashboard (label count, accuracy, distance). *@
         <section id="explore-sidebar__stats" class="explore-sidebar__section">
@@ -286,7 +285,7 @@
           </a>
         </section>
 
-        @* Current mission: header, description, mission progress, plus the neighborhood progress bar and the minimap that fills the remaining sidebar height. *@
+        @* Current mission: header, description, mission progress, plus the region progress bar and the minimap that fills the remaining sidebar height. *@
         <section id="explore-sidebar__mission" class="explore-sidebar__section explore-sidebar__section--map">
           <h1 id="current-mission-header" class="explore-sidebar__heading"></h1>
 
@@ -302,7 +301,7 @@
             </svg>
           </a>
 
-          @* The mission and neighborhood progress bars, each paired with its label. *@
+          @* The mission and region progress bars, each paired with its label. *@
           <div class="explore-sidebar__progress-groups">
             <div id="mission-progress-group" class="explore-sidebar__progress-group">
               <p id="current-mission-description" class="explore-sidebar__subheading"></p>
@@ -320,18 +319,18 @@
               </div>
             }
 
-            @* Progress toward the whole neighborhood being audited. *@
+            @* Progress toward the whole region being audited. *@
             <div class="explore-sidebar__progress-group">
-              <p class="explore-sidebar__subheading" data-i18n="audit:right-ui.neighborhood-progress.title">Neighborhood progress</p>
+              <p class="explore-sidebar__subheading" data-i18n="audit:right-ui.region-progress.title">Neighborhood progress</p>
               @components.progressBar(
-                trackId = "neighborhood-progress-bar",
-                fillId = "neighborhood-progress-fill",
-                labelId = "neighborhood-progress-rate",
+                trackId = "region-progress-bar",
+                fillId = "region-progress-fill",
+                labelId = "region-progress-rate",
                 segmented = true,
-                communityId = "neighborhood-progress-community",
-                youId = "neighborhood-progress-you",
-                communityTooltip = "audit:right-ui.neighborhood-progress.community-tooltip",
-                youTooltip = "audit:right-ui.neighborhood-progress.you-tooltip"
+                communityId = "region-progress-community",
+                youId = "region-progress-you",
+                communityTooltip = "audit:right-ui.region-progress.community-tooltip",
+                youTooltip = "audit:right-ui.region-progress.you-tooltip"
               )
             </div>
           </div>
@@ -418,6 +417,39 @@
                 </svg>
                 <span data-i18n="audit:right-ui.minimap.legend-visited">Visited</span>
               </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <circle class="minimap-legend-sample-next-stop" cx="15" cy="6" r="3.5"></circle>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-next-stops">Stops on your route</span>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <circle class="minimap-legend-sample-other-link" cx="15" cy="6" r="3.5"></circle>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-other-links">Other directions</span>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <circle class="minimap-legend-sample-next-step" cx="15" cy="6" r="3.5"></circle>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-next-step">Light blue: next step (spacebar)</span>
+              </div>
+              <div class="minimap-legend-row">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <circle class="minimap-legend-sample-faced-halo" cx="15" cy="6" r="6"></circle>
+                  <circle class="minimap-legend-sample-faced" cx="15" cy="6" r="3.5"></circle>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-faced">Filled: where forward takes you</span>
+              </div>
+              @* Labels from earlier missions here are drawn dimmed; this checkbox hides/shows their markers (#4945).
+                 The sample is a real marker icon at the dimmed treatment, so the key shows what the map shows. *@
+              <div class="minimap-legend-row minimap-legend-row-toggle">
+                <img class="minimap-label-icon minimap-label-icon--prior minimap-legend-sample-earlier-label"
+                     src='@assets.path("images/icons/label_type_icons/CurbRamp_small.svg")' alt="">
+                <input id="minimap-legend-earlier-labels" type="checkbox" checked>
+                <label for="minimap-legend-earlier-labels" data-i18n="audit:right-ui.minimap.legend-earlier-labels">My earlier labels</label>
+              </div>
             </div>
             @* Whole-route overview inset — shown only on designated routes (RouteOverview toggles the holder class). *@
             <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" title="Route overview: tap to see the whole route" data-i18n-title="audit:right-ui.minimap.route-overview">
@@ -454,8 +486,10 @@
               <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
             </div>
           </div>
+          @* Never hidden: it holds PanoInfoPopover's button too, which has to survive a pano reporting no usable
+             capture date. PanoDateNote adds .svl-pano-pill, only on panos carrying an assessment note (#5413). *@
           <div id="svl-panorama-date-holder">
-            <span id="svl-panorama-date"></span>
+            <span id="svl-panorama-date-pill"><span id="svl-panorama-date"></span></span>
           </div>
           @* Stuck / sound / feedback controls at top-left of the pano. Collapsed by default. *@
           <div id="explore-control-buttons-holder" class="pano-overlay-button-group">
@@ -565,7 +599,10 @@
                 </div>
                 @* Radios, not toggle buttons: a rating is pick-one where tags are pick-any, and the segmented
                    enclosure in CSS is the visual half of that same statement. *@
-                <div id="severity-radio-holder" class="severity-segments">
+                @* Named by the header text alone, not the whole header: aria-labelledby on the header div would pull
+                   the info icon's alt into the announcement. Unnamed, the group announces "1, radio button, 1 of 3"
+                   without saying what is being rated. *@
+                <div id="severity-radio-holder" class="severity-segments" role="radiogroup" aria-labelledby="severity-header-text">
                   <label class="severity-button" for="explore-severity-radio-1" data-severity="1" data-toggle="tooltip">
                     <input type="radio" name="label-severity" id="explore-severity-radio-1" value="1" class="severity-button__radio">
                     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
@@ -703,16 +740,16 @@
               </ul>
             </div>
 
-            @* Right overlay: the neighborhood progress bar (reused from the sidebar) plus distance/label stats. *@
+            @* Right overlay: the region progress bar (reused from the sidebar) plus distance/label stats. *@
             <div class="mission-complete__overlay mission-complete__overlay--right">
-              <h2 class="mission-complete__overlay-title" data-i18n="audit:right-ui.neighborhood-progress.title"></h2>
+              <h2 class="mission-complete__overlay-title" data-i18n="audit:right-ui.region-progress.title"></h2>
               @components.progressBar(
                 rootClass = "mission-complete__progress",
-                fillId = "modal-neighborhood-progress-fill",
-                labelId = "modal-neighborhood-progress-rate",
+                fillId = "modal-region-progress-fill",
+                labelId = "modal-region-progress-rate",
                 segmented = true,
-                communityId = "modal-neighborhood-progress-community",
-                youId = "modal-neighborhood-progress-you"
+                communityId = "modal-region-progress-community",
+                youId = "modal-region-progress-you"
               )
               <hr class="mission-complete__overlay-divider">
               <div class="mission-complete__stat">
@@ -866,26 +903,29 @@
     </div>
   </template>
   @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
   } else if (commonData.imagerySource == PanoSource.Mapillary) {
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
   <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  } else if (commonData.imagerySource == PanoSource.Panoramax) {
+  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
+  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
   }
   <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
-  <script src='@assets.path("vendor/floating-ui/floating-ui.core-1.7.5.umd.min.js")'></script>
-  <script src='@assets.path("vendor/floating-ui/floating-ui.dom-1.7.6.umd.min.js")'></script>
+  <script src='@assets.path("vendor/floating-ui/floating-ui.core-1.8.0.umd.min.js")'></script>
+  <script src='@assets.path("vendor/floating-ui/floating-ui.dom-1.8.0.umd.min.js")'></script>
   <script src='@assets.path("js/explore/build/explore.js")'></script>
   <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
   <script src='@assets.path("vendor/kinetic/kinetic-v4.4.3.min.js")'></script>
 
-  <script src='@assets.path("vendor/turf/turf-7.3.4.min.js")'></script>
+  <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
   <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
   <script src='@assets.path("vendor/betterknown/betterknown-1.2.0.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
+  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
 
   <script>
@@ -901,7 +941,7 @@
       };
       enableTouchSupport();
 
-      // Neighborhood Completion Overlay
+      // Region Completion Overlay
       $('#continue-current').on('click', function() {
         $('#area-completion-overlay-wrapper').hide();
       });
@@ -910,7 +950,7 @@
         $(location).attr('href', '/explore?newRegion=true');
       });
 
-      // Already Completed Neighborhood Overlay
+      // Already Completed Region Overlay
       $('#accept-redirect').on('click', function() {
         $(location).attr('href', '/explore');
       });
@@ -948,13 +988,13 @@
     var svl = {};
     const mainParam = {};
 
-    @* Server-side conditional (@if), not a browser `if`: when the user has finished their assigned neighborhood the *@
+    @* Server-side conditional (@if), not a browser `if`: when the user has finished their assigned region the *@
     @* task is None, so `data.task.get` must never be evaluated at render time (that 500s the page — #4672). *@
     @if(data.task.isDefined) {
       mainParam.task = @jsonForScript(data.task.get);
     } else {
       $(".tool-ui").removeClass("ps-invisible");
-      $('#already-completed-neighborhood-overlay').show();
+      $('#already-completed-region-overlay').show();
     }
 
     mainParam.dataStoreUrl = '@routes.ExploreController.post';
@@ -979,6 +1019,12 @@
     mainParam.userRouteId = @data.userRoute.get.userRouteId;
     mainParam.routeName = @jsonForScript(data.route.map(_.name).getOrElse(""));
     mainParam.routeResumed = @data.routeResumed;
+    }
+
+    @* A ?routeId= naming no live route was dropped rather than obeyed, so the session is not the one the link asked
+       for (#5156). Emitted only when it happened, so the ordinary page carries nothing extra. *@
+    @if(data.routeUnavailable) {
+    mainParam.routeUnavailable = true;
     }
 
     @* Optional pano seed: an admin auditing a specific street from a pano/lat-lng, or an address drop-in (#4451). *@
@@ -1010,7 +1056,8 @@
        the server-side one. *@
     mainParam.latLngEstimation = @jsonForScript(service.PanoDataService.LatLngEstimation.asJson);
     const imagerySrc = "@commonData.imagerySource.toString";
-    mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+    mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
+      : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
     mainParam.viewerAccessToken = "@commonData.imageryAccessToken";
 
     window.appManager.ready(function () {

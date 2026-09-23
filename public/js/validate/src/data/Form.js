@@ -47,15 +47,17 @@ class Form {
 
   /**
    * The page's label filters, in the shape the backend's `ValidateParams` reads.
-   * @returns {Object} The filters, ready to drop into a request body as `validate_params`.
+   * @returns {object} The filters, ready to drop into a request body as `validate_params`.
    */
   getValidateParams() {
     return {
       admin_version: svv.adminVersion,
       label_type: svv.validateParams.labelType,
       user_ids: svv.validateParams.userIds,
-      neighborhood_ids: svv.validateParams.regionIds,
+      region_ids: svv.validateParams.regionIds,
+      team_ids: svv.validateParams.teamIds,
       unvalidated_only: svv.validateParams.unvalidatedOnly,
+      triage: svv.validateParams.triage,
     };
   }
 
@@ -63,7 +65,7 @@ class Form {
    * Compiles data into a format that can be parsed by our back end.
    *
    * @param {boolean} missionComplete - Whether the mission is complete. Ensures we only send once per mission.
-   * @returns {Object} The log data to submit.
+   * @returns {object} The log data to submit.
    */
   compileSubmissionData(missionComplete) {
     const data = { timestamp: new Date(), source: this.getSource() };
@@ -146,7 +148,7 @@ class Form {
    * resubmitting would duplicate it). See #2745 — the previous blanket `catch -> location.reload()` reset users to
    * the first label and caused a reload/crash loop on mobile.
    *
-   * @param {Object}  data               - Data object (containing interactions, missions, etc.).
+   * @param {object}  data               - Data object (containing interactions, missions, etc.).
    * @param {boolean} [isIntermediateSubmit=false] - True for the Tracker's mid-mission buffer flush, which only
    *                                       persists logs/validations and must NOT process a mission transition.
    * @param {number}  [retryCount=0]      - Internal: current retry attempt (callers leave this at the default).
@@ -161,9 +163,9 @@ class Form {
         body: JSON.stringify(data),
       });
       if (!response.ok) {
-        const httpError = new Error(`Validation submit failed with HTTP ${response.status}`);
-        httpError.status = response.status;
-        throw httpError;
+        throw Object.assign(new Error(`Validation submit failed with HTTP ${response.status}`), {
+          status: response.status,
+        });
       }
       result = await response.json();
     } catch (submitError) {

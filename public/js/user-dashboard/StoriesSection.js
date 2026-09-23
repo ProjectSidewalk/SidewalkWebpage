@@ -20,8 +20,8 @@ class StoriesSection {
 
   /**
    * @param {HTMLElement} container - The #ud-stories element.
-   * @param {Object} opts
-   * @param {?Object} opts.labelPopup - A LabelPopup instance, or null (links then navigate to /label/:id).
+   * @param {object} opts
+   * @param {?object} opts.labelPopup - A LabelPopup instance, or null (links then navigate to /label/:id).
    * @param {?HTMLDialogElement} [opts.composerDialog] - The dashboard's `.story-composer` dialog; without it, rows
    *     render without an Edit control (editing stays available on the label card).
    * @param {string} [opts.currUsername] - The story owner's username, for the composer's post-as options.
@@ -43,7 +43,7 @@ class StoriesSection {
     }
     // A save can change any rendered field (text, photo, byline) — and can come from the label popup's own
     // composer, not just this list's — so any story change on the page re-fetches rather than patching rows.
-    document.addEventListener('ps:story:changed', (e) => this.#onStoryChanged(e));
+    document.addEventListener('ps:story:changed', (e) => this.#onStoryChanged(/** @type {CustomEvent} */ (e)));
   }
 
   /**
@@ -72,7 +72,7 @@ class StoriesSection {
   }
 
   /**
-   * @param {Array<Object>} stories - StoryForOwner payloads, newest first.
+   * @param {Array<Record<string, any>>} stories - StoryForOwner payloads, newest first.
    */
   #renderStories(stories) {
     this.#container.replaceChildren();
@@ -89,7 +89,7 @@ class StoriesSection {
   }
 
   /**
-   * @param {Object} story - A StoryForOwner payload.
+   * @param {Record<string, any>} story - A StoryForOwner payload.
    * @returns {HTMLElement}
    */
   #buildRow(story) {
@@ -152,7 +152,7 @@ class StoriesSection {
       edit.setAttribute('aria-label', i18next.t('labelmap:story.edit-aria', { labelType: typeName, date: postedDate }));
       edit.addEventListener('click', () => {
         // Problem-vs-feature phrasing comes from the payload's LabelTypeEnum-sourced flag, never derived here.
-        this.#composer.setCopyVariant(story.is_access_problem);
+        this.#composer.setCopyVariant(story.access_impact);
         this.#composer.openForEdit(story, this.#maxTextLength);
       });
       meta.appendChild(edit);
@@ -183,7 +183,7 @@ class StoriesSection {
 
   /**
    * The retraction path (#4054): a confirmed, permanent delete — the server removes the row and any photo bytes.
-   * @param {Object} story
+   * @param {Record<string, any>} story
    * @param {HTMLElement} row
    */
   async #deleteStory(story, row) {
@@ -192,7 +192,7 @@ class StoriesSection {
       confirmText: i18next.t('labelmap:story.delete'),
       cancelText: i18next.t('labelmap:story.cancel'),
       danger: true,
-      confirmIconSrc: util.assetPath('images/icons/delete-white-material.svg'),
+      confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
     if (!confirmed) return;
     window.logWebpageActivity?.(`Click_module=StoryDeleteClient_storyId=${story.story_id}`);

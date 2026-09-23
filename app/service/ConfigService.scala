@@ -3,7 +3,6 @@ package service
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
 import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
-import models.label.LabelTypeEnum
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile.api._
@@ -23,6 +22,7 @@ import javax.inject._
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
+import scala.util.Try
 
 /**
  * Which cities the by-name global leaderboard may read, split by what it may read them for (#3719).
@@ -60,7 +60,26 @@ case class CityInfo(
     cityNameFormatted: String,
     URL: String,
     visibility: String
-)
+) {
+
+  /**
+   * Whether this deployment is publicly launched, i.e. its `city-params.status` entry is `public`.
+   *
+   * The one place the rule lives for callers holding a [[CityInfo]], so a surface that decides whether to publish a
+   * deployment's address can't drift from the others. Any unrecognized status reads as not public: the failure that
+   * matters here is disclosing an unlaunched deployment, not withholding a launched one (#5259).
+   */
+  def isPublic: Boolean = visibility == "public"
+}
+
+/**
+ * The credential a page hands its pano viewer.
+ * @param source    The city's imagery provider.
+ * @param token     Bearer token or API key; empty for a keyless provider.
+ * @param expiresAt Set only for per-session tokens (Infra3d), which the viewer must renew; None for static keys.
+ */
+case class ImageryAccessToken(source: PanoSource, token: String, expiresAt: Option[OffsetDateTime])
+
 case class CommonPageData(
     cityId: String,
     environmentType: String,
@@ -78,6 +97,9 @@ case class CommonPageData(
     buildDescribe: Option[String],
     buildDirty: Boolean,
     allCityInfo: Seq[CityInfo],
+    // Who volunteers contact about service hours, and the name they list as their supervisor (#4375).
+    volunteerEmail: String,
+    volunteerSupervisor: String,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
     assetDigestsJson: Html
@@ -85,6 +107,10 @@ case class CommonPageData(
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
+
+  /** Whether search engines may index this deployment (#5120); see [[models.utils.SeoUtils.isIndexable]]. */
+  def isIndexable: Boolean =
+    SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.toString)
 }
 
 /**
@@ -384,8 +410,8 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
- * @param labelsSeverityEligible  Labels whose type CAN take a severity (excludes NoSidewalk/Signal/Occlusion) — the
- *                                correct denominator for "% with severity".
+ * @param labelsSeverityEligible  Labels whose type CAN take a rating (LabelTypeEnum.ratedTypeNames) — the correct
+ *                                denominator for "% with severity".
  * @param labelsWithTags          Subset of totalLabels that have at least one tag applied.
  * @param labelsTagEligible       Labels whose type CAN take tags (types present in this deployment's tag table) — the
  *                                correct denominator for "% with tags".
@@ -700,6 +726,22 @@ object ConfigService {
   )
 
   /**
+   * The (table, column) pairs the AccessScore Spotlight's cross-city fan-out reads (#5215).
+   *
+   * Both tables arrive with evolution 394, and every deployment applies its own evolutions when it restarts, so
+   * mid-rollout an updated instance can query a schema that has not created them yet. Gating the fan-out on this
+   * set makes such a city contribute nothing for a night instead of failing its whole query.
+   */
+  val SpotlightRequiredColumns: Set[(String, String)] = Set(
+    "region_access_score" -> "score",
+    "region_access_score" -> "completion_rate",
+    "region_access_score" -> "computed_at",
+    "street_access_score" -> "score",
+    "street_access_score" -> "tie_break",
+    "street_access_score" -> "computed_at"
+  )
+
+  /**
    * The (table, column) pairs a user's cross-city stats query reads (#4496).
    *
    * Deliberately smaller than [[LeaderboardRequiredColumns]]: a mapper's own totals need no visibility flags, so a
@@ -869,7 +911,7 @@ trait ConfigService {
    * separate rather than summing them. Anomaly flags ("stalled", "low_coverage", "high_disagreement") are computed
    * across the whole set (the disagreement flag is relative to the cross-city median), so they are returned together.
    *
-   * @return A Future of one [[CityScorecardWithFlags]] per available city (legacy DC and "staging" excluded).
+   * @return A Future of one [[CityScorecardWithFlags]] per available city ("staging" excluded).
    */
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]]
 
@@ -1002,6 +1044,18 @@ trait ConfigService {
   def getCrossCityHoursScope: Future[SelfViewScope]
 
   /**
+   * The deployments the AccessScore Spotlight's `/cities` scope may read, with the schema to read them from (#5215).
+   *
+   * Publicly launched cities only — a cross-city ranking is a public listing, so it follows the same rule as the
+   * city switcher and names no deployment that has not launched — intersected with the schemas that exist here and
+   * have applied the evolution the Spotlight tables come from.
+   *
+   * @param lang The language the city names are wanted in.
+   * @return     (city, schema) pairs in configured order; empty is a valid answer on a single-city database.
+   */
+  def getAccessScoreSpotlightScope(lang: Lang): Future[Seq[(CityInfo, String)]]
+
+  /**
    * Retrieves map parameters for a specific city by directly querying that city's database schema.
    *
    * This method attempts to retrieve map parameters (center coordinates, zoom level, and boundary coordinates) for the
@@ -1042,8 +1096,7 @@ trait ConfigService {
    *
    * Queries each city schema in parallel and sums counts by (date, labelType) across cities.
    * Cities whose schemas do not exist in the current environment are silently skipped (same
-   * guard as getAggregateStats). The legacy DC dataset is omitted because its schema predates
-   * the label_validation table format used here. The full-range result is cached like
+   * guard as getAggregateStats). The full-range result is cached like
    * getAggregateStats (stale data served immediately, background refresh — #4600), and the
    * requested date window is sliced from the cached per-day rows.
    *
@@ -1076,6 +1129,7 @@ trait ConfigService {
   def getPanoSource: PanoSource
   def sendSciStarterContributions(email: String, contributions: Int, timeSpent: Double): Future[Int]
   def cachedDBIO[T: ClassTag](key: String, duration: Duration = Duration.Inf)(dbOperation: => DBIO[T]): DBIO[T]
+  def getImageryAccessToken: Future[ImageryAccessToken]
   def getCommonPageData(lang: Lang): Future[CommonPageData]
 }
 
@@ -1096,114 +1150,6 @@ class ConfigServiceImpl @Inject() (
     extends ConfigService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
-
-  /**
-   * Per-label-type counts for the original DC deployment (2015–2017), preserved from the historical spreadsheet:
-   * https://docs.google.com/spreadsheets/d/1eTwVuEIz2lV-LD-Vz_5knNoyGgzmH5kERsQ0y_jGHDE/
-   *
-   * That deployment used an outdated schema too costly to migrate, so these hard-coded counts are folded into the
-   * aggregate stats to represent Project Sidewalk's full historical scope. DC only ever had these seven label types
-   * (Crosswalk and Pedestrian Signal did not exist yet).
-   *
-   * These per-type rows sum to 249,905. The spreadsheet also lists 263,403, which is the UNFILTERED count: the
-   * ~13,498 difference is DC's tutorial labels plus "junk"-user labels (low-quality users Mikey identified by manual
-   * assessment) — exactly the labels our stats exclude elsewhere via `tutorial = FALSE` and `NOT user_stat.excluded`.
-   * So 249,905 is the correct filtered `total_labels` (consistent with how live cities are counted), and 263,403 must
-   * NOT be used as the total. `legacyDCData.totalLabels` is therefore derived from this breakdown (#3981).
-   */
-  private val legacyDCByLabelType: Map[String, LabelTypeStats] = Map(
-    LabelTypeEnum.CurbRamp.name -> LabelTypeStats(
-      labels = 150680,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.NoCurbRamp.name -> LabelTypeStats(
-      labels = 19792,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.Obstacle.name -> LabelTypeStats(
-      labels = 22264,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.SurfaceProblem.name -> LabelTypeStats(
-      labels = 8964,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.NoSidewalk.name -> LabelTypeStats(
-      labels = 45395,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.Other.name -> LabelTypeStats(
-      labels = 1471,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    ),
-    LabelTypeEnum.Occlusion.name -> LabelTypeStats(
-      labels = 1339,
-      labelsValidated = 0,
-      labelsValidatedAgree = 0,
-      labelsValidatedDisagree = 0
-    )
-    // Note: Crosswalk and Signal data not available (NA) for DC legacy deployment.
-  )
-
-  /**
-   * DC's UNFILTERED historical label count from the source spreadsheet (gid=963888605 tab):
-   * https://docs.google.com/spreadsheets/d/1eTwVuEIz2lV-LD-Vz_5knNoyGgzmH5kERsQ0y_jGHDE/edit?gid=963888605#gid=963888605
-   *
-   * This counts everything, including tutorial and low-quality "junk"-user labels. It is NOT the reportable total — see
-   * `legacyDCData` for how the filtered total and `tutorialLabels` are derived from it.
-   */
-  private val legacyDCUnfilteredLabelCount = 263403
-
-  /**
-   * Distinct contributors from the legacy DC deployment, a fixed historical estimate (#3976).
-   *
-   * The archived DC dataset has no per-user records we can query, so unlike live cities its user count can't be derived
-   * from the union of contributor ids. This value (from the gid=963888605 tab of the DC spreadsheet linked above) is
-   * added on top of the live-city distinct-user union in getAggregateStats. DC user_ids don't exist in current schemas,
-   * so there is nothing to dedup against — the addition is exact.
-   */
-  private val legacyDCUserCount = 1395
-
-  /**
-   * Legacy DC deployment rolled into an AggregateStats so getAggregateStats can sum it alongside live cities.
-   *
-   * `totalLabels` is derived from `legacyDCByLabelType` (249,905, the filtered count), NOT the unfiltered 263,403
-   * headline, so the per-type breakdown always reconciles with the total (see `legacyDCByLabelType` above).
-   *
-   * `tutorialLabels` is the gap between the unfiltered count and the filtered total (263,403 − 249,905 = 13,498) so
-   * DC's numbers close cleanly back to the historical headline. CAVEAT: for live cities `tutorialLabels` is strictly
-   * `tutorial = TRUE` labels, but DC's export can't separate tutorial from junk-user labels, so this single legacy
-   * value bundles both and is really an UPPER BOUND on DC's tutorial labels. Documented as such in the API docs.
-   *
-   * Validations were never implemented during the DC deployment, so `totalValidations` is 0.
-   *
-   * `totalUsers` is 0 here: DC's contributors are added separately via `legacyDCUserCount` (they can't be deduped by
-   * union like live-city users), so this field must NOT also contribute to the aggregate user count.
-   */
-  private val legacyDCData = AggregateStats(
-    kmExplored = 5482.0,
-    kmExploredNoOverlap = 1747, // Mikey calculated this for us on July 18, 2025
-    totalLabels = legacyDCByLabelType.values.map(_.labels).sum,
-    tutorialLabels = legacyDCUnfilteredLabelCount - legacyDCByLabelType.values.map(_.labels).sum,
-    totalValidations = 0,
-    totalUsers = 0,
-    numCities = 0,
-    numCountries = 0,
-    numLanguages = 0,
-    byLabelType = legacyDCByLabelType
-  )
 
   /**
    * Maps a city ID to its corresponding database user/schema. The mapping is loaded from configuration.
@@ -1310,6 +1256,23 @@ class ConfigServiceImpl @Inject() (
 
   def getCrossCityHoursScope: Future[SelfViewScope] =
     crossCitySelfViewScope("getCrossCityHoursScope", ConfigService.CrossCityHoursRequiredColumns, "volunteer hours")
+
+  def getAccessScoreSpotlightScope(lang: Lang): Future[Seq[(CityInfo, String)]] = {
+    for {
+      cityIds <- availableCityIds()
+      ready   <- schemasWithColumns(ConfigService.SpotlightRequiredColumns)
+    } yield {
+      val available: Set[String] = cityIds.toSet
+      getAllCityInfo(lang)
+        .filter(city => city.isPublic && available.contains(city.cityId))
+        .flatMap { city =>
+          // A city id with no db-schema entry simply can't be queried.
+          try Some(city -> getCitySchema(city.cityId))
+          catch { case _: Exception => None }
+        }
+        .filter { case (_, schema) => ready.getOrElse(schema, false) }
+    }
+  }
 
   /**
    * Which cities one mapper's data may be gathered from, for a query needing `required`.
@@ -1427,7 +1390,7 @@ class ConfigServiceImpl @Inject() (
    *
    * A city whose schema-existence check fails or throws is treated as unavailable rather than failing the whole
    * fan-out — this is what lets a localhost DB holding a handful of schemas serve pages that fan out over the full
-   * configured city list, and what drops legacy DC (its schema predates the modern layout).
+   * configured city list.
    *
    * @param excludeStaging Whether to drop the "staging" pseudo-city (not a real deployment, as in
    *                       CitiesApiController); every caller except the public aggregate stats does.
@@ -1753,7 +1716,7 @@ class ConfigServiceImpl @Inject() (
         Future.successful(AggregateStatsBundle(emptyAggregateStats(0, 0, 0), Map.empty))
       } else {
         // Calculate deployment statistics.
-        val numCities    = availableCities.length + 1 // +1 for legacy DC city
+        val numCities    = availableCities.length
         val numCountries = calculateNumCountries(availableCities)
         val numLanguages = calculateNumLanguages()
 
@@ -1779,11 +1742,9 @@ class ConfigServiceImpl @Inject() (
 
         // Wait for all futures to complete and aggregate results.
         Future.sequence(cityStatsFutures).zip(contributorIdsFut).map { case (cityStats, contributorIds) =>
-          // Distinct contributors across all live cities, deduped by the global `user_id` then DC added on top
-          // (#3976). Computed by unioning per-city contributor-id sets rather than summing per-city counts, so a user
-          // active in multiple cities is counted once.
-          val totalUsers: Int =
-            contributorIds.flatMap(_._2).foldLeft(Set.empty[String])(_ ++ _).size + legacyDCUserCount
+          // Distinct contributors across all cities, deduped by the global `user_id` (#3976): a union of per-city
+          // contributor-id sets rather than a sum of per-city counts, so a user active in multiple cities counts once.
+          val totalUsers: Int = contributorIds.flatMap(_._2).foldLeft(Set.empty[String])(_ ++ _).size
 
           // A city gets a hero slice only when both of its queries succeeded, so every tile in the band is real.
           val contributorCounts: Map[String, Int] = contributorIds.collect { case (cityId, Some(ids)) =>
@@ -1807,9 +1768,7 @@ class ConfigServiceImpl @Inject() (
             // Return empty aggregate stats if no cities provided data.
             AggregateStatsBundle(emptyAggregateStats(numCities, numCountries, numLanguages), byCity)
           } else {
-            // Add legacy DC data to the valid city stats before aggregating.
-            val overall =
-              aggregateCityData(validCityStats :+ legacyDCData, numCities, numCountries, numLanguages, totalUsers)
+            val overall = aggregateCityData(validCityStats, numCities, numCountries, numLanguages, totalUsers)
             AggregateStatsBundle(overall, byCity)
           }
         }
@@ -2197,6 +2156,22 @@ class ConfigServiceImpl @Inject() (
   private val appStartTime: OffsetDateTime =
     OffsetDateTime.ofInstant(Instant.ofEpochMilli(ManagementFactory.getRuntimeMXBean.getStartTime), ZoneOffset.UTC)
 
+  def getImageryAccessToken: Future[ImageryAccessToken] = Future.fromTry(Try(getPanoSource)).flatMap { source =>
+    source match {
+      case PanoSource.Gsv =>
+        Future.successful(ImageryAccessToken(source, config.get[String]("google-maps-api-key"), None))
+      case PanoSource.Infra3d =>
+        panoDataService.getInfra3dTokenWithExpiry(getCityId).map { token =>
+          ImageryAccessToken(source, token.accessToken, Some(token.expiresAt))
+        }
+      case PanoSource.Mapillary =>
+        Future.successful(ImageryAccessToken(source, config.get[String]("mapillary-access-token"), None))
+      // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
+      case PanoSource.Panoramax => Future.successful(ImageryAccessToken(source, "", None))
+      case other                => Future.failed(new Exception(s"No valid imagery source specified: $other"))
+    }
+  }
+
   def getCommonPageData(lang: Lang): Future[CommonPageData] = {
     for {
       version: Version <- cacheApi.getOrElseUpdate[Version]("currentVersion")(versionTable.currentVersion())
@@ -2204,20 +2179,17 @@ class ConfigServiceImpl @Inject() (
       envType: String           = config.get[String]("environment-type")
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
       prodUrl: String           = config.get[String](s"city-params.landing-page-url.prod.$cityId")
-      gMapsApiKey: String       = config.get[String]("google-maps-api-key")
-      imagerySource: PanoSource = PanoSource.withName(config.get[String](s"city-params.pano-viewer-type.$cityId"))
-      imageryAccessToken: String <-
-        if (imagerySource == PanoSource.Gsv) Future.successful(gMapsApiKey)
-        else if (imagerySource == PanoSource.Infra3d) panoDataService.getInfra3dToken(cityId)
-        else if (imagerySource == PanoSource.Mapillary) Future.successful(config.get[String]("mapillary-access-token"))
-        else Future.failed(new Exception("No valid imagery source specified"))
-      gMapsApiKey: String        = config.get[String]("google-maps-api-key")
-      mapboxApiKey: String       = config.get[String]("mapbox-api-key")
-      allCityInfo: Seq[CityInfo] = getAllCityInfo(lang)
+      imageryAccess: ImageryAccessToken <- getImageryAccessToken
+      gMapsApiKey: String         = config.get[String]("google-maps-api-key")
+      mapboxApiKey: String        = config.get[String]("mapbox-api-key")
+      allCityInfo: Seq[CityInfo]  = getAllCityInfo(lang)
+      volunteerEmail: String      = config.get[String]("volunteer-email-address")
+      volunteerSupervisor: String = config.get[String]("volunteer-supervisor-name")
     } yield {
-      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imagerySource, imageryAccessToken, gMapsApiKey,
-        mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime, BuildInfo.gitSha,
-        BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, assetManifestService.assetDigestsJson)
+      CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
+        gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
+        BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
+        assetManifestService.assetDigestsJson)
     }
   }
 }

@@ -9,10 +9,10 @@ architecture. This page explains the conventions a linter can't, and the *why* b
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
 ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
-check, the `public/js/` asset-path check, and `scalafmtCheckAll` for Scala. The trees are kept fully lint-clean
-([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so run the relevant linter — or `make lint`
-for all of them — and get to zero before you push: `make lint-fix` autofixes the mechanical JS/CSS findings, hand-fix
-the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
+check, the `public/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `scalafmtCheckAll` for
+Scala. The trees are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)),
+so run the relevant linter — or `make lint` for all of them — and get to zero before you push: `make lint-fix`
+autofixes the mechanical JS/CSS findings, hand-fix the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
 
 ## General
 
@@ -94,6 +94,10 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
     value: a newline in `title="..."` renders literally in the tooltip.
   - `eslint --fix` can't do this conversion for you (`prefer-template` only fires when a variable is involved, not on
     literal-plus-literal chains), so convert concatenated HTML by hand as you touch it.
+  - Anything interpolated into that markup must be escaped exactly once — `util.escapeHTML(value)`, or, for a
+    translated string, `interpolation: { escapeValue: true }` on the `i18next.t()` call (the
+    `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values verbatim by default,
+    since most of them land in a text node: `docs/internationalization.md` → "Interpolated values and HTML".
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).
@@ -186,12 +190,22 @@ consistent with it.
   should still default to kebab-case.
 
 **Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
-(inlined SVGs are hard to find, reuse, and review — see #4058). Reference them with an `<img>`, e.g.
-`<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a text
-label). Default to icons from the **feather** and **material** sets in the "Design System Tokens" Figma, and name each
-file `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`). These SVGs carry a **fixed** stroke color
-(`#242424` for the standard dark icon), so a different color is a **separate file** with a color qualifier
-(`chevron-left-white-feather.svg`) rather than a CSS override.
+(inlined SVGs are hard to find, reuse, and review — see #4058). Default to icons from the **feather** and **material**
+sets in the "Design System Tokens" Figma, named `<icon>-<set>.svg` (`map-pin-feather.svg`, `comment-material.svg`);
+**lucide** (Feather's successor, ISC, the same stroke style) fills the gaps Feather has, such as the place-category
+glyphs (`bus-white-lucide.svg`).
+How to show one depends on where its color comes from:
+
+- **Color baked into the file: an `<img>`**, e.g.
+  `<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a
+  text label). Feather/material SVGs carry a **fixed** stroke color (`#242424` for the standard dark icon), so another
+  color this way is a **separate file** with a color qualifier (`chevron-left-white-feather.svg`).
+- **Color set in CSS: a mask.** When the color is a token or changes with state (hover, correct/incorrect,
+  error/info), give an empty `<span>` the **`.ps-mask-icon`** primitive from `main.css`, then set its file with
+  `mask-image` (plus the `-webkit-mask-image` copy), its size, and its `color`. One file then serves every color, as
+  in `.au-icon` on the auth pages and `.mst-arrow-icon` in the mission-start carousel. Only the file's shape is used,
+  so a stroke-drawn icon needs a stroke color in the file or nothing shows. Put the mask on a child `<span>`, never on
+  a button or link itself, since it would hide their focus ring too.
 
 **Deferred namespace mismatch:** the reorg renamed the app *directories* (`SVLabel → explore`, `SVValidate →
 validate`, `Progress → user-dashboard`), but the apps' internal JS namespace **globals** `svl` (Explore) and `sg`
@@ -279,7 +293,8 @@ Rules:
 ### JavaScript (JSDoc)
 
 Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one, including `#private` methods.
-Type annotations in `@param` matter because there is no static type checker.
+The types are checked: `make lint-js-types` runs TypeScript over `public/js/`
+([`tools/check-js-types.mjs`](../tools/check-js-types.mjs)), so a type that doesn't match the code fails the build.
 
 **Method / function:**
 
@@ -313,6 +328,22 @@ Rules:
 
 - Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
 - Always include `{Type}` in `@param` and `@returns`.
+- Separate a `@param` name from its description with ` - `, and start `@param` and `@returns` descriptions with a
+  capital letter unless it opens with a code identifier (`this`, `true`, `jQuery`).
+- Write types TypeScript-style: `object` and `string` (not `Object`/`String`), `Record<string, number>` for a map,
+  and an arrow signature like `(id: number) => void` (not Closure's `function(number)`, which TypeScript can't read)
+  for a callback.
+  `make eslint` checks that every `@param` and `@returns` has a type and that it parses, that `@param` names match
+  the real parameters, that each `@param` description follows a hyphen, that each tag is on its own line, and that
+  tag names are valid.
+- Don't put `@private` on a `#private` member; the `#` already says it.
+- Use `object` only for a value whose properties you don't read. If you read them, name them inline
+  (`{{id: number, name: string}}`), or with a `@typedef` when several places share the shape. A free-form bag (page
+  params from a view, log notes) is `Record<string, any>`.
+- When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
+  (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
+- Every file in `public/js/` is type-checked. Globals that no file in `public/js/` declares (vendor libraries,
+  values a view sets on `window`) go in [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.

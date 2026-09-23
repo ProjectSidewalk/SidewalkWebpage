@@ -1,6 +1,7 @@
 package models.story
 
 import models.label.LabelTypeEnum
+import models.label.LabelTypeEnum.AccessImpact
 
 import java.io.File
 import java.time.OffsetDateTime
@@ -47,7 +48,7 @@ case class StoryForAdmin(
 
 /**
  * A story on the author's own dashboard management list (hidden ones included, so they can still retract).
- * `isAccessProblem` comes from LabelTypeEnum so the dashboard's edit composer can pick the problem-vs-feature
+ * `accessImpact` comes from LabelTypeEnum so the dashboard's edit composer can pick the problem-vs-feature
  * phrasing without re-deriving that mapping in JS.
  * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story
  * has no uploaded photo, so every row can still carry a thumbnail; None when neither source is available.
@@ -55,14 +56,14 @@ case class StoryForAdmin(
 case class StoryForOwner(
     story: Story,
     labelType: String,
-    isAccessProblem: Boolean,
+    accessImpact: AccessImpact,
     media: Option[StoryMediaForView],
     labelImageUrl: Option[String]
 )
 
 /**
  * A story card on the public /stories listing page (#4688): the viewer-safe card data plus its label's type and
- * neighborhood, so the page can render type/region chips and sort on them without extra lookups.
+ * region, so the page can render type/region chips and sort on them without extra lookups.
  *
  * `displayName` is already resolved against the story's display-name mode (None = show as anonymous).
  * `labelImageUrl` is a signed preview of the story's label (crop, else GSV static) — only populated when the story

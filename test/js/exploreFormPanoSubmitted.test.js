@@ -76,10 +76,10 @@ function labelStub(panoId, tempLabelId) {
 }
 
 /** A stand-in for the current audit task. */
-function taskStub() {
+function taskStub(streetEdgeId = 34) {
     return {
         getAuditTaskId: () => 12,
-        getStreetEdgeId: () => 34,
+        getStreetEdgeId: () => streetEdgeId,
         getProperty: () => null,
         isComplete: () => false,
         getMissionStart: () => null,
@@ -93,6 +93,8 @@ describe('Form pano submission staging', () => {
     let panos;
     let labels;
     let form;
+    // What TaskContainer would answer at the moment the response lands — reassigned by the mid-flight switch test.
+    let currentTask;
 
     /** Builds a Form wired to stub collaborators, staging the given panos and labels. */
     function buildForm() {
@@ -104,7 +106,7 @@ describe('Form pano submission staging', () => {
             getStagedPanoData: () => panos.filter((p) => !p.getProperty('submitted')),
             getPanoData: (id) => panos.find((p) => p.getProperty('panoId') === id) ?? null,
         };
-        const taskContainer = { getCurrentTask: taskStub, updateTaskPriorities: jest.fn() };
+        const taskContainer = { getCurrentTask: () => currentTask, updateTaskPriorities: jest.fn() };
         return new Form(
             labelContainer,
             { on: jest.fn() }, // missionModel
@@ -151,6 +153,7 @@ describe('Form pano submission staging', () => {
 
         panos = [panoStub('pano-A'), panoStub('pano-B')];
         labels = [];
+        currentTask = taskStub();
         form = buildForm();
 
         // The failure paths end in window.location.reload(), which jsdom reports as "Not implemented: navigation"
@@ -176,6 +179,35 @@ describe('Form pano submission staging', () => {
 
         expect(window.fetch).toHaveBeenCalledTimes(1);
         for (const pano of panos) expect(pano.getProperty('submitted')).toBe(true);
+    });
+
+    test('does not move the tracker onto a street the labeler has already left', async () => {
+        // endTask() submits without awaiting and the caller switches streets immediately, so this response lands
+        // after the switch. Applying its audit_task_id would file every following interaction under the old street
+        // (#5370).
+        const submitted = taskStub(34);
+        window.fetch = jest.fn(() => {
+            currentTask = taskStub(99); // the switch happens while the POST is in flight
+            return Promise.resolve({
+                ok: true,
+                json: async () => ({ audit_task_id: 12, label_ids: [], refresh_page: false }),
+            });
+        });
+
+        await form.submitData(submitted);
+
+        // The task's own id is still recorded — that is how the next submission updates the right row — but the
+        // tracker stays on the street being walked now.
+        expect(submitted.setProperty).toHaveBeenCalledWith('auditTaskId', 12);
+        expect(window.svl.tracker.setAuditTaskID).not.toHaveBeenCalled();
+    });
+
+    test('still moves the tracker when the submitted street is the one still being walked', async () => {
+        acceptingFetch();
+
+        await form.submitData(taskStub(34));
+
+        expect(window.svl.tracker.setAuditTaskID).toHaveBeenCalledWith(12);
     });
 
     test('keeps panos staged for the next submission when the server rejects the POST', async () => {

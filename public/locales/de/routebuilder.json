@@ -27,7 +27,7 @@
   "street-count-in-region_other": "{{count}} Straßen in {{region}}",
   "see-all-routes_other": "Alle {{count}} Routen in Ihrem Dashboard ansehen",
   "copied-to-clipboard": "In die Zwischenablage kopiert!",
-  "one-neighborhood-warning": "Eine Route kann zu diesem Zeitpunkt nur Straßen aus einer Nachbarschaft aus sein.",
+  "one-region-warning": "Eine Route kann zu diesem Zeitpunkt nur Straßen aus einer Nachbarschaft aus sein.",
   "route-name-default": "Route in {{region}}",
   "route-name-streets": "{{start}} bis {{end}}",
   "save-error": "Beim Speichern ist etwas schiefgelaufen. Bitte versuchen Sie es erneut.",

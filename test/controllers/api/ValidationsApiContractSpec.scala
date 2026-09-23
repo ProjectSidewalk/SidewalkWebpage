@@ -47,6 +47,7 @@ class ValidationsApiContractSpec extends PlaySpec with GuiceOneAppPerSuite {
         (v \ "label_validation_id").asOpt[Int] mustBe defined
         (v \ "label_id").asOpt[Int] mustBe defined
         (v \ "label_type").asOpt[String] mustBe defined
+        (v \ "validated_label_type").asOpt[String] mustBe defined
         (v \ "user_id").asOpt[String] mustBe defined
 
         // #4263: validation_result is now a STRING enum value, and validation_result_string was removed.

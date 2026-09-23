@@ -64,13 +64,15 @@
   @* Label-detail popup: lets a recent comment's label open inline (same modal the rest of the app uses) instead of navigating away. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util and Google Maps are already loaded by common.main / adminLayout. *@
 @common.labelPopup(admin = true)
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 
   <script src='@assets.path("js/common/timestampLocalization.js")'></script>
 @if(commonData.imagerySource == PanoSource.Infra3d) {
-  <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-  <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+  <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
+  <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
 } else if (commonData.imagerySource == PanoSource.Mapillary) {
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
@@ -92,6 +94,7 @@
   <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
   <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
   <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
+  <script src='@assets.path("js/common/LabelTypePicker.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 

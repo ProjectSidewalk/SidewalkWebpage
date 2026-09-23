@@ -2,18 +2,19 @@ package controllers
 
 import controllers.base._
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.{parseURL, safeLocalPath}
+import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
 import forms._
 import models.auth.DefaultEnv
 import models.user.{Role, SidewalkUserWithRole, UserUtm}
-import models.utils.ProfanityGuard
+import models.utils.{IpAddress, ProfanityGuard}
 import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
-import play.api.libs.json.{JsError, JsObject, JsString, Json}
+import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Authenticator.Implicits._
 import play.silhouette.api._
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.silhouette.api.exceptions.ProviderException
 import play.silhouette.api.util.{Clock, PasswordHasher}
 import play.silhouette.impl.exceptions.IdentityNotFoundException
@@ -47,25 +48,6 @@ class UserController @Inject() (
    */
   private def wantsJson(implicit request: play.api.mvc.RequestHeader): Boolean =
     request.headers.get("X-Requested-With").contains("XMLHttpRequest")
-
-  /**
-   * Maps form binding errors to the async error contract: `{"errors": {field -> localized message}}`.
-   *
-   * Form-level (global) errors, like a password mismatch, land under the `_summary` key that the dialog renders as
-   * its top banner.
-   */
-  private def formErrorsJson(formWithErrors: play.api.data.Form[_])(implicit messages: Messages): JsObject = {
-    val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
-      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args: _*))
-    }
-    Json.obj("errors" -> JsObject(fields))
-  }
-
-  /**
-   * The async error contract for a single field: `{"errors": {field -> localized message}}`.
-   */
-  private def fieldErrorJson(field: String, message: String): JsObject =
-    Json.obj("errors" -> Json.obj(field -> message))
 
   /**
    * Counts this attempt against a named rate limit's keys; if any is exceeded, returns a ready 429, else `None`.
@@ -178,16 +160,12 @@ class UserController @Inject() (
     silhouette.env.authenticatorService.discard(request.authenticator, Redirect(url))
   }
 
-  /**
-   * Handles the 'forgot password' action
-   */
-  def forgotPassword(url: String) = silhouette.UserAwareAction.async { implicit request =>
-    if (request.identity.isEmpty || request.identity.get.role == Role.Anonymous) {
-      configService.getCommonPageData(request2Messages.lang).map { commonData =>
-        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ForgotPassword")
-        Ok(views.html.authentication.forgotPassword(ForgotPasswordForm.form, commonData))
-      }
-    } else Future.successful(Redirect(url))
+  /** Renders the forgot-password page, for signed-in users too since Settings links here (#2285). */
+  def forgotPassword = silhouette.UserAwareAction.async { implicit request =>
+    configService.getCommonPageData(request2Messages.lang).map { commonData =>
+      cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ForgotPassword")
+      Ok(views.html.authentication.forgotPassword(ForgotPasswordForm.form, commonData, request.identity))
+    }
   }
 
   /**
@@ -198,7 +176,7 @@ class UserController @Inject() (
       case Some(_) =>
         configService.getCommonPageData(request2Messages.lang).map { commonData =>
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ResetPassword")
-          Ok(views.html.authentication.resetPassword(ResetPasswordForm.form, commonData, token))
+          Ok(views.html.authentication.resetPassword(ResetPasswordForm.form, commonData, token, request.identity))
         }
       case None =>
         Future.successful(
@@ -228,7 +206,7 @@ class UserController @Inject() (
    * Powers the one-click opt-in on `/welcome` and the toggle on `/serviceHoursInstructions` (both plain form POSTs so
    * they work without JS). Anonymous users can't opt in — they're sent to sign-up instead.
    *
-   * @param enabled Whether to enable (true) or disable (false) `user_role.community_service`.
+   * @param enabled Whether to enable (true) or disable (false) `user_settings.community_service`.
    * @param next    Same-origin path to return to; defaults to (and is constrained to) `/serviceHoursInstructions`.
    */
   def setServiceHours(enabled: Boolean, next: Option[String]) =
@@ -236,7 +214,7 @@ class UserController @Inject() (
       val target = safeLocalPath(next.getOrElse("/serviceHoursInstructions"), "/serviceHoursInstructions")
       if (request.identity.role == Role.Anonymous) Future.successful(Redirect(routes.UserController.signUp()))
       else
-        authenticationService.setCommunityServiceStatus(request.identity.userId, enabled).map { _ =>
+        userService.setCommunityService(request.identity.userId, enabled).map { _ =>
           cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ServiceHours_Set=$enabled")
           Redirect(target)
         }
@@ -246,7 +224,7 @@ class UserController @Inject() (
    * Authenticates a user.
    */
   def authenticate() = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String          = request.ipAddress
+    val ipAddress: IpAddress       = request.ipAddress
     val currUserId: Option[String] = request.identity.map(_.userId)
 
     // Two per-IP bounds, both before any work happens. The per-minute one caps how *fast* one address can drive the
@@ -406,7 +384,7 @@ class UserController @Inject() (
    * Registers a new user.
    */
   def signUpPost() = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String         = request.ipAddress
+    val ipAddress: IpAddress      = request.ipAddress
     val oldUserId: Option[String] = request.identity.map(_.userId)
 
     // Grab the URL we want to redirect to that was passed as a hidden field in the form.
@@ -478,10 +456,10 @@ class UserController @Inject() (
                 val newUserId: String = oldUserId.getOrElse(UUID.randomUUID().toString)
                 val newUser           =
                   SidewalkUserWithRole(newUserId, data.username, email, Role.Registered, communityService = false,
-                    false)
+                    false, measurementSystem = None)
                 val pwInfo = passwordHasher.hash(data.password)
 
-                for {
+                (for {
                   user          <- authenticationService.createUser(newUser, CredentialsProvider.ID, pwInfo, oldUserId)
                   authenticator <- silhouette.env.authenticatorService.create(loginInfo)
                   value         <- silhouette.env.authenticatorService.init(authenticator)
@@ -494,6 +472,18 @@ class UserController @Inject() (
                   silhouette.env.eventBus.publish(SignUpEvent(user, request))
                   silhouette.env.eventBus.publish(LoginEvent(user, request))
                   result
+                }).recoverWith {
+                  // Two sign-ups for one email or username at once both pass the checks above, or the account holding
+                  // it has no role row and is invisible to them; either way the schema rejects the second insert.
+                  case e: PSQLException if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState =>
+                    if (e.getServerErrorMessage.getConstraint == "sidewalk_user_username_key")
+                      rejection(
+                        "Duplicate_Username_Error",
+                        "username",
+                        Messages("authenticate.error.username.exists"),
+                        Conflict
+                      )
+                    else rejection("Duplicate_Email_Error", "email", Messages("user.exists"), Conflict)
                 }
               }
             }).flatMap(identity) // Flatten the Future[Future[T]] to Future[T].
@@ -512,14 +502,21 @@ class UserController @Inject() (
   def welcome(next: Option[String]) = silhouette.UserAwareAction.async { implicit request =>
     request.identity match {
       case Some(user) if user.role != Role.Anonymous =>
-        configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        for {
+          commonData <- configService.getCommonPageData(request2Messages.lang)
+          privacy    <- userService.getPrivacySettings(user.userId)
+        } yield {
           cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Welcome")
           val resumeUrl = safeLocalPath(next.getOrElse("/explore"), "/explore")
           // Landing on a generic entry point isn't an interruption worth naming; anything else is a page the user
           // was pulled out of mid-task, and the CTA should say so rather than read as "go start something new".
-          val resumedPath = resumeUrl.takeWhile(_ != '?')
-          val resumed     = resumedPath != "/" && resumedPath != "/explore"
-          Ok(views.html.authentication.welcome(commonData, user, resumeUrl, resumed))
+          val resumedPath                    = resumeUrl.takeWhile(_ != '?')
+          val resumed                        = resumedPath != "/" && resumedPath != "/explore"
+          val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
+          Ok(
+            views.html.authentication.welcome(commonData, user, resumeUrl, resumed, onLeaderboard, publicProfile,
+              configService.getPrivateProfilesByDefault)
+          )
         }
       case _ => Future.successful(Redirect("/"))
     }
@@ -603,7 +600,7 @@ class UserController @Inject() (
    * a notice for not existing email addresses to prevent the leak of existing email addresses.
    */
   def submitForgottenPassword = silhouette.UserAwareAction.async { implicit request =>
-    val ipAddress: String      = request.ipAddress
+    val ipAddress: IpAddress   = request.ipAddress
     val userId: Option[String] = request.identity.map(_.userId)
 
     // Per-IP throttle on reset requests; the per-target-email one is post-bind, further down.
@@ -614,7 +611,7 @@ class UserController @Inject() (
         .fold(
           form =>
             configService.getCommonPageData(request2Messages.lang).map { commonData =>
-              BadRequest(views.html.authentication.forgotPassword(form, commonData))
+              BadRequest(views.html.authentication.forgotPassword(form, commonData, request.identity))
             },
           email => {
             // Per-target-email throttle (only possible after form binding) so one address can't be reset-mail bombed
@@ -628,10 +625,10 @@ class UserController @Inject() (
   }
 
   /** Emails password reset instructions to `email` if it belongs to an account, responding identically either way. */
-  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: String)(implicit
+  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: IpAddress)(implicit
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
-    val result = Redirect(routes.UserController.forgotPassword())
+    val result = Redirect(routes.UserController.forgotPassword)
       .flashing("info" -> Messages("reset.pw.email.reset.pw.sent"))
     cc.loggingService.insert(userId, ipAddress, s"""PasswordResetAttempt_Email="$email"""")
 
@@ -698,16 +695,25 @@ class UserController @Inject() (
             form =>
               configService.getCommonPageData(request2Messages.lang).map { commonData =>
                 cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_ResetPassword")
-                BadRequest(views.html.authentication.resetPassword(form, commonData, token))
+                BadRequest(views.html.authentication.resetPassword(form, commonData, token, request.identity))
               },
             passwordData =>
               authenticationService.findByUserId(authToken.userID).flatMap {
                 case Some(user) =>
                   val passwordInfo = passwordHasher.hash(passwordData.password)
-                  authenticationService.updatePassword(user.userId, passwordInfo).map { _ =>
+                  authenticationService.updatePassword(user.userId, passwordInfo).flatMap { _ =>
                     authenticationService.removeToken(token)
                     cc.loggingService.insert(user.userId, request.ipAddress, "PasswordReset")
-                    Redirect(routes.UserController.signIn()).flashing("success" -> Messages("reset.pw.successful"))
+                    val flash = "success" -> Messages("reset.pw.successful")
+                    // A browser signed in to this account keeps a new cookie and goes to Settings, because /signIn
+                    // bounces a signed-in user to the homepage, losing the message.
+                    (request.identity, request.authenticator) match {
+                      case (Some(identity), Some(authenticator)) if identity.userId == user.userId =>
+                        val settings = routes.UserDashboardController.settings.withFragment("change-password")
+                        silhouette.env.authenticatorService.renew(authenticator, Redirect(settings).flashing(flash))
+                      case _ =>
+                        Future.successful(Redirect(routes.UserController.signIn()).flashing(flash))
+                    }
                   }
                 case _ =>
                   Future.successful(

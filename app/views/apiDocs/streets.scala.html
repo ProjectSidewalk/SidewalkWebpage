@@ -47,12 +47,13 @@
       <div id="streets-label-count-preview" class="map-container"></div>
     </div>
 
-    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'>
+    <link rel="stylesheet" href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'>
     <link rel="stylesheet" href='@assets.path("css/pages/api-docs/streets.css")'>
     @* Deferred to keep the ~800KB mapping stack off this article's rendering path. Order still matters within the
        set: the language plugin and the preview both read the mapboxgl global as they parse. *@
-    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")' defer></script>
+    <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
+    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
     <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
     <script src='@assets.path("js/api-docs/streetsPreview.js")' defer></script>
     <script>
@@ -102,12 +103,6 @@
         <span class="format-icon">📦</span> GeoPackage
         <span class="format-hint">Open GIS format</span>
       </button>
-    </div>
-
-    <div id="download-status" class="status-container status-loading ps-hidden">
-      <div class="loading-spinner"></div>
-      <div class="status-message">Generating your download...</div>
-      <div class="status-progress">This may take anywhere from a few seconds to a few minutes depending on the data size.</div>
     </div>
 
     <p class="download-note">Note: This downloads all street data. For filtered data, use the <a href="#query-parameters">API Query Parameters</a> described below.</p>
@@ -360,24 +355,29 @@
     <h4 id="response-csv">CSV Format <a href="#response-csv" class="permalink">#</a></h4>
     <p>If <code>filetype=csv</code> is specified, the response body will be CSV data. The first row contains the headers, corresponding to the fields in the GeoJSON properties object, plus geometry representation. CRS is WGS84 (EPSG:4326).</p>
     <pre tabindex="0"><code class="language-csv">street_edge_id,osm_way_id,region_id,region_name,way_type,max_speed,status,user_ids,label_count,audit_count,outdated,user_count,first_label_date,last_label_date,start_point,end_point
-951,11584845,8,Teaneck Community Charter School,residential,25 mph,open,"[18b26a38-24ab-402d-a64e-158fc0bb8a8a,53ad4d79-9a7b-4d3c-a753-63bbfca34c9b]",23,5,false,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345"
-952,11566031,8,Teaneck Community Charter School,primary,,open,[8af92eb8-fb84-4aa6-9539-abc95216dcd7],8,1,false,1,2023-06-22T11:12:24Z,2023-06-22T11:45:33Z,"-74.0245835449219,40.8835416503906","-74.0246123456789,40.8833789012345"
+951,11584845,8,Teaneck Community Charter School,residential,25 mph,open,"[""18b26a38-24ab-402d-a64e-158fc0bb8a8a"",""53ad4d79-9a7b-4d3c-a753-63bbfca34c9b""]",23,5,false,2,2023-06-20T14:32:45Z,2023-08-15T10:22:18Z,"-74.0243606567383,40.8839912414551","-74.0245123456789,40.8836789012345"
+952,11566031,8,Teaneck Community Charter School,primary,,open,"[""8af92eb8-fb84-4aa6-9539-abc95216dcd7""]",8,1,false,1,2023-06-22T11:12:24Z,2023-06-22T11:45:33Z,"-74.0245835449219,40.8835416503906","-74.0246123456789,40.8833789012345"
 ...</code></pre>
 
     <p>Note: The complete LineString geometry is simplified to start and end points in the CSV format due to the tabular nature of CSV. For full geometry data, use the GeoJSON format.</p>
 
     <h4 id="response-shapefile">Shapefile Format <a href="#response-shapefile" class="permalink">#</a></h4>
-    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj). The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326).</p>
+    <p>If <code>filetype=shapefile</code> is specified, the response body will be a ZIP archive containing the Shapefile components (.shp, .shx, .dbf, .prj, .cpg). Text longer than 254 bytes is truncated. The attribute table (.dbf) contains fields corresponding to the GeoJSON properties object (field names may be truncated due to Shapefile limitations). The included <code>.prj</code> file defines the Coordinate Reference System (CRS), typically WGS84 (EPSG:4326).</p>
 
     <h4 id="response-geopackage">GeoPackage Format <a href="#response-geopackage" class="permalink">#</a></h4>
-    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage (.gpkg) file containing the street data with full geometry and attributes. GeoPackage is a modern, open standard geospatial format that supports complex geometries and is widely supported by GIS software.</p>
+    <p>If <code>filetype=geopackage</code> is specified, the response body will be a GeoPackage (.gpkg) file containing the street data with full geometry and the same field names as the GeoJSON properties. GeoPackage is a modern, open standard geospatial format that supports complex geometries and is widely supported by GIS software.</p>
 
     <h3 class="page-heading" id="error-responses">Error Responses<a href="#error-responses" class="permalink">#</a></h3>
     <p>If an error occurs, the API will return an appropriate HTTP status code and a JSON response body containing details about the error.</p>
     <ul>
       <li><strong><code>400 Bad Request</code>:</strong> Invalid parameter values (e.g., malformed bounding box, invalid region ID).</li>
       <li><strong><code>404 Not Found</code>:</strong> The requested resource does not exist (e.g., incorrect base URL path).</li>
+      <li><strong><code>429 Too Many Requests</code>:</strong> The same file is already being built for an earlier request; wait <code>Retry-After</code> seconds and try again. A <code>HEAD</code> request gets the same answer without building anything.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
+    </ul>
+    <h3 class="page-heading" id="response-headers">Response Headers<a href="#response-headers" class="permalink">#</a></h3>
+    <ul>
+      <li><strong><code>X-File-Size</code>:</strong> On a Shapefile, GeoPackage or zipped-CSV download, the file's size in bytes. Sent alongside <code>Content-Length</code>, and still present when the response is gzipped, which drops it — use it to show download progress.</li>
     </ul>
 
     @apiDocs.errorResponseBody()

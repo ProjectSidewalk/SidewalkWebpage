@@ -8,16 +8,20 @@
  * Shows an encouraging empty state when the user has no mistakes.
  */
 class MistakeGallery {
+  // Width:height of the card's photo box (.ud-card-img); crops and stills are cover-fitted into it.
+  static CARD_IMAGE_ASPECT = 3 / 2;
+
   /**
-     * @param {HTMLElement} rootEl - Container to fill with cards.
-     * @param {Object} opts
-     * @param {string} opts.userId - The signed-in user's id (the endpoint is self-or-admin only).
-     * @param {number} [opts.limit=6] - Max cards to show.
-     * @param {HTMLElement} [opts.seeAllEl] - Optional "see all" link, shown only when there are mistakes.
-     * @param {object} [opts.labelPopup] - Optional shared LabelPopup instance; when present, clicking a card image
-     *      opens the interactive pano + detail view and the vote/note controls are mirrored inside it.
-     * @param {boolean} [opts.readOnly=false] - Render the vote/note controls disabled (used for admin view).
-     */
+   * @param {HTMLElement} rootEl - Container to fill with cards.
+   * @param {object} opts
+   * @param {string} opts.userId - The signed-in user's id (the endpoint is self-or-admin only).
+   * @param {number} [opts.limit=6] - Max cards to show.
+   * @param {HTMLElement} [opts.seeAllEl] - Optional "see all" link, shown only when there are mistakes.
+   * @param {{showLabel: (labelId: number, source: string) => Promise<void>}} [opts.labelPopup] - Optional shared
+   *      LabelPopup instance; when present, clicking a card image opens the interactive pano + detail view and the
+   *      vote/note controls are mirrored inside it.
+   * @param {boolean} [opts.readOnly=false] - Render the vote/note controls disabled (used for admin view).
+   */
   constructor(rootEl, opts) {
     this.root = rootEl;
     this.userId = opts.userId;
@@ -37,10 +41,10 @@ class MistakeGallery {
   }
 
   /**
-     * Re-renders every vote/note section currently in the DOM for a label (its card + the popup panel), so a change in
-     * one place is reflected in the other.
-     * @param {Object} m - The label record.
-     */
+   * Re-renders every vote/note section currently in the DOM for a label (its card + the popup panel), so a change in
+   * one place is reflected in the other.
+   * @param {Record<string, any>} m - The label record.
+   */
   #sync(m) {
     document.querySelectorAll(`[data-ud-vote="${m.label_id}"]`)
       .forEach((el) => el.replaceWith(this.#voteSection(m)));
@@ -64,7 +68,7 @@ class MistakeGallery {
     // Flatten the per-type map into one list, tag each with its type, and show the most recent first.
     const all = [];
     Object.keys(data || {}).forEach((type) => (data[type] || []).forEach((label) => all.push(label)));
-    all.sort((a, b) => new Date(b.time_validated) - new Date(a.time_validated));
+    all.sort((a, b) => new Date(b.time_validated).getTime() - new Date(a.time_validated).getTime());
     const mistakes = all.slice(0, this.limit);
 
     this.root.innerHTML = '';
@@ -86,10 +90,10 @@ class MistakeGallery {
   }
 
   /**
-     * Builds one mistake card.
-     * @param {Object} m - A label record from the endpoint.
-     * @returns {HTMLElement}
-     */
+   * Builds one mistake card.
+   * @param {Record<string, any>} m - A label record from the endpoint.
+   * @returns {HTMLElement}
+   */
   #renderCard(m) {
     const type = m.label_type;
     const iconPath = util.misc.getIconImagePaths(type)?.iconImagePath;
@@ -97,28 +101,23 @@ class MistakeGallery {
     const card = document.createElement('figure');
     card.className = 'ud-card';
 
-    // Mark the label on the pano at its real position (canvas_x/y over the 720x480 Explore canvas), the same way
-    // the Gallery does — the label is NOT necessarily centered. The image is a 3:2 crop of the pano so the
-    // percentages line up. Falls back to the icon centered on the gradient if there's no pano image.
     const img = document.createElement('div');
     img.className = 'ud-card-img';
-    if (m.image_url) img.style.backgroundImage = `url("${m.image_url}")`;
-    if (iconPath) {
-      const marker = document.createElement('img');
+    const marker = iconPath ? document.createElement('img') : null;
+    // Filled in further down, once the image is on the card. The photo's error handler runs on a later event, so the
+    // overlays are always built by the time it fires.
+    let creditImage = null;
+    // The crop's recorded position describes the crop only, so losing it has to re-place the marker and the credit.
+    const photo = MistakeGallery.#photo(m, (source) => {
+      if (marker) MistakeGallery.#positionMarker(marker, m, source);
+      creditImage?.(source);
+    });
+    if (photo) img.appendChild(photo);
+    if (marker) {
       marker.className = 'ud-card-label-marker';
       marker.src = iconPath;
       marker.alt = '';
-      if (typeof m.canvas_x === 'number' && typeof m.canvas_y === 'number') {
-        // The crop is cover-fitted into the card's 3:2 box (.ud-card-img), so the marker's percentages are taken in the
-        // visible part of a crop of another aspect (#5085). The frame defaults to the boxed 720x480 for old payloads.
-        const pct = util.misc.markerPercentInCoverBox(m.canvas_x, m.canvas_y,
-          m.canvas_width ?? util.EXPLORE_CANVAS_WIDTH, m.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT, 3 / 2);
-        marker.style.left = `${pct.left}%`;
-        marker.style.top = `${pct.top}%`;
-      } else {
-        marker.style.left = '50%';
-        marker.style.top = '50%';
-      }
+      MistakeGallery.#positionMarker(marker, m, photo?.dataset.udSource ?? null);
       img.appendChild(marker);
     }
     const verdict = document.createElement('span');
@@ -126,25 +125,39 @@ class MistakeGallery {
     verdict.textContent = i18next.t('dashboard:mistake-cards.marked-incorrect');
     img.appendChild(verdict);
 
-    // Clicking the image opens the shared interactive label popup (pano + detail), when available.
+    // A real button covering the image opens the shared interactive label popup (pano + detail), when available. It
+    // has to be its own element rather than a role on the wrapper: the licence link in the credit below sits inside
+    // that wrapper, and a link inside a button is unreachable for screen readers and fires both on a click.
     if (this.labelPopup) {
-      img.classList.add('ud-card-img-clickable');
-      img.setAttribute('role', 'button');
-      img.setAttribute('tabindex', '0');
-      img.title = i18next.t('dashboard:mistake-cards.open-title');
-      img.setAttribute('aria-label', i18next.t('dashboard:mistake-cards.open-title'));
-      const open = () => this.#openPopup(m);
-      img.addEventListener('click', open);
-      img.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          open();
-        }
-      });
+      const openButton = document.createElement('button');
+      openButton.type = 'button';
+      openButton.className = 'ud-card-open';
+      openButton.title = i18next.t('dashboard:mistake-cards.open-title');
+      openButton.setAttribute('aria-label', i18next.t('dashboard:mistake-cards.open-title'));
+      openButton.addEventListener('click', () => this.#openPopup(m));
       const hint = document.createElement('span');
       hint.className = 'ud-card-expand-hint';
       hint.textContent = i18next.t('dashboard:mistake-cards.open-hint');
-      img.appendChild(hint);
+      openButton.appendChild(hint);
+      img.appendChild(openButton);
+    }
+
+    // A crop is our own copy of the image, so we have to credit whoever it came from (#5254); the still brands itself
+    // (see PanoViewerLogo). Added last so that the marker, the badges and the open button can't paint over it, and so
+    // the licence link lands outside that button. Nothing to credit when no image loaded: the card is a plain gradient.
+    if (photo) {
+      const logo = createPanoViewerLogo(img, m.pano_source);
+      const attribution = createPanoAttribution(img, { compact: true });
+      creditImage = (source) => {
+        if (source === 'crop') {
+          logo.showSourceLogo();
+          attribution.show(m.attribution);
+        } else {
+          logo.hide();
+          attribution.hide();
+        }
+      };
+      creditImage(photo.dataset.udSource);
     }
     card.appendChild(img);
 
@@ -159,9 +172,7 @@ class MistakeGallery {
     const valNote = document.createElement('span');
     valNote.className = 'ud-card-note';
     if (m.validator_comment) {
-      // escapeValue off: the result lands in textContent, so i18next's HTML-escaping would show literal entities.
-      valNote.textContent = i18next.t('dashboard:mistake-cards.validator-quote',
-        { c: m.validator_comment, interpolation: { escapeValue: false } });
+      valNote.textContent = i18next.t('dashboard:mistake-cards.validator-quote', { c: m.validator_comment });
     } else {
       valNote.textContent = i18next.t('dashboard:validator-no-comment');
       valNote.classList.add('ud-card-note-muted');
@@ -178,18 +189,12 @@ class MistakeGallery {
   }
 
   /**
-     * Opens the interactive label popup for a card and mirrors the vote/note controls inside it.
-     * @param {Object} m - The label record.
-     */
+   * Opens the interactive label popup for a card and mirrors the vote/note controls inside it.
+   * @param {Record<string, any>} m - The label record.
+   */
   async #openPopup(m) {
     try {
       await this.labelPopup.showLabel(m.label_id, 'UserDashboard');
-      // These are always the viewer's own labels, so prefix the (already-localized) title with "Your label:".
-      const titleEl = document.querySelector('#label-modal .label-detail__title');
-      if (titleEl) {
-        titleEl.textContent = i18next.t('dashboard:mistake-cards.your-label',
-          { type: titleEl.textContent, interpolation: { escapeValue: false } });
-      }
       this.#mountPopupPanel(m);
     } catch (e) {
       console.error('Failed to open the label popup', e);
@@ -197,9 +202,9 @@ class MistakeGallery {
   }
 
   /**
-     * Injects (or replaces) the vote/note panel inside the popup dialog for the given label.
-     * @param {Object} m - The label record.
-     */
+   * Injects (or replaces) the vote/note panel inside the popup dialog for the given label.
+   * @param {Record<string, any>} m - The label record.
+   */
   #mountPopupPanel(m) {
     const dialog = document.getElementById('label-modal');
     if (!dialog) return;
@@ -215,11 +220,11 @@ class MistakeGallery {
   }
 
   /**
-     * The agree/contest vote control, driven by shared per-label state. Unvoted shows the two buttons; voted shows the
-     * choice + a "Change response" button. Instant (no separate submit). Tagged with data-ud-vote for #sync.
-     * @param {Object} m - The label record.
-     * @returns {HTMLElement} The vote-section element.
-     */
+   * The agree/contest vote control, driven by shared per-label state. Unvoted shows the two buttons; voted shows the
+   * choice + a "Change response" button. Instant (no separate submit). Tagged with data-ud-vote for #sync.
+   * @param {Record<string, any>} m - The label record.
+   * @returns {HTMLElement} The vote-section element.
+   */
   #voteSection(m) {
     const agrees = this.#stateFor(m.label_id).agrees;
     const sec = document.createElement('div');
@@ -262,11 +267,11 @@ class MistakeGallery {
   }
 
   /**
-     * Records a vote and, on success, updates shared state and re-renders every vote section for this label.
-     * @param {Object} m - The label record.
-     * @param {HTMLElement} sec - The vote section (buttons disabled during the request).
-     * @param {boolean} agrees - True = agree it was a mistake; false = contest.
-     */
+   * Records a vote and, on success, updates shared state and re-renders every vote section for this label.
+   * @param {Record<string, any>} m - The label record.
+   * @param {HTMLElement} sec - The vote section (buttons disabled during the request).
+   * @param {boolean} agrees - True = agree it was a mistake; false = contest.
+   */
   async #vote(m, sec, agrees) {
     sec.querySelectorAll('button').forEach((b) => b.setAttribute('disabled', 'disabled'));
     try {
@@ -285,12 +290,12 @@ class MistakeGallery {
   }
 
   /**
-     * The optional note control, independent of the vote. Shows the saved note (if any) plus an "Add/Edit note" link
-     * that reveals a textarea + "Save note". A note can be left with or without a vote.
-     *
-     * @param {Object} m - The label record.
-     * @returns {HTMLElement} The note-section element (tagged data-ud-note for #sync).
-     */
+   * The optional note control, independent of the vote. Shows the saved note (if any) plus an "Add/Edit note" link
+   * that reveals a textarea + "Save note". A note can be left with or without a vote.
+   *
+   * @param {Record<string, any>} m - The label record.
+   * @returns {HTMLElement} The note-section element (tagged data-ud-note for #sync).
+   */
   #noteSection(m) {
     const note = this.#stateFor(m.label_id).note;
     const sec = document.createElement('div');
@@ -300,8 +305,7 @@ class MistakeGallery {
     if (note) {
       const saved = document.createElement('p');
       saved.className = 'ud-card-your-note';
-      saved.textContent = i18next.t('dashboard:mistake-cards.your-note',
-        { note, interpolation: { escapeValue: false } });
+      saved.textContent = i18next.t('dashboard:mistake-cards.your-note', { note });
       sec.appendChild(saved);
     }
 
@@ -345,11 +349,11 @@ class MistakeGallery {
   }
 
   /**
-     * Saves a note and, on success, updates shared state and re-renders every note section for this label.
-     * @param {Object} m - The label record.
-     * @param {HTMLElement} sec - The note section (disabled during the request).
-     * @param {string} comment - The note text.
-     */
+   * Saves a note and, on success, updates shared state and re-renders every note section for this label.
+   * @param {Record<string, any>} m - The label record.
+   * @param {HTMLElement} sec - The note section (disabled during the request).
+   * @param {string} comment - The note text.
+   */
   async #saveNote(m, sec, comment) {
     const trimmed = (comment || '').trim();
     sec.querySelectorAll('button, textarea, a').forEach((el) => el.setAttribute('disabled', 'disabled'));
@@ -369,11 +373,59 @@ class MistakeGallery {
   }
 
   /**
-     * @param {string} cls - Extra class.
-     * @param {string} label - Button text.
-     * @param {string} title - Tooltip.
-     * @returns {HTMLButtonElement}
-     */
+   * Places the label-type icon over whichever image the card ended up showing.
+   *
+   * @param {HTMLImageElement} marker - The marker element.
+   * @param {Record<string, any>} m - The label record.
+   * @param {?string} source - Which source is showing: 'crop', 'api', or null for the bare gradient.
+   */
+  static #positionMarker(marker, m, source) {
+    // Fractions of the card's 3:2 box (.ud-card-img), into which the image is cover-fitted.
+    const { x, y } = util.misc.labelMarkerFraction(source, m.crop_marker, m.canvas_x, m.canvas_y, {
+      canvasWidth: m.canvas_width, canvasHeight: m.canvas_height, boxAspect: MistakeGallery.CARD_IMAGE_ASPECT,
+    });
+    marker.style.left = `${100 * x}%`;
+    marker.style.top = `${100 * y}%`;
+  }
+
+  /**
+   * The card's image, preferring the label's saved crop (#4478): it's what the labeler saw, and it comes off our own
+   * disk, where the Static API image is billed per request. A crop's URL expires, so a failure retries the API image,
+   * and a second failure removes the photo. Alt is empty: the card's title names the type below it.
+   *
+   * @param {Record<string, any>} m - The label record.
+   * @param {(source: ?string) => void} onSourceChange - Called with the source now on screen ('api', or null once
+   *     every source has failed), since the marker's position depends on which image is showing.
+   * @returns {?HTMLImageElement} The image, or null when the label has no source at all.
+   */
+  static #photo(m, onSourceChange) {
+    if (!m.crop_url && !m.image_url) return null;
+    const photo = document.createElement('img');
+    photo.className = 'ud-card-photo';
+    photo.alt = '';
+    photo.loading = 'lazy';
+    photo.draggable = false; // The wrapper is the popup's click target; a native image drag would swallow the press.
+    photo.addEventListener('error', () => {
+      if (photo.dataset.udSource === 'crop' && m.image_url) {
+        photo.dataset.udSource = 'api';
+        photo.src = m.image_url;
+      } else {
+        photo.remove();
+        delete photo.dataset.udSource;
+      }
+      onSourceChange(photo.dataset.udSource ?? null);
+    });
+    photo.dataset.udSource = m.crop_url ? 'crop' : 'api';
+    photo.src = m.crop_url || m.image_url;
+    return photo;
+  }
+
+  /**
+   * @param {string} cls - Extra class.
+   * @param {string} label - Button text.
+   * @param {string} title - Tooltip.
+   * @returns {HTMLButtonElement}
+   */
   static #chip(cls, label, title) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -384,11 +436,11 @@ class MistakeGallery {
   }
 
   /**
-     * The localized display name for a label type, via the shared common-namespace keys ("NoCurbRamp" ->
-     * t('common:no-curb-ramp')).
-     * @param {string} type - LabelTypeEnum name.
-     * @returns {string}
-     */
+   * The localized display name for a label type, via the shared common-namespace keys ("NoCurbRamp" ->
+   * t('common:no-curb-ramp')).
+   * @param {string} type - LabelTypeEnum name.
+   * @returns {string}
+   */
   static #typeName(type) {
     const key = String(type).replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
     return i18next.t(`common:${key}`);

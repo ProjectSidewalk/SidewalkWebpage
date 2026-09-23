@@ -31,19 +31,24 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
 **Flow:**
 1. `GetAiValidationsActor` (`app/actor/GetAiValidationsActor.scala`) runs nightly at the time
    `app/actor/ScheduledJobs.scala` gives it (staggered per city), selecting up to 800 labels/day via
-   `LabelTable.getLabelsToValidateWithAi` (unassessed, GSV-only, prioritized).
+   `LabelTable.getLabelsToValidateWithAi` (not assessed as its current type, GSV-only, prioritized). A label whose
+   type was edited is assessed again right after the edit (`AiService.reassessAfterTypeChange`, same eligibility
+   rules, #3671), with this sweep as the fallback.
 2. `AiService.callAiApi` (`app/service/AiService.scala`) POSTs
    `{label_type, panorama_id, x, y, city}` to
    `https://sidewalk-ai-api.cs.washington.edu/process` (code:
    [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) — Dockerized GPU
    service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace).
 3. The response (validation result + estimated accuracy + per-tag scores + model provenance)
-   is stored in `label_ai_assessment`. If AI validations are enabled for the city and
+   is stored in `label_ai_assessment`, along with the type it was about, which is what makes an assessment stale once
+   the label is retyped (#3671) — the AI is asked about one type, so its answer only speaks to that type. If AI validations are enabled for the city and
    estimated accuracy ≥ `ai-validation-min-accuracy` (0.92 everywhere today), a real
    `label_validation` is submitted as the `SidewalkAI` user; below the threshold it
    downgrades to Unsure. HTTP 502 → `label_ai_failure` (permanently excluded).
 4. Surfaced in the *Humans vs AI* admin dashboard (`/admin/humans-vs-ai`) and the AI icon
-   (`AiLabelIndicator.js`) across Gallery/Validate/LabelMap.
+   (`public/js/common/aiLabelIndicator.js`) across Gallery/Validate/LabelMap. The icon carries the
+   "AI can make mistakes" tooltip everywhere except Validate's marker, where the label card the
+   same hover opens shows the sentence instead (`LabelCardView`, #5359).
 
 **Models:**
 - *Validator* (from [`sidewalk-validator-ai`](https://github.com/ProjectSidewalk/sidewalk-validator-ai)):
@@ -62,7 +67,10 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
 
 **DB:** `label_ai_assessment`, `label_ai_failure`, AI user
 `51b0b927-3c8a-45b2-93de-bd878d1e5cf4` (role `AI`), mission type `aiValidation`
-(evolutions 281/282, 321/322).
+(evolutions 281/282, 321/322). The AI user's per-schema rows — its `user_stat` row and
+one `aiValidation` mission per label type — are re-created at boot by
+`AiSeedRowsRepair` wherever a schema lacks them, since a city cloned from a donor or
+restored from an onboarding dump never ran 281 (#5349).
 
 ### Subsystem B — AI-generated labels (RampNet + auto-labeler)
 
@@ -79,10 +87,16 @@ validation.
    (`AiController.submitAiLabel`).
 2. `ExploreService.submitAiLabelData` computes lat/lng + POV, creates an AI mission/audit
    task, inserts real `label` rows under the AI user, and records provenance in
-   `label_ai_info`.
+   `label_ai_info`. The pano's `copyright` is reduced to the contributor's bare name on the
+   way in (`ImageryAttribution.normalizeCopyright`): the labeler sends a whole attribution,
+   `© name / Mapillary (CC BY-SA 4.0)`, and the server composes the sign, provider and licence
+   around the stored name itself, so storing the whole thing credited everything twice (#5360).
 3. Labels then enter the normal human-validation pipeline — which is also the feedback signal
    for improving the model (continual-improvement roadmap:
-   `sidewalk-auto-labeler/docs/design-review-2026-07.md`).
+   `sidewalk-auto-labeler/docs/design-review-2026-07.md`). A lone AI vote leaves a label one
+   vote short of consensus, so the crowd queue keeps serving it until a human concurs, and a
+   label the humans lean against goes to Expert Validate's triage queue
+   (`docs/validation-queue.md`).
 
 **City gate:** `submitAiLabel` is gated by the per-city `ai-label-submission-enabled` flag in
 `cityparams.conf` (default **false**; unlisted cities reject submissions). Onboarding another
@@ -127,7 +141,7 @@ historical repos were archived in July 2026 to make the active set obvious).
 | 2023 | [`BusStopCV`](https://github.com/ProjectSidewalk/BusStopCV) | Sibling crowd+AI project: real-time in-browser CV assistant for labeling bus-stop features (seating, shelter, signage, trash cans). | [ASSETS'23 (Kulkarni et al.)](https://doi.org/10.1145/3597638.3614481) | 🗄 Archived (2026-07) |
 | 2024– | [`sidewalk-tagger-ai`](https://github.com/ProjectSidewalk/sidewalk-tagger-ai) | Trains the **tagger** models: DINOv2/CLIP multi-label classifiers, 33 tag classes over label crops; per-tag deployment thresholds at precision ≥ 0.92. | ASSETS'24 (Liu, Wu, et al.) | ✅ Active |
 | 2024– | [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) | **The serving layer**: Dockerized GPU API (`/process`) hosting the validator + tagger models from HuggingFace; called daily by SidewalkWebpage for ~55 cities. | — | ✅ Active |
-| 2025 | [`gsv-location-extraction-analysis`](https://github.com/ProjectSidewalk/gsv-location-extraction-analysis) | Completed one-off study: GSV's `fromContainerPixelToLatLng` vs. the linear regression PS deployed at the time for label lat/lng (verdict: the regression was slightly better; both are beaten by the cotangent blend `label-latlng-estimation` fit in 2026). Conclusions in its README. | — | ✅ Active |
+| 2025 | [`gsv-location-extraction-analysis`](https://github.com/ProjectSidewalk/gsv-location-extraction-analysis) | Completed one-off study: GSV's `fromContainerPixelToLatLng` vs. the linear regression PS deployed at the time for label lat/lng (verdict: the regression was slightly better; both are beaten by the cotangent blend `label-latlng-estimation` fit in 2026). Conclusions and a decision-record banner in its README. | — | 🗄 Archived (2026-08) |
 | 2025– | [`RampNet`](https://github.com/ProjectSidewalk/RampNet) | Trains the curb-ramp **detector** + auto-generates its 214k-pano dataset from open-gov data. ⚠ Tag an ICCV-paper-state release before changing (issue #2). | [ICCV'25 wksp (O'Meara et al.)](https://arxiv.org/abs/2508.09415) | ✅ Active |
 | 2025– | [`sidewalk-auto-labeler`](https://github.com/ProjectSidewalk/sidewalk-auto-labeler) | Deploys RampNet at city scale: finds every pano in a polygon, runs detection, submits AI labels to PS. | — | ✅ Active |
 | 2025– | [`sidewalk-validator-ai`](https://github.com/ProjectSidewalk/sidewalk-validator-ai) | Trains the **validator** models: DINOv2 binary correct/incorrect per label type, Depth-Anything-V2 depth-aware crops, agreement-based training labels. | — | ✅ Active |

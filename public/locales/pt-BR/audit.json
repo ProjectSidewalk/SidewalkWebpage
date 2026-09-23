@@ -108,9 +108,9 @@
   },
   "mission-complete": {
     "title-generic": "Missão Completa!",
-    "title-neighborhood-complete": "Viva! Você completou o bairro {{neighborhoodName}}!",
+    "title-region-complete": "Viva! Você completou o bairro {{regionName}}!",
     "title-route-complete": "Viva! Você completou sua rota!",
-    "subtitle": "Explore {{distance}} de {{neighborhoodName}}",
+    "subtitle": "Explore {{distance}} de {{regionName}}",
     "badge-alt": "Seu emblema de missões",
     "legend-title": "Progresso da missão",
     "legend-this-mission": "Esta missão",
@@ -149,14 +149,32 @@
       "message-route": "Explore {{routeName}}",
       "exit-route": "Sair da rota personalizada",
       "header-free-explore": "Exploração livre",
-      "message": "Explore __PLACEHOLDER__ de {{neighborhoodName}}"
+      "message": "Explore __PLACEHOLDER__ de {{regionName}}"
     },
     "route-resume": {
       "message": "Retomando sua rota personalizada “{{routeName}}” de onde você parou.",
       "exit": "Sair da rota personalizada"
     },
     "mission-resume": {
-      "message": "Retomando sua missão em {{neighborhoodName}} — faltam {{distanceLeft, distance(style: small)}}."
+      "message": "Retomando sua missão em {{regionName}} — faltam {{distanceLeft, distance(style: small)}}."
+    },
+    "route-unavailable": {
+      "message": "Essa rota não está disponível. Ela pode ter sido excluída."
+    },
+    "reaudit": {
+      "title": "Esta rua tem imagens mais recentes",
+      "message-you": "Você avaliou esta rua pela última vez em {{lastMapped}}, mas as imagens foram renovadas desde então (em {{newImagery}}). Por favor, avalie esta rua novamente para nos ajudar a analisar o que mudou.",
+      "message-you-no-dates": "Você já avaliou esta rua antes, mas as imagens foram renovadas desde então. Por favor, avalie esta rua novamente para nos ajudar a analisar o que mudou.",
+      "message-others": "Esta rua foi avaliada pela última vez em {{lastMapped}}, mas as imagens foram renovadas desde então (em {{newImagery}}). Por favor, avalie esta rua novamente para nos ajudar a analisar o que mudou.",
+      "message-others-no-dates": "Esta rua já foi avaliada antes, mas as imagens foram renovadas desde então. Por favor, avalie esta rua novamente para nos ajudar a analisar o que mudou."
+    },
+    "pano-date-note": {
+      "image-date": "Imagem: {{date}}",
+      "needs-reassessment": "Precisa de reavaliação",
+      "already-assessed": "Já avaliado",
+      "already-assessed-tip": "Você avaliou este local pela última vez em {{assessedDate}}, e as imagens ({{captureDate}}) não mudaram desde essa avaliação. Fique à vontade para adicionar novos rótulos se notar algo!",
+      "needs-reassessment-tip-you": "Você avaliou este local pela última vez em {{assessedDate}}, mas as imagens aqui são mais recentes ({{captureDate}}). Por favor, avalie-o novamente para nos ajudar a analisar o que mudou.",
+      "needs-reassessment-tip-others": "Um usuário avaliou este local pela última vez em {{assessedDate}}, mas as imagens aqui são mais recentes ({{captureDate}}). Por favor, avalie-o novamente para nos ajudar a analisar o que mudou."
     },
     "minimap": {
       "coach-dismiss": "Entendi",
@@ -172,7 +190,23 @@
       "legend-ahead": "Rota restante",
       "legend-you": "Você + direção da vista",
       "legend-visited": "Local visitado",
-      "legend-unseen": "Ainda não visto"
+      "legend-unseen": "Ainda não visto",
+      "legend-next-stops": "Paradas na sua rota",
+      "forward-crumb-title": "Avançar para a parada {{rank}}",
+      "legend-other-links": "Outras direções",
+      "legend-faced": "Preenchido: para onde avançar leva",
+      "legend-earlier-labels": "Meus rótulos anteriores",
+      "link-crumb-title": "Ir para este panorama",
+      "legend-next-step": "Azul claro: próximo passo (barra de espaço)",
+      "route-stop-title": "Parada {{rank}} da sua rota",
+      "breadcrumb-title": "Visitado: clique para voltar aqui",
+      "label-marker-title": "Rótulo {{labelType}}: clique para revisar",
+      "label-marker-title-prior": "Rótulo “{{labelType}}” de uma missão anterior",
+      "label-marker-title-outdated": "Rótulo antigo “{{labelType}}” em uma rua com imagens novas",
+      "route-start-flag": "Início da rota",
+      "route-finish-flag": "Fim da rota",
+      "mission-start-flag": "Onde esta missão começou",
+      "mission-finish-flag": "Onde esta missão termina"
     },
     "stats": {
       "leaderboard-cta": "Ver a classificação da comunidade"
@@ -187,7 +221,7 @@
       "next-distance": "Explore {{distance}} para conquistar a próxima.",
       "earned-all": "Você alcançou o nível máximo desta insígnia — excelente trabalho!"
     },
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "Progresso do bairro",
       "you-tooltip": "Suas contribuições",
       "community-tooltip": "Contribuições da comunidade"
@@ -299,14 +333,14 @@
       "u-turn": "Retorne",
       "end-route": "Você está no final da sua rota! Olhe totalmente ao seu redor para terminar, ou <b>clique aqui para completar agora.</b>",
       "route-finish-look-around": "Última parada! Olhe totalmente ao seu redor para completar sua rota.",
-      "end-neighborhood": "Você explorou todo este bairro! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar o bairro.</b>",
+      "end-region": "Você explorou todo este bairro! Termine de rotular este cruzamento e, em seguida, <b>clique aqui para completar o bairro.</b>",
       "end-street": "Precisamos movê-lo para um novo local. Termine de rotular este cruzamento e, em seguida, <b>clique aqui para ir para um novo local.</b>",
       "far-away": "Opa, você está bem longe da rota. <b>Clique aqui para voltar.</b>"
     }
   },
   "popup": {
     "start-title": "Vamos começar!",
-    "start-body": "Nós o movemos para uma rua em {{neighborhood}}, {{city}}! Você está atualmente parado no cruzamento. Por favor, encontre e rotule todas as rampas de meio-fio e problemas de acessibilidade neste cruzamento.",
+    "start-body": "Nós o movemos para uma rua em {{region}}, {{city}}! Você está atualmente parado no cruzamento. Por favor, encontre e rotule todas as rampas de meio-fio e problemas de acessibilidade neste cruzamento.",
     "step-title": "Vamos seguir em frente!",
     "step-body": "Parece que você olhou ao redor de toda este cruzamento, então é hora de explorar outras áreas. Mova-se na direção da linha vermelha destacada no mapa.",
     "both-sides-title": "Por favor, verifique ambos os lados da rua",
@@ -336,11 +370,12 @@
     "free-explore-no-imagery": "Não há mais imagens da rua nesta direção. Tente olhar ao redor ou seguir para o outro lado.",
     "stuck-suggestion": "Se você não conseguir se mover com as setas, tente clicar nas direções de navegação no canto inferior direito. Ou tente clicar no botão Preso à esquerda.",
     "imagery-skip-limit": "Várias ruas seguidas não tinham imagens, então paramos de mover você automaticamente. Tente outra parte do mapa ou recarregue a página para começar de novo.",
-    "imagery-load-failed": "Não conseguimos carregar as imagens da rua agora. Tente novamente em alguns minutos."
+    "imagery-load-failed": "Não conseguimos carregar as imagens da rua agora. Tente novamente em alguns minutos.",
+    "imagery-session-expired": "Sua sessão de imagens da rua expirou e não pôde ser renovada. Recarregue a página para continuar; seu trabalho até agora está salvo."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "EXPLORAR MISSÃO",
-    "mst-instruction-2": "Rotule estes recursos de acessibilidade em {{neighborhood}}",
+    "mst-instruction-2": "Rotule estes recursos de acessibilidade em {{region}}",
     "example-type-label-incorrect": "ERRO COMUM",
     "label-on-image-title-incorrect": "Erro comum",
     "label-on-image-description-correct": "Coloque um rótulo",

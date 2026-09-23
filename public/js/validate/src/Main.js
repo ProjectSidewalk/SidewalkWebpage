@@ -2,6 +2,23 @@
 window.svv = window.svv || {};
 
 /**
+ * The elements the busy state covers while a label loads (LabelContainer's `#setUiBusy`, #5211), per layout.
+ *
+ * Desktop dims the whole tool through its application holder, with the menu column alongside it. Mobile has neither
+ * of those elements — its controls are laid over the pano rather than sitting in a column of their own — so they are
+ * named one by one: dimming the holder they share would take the imagery, and the fallback viewer's progress box,
+ * down with them.
+ *
+ * Every id here has to exist in the matching view, which validateLoadingGuard.test.js checks: a selector that matches
+ * nothing fails silently, and that is how mobile came to have no busy state at all.
+ */
+const VALIDATE_BUSY_SELECTORS = {
+  desktop: ['#svv-application-holder', '#validation-menu-holder'],
+  mobile: ['#validation-button-holder', '#validate-why-no-section', '#validate-why-unsure-section',
+    '#mobile-popup-notch', '#validate-undo-button', '#label-visibility-control-holder'],
+};
+
+/**
  * Main module for Validate / Expert Validate / and Mobile Validate.
  */
 class Main {
@@ -10,12 +27,13 @@ class Main {
 
   // Re-sizing the pano is a layout and a viewer redraw, and a rotation fires resize several times as the device
   // settles. Coalescing at about a frame's worth keeps the pano tracking the screen without doing it every event.
+  // Desktop, which rescales on every event, uses the same span as the quiet period before it logs Window_Resized.
   static #RESIZE_THROTTLE_MS = 150;
 
   #param;
 
   /**
-   * @param {object} param Object passed from validation.scala.html containing data from the back end.
+   * @param {Record<string, any>} param - Object passed from validation.scala.html containing data from the back end.
    */
   constructor(param) {
     this.#param = param;
@@ -55,14 +73,18 @@ class Main {
     }, {});
     svv.ui = {};
     svv.ui.holder = $('.tool-ui');
+    const busySelectors = util.isMobile() ? VALIDATE_BUSY_SELECTORS.mobile : VALIDATE_BUSY_SELECTORS.desktop;
+    svv.ui.busyRegion = $(busySelectors.join(', '));
 
     svv.ui.validationMenu = {};
-    svv.ui.validationMenu.holder = $('#validation-menu-holder');
     svv.ui.validationMenu.header = $('#main-validate-header');
 
     svv.ui.validationMenu.yesButton = $('#validate-yes-button');
     svv.ui.validationMenu.noButton = $('#validate-no-button');
     svv.ui.validationMenu.unsureButton = $('#validate-unsure-button');
+    svv.ui.validationMenu.labelTypeMenu = $('#validate-label-type-section');
+    svv.ui.validationMenu.labelTypeHeader = $('#validate-label-type-header');
+    svv.ui.validationMenu.labelTypePicker = $('#label-type-picker');
 
     svv.ui.validationMenu.tagsMenu = $('#validate-tags-section');
     svv.ui.validationMenu.severityMenu = $('#validate-severity-section');
@@ -125,7 +147,6 @@ class Main {
     };
 
     svv.ui.viewer = {};
-    svv.ui.viewer.holder = $('#svv-application-holder');
     svv.ui.viewer.controlLayer = $('#view-control-layer');
     svv.ui.viewer.dateHolder = $('#svv-panorama-date-holder');
     svv.ui.viewer.date = $('#svv-panorama-date');
@@ -206,16 +227,8 @@ class Main {
     // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
     // instead fills the screen via PanoManager's own sizing.
     if (!util.isMobile()) {
-      const applyValidateScale = () => {
-        const scale = util.applyToolScale(
-          ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
-          ['--header-base-height', '--pano-base-height'],
-        );
-        svv.panoManager.setMarkerScale(scale);
-        svv.panoViewer.resize();
-      };
-      applyValidateScale();
-      window.addEventListener('resize', applyValidateScale);
+      Main.applyValidateScale();
+      window.addEventListener('resize', Main.createDesktopResizeHandler());
     } else {
       // The pano is sized to the viewport, so a rotation (or an on-screen keyboard opening) leaves it the wrong
       // shape. Re-size it in place: a reload would be the only alternative, and it would cost the validator their
@@ -235,6 +248,7 @@ class Main {
 
         svv.panoManager.sizePano();
         svv.panoViewer.resize();
+        svv.panoViewer.repaint();
         svv.tracker.push('Window_Resized', {
           width, height, orientation: width > height ? 'landscape' : 'portrait', rotated,
         });
@@ -330,6 +344,50 @@ class Main {
         container: 'body',
       });
     }
+  }
+
+  /**
+   * Scales the whole desktop tool to fit the viewport (like browser zoom, via var(--ui-scale)) and hands the pano
+   * viewer its new container size. Runs once at startup and again on every window resize.
+   *
+   * The viewer is told twice over: `resize()` is the documented "your container moved" call, and `repaint()` covers
+   * the case where GSV re-measures but never draws, leaving the validator a black image until they drag it (#2468,
+   * #5367). Neither is known to be sufficient on its own, and both are cheap. The startup call repaints too: the
+   * first label's marker set the POV while the tool was still at scale 1, so the rescale here is the first change
+   * to the pano's box after it painted — the very trigger — and a black first label is what gets reported.
+   * @returns {void}
+   */
+  static applyValidateScale() {
+    const scale = util.applyToolScale(
+      ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
+      ['--header-base-height', '--pano-base-height'],
+    );
+    svv.panoManager.setMarkerScale(scale);
+    svv.panoViewer.resize();
+    svv.panoViewer.repaint();
+  }
+
+  /**
+   * Builds the desktop `resize` listener: re-scale the tool, and record that the viewport changed shape.
+   *
+   * The logging lives here rather than in applyValidateScale() because that also runs at startup, where nothing was
+   * resized — a `Window_Resized` then would read as a user action that never happened. Logged on the settled size,
+   * once the events have stopped for a window, rather than throttled like mobile's: a throttle keeps emitting for as
+   * long as a drag lasts, and a drag is one act, so it gets one line carrying the size that stuck.
+   * @returns {() => void} The listener to attach to the window's `resize` event.
+   */
+  static createDesktopResizeHandler() {
+    let logTimer;
+    return () => {
+      Main.applyValidateScale();
+      clearTimeout(logTimer);
+      logTimer = setTimeout(() => {
+        svv.tracker.push('Window_Resized', {
+          width: document.documentElement.clientWidth,
+          height: document.documentElement.clientHeight,
+        });
+      }, Main.#RESIZE_THROTTLE_MS);
+    };
   }
 
   /**

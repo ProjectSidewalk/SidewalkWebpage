@@ -16,7 +16,6 @@ const CONTAINER_ID = 'aggregate-stats-preview';
 
 // Realistic captured-shape response: flat, snake_case keys per the v3 API naming convention (issue #3871).
 const GOOD_FIXTURE = {
-    status: 'OK',
     km_explored: 1234,
     km_explored_no_overlap: 1000,
     total_labels: 50000,
@@ -34,7 +33,6 @@ const GOOD_FIXTURE = {
 // Wrong shape #1: headline totals nested under a sub-object instead of flat — directly analogous to the
 // overallStatsPreview.js bug (`validations.total_validations` moving under `validations.combined`).
 const WRONG_SHAPE_NESTED = {
-    status: 'OK',
     km_explored: 1234,
     total_labels: 50000,
     // total_validations is NOT at the top level anymore — it moved under `validations`.
@@ -47,7 +45,6 @@ const WRONG_SHAPE_NESTED = {
 
 // Wrong shape #2: camelCase keys (the pre-snake_case-migration shape).
 const WRONG_SHAPE_CAMEL = {
-    status: 'OK',
     kmExplored: 1234,
     totalLabels: 50000,
     totalValidations: 30000,

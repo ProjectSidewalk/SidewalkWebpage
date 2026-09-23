@@ -9,7 +9,7 @@
  * @param {string|URL} url - The label feed endpoint.
  * @param {object} [options]
  * @param {AbortSignal} [options.signal] - Optional abort signal, so a superseded viewport fetch can be cancelled.
- * @returns {Promise<object>} The parsed GeoJSON FeatureCollection.
+ * @returns {Promise<GeoJSON.FeatureCollection>} The parsed GeoJSON FeatureCollection.
  */
 async function fetchLabelFeed(url, { signal } = {}) {
   const response = await fetch(url, { signal });
@@ -24,10 +24,10 @@ async function fetchLabelFeed(url, { signal } = {}) {
 
 /**
  * Toggles the visibility of a label type layer on the map.
- * @param {string} labelType The label type key (e.g., 'CurbRamp').
- * @param {boolean} visible Whether the layer should be visible.
- * @param {object} map The Mapbox map object.
- * @param {object} mapData The layer tracker from CreateMapLayerTracker.
+ * @param {string} labelType - The label type key (e.g., 'CurbRamp').
+ * @param {boolean} visible - Whether the layer should be visible.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
  */
 function toggleLabelLayer(labelType, visible, map, mapData) {
   const layerName = mapData.layerNames[labelType];
@@ -38,11 +38,11 @@ function toggleLabelLayer(labelType, visible, map, mapData) {
 
 /**
  * Builds and applies Mapbox filter expressions to all label layers based on the current filter state in mapData.
- * @param {HTMLElement|null} checkbox The validation checkbox that was clicked, or null if the update was triggered by
- *      something else (e.g., a severity toggle).
- * @param {object} map The Mapbox map object.
- * @param {object} mapData The layer tracker containing current filter state.
- * @param {boolean} highQualityFilter Whether to apply the high-quality user filter.
+ * @param {HTMLInputElement|string|null} checkbox - The validation checkbox that was clicked, or null (or a string,
+ *      which is ignored) if the update was triggered by something else (e.g., a severity toggle).
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {MapLayerTracker} mapData - The layer tracker containing current filter state.
+ * @param {boolean} highQualityFilter - Whether to apply the high-quality user filter.
  */
 function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
   if (checkbox && typeof checkbox === 'object') {
@@ -50,6 +50,7 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
   }
 
   // Build severity sub-filter: show labels whose severity matches any enabled toggle.
+  /** @type {Array<any>} */
   const sevFilter = ['any'];
   for (const [sev, enabled] of Object.entries(mapData.severities)) {
     if (enabled) {
@@ -81,6 +82,7 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
   ];
 
   // Build the base filter combining severity, validation, and optionally high-quality user filters.
+  /** @type {Array<any>} */
   const baseFilter = ['all', sevFilter, valFilter];
   if (highQualityFilter) {
     baseFilter.push(['any', mapData.lowQualityUsers, ['==', ['get', 'high_quality_user'], true]]);
@@ -111,22 +113,65 @@ function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
 }
 
 /**
+ * The Mapbox expression matching each of a street's three audit states (#4384): audited (has an audit on current
+ * imagery), outdated (audited before, but newer imagery exists), or unaudited (neither property set). Held in one
+ * place because both the layer's filter and its width read them, and a street matching two would be a contradiction.
+ */
+const STREET_STATE_FILTERS = {
+  audited: ['==', ['get', 'audited'], true],
+  outdated: ['==', ['get', 'outdated'], true],
+  unaudited: ['all', ['!=', ['get', 'audited'], true], ['!=', ['get', 'outdated'], true]],
+};
+
+/**
+ * The street layer's line-width expression, thickening one audit state if asked.
+ *
+ * Emphasis borrows the pointer-hover thickness rather than a size of its own, so a state called out from the sidebar
+ * looks like the same street a mapper would get by hovering it on the map.
+ *
+ * @param {?string} [emphasizedState=null] - An audit state to thicken (a `STREET_STATE_FILTERS` key), or null for none.
+ * @returns {Array} A Mapbox zoom-interpolated line-width expression.
+ */
+function streetLineWidth(emphasizedState = null) {
+  const emphasized = emphasizedState ? STREET_STATE_FILTERS[emphasizedState] : null;
+  const atZoom = (thick, thin) => (emphasized
+    ? ['case', ['boolean', ['feature-state', 'hover'], false], thick, emphasized, thick, thin]
+    : ['case', ['boolean', ['feature-state', 'hover'], false], thick, thin]);
+
+  return ['interpolate', ['linear'], ['zoom'], 12, atZoom(3, 1), 15, atZoom(7, 3)];
+}
+
+/**
+ * Thickens every street in one audit state, for as long as its sidebar row is hovered or focused (#5258).
+ *
+ * A repaint rather than per-feature state: the three states cover the whole city, and setting feature-state on
+ * thousands of features per pointer entry would cost far more than swapping one paint expression. Mapbox transitions
+ * the width for free, so the change reads as a swell rather than a jump.
+ *
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {?string} streetState - The audit state to thicken, or null to return every street to its normal width.
+ */
+function emphasizeStreetState(map, streetState) {
+  if (!map.getLayer('streets')) return;
+  map.setPaintProperty('streets', 'line-width', streetLineWidth(streetState));
+}
+
+/**
  * Filters the street layer based on the audited/outdated/unaudited street checkboxes.
  *
- * Streets carry a three-state status (#4384): audited (has an audit on current imagery), outdated (audited before,
- * but newer imagery exists), or unaudited (neither property set). On pages without the outdated checkbox, outdated
- * streets follow the audited checkbox.
- * @param {object} map The Mapbox map object.
+ * On pages without the outdated checkbox, outdated streets follow the audited checkbox.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
  */
 function filterStreetLayer(map) {
-  const includeAudited = document.getElementById('audited-street').checked;
-  const includeOutdated = document.getElementById('outdated-street')?.checked ?? includeAudited;
-  const includeUnaudited = document.getElementById('unaudited-street').checked;
+  const checkbox = (id) => /** @type {?HTMLInputElement} */ (document.getElementById(id));
+  const includeAudited = checkbox('audited-street').checked;
+  const includeOutdated = checkbox('outdated-street')?.checked ?? includeAudited;
+  const includeUnaudited = checkbox('unaudited-street').checked;
 
   const included = [];
-  if (includeAudited) included.push(['==', ['get', 'audited'], true]);
-  if (includeOutdated) included.push(['==', ['get', 'outdated'], true]);
-  if (includeUnaudited) included.push(['all', ['!=', ['get', 'audited'], true], ['!=', ['get', 'outdated'], true]]);
+  if (includeAudited) included.push(STREET_STATE_FILTERS.audited);
+  if (includeOutdated) included.push(STREET_STATE_FILTERS.outdated);
+  if (includeUnaudited) included.push(STREET_STATE_FILTERS.unaudited);
 
   if (included.length === 0) {
     map.setLayoutProperty('streets', 'visibility', 'none');
@@ -137,11 +182,34 @@ function filterStreetLayer(map) {
 }
 
 /**
+ * The filter state and per-type label layers that a label map's sidebar, popup, and loader share.
+ * @typedef {object} MapLayerTracker
+ * @property {boolean} correct
+ * @property {boolean} incorrect
+ * @property {boolean} unsure
+ * @property {boolean} unvalidated
+ * @property {boolean} lowQualityUsers
+ * @property {boolean} notAdminValidated
+ * @property {?number} spotlightLabelId
+ * @property {Record<number, boolean>} severities
+ * @property {Record<string, Set<string>>} selectedTags
+ * @property {Record<string, GeoJSON.Feature[]>} sortedLabels
+ * @property {Record<string, string>} layerNames
+ * @property {(labelId: number, labelType: string) => void} [updateLabelType] - Set by addLabelsToMap; moves a
+ *   label to another type's layer after its type is edited (#3671).
+ * @property {(labelId: number, deleted: boolean) => void} [setLabelDeleted] - Set by addLabelsToMap; drops or
+ *   restores a label deleted from the card (#3591).
+ * @property {Map<number, GeoJSON.Feature>} [deletedFeatures] - What setLabelDeleted took off the map, for a restore.
+ * @property {{audited: number, outdated: number, unaudited: number}} [streetCounts] - Set once the streets load.
+ * @property {ViewportLabelLoader} [labelLoader] - Set on maps that load labels by viewport.
+ */
+
+/**
  * Creates and returns the mapData object that tracks filter state and layer references.
- * @returns {object} The initialized map data tracker.
+ * @returns {MapLayerTracker} The initialized map data tracker.
  */
 function CreateMapLayerTracker() {
-  const mapData = {};
+  const mapData = /** @type {MapLayerTracker} */ ({});
 
   // Validation filter state (matches default checked checkboxes in the sidebar).
   mapData.correct = true;
@@ -165,10 +233,7 @@ function CreateMapLayerTracker() {
   // One flat array of features and one layer name string per label type.
   mapData.sortedLabels = {};
   mapData.layerNames = {};
-  const labelTypes = [
-    'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal', 'Other',
-  ];
-  for (const labelType of labelTypes) {
+  for (const labelType of util.misc.VALID_LABEL_TYPES) {
     mapData.sortedLabels[labelType] = [];
     mapData.layerNames[labelType] = '';
     mapData.selectedTags[labelType] = new Set();
@@ -178,32 +243,17 @@ function CreateMapLayerTracker() {
 
 /**
  * Searches for a region id in the query string. If found, frames the map on that region.
- * @param {object} map The Mapbox map object.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
  */
 function setRegionFocus(map) {
   const regionId = util.getURLParameter('regionId');
   // Small timeout to allow map to load before focusing on region.
   setTimeout(() => {
-    if (regionId && map.getLayer('neighborhood-polygons')) {
-      const region = map.queryRenderedFeatures({ layers: ['neighborhood-polygons'] })
+    if (regionId && map.getLayer('region-polygons')) {
+      const region = map.queryRenderedFeatures({ layers: ['region-polygons'] })
         .filter((f) => f.id === Number(regionId))[0];
-      // Fitting the region's own bounds frames neighborhoods of every size, where one zoom level can only suit one.
+      // Fitting the region's own bounds frames regions of every size, where one zoom level can only suit one.
       if (region) map.fitBounds(geometryBounds(region.geometry), { padding: 40 });
     }
   }, 250);
-}
-
-/**
- * Returns the bounds enclosing a GeoJSON geometry, whatever its nesting depth (point through multi-polygon).
- * @param {object} geometry The GeoJSON geometry.
- * @returns {mapboxgl.LngLatBounds} Bounds covering every coordinate in it.
- */
-function geometryBounds(geometry) {
-  const bounds = new mapboxgl.LngLatBounds();
-  const extend = (coords) => {
-    if (typeof coords[0] === 'number') bounds.extend(coords);
-    else coords.forEach(extend);
-  };
-  extend(geometry.coordinates);
-  return bounds;
 }

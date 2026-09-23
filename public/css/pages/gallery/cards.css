@@ -13,6 +13,11 @@
   container-type: inline-size;
 }
 
+/* A label deleted from the expanded view (#3591) stays in the grid, faded, until the next load. */
+.gallery-card--deleted {
+  opacity: 0.4;
+}
+
 .gallery-card:hover {
   box-shadow: 0 4px 8px 0 rgb(0 0 0 / 10%), 0 6px 20px 0 rgb(0 0 0 / 5%);
 
@@ -52,9 +57,68 @@ with respect to the image holder. This allows the validation menu to be placed o
 .static-gallery-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Fills 3:2 container; crops excess from Google's 4:3 images. */
+  object-fit: cover; /* Fills the 3:2 container; a crop of another aspect (#5085) has the marker re-placed for it. */
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
+}
+
+/* Neither the crop nor the Street View still loaded (#5327). The card keeps its shape and its data, without a
+   broken-image icon or a marker pointing into an empty frame. The image goes transparent rather than invisible: it is
+   the click target that opens the card, and `visibility: hidden` would take that with it. */
+.static-gallery-image--missing {
+  opacity: 0;
+}
+
+.gallery-marker-wrapper--missing {
+  visibility: hidden;
+}
+
+/* Imagery credit on the card's own still (#4865, #5202; look in css/components/pano-attribution.css). It shares the
+   bottom edge with the vote row, so it steps aside when that row comes up rather than being occluded by it. 4.6px
+   puts the pill's center on the logo's art center, both 12.6px above the image's bottom edge. */
+.image-holder .pano-viewer-logo {
+  --ui-scale: 0.72; /* Card-sized: the 29px logo row down to ~21px. Only the logo — the pill sets its own type. */
+}
+
+.image-holder .pano-attribution {
+  right: 6px;
+  bottom: 4.6px;
+}
+
+.image-holder .pano-viewer-logo,
+.image-holder .pano-attribution {
+  transition: opacity 120ms ease; /* The vote buttons' own fade. */
+}
+
+.gallery-card:hover .pano-viewer-logo,
+.gallery-card:hover .pano-attribution {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hover can't reveal the vote row on a touch-primary device, so it never leaves — and a credit that yields to it
+   would never be seen at all. The credit takes the top edge there instead, where nothing competes for the space. */
+@media (pointer: coarse) {
+  .image-holder .pano-viewer-logo {
+    --pano-logo-bottom: auto;
+
+    top: 3px;
+  }
+
+  .image-holder .pano-attribution {
+    top: 4.7px; /* Puts the pill's center on the logo's art center, both 12.7px below the top edge. */
+    bottom: auto;
+  }
+
+  .gallery-card:hover .pano-viewer-logo,
+  .gallery-card:hover .pano-attribution {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-holder .pano-viewer-logo,
+  .image-holder .pano-attribution { transition: none; }
 }
 
 #gallery-validation-button-holder {
@@ -100,13 +164,13 @@ with respect to the image holder. This allows the validation menu to be placed o
   font-size: max(12px, 4cqw);
 }
 
-/* The label type is what the card is about, so it keeps its width and the neighborhood beside it gives way. */
+/* The label type is what the card is about, so it keeps its width and the region beside it gives way. */
 .card-header__type {
   flex-shrink: 0;
   line-height: 1.2; /* Tokens carry a fixed line-height, which the vw font sizes here would otherwise pad out. */
 }
 
-/* The neighborhood a label sits in, opposite its type: quieter than the type, and cut off rather than wrapped so a
+/* The region a label sits in, opposite its type: quieter than the type, and cut off rather than wrapped so a
    long name can't push the type around or grow the card. */
 .card-location {
   display: flex;
@@ -251,6 +315,13 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .gallery-marker-wrapper {
   position: absolute;
+
+  /* Where the label is in the image, as fractions of its width and height; Card.js sets them per image. */
+  --gallery-marker-x: 0.5;
+  --gallery-marker-y: 0.5;
+
+  left: calc(var(--gallery-marker-x) * 100% - var(--gallery-marker-size) / 2);
+  top: calc(var(--gallery-marker-y) * 100% - var(--gallery-marker-size) / 2);
   width: var(--gallery-marker-size);
   height: var(--gallery-marker-size);
   pointer-events: none;

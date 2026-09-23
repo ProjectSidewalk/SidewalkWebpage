@@ -22,8 +22,8 @@ class ValidationMenu {
   #galleryCard;
 
   /**
-   * @param {Card} referenceCard The Card this menu belongs to.
-   * @param {jQuery} gsvImage The HTML element to append the validation menu to.
+   * @param {Card} referenceCard - The Card this menu belongs to.
+   * @param {JQuery} gsvImage - The HTML element to append the validation menu to.
    */
   constructor(referenceCard, gsvImage) {
     this.#refCard = referenceCard;
@@ -83,26 +83,22 @@ class ValidationMenu {
 
   /**
    * Add onClick functions for the thumbs up/down buttons.
-   * @param valInfoDisplay
+   * @param {ValidationInfoDisplay} valInfoDisplay
    */
   #addValidationInfoOnClicks(valInfoDisplay) {
     valInfoDisplay.agreeContainer.onclick = this.validateOnClickOrKeyPress('validate-agree', true, false);
     valInfoDisplay.disagreeContainer.onclick = this.validateOnClickOrKeyPress('validate-disagree', true, false);
 
     // Hover preview: swap the thumb icon to its filled variant to hint that it's clickable.
-    const addHoverSwap = (container, valKey) => {
-      const img = container.querySelector('.validation-info-image');
-      if (!img) return;
+    const addHoverSwap = (container, action) => {
       container.addEventListener('mouseenter', () => {
-        if (this.#currSelected === valKey) return;
-        img.src = img.src.replace('-outline', '-filled');
+        if (this.#currSelected === ValidationMenu.#validationOptionToClass[action]) return;
+        valInfoDisplay.setVoteIconFilled(action, true);
       });
-      container.addEventListener('mouseleave', () => {
-        img.src = img.src.replace('-filled', '-outline');
-      });
+      container.addEventListener('mouseleave', () => valInfoDisplay.setVoteIconFilled(action, false));
     };
-    addHoverSwap(valInfoDisplay.agreeContainer, 'validate-agree');
-    addHoverSwap(valInfoDisplay.disagreeContainer, 'validate-disagree');
+    addHoverSwap(valInfoDisplay.agreeContainer, 'Agree');
+    addHoverSwap(valInfoDisplay.disagreeContainer, 'Disagree');
   }
 
   /**
@@ -111,10 +107,10 @@ class ValidationMenu {
    * The buttons are toggles: clicking the option already selected clears the vote (#4653), matching the label detail
    * card that opens from this same card.
    *
-   * @param newValKey
-   * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
-   * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
-   * @returns {function(): Promise<?Response>} A function returning a Promise that resolves once the validation has
+   * @param {string} newValKey
+   * @param {boolean} thumbsClick - Whether the validation came from clicking the thumb icons.
+   * @param {boolean} keyboardShortcut - Whether the validation came from a keyboard shortcut.
+   * @returns {() => Promise<?Response>} A function returning a Promise that resolves once the validation has
    *     been submitted, with the server's response, or null if the request never completed.
    */
   validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
@@ -163,19 +159,17 @@ class ValidationMenu {
     // Reset thumb icons to outline state so that they don't blend into the background after validation.
     const valInfo = this.#refCard.validationInfoDisplay;
     if (valInfo) {
-      for (const c of [valInfo.agreeContainer, valInfo.disagreeContainer]) {
-        const img = c.querySelector('.validation-info-image');
-        if (img) img.src = img.src.replace('-filled', '-outline');
-      }
+      valInfo.setVoteIconFilled('Agree', false);
+      valInfo.setVoteIconFilled('Disagree', false);
     }
   }
 
   /**
    * Consolidate data on the validation and submit as a POST request.
-   * @param {string} action Validation result — the vote being cast, or the one being cleared when `undone`.
-   * @param {boolean} thumbsClick Whether the validation came from clicking the thumb icons.
-   * @param {boolean} keyboardShortcut Whether the validation came from a keyboard shortcut.
-   * @param {boolean} [undone=false] Clear the user's existing `action` vote rather than cast one (#4653).
+   * @param {string} action - Validation result — the vote being cast, or the one being cleared when `undone`.
+   * @param {boolean} thumbsClick - Whether the validation came from clicking the thumb icons.
+   * @param {boolean} keyboardShortcut - Whether the validation came from a keyboard shortcut.
+   * @param {boolean} [undone=false] - Clear the user's existing `action` vote rather than cast one (#4653).
    * @returns {Promise<Response>} Resolves with the server's response once the validation has been submitted.
    */
   #validateLabel(action, thumbsClick, keyboardShortcut, undone = false) {

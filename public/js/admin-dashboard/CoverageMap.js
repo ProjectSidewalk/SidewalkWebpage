@@ -31,6 +31,7 @@ class CoverageColors {
 
   /** Builds a Mapbox 'interpolate' expression over completion_rate using the same stops. */
   static mapboxExpression() {
+    /** @type {any[]} */
     const expr = ['interpolate', ['linear'], ['get', 'completion_rate']];
     for (const [rate, hex] of CoverageColors.STOPS) expr.push(rate, hex);
     return expr;
@@ -51,12 +52,18 @@ class CoverageColors {
 
 /** Small formatting helpers shared across the coverage page. */
 class CoverageFormat {
-  /** @param {number} rate - Fraction in [0,1]. @returns {string} e.g. "73%". */
+  /**
+   * @param {number} rate - Fraction in [0,1].
+   * @returns {string} A whole percentage, e.g. "73%".
+   */
   static pct(rate) {
     return `${Math.round((rate || 0) * 100)}%`;
   }
 
-  /** @param {number} meters @returns {string} distance in km with one decimal, e.g. "4.2 km". */
+  /**
+   * @param {number} meters - A distance in meters.
+   * @returns {string} The distance in km with one decimal, e.g. "4.2 km".
+   */
   static km(meters) {
     return `${((meters || 0) / 1000).toFixed(1)} km`;
   }
@@ -80,11 +87,11 @@ class CoverageMap {
   #hoverId = null;
 
   /**
-   * @param {string} containerId - id of the map container element.
-   * @param {{mapboxToken: string, onRegionClick?: function(number): void, onRegionHover?: function(number): void,
-   *          onRegionHoverEnd?: function(): void}} [opts]
+   * @param {string} containerId - ID of the map container element.
+   * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
+   *          onRegionHoverEnd?: () => void}} opts
    */
-  constructor(containerId, opts = {}) {
+  constructor(containerId, opts) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
     this.#onRegionClick = opts.onRegionClick || (() => {});
@@ -94,8 +101,8 @@ class CoverageMap {
 
   /**
    * Initializes the map and draws the regions.
-   * @param {object} geojson - A GeoJSON FeatureCollection of regions with completion_rate in properties.
-   * @returns {Promise<void>} resolves once the map's first render is ready.
+   * @param {GeoJSON.FeatureCollection} geojson - Regions, with completion_rate in their properties.
+   * @returns {Promise<void>} Resolves once the map's first render is ready.
    */
   init(geojson) {
     if (!this.#mapboxToken) throw new Error('CoverageMap: missing Mapbox access token');

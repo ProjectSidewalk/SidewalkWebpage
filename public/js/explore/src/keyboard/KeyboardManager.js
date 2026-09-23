@@ -50,7 +50,7 @@ class KeyboardManager {
   /**
    * Change the heading of the current panorama point of view by a particular degree value.
    *
-   * @param degree
+   * @param {number} degree
    */
   #rotatePovByDegree(degree) {
     const svl = this.#svl;
@@ -106,7 +106,7 @@ class KeyboardManager {
 
   /**
    * This is a callback for a key down event
-   * @param {object} e An event object
+   * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
     if (!this.#status.disableKeyboard && !this.#status.focusOnTextField) {
@@ -126,8 +126,13 @@ class KeyboardManager {
             this.#navigationService.moveToLinkedPano(180);
             break;
           case ' ':
+            // A focused checkbox or radio button (e.g. the minimap key's "My earlier labels", #4945) has no key but
+            // Space to toggle it, so it keeps Space; cancelling it here would leave the control mouse-only.
+            if (e.target instanceof HTMLInputElement && (e.target.type === 'checkbox' || e.target.type === 'radio')) {
+              break;
+            }
             // preventDefault stops the page from scrolling and stops space from re-activating a
-            // focused button (e.g. the Stuck/ribbon button right after a mouse click).
+            // focused button (e.g. the Stuck/ribbon button right after a mouse click), which Enter still activates.
             e.preventDefault();
             this.#advanceForwardAlongRoute();
             break;
@@ -138,7 +143,7 @@ class KeyboardManager {
 
   /**
    * This is a callback for a key up event when focus is not on ContextMenu's textbox.
-   * @param {object} e An event object
+   * @param {KeyboardEvent} e
    */
   #documentKeyUp = (e) => {
     const svl = this.#svl;
@@ -164,7 +169,9 @@ class KeyboardManager {
       for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
         // Some keyup events (synthetic events, certain IME/compose keys) arrive with no `key`; skip the shortcut
         // match rather than throwing on undefined.toUpperCase().
-        if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(mode).keyChar) {
+        // The type list is backend-sourced but getLabelDescriptions is a local table, so a label type added to
+        // LabelTypeEnum lands here before it has a keyChar. Skip it rather than throwing on every keyup.
+        if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)?.keyChar) {
           if (mode !== 'Walk') this.#closeContextMenu(e.keyCode);
           this.#ribbon.modeSwitch(mode);
           svl.tracker.push(`KeyboardShortcut_ModeSwitch_${mode}`, { keyCode: e.keyCode });
@@ -244,7 +251,7 @@ class KeyboardManager {
 
   /**
    * Get status
-   * @param {string} key Field name
+   * @param {string} key - Field name
    * @returns {*}
    */
   getStatus(key) {
@@ -256,8 +263,8 @@ class KeyboardManager {
 
   /**
    * Set status
-   * @param key Field name
-   * @param value Field value
+   * @param {string} key - Field name
+   * @param {boolean} value - Field value
    */
   setStatus(key, value) {
     if (key in this.#status) {

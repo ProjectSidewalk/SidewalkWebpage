@@ -17,11 +17,15 @@ import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
+import scala.util.control.NonFatal
 
 @Singleton
 class ImageController @Inject() (
     cc: CustomControllerComponents,
     panoDataService: service.PanoDataService,
+    displayCopyService: service.PanoDisplayCopyService,
+    cropService: service.CropService,
     signingService: ImageSigningService,
     shareImageCache: service.ShareImageCache,
     config: Configuration,
@@ -36,9 +40,9 @@ class ImageController @Inject() (
   // Allowed characters in a pano ID: GSV uses base64url-style (alphanumeric + - + _); Mapillary uses digits.
   private val PANO_ID_PATTERN = "^[A-Za-z0-9_-]+$".r
 
-  // 2x the actual size of the pano window as retina screen can give us 2x the pixel density.
-  val CROP_WIDTH  = 1440
-  val CROP_HEIGHT = 960
+  // Owned by the crop service: its reconcile pass tells the two crop writers apart by this width and the frame's
+  // aspect ratio (#2660, #5085).
+  val CROP_WIDTH = service.CropService.ExploreFrameCropWidth
 
   // Resize the image to the new width and height.
   def resize(img: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage = {
@@ -51,14 +55,23 @@ class ImageController @Inject() (
   }
 
   // Write the image to a file.
-  def writeImageFile(filename: String, b64String: String): Unit = {
+  /**
+   * Decodes and stores a crop upload at `CROP_WIDTH` wide, keeping its aspect ratio.
+   *
+   * Browsers send different sizes for different zoom levels and pixel densities, so the width is normalized. The
+   * height is not: a snapshot of an immersive-mode frame has the window's aspect ratio (#5085), and the marker every
+   * card draws on it is a fraction of the crop, so squashing it to 3:2 would move the labeled spot as well as distort
+   * the picture. `CropService.exploreSnapshotSize` mirrors this rounding.
+   *
+   * @return The stored image's (width, height).
+   */
+  def writeImageFile(filename: String, b64String: String): (Int, Int) = {
     val imageBytes: Array[Byte]      = Base64.getDecoder.decode(b64String)
     val inputStream                  = new ByteArrayInputStream(imageBytes)
     val bufferedImage: BufferedImage = ImageIO.read(inputStream)
 
-    // Resize the image as we might be getting different sizes for different browser zoom levels.
-    // The aspect ratio of the image should be preserved even if it is a different size so that should be okay.
-    val resizedImage: BufferedImage = resize(bufferedImage, CROP_WIDTH, CROP_HEIGHT)
+    val (w, h) = service.CropService.exploreSnapshotSize(bufferedImage.getWidth, bufferedImage.getHeight)
+    val resizedImage: BufferedImage = resize(bufferedImage, w, h)
 
     val f = new File(filename)
     try {
@@ -74,6 +87,7 @@ class ImageController @Inject() (
     } finally {
       inputStream.close()
     }
+    (w, h)
   }
 
   private def refererAllowed(request: RequestHeader): Boolean =
@@ -116,6 +130,14 @@ class ImageController @Inject() (
   /**
    * Serves a self-hosted equirectangular panorama image.
    *
+   * `?maxWidth=` is how a viewer says what its GPU can actually texture (#5256): Pannellum uploads an equirect as two
+   * halves and refuses outright above `2 x MAX_TEXTURE_SIZE`, so a device advertising 4096 asks for 8192 and gets a
+   * copy cut to it, on demand and cached. Without the parameter — every device that can render the pano as stored —
+   * this serves the native file.
+   *
+   * The pano's metadata (`width`/`height`) always describes the native file, since that is the frame label positions
+   * are stored in; the viewer places markers by angle, so a smaller image is transparent to it.
+   *
    * Requires a valid HMAC signature (?exp=...&sig=...) and an allowed Referer/Origin. User-aware (#4643): read-only
    * and already protected by the signature + referer checks, so no session is required to load the image.
    */
@@ -129,13 +151,29 @@ class ImageController @Inject() (
       case Some(result) => Future.successful(result)
       case None         =>
         panoDataService.localBackupImageFile(panoId) match {
-          case Some(file) =>
+          case Some(native) =>
             // Fire-and-forget: keep pano_data.has_backup in sync with what's on disk. No-op when already true.
             panoDataService.markHasBackup(panoId).failed.foreach { e =>
               logger.warn(s"Failed to update has_backup for pano $panoId: ${e.getMessage}")
             }
-            val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
-            Future.successful(Ok.sendFile(file, inline = true).as(contentType))
+            // A width the viewer asked for is snapped down to an allowed one, so a malformed or unknown value
+            // still yields something the device can render rather than a 400 it can't act on.
+            val requested = request.getQueryString("maxWidth").flatMap(w => Try(w.toInt).toOption).filter(_ > 0)
+            val chosen    = requested.map(service.PanoDisplayCopyService.snapToAllowed)
+            val fileF     = chosen match {
+              case Some(maxWidth) =>
+                // The service answers None rather than failing, but the fallback is the route's contract, so it is
+                // stated here too: no way for a copy to go wrong should cost the caller the file it asked for.
+                displayCopyService
+                  .displayCopy(panoId, native, maxWidth)
+                  .map(_.getOrElse(native))
+                  .recover { case NonFatal(_) => native }
+              case None => Future.successful(native)
+            }
+            fileF.map { file =>
+              val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
+              Ok.sendFile(file, inline = true).as(contentType)
+            }
           case None =>
             Future.successful(NotFound(s"Pano image not found: $panoId"))
         }
@@ -158,8 +196,9 @@ class ImageController @Inject() (
       )
     } else {
       panoDataService.cropUrl(labelId, LabelTypeEnum.byName(labelType)) match {
-        case Some(url) => Future.successful(Ok(LabelFormats.cropImagePayload(labelId, labelType, url)))
-        case None      => Future.successful(NotFound(s"No crop image found for label: $labelId"))
+        case Some(url) =>
+          cropService.cropMarker(labelId).map(m => Ok(LabelFormats.cropImagePayload(labelId, labelType, url, m)))
+        case None => Future.successful(NotFound(s"No crop image found for label: $labelId"))
       }
     }
   }
@@ -212,12 +251,18 @@ class ImageController @Inject() (
           // Base64 decode + ImageIO read/resize/write is CPU-bound; run it off the request EC so concurrent crop
           // uploads can't starve the HTTP dispatcher (#4415).
           Future(writeImageFile(filename, b64String))(cpuEc)
-            .map { _ =>
+            .flatMap { case (width, height) =>
               // The label's social-preview image may have been built and cached before this crop existed, from a
               // Street View still or the branded placeholder. That cache never expires, so drop it here and let the
               // next request rebuild it from the crop we just wrote (#4726).
               shareImageCache.invalidate(labelId)
-              Ok("Got: crop_" + labelId)
+              // Best effort: the crop is on disk either way, and the reconcile pass records any row this misses.
+              cropService
+                .recordExploreFrameCrop(labelId, width, height)
+                .recover { case e: Exception =>
+                  logger.warn(s"Could not record crop provenance for label $labelId: $e")
+                }
+                .map(_ => Ok("Got: crop_" + labelId))
             }
             .recover { case e: Exception =>
               logger.error("Exception when writing image file: " + filename + "\n\t" + e)

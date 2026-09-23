@@ -78,9 +78,9 @@
   },
   "mission-complete": {
     "title-generic": "Mission Complete!",
-    "title-neighborhood-complete": "Bravo! You completed the {{neighborhoodName}} neighborhood!",
+    "title-region-complete": "Bravo! You completed the {{regionName}} neighborhood!",
     "title-route-complete": "Bravo! You completed your route!",
-    "subtitle": "Explore {{distance}} of {{neighborhoodName}}",
+    "subtitle": "Explore {{distance}} of {{regionName}}",
     "badge-alt": "Your missions badge",
     "legend-title": "Mission Progress",
     "legend-this-mission": "This mission",
@@ -149,14 +149,32 @@
       "message-route": "Explore {{routeName}}",
       "exit-route": "Exit Custom Route",
       "header-free-explore": "Free Exploration",
-      "message": "Explore __PLACEHOLDER__ of {{neighborhoodName}}"
+      "message": "Explore __PLACEHOLDER__ of {{regionName}}"
     },
     "route-resume": {
       "message": "Resuming your custom route “{{routeName}}” where you left off.",
       "exit": "Exit Custom Route"
     },
     "mission-resume": {
-      "message": "Resuming your mission in {{neighborhoodName}} — {{distanceLeft, distance(style: small)}} to go."
+      "message": "Resuming your mission in {{regionName}} — {{distanceLeft, distance(style: small)}} to go."
+    },
+    "route-unavailable": {
+      "message": "That route isn't available. It may have been deleted."
+    },
+    "reaudit": {
+      "title": "This street has newer imagery",
+      "message-you": "You last assessed this street in {{lastMapped}}, but the imagery has been refreshed since then (in {{newImagery}}). Please assess this street again to help us analyze what has changed.",
+      "message-you-no-dates": "You assessed this street before, but the imagery has been refreshed since then. Please assess this street again to help us analyze what has changed.",
+      "message-others": "This street was last assessed in {{lastMapped}}, but the imagery has been refreshed since then (in {{newImagery}}). Please assess this street again to help us analyze what has changed.",
+      "message-others-no-dates": "This street was assessed before, but the imagery has been refreshed since then. Please assess this street again to help us analyze what has changed."
+    },
+    "pano-date-note": {
+      "image-date": "Image: {{date}}",
+      "needs-reassessment": "Needs re-assessment",
+      "already-assessed": "Already assessed",
+      "already-assessed-tip": "You last assessed this location in {{assessedDate}}, and the imagery ({{captureDate}}) has not changed since that assessment. Feel free to add new labels if you spot something!",
+      "needs-reassessment-tip-you": "You last assessed this location in {{assessedDate}}, but the imagery here is newer ({{captureDate}}). Please assess it again to help us analyze what has changed.",
+      "needs-reassessment-tip-others": "A user last assessed this location in {{assessedDate}}, but the imagery here is newer ({{captureDate}}). Please assess it again to help us analyze what has changed."
     },
     "minimap": {
       "coach-dismiss": "Got it",
@@ -172,7 +190,23 @@
       "legend-ahead": "Route ahead",
       "legend-you": "You + view direction",
       "legend-visited": "Visited location",
-      "legend-unseen": "Not yet viewed"
+      "legend-unseen": "Not yet viewed",
+      "legend-next-stops": "Stops on your route",
+      "forward-crumb-title": "Move ahead to stop {{rank}}",
+      "legend-other-links": "Other directions",
+      "legend-faced": "Filled: where forward takes you",
+      "legend-earlier-labels": "My earlier labels",
+      "link-crumb-title": "Move to this pano",
+      "legend-next-step": "Light blue: next step (spacebar)",
+      "route-stop-title": "Stop {{rank}} on your route",
+      "breadcrumb-title": "Visited: click to go back here",
+      "label-marker-title": "{{labelType}} label: click to review it",
+      "label-marker-title-prior": "“{{labelType}}” label from an earlier mission",
+      "label-marker-title-outdated": "Old “{{labelType}}” label on a street with new imagery",
+      "route-start-flag": "Route start",
+      "route-finish-flag": "Route finish",
+      "mission-start-flag": "Where this mission started",
+      "mission-finish-flag": "Where this mission ends"
     },
     "stats": {
       "leaderboard-cta": "See the community leaderboard"
@@ -187,7 +221,7 @@
       "next-distance": "Explore {{distance}} to earn the next one.",
       "earned-all": "You've reached the highest level for this badge — amazing work!"
     },
-    "neighborhood-progress": {
+    "region-progress": {
       "title": "Neighborhood progress",
       "you-tooltip": "Your contributions",
       "community-tooltip": "Community contributions"
@@ -299,14 +333,14 @@
       "u-turn": "U turn",
       "end-route": "You're at the end of your route! Look all the way around to finish — or <b>click here to complete now.</b>",
       "route-finish-look-around": "Last stop! Take a full look around to finish your route.",
-      "end-neighborhood": "You've explored this entire neighborhood! Finish labeling this intersection, then <b>click here to complete the neighborhood.</b>",
+      "end-region": "You've explored this entire neighborhood! Finish labeling this intersection, then <b>click here to complete the neighborhood.</b>",
       "end-street": "We need to move you to a new location. Finish labeling this intersection, then <b>click here to move to a new location.</b>",
       "far-away": "Uh-oh, you're quite far away from the route. <b>Click here to jump back.</b>"
     }
   },
   "popup": {
     "start-title": "Let's get started!",
-    "start-body": "We have moved you to a street in {{neighborhood}}, {{city}}! You are currently standing at the intersection. Please find and label all the curb ramps and accessibility problems at this intersection.",
+    "start-body": "We have moved you to a street in {{region}}, {{city}}! You are currently standing at the intersection. Please find and label all the curb ramps and accessibility problems at this intersection.",
     "step-title": "Let's move forward!",
     "step-body": "It looks like you've looked around this entire intersection, so it's time to explore other areas. Move in the direction of the red line highlighted on the map.",
     "both-sides-title": "Please check both sides of the street",
@@ -336,11 +370,12 @@
     "free-explore-no-imagery": "There's no more street imagery in this direction. Try looking around or heading the other way.",
     "stuck-suggestion": "If you can't move with the arrows, trying clicking on the navigation directions in the bottom right. Or try clicking on the Stuck button on the left.",
     "imagery-skip-limit": "Several streets in a row had no imagery, so we've stopped moving you automatically. Try a different part of the map, or reload the page to start again.",
-    "imagery-load-failed": "We couldn't load the street imagery just now. Please try again in a few minutes."
+    "imagery-load-failed": "We couldn't load the street imagery just now. Please try again in a few minutes.",
+    "imagery-session-expired": "Your street imagery session has expired and couldn't be renewed. Please reload the page to keep going; your work so far is saved."
   },
   "mission-start-tutorial": {
     "mst-instruction-1": "EXPLORE MISSION",
-    "mst-instruction-2": "Label these accessibility features in {{neighborhood}}",
+    "mst-instruction-2": "Label these accessibility features in {{region}}",
     "example-type-label-incorrect": "COMMON MISTAKE",
     "label-on-image-title-incorrect": "Common mistake",
     "label-on-image-description-correct": "Place a label",

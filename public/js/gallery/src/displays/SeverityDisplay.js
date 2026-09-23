@@ -6,8 +6,8 @@ class SeverityDisplay {
   #circles = [];
 
   /**
-   * @param {HTMLElement} container The DOM element that contains the display.
-   * @param {number} severity The severity to display.
+   * @param {HTMLElement} container - The DOM element that contains the display.
+   * @param {number} severity - The severity to display.
    * @param {string} labelType
    */
   constructor(container, severity, labelType) {

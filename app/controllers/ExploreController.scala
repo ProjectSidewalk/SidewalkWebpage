@@ -12,6 +12,7 @@ import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
 import models.user._
+import models.utils.IpAddress
 import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -107,6 +108,15 @@ class ExploreController @Inject() (
           else "Visit_Audit"
         cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
 
+        // The id that failed is logged separately, because it reaches neither the activity string above (which names
+        // the route the session ended up in, if any) nor the page (which is told only that something was dropped).
+        // Without it, a stale share link can't be told apart from a typo, or traced back to what was shared (#5156).
+        if (exploreData.routeUnavailable) {
+          routeId.foreach { rId =>
+            cc.loggingService.insert(user.userId, request.ipAddress, s"Visit_Audit_UnresolvableRouteId=$rId")
+          }
+        }
+
         // Load the Explore page. The match statement below just passes along any extra params. The pano is seeded at
         // panoId or lat/lng for an admin exploring a specific street, or at lat/lng for an address drop-in (any
         // user) — where a pano + POV seed can ride along (the label card's "Explore here", #4637): the pano wins
@@ -179,11 +189,11 @@ class ExploreController @Inject() (
   }
 
   /**
-   * Return the completed missions in the user's current region in a JSON array.
+   * Return the user's completed Explore missions in the given region in a JSON array.
    */
-  def getUserMissionsInRegion(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
+  def getCompletedExploreMissionsInRegion(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
     missionService
-      .getUserMissionsInRegion(request.identity.userId, regionId)
+      .getCompletedExploreMissionsInRegion(request.identity.userId, regionId)
       .map(missions => Ok(JsArray(missions.map(Json.toJson(_)))))
   }
 
@@ -268,7 +278,7 @@ class ExploreController @Inject() (
    */
   private def processAuditTaskSubmissions(
       data: AuditTaskSubmission,
-      ipAddress: String,
+      ipAddress: IpAddress,
       user: SidewalkUserWithRole
   ): Future[Result] = {
     val missionId: Int           = data.missionProgress.missionId
@@ -300,7 +310,7 @@ class ExploreController @Inject() (
               .insertEnvironment(
                 AuditTaskEnvironment(0, returnData.auditTaskId, missionId, env.browser, env.browserVersion,
                   env.browserWidth, env.browserHeight, env.availWidth, env.availHeight, env.screenWidth,
-                  env.screenHeight, env.operatingSystem, Some(ipAddress), env.language, env.cssZoom, Some(currTime))
+                  env.screenHeight, env.operatingSystem, ipAddress, env.language, env.cssZoom, Some(currTime))
               )
               .failed
               .foreach(e => logger.error("Error saving explore environment data.", e))

@@ -9,7 +9,7 @@ window.sg = window.sg || {};
 class Main {
   /**
    * Creates and initializes the Gallery Main module.
-   * @param {object} params Object passed from gallery.scala.html containing initial values pulled from the database
+   * @param {object} params - Object passed from gallery.scala.html containing initial values pulled from the database
    *              on page load.
    * @returns {Promise<Main>}
    */
@@ -44,12 +44,14 @@ class Main {
     // Seed the all-time counts so validating a card can celebrate a newly unlocked validation badge.
     BadgeAchievements.seedCounts();
 
-    // Neighborhood names for the cards' location line, keyed by the region id each label carries.
+    // Region names for the cards' location line, keyed by the region id each label carries.
     sg.regionNames = params.regionNames ?? {};
 
     // Initialize functional components of UI elements.
     sg.cardFilter = new GalleryFilter(
-      document.getElementById('card-filter'), document.getElementById('clear-filters'), params.initialFilters,
+      document.getElementById('card-filter'),
+      /** @type {HTMLButtonElement} */ (document.getElementById('clear-filters')),
+      params.initialFilters,
     );
     sg.cardContainer = await CardContainer.create(
       sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken, params.currUsername,

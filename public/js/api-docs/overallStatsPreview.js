@@ -143,7 +143,7 @@
     /**
      * Create all visualizations in the container.
      * @param {HTMLElement} container - Container element for the visualizations
-     * @param {object} data - Overall stats data for visualizations
+     * @param {Record<string, any>} data - Overall stats data for visualizations
      */
     createVisualizations(container, data) {
       // Add additional info section.
@@ -212,7 +212,7 @@
     /**
      * Create a bar chart showing label counts by type.
      * @param {HTMLElement} container - Container element for the chart
-     * @param {object} data - Overall stats data
+     * @param {Record<string, any>} data - Overall stats data
      */
     createLabelCountsChart(container, data) {
       // Create canvas for the chart.
@@ -257,7 +257,7 @@
                 label(context) {
                   const type = labelTypes[context.dataIndex];
                   const count = data.labels[type].count;
-                  const percent = ((count / data.labels.label_count) * 100).toFixed(1);
+                  const percent = ((count / data.labels.count) * 100).toFixed(1);
                   return [
                     `Count: ${count.toLocaleString()}`,
                     `Percentage: ${percent}%`,
@@ -291,7 +291,7 @@
     /**
      * Create a bar chart showing mean severity by label type.
      * @param {HTMLElement} container - Container element for the chart
-     * @param {object} data - Overall stats data
+     * @param {Record<string, any>} data - Overall stats data
      */
     createMeanSeverityChart(container, data) {
       // Create canvas for the chart.
@@ -341,7 +341,7 @@
                   const mean = data.labels[type].severity_mean.toFixed(2);
                   // Postgres `stddev` is NULL over a single row, so a type with one severity-bearing label has a
                   // mean but no deviation -- an ordinary state for a young city, not a missing field.
-                  const sdValue = data.labels[type].severity_sd;
+                  const sdValue = data.labels[type].severity_stddev;
                   const sd = typeof sdValue === 'number' ? sdValue.toFixed(2) : 'n/a';
                   const countWithSeverity = data.labels[type].count_with_severity;
                   return [
@@ -379,7 +379,7 @@
     /**
      * Create a bar chart showing accuracy by label type.
      * @param {HTMLElement} container - Container element for the chart
-     * @param {object} data - Overall stats data
+     * @param {Record<string, any>} data - Overall stats data
      */
     createAccuracyChart(container, data) {
       // Create canvas for the chart.
@@ -467,7 +467,7 @@
     /**
      * Create an information section with overall stats summary.
      * @param {HTMLElement} container - Container element for the info section
-     * @param {object} data - Overall stats data
+     * @param {Record<string, any>} data - Overall stats data
      */
     createInfoSection(container, data) {
       // Create info section container.
@@ -488,7 +488,7 @@
 
       // Add stat items.
       this.addStatItem(grid, 'Launch Date', this.formatDate(data.launch_date));
-      this.addStatItem(grid, 'Total Labels', data.labels.label_count.toLocaleString());
+      this.addStatItem(grid, 'Total Labels', data.labels.count.toLocaleString());
       this.addStatItem(grid, 'Total Validations', data.validations.combined.total_validations.toLocaleString());
       this.addStatItem(grid, 'Overall Accuracy', `${(data.validations.combined.Overall.accuracy * 100).toFixed(1)}%`);
       this.addStatItem(grid, 'Distance Explored', `${data.km_explored.toFixed(2)} km`);
@@ -500,7 +500,7 @@
       // Add last activity info.
       const lastActivity = document.createElement('p');
       lastActivity.className = 'preview-note';
-      lastActivity.textContent = `Last activity: ${this.formatDateTime(data.avg_timestamp_last_100_labels)}`;
+      lastActivity.textContent = `Last activity: ${this.formatDateTime(data.labels.avg_timestamp_last_100_labels)}`;
       section.appendChild(lastActivity);
     },
 

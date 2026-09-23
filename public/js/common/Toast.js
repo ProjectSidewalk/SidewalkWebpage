@@ -6,11 +6,23 @@
  * focusing it makes it fully opaque; focus also pauses the auto-dismiss timer, and so does hover on a toast that
  * carries an action button. Clicking the close button (or calling dismiss()) fades it out immediately.
  *
+ * Queueing: toasts sharing an anchor are positioned identically, so they show one at a time -- Explore alone raises
+ * six over `#pano`, and overlapping them leaves two `role="status"` regions live at once. A toast with an action
+ * button pauses its timer on hover, so an incumbent under the cursor holds the queue indefinitely; a caller whose
+ * message can go stale should re-check it still applies when its turn comes.
+ *
  * Specialized toasts (e.g. badge-unlock celebrations) should extend or compose this class rather than re-implement it.
  */
 class Toast {
-  // Fade-out transition duration (ms). Kept in sync with the CSS opacity transition on `.ps-toast`.
-  static #FADE_MS = 500;
+  // Fade-out transition duration (ms). Kept in sync with the CSS opacity transition on `.ps-toast`. Public so a
+  // caller sequencing work after a toast doesn't re-encode it as a magic number.
+  static FADE_MS = 500;
+
+  // Anchor -> the toast on screen for it, and those waiting. Entries are dropped once an anchor goes idle, so a
+  // detached element is never retained here.
+  static #ANCHORLESS = Symbol('anchorless');
+  static #live = new Map();
+  static #waiting = new Map();
 
   // Duration for a toast that just confirms an action the user took ("Link copied"). It tells them nothing they
   // don't already know, so it needs only long enough to register before it gets out of the way.
@@ -23,26 +35,32 @@ class Toast {
   #dismissed = false;
   #repositionHandler = null;
   #pauseOnHover;
+  #onClose;
   #hovered = false;
   #focused = false;
+  #queued = false;
 
   /**
-   * @param {Object} opts
-   * @param {string} [opts.title] Bold heading line.
-   * @param {string} [opts.message] Secondary message line.
-   * @param {string} [opts.icon] Image URL shown to the left of the text.
-   * @param {string} [opts.iconAlt] Alt text for the icon image (defaults to '').
-   * @param {Object} [opts.button] Optional action button: { label, href } or { label, onClick }.
-   * @param {HTMLElement} [opts.reference] Element the toast floats over (defaults to the viewport).
-   * @param {number} [opts.duration] Milliseconds before auto-dismiss (defaults to 5000).
-   * @param {boolean} [opts.dark] Dark surface instead of white — for toasts that float over photography, where a
+   * @param {object} opts
+   * @param {string} [opts.title] - Bold heading line.
+   * @param {string} [opts.message] - Secondary message line.
+   * @param {string} [opts.icon] - Image URL shown to the left of the text.
+   * @param {string} [opts.iconAlt] - Alt text for the icon image (defaults to '').
+   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void}} [opts.button] - An
+   *     optional action button: a link with `href`, or a callback with `onClick`.
+   * @param {HTMLElement} [opts.reference] - Element the toast floats over (defaults to the viewport).
+   * @param {number} [opts.duration] - Milliseconds before auto-dismiss (defaults to 5000).
+   * @param {boolean} [opts.dark] - Dark surface instead of white — for toasts that float over photography, where a
    *      white card glares against the imagery and reads as part of the UI chrome rather than a passing note.
-   * @param {boolean} [opts.compact] Tighter padding and smaller type, for a one-line aside rather than an
+   * @param {boolean} [opts.compact] - Tighter padding and smaller type, for a one-line aside rather than an
    *      announcement with a title and an action.
+   * @param {() => void} [opts.onClose] - Called when the user clicks the close button, and not when the toast fades
+   *      out on its own: the two say different things about whether the message was read.
    */
   constructor(opts = {}) {
     this.#reference = opts.reference || null;
     this.#duration = opts.duration ?? 5000;
+    this.#onClose = opts.onClose || null;
     // A toast anchored to a small control — a dashboard "Copy link" button — opens under the cursor that just
     // clicked it, so pausing on hover would strand it on screen until the user happened to move the mouse. Only a
     // toast with an action button to reach for earns the pause.
@@ -52,7 +70,7 @@ class Toast {
 
   /**
    * Convenience factory: builds a toast, shows it, and returns the instance.
-   * @param {Object} opts See the constructor.
+   * @param {object} opts - See the constructor.
    * @returns {Toast}
    */
   static show(opts = {}) {
@@ -105,7 +123,10 @@ class Toast {
     closeIcon.src = util.assetPath('images/icons/cross.svg');
     closeIcon.alt = '';
     close.appendChild(closeIcon);
-    close.addEventListener('click', () => this.dismiss());
+    close.addEventListener('click', () => {
+      if (this.#onClose) this.#onClose();
+      this.dismiss();
+    });
     el.appendChild(close);
 
     el.addEventListener('mouseenter', () => {
@@ -133,28 +154,72 @@ class Toast {
 
   /**
    * Builds the action button using the shared design-system button classes.
-   * @param {Object} button { label, href, newTab } for a link-style action or { label, onClick } for a callback.
+   * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void}} button - A
+   *     link-style action with `href`, or a callback with `onClick`.
    * @returns {HTMLElement}
    */
   #buildButton(button) {
-    const el = button.href ? document.createElement('a') : document.createElement('button');
-    el.className = 'ps-toast__button button-ps button--primary button--small';
-    el.textContent = button.label;
+    let el;
     if (button.href) {
+      el = document.createElement('a');
       el.href = button.href;
       if (button.newTab) {
         el.target = '_blank';
         el.rel = 'noopener noreferrer';
       }
     } else {
+      el = document.createElement('button');
       el.type = 'button';
       if (button.onClick) el.addEventListener('click', button.onClick);
     }
+    el.className = 'ps-toast__button button-ps button--primary button--small';
+    el.textContent = button.label;
     return el;
   }
 
-  /** Attaches the toast to its host, positions it over the reference, makes it visible, and starts dismiss timer. */
+  /**
+   * Shows the toast, or queues it behind one already live on the same anchor. Returns immediately either way;
+   * dismiss() before its turn simply drops it from the queue.
+   */
   show() {
+    const anchor = this.#anchorKey();
+    const live = Toast.#live.get(anchor);
+    if (live && live !== this) {
+      this.#queued = true;
+      const waiting = Toast.#waiting.get(anchor) || [];
+      waiting.push(this);
+      Toast.#waiting.set(anchor, waiting);
+      return;
+    }
+    Toast.#live.set(anchor, this);
+    this.#mount();
+  }
+
+  /** @returns {Element|symbol} Queue key. Anchorless toasts share one, since they share one position. */
+  #anchorKey() {
+    return this.#reference || Toast.#ANCHORLESS;
+  }
+
+  /**
+   * Hands the anchor to the next waiting toast, or releases it. Called once this element is gone, so a successor
+   * never overlaps its predecessor's fade.
+   */
+  #releaseAnchor() {
+    const anchor = this.#anchorKey();
+    if (Toast.#live.get(anchor) !== this) return;
+    Toast.#live.delete(anchor);
+    const waiting = Toast.#waiting.get(anchor) || [];
+    const next = waiting.shift();
+    if (waiting.length) Toast.#waiting.set(anchor, waiting);
+    else Toast.#waiting.delete(anchor);
+    if (next) {
+      next.#queued = false;
+      Toast.#live.set(anchor, next);
+      next.#mount();
+    }
+  }
+
+  #mount() {
     this.#host().appendChild(this.#el);
     this.#position();
 
@@ -210,9 +275,21 @@ class Toast {
     if (this.#dismissed) return;
     this.#dismissed = true;
     this.#clearTimer();
+    // Never mounted: nothing to fade, and the live toast keeps the anchor.
+    if (this.#queued) {
+      const anchor = this.#anchorKey();
+      const waiting = (Toast.#waiting.get(anchor) || []).filter((t) => t !== this);
+      if (waiting.length) Toast.#waiting.set(anchor, waiting);
+      else Toast.#waiting.delete(anchor);
+      this.#queued = false;
+      return;
+    }
     if (this.#repositionHandler) window.removeEventListener('resize', this.#repositionHandler);
     this.#el.classList.remove('ps-toast--visible');
-    setTimeout(() => this.#el.remove(), Toast.#FADE_MS);
+    setTimeout(() => {
+      this.#el.remove();
+      this.#releaseAnchor();
+    }, Toast.FADE_MS);
   }
 
   /**

@@ -58,6 +58,7 @@ function makeLabel(auditPropOverrides = {}) {
     return {
         getOriginalPov: () => ({ heading: 10, pitch: 5, zoom: 1 }),
         getAuditProperty: (key) => auditProps[key],
+        getProperty: (key) => (key === 'newLabelType' ? auditProps.labelType : undefined),
         getIconUrl: () => '/assets/fake-icon.svg',
         getIconColor: () => '#abcdef', // arbitrary test value, not a real label-type color
     };
@@ -95,6 +96,7 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');
         global.i18next = { t: () => 'Curb ramp' };
         global.createPanoViewerLogo = jest.fn(() => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() }));
+        global.createPanoAttribution = jest.fn(() => ({ show: jest.fn(), hide: jest.fn() }));
         global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
         global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
         global.svv = {
@@ -130,6 +132,7 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         delete global.PanoMarker;
         delete global.i18next;
         delete global.createPanoViewerLogo;
+        delete global.createPanoAttribution;
         delete global.GsvViewer;
         delete global.MapillaryViewer;
         delete global.svv;

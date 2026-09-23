@@ -1,9 +1,9 @@
 /**
- * Tests for the neighborhood line on a Gallery card (public/js/gallery/src/cards/Card.js, issue #4585).
+ * Tests for the region line on a Gallery card (public/js/gallery/src/cards/Card.js, issue #4585).
  *
- * A card says which neighborhood its label sits in, looked up from the id -> name map the page carries. The name is
+ * A card says which region its label sits in, looked up from the id -> name map the page carries. The name is
  * city data rather than ours, so it goes in as text; these tests pin that along with the absent-name case, since a
- * card with no known neighborhood must simply not show the line rather than show an empty one.
+ * card with no known region must simply not show the line rather than show an empty one.
  *
  * Card is a Grunt-concatenated `class` that reaches for page globals, so the source is eval'd into jsdom with the
  * collaborators it touches during construction stubbed out.
@@ -12,7 +12,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
 
 const CARD_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/gallery/src/cards/Card.js'), 'utf8'
@@ -51,17 +51,15 @@ describe('a Gallery card\'s location line', () => {
             camelToKebab: (s) => s.toLowerCase(),
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
-            misc: {
-                getIconImagePaths: () => ({ iconImagePath: 'icon.png' }),
-                labelTypeHasSeverity: () => true,
-                markerPercentInCoverBox: (x, y, w, h) => ({ left: 100 * x / w, top: 100 * y / h }),
-            },
         };
+        installUtilitiesMisc(); // Card positions its marker through util.misc.labelMarkerFraction.
         // Collaborators the constructor builds but this test doesn't exercise.
         window.SeverityDisplay = class {};
         window.ValidationInfoDisplay = class {};
         window.ValidationMenu = class {};
         window.TagDisplay = class {};
+        window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
+        window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
         window.$ = () => ({ tooltip: () => ({ tooltip: () => {} }) });
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });
@@ -70,7 +68,7 @@ describe('a Gallery card\'s location line', () => {
         window.sg = { regionNames: { 7: 'Herrick Park' }, tracker: { push: jest.fn() } };
     });
 
-    it('names the neighborhood the label sits in', () => {
+    it('names the region the label sits in', () => {
         renderCard();
 
         expect(locationLine().querySelector('.card-location__name').textContent).toBe('Herrick Park');
@@ -95,7 +93,7 @@ describe('a Gallery card\'s location line', () => {
         expect(card.getProperty('region_id')).toBe(7);
     });
 
-    it('shows no line at all when the neighborhood is unknown', () => {
+    it('shows no line at all when the region is unknown', () => {
         renderCard({ region_id: 999 });
 
         expect(locationLine()).toBeNull();

@@ -3,6 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
+import models.utils.IpAddress
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -15,7 +16,7 @@ case class StreetEdgeIssue(
     streetEdgeId: Int,
     issue: StreetEdgeIssueType.Value,
     userId: String,
-    ipAddress: String,
+    ipAddress: IpAddress,
     timestamp: OffsetDateTime
 )
 
@@ -46,7 +47,7 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
   def streetEdgeId: Rep[Int]                = column[Int]("street_edge_id")
   def issue: Rep[StreetEdgeIssueType.Value] = column[StreetEdgeIssueType.Value]("issue")
   def userId: Rep[String]                   = column[String]("user_id")
-  def ipAddress: Rep[String]                = column[String]("ip_address")
+  def ipAddress: Rep[IpAddress]             = column[IpAddress]("ip_address")
   def timestamp: Rep[OffsetDateTime]        = column[OffsetDateTime]("timestamp")
 
   def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp) <> (
@@ -132,7 +133,7 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * The regions labelers are reporting missing imagery in most, worst first (#4928).
    *
    * Deleted regions are excluded, matching `RegionTable.regionsWithoutDeleted`: the page reads this list as "where
-   * the next batch of streets will be lost", and a retired neighborhood still carrying old reports would rank into it
+   * the next batch of streets will be lost", and a retired region still carrying old reports would rank into it
    * and push a genuinely at-risk live region out.
    *
    * @param since Only reports at or after this instant.
@@ -159,7 +160,7 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * independently found empty is the strongest evidence the app can offer without asking a provider, and it is
    * corroboration rather than volume that separates that from one labeler's bad session or a transient provider
    * outage. Restricted to `open` streets in live regions, since a street already retired — or sitting in a
-   * neighborhood that was — needs no further evidence.
+   * region that was — needs no further evidence.
    *
    * Counts distinct `user_id`s, which is distinct *accounts* rather than distinct people: an anonymous sign-up gets
    * its own user row, so one person returning to a street across two sessions reaches the threshold. That is

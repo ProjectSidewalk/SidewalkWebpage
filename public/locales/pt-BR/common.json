@@ -30,6 +30,11 @@
   "continue": "Continuar",
   "delete": "Excluir",
   "done": "Concluído",
+  "unsaved-changes": {
+    "message": "Você tem alterações não salvas. Deseja salvá-las antes de sair desta página?",
+    "save": "Salvar e sair",
+    "leave": "Sair"
+  },
   "badges": {
     "congratulations": "Parabéns!",
     "you-earned": "Você ganhou a insígnia “{{badge}}”!",
@@ -89,6 +94,7 @@
   "only": "Somente",
   "image-capture-date": "Data de Captura da Imagem",
   "drag-to-look-around": "Arraste para olhar ao redor",
+  "loading-imagery": "Carregando imagens...",
   "hide-label": "Ocultar rótulo",
   "show-label": "Mostrar rótulo",
   "hide-label-tooltip": "Oculta temporariamente o rótulo para ver o que está embaixo.",
@@ -102,7 +108,7 @@
   "bad": "Má",
   "yes": "Sim",
   "no": "Não",
-  "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então por favor faça sua própria avaliação.",
+  "ai-generated-label-tooltip": "Este rótulo foi gerado por IA. A IA pode cometer erros, então julgue você mesmo se ele está correto.",
   "tag": {
     "narrow": "estreito",
     "points into traffic": "aponta para o cruzamento",
@@ -200,9 +206,13 @@
     "pano-address": "Endereço",
     "view-in-gsv": "Ver no Google Street View",
     "view-in-mapillary": "Ver no Mapillary",
+    "view-in-panoramax": "Ver no Panoramax",
     "city": "Cidade",
     "copy-to-clipboard": "Copiar para a área de transferência",
     "copied-to-clipboard": "Dados copiados para a área de transferência!"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(abre em uma nova aba)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "EXEMPLO CORRETO",
@@ -337,5 +347,49 @@
     "on-facebook": "Compartilhar no Facebook",
     "on-linkedin": "Compartilhar no LinkedIn",
     "via-email": "Compartilhar por e-mail"
+  },
+  "mini-card": {
+    "no-image": "Sem imagem",
+    "open": "Abrir este rótulo: {{label}}",
+    "votes": "Validar este rótulo",
+    "no-image-to-judge": "Sem imagem para avaliar este rótulo",
+    "vote-failed": "Seu voto não foi salvo. Tente novamente."
+  },
+  "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes.",
+  "label-type-picker": {
+    "current": "{{labelType}} (tipo atual)",
+    "change": "alterar",
+    "change-type": "Alterar o tipo de rótulo",
+    "change-type-hint": "Tags que não se aplicam ao novo tipo são removidas. Uma avaliação só é mantida entre tipos avaliados da mesma forma."
+  },
+  "access-score-spotlight": {
+    "subtitle-regions": "As calçadas de cada bairro recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
+    "subtitle-streets": "As calçadas de cada rua recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
+    "subtitle-one-region": "Esta cidade é mapeada como um único bairro, então há apenas uma pontuação para mostrar.",
+    "units-label": "Classificar bairros ou ruas",
+    "unit-regions": "Bairros",
+    "unit-streets": "Ruas",
+    "highest": "Maiores pontuações ({{score}}+)",
+    "lowest": "Menores pontuações (abaixo de {{score}})",
+    "ranked-so-far": "Classificados até agora",
+    "closest": "Mais perto de entrar no ranking",
+    "empty-highest-regions": "Nenhum bairro alcança {{score}} ou mais ainda.",
+    "empty-highest-streets": "Nenhuma rua alcança {{score}} ou mais ainda.",
+    "empty-lowest-regions": "Nenhum bairro está abaixo de {{score}}.",
+    "empty-lowest-streets": "Nenhuma rua está abaixo de {{score}}.",
+    "count-regions": "Só entram no ranking os bairros com pelo menos {{percent}}% explorados — {{qualifying}} de {{total}} até agora.",
+    "count-streets": "Só entram no ranking as ruas com pelo menos {{minLength}} e vários elementos mapeados — {{qualifying}} de {{total}} até agora.",
+    "updated-nightly": "Atualizado toda noite",
+    "updated-info": "As pontuações são recalculadas todas as noites com base em todas as etiquetas colocadas até então. Uma etiqueta que você adicionar hoje conta amanhã.",
+    "updated-last": "Última atualização em {{date}}.",
+    "cta-regions": "Ver todos os bairros na ferramenta AccessScore",
+    "cta-streets": "Ver todas as ruas na ferramenta AccessScore",
+    "explore": "Explorar",
+    "explore-region": "Explorar {{name}}",
+    "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} de ruas · {{clusters}} grupos",
+    "region-sub-pending": "{{length}} de ruas · {{percent}}% explorado",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Rua sem nome"
   }
 }

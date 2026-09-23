@@ -21,8 +21,8 @@
 
 // Chart.js paints its labels onto a canvas, so they can't inherit the page font. The pages that chart load Chart.js
 // ahead of this script, and build their charts once their data arrives.
-if (window.Chart) {
-  window.Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-primary');
+if (typeof Chart !== 'undefined') {
+  Chart.defaults.font.family = getComputedStyle(document.documentElement).getPropertyValue('--font-primary');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -224,14 +224,15 @@ function setupAccordionListener() {
 
   navContainer.addEventListener('click', (event) => {
     // Find the closest ancestor that is an accordion trigger.
-    const accordionTrigger = event.target.closest('.page-nav-accordion');
+    const target = /** @type {Element} */ (event.target);
+    const accordionTrigger = target.closest('.page-nav-accordion');
 
     if (accordionTrigger) {
       // Prevent default link behavior only if it's an actual link being used as trigger.
       if (accordionTrigger.tagName === 'A' && accordionTrigger.getAttribute('href')) {
         // Check if the click was directly on the trigger or its arrow, not on a link *inside* a submenu that might
         // bubble up.
-        if (event.target === accordionTrigger || event.target.classList.contains('accordion-arrow')) {
+        if (target === accordionTrigger || target.classList.contains('accordion-arrow')) {
           event.preventDefault();
         } else {
           return; // Allow clicks on nested links within trigger text (if any)
@@ -248,7 +249,7 @@ function setupAccordionListener() {
 
       // Get current state and toggle ARIA attribute.
       const isExpanded = accordionTrigger.getAttribute('aria-expanded') === 'true';
-      accordionTrigger.setAttribute('aria-expanded', !isExpanded);
+      accordionTrigger.setAttribute('aria-expanded', String(!isExpanded));
 
       // Optional: Toggle an 'expanded' class for CSS hooks if needed.
       // accordionTrigger.classList.toggle('expanded', !isExpanded);
@@ -390,7 +391,7 @@ function setupSmoothScrolling() {
 
   scrollContainers.forEach((container) => {
     container.addEventListener('click', (event) => {
-      const link = event.target.closest('a');
+      const link = /** @type {Element} */ (event.target).closest('a');
 
       // Check if it's an internal hash link.
       if (link && link.getAttribute('href') && link.getAttribute('href').startsWith('#')) {
@@ -431,7 +432,7 @@ function setupPermalinkCopying() {
   if (!contentArea) return;
 
   contentArea.addEventListener('click', (event) => {
-    const permalink = event.target.closest('a.permalink');
+    const permalink = /** @type {HTMLAnchorElement} */ (/** @type {Element} */ (event.target).closest('a.permalink'));
     if (permalink) {
       event.preventDefault();
       const urlToCopy = permalink.href; // The browser resolves the full URL in href.
@@ -461,225 +462,257 @@ function setupPermalinkCopying() {
     tooltip.style.top = `${rect.top + window.scrollY - tooltip.offsetHeight - 5}px`; // Position above
 
     // Fade out and remove.
-    tooltip.style.opacity = 1; // Ensure visible
+    tooltip.style.opacity = '1'; // Ensure visible
     setTimeout(() => {
       tooltip.style.transition = 'opacity 0.5s ease-out';
-      tooltip.style.opacity = 0;
+      tooltip.style.opacity = '0';
       setTimeout(() => tooltip.remove(), 500); // Remove after fade
     }, 1500); // Tooltip visible duration
   }
 }
 
 /**
- * Sets up download buttons with reliable status messages that clear properly.
+ * Sets up the download buttons. Each one fetches the file itself instead of handing the URL to the browser, since
+ * only then can the page see the server's answer, the download's progress, and when it finishes.
  */
 function setupDownloadButtons() {
   const downloadButtonsContainer = document.querySelector('.download-buttons');
   if (!downloadButtonsContainer) return;
 
-  const downloadButtons = downloadButtonsContainer.querySelectorAll('.download-btn');
-  const downloadStatus = document.getElementById('download-status');
-  if (!downloadStatus) return;
+  const downloadButtons = /** @type {NodeListOf<HTMLButtonElement>} */ (
+    downloadButtonsContainer.querySelectorAll('.download-btn')
+  );
 
-  downloadStatus.className = 'status-container status-loading ps-hidden';
-  const statusMessage = downloadStatus.querySelector('.status-message');
-  const statusProgress = downloadStatus.querySelector('.status-progress');
+  // The changing numbers sit outside the live region, so screen readers aren't interrupted on every update.
+  const statusBox = document.createElement('div');
+  statusBox.className = 'download-status';
+  statusBox.innerHTML = `
+    <span class="download-status-icon" aria-hidden="true"></span>
+    <span class="download-status-message" role="status"></span>
+    <span class="download-status-detail" aria-hidden="true"></span>
+    <div class="ps-progress-bar download-status-bar ps-hidden" role="progressbar" aria-label="Download progress"
+         aria-valuemin="0" aria-valuemax="100">
+      <div class="ps-progress-bar__track"><div class="ps-progress-bar__fill"></div></div>
+    </div>`;
+  downloadButtonsContainer.after(statusBox);
+  const statusIcon = statusBox.querySelector('.download-status-icon');
+  const statusMessage = statusBox.querySelector('.download-status-message');
+  const statusDetail = statusBox.querySelector('.download-status-detail');
+  const statusBar = /** @type {HTMLElement} */ (statusBox.querySelector('.download-status-bar'));
+  const statusBarFill = /** @type {HTMLElement} */ (statusBox.querySelector('.ps-progress-bar__fill'));
+
+  /**
+   * @param {'working'|'done'|'warning'|'error'} state - Picks the icon: a spinner while working, else a symbol.
+   * @param {string} message - The stage, e.g. "Downloading the CSV file".
+   * @param {string} [detail] - Progress numbers shown beside the message.
+   * @param {?number} [percent] - Fills the progress bar; null hides it, for files whose size isn't known.
+   */
+  function showStatus(state, message, detail = '', percent = null) {
+    statusBox.dataset.state = state;
+    const iconClass = state === 'working' ? 'loading-spinner' : `ps-mask-icon download-status-icon--${state}`;
+    statusIcon.className = `download-status-icon ${iconClass}`;
+    if (statusMessage.textContent !== message) statusMessage.textContent = message;
+    statusDetail.textContent = detail;
+    statusBar.classList.toggle('ps-hidden', percent === null);
+    // Reset rather than leave the last download's width, which the next one would animate backwards from.
+    statusBarFill.style.width = `${percent ?? 0}%`;
+    statusBar.setAttribute('aria-valuenow', String(percent ?? 0));
+  }
+
+  /**
+   * Marks every button busy during a download. `aria-disabled` rather than `disabled`, which would drop the keyboard
+   * focus to the body mid-download.
+   */
+  function setButtonsBusy(busy) {
+    downloadButtons.forEach((btn) => {
+      btn.setAttribute('aria-disabled', String(busy));
+      btn.classList.toggle('disabled', busy);
+    });
+  }
+
+  /** The file is lost if the page closes mid-download, which a plain browser download would have survived. */
+  const warnBeforeLeaving = (event) => event.preventDefault();
 
   downloadButtons.forEach((button) => {
     const format = button.getAttribute('data-format');
+    const formatName = [...button.childNodes]
+      .filter((node) => node.nodeType === Node.TEXT_NODE)
+      .map((node) => node.textContent.trim())
+      .join('') || format;
 
-    button.addEventListener('click', (event) => {
-      console.log(`${format.toUpperCase()} download button clicked`);
+    button.addEventListener('click', async (event) => {
       event.preventDefault();
-
-      // Get API URL information.
+      if (button.getAttribute('aria-disabled') === 'true') return;
       const apiBaseUrl = document.documentElement.getAttribute('data-api-base-url') || '/v3/api';
       const currentPage = document.documentElement.getAttribute('data-api-endpoint')
         || 'NEEDS_TO_BE_SET_BY_API_DOC_PAGE';
       const downloadUrl = `${apiBaseUrl}/${currentPage}?filetype=${format}`;
 
-      // CRITICAL: Track download state globally for this download. Ensures we can properly update status message.
-      const downloadState = {
-        initiated: false,
-        started: false,
-        completed: false,
-        failed: false,
-        timeouts: [],
-      };
-
-      // Show loading status.
-      downloadStatus.classList.remove('ps-hidden');
-      if (statusMessage) statusMessage.textContent = `Preparing ${format.toUpperCase()} file...`;
-      if (statusProgress) {
-        statusProgress.textContent = `This process can take a few seconds to a minute, depending on the data size.`;
+      setButtonsBusy(true);
+      // Only while a download is running: a listener left in place would keep the page out of the back/forward cache.
+      window.addEventListener('beforeunload', warnBeforeLeaving);
+      try {
+        await downloadFile(downloadUrl, format, formatName);
+      } catch (error) {
+        showStatus('error', 'Something went wrong with the download. Please try again.');
+        console.error('Download failed', error);
+      } finally {
+        window.removeEventListener('beforeunload', warnBeforeLeaving);
+        setButtonsBusy(false);
       }
-
-      // Disable all download buttons during processing.
-      downloadButtons.forEach((btn) => {
-        btn.disabled = true;
-        btn.classList.add('disabled');
-      });
-
-      // Function to clean up all resources.
-      function cleanupDownload(hideStatus = true) {
-        console.log('Cleaning up download resources');
-
-        // Clear all timeouts.
-        downloadState.timeouts.forEach((timeout) => clearTimeout(timeout));
-        downloadState.timeouts = [];
-
-        // Re-enable buttons.
-        downloadButtons.forEach((btn) => {
-          btn.disabled = false;
-          btn.classList.remove('disabled');
-        });
-
-        // Hide status if requested.
-        if (hideStatus) {
-          downloadStatus.classList.add('ps-hidden');
-          if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
-        }
-      }
-
-      // Set up progressive status updates for longer downloads.
-      downloadState.timeouts.push(setTimeout(() => {
-        if (!downloadState.started && !downloadState.completed) {
-          if (statusMessage) statusMessage.textContent = 'Processing request...';
-          if (statusProgress) statusProgress.textContent = 'The server is generating your file.';
-        }
-      }, 5000));
-
-      downloadState.timeouts.push(setTimeout(() => {
-        if (!downloadState.started && !downloadState.completed) {
-          if (statusMessage) statusMessage.textContent = 'Still working...';
-          if (statusProgress) statusProgress.textContent = 'Larger datasets take more time to process.';
-        }
-      }, 15000));
-
-      downloadState.timeouts.push(setTimeout(() => {
-        if (!downloadState.started && !downloadState.completed) {
-          if (statusMessage) statusMessage.textContent = 'Almost there...';
-          if (statusProgress) statusProgress.textContent = 'Your download should begin soon.';
-        }
-      }, 30000));
-
-      // After 60 seconds, if download hasn't started, show "taking longer" message
-      // BUT, make this message automatically clear after 10 more seconds.
-      downloadState.timeouts.push(setTimeout(() => {
-        if (!downloadState.started && !downloadState.completed) {
-          if (statusMessage) {
-            statusMessage.textContent = 'Taking longer than expected.';
-            statusMessage.classList.add('status-message--warning');
-          }
-          if (statusProgress) statusProgress.textContent = 'You can try again or try a different format.';
-
-          // Re-enable buttons after 60 seconds regardless.
-          downloadButtons.forEach((btn) => {
-            btn.disabled = false;
-            btn.classList.remove('disabled');
-          });
-
-          // Hide the message after 10 more seconds.
-          downloadState.timeouts.push(setTimeout(() => {
-            if (!downloadState.started && !downloadState.completed) {
-              downloadStatus.classList.add('ps-hidden');
-              if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
-            }
-          }, 10000));
-        }
-      }, 60000));
-
-      // Create download link and initiate download.
-      console.log(`Starting download: ${downloadUrl}`);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = downloadUrl;
-      downloadLink.setAttribute('download', '');
-      downloadLink.style.display = 'none';
-      document.body.appendChild(downloadLink);
-
-      // Create an XMLHttpRequest to monitor the download progress.
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', downloadUrl, true);
-
-      // Track response timing.
-      const startTime = Date.now();
-      downloadState.initiated = true;
-
-      // Handle successful response - this fires when headers are received.
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState === 2) { // HEADERS_RECEIVED
-          const responseTime = Date.now() - startTime;
-          console.log(`Headers received after ${responseTime}ms`);
-
-          // Check if we got a success response.
-          if (xhr.status === 200) {
-            console.log('Download started successfully');
-            downloadState.started = true;
-
-            // Update status message.
-            if (statusMessage) statusMessage.textContent = 'Download started!';
-            if (statusProgress) statusProgress.textContent = 'Your file will appear in your downloads shortly.';
-
-            // Calculate appropriate display time for status message. Shorter for quick responses, longer
-            // for slower ones.
-            const displayDuration = Math.min(
-              Math.max(responseTime * 2, 5000), // At least 5 seconds, or 2x response time
-              15000, // Maximum 15 seconds
-            );
-
-            console.log(`Status will hide after ${displayDuration}ms`);
-
-            // Hide status and cleanup after appropriate delay.
-            downloadState.timeouts.push(setTimeout(() => {
-              downloadState.completed = true;
-              cleanupDownload(true); // Hide status and clean up
-            }, displayDuration));
-          }
-        }
-      };
-
-      // Handle error.
-      xhr.onerror = function () {
-        console.error('XHR error');
-        downloadState.failed = true;
-
-        if (statusMessage) {
-          statusMessage.textContent = 'Error starting download.';
-          statusMessage.classList.add('status-message--error');
-        }
-        if (statusProgress) statusProgress.textContent = 'Please try again or try a different format.';
-
-        // Clean up but leave error message visible.
-        downloadState.timeouts.forEach((timeout) => clearTimeout(timeout));
-        downloadState.timeouts = [];
-
-        // Re-enable buttons.
-        downloadButtons.forEach((btn) => {
-          btn.disabled = false;
-          btn.classList.remove('disabled');
-        });
-
-        // Hide error message after 5 seconds.
-        downloadState.timeouts.push(setTimeout(() => {
-          downloadStatus.classList.add('ps-hidden');
-          if (statusMessage) statusMessage.classList.remove('status-message--warning', 'status-message--error');
-        }, 5000));
-      };
-
-      // Start monitoring the download and trigger actual download.
-      xhr.send();
-      downloadLink.click();
-
-      // Remove download link after click.
-      setTimeout(() => {
-        if (document.body.contains(downloadLink)) {
-          document.body.removeChild(downloadLink);
-        }
-      }, 1000);
     });
   });
 
-  console.log('Download buttons initialization complete');
+  /**
+   * Fetches a file, reporting each stage, and saves it once it has fully arrived.
+   *
+   * @param {string} url - The file's API URL.
+   * @param {string} format - The `filetype` value, which names the saved file when the server doesn't.
+   * @param {string} formatName - The format, as shown to the user.
+   * @returns {Promise<void>}
+   */
+  async function downloadFile(url, format, formatName) {
+    showStatus('working', `Preparing the ${formatName} file`);
+
+    let response;
+    try {
+      // no-store: a download is never worth a cache entry, and Chrome can make a request wait behind an identical
+      // one it is caching.
+      response = await fetch(url, { cache: 'no-store' });
+    } catch {
+      showStatus('error', 'The download failed before it started. The connection may have dropped. Please try again.');
+      return;
+    }
+
+    if (response.status === 429) {
+      // Shared with the Label Map so the two can't drift apart.
+      const refused = typeof i18next !== 'undefined'
+        ? i18next.t('common:download-already-preparing')
+        : 'This file is already being prepared for another request. Please try again shortly.';
+      showStatus('warning', refused);
+      return;
+    }
+    if (!response.ok) {
+      // API errors carry an RFC 7807 body, whose `detail` says more than the status number does.
+      const problem = await response.json().catch(() => null);
+      const detail = problem?.detail || problem?.title || '';
+      showStatus('error', `The download failed (error ${response.status}). ${detail || 'Please try again.'}`);
+      return;
+    }
+
+    // Streamed CSV/GeoJSON can't know their size until the last row. A built file's is in X-File-Size, which survives
+    // the gzip that drops Content-Length; a compressed Content-Length would undercount what arrives here.
+    const encoded = !!response.headers.get('Content-Encoding');
+    const declaredSize = response.headers.get('X-File-Size') || (encoded ? '' : response.headers.get('Content-Length'));
+    const totalBytes = Number(declaredSize) || 0;
+
+    // Whole chunks are folded into a Blob as they pile up, since the browser can page a Blob out to disk but not an
+    // array of buffers, and a city-wide file runs to hundreds of MB.
+    let blob = new Blob([], { type: response.headers.get('Content-Type') || '' });
+    let chunks = [];
+    let pending = 0;
+    let receivedBytes = 0;
+    let lastPaint = 0;
+    try {
+      const reader = response.body.getReader();
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        pending += value.length;
+        receivedBytes += value.length;
+        if (pending > BLOB_FOLD_BYTES) {
+          blob = new Blob([blob, ...chunks], { type: blob.type });
+          chunks = [];
+          pending = 0;
+        }
+        // Chunks arrive thousands of times a second on a fast connection; repainting on each one stalls the page.
+        if (Date.now() - lastPaint < 250) continue;
+        lastPaint = Date.now();
+        const message = `Downloading the ${formatName} file`;
+        if (totalBytes) {
+          const percent = Math.min(100, Math.floor((receivedBytes / totalBytes) * 100));
+          showStatus('working', message, `${formatBytes(receivedBytes)} of ${formatBytes(totalBytes)}`, percent);
+        } else {
+          showStatus('working', message, formatBytes(receivedBytes));
+        }
+      }
+      blob = new Blob([blob, ...chunks], { type: blob.type });
+    } catch {
+      showStatus('error', 'The download stopped before it finished. Please try again.');
+      return;
+    }
+
+    // A stream that ends early but tidily raises no error, so a short file is only caught by counting. JSON and
+    // GeoJSON have a closing bracket to check instead; a truncated CSV is indistinguishable from a complete one.
+    const short = totalBytes ? receivedBytes < totalBytes : !(await endsCompletely(blob));
+    if (short) {
+      showStatus('error', 'The download stopped before it finished. Please try again.');
+      return;
+    }
+
+    const filename = filenameFromDisposition(response.headers.get('Content-Disposition'))
+      || `${document.documentElement.getAttribute('data-api-endpoint')}.${FILE_EXTENSIONS[format] || format}`;
+    const blobUrl = URL.createObjectURL(blob);
+    const saveLink = document.createElement('a');
+    saveLink.href = blobUrl;
+    saveLink.download = filename;
+    document.body.appendChild(saveLink);
+    saveLink.click();
+    saveLink.remove();
+    // Revoking right away can cancel the save in some browsers.
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    showStatus('done', `Downloaded ${filename}`, formatBytes(receivedBytes));
+  }
+}
+
+/** How much is held as loose buffers before being folded into the Blob. */
+const BLOB_FOLD_BYTES = 32 * 1024 * 1024;
+
+/** Extensions for a file the server didn't name, keyed by the `filetype` the button asks for. */
+const FILE_EXTENSIONS = {
+  csv: 'csv',
+  json: 'json',
+  geojson: 'geojson',
+  shapefile: 'zip',
+  geopackage: 'gpkg',
+};
+
+/**
+ * A JSON or GeoJSON body that ends before its closing bracket was cut off mid-flight (#4161). Any other format is
+ * taken at face value, since nothing in it says where the end should be.
+ *
+ * @param {Blob} blob - The downloaded file.
+ * @returns {Promise<boolean>} False only when the file is provably incomplete.
+ */
+async function endsCompletely(blob) {
+  if (!blob.type.includes('json')) return true;
+  const tail = (await blob.slice(-16).text()).trimEnd();
+  return tail.endsWith('}') || tail.endsWith(']');
+}
+
+/**
+ * @param {number} bytes - A size in bytes.
+ * @returns {string} The size in KB or MB, like "12.3 MB".
+ */
+function formatBytes(bytes) {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * @param {?string} disposition - A Content-Disposition header.
+ * @returns {?string} The filename the server gave the file, if any.
+ */
+function filenameFromDisposition(disposition) {
+  const match = disposition?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+  if (!match) return null;
+  // A stray % is not an escape, and decoding it throws.
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
 }
 
 /**

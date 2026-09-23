@@ -4,7 +4,7 @@ util.math = {};
 /**
  * This method takes an angle value in radians and returns a value in degrees.
  * http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
- * @param angleInRadian
+ * @param {number} angleInRadian
  * @returns {number}
  */
 function toDegrees(angleInRadian) {
@@ -16,7 +16,7 @@ util.math.toDegrees = toDegrees;
 /**
  * This function takes an angle in degree and returns a value in radian.
  * http://stackoverflow.com/questions/9705123/how-can-i-get-sin-cos-and-tan-to-return-degrees-instead-of-radians
- * @param angleInDegree
+ * @param {number} angleInDegree
  * @returns {number}
  */
 function toRadians(angleInDegree) {

@@ -4,26 +4,40 @@ util.misc = util.misc || {};
 function UtilitiesMisc(JSON) {
   const self = { className: 'UtilitiesMisc' };
 
-  // Corresponds to the label type lists defined in LabelTypeEnum.scala.
-  self.VALID_LABEL_TYPES = [
-    'CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Other', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal',
-  ];
-  self.PRIMARY_LABEL_TYPES
-    = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'NoSidewalk', 'Crosswalk', 'Signal'];
-  self.PRIMARY_VALIDATE_LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Crosswalk', 'Signal'];
-  self.VALID_LABEL_TYPES_WITHOUT_OTHER
-    = ['CurbRamp', 'NoCurbRamp', 'Obstacle', 'SurfaceProblem', 'Occlusion', 'NoSidewalk', 'Crosswalk', 'Signal'];
+  // The label-type table LabelTypeEnum stamps onto every page (main.scala.html), in canonical order. Every list,
+  // colour and behavior flag below is derived from it, so none of them can drift from the backend — anything else
+  // in the frontend that needs the set of label types should read util.misc rather than write its own copy.
+  // A page that doesn't stamp it (jsdom, the error pages) leaves these empty rather than serving a stale duplicate.
+  const labelTypes = Array.isArray(window.labelTypes) ? window.labelTypes : [];
+  const byName = new Map(labelTypes.map((lt) => [lt.name, lt]));
 
-  // Returns the marker-icon path for each label type. Every frontend surface — canvas, map markers, cards, cursors —
-  // uses the one scalable SVG so the icon stays crisp at whatever size it lands at; the raster `_small`/`_tiny`/full
-  // -size PNGs beside it exist only for consumers that can't take vector art (server-side share-image compositing in
-  // ShareController, and the icon URLs published by /v3/api/labelTypes).
+  self.VALID_LABEL_TYPES = labelTypes.map((lt) => lt.name);
+  self.PRIMARY_LABEL_TYPES = labelTypes.filter((lt) => lt.isPrimary).map((lt) => lt.name);
+  self.PRIMARY_VALIDATE_LABEL_TYPES = labelTypes.filter((lt) => lt.isPrimaryValidate).map((lt) => lt.name);
+  self.VALID_LABEL_TYPES_WITHOUT_OTHER = self.VALID_LABEL_TYPES.filter((name) => name !== 'Other');
+
+  /**
+   * The marker-icon path for each label type, or for one when `category` names it.
+   *
+   * Every frontend surface — canvas, map markers, cards, cursors — uses the one scalable SVG so the icon stays crisp
+   * at whatever size it lands at; the raster `_small`/`_tiny`/full-size PNGs beside it exist only for consumers that
+   * can't take vector art (share-image compositing in ShareController, and /v3/api/labelTypes' icon URLs). Walk is
+   * Explore's cursor mode rather than a label type, so the backend knows nothing about it and it carries no icon.
+   *
+   * The filename is built here rather than read off the stamp so `make lint-asset-paths` can still see which asset
+   * family this resolves to and check it against the fingerprint manifest; a server-supplied string is opaque to it.
+   * Only the naming convention lives here — which types exist comes from the stamp — and LabelTypeEnumSpec fails if
+   * any of these files goes missing.
+   *
+   * @param {string} [category] - A label type name, or 'Walk'. Omit for the whole map.
+   * @returns {object} `{id, iconImagePath}` for that type, or a map of them keyed by type name.
+   */
   function getIconImagePaths(category) {
     const imagePaths = { Walk: { id: 'Walk', iconImagePath: null } };
-    for (const labelType of self.VALID_LABEL_TYPES) {
-      imagePaths[labelType] = {
-        id: labelType,
-        iconImagePath: util.assetPath(`images/icons/label_type_icons/${labelType}_small.svg`),
+    for (const labelType of labelTypes) {
+      imagePaths[labelType.name] = {
+        id: labelType.name,
+        iconImagePath: util.assetPath(`images/icons/label_type_icons/${labelType.name}_small.svg`),
       };
     }
 
@@ -432,25 +446,39 @@ function UtilitiesMisc(JSON) {
     return category ? descriptions[category] : descriptions;
   }
 
-  const POSITIVE_LABEL_TYPES = ['CurbRamp', 'Crosswalk'];
-  const LABEL_TYPES_WITHOUT_SEVERITY = ['NoSidewalk', 'Signal', 'Occlusion'];
-
   /**
-   * Returns true if label type uses the "positive" rating scheme (Good/Okay/Bad) vs the "negative" (Low/Medium/High).
+   * Whether a label type uses the "positive" rating scheme (Good/Okay/Bad) vs the "negative" (Low/Medium/High).
+   *
+   * This is the type's rating scale, NOT its access impact: Signal is a positive access feature that carries no
+   * rating at all, so reading it off the impact would put it on the wrong scheme.
+   *
    * @param {string} labelType
    * @returns {boolean}
    */
   function isPositiveLabelType(labelType) {
-    return POSITIVE_LABEL_TYPES.includes(labelType);
+    return byName.get(labelType)?.ratingScale === 'quality';
   }
 
   /**
-   * Returns true if label type supports a severity/quality rating.
+   * Whether a label type's labels carry a 1-3 rating at all.
+   *
+   * A type we have no entry for answers false, so an unstamped page hides its rating controls rather than offering
+   * a scale it can't name. Callers use the answer to decide whether to render the rating UI at all.
+   *
    * @param {string} labelType
    * @returns {boolean}
    */
   function labelTypeHasSeverity(labelType) {
-    return !LABEL_TYPES_WITHOUT_SEVERITY.includes(labelType);
+    return (byName.get(labelType)?.ratingScale ?? 'unrated') !== 'unrated';
+  }
+
+  /**
+   * A label type's rating scale name ('severity', 'quality', 'unrated'); unknown types read as unrated.
+   * @param {string} labelType
+   * @returns {string}
+   */
+  function getRatingScale(labelType) {
+    return byName.get(labelType)?.ratingScale ?? 'unrated';
   }
 
   /**
@@ -490,16 +518,28 @@ function UtilitiesMisc(JSON) {
    * @returns {{left: number, top: number}} Percentages of the box's width and height.
    */
   function markerPercentInCoverBox(canvasX, canvasY, canvasWidth, canvasHeight, boxAspect) {
-    const frameAspect = canvasWidth / canvasHeight;
-    let fracX = canvasX / canvasWidth;
-    let fracY = canvasY / canvasHeight;
-    if (frameAspect > boxAspect) {
-      // The crop is wider than the box: only boxAspect / frameAspect of its width is visible, centered.
-      fracX = (fracX - 0.5) * (frameAspect / boxAspect) + 0.5;
-    } else if (frameAspect < boxAspect) {
-      fracY = (fracY - 0.5) * (boxAspect / frameAspect) + 0.5;
+    const { x, y } = fractionInCoverBox(canvasX / canvasWidth, canvasY / canvasHeight, canvasWidth / canvasHeight,
+      boxAspect);
+    return { left: 100 * x, top: 100 * y };
+  }
+
+  /**
+   * Re-expresses a point given as fractions of an image as fractions of the box the image is cover-fitted into.
+   * Untouched when the aspects match, so a 3:2 image in a 3:2 box keeps its fractions bit for bit.
+   *
+   * @param {number} fracX - The point's x as a fraction of the image's width.
+   * @param {number} fracY - The point's y as a fraction of the image's height.
+   * @param {number} imageAspect - Width:height of the image.
+   * @param {number} boxAspect - Width:height of the box.
+   * @returns {{x: number, y: number}} Fractions of the box's width and height.
+   */
+  function fractionInCoverBox(fracX, fracY, imageAspect, boxAspect) {
+    if (imageAspect > boxAspect) {
+      // The image is wider than the box: only boxAspect / imageAspect of its width is visible, centered.
+      return { x: (fracX - 0.5) * (imageAspect / boxAspect) + 0.5, y: fracY };
     }
-    return { left: 100 * fracX, top: 100 * fracY };
+    if (imageAspect < boxAspect) return { x: fracX, y: (fracY - 0.5) * (boxAspect / imageAspect) + 0.5 };
+    return { x: fracX, y: fracY };
   }
 
   /**
@@ -511,9 +551,9 @@ function UtilitiesMisc(JSON) {
    * the icons overdraw at identical coordinates, and the arrow-blink period — derived from how many arrows are in
    * the list — stretches out as it fills up (#4832). Annotations are shared by reference, so identity dedupes them.
    *
-   * @param {Array<Object>} savedAnnotations - Annotations carried over from previous states.
-   * @param {?Array<Object>} stateAnnotations - The current state's own annotations, if it declares any.
-   * @returns {Array<Object>} The union, in carry-over-then-own order, each annotation appearing once.
+   * @param {Array<object>} savedAnnotations - Annotations carried over from previous states.
+   * @param {?Array<object>} stateAnnotations - The current state's own annotations, if it declares any.
+   * @returns {Array<object>} The union, in carry-over-then-own order, each annotation appearing once.
    */
   function mergeOnboardingAnnotations(savedAnnotations, stateAnnotations) {
     return [...new Set([...savedAnnotations, ...(stateAnnotations || [])])];
@@ -522,9 +562,9 @@ function UtilitiesMisc(JSON) {
   /**
    * Picks the annotations that should stay on screen after the given state, i.e. those tagged to outlive it.
    *
-   * @param {Array<Object>} annotations - The state's merged annotation list.
+   * @param {Array<{keepUntil?: string}>} annotations - The state's merged annotation list.
    * @param {string} stateId - Id of the state being drawn; an annotation kept "until" it expires here.
-   * @returns {Array<Object>} The subset to carry into the next state.
+   * @returns {Array<{keepUntil?: string}>} The subset to carry into the next state.
    */
   function carryOverOnboardingAnnotations(annotations, stateId) {
     return annotations.filter((a) => a.keepUntil && a.keepUntil !== stateId);
@@ -533,7 +573,7 @@ function UtilitiesMisc(JSON) {
   /**
    * Returns a map from rating level (1/2/3) to the i18n key (under the `common` namespace) for that level's label.
    * @param {string} labelType
-   * @returns {Object.<number, string>}
+   * @returns {Record<number, string>}
    */
   function getRatingLevelKeys(labelType) {
     return isPositiveLabelType(labelType)
@@ -598,7 +638,8 @@ function UtilitiesMisc(JSON) {
     const scale = isPositiveLabelType(labelType) ? 'positive' : 'negative';
     const level = SEVERITY_LEVEL_COLORS[scale][severity];
     if (!level) return null;
-    return Object.fromEntries(Object.entries(level).map(([role, token]) => [role, `var(--color-${token})`]));
+    const colors = Object.fromEntries(Object.entries(level).map(([role, token]) => [role, `var(--color-${token})`]));
+    return /** @type {{face: string, edge: string, wash: string}} */ (colors);
   }
 
   /**
@@ -607,7 +648,7 @@ function UtilitiesMisc(JSON) {
    * TODO it makes way more sense to have this in Form.js, but Form has a dependency on PanoViewer, and we want to
    *      call this function if PanoViewer fails to load...
    *
-   * @param {Task} task - The audit task for the street edge that is missing imagery.
+   * @param {Record<string, any>} task - Explore's Task for the street edge that is missing imagery.
    * @param {number} missionId - ID of the mission the user was working on when imagery was found to be missing.
    * @returns {Promise<Response>} The fetch promise for the POST request, so callers can await completion.
    */
@@ -653,8 +694,8 @@ function UtilitiesMisc(JSON) {
     if (!mapboxApiKey) return null;
     try {
       const params = new URLSearchParams({
-        longitude: latLng.lng,
-        latitude: latLng.lat,
+        longitude: String(latLng.lng),
+        latitude: String(latLng.lat),
         types: 'address,street',
         language: i18next.t('common:mapbox-language-code'),
         access_token: mapboxApiKey,
@@ -672,70 +713,93 @@ function UtilitiesMisc(JSON) {
     }
   }
 
+  // The outline each marker gets on the canvas. White for everything except the two grey meta types, which would be
+  // indistinguishable from each other with a white ring. No backend counterpart: LabelTypeEnum owns the fill colour
+  // (it's the type's identity, and the API publishes it), while the outline is only ever a canvas rendering choice.
   // TODO These colors should probably match the colors in our Design System Tokens in main.css.
-  const colors = {
-    Walk: {
-      id: 'Walk',
-      fillStyle: 'rgba(0, 0, 0, 1)',
-      strokeStyle: '#FFFFFF',
-    },
-    CurbRamp: {
-      id: 'CurbRamp',
-      fillStyle: '#90C31F',
-      strokeStyle: '#FFFFFF',
-    },
-    NoCurbRamp: {
-      id: 'NoCurbRamp',
-      fillStyle: '#E679B6',
-      strokeStyle: '#FFFFFF',
-    },
-    Obstacle: {
-      id: 'Obstacle',
-      fillStyle: '#78B0EA',
-      strokeStyle: '#FFFFFF',
-    },
-    Other: {
-      id: 'Other',
-      fillStyle: '#B3B3B3',
-      strokeStyle: '#0000FF',
-    },
-    Occlusion: {
-      id: 'Occlusion',
-      fillStyle: '#B3B3B3',
-      strokeStyle: '#009902',
-    },
-    NoSidewalk: {
-      id: 'NoSidewalk',
-      fillStyle: '#BE87D8',
-      strokeStyle: '#FFFFFF',
-    },
-    SurfaceProblem: {
-      id: 'SurfaceProblem',
-      fillStyle: '#F68D3E',
-      strokeStyle: '#FFFFFF',
-    },
-    Crosswalk: {
-      id: 'Crosswalk',
-      fillStyle: '#FABF1C',
-      strokeStyle: '#FFFFFF',
-    },
-    Signal: {
-      id: 'Signal',
-      fillStyle: '#63C0AB',
-      strokeStyle: '#FFFFFF',
-    },
-  };
+  const STROKE_STYLES = { Other: '#0000FF', Occlusion: '#009902' };
+  const DEFAULT_STROKE_STYLE = '#FFFFFF';
 
+  // Walk is Explore's cursor mode rather than a label type, so it has no backend entry and needs its colours here.
+  const colors = { Walk: { id: 'Walk', fillStyle: 'rgba(0, 0, 0, 1)', strokeStyle: DEFAULT_STROKE_STYLE } };
+  for (const labelType of labelTypes) {
+    colors[labelType.name] = {
+      id: labelType.name,
+      fillStyle: labelType.color,
+      strokeStyle: STROKE_STYLES[labelType.name] || DEFAULT_STROKE_STYLE,
+    };
+  }
+
+  /**
+   * One label type's canvas fill colour, or the whole `{fillStyle, strokeStyle}` table when no type is named.
+   * @param {string} [category] - A label type name, or 'Walk'. Omit for the whole table.
+   * @returns {string|object}
+   */
   function getLabelColors(category) {
     return category ? colors[category].fillStyle : colors;
   }
 
+  /**
+   * Where a label sits in the image a card is showing, as fractions of its width and height (#2660), or of the box
+   * the image is cover-fitted into.
+   *
+   * A crop at `<crops>/<LabelType>/crop_<id>.png` is one of two things: the browser's snapshot of the Explore canvas,
+   * in which the label is at its canvas fraction, or the window the crop job cut around the label, in which it is near
+   * the center. Only a `label_crop` row tells them apart, so a crop without one falls back to the canvas fraction — as
+   * does the Street View still, which reproduces the Explore frame and where the canvas fraction is already correct.
+   *
+   * The canvas fraction is taken in the frame the label was placed in (#5085): the boxed 720x480 tool unless the
+   * payload says otherwise, the window's aspect in immersive mode. A still is 3:2 whatever the frame was and shares
+   * its width and horizontal field of view, so a frame of another aspect sits in it vertically centered. Card surfaces
+   * cover-fit the image into a fixed-aspect box, which trims a wider image's sides or a taller one's top and bottom;
+   * given `opts.boxAspect`, the fractions are re-expressed in the visible part, the identity for a 3:2 image in a 3:2
+   * box.
+   *
+   * @param {string} imageSource - Which source is on screen: 'crop' or 'api'.
+   * @param {?{x: number, y: number, width?: ?number, height?: ?number}} cropMarker - The crop's recorded position,
+   *   and its stored size, when a row exists.
+   * @param {?number} canvasX - The label's x on the labeling canvas.
+   * @param {?number} canvasY - The label's y on that canvas.
+   * @param {object} [opts] - The frame and the box; omit both for a boxed-tool label and fractions of the image.
+   * @param {number} [opts.canvasWidth=720] - Width of the frame canvasX/canvasY are expressed in.
+   * @param {number} [opts.canvasHeight=480] - Height of that frame.
+   * @param {?number} [opts.boxAspect] - Width:height of the box the image is cover-fitted into.
+   * @returns {{x: number, y: number}} Fractions of the image's width and height, or of the box's when one is given.
+   */
+  function labelMarkerFraction(imageSource, cropMarker, canvasX, canvasY, opts = {}) {
+    const {
+      canvasWidth = util.EXPLORE_CANVAS_WIDTH, canvasHeight = util.EXPLORE_CANVAS_HEIGHT, boxAspect = null,
+    } = opts;
+    const frameAspect = canvasWidth / canvasHeight;
+    // A Street View still reproduces the boxed Explore frame, so it has that frame's aspect (#3095).
+    const stillAspect = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANVAS_HEIGHT;
+    // Clamped to the image, as CropService.exploreFrameMarker clamps the fraction it records for the same frame: a
+    // historic row can sit outside the canvas, and an unclamped fraction puts the marker off the card entirely.
+    const clamp = (f) => Math.min(1, Math.max(0, f));
+    let x;
+    let y;
+    let imageAspect;
+    if (imageSource === 'crop' && cropMarker) {
+      ({ x, y } = cropMarker);
+      imageAspect = cropMarker.width > 0 && cropMarker.height > 0 ? cropMarker.width / cropMarker.height : frameAspect;
+    } else if (imageSource === 'crop') {
+      x = typeof canvasX === 'number' ? clamp(canvasX / canvasWidth) : 0.5;
+      y = typeof canvasY === 'number' ? clamp(canvasY / canvasHeight) : 0.5;
+      imageAspect = frameAspect;
+    } else {
+      x = typeof canvasX === 'number' ? clamp(canvasX / canvasWidth) : 0.5;
+      y = typeof canvasY === 'number' ? clamp(0.5 + (canvasY / canvasHeight - 0.5) * (stillAspect / frameAspect)) : 0.5;
+      imageAspect = stillAspect;
+    }
+    return boxAspect ? fractionInCoverBox(x, y, imageAspect, boxAspect) : { x, y };
+  }
+
+  self.labelMarkerFraction = labelMarkerFraction;
   self.getIconImagePaths = getIconImagePaths;
   self.getLabelDescriptions = getLabelDescriptions;
   self.isPositiveLabelType = isPositiveLabelType;
-  self.POSITIVE_LABEL_TYPES = POSITIVE_LABEL_TYPES;
   self.labelTypeHasSeverity = labelTypeHasSeverity;
-  self.LABEL_TYPES_WITHOUT_SEVERITY = LABEL_TYPES_WITHOUT_SEVERITY;
+  self.getRatingScale = getRatingScale;
   self.getSmileyIconPath = getSmileyIconPath;
   self.getSeverityLevelColors = getSeverityLevelColors;
   self.getRatingLevelKeys = getRatingLevelKeys;
@@ -767,7 +831,7 @@ util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'came
  * Old pano_data rows carry nulls for these and PanoData rejects them (#4804). Guards the buildBackupImageData path
  * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `getLocalBackupImage`.
  *
- * @param {?object} data Backup pano metadata in the camelCase shape buildBackupImageData produces, or null.
+ * @param {?object} data - Backup pano metadata in the camelCase shape buildBackupImageData produces, or null.
  * @returns {boolean} True when every field the viewer needs is present and numeric.
  */
 function backupImageDataIsComplete(data) {
@@ -776,18 +840,38 @@ function backupImageDataIsComplete(data) {
 }
 
 /**
- * Builds the {url, metadata} object needed by Pannellum from a label metadata object sent by the server.
+ * A self-hosted backup pano, in the shape PannellumViewer takes.
+ * @typedef {object} BackupImage
+ * @property {string} panoId
+ * @property {string} imageUrl
+ * @property {number} width
+ * @property {number} height
+ * @property {number} tileWidth
+ * @property {number} tileHeight
+ * @property {number} lat
+ * @property {number} lng
+ * @property {number} cameraHeading
+ * @property {number} cameraPitch
+ * @property {number} cameraRoll
+ * @property {string} captureDate
+ * @property {string} copyright
+ * @property {object} attribution
+ * @property {string} address
+ */
+
+/**
+ * Builds the backup pano data Pannellum needs from a label metadata object sent by the server.
  *
  * Returns null if backup_image_url is absent or null, if pano_data is missing, or if pano_data is too incomplete to
  * render (see backupImageDataIsComplete).
- * @param {object} meta Label metadata object from the server.
- * @param {string|null} meta.backup_image_url URL for the self-hosted backup image, or null.
- * @param {object|null} meta.pano_data Nested pano viewer metadata, or null.
- * @param {string} meta.pano_id The panorama ID.
- * @param {number} meta.camera_lat Latitude of the camera.
- * @param {number} meta.camera_lng Longitude of the camera.
- * @param {string} meta.image_capture_date Date the panorama was captured.
- * @returns {{metadata: object}|null}
+ * @param {object} meta - Label metadata object from the server.
+ * @param {string|null} [meta.backup_image_url] - URL for the self-hosted backup image, or null.
+ * @param {Record<string, any>|null} [meta.pano_data] - Nested pano viewer metadata, or null.
+ * @param {string} [meta.pano_id] - The panorama ID.
+ * @param {number} [meta.camera_lat] - Latitude of the camera.
+ * @param {number} [meta.camera_lng] - Longitude of the camera.
+ * @param {string} [meta.image_capture_date] - Date the panorama was captured.
+ * @returns {?BackupImage}
  */
 function buildBackupImageData(meta) {
   if (!meta.backup_image_url || !meta.pano_data) return null;
@@ -806,6 +890,7 @@ function buildBackupImageData(meta) {
     cameraRoll: pd.camera_roll,
     captureDate: meta.image_capture_date,
     copyright: pd.copyright,
+    attribution: pd.attribution,
     address: pd.address,
   };
   return backupImageDataIsComplete(backupImageData) ? backupImageData : null;

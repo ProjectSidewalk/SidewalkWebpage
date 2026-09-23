@@ -38,7 +38,9 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   let primaryListeners;   // event name -> callback captured from the primary viewer
   let pannellumListeners; // event name -> callback captured from the Pannellum viewer
   let panoData;
-  const backupImage = {panoId: 'pano2', cameraHeading: 90};
+  const attribution = {holder: '© jacobwhall', provider: 'Mapillary', license: 'CC BY-SA 4.0', license_url: 'x'};
+  const backupImage = {panoId: 'pano2', cameraHeading: 90, attribution};
+  let attributionOverlay;
 
   /**
    * Build a fake viewer that records the listeners it is handed.
@@ -77,6 +79,8 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     util.isMobile = () => false;
 
     global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn()}));
+    attributionOverlay = {show: jest.fn(), hide: jest.fn()};
+    global.createPanoAttribution = jest.fn(() => attributionOverlay);
     global.GsvViewer = class GsvViewer {};             // distinct from FakeViewerType, so the GSV-only
     global.MapillaryViewer = class MapillaryViewer {}; // and Mapillary-only attribution paths are skipped
     global.svv = {
@@ -109,6 +113,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     document.body.innerHTML = '';
     delete global.util;
     delete global.createPanoViewerLogo;
+    delete global.createPanoAttribution;
     delete global.GsvViewer;
     delete global.MapillaryViewer;
     delete global.PannellumViewer;
@@ -188,6 +193,20 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
 
     pannellumListeners.pov_changed();
     expect(povChangedLogCount()).toBe(1);
+  });
+
+  test('the imagery attribution shows while Pannellum is up and goes when the primary viewer takes the pano back', async () => {
+    // Pannellum shows Project Sidewalk's own copy of the imagery, which owes the attribution the provider's live
+    // viewer would otherwise draw itself (#4865); the primary viewer draws its own, so the pill must not linger.
+    expect(global.createPanoAttribution).toHaveBeenCalledWith(document.getElementById('pano-holder'));
+    expect(attributionOverlay.show).not.toHaveBeenCalled();
+
+    await loadPannellumLabel();
+    expect(attributionOverlay.show).toHaveBeenCalledTimes(1);
+    expect(attributionOverlay.show).toHaveBeenLastCalledWith(attribution);
+
+    await loadPrimaryLabel('pano3');
+    expect(attributionOverlay.hide).toHaveBeenCalledTimes(1);
   });
 });
 

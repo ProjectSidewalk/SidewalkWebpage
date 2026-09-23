@@ -2,15 +2,55 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
-import models.street.{StreetEdgePriorityTable, StreetEdgeTable, StreetPriorityForAdmin}
+import models.label.LabelTable
+import models.street.{
+  StreetEdgePriorityTable,
+  StreetEdgeTable,
+  StreetGradientTable,
+  StreetImageryTable,
+  StreetPriorityForAdmin
+}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{JsObject, Json}
 
+import java.time.{LocalDate, OffsetDateTime}
 import javax.inject._
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
+
+/**
+ * What a street that still needs a re-audit can tell a mapper who hovers it on the map (#5258).
+ *
+ * @param streetEdgeId   The street this describes.
+ * @param lastAuditedAt  When anyone last finished auditing it. Never `None` for a summary that exists -- a street
+ *                       only needs a *re*-audit if it was audited once.
+ * @param newImageryDate The capture date that flagged it: the median of its sample points' newest captures (#4384).
+ *                       `None` when the latest poll came back empty, which clears the median while the flags it
+ *                       created stand until the next sync.
+ * @param labelCounts    Labels previously placed on the street by type, most frequent first. Only types actually
+ *                       present appear; a street whose labels were all deleted has an empty Seq.
+ */
+case class StreetReauditSummary(
+    streetEdgeId: Int,
+    lastAuditedAt: OffsetDateTime,
+    newImageryDate: Option[LocalDate],
+    labelCounts: Seq[(String, Int)]
+)
+
+/**
+ * How far the city's `street_gradient` table lags its streets (#5223): what the offline sampler's export would emit.
+ *
+ * @param unsampled Served streets with no gradient row: a city never sampled, or streets added since it was.
+ * @param stale     Served streets whose geometry changed since they were sampled (`geom_md5`).
+ */
+case class StreetGradientStaleness(unsampled: Int, stale: Int) {
+
+  /** The run details both the nightly count and the admin recount record, under the keys the Health panel shows. */
+  def runDetails: JsObject = Json.obj("streets_unsampled" -> unsampled, "streets_stale" -> stale)
+}
 
 @ImplementedBy(classOf[StreetServiceImpl])
 trait StreetService {
@@ -19,12 +59,17 @@ trait StreetService {
   def getTotalStreetDistance(metric: Boolean): Future[Double]
   def getAuditedStreetDistance(metric: Boolean): Future[Double]
   def recalculateStreetPriority: Future[Seq[Int]]
+
+  /** Counts the served streets with no gradient row or a row from an older geometry (#5223); see `stalenessCounts`. */
+  def countStreetGradientStaleness: Future[StreetGradientStaleness]
   def getPriorityWithInputs: Future[Seq[StreetPriorityForAdmin]]
   def selectStreetsWithAuditStatus(
       filterLowQuality: Boolean,
       regionIds: Seq[Int],
       routeIds: Seq[Int]
   ): Future[Seq[StreetEdgeWithAuditStatus]]
+  def getReauditSummary(streetEdgeId: Int): Future[Option[StreetReauditSummary]]
+  def getReauditSummaryDBIO(streetEdgeId: Int): DBIO[Option[StreetReauditSummary]]
 }
 
 @Singleton
@@ -34,12 +79,20 @@ class StreetServiceImpl @Inject() (
     configService: ConfigService,
     streetEdgeTable: StreetEdgeTable,
     streetEdgePriorityTable: StreetEdgePriorityTable,
+    streetImageryTable: StreetImageryTable,
+    streetGradientTable: StreetGradientTable,
     auditTaskTable: AuditTaskTable,
+    labelTable: LabelTable,
     implicit val ec: ExecutionContext
 ) extends StreetService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   def getStreetCountDBIO: DBIO[Int] = configService.cachedDBIO[Int]("streetCount")(streetEdgeTable.streetCount)
+
+  def countStreetGradientStaleness: Future[StreetGradientStaleness] =
+    db.run(streetGradientTable.stalenessCounts(streetEdgeTable.streets)).map { case (unsampled, stale) =>
+      StreetGradientStaleness(unsampled, stale)
+    }
 
   def getTotalStreetDistanceDBIO: DBIO[Double] =
     configService.cachedDBIO[Double]("totalStreetDistance")(streetEdgeTable.totalStreetDistance)
@@ -87,4 +140,45 @@ class StreetServiceImpl @Inject() (
       routeIds: Seq[Int]
   ): Future[Seq[StreetEdgeWithAuditStatus]] =
     auditTaskTable.selectStreetsWithAuditStatus(filterLowQuality, regionIds, routeIds)
+
+  /**
+   * What a street needing a re-audit was last mapped as, for the map's hover card (#5258).
+   *
+   * `None` for every street that is not currently stale -- never audited, or already refreshed against the current
+   * imagery. That test is re-derived here rather than trusted from the caller so the card cannot outlive the state
+   * it describes: the map's GeoJSON is fetched once per page load, so a street another mapper refreshes mid-session
+   * still arrives at the client flagged.
+   *
+   * The three reads run as one action so they see one snapshot; a re-audit landing between them would otherwise
+   * produce a card reporting a stale street with fresh imagery.
+   */
+  def getReauditSummary(streetEdgeId: Int): Future[Option[StreetReauditSummary]] = {
+    db.run(getReauditSummaryDBIO(streetEdgeId).transactionally)
+  }
+
+  /**
+   * [[getReauditSummary]] as a composable action, for callers that need it inside a transaction of their own.
+   */
+  def getReauditSummaryDBIO(streetEdgeId: Int): DBIO[Option[StreetReauditSummary]] = {
+    for {
+      hasFreshAudit <- auditTaskTable.hasUpToDateAuditFor(streetEdgeId)
+      lastAudited   <- auditTaskTable.getLastCompletedAuditTime(streetEdgeId)
+      result        <-
+        if (hasFreshAudit || lastAudited.isEmpty) {
+          DBIO.successful(Option.empty[StreetReauditSummary])
+        } else {
+          for {
+            imagery     <- streetImageryTable.getForStreet(streetEdgeId)
+            labelCounts <- labelTable.getLabelTypeCountsForStreet(streetEdgeId)
+          } yield Some(
+            StreetReauditSummary(
+              streetEdgeId,
+              lastAudited.get,
+              imagery.flatMap(_.medianNewestCapture),
+              labelCounts.sortBy { case (labelType, count) => (-count, labelType) }
+            )
+          )
+        }
+    } yield result
+  }
 }

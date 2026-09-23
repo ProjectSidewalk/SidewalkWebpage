@@ -1,9 +1,8 @@
 /**
- * Holds and triggers mission-related pub/sub events. The `EventMixin` emitter is mixed onto the prototype below,
- * providing `trigger`/`on`/etc. shared across the model modules.
+ * Holds and triggers mission-related pub/sub events.
  */
-class MissionModel {
-  fetchCompletedMissionsInNeighborhood(callback) {
+class MissionModel extends EventEmitter {
+  fetchCompletedMissionsInRegion(callback) {
     const _onFetch = (missions) => {
       for (let i = 0, len = missions.length; i < len; i++) {
         this.createAMission(missions[i]);
@@ -11,9 +10,9 @@ class MissionModel {
     };
 
     if (callback) {
-      $.when($.ajax(`/neighborhoodMissions?regionId=${svl.regionId}`)).done(_onFetch).done(callback);
+      $.when($.ajax(`/completedMissionsInRegion?regionId=${svl.regionId}`)).done(_onFetch).done(callback);
     } else {
-      $.when($.ajax(`/neighborhoodMissions?regionId=${svl.regionId}`)).done(_onFetch);
+      $.when($.ajax(`/completedMissionsInRegion?regionId=${svl.regionId}`)).done(_onFetch);
     }
   }
 
@@ -27,7 +26,7 @@ class MissionModel {
 
   /**
    * Creates a Mission from raw back-end parameters and adds it via MissionContainer:addAMission.
-   * @param {object} parameters - Mission values from the back end (snake_case keys are normalized to camelCase).
+   * @param {Record<string, any>} parameters - Mission values from the back end (snake_case keys become camelCase).
    */
   createAMission(parameters) {
     // Makes any necessary changes from snake_case to camelCase since we get the values from JSON.
@@ -71,8 +70,7 @@ class MissionModel {
   /**
    * Notify the mission modules with MissionProgress:update
    */
-  updateMissionProgress(mission, neighborhood) {
-    this.trigger('MissionProgress:update', { mission, neighborhood });
+  updateMissionProgress(mission, region) {
+    this.trigger('MissionProgress:update', { mission, region });
   }
 }
-Object.assign(MissionModel.prototype, EventMixin);

@@ -1,4 +1,17 @@
 /**
+ * One badge row's elements, plus the tooltip text last rendered into it.
+ * @typedef {object} BadgeRow
+ * @property {HTMLElement} icon
+ * @property {HTMLImageElement} iconBase
+ * @property {HTMLImageElement} iconFill
+ * @property {HTMLElement} name
+ * @property {ProgressBar} bar
+ * @property {?string} iconSrc
+ * @property {string} tooltipName
+ * @property {string} tooltipDesc
+ */
+
+/**
  * Renders the user's progress toward their next labeling and exploring badges in the right sidebar.
  *
  * Thresholds mirror those used on the user dashboard (see AchievementTracker). Distance thresholds are defined in miles
@@ -50,15 +63,16 @@ class BadgeProgress {
 
   /**
    * Caches the child elements of a badge row.
-   * @param {string} containerId Id of the row's container element.
-   * @param {string} countId Id of the row's progress-bar label (the "current / target" count).
+   * @param {string} containerId - Id of the row's container element.
+   * @param {string} countId - Id of the row's progress-bar label (the "current / target" count).
+   * @returns {BadgeRow}
    */
   #cacheRow(containerId, countId) {
     const container = document.getElementById(containerId);
     return {
       icon: container.querySelector('.explore-sidebar__badge-icon'),
-      iconBase: container.querySelector('.explore-sidebar__badge-icon-base'),
-      iconFill: container.querySelector('.explore-sidebar__badge-icon-fill'),
+      iconBase: /** @type {HTMLImageElement} */ (container.querySelector('.explore-sidebar__badge-icon-base')),
+      iconFill: /** @type {HTMLImageElement} */ (container.querySelector('.explore-sidebar__badge-icon-fill')),
       name: container.querySelector('.explore-sidebar__badge-name'),
       bar: new ProgressBar(container.querySelector('.ps-progress-bar__fill'), countId),
       // Tooltip content for this row, set during render and shown on hover/focus.
@@ -81,7 +95,7 @@ class BadgeProgress {
 
   /**
    * Shows the tooltip for a row, populated with the next badge's enlarged icon, name, and how-to-earn text.
-   * @param row Cached row elements.
+   * @param {BadgeRow} row - Cached row elements.
    */
   #showTooltip(row) {
     if (!row.iconSrc) return;
@@ -94,7 +108,7 @@ class BadgeProgress {
 
   /**
    * Positions the tooltip just to the left of the badge icon.
-   * @param row Cached row elements.
+   * @param {BadgeRow} row - Cached row elements.
    */
   #positionTooltip(row) {
     const iconRect = row.icon.getBoundingClientRect();
@@ -124,9 +138,9 @@ class BadgeProgress {
 
   /**
    * Renders both badge rows for the given global totals.
-   * @param {number} labelCount The user's total label count.
-   * @param {number} distance The user's total distance audited, in their unit system.
-   * @param {boolean} isMetric Whether the user's unit system is metric.
+   * @param {number} labelCount - The user's total label count.
+   * @param {number} distance - The user's total distance audited, in their unit system.
+   * @param {boolean} isMetric - Whether the user's unit system is metric.
    */
   render(labelCount, distance, isMetric) {
     this.#renderRow(this.#labelsRow, {
@@ -134,7 +148,7 @@ class BadgeProgress {
       thresholds: BadgeAchievements.THRESHOLDS.labels,
       nameKey: 'common:badges.labeler-name',
       goalKey: 'audit:right-ui.badges.labeler-goal',
-      iconFor: (level) => util.assetPath(`images/badges/badge_labels_badge${level}.png`),
+      iconFor: (level) => util.assetPath(`images/badges/badge_labels_badge${level}.svg`),
       nextText: (target) => i18next.t('audit:right-ui.badges.next-labels', { count: target }),
       unit: '',
       decimals: 0,
@@ -151,8 +165,8 @@ class BadgeProgress {
       nameKey: 'common:badges.explorer-name',
       goalKey: 'audit:right-ui.badges.explorer-goal',
       iconFor: (level) => (isMetric
-        ? util.assetPath(`images/badges/badge_distance_km_badge${level}.png`)
-        : util.assetPath(`images/badges/badge_distance_badge${level}.png`)),
+        ? util.assetPath(`images/badges/badge_distance_km_badge${level}.svg`)
+        : util.assetPath(`images/badges/badge_distance_badge${level}.svg`)),
       // The badge's total distance goal, shown to one decimal place.
       nextText: (target) => i18next.t('audit:right-ui.badges.next-distance', {
         distance: `${this.#formatNumber(Number(target.toFixed(1)))} ${distanceUnit}`,
@@ -165,8 +179,16 @@ class BadgeProgress {
   /**
    * Renders a single badge row: next-badge icon + fill, tiered name, progress bar, "current / target" text, and the
    * tooltip content (name + goal + how-to-earn) shown on hover/focus.
-   * @param row Cached row elements.
-   * @param config Row config: value, thresholds, nameKey, goalKey, iconFor, nextText, unit, decimals.
+   * @param {BadgeRow} row - Cached row elements.
+   * @param {object} config
+   * @param {number} config.value - The user's current total.
+   * @param {number[]} config.thresholds - The total each badge level needs, lowest first.
+   * @param {string} config.nameKey - i18n key for the badge's name.
+   * @param {string} config.goalKey - i18n key for what the badge rewards.
+   * @param {(level: number) => string} config.iconFor - The icon path for a badge level.
+   * @param {(target: number) => string} config.nextText - How-to-earn text for the next badge's total.
+   * @param {string} config.unit - Unit shown after the count, or '' for none.
+   * @param {number} config.decimals - Decimal places shown for the user's total.
    */
   #renderRow(row, config) {
     const { value, thresholds, nameKey, goalKey, iconFor, nextText, unit, decimals } = config;
@@ -187,7 +209,7 @@ class BadgeProgress {
       row.iconFill.src = iconSrc;
     }
     row.iconSrc = iconSrc;
-    row.iconFill.style.setProperty('--badge-fill', fraction);
+    row.iconFill.style.setProperty('--badge-fill', String(fraction));
 
     const badgeName = `${i18next.t(nameKey)} ${BadgeAchievements.ROMAN[nextIndex]}`;
     row.name.textContent = badgeName;

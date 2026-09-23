@@ -5,6 +5,7 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.auth.{DefaultEnv, WithSignedIn}
 import models.user.{SidewalkUserWithRole, UserUtm}
+import models.utils.IpAddress
 import play.api.Configuration
 import play.api.i18n.{Lang, Messages}
 import play.api.mvc._
@@ -34,7 +35,7 @@ class ApplicationController @Inject() (
   def index = cc.securityService.UserAwareAction { implicit request =>
     val user: Option[SidewalkUserWithRole] = request.identity
     val timestamp: OffsetDateTime          = OffsetDateTime.now
-    val ipAddress: String                  = request.ipAddress
+    val ipAddress: IpAddress               = request.ipAddress
     val isMobile: Boolean                  = ControllerUtils.isMobile(request)
     val qString: Map[String, String]       = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
@@ -268,6 +269,34 @@ class ApplicationController @Inject() (
         )
       }
     }
+
+  /**
+   * The AccessScore tool (#5217): weight sliders, a streets/regions switch, and linked charts over the city's
+   * AccessScores. The page fetches its data itself (`/v3/api/accessScoreConfig`, `/v3/api/accessScoreStreets`, the
+   * region feeds), so the controller only renders the shell. Desktop-only, like the Route Builder: a map with
+   * a control drawer on one side and a four-panel band below has no phone layout.
+   */
+  def accessScore = cc.securityService.UserAwareAction { implicit request =>
+    if (ControllerUtils.isMobile(request)) {
+      cc.loggingService.insert(
+        request.identity.map(_.userId),
+        request.ipAddress,
+        "Visit_AccessScore_RedirectMobileLanding"
+      )
+      Future.successful(Redirect("/mobileLanding"))
+    } else {
+      configService.getCommonPageData(request2Messages.lang).map { commonData =>
+        cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, "Visit_AccessScore")
+        Ok(
+          views.html.apps.accessScore(
+            commonData,
+            Messages("seo.title.access.score", commonData.currentCity.cityNameShort),
+            request.identity
+          )
+        )
+      }
+    }
+  }
 
   /**
    * Returns a page with instructions for users who want to receive community service hours.

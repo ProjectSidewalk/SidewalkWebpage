@@ -2,15 +2,17 @@ package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ControllerUtils
-import controllers.helper.ControllerUtils.MeasurementSystem
+import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson}
 import formats.json.UserFormats.{settingsSubmissionReads, SettingsSubmission}
+import forms.ChangePasswordForm
 import models.auth.{DefaultEnv, WithAdmin, WithSignedIn}
-import models.user.{Role, SidewalkUserWithRole}
+import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
 import play.api.Configuration
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsSuccess, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
+import play.silhouette.api.Silhouette
 import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
 
 import javax.inject._
@@ -34,7 +36,9 @@ class UserDashboardController @Inject() (
     adminService: AdminService,
     labelService: service.LabelService,
     routeService: service.RouteService,
-    authenticationService: service.AuthenticationService
+    authenticationService: service.AuthenticationService,
+    rateLimiter: service.RateLimiter,
+    silhouette: Silhouette[DefaultEnv]
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
   implicit val implicitConfig: Configuration = config
@@ -96,17 +100,7 @@ class UserDashboardController @Inject() (
   )(implicit request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     authenticationService.findByUsername(username).flatMap {
       case Some(subject) => render(subject)
-      case None          =>
-        Future.successful(
-          NotFound(
-            views.html.errors.errorPage(
-              NOT_FOUND,
-              Messages("error.404.heading"),
-              Messages("error.404.message"),
-              requestedPath = Some(request.path)
-            )
-          )
-        )
+      case None          => Future.successful(notFoundPage(request.path))
     }
   }
 
@@ -183,11 +177,7 @@ class UserDashboardController @Inject() (
    */
   def settings = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
     val user        = request.identity
-    val unitsChoice = request.cookies
-      .get(MeasurementSystem.CookieName)
-      .map(_.value)
-      .filter(MeasurementSystem.validOverrides.contains)
-      .getOrElse(MeasurementSystem.FollowLanguage)
+    val unitsChoice = MeasurementSystem.choiceName(user.measurementSystem)
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
       openTeams  <- userService.getAllOpenTeams
@@ -195,7 +185,7 @@ class UserDashboardController @Inject() (
       privacy    <- userService.getPrivacySettings(user.userId)
     } yield {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Settings")
-      val (onLeaderboard, publicProfile) = privacy.getOrElse((true, true))
+      val (onLeaderboard, publicProfile) = privacy.getOrElse(configService.defaultPrivacyFlags)
       Ok(
         views.html.userDashboard.settings(commonData, user, openTeams, currTeam, onLeaderboard, publicProfile,
           unitsChoice, configService.getPrivateProfilesByDefault)
@@ -206,12 +196,12 @@ class UserDashboardController @Inject() (
   /**
    * Persists the Settings form in one save: an optional username change (validated) plus the two privacy flags, the
    * measurement-units choice, and the user's team. The body is a `SettingsSubmission` (a missing privacy flag is a
-   * 400, never a reset); `teamId` is a positive id to join/switch or null/non-positive to leave any current team. A
+   * 400, never a reset); `teamId` is a positive id to join/switch, or null/non-positive to leave the team alone —
+   * dropping a team is `UserProfileController.leaveTeam`, never something a save does by omission (#5147). A
    * username that fails validation (length, allowed characters, profanity, or already taken) refuses the whole save
    * with a 400 and a user-facing message before anything is written; the rename itself is the last write.
    *
-   * Units are the one setting that isn't a database write: like the language choice it lives in a cookie, so a
-   * submitted change either sets the override or discards it to fall back to the site language (#4404).
+   * Units and community service hours are saved to the account, so they apply in every city (#3720).
    */
   def saveSettings = cc.securityService.SecuredAction(WithSignedIn(), parse.json) { implicit request =>
     val user                    = request.identity
@@ -222,16 +212,15 @@ class UserDashboardController @Inject() (
       case JsSuccess(s, _) =>
         val teamId       = s.teamId.filter(_ > 0)
         val usernameEdit = s.username.filter(_ != user.username)
-        val unitsWere    = request.cookies
-          .get(MeasurementSystem.CookieName)
-          .map(_.value)
-          .filter(MeasurementSystem.validOverrides.contains)
-          .getOrElse(MeasurementSystem.FollowLanguage)
-        // Absent field means "this caller isn't touching units", which has to stay distinct from an explicit "auto" —
-        // otherwise any save that omits it silently wipes the reader's stored choice.
-        val unitsSubmitted = s.measurementSystem
-          .filter(system => MeasurementSystem.validOverrides(system) || system == MeasurementSystem.FollowLanguage)
-        val unitsNow = unitsSubmitted.getOrElse(unitsWere)
+        // An absent field means "this caller isn't touching it" (the /welcome privacy toggles post only their two
+        // flags), which has to stay distinct from an explicit "auto", or those saves would wipe the user's choice.
+        val unitsEdit: Option[Option[MeasurementSystem.Value]] = s.measurementSystem
+          .filter(choice =>
+            choice == MeasurementSystem.FollowLanguage || MeasurementSystem.fromString(choice).isDefined
+          )
+          .map(MeasurementSystem.fromString)
+          .filter(_ != user.measurementSystem)
+        val serviceEdit: Option[Boolean] = s.communityService.filter(_ != user.communityService)
 
         // Only the username can be refused, so it's checked before the first write and renamed after the last one.
         val usernameCheck: Future[Either[String, Unit]] = usernameEdit
@@ -245,9 +234,12 @@ class UserDashboardController @Inject() (
               _ <- userService.updatePrivacySettings(user.userId, s.onLeaderboard, s.publicProfile)
               _ <- teamId
                 .map(id => userService.setUserTeam(user.userId, id))
-                .getOrElse(userService.leaveTeam(user.userId))
-              _ <- s.communityService
-                .map(cs => authenticationService.setCommunityServiceStatus(user.userId, cs))
+                .getOrElse(Future.successful(0))
+              _ <- serviceEdit
+                .map(cs => userService.setCommunityService(user.userId, cs))
+                .getOrElse(Future.successful(0))
+              _ <- unitsEdit
+                .map(units => userService.setMeasurementSystem(user.userId, units))
                 .getOrElse(Future.successful(0))
               _ <- usernameEdit
                 .map(name => userService.changeUsername(user.userId, name))
@@ -256,17 +248,73 @@ class UserDashboardController @Inject() (
               cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SaveSettings")
               // Logged separately from the save, and only on a real change, so units can be analyzed the way the
               // navbar's ChangeLanguage already is rather than being buried in every settings save.
-              if (unitsNow != unitsWere) {
-                cc.loggingService
-                  .insert(user.userId, request.ipAddress, s"Click_module=ChangeUnits_from=${unitsWere}_to=$unitsNow")
+              unitsEdit.foreach { units =>
+                val (from, to) =
+                  (MeasurementSystem.choiceName(user.measurementSystem), MeasurementSystem.choiceName(units))
+                cc.loggingService.insert(
+                  user.userId,
+                  request.ipAddress,
+                  s"Click_module=ChangeUnits_from=${from}_to=$to"
+                )
               }
-              val result = Ok(Json.obj("success" -> true))
-              if (unitsNow == unitsWere) result
-              else if (MeasurementSystem.validOverrides(unitsNow))
-                result.withCookies(MeasurementSystem.overrideCookie(unitsNow))
-              else result.discardingCookies(MeasurementSystem.clearOverrideCookie)
+              Ok(Json.obj("success" -> true))
             }
         }
+    }
+  }
+
+  /**
+   * Changes the signed-in user's password from Settings (#2285). A wrong current password is a 401, like a failed
+   * sign-in, so the page can reuse the auth forms' submit handling.
+   *
+   * Every attempt counts toward the limit up front, successes included, so simultaneous guesses can't slip past it
+   * and a session can't change its password back and forth forever.
+   */
+  def changePassword = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    val user        = request.identity
+    val throttleKey = s"change-password:user:${user.userId}"
+    val limit       = rateLimiter.limit("change-password")
+
+    if (!rateLimiter.allow(throttleKey, limit)) {
+      cc.loggingService.insert(user.userId, request.ipAddress, "ChangePasswordThrottled")
+      val retryAfter = rateLimiter.retryAfterSeconds(throttleKey).getOrElse(limit.window.toSeconds)
+      val message    = Messages("dashboard.settings.password.error.throttled", limit.window.toMinutes)
+      Future.successful(
+        TooManyRequests(fieldErrorJson("_summary", message)).withHeaders("Retry-After" -> retryAfter.toString)
+      )
+    } else {
+      ChangePasswordForm.form
+        .bindFromRequest()
+        .fold(
+          formWithErrors => {
+            cc.loggingService.insert(user.userId, request.ipAddress, "ChangePasswordFailed_Reason=Invalid")
+            Future.successful(BadRequest(formErrorsJson(formWithErrors)))
+          },
+          data =>
+            authenticationService.changePassword(user.userId, data.currentPassword, data.newPassword).flatMap {
+              case true =>
+                cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=ChangePassword")
+                val ok = Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.password.changed")))
+                // The change revoked this browser's cookie too.
+                silhouette.env.authenticatorService.renew(request.authenticator, ok)
+              case false =>
+                cc.loggingService
+                  .insert(user.userId, request.ipAddress, "ChangePasswordFailed_Reason=WrongCurrentPassword")
+                Future.successful(
+                  Unauthorized(fieldErrorJson("currentPassword", Messages("dashboard.settings.password.error.current")))
+                )
+            }
+        )
+    }
+  }
+
+  /** Signs the user out on every other device (#5305), keeping this browser signed in with a new cookie. */
+  def signOutOtherDevices = cc.securityService.SecuredAction(WithSignedIn()) { implicit request =>
+    val user = request.identity
+    authenticationService.signOutEverywhere(user.userId).flatMap { _ =>
+      cc.loggingService.insert(user.userId, request.ipAddress, "Click_module=SignOutOtherDevices")
+      val ok = Ok(Json.obj("success" -> true, "message" -> Messages("dashboard.settings.devices.signed.out")))
+      silhouette.env.authenticatorService.renew(request.authenticator, ok)
     }
   }
 

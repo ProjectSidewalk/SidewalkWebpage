@@ -30,7 +30,7 @@ Play backend ── routes → Controller → Service → Table (DAO/Slick)
         │                         Postgres + PostGIS  (one schema per city: sidewalk_<city>;
         │                                              auth in sidewalk_login)
         ▼
-External imagery providers (Google Street View / Mapillary / Infra3d / Pannellum)
+External imagery providers (Google Street View / Mapillary / Infra3d / Panoramax / Pannellum)
 
 Out-of-band Python utilities: scripts/label_clustering.py, scripts/check_streets_for_imagery.py
 ```
@@ -57,7 +57,13 @@ The backend follows a consistent layering: **routes → Controller → Service �
 - **`app/models/utils/MyPostgresProfile.scala`** — a custom Slick Postgres profile wiring in PostGIS geometry,
   JSON, and other slick-pg extensions. Spatial query helpers live in `SpatialQueryDefs.scala`.
 - **Per-city schemas** — each city is its own schema (`sidewalk_<city>`); they're essentially identical.
-  Authentication lives in `sidewalk_login`.
+  Authentication lives in the shared `sidewalk_login` schema, along with anything that belongs to the account rather
+  than to one city: `user_settings` holds choices the user makes (units, service-hours tracking) and
+  `user_account_state` holds what the site records about them (having finished the Explore tutorial, and when a
+  password change or Settings' "Sign out of other devices" last signed them out everywhere, #5305). Both only get a row once there's something to store
+  (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
+  The schema holds auth to one account per email, one login row per account, and one password per login row
+  (#5317), and sign-in, reset, and change-password all reach the password through the account.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
   `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
   in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the
@@ -81,6 +87,55 @@ the app dir, #4925):
   photos and audio today. These sit outside the app dir, are validated at boot by `PersistentMediaDirCheck`, and
   need their own provisioning and backup path on every host.
 
+`cropped.image.directory` additionally holds the **label crops** (#4865), cut from the self-hosted panorama store
+(`pano.images.directory`, which the nightly panorama-tools scraper fills) by the nightly `CropGenerationActor` via
+`CropService`, under `<city-id>/<LabelType>/` (a label whose type is edited has its crop moved to the new type's
+directory by `LabelEditService`). They are disposable — delete the store and the next run rebuilds it —
+which is why they live beside the app's other derived media rather than in the panorama store, which the app only
+reads.
+
+Crops are the image the Gallery, the landing validation grid and label popups fall back to when live imagery is
+unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
+every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
+dashboard mistakes, the share preview) fall back one step further for a GSV label with no crop, to a Street View
+Static API still requested at 640×427 — Google's 640-px cap at the boxed Explore canvas's aspect — so it is the
+boxed labeling frame at a smaller scale and a marker at the label's canvas fraction still lands on the feature (#3095;
+asking for 720×480 got a 640×480 still with extra sky and ground). A label placed in immersive mode (#5085) has a frame
+of the window's aspect: its snapshot crop keeps that aspect (`ImageController.writeImageFile` normalizes the width
+only), and `util.misc.labelMarkerFraction` re-places its marker in the 3:2 still and in the 3:2 box every card
+cover-fits its image into. Label popups never use the still: their chain is live pano →
+self-hosted backup → crop → "imagery not available". The geometry — `CropSizingRule` (the
+swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
+`CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The two writers put the label in
+different places — the snapshot at its canvas fraction, the job's window wherever `CropGeometry.labelPositionInCrop`
+says (the centre, unless the window shifted off a pole) — and the files look alike, so **every crop's provenance is a
+`label_crop` row** (#2660): which writer, and the label's position as fractions of the image. Each writer records its
+row as it writes, the job's reconcile pass classifies any crop found without one (by size, then by the file's age
+against the label's, and never on a signal that disagrees with the others), and the six surfaces that draw a marker
+on a crop — the Gallery card, the landing validation grid, the dashboard's mistake cards, the popup's crop fallback,
+the share preview, the label mini-card (`LabelMiniCard.js`, the AccessScore sheet and photo strip) — take it from the
+row (`crop_marker` in the label payloads), falling back to the canvas fraction only while a crop is unrecorded or the
+image on screen is the Street View still. A new crop writer must write that row, and a new surface that marks a crop
+must read it. A pano too wide for the viewer's GPU is shown from a downscaled copy, and `/backupImage/:panoId` serves
+that in place of the native file without the viewer being able to tell, because it places markers by angle. **The
+viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads an equirect as two halves, so
+its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide pano — the widest GSV
+produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService` cuts a copy at that
+width on demand, caching it under the crop store (#5256).
+
+The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
+downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
+was never worth it. On-demand costs ~105 MB and ~2 s per copy, by letting the JPEG decoder subsample rather than
+decoding and rescaling; the trade is pixel-dropping instead of area-averaging, taken deliberately given how rarely
+it runs.
+
+Imagery Project Sidewalk shows a copy of — a self-hosted pano or a crop — carries the attribution
+`ImageryAttribution` composes (Mapillary contributors are CC BY-SA 4.0), rendered by `PanoAttribution.js` alongside
+the source logo `PanoViewerLogo.js` draws: in the label-detail pano box, in Validate's Pannellum fallback, and on
+every card that shows a crop — the Gallery card, the landing validation grid, and the dashboard's mistake cards
+(`css/components/pano-attribution.css` is the shared look; each host positions the pill). A card that falls back to
+the Street View Static API still drops the overlay: Google bakes its own logo and copyright into that image.
+
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.
 
@@ -89,24 +144,67 @@ front — the move is to object storage (S3/MinIO), never the local filesystem.
 DI is Guice. The app bootstraps via `app/CustomApplicationLoader.scala`; modules are registered in
 `conf/application.conf` and defined in `app/modules/` (`CustomControllerModule`, `ActorModule`, `ExecutorsModule`,
 `SilhouetteModule`, and `StartupChecksModule` — the home for boot-time checks that surface deployment-level
-misconfiguration, like `PersistentMediaDirCheck`). Custom execution contexts live in `app/executors/`; background
-actors in `app/actor/`.
+misconfiguration, like `PersistentMediaDirCheck`, and for boot-time repairs like `AiSeedRowsRepair`, which inserts
+the SidewalkAI user's per-schema rows wherever a schema was created without running 281.sql — a cloned or
+dump-restored city, #5349). Custom execution contexts live in `app/executors/`; background actors in `app/actor/`;
+HTTP filters in `app/filters/`, registered through `play.filters.enabled` in
+`conf/application.conf`.
 
 **Views** are Twirl templates (`app/views/*.scala.html`).
 
 ### Background jobs
 
 Each deployment runs a set of nightly jobs as pekko actors in `app/actor/` — the imagery expiry sweep, the
-imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, label clustering, OSM way
-refresh, AI validations, and auth-token cleanup. The schedule lives in one place, `app/actor/ScheduledJobs.scala`:
-each actor reads its own time from there, staggered across the small hours and shifted per city by
-`ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and provider quotas.
+imagery-age poll and freshness sync, street-priority recalculation, user and funnel stats, the sidewalk presence
+rebuild (which re-derives the `sidewalk_presence` table, one verdict per side of each street, from the day's labels,
+audits and validator verdicts, #5279/#5285), label clustering (which opens with the intersection rebuild that
+re-derives the `intersection` table from the street graph and attributes corner-feature clusters to it, #5095), crop
+generation, OSM way refresh, AI validations, and auth-token cleanup. The schedule lives in one place,
+`app/actor/ScheduledJobs.scala`: each actor reads its own time from there, staggered across the small hours and
+shifted per city by `ConfigService.getOffsetHours` so 50+ deployments don't contend for the same database and
+provider quotas.
+
+Label clustering closes with the **AccessScore Spotlight snapshot** (#5215), which writes `region_access_score`
+and `street_access_score` from the clusters that run just built: one row per region per night (kept, so the table is
+a score history) and one row per OSM way per region, replaced each run. The landing page and `/cities` read only
+those two tables, which is what makes a ranked AccessScore safe to put on a page nobody waits for. Like the
+intersection rebuild it records its own run and is recovered rather than propagated, so a clustering success never
+stands in for a snapshot nobody wrote. The snapshot's computation is the very value `/v3/api/accessScoreStreets` and
+its siblings cache per JVM, so it also seeds that cache (`SwrCache.put`, #5418): on a large city the whole-city
+computation takes longer than the reverse proxy allows a request, so a cold cache — after a deploy, or a city nobody
+opened in two days — would otherwise cost the first visitor a `502`. When the cache is cold anyway, the full-city
+endpoints wait at most 45 s and then answer `503` with `Retry-After: 30` while the computation finishes in the
+background; the AccessScore tool retries on that header and says so under its spinner.
+
+The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
+run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
+transit, parks, community centers), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
+refreshes, with the containing region and the nearest open street within 250 m computed in SQL as it lands. It ticks
+nightly like every job but fetches only when the newest place is more than a week old, or the table is empty, which
+is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so the Health
+panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with `SwrCache`,
+cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
 
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
 that found nothing to do, since the absence of a log line is not something anyone notices. `/admin/health` renders
 the roster, flagging any job that is overdue, failed, or has never run. The wrapper is strictly subordinate to the
 job: a bookkeeping failure is logged and swallowed, and a job's own failure propagates unchanged.
+
+The two derived tables, `intersection` and `sidewalk_presence`, share one pattern: the derivation is raw SQL held once
+in the DAO (`IntersectionTable.derivationSql`, `SidewalkPresenceTable.derivationSql`), the evolution that created the
+table — or the latest one to change the derivation, with a real Down that re-derives the old way (388.sql) — carries
+a pasted copy for the one-time population of existing cities, the nightly rebuild re-runs the DAO's copy
+into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
+`SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
+
+`street_gradient` (399.sql, #5223; read through `StreetGradientTable`) is per-street too but is not one of these: its
+elevations come from rasters the database never sees, so there is no SQL derivation and no nightly rebuild. An offline
+script samples a bare-earth elevation model and a db script upserts the CSV, the way the imagery scan feeds
+`street_imagery`; new cities get it during onboarding. Staleness is a `geom_md5` comparison the export script makes,
+and the one nightly job in this area, `StreetGradientStalenessActor`, only counts it: the served streets with no row
+and those sampled on an older geometry, recorded so the Health panel says when a city needs a fill or a top-up
+(Admin > Management can recount on demand). See [`street-gradient.md`](street-gradient.md).
 
 A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
 the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to
@@ -121,13 +219,24 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
 - **Query/REST parameters are camelCase** (`minSeverity`, `regionId`, `validationStatus`). `ApiError.parameter`
   names a query param, so it stays camelCase too.
 - **All output field names are snake_case** — JSON bodies, GeoJSON `properties`, CSV headers, and
-  GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats. For
-  macro serializers, use a scoped `JsonConfiguration(JsonNaming.SnakeCase)` so `Json.format`/`Json.writes` emit
-  snake_case; hand-build the `JsObject` with snake_case keys for nested/custom shapes.
+  GeoPackage fields (`label_id`, `region_name`, `city_id`) — one canonical field name across those formats. A
+  response DTO declares its fields once, in the `ApiFields` list on its companion (below), and every format is
+  built from that list, so a field cannot be named one thing in one format and something else in another. A value
+  the JSON nests gets a dotted name (`labels.CurbRamp.count`), which is a nested key in the JSON, a CSV column
+  of exactly that name, and a GeoPackage column with each dot turned into an underscore (`labels_CurbRamp_count`),
+  since ArcGIS rejects a dot in a column name (#5273).
 - **Shapefile is the exception:** its fields stay **camelCase and abbreviated** (`labelId`, `regionName`,
   `neighborhd`, `cameraHdng`). The DBF format hard-truncates field names to 10 chars, so shapefiles can't carry the
   canonical snake_case names regardless of casing; camelCase reclaims the byte the underscore would waste. Shapefile
   is a legacy export being phased out — GeoPackage is the modern GIS export that carries the canonical snake_case names.
+- **File downloads** (shapefile, GeoPackage, zipped CSVs) are each built in their own folder under `api-downloads/`
+  and deleted once streamed; a folder untouched for two hours (its client gave up) is swept on a later download (#4133).
+- **One file download per URL at a time.** While a file is being built and streamed, a repeat of the same URL gets a
+  429 with `Retry-After`, so an impatient retry can't double minutes of work (#4161). Plain CSV/GeoJSON streams are
+  not guarded, since the site's own pages fetch the same URLs in parallel. A `HEAD` request gets the same 429 without
+  building anything, which is how the Label Map's download button warns before it starts; the API docs buttons fetch
+  the file themselves, so they read the 429 off the download. A built file also carries its uncompressed size in
+  `X-File-Size`, for clients showing download progress, since gzip strips `Content-Length`.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
 **Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in
@@ -139,9 +248,18 @@ home: a `*Table.scala` DAO *produces* its DTOs but never *defines* them (issue #
 - **Streaming:** response DTOs extend `StreamingApiType` (`app/models/api/StreamingApiType.scala`) and implement
   `toJson` / `toCsvRow` inline on the case class, so `BaseApiController`'s `outputJSON`/`outputCSV`/`outputGeoJSON`
   helpers can serialize a stream of them uniformly. Serialization lives *on the DTO*, not as free functions elsewhere.
-- **Companion object** holds the `csvHeader` string (next to `toCsvRow`, so columns can't drift) and the JSON writers.
+- **Companion object extends `ApiFields[T]`** and declares `fields`: one ordered list of `field("name")(_.accessor)`
+  entries, from which `csvHeader`, `toCsvRow`, and `toJson` are all derived. `csvOnlyFields` adds columns the CSV
+  carries but the JSON expresses another way — a geometry the CSV can only summarize as `start_point`/`end_point`,
+  say — and `csvFields` can be overridden where the CSV needs an order the JSON doesn't have. A GeoJSON DTO puts
+  `toJson(this)` in the Feature's `properties` and passes the geometry separately. A GeoPackage layer
+  (`ShapefilesCreatorHelper.GeoPackageLayer`) takes `fields` as its columns, each typed from the field's Scala type
+  (`GeoColumnFor`) and holding the field's JSON value.
+- **Single-object endpoints** (`overallStats`, `aggregateStats`) return one object rather than a list of records, so
+  their CSV lists stats down the page: `ApiModelUtils.toCsvKeyValueRows(toJson)` under `keyValueCsvHeader`, keying
+  each row by its dotted path.
 - **Shared helpers:** reuse `ApiModelUtils` (`escapeCsvField`, `createGeoJsonPointGeometry`, `labelTypeOrdering`,
-  `toSnakeKey`, …) rather than re-rolling CSV/GeoJSON logic.
+  `csvCell`, …) rather than re-rolling CSV/GeoJSON logic.
 - **Every `/v3` DTO's serialization lives in `models.api`.** There is no shared formats object for API output and no
   API serialization inline in a controller. The `app/formats/json/*Formats.scala` files serve the internal (non-`/v3`)
   endpoints only (issue #3891).
@@ -161,9 +279,13 @@ A public, account-free share surface (issue #456, `ShareController`) lets a sing
 nearby-labels minimap fed by the cheap, bbox-bounded `/v3/api/rawLabels` API (deliberately not LabelMap's
 city-wide `/labels/all` layer) — with server-rendered Open Graph / Twitter Card meta so a pasted link produces a
 rich preview. `GET /label/:id/image` serves the preview image — self-hosted, with the label-type marker
-composited onto the crop (or a branded fallback) — cached under `share.image.directory`
+composited onto the crop (or a Street View still, or a branded fallback) — cached under `share.image.directory`
 (`SIDEWALK_SHARE_IMAGES_DIR`), the same mounted volume as label crops so share links persist across container
-recreation; the per-city cache is LRU-bounded so the public, enumerable URL space can't fill the volume. To
+recreation; the per-city cache is LRU-bounded so the public, enumerable URL space can't fill the volume. Previews
+never expire, so a change to how they are built bumps `ShareImageCache.Generation`: it is in the filename, so a
+label's old preview is replaced the next time it is requested (rebuilt, or renamed into place when nothing can be
+built any more — an old preview beats the logo), and in the advertised `og:image` URL, so platforms that cache the
+card by URL re-fetch. Old files for labels never requested again age out of the LRU cap. To
 support the anonymous landing, the `LabelController.getLabelData` read backing the label-detail popup was opened
 to anonymous access.
 
@@ -177,19 +299,74 @@ corresponding Twirl view:
   browser window with the pano; the labeling frame it stores with every label, and why, is in
   [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
 - **`validate/`** — the Validate tool (confirm/reject others' labels).
+- **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
+  and why: [`docs/validation-queue.md`](validation-queue.md).
 - **`gallery/`** — browsable, filterable gallery of labels.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
-  pages and holds the shared formatting helpers (escaping, numbers, durations, relative times, the standard table
-  markup).
+  pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
+  scroll-spy, and keeping a deep link's target in place while sections above it are still loading — plus the shared
+  formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
 - **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
   chart colors follow the design system). Served file-by-file — no Grunt bundle.
+- **`access-score/`** — the AccessScore tool (`/accessScore`, #5217): a pure scoring model that re-runs the engine's
+  math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`;
+  it ingests `/v3/api/accessScoreStreets` and `/v3/api/accessScoreIntersections` and reproduces a street's
+  `segment_score`, every intersection's score, and the headline `score` #5095 averages from them — so the map's
+  colors are the API's numbers, reweighted live; the one departure is that an unaudited street stays unscored
+  rather than borrowing a headline from its crossings),
+  the map view (streets and a neighborhood choropleth colored from feature-state, with a ramp legend beside the
+  zoom buttons, `AccessScoreMapLegend.js`), the cluster evidence layer
+  (`AccessScoreClusterLayer.js`, fed by `/v3/api/labelClusters` — the clusters the engine actually scores, not the
+  raw labels), the places layer (`AccessScorePlacesLayer.js`, fed by `/v3/api/places`: one symbol layer per category,
+  every category off until a reader ticks it, each marker's disc in the score color of its nearest street — drawn
+  per histogram bin, since a symbol's image can't read feature-state — and the place card, #5311), the cluster sheet (`AccessScoreClusterSheet.js`: every label in a clicked cluster at once, as crop
+  cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
+  coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
+  drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
+  intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every neighborhood
+  above the completion floor, or, in the streets unit, the 20 best-scoring streets with a toggle to the 20 worst
+  (`AccessScoreModel#rankedStreets`, #5223) — and which steps out of the band above 1100px, the other three panels
+  closing over its column, while a city mapped as one neighborhood is in the neighborhoods unit (#5419); and a photo
+  strip of label crops from the scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked
+  ones (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
+  the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
+  map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
+  map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
+  `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
+  (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
+  popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
+  `common/scoreRamp.js`.
+- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module (no Grunt bundle) that the
+  landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
+  lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
+  answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
+  section hides itself when the city has nothing ranked. A city mapped as one neighborhood has no neighborhood ranking
+  to give, so that unit is dropped in favor of its street list — unless no street is ranked either, where the one score
+  is still better than an empty section — and the unit switch is only drawn when both units have something to show.
+  Hovering or focusing a row lights that neighborhood on the landing choropleth — or that city's circle on `/cities` —
+  through the same `hover` feature-state the maps' own pointer handlers use, and the map never moves. The completion
+  floor below which a neighborhood is not ranked is the backend's `min_region_completion`, the same number the
+  AccessScore tool hatches by.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
-  Pannellum imagery providers), `label-detail/` (label popups), and various utilities.
+  Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
+  built for the first label shown, never for a visit that opens none: Google bills every `StreetViewPanorama`
+  constructed, hidden or not, and most visits to a hosting page never open a label (#5128). Only the free library
+  download is scheduled early (`PanoViewer.preloadLibrary`). Deferring the build moves that cost to the first open,
+  where the user is watching, so the card covers the wait with `.label-detail__pano-loading` until imagery paints.
+  Infra3d's access token is minted server-side (`PanoDataService.getInfra3dToken`: an hour-long Cognito token, cached
+  until it nears expiry), stamped into the page once, and renewed in place by `Infra3dViewer` through
+  `GET /imageryAccessToken` five minutes before it expires, since the SDK has no refresh flow of its own. Failures
+  inside a viewer that no return value carries reach the logs through `PanoViewer._fireDiagnostic`
+  (`docs/logged-events.md`). A GSV search by location is held to its radius on our side: Google's `radius` is only a
+  hint and has answered a 25 m query with a photosphere in another state (#5114), so `GsvViewer` treats a reply
+  beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
+  that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
+  `setLocation`.
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
@@ -215,9 +392,9 @@ tool bundles resolve icon URLs in module-level constants at script-eval time. Fr
 `util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
 varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
 `/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/check-asset-paths.mjs`
-(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, and every
-`util.assetPath` argument names a real file in a manifest family. Full caching contract:
-[`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
+(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
+`util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
+string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
 
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,
@@ -247,7 +424,7 @@ Two separate i18n systems:
 2. **Frontend** (client-side) — JSON under `public/locales/<lang>/` (e.g. `common.json`), referenced with
    `i18next.t('key')` or, preferably, `data-i18n="ns:key"` in HTML.
 
-Supported languages: en, es, de, nl, zh-TW, pt-BR, plus regional English variants en-US and en-NZ.
+Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English variants en-US and en-NZ.
 
 ## Configuration & deployment
 
@@ -262,13 +439,17 @@ production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-s
 
 ## Python utilities
 
-Two standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
+Three standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
 
 - `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
   `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
   system Python.
 - `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
   the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
+- `scripts/onboard_city.py` — builds a new city's street/region staging data from open sources (#4291), feeding
+  `db/scripts/fill-new-schema.sh`. Also `python3.13`. Run via `make build-city-data`; `make check-imagery` samples the
+  imagery, and `make onboard-city` (`tools/setup_new_city.py`) chains the rest of a new city's setup — see
+  [`docs/onboarding-a-city.md`](onboarding-a-city.md).
 
 `label_clustering.py` is invoked **in-band** (`ClusterService.runMultiUserClustering` shells out to it per region
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to
@@ -287,6 +468,22 @@ Every label type (CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk, Sig
 canonical color and icon set. The source of truth is the **`/v3/api/labelTypes`** endpoint; in frontend code use
 `util.misc.getLabelColors(labelType)` rather than hardcoding hex values. See [`CLAUDE.md`](../CLAUDE.md) for the
 canonical color table and icon locations.
+
+Each type carries two independent domain facts, both published by that endpoint:
+
+- **access impact** (`LabelTypeEnum.AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
+  that helps), or `neutral` (Occlusion and Other). This drives framing and copy.
+- **rating scale** (`LabelTypeEnum.RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
+  (1 is low, 3 is high), or `unrated` for a type whose labels never carry a 1–3 rating. Anything that *reads* a
+  label's severity branches on this.
+
+Neither derives from the other: Other is `neutral` but rated on the severity scale, NoSidewalk is a `problem` that
+is unrated, and Signal is a `feature` that is unrated. Source both rather than hand-writing a list of type names —
+`util.misc.isPositiveLabelType` is `rating_scale === 'quality'`, not an access-impact check.
+
+`main.scala.html` stamps this whole table onto every page as `window.labelTypes` (like `window.assetDigests`), and
+`utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
+stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
 
 ## Where to go next
 

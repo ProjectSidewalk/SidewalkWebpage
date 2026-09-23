@@ -6,7 +6,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
-import models.label.LabelTypeEnum
+import models.label.{LabelDeletion, LabelTypeEnum}
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -24,8 +24,8 @@ import java.time.{Instant, OffsetDateTime, ZoneOffset}
 import java.util.concurrent.ThreadPoolExecutor
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters.CollectionHasAsScala
-import scala.util.Try
+import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 
 @Singleton
@@ -40,10 +40,13 @@ class AdminController @Inject() (
     labelService: LabelService,
     streetService: StreetService,
     panoDataService: PanoDataService,
+    cropService: CropService,
     osmWayService: service.OsmWayService,
     userService: service.UserService,
     jobRunService: JobRunService,
     trafficService: TrafficService,
+    sidewalkPresenceService: SidewalkPresenceService,
+    placesService: PlacesService,
     actorSystem: ActorSystem
 )(implicit ec: ExecutionContext)
     extends CustomBaseController(cc) {
@@ -109,15 +112,20 @@ class AdminController @Inject() (
     val userId: String = request.identity.userId
     labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
-        labelService.getExtraAdminValidateData(Seq(labelId)).map { adminData =>
-          Ok(
-            labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
-              Json.obj(
-                "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                "can_edit"         -> true
-              )
-          )
+        labelService.getExtraAdminValidateData(Seq(labelId)).zip(cropService.cropMarker(labelId)).map {
+          case (adminData, marker) =>
+            Ok(
+              labelMetadataWithValidationToJsonAdmin(metadata, adminData.head) ++
+                Json.obj(
+                  "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
+                  "crop_marker"      -> marker,
+                  "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+                  "can_edit"         -> true,
+                  "deleted"          -> metadata.deleted,
+                  "can_restore"      -> LabelDeletion
+                    .canRestore(metadata.deleted, metadata.deletedBy, Some(request.identity))
+                )
+            )
         }
       case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
@@ -187,12 +195,15 @@ class AdminController @Inject() (
 
   /**
    * Saves the admin-editable account settings for another user in one request, from the Manage user tab of their
-   * dashboard (`/admin/user/:username/manage`): username, role, team, manual quality flag, service-hours opt-in, the two
-   * privacy flags, and (on infra3D deployments) infra3D access.
+   * dashboard (`/admin/user/:username/manage`): username, role, team, manual quality flag, exclusion, service-hours
+   * opt-in, the two privacy flags, and (on infra3D deployments) infra3D access.
+   *
+   * An excluded user is always saved as manually low quality, whatever quality the request asked for. A change to
+   * quality or exclusion recalculates street priority in the background, since it changes whose audits count.
    *
    * Every setting is required (a missing one is a 400, never a reset to a default). Every check that can refuse the
-   * save — an Owner can't be changed at all, only an Owner can set an admin's quality, only someone with infra3D access
-   * can grant it, the username rules — runs before the first write, so a refused save applies nothing.
+   * save — an Owner can't be changed at all, only an Owner can set an admin's quality or exclusion, only someone with
+   * infra3D access can grant it, the username rules — runs before the first write, so a refused save applies nothing.
    */
   def saveUserSettings = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     val admin                   = request.identity
@@ -221,10 +232,12 @@ class AdminController @Inject() (
                 val serviceChanged              = s.communityService != user.communityService
                 val privacyChanged              =
                   stats.exists(st => st.onLeaderboard != s.onLeaderboard || st.publicProfile != s.publicProfile)
-                val qualityChanged = stats.exists(_.highQualityManual != s.highQualityManual)
-                val infra3dChanged = s.infra3dAccess.exists(_ != user.infra3dAccess)
-                val anyChanged     = usernameChanged || roleChanged || teamChanged || serviceChanged ||
-                  privacyChanged || qualityChanged || infra3dChanged
+                // An excluded user's quality is set by the exclusion, so the quality field is ignored for them.
+                val qualityChanged  = !s.excluded && stats.exists(_.highQualityManual != s.highQualityManual)
+                val excludedChanged = stats.exists(_.excluded != s.excluded)
+                val infra3dChanged  = s.infra3dAccess.exists(_ != user.infra3dAccess)
+                val anyChanged      = usernameChanged || roleChanged || teamChanged || serviceChanged ||
+                  privacyChanged || qualityChanged || excludedChanged || infra3dChanged
 
                 // Ordered from the broadest refusal to the narrowest.
                 val firstError: Option[String] =
@@ -233,6 +246,8 @@ class AdminController @Inject() (
                     Some(s"Can't assign role ${s.role}")
                   else if (roleChanged && !Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
                     Some(s"A ${user.role} account's role can't be changed")
+                  else if (excludedChanged && user.role == Role.Administrator && admin.role != Role.Owner)
+                    Some("An admin can only be excluded by an Owner")
                   else if (qualityChanged && user.role == Role.Administrator && admin.role != Role.Owner)
                     Some("An admin's quality can only be set by an Owner")
                   else if (infra3dChanged && !admin.infra3dAccess) Some("Only a user with infra3D access can grant it")
@@ -254,7 +269,9 @@ class AdminController @Inject() (
                       _ <- teamId
                         .map(id => userService.setUserTeam(userId, id))
                         .getOrElse(userService.leaveTeam(userId))
-                      _ <- authenticationService.setCommunityServiceStatus(userId, s.communityService)
+                      _ <-
+                        if (serviceChanged) userService.setCommunityService(userId, s.communityService)
+                        else Future.successful(0)
                       // newRole is defined here: an unrecognized one was refused by the assignable-roles check above.
                       _ <- newRole
                         .filter(_ => roleChanged)
@@ -264,9 +281,13 @@ class AdminController @Inject() (
                         .filter(_ => infra3dChanged)
                         .map(access => authenticationService.setInfra3dAccess(userId, access))
                         .getOrElse(Future.successful(0))
+                      // Un-exclude before the quality write, which skips excluded users.
+                      excludedQuality <-
+                        if (excludedChanged) userService.setUserExcluded(userId, s.excluded)
+                        else Future.successful(stats.map(_.highQuality))
                       newQuality <-
                         if (qualityChanged) userService.setManualUserQuality(userId, s.highQualityManual)
-                        else Future.successful(stats.map(_.highQuality))
+                        else Future.successful(excludedQuality)
                       _ <-
                         if (usernameChanged) userService.changeUsername(userId, s.username)
                         else Future.successful(Right(user.username))
@@ -290,8 +311,23 @@ class AdminController @Inject() (
                           s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
                         )
                       }
+                      if (excludedChanged) {
+                        cc.loggingService.insert(
+                          admin.userId,
+                          request.ipAddress,
+                          s"UpdateUserExcluded_User=${userId}_New=${s.excluded}"
+                        )
+                      }
+                      if (qualityChanged || excludedChanged) recalculateStreetPriorityInBackground()
                       // The page's URL is keyed by username, so the client needs the saved name to re-point itself.
-                      Ok(Json.obj("success" -> true, "high_quality" -> newQuality, "username" -> s.username))
+                      Ok(
+                        Json.obj(
+                          "success"      -> true,
+                          "high_quality" -> newQuality,
+                          "excluded"     -> s.excluded,
+                          "username"     -> s.username
+                        )
+                      )
                     }
                 }
               }
@@ -708,7 +744,7 @@ class AdminController @Inject() (
           "labels_validated_share"   -> (if (sc.totalLabels > 0) sc.labelsValidated.toDouble / sc.totalLabels else 0.0),
           "labels_with_severity"     -> sc.labelsWithSeverity,
           "labels_severity_eligible" -> sc.labelsSeverityEligible,
-          // Share computed only over types that CAN have a severity (NoSidewalk/Signal/Occlusion excluded).
+          // Share computed only over types that CAN have a rating, i.e. RatingScale other than Unrated.
           "severity_share" -> (if (sc.labelsSeverityEligible > 0)
                                  sc.labelsWithSeverity.toDouble / sc.labelsSeverityEligible
                                else 0.0),
@@ -986,11 +1022,23 @@ class AdminController @Inject() (
    */
   def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    jobRunService
-      .record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(streetService.recalculateStreetPriority)(_ =>
-        RecalculateStreetPriorityActor.runDetails(None)
-      )
-      .map(_ => Ok("Successfully recalculated street priorities"))
+    runStreetPriorityRecalc().map(_ => Ok("Successfully recalculated street priorities"))
+  }
+
+  /** Recalculates street priority for all streets, recorded as a manual run of the nightly job. */
+  private def runStreetPriorityRecalc(): Future[Seq[Int]] =
+    jobRunService.record(RecalculateStreetPriorityActor.Name, JobRunTrigger.Manual)(
+      streetService.recalculateStreetPriority
+    )(_ => RecalculateStreetPriorityActor.runDetails(None))
+
+  /** Recalculates street priority without making the caller wait, since it rewrites every street. */
+  private def recalculateStreetPriorityInBackground(): Unit =
+    runStreetPriorityRecalc().failed.foreach(e => logger.error("Background street priority recalculation failed.", e))
+
+  /** Recounts every label's validation counts; users' accuracy catches up on the next user stats run. */
+  def recalculateValidationCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    adminService.recalculateValidationCounts().map(n => Ok(Json.obj("labels_updated" -> n)))
   }
 
   /**
@@ -1034,6 +1082,94 @@ class AdminController @Inject() (
   }
 
   /**
+   * Cuts the missing label crops from the self-hosted pano store. Same as the nightly process, for a backfill
+   * that shouldn't wait for it (#4865).
+   *
+   * Recorded as a `Manual` run of that nightly job (#4928), and answered as soon as the run starts rather than when
+   * it ends — alone among these triggers, because a first backfill runs for about an hour, far past any proxy's read
+   * timeout, and a timed-out request reads as a failed job while the run carries on unseen. The Health panel is
+   * where it reports; `isRunning` is what keeps a second click from starting a second pass over the same store.
+   */
+  def generateCrops = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    // Checked before the run is recorded, so a refused trigger doesn't leave a failed run on the Health panel.
+    if (cropService.isRunning) {
+      Future.successful(Conflict("A crop generation run is already in progress."))
+    } else {
+      jobRunService
+        .record(CropGenerationActor.Name, JobRunTrigger.Manual)(cropService.generateMissingCrops())(_.runDetails)
+        .onComplete {
+          case Success(results) => logger.info(results.summary)
+          case Failure(e)       => logger.error(s"Manually triggered crop generation failed: ${e.getMessage}")
+        }
+      Future.successful(Accepted("Crop generation started. It reports to the Health panel when it finishes."))
+    }
+  }
+
+  /**
+   * Rebuilds the derived `sidewalk_presence` table now, as the nightly job does (#5279).
+   *
+   * Recorded as a manual run of that job, so the Health panel charts both triggers as one. The rebuild takes seconds,
+   * so unlike crop generation the response waits for it and answers with the counts.
+   *
+   * The window a click has to land in to collide with the nightly tick is seconds wide, but the collision is ugly
+   * — both transactions insert the faces of a street added since, and the loser aborts on the primary key — so it is
+   * refused rather than raced. Checked before the run is recorded, as `generateCrops` does, so a refused trigger
+   * doesn't leave a failed run on the Health panel.
+   */
+  def rebuildSidewalkPresence = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    if (sidewalkPresenceService.isRunning) {
+      Future.successful(Conflict("A sidewalk presence rebuild is already in progress."))
+    } else {
+      jobRunService
+        .record(SidewalkPresenceActor.Name, JobRunTrigger.Manual)(sidewalkPresenceService.rebuild())(_.runDetails)
+        .map(result => Ok(result.runDetails))
+    }
+  }
+
+  /**
+   * Fetches the city's places from OpenStreetMap now, whatever the table's age (#5311).
+   *
+   * Recorded as a manual run of the nightly job, so the Health panel charts both triggers as one. The Overpass query
+   * can take minutes for a big city, longer than a proxy waits on a response, so like crop generation this answers
+   * at once and the run row is the account of what happened. Refused rather than raced while a run is in flight,
+   * before anything is recorded, so a refused click leaves nothing on the Health panel.
+   */
+  def refreshPlaces = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    if (placesService.isRunning) {
+      Future.successful(Conflict("A places refresh is already in progress."))
+    } else {
+      jobRunService
+        .record(PlacesRefreshActor.Name, JobRunTrigger.Manual)(placesService.refresh(force = true))(_.runDetails)
+        .onComplete {
+          case Success(result) => logger.info(s"Manually triggered places refresh finished: ${result.runDetails}")
+          case Failure(e)      => logger.error(s"Manually triggered places refresh failed: ${e.getMessage}")
+        }
+      Future.successful(Accepted("Places refresh started. It reports to the Health panel when it finishes."))
+    }
+  }
+
+  /**
+   * Recounts the served streets whose gradient is missing or stale (#5223), as the nightly job does, so the Health
+   * panel reflects an import the moment it lands rather than the next morning. Recorded as a `Manual` run of that
+   * job; two counts, so it answers with them.
+   */
+  def recountStreetGradientStaleness = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    jobRunService
+      .record(StreetGradientStalenessActor.Name, JobRunTrigger.Manual)(streetService.countStreetGradientStaleness)(
+        _.runDetails
+      )
+      .map(counts => Ok(counts.runDetails))
+      .recover { case NonFatal(e) =>
+        logger.error("Street gradient staleness recount failed.", e)
+        ServiceUnavailable(Json.obj("error" -> s"Recount failed (${e.getMessage})."))
+      }
+  }
+
+  /**
    * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
    *
    * Recorded as a `Manual` run of that nightly job (#4928). This one runs for tens of minutes and can half-fail, so
@@ -1045,7 +1181,7 @@ class AdminController @Inject() (
       .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData())(
         OsmWayRefreshActor.runDetails
       )
-      .map { waysRefreshed => Ok(Json.obj("ways_refreshed" -> waysRefreshed)) }
+      .map { result => Ok(OsmWayRefreshActor.runDetails(result)) }
       .recover { case NonFatal(e) =>
         logger.error("OSM way data refresh failed.", e)
         // Chunks upsert as they complete, so partial progress survives and a re-trigger resumes from what's missing.
@@ -1165,9 +1301,20 @@ class AdminController @Inject() (
         .mkString("\n")
     )
 
+    // Prod has no shell for a thread dump, and one task hogging this small pool slows every streamed response (#4161).
+    val stackTraces = Thread.getAllStackTraces.asScala
+    val threadCpu   = java.lang.management.ManagementFactory.getThreadMXBean
+    info.append("\n=== cpu-intensive threads ===\n")
+    stackTraces.filter { case (t, _) => t.getName.contains("cpu-intensive") }.toSeq.sortBy(_._1.getName).foreach {
+      case (thread, frames) =>
+        val cpuSeconds = threadCpu.getThreadCpuTime(thread.getId) / 1e9
+        info.append(f"${thread.getName} - State: ${thread.getState}, CPU time: $cpuSeconds%.0fs\n")
+        frames.take(15).foreach(frame => info.append(s"    at $frame\n"))
+    }
+
     // Add Slick thread monitoring
     info.append("\n=== All JVM Threads (looking for Slick) ===\n")
-    val allThreads   = Thread.getAllStackTraces.keySet.asScala
+    val allThreads   = stackTraces.keySet
     val slickThreads = allThreads.filter(t =>
       t.getName.contains("slick") ||
         t.getName.contains("database") ||

@@ -27,7 +27,7 @@ class Form {
 
   /**
    * Compiles the buffered interaction data into a format that can be parsed by our back end.
-   * @returns {Object} The log data to submit.
+   * @returns {object} The log data to submit.
    */
   compileSubmissionData() {
     const data = {};
@@ -53,7 +53,7 @@ class Form {
   /**
    * Submits front-end log data to the back end.
    *
-   * @param {Object|Object[]} data - A single submission object, or an array of them.
+   * @param {object|object[]} data - A single submission object, or an array of them.
    * @returns {Promise<void>}
    */
   submit(data) {

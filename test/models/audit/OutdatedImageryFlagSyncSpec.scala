@@ -280,7 +280,7 @@ class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with
       """.as[(Double, Double)].head
 
     def panoAt(lat: Double, lng: Double): PanoData =
-      PanoData(testPanoId, None, None, None, None, "2024-06", None, Some(lat), Some(lng), None, None, None,
+      PanoData(testPanoId, None, None, None, None, "2024-06", None, None, Some(lat), Some(lng), None, None, None,
         expired = false, OffsetDateTime.now, None, OffsetDateTime.now, PanoSource.Gsv, None, None, None)
 
     "create a street's imagery row from a recently-viewed pano on it" in {

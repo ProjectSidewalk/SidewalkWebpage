@@ -2,8 +2,15 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import models.api.{ApiError, StreetDataForApi, StreetFiltersForApi}
-import models.street.{StreetEdgeStatus, WayType}
+import models.api.{
+  ApiError,
+  SidewalkPresenceFiltersForApi,
+  SidewalkPresenceForApi,
+  StreetDataForApi,
+  StreetFiltersForApi,
+  StreetGradeForApi
+}
+import models.street.{SidewalkPresenceStatus, StreetEdgeStatus, WayType}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -99,6 +106,87 @@ class StreetsApiController @Inject() (
   }
 
   /**
+   * Gets sidewalk presence per block face (#5279): one feature per (street, side), both sharing the street's geometry.
+   *
+   * @param bbox                Bounding box in format "minLng,minLat,maxLng,maxLat"
+   * @param regionId            Optional region ID to filter faces by geographic region
+   * @param regionName          Optional region name to filter faces by geographic region
+   * @param presence            Comma-separated verdicts to keep: "present", "absent", "unknown" (default: all)
+   * @param minNoSidewalkLabels          Optional minimum number of NoSidewalk labels on the face
+   * @param minValidatedNoSidewalkLabels Optional minimum number of validator-confirmed NoSidewalk labels (#5285)
+   * @param minAuditCount                Optional minimum number of completed audits of the street
+   * @param wayType                      Comma-separated list of way types to include (e.g., "residential,primary")
+   * @param status                       Comma-separated list of street statuses (e.g., "open,no_imagery")
+   * @param filetype                     Output format: "geojson" (default), "csv", "shapefile", "geopackage"
+   * @param inline                       Whether to display the file inline or as an attachment
+   */
+  def getSidewalkPresence(
+      bbox: Option[String],
+      regionId: Option[Int],
+      regionName: Option[String],
+      presence: Option[String],
+      minNoSidewalkLabels: Option[Int],
+      minValidatedNoSidewalkLabels: Option[Int],
+      minAuditCount: Option[Int],
+      wayType: Option[String],
+      status: Option[String],
+      filetype: Option[String],
+      inline: Option[Boolean]
+  ) = silhouette.UserAwareAction.async { implicit request =>
+    val parsedBbox     = parseBBoxString(bbox)
+    val parsedWayTypes = parseCommaSeparated(wayType)
+    val parsedStatuses = parseCommaSeparated(status).map(_.map(_.toLowerCase))
+    // Allowlisted rather than merely parsed: the tokens are spliced into raw SQL as enum literals.
+    val parsedPresence =
+      parseAllowlistedList(presence, SidewalkPresenceStatus.values.map(_.toString).toSet, "presence")
+
+    val firstError: Option[ApiError] = Seq(
+      validateBBoxParam(bbox, parsedBbox),
+      validateRegionId(regionId),
+      validateWayTypes(parsedWayTypes),
+      validateStreetStatuses(parsedStatuses),
+      parsedPresence.left.toOption
+    ).flatten.headOption
+
+    firstError match {
+      case Some(error) => Future.successful(badRequest(error))
+      case None        =>
+        configService.getCityMapParams.flatMap { cityMapParams =>
+          val (finalBbox, finalRegionId, finalRegionName) =
+            resolveGeoFilters(bbox, parsedBbox, regionId, regionName, cityMapParams)
+
+          val filters = SidewalkPresenceFiltersForApi(
+            bbox = finalBbox, regionId = finalRegionId, regionName = finalRegionName,
+            presence = parsedPresence.toOption.flatten, statuses = parsedStatuses,
+            minNoSidewalkLabels = minNoSidewalkLabels, minValidatedNoSidewalkLabels = minValidatedNoSidewalkLabels,
+            minAuditCount = minAuditCount, wayTypes = parsedWayTypes
+          )
+
+          val dbDataStream: Source[SidewalkPresenceForApi, _] =
+            apiService.getSidewalkPresence(filters, DEFAULT_BATCH_SIZE)
+          val baseFileName: String = timestampedFilename("sidewalk_presence")
+          cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+
+          filetype match {
+            case Some("csv") =>
+              outputCSV(dbDataStream, SidewalkPresenceForApi.csvHeader, inline, baseFileName + ".csv")
+            case Some("shapefile") =>
+              outputShapefile(
+                dbDataStream,
+                baseFileName,
+                shapefileCreator.createSidewalkPresenceShapefile,
+                shapefileCreator
+              )
+            case Some("geopackage") =>
+              outputGeopackage(dbDataStream, baseFileName, shapefileCreator.createSidewalkPresenceGeopackage, inline)
+            case _ => // Default to GeoJSON.
+              outputGeoJSON(dbDataStream, inline, baseFileName + ".geojson")
+          }
+        }
+    }
+  }
+
+  /**
    * Returns an ApiError if any supplied wayType value is not a recognized `way_type`. Returns None when the parameter
    * was absent or every value is valid.
    *
@@ -158,5 +246,34 @@ class StreetsApiController @Inject() (
       .recover { case e: Exception =>
         ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve street types: ${e.getMessage}"))
       }
+  }
+
+  /**
+   * One street's slope statistics and elevation profile (v3, #5223).
+   *
+   * The statistics also ride on `/v3/api/accessScoreStreets` for every street; the profile is served here, a street
+   * at a time, because it is the one part too heavy for a city-wide payload. A sampled street with no profile (a
+   * bridge or tunnel, a street the model had no data under) answers 200 with `profile: null`, since its
+   * `grade_quality` is itself the answer; only a street with no gradient row at all is a 404.
+   *
+   * @param streetEdgeId The street to look up.
+   * @return The street's gradient as JSON, or a 404 if the street is unknown or has not been sampled.
+   */
+  def getStreetGrade(streetEdgeId: Int) = silhouette.UserAwareAction.async { implicit request =>
+    cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
+    val gradientFuture = apiService.getStreetGradient(streetEdgeId)
+    // Only a street the other street APIs serve is answered, so an id from them is the whole of this API's domain.
+    val lengthFuture = apiService.getServedStreetLength(streetEdgeId)
+    (for {
+      gradient <- gradientFuture
+      length   <- lengthFuture
+    } yield (gradient, length) match {
+      case (Some((g, stale)), Some(lengthMeters)) => Ok(StreetGradeForApi(g, lengthMeters, stale).toJson)
+      case (_, None) => ApiError.toResult(ApiError.notFound(s"No street with id $streetEdgeId"))
+      case (None, _) =>
+        ApiError.toResult(ApiError.notFound(s"Street $streetEdgeId has no grade data"))
+    }).recover { case e: Exception =>
+      ApiError.toResult(ApiError.internalServerError(s"Failed to retrieve the street's grade: ${e.getMessage}"))
+    }
   }
 }

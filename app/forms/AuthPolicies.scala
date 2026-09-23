@@ -1,5 +1,9 @@
 package forms
 
+import play.api.data.Forms.nonEmptyText
+import play.api.data.Mapping
+import play.api.data.validation.Constraints.{minLength => minLengthRule, pattern => patternRule}
+
 import scala.util.matching.Regex
 
 /**
@@ -15,6 +19,11 @@ object PasswordPolicy {
   /** Whole-password constraint used by `SignUpForm`; the per-rule breakdown below must stay its decomposition. */
   val pattern: Regex = """^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).*$""".r
 
+  /** A new-password form field, shared by sign-up, reset, and change password. */
+  val newPassword: Mapping[String] = nonEmptyText
+    .verifying(minLengthRule(minLength))
+    .verifying(patternRule(pattern, error = "authenticate.error.password.requirements"))
+
   /**
    * Per-rule checks for the live sign-up checklist, as (message key, JS-compatible regex source) pairs.
    *
@@ -26,6 +35,15 @@ object PasswordPolicy {
     ("authenticate.pw.rule.lowercase", "[a-z]"),
     ("authenticate.pw.rule.digit", "\\d")
   )
+
+  /**
+   * Endpoint for the advisory breached-password check (#4492). The frontend appends the first five hex characters
+   * of the password's SHA-1 and matches the returned suffixes locally, so neither the password nor enough of its
+   * hash to identify it leaves the browser (Have I Been Pwned's k-anonymity model). The request is still an
+   * ordinary cross-origin one — the user's IP and this instance's Origin reach the endpoint like any third-party
+   * call. The host must also be in `connect-src` in `conf/application.conf`.
+   */
+  val breachRangeUrl: String = "https://api.pwnedpasswords.com/range/"
 }
 
 /**

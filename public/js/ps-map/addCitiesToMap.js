@@ -1,13 +1,13 @@
 /**
  * Adds cities to the map as circles and returns a promise.
  *
- * @param map Map on which the streets are rendered.
- * @param {object} map The Mapbox map object.
- * @param {object} citiesData - GeoJSON object containing cities to draw on the map.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {GeoJSON.FeatureCollection} citiesData - GeoJSON object containing cities to draw on the map.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
- * @param {boolean} params.logClicks - Whether to log click activity.
- * @returns {Promise} Promise that resolves when the streets have been added to the map.
+ * @param {boolean} [params.logClicks] - Whether to log click activity.
+ * @param {boolean} [params.animateCityFit=true] - Whether the fit to all deployment cities is animated.
+ * @returns {Promise<void>} Promise that resolves when the cities have been added to the map.
  */
 function addCitiesToMap(map, citiesData, params) {
   const CITIES_LAYER_NAME = 'cities';
@@ -140,48 +140,56 @@ function addCitiesToMap(map, citiesData, params) {
       const properties = feature.properties;
       const coordinates = feature.geometry.coordinates.slice();
 
-      // On localhost, for testing, I've just been using the following (otherwise we run into CORS issues):
-      // const statsUrl = `v3/api/overallStats`;
-      const statsUrl = `${properties.url}/v3/api/overallStats`;
+      // The API withholds a url for every deployment that isn't publicly launched (#5259), so branch on the url
+      // rather than on `visibility`. That keeps the client from disagreeing with the server about which cities
+      // those are: a third status value would otherwise land here still reaching for a url that isn't there.
+      const isPublicDeployment = Boolean(properties.url);
 
       // Immediately show a simple loading message.
       const loadingMessage = i18next.t('common:cities-map.loading-stats');
       cityPopup.setLngLat(coordinates).setHTML(`<div class="popup-loading">${loadingMessage}</div>`).addTo(map);
 
-      const template = document.getElementById('city-popup-template');
-      const popupContent = template.content.cloneNode(true);
+      const template = /** @type {HTMLTemplateElement} */ (document.getElementById('city-popup-template'));
+      const popupContent = /** @type {DocumentFragment} */ (template.content.cloneNode(true));
 
       // Populate the parts of the template that do not depend on the stats API.
       popupContent.querySelector('.popup-title').textContent = properties.city_name_formatted;
-      const exploreLink = popupContent.querySelector('.popup-link');
-      if (properties.visibility === 'private') {
+      const exploreLink = /** @type {HTMLAnchorElement} */ (popupContent.querySelector('.popup-link'));
+      if (!isPublicDeployment) {
         const privateMessage = document.createElement('div');
         privateMessage.className = 'popup-private-message';
         privateMessage.textContent = i18next.t('common:cities-map.private-deployment');
         exploreLink.replaceWith(privateMessage);
+        // The stats come from the deployment's own API, so with no url there is nothing to ask. Drop the grid
+        // rather than leave three placeholder dashes standing where numbers used to be.
+        popupContent.querySelector('.popup-stats-grid').remove();
       } else {
         exploreLink.href = `${properties.url}/explore`;
         exploreLink.setAttribute('cityId', properties.city_id);
         exploreLink.textContent = i18next.t('common:cities-map.explore', { cityName: properties.city_name_short });
       }
 
-      try {
-        // We only TRY to fetch and populate the stats.
-        const response = await fetch(statsUrl);
-        if (!response.ok) throw new Error('Network response was not ok');
-        const stats = await response.json();
+      if (isPublicDeployment) {
+        try {
+          // We only TRY to fetch and populate the stats.
+          // On localhost, for testing, I've just been using the following (otherwise we run into CORS issues):
+          // const response = await fetch(`v3/api/overallStats`);
+          const response = await fetch(`${properties.url}/v3/api/overallStats`);
+          if (!response.ok) throw new Error('Network response was not ok');
+          const stats = await response.json();
 
-        // If successful, fill in the stat values.
-        popupContent.querySelector('[data-stat="distance"]').textContent = formatDistance(stats.km_explored || 0);
-        popupContent.querySelector('[data-stat="labels"]').textContent = formatNumber(stats.labels.label_count || 0);
-        // overallStats nests validation totals under combined/human/ai; "combined" is the human+AI total (#4591).
-        popupContent.querySelector('[data-stat="validations"]').textContent = formatNumber(
-          stats.validations.combined?.total_validations || 0,
-        );
-      } catch (error) {
-        // If the fetch fails, just log the error. The popup will still be shown,
-        // but the stats will be the default placeholder values from the template.
-        console.error('Failed to fetch city stats:', error);
+          // If successful, fill in the stat values.
+          popupContent.querySelector('[data-stat="distance"]').textContent = formatDistance(stats.km_explored || 0);
+          popupContent.querySelector('[data-stat="labels"]').textContent = formatNumber(stats.labels?.count || 0);
+          // overallStats nests validation totals under combined/human/ai; "combined" is the human+AI total (#4591).
+          popupContent.querySelector('[data-stat="validations"]').textContent = formatNumber(
+            stats.validations.combined?.total_validations || 0,
+          );
+        } catch (error) {
+          // If the fetch fails, just log the error. The popup will still be shown,
+          // but the stats will be the default placeholder values from the template.
+          console.error('Failed to fetch city stats:', error);
+        }
       }
 
       // Finally, update the popup with the content, which will have stats if they loaded.

@@ -4,7 +4,8 @@
  * The shared populator behind Explore's hover card and Validate's label card (#4730). The two tools feed it the
  * same facts but ship slightly different markup — Explore opts into the not-rated nudge, Validate into the no-info
  * line — so the tests run it against both variants and pin the behaviors that used to live in two forked copies:
- * the rating chip and its wash, the tag pills staying inert, the truncation rules, and the two empty states.
+ * the rating chip and its wash, the tag pills staying inert, the truncation rules, the two empty states, and the
+ * AI provenance strip that stays out of those empty states (#5359).
  *
  * The class is a plain top-level declaration (no window assignment), so the source is eval'd with an explicit
  * export, the same way share-widget.test.js loads ShareWidget.
@@ -27,6 +28,10 @@ function buildCard({ notRated = false, noInfo = false } = {}) {
         <div class="label-hover-card__header">
           <img class="label-hover-card__icon" alt="">
           <span class="label-hover-card__type"></span>
+        </div>
+        <div class="label-hover-card__ai">
+          <img class="label-hover-card__ai-icon" alt="">
+          <span>This label was AI generated.</span>
         </div>
         <div class="label-hover-card__body">
           <span class="label-hover-card__severity">
@@ -229,6 +234,34 @@ describe('LabelCardView', () => {
 
             view.render({ labelType: 'Obstacle', severity: null, tagNames: ['pole'] });
             expect(q('.label-hover-card__body').style.display).toBe('flex');
+        });
+    });
+
+    describe('AI provenance strip', () => {
+        it('shows for an AI-generated label and is cleared by the next label, which reuses the element', () => {
+            const view = new LabelCardView(buildCard());
+
+            view.render({ labelType: 'CurbRamp', severity: 2, aiGenerated: true });
+            expect(q('.label-hover-card__ai').style.display).toBe('flex');
+
+            view.render({ labelType: 'CurbRamp', severity: 2 });
+            expect(q('.label-hover-card__ai').style.display).toBe('none');
+
+            view.render({ labelType: 'CurbRamp', severity: 2, aiGenerated: false });
+            expect(q('.label-hover-card__ai').style.display).toBe('none');
+        });
+
+        it('is provenance, not information: an AI label with nothing else still shows the empty state', () => {
+            const withNoInfo = new LabelCardView(buildCard({ noInfo: true }));
+            withNoInfo.render({ labelType: 'CurbRamp', severity: null, aiGenerated: true });
+            expect(q('.label-hover-card__ai').style.display).toBe('flex');
+            expect(q('.label-hover-card__no-info').style.display).toBe('inline');
+
+            // Explore's variant: the body collapses even though the strip above it is showing.
+            const collapsing = new LabelCardView(buildCard());
+            collapsing.render({ labelType: 'CurbRamp', severity: null, aiGenerated: true });
+            expect(q('.label-hover-card__ai').style.display).toBe('flex');
+            expect(q('.label-hover-card__body').style.display).toBe('none');
         });
     });
 });

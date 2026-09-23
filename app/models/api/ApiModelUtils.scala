@@ -4,7 +4,7 @@
 package models.api
 
 import models.label.LabelTypeEnum
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsBoolean, JsNull, JsNumber, JsObject, JsString, JsValue, Json}
 
 object ApiModelUtils {
 
@@ -22,15 +22,37 @@ object ApiModelUtils {
     )
   }
 
+  /** The two columns of the CSVs [[toCsvKeyValueRows]] produces. */
+  val keyValueCsvHeader: String = "metric,value"
+
   /**
-   * Converts a human-readable or camelCase/PascalCase label into a snake_case CSV key (#3871), e.g. "KM Explored" or
-   * "CurbRamp Count" into "km_explored" or "curb_ramp_count".
+   * Flattens a nested JSON object into the "key,value" lines used by the endpoints whose response is a single object.
+   *
+   * Deriving the rows from the JSON is what keeps the two formats naming every field identically (#3871, #4320).
+   *
+   * @param json The JSON object to flatten.
+   * @return One "key,value" line per value, keyed by its dotted path (`labels.CurbRamp.count`), in JSON field order.
    */
-  def toSnakeKey(label: String): String =
-    label.trim
-      .replaceAll("([a-z\\d])([A-Z])", "$1_$2") // split camelCase/PascalCase boundaries
-      .replaceAll("\\s+", "_")                  // spaces to underscores
-      .toLowerCase
+  def toCsvKeyValueRows(json: JsObject): Seq[String] = {
+    def flatten(path: String, value: JsValue): Seq[(String, JsValue)] = value match {
+      case obj: JsObject => obj.fields.toSeq.flatMap { case (key, v) => flatten(s"$path.$key", v) }
+      case leaf          => Seq(path -> leaf)
+    }
+
+    json.fields.toSeq
+      .flatMap { case (key, value) => flatten(key, value) }
+      .map { case (key, value) => s"${escapeCsvField(key)},${csvCell(value)}" }
+  }
+
+  /** @return The escaped cell text for one JSON value; empty for a null, compact JSON for an array or object. */
+  def csvCell(value: JsValue): String = escapeCsvField(value match {
+    case JsNull        => ""
+    case JsString(str) => str
+    // Plain notation, so a very large or very small number never lands in the CSV as scientific notation.
+    case JsNumber(num)   => num.bigDecimal.toPlainString
+    case JsBoolean(bool) => bool.toString
+    case other           => Json.stringify(other)
+  })
 
   /**
    * Helper to safely quote CSV fields containing commas, quotes, or newlines.

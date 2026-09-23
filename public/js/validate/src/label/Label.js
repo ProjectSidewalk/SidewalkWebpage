@@ -44,6 +44,8 @@ class Label {
     pitch: undefined,
     startTimestamp: undefined,
     validationResult: undefined,
+    oldLabelType: undefined,
+    newLabelType: undefined,
     oldSeverity: undefined,
     newSeverity: undefined,
     oldTags: undefined,
@@ -69,7 +71,7 @@ class Label {
 
   /**
    * Initializes a label from metadata (if parameters are passed in).
-   * @param {object} params Label metadata from the backend.
+   * @param {Record<string, any>} params - Label metadata from the backend.
    */
   #init(params) {
     if (params) {
@@ -86,7 +88,11 @@ class Label {
       if ('label_timestamp' in params) this.setAuditProperty('labelTimestamp', moment(params.label_timestamp));
       if ('heading' in params) this.setAuditProperty('heading', params.heading);
       if ('label_id' in params) this.setAuditProperty('labelId', params.label_id);
-      if ('label_type' in params) this.setAuditProperty('labelType', params.label_type);
+      if ('label_type' in params) {
+        this.setAuditProperty('labelType', params.label_type);
+        this.setProperty('oldLabelType', params.label_type);
+        this.setProperty('newLabelType', params.label_type);
+      }
       if ('pitch' in params) this.setAuditProperty('pitch', params.pitch);
       if ('zoom' in params) this.setAuditProperty('zoom', params.zoom);
       if ('severity' in params) {
@@ -128,7 +134,7 @@ class Label {
    * @returns {string} Path of the icon under /assets.
    */
   getIconUrl() {
-    return util.misc.getIconImagePaths(this.#auditProperties.labelType).iconImagePath;
+    return util.misc.getIconImagePaths(this.getProperty('newLabelType')).iconImagePath;
   }
 
   /**
@@ -136,13 +142,33 @@ class Label {
    * @returns {string} A CSS colour.
    */
   getIconColor() {
-    return util.misc.getLabelColors(this.#auditProperties.labelType);
+    return util.misc.getLabelColors(this.getProperty('newLabelType'));
+  }
+
+  /**
+   * Records the type an expert says this label should be and re-bases the editable severity and tags on it, by the
+   * same rules the server applies: a rating survives only on the same scale, a tag only if the new type offers it.
+   * @param {string} labelType - The type to change to; the label's own type restores the original rating and tags.
+   */
+  setNewLabelType(labelType) {
+    const oldType = this.getProperty('oldLabelType');
+    this.setProperty('newLabelType', labelType);
+    if (labelType === oldType) {
+      this.setProperty('newSeverity', this.getProperty('oldSeverity'));
+      this.setProperty('newTags', [...(this.getProperty('oldTags') ?? [])]);
+      return;
+    }
+    const sameScale = util.misc.labelTypeHasSeverity(labelType)
+      && util.misc.getRatingScale(labelType) === util.misc.getRatingScale(oldType);
+    this.setProperty('newSeverity', sameScale ? this.getProperty('oldSeverity') : null);
+    const offered = new Set((svv.tagsByLabelType[labelType] ?? []).map((t) => t.tag_name));
+    this.setProperty('newTags', (this.getProperty('oldTags') ?? []).filter((t) => offered.has(t)));
   }
 
   /**
    * Returns a specific originalProperty of this label.
-   * @param {string} key Name of property.
-   * @returns Value associated with this key.
+   * @param {string} key - Name of property.
+   * @returns {*} Value associated with this key.
    */
   getAuditProperty(key) {
     return key in this.#auditProperties ? this.#auditProperties[key] : null;
@@ -150,7 +176,7 @@ class Label {
 
   /**
    * Returns a specific adminProperty of this label.
-   * @param {string} key Name of property.
+   * @param {string} key - Name of property.
    * @returns {*|null} Value associated with this key.
    */
   getAdminProperty(key) {
@@ -182,7 +208,7 @@ class Label {
 
   /**
    * Returns the entire properties object for this label.
-   * @returns Object for properties.
+   * @returns {object} Object for properties.
    */
   getProperties() {
     return this.#properties;
@@ -190,8 +216,8 @@ class Label {
 
   /**
    * Gets a specific validation property of this label.
-   * @param {string} key Name of property.
-   * @returns Value associated with this key.
+   * @param {string} key - Name of property.
+   * @returns {*} Value associated with this key.
    */
   getProperty(key) {
     return key in this.#properties ? this.#properties[key] : null;
@@ -199,8 +225,8 @@ class Label {
 
   /**
    * Sets the value of a single property in properties.
-   * @param {string} key Name of property.
-   * @param value Value to set property to.
+   * @param {string} key - Name of property.
+   * @param {*} value - Value to set property to.
    */
   setProperty(key, value) {
     this.#properties[key] = value;
@@ -234,8 +260,8 @@ class Label {
   /**
    * When a validation button is clicked, updates validation status for Label, StatusField, and logs interactions.
    *
-   * @param {string} validationResult Must be one of the following: {Agree, Disagree, Unsure}.
-   * @param {string} comment An optional comment submitted with the validation.
+   * @param {string} validationResult - Must be one of the following: {Agree, Disagree, Unsure}.
+   * @param {string} comment - An optional comment submitted with the validation.
    */
   validate(validationResult, comment) {
     // This is the POV if the label were in the center of the viewport.

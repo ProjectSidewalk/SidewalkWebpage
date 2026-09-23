@@ -1,5 +1,6 @@
 package service
 
+import models.street.StreetImageryTable
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -33,6 +34,17 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     parseMapillaryCapturedAt(4102444800000L, now) shouldBe None // 2100: future.
   }
 
+  test("parsePanoramaxDatetime reads the STAC datetime's date in UTC and clamps implausible values") {
+    val now = LocalDate.of(2026, 9, 4)
+    parsePanoramaxDatetime("2026-08-11T15:02:33+00:00", now) shouldBe Some(LocalDate.of(2026, 8, 11))
+    // A local-offset timestamp is read as the UTC date, like Mapillary's epoch millis.
+    parsePanoramaxDatetime("2026-08-11T00:30:00+02:00", now) shouldBe Some(LocalDate.of(2026, 8, 10))
+    parsePanoramaxDatetime("2039-10-02T11:45:57+00:00", now) shouldBe None // Future: a mis-set camera clock.
+    parsePanoramaxDatetime("2003-05-01T00:00:00+00:00", now) shouldBe None // Before street-level imagery.
+    parsePanoramaxDatetime("not a date", now) shouldBe None
+    parsePanoramaxDatetime("", now) shouldBe None
+  }
+
   test("metersToStreet measures point-to-polyline distance in meters, clamped to the segment") {
     val geometryFactory = new GeometryFactory()
     // A ~111 m east-west street at the equator; JTS coordinates are (x = lng, y = lat).
@@ -44,6 +56,20 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     metersToStreet(0.0, 0.002, street) shouldBe 111.32 +- 0.5
     // A pano ~30 m down a cross street from an endpoint: outside PanoStreetToleranceMeters, so it must filter out.
     metersToStreet(0.00027, 0.001, street) should be > 15.0
+  }
+
+  test("a GSV answer far outside the search radius is farther from the street than the tolerance (#5114)") {
+    // Google's metadata `radius` is a hint: a 25 m query at a Seattle street endpoint came back with a user photosphere
+    // in Syracuse, NY. The poll sends that same query and relies on pollOneStreet's metersToStreet-vs-tolerance filter,
+    // not the radius, to keep such an answer off the street. This pins the measurement half of that: the distance comes
+    // out beyond the tolerance however far away the answer is, with no projection artefact letting it back in.
+    val geometryFactory = new GeometryFactory()
+    val street          = geometryFactory.createLineString(
+      Array(new Coordinate(-122.3100703, 47.6196811), new Coordinate(-122.3100703, 47.6208411))
+    )
+    metersToStreet(43.0917906, -76.1720131, street) should be > StreetImageryTable.PanoStreetToleranceMeters
+    // The milder form: a pano 77 m off a 25 m query.
+    metersToStreet(47.6196811, -122.3090500, street) should be > StreetImageryTable.PanoStreetToleranceMeters
   }
 
   test("bboxHalfWidths approximates the radius and widens longitude away from the equator") {

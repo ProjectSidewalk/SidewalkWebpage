@@ -18,8 +18,34 @@ import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+ * What [[AiService.ensureSeedRows]] had to insert: whether the AI's user_stat row was missing, and the label types
+ * whose `aiValidation` mission was. Both empty means the schema already carried every row.
+ */
+case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelTypeEnum.Base]) {
+
+  /** @return True when the schema already carried every row, so the run was a no-op. */
+  def nothingInserted: Boolean = !statRowInserted && missionsInserted.isEmpty
+}
+
 @ImplementedBy(classOf[AiServiceImpl])
 trait AiService {
+
+  /**
+   * Inserts whichever of the SidewalkAI account's per-schema rows this schema lacks (#5349).
+   *
+   * 281.sql seeded the AI's user_stat row and its nine `aiValidation` missions once per schema. A schema created by
+   * cloning a donor city, or restored from an onboarding dump, has 281 marked applied and none of those rows, and
+   * nothing at runtime creates them: user_stat rows come from sign-in, missions from a person's own progress. Without
+   * the stat row the AI's labels land but fail the user_stat join most label queries carry; without the missions
+   * the first AI validation throws. Idempotent, so it is safe to run at every boot.
+   *
+   * @return What was inserted.
+   */
+  def ensureSeedRows(): Future[AiSeedRows]
+
+  /** The DBIO behind [[ensureSeedRows]], so a spec can run it inside a rolled-back transaction. */
+  def ensureSeedRowsDbio: DBIO[AiSeedRows]
 
   /**
    * Validates labels using AI by fetching label metadata, calling the AI API, and saving results.
@@ -34,6 +60,12 @@ trait AiService {
    * @return A Future containing a sequence of LabelAiAssessment objects with validation results and tags
    */
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]]
+
+  /**
+   * Has the AI look at a label again right after its type changed (#3671), since its old assessment was about the
+   * old type. Does nothing for a label the nightly sweep would also skip. Never fails; problems are only logged.
+   */
+  def reassessAfterTypeChange(labelId: Int): Future[Unit]
 }
 
 @Singleton
@@ -47,6 +79,7 @@ class AiServiceImpl @Inject() (
     labelAiAssessmentTable: models.label.LabelAiAssessmentTable,
     labelAiFailureTable: models.label.LabelAiFailureTable,
     missionTable: models.mission.MissionTable,
+    userStatTable: models.user.UserStatTable,
     panoDataService: PanoDataService
 )(implicit val ec: ExecutionContext)
     extends AiService
@@ -82,6 +115,17 @@ class AiServiceImpl @Inject() (
     }
   }
 
+  def ensureSeedRows(): Future[AiSeedRows] = db.run(ensureSeedRowsDbio)
+
+  def ensureSeedRowsDbio: DBIO[AiSeedRows] = (for {
+    // The mission inserts are exists-then-insert, which a transaction alone doesn't serialize: two boots of the same
+    // schema at once (a deploy overlapping a restart) would each see "missing" and both insert. The lock is
+    // database-wide, so every city's boot takes it in turn, for the milliseconds this transaction lasts.
+    _                                 <- sql"SELECT 1 FROM pg_advisory_xact_lock(5349)".as[Int]
+    statRows: Int                     <- userStatTable.insertAiUserStatIfMissing()
+    missions: Seq[LabelTypeEnum.Base] <- missionTable.insertMissingAiValidationMissions()
+  } yield AiSeedRows(statRows == 1, missions)).transactionally
+
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
       // Run Sidewalk AI API calls sequentially.
@@ -97,6 +141,15 @@ class AiServiceImpl @Inject() (
       logger.info("AI validations or tag suggestions are disabled for this city.")
       Future.successful(Seq.empty)
     }
+  }
+
+  def reassessAfterTypeChange(labelId: Int): Future[Unit] = {
+    if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
+      db.run(labelTable.getLabelsToValidateWithAi(1, Some(labelId)))
+        .flatMap(labelData => Future.traverse(labelData)(callAiApiAndSubmitData))
+        .map(_ => ())
+        .recover { case e => logger.error(s"AI re-assessment after a type change failed for label $labelId:", e) }
+    } else Future.successful(())
   }
 
   /**
@@ -130,16 +183,17 @@ class AiServiceImpl @Inject() (
               aiMissionId: Int <- getAiValidateMissionId(labelData.labelType)
               label: Label     <- labelTable.find(labelId).map(_.get) // If we got this far, we know label exists.
               validation: LabelValidation = LabelValidation(
-                0, labelId, aiValResult, SidewalkUserTable.aiUserId, aiMissionId, Some(labelPoint.canvasX),
-                Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch, labelPoint.zoom, labelPoint.canvasWidth,
-                labelPoint.canvasHeight, startTime, aiResults.timestamp, UiSource.SidewalkAI, ViewerType.Default
+                0, labelId, labelData.labelType, aiValResult, SidewalkUserTable.aiUserId, aiMissionId,
+                Some(labelPoint.canvasX), Some(labelPoint.canvasY), labelPoint.heading, labelPoint.pitch,
+                labelPoint.zoom, labelPoint.canvasWidth, labelPoint.canvasHeight, startTime, aiResults.timestamp,
+                UiSource.SidewalkAI, ViewerType.Default
               )
-              // The AI only votes; resubmitting the label's own severity and tags records no edit.
+              // The AI only votes, so it never edits the label.
               valId: Option[Int] <- validationService
                 .submitValidationsDbio(
                   Seq(
-                    ValidationSubmission(validation, label.severity, label.tags, comment = None, undone = false,
-                      redone = false)
+                    ValidationSubmission(validation, newLabelType = None, label.severity, label.tags, comment = None,
+                      undone = false, redone = false, canEdit = false)
                   )
                 )
                 .map(_.headOption)
@@ -220,9 +274,9 @@ class AiServiceImpl @Inject() (
 
             Future.successful(
               Some(
-                LabelAiAssessment(0, labelData.labelId, valResult, valAccuracy, valConfidence, tags, tagsNotPresent,
-                  tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId, taggerTrainingDate,
-                  OffsetDateTime.now, None, aiImageSource)
+                LabelAiAssessment(0, labelData.labelId, labelData.labelType, valResult, valAccuracy, valConfidence,
+                  tags, tagsNotPresent, tagsConfidence, apiVersion, valModelId, valTrainingDate, taggerModelId,
+                  taggerTrainingDate, OffsetDateTime.now, None, aiImageSource)
               )
             )
           } else if (response.status == 502) {

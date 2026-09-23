@@ -1,4 +1,28 @@
 /**
+ * The sidebar's filter state, as getState() reads it off the DOM.
+ * @typedef {object} SidebarFilterState
+ * @property {number[]} severities - Enabled severities.
+ * @property {number[]} allSeverities - Every rendered severity.
+ * @property {Record<string, string[]>} sections - Each section's selected values: label types as bare type names,
+ *     everything else as control ids.
+ * @property {Record<string, string[]>} tags - Each label type's active tags, including types with none selected so
+ *     hosts can clear stale tag filters.
+ * @property {string[]} allLabelTypes - Every rendered label type.
+ */
+
+/**
+ * What an onChange callback is told about the interaction that just happened.
+ * @typedef {object} FilterSidebarChange
+ * @property {'option'|'selectAll'|'only'|'tag'} kind
+ * @property {string} section
+ * @property {string|number} [value] - The option's value; a number for severity.
+ * @property {boolean} [checked]
+ * @property {string} [labelType]
+ * @property {string} [tag]
+ * @property {boolean} [typeTurnedOn]
+ */
+
+/**
  * Host-agnostic controller for the shared filter sidebar (#4585).
  *
  * Owns the sidebar's interaction rules — toggling an option, select/deselect all, the "Only" affordance, tag pills
@@ -12,7 +36,6 @@
  *
  * Sections are discovered from the markup: every `input[data-filter-type="<section>"]` belongs to that section, and
  * the severity toggles form a section of their own ("severity") because they're buttons rather than checkboxes.
-
  */
 class FilterSidebar {
   /** Section name for the severity toggles, which are buttons rather than checkboxes. */
@@ -20,18 +43,17 @@ class FilterSidebar {
 
   /** @type {HTMLElement} */
   #root;
-  /** @type {(change: object) => void} */
+  /** @type {(change: FilterSidebarChange) => void} */
   #onChange;
   /** @type {{selectAll: string, deselectAll: string, only: string}} */
   #i18nKeys;
 
   /**
-   * @param {HTMLElement} root The sidebar element containing the filter controls.
-   * @param {object} [options] Configuration options.
-   * @param {(change: object) => void} [options.onChange] Called after every interaction, with a change descriptor:
-   *      `{kind, section, value, checked, labelType, tag, typeTurnedOn}`. `kind` is 'option', 'selectAll', 'only',
-   *      or 'tag'. Read `getState()` inside the callback for the resulting filter state.
-   * @param {object} [options.i18nKeys] Overrides for the i18next keys of the section actions.
+   * @param {HTMLElement} root - The sidebar element containing the filter controls.
+   * @param {object} [options] - Configuration options.
+   * @param {(change: FilterSidebarChange) => void} [options.onChange] - Called after every interaction. Read
+   *      `getState()` inside the callback for the resulting filter state.
+   * @param {object} [options.i18nKeys] - Overrides for the i18next keys of the section actions.
    */
   constructor(root, { onChange = () => {}, i18nKeys = {} } = {}) {
     this.#root = root;
@@ -68,11 +90,7 @@ class FilterSidebar {
    * may drop the severity toggles or a label type entirely, and a consumer that needs to recognize "everything is
    * selected" has to compare against the rendered set rather than a hardcoded count.
    *
-   * @returns {{severities: number[], allSeverities: number[], sections: object, tags: object,
-   *      allLabelTypes: string[]}} Enabled severities and every rendered severity; per-section arrays of the
-   *      selected values (label types as bare type names, everything else as control ids); the active tags of
-   *      every label type, including types with none selected so hosts can clear stale tag filters; and every
-   *      rendered label type.
+   * @returns {SidebarFilterState}
    */
   getState() {
     const severityButtons = this.#severityButtons();
@@ -82,7 +100,7 @@ class FilterSidebar {
       .map((btn) => Number(btn.dataset.severity));
 
     const sections = {};
-    for (const cb of this.#root.querySelectorAll('input[data-filter-type]')) {
+    for (const cb of this.#optionCheckboxes()) {
       const section = cb.dataset.filterType;
       sections[section] ??= [];
       if (cb.checked) sections[section].push(FilterSidebar.#valueOf(cb));
@@ -103,7 +121,7 @@ class FilterSidebar {
    * Renders per-option counts into the sidebar's count slots. Hosts compute the numbers — the map facets its loaded
    * labels, a server-backed host would ask the backend — because only they know what "how many" means.
    *
-   * @param {object} countsByValue Map of control value (label type or option id) to count.
+   * @param {object} countsByValue - Map of control value (label type or option id) to count.
    */
   setCounts(countsByValue) {
     for (const span of this.#root.querySelectorAll('.filter-sidebar__count')) {
@@ -116,7 +134,7 @@ class FilterSidebar {
   /** Drops the loading appearance and enables the controls, which render disabled until their data has loaded. */
   enable() {
     this.#root.classList.remove('filter-sidebar--loading');
-    this.#root.querySelectorAll('input[disabled]').forEach((cb) => {
+    /** @type {NodeListOf<HTMLInputElement>} */ (this.#root.querySelectorAll('input[disabled]')).forEach((cb) => {
       cb.disabled = false;
     });
   }
@@ -124,14 +142,14 @@ class FilterSidebar {
   /** Puts the controls back into the loading appearance, e.g. while a host refetches what the filters select. */
   disable() {
     this.#root.classList.add('filter-sidebar--loading');
-    this.#root.querySelectorAll('input[data-filter-type]').forEach((cb) => {
+    this.#optionCheckboxes().forEach((cb) => {
       cb.disabled = true;
     });
   }
 
   /**
    * Returns true when at least one control in the section is on.
-   * @param {string} section The section name (a `data-filter-type` value, or 'severity').
+   * @param {string} section - The section name (a `data-filter-type` value, or 'severity').
    * @returns {boolean} Whether anything in the section is currently selected.
    */
   isAnyActive(section) {
@@ -143,7 +161,7 @@ class FilterSidebar {
 
   /**
    * Returns true when every control in the section is on.
-   * @param {string} section The section name (a `data-filter-type` value, or 'severity').
+   * @param {string} section - The section name (a `data-filter-type` value, or 'severity').
    * @returns {boolean} Whether the section is fully selected.
    */
   isAllActive(section) {
@@ -172,7 +190,7 @@ class FilterSidebar {
    * only a control whose state actually moved reports one — a host refetches on the strength of these.
    */
   #initOptionCheckboxes() {
-    this.#root.querySelectorAll('input[data-filter-type]').forEach((cb) => {
+    this.#optionCheckboxes().forEach((cb) => {
       cb.addEventListener('change', () => {
         const section = cb.dataset.filterType;
         const value = FilterSidebar.#valueOf(cb);
@@ -187,8 +205,8 @@ class FilterSidebar {
 
   /**
    * Expands or collapses one label type's tag drawer, keeping the chevron's direction and ARIA state in step.
-   * @param {HTMLElement} item The label type's list item.
-   * @param {boolean} expanded Whether the drawer should end up open.
+   * @param {HTMLElement} item - The label type's list item.
+   * @param {boolean} expanded - Whether the drawer should end up open.
    */
   #setDrawer(item, expanded) {
     const pills = item.querySelector('.filter-sidebar__tag-pills');
@@ -220,8 +238,10 @@ class FilterSidebar {
     this.#root.querySelectorAll('.filter-sidebar__only').forEach((btn) => {
       // Give the visible "Only" text its row's context for screen readers (e.g. "Only: Obstacle").
       const row = btn.closest('.filter-sidebar__item-row, .filter-sidebar__item, .filter-sidebar__severity-cell');
+      // Collapsed, not just trimmed: a row with a sub-label spans two elements, so its text arrives with the
+      // markup's indentation between them.
       const rowLabel = row?.querySelector('.filter-sidebar__item-name, label, .severity-button__label')
-        ?.textContent.trim();
+        ?.textContent.replace(/\s+/g, ' ').trim();
       if (rowLabel) btn.setAttribute('aria-label', `${i18next.t(this.#i18nKeys.only)}: ${rowLabel}`);
 
       btn.addEventListener('click', () => {
@@ -235,10 +255,10 @@ class FilterSidebar {
   /**
    * Sets every control in a section from a predicate.
    *
-   * @param {string} section The section name.
-   * @param {(value: string) => boolean} isOn Given a control's value, whether it should end up selected.
-   * @param {object} [options] Configuration options.
-   * @param {boolean} [options.clearTagsWhenOff=false] Whether to drop the tag filters of label types turned off.
+   * @param {string} section - The section name.
+   * @param {(value: string) => boolean} isOn - Given a control's value, whether it should end up selected.
+   * @param {object} [options] - Configuration options.
+   * @param {boolean} [options.clearTagsWhenOff=false] - Whether to drop the tag filters of label types turned off.
    */
   setSection(section, isOn, { clearTagsWhenOff = false } = {}) {
     if (section === FilterSidebar.SEVERITY) {
@@ -297,7 +317,7 @@ class FilterSidebar {
    * caller never asked about. Pills on unchecked types are skipped — the same rule the server-rendered restore
    * applies (a tag narrows a type that is being shown), and implying the type here would re-enable types a
    * `labelTypes` filter had just excluded. Does not fire onChange.
-   * @param {Array<{labelType: string, tag: string}>} pairs The label-type/tag pairs to activate.
+   * @param {Array<{labelType: string, tag: string}>} pairs - The label-type/tag pairs to activate.
    */
   applyTags(pairs) {
     // Matched on dataset rather than an attribute selector: tag names carry characters (colons, spaces) that
@@ -319,7 +339,7 @@ class FilterSidebar {
 
   /**
    * Clears the tag filters of one label type.
-   * @param {string} labelType The label type key.
+   * @param {string} labelType - The label type key.
    */
   clearTags(labelType) {
     this.#root.querySelectorAll(`.tag-pill[data-label-type="${labelType}"]`).forEach((pill) => {
@@ -341,7 +361,7 @@ class FilterSidebar {
   /**
    * Swaps a section action between "Deselect all" and "Select all" to match what the click would do. No-op for
    * sections that don't render one (the admin-only filter).
-   * @param {string} section The section name.
+   * @param {string} section - The section name.
    */
   #syncSectionAction(section) {
     const btn = this.#root.querySelector(`.filter-sidebar__deselect-all[data-section="${section}"]`);
@@ -371,15 +391,20 @@ class FilterSidebar {
   }
 
   /**
-   * @param {string} section The section name.
+   * @param {string} section - The section name.
    * @returns {HTMLInputElement[]} The section's option checkboxes.
    */
   #optionsIn(section) {
     return Array.from(this.#root.querySelectorAll(`input[data-filter-type="${section}"]`));
   }
 
+  /** @returns {HTMLInputElement[]} Every section's option checkboxes. */
+  #optionCheckboxes() {
+    return Array.from(this.#root.querySelectorAll('input[data-filter-type]'));
+  }
+
   /**
-   * @param {string} labelType The label type key.
+   * @param {string} labelType - The label type key.
    * @returns {?HTMLInputElement} That label type's checkbox, or null on pages that don't render it.
    */
   #checkboxFor(labelType) {
@@ -388,7 +413,7 @@ class FilterSidebar {
 
   /**
    * A control's semantic value: label types drop the `-checkbox` suffix their ids carry, everything else is its id.
-   * @param {HTMLInputElement} cb The option checkbox.
+   * @param {HTMLInputElement} cb - The option checkbox.
    * @returns {string} The value hosts filter on.
    */
   static #valueOf(cb) {

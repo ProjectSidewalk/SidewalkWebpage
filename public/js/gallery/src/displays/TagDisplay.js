@@ -12,8 +12,8 @@ class TagDisplay {
     </div>`;
 
   /**
-   * @param {HTMLElement} container The DOM element to contain the label information.
-   * @param {String[]} tags The tags to display.
+   * @param {HTMLElement} container - The DOM element to contain the label information.
+   * @param {string[]} tags - The tags to display.
    */
   constructor(container, tags) {
     this.#container = container;
@@ -142,8 +142,8 @@ class TagDisplay {
 
   /**
    * Orders tags by placing tags that match applied tags first.
-   * @param {*} tags Tags to order.
-   * @returns Ordered tag list.
+   * @param {*} tags - Tags to order.
+   * @returns {string[]} Ordered tag list.
    */
   #orderTags(tags) {
     let orderedTags = [];

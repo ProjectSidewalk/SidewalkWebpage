@@ -22,21 +22,21 @@ class RegionController @Inject() (
     extends CustomBaseController(cc) {
 
   /**
-   * Get list of all neighborhoods with a boolean indicating if the given user has fully audited that neighborhood.
+   * Get list of all regions with a boolean indicating if the given user has fully audited that region.
    *
    * User-aware (#4643): the landing page's choropleth calls this on a page that renders for cookie-less visitors. With
-   * no identity we query with an id that matches no audit tasks, so every neighborhood reads as not-completed — the
+   * no identity we query with an id that matches no audit tasks, so every region reads as not-completed — the
    * same result a brand-new anonymous account would get (mirrors LabelController.getLabelData).
    */
-  def listNeighborhoods(regions: Option[String]) = cc.securityService.UserAwareAction {
+  def getRegionsWithUserCompletion(regions: Option[String]) = cc.securityService.UserAwareAction {
     implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
       val regionIds: Seq[Int] = parseIntegerSeq(regions)
       val userId: String      = request.identity.map(_.userId).getOrElse(NoUserId)
-      regionService.getNeighborhoodsWithUserCompletionStatus(userId, regionIds).map { regions =>
+      regionService.getRegionsWithUserCompletion(userId, regionIds).map { regions =>
         val features: Seq[JsObject] = regions.map { case (region, userCompleted) =>
           val properties: JsObject = Json.obj(
             "region_id"      -> region.regionId,
-            "region_name"    -> region.name,
+            "name"           -> region.name,
             "user_completed" -> userCompleted
           )
           Json.obj("type" -> "Feature", "geometry" -> region.geom, "properties" -> properties)
@@ -47,7 +47,7 @@ class RegionController @Inject() (
   }
 
   /**
-   * Get audit coverage of each neighborhood.
+   * Get audit coverage of each region.
    *
    * Public read: the landing-page choropleth, /labelMap, and the user dashboard's contribution map all load these
    * rates anonymously, so this stays ungated.
@@ -59,27 +59,27 @@ class RegionController @Inject() (
    *                (audited before, but on since-replaced imagery, #4384) -- those streets stay counted in
    *                `completed_distance_m`, so this is an annotation, not a subtraction.
    */
-  def getNeighborhoodCompletionRate(regions: Option[String]) = Action.async {
+  def getRegionCompletionRates(regions: Option[String]) = Action.async {
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
 
     for {
       // Ensure the region_completion cache table is populated before reading rates from it.
       _             <- regionService.initializeRegionCompletionTable
-      neighborhoods <- regionService.selectAllNamedNeighborhoodCompletions(regionIds)
+      completions   <- regionService.getRegionCompletions(regionIds)
       outdatedDists <- regionService.getOutdatedDistanceByRegion
     } yield {
-      val completionRates: Seq[JsObject] = for (neighborhood <- neighborhoods) yield {
+      val completionRates: Seq[JsObject] = for (completion <- completions) yield {
         val completionRate: Double =
-          if (neighborhood.totalDistance > 0) neighborhood.auditedDistance / neighborhood.totalDistance
+          if (completion.totalDistance > 0) completion.auditedDistance / completion.totalDistance
           else 1.0d
-        val outdatedDistanceM: Double = outdatedDists.getOrElse(neighborhood.regionId, 0.0)
+        val outdatedDistanceM: Double = outdatedDists.getOrElse(completion.regionId, 0.0)
         Json.obj(
-          "region_id"            -> neighborhood.regionId,
-          "total_distance_m"     -> neighborhood.totalDistance,
-          "completed_distance_m" -> neighborhood.auditedDistance,
+          "region_id"            -> completion.regionId,
+          "total_distance_m"     -> completion.totalDistance,
+          "completed_distance_m" -> completion.auditedDistance,
           "outdated_distance_m"  -> outdatedDistanceM,
           "rate"                 -> completionRate,
-          "name"                 -> neighborhood.name
+          "name"                 -> completion.name
         )
       }
       Ok(JsArray(completionRates))

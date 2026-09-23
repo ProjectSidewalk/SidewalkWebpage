@@ -74,10 +74,13 @@ if [ "$MODE" = "stop" ]; then
   echo "==> stopping worktree QA session: $WT_DIR"
   reap_in_worktree TERM 'grunt' "grunt watch"
   reap_in_worktree TERM '~ run' "app on :9000 (~ run)"
+  # `make compile`, `make test-scala`, and `make scalafmt` leave sbt running here, so stop that too.
+  reap_in_worktree TERM 'sbt-launch|sbtn' "sbt server"
   sleep 2
   # SIGKILL anything that ignored the SIGTERM above.
   reap_in_worktree KILL 'grunt' "grunt watch"
   reap_in_worktree KILL '~ run' "app on :9000 (~ run)"
+  reap_in_worktree KILL 'sbt-launch|sbtn' "sbt server"
   # --clean drops the gitignored setup artifacts too; keep the grunt watch log by default so a watch failure stays
   # diagnosable after a stop.
   if [ -n "$CLEAN" ]; then
@@ -95,19 +98,24 @@ fi
 cd "$WT_DIR"
 echo "==> worktree: $WT_DIR"
 
-# 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. `-d` follows the symlink, so this also
-#    replaces a broken/stale link (rm -f is a no-op when the path doesn't exist).
-if [ ! -d node_modules ]; then
-  rm -f node_modules
+# 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. Test for grunt rather than the folder,
+#    so a broken link or a partial install (e.g. only typescript, added by hand) is replaced too.
+if [ ! -x node_modules/.bin/grunt ]; then
+  [ -L node_modules ] || [ ! -e node_modules ] || echo "==> replacing node_modules, which has no grunt"
+  rm -rf node_modules
   ln -s /home/node_modules node_modules
   echo "==> linked node_modules -> /home/node_modules"
+fi
+# The linked copy is installed from the main checkout's lockfile, so warn when this branch's differs.
+if [ -L node_modules ] && ! cmp -s package-lock.json /home/package-lock.json; then
+  echo "==> warning: package-lock.json differs from the main checkout's; node_modules may not match this branch"
 fi
 
 # 2. build/ bundles are gitignored (absent) -> build this branch's JS/CSS once up front.
 echo "==> building bundles (grunt concat concat_css)"
 node_modules/.bin/grunt concat concat_css >/dev/null
 
-# 3. A stray `sbt --client` server (or a hung `sbtn` task, e.g. a wedged `scalafmtAll`) whose cwd is this worktree
+# 3. A stray thin-client sbt server (or a hung task, e.g. a wedged `scalafmtAll`) whose cwd is this worktree
 #    shares target/ and deadlocks `~ run` on compile locks. Reap them.
 reap_in_worktree KILL 'sbt-launch|sbtn' "thin-client / hung sbt task (shares target/)"
 

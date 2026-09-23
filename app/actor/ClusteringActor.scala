@@ -57,7 +57,9 @@ class ClusteringActor @Inject() (clusterService: ClusterService, jobRunService: 
     val currentTimeStart: String = dateFormatter.format(Instant.now())
     logger.info(s"Auto-scheduled clustering of labels starting at: $currentTimeStart")
     jobRunService
-      .record(ClusteringActor.Name, JobRunTrigger.Scheduled)(clusterService.runClustering())(_.runDetails)
+      .record(ClusteringActor.Name, JobRunTrigger.Scheduled)(
+        clusterService.runClustering(trigger = JobRunTrigger.Scheduled)
+      )(_.runDetails)
       .onComplete {
         case Success(results) =>
           val currentEndTime: String = dateFormatter.format(Instant.now())

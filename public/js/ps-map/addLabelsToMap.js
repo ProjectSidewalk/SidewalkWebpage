@@ -1,15 +1,14 @@
 /**
  * Adds labels to the map, creating one Mapbox layer per label type. Resolves once all layers have loaded.
  *
- * @param {object} map The Mapbox map object.
- * @param {object} labelData GeoJSON FeatureCollection of labels to draw on the map.
- * @param {object} params Properties that can change the process of choropleth creation.
- * @param {string} params.mapName Name of the HTML ID of the map.
- * @param {string} [params.highQualityFilter] If true, only show labels from users marked as high quality.
- * @param {boolean} [params.logClicks=true] Whether clicks should be logged.
- * @param {string} [params.uiSource] Used to record the UI used when submitting a validation through the popup.
- * @param {object} [params.popupLabelViewer] Shows a validation popup on labels on the map.
- * @returns {Promise} Promise that resolves with the mapData object.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {GeoJSON.FeatureCollection} labelData - GeoJSON FeatureCollection of labels to draw on the map.
+ * @param {object} params - Properties that can change the process of choropleth creation.
+ * @param {boolean} [params.highQualityFilter] - If true, only show labels from users marked as high quality.
+ * @param {boolean} [params.logClicks=true] - Whether clicks should be logged.
+ * @param {string} [params.uiSource] - Used to record the UI used when submitting a validation through the popup.
+ * @param {{showLabel: Function}} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
+ * @returns {Promise<MapLayerTracker>} Promise that resolves with the mapData object.
  */
 function addLabelsToMap(map, labelData, params) {
   const colorMapping = util.misc.getLabelColors();
@@ -58,7 +57,7 @@ function addLabelsToMap(map, labelData, params) {
 
   /**
    * Creates a single empty Mapbox source and circle layer for the given label type.
-   * @param {string} labelType The label type key.
+   * @param {string} labelType - The label type key.
    * @returns {string} The layer name.
    */
   function createLayer(labelType) {
@@ -98,9 +97,75 @@ function addLabelsToMap(map, labelData, params) {
     return layerName;
   }
 
+  mapData.updateLabelType = (labelId, labelType) => updateLabelType(map, mapData, labelId, labelType);
+  mapData.setLabelDeleted = (labelId, deleted) => setLabelDeleted(map, mapData, labelId, deleted);
+
   // addSource/addLayer are synchronous, so every layer already exists here. 'sourcedataloading' can't be the
   // readiness signal: it refires on every setData, for the life of a viewport-refreshed map.
   return Promise.resolve(mapData);
+}
+
+/**
+ * Moves a label to its new type's layer after an edit from the card (#3671), so the dot recolors and follows that
+ * type's filter at once. A label the map hasn't loaded is left to the next fetch.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
+ * @param {number} labelId
+ * @param {string} labelType - The label's new type.
+ */
+function updateLabelType(map, mapData, labelId, labelType) {
+  for (const [oldType, features] of Object.entries(mapData.sortedLabels)) {
+    const i = features.findIndex((f) => f.properties.label_id === labelId);
+    if (i === -1) continue;
+    if (oldType === labelType) return;
+    if (!mapData.sortedLabels[labelType]) return; // A map built for a subset of types has nowhere to put it.
+    const [feature] = features.splice(i, 1);
+    feature.properties.label_type = labelType;
+    mapData.sortedLabels[labelType]?.push(feature);
+    for (const type of [oldType, labelType]) {
+      const layerName = mapData.layerNames[type];
+      if (layerName) {
+        map.getSource(layerName)?.setData({ type: 'FeatureCollection', features: mapData.sortedLabels[type] });
+      }
+    }
+    return;
+  }
+}
+
+/**
+ * Takes a label off the map after a delete from the card (#3591), or puts it back after a restore. The feature is
+ * kept aside so a restore needs no refetch.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
+ * @param {number} labelId
+ * @param {boolean} deleted
+ */
+function setLabelDeleted(map, mapData, labelId, deleted) {
+  mapData.deletedFeatures ??= new Map();
+  const redraw = (type) => {
+    const layerName = mapData.layerNames[type];
+    if (layerName) {
+      map.getSource(layerName)?.setData({ type: 'FeatureCollection', features: mapData.sortedLabels[type] });
+    }
+  };
+  if (deleted) {
+    for (const [type, features] of Object.entries(mapData.sortedLabels)) {
+      const i = features.findIndex((f) => f.properties.label_id === labelId);
+      if (i === -1) continue;
+      const [feature] = features.splice(i, 1);
+      mapData.deletedFeatures.set(labelId, feature);
+      redraw(type);
+      return;
+    }
+    return;
+  }
+  const feature = mapData.deletedFeatures.get(labelId);
+  mapData.deletedFeatures.delete(labelId);
+  const type = feature?.properties.label_type;
+  const features = type && mapData.sortedLabels[type];
+  if (!features || features.some((f) => f.properties.label_id === labelId)) return;
+  features.push(feature);
+  redraw(type);
 }
 
 /**
@@ -111,9 +176,9 @@ function addLabelsToMap(map, labelData, params) {
  * Layer-level state (setFilter expressions, visibility, paint) survives setData; hover feature-state doesn't,
  * which is fine — the next mousemove restores it, and setFeatureState on an absent id is a silent no-op.
  *
- * @param {object} map The Mapbox map object.
- * @param {object} mapData The layer tracker from CreateMapLayerTracker.
- * @param {object} labelData GeoJSON FeatureCollection of labels to draw.
+ * @param {mapboxgl.Map} map - The Mapbox map object.
+ * @param {MapLayerTracker} mapData - The layer tracker from CreateMapLayerTracker.
+ * @param {GeoJSON.FeatureCollection} labelData - GeoJSON FeatureCollection of labels to draw.
  */
 function setLabelData(map, mapData, labelData) {
   for (const features of Object.values(mapData.sortedLabels)) features.length = 0;

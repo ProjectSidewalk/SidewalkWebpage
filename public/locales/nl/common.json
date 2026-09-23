@@ -31,6 +31,11 @@
   "continue": "Doorgaan",
   "delete": "Verwijderen",
   "done": "Klaar",
+  "unsaved-changes": {
+    "message": "Je hebt niet-opgeslagen wijzigingen. Wil je ze opslaan voordat je deze pagina verlaat?",
+    "save": "Opslaan en verlaten",
+    "leave": "Verlaten"
+  },
   "badges": {
     "congratulations": "Gefeliciteerd!",
     "you-earned": "Je hebt de “{{badge}}”-badge verdiend!",
@@ -89,6 +94,7 @@
   "only": "Alleen",
   "image-capture-date": "Opnamedatum afbeelding",
   "drag-to-look-around": "Sleep om rond te kijken",
+  "loading-imagery": "Beelden laden...",
   "hide-label": "Verberg Label",
   "show-label": "Toon Label",
   "hide-label-tooltip": "Verbergt het label tijdelijk om te zien wat eronder ligt.",
@@ -102,7 +108,7 @@
   "bad": "Slecht",
   "yes": "Ja",
   "no": "Nee",
-  "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus maak uw eigen beoordeling.",
+  "ai-generated-label-tooltip": "Dit label is door AI gemaakt. AI kan fouten maken, dus beoordeel zelf of het klopt.",
   "tag": {
     "narrow": "smal",
     "points into traffic": "punten in het kruisende verkeer",
@@ -200,9 +206,13 @@
     "pano-address": "Adres",
     "view-in-gsv": "Bekijken in Google Streetview",
     "view-in-mapillary": "Bekijken in Mapillary",
+    "view-in-panoramax": "Bekijken in Panoramax",
     "city": "Stad",
     "copy-to-clipboard": "Kopiëren naar klembord",
     "copied-to-clipboard": "Gegevens gekopieerd naar uw klembord!"
+  },
+  "pano-attribution": {
+    "opens-new-tab": "(opent in een nieuw tabblad)"
   },
   "mission-start-tutorial": {
     "example-type-label-correct": "JUISTE VOORBEELD",
@@ -337,5 +347,49 @@
     "on-facebook": "Delen op Facebook",
     "on-linkedin": "Delen op LinkedIn",
     "via-email": "Delen via e-mail"
+  },
+  "mini-card": {
+    "no-image": "Geen afbeelding",
+    "open": "Dit label openen: {{label}}",
+    "votes": "Dit label valideren",
+    "no-image-to-judge": "Geen afbeelding om dit label op te beoordelen",
+    "vote-failed": "Je stem is niet opgeslagen. Probeer het opnieuw."
+  },
+  "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw.",
+  "label-type-picker": {
+    "current": "{{labelType}} (huidig type)",
+    "change": "wijzigen",
+    "change-type": "Labeltype wijzigen",
+    "change-type-hint": "Tags die niet bij het nieuwe type passen worden verwijderd. Een beoordeling blijft alleen behouden tussen types die op dezelfde manier beoordeeld worden."
+  },
+  "access-score-spotlight": {
+    "subtitle-regions": "De stoepen van elke wijk krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",
+    "subtitle-streets": "De stoepen van elke straat krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",
+    "subtitle-one-region": "Deze stad is gekarteerd als één wijk, dus er is één score te tonen.",
+    "units-label": "Wijken of straten rangschikken",
+    "unit-regions": "Wijken",
+    "unit-streets": "Straten",
+    "highest": "Hoogste scores ({{score}}+)",
+    "lowest": "Laagste scores (onder {{score}})",
+    "ranked-so-far": "Tot nu toe gerangschikt",
+    "closest": "Bijna gerangschikt",
+    "empty-highest-regions": "Nog geen wijk scoort {{score}} of hoger.",
+    "empty-highest-streets": "Nog geen straat scoort {{score}} of hoger.",
+    "empty-lowest-regions": "Geen wijk scoort onder {{score}}.",
+    "empty-lowest-streets": "Geen straat scoort onder {{score}}.",
+    "count-regions": "Alleen wijken die voor minstens {{percent}}% zijn onderzocht worden gerangschikt — tot nu toe {{qualifying}} van {{total}}.",
+    "count-streets": "Alleen straten van minstens {{minLength}} met meerdere gekarteerde kenmerken worden gerangschikt — tot nu toe {{qualifying}} van {{total}}.",
+    "updated-nightly": "Elke nacht bijgewerkt",
+    "updated-info": "Scores worden elke nacht opnieuw berekend op basis van alle tot dan toe geplaatste labels. Een label dat je vandaag toevoegt telt morgen mee.",
+    "updated-last": "Laatst bijgewerkt op {{date}}.",
+    "cta-regions": "Bekijk alle wijken in de AccessScore-tool",
+    "cta-streets": "Bekijk alle straten in de AccessScore-tool",
+    "explore": "Verkennen",
+    "explore-region": "{{name}} verkennen",
+    "street-sub": "{{region}} · {{length}}",
+    "region-sub": "{{length}} aan straten · {{clusters}} clusters",
+    "region-sub-pending": "{{length}} aan straten · {{percent}}% onderzocht",
+    "street-in-city": "{{region}}, {{city}}",
+    "unnamed": "Naamloze straat"
   }
 }

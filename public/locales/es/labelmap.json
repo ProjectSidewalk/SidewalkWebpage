@@ -1,5 +1,6 @@
 {
   "search-placeholder": "Busca una dirección o lugar",
+  "search-pin": "Lugar buscado",
   "explore-here": "Explora las aceras aquí",
   "explore-here-short": "Explora aquí",
   "explore-here-brief": "Explorar",
@@ -8,6 +9,8 @@
   "zoom-in-for-labels": "Acerca el mapa para ver las etiquetas",
   "loading-elapsed": "{{seconds}} s transcurridos",
   "load-failed": "No pudimos cargar los datos del mapa.",
+  "waiting-for-scores": "Esperando las puntuaciones de esta ciudad…",
+  "waiting-for-scores-retry": "Las puntuaciones aún no están listas — reintentando en {{seconds}} s…",
   "retry": "Intentar de nuevo",
   "is-correct": "Esta etiqueta es correcta?",
   "label-type": "Tipo de etiqueta",
@@ -15,7 +18,15 @@
   "legend": "Leyenda",
   "streets": "Calles",
   "audited-street": "Calle auditada",
-  "outdated-street": "Calle auditada, con imágenes más recientes",
+  "outdated-street-name": "Calle necesita reauditoría",
+  "outdated-street-note": "Imágenes más recientes disponibles",
+  "outdated-street-tooltip": "Se auditó antes de que hubiera imágenes de Street View más recientes. Vuelve a explorarla para ver si ha cambiado lo que se encontró aquí.",
+  "reaudit-card-title": "La calle necesita reauditoría",
+  "reaudit-card-last-mapped": "Última auditoría",
+  "reaudit-card-new-imagery": "Imágenes nuevas",
+  "reaudit-card-found": "Encontrado aquí la última vez:",
+  "reaudit-card-none": "La última vez no se etiquetó nada aquí.",
+  "reaudit-card-explore": "Explorar esta calle",
   "unaudited-street": "Calle no auditada",
   "not-applicable-abbr": "N/A",
   "deselect-all": "Deseleccionar todo",
@@ -80,7 +91,7 @@
   "edit-failed": "No se pudo guardar el cambio. Inténtalo de nuevo.",
   "edit-failed-short": "No guardado",
   "no-imagery-disabled": "No puedes validar ni comentar cuando no hay imágenes disponibles para esta etiqueta",
-  "no-imagery-edit-disabled": "No puedes calificar esta etiqueta ni editar sus etiquetas cuando no hay imágenes disponibles",
+  "no-imagery-edit-disabled": "No puedes calificar, editar ni eliminar esta etiqueta cuando no hay imágenes disponibles",
   "admin-only": "Solo administradores",
   "not-admin-validated": "No validado por un administrador",
   "download": {
@@ -165,5 +176,19 @@
       "photo-too-large": "Esa foto es demasiado grande para subirla.",
       "photo-invalid": "No pudimos leer ese archivo como imagen (JPEG o PNG)."
     }
-  }
+  },
+  "edit-type-changed": "Cambiado a {{labelType}}",
+  "edit-undo": "Deshacer",
+  "edit-conflict-short": "Tipo de etiqueta cambiado en otro lugar",
+  "edit-conflict": "El tipo de esta etiqueta se cambió en otro lugar, así que la tarjeta ahora muestra su estado actual.",
+  "delete-label": "Eliminar etiqueta",
+  "delete-label-confirm": "¿Seguro que quieres eliminar esta etiqueta?",
+  "delete-label-confirm-admin": "¿Seguro que quieres eliminar esta etiqueta? Se registrará tu voto de «Discrepar» en ella.",
+  "delete-label-failed": "No se pudo eliminar la etiqueta. Inténtalo de nuevo.",
+  "restore-label": "Restaurar etiqueta",
+  "restore-label-brief": "Restaurar",
+  "restore-label-failed": "No se pudo restaurar la etiqueta. Inténtalo de nuevo.",
+  "you-deleted-label": "Eliminaste esta etiqueta",
+  "label-was-deleted": "Esta etiqueta fue eliminada",
+  "deleted-label-disabled": "Esta etiqueta fue eliminada, así que no se puede validar ni editar hasta que se restaure"
 }

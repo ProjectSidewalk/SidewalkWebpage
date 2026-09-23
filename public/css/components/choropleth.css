@@ -111,6 +111,14 @@
   margin: 6px 0 0;
 }
 
+/* What a page knows about the wait beyond the clock (MapLoadingOverlay.setStatus); kept narrow so a sentence wraps
+   under the spinner instead of widening the card. Nothing sets its display, so the UA's [hidden] rule hides it. */
+.labelmap-loading__status {
+  font: var(--text-body-regular);
+  margin: 10px 0 0;
+  max-width: 300px;
+}
+
 /* The overlay ignores pointer events so the map stays draggable while loading; the retry button must not. */
 .labelmap-loading__card--error {
   pointer-events: auto;
@@ -146,15 +154,20 @@
 
 /*
  * Viewport-loading status pill (#5002): "zoom in to see labels" while the zoom floor holds fetches back, and a
- * brief note during refetches. Bottom-centered so it stays clear of the corner controls, styled like the
+ * brief note during refetches. Top-centered, where a transient help message is looked for and where nothing
+ * else sits (the drawer is left, Mapbox's controls right, its attribution along the bottom), styled like the
  * loading card above, and pointer-events: none so it never blocks map gestures.
  */
+
+/* Centered on the part of the map the reader can see: the drawer covers the canvas's left edge, and
+   MapSidebarDrawer publishes how much as --map-inset-left on the map's holder. */
 .map-status-pill {
   position: absolute;
-  bottom: 28px;
-  left: 50%;
+  top: 12px;
+  left: calc(var(--map-inset-left, 0px) + (100% - var(--map-inset-left, 0px)) / 2);
   transform: translateX(-50%);
   z-index: 15; /* Above the map, below the loading overlay. */
+  transition: opacity var(--transition-medium);
   max-width: 90%;
   padding: 8px 16px;
   border-radius: 999px;
@@ -164,6 +177,10 @@
   font: var(--text-body-regular);
   text-align: center;
   pointer-events: none;
+}
+
+.map-status-pill--leaving {
+  opacity: 0;
 }
 
 .map-status-pill[hidden] {
@@ -206,7 +223,7 @@
   padding: 0;
 }
 
-/* Shared 11-bucket sequential scale for the landing + admin neighborhood-coverage choropleth legends. */
+/* Shared 11-bucket sequential scale for the landing + admin region-coverage choropleth legends. */
 .legend-scale {
   width: 100%;
   padding: 0;
@@ -322,7 +339,7 @@
   white-space: nowrap;
 }
 
-/* Neighborhood completion, shown as a bar so progress reads at a glance rather than as another number to parse. */
+/* Region completion, shown as a bar so progress reads at a glance rather than as another number to parse. */
 .explore-here__track {
   height: 6px;
   margin-bottom: 10px;
@@ -338,6 +355,87 @@
 }
 
 .explore-here-button {
+  justify-content: center;
+  width: 100%;
+}
+
+/* ---- Street re-audit hover card (#5258) ---- */
+
+/* Scoped so the global .mapboxgl-popup-content rule (shared with every other map popup) stays put. */
+.street-reaudit-popup .mapboxgl-popup-content {
+  padding: 12px 14px;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 22%);
+}
+
+.street-reaudit {
+  min-width: 210px;
+}
+
+.street-reaudit__title {
+  margin: 0 0 8px;
+  color: var(--color-neutral-900);
+  font: var(--text-body-bold);
+  line-height: 1.25;
+}
+
+/* Two columns so the label and its date read as a pair, with the dates aligned down the right edge. Primary-font
+   tokens throughout: the accent font's digits sit below the baseline, and every value here is a date or a count. */
+.street-reaudit__facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0 0 10px;
+}
+
+.street-reaudit__facts dt {
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+.street-reaudit__facts dd {
+  margin: 0;
+  color: var(--color-neutral-900);
+  font: var(--text-caption-semibold);
+  text-align: right;
+}
+
+.street-reaudit__found,
+.street-reaudit__empty {
+  margin: 0 0 4px;
+  color: var(--color-neutral-700);
+  font: var(--text-caption-regular);
+}
+
+.street-reaudit__empty {
+  margin-bottom: 10px;
+}
+
+.street-reaudit__labels {
+  width: 100%;
+  margin: 0 0 10px;
+  border-collapse: collapse;
+}
+
+.street-reaudit__type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+  color: var(--color-neutral-900);
+  font: var(--text-caption-medium);
+}
+
+.street-reaudit__count {
+  padding: 1px 0;
+  color: var(--color-neutral-800);
+  font: var(--text-caption-semibold);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  vertical-align: middle;
+}
+
+.street-reaudit__explore {
   justify-content: center;
   width: 100%;
 }

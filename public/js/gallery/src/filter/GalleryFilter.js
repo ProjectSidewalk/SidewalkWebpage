@@ -16,17 +16,17 @@ class GalleryFilter {
   #root;
   /** @type {FilterSidebar} */
   #sidebar;
-  /** @type {HTMLElement} */
+  /** @type {HTMLButtonElement} */
   #clearButton;
   /** @type {{currentLabelTypes: string[]}} */
   #status;
-  /** @type {object} Filters with no UI of their own, carried through so the URL keeps reporting them. */
+  /** @type {Record<string, any>} Filters with no UI of their own, carried through so the URL keeps reporting them. */
   #initialFilters;
 
   /**
-   * @param {HTMLElement} root The sidebar element holding the filter controls.
-   * @param {HTMLElement} clearButton The button that resets every filter to its default.
-   * @param {object} initialFilters Filters parsed from the URL by the server, passed through the page.
+   * @param {HTMLElement} root - The sidebar element holding the filter controls.
+   * @param {HTMLButtonElement} clearButton - The button that resets every filter to its default.
+   * @param {Record<string, any>} initialFilters - Filters parsed from the URL by the server, passed through the page.
    */
   constructor(root, clearButton, initialFilters) {
     this.#root = root;
@@ -48,7 +48,7 @@ class GalleryFilter {
 
   /**
    * Applies a sidebar change: log it, follow the label type if it moved, and refetch the cards.
-   * @param {object} change The change descriptor from FilterSidebar.
+   * @param {FilterSidebarChange} change - The change descriptor from FilterSidebar.
    */
   #onChange(change) {
     this.#log(change);
@@ -99,7 +99,7 @@ class GalleryFilter {
     const levelKeys = util.misc.getRatingLevelKeys(iconType);
     for (const btn of section.querySelectorAll('.severity-button')) {
       const severity = Number(btn.dataset.severity);
-      const icon = btn.querySelector('.severity-button__icon');
+      const icon = /** @type {HTMLImageElement} */ (btn.querySelector('.severity-button__icon'));
       icon.dataset.selectedSrc = util.misc.getSmileyIconPath(severity, iconType, true);
       icon.dataset.unselectedSrc = util.misc.getSmileyIconPath(severity, iconType, false);
       icon.src = btn.getAttribute('aria-pressed') === 'true' ? icon.dataset.selectedSrc : icon.dataset.unselectedSrc;
@@ -141,9 +141,9 @@ class GalleryFilter {
     // One occurrence per tag rather than a comma-joined list: tag names are free-form and one of them contains a
     // comma (#4783); see util.url.setRepeated.
     util.url.setRepeated(params, 'tags', this.getAppliedTagNames());
-    // TODO once we add a UI for neighborhood filtering, have that process mirror what we have for other filters.
-    const { neighborhoods, aiValidationOptions } = this.#initialFilters;
-    if (neighborhoods.length > 0) params.set('neighborhoods', neighborhoods.join());
+    // TODO once we add a UI for region filtering, have that process mirror what we have for other filters.
+    const { regionIds, aiValidationOptions } = this.#initialFilters;
+    if (regionIds.length > 0) params.set('regions', regionIds.join());
     if (severities.length !== 4) params.set('severities', severities.join());
     if (valOptions.join() !== GalleryFilter.#DEFAULT_VALIDATIONS.join()) {
       params.set('validationOptions', valOptions.join());
@@ -157,7 +157,7 @@ class GalleryFilter {
 
   /**
    * Translates a sidebar change into this page's tracker event.
-   * @param {object} change The change descriptor from FilterSidebar.
+   * @param {FilterSidebarChange} change - The change descriptor from FilterSidebar.
    */
   #log({ kind, section, value, checked, labelType, tag }) {
     if (!sg.tracker) return;
@@ -166,6 +166,7 @@ class GalleryFilter {
     if (kind === 'tag') {
       sg.tracker.push(checked ? 'TagApply' : 'TagUnapply', null, { Tag: tag, Label_Type: labelType });
     } else if (kind === 'only') {
+      /** @type {Record<string, string|number>} */
       let notes = { ValidationOption: value };
       if (section === FilterSidebar.SEVERITY) notes = { Severity: severityName(value) };
       else if (section === 'label-type') notes = { Label_Type: value };
@@ -185,7 +186,7 @@ class GalleryFilter {
 
   /**
    * The event-name stem a section's batch actions log under, matching its per-option events.
-   * @param {string} section The section name.
+   * @param {string} section - The section name.
    * @returns {string} The stem, e.g. "Severity" for SeverityOnly / SeveritySelectAll.
    */
   static #eventPrefix(section) {
@@ -203,7 +204,7 @@ class GalleryFilter {
     return this.#sidebar.getState().severities.map((s) => (s === 0 ? 'null' : String(s)));
   }
 
-  /** @returns {object} The tags narrowing each selected label type, keyed by type name. */
+  /** @returns {Record<string, string[]>} The tags narrowing each selected label type, keyed by type name. */
   getAppliedTagsByType() {
     const tags = this.#sidebar.getState().tags;
     return Object.fromEntries(this.#status.currentLabelTypes.map((type) => [type, tags[type] ?? []]));

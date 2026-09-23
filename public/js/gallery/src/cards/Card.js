@@ -7,7 +7,12 @@ class Card {
 
   #params;
   #cropUrl;
+  #cropMarker;
   #gsvImageUrl;
+
+  #markerWrapper;
+  #sourceLogo;
+  #attribution;
 
   // UI card element.
   #card = null;
@@ -18,6 +23,7 @@ class Card {
     label_id: undefined,
     label_type: undefined,
     pano_id: undefined,
+    pano_source: undefined,
     pano_data: undefined,
     lat: undefined,
     lng: undefined,
@@ -47,6 +53,8 @@ class Card {
     comments: [],
     from_current_user: false,
     can_edit: false,
+    deleted: false,
+    can_restore: false,
   };
 
   // Status to determine if static imagery has been loaded.
@@ -56,13 +64,16 @@ class Card {
   #panoImage;
 
   /**
-   * @param {*} params Properties of the associated label.
-   * @param {string} cropUrl Locally-saved crop image url, or null if no crop exists.
-   * @param {string} gsvImageUrl Google Street View static image url, or null if non-GSV imagery.
+   * @param {*} params - Properties of the associated label.
+   * @param {string} cropUrl - Locally-saved crop image url, or null if no crop exists.
+   * @param {string} gsvImageUrl - Google Street View static image url, or null if non-GSV imagery.
+   * @param {?{x: number, y: number}} [cropMarker=null] - Where the label is in the crop, as fractions of its width and
+   *     height; null when no crop exists or nothing has recorded it yet.
    */
-  constructor(params, cropUrl, gsvImageUrl) {
+  constructor(params, cropUrl, gsvImageUrl, cropMarker = null) {
     this.#params = params;
     this.#cropUrl = cropUrl;
+    this.#cropMarker = cropMarker;
     this.#gsvImageUrl = gsvImageUrl;
 
     this.#status = {
@@ -80,7 +91,7 @@ class Card {
   /**
    * Initialize Card.
    *
-   * @param {*} param Label properties.
+   * @param {*} param - Label properties.
    */
   #init(param) {
     const properties = this.#properties;
@@ -135,7 +146,7 @@ class Card {
     const cardInfo = document.createElement('div');
     cardInfo.className = 'card-info';
 
-    // Create the div to store the label type, and the neighborhood the label sits in when we know its name.
+    // Create the div to store the label type, and the region the label sits in when we know its name.
     const cardHeader = document.createElement('div');
     cardHeader.className = 'card-header';
     cardHeader.innerHTML = `<div class="card-header__type">${labelTypeName}</div>`;
@@ -148,7 +159,7 @@ class Card {
       location.className = 'card-location';
       location.href = `/labelMap?labelId=${properties.label_id}`;
       location.title = i18next.t('labelmap:open-label-on-labelmap');
-      // The visible text is the neighborhood, so the accessible name leads with it (WCAG 2.5.3) and the promise
+      // The visible text is the region, so the accessible name leads with it (WCAG 2.5.3) and the promise
       // the sighted user gets on hover follows.
       location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
       location.addEventListener('click', () => {
@@ -163,7 +174,7 @@ class Card {
       pin.alt = '';
       const name = document.createElement('span');
       name.className = 'card-location__name';
-      name.textContent = regionName; // Set as text, not markup: neighborhood names are city data, not ours.
+      name.textContent = regionName; // Set as text, not markup: region names are city data, not ours.
       location.append(pin, name);
       cardHeader.appendChild(location);
     }
@@ -198,16 +209,11 @@ class Card {
     cardTags.id = properties.label_id;
     cardData.appendChild(cardTags);
 
-    // Append the overlays for label information on top of the image. The crop is cover-fitted into the card's 3:2
-    // box (.static-gallery-image), so the marker's percentages are taken in the visible part of the crop (#5085).
-    const markerPercent = util.misc.markerPercentInCoverBox(
-      properties.original_canvas_x, properties.original_canvas_y,
-      properties.original_canvas_width, properties.original_canvas_height, Card.CARD_IMAGE_ASPECT,
-    );
+    // Append the overlays for label information on top of the image.
     const markerWrapper = document.createElement('div');
     markerWrapper.className = 'gallery-marker-wrapper';
-    markerWrapper.style.left = `calc(${markerPercent.left}% - var(--gallery-marker-size) / 2)`;
-    markerWrapper.style.top = `calc(${markerPercent.top}% - var(--gallery-marker-size) / 2)`;
+    this.#markerWrapper = markerWrapper;
+    this.#positionMarker();
     markerWrapper.appendChild(labelIcon);
     if (properties.ai_generated) {
       const aiIndicator = aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']);
@@ -222,6 +228,10 @@ class Card {
     }
     imageHolder.appendChild(markerWrapper);
     imageHolder.appendChild(panoImage);
+
+    this.#sourceLogo = createPanoViewerLogo(imageHolder, properties.pano_source);
+    this.#attribution = createPanoAttribution(imageHolder, { compact: true });
+    this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
     this.validationMenu = new ValidationMenu(this, $(imageHolder));
@@ -257,7 +267,7 @@ class Card {
   /**
    * Get a property.
    *
-   * @param propName Property name.
+   * @param {string} propName - Property name.
    * @returns {*} Property value if property name is valid. Otherwise false.
    */
   getProperty(propName) {
@@ -275,6 +285,30 @@ class Card {
     return this.#cropUrl;
   }
 
+  /** @returns {?{x: number, y: number}} The crop marker as fractions; null when nothing recorded it. */
+  getCropMarker() {
+    return this.#cropMarker;
+  }
+
+  /**
+   * @returns {{x: number, y: number}} Fractions of the card's 3:2 photo box, into which the image is cover-fitted.
+   */
+  #markerFraction() {
+    return util.misc.labelMarkerFraction(this.#status.imageSource, this.#cropMarker,
+      this.#properties.original_canvas_x, this.#properties.original_canvas_y, {
+        canvasWidth: this.#properties.original_canvas_width,
+        canvasHeight: this.#properties.original_canvas_height,
+        boxAspect: Card.CARD_IMAGE_ASPECT,
+      });
+  }
+
+  /** Custom properties rather than offsets, so the marker's centring on the point stays in CSS beside its size. */
+  #positionMarker() {
+    const { x, y } = this.#markerFraction();
+    this.#markerWrapper.style.setProperty('--gallery-marker-x', String(x));
+    this.#markerWrapper.style.setProperty('--gallery-marker-y', String(y));
+  }
+
   getBackupImageData() {
     return buildBackupImageData(this.#params);
   }
@@ -289,17 +323,25 @@ class Card {
         const img = this.#panoImage;
         const primaryUrl = this.#cropUrl || this.#gsvImageUrl;
         const fallbackUrl = this.#cropUrl ? this.#gsvImageUrl : null;
+        // The container asks again on every page and filter render, so a card whose last attempt fell back to the
+        // still, or failed outright, starts over from the crop rather than keeping that attempt's marker and credit.
+        this.#useSource(this.#cropUrl ? 'crop' : 'api');
         img.onload = () => {
           this.#status.imageFetched = true;
+          this.#showImage();
           resolve(true);
         };
         img.onerror = () => {
           if (fallbackUrl) {
-            // Primary failed; try the other source.
-            this.#status.imageSource = this.#cropUrl ? 'api' : 'crop';
-            img.onerror = () => resolve(false); // Prevent infinite loop.
+            // The crop failed; try the still, and place the marker and the credit for it.
+            this.#useSource('api');
+            img.onerror = () => { // Prevent infinite loop.
+              this.#hideMissingImage();
+              resolve(false);
+            };
             img.src = fallbackUrl;
           } else {
+            this.#hideMissingImage();
             resolve(false);
           }
         };
@@ -311,10 +353,58 @@ class Card {
   }
 
   /**
+   * Records which source is being shown and places the marker and the credit for it: the crop's recorded position
+   * describes the crop only, and only the crop owes a credit.
+   * @param {string} source - 'crop' or 'api'.
+   */
+  #useSource(source) {
+    this.#status.imageSource = source;
+    this.#positionMarker();
+    this.#creditImage(source);
+  }
+
+  /**
+   * Shows the imagery credit over a crop, our cut of someone else's panorama, and takes it down for anything else
+   * (#4865, #5202): the still brands itself (see PanoViewerLogo). Only licensed imagery carries a licence, so
+   * createPanoAttribution hides itself for a source with none, leaving the logo alone.
+   * @param {?string} source - What the card is showing: 'crop', 'api', or null once every source has failed.
+   */
+  #creditImage(source) {
+    if (source === 'crop') {
+      this.#sourceLogo.showSourceLogo();
+      this.#attribution.show(this.#properties.pano_data?.attribution);
+    } else {
+      this.#sourceLogo.hide();
+      this.#attribution.hide();
+    }
+  }
+
+  /**
+   * Hides the image and its marker once no source has loaded (#5327): with `return_error_code` on the still, an
+   * expired pano answers 404 rather than a grey "no imagery" card. Type, severity, tags and votes are still worth
+   * showing; a broken-image icon and a marker pointing into an empty frame are not.
+   */
+  #hideMissingImage() {
+    this.#panoImage.classList.add('static-gallery-image--missing');
+    // The image stays in the tree, transparent, as the click target that opens the card; its alt would describe a
+    // picture that isn't there.
+    this.#panoImage.setAttribute('aria-hidden', 'true');
+    this.#markerWrapper.classList.add('gallery-marker-wrapper--missing');
+    this.#creditImage(null);
+  }
+
+  /** Undoes #hideMissingImage once a source has loaded, so a retry after a transient failure shows the image. */
+  #showImage() {
+    this.#panoImage.classList.remove('static-gallery-image--missing');
+    this.#panoImage.removeAttribute('aria-hidden');
+    this.#markerWrapper.classList.remove('gallery-marker-wrapper--missing');
+  }
+
+  /**
    * Renders the card.
    * TODO: should there be a safety check here to make sure pano is loaded?
    *
-   * @param cardContainer UI element to render card in.
+   * @param {JQuery} cardContainer - UI element to render card in.
    */
   render(cardContainer) {
     // If the card had transparent background from the expanded view opening earlier, remove transparency on rerender.
@@ -343,13 +433,52 @@ class Card {
   /**
    * Sets a property.
    *
-   * @param key Property name.
-   * @param value Property value.
+   * @param {string} key - Property name.
+   * @param {*} value - Property value.
    * @returns {Card}
    */
   setProperty(key, value) {
     this.#properties[key] = value;
     return this;
+  }
+
+  /**
+   * Fades the card after a delete from the expanded view (#3591) rather than removing it, so paging and the grid hold
+   * until the next load. Remembered in the properties the expanded view is rebuilt from.
+   * @param {boolean} deleted
+   * @param {boolean} canRestore - Whether the viewer may undo it, as the server said.
+   */
+  setDeleted(deleted, canRestore) {
+    this.#properties.deleted = deleted;
+    this.#properties.can_restore = canRestore;
+    this.#card.classList.toggle('gallery-card--deleted', deleted);
+  }
+
+  /**
+   * Applies a type change made in the expanded view (#3671). The card stays even if the new type no longer matches
+   * the Gallery's filter; the next load sorts that out.
+   * @param {string} labelType
+   */
+  updateLabelType(labelType) {
+    if (labelType === this.getLabelType()) return;
+    this.#properties.label_type = labelType;
+    const labelTypeName = i18next.t(util.camelToKebab(labelType));
+    const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
+    if (icon) icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    const header = this.#card.querySelector('.card-header__type');
+    if (header) header.textContent = labelTypeName;
+    const image = /** @type {HTMLImageElement} */ (this.#card.querySelector('.static-gallery-image'));
+    if (image) image.alt = i18next.t('gallery:card-image-alt', { labelType: labelTypeName });
+    // The severity block exists only for rated types; updateSeverityAndTags fills it if present.
+    const cardData = this.#card.querySelector('.card-data');
+    let cardSeverity = this.#card.querySelector('.card-severity');
+    if (util.misc.labelTypeHasSeverity(labelType) && !cardSeverity && cardData) {
+      cardSeverity = document.createElement('div');
+      cardSeverity.className = 'card-severity';
+      cardData.prepend(cardSeverity);
+    } else if (!util.misc.labelTypeHasSeverity(labelType) && cardSeverity) {
+      cardSeverity.remove();
+    }
   }
 
   /**
@@ -373,8 +502,8 @@ class Card {
   /**
    * Set aspect of status.
    *
-   * @param {string} key Status name.
-   * @param {*} value Status value.
+   * @param {string} key - Status name.
+   * @param {*} value - Status value.
    */
   setStatus(key, value) {
     if (key in this.#status) {
@@ -411,7 +540,7 @@ class Card {
 
   /**
    * Returns the current ImageID being displayed in the image.
-   * @returns the image ID of the card that is being displayed.
+   * @returns {string} The image ID of the card that is being displayed.
    */
   getImageId() {
     return this.#imageId;

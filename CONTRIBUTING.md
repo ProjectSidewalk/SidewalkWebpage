@@ -113,10 +113,10 @@ user-facing text, add at least temporary (machine) translations for the other la
 ## Testing your changes
 
 There's a backend test suite (ScalaTest) under `test/` — mainly public-API functional specs. Run it with
-`sbt --client test` (the DB-backed API specs boot the app against Postgres+PostGIS, so the `db` container must be
+`make test-scala` (the DB-backed API specs boot the app against Postgres+PostGIS, so the `db` container must be
 up); the overall strategy and phased rollout are in [`docs/testing-and-ci.md`](docs/testing-and-ci.md). CI runs the
 whole suite as a blocking, required check — a new spec is picked up by existing, with nothing to enroll it in — but
-coverage is still thin, so also compile (`sbt --client compile`) and exercise behavior in the running app. See
+coverage is still thin, so also compile (`make compile`) and exercise behavior in the running app. See
 [`docs/dev-environment.md`](docs/dev-environment.md) for the exact commands.
 
 **Update logging.** User interactions (clicks, key presses, etc.) should be logged. If you add or change
@@ -186,8 +186,8 @@ Full gating policy and rationale: [`docs/testing-and-ci.md`](docs/testing-and-ci
 
 - **In this repo:** [`README.md`](README.md), [`CONTRIBUTING.md`](CONTRIBUTING.md), [`SECURITY.md`](SECURITY.md),
   [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md), [`CLAUDE.md`](CLAUDE.md), and guides under [`docs/`](docs/).
-- **In the [wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki):** operational runbooks, city-deployment
-  guidance, and visual/GIS tutorials.
+- **In the [wiki](https://github.com/ProjectSidewalk/SidewalkWebpage/wiki):** the partner-facing deployment
+  considerations and the few operational how-tos for a running deployment that haven't moved into `docs/` yet.
 
 If you change behavior a doc describes, update the doc in the same PR.
 

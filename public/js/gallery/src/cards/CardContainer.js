@@ -42,11 +42,11 @@ class CardContainer {
   #currentCards = new CardBucket();
 
   /**
-   * @param {*} uiCardContainer UI element tied with this CardContainer.
-   * @param {object} initialFilters Object containing initial set of filters in sidebar.
-   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
+   * @param {*} uiCardContainer - UI element tied with this CardContainer.
+   * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
+   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
+   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    */
   constructor(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername) {
     this.#uiCardContainer = uiCardContainer;
@@ -61,11 +61,11 @@ class CardContainer {
 
   /**
    * Creates a CardContainer, fetches the first batch of labels, and builds the ExpandedView.
-   * @param {*} uiCardContainer UI element tied with this CardContainer.
-   * @param {object} initialFilters Object containing initial set of filters in sidebar.
-   * @param {typeof PanoViewer} panoViewerType The type of pano viewer to initialize.
-   * @param {string} viewerAccessToken An access token that authorizes image requests for the pano viewer.
-   * @param {?string} currUsername The viewer's username when signed in to a real account, else null.
+   * @param {*} uiCardContainer - UI element tied with this CardContainer.
+   * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
+   * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
+   * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
+   * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    * @returns {Promise<CardContainer>}
    */
   static async create(uiCardContainer, initialFilters, panoViewerType, viewerAccessToken, currUsername) {
@@ -103,7 +103,7 @@ class CardContainer {
       CardContainer.#initialLoad,
       filters.valOptions,
       Array.from(this.#loadedLabelIds),
-      initialFilters.neighborhoods,
+      initialFilters.regionIds,
       filters.severities,
       filters.tagsByType,
       initialFilters.aiValidationOptions,
@@ -161,7 +161,7 @@ class CardContainer {
   /**
    * Returns the index of a card in the current CardBucket in use.
    *
-   * @param {string} id The id of the image Id to find.
+   * @param {string} id - The id of the image Id to find.
    * @returns {number} The index of the matching card in the current CardBucket.
    */
   #findCardIndex(id) {
@@ -171,7 +171,7 @@ class CardContainer {
   /**
    * Gets a card from the current CardBucket given an index.
    *
-   * @param {number} index The index of the card to find.
+   * @param {number} index - The index of the card to find.
    * @returns {Card} The Card that has the matching index in the current CardBucket.
    */
   getCardByIndex(index) {
@@ -227,18 +227,18 @@ class CardContainer {
   /**
    * Grab n labels of the specified label types, severities, and tags.
    *
-   * @param {string[]} labelTypes Label type names specifying which types of labels to grab.
-   * @param {*} n Number of labels to grab.
-   * @param validationOptions List of validation options for fetched labels: correct, incorrect, and/or unvalidated.
-   * @param {*} loadedLabels Label Ids of labels already grabbed.
-   * @param {*} neighborhoods Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
-   * @param {*} severities Severities the labels to be grabbed can have (Set to undefined if N/A).
-   * @param {object} tagsByLabelType Tags each label type is narrowed to, keyed by type name.
-   * @param aiValidationOptions List of AI validation options for labels: correct, incorrect, and/or unvalidated.
-   * @param {*} callback Function to be called when labels arrive.
+   * @param {string[]} labelTypes - Label type names specifying which types of labels to grab.
+   * @param {*} n - Number of labels to grab.
+   * @param {string[]} validationOptions - Validation options for labels: correct, incorrect, and/or unvalidated.
+   * @param {*} loadedLabels - Label Ids of labels already grabbed.
+   * @param {*} regionIds - Region IDs the labels to be grabbed can be from (Set to undefined if N/A).
+   * @param {*} severities - Severities the labels to be grabbed can have (Set to undefined if N/A).
+   * @param {object} tagsByLabelType - Tags each label type is narrowed to, keyed by type name.
+   * @param {string[]|undefined} aiValidationOptions - AI validation options: correct, incorrect, and/or unvalidated.
+   * @param {Function} [callback] - Called when labels arrive (or the request fails).
    */
   fetchLabels(
-    labelTypes, n, validationOptions, loadedLabels, neighborhoods, severities, tagsByLabelType, aiValidationOptions,
+    labelTypes, n, validationOptions, loadedLabels, regionIds, severities, tagsByLabelType, aiValidationOptions,
     callback,
   ) {
     const url = '/label/labels';
@@ -246,7 +246,7 @@ class CardContainer {
       label_types: labelTypes,
       n,
       validation_options: validationOptions,
-      ...(neighborhoods !== undefined && { neighborhoods }),
+      ...(regionIds !== undefined && { region_ids: regionIds }),
       ...(severities !== undefined && { severities }),
       ...(tagsByLabelType !== undefined && { tags_by_label_type: tagsByLabelType }),
       ...(aiValidationOptions !== undefined && { ai_validation_options: aiValidationOptions }),
@@ -264,7 +264,7 @@ class CardContainer {
           const labels = response.labelsOfType;
           for (let i = 0; i < labels.length; i++) {
             const labelProp = labels[i];
-            const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl);
+            const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.cropMarker);
             this.push(card);
             this.#loadedLabelIds.add(card.getLabelId());
           }
@@ -295,7 +295,7 @@ class CardContainer {
 
   /**
    * Push a card into the CardBucket of its label type.
-   * @param card Card to add.
+   * @param {Card} card - Card to add.
    */
   push(card) {
     this.#cardsByType[card.getLabelType()].push(card);
@@ -304,7 +304,7 @@ class CardContainer {
   /**
    * The filters the sidebar is currently reporting, in the shape the label query takes.
    * @returns {{types: string[], valOptions: string[], severities: (string[]|undefined),
-   *      tagsByType: object}} The current filter state.
+   *      tagsByType: Record<string, string[]>}} The current filter state.
    */
   #currentFilters() {
     const types = sg.cardFilter.getStatus().currentLabelTypes;
@@ -326,7 +326,8 @@ class CardContainer {
    * fetched. Tags are per type — a curb ramp's "narrow" says nothing about an obstacle — so each type is filtered
    * against its own.
    *
-   * @param {object} filters The filters from #currentFilters().
+   * @param {{types: string[], valOptions: string[], severities: (string[]|undefined),
+   *      tagsByType: Record<string, string[]>}} filters - The filters from #currentFilters().
    * @returns {CardBucket} The cards to page through.
    */
   #collectCurrentCards({ types, valOptions, severities, tagsByType }) {
@@ -366,7 +367,7 @@ class CardContainer {
         CardContainer.#cardsPerPage * 2,
         filters.valOptions,
         Array.from(this.#loadedLabelIds),
-        this.#initialFilters.neighborhoods,
+        this.#initialFilters.regionIds,
         filters.severities,
         filters.tagsByType,
         this.#initialFilters.aiValidationOptions,
@@ -465,7 +466,7 @@ class CardContainer {
 
   /**
    * Clear Cards from UI.
-   * @param {*} cardContainer UI element to clear Cards from.
+   * @param {*} cardContainer - UI element to clear Cards from.
    */
   #clearCardContainer(cardContainer) {
     cardContainer.children().each((i, el) => {
@@ -479,7 +480,7 @@ class CardContainer {
 
   /**
    * Get the cards that form the current page.
-   * @returns Array of cards from the current page.
+   * @returns {Card[]} Array of cards from the current page.
    */
   getCurrentPageCards() {
     let idx = (this.#currentPage - 1) * CardContainer.#cardsPerPage;
@@ -496,7 +497,7 @@ class CardContainer {
 
   /**
    * Returns whether the current page is the last page of queried cards.
-   * @returns True if current page is last page of cards that satisfies applied query, false otherwise.
+   * @returns {boolean} True if current page is last page of cards that satisfies applied query, false otherwise.
    */
   isLastPage() {
     return this.#lastPage;

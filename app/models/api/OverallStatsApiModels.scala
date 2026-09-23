@@ -4,20 +4,25 @@
  */
 package models.api
 
-import models.api.ApiModelUtils.{labelTypeOrdering, toSnakeKey}
+import models.api.ApiModelUtils.{labelTypeOrdering, toCsvKeyValueRows}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
 import java.time.{Duration, OffsetDateTime}
 
-case class LabelSevStats(n: Int, nWithSeverity: Option[Int], severityMean: Option[Double], severitySD: Option[Double])
+case class LabelSevStats(
+    n: Int,
+    nWithSeverity: Option[Int],
+    severityMean: Option[Double],
+    severityStddev: Option[Double]
+)
 
 object LabelSevStats {
   implicit val labelSevStatsWrites: Writes[LabelSevStats] = (
     (__ \ "count").write[Int] and
       (__ \ "count_with_severity").write[Option[Int]] and
       (__ \ "severity_mean").write[Option[Double]] and
-      (__ \ "severity_sd").write[Option[Double]]
+      (__ \ "severity_stddev").write[Option[Double]]
   )(unlift(LabelSevStats.unapply))
 }
 
@@ -28,12 +33,17 @@ object LabelAccuracy {
     (__ \ "validated").write[Int] and
       (__ \ "agreed").write[Int] and
       (__ \ "disagreed").write[Int] and
-      (__ \ "accuracy").writeNullable[Double] and
+      (__ \ "accuracy").write[Option[Double]] and
       (__ \ "has_a_validation").write[Int]
   )(unlift(LabelAccuracy.unapply))
 }
 
-case class AiConcurrence(aiYesHumanConcurs: Int, aiYesHumanDiffers: Int, aiNoHumanDiffers: Int, aiNoHumanConcurs: Int)
+case class AiConcurrence(
+    aiYesMajVoteConcurs: Int,
+    aiYesMajVoteDiffers: Int,
+    aiNoMajVoteDiffers: Int,
+    aiNoMajVoteConcurs: Int
+)
 
 object AiConcurrence {
   private val voteTypeOrder: Seq[String] = Seq("human_majority_vote", "admin_majority_vote")
@@ -47,10 +57,10 @@ object AiConcurrence {
   }
 
   implicit val aiConcurrenceWrites: Writes[AiConcurrence] = (
-    (__ \ "ai_yes_human_concurs").write[Int] and
-      (__ \ "ai_yes_human_differs").write[Int] and
-      (__ \ "ai_no_human_differs").write[Int] and
-      (__ \ "ai_no_human_concurs").write[Int]
+    (__ \ "ai_yes_maj_vote_concurs").write[Int] and
+      (__ \ "ai_yes_maj_vote_differs").write[Int] and
+      (__ \ "ai_no_maj_vote_differs").write[Int] and
+      (__ \ "ai_no_maj_vote_concurs").write[Int]
   )(unlift(AiConcurrence.unapply))
 }
 
@@ -63,7 +73,7 @@ object AiConcurrence {
 case class ValidationSourceStats(nValidations: Int, accuracyByLabelType: Map[String, LabelAccuracy]) {
 
   def toJson: JsObject = JsObject(
-    Seq("total_validations" -> JsNumber(nValidations.toDouble)) ++
+    Seq("total_validations" -> JsNumber(nValidations)) ++
       // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
       accuracyByLabelType.toSeq.sorted(labelTypeOrdering).map(s => s._1 -> Json.toJson(s._2))
   )
@@ -107,9 +117,8 @@ case class ProjectSidewalkStats(
 
   def toJson: JsObject = {
     Json.obj(
-      "launch_date"                   -> launchDate,
-      "avg_timestamp_last_100_labels" -> avgTimestampLast100Labels.map(_.toString),
-      "km_explored"                   -> kmExplored,
+      "launch_date" -> launchDate,
+      "km_explored" -> kmExplored,
       // The no_overlap/multiple/single km count every completed audit regardless of imagery age. km_needs_reaudit is
       // the subset of no_overlap whose completed audits all predate newer imagery (#4384), so km on current imagery =
       // no_overlap − needs_reaudit. km_explored keeps counting all completed audits (total work done, with overlap).
@@ -137,9 +146,13 @@ case class ProjectSidewalkStats(
       ),
       "labels" -> JsObject(
         Seq(
-          ("label_count", JsNumber(nLabels.toDouble)),
-          ("label_count_with_severity", JsNumber(nLabelsWithSeverity.toDouble)),
+          ("count", JsNumber(nLabels)),
+          ("count_with_severity", JsNumber(nLabelsWithSeverity)),
           ("avg_label_timestamp", avgLabelTimestamp.map(t => JsString(t.toString)).getOrElse(JsNull)),
+          (
+            "avg_timestamp_last_100_labels",
+            avgTimestampLast100Labels.map(t => JsString(t.toString)).getOrElse(JsNull)
+          ),
           (
             "avg_age_of_image_when_labeled",
             avgImageAgeByLabel.map(avgImgAge => JsString(s"${avgImgAge.toDays} days")).getOrElse(JsNull)
@@ -161,7 +174,7 @@ case class ProjectSidewalkStats(
         "ai"       -> validations.ai.toJson
       ),
       "ai_stats" -> JsObject(
-        // { "Overall" -> "human_maj_vote" -> { "ai_yes_human_concurs": ###, ... }, ... }, "CurbRamp" -> { ... }, ... }.
+        // { "Overall" -> "human_maj_vote" -> { "ai_yes_maj_vote_concurs": ###, ... }, ... }, "CurbRamp" -> {...},...}.
         aiPerformance.toSeq.sorted(labelTypeOrdering).map { case (lType, statsMap) =>
           lType -> JsObject(
             statsMap.toSeq.sorted(AiConcurrence.voteTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
@@ -171,81 +184,11 @@ case class ProjectSidewalkStats(
     )
   }
 
-  /**
-   * One response is a single object rather than a series of records, so the CSV is a vertical listing rather than a
-   * header plus data rows.
-   *
-   * @return One "snake_case_key,value" line per stat (#3871), in the same order as the JSON.
-   */
-  def toCsvRows: Seq[String] = {
-    def row(label: String, value: Any): String = s"${toSnakeKey(label)},$value"
+  /** @return One "key,value" line per stat, each key the value's dotted path through the JSON (#3871, #4320). */
+  def toCsvRows: Seq[String] = toCsvKeyValueRows(toJson)
+}
 
-    val topLevelRows: Seq[String] = Seq(
-      row("Launch Date", launchDate),
-      row("Recent Labels Average Timestamp", avgTimestampLast100Labels.getOrElse("NA")),
-      row("KM Explored", kmExplored),
-      row("KM Explored Without Overlap", kmExploreNoOverlap),
-      row("KM Explored Multiple Users", kmExploredMultipleUsers),
-      row("KM Explored Single User", kmExploredSingleUser),
-      row("KM Needs Reaudit", kmNeedsReaudit),
-      row("KM Explorable", kmOpen), // Auditable-now network (status = open); alias of KM Open below.
-      row("KM Open", kmOpen),
-      row("KM No Imagery", kmNoImagery),
-      row("KM Closed", kmClosed),
-      row("KM Disabled", kmDisabled),
-      row("Total User Count", nUsers),
-      row("Explore User Count", nExplorers),
-      row("Validate User Count", nValidators),
-      row("Registered User Count", nRegistered),
-      row("Anonymous User Count", nAnon),
-      row("Turker User Count", nTurker),
-      row("Researcher User Count", nResearcher),
-      row("Total Label Count", nLabels),
-      row("Total Label Count With Severity", nLabelsWithSeverity),
-      row("Average Label Timestamp", avgLabelTimestamp.getOrElse("NA")),
-      row("Average Age of Image When Labeled", avgImageAgeByLabel.map(avg => s"${avg.toDays} Days").getOrElse("NA")),
-      row("Stddev Label Timestamp", stddevLabelTimestamp.map(sd => s"${sd.toDays} Days").getOrElse("NA")),
-      row("Stddev Age of Image When Labeled", stddevImageAgeByLabel.map(sd => s"${sd.toDays} Days").getOrElse("NA"))
-    )
+object ProjectSidewalkStats {
+  val csvHeader: String = ApiModelUtils.keyValueCsvHeader
 
-    val severityRows: Seq[String] =
-      severityByLabelType.toSeq.sorted(labelTypeOrdering).flatMap { case (labType, sevStats) =>
-        Seq(
-          row(s"$labType Count", sevStats.n),
-          row(s"$labType Count With Severity", sevStats.nWithSeverity.getOrElse("NA")),
-          row(s"$labType Severity Mean", sevStats.severityMean.map(_.toString).getOrElse("NA")),
-          row(s"$labType Severity SD", sevStats.severitySD.map(_.toString).getOrElse("NA"))
-        )
-      }
-
-    val validationRows: Seq[String] =
-      Seq(("Combined", validations.combined), ("Human", validations.human), ("AI", validations.ai)).flatMap {
-        case (srcLabel, srcStats) =>
-          row(s"$srcLabel Total Validations", srcStats.nValidations) +:
-            srcStats.accuracyByLabelType.toSeq.sorted(labelTypeOrdering).flatMap { case (labType, accStats) =>
-              Seq(
-                row(s"$srcLabel $labType Labels Validated", accStats.n),
-                row(s"$srcLabel $labType Agreed Count", accStats.nAgree),
-                row(s"$srcLabel $labType Disagreed Count", accStats.nDisagree),
-                row(s"$srcLabel $labType Accuracy", accStats.accuracy.map(_.toString).getOrElse("NA")),
-                row(s"$srcLabel $labType Labels With a Validation", accStats.nWithValidation)
-              )
-            }
-      }
-
-    val aiRows: Seq[String] = aiPerformance.toSeq.sorted(labelTypeOrdering).flatMap { case (labelType, aiStatsMap) =>
-      aiStatsMap.toSeq.sorted(AiConcurrence.voteTypeOrdering).flatMap { case (voteType, aiStats) =>
-        val voteTypeText: String =
-          if (voteType == "human_majority_vote") "Human Majority Vote" else "Admin Majority Vote"
-        Seq(
-          row(s"$labelType AI Yes and $voteTypeText Concurs", aiStats.aiYesHumanConcurs),
-          row(s"$labelType AI Yes but $voteTypeText Differs", aiStats.aiYesHumanDiffers),
-          row(s"$labelType AI No but $voteTypeText Differs", aiStats.aiNoHumanDiffers),
-          row(s"$labelType AI No and $voteTypeText Concurs", aiStats.aiNoHumanConcurs)
-        )
-      }
-    }
-
-    topLevelRows ++ severityRows ++ validationRows ++ aiRows
-  }
 }

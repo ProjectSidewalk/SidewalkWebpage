@@ -7,6 +7,7 @@ import models.mission.MissionTableDef
 import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
+import models.utils.IpAddress
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -19,7 +20,7 @@ case class ValidationTaskComment(
     missionId: Int,
     labelId: Int,
     userId: String,
-    ipAddress: String,
+    ipAddress: IpAddress,
     panoId: String,
     heading: Double,
     pitch: Double,
@@ -35,7 +36,7 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def missionId: Rep[Int]               = column[Int]("mission_id")
   def labelId: Rep[Int]                 = column[Int]("label_id")
   def userId: Rep[String]               = column[String]("user_id")
-  def ipAddress: Rep[String]            = column[String]("ip_address")
+  def ipAddress: Rep[IpAddress]         = column[IpAddress]("ip_address")
   def panoId: Rep[String]               = column[String]("pano_id")
   def heading: Rep[Double]              = column[Double]("heading")
   def pitch: Rep[Double]                = column[Double]("pitch")
@@ -76,16 +77,35 @@ class ValidationTaskCommentTable @Inject() (
   }
 
   /**
-   * Deletes a user's comment(s) on a label, if any. Called when they replace or clear their validation of it.
+   * Moves a user's comment on a label out of the live table and into `validation_task_comment_history`.
+   *
+   * The only way a comment leaves this table, so a validator's words outlive every path that stops showing them
+   * (#5076).
+   *
+   * One `DELETE ... RETURNING` feeding the insert, rather than a read-then-delete pair, whose two statements see
+   * different snapshots under READ COMMITTED: a concurrent replace could be archived twice, or deleted after a read
+   * that found nothing and so recorded nowhere. Only rows this statement deleted reach the history. It is also one
+   * round trip on the Validate submission path, which runs it once per validation in a batch.
    *
    * Scoped by user rather than by mission: a comment belongs to whoever wrote it, and the mission it was written under
    * has usually rolled over by the time the same user revisits the label from a label card (#4653). Matching on the
    * current mission would strand the old comment on a label whose validation had just been replaced or cleared.
    *
-   * @return Count of comments deleted, 0 or 1 — (label_id, user_id) is UNIQUE.
+   * @param changeType What is removing the comment, which a later reader cannot recover from the rows alone.
+   * @return Count of comments archived, 0 or 1 — (label_id, user_id) is UNIQUE.
    */
-  def deleteIfExists(labelId: Int, userId: String): DBIO[Int] = {
-    validationTaskComments.filter(comment => comment.labelId === labelId && comment.userId === userId).delete
+  def archive(labelId: Int, userId: String, changeType: ValidationCommentChangeType.Value): DBIO[Int] = {
+    sqlu"""WITH superseded AS (
+             DELETE FROM validation_task_comment
+             WHERE label_id = $labelId AND user_id = $userId
+             RETURNING *
+           )
+           INSERT INTO validation_task_comment_history (validation_task_comment_id, mission_id, label_id, user_id,
+                                                        ip_address, pano_id, heading, pitch, zoom, lat, lng,
+                                                        timestamp, comment, change_type)
+           SELECT validation_task_comment_id, mission_id, label_id, user_id, ip_address, pano_id, heading, pitch,
+                  zoom, lat, lng, timestamp, comment, ${changeType.toString}::validation_comment_change_type
+           FROM superseded"""
   }
 
   /**

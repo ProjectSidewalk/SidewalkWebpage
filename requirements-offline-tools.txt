@@ -1,5 +1,5 @@
-# Dependencies for the offline check_streets_for_imagery.py utility (see scripts/README.md). Kept out of
-# requirements.txt, which is pinned to what the app's in-band Python (3.8) can install.
+# Dependencies for the offline tooling in scripts/ — check_streets_for_imagery.py and onboard_city.py (see
+# scripts/README.md). Kept out of requirements.txt, which is pinned to what the app's in-band Python (3.8) can install.
 #
 # These need Python >= 3.11 (pandas sets the floor), so they install into the container's second interpreter:
 #
@@ -11,4 +11,16 @@ requests==2.34.2
 shapely==2.1.2
 geopy==2.5.0
 tenacity==9.1.4
-tqdm==4.70.0
+tqdm==4.70.1
+
+# onboard_city.py's geo stack.
+osmnx==2.1.1
+geopandas==1.1.4
+pyogrio==0.13.0
+# osmnx imports scipy unconditionally; pinned so pip can't resolve to a build mismatched with the numpy it picks.
+scipy==1.17.1
+
+# street_gradient.py's raster stack. The rasterio wheel bundles its own GDAL, so nothing is needed from the OS. pyproj
+# already arrives with geopandas and is pinned here because the script imports it directly.
+rasterio==1.5.1
+pyproj==3.8.0

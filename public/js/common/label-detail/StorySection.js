@@ -13,13 +13,12 @@ class StorySection {
   #composer;
   #labelId = null;
   #maxTextLength = null;
-  #isAccessProblem = null; // From the /stories payload (LabelTypeEnum-sourced); flips the composer's phrasing.
   #fetchToken = 0; // Guards against a stale response landing after a newer label was opened.
   #highlightStoryId = null; // Pending story deep link (#4722); the first render that could show it consumes it.
 
   /**
    * @param {HTMLElement} root - The host element containing the labelDetail markup.
-   * @param {Object} opts
+   * @param {object} opts
    * @param {string} [opts.currUsername] - The viewer's username, for the composer's show-username option.
    * @param {?number} [opts.highlightStoryId] - Story a share link pointed at (/label/:id?storyId=, #4722): scrolled
    *      to and highlighted once the list renders. One-shot — later refreshes and other labels render normally.
@@ -78,7 +77,6 @@ class StorySection {
   setLabel(labelId, labelTypeName = null) {
     this.#labelId = labelId;
     this.#composer.setLabelType(labelTypeName);
-    this.#isAccessProblem = null;
     this.#els.list.replaceChildren();
     this.#els.count.hidden = true;
     // Empty posture until the fetch lands (most labels have no stories): section hidden, footer CTA up. This is
@@ -99,7 +97,7 @@ class StorySection {
    * @param {number} labelId
    */
   #maybeResumeDraft(labelId) {
-    const url = new URL(window.location);
+    const url = new URL(window.location.href);
     if (url.searchParams.get('resumeStory') !== String(labelId)) return;
     url.searchParams.delete('resumeStory');
     util.url.replaceQuery(url);
@@ -116,11 +114,10 @@ class StorySection {
       const data = await res.json();
       if (token !== this.#fetchToken) return;
       this.#maxTextLength = data.max_text_length;
-      this.#isAccessProblem = data.is_access_problem;
       // Positive access features (curb ramps, signals, ...) get "story about a feature" phrasing instead of "has a
       // problem affected you". Applied on every fetch so paging between label types re-picks the right copy — and
       // reaches the composer even if it was opened before this response landed (the sign-in resume path).
-      this.#composer.setCopyVariant(this.#isAccessProblem);
+      this.#composer.setCopyVariant(data.access_impact);
       this.#render(data.stories);
     } catch (err) {
       console.error(err);
@@ -128,7 +125,7 @@ class StorySection {
   }
 
   /**
-   * @param {Array<Object>} stories - StoryForView payloads, newest first.
+   * @param {Array<Record<string, any>>} stories - StoryForView payloads, newest first.
    */
   #render(stories) {
     const els = this.#els;
@@ -170,7 +167,7 @@ class StorySection {
   }
 
   /**
-   * @param {Object} story - A StoryForView payload.
+   * @param {Record<string, any>} story - A StoryForView payload.
    * @returns {HTMLElement}
    */
   #buildStoryRow(story) {
@@ -233,7 +230,8 @@ class StorySection {
 
       const dashLink = document.createElement('a');
       dashLink.className = 'label-detail__story-dashboard-link';
-      dashLink.href = '/dashboard#ud-stories-section';
+      // The heading, not its section: only headings carry the scroll-margin that clears the fixed navbar.
+      dashLink.href = '/dashboard#your-stories';
       dashLink.textContent = i18next.t('labelmap:story.see-all-stories');
       dashLink.addEventListener('click', () => {
         window.logWebpageActivity?.(`Click_module=StoryDashboardLink_labelId=${this.#labelId}`);
@@ -262,7 +260,7 @@ class StorySection {
       confirmText: i18next.t('labelmap:story.delete'),
       cancelText: i18next.t('labelmap:story.cancel'),
       danger: true,
-      confirmIconSrc: util.assetPath('images/icons/delete-white-material.svg'),
+      confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
     if (!confirmed) return;
     window.logWebpageActivity?.(`Click_module=StoryDeleteClient_storyId=${storyId}`);
@@ -279,7 +277,7 @@ class StorySection {
   }
 
   /**
-   * @param {Object} media - The story's media payload; alt text doubles as the visible caption.
+   * @param {Record<string, any>} media - The story's media payload; alt text doubles as the visible caption.
    */
   #openLightbox(media) {
     window.logWebpageActivity?.(`Click_module=StoryPhotoEnlarge_storyMediaId=${media.story_media_id}`);

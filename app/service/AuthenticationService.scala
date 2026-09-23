@@ -12,6 +12,7 @@ import play.silhouette.impl.exceptions.{IdentityNotFoundException, InvalidPasswo
 import play.silhouette.impl.providers.CredentialsProvider.ID
 import java.security.MessageDigest
 import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.DurationInt
@@ -39,12 +40,14 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def generateUniqueAnonUser(): Future[SidewalkUserWithRole]
   def addUserStatEntryIfNew(userId: String): Future[Int]
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int]
+  def sessionsRevokedAt(email: String): Future[Option[OffsetDateTime]]
+  def signOutEverywhere(userId: String): Future[Int]
+  def changePassword(userId: String, currentPassword: String, newPassword: String): Future[Boolean]
   def authenticate(email: String, pw: String): Future[LoginInfo]
   def createToken(userID: String, expiryMinutes: Int = 60): Future[String]
   def validateToken(id: String): Future[Option[AuthToken]]
   def removeToken(id: String): Future[Int]
   def cleanAuthTokens: Future[Int]
-  def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int]
   def setInfra3dAccess(userId: String, newAccess: Boolean): Future[Int]
   def updateRole(userId: String, newRole: Role.Value): Future[Int]
 }
@@ -61,6 +64,7 @@ class AuthenticationServiceImpl @Inject() (
     userPasswordInfoTable: UserPasswordInfoTable,
     userRoleTable: UserRoleTable,
     userStatTable: UserStatTable,
+    userAccountStateTable: UserAccountStateTable,
     authTokenTable: AuthTokenTable,
     configService: ConfigService
 ) extends AuthenticationService
@@ -117,7 +121,7 @@ class AuthenticationServiceImpl @Inject() (
       isUserAvailable(username, email).flatMap {
         case true =>
           Future.successful(
-            SidewalkUserWithRole(UUID.randomUUID().toString, username, email, Role.Anonymous, false, false)
+            SidewalkUserWithRole(UUID.randomUUID().toString, username, email, Role.Anonymous, false, false, None)
           )
         case false => tryGenerateUser()
       }
@@ -160,10 +164,10 @@ class AuthenticationServiceImpl @Inject() (
   ): Future[SidewalkUserWithRole] = {
     val dbActions = for {
       _                 <- sidewalkUserTable.insert(SidewalkUser(user.userId, user.username, user.email))
-      loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email.toLowerCase))
+      loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email))
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
-      _ <- userRoleTable.addRole(user.userId, user.role, user.communityService)
+      _ <- userRoleTable.addRole(user.userId, user.role)
       _ <- insertUserStatForNewUser(user.userId)
     } yield user
     db.run(dbActions.transactionally)
@@ -199,7 +203,7 @@ class AuthenticationServiceImpl @Inject() (
       _ <- sidewalkUserTable.updateUsername(user.userId, user.username)
       _ <- updateEmailDBIO(user.userId, user.email)
       _ <- updatePasswordDBIO(user.userId, pwInfo)
-      _ <- userRoleTable.updateRole(user.userId, user.role, user.communityService)
+      _ <- userRoleTable.updateRole(user.userId, user.role)
     } yield user
     db.run(dbActions.transactionally)
   }
@@ -235,7 +239,7 @@ class AuthenticationServiceImpl @Inject() (
       sidewalkUserRowsUpdated <- sidewalkUserTable.updateEmail(userId, newEmail)
       userLoginInfoOption     <- userLoginInfoTable.find(userId)
       loginInfoRowsUpdated    <- userLoginInfoOption match {
-        case Some(userLoginInfo) => loginInfoTable.updateProviderKey(userLoginInfo.loginInfoId, newEmail.toLowerCase)
+        case Some(userLoginInfo) => loginInfoTable.updateProviderKey(userLoginInfo.loginInfoId, newEmail)
         case None                => DBIO.successful(0) // No login info found for this user
       }
       // Ensure both updates were successful. Returning DBIO.failed to force rollback if either update fails.
@@ -276,29 +280,52 @@ class AuthenticationServiceImpl @Inject() (
     }
   }
 
+  /** Replaces a user's password and signs them out everywhere (#5305); the caller signs the current browser back in. */
   def updatePassword(userId: String, pwInfo: PasswordInfo): Future[Int] = {
-    db.run(updatePasswordDBIO(userId, pwInfo))
+    db.run(
+      updatePasswordDBIO(userId, pwInfo).flatMap { rowsUpdated =>
+        revokeSessionsDBIO(userId).map(_ => rowsUpdated)
+      }.transactionally
+    )
   }
 
+  /** Signs the user out everywhere (#5305); the caller signs the current browser back in. */
+  def signOutEverywhere(userId: String): Future[Int] = db.run(revokeSessionsDBIO(userId))
+
+  private def revokeSessionsDBIO(userId: String): DBIO[Int] = {
+    // Cut to microseconds, all Postgres stores, so the saved time is never later than a cookie issued right after.
+    userAccountStateTable.revokeSessions(userId, OffsetDateTime.now.truncatedTo(ChronoUnit.MICROS))
+  }
+
+  def sessionsRevokedAt(email: String): Future[Option[OffsetDateTime]] =
+    db.run(userAccountStateTable.sessionsRevokedAt(email))
+
+  /** Every account has a login row with a password (387.sql), so a missing one is an error, not a case to handle. */
   private def updatePasswordDBIO(userId: String, pwInfo: PasswordInfo): DBIO[Int] = {
-    userLoginInfoTable.find(userId).flatMap {
-      case Some(userLoginInfo) =>
-        userPasswordInfoTable.update(userLoginInfo.loginInfoId, pwInfo)
-      case None => DBIO.failed(new IdentityNotFoundException(s"No login info found for user ID: $userId"))
+    userPasswordInfoTable.updateByUserId(userId, pwInfo).flatMap {
+      case 0           => DBIO.failed(new IdentityNotFoundException(s"No password row for user ID: $userId"))
+      case rowsUpdated => DBIO.successful(rowsUpdated)
     }
   }
 
+  /** Replaces a user's password if `currentPassword` is right; returns false, writing nothing, if it isn't. */
+  def changePassword(userId: String, currentPassword: String, newPassword: String): Future[Boolean] = {
+    userPasswordInfoTable.findByUserId(userId).flatMap {
+      case Some(pwInfo)
+          if passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), currentPassword) =>
+        updatePassword(userId, passwordHasher.hash(newPassword)).map(_ => true)
+      case _ => Future.successful(false)
+    }
+  }
+
+  /** Checks the password reached through the account, the row reset and change-password write, in one query. */
   def authenticate(email: String, pw: String): Future[LoginInfo] = {
-    loginInfoTable.findByEmail(email).flatMap {
-      case Some(loginInfoId) =>
-        userPasswordInfoTable.find(loginInfoId).flatMap {
-          case Some(pwInfo) =>
-            if (passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), pw)) {
-              Future.successful(LoginInfo(ID, email))
-            } else {
-              throw new InvalidPasswordException(s"Invalid password for user with email: $email")
-            }
-          case None => throw new IdentityNotFoundException(s"No account found for user with email: $email")
+    userPasswordInfoTable.findByEmail(email).flatMap {
+      case Some(pwInfo) =>
+        if (passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), pw)) {
+          Future.successful(LoginInfo(ID, email))
+        } else {
+          throw new InvalidPasswordException(s"Invalid password for user with email: $email")
         }
       case None => throw new IdentityNotFoundException(s"No account found for user with email: $email")
     }
@@ -339,9 +366,6 @@ class AuthenticationServiceImpl @Inject() (
 
   def updateRole(userId: String, newRole: Role.Value): Future[Int] =
     db.run(userRoleTable.updateRole(userId, newRole))
-
-  def setCommunityServiceStatus(userId: String, newCommServiceStatus: Boolean): Future[Int] =
-    db.run(userRoleTable.updateCommunityService(userId, newCommServiceStatus))
 
   def setInfra3dAccess(userId: String, newAccess: Boolean): Future[Int] =
     db.run(userRoleTable.updateInfra3dAccess(userId, newAccess))

@@ -65,8 +65,7 @@
     "add-note": "💬 新增附註",
     "note-placeholder": "為這個標記新增附註（選填）…",
     "save-note": "儲存附註",
-    "popup-heading": "您的標記被檢核為錯誤。您同意這是一個錯誤嗎？",
-    "your-label": "您的標記：{{type}}"
+    "popup-heading": "您的標記被檢核為錯誤。您同意這是一個錯誤嗎？"
   },
   "settings-form": {
     "saving": "儲存中…",
@@ -78,6 +77,9 @@
     "create-failed": "無法建立團隊。請再試一次。",
     "network-error": "網路錯誤——請再試一次。"
   },
+  "team-leave-confirm-open": "確定要離開「{{name}}」嗎？之後可以從同一份清單再次加入。",
+  "team-leave-confirm-closed": "確定要離開「{{name}}」嗎？該團隊不接受新成員，你將無法自行再次加入。",
+  "team-leave": "離開團隊",
   "stories": {
     "none": "您尚未撰寫任何故事。在地圖上開啟一個標記，然後選擇「撰寫您的故事」。"
   },

@@ -32,7 +32,7 @@ class ContributorsPage {
   #leaderboardsUrl;
 
   /** @param {{userStatsUrl: string, leaderboardsUrl: string}} opts */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#userStatsUrl = opts.userStatsUrl;
     this.#leaderboardsUrl = opts.leaderboardsUrl;
   }
@@ -116,6 +116,7 @@ class ContributorsPage {
       return;
     }
     const factor = ContributorsPage.#pctFactor(labelers, 'own_validated_agreed_pct');
+    /** @type {Array<{label: string, align: ('left'|'right')}>} */
     const columns = [
       { label: '#', align: 'right' },
       { label: 'Contributor', align: 'left' },
@@ -151,6 +152,7 @@ class ContributorsPage {
       return;
     }
     const factor = ContributorsPage.#pctFactor(validators, 'agreement_pct');
+    /** @type {Array<{label: string, align: ('left'|'right')}>} */
     const columns = [
       { label: '#', align: 'right' },
       { label: 'Contributor', align: 'left' },
@@ -261,7 +263,11 @@ class ContributorsPage {
     const head = `<tr>${headCells}</tr>`;
     const body = rows.map((cells) =>
       `<tr>${cells.map((cell, i) => `<td${cls(columns[i])}>${cell}</td>`).join('')}</tr>`).join('');
-    return `<table class="ps-table ps-table--compact contrib-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    return `
+      <table class="ps-table ps-table--compact contrib-table">
+        <thead>${head}</thead>
+        <tbody>${body}</tbody>
+      </table>`;
   }
 
   /** Canonical label-type color via util.misc, with a grey fallback for unknown/odd types. */

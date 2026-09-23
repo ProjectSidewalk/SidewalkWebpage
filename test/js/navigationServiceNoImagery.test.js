@@ -43,6 +43,22 @@ function kmBetween([lng1, lat1], [lng2, lat2]) {
     return Math.sqrt(x * x + y * y) * KM_PER_DEGREE;
 }
 
+/** google.maps.LatLng as GsvViewer reads it: accessor methods, not fields. */
+class FakeLatLng {
+    constructor(lat, lng) {
+        this._lat = lat;
+        this._lng = lng;
+    }
+
+    lat() {
+        return this._lat;
+    }
+
+    lng() {
+        return this._lng;
+    }
+}
+
 const lineFeature = (coordinates) => ({ type: 'Feature', geometry: { type: 'LineString', coordinates } });
 const pointFeature = (coordinates) => ({ type: 'Feature', geometry: { type: 'Point', coordinates } });
 
@@ -89,6 +105,7 @@ function makeTask(streetEdgeId, { lengthKm = 0.1, atEnd = false, walkOrder = nul
         streetEdgeId,
         getStreetEdgeId: () => streetEdgeId,
         getWalkOrder: () => walkOrder,
+        getProperty: () => null,
         givenUp: false,
         giveUpOnImagery() {
           this.givenUp = true;
@@ -145,10 +162,10 @@ describe('Explore, when the imagery search runs out along a street', () => {
             keyboard: { setStatus: jest.fn() },
             minimap: { setMinimapLocation: stub() },
             missionContainer: { getCurrentMission: () => ({ getProperty: () => 7, pushATaskToTheRoute: jest.fn() }) },
-            missionController: { wrapUpRouteOrNeighborhood: stub(), onRouteReadyToFinish: stub() },
+            missionController: { wrapUpRouteOrRegion: stub(), onRouteReadyToFinish: stub() },
             missionModel: { updateMissionProgress: stub() },
-            neighborhoodModel: {
-                currentNeighborhood: () => ({}), isRoute: false, isRouteOrNeighborhoodComplete: () => false,
+            regionModel: {
+                currentRegion: () => ({}), isRoute: false, isRouteOrRegionComplete: () => false,
                 setComplete: jest.fn(),
             },
             observedArea: { panoChanged: stub(), update: stub() },
@@ -327,7 +344,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
         it('gives each pass of an out-and-back route its own stuck panos (#5008)', async () => {
             // The two passes share a street edge id, so keying the reset on the street hands the return leg every
             // pano the outbound leg banked — on a short street, all of them.
-            svl.neighborhoodModel.isRoute = true;
+            svl.regionModel.isRoute = true;
             const [outbound, back] = [makeTask(101, { walkOrder: 1 }), makeTask(101, { walkOrder: 2 })];
             assignStreets(outbound, back);
             let standingOn = 'pano-street-start';
@@ -454,27 +471,27 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.stuckAlert.announceSkippedStreetNear).toHaveBeenCalledTimes(5);
         });
 
-        it('completes the neighborhood instead, when there are no streets left to hand out', async () => {
+        it('completes the region instead, when there are no streets left to hand out', async () => {
             assignStreets(makeTask(101));
             respondToSearch = emptyGround;
 
             await nav.moveForward();
 
-            expect(svl.neighborhoodModel.setComplete).toHaveBeenCalled();
-            expect(svl.missionController.wrapUpRouteOrNeighborhood).toHaveBeenCalled();
+            expect(svl.regionModel.setComplete).toHaveBeenCalled();
+            expect(svl.missionController.wrapUpRouteOrRegion).toHaveBeenCalled();
         });
 
         it('ends a route through its normal finish flow, not by firing the modal mid-stride (#5008)', async () => {
-            svl.neighborhoodModel.isRoute = true;
+            svl.regionModel.isRoute = true;
             assignStreets(makeTask(101, { walkOrder: 1 }));
             respondToSearch = emptyGround;
 
             await nav.moveForward();
 
-            expect(svl.neighborhoodModel.setComplete).toHaveBeenCalled();
+            expect(svl.regionModel.setComplete).toHaveBeenCalled();
             // The finish toast and its look-around gate, the same ending a route gets when its last street is walked.
             expect(svl.missionController.onRouteReadyToFinish).toHaveBeenCalled();
-            expect(svl.missionController.wrapUpRouteOrNeighborhood).not.toHaveBeenCalled();
+            expect(svl.missionController.wrapUpRouteOrRegion).not.toHaveBeenCalled();
             // The labeler has to be able to look around for that gate to ever open.
             expect(nav.getStatus('disableWalking')).toBe(false);
         });
@@ -482,7 +499,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
         it('gives up on a street once, however many times the labeler tries to walk off it (#5008)', async () => {
             // The route's finish gate needs the labeler able to look around, so the terminal branch hands the controls
             // back — which also lets them press forward again on the street it just gave up on.
-            svl.neighborhoodModel.isRoute = true;
+            svl.regionModel.isRoute = true;
             assignStreets(makeTask(101, { walkOrder: 1 }));
             respondToSearch = emptyGround;
 
@@ -523,6 +540,25 @@ describe('Explore, when the imagery search runs out along a street', () => {
             // Unlike a report, this is a real completion: the labeler walked the street to within reach of its end,
             // so the task is finished through the same call the normal end-of-street flow uses.
             expect(svl.taskContainer.endTask).toHaveBeenCalled();
+        });
+
+        it('credits the street on where the labeler got to, not on where the sweep last put them', async () => {
+            // The sweep's exclusions can land a move back near the start of a street already walked to its end —
+            // on an 8.6 m stub every unvisited pano within reach is as likely behind the endpoint as past it (#5350).
+            // The exhaustion that follows is then evidence of a street walked out, not of one without imagery.
+            const walkedOut = makeTask(101);
+            const endOfStreet = walkedOut.getEndCoordinate();
+            walkedOut.getFurthestPointReached = () => pointFeature([endOfStreet.lng, endOfStreet.lat]);
+            walkedOut.isAtEnd = jest.fn((latLng) => latLng.lng === endOfStreet.lng);
+            assignStreets(walkedOut, makeTask(102));
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            expect(walkedOut.isAtEnd).toHaveBeenCalledWith(svl.panoViewer.getPosition(), 50);
+            expect(walkedOut.isAtEnd).toHaveBeenCalledWith({ lat: endOfStreet.lat, lng: endOfStreet.lng }, 50);
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(walkedOut);
+            expect(reportNoImagery).not.toHaveBeenCalled();
         });
 
         it('still ends it when the provider stopped answering, since walking it is what earned the credit', async () => {
@@ -616,5 +652,88 @@ describe('Explore, when the imagery search runs out along a street', () => {
         // A 100 m street sampled every 10 m: the exact count is geometry's business, but a single probe would mean
         // one dead pano could condemn a whole street.
         expect(pointsSearchedOn(101)).toBeGreaterThan(3);
+    });
+
+    describe('with the real GsvViewer answering the sweep (#5114)', () => {
+        let viewer;
+        let getPanorama;
+
+        beforeEach(() => {
+            // GsvViewer measures replies with the real haversine; loading utilitiesMath swaps in the full util.math.
+            window.eval(readSrc('public/js/common/utilitiesMath.js'));
+            window.google = {
+                maps: {
+                    importLibrary: async () => ({ LatLng: FakeLatLng }),
+                    LatLng: FakeLatLng,
+                    StreetViewSource: { OUTDOOR: 'outdoor' },
+                },
+            };
+            window.moment = (value) => value;
+            window.PanoData = class {
+                constructor(params) {
+                    this.params = params;
+                }
+
+                getPanoId() {
+                    return this.params.panoId;
+                }
+
+                getProperty(key) {
+                    return this.params[key];
+                }
+            };
+            const stubs = ['MapillaryViewer', 'Infra3dViewer', 'PannellumViewer', 'PanoramaxViewer']
+                .map((name) => `class ${name} {}`).join('\n');
+            window.eval(`${stubs}
+                ${readSrc('public/js/common/pano-viewer/src/PanoViewer.js')}
+                ${readSrc('public/js/common/pano-viewer/src/GsvViewer.js')}
+                window.GsvViewer = GsvViewer;`);
+            viewer = new window.GsvViewer();
+            getPanorama = jest.fn();
+            viewer.streetViewService = { getPanorama };
+            viewer._loadPanoWithTimeout = jest.fn(async (_panoId, resolveValue) => resolveValue);
+            jest.spyOn(console, 'warn').mockImplementation(() => {}); // The FarPanoRejected diagnostic warns.
+            // The stuck set holds what panoStore returns, and the real viewer asks each of those for its id.
+            svl.panoStore.getPanoData = (panoId) => ({ panoId, getPanoId: () => panoId });
+            // The sweep's one seam, now backed by the real viewer rather than a scripted answer.
+            svl.panoManager.setLocation.mockImplementation((latLng, excludedPanos) => {
+                searches.push({ latLng, streetEdgeId: svl.taskContainer.getCurrentTask().getStreetEdgeId() });
+                return viewer.setLocation(latLng, excludedPanos);
+            });
+        });
+
+        afterEach(() => {
+            console.warn.mockRestore();
+        });
+
+        /** A getPanorama() reply for a pano at `[lng, lat]`, with the fields the viewer reads. */
+        const gsvReply = (pano, [lng, lat]) => ({
+            data: {
+                location: { pano, latLng: new FakeLatLng(lat, lng), shortDescription: '' },
+                copyright: '© Google', imageDate: '2024-05', links: [], time: [],
+                tiles: {
+                    worldSize: { width: 1, height: 1 }, tileSize: { width: 1, height: 1 },
+                    originHeading: 0, originPitch: 0,
+                },
+            },
+        });
+
+        it('a far answer at one step walks on to a near pano 10 m further, not to the end of the street', async () => {
+            assignStreets(makeTask(101, { lengthKm: 0.1 }), makeTask(102));
+            // The #5114 answer at the first point searched; a pano 3 m off the street at every later one.
+            getPanorama.mockImplementation(async ({ location }) => (getPanorama.mock.calls.length === 1
+                ? gsvReply('SYRACUSE', [-76.1720131, 43.0917906])
+                : gsvReply(`near-${getPanorama.mock.calls.length}`, [location.lng(), location.lat() + 3 / 111320])));
+
+            await nav.moveForward();
+
+            expect(searches).toHaveLength(2);
+            expect(kmBetween([searches[0].latLng.lng, searches[0].latLng.lat],
+                [searches[1].latLng.lng, searches[1].latLng.lat]) * 1000).toBeCloseTo(10, 0);
+            expect(viewer.getPanoId()).toBe('near-2');
+            expect(viewer._loadPanoWithTimeout).toHaveBeenCalledTimes(1); // Syracuse was never loaded.
+            expect(reportNoImagery).not.toHaveBeenCalled();
+            expect(svl.taskContainer.setCurrentTask).not.toHaveBeenCalled();
+        });
     });
 });

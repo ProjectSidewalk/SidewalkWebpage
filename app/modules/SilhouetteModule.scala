@@ -3,7 +3,12 @@ package modules
 import com.google.inject.name.Named
 import com.google.inject.{AbstractModule, Provides}
 import com.typesafe.config.Config
-import models.auth.{CustomSecuredErrorHandler, CustomUnsecuredErrorHandler, DefaultEnv}
+import models.auth.{
+  CustomSecuredErrorHandler,
+  CustomUnsecuredErrorHandler,
+  DefaultEnv,
+  RevocableCookieAuthenticatorService
+}
 import net.ceedubs.ficus.Ficus._
 import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.ValueReader
@@ -27,6 +32,7 @@ import play.silhouette.persistence.repositories.DelegableAuthInfoRepository
 import service.{AuthenticationService, AuthenticationServiceImpl}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.FiniteDuration
 
 /**
  * The Guice module which wires all Silhouette dependencies. Based off of this example:
@@ -115,6 +121,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    * @param idGenerator The ID generator implementation.
    * @param configuration The Play configuration.
    * @param clock The clock instance.
+   * @param authenticationService Looks up when an account's sessions were revoked.
    * @return The authenticator service.
    */
   @Provides
@@ -125,12 +132,20 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       fingerprintGenerator: FingerprintGenerator,
       idGenerator: IDGenerator,
       configuration: Configuration,
-      clock: Clock
+      clock: Clock,
+      authenticationService: AuthenticationService
   ): AuthenticatorService[CookieAuthenticator] = {
-    val config  = configuration.underlying.as[CookieAuthenticatorSettings]("silhouette.authenticator")
+    val config = configuration.underlying.as[CookieAuthenticatorSettings]("silhouette.authenticator")
+    // RevocableCookieAuthenticatorService works out when a cookie was issued from this one lifetime.
+    val rememberMeExpiry =
+      configuration.underlying.as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry")
+    require(
+      rememberMeExpiry == config.authenticatorExpiry,
+      "silhouette.authenticator.authenticatorExpiry and rememberMe.authenticatorExpiry must be equal"
+    )
     val encoder = new CrypterAuthenticatorEncoder(crypter)
-    new CookieAuthenticatorService(config, None, signer, cookieHeaderEncoding, encoder, fingerprintGenerator,
-      idGenerator, clock)
+    new RevocableCookieAuthenticatorService(config, signer, cookieHeaderEncoding, encoder, fingerprintGenerator,
+      idGenerator, clock, authenticationService)
   }
 
   /**

@@ -102,7 +102,7 @@ class AboutPage {
    * opens /about in a new tab.
    *
    * @param {string} url - Absolute URL to fetch.
-   * @returns {Promise<object>} Parsed JSON response.
+   * @returns {Promise<Record<string, any>>} Parsed JSON response.
    */
   async #fetchJson(url) {
     const cacheKey = AboutPage.#CACHE_PREFIX + url;
@@ -152,7 +152,7 @@ class AboutPage {
    * Fetches every page of a paginated ML API listing by following `next` links.
    *
    * @param {string} url - First page URL.
-   * @returns {Promise<object[]>} Concatenated `results` arrays from all pages.
+   * @returns {Promise<Array<Record<string, any>>>} Concatenated `results` arrays from all pages.
    */
   async #fetchAllPages(url) {
     const results = [];
@@ -171,8 +171,8 @@ class AboutPage {
    * A person who left and came back has one row per stint; without merging they would be listed twice. The merged
    * entry spans the earliest start to the latest end (null end = ongoing wins), and keeps any active/lead markers.
    *
-   * @param {object[]} rows - Raw rows from the ML API project-people listing.
-   * @returns {object[]} One merged row per unique person.
+   * @param {Array<Record<string, any>>} rows - Raw rows from the ML API project-people listing.
+   * @returns {Array<Record<string, any>>} One merged row per unique person.
    */
   #mergeStints(rows) {
     const byPerson = new Map();
@@ -207,7 +207,7 @@ class AboutPage {
    * from the live roster, so the claim keeps pace with the roll call underneath it instead of drifting from numbers
    * someone typed once.
    *
-   * @param {object[]} people - Merged project-people rows, one per person.
+   * @param {Array<Record<string, any>>} people - Merged project-people rows, one per person.
    */
   #renderContributorCount(people) {
     const intro = document.getElementById('about-team-contributors-intro');
@@ -291,7 +291,7 @@ class AboutPage {
       : p.start_date.slice(0, 4));
     // A <template>'s children live in its .content fragment, not in the document tree, so they're only reachable by
     // querying the fragment — a document-level selector for them silently matches nothing.
-    const blurbs = document.getElementById('about-team-past-blurbs')?.content;
+    const blurbs = /** @type {HTMLTemplateElement} */ (document.getElementById('about-team-past-blurbs'))?.content;
     const blurbFor = (p) =>
       blurbs?.querySelector(`[data-person="${CSS.escape(p.person.url_name)}"]`)?.innerHTML ?? '';
     document.getElementById('about-team-past').innerHTML = pastLeads.map((p) => {
@@ -398,7 +398,7 @@ class AboutPage {
    * buttons. Leaves the block hidden if the paper isn't in the list or its detail request fails — the intro
    * paragraph already links the paper, so there is nothing missing without it.
    *
-   * @param {object[]} pubs - The project's publications, as returned by the ML API list endpoint.
+   * @param {Array<Record<string, any>>} pubs - The project's publications, as returned by the ML API list endpoint.
    */
   async #renderCitation(pubs) {
     const block = document.getElementById('about-cite');
@@ -484,7 +484,7 @@ class AboutPage {
         </li>`).join('');
     nav.hidden = false;
     list.addEventListener('click', (e) => {
-      const link = e.target.closest('.about-toc-link');
+      const link = /** @type {Element} */ (e.target).closest('.about-toc-link');
       if (link) this.#log(`toc_${link.dataset.tocFor.replace(/^about-/, '')}`);
     });
 
@@ -625,7 +625,7 @@ class AboutPage {
     ];
     delegatedTargets.forEach(([id, target]) => {
       document.getElementById(id)?.addEventListener('click', (e) => {
-        if (e.target.closest('a')) this.#log(target);
+        if (/** @type {Element} */ (e.target).closest('a')) this.#log(target);
       });
     });
   }

@@ -59,6 +59,12 @@
         container.innerHTML = '';
         await this.renderMap(container, regions);
       } catch (error) {
+        // The whole-city request is the one that can find a cold cache (#5418); that is a wait, not a failure.
+        if (error.code === 'STILL_COMPUTING') {
+          container.innerHTML = `<div class="map-message" role="status">This city's AccessScores are still being
+            computed on the server. Reload the page in a moment to see the preview.</div>`;
+          return;
+        }
         console.error('Error rendering AccessScore regions preview:', error);
         container.innerHTML = '<div class="map-message" role="alert">Unable to load AccessScore data '
           + 'for the preview.</div>';
@@ -79,7 +85,7 @@
       mapElement.id = 'access-score-regions-map';
       container.appendChild(mapElement);
 
-      const bounds = features.length ? ApiDocsMap.featureCollectionBounds(features) : null;
+      const bounds = features.length ? featureCollectionBounds({ type: 'FeatureCollection', features }) : null;
       const map = await ApiDocsMap.create({
         container: mapElement,
         mapboxApiKey: config.mapboxApiKey,
@@ -122,10 +128,10 @@
       this.updateLegend();
 
       // Wired only now that there is a layer to recolor and a legend to rewrite.
-      const select = document.getElementById('as-region-metric-select');
+      const select = /** @type {HTMLSelectElement} */ (document.getElementById('as-region-metric-select'));
       select.value = this._metric;
-      select.addEventListener('change', (event) => {
-        this._metric = event.target.value;
+      select.addEventListener('change', () => {
+        this._metric = select.value;
         map.setPaintProperty(FILL_LAYER, 'fill-color', this.colorExpression());
         this.updateLegend();
       });

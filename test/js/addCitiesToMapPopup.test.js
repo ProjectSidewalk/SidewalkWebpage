@@ -19,10 +19,10 @@ const path = require('path');
 const MODULE_PATH = path.resolve(__dirname, '..', '..', 'public/js/ps-map/addCitiesToMap.js');
 
 // Realistic slice of /v3/api/overallStats: validation totals live under validations.combined/human/ai (#4591),
-// labels under labels.label_count, distance at km_explored.
+// labels under labels.count, distance at km_explored.
 const GOOD_STATS = {
     km_explored: 1234,
-    labels: { label_count: 21649 },
+    labels: { count: 21649 },
     validations: {
         combined: { total_validations: 32747 },
         human: { total_validations: 32747 },
@@ -33,7 +33,7 @@ const GOOD_STATS = {
 // The pre-restructure shape the buggy code expected: a flat total_validations with no `combined` sub-object.
 const OLD_FLAT_STATS = {
     km_explored: 1234,
-    labels: { label_count: 21649 },
+    labels: { count: 21649 },
     validations: { total_validations: 32747 },
 };
 
@@ -95,9 +95,11 @@ function makeFakeMap() {
 
 /**
  * Synthetic click event for a public city, matching the feature shape addCitiesToMap reads.
+ *
+ * @param {object} [overrides] - Feature properties to replace, e.g. a withheld `url` for a private deployment.
  * @returns {object} A Mapbox-style click event with one feature.
  */
-function makeClickEvent() {
+function makeClickEvent(overrides = {}) {
     return {
         features: [{
             id: 'seattle',
@@ -107,6 +109,7 @@ function makeClickEvent() {
                 city_name_formatted: 'Seattle, WA',
                 city_name_short: 'Seattle',
                 visibility: 'public',
+                ...overrides,
             },
             geometry: { coordinates: [-122.33, 47.6] },
         }],
@@ -177,10 +180,10 @@ describe('addCitiesToMap city popup (#4591)', () => {
      * Wire up the map, fire a city click with the given stats body, and wait for the async handler to finish.
      * @param {object} statsBody - The overallStats JSON the stubbed fetch returns.
      */
-    async function clickCity(statsBody) {
+    async function clickCity(statsBody, overrides = {}) {
         stubFetch(statsBody);
         await addCitiesToMap(map, makeCitiesData(), { mapName: 'cities-map', logClicks: false });
-        await map.handlers['click:cities'](makeClickEvent());
+        await map.handlers['click:cities'](makeClickEvent(overrides));
     }
 
     const validationsCell = () => lastPopupContent.querySelector('[data-stat="validations"]').textContent;
@@ -195,7 +198,7 @@ describe('addCitiesToMap city popup (#4591)', () => {
     test('populates all three stat cells from the current overallStats shape', async () => {
         await clickCity(GOOD_STATS);
         expect(validationsCell()).toBe('32747'); // stats.validations.combined.total_validations
-        expect(labelsCell()).toBe('21649'); // stats.labels.label_count
+        expect(labelsCell()).toBe('21649'); // stats.labels.count
         expect(distanceCell()).toBe('1234 km'); // stats.km_explored
     });
 
@@ -206,5 +209,37 @@ describe('addCitiesToMap city popup (#4591)', () => {
         await clickCity(OLD_FLAT_STATS);
         expect(validationsCell()).toBe('0');
         expect(labelsCell()).toBe('21649');
+    });
+
+    // /v3/api/cities withholds the url for a deployment that isn't publicly launched (#5259). Building the stats
+    // request from it unconditionally would fetch the relative path "null/v3/api/overallStats" against whichever
+    // origin is serving /cities — a 404 and a console error on every click of a private city's dot.
+    describe('a deployment whose url the API withheld (#5259)', () => {
+        const PRIVATE = { url: null, visibility: 'private' };
+
+        test('makes no stats request at all', async () => {
+            await clickCity(GOOD_STATS, PRIVATE);
+            expect(global.fetch).not.toHaveBeenCalled();
+        });
+
+        test('drops the stats grid rather than showing placeholder dashes', async () => {
+            await clickCity(GOOD_STATS, PRIVATE);
+            expect(lastPopupContent.querySelector('.popup-stats-grid')).toBeNull();
+        });
+
+        test('replaces the explore link with the private-deployment message', async () => {
+            await clickCity(GOOD_STATS, PRIVATE);
+            expect(lastPopupContent.querySelector('.popup-link')).toBeNull();
+            expect(lastPopupContent.querySelector('.popup-private-message').textContent)
+                .toBe('common:cities-map.private-deployment');
+        });
+
+        // The client keys off the url, not off `visibility`, so a status value neither side has seen before can't
+        // leave it rendering href="null/explore" on the public cities map.
+        test('withholds the link for an unrecognized visibility too, whenever the url is absent', async () => {
+            await clickCity(GOOD_STATS, { url: null, visibility: 'beta' });
+            expect(global.fetch).not.toHaveBeenCalled();
+            expect(lastPopupContent.querySelector('.popup-link')).toBeNull();
+        });
     });
 });

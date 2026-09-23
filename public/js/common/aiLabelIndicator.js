@@ -11,27 +11,33 @@ const aiTooltipOptions = {
   trigger: 'hover',
 };
 
+// Validate's marker badge is a .ai-icon-marker too, but never reaches these handlers: main.css gives it
+// pointer-events: none, since there the label card carries the disclaimer (#5359).
 const aiHoverSelectors = [
   '.ai-icon',
   '.ai-icon-marker',
   '.ai-icon-marker-card',
   '.ai-icon-marker-expanded',
-  '.ai-icon-marker-validate',
   '.admin-ai-icon-marker',
   '.label-view-ai-icon',
 ].join(', ');
 
 /**
  * Creates the reusable AI indicator icon with optional tooltip behavior.
- * @param {Array<String>} extraClasses Additional CSS classes to apply.
+ * @param {Array<string>} extraClasses - Additional CSS classes to apply.
+ * @param {object} [options]
+ * @param {boolean} [options.tooltip] - Attach the "AI can make mistakes" tooltip. Off for a badge whose surroundings
+ *     already say it — Validate's marker, where hovering opens a label card that carries the same sentence (#5359).
  * @returns {HTMLElement} Configured AI indicator element.
  */
-function aiLabelIndicator(extraClasses = []) {
+function aiLabelIndicator(extraClasses = [], { tooltip = true } = {}) {
   const icon = document.createElement('img');
   icon.src = util.assetPath('images/icons/ai-icon-black-filled-white-circle.png');
   icon.alt = 'AI indicator';
   icon.classList.add('ai-icon-marker');
   extraClasses.forEach((cls) => icon.classList.add(cls));
+
+  if (!tooltip) return icon;
 
   const tooltipText = i18next.t('common:ai-generated-label-tooltip');
 
@@ -50,7 +56,7 @@ function aiLabelIndicator(extraClasses = []) {
 /**
  * Ensures the provided icon has a tooltip initialized with shared options.
  * @param {HTMLElement} icon
- * @returns {JQuery} tooltip-enabled icon
+ * @returns {JQuery} The tooltip-enabled icon.
  */
 function ensureAiTooltip(icon) {
   const $icon = $(icon);

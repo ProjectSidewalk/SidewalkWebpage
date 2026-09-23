@@ -10,7 +10,7 @@ class ApiAnalyticsPage {
   #data = null;
 
   /** @param {{dataUrl: string}} opts */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#dataUrl = opts.dataUrl;
   }
 
@@ -173,8 +173,8 @@ class ApiAnalyticsPage {
    * The selected window as a concrete date span ending today: the dated ranges (30/90) count back from today; "All
    * time" runs from the earliest day with data. Falls back to a plain note when there's no activity to bound.
    *
-   * @param {object} d - The analytics payload (used for the All time start date).
-   * @returns {string} e.g. "May 28 – Jun 26, 2026", or "May 21, 2025 – Jun 26, 2026" across years.
+   * @param {Record<string, any>} d - The analytics payload (used for the All time start date).
+   * @returns {string} The range, e.g. "May 28 – Jun 26, 2026", or "May 21, 2025 – Jun 26, 2026" across years.
    */
   #rangeLabel(d) {
     const now = new Date();
@@ -214,7 +214,7 @@ class ApiAnalyticsPage {
     const then = new Date(y, m - 1, day);
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    return Math.max(0, Math.round((today - then) / 86400000));
+    return Math.max(0, Math.round((today.getTime() - then.getTime()) / 86400000));
   }
 
   /** Short day label, e.g. "Jun 1", from an ISO `YYYY-MM-DD` (parsed locally to avoid a UTC day-shift). */
@@ -256,7 +256,7 @@ class ApiAnalyticsPage {
    * external+docs total when docs traffic is shown, so stacked bars never overflow their track.
    *
    * @param {Array<{external?: number, api_docs?: number}>} items - Rows with external/api_docs counts.
-   * @param {(item: object) => string} labelOf - Extracts the row label from an item.
+   * @param {(item: Record<string, any>) => string} labelOf - Extracts the row label from an item.
    * @param {boolean} showDocs - Whether this chart stacks the docs segment onto its bars.
    * @returns {string} Concatenated row HTML.
    */
@@ -330,7 +330,7 @@ class ApiAnalyticsPage {
    * data (no refetch) and reveals its colour legend.
    */
   #wireDocsToggle() {
-    document.querySelectorAll('.api-docs-toggle').forEach((input) => {
+    /** @type {NodeListOf<HTMLInputElement>} */ (document.querySelectorAll('.api-docs-toggle')).forEach((input) => {
       const chart = input.dataset.chart;
       const legend = input.closest('.api-docs-control').querySelector('.api-docs-legend');
       input.addEventListener('change', () => {

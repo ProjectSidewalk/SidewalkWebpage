@@ -10,7 +10,7 @@ class RoutePopover {
   #onDelete;
 
   /**
-   * @param {Object} map - The Mapbox map.
+   * @param {mapboxgl.Map} map - The Mapbox map.
    * @param {Function} onReverse - Called when "Reverse route direction" is clicked.
    * @param {Function} onDelete - Called when "Delete route" is clicked.
    */
@@ -38,7 +38,7 @@ class RoutePopover {
   /**
    * Opens the menu at the given location.
    *
-   * @param {Object} lngLat - Where to anchor the popup (the pointer location on the route).
+   * @param {mapboxgl.LngLatLike} lngLat - Where to anchor the popup (the pointer location on the route).
    * @param {boolean} [focus=false] - Move keyboard focus into the menu (for click-opens; a hover-open must not
    *   steal focus from whatever the user is doing).
    */

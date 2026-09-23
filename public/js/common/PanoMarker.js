@@ -6,7 +6,7 @@
  *
  * @author kaktus621@gmail.com (Martin Matysiak)
  * @author michaelssaugstad@gmail.com (Mikey Saugstad) - Updated Dec 2025 to use generic Panorama viewer (not just GSV).
- * @fileoverview A marker that can be placed inside custom StreetView panoramas.
+ * @file A marker that can be placed inside custom StreetView panoramas.
  *
  * This class takes simple heading and pitch values from the panorama's center in order to move the marker correctly
  * with the user's viewport changes. The marker actually sits on top of the panorama DOM-wise.
@@ -29,65 +29,64 @@ class PanoMarker {
    * Creates a PanoMarker with the options specified. If a panorama is specified, the marker is added to the map
    * upon construction. Note that the position must be set for the marker to display.
    *
-   * @constructor
-   * @param {object} opts A set of parameters to customize the marker.
-   * @param {PanoViewer} opts.panoViewer Panorama viewer on which to display marker.
-   * @param {HTMLDivElement} opts.markerContainer The container holding the markers.
-   * @param {string} [opts.className] The class name which will be assigned to the created div node.
-   * @param {string} [opts.icon] URL to an image file that shall be used.
-   * @param {string} [opts.id] A unique identifier that will be assigned to the created div-node.
-   * @param {{heading: number, pitch: number}} [opts.position] Marker position on the panorama.
-   * @param {{width: number, height: number}} [opts.size] The size of the marker in pixels.
-   * @param {string} [opts.title] Hover tooltip.
-   * @param {boolean} [opts.visible=true] If true, the marker is visible.
-   * @param {number} [opts.zIndex=1] The marker's z-index.
+   * @param {object} opts - A set of parameters to customize the marker.
+   * @param {PanoViewer} opts.panoViewer - Panorama viewer on which to display marker.
+   * @param {HTMLElement} opts.markerContainer - The container holding the markers.
+   * @param {string} [opts.className] - The class name which will be assigned to the created div node.
+   * @param {string} [opts.icon] - URL to an image file that shall be used.
+   * @param {string} [opts.id] - A unique identifier that will be assigned to the created div-node.
+   * @param {{heading: number, pitch: number}} [opts.position] - Marker position on the panorama.
+   * @param {{width: number, height: number}} [opts.size] - The size of the marker in pixels.
+   * @param {string} [opts.title] - Hover tooltip.
+   * @param {boolean} [opts.visible=true] - If true, the marker is visible.
+   * @param {number} [opts.zIndex=1] - The marker's z-index.
    */
   constructor(opts) {
     if (!opts.panoViewer) throw new Error('A panorama viewer needs to be defined.');
     if (!opts.markerContainer) throw new Error('A panorama markerContainer needs to be defined.');
 
-    /** @private @type {HTMLDivElement} */
+    /** @type {HTMLElement} */
     this.markerContainer_ = opts.markerContainer;
 
-    /** @private @type {PanoViewer} */
+    /** @type {PanoViewer} */
     this.panoViewer_ = opts.panoViewer;
 
-    /** @private @type {?string} */
+    /** @type {?string} */
     this.className_ = opts.className || null;
 
-    /** @private @type {?string} */
+    /** @type {?string} */
     this.icon_ = opts.icon || null;
 
-    /** @private @type {?string} */
+    /** @type {?string} */
     this.id_ = opts.id || null;
 
-    /** @private @ŧype {?HTMLDivElement} */
+    /** @type {?HTMLDivElement} */
     this.marker_ = null;
 
-    /** @private @type {?Object} */
+    /** @type {{heading: number, pitch: number}} */
     this.position_ = opts.position || { heading: 0, pitch: 0 };
 
-    /** @private @type {object} */
+    /** @type {{width: number, height: number}} */
     this.size_ = opts.size || { width: 32, height: 32 };
 
-    /** @private @type {string} */
+    /** @type {string} */
     this.title_ = opts.title || '';
 
-    /** @private @type {boolean} */
+    /** @type {boolean} */
     this.visible_ = (typeof opts.visible === 'boolean') ? opts.visible : true;
 
-    /** @private @type {number} */
+    /** @type {number} */
     this.zIndex_ = opts.zIndex || 1;
 
     /**
      * New code (April 17, 2019) -- modified by Aileen
      * Source: https://github.com/marmat/google-maps-api-addons/issues/36#issuecomment-342774699
      * @private
-     * @type {function(
-     *   {heading: number, pitch: number},
-     *   {heading: number, pitch: number, zoom: number},
-     *   number, number, number
-     * ): {x: number, y: number}}
+     * @type {(
+     *   centeredPov: {heading: number, pitch: number},
+     *   newPov: {heading: number, pitch: number, zoom: number},
+     *   canvasWidth: number, canvasHeight: number, margin: number
+     * ) => {x: number, y: number}|null}
      */
     this.povToPixel_ = util.pano.centeredPovToCanvasCoord2d;
     const pixelCanvas = document.createElement('canvas');
@@ -247,7 +246,8 @@ class PanoMarker {
           // (which must stay closed) or Shift+Tab walking back out (whose focusout just scheduled a hide that
           // this cancel undoes).
           const card = document.getElementById('label-card');
-          if (card && card.contains(e.relatedTarget)) svv.labelVisibilityControl.cancelScheduledCardHide();
+          const cameFrom = /** @type {Node} */ (e.relatedTarget);
+          if (card && card.contains(cameFrom)) svv.labelVisibilityControl.cancelScheduledCardHide();
           else svv.labelVisibilityControl.showLabelCard({ viaKeyboard: true });
         });
         marker.addEventListener('blur', () => svv.labelVisibilityControl.scheduleHideLabelCard());
@@ -302,59 +302,59 @@ class PanoMarker {
 
   // Getter to be roughly equivalent to the regular google.maps.Marker. //
 
-  /** @return {string} The className or null if not set upon marker creation. */
+  /** @returns {?string} The className or null if not set upon marker creation. */
   getClassName = function () {
     return this.className_;
   };
 
-  /** @return {string} The current icon, if any. */
+  /** @returns {?string} The current icon, if any. */
   getIcon = function () {
     return this.icon_;
   };
 
-  /** @return {string} The identifier or null if not set upon marker creation. */
+  /** @returns {?string} The identifier or null if not set upon marker creation. */
   getId = function () {
     return this.id_;
   };
 
-  /** @return {PanoViewer} The current PanoViewer. */
+  /** @returns {PanoViewer} The current PanoViewer. */
   getPanoViewer = function () {
     return this.panoViewer_;
   };
 
-  /** @return {PanoViewer} The current PanoViewer. */
+  /** @returns {HTMLDivElement} The container holding the markers. */
   getMarkerContainer = function () {
     return this.markerContainer_;
   };
 
-  /** @return {{heading: number, pitch: number}} The marker's location on the panorama. */
+  /** @returns {{heading: number, pitch: number}} The marker's location on the panorama. */
   getPosition = function () {
     return this.position_;
   };
 
-  /** {{width: number, height: number}} size The new size of the marker in pixels. */
+  /** @returns {{width: number, height: number}} The size of the marker in pixels. */
   getSize = function () {
     return this.size_;
   };
 
-  /** @return {string} The marker's rollover text. */
+  /** @returns {string} The marker's rollover text. */
   getTitle = function () {
     return this.title_;
   };
 
-  /** @return {boolean} Whether the marker is currently visible. */
+  /** @returns {boolean} Whether the marker is currently visible. */
   getVisible = function () {
     return this.visible_;
   };
 
-  /** @return {number} The marker's z-index. */
+  /** @returns {number} The marker's z-index. */
   getZIndex = function () {
     return this.zIndex_;
   };
 
   // Setter for the properties mentioned above. //
 
-  /** @param {string} className The new className. */
+  /** @param {string} className - The new className. */
   setClassName = function (className) {
     this.className_ = className;
     if (this.marker_) {
@@ -363,7 +363,7 @@ class PanoMarker {
     }
   };
 
-  /** @param {?string} icon URL to a new icon, or null in order to remove it. */
+  /** @param {?string} icon - URL to a new icon, or null in order to remove it. */
   setIcon = function (icon) {
     this.icon_ = icon;
     if (this.marker_) {
@@ -371,7 +371,7 @@ class PanoMarker {
     }
   };
 
-  /** @param {string} id The new id. */
+  /** @param {string} id - The new id. */
   setId = function (id) {
     this.id_ = id;
     if (this.marker_) {
@@ -379,23 +379,23 @@ class PanoMarker {
     }
   };
 
-  /** @param {PanoViewer} panoViewer The panorama in which to show the marker. */
+  /** @param {PanoViewer} panoViewer - The panorama in which to show the marker. */
   setPanoViewer = function (panoViewer) {
     this.panoViewer_ = panoViewer;
   };
 
-  /** @param {HTMLDivElement} markerContainer The container holding the markers. */
+  /** @param {HTMLDivElement} markerContainer - The container holding the markers. */
   setMarkerContainer = function (markerContainer) {
     this.markerContainer_ = markerContainer;
   };
 
-  /** @param {{heading: number, pitch: number}} position The desired location for the marker on the pano. */
+  /** @param {{heading: number, pitch: number}} position - The desired location for the marker on the pano. */
   setPosition = function (position) {
     this.position_ = position;
     this.draw();
   };
 
-  /** @param {{width: number, height: number}} size The new size of the marker in pixels. */
+  /** @param {{width: number, height: number}} size - The new size of the marker in pixels. */
   setSize = function (size) {
     this.size_ = size;
     if (this.marker_) {
@@ -406,7 +406,7 @@ class PanoMarker {
     }
   };
 
-  /** @param {string} title The new rollover text. */
+  /** @param {string} title - The new rollover text. */
   setTitle = function (title) {
     this.title_ = title;
     if (this.marker_) {
@@ -414,7 +414,7 @@ class PanoMarker {
     }
   };
 
-  /** @param {boolean} show Whether the marker shall be visible. */
+  /** @param {boolean} show - Whether the marker shall be visible. */
   setVisible = function (show) {
     this.visible_ = show;
     if (this.marker_) {
@@ -422,7 +422,7 @@ class PanoMarker {
     }
   };
 
-  /** @param {number} zIndex The new z-index. */
+  /** @param {number} zIndex - The new z-index. */
   setZIndex = function (zIndex) {
     this.zIndex_ = zIndex;
     if (this.marker_) {

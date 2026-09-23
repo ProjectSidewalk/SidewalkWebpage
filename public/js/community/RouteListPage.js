@@ -10,6 +10,7 @@ class RouteListPage {
   constructor() {
     this.#list = new CommunityListPage('RouteListPage', {
       newest: { key: 'created', numeric: true, desc: true },
+      // Also logged as `_Sort=neighborhood`, so renaming it would split that event's history.
       neighborhood: { key: 'region' },
       longest: { key: 'distance', numeric: true, desc: true },
       explored: { key: 'explored', numeric: true, desc: true },

@@ -2,6 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
+import models.utils.JobRunTrigger
 import play.api.libs.json.{JsObject, Json}
 import play.api.{Configuration, Environment, Logger}
 
@@ -27,19 +28,33 @@ case class ClusteringResults(labelCount: Int, clusterCount: Int) {
   def runDetails: JsObject = Json.obj("labels_clustered" -> labelCount, "clusters_created" -> clusterCount)
 }
 
+object ClusterServiceImpl {
+
+  /**
+   * Job name for the intersection rebuild that opens every clustering run (#5095).
+   *
+   * Recorded as its own run rather than folded into clustering's: it is deliberately recovered rather than propagated,
+   * so a clustering run that reports success says nothing about whether the rebuild inside it worked.
+   */
+  val IntersectionRebuildJobName: String = "intersection-rebuild"
+}
+
 @ImplementedBy(classOf[ClusterServiceImpl])
 trait ClusterService {
 
   /**
-   * Runs clustering across all regions, updating the attached reference with progress.
+   * Rebuilds the intersections, then runs clustering across all regions, updating the attached reference with
+   * progress.
    *
    * @param statusRef  Reference to a string that will be updated with the clustering progress.
    * @param allRegions Re-cluster every region instead of only those whose label membership changed.
+   * @param trigger    Whether the scheduler or a person set this run going, for the rebuild's own run record.
    * @return           Final counts of labels and clusters.
    */
   def runClustering(
       statusRef: Option[AtomicReference[String]] = None,
-      allRegions: Boolean = false
+      allRegions: Boolean = false,
+      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
   ): Future[ClusteringResults]
 }
 
@@ -52,14 +67,49 @@ class ClusterServiceImpl @Inject() (
     config: Configuration,
     environment: Environment,
     apiService: ApiService,
+    intersectionService: IntersectionService,
+    jobRunService: JobRunService,
+    accessScoreSpotlightService: AccessScoreSpotlightService,
     cpuEc: CpuIntensiveExecutionContext
 )(implicit ec: ExecutionContext)
     extends ClusterService {
   private val logger = Logger(this.getClass)
 
-  def runClustering(statusRef: Option[AtomicReference[String]], allRegions: Boolean): Future[ClusteringResults] = {
+  def runClustering(
+      statusRef: Option[AtomicReference[String]],
+      allRegions: Boolean,
+      trigger: JobRunTrigger.Value
+  ): Future[ClusteringResults] = {
     for {
-      _      <- runMultiUserClustering(statusRef, allRegions)
+      // The intersections must be current before any region's clusters are attributed to them (#5095). A rebuild
+      // failure is recovered rather than propagated: it rolled back whole, so the clusters still attribute against
+      // last night's table, and letting it abort the clustering would leave every score a day stale. The recovery
+      // happens outside the rebuild's own run record, so that record still shows the failure.
+      rebuildSummary <- jobRunService
+        .record(ClusterServiceImpl.IntersectionRebuildJobName, trigger)(intersectionService.rebuild())(_.runDetails)
+        .map(r =>
+          s"${r.intersections} intersections (${r.inserted} new, ${r.updated} changed, ${r.deleted} gone), " +
+            s"${r.clustersAttributed} clusters re-attributed"
+        )
+        .recover { case e: Throwable =>
+          logger.error("Intersection rebuild failed; clustering against the previous table", e)
+          "failed, see error above"
+        }
+      _ = logger.info(s"Intersection rebuild: $rebuildSummary")
+      _ <- runMultiUserClustering(statusRef, allRegions)
+      // The AccessScore Spotlight's nightly tables close the run: the clusters they are computed from only exist
+      // now, and the landing page reads nothing else. Recorded and recovered like the rebuild above, so a snapshot
+      // failure leaves yesterday's rows on the page rather than reporting the whole clustering run as failed.
+      snapshotSummary <- jobRunService
+        .record(AccessScoreSpotlightService.JobName, trigger)(accessScoreSpotlightService.recordSnapshot())(result =>
+          Json.obj("region_rows" -> result.regions, "street_rows" -> result.streets)
+        )
+        .map(result => s"${result.regions} region rows, ${result.streets} street rows")
+        .recover { case e: Throwable =>
+          logger.error("AccessScore Spotlight snapshot failed; the pages keep the previous night's rows", e)
+          "failed, see error above"
+        }
+      _ = logger.info(s"AccessScore Spotlight snapshot: $snapshotSummary")
       counts <- apiService.getClusteringInfo // Gets the counts to show how many labels were clustered.
     } yield ClusteringResults(labelCount = counts._1, clusterCount = counts._2)
   }

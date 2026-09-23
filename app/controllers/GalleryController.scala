@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base._
-import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, NoUserId}
+import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, regionsParam, NoUserId}
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
@@ -26,6 +26,7 @@ class GalleryController @Inject() (
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
+    cropService: CropService,
     galleryService: GalleryService,
     regionService: RegionService
 )(implicit assets: AssetsFinder)
@@ -36,14 +37,17 @@ class GalleryController @Inject() (
    * Returns the Gallery page.
    *
    * Mobile visitors are served the page itself (it is responsive) rather than being redirected to /mobileLanding.
+   *
+   * @param neighborhoods Old name for `regions`, still read so existing links keep working.
    */
   def gallery(
       labelType: String,
-      neighborhoods: String,
+      regions: String,
       severities: String,
       tags: List[String],
       validationOptions: String,
-      aiValidationOptions: String
+      aiValidationOptions: String,
+      neighborhoods: String
   ): Action[AnyContent] =
     cc.securityService.UserAwareAction { implicit request =>
       // The label type filter is a list, and an empty one means every type — which is what the legacy "Assorted"
@@ -57,19 +61,20 @@ class GalleryController @Inject() (
       val commonDataF                   = configService.getCommonPageData(request2Messages.lang)
 
       for {
-        regions    <- regionsF
+        allRegions <- regionsF
         allTags    <- allTagsF
         commonData <- commonDataF
       } yield {
-        // Cards name the neighborhood a label sits in, so the page carries the id -> name map the labels key into.
-        val regionNames: Map[Int, String] = regions.map(r => r.regionId -> r.name).toMap
+        // Cards name the region a label sits in, so the page carries the id -> name map the labels key into.
+        val regionNames: Map[Int, String] = allRegions.map(r => r.regionId -> r.name).toMap
         // A tag only survives from the URL if it belongs to a label type being shown, in this city.
         val possibleTags: Seq[String] = allTags
           .filter(t => labTypes.isEmpty || labTypes.contains(t.labelType.name))
           .map(_.tag)
 
         // Make sure that list of region IDs, severities, and validation options are formatted correctly.
-        val regionIdsList: Seq[Int]      = parseIntegerSeq(neighborhoods).filter(regionNames.contains)
+        val regionIdsList: Seq[Int] =
+          parseIntegerSeq(regionsParam(Some(regions), Some(neighborhoods))).filter(regionNames.contains)
         val validSeverities: Seq[String] = Seq("null", "1", "2", "3")
         val severityList: Seq[String]    = {
           val tokens = severities.split(",").filter(validSeverities.contains).distinct.toSeq
@@ -137,20 +142,23 @@ class GalleryController @Inject() (
         labelService
           .getGalleryLabels(n, labelTypes, loadedLabels, valOptions, regionIds, severities, tagsByLabelType,
             aiValOptions, userId, recentFirst, staticImageryOnly)
-          .map { labels =>
-            val jsonList = labels.map { l =>
-              Json.obj(
-                "label" -> (LabelFormats.validationLabelMetadataToJson(
-                  l,
-                  panoDataService.backupImageUrl(l.panoId),
-                  currUsername = request.identity.map(_.username)
-                ) + ("can_edit" -> Json.toJson(l.fromCurrentUser || isAdmin(request.identity)))),
-                "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
-                "gsvImageUrl" ->
-                  panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
-              )
+          .flatMap { labels =>
+            cropService.cropMarkers(labels.map(_.labelId)).map { markers =>
+              val jsonList = labels.map { l =>
+                Json.obj(
+                  "label" -> (LabelFormats.validationLabelMetadataToJson(
+                    l,
+                    panoDataService.backupImageUrl(l.panoId),
+                    currUsername = request.identity.map(_.username)
+                  ) + ("can_edit" -> Json.toJson(l.fromCurrentUser || isAdmin(request.identity)))),
+                  "cropUrl"     -> panoDataService.cropUrl(l.labelId, l.labelType),
+                  "cropMarker"  -> markers.get(l.labelId),
+                  "gsvImageUrl" ->
+                    panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom)
+                )
+              }
+              Ok(Json.obj("labelsOfType" -> jsonList))
             }
-            Ok(Json.obj("labelsOfType" -> jsonList))
           }
       }
     )

@@ -1,0 +1,134 @@
+/* Label-type picker (LabelTypePicker.js). --label-color comes from the JS, off the backend's label-type table, so no
+   palette is repeated here. */
+.label-type-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(6px * var(--ui-scale, 1));
+}
+
+.label-type-picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(6px * var(--ui-scale, 1));
+  padding: calc(4px * var(--ui-scale, 1)) calc(10px * var(--ui-scale, 1));
+  padding-left: calc(6px * var(--ui-scale, 1));
+  border: none;
+  border-radius: 200px;
+  outline: 1px solid var(--color-neutral-900);
+  background: var(--color-neutral-white);
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-black);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.label-type-picker__chip[hidden] {
+  display: none; /* The chip's display rule above would otherwise beat the hidden attribute. */
+}
+
+.label-type-picker__icon {
+  width: calc(18px * var(--ui-scale, 1));
+  height: calc(18px * var(--ui-scale, 1));
+}
+
+@media (hover: hover) {
+  .label-type-picker__chip:not([aria-disabled="true"]):hover {
+    background: rgb(from var(--label-color) r g b / 18%);
+  }
+}
+
+.label-type-picker__chip--selected {
+  outline: 2px solid var(--label-color);
+  background: rgb(from var(--label-color) r g b / 25%);
+}
+
+/* The label's current type: shown for orientation, not pickable. */
+.label-type-picker__chip--current {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.label-type-picker__chip:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+/* Shown only on the lone chip of a collapsed group, which reopens the group on click. */
+.label-type-picker__change {
+  display: none;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.label-type-picker--collapsed .label-type-picker__change {
+  display: inline;
+}
+
+/* The type as a title (components/labelTypeTrigger); both versions take their font from the heading they sit in. */
+.label-type-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(8px * var(--ui-scale, 1));
+  min-width: 0;
+}
+
+.label-type-trigger[hidden] {
+  display: none; /* The display rule above would otherwise beat the hidden attribute. */
+}
+
+.label-type-trigger__icon {
+  width: calc(22px * var(--ui-scale, 1));
+  height: calc(22px * var(--ui-scale, 1));
+  flex-shrink: 0;
+}
+
+.label-type-trigger__button {
+  margin: calc(-2px * var(--ui-scale, 1)) calc(-6px * var(--ui-scale, 1));
+  padding: calc(2px * var(--ui-scale, 1)) calc(6px * var(--ui-scale, 1));
+  border: none;
+  border-radius: calc(6px * var(--ui-scale, 1));
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.label-type-trigger__button[aria-disabled="true"] {
+  cursor: default;
+}
+
+.label-type-trigger__button:not([aria-disabled="true"]):hover {
+  background: rgb(0 0 0 / 6%);
+}
+
+.label-type-trigger__button:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+.label-type-trigger__chevron {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
+  transition: transform 150ms ease;
+}
+
+.label-type-trigger__button[aria-expanded="true"] .label-type-trigger__chevron {
+  transform: rotate(180deg);
+}
+
+/* The chips' popover (components/labelTypePopover), parked under the trigger, or inline where there are no popovers. */
+.label-type-popover {
+  margin: 0;
+  padding: calc(12px * var(--ui-scale, 1));
+  max-width: calc(400px * var(--ui-scale, 1));
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  box-shadow: var(--box-shadow-lg);
+}
+
+.label-type-popover__hint {
+  margin: 0 0 calc(8px * var(--ui-scale, 1));
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}

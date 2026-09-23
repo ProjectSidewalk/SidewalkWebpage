@@ -6,7 +6,7 @@ import models.route._
 import models.utils.{MyPostgresProfile, PolylineEncoder, ProfanityGuard, RouteThumbnail, SlugUtils}
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.LineString
-import org.postgresql.util.PSQLException
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -55,7 +55,7 @@ class RouteServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /** SQLState for a Postgres unique-constraint violation, the backstop for concurrent slug generation. */
-  private val UniqueViolation: String = "23505"
+  private val UniqueViolation: String = PSQLState.UNIQUE_VIOLATION.getState
 
   /**
    * Runs a slug-generating action, retrying once if a concurrent save grabbed the same slug between our
@@ -396,6 +396,10 @@ class RouteServiceImpl @Inject() (
    * The slug is tried under several spellings (see `slugCandidates`) so a link retyped from the route's name rather
    * than copied still lands on it (#5150). Live routes outrank retired slugs whichever spelling matched: a link that
    * still works beats one kept alive only for old shares.
+   *
+   * /r/ resolves slugs and nothing else. A bare route id was accepted here briefly (#5157) and taken back out: ids
+   * are dense, so a mistyped one lands on a real route instead of 404ing, and a slug's sparseness — the fact that a
+   * typo misses — is the only error detection a share link has. /explore?routeId=<id> is where an id belongs.
    *
    * Retyping stays lossy in two ways no fold can close, both preferable to a 404: "/r/STRASSE-TOUR" misses a route
    * slugged "straße-tour" (ß has no canonical decomposition), and where the uniquifier appended "-2" a retyped name

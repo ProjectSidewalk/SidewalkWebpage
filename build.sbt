@@ -1,10 +1,15 @@
 import com.typesafe.sbt.packager.MappingsHelper.directory
+import com.typesafe.sbt.web.PathMapping
+import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
-version := "11.10.0"
+version := "11.14.1"
 
 scalaVersion := "2.13.18"
+
+// An idle server sits on ~1GB, and the default keeps one alive per worktree for a week.
+Global / serverIdleTimeout := Some(scala.concurrent.duration.Duration(1, "hour"))
 
 // These lines prevent documentation from being generated. Once we clean up our Scaladoc, we can remove these lines.
 Compile / doc / sources                := Seq.empty
@@ -36,7 +41,7 @@ libraryDependencies ++= Seq(
   "com.iheart"     %% "ficus"       % "1.5.2",
 
   // Slick and Postgres stuff.
-  "org.postgresql"     % "postgresql"            % "42.7.12",
+  "org.postgresql"     % "postgresql"            % "42.7.13",
   "org.playframework" %% "play-slick"            % "6.2.0",
   "org.playframework" %% "play-slick-evolutions" % "6.2.0",
 
@@ -51,18 +56,17 @@ libraryDependencies ++= Seq(
 
   // Reads EXIF (photos) and QuickTime/MP4 atoms (videos, for the later #4054 increments) from user-uploaded story
   // media. Pure Java, one small transitive dep (xmpcore). Used transiently on ingest; precise values are discarded.
-  "com.drewnoakes" % "metadata-extractor" % "2.19.0",
+  "com.drewnoakes" % "metadata-extractor" % "2.21.0",
 
   // Used for the sign in/up views. https://github.com/mohiva/play-silhouette-seed/blob/1710f9f3337cbe10d1928fd53a5ab933352b3cf5/build.sbt
   // Find versions here (P26-B3 is Play 2.6, Bootstrap 3): https://adrianhurt.github.io/play-bootstrap/changelog/
   // TODO no releases since Play 2.8. Seems to continue to work, but should consider other options.
   "com.adrianhurt" %% "play-bootstrap" % "1.6.1-P28-B3",
 
-  // Used to create shapefiles. The jai_core lib isn't available from maven, so we're setting a separate download link.
-  "javax.media" % "jai_core" % "1.1.3" from "https://repo.osgeo.org/repository/release/javax/media/jai_core/1.1.3/jai_core-1.1.3.jar",
-  "org.geotools" % "gt-shapefile" % "29.6" exclude ("javax.media", "jai_core"),
-  "org.geotools" % "gt-epsg-hsql" % "29.6" exclude ("javax.media", "jai_core"),
-  "org.geotools" % "gt-geopkg"    % "29.6" exclude ("javax.media", "jai_core"),
+  // Used to create the shapefile and GeoPackage exports (ShapefilesCreatorHelper). Served by the OSGeo resolver above.
+  "org.geotools" % "gt-shapefile" % "35.1",
+  "org.geotools" % "gt-epsg-hsql" % "35.1",
+  "org.geotools" % "gt-geopkg"    % "35.1",
 
   // Testing. scalatestplus-play pulls in ScalaTest + Play's test helpers (FakeRequest, route, etc.).
   "org.scalatestplus.play" %% "scalatestplus-play" % "7.0.2" % Test
@@ -87,7 +91,18 @@ Universal / mappings ++= directory(baseDirectory.value / "scripts")
 // `Assets / pipelineStages` into `Assets / mappings` -> `Assets / assets`, which Play's dev build link runs on every
 // request. Scoping it to Assets therefore fingerprints during `run` as well, which buys nothing (dev serves
 // `no-cache`) and grows `target/web` from 290MB to ~880MB in every checkout and QA worktree.
-pipelineStages := Seq(digest)
+pipelineStages := Seq(fingerprintCssAssetUrls, digest)
+
+// Points every `url(...)` in a CSS asset at the fingerprinted copy `digest` is about to write (#5094): a stylesheet is
+// static text out of the assets jar, so no interpolation point reaches those URLs. Must precede `digest` above — see
+// project/CssAssetUrls.scala.
+val fingerprintCssAssetUrls = taskKey[Pipeline.Stage]("Rewrite CSS url(...) references to their fingerprinted names.")
+
+fingerprintCssAssetUrls := {
+  val targetDir = WebKeys.webTarget.value / "css-asset-urls"
+  val log       = streams.value.log
+  (mappings: Seq[PathMapping]) => CssAssetUrls(mappings, targetDir, log)
+}
 
 // Stamp git metadata into the binary at build time (generates models.utils.BuildInfo), so the running app can report
 // exactly what code it was built from (surfaced on the admin pages' deployment-info strip). Deploy builds run from
@@ -242,4 +257,7 @@ scalacOptions ++= Seq(
 )
 
 javacOptions ++= Seq("-source", "17", "-target", "17")
-javaOptions ++= Seq("-Xmx4096M", "-Xms2048M")
+// Heap for the forked test JVM, which is all this ever reached — prod's comes from the deploy tooling (#4564).
+// Measured: the suite uses ~160MB, peaking near 1.3GB under scoverage. A bigger ceiling isn't free, since the JVM
+// stops bothering to collect and grows into it, and -Xms is claimed up front even to run one spec.
+Test / javaOptions ++= Seq("-Xmx2048M", "-Xms512M")

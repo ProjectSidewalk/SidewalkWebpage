@@ -26,9 +26,9 @@ class AppManager {
 
   /**
    * Initialize all registered tasks and built-in page setup.
-   * @param {string} csrfToken The CSRF token to attach to outgoing AJAX/fetch requests.
-   * @param {object} i18nextParams Parameters for i18next initialization (see _setupI18next).
-   * @param {object} [globals] Map of variable names to values to attach to `window` for global access.
+   * @param {string} csrfToken - The CSRF token to attach to outgoing AJAX/fetch requests.
+   * @param {Parameters<AppManager['_setupI18next']>[0]} i18nextParams - Parameters for i18next initialization.
+   * @param {object} [globals] - Map of variable names to values to attach to `window` for global access.
    * @returns {Promise} Promise that resolves when all initialization is complete.
    */
   init(csrfToken, i18nextParams, globals = {}) {
@@ -89,7 +89,7 @@ class AppManager {
 
   /**
    * Attach the given key/value pairs to the `window` object so they're accessible from any script on the page.
-   * @param {object} globals Map of global variable names to their values.
+   * @param {object} globals - Map of global variable names to their values.
    * @private
    */
   _setupGlobals(globals) {
@@ -155,10 +155,10 @@ class AppManager {
    *
    * @param {object} params - Properties that determine which translations should be loaded.
    * @param {string} params.language - The language to use for translations, e.g., "en", "en-US", "es", etc.
-   * @param {string} params.defaultNS The default namespace to use if no specific ns is provided, e.g., "common"
-   * @param {Array<string>} params.namespaces An array of namespaces to load, e.g., ["common", "explore"]
-   * @param {string} params.countryId The server's country ID to determine if we load country-specific overrides
-   * @param {object} params.unitWords The request's distance words (unitAbbr, unitAbbrSmall, unitName,
+   * @param {string} params.defaultNS - The default namespace to use if no specific ns is provided, e.g., "common"
+   * @param {Array<string>} params.namespaces - An array of namespaces to load, e.g., ["common", "explore"]
+   * @param {string} params.countryId - The server's country ID to determine if we load country-specific overrides
+   * @param {object} params.unitWords - The request's distance words (unitAbbr, unitAbbrSmall, unitName,
    *   unitNameSingular), resolved server-side for its language and measurement system.
    * @returns {Promise} Promise that resolves when i18next is ready.
    * @private
@@ -192,6 +192,13 @@ class AppManager {
         // call site, so there is nothing a caller can forget and no metric/imperial pair of keys to keep in sync.
         // These must be plain values: a getter that called i18next.t() here would recurse through interpolation.
         defaultVariables: params.unitWords,
+        // Interpolated values reach a text node, an aria-label, a title or a confirm() far more often than they
+        // reach innerHTML, and there HTML-escaping is what the reader sees: a neighborhood called Al 'Ummah prints
+        // as "Al &#39;Ummah" and a formatted date as "9&#x2F;16&#x2F;2026" (#5389). So values are interpolated
+        // verbatim, and the far smaller set of calls that build markup says so at the call site with
+        // `interpolation: { escapeValue: true }`. The `ps/i18n-escape-in-markup` ESLint rule enforces that;
+        // docs/internationalization.md has the rule for the flows it cannot see.
+        escapeValue: false,
       },
     }, (err) => {
       // Registered before the error check: the formatter doesn't depend on any translation having loaded, and a page
@@ -229,7 +236,8 @@ class AppManager {
    * gets all three rather than each call site repeating the metersToFeet / roundToTwentyFive / format-number dance.
    * The input is always canonical — meters for `small`, kilometers for `large` — never a pre-converted value.
    *
-   * Params: `style` (`small` → m/ft rounded to the nearest 25, our convention for mission-scale distances; `large` →
+   * Params: `style` (`small` → m/ft rounded to the nearest 25, our convention for mission-scale distances; `fine` →
+   * m/ft to the whole unit, for an elevation or a rise, which a nearest-25 would flatten to nothing; `large` →
    * km/mi), `precision` (decimal places, `large` only), and `unit: false` to emit the bare number for a string that
    * names the unit once across several values. Separate multiple params with `;`.
    *
@@ -238,9 +246,12 @@ class AppManager {
   _addDistanceFormatter() {
     i18next.services.formatter.add('distance', (value, lng, options) => {
       const metric = util.isMetric();
-      const small = options.style === 'small';
+      const fine = options.style === 'fine';
+      const small = fine || options.style === 'small';
       let amount;
-      if (small) {
+      if (fine) {
+        amount = Math.round(metric ? value : util.math.metersToFeet(value));
+      } else if (small) {
         amount = util.math.roundToTwentyFive(metric ? value : util.math.metersToFeet(value));
       } else {
         amount = metric ? value : util.math.kmsToMiles(value);

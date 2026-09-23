@@ -19,11 +19,11 @@ class MapDownloadControl {
   #panel;
   /** @type {HTMLElement} */
   #status;
-  /** @type {() => object} */
+  /** @type {() => SidebarFilterState} */
   #getFilterState;
   /** @type {() => number} */
   #getVisibleLabelCount;
-  /** @type {?() => string} */
+  /** @type {?(() => string)} */
   #getBbox;
   /** @type {?number} */
   #regionId;
@@ -72,13 +72,13 @@ class MapDownloadControl {
 
   /**
    * @param {object} options
-   * @param {() => object} options.getFilterState Returns FilterSidebar.getState()'s shape.
-   * @param {() => number} options.getVisibleLabelCount Returns the number of labels the filters leave visible.
-   * @param {?() => string} [options.getBbox] Returns the current viewport as "minLng,minLat,maxLng,maxLat" to
+   * @param {() => SidebarFilterState} options.getFilterState - Returns FilterSidebar.getState()'s shape.
+   * @param {() => number} options.getVisibleLabelCount - Returns the number of labels the filters leave visible.
+   * @param {?(() => string)} [options.getBbox] - Returns the current viewport as "minLng,minLat,maxLng,maxLat" to
    *      scope downloads to the visible map area (GIS "export what you see", #5002). When provided, regionId is
    *      not sent — the endpoint gives bbox precedence anyway, so it could never narrow the file further.
-   * @param {?number} [options.regionId] Single deep-linked region id to scope downloads to, or null.
-   * @param {boolean} [options.showsPartialFilterCaveat=false] Whether to warn that some page-level filters
+   * @param {?number} [options.regionId] - Single deep-linked region id to scope downloads to, or null.
+   * @param {boolean} [options.showsPartialFilterCaveat=false] - Whether to warn that some page-level filters
    *      (multi-region, routes, AI validation) are not reflected in downloads.
    */
   constructor({ getFilterState, getVisibleLabelCount, getBbox = null, regionId = null,
@@ -98,12 +98,11 @@ class MapDownloadControl {
    * with nothing selected is also omitted: it means the map shows nothing, and callers disable the download actions
    * in that case (the endpoint cannot express an empty selection).
    *
-   * @param {{severities: number[], allSeverities: number[], sections: object, tags: object,
-   *      allLabelTypes: string[]}} state FilterSidebar.getState()'s shape.
+   * @param {SidebarFilterState} state - FilterSidebar.getState()'s shape.
    * @param {object} options
-   * @param {string} options.format One of 'geojson', 'csv', 'shapefile', 'geopackage'.
-   * @param {?number} [options.regionId] Single region id to scope the download to, or null.
-   * @param {?string} [options.bbox] Viewport bbox "minLng,minLat,maxLng,maxLat" to scope the download to, or
+   * @param {string} options.format - One of 'geojson', 'csv', 'shapefile', 'geopackage'.
+   * @param {?number} [options.regionId] - Single region id to scope the download to, or null.
+   * @param {?string} [options.bbox] - Viewport bbox "minLng,minLat,maxLng,maxLat" to scope the download to, or
    *      null. Takes regionId's place when set — see the getBbox constructor option.
    * @returns {string} The relative URL, e.g. "/v3/api/rawLabels?filetype=csv&highQualityUserOnly=true".
    */
@@ -172,9 +171,12 @@ class MapDownloadControl {
           <path d="M8 2v8m0 0 3-3m-3 3L5 7M3 12v1.5a.5.5 0 0 0 .5.5h9a.5.5 0 0 0 .5-.5V12"
                 stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <span class="map-download-control__label" data-i18n="labelmap:download.button">Download</span>
-        <span class="map-download-control__label map-download-control__label--busy"
+        <span class="map-download-control__label" data-state="idle" data-i18n="labelmap:download.button">Download</span>
+        <span class="map-download-control__label map-download-control__label--busy" data-state="busy"
               data-i18n="labelmap:download.preparing" hidden>Preparing your download…</span>
+        <span class="map-download-control__label map-download-control__label--refused" data-state="refused"
+              data-i18n="common:download-already-preparing" hidden>This file is already being prepared for another
+          request. Please try again shortly.</span>
       </button>
       <div id="${panelId}" class="map-download-control__panel" role="group" aria-labelledby="${titleId}"
            aria-describedby="${describedBy}" hidden>
@@ -221,13 +223,13 @@ class MapDownloadControl {
 
   /**
    * Opens the panel: refreshes the count line, disables the format actions when nothing is shown, and moves focus in.
-   * @param {boolean} [focusLast=false] Whether to focus the last item instead of the first (ArrowUp convention).
+   * @param {boolean} [focusLast=false] - Whether to focus the last item instead of the first (ArrowUp convention).
    */
   #openPanel(focusLast = false) {
     const count = this.#getVisibleLabelCount();
     this.#renderCount(count);
     for (const item of this.#panel.querySelectorAll('.map-download-control__item')) {
-      item.disabled = count === 0;
+      /** @type {HTMLButtonElement} */ (item).disabled = count === 0;
     }
 
     this.#panel.hidden = false;
@@ -248,7 +250,7 @@ class MapDownloadControl {
 
   /**
    * Closes the panel and tears down the outside-click listener.
-   * @param {boolean} [returnFocus=true] Whether to move focus back to the pill (skip on outside-click/Tab).
+   * @param {boolean} [returnFocus=true] - Whether to move focus back to the pill (skip on outside-click/Tab).
    */
   #closePanel(returnFocus = true) {
     this.#panel.hidden = true;
@@ -261,47 +263,67 @@ class MapDownloadControl {
 
   /**
    * Navigates to the rawLabels URL for the current filter state via an ephemeral anchor; the server's
-   * Content-Disposition names the downloaded file.
-   * @param {string} format One of 'geojson', 'csv', 'shapefile', 'geopackage'.
+   * Content-Disposition names the downloaded file. Asks the server first whether that exact file is already being
+   * built for someone else: the browser download would just fail silently on the 429, so the pill says so instead.
+   * @param {string} format - One of 'geojson', 'csv', 'shapefile', 'geopackage'.
    */
-  #triggerDownload(format) {
+  async #triggerDownload(format) {
     const url = MapDownloadControl.buildDownloadUrl(this.#getFilterState(), {
       format,
       regionId: this.#regionId,
       bbox: this.#getBbox?.() ?? null,
     });
+    this.#logActivity(`Click_module=MapDownload_Download_format=${format}`);
+    this.#setPill('busy');
+    this.#closePanel();
+    if (await MapDownloadControl.#alreadyBuilding(url)) {
+      this.#setPill('refused');
+      return;
+    }
     const link = document.createElement('a');
     link.href = url;
     link.download = '';
     document.body.appendChild(link);
     link.click();
     link.remove();
-    this.#logActivity(`Click_module=MapDownload_Download_format=${format}`);
-    this.#setBusy(true);
-    this.#closePanel();
   }
 
   /**
-   * Puts the pill into (or out of) its "preparing your download" state and announces the change.
-   * @param {boolean} busy Whether a download has just been started.
+   * Whether the server is already building this exact file for an earlier request. A HEAD builds nothing; a network
+   * failure answers "no" so the download proceeds as it would have anyway.
+   * @param {string} url - The download URL.
+   * @returns {Promise<boolean>} True if the server would refuse the download right now.
    */
-  #setBusy(busy) {
-    const idle = this.#button.querySelector('.map-download-control__label:not(.map-download-control__label--busy)');
-    const working = this.#button.querySelector('.map-download-control__label--busy');
-    idle.hidden = busy;
-    working.hidden = !busy;
-    this.#button.setAttribute('aria-busy', String(busy));
+  static async #alreadyBuilding(url) {
+    try {
+      return (await fetch(url, { method: 'HEAD', cache: 'no-store' })).status === 429;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Switches the pill's label and announces it, then restores the idle label after a few seconds.
+   * @param {'idle'|'busy'|'refused'} state - The label to show.
+   */
+  #setPill(state) {
+    let shown;
+    for (const label of this.#button.querySelectorAll('.map-download-control__label')) {
+      label.hidden = label.dataset.state !== state;
+      if (!label.hidden) shown = label;
+    }
+    this.#button.setAttribute('aria-busy', String(state === 'busy'));
     // Announce the localized string the pill itself is showing, rather than a second copy that could drift from it.
-    this.#status.textContent = busy ? working.textContent.trim() : '';
+    this.#status.textContent = state === 'idle' ? '' : shown.textContent.replace(/\s+/g, ' ').trim();
 
     clearTimeout(this.#busyTimer);
-    if (busy) this.#busyTimer = setTimeout(() => this.#setBusy(false), MapDownloadControl.#BUSY_MS);
+    if (state !== 'idle') this.#busyTimer = setTimeout(() => this.#setPill('idle'), MapDownloadControl.#BUSY_MS);
   }
 
   /**
    * Renders the count line: the visible-label count in a pill ("17224 labels"), followed by "match your filters".
    * Both halves receive the count so each locale can inflect its own half (e.g. "matches" vs "match").
-   * @param {number} count The current visible-label count.
+   * @param {number} count - The current visible-label count.
    */
   #renderCount(count) {
     const hasI18n = typeof i18next !== 'undefined';
@@ -324,7 +346,7 @@ class MapDownloadControl {
   /**
    * Handles keyboard interaction: ArrowDown/ArrowUp open the panel from the pill; inside it, arrows cycle,
    * Home/End jump, Escape closes and refocuses the pill, and Tab closes while letting focus move on.
-   * @param {KeyboardEvent} e The keydown event.
+   * @param {KeyboardEvent} e - The keydown event.
    */
   #onKeydown(e) {
     if (!this.#open) {
@@ -336,7 +358,7 @@ class MapDownloadControl {
     }
 
     const items = this.#focusableItems();
-    const index = items.indexOf(document.activeElement);
+    const index = items.indexOf(/** @type {HTMLElement} */ (document.activeElement));
     if (e.key === 'Escape') {
       e.preventDefault();
       this.#closePanel();
@@ -362,15 +384,15 @@ class MapDownloadControl {
 
   /**
    * Closes the panel when a click lands outside the control.
-   * @param {MouseEvent} e The document-level click event.
+   * @param {MouseEvent} e - The document-level click event.
    */
   #onOutsideClick(e) {
-    if (!this.#container.contains(e.target)) this.#closePanel(false);
+    if (!this.#container.contains(/** @type {Node} */ (e.target))) this.#closePanel(false);
   }
 
   /**
    * Logs an interaction to the `webpage_activity` table. No-op on pages without the shared logger.
-   * @param {string} activity The activity string, following the Click_module=<Action> convention.
+   * @param {string} activity - The activity string, following the Click_module=<Action> convention.
    */
   #logActivity(activity) {
     window.logWebpageActivity?.(activity);

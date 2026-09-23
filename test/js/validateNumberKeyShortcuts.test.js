@@ -1,6 +1,7 @@
 /**
  * Tests for the number-key shortcuts in Validate's KeyboardManager (public/js/validate/src/keyboard/
- * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871.
+ * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871, plus the Ctrl+Z undo
+ * that shares the manager's key handling.
  *
  * The reason buttons are one fixed set of elements reused across label types, and `defaultOption` is the flag saying
  * "this type offers this reason" — so the same keypress has to mean different things depending on the label on screen.
@@ -86,11 +87,15 @@ describe('KeyboardManager number-key shortcuts', () => {
         }
     });
 
-    /** Selects a verdict, as clicking Agree / Disagree / Unsure would. */
+    /**
+     * Selects a verdict, as clicking Agree / Disagree / Unsure would. 'wrongType' is Disagree with the "wrong label
+     * type" reason picked on Expert Validate, where the menu swaps the reasons for the type picker's section.
+     */
     function choose(verdict) {
         validationMenuUi.yesButton = makeControl({ chosen: verdict === 'yes' });
-        validationMenuUi.noButton = makeControl({ chosen: verdict === 'no' });
+        validationMenuUi.noButton = makeControl({ chosen: verdict === 'no' || verdict === 'wrongType' });
         validationMenuUi.unsureButton = makeControl({ chosen: verdict === 'unsure' });
+        window.svv.validationMenu = { inWrongTypeView: () => verdict === 'wrongType' };
     }
 
     describe('on a label type with a fourth disagree reason (Missing Curb Ramp)', () => {
@@ -146,6 +151,107 @@ describe('KeyboardManager number-key shortcuts', () => {
             pressDigit(2);
 
             expect(clicks).toEqual(['no-button-2']);
+        });
+    });
+
+    describe('on the "wrong label type" disagree (Expert Validate, #3671, #5409)', () => {
+        /** The severity section as the menu leaves it: shown only once a rated type is picked. */
+        function renderSeveritySection(shown) {
+            document.body.innerHTML = `
+                <div id="validate-severity-section" style="display: ${shown ? 'block' : 'none'}"></div>
+                <label id="severity-button-1"><input type="radio" id="validate-severity-radio-1"></label>
+                <label id="severity-button-2"><input type="radio" id="validate-severity-radio-2"></label>`;
+        }
+
+        beforeEach(() => {
+            window.svv.adminVersion = true;
+            choose('wrongType');
+        });
+
+        it('digits rate severity by clicking the radio once a type with a rating has been picked', () => {
+            renderSeveritySection(true);
+
+            pressDigit(2);
+
+            expect(clicks).toEqual(['validate-severity-radio-2']);
+        });
+
+        it('digits do nothing while the severity section is hidden, so no rating rides along unseen', () => {
+            renderSeveritySection(false);
+
+            pressDigit(2);
+
+            expect(clicks).toEqual([]);
+            expect(validationMenuUi.optionalCommentTextBox.click).not.toHaveBeenCalled();
+        });
+
+        it('4 and 5 reach the comment box rather than severity buttons that do not exist', () => {
+            renderSeveritySection(true);
+
+            pressDigit(4);
+            pressDigit(5);
+
+            expect(clicks).toEqual([]);
+            expect(validationMenuUi.optionalCommentTextBox.click).toHaveBeenCalledTimes(2);
+        });
+
+        it('C reaches the optional comment box, not the hidden disagree reason box', () => {
+            renderSeveritySection(false);
+            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', key: 'c', bubbles: true }));
+
+            expect(validationMenuUi.optionalCommentTextBox.click).toHaveBeenCalledTimes(1);
+            expect(validationMenuUi.disagreeReasonTextBox.click).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Ctrl+Z, the other way to press Back (#5409)', () => {
+        let undoButton;
+
+        /** Presses Ctrl+Z, or Cmd+Z when `mac` is set. */
+        function pressUndo({ mac = false } = {}) {
+            window.dispatchEvent(new KeyboardEvent('keydown', {
+                code: 'KeyZ', key: 'z', ctrlKey: !mac, metaKey: mac, bubbles: true, cancelable: true,
+            }));
+        }
+
+        beforeEach(() => {
+            undoButton = makeControl();
+            window.svv.ui = { undoValidation: { undoButton } };
+            window.svv.undoValidation = { canUndo: () => true };
+            window.svv.zoomControl = { zoomIn: jest.fn(), zoomOut: jest.fn() };
+        });
+
+        it('clicks Back', () => {
+            pressUndo();
+
+            expect(undoButton.click).toHaveBeenCalledTimes(1);
+        });
+
+        it('works as Cmd+Z, without the bare Z zoom riding along', () => {
+            pressUndo({ mac: true });
+
+            expect(undoButton.click).toHaveBeenCalledTimes(1);
+            expect(window.svv.zoomControl.zoomIn).not.toHaveBeenCalled();
+            expect(window.svv.zoomControl.zoomOut).not.toHaveBeenCalled();
+        });
+
+        it('does nothing while Back is disabled', () => {
+            window.svv.undoValidation.canUndo = () => false;
+
+            pressUndo();
+
+            expect(undoButton.click).not.toHaveBeenCalled();
+        });
+
+        it('leaves the comment box to the browser, where it undoes what was typed', () => {
+            const commentBox = validationMenuUi.optionalCommentTextBox[0];
+            document.body.appendChild(commentBox);
+            commentBox.focus();
+
+            pressUndo();
+
+            expect(undoButton.click).not.toHaveBeenCalled();
+            commentBox.remove();
         });
     });
 

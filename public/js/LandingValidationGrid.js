@@ -1,16 +1,28 @@
 /**
+ * One label card's data, as /label/labels returns it.
+ * @typedef {object} LabelEntry
+ * @property {Record<string, any>} label
+ * @property {?string} cropUrl
+ * @property {?{x: number, y: number}} cropMarker
+ * @property {?string} gsvImageUrl
+ */
+
+/**
  * Landing-page grid of recently-found labels with inline Agree/Disagree/Unsure buttons (#1638), so visitors can
  * contribute useful validations straight from the home page.
  *
  * Borrows the Gallery card pattern: a static image (locally-saved crop preferred, GSV Static API as fallback — the
- * crop is free to serve while the API costs money per image) with the label-type icon overlaid at the label's canvas
- * position. Votes POST to /labelmap/validate, which works for anonymous visitors and creates its own mission
- * server-side. Validated cards are swapped for a fresh label from a prefetched pool, giving the "live" feel.
+ * crop is free to serve while the API costs money per image) with the label-type icon overlaid where the label
+ * actually is in that image (#2660). Votes POST to /labelmap/validate, which works for anonymous visitors and
+ * creates its own mission server-side. Validated cards are swapped for a fresh label from a prefetched pool, giving
+ * the "live" feel.
  *
  * Label data comes from POST /label/labels with sort: 'recent', i.e. a shuffled pool of the newest labels needing
  * validation. Nothing is fetched during page load; the grid fills itself once the visitor interacts with the page.
  */
 class LandingValidationGrid {
+  // Width:height of the card's photo box (.lvg-card-img); crops and stills are cover-fitted into it.
+  static CARD_IMAGE_ASPECT = 3 / 2;
   static #GRID_SIZE = 6;
   // Cards past the third are hidden by CSS below 650px — keep in sync with the nth-child(n+4) rule in
   // css/components/landing-validation-grid.css. A layout breakpoint, so there's no backend value to source it from.
@@ -70,20 +82,35 @@ class LandingValidationGrid {
   }
 
   /**
+   * @param {LabelEntry} entry - One entry from /label/labels.
+   * @param {string} imageSource - Which source the card is actually showing: 'crop' or 'api'.
+   * @returns {{x: number, y: number}} Fractions of the card's 3:2 photo box (.lvg-card-img), into which the image is
+   *   cover-fitted; the photo fills that box, so they are fractions of the photo element too.
+   */
+  static #markerFraction(entry, imageSource) {
+    return util.misc.labelMarkerFraction(imageSource, entry.cropMarker, entry.label.canvas_x, entry.label.canvas_y, {
+      canvasWidth: entry.label.canvas_width,
+      canvasHeight: entry.label.canvas_height,
+      boxAspect: LandingValidationGrid.CARD_IMAGE_ASPECT,
+    });
+  }
+
+  /**
+   * @param {?HTMLElement} marker - The marker element, or null for a label type with no icon.
+   * @param {LabelEntry} entry - The card's entry.
+   * @param {string} imageSource - Which source the card is actually showing: 'crop' or 'api'.
+   */
+  static #positionMarker(marker, entry, imageSource) {
+    if (!marker) return;
+    const { x, y } = LandingValidationGrid.#markerFraction(entry, imageSource);
+    marker.style.left = `${100 * x}%`;
+    marker.style.top = `${100 * y}%`;
+  }
+
+  /**
    * How many grid slots the CSS actually shows at the current viewport width.
    * @returns {number}
    */
-  /**
-   * Where a label's marker sits on its card, in percent of the card's 3:2 photo box (.lvg-card-img), with the crop
-   * cover-fitted into that box (#5085). The frame defaults to the boxed 720x480 for payloads that predate the columns.
-   * @param {object} label - A label from the grid's feed, with canvas_x/y and optionally canvas_width/height.
-   * @returns {{left: number, top: number}} Percentages of the box.
-   */
-  static #markerPercent(label) {
-    return util.misc.markerPercentInCoverBox(label.canvas_x, label.canvas_y,
-      label.canvas_width ?? util.EXPLORE_CANVAS_WIDTH, label.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT, 3 / 2);
-  }
-
   static #visibleCardCount() {
     return window.matchMedia('(width <= 650px)').matches
       ? LandingValidationGrid.#NARROW_VISIBLE_CARDS
@@ -129,9 +156,9 @@ class LandingValidationGrid {
   }
 
   /**
-   * Builds one card: the label image with the label-type icon marked at its canvas position, the localized
+   * Builds one card: the label image with the label-type icon marked where the label is in it, the localized
    * "Is this a …?" question, and the three validation buttons.
-   * @param {Object} entry - One {label, cropUrl, gsvImageUrl} entry from /label/labels.
+   * @param {LabelEntry} entry - One entry from /label/labels.
    * @param {number} index - The card's slot in the grid, which decides whether its image loads eagerly.
    * @returns {HTMLElement}
    */
@@ -155,11 +182,16 @@ class LandingValidationGrid {
     const freeToWarm = entry.cropUrl && !util.saveDataEnabled();
     img.loading = freeToWarm && index < LandingValidationGrid.#visibleCardCount() ? 'eager' : 'lazy';
     img.alt = i18next.t(`common:${typeKebab}`);
+    // Set once the overlays are on the card, below; the error handler fires on a later event, so it exists by then.
+    let creditImage = null;
     img.addEventListener('error', () => {
       // The saved crop can 404 (signed URLs expire after a while); fall back to the GSV Static API image. A card
       // whose every source fails is dead weight — swap it for a fresh label.
       if (card.dataset.imageSource === 'crop' && entry.gsvImageUrl) {
         card.dataset.imageSource = 'api';
+        // The crop's recorded position describes the crop only; the still is the Explore frame again.
+        LandingValidationGrid.#positionMarker(imgWrap.querySelector('.lvg-card-marker'), entry, 'api');
+        creditImage?.('api');
         img.src = entry.gsvImageUrl;
       } else {
         this.#replaceCard(card);
@@ -174,13 +206,23 @@ class LandingValidationGrid {
       marker.className = 'lvg-card-marker';
       marker.src = iconPath;
       marker.alt = '';
-      // The crop is cover-fitted into the card's 3:2 box (.lvg-card-img), so the marker's percentages are taken in the
-      // visible part of a crop of another aspect (#5085).
-      const pct = LandingValidationGrid.#markerPercent(label);
-      marker.style.left = `${pct.left}%`;
-      marker.style.top = `${pct.top}%`;
+      LandingValidationGrid.#positionMarker(marker, entry, card.dataset.imageSource);
       imgWrap.appendChild(marker);
     }
+    // The credit owed on a crop, our cut of someone else's panorama (#4865, #5202); the still brands itself (see
+    // PanoViewerLogo). Only licensed imagery carries a licence, so createPanoAttribution hides itself without one.
+    const logo = createPanoViewerLogo(imgWrap, label.pano_source);
+    const attribution = createPanoAttribution(imgWrap, { compact: true });
+    creditImage = (source) => {
+      if (source === 'crop') {
+        logo.showSourceLogo();
+        attribution.show(label.pano_data?.attribution);
+      } else {
+        logo.hide();
+        attribution.hide();
+      }
+    };
+    creditImage(card.dataset.imageSource);
     card.appendChild(imgWrap);
 
     const body = document.createElement('figcaption');
@@ -217,7 +259,7 @@ class LandingValidationGrid {
    * at this label's public /label/:id spotlight page — so a visitor who spots something zany or particularly
    * problematic can pass it along, straight from the landing page.
    *
-   * @param {Object} label - The card's label from /label/labels.
+   * @param {Record<string, any>} label - The card's label from /label/labels.
    * @param {string} typeKebab - The label type in kebab-case (e.g. 'curb-ramp'), as used in locale keys.
    * @returns {HTMLElement}
    */
@@ -237,10 +279,7 @@ class LandingValidationGrid {
 
     const widget = new ShareWidget(trigger, { host: wrap });
     // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-    // escapeValue off: plain-text sinks only, and a type name can carry an apostrophe (Can't See the Sidewalk).
-    const shareText = i18next.t('common:share.text', {
-      labelType: i18next.t(`common:${typeKebab}`), interpolation: { escapeValue: false },
-    });
+    const shareText = i18next.t('common:share.text', { labelType: i18next.t(`common:${typeKebab}`) });
     widget.setTarget({
       url: `${window.location.origin}/label/${label.label_id}`,
       title: shareText,
@@ -260,7 +299,7 @@ class LandingValidationGrid {
    *
    * @param {HTMLElement} row - The question row (the tooltip's positioning anchor).
    * @param {HTMLElement} question - The question span whose <b> holds the label-type name.
-   * @param {Object} label - The card's label from /label/labels.
+   * @param {Record<string, any>} label - The card's label from /label/labels.
    * @param {string} typeKebab - The label type in kebab-case (e.g. 'curb-ramp'), as used in locale keys.
    */
   #attachTypeTooltip(row, question, label, typeKebab) {
@@ -322,21 +361,21 @@ class LandingValidationGrid {
   /**
    * Submits the visitor's validation, shows a brief thanks state, then swaps in a fresh label.
    * @param {HTMLElement} card - The card being validated.
-   * @param {Object} entry - The card's {label, cropUrl, gsvImageUrl} entry.
+   * @param {LabelEntry} entry - The card's entry.
    * @param {string} result - 'Agree', 'Disagree', or 'Unsure'.
    */
   async #validate(card, entry, result) {
     const label = entry.label;
-    const buttons = card.querySelectorAll('.lvg-btn');
+    const buttons = /** @type {NodeListOf<HTMLButtonElement>} */ (card.querySelectorAll('.lvg-btn'));
     buttons.forEach((button) => {
       button.disabled = true;
     });
     window.logWebpageActivity(`Click_module=LandingValidationGrid_result=${result}_labelId=${label.label_id}`);
 
     // Mirror the Gallery's static-image validation payload: canvas_* describe where the label sits within the
-    // rendered image, re-expressed from the frame the label was placed in (#5085).
+    // rendered image. Off the same fraction the marker is drawn from, so the two can't disagree (#2660).
     const img = card.querySelector('.lvg-card-photo');
-    const pct = LandingValidationGrid.#markerPercent(label);
+    const { x: fracX, y: fracY } = LandingValidationGrid.#markerFraction(entry, card.dataset.imageSource);
     const timestamp = new Date();
     const payload = {
       label_id: label.label_id,
@@ -346,8 +385,8 @@ class LandingValidationGrid {
       tags: label.tags,
       canvas_width: Math.round(img.clientWidth),
       canvas_height: Math.round(img.clientHeight),
-      canvas_x: Math.round((pct.left / 100) * img.clientWidth),
-      canvas_y: Math.round((pct.top / 100) * img.clientHeight),
+      canvas_x: Math.round(fracX * img.clientWidth),
+      canvas_y: Math.round(fracY * img.clientHeight),
       heading: label.heading,
       pitch: label.pitch,
       zoom: label.zoom,

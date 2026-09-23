@@ -129,6 +129,10 @@
   --color-link-100: #3E8BD9;
   --color-link-200: #0A58CA;
 
+  /* Explore minimap's route-ahead line: link-100 mixed 55% with white, so the way forward reads as the forward
+     arrow's blue without matching the peg. A flat value because Google Maps polylines can't take color-mix(). */
+  --color-route-ahead: #95BFEA;
+
   /* Project Sidewalk label-type color palette. The canonical color for each accessibility label type. */
   --color-label-curb-ramp: var(--color-lime-500);
   --color-label-no-curb-ramp: var(--color-pink-500);
@@ -137,6 +141,61 @@
   --color-label-no-sidewalk: var(--color-purple-500);
   --color-label-crosswalk: var(--color-yellow-500);
   --color-label-signal: var(--color-mint-500);
+
+  /* AccessScore ramp, read low → high: red-orange for the worst scores, yellow at 50, green for the best. A hue
+     at the midpoint rather than a grey because the grey vanished against the basemap's grey land. Validated with
+     the dataviz palette checks: every adjacent pair clears the CVD floor (worst ΔE 14.5, protan) and the
+     normal-vision floor (16.2); yellow-500 is only 1.4:1 against the basemap, so anything colored by this ramp also
+     carries its value as text (tooltip, legend, table). Read through public/js/common/scoreRamp.js — a chart or map
+     layer never lists these hexes itself. */
+  --color-score-ramp-1: var(--color-orange-600);
+  --color-score-ramp-2: var(--color-orange-500);
+  --color-score-ramp-3: var(--color-yellow-500);
+  --color-score-ramp-4: var(--color-jade-600);
+  --color-score-ramp-5: var(--color-jade-800);
+
+  /* The same ramp re-stepped for the AccessScore tool's dark basemap (Mapbox dark-v11, land #292929): every step
+     is >= 3:1 on that surface, which rules out the light ramp's dark poles. Forcing every step light compresses the
+     warm arm — steps 1 and 2 sit in the 7 ΔE band — but the ramp is interpolated and its poles are far apart, so the
+     arm reads as one hue gradient rather than two levels. Same CVD story as the light ramp: values travel as text. */
+  --color-score-ramp-dark-1: var(--color-orange-500);
+  --color-score-ramp-dark-2: var(--color-pumpkin-400);
+  --color-score-ramp-dark-3: var(--color-yellow-500);
+  --color-score-ramp-dark-4: var(--color-jade-500);
+  --color-score-ramp-dark-5: var(--color-jade-300);
+
+  /* Street slope classes, gentlest → steepest (#5223), read through AccessScoreGradeRamp. A single blue hue that only
+     darkens, so it cannot be taken for the score ramp it replaces on the map, and so the order survives any color
+     vision deficiency on lightness alone. Step 1 is 2.1:1 on the basemap on purpose: a level street should recede.
+     The top two steps are close (asphalt-400 / -600), which is why every class also travels as text (legend rows,
+     tooltip, popup). */
+  --color-grade-ramp-1: var(--color-blue-500);
+  --color-grade-ramp-2: var(--color-link-100);
+  --color-grade-ramp-3: var(--color-link-200);
+  --color-grade-ramp-4: var(--color-asphalt-400);
+  --color-grade-ramp-5: var(--color-asphalt-600);
+
+  /* The same classes on the dark basemap (land #292929), where steeper has to mean lighter: every step is >= 4:1
+     there, from link-100 (4.1:1) up to white. */
+  --color-grade-ramp-dark-1: var(--color-link-100);
+  --color-grade-ramp-dark-2: var(--color-blue-500);
+  --color-grade-ramp-dark-3: var(--color-blue-400);
+  --color-grade-ramp-dark-4: var(--color-blue-300);
+  --color-grade-ramp-dark-5: var(--color-neutral-white);
+
+  /* Street audit-state colors. The map layer and the legend swatch both read these, so a swatch can't drift from
+     the line it stands for. Unaudited is warm rather than grey: the greys it used to sit in are already spoken for
+     by the region outline, the region fill and the basemap's own roads, so the streets most in need of a mapper
+     were the ones that receded. */
+  --color-street-audited: var(--color-asphalt-500);
+  --color-street-unaudited: var(--color-orange-600);
+
+  /* Place markers on the AccessScore map (#5311): one color for every category, with the glyph and the sidebar's icon
+     list carrying the category. The map already spends its hues on the score ramp and the seven label types, and a
+     dark disc with a light halo holds >= 3:1 on both basemaps, so a place reads as a landmark rather than as data.
+     The api-docs preview reads the same two tokens. */
+  --color-place-marker: var(--color-asphalt-800);
+  --color-place-marker-halo: var(--color-neutral-white);
 
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
@@ -257,6 +316,20 @@
   visibility: hidden !important;
 }
 
+/* For icons colored from CSS, since an <img> can't be recolored: paints the shape of the mask-image file in `color`.
+   No autoprefixer in this build, so the -webkit- siblings are written out; without them old Safari paints a block. */
+.ps-mask-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: currentcolor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
 
 /* General styles */
 
@@ -323,10 +396,6 @@ html.chromeless body {
 
 .spacer10 { height: 10px; }
 .spacer20 { height: 20px; }
-
-footer {
-  padding: 30px 0;
-}
 
 /*
  * Accessibility styling updates.
@@ -414,7 +483,8 @@ a {
 }
 
 .button--primary:focus {
-  outline: 1px solid var(--color-banana-800);
+  outline: 2px solid var(--color-banana-900);
+  outline-offset: 2px;
   color: var(--color-neutral-black);
 }
 
@@ -435,7 +505,7 @@ a {
 }
 
 .button--secondary:focus {
-  outline: 1px solid var(--color-banana-600);
+  outline: 2px solid var(--color-banana-900);
   color: var(--color-neutral-900);
 }
 
@@ -834,22 +904,6 @@ textarea.ps-input {
   overflow: hidden;
 }
 
-#mini-footer {
-  position: relative;
-  width: 100%;
-  min-height: 40px;
-  text-align: center;
-  color: #585c63;
-  font-size: 12px;
-  line-height: 1.6em;
-  font-family: raleway, sans-serif;
-}
-
-#mini-footer a {
-  color:#585c63;
-  text-decoration:underline;
-}
-
 #footer-container {
   position: relative;
   top: 0;
@@ -867,7 +921,7 @@ textarea.ps-input {
   color: var(--color-asphalt-500);
   font-size: 12px;
   line-height: 1.8em;
-  font-family: raleway, sans-serif;
+  font-family: var(--font-accent);
 }
 
 #footer-container a {
@@ -894,25 +948,19 @@ textarea.ps-input {
   min-height: 220px;
   background-color: var(--color-asphalt-500);
   text-align: center;
-  font-family: raleway, sans-serif;
+  font-family: var(--font-accent);
   font-size: 12px;
   color: var(--color-neutral-white);
   line-height: 1.6em;
+}
 
+#application-version {
+  font-family: var(--font-primary);
 }
 
 #info-footer a {
   color:var(--color-neutral-white);
   text-decoration:underline;
-}
-
-/* Landing/desktop footer layout (markup in common/main.scala.html). The .filler spacer's rendered height is read
-   by labelingGuidePanelResize.js, so keep the class and its min-height. */
-.filler {
-  position: relative;
-  top: 0;
-  background-color: var(--color-neutral-white);
-  min-height: 20px;
 }
 
 /* The three columns don't fill the 900px evenly, so centering the row alone leaves the group visibly left of centre;
@@ -1278,10 +1326,11 @@ kbd {
 
 /* Warning triangle: the severity cue, so the message text can stay calm and informative. */
 .test-server-banner-icon {
-  flex: 0 0 auto;
   width: 20px;
   height: 20px;
   color: var(--color-banana-800);
+  -webkit-mask-image: url("../images/icons/alert-triangle-feather.svg");
+  mask-image: url("../images/icons/alert-triangle-feather.svg");
 }
 
 .test-server-banner-text {
@@ -1636,7 +1685,7 @@ kbd {
 }
 
 /* Overlay box - start */
-#area-completion-overlay-wrapper, #already-completed-neighborhood-overlay {
+#area-completion-overlay-wrapper, #already-completed-region-overlay {
   display:none;
 }
 
@@ -1650,7 +1699,7 @@ kbd {
   z-index: 5;
 }
 
-#area-completion-overlay, #already-completed-neighborhood-text {
+#area-completion-overlay, #already-completed-region-text {
   color: var(--color-neutral-white);
   text-align: center;
   width: 70%;
@@ -1661,7 +1710,7 @@ kbd {
   top: 28%;
 }
 
-#area-completion-overlay p, #already-completed-neighborhood-text p {
+#area-completion-overlay p, #already-completed-region-text p {
   border-radius: 5px;
   padding: 7px;
 }
@@ -2168,6 +2217,14 @@ kbd {
   z-index: 3;
 }
 
+/* Validate's badge is display-only (#5359): it sits on the marker whose hover opens the label card, and that card
+   carries the AI disclaimer, so the badge must not intercept the pointer — its own tooltip and cursor would fire on top
+   of the card. With no pointer events it can't be the target of the delegated .ai-icon-marker hover handlers either
+   (aiLabelIndicator.js). */
+.ai-icon-marker-validate {
+  pointer-events: none;
+}
+
 /* LabelMap / LabelView section */
 #ai-validation-header {
   position: relative;
@@ -2227,6 +2284,16 @@ kbd {
   width: 0;
   height: 0;
   pointer-events: none;
+}
+
+/* The ring has to go on the wrapping label: the radio is what takes focus, but it has no size and paints nothing,
+   so a ring on the radio itself is a ring around a 0x0 box. Without this the group is fully keyboard-operable —
+   Tab reaches it, arrows rove it, per the radio-group pattern — with nothing on screen to say focus is there.
+   Beside the primitive rather than in a page stylesheet: Explore had this rule and Expert Validate, which uses the
+   same markup, silently did not. */
+.severity-button:has(.severity-button__radio:focus-visible) {
+  outline: calc(2px * var(--ui-scale, 1)) solid var(--color-link-100);
+  outline-offset: calc(-2px * var(--ui-scale, 1));
 }
 
 .severity-button__icon {

@@ -64,7 +64,8 @@ VS Code is excellent for the **vanilla-JS frontend** and works well for Scala wi
   `"editor.formatOnSave": true`) to keep Scala files formatted.
 - **Frontend:** no build tooling is needed in the editor — files are plain ES concatenated by Grunt. Edit under
   `src/` and let the `grunt watch` from `npm start` rebuild the `build/` bundles (don't edit `build/` directly).
-  An ESLint extension will pick up [`eslint.config.js`](../eslint.config.js) so you see our JS rules inline.
+  An ESLint extension will pick up [`eslint.config.js`](../eslint.config.js) so you see our JS rules inline, and
+  [`jsconfig.json`](../jsconfig.json) gives hover types and go-to-definition across the concatenated files.
 
 ## See also
 

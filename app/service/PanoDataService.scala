@@ -17,9 +17,13 @@ import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
-  getFov,
+  infra3dTokenNeedsRemint,
+  parseInfra3dTokenResponse,
+  staticLocationUrl,
+  staticStillUrl,
   ImageryCheckConcurrency,
   ImageryCheckResult,
+  Infra3dToken,
   LiveImageryTtlDays,
   MaxUnexpiredPanosPerSweep
 }
@@ -27,12 +31,13 @@ import slick.dbio.DBIO
 
 import java.io.{File, IOException}
 import java.net.{SocketTimeoutException, URL}
+import java.nio.file.{Files, StandardCopyOption}
 import java.time.OffsetDateTime
 import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import javax.inject._
-import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -52,12 +57,111 @@ object PanoDataService {
   val LiveImageryTtlDays: Long = 7
 
   /**
+   * An Infra3d access token and when Cognito said it stops working. The expiry travels with the token because the
+   * SDK has no refresh path of its own: a token that dies mid-session turns the viewer black with no error.
+   * @param accessToken The bearer token the SDK is initialized with.
+   * @param expiresAt   From the token endpoint's `expires_in`.
+   */
+  case class Infra3dToken(accessToken: String, expiresAt: OffsetDateTime)
+
+  /**
+   * Minimum life left on an Infra3d token for it to be handed out rather than re-minted. Infra3dViewer renews five
+   * minutes before expiry with retries, so this only has to cover a page load plus that window; fifteen minutes does
+   * against a 60-minute token while keeping the cache hit rate high.
+   */
+  val Infra3dTokenMinRemaining: FiniteDuration = 15.minutes
+
+  /** Assumed when Cognito's response omits `expires_in`; its client-credentials tokens are issued for an hour. */
+  val Infra3dTokenDefaultLifetimeSeconds: Long = 3600L
+
+  /** Whether a cached token is absent or has less than [[Infra3dTokenMinRemaining]] left. */
+  def infra3dTokenNeedsRemint(cached: Option[Infra3dToken], now: OffsetDateTime): Boolean =
+    cached.forall(_.expiresAt.isBefore(now.plusSeconds(Infra3dTokenMinRemaining.toSeconds)))
+
+  /**
+   * Reads a Cognito `oauth2/token` response.
+   * @param mintedAt When the request was sent, so the expiry errs early rather than late.
+   * @return         The token and its expiry.
+   */
+  def parseInfra3dTokenResponse(json: JsValue, mintedAt: OffsetDateTime): Infra3dToken = {
+    val expiresIn: Long = (json \ "expires_in").asOpt[Long].getOrElse(Infra3dTokenDefaultLifetimeSeconds)
+    Infra3dToken((json \ "access_token").as[String], mintedAt.plusSeconds(expiresIn))
+  }
+
+  /**
    * How many panos the nightly expiry sweep may have in flight at once (#4559).
    */
   val ImageryCheckConcurrency: Int = 10
 
   /** Ceiling on the unexpired panos one nightly expiry sweep will check. */
   val MaxUnexpiredPanosPerSweep: Int = 5000
+
+  /** Google clamps each edge of a Street View Static API image to this on its own; a larger request is not an error. */
+  val StaticApiMaxEdgePx: Int = 640
+
+  /**
+   * The size to ask the Static API for a label's still (#3095): the cap on width, at the Explore canvas's own aspect.
+   *
+   * Asking for the canvas's 720x480 came back as a 640x480 still — the frame the label was placed in, scaled by 8/9,
+   * with about 27 px of extra sky and ground around it (`fov` is horizontal, so the surplus height goes into extra
+   * rows). Every consumer places the marker at the label's fraction of the Explore frame, which is only right when
+   * the still *is* that frame. At 640x427 it is, at zoom 1 and 2 (registered against Explore-uploaded crops,
+   * 2026-09-12); at zoom 3 the shared fov curve reads 0.35° low (#5083, ~4 px at the frame edge) and at a fractional
+   * wheel zoom about 2% off, which the still inherits along with every other projection.
+   */
+  val StaticStillWidth: Int = StaticApiMaxEdgePx
+
+  /** The still's height at the Explore canvas's aspect: 427 for a 720x480 canvas, the 0.33 px of rounding invisible. */
+  val StaticStillHeight: Int =
+    math.rint(StaticStillWidth.toDouble * LabelPointTable.canvasHeight / LabelPointTable.canvasWidth).toInt
+
+  /**
+   * The unsigned Static API URL for a label's still: the labeling POV at `StaticStillWidth x StaticStillHeight`, with
+   * the fov the canvas projection uses for that zoom. Pure so the request can be pinned without an app; `getImageUrl`
+   * signs it.
+   *
+   * `return_error_code` is what makes missing imagery legible downstream: without it Google answers 200 with a flat
+   * "no imagery" placeholder that nothing can tell from a photo, while a 404 lands in the `error` handler every
+   * `<img>` consumer already has (a replacement card, a hidden thumb, a text-only card) and in the non-200 branch
+   * `ShareController` serves its branded fallback from.
+   */
+  def staticStillUrl(panoId: String, heading: Double, pitch: Double, zoom: Double, apiKey: String): String =
+    staticApiUrl(
+      Seq(
+        "pano"              -> panoId,
+        "size"              -> s"${StaticStillWidth}x$StaticStillHeight",
+        "heading"           -> heading,
+        "pitch"             -> pitch,
+        "fov"               -> getFov(zoom),
+        "return_error_code" -> true // An expired or removed pano is a 404, not a placeholder image.
+      ),
+      apiKey
+    )
+
+  /**
+   * The unsigned Static API URL for the outdoor pano nearest a location, facing `heading`: the street-edge endpoint
+   * images. Pure for the same reason as `staticStillUrl`; `getGsvImageUrlFromLatLng` signs it.
+   */
+  def staticLocationUrl(lat: Double, lng: Double, heading: Double, apiKey: String): String =
+    staticApiUrl(
+      Seq(
+        "location"          -> s"$lat,$lng",
+        "radius"            -> 40,  // As far from the point as the frontend searches.
+        "source"            -> "outdoor",
+        "size"              -> s"${StaticApiMaxEdgePx}x$StaticApiMaxEdgePx",
+        "heading"           -> heading,
+        "pitch"             -> -10, // Slightly toward the ground, where the sidewalk is.
+        "fov"               -> 90,
+        "return_error_code" -> true // No pano within the radius is a 404, not a placeholder image.
+      ),
+      apiKey
+    )
+
+  /** One place spells the endpoint and the key's position, so the two builders can only differ in their params. */
+  private def staticApiUrl(params: Seq[(String, Any)], apiKey: String): String =
+    "https://maps.googleapis.com/maps/api/streetview?" +
+      params.map { case (name, value) => s"$name=$value" }.mkString("&") +
+      "&key=" + apiKey
 
   /**
    * Outcome of one nightly expiry sweep.
@@ -99,9 +203,11 @@ object PanoDataService {
   }
 
   /**
-   * Hacky fix to generate the FOV for an image. Determined experimentally.
-   * @param zoom Zoom level of the canvas (for fov calculation).
-   * @return FOV of image
+   * The horizontal fov the Explore canvas renders at a zoom: the same experimentally fitted curve as
+   * `util.pano.zoomToFov`, so a still requested with it is the frame the label was placed in. `PanoDataServiceSpec`
+   * holds the two to each other and to the measured curve in `test/js/fixtures/gsvFovMeasurements.json`.
+   * @param zoom Zoom level of the canvas.
+   * @return Horizontal field of view in degrees.
    */
   def getFov(zoom: Double): Double = {
     if (zoom <= 2) {
@@ -396,11 +502,18 @@ object PanoDataService {
 trait PanoDataService {
 
   /**
-   * Requests the infra3D token using the client ID and secret stored in environment variables.
-   * @param cityId One of "zurich-infra3d" or "winterthur-infra3d", as they have separate authentication tokens.
-   * @return
+   * The Infra3d access token for a city, reused until it nears expiry ([[PanoDataService.Infra3dTokenMinRemaining]]).
+   * @param cityId One of "zurich-infra3d" or "winterthur-infra3d", as they have separate credentials.
+   * @return       The bearer token.
    */
   def getInfra3dToken(cityId: String): Future[String]
+
+  /**
+   * Same as [[getInfra3dToken]], with the expiry the token endpoint reported.
+   * @param cityId One of "zurich-infra3d" or "winterthur-infra3d".
+   * @return       The token and when it stops working.
+   */
+  def getInfra3dTokenWithExpiry(cityId: String): Future[Infra3dToken]
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
   def signUrl(urlString: String): String
   def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
@@ -416,6 +529,7 @@ trait PanoDataService {
   def cropFile(labelId: Int, labelType: String): File
   def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
+  def moveCrop(labelId: Int, from: LabelTypeEnum.Base, to: LabelTypeEnum.Base): Boolean
   def localBackupImageFile(panoId: String): Option[File]
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
 }
@@ -453,39 +567,59 @@ class PanoDataServiceImpl @Inject() (
   private val cropsDir: File     = MediaDirs.cityDir(config, environment, "cropped.image.directory")
   private val panosBaseDir: File = MediaDirs.cityDir(config, environment, "pano.images.directory")
 
-  def getInfra3dToken(cityId: String): Future[String] = {
-    // Token expires after 60 minutes, so we don't need to get a new token every time.
-    cacheApi.getOrElseUpdate[String]("getInfra3dToken", Duration(30, "minutes")) {
-      val cityName: String     = if (cityId == "winterthur-infra3d") "winterthur" else "zurich"
-      val clientId: String     = config.get[String](s"infra3d-client-id-$cityName")
-      val clientSecret: String = config.get[String](s"infra3d-client-secret-$cityName")
-      val body                 = Map(
-        "client_id"     -> clientId,
-        "client_secret" -> clientSecret,
-        "grant_type"    -> "client_credentials"
-      )
-      ws.url("https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token")
-        .addHttpHeaders(
-          "Content-Type" -> ContentTypes.FORM,
-          "Accept"       -> "application/json"
-        )
-        .post(body)
-        .map { response =>
-          if (response.status == 200) {
-            (response.json \ "access_token").as[String]
-          } else {
-            throw new RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
-          }
+  def getInfra3dToken(cityId: String): Future[String] = getInfra3dTokenWithExpiry(cityId).map(_.accessToken)
+
+  def getInfra3dTokenWithExpiry(cityId: String): Future[Infra3dToken] = {
+    val cacheKey = s"getInfra3dToken:$cityId" // Zurich and Winterthur have separate credentials, so separate tokens.
+    val now      = OffsetDateTime.now
+    cacheApi.get[Infra3dToken](cacheKey).flatMap {
+      case Some(cached) if !infra3dTokenNeedsRemint(Some(cached), now) => Future.successful(cached)
+      case _                                                           =>
+        mintInfra3dToken(cityId, now).flatMap { token =>
+          // Cached for its whole remaining life; the minimum-remaining check above retires it early.
+          val ttlSeconds: Long = math.max(1L, java.time.Duration.between(now, token.expiresAt).getSeconds)
+          cacheApi.set(cacheKey, token, Duration(ttlSeconds, "seconds")).map(_ => token)
         }
     }
   }
 
   /**
+   * Requests a fresh token from Cognito with the city's client credentials.
+   * @return The new token, or a failed Future when the token endpoint refuses.
+   */
+  private def mintInfra3dToken(cityId: String, mintedAt: OffsetDateTime): Future[Infra3dToken] = {
+    val cityName: String     = if (cityId == "winterthur-infra3d") "winterthur" else "zurich"
+    val clientId: String     = config.get[String](s"infra3d-client-id-$cityName")
+    val clientSecret: String = config.get[String](s"infra3d-client-secret-$cityName")
+    val body                 = Map(
+      "client_id"     -> clientId,
+      "client_secret" -> clientSecret,
+      "grant_type"    -> "client_credentials"
+    )
+    ws.url("https://uzh.auth.eu-west-1.amazoncognito.com/oauth2/token")
+      .addHttpHeaders(
+        "Content-Type" -> ContentTypes.FORM,
+        "Accept"       -> "application/json"
+      )
+      .post(body)
+      .map { response =>
+        if (response.status == 200) {
+          val token = parseInfra3dTokenResponse(response.json, mintedAt)
+          // The expiry, never the token: lets a client-side TokenExpired event be lined up against the mints.
+          logger.info(s"Minted Infra3d token for $cityName; expires ${token.expiresAt}.")
+          token
+        } else {
+          throw new RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
+        }
+      }
+  }
+
+  /**
    * Checks whether the imagery for a label's panorama is still available, dispatching per imagery source.
    *
-   * GSV and Mapillary are verified against their respective provider APIs. Infra3d (and any other source) is assumed
-   * to always be available. A miss is only ever reported when the provider explicitly says the image is gone — network
-   * errors, timeouts, auth failures, and other inconclusive responses return `None`.
+   * GSV, Mapillary, and Panoramax are verified against their respective provider APIs. Infra3d (and any other source)
+   * is assumed to always be available. A miss is only ever reported when the provider explicitly says the image is
+   * gone — network errors, timeouts, auth failures, and other inconclusive responses return `None`.
    *
    * @param panoId     Panorama ID.
    * @param panoSource Imagery source the label was placed on.
@@ -495,6 +629,7 @@ class PanoDataServiceImpl @Inject() (
     panoSource match {
       case PanoSource.Gsv       => gsvPanoExists(panoId)
       case PanoSource.Mapillary => mapillaryPanoExists(panoId)
+      case PanoSource.Panoramax => panoramaxPanoExists(panoId)
       case _                    => Future.successful(Some(true))
     }
   }
@@ -596,6 +731,44 @@ class PanoDataServiceImpl @Inject() (
   }
 
   /**
+   * Checks whether a Panoramax picture still exists via the federated meta-catalog (`GET /api/pictures/:id`), which
+   * needs no credential. The catalog answers 404 for a deleted or hidden picture and 200 with the STAC item otherwise.
+   *
+   * @param panoId Panoramax picture ID (a UUID).
+   * @return       `Some(true)` if the imagery exists, `Some(false)` if not, `None` if inconclusive.
+   */
+  private def panoramaxPanoExists(panoId: String): Future[Option[Boolean]] = {
+    ws.url(s"https://api.panoramax.xyz/api/pictures/$panoId")
+      .addHttpHeaders("User-Agent" -> OutboundHttp.UserAgent)
+      .withRequestTimeout(5.seconds)
+      .get()
+      .flatMap { response =>
+        val timestamp = OffsetDateTime.now
+        response.status match {
+          case 200 if (Json.parse(response.body) \ "id").toOption.isDefined =>
+            db.run(
+              panoDataTable.updateExpiredStatus(panoId, expired = false, Some(backupExists(panoId)), timestamp)
+            ).map(_ => Some(true))
+          case 404 =>
+            db.run(panoDataTable.updateExpiredStatus(panoId, expired = true, Some(backupExists(panoId)), timestamp))
+              .map(_ => Some(false))
+          case other =>
+            // Inconclusive (rate limit, 5xx, unexpected body). Don't assume the picture is gone.
+            logger.info(s"Panoramax existence check inconclusive ($other) for $panoId: ${response.body.take(200)}")
+            Future.successful(None)
+        }
+      }
+      .recover {
+        // A transient network error doesn't mean the picture is gone; treat as inconclusive.
+        case _: SocketTimeoutException => None
+        case _: IOException            => None
+        case e: Exception              =>
+          logger.warn(s"Unexpected error checking Panoramax imagery for $panoId; treating as inconclusive.", e)
+          None
+      }
+  }
+
+  /**
    * Signs a Google Maps request using a signing secret.
    * https://developers.google.com/maps/documentation/maps-static/get-api-key#dig-sig-manual
    */
@@ -622,7 +795,8 @@ class PanoDataServiceImpl @Inject() (
 
   /**
    * Creates a URL that will retrieve a static image of the label's panorama from the Google Street View Static API.
-   * Note that this URL returns the cropped image, but doesn't actually include the label.
+   * The still is the Explore frame the label was placed in at `StaticStillWidth x StaticStillHeight`, so a marker
+   * drawn at the label's canvas fraction lands on the feature; it does not include the label itself.
    * More information here: https://developers.google.com/maps/documentation/streetview/intro
    *
    * @param panoId Id of gsv pano.
@@ -632,22 +806,12 @@ class PanoDataServiceImpl @Inject() (
    * @param zoom Zoom level of the canvas (for fov calculation).
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String] = {
-    if (panoSrc != PanoSource.Gsv) return None
-
-    val url = "https://maps.googleapis.com/maps/api/streetview?" +
-      "pano=" + panoId +
-      "&size=" + LabelPointTable.canvasWidth + "x" + LabelPointTable.canvasHeight +
-      "&heading=" + heading +
-      "&pitch=" + pitch +
-      "&fov=" + getFov(zoom) +
-      "&key=" + googleApiKey
-    Some(signUrl(url))
-  }
+  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String] =
+    if (panoSrc != PanoSource.Gsv) None
+    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, googleApiKey)))
 
   /**
-   * Creates a URL that will retrieve a static image at the given lat/lng and heading from the GSV Static API.
-   * Note that this URL returns the cropped image, but doesn't actually include the label.
+   * Creates a signed URL that retrieves a static image at the given lat/lng and heading from the GSV Static API.
    * More information here: https://developers.google.com/maps/documentation/streetview/intro
    *
    * @param lat Latitude of the location
@@ -655,19 +819,8 @@ class PanoDataServiceImpl @Inject() (
    * @param heading Compass heading of the camera
    * @return GSV Static API URL for the given location and heading
    */
-  def getGsvImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String = {
-    val url = "https://maps.googleapis.com/maps/api/streetview?" +
-      "location=" + lat + "," + lng +
-      "&radius=40" + // Search as far as 40 meters from the given lat/lng, same as we use on the frontend
-      "&source=outdoor" +
-      "&size=640x640" + // 640x640 is the max size for the static API
-      "&heading=" + heading +
-      "&pitch=-10" + // Default pitch of -10 degrees, facing slightly downwards towards the ground
-      "&fov=90" +
-      "&return_error_code=true" +
-      "&key=" + googleApiKey
-    signUrl(url)
-  }
+  def getGsvImageUrlFromLatLng(lat: Double, lng: Double, heading: Double): String =
+    signUrl(staticLocationUrl(lat, lng, heading, googleApiKey))
 
   /**
    * Gets the image URLs for a street edge, which includes the start and end points of the street.
@@ -814,6 +967,29 @@ class PanoDataServiceImpl @Inject() (
   def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String] =
     if (cropExists(labelId, labelType)) Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId"))
     else None
+
+  /**
+   * Moves a label's crop to the directory of its new type (#3671), since crops are filed by type. A missing source is
+   * fine (no crop yet, or already moved by a retried write), and a failed move is only logged: CropService cuts a
+   * fresh crop under the new type on its next run either way.
+   * @return Whether a file was moved.
+   */
+  def moveCrop(labelId: Int, from: LabelTypeEnum.Base, to: LabelTypeEnum.Base): Boolean = {
+    val source = cropFile(labelId, from.name)
+    val target = cropFile(labelId, to.name)
+    if (from == to || !source.isFile) false
+    else {
+      try {
+        Files.createDirectories(target.getParentFile.toPath)
+        Files.move(source.toPath, target.toPath, StandardCopyOption.REPLACE_EXISTING)
+        true
+      } catch {
+        case NonFatal(e) =>
+          logger.warn(s"Could not move crop for label $labelId from ${from.name} to ${to.name}: ${e.getMessage}")
+          false
+      }
+    }
+  }
 
   /**
    * Returns the on-disk file for a self-hosted pano image if one exists on the filesystem. Images are stored at

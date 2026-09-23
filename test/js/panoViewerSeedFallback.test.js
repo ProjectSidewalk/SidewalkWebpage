@@ -26,6 +26,7 @@ function loadPanoViewer() {
         class MapillaryViewer {}
         class Infra3dViewer {}
         class PannellumViewer {}
+        class PanoramaxViewer {}
         ${NO_IMAGERY_ERROR_SRC}
         ${VIEWER_SRC}
         window.PanoViewer = PanoViewer;

@@ -1,6 +1,6 @@
 /**
  * The "Your saved routes" section on the RouteBuilder intro panel: a card per route with its name, a meta line
- * (distance · est. exploration time · neighborhood), and Explore / copy-link actions. Signed-in users see their
+ * (distance · est. exploration time · region), and Explore / copy-link actions. Signed-in users see their
  * account's routes (GET /userapi/routes); anonymous users see the device-local list kept in localStorage, so a
  * forgotten share link isn't fatal.
  */
@@ -19,7 +19,7 @@ class SavedRoutesPanel {
   #activeRouteId = null; // Route currently previewed on the map (its card carries the active style).
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {boolean} opts.isSignedIn - Whether the user is signed in (selects the routes source).
    * @param {Function} opts.formatMeta - (distanceMeters, regionName) => the card's meta line.
    * @param {Function} opts.setTemporaryTooltip - (buttonEl, message) that flashes a confirmation tooltip.
@@ -78,7 +78,7 @@ class SavedRoutesPanel {
   /**
    * Prepends a guest-saved route to the device-local list (capped, newest first).
    *
-   * @param {Object} route - {routeId, name, regionName, url, distanceMeters}.
+   * @param {Record<string, any>} route - {routeId, name, regionName, url, distanceMeters}.
    */
   recordGuestRoute(route) {
     const routes = this.#readGuestRoutes().filter((r) => r.routeId !== route.routeId);
@@ -94,7 +94,7 @@ class SavedRoutesPanel {
 
   /**
    * Reads the guest routes list from localStorage.
-   * @returns {Array<Object>} Saved route records, newest first; empty if none or storage is unavailable.
+   * @returns {Array<Record<string, any>>} Saved route records, newest first; empty if none or storage is unavailable.
    */
   #readGuestRoutes() {
     try {
@@ -109,13 +109,13 @@ class SavedRoutesPanel {
   /**
    * Renders the newest few routes as cards (the section hides itself when there are none).
    *
-   * @param {Array<Object>} routes - {routeId, name, regionName, distanceMeters, savedAt, [url]}.
+   * @param {Array<Record<string, any>>} routes - {routeId, name, regionName, distanceMeters, savedAt, [url]}.
    * @param {number|null} highlightRouteId
    */
   #render(routes, highlightRouteId) {
     const sorted = routes
       .slice()
-      .sort((a, b) => new Date(b.savedAt ?? 0) - new Date(a.savedAt ?? 0))
+      .sort((a, b) => new Date(b.savedAt ?? 0).getTime() - new Date(a.savedAt ?? 0).getTime())
       .slice(0, SavedRoutesPanel.MAX_SHOWN);
     this.#panel.hidden = sorted.length === 0;
     if (sorted.length === 0) return;
@@ -135,7 +135,9 @@ class SavedRoutesPanel {
         : '';
       const usage = typeof route.startedCount === 'number'
         ? `<span class="saved-route-usage" title="${i18next.t('route-usage-tooltip')}">
-             ${i18next.t('route-usage', { started: route.startedCount, completed: route.completedCount })}
+             ${i18next.t('route-usage', {
+                started: route.startedCount, completed: route.completedCount, interpolation: { escapeValue: true },
+              })}
            </span>`
         : '';
       return `

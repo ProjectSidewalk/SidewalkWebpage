@@ -1,5 +1,6 @@
 {
   "search-placeholder": "Zoek een adres of plaats",
+  "search-pin": "Gezochte plaats",
   "explore-here": "Verken de stoepen hier",
   "explore-here-short": "Verken hier",
   "explore-here-brief": "Verken",
@@ -8,6 +9,8 @@
   "zoom-in-for-labels": "Zoom in om etiketten te zien",
   "loading-elapsed": "{{seconds}} s verstreken",
   "load-failed": "We konden de kaartgegevens niet laden.",
+  "waiting-for-scores": "Wachten op de scores van deze stad…",
+  "waiting-for-scores-retry": "De scores zijn nog niet klaar — nieuwe poging in {{seconds}} s…",
   "retry": "Opnieuw proberen",
   "is-correct": "Klopt dit etiket?",
   "label-type": "Etikettype",
@@ -15,7 +18,15 @@
   "legend": "Legende",
   "streets": "Straten",
   "audited-street": "Gecontroleerde straat",
-  "outdated-street": "Gecontroleerde straat, nieuwere beelden beschikbaar",
+  "outdated-street-name": "Straat opnieuw controleren",
+  "outdated-street-note": "Nieuwere beelden beschikbaar",
+  "outdated-street-tooltip": "Gecontroleerd voordat er nieuwere Street View-beelden waren. Verken de straat opnieuw om te zien of wat hier gevonden is veranderd is.",
+  "reaudit-card-title": "Straat opnieuw controleren",
+  "reaudit-card-last-mapped": "Laatst gecontroleerd",
+  "reaudit-card-new-imagery": "Nieuwe beelden",
+  "reaudit-card-found": "Vorige keer hier gevonden:",
+  "reaudit-card-none": "Vorige keer is hier niets gelabeld.",
+  "reaudit-card-explore": "Deze straat verkennen",
   "unaudited-street": "Ongecontroleerde straat",
   "not-applicable-abbr": "NVT",
   "deselect-all": "Alles deselecteren",
@@ -80,7 +91,7 @@
   "edit-failed": "De wijziging kon niet worden opgeslagen. Probeer het opnieuw.",
   "edit-failed-short": "Niet opgeslagen",
   "no-imagery-disabled": "Je kunt niet valideren of becommentariëren wanneer er geen beeldmateriaal beschikbaar is voor dit etiket",
-  "no-imagery-edit-disabled": "Je kunt dit etiket niet beoordelen of de tags ervan bewerken wanneer er geen beeldmateriaal beschikbaar is",
+  "no-imagery-edit-disabled": "Je kunt dit etiket niet beoordelen, bewerken of verwijderen wanneer er geen beeldmateriaal beschikbaar is",
   "admin-only": "Alleen beheerders",
   "not-admin-validated": "Niet gevalideerd door een beheerder",
   "download": {
@@ -165,5 +176,19 @@
       "photo-too-large": "Die foto is te groot om te uploaden.",
       "photo-invalid": "We konden dat bestand niet als afbeelding lezen (JPEG of PNG)."
     }
-  }
+  },
+  "edit-type-changed": "Gewijzigd naar {{labelType}}",
+  "edit-undo": "Ongedaan maken",
+  "edit-conflict-short": "Labeltype elders gewijzigd",
+  "edit-conflict": "Het type van dit label is elders gewijzigd, dus de kaart toont nu de huidige staat.",
+  "delete-label": "Etiket verwijderen",
+  "delete-label-confirm": "Weet je zeker dat je dit etiket wilt verwijderen?",
+  "delete-label-confirm-admin": "Weet je zeker dat je dit etiket wilt verwijderen? Je stem 'Het oneens zijn' wordt erbij vastgelegd.",
+  "delete-label-failed": "Het etiket kon niet worden verwijderd. Probeer het opnieuw.",
+  "restore-label": "Etiket herstellen",
+  "restore-label-brief": "Herstellen",
+  "restore-label-failed": "Het etiket kon niet worden hersteld. Probeer het opnieuw.",
+  "you-deleted-label": "Je hebt dit etiket verwijderd",
+  "label-was-deleted": "Dit etiket is verwijderd",
+  "deleted-label-disabled": "Dit etiket is verwijderd en kan pas na herstel worden gevalideerd of bewerkt"
 }

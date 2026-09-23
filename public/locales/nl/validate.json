@@ -15,52 +15,52 @@
     "visibility-control-tooltip-show": "Toont het label weer. (<u>H</u>)"
   },
   "validate-menu": {
+    "remove-tag": "Tag verwijderen: {{tag}}",
     "disagree-reason": {
+      "common": {
+        "wrong-type": "Dit is het verkeerde labeltype",
+        "wrong-type-tooltip": "Er is hier wel iets, maar het moet met een ander labeltype worden gemarkeerd"
+      },
       "curb-ramp": {
-        "no-button-1": "Dit is een oprit.",
-        "no-button-2": "Dit is een overgang van trottoir naar oprit.",
-        "no-button-2-tooltip": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten, tenzij er een speciale oprit is toegevoegd",
-        "no-button-3": "Dit zou een ontbrekend trottoir oprit-label moeten zijn.",
-        "no-button-3-tooltip": "Soms wordt een ontbrekende trottoir oprit per ongeluk ten onrechte als trottoir oprit aangeduid."
+        "wrong-type-tooltip": "Soms wordt een ontbrekende trottoir oprit per ongeluk ten onrechte als trottoir oprit aangeduid.",
+        "no-button-2": "Dit is een oprit.",
+        "no-button-3": "Dit is een overgang van trottoir naar oprit.",
+        "no-button-3-tooltip": "Trottoir naar auto-oprit overgangen zijn geen trottoir opritten, tenzij er een speciale oprit is toegevoegd"
       },
       "no-curb-ramp": {
-        "no-button-1": "Dit is een wandelpad in een woonwijk.",
-        "no-button-2": "Er is hier geen trottoir.",
-        "no-button-3": "Dit zou een trottoir oprit-label moeten zijn.",
-        "no-button-3-tooltip": "Soms wordt een trottoir oprit ten onrechte als ontbrekende helling aangemerkt, vaak omdat er een voelbare waarschuwing ontbreekt.",
+        "wrong-type-tooltip": "Soms wordt een trottoir oprit ten onrechte als ontbrekende helling aangemerkt, vaak omdat er een voelbare waarschuwing ontbreekt.",
+        "no-button-2": "Dit is een wandelpad in een woonwijk.",
+        "no-button-3": "Er is hier geen trottoir.",
         "no-button-4": "Het is hier niet veilig om over te steken.",
         "no-button-4-tooltip": "Voetgangers horen hier niet over te steken, dus is er geen trottoir oprit te verwachten."
       },
       "obstacle": {
-        "no-button-1": "Dit is geen voetpad.",
-        "no-button-1-tooltip": "Als er geen trottoir is of als het object zich niet op het gedeelte van het trottoir bevindt dat bestemd is voor voetgangers, zoals in de afbeelding hieronder, is een label met 'Obstakel' niet nodig.",
-        "no-button-2": "Er is voldoende ruimte om dit object te ontwijken.",
-        "no-button-2-tooltip": "Op zeer brede trottoirs mogen gemakkelijk te vermijden objecten <b>niet</b> als obstakels worden aangemerkt.",
-        "no-button-3": "Dit zou een label voor een oppervlakkig probleem moeten zijn.",
-        "no-button-3-tooltip": "Gras en ander vuil, zoals bladeren, moeten worden gemarkeerd met een label 'Oppervlakteprobleem'."
+        "wrong-type-tooltip": "Gras en ander vuil, zoals bladeren, moeten worden gemarkeerd met een label 'Oppervlakteprobleem'.",
+        "no-button-2": "Dit is geen voetpad.",
+        "no-button-2-tooltip": "Als er geen trottoir is of als het object zich niet op het gedeelte van het trottoir bevindt dat bestemd is voor voetgangers, zoals in de afbeelding hieronder, is een label met 'Obstakel' niet nodig.",
+        "no-button-3": "Er is voldoende ruimte om dit object te ontwijken.",
+        "no-button-3-tooltip": "Op zeer brede trottoirs mogen gemakkelijk te vermijden objecten <b>niet</b> als obstakels worden aangemerkt."
       },
       "surface-problem": {
-        "no-button-1": "Dit zou een 'Verboden te betreden'-label moeten zijn.",
-        "no-button-1-tooltip": "Grind of gras wordt niet beschouwd als een trottoir en moet worden gemarkeerd met een bordje 'Geen trottoir'.",
+        "wrong-type-tooltip": "Grind of gras wordt niet beschouwd als een trottoir en moet worden gemarkeerd met een bordje 'Geen trottoir'.",
         "no-button-2": "Dit is geen voetpad.",
         "no-button-2-tooltip": "Als een gemarkeerde oversteekplaats zich niet op een pad bevindt dat bedoeld is voor voetgangers, mag het niet als zodanig worden bestempeld.",
         "no-button-3": "Dit zijn gewone stoeptegels."
       },
       "no-sidewalk": {
-        "no-button-1": "Hier is een trottoir.",
-        "no-button-2": "Dit is een middenberm voor verkeer.",
-        "no-button-3": "Dit moet met een ander labeltype worden gemarkeerd.",
-        "no-button-3-tooltip": "Problemen met het wegdek of obstakels kunnen ten onrechte worden aangemerkt als 'Geen trottoir'."
+        "wrong-type-tooltip": "Problemen met het wegdek of obstakels kunnen ten onrechte worden aangemerkt als 'Geen trottoir'.",
+        "no-button-2": "Hier is een trottoir.",
+        "no-button-3": "Dit is een middenberm voor verkeer."
       },
       "crosswalk": {
-        "no-button-1": "Er is hier geen zichtbaar zebrapad.",
-        "no-button-2": "Dit is een stoplijn voor auto's.",
-        "no-button-3": "Dit is een verkeersdrempel."
+        "no-button-2": "Er is hier geen zichtbaar zebrapad.",
+        "no-button-3": "Dit is een stoplijn voor auto's.",
+        "no-button-4": "Dit is een verkeersdrempel."
       },
       "signal": {
-        "no-button-1": "Dit is slechts een verkeerslicht voor voertuigen.",
-        "no-button-2": "Dit is een verkeersbord zonder verlichting om een veilige oversteekplaats aan te geven.",
-        "no-button-3": "Dit is een paal zonder verkeerslicht of -knop."
+        "no-button-2": "Dit is slechts een verkeerslicht voor voertuigen.",
+        "no-button-3": "Dit is een verkeersbord zonder verlichting om een veilige oversteekplaats aan te geven.",
+        "no-button-4": "Dit is een paal zonder verkeerslicht of -knop."
       }
     },
     "unsure-reason": {
@@ -89,6 +89,9 @@
         "unsure-button-3": "Ik weet niet zeker of hier een trottoir hoort te liggen.",
         "unsure-button-3-tooltip": "Soms is meer context nodig, en het is moeilijk om op basis van slechts één afbeelding te bepalen of een trottoir nodig is."
       }
+    },
+    "wrong-type": {
+      "header": "Welk type moet dit label zijn?"
     }
   },
   "center-ui": {

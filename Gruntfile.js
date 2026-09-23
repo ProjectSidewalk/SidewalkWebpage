@@ -41,6 +41,7 @@ module.exports = function (grunt) {
           'public/js/common/PanoMarker.js',
           'public/js/common/LabelVisibilityToggle.js',
           'public/js/common/LabelCardView.js',
+          'public/js/common/LabelTypePicker.js',
           'public/js/common/utilitiesSidewalk.js',
           'public/js/common/SpeedLimit.js',
           'public/js/common/MissionStartTutorial.js',
@@ -66,6 +67,7 @@ module.exports = function (grunt) {
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/TagEditor.js',
+          'public/js/common/LabelTypePicker.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           // The shared filter sidebar owns the sidebar controls; GalleryFilter is the Gallery's adapter for it.
@@ -91,14 +93,44 @@ module.exports = function (grunt) {
           'public/js/common/urlQuery.js',
           // The shared filter sidebar owns the sidebar controls; MapSidebarFilter is the map's adapter for it.
           'public/js/common/filter-sidebar/*.js',
+          'public/js/common/geoBounds.js',
           'public/js/ps-map/*.js',
         ],
         dest: 'public/js/ps-map/build/ps-map.js'
+      },
+      dist_access_score: {
+        src: [
+          // The score ramp is a shared helper (the api-docs load it on its own); the tool's modules follow it.
+          'public/js/common/scoreRamp.js',
+          'public/js/access-score/src/AccessScoreFetch.js',
+          'public/js/access-score/src/AccessScoreModel.js',
+          'public/js/access-score/src/AccessScoreUrlSync.js',
+          'public/js/common/AccessScoreGradeRamp.js',
+          'public/js/common/AccessScoreElevationProfile.js',
+          'public/js/access-score/src/AccessScoreMapLegend.js',
+          'public/js/access-score/src/AccessScoreMapView.js',
+          'public/js/access-score/src/AccessScoreSlopePanel.js',
+          'public/js/access-score/src/AccessScoreSidebar.js',
+          'public/js/access-score/src/AccessScoreClusterLayer.js',
+          'public/js/access-score/src/AccessScorePlacesLayer.js',
+          // The insights dock: the chart base class precedes the views that extend it (a subclass evaluates its
+          // superclass at definition time), and the dock that owns them comes last.
+          'public/js/access-score/src/AccessScoreChart.js',
+          'public/js/access-score/src/AccessScoreHistogram.js',
+          'public/js/access-score/src/AccessScoreWhatsHere.js',
+          'public/js/access-score/src/AccessScoreRankBars.js',
+          'public/js/access-score/src/AccessScoreClusterSheet.js',
+          'public/js/access-score/src/AccessScorePhotoStrip.js',
+          'public/js/access-score/src/AccessScoreDock.js',
+          'public/js/access-score/src/main.js',
+        ],
+        dest: 'public/js/access-score/build/access-score.js'
       },
       dist_route_builder: {
         src: [
           'public/js/common/Toast.js',
           'public/js/common/ConfirmDialog.js',
+          'public/js/common/UnsavedChangesGuard.js',
           'public/js/common/mapboxSearchBoxA11y.js',
           'public/js/route-builder/src/*.js'
         ],
@@ -122,6 +154,7 @@ module.exports = function (grunt) {
           'public/js/common/label-detail/StoryComposer.js',
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/TagEditor.js',
+          'public/js/common/LabelTypePicker.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/shared-label/*.js'
@@ -141,13 +174,30 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/MapillaryViewer.js',
           'public/js/common/pano-viewer/src/Infra3dViewer.js',
           'public/js/common/pano-viewer/src/PannellumViewer.js',
+          'public/js/common/pano-viewer/src/PanoramaxViewer.js',
           'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+          'public/js/common/pano-viewer/src/PanoAttribution.js',
           'public/js/common/pano-viewer/src/PanoInfoPopover.js'
         ],
         dest: 'public/js/common/pano-viewer/build/pano-viewer.js'
+      },
+      // The imagery-credit overlays alone, for a page with stills but no viewer (the landing grid, #5202). Neither
+      // file may reference a viewer class — that is what lets them stand alone. A page loads one bundle or the other.
+      dist_pano_credit: {
+        src: [
+          'public/js/common/pano-viewer/src/PanoViewerLogo.js',
+          'public/js/common/pano-viewer/src/PanoAttribution.js'
+        ],
+        dest: 'public/js/common/pano-credit/build/pano-credit.js'
       }
     },
     concat_css: {
+      // The bundles land in public/js/<app>/build/, so each file's relative url()s are rewritten to /assets/ paths that
+      // still reach the same file from there. An absolute /assets/ url() would get the prefix twice, so use relative.
+      options: {
+        assetBaseUrl: '/assets',
+        baseDir: 'public'
+      },
       // The two label-card files come first so each tool's own stylesheet can override the shared base after it.
       // public/css/components/ has no glob — every file used from it is named by hand, in each bundle that wants it.
       dist_audit: {
@@ -163,6 +213,7 @@ module.exports = function (grunt) {
         src: [
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
           'public/css/pages/validate/*.css',
           'public/css/components/mission-start-tutorial.css'
         ],
@@ -199,9 +250,11 @@ module.exports = function (grunt) {
           'public/css/pages/gallery/*.css',
           'public/js/ps-map/*.js',
           'public/js/route-builder/src/*.js',
+          'public/js/access-score/src/*.js',
           'public/js/shared-label/*.js',
           'public/css/components/label-anchored-panel.css',
           'public/css/components/label-hover-card.css',
+          'public/css/components/pano-attribution.css',
           'public/css/components/mission-start-tutorial.css'
         ],
         tasks: [

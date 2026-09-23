@@ -26,7 +26,7 @@
 @cityCount = @{commonData.allCityInfo.size}
 @countryCount = @{commonData.allCityInfo.map(_.countryId).distinct.size}
 @* Count of natively translated languages, from config so it can't drift: base languages only (en-US/en-NZ are
-   regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR] counts 6. *@
+   regional overlays of en, zh-TW's base is zh), so e.g. [en, en-US, en-NZ, es, nl, zh-TW, de, pt-BR, fr] counts 7. *@
 @languageCount = @{config.get[Seq[String]]("play.i18n.langs").map(_.takeWhile(_ != '-')).distinct.size}
 
 @* AboutPage JSON-LD built with the JSON library (not hand-written markup) so quoting is always valid; escaping `<`
@@ -100,7 +100,7 @@
        hold true as the dataset only grows, replaced by exact live values from /v3/api/aggregateStats on load. *@
     <section class="about-stats" aria-labelledby="about-stats-heading">
       <h2 class="sr-only" id="about-stats-heading">@Messages("about.stats.heading")</h2>
-      <div class="about-container about-stats-grid">
+      <div class="about-container about-stats-row">
         <div class="about-stat">
           <span class="about-stat-number" data-live-stat="km_explored">30,000+</span>
           <span class="about-stat-label">@Messages("about.stats.km")</span>
@@ -190,10 +190,10 @@
            them and only the template can resolve one. *@
         <div class="about-map" id="about-deployment-map"
              data-mapbox-api-key="@commonData.mapboxApiKey"
-             data-mapbox-js='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'
+             data-mapbox-js='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'
              data-mapbox-language-js='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'
              data-ps-map-js='@assets.path("js/ps-map/build/ps-map.js")'
-             data-mapbox-css='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")'></div>
+             data-mapbox-css='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'></div>
         <p class="about-where-links">@Html(Messages("about.where.links"))</p>
       </div>
       @common.cityPopupTemplate()

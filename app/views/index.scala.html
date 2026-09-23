@@ -134,10 +134,21 @@
       <div id="landing-validation-grid" class="landing-validation-grid" aria-live="polite"></div>
     </div>
 
+    @* Directly above the choropleth, so the neighborhood a hovered row lights up is visible without scrolling. *@
+    <div class="container" id="access-score-spotlight-container" hidden>
+      <div class="section-title-and-subtitle">
+        <h2 class="row section-title" id="access-score-spotlight-title">@Messages("landing.spotlight.title", currentCity.cityNameShort)</h2>
+        @* Filled by AccessScoreSpotlight.js: the wording depends on which unit is shown and on how much of the city
+           has enough data to be ranked. *@
+        <div class="row section-subtitle spotlight-subtitle" id="access-score-spotlight-subtitle"></div>
+      </div>
+      <div class="spotlight"></div>
+    </div>
+
     <div id="landing-choropleth-container" class="container choropleth-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="choose-neighborhood-title">@Messages("landing.choropleth.title")</h2>
-        <div class="row section-subtitle" id="choose-neighborhood-subtitle">
+        <h2 class="row section-title" id="choose-region-title">@Messages("landing.choropleth.title")</h2>
+        <div class="row section-subtitle" id="choose-region-subtitle">
           <div id="exploredesc">@Html(Messages("landing.choropleth.content"))</div>
         </div>
       </div>
@@ -171,7 +182,7 @@
 
     <div class="ps-skyline">
       <div class="ps-skyline-container">
-        @if(currentCity.cityId == "seattle-wa") {
+        @if(currentCity.cityId == "seattle-wa" || currentCity.cityId == "washington-dc") {
           <img loading="lazy" src="@assets.path("images/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
         } else {
           <img loading="lazy" class="skyline-img-offset" src="@assets.path("images/" + skylineImg)" alt="@Messages(s"landing.$skylineImg.alt")">
@@ -258,10 +269,17 @@
     <script src='@assets.path("js/homepage.js")' defer></script>
     <script src='@assets.path("js/common/utilitiesSidewalk.js")' defer></script>
     <script src='@assets.path("js/common/share/ShareWidget.js")' defer></script>
+    @* The grid's imagery credits, without the 170 KB pano-viewer bundle: this page shows stills, never a live viewer. *@
+    <script src='@assets.path("js/common/pano-credit/build/pano-credit.js")' defer></script>
     <script src='@assets.path("js/LandingValidationGrid.js")' defer></script>
+    @* The AccessScore ramp the Spotlight's bars are painted from, read out of the main.css tokens. *@
+    <script src='@assets.path("js/common/scoreRamp.js")' defer></script>
+    <script src='@assets.path("js/AccessScoreSpotlight.js")' defer></script>
     <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/components/deployment-map.css")' rel="stylesheet">
     <link href='@assets.path("css/components/landing-validation-grid.css")' rel="stylesheet">
+    <link href='@assets.path("css/components/access-score-spotlight.css")' rel="stylesheet">
+    <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
     @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/components/share-widget.css, which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
 
     <script>
@@ -271,13 +289,13 @@
       util.onFirstInteractionOrIdle(function () {
         const mapboxCss = document.createElement('link');
         mapboxCss.rel = 'stylesheet';
-        mapboxCss.href = '@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")';
+        mapboxCss.href = '@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")';
         document.head.appendChild(mapboxCss);
 
         util.loadScriptsInOrder([
-          '@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")',
+          '@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")',
           '@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")',
-          '@assets.path("vendor/turf/turf-7.3.4.min.js")',
+          '@assets.path("vendor/turf/turf-7.4.0.min.js")',
           '@assets.path("js/ps-map/build/ps-map.js")'
         ]).then(function () {
           // createPSMap reads translated strings, so it still waits on the app's i18next setup.
@@ -289,10 +307,10 @@
               mapboxApiKey: '@commonData.mapboxApiKey',
               mapboxLogoLocation: 'bottom-right',
               scrollWheelZoom: false,
-              neighborhoodsURL: '/neighborhoods',
-              completionRatesURL: '/neighborhoods/completionRate',
-              neighborhoodFillMode: 'completionRate',
-              neighborhoodTooltip: 'completionRate'
+              regionsURL: '/regions',
+              completionRatesURL: '/regions/completionRates',
+              regionFillMode: 'completionRate',
+              regionTooltip: 'completionRate'
             };
             createPSMap($, choroplethParams).then(m => {
               window.choropleth = m[0];
@@ -319,6 +337,7 @@
       // grid renders its skeletons immediately to reserve layout, then fills itself on the first interaction.
       window.appManager.ready(function () {
         new LandingValidationGrid(document.getElementById('landing-validation-container'));
+        new AccessScoreSpotlight(document.getElementById('access-score-spotlight-container'));
       });
     </script>
   </div>

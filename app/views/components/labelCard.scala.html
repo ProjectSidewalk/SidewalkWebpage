@@ -5,6 +5,10 @@
 * one populator (js/common/LabelCardView.js); each caller keeps what is genuinely its own — showing, hiding, and
 * anchoring the card, plus the action buttons passed in as the actions block.
 *
+* Between the header and the facts sits the provenance strip for AI-generated labels (#5359). It lives in the card
+* rather than in a tooltip on the marker's AI badge because on Validate the hover that would open such a tooltip is
+* the hover that opens this card, and the two would stack. Always in the markup; LabelCardView shows it per label.
+*
 * Ids are kept to the pieces outside code addresses: the card itself, the type name in its header (the dialog's
 * accessible name), and the share trigger. Everything LabelCardView fills in is found by class within the card.
 *
@@ -19,16 +23,35 @@
 * @param showNotRated Include the not-rated nudge, for tools where the labeler can still add the missing rating.
 * @param noInfoKey    i18n key for the line shown when the label has no rating, tags, or description. Left out,
 *                     LabelCardView collapses the empty body instead.
+* @param typeEditable Make the header's type a dropdown for changing it (#5409); LabelTypeDropdown then
+*                     draws the type, not LabelCardView.
 * @param actions      The card's action buttons, supplied by the caller.
 *@
-@(idPrefix: String, showNotRated: Boolean = false, noInfoKey: Option[String] = None)(actions: Html)
+@(idPrefix: String, showNotRated: Boolean = false, noInfoKey: Option[String] = None,
+  typeEditable: Boolean = false)(actions: Html)(implicit assets: AssetsFinder)
 
 <div id="@idPrefix" class="label-anchored-panel label-hover-card" role="dialog" aria-labelledby="@{idPrefix}-type">
   <div class="label-hover-card__header">
-    @* Transparent 1x1 placeholder so nothing flashes before the first label is rendered into the card. *@
-    <img class="label-hover-card__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
-    <span id="@{idPrefix}-type" class="label-hover-card__type"></span>
+    @if(typeEditable) {
+      <span class="label-hover-card__type-dropdown">@components.labelTypeTrigger(nameId = Some(s"$idPrefix-type"))</span>
+    } else {
+      @* Transparent 1x1 placeholder so nothing flashes before the first label is rendered into the card. *@
+      <img class="label-hover-card__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="">
+      <span id="@{idPrefix}-type" class="label-hover-card__type"></span>
+    }
     @components.shareTrigger(id = s"$idPrefix-share", extraClass = "label-hover-card__share")
+  </div>
+  @if(typeEditable) {
+    @components.labelTypePopover()
+  }
+  @* The same circled glyph as the AI badge on the marker, so the strip reads as that badge's explanation. Decorative
+     alt: the sentence beside the icon already says the label is AI generated. *@
+  <div class="label-hover-card__ai">
+    <img class="label-hover-card__ai-icon" alt=""
+         src='@assets.path("images/icons/ai-icon-black-filled-white-circle.png")'>
+    <span data-i18n="common:ai-generated-label-tooltip">
+      This label was AI generated. AI can make mistakes, so please make your own judgment about correctness.
+    </span>
   </div>
   <div class="label-hover-card__body">
     <span class="label-hover-card__severity">

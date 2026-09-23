@@ -72,8 +72,8 @@ class LabelVisibilityControl {
   /**
    * Shows the label card beside the label's marker.
    *
-   * @param {Object} [options]
-   * @param {boolean} [options.viaKeyboard] The card was opened from the keyboard (Tab onto the marker, or Enter/
+   * @param {object} [options]
+   * @param {boolean} [options.viaKeyboard] - The card was opened from the keyboard (Tab onto the marker, or Enter/
    *     Space on it) rather than by pointer. Logged under its own event name, the way the H key's hide is —
    *     see docs/logged-events.md.
    */
@@ -92,9 +92,9 @@ class LabelVisibilityControl {
    */
   hideLabelCard() {
     this.cancelScheduledCardHide();
-    // The share popover hangs off the card, so it goes too. Left open it would be invisible but still armed, and
-    // every later scheduleHideLabelCard would defer to it forever.
-    svv.labelCard?.closeSharePopover();
+    // The card's popovers hang off it, so they go too. Left open one would be invisible but still armed, and every
+    // later scheduleHideLabelCard would defer to it forever.
+    svv.labelCard?.closePopovers();
     this.#cardVisible = false;
     this.#card[0].style.visibility = 'hidden';
     this.#setMarkerExpanded(false);
@@ -106,10 +106,10 @@ class LabelVisibilityControl {
    * the pointer first left.
    */
   scheduleHideLabelCard() {
-    // An open share popover extends past the card, so the pointer leaving the card doesn't mean the user is done
-    // with it. Taking the card down here would take the popover with it, mid-choice — handleSharePopoverDismissed
-    // re-arms the hide once the popover closes.
-    if (this.#hideCardTimer !== null || svv.labelCard?.isSharePopoverOpen()) return;
+    // An open share popover or type dropdown extends past the card, so the pointer leaving the card doesn't mean the
+    // user is done with it. Taking the card down here would take the popover with it, mid-choice —
+    // handlePopoverDismissed re-arms the hide once the popover closes.
+    if (this.#hideCardTimer !== null || svv.labelCard?.isPopoverOpen()) return;
     this.#hideCardTimer = setTimeout(() => {
       this.#hideCardTimer = null;
       this.hideLabelCard();
@@ -117,23 +117,22 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Re-arms the card's hide once the share popover that had been holding it open goes away.
-   *
-   * scheduleHideLabelCard is only ever reached from the card's own mouseleave, and while the popover was up it
-   * declined to schedule anything. The pointer left the card back then and no second mouseleave is coming, so
-   * without this the card would stay up until a pan, the H key, or the next label took it down. Copy link is the
-   * common way in: it leaves the popover open behind its "Copied!" state, so the pointer usually wanders off well
-   * before the popover closes. Skipped when the pointer is back on the card, where it is meant to stay.
+   * Re-arms the card's hide once a popover that had been holding it open goes away. The pointer left the card
+   * while the popover was up, and no second mouseleave is coming, so without this the card stays until a pan, the
+   * H key, or the next label. Left alone if the pointer or the keyboard is back in the card, or it is already gone.
    */
-  handleSharePopoverDismissed() {
-    if (!this.#card[0].matches(':hover')) this.scheduleHideLabelCard();
+  handlePopoverDismissed() {
+    if (!this.#cardVisible) return;
+    const card = this.#card[0];
+    if (card.matches(':hover') || card.contains(document.activeElement)) return;
+    this.scheduleHideLabelCard();
   }
 
   /**
    * Toggles the card. The mobile pano has no hover, so activating the marker — a tap, an assistive technology's
    * press, or Enter/Space — opens and closes it; on desktop this is Enter/Space on the focused marker.
    *
-   * @param {Object} [options] Forwarded to showLabelCard — see its viaKeyboard note.
+   * @param {object} [options] - Forwarded to showLabelCard — see its viaKeyboard note.
    */
   toggleLabelCard(options) {
     if (this.#cardVisible) this.hideLabelCard();

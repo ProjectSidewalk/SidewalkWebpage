@@ -1,0 +1,329 @@
+/* AccessScore Spotlight (#5215): two ranked lists of the highest- and lowest-scoring neighborhoods or streets,
+   shared by the landing page and /cities. Section chrome (title, subtitle) comes from the pages' own
+   .section-title-and-subtitle; everything the module builds carries the spotlight- prefix. Colors and type from the
+   main.css design tokens; the bars are painted by public/js/common/scoreRamp.js, which reads the same tokens the
+   AccessScore tool's map does. */
+
+.spotlight {
+  margin: 8px 0 40px;
+}
+
+/* Unit switch above the lists, right-aligned on a wide viewport and stacked on a narrow one. */
+.spotlight-head {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.spotlight-units {
+  display: inline-flex;
+  border: 1px solid var(--color-neutral-200, #e1e1e1);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.spotlight-unit {
+  padding: 6px 14px;
+  font: var(--text-small-medium, 500 14px/18px sans-serif);
+  color: var(--color-asphalt-400, #424055);
+  background: var(--color-neutral-white, #ffffff);
+  border: 0;
+  cursor: pointer;
+}
+
+.spotlight-unit + .spotlight-unit {
+  border-left: 1px solid var(--color-neutral-200, #e1e1e1);
+}
+
+.spotlight-unit:hover:not([aria-pressed="true"]) {
+  background: var(--color-neutral-100, #f0f0f0);
+}
+
+.spotlight-unit[aria-pressed="true"] {
+  color: var(--color-neutral-white, #ffffff);
+  background: var(--color-asphalt-500, #2d2a3f);
+  cursor: default;
+}
+
+.spotlight-unit:focus-visible {
+  outline: 2px solid var(--color-link-200, #0a58ca);
+  outline-offset: -2px;
+}
+
+.spotlight-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+/* One column is already plenty wide on a phone, and two 300px columns plus the gap stop fitting the Bootstrap
+   container around here (--breakpoint-sm is 768px). */
+@media (width <= 768px) {
+  .spotlight-cols {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* One column, wherever the second has nothing in it: a single-neighborhood city, a sparse city whose only list is
+   "Ranked so far", or one whose only list is the "Closest to being ranked" ask. */
+.spotlight-cols.spotlight-cols--single {
+  grid-template-columns: 1fr;
+}
+
+.spotlight-col-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font: var(--text-small-bold, 700 14px/18px sans-serif);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-neutral-800, #484848);
+}
+
+.spotlight-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.spotlight-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* rank | name | bar | score. The name column is the flexible one and clips rather than wrapping, so every row in a
+   list is the same height and the bars line up as a small chart. Every row is two lines (name + detail), whichever
+   unit is shown, so the module keeps its height when the switch is used. */
+.spotlight-row {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 96px 48px;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 6px;
+  border-radius: 4px;
+}
+
+/* The whole row follows its link (see #buildRow), so the pointer says so everywhere on it. */
+.spotlight-row--linked {
+  cursor: pointer;
+}
+
+/* The same orange the map-linked table rows use (components/tables.css): the high-contrast pick against the
+   choropleth's Blues scale, which is the map this highlight is paired with. */
+.spotlight-row:hover,
+.spotlight-row.highlighted {
+  background: rgb(246 141 62 / 14%);
+  box-shadow: inset 3px 0 0 var(--color-label-surface-problem, #f68d3e);
+}
+
+/* Two-line rows: the number sits on the name's line rather than floating between the lines. Same line-height as
+   the name, so the two share a baseline. */
+.spotlight-rank {
+  align-self: start;
+  font: var(--text-caption-regular, 400 12px/18px sans-serif);
+  color: var(--color-neutral-700, #6b6b6b);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.spotlight-name {
+  min-width: 0;
+}
+
+.spotlight-name-link,
+.spotlight-sub-link {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spotlight-name-link {
+  font: var(--text-small-medium, 500 14px/18px sans-serif);
+  color: var(--color-asphalt-500, #2d2a3f);
+  text-decoration: none;
+}
+
+.spotlight-name-link:hover,
+.spotlight-name-link:focus-visible {
+  color: var(--color-link-200, #0a58ca);
+  text-decoration: underline;
+}
+
+/* The second line: the neighborhood and length of a street, or the city of a cross-city row. */
+.spotlight-sub,
+.spotlight-sub-link {
+  font: var(--text-caption-regular, 400 12px/18px sans-serif);
+  color: var(--color-neutral-700, #6b6b6b);
+}
+
+.spotlight-sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spotlight-sub-link {
+  color: var(--color-neutral-700, #6b6b6b);
+}
+
+.spotlight-sub-link:hover,
+.spotlight-sub-link:focus-visible {
+  color: var(--color-link-200, #0a58ca);
+}
+
+.spotlight-track {
+  height: 8px;
+  background: var(--color-neutral-100, #f0f0f0);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.spotlight-bar {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.spotlight-score {
+  font: var(--text-small-medium, 500 14px/18px sans-serif);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--color-asphalt-500, #2d2a3f);
+}
+
+/* "Closest to being ranked": no score yet, so the bar is a dashed completion meter and the last column holds the
+   call to action instead of a number — a button needs more than the score column's 48px. */
+.spotlight-row--pending {
+  grid-template-columns: 20px minmax(0, 1fr) 96px auto;
+  background: var(--color-neutral-100, #f0f0f0);
+  border: 1px dashed var(--color-neutral-300, #d1d1d1);
+}
+
+.spotlight-row--pending .spotlight-rank {
+  color: var(--color-neutral-400, #c2c2c2);
+}
+
+.spotlight-row--pending .spotlight-bar {
+  background: repeating-linear-gradient(90deg, var(--color-neutral-600, #8f8f8f) 0 3px, transparent 3px 6px);
+}
+
+.spotlight-explore {
+  display: inline-block;
+  padding: 3px 10px;
+  font: var(--text-caption-semibold, 600 12px/18px sans-serif);
+  color: var(--color-neutral-white, #ffffff);
+  background: var(--color-asphalt-400, #424055);
+  border-radius: 4px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.spotlight-explore:hover,
+.spotlight-explore:focus-visible {
+  background: var(--color-asphalt-500, #2d2a3f);
+  color: var(--color-neutral-white, #ffffff);
+  text-decoration: none;
+}
+
+.spotlight-note {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  font: var(--text-caption-regular, 400 12px/18px sans-serif);
+  color: var(--color-neutral-700, #6b6b6b);
+}
+
+.spotlight-updated {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.spotlight-info {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  font: var(--text-caption-semibold, 600 12px/18px sans-serif);
+  line-height: 14px;
+  color: var(--color-neutral-700, #6b6b6b);
+  background: transparent;
+  border: 1px solid var(--color-neutral-600, #8f8f8f);
+  border-radius: 50%;
+  cursor: help;
+}
+
+.spotlight-info:focus-visible {
+  outline: 2px solid var(--color-link-200, #0a58ca);
+  outline-offset: 2px;
+}
+
+/* A column with nothing over its bar: one quiet line where the rows would be. */
+.spotlight-row--empty {
+  display: block;
+  font: var(--text-caption-regular, 400 12px/18px sans-serif);
+  color: var(--color-neutral-700, #6b6b6b);
+  font-style: italic;
+}
+
+/* Grows upward from the (i) so it never pushes the section's layout around. */
+.spotlight-tip {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  z-index: var(--z-index-tooltip, 1070);
+  width: max-content;
+  max-width: 280px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  font: var(--text-caption-regular, 400 12px/18px sans-serif);
+  color: var(--color-neutral-white, #ffffff);
+  background: var(--color-asphalt-500, #2d2a3f);
+  border-radius: 6px;
+  box-shadow: var(--box-shadow, 0 2px 5px rgb(0 0 0 / 15%));
+}
+
+/* Bridges the gap under the tip, so a pointer travelling from the (i) onto the tip never leaves the wrapper the
+   hide is bound to -- the tip stays hoverable (WCAG 1.4.13) without the gap being painted. */
+.spotlight-tip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 6px;
+}
+
+.spotlight-cta {
+  margin-top: 16px;
+}
+
+/* The subtitle's one link, "AccessScore", to how the score is computed. The pages' .section-subtitle sets the type. */
+.spotlight-subtitle a {
+  color: var(--color-link-200, #0a58ca);
+  text-decoration: underline;
+}
+
+/* Placeholder rows while the feed loads, so the section holds its space and the real rows swap in without a layout
+   shift. Height is a real row's: 7px padding, two 18px lines, 7px padding. */
+.spotlight-row--skeleton {
+  height: 50px;
+  background: var(--color-neutral-100, #f0f0f0);
+  animation: spotlight-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes spotlight-pulse {
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spotlight-row--skeleton { animation: none; }
+}

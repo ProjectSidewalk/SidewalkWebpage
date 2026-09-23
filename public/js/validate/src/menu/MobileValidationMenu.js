@@ -7,7 +7,7 @@ class MobileValidationMenu {
   #unsureReasonButtons;
 
   /**
-   * @param {object} menuUI Validation menu UI elements.
+   * @param {Record<string, JQuery>} menuUI - Validation menu UI elements.
    */
   constructor(menuUI) {
     this.#menuUI = menuUI;
@@ -22,6 +22,10 @@ class MobileValidationMenu {
 
     // Add onclick for each validation button.
     menuUI.yesButton.click((e) => {
+      // A tap that lands while the next label's pano is still loading would be answering the label on screen and
+      // recording it against the one behind it (#5211). The verdict row is dimmed for that window; this is what
+      // catches a tap that beat the class onto the page.
+      if (svv.labelContainer.dropInputWhileLoading('Agree')) return;
       const action = e.isTrigger ? 'ValidationKeyboardShortcut_Agree' : 'ValidationButtonClick_Agree';
       svv.tracker.push(action);
       this.#setYesView();
@@ -31,12 +35,14 @@ class MobileValidationMenu {
       this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), e.isTrigger);
     });
     menuUI.noButton.click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('Disagree')) return;
       const action = e.isTrigger ? 'ValidationKeyboardShortcut_Disagree' : 'ValidationButtonClick_Disagree';
       svv.tracker.push(action);
       this.#setNoView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
     });
     menuUI.unsureButton.click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('Unsure')) return;
       const action = e.isTrigger ? 'ValidationKeyboardShortcut_Unsure' : 'ValidationButtonClick_Unsure';
       svv.tracker.push(action);
       this.#setUnsureView();
@@ -44,8 +50,12 @@ class MobileValidationMenu {
     });
 
     // Add onclick for disagree and unsure reason buttons.
+    // Both loops guard ahead of their tracker push rather than leaving it to the setter they call: the push
+    // would otherwise record the reason as chosen and the drop would be logged right after it, so the one
+    // interaction the load guard exists to refuse is the one that reads in the logs as having landed (#5211).
     for (const reasonButton of this.#disagreeReasonButtons) {
       reasonButton.onclick = (e) => {
+        if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
         if (e.isTrigger) {
           svv.tracker.push(`KeyboardShortcut_DisagreeReason_Option=${$(reasonButton).attr('id')}`);
         } else {
@@ -56,6 +66,7 @@ class MobileValidationMenu {
     }
     for (const reasonButton of this.#unsureReasonButtons) {
       reasonButton.onclick = (e) => {
+        if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
         if (e.isTrigger) {
           svv.tracker.push(`KeyboardShortcut_UnsureReason_Option=${$(reasonButton).attr('id')}`);
         } else {
@@ -78,7 +89,13 @@ class MobileValidationMenu {
     });
 
     // Add oninput for disagree and unsure other reason text boxes.
+    // Guarded at the handler, not left to the setter each one calls: the empty branch writes the cleared reason onto
+    // the current label directly, so without this the two branches would answer a mid-load event differently. They
+    // are believed unreachable then — KeyboardManager goes inert while a reason box has focus, so a load cannot start
+    // from there, and once one has the box is only reachable by pointer, which is blocked — but half a guard on a
+    // handler is a trap for whoever changes it next (#5211).
     menuUI.disagreeReasonTextBox.on('input', () => {
+      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       if (menuUI.disagreeReasonTextBox.val() === '') {
         menuUI.disagreeReasonTextBox.removeClass('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
@@ -87,6 +104,7 @@ class MobileValidationMenu {
       }
     });
     menuUI.unsureReasonTextBox.on('input', () => {
+      if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
       if (menuUI.unsureReasonTextBox.val() === '') {
         menuUI.unsureReasonTextBox.removeClass('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
@@ -97,22 +115,28 @@ class MobileValidationMenu {
 
     // Add onclick for the submit buttons in the no and unsure menus.
     $('#no-menu-submit-button').click((e) => {
-      this.#validateLabel('Disagree', e.isTrigger);
+      this.#validateLabel('Disagree', Boolean(e.isTrigger));
     });
     $('#unsure-menu-submit-button').click((e) => {
-      this.#validateLabel('Unsure', e.isTrigger);
+      this.#validateLabel('Unsure', Boolean(e.isTrigger));
     });
 
     // Add onclick for the skip-reason buttons, which submit the validation without an associated reason.
+    // Guarded here rather than left to #validateLabel: these clear the reason on the current label before they
+    // submit, so mid-load the clear lands on the label that isn't on screen yet, even though the submit is refused.
+    // Their own sources, not the reason setters': a skip is a submit, so a drop here means the validator was ahead
+    // of a slow load, which is the opposite of what a dropped reason pick means.
     $('#no-menu-skip-reason-button').click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('DisagreeReason_Skip')) return;
       svv.tracker.push('Click=DisagreeReason_Skip');
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
-      this.#validateLabel('Disagree', e.isTrigger);
+      this.#validateLabel('Disagree', Boolean(e.isTrigger));
     });
     $('#unsure-menu-skip-reason-button').click((e) => {
+      if (svv.labelContainer.dropInputWhileLoading('UnsureReason_Skip')) return;
       svv.tracker.push('Click=UnsureReason_Skip');
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
-      this.#validateLabel('Unsure', e.isTrigger);
+      this.#validateLabel('Unsure', Boolean(e.isTrigger));
     });
   }
 
@@ -174,7 +198,7 @@ class MobileValidationMenu {
    * The buttons are one shared set of elements, so a type that offers a given reason gets it shown and marked
    * `defaultOption`, while a type that doesn't offer it gets it hidden.
    *
-   * @param {object} label The label whose type the buttons should describe.
+   * @param {Label} label - The label whose type the buttons should describe.
    */
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
@@ -239,9 +263,9 @@ class MobileValidationMenu {
 
   /**
    * Adds a jquery tooltip to the given element with the given text and image (if given).
-   * @param {jQuery} $elem Element to add the tooltip to, as jquery wrapped object.
-   * @param {string} tooltipText Text to display in the tooltip.
-   * @param {string} [img] Optional image to display in the tooltip.
+   * @param {JQuery} $elem - Element to add the tooltip to, as jquery wrapped object.
+   * @param {string} tooltipText - Text to display in the tooltip.
+   * @param {string} [img] - Optional image to display in the tooltip.
    */
   #addTooltip($elem, tooltipText, img) {
     // Add the tooltip only on non-touch devices.
@@ -258,7 +282,19 @@ class MobileValidationMenu {
   }
 
   // VALIDATING 'NO' SECTION.
+  /**
+   * Records the reason chosen for a disagree verdict.
+   *
+   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
+   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
+   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
+   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
+   * picked for the label it lands on.
+   *
+   * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
+   */
   #setDisagreeReason(id) {
+    if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
     const menuUI = this.#menuUI;
     this.#disagreeReasonButtons.removeClass('chosen');
     if (id === 'other') {
@@ -273,7 +309,19 @@ class MobileValidationMenu {
   }
 
   // VALIDATING 'UNSURE' SECTION.
+  /**
+   * Records the reason chosen for an unsure verdict.
+   *
+   * Guarded because a reason button keeps focus after a click, and Enter natively activates a focused button whether
+   * or not KeyboardManager is listening — so a second Enter inside the load window writes the reason onto the label
+   * that hasn't appeared on screen yet (#5211). `resetMenu` clears the chosen styling for a new label but not its
+   * properties, so the reason would ride along invisibly and be submitted as the canned comment for a reason nobody
+   * picked for the label it lands on.
+   *
+   * @param {string} id - Id of the chosen reason button, or 'other' for the free-text box.
+   */
   #setUnsureReason(id) {
+    if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
     this.#unsureReasonButtons.removeClass('chosen');
     if (id === 'other') {
@@ -296,10 +344,13 @@ class MobileValidationMenu {
 
   /**
    * Validates a single label from a button click.
-   * @param {string} action Validation action - must be one of Agree, Disagree, or Unsure.
-   * @param {boolean} keyboardShortcut Whether or not the validation was triggered by a keyboard shortcut.
+   * @param {string} action - Validation action - must be one of Agree, Disagree, or Unsure.
+   * @param {boolean} keyboardShortcut - Whether or not the validation was triggered by a keyboard shortcut.
    */
   #validateLabel(action, keyboardShortcut) {
+    // Everything below writes to whatever getCurrentLabel() returns, which mid-load is already the next label (#5211).
+    if (svv.labelContainer.dropInputWhileLoading(`Submit=${action}`)) return;
+
     const menuUI = this.#menuUI;
     const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
     const timestamp = new Date();
@@ -338,7 +389,7 @@ class MobileValidationMenu {
     currLabel.setProperty('comment', comment);
 
     // If enough time has passed between validations, log the new validation.
-    if (timestamp - svv.labelContainer.getProperty('validationTimestamp') > 800) {
+    if (timestamp.getTime() - svv.labelContainer.getProperty('validationTimestamp') > 800) {
       MobileValidationMenu.#floatVerdict(action);
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
     }
@@ -350,7 +401,7 @@ class MobileValidationMenu {
    * the animation ends. Nothing happens for a visitor who asked for less motion — the button's chosen state, which
    * they keep, already says what was picked.
    *
-   * @param {string} action The verdict cast: 'Agree', 'Disagree', or 'Unsure'.
+   * @param {string} action - The verdict cast: 'Agree', 'Disagree', or 'Unsure'.
    */
   static #floatVerdict(action) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -364,7 +415,7 @@ class MobileValidationMenu {
     // One at a time: a quick second verdict should replace the last one's thumb, not race it up the screen.
     document.querySelectorAll('.validate-verdict-float').forEach((stale) => stale.remove());
 
-    const floater = icon.cloneNode();
+    const floater = /** @type {HTMLElement} */ (icon.cloneNode());
     floater.className = 'validate-verdict-float';
     const box = button.getBoundingClientRect();
     floater.style.left = `${box.left + box.width / 2}px`;

@@ -18,6 +18,7 @@
 @roleLocked = @{!Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role)}
 @isOwner = @{user.role == Role.Owner}
 @qualityLocked = @{isOwner || (user.role == Role.Administrator && viewer.role != Role.Owner)}
+@isExcluded = @{adminData.userStats.excluded}
 @qualityWord(high: Boolean) = @{if (high) "High" else "Low"}
 @selectedIf(cond: Boolean) = @{if (cond) Html("selected") else Html("")}
 @disabledIf(cond: Boolean) = @{if (cond) Html("disabled") else Html("")}
@@ -79,7 +80,7 @@
       </div>
       <div class="ud-field">
         <label class="ud-label" for="au-quality">Work quality</label>
-        <select class="ps-select ps-select--large" id="au-quality" @disabledIf(qualityLocked)>
+        <select class="ps-select ps-select--large" id="au-quality" @disabledIf(qualityLocked || isExcluded)>
           <option value="auto" @selectedIf(adminData.userStats.highQualityManual.isEmpty)>Automatic (currently @qualityWord(adminData.userStats.highQuality).toLowerCase)</option>
           <option value="true" @selectedIf(adminData.userStats.highQualityManual.contains(true))>High quality</option>
           <option value="false" @selectedIf(adminData.userStats.highQualityManual.contains(false))>Low quality</option>
@@ -92,6 +93,19 @@
           }
         </span>
       </div>
+      <label class="ud-check" for="au-excluded">
+        <input type="checkbox" id="au-excluded" @if(isExcluded){checked} @disabledIf(qualityLocked)>
+        <span class="ud-check-text">
+          <strong>Excluded</strong>
+          <span class="ud-field-help">
+            @if(qualityLocked) {
+              @if(isOwner) {An Owner can't be excluded.} else {An admin can only be excluded by an Owner.}
+            } else {
+              For malicious data, or users who weren't really trying to do the task. Hides all of their labels and validations, and marks them low quality. Only applies to this city.
+            }
+          </span>
+        </span>
+      </label>
       <label class="ud-check" for="au-community-service">
         <input type="checkbox" id="au-community-service" @if(user.communityService){checked} @disabledIf(isOwner)>
         <span class="ud-check-text">
@@ -146,7 +160,7 @@
         <span class="ps-kpi-label">Labels per km</span>
       </div>
       <div class="ps-kpi">
-        <span class="ps-kpi-value" id="au-high-quality">@qualityWord(adminData.userStats.highQuality)</span>
+        <span class="ps-kpi-value" id="au-high-quality">@if(isExcluded){Excluded}else{@qualityWord(adminData.userStats.highQuality)}</span>
         <span class="ps-kpi-label">Work quality@if(adminData.userStats.highQualityManual.isDefined){ (manual)}</span>
       </div>
       <div class="ps-kpi">
@@ -212,6 +226,7 @@
     }
   </div>
 
+  <script src="@assets.path("js/common/ConfirmDialog.js")"></script>
   <script src="@assets.path("js/user-dashboard/AdminUser.js")"></script>
   <script>
     window.appManager.ready(() => {

@@ -21,21 +21,8 @@
     colors: {}, // Default chart colors (will be overridden by colors from labelTypes API).
   };
 
-  // userStats field name (snake_case) -> localized display name (populated from the labelTypes API).
+  // Label type name -> localized display name (populated from the labelTypes API).
   const labelTypeMapping = {};
-
-  // Map from API response name (PascalCase) to userStats field name (snake_case).
-  const labelTypeAPIMapping = {
-    CurbRamp: 'curb_ramp',
-    NoCurbRamp: 'no_curb_ramp',
-    Obstacle: 'obstacle',
-    SurfaceProblem: 'surface_problem',
-    NoSidewalk: 'no_sidewalk',
-    Crosswalk: 'marked_crosswalk',
-    Signal: 'pedestrian_signal',
-    Occlusion: 'cant_see_sidewalk',
-    Other: 'other',
-  };
 
   // Public API.
   window.UserStatsPreview = {
@@ -119,13 +106,8 @@
           // Process the label types data to populate the colors and mapping.
           if (data && data.label_types && Array.isArray(data.label_types)) {
             data.label_types.forEach((labelType) => {
-              const snakeCaseKey = labelTypeAPIMapping[labelType.name] || labelType.name.toLowerCase();
-
-              // Update the colors map.
-              config.colors[snakeCaseKey] = labelType.color;
-
-              // Update the label type mapping.
-              labelTypeMapping[snakeCaseKey] = labelType.display_name;
+              config.colors[labelType.name] = labelType.color;
+              labelTypeMapping[labelType.name] = labelType.display_name;
             });
           }
 
@@ -139,7 +121,7 @@
      */
     fetchUserStats() {
       const params = new URLSearchParams({
-        minLabels: config.minLabels,
+        minLabels: String(config.minLabels),
       });
 
       return fetch(`${config.apiBaseUrl}${config.userStatsEndpoint}?${params}&utm_source=apiDocs`)
@@ -154,7 +136,7 @@
     /**
      * Filter and prepare the data for visualization.
      * @param {Array} userStatsData - The raw user statistics data
-     * @returns {object} Processed data ready for visualization
+     * @returns {Record<string, any>} Processed data ready for visualization
      */
     filterData(userStatsData) {
       // Filter out users with empty stats or 0 labels.
@@ -194,7 +176,7 @@
     /**
      * Create all visualizations in the container.
      * @param {HTMLElement} container - Container element for the visualizations
-     * @param {object} data - Processed data for visualizations
+     * @param {Record<string, any>} data - Processed data for visualizations
      */
     createVisualizations(container, data) {
       // Create top contributors chart section.

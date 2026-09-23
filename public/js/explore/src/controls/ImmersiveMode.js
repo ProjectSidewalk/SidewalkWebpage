@@ -25,7 +25,7 @@ class ImmersiveMode {
 
   /**
    * @param {Tracker} tracker - Logs the paired Click_/KeyboardShortcut_ events.
-   * @param {function(): void} relayout - Re-lays out the tool for its new box (svl.relayout), called on every toggle.
+   * @param {() => void} relayout - Re-lays out the tool for its new box (svl.relayout), called on every toggle.
    */
   constructor(tracker, relayout) {
     this.#tracker = tracker;

@@ -59,9 +59,9 @@ class ClusterController @Inject() (
       // Run the clustering, recorded as a `Manual` run of the nightly clustering job so a hand-run leaves the same
       // counts and error trail the scheduler's does — without being able to stand in for it (#4928).
       val resultFuture: Future[JsObject] = jobRunService
-        .record(ClusteringActor.Name, JobRunTrigger.Manual)(clusterService.runClustering(Some(statusRef), allRegions))(
-          _.runDetails
-        )
+        .record(ClusteringActor.Name, JobRunTrigger.Manual)(
+          clusterService.runClustering(Some(statusRef), allRegions, JobRunTrigger.Manual)
+        )(_.runDetails)
         .map { results => Json.obj("labels" -> results.labelCount, "clusters" -> results.clusterCount) }
 
       // Create a source that emits status updates.

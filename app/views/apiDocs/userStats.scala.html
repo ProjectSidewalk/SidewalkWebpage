@@ -71,12 +71,6 @@
         <span class="format-hint">For Excel, Google Sheets</span>
       </button>
     </div>
-
-    <div id="download-status" class="status-container status-loading ps-hidden">
-      <div class="loading-spinner"></div>
-      <div class="status-message">Preparing your download...</div>
-      <div class="status-progress">This should only take a few seconds.</div>
-    </div>
   </div>
 
   <div class="page-section" id="query-parameters-section">
@@ -179,13 +173,13 @@
     "disagree_validations_given": 6,
     "unsure_validations_given": 0,
     "stats_by_label_type": {
-      "curb_ramp": {
+      "CurbRamp": {
         "labels": 16,
         "validated_correct": 15,
         "validated_incorrect": 1,
         "not_validated": 0
       },
-      "no_curb_ramp": {
+      "NoCurbRamp": {
         "labels": 0,
         "validated_correct": 0,
         "validated_incorrect": 0,
@@ -216,11 +210,11 @@
           <tr><td><code>labels_per_meter</code></td><td><code>number | null</code></td><td>Average number of labels placed per meter explored, or null if no distance explored.</td></tr>
           <tr><td><code>high_quality</code></td><td><code>boolean</code></td><td>Whether the user is flagged as a high-quality contributor based on algorithmic assessment.</td></tr>
           <tr><td><code>high_quality_manual</code></td><td><code>boolean | null</code></td><td>Manual override of high-quality status by administrators, or null if not set.</td></tr>
-          <tr><td><code>label_accuracy</code></td><td><code>number | null</code></td><td>Accuracy of the user's labels based on validations, ranging from 0.0 to 1.0, or null if no validations.</td></tr>
-          <tr><td><code>validated_labels</code></td><td><code>integer</code></td><td>Number of the user's labels that have been validated by others.</td></tr>
+          <tr><td><code>label_accuracy</code></td><td><code>number | null</code></td><td>Accuracy of the user's labels based on validations, ranging from 0.0 to 1.0, or null if no validations. A label the user deleted after it was validated as incorrect still counts against them.</td></tr>
+          <tr><td><code>validated_labels</code></td><td><code>integer</code></td><td>Number of the user's labels that have been validated by others. Includes labels the user deleted after they were validated as incorrect, which <code>labels</code> leaves out, so the verdict counts need not sum to it.</td></tr>
           <tr><td><code>validations_received</code></td><td><code>integer</code></td><td>Total number of validations received on the user's own labels.</td></tr>
           <tr><td><code>labels_validated_correct</code></td><td><code>integer</code></td><td>Number of the user's labels validated as correct.</td></tr>
-          <tr><td><code>labels_validated_incorrect</code></td><td><code>integer</code></td><td>Number of the user's labels validated as incorrect.</td></tr>
+          <tr><td><code>labels_validated_incorrect</code></td><td><code>integer</code></td><td>Number of the user's labels validated as incorrect, including ones the user has since deleted (the per-type <code>*_validated_incorrect</code> fields likewise).</td></tr>
           <tr><td><code>labels_not_validated</code></td><td><code>integer</code></td><td>Number of the user's labels that have not been validated.</td></tr>
           <tr><td><code>validations_given</code></td><td><code>integer</code></td><td>Total number of validations performed by the user on others' labels. Votes later voided by data repairs still count as work performed, so this can exceed the sum of the agree/disagree/unsure fields.</td></tr>
           <tr><td><code>dissenting_validations_given</code></td><td><code>integer</code></td><td>Number of validations where the user disagreed with the majority.</td></tr>
@@ -245,7 +239,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td><code>stats_by_label_type.[type]</code></td><td><code>object</code></td><td>Statistics for a specific label type (e.g., "curb_ramp", "obstacle"). The available label types match those in the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a>, but are provided in snake_case format.</td></tr>
+          <tr><td><code>stats_by_label_type.[type]</code></td><td><code>object</code></td><td>Statistics for a specific label type, keyed by its canonical name (e.g., <code>CurbRamp</code>, <code>Obstacle</code>) exactly as the <a href="@routes.ApiDocsController.labelTypes">Label Types API</a> gives it.</td></tr>
           <tr><td><code>stats_by_label_type.[type].labels</code></td><td><code>integer</code></td><td>Number of labels of this type placed by the user.</td></tr>
           <tr><td><code>stats_by_label_type.[type].validated_correct</code></td><td><code>integer</code></td><td>Number of this type of label validated as correct.</td></tr>
           <tr><td><code>stats_by_label_type.[type].validated_incorrect</code></td><td><code>integer</code></td><td>Number of this type of label validated as incorrect.</td></tr>
@@ -265,8 +259,9 @@ bfab6670-0955-440c-abe8-01c2d20696ba,27,154.8437957763672,0.17436927556991577,tr
     <p>In CSV format, each row corresponds to a user, and the columns map to the JSON fields as follows:</p>
     <ul>
       <li>The first set of columns match the top-level attributes from the JSON format (e.g., <code>user_id</code>, <code>labels</code>, <code>meters_explored</code>, etc.)</li>
-      <li>The label type statistics are flattened into a set of columns for each label type, with the naming pattern <code>[label_type]_[statistic]</code></li>
-      <li>For example, <code>curb_ramp_labels</code>, <code>curb_ramp_validated_correct</code>, <code>curb_ramp_validated_incorrect</code>, <code>curb_ramp_not_validated</code>, etc.</li>
+      <li>The label type statistics are flattened into a set of columns for each label type, each named for its path through the JSON: <code>stats_by_label_type.[type].[statistic]</code></li>
+      <li>For example, <code>stats_by_label_type.CurbRamp.labels</code>, <code>stats_by_label_type.CurbRamp.validated_correct</code>, <code>stats_by_label_type.CurbRamp.validated_incorrect</code>, <code>stats_by_label_type.CurbRamp.not_validated</code>, etc.</li>
+      <li>A value that is null in the JSON is an empty cell in the CSV</li>
       <li>This flattened structure makes it easier to import the data into spreadsheet applications and data analysis tools</li>
     </ul>
 

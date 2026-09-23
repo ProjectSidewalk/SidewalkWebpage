@@ -1,0 +1,282 @@
+package models.audit
+
+import org.scalatestplus.play.PlaySpec
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
+import util.{RolledBackDb, StreetFixtures}
+
+/**
+ * DB-backed tests pinning what happens when the next-street chooser lands on a street the labeler left part-walked
+ * (#5370): the open audit_task is handed back, carrying where they stopped and which end they started from, instead
+ * of the street being offered again from its beginning as a brand new task.
+ *
+ * Both region-scoped queries are covered, because the client needs them to agree: `selectTasksInARegion` is the list
+ * `TaskContainer.nextTask` picks from mid-session, and `selectANewTaskInARegion` is the server-side pick on page
+ * load. A street that looks fresh in one and resumable in the other would restart the walk on a reload.
+ *
+ * Every case builds its own world with [[StreetFixtures]] inside a deliberately rolled-back transaction
+ * (runRolledBack): its own throwaway mapper, its own region, its own streets. Nothing is read that the case did not
+ * write, so the assertions are exact and mean the same thing against a full dev dump and against CI's near-empty
+ * schema. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
+ * Scheduling actors are disabled so nightly jobs can't race the tests.
+ */
+class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
+
+  override def fakeApplication(): Application =
+    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+
+  private val auditTaskTable = app.injector.instanceOf[AuditTaskTable]
+
+  /** A mission id to pass through; nothing is inserted against it, so any value does. */
+  private val SomeMissionId = 1
+
+  /** Where the mapper stopped: a third of the way along a street that runs one degree east along the equator. */
+  private val StoppedLat = 0.0007
+  private val StoppedLng = 0.31
+
+  private def taskFor(tasks: Seq[NewTask], streetEdgeId: Int): NewTask =
+    tasks.find(_.edgeId == streetEdgeId).getOrElse(fail(s"street $streetEdgeId missing from the region's task list"))
+
+  "selectTasksInARegion" should {
+    "return exactly one row per street in the region" in {
+      // The resumable rows arrive by a second left join, so a street with several open rows -- or one matching both
+      // joins -- would fan the street out into duplicates, and the client would draw and offer it twice.
+      val (streets, returned) = runRolledBack(for {
+        userId   <- insertUser()
+        regionId <- insertRegion()
+        streets  <- insertStreets(regionId, 3, withPriority = true)
+        _        <- abandonedAudit(streets.head, userId, StoppedLat, StoppedLng)
+        _        <- abandonedAudit(streets.head, userId, currentLng = 0.5)
+        _        <- audit(streets(1), userId)
+        _        <- abandonedAudit(streets(1), userId, currentLng = 0.5)
+        tasks    <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (streets, tasks))
+
+      returned.map(_.edgeId).sorted mustBe streets.sorted
+      returned.size mustBe 3
+    }
+
+    "not offer a resumable street whose region has been deleted" in {
+      val tasks = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion(deleted = true)
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng)
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield tasks)
+
+      tasks mustBe empty
+    }
+
+    "carry the open task's mission back with it" in {
+      // The minimap's mission-start flag and the mission-complete map are drawn from these, so a resumed street that
+      // dropped them would restart its mission's ribbon at the street's start.
+      val (task, missionId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        missionId    <- insertAuditMission(userId, regionId)
+        auditTaskId  <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng, currentMissionId = Some(missionId))
+        _            <- setTaskMissionStart(auditTaskId, 0.0, 0.2)
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streetEdgeId), missionId))
+
+      task.currentMissionId mustBe Some(missionId)
+      task.currentMissionStart mustBe defined
+      task.currentMissionStart.get.getX mustBe 0.2 +- 1e-9
+    }
+
+    "hand back an unfinished street with its saved position, direction, and task id" in {
+      val (resumable, fresh) = runRolledBack(for {
+        userId   <- insertUser()
+        regionId <- insertRegion()
+        streets  <- insertStreets(regionId, 2, withPriority = true)
+        (streetA, streetB) = (streets.head, streets(1))
+        auditTaskId <- abandonedAudit(streetA, userId, StoppedLat, StoppedLng, reversed = true,
+          auditedDistanceM = Some(71d))
+        tasks <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streetA) -> auditTaskId, taskFor(tasks, streetB)))
+
+      val (taskA, auditTaskId) = resumable
+      taskA.completed mustBe false
+      taskA.auditTaskId mustBe Some(auditTaskId)
+      taskA.currentLat mustBe StoppedLat
+      taskA.currentLng mustBe StoppedLng
+      taskA.startPointReversed mustBe true
+
+      // The untouched street is unaffected: no task to resume, and positioned at its own start point.
+      fresh.completed mustBe false
+      fresh.auditTaskId mustBe None
+      fresh.currentLat mustBe 0d
+      fresh.currentLng mustBe 0d
+      fresh.startPointReversed mustBe false
+    }
+
+    "resume the newest unfinished task when a street has more than one" in {
+      val (task, newerId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- abandonedAudit(streetEdgeId, userId, currentLng = 0.1)
+        newerId      <- abandonedAudit(streetEdgeId, userId, currentLng = 0.6)
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streetEdgeId), newerId))
+
+      task.auditTaskId mustBe Some(newerId)
+      task.currentLng mustBe 0.6
+    }
+
+    "keep a street done when the mapper has an up-to-date completed audit of it" in {
+      // An admin `?streetEdgeId=` visit can leave an open row on a street that is already finished; finishing it once
+      // is what counts, so the street stays completed and keeps the completed audit's id.
+      val (task, completedId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        completedId  <- audit(streetEdgeId, userId)
+        _            <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng)
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streetEdgeId), completedId))
+
+      task.completed mustBe true
+      task.auditTaskId mustBe Some(completedId)
+      task.currentLng mustBe 0d
+    }
+
+    "resume the open task when the mapper's only completed audit was flagged as outdated" in {
+      // The re-audit case (#4384): the flagged audit stops counting as completion, so the street re-opens -- and the
+      // part-walked re-audit already under way is what should come back, not a fresh start.
+      val (task, openId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- audit(streetEdgeId, userId, outdated = true)
+        openId       <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng)
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streetEdgeId), openId))
+
+      task.completed mustBe false
+      task.auditTaskId mustBe Some(openId)
+      task.currentLng mustBe StoppedLng
+    }
+
+    "leave a street fresh when the mapper gave up on it for missing imagery" in {
+      val task = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng)
+        _            <- reportNoImagery(streetEdgeId, userId)
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield taskFor(tasks, streetEdgeId))
+
+      task.auditTaskId mustBe None
+      task.currentLng mustBe 0d
+    }
+
+    "leave the street fresh when the newest open row is a give-up, rather than falling back to an older one" in {
+      // The rule the exclusion order encodes: newest row first, exclusions second. Falling back would put the labeler
+      // on a street whose latest verdict was "no imagery". Isolating it needs the newest row (by id) to be the
+      // disqualified one while an older row stays clean, so the two rows' task_starts run opposite to their ids --
+      // a report at or after a task's start disqualifies it, so in time order the older row would be caught too.
+      val (task, olderId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        olderId      <- abandonedAudit(streetEdgeId, userId, currentLng = 0.2, taskStart = now.minusHours(1))
+        _            <- abandonedAudit(streetEdgeId, userId, currentLng = 0.8, taskStart = now.minusHours(3))
+        _            <- reportNoImagery(streetEdgeId, userId, now.minusHours(2))
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streetEdgeId), olderId))
+
+      task.auditTaskId mustBe None
+      task.auditTaskId must not be Some(olderId)
+      task.currentLng mustBe 0d
+    }
+
+    "still resume when the no-imagery report is someone else's or predates the task" in {
+      val (otherUsersReport, staleReport) = runRolledBack(for {
+        userId    <- insertUser()
+        otherUser <- insertUser()
+        regionId  <- insertRegion()
+        streets   <- insertStreets(regionId, 2, withPriority = true)
+        (streetA, streetB) = (streets.head, streets(1))
+        _     <- abandonedAudit(streetA, userId, StoppedLat, StoppedLng)
+        _     <- reportNoImagery(streetA, otherUser)
+        _     <- abandonedAudit(streetB, userId, StoppedLat, StoppedLng)
+        _     <- reportNoImagery(streetB, userId, now.minusHours(2))
+        tasks <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield (taskFor(tasks, streetA), taskFor(tasks, streetB)))
+
+      otherUsersReport.auditTaskId mustBe defined
+      staleReport.auditTaskId mustBe defined
+    }
+
+    "leave a street fresh when the only open task is a free-exploration drop-in" in {
+      // A drop-in covers only the stretch from where free exploration began (#4451), so resuming it as a region task
+      // would draw the un-walked stretch before it as audited.
+      val task = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng, startOffsetM = Some(12.3))
+        tasks        <- auditTaskTable.selectTasksInARegion(regionId, userId)
+      } yield taskFor(tasks, streetEdgeId))
+
+      task.auditTaskId mustBe None
+      task.currentLng mustBe 0d
+    }
+
+    "leave a street fresh when the open task belongs to a different mapper" in {
+      val (mine, theirs) = runRolledBack(for {
+        userId       <- insertUser()
+        otherUser    <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        _            <- abandonedAudit(streetEdgeId, otherUser, StoppedLat, StoppedLng)
+        mine         <- auditTaskTable.selectTasksInARegion(regionId, userId)
+        theirs       <- auditTaskTable.selectTasksInARegion(regionId, otherUser)
+      } yield (taskFor(mine, streetEdgeId), taskFor(theirs, streetEdgeId)))
+
+      mine.auditTaskId mustBe None
+      mine.currentLng mustBe 0d
+      theirs.auditTaskId mustBe defined
+      theirs.currentLng mustBe StoppedLng
+    }
+  }
+
+  "selectANewTaskInARegion" should {
+    "resume the open task when the pick lands on a part-walked street" in {
+      val (task, openId) = runRolledBack(for {
+        userId       <- insertUser()
+        regionId     <- insertRegion()
+        streetEdgeId <- insertStreet(Some(regionId), withPriority = true)
+        openId       <- abandonedAudit(streetEdgeId, userId, StoppedLat, StoppedLng, reversed = true)
+        task         <- auditTaskTable.selectANewTaskInARegion(regionId, userId, SomeMissionId)
+      } yield (task, openId))
+
+      task mustBe defined
+      task.get.auditTaskId mustBe Some(openId)
+      task.get.currentLat mustBe StoppedLat
+      task.get.currentLng mustBe StoppedLng
+      task.get.startPointReversed mustBe true
+      task.get.completed mustBe false
+    }
+
+    "hand out a fresh task when the street has no open task of the mapper's" in {
+      val task = runRolledBack(for {
+        userId   <- insertUser()
+        regionId <- insertRegion()
+        _        <- insertStreet(Some(regionId), withPriority = true)
+        task     <- auditTaskTable.selectANewTaskInARegion(regionId, userId, SomeMissionId)
+      } yield task)
+
+      task mustBe defined
+      task.get.auditTaskId mustBe None
+      task.get.currentLat mustBe 0d
+      task.get.currentLng mustBe 0d
+      task.get.currentMissionId mustBe Some(SomeMissionId)
+    }
+  }
+}

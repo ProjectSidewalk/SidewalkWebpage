@@ -33,12 +33,12 @@ class AcrossCitiesPage {
   /** How many cities the "Most active cities" table shows; the full list lives in the Activity section below it. */
   static #TOP_CITIES_LIMIT = 5;
 
-  /** Canonical label-type order + short display names for the data-patterns bars. */
-  static #LABEL_TYPES = [
-    ['CurbRamp', 'Curb ramp'], ['NoCurbRamp', 'Missing curb ramp'], ['Obstacle', 'Obstacle'],
-    ['SurfaceProblem', 'Surface problem'], ['NoSidewalk', 'No sidewalk'], ['Crosswalk', 'Crosswalk'],
-    ['Signal', 'Signal'], ['Occlusion', 'Occlusion'], ['Other', 'Other'],
-  ];
+  /** Short display names for the data-patterns bars. The order comes from util.misc, which is backend-sourced. */
+  static #LABEL_TYPE_NAMES = {
+    CurbRamp: 'Curb ramp', NoCurbRamp: 'Missing curb ramp', Obstacle: 'Obstacle',
+    SurfaceProblem: 'Surface problem', NoSidewalk: 'No sidewalk', Crosswalk: 'Crosswalk',
+    Signal: 'Signal', Occlusion: 'Occlusion', Other: 'Other',
+  };
 
   /** Lifecycle → map circle color (matches the badge tones). */
   static #LIFECYCLE_COLOR = {
@@ -118,7 +118,7 @@ class AcrossCitiesPage {
    * @param {{scorecardsUrl: string, citiesUrl?: string, mapboxToken?: string, funnelsUrl?: string,
    *   trafficUrl?: string}} opts
    */
-  constructor(opts = {}) {
+  constructor(opts) {
     this.#scorecardsUrl = opts.scorecardsUrl;
     this.#citiesUrl = opts.citiesUrl;
     this.#mapboxToken = opts.mapboxToken;
@@ -407,7 +407,7 @@ class AcrossCitiesPage {
   /**
    * Pulls one metric's current, prior, and AI counts out of a city's rolling window.
    *
-   * @param {object} w - The city's `activity_window`.
+   * @param {Record<string, any>} w - The city's `activity_window`.
    * @param {string} metric - 'activity' | 'labels' | 'validations' | 'contributors'.
    * @returns {{current: number, prior: number, ai: number}} What people did in each window, and what AI produced in
    *   the current one (for contributors, the AI figure is accounts rather than output).
@@ -437,7 +437,7 @@ class AcrossCitiesPage {
    * would open on top of it. The cell takes `tabindex` so the card is reachable by keyboard, since psTooltip opens on
    * focus too.
    *
-   * @param {object} city - The scorecard row, carrying `activity_window`.
+   * @param {Record<string, any>} city - The scorecard row, carrying `activity_window`.
    * @param {string} metric - 'activity' | 'labels' | 'validations' | 'contributors'.
    * @param {boolean} [showDelta=true] - False on the Activity column, where three chipped neighbors are enough.
    * @returns {string} The cell's markup.
@@ -459,7 +459,7 @@ class AcrossCitiesPage {
    * stats popup. Joins the cities geo (lat/lng from /v3/api/cities) to the scorecards by city_id. Degrades to a note
    * if Mapbox, the token, or the geo are unavailable.
    *
-   * @param {?object} citiesGeo - The /v3/api/cities response, or null.
+   * @param {?Record<string, any>} citiesGeo - The /v3/api/cities response, or null.
    */
   #renderMap(citiesGeo) {
     const host = document.getElementById('ac-cities-map');
@@ -1088,7 +1088,7 @@ class AcrossCitiesPage {
    * Explanation for a traffic anomaly, using the row's own sessions figure and the server's baseline. The baseline
    * window and median rule live in TrafficService; a second copy here would drift.
    *
-   * @param {object} c - The city row, with its `traffic` payload attached.
+   * @param {Record<string, any>} c - The city row, with its `traffic` payload attached.
    * @returns {string} A sentence naming both figures.
    */
   #trafficAnomalyReason(c) {
@@ -1135,8 +1135,10 @@ class AcrossCitiesPage {
     if (!host) return;
 
     // Only show label types that actually appear in at least one city, in canonical order.
-    const present = AcrossCitiesPage.#LABEL_TYPES.filter(([key]) =>
-      this.#cities.some((c) => c.by_label_type && c.by_label_type[key] && c.by_label_type[key].labels > 0));
+    const present = util.misc.VALID_LABEL_TYPES
+      .map((key) => [key, AcrossCitiesPage.#LABEL_TYPE_NAMES[key] || key])
+      .filter(([key]) =>
+        this.#cities.some((c) => c.by_label_type && c.by_label_type[key] && c.by_label_type[key].labels > 0));
 
     if (legendEl) {
       legendEl.innerHTML = present.map(([key, name]) => `
@@ -1263,9 +1265,9 @@ class AcrossCitiesPage {
 
   /**
    * One funnel block: heading + description, the comparison table, and the per-city small-multiples.
-   * @param {string} funnelType  'mapping' | 'contribution'.
-   * @param {{steps: string[], cities: object[]}} funnel  The funnel's step keys and per-city rows.
-   * @param {{key: string, label: string}[]} segs  Segments to show for the active dimension.
+   * @param {string} funnelType  - 'mapping' | 'contribution'.
+   * @param {{steps: string[], cities: Array<Record<string, any>>}} funnel  - The funnel's step keys and per-city rows.
+   * @param {{key: string, label: string}[]} segs  - Segments to show for the active dimension.
    * @returns {string} The block's HTML.
    */
   #funnelBlock(funnelType, funnel, segs) {
@@ -1441,7 +1443,7 @@ class AcrossCitiesPage {
    * which line they lean on, and that is a `data-emph` on the card root the CSS keys off — so hovering three charts
    * costs one card, and the three can't drift apart in content.
    *
-   * @param {object} d - A `over_time_daily` entry.
+   * @param {Record<string, any>} d - A `over_time_daily` entry.
    * @param {string} [emphasisKey] - The `over_time_daily` key the hovered chart draws ('labels', 'validations',
    *   'contributors'), whose line the card leans on.
    * @returns {string} The card's markup.
@@ -1458,7 +1460,7 @@ class AcrossCitiesPage {
   /**
    * Builds one day's hover card, with an empty `data-emph` for [[#dayTipHtml]] to fill in per chart.
    *
-   * @param {object} d - A `over_time_daily` entry.
+   * @param {Record<string, any>} d - A `over_time_daily` entry.
    * @returns {string} The card's markup.
    */
   #buildDayTip(d) {
@@ -1504,7 +1506,7 @@ class AcrossCitiesPage {
    * The hover card for one "Most active cities" cell: both windows' raw counts behind the delta chip, the AI output
    * beside them, and the people the count is made of — ranked by whichever kind of work the column is about (#4931).
    *
-   * @param {object} city - The scorecard row, carrying `activity_window`.
+   * @param {Record<string, any>} city - The scorecard row, carrying `activity_window`.
    * @param {string} metric - 'activity' | 'labels' | 'validations' | 'contributors'.
    * @returns {string} The card's markup.
    */
@@ -1643,7 +1645,7 @@ class AcrossCitiesPage {
   static #gaSinceTitle(isoDate) {
     if (!isoDate) return 'Covers this property\'s whole GA4 history.';
     const d = new Date(`${isoDate}T00:00:00`);
-    if (isNaN(d)) return 'Covers this property\'s whole GA4 history.';
+    if (isNaN(d.getTime())) return 'Covers this property\'s whole GA4 history.';
     const when = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
     return `GA4 data for this city begins ${when}; earlier traffic isn't included.`;
   }
@@ -1656,28 +1658,28 @@ class AcrossCitiesPage {
   /** "Jun 9"-style short date from an ISO date string. */
   static #shortDate(iso) {
     const d = new Date(`${iso}T00:00:00`);
-    if (isNaN(d)) return iso;
+    if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   /** "Jun '19"-style month + year from an ISO date string, for multi-year x-axes. */
   static #shortDateYear(iso) {
     const d = new Date(`${iso}T00:00:00`);
-    if (isNaN(d)) return iso;
+    if (isNaN(d.getTime())) return iso;
     return `${d.toLocaleDateString(undefined, { month: 'short' })} '${String(d.getFullYear()).slice(-2)}`;
   }
 
   /** "Thu, Jun 9"-style weekday + date from an ISO date string, for hover cards that have room to be unambiguous. */
   static #longDate(iso) {
     const d = new Date(`${iso}T00:00:00`);
-    if (isNaN(d)) return iso;
+    if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   /** "Thu"-style short weekday from an ISO date string. */
   static #weekday(iso) {
     const d = new Date(`${iso}T00:00:00`);
-    if (isNaN(d)) return iso;
+    if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { weekday: 'short' });
   }
 }

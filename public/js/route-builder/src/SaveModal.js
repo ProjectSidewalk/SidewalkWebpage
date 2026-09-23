@@ -18,11 +18,12 @@ class SaveModal {
   #getCamera;
   #onSaved;
   #onClose;
+  #onSignIn;
   #confirmButton;
   #submitting = false; // A save is in flight; blocks a second submission creating a duplicate route.
 
   /**
-   * @param {Object} opts
+   * @param {object} opts
    * @param {boolean} opts.isSignedIn - Whether the user is signed in (vs anonymous), from the server.
    * @param {Function} opts.getRegionId - Returns the current route's region id.
    * @param {Function} opts.getStreetsPayload - Returns the ordered street list in the /saveRoute wire format.
@@ -30,6 +31,7 @@ class SaveModal {
    * @param {Function} opts.getCamera - Returns the current map camera pose, for restoring the view post-sign-in.
    * @param {Function} opts.onSaved - Called with the saved-route payload after a successful save.
    * @param {Function} opts.onClose - Called after the modal closes (e.g. to restore focus).
+   * @param {Function} [opts.onSignIn] - Called when the user leaves for the sign-in round-trip.
    */
   constructor(opts) {
     this.#isSignedIn = opts.isSignedIn === true;
@@ -39,6 +41,7 @@ class SaveModal {
     this.#getCamera = opts.getCamera;
     this.#onSaved = opts.onSaved;
     this.#onClose = opts.onClose;
+    this.#onSignIn = opts.onSignIn ?? (() => {});
 
     this.#backdrop = document.getElementById('save-route-modal-backdrop');
     this.#nameInput = document.getElementById('route-name-input');
@@ -63,8 +66,7 @@ class SaveModal {
 
   /**
    * Reads and clears the route stashed before a sign-in reload.
-   * @returns {Object|null} {regionId, name, description, streets, camera} or null if there is nothing (valid)
-   *                        to restore.
+   * @returns {?Record<string, any>} {regionId, name, description, streets, camera}; null if none is stashed.
    */
   static consumePendingRoute() {
     try {
@@ -121,6 +123,7 @@ class SaveModal {
    */
   #stashRouteAndSignIn() {
     window.logWebpageActivity('RouteBuilder_Click=SignInToSave');
+    this.#onSignIn();
     try {
       sessionStorage.setItem(SaveModal.PENDING_ROUTE_KEY, JSON.stringify({
         regionId: this.#getRegionId(),

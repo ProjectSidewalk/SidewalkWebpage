@@ -12,7 +12,7 @@ import javax.inject.{Inject, Singleton}
 case class WebpageActivity(
     webpageActivityId: Int,
     userId: String,
-    ipAddress: String,
+    ipAddress: IpAddress,
     description: String,
     timestamp: OffsetDateTime
 )
@@ -32,7 +32,7 @@ case class ApiSourceIpCount(source: String, uniqueIps: Long)
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
   def webpageActivityId: Rep[Int]    = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]            = column[String]("user_id")
-  def ipAddress: Rep[String]         = column[String]("ip_address")
+  def ipAddress: Rep[IpAddress]      = column[IpAddress]("ip_address")
   def activity: Rep[String]          = column[String]("activity")
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 

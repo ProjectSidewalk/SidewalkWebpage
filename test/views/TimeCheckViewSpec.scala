@@ -1,18 +1,7 @@
 package views
 
-import controllers.AssetsFinder
-import models.user.{Role, SidewalkUserWithRole}
 import org.scalatestplus.play.PlaySpec
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.i18n.{Lang, Messages, MessagesApi}
-import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.mvc.RequestHeader
-import play.api.test.FakeRequest
-import play.api.{Application, Configuration}
-import service.{CityHours, CommonPageData, ConfigService, CrossCityHours}
-
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
+import service.{CityHours, CrossCityHours}
 
 /**
  * Renders the Time Check page directly against synthetic hour breakdowns.
@@ -24,22 +13,7 @@ import scala.concurrent.duration.DurationInt
  * Fixture hours are always multiples of 0.1, because that is the contract `UserService.getCrossCityHours` guarantees:
  * it rounds before the view sees anything, so the headline is the sum of the rows exactly as rendered.
  */
-class TimeCheckViewSpec extends PlaySpec with GuiceOneAppPerSuite {
-
-  override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
-
-  implicit private val request: RequestHeader = FakeRequest()
-  implicit private val messages: Messages     = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("en")))
-  implicit private val assets: AssetsFinder   = app.injector.instanceOf[AssetsFinder]
-  implicit private val config: Configuration  = app.injector.instanceOf[Configuration]
-
-  private val commonData: CommonPageData =
-    Await.result(app.injector.instanceOf[ConfigService].getCommonPageData(Lang("en")), 60.seconds)
-
-  private val user =
-    SidewalkUserWithRole("test-user", "testmapper", "test@example.com", Role.Registered, communityService = false,
-      infra3dAccess = false)
+class TimeCheckViewSpec extends PlaySpec with ViewSpecFixtures {
 
   private def render(cities: Seq[CityHours], unreachableCities: Int = 0): String =
     views.html.timeCheck(commonData, user, isMobile = false, CrossCityHours(cities, unreachableCities)).body

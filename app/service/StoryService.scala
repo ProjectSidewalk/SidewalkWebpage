@@ -4,11 +4,12 @@ import com.drew.imaging.ImageMetadataReader
 import com.drew.metadata.exif.{ExifSubIFDDirectory, GpsDirectory}
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
+import models.label.LabelTypeEnum.AccessImpact
 import models.label.{LabelTypeEnum, LatLng}
 import models.story._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
-import org.postgresql.util.PSQLException
+import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Environment, Logger}
 
@@ -25,7 +26,7 @@ import scala.util.Try
 @ImplementedBy(classOf[StoryServiceImpl])
 trait StoryService {
   def getStoriesForLabel(labelId: Int, viewerUserId: Option[String], isAdmin: Boolean): Future[Seq[StoryForView]]
-  def isLabelAccessProblem(labelId: Int): Future[Option[Boolean]]
+  def labelAccessImpact(labelId: Int): Future[Option[AccessImpact]]
   def submitStory(
       labelId: Int,
       userId: String,
@@ -140,12 +141,9 @@ class StoryServiceImpl @Inject() (
       })
   }
 
-  /**
-   * Whether the label marks an accessibility problem (vs a positive feature like a curb ramp), from
-   * LabelTypeEnum.isAccessProblem — the card's story prompts flip phrasing on this. None when the label doesn't exist.
-   */
-  def isLabelAccessProblem(labelId: Int): Future[Option[Boolean]] = {
-    db.run(storyTable.labelTypeForLabel(labelId)).map(_.map(_.isAccessProblem))
+  /** The label type's accessImpact; the card's story prompts flip on it. None when the label doesn't exist. */
+  def labelAccessImpact(labelId: Int): Future[Option[AccessImpact]] = {
+    db.run(storyTable.labelTypeForLabel(labelId)).map(_.map(_.accessImpact))
   }
 
   def submitStory(
@@ -386,7 +384,7 @@ class StoryServiceImpl @Inject() (
           StoryForOwner(
             story,
             labelType.name,
-            labelType.isAccessProblem,
+            labelType.accessImpact,
             media.map(toMediaForView),
             labelImageUrl = if (media.isDefined) None else previewById.get(story.labelId)
           )
@@ -562,7 +560,8 @@ class StoryServiceImpl @Inject() (
       }
       .recover {
         // The UNIQUE(label_id, user_id) constraint backs the pre-check against a concurrent double-submit.
-        case e: PSQLException if e.getSQLState == "23505" => Left(StoryRejection.AlreadyExists)
+        case e: PSQLException if e.getSQLState == PSQLState.UNIQUE_VIOLATION.getState =>
+          Left(StoryRejection.AlreadyExists)
       }
   }
 

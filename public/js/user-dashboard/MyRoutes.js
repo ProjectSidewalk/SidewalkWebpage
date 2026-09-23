@@ -94,11 +94,13 @@ class MyRoutes {
     const maxLength = this.#list.dataset.maxNameLength; // Sourced from the backend's Route.MaxNameLength.
     const form = document.createElement('span');
     form.className = 'ud-route-rename-form';
+    const saveText = i18next.t('dashboard:routes-rename-save');
+    const cancelText = i18next.t('dashboard:routes-rename-cancel');
     form.innerHTML = `
       <input type="text" class="ps-input ud-route-rename-input" maxlength="${maxLength}"
              aria-label="${i18next.t('dashboard:routes-rename-aria')}">
-      <button type="button" class="ud-btn-primary ud-route-rename-save">${i18next.t('dashboard:routes-rename-save')}</button>
-      <button type="button" class="ud-btn-secondary ud-route-rename-cancel">${i18next.t('dashboard:routes-rename-cancel')}</button>`;
+      <button type="button" class="ud-btn-primary ud-route-rename-save">${saveText}</button>
+      <button type="button" class="ud-btn-secondary ud-route-rename-cancel">${cancelText}</button>`;
     const input = form.querySelector('input');
     input.value = nameEl.textContent;
     nameEl.hidden = true;
@@ -157,8 +159,7 @@ class MyRoutes {
   async #deleteRoute(btn) {
     const row = btn.closest('.ud-route-row');
     const name = row.querySelector('.ud-route-name').textContent;
-    // escapeValue off: the name renders as textContent inside ConfirmDialog, not markup, so it needn't be escaped.
-    const confirmMsg = i18next.t('dashboard:routes-delete-confirm', { name, interpolation: { escapeValue: false } });
+    const confirmMsg = i18next.t('dashboard:routes-delete-confirm', { name });
     const confirmed = await ConfirmDialog.confirm({
       message: confirmMsg,
       confirmText: i18next.t('common:delete'),
@@ -174,8 +175,7 @@ class MyRoutes {
       });
       if (!res.ok) throw new Error(`delete failed: ${res.status}`);
       row.remove();
-      // escapeValue off: the announcement is set via textContent, not markup.
-      this.#announce(i18next.t('dashboard:routes-deleted', { name, interpolation: { escapeValue: false } }));
+      this.#announce(i18next.t('dashboard:routes-deleted', { name }));
       if (this.#list.querySelectorAll('.ud-route-row').length === 0) {
         this.#list.hidden = true;
         if (this.#emptyEl) this.#emptyEl.hidden = false;

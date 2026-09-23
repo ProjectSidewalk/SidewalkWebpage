@@ -27,7 +27,7 @@
   "street-count-in-region_other": "{{count}} ruas em {{region}}",
   "see-all-routes_other": "Ver todas as {{count}} rotas no seu painel",
   "copied-to-clipboard": "Coiado para a área de transferência!",
-  "one-neighborhood-warning": "As rotas só podem ter ruas de um unico bairro nesse momento.",
+  "one-region-warning": "As rotas só podem ter ruas de um unico bairro nesse momento.",
   "route-name-default": "Rota em {{region}}",
   "route-name-streets": "{{start}} até {{end}}",
   "save-error": "Algo deu errado ao salvar. Tente novamente.",

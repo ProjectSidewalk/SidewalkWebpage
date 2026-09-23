@@ -1,7 +1,7 @@
 package service
 
 import formats.json.ExploreFormats._
-import models.mission.{Mission, MissionTableDef, MissionType}
+import models.mission.MissionTableDef
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
 import models.route.{
@@ -14,7 +14,7 @@ import models.route.{
   UserRouteTableDef
 }
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
-import models.user.{SidewalkUserWithRole, UserCurrentRegionTableDef}
+import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
@@ -40,6 +40,8 @@ import scala.concurrent.duration._
  *   - An explicit `/explore?routeId=X` visit resumes the *same* paused walk (same user_route row, progress intact).
  *   - `/explore?routeId=X&resumeRoute=false` is the one destructive path: it discards the old walk and starts fresh.
  *   - Entering a different route pauses (not discards) the walk being left behind.
+ *   - A `?regionId=` or `?streetEdgeId=` visit pauses the active walk too, so a later bare reload stays out of it
+ *     (#5437).
  *   - `routeResumed` (which drives the resume toast) is set only once a street of the walk has been submitted, which
  *     is what separates a walk in progress from one entered and abandoned before anything was recorded.
  *
@@ -57,9 +59,10 @@ class ExploreRoutePauseSpec
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  private val exploreService  = app.injector.instanceOf[ExploreService]
-  private val authService     = app.injector.instanceOf[AuthenticationService]
-  private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
+  private val exploreService        = app.injector.instanceOf[ExploreService]
+  private val authService           = app.injector.instanceOf[AuthenticationService]
+  private val streetEdgeTable       = app.injector.instanceOf[StreetEdgeTable]
+  private val userAccountStateTable = app.injector.instanceOf[UserAccountStateTable]
   // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a
   // path-dependent existential type that needs -language:existentials.
   private val dbConfig                   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -85,11 +88,7 @@ class ExploreRoutePauseSpec
     val pwInfo    = PasswordInfo("bcrypt-sha256", "spec-only-not-a-hash", None)
     val user      = await(authService.createUser(generated, "credentials", pwInfo, oldUserId = None))
     createdUserIds += user.userId
-    val now = OffsetDateTime.now
-    val _   = run(
-      missions += Mission(0, MissionType.AuditOnboarding, user.userId, now, now, completed = true, 0d, paid = false,
-        None, None, None, None, None, None, skipped = false, None, None)
-    )
+    val _ = run(userAccountStateTable.markExploreTutorialCompleted(user.userId))
     user
   }
 
@@ -101,6 +100,19 @@ class ExploreRoutePauseSpec
       .join(TableQuery[RegionTableDef].filterNot(_.deleted))
       .on(_._1.regionId === _.regionId)
       .map { case ((streetEdgeRegion, _), _) => (streetEdgeRegion.streetEdgeId, streetEdgeRegion.regionId) }
+      .result
+      .headOption
+  )
+
+  /** A second routable region, different from seedStreet's, for tests that need a route and a link in two places. */
+  private def otherRegion(regionId: Int): Option[Int] = run(
+    TableQuery[StreetEdgeRegionTableDef]
+      .join(streetEdgeTable.streets)
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .join(TableQuery[RegionTableDef].filterNot(_.deleted))
+      .on(_._1.regionId === _.regionId)
+      .map(_._1._1.regionId)
+      .filter(_ =!= regionId)
       .result
       .headOption
   )
@@ -129,14 +141,16 @@ class ExploreRoutePauseSpec
     routeId
   }
 
-  /** The `/explore` visit with the params under test; no region/street params. */
+  /** The `/explore` visit with the params under test. */
   private def pageData(
       userId: String,
       routeId: Option[Int] = None,
-      resumeRoute: Boolean = true
+      resumeRoute: Boolean = true,
+      regionId: Option[Int] = None,
+      streetEdgeId: Option[Int] = None
   ): ExplorePageData = await(
     exploreService.getDataForExplorePage(userId, retakingTutorial = false, newRegion = false, routeId = routeId,
-      resumeRoute = resumeRoute, regionId = None, streetEdgeId = None)
+      resumeRoute = resumeRoute, regionId = regionId, streetEdgeId = streetEdgeId)
   )
 
   private def walksFor(userId: String): Seq[UserRoute] =
@@ -189,7 +203,8 @@ class ExploreRoutePauseSpec
           userRoutes.filter(_.userId inSet userIds).delete,
           routeStreets.filter(_.routeId in seededRouteIds).delete,
           routes.filter(_.userId inSet userIds).delete,
-          TableQuery[UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete
+          TableQuery[UserCurrentRegionTableDef].filter(_.userId inSet userIds).delete,
+          TableQuery[UserAccountStateTableDef].filter(_.userId inSet userIds).delete
         )
         .transactionally
     )
@@ -305,6 +320,46 @@ class ExploreRoutePauseSpec
           val walkA = walksFor(user.userId).find(_.routeId == routeIdA).value
           walkA.paused mustBe true
           walkA.discarded mustBe false
+      }
+    }
+
+    "pause the active walk on a ?regionId= visit, so a later bare reload stays in the linked region" in {
+      val seeds = seedStreet.flatMap { case (streetId, regionId) => otherRegion(regionId).map((streetId, regionId, _)) }
+      seeds match {
+        case None => cancel("Needs streets in two regions; none to exercise.")
+        case Some((streetEdgeId, routeRegionId, linkRegionId)) =>
+          val user = newTutorialGraduate()
+          seedActiveRouteWalk(user.userId, streetEdgeId, routeRegionId)
+
+          val regionData = pageData(user.userId, regionId = Some(linkRegionId))
+          regionData.userRoute mustBe None
+          regionData.region.regionId mustBe linkRegionId
+          val walk = walksFor(user.userId).loneElement
+          walk.paused mustBe true
+          walk.discarded mustBe false
+
+          // Main#updateURL strips ?regionId= from the address bar, so the reload arrives bare.
+          val reloadData = pageData(user.userId)
+          reloadData.userRoute mustBe None
+          reloadData.region.regionId mustBe linkRegionId
+      }
+    }
+
+    "pause the active walk on a ?streetEdgeId= visit, leaving it resumable via ?routeId=" in {
+      seedStreet match {
+        case None                           => cancel("No street/region rows in the connected DB; nothing to exercise.")
+        case Some((streetEdgeId, regionId)) =>
+          val user    = newTutorialGraduate()
+          val routeId = seedActiveRouteWalk(user.userId, streetEdgeId, regionId)
+          val walkId  = walksFor(user.userId).loneElement.userRouteId
+
+          pageData(user.userId, streetEdgeId = Some(streetEdgeId)).userRoute mustBe None
+          val walk = walksFor(user.userId).loneElement
+          walk.paused mustBe true
+          walk.discarded mustBe false
+          pageData(user.userId).userRoute mustBe None
+
+          pageData(user.userId, routeId = Some(routeId)).userRoute.value.userRouteId mustBe walkId
       }
     }
   }

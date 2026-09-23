@@ -189,7 +189,7 @@ util.sizeCanvasToDisplay = function (el, ctx) {
  * already positioned in on-screen pixels divides by the same `scale` before calling. The default `frameHeight` is
  * Explore's displayed pano height, measured (its aspect follows the window in immersive mode, #5085).
  *
- * @param {jQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
+ * @param {JQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
  * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
  * @param {number} iconRadius - The label icon's radius, in that same logical frame.
  * @param {object} [opts] - Frame overrides. Omit them entirely for Explore, whose frame is the default.
@@ -249,14 +249,14 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
  * Sets the --ui-scale CSS variable on .tool-ui; every tool dimension is expressed as base-size * var(--ui-scale),
  * so the pano, menus, and text all grow/shrink together in proportion. The tool's reference footprint at
  * --ui-scale = 1 is the sum of the given base-size CSS variables, which each tool defines on its .tool-ui element.
- * @param {string[]} widthVarNames Base-size CSS variables that sum to the tool's reference width.
- * @param {string[]} heightVarNames Base-size CSS variables that sum to the tool's reference height.
- * @param {object} [opts] Fit options. The defaults are the boxed tool's; a fill-window layout (Explore's immersive
+ * @param {string[]} widthVarNames - Base-size CSS variables that sum to the tool's reference width.
+ * @param {string[]} heightVarNames - Base-size CSS variables that sum to the tool's reference height.
+ * @param {object} [opts] - Fit options. The defaults are the boxed tool's; a fill-window layout (Explore's immersive
  *   mode, #5085) passes zero margins and a higher cap, since its pano is sized by CSS and the scale only sizes the
  *   controls floating over it.
- * @param {number} [opts.maxScale=1.8] Cap past which text and controls balloon.
- * @param {number} [opts.hMargin=40] Breathing room on each side of the tool, in CSS px.
- * @param {number} [opts.bottomReserve=60] Space kept below the tool for the footer and a little margin, in CSS px.
+ * @param {number} [opts.maxScale=1.8] - Cap past which text and controls balloon.
+ * @param {number} [opts.hMargin=40] - Breathing room on each side of the tool, in CSS px.
+ * @param {number} [opts.bottomReserve=60] - Space kept below the tool for the footer and a little margin, in CSS px.
  * @returns {number} The applied scale factor.
  */
 util.applyToolScale = function (widthVarNames, heightVarNames, opts = {}) {
@@ -371,7 +371,7 @@ util.assetPath = function (logicalPath) {
  * A translated string names its unit by writing {{unitAbbr}} and friends — i18next fills them in with no argument at
  * the call site. This accessor is for the few places building a display string outside i18next.
  *
- * @returns {Object} The four unit words for this page.
+ * @returns {object} The four unit words for this page.
  */
 util.unitWords = () => i18next.options.interpolation.defaultVariables;
 
@@ -397,12 +397,65 @@ util.distanceToString = (meters) =>
 util.longDistanceToString = (km, precision = 0) =>
   i18next.services.formatter.format(km, `distance(style: large; precision: ${precision})`, i18next.language, {});
 
+/**
+ * The calendar year and month of a month, date or timestamp string, as the reader would name it.
+ *
+ * The two shapes need opposite handling. A bare month or date (`2024-10`, `2024-10-01`: a capture date, or a
+ * `LocalDate` off the wire) names a calendar month in no zone at all, so it is read straight off the string --
+ * `Date` would land it on UTC midnight, which west of Greenwich is the month before for a first-of-month date. A
+ * timestamp names an instant, and the server writes every `OffsetDateTime` in UTC (`2024-11-01T03:00:00Z`), so it
+ * is converted into the reader's zone: that is the month the labeler did the work in, and reading the UTC fields
+ * would tell someone who assessed a street on an October evening in Seattle that they did it in November.
+ *
+ * `util.monthYear` and `PanoDateNote.monthKey` both go through here, so a chip can never disagree with its tooltip.
+ *
+ * @param {?string} iso - A month (`2024-10`), date (`2024-10-01`) or timestamp (`2024-10-01T03:00:00Z`) string.
+ * @returns {?{year: number, month: number}} `month` is 1-12, or null if there is no usable year and month.
+ * @example
+ * util.yearMonth('2024-10-01');            // { year: 2024, month: 10 }, in any zone
+ * util.yearMonth('2024-11-01T03:00:00Z');  // { year: 2024, month: 10 } in Los Angeles, month 11 in Berlin
+ * util.yearMonth('Invalid date');          // null
+ */
+util.yearMonth = function (iso) {
+  const calendar = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(iso ?? '');
+  if (calendar !== null) {
+    const month = Number(calendar[2]);
+    // Checked by hand because `new Date(2024, 12, 1)` would roll into January rather than reject.
+    return month >= 1 && month <= 12 ? { year: Number(calendar[1]), month } : null;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(iso ?? '')) return null;
+  const instant = new Date(iso);
+  if (Number.isNaN(instant.getTime())) return null;
+  return { year: instant.getFullYear(), month: instant.getMonth() + 1 };
+};
+
+/**
+ * Renders a date at month precision for this reader, e.g. "October 2024" or "Oct 2024".
+ *
+ * Month precision because that is all an imagery capture date carries — GSV reports `2024-10` — so anything finer
+ * would be inventing a day we do not have. Null for a missing or unparseable value rather than a fallback string:
+ * `pano_data.capture_date` is free text holding whatever the imagery API returned, including the literal
+ * "Invalid date", and callers want to drop the date from their sentence rather than print that at a labeler. Which
+ * month a string names is `util.yearMonth`'s call.
+ *
+ * @param {?string} iso - A month (`2024-10`), date (`2024-10-01`) or timestamp (`2024-10-01T03:00:00Z`) string.
+ * @param {object} [options]
+ * @param {boolean} [options.short=false] - Abbreviate the month ("Oct" rather than "October").
+ * @returns {?string} The localized month and year, or null if there is no usable date.
+ */
+util.monthYear = function (iso, { short = false } = {}) {
+  const ym = util.yearMonth(iso);
+  if (ym === null) return null;
+  return new Date(ym.year, ym.month - 1, 1)
+    .toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
+};
+
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
 // real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.
 function mousePosition(e, dom) {
   const mx = e.pageX - $(dom).offset().left;
   const my = e.pageY - $(dom).offset().top;
-  return { x: parseInt(mx, 10), y: parseInt(my, 10) };
+  return { x: Math.trunc(mx), y: Math.trunc(my) };
 }
 
 util.mousePosition = mousePosition;
@@ -430,7 +483,7 @@ function convertBlobToBase64(blob) {
     const reader = new FileReader();
     reader.onerror = reject;
     reader.onload = () => {
-      resolve(reader.result);
+      resolve(/** @type {string} */ (reader.result));
     };
     reader.readAsDataURL(blob);
   });
@@ -545,7 +598,7 @@ util.hasSession = hasSession;
  * When the work also costs the server something, prefer util.onFirstInteractionOrIdle, which adds an engagement gate
  * on top of this.
  *
- * @param {Function} fn - The work to run. Called once.
+ * @param {() => void} fn - The work to run. Called once.
  */
 function afterLoadIdle(fn) {
   const schedule = () => {
@@ -569,7 +622,8 @@ const INTERACTION_EVENTS = ['pointermove', 'pointerdown', 'scroll', 'keydown', '
 // callers here register at very different times (parse time vs. inside an appManager.ready callback, i.e. after
 // i18next's fetches resolve), and a single early mouse twitch has to satisfy all of them.
 const firstInteraction = new Promise((resolve) => {
-  for (const type of INTERACTION_EVENTS) window.addEventListener(type, () => resolve(), { once: true, passive: true });
+  const onInteraction = () => resolve(undefined);
+  for (const type of INTERACTION_EVENTS) window.addEventListener(type, onInteraction, { once: true, passive: true });
 });
 
 /**
@@ -587,7 +641,7 @@ const firstInteraction = new Promise((resolve) => {
  * fold, so actually looking at it requires a scroll, which trips the interaction path first. It exists only so a
  * visitor who somehow generates no input events still ends up with a working page.
  *
- * @param {Function} fn - The work to run. Called once, whichever path gets there first.
+ * @param {() => void} fn - The work to run. Called once, whichever path gets there first.
  * @param {number} [fallbackMs=5000] - How long after load-idle to give up waiting for an interaction.
  */
 function onFirstInteractionOrIdle(fn, fallbackMs = 5000) {

@@ -1,7 +1,7 @@
 /**
  * Searchable, sortable per-region street-status table for the Street Status page (#4331). Each row breaks a region's
  * streets down by status (open / no_imagery / closed / disabled) with a total and an inline 100%-stacked bar, so an
- * admin can eyeball which neighborhoods have lots of missing imagery or disabled streets. Defaults to most-missing-
+ * admin can eyeball which regions have lots of missing imagery or disabled streets. Defaults to most-missing-
  * imagery first — the actionable end. Hover/click a row to brush that region's segments on the map; highlightRows()
  * reflects a selection coming from the map.
  */
@@ -21,10 +21,10 @@ class StreetStatusTable {
   #hoverId = null;
 
   /**
-   * @param {string} tableId - id of the <table> element.
-   * @param {string} searchId - id of the search <input> element.
-   * @param {{onRowClick?: function(number): void, onRowHover?: function(number): void,
-   *          onRowHoverEnd?: function(): void}} [opts]
+   * @param {string} tableId - ID of the <table> element.
+   * @param {string} searchId - ID of the search <input> element.
+   * @param {{onRowClick?: (id: number) => void, onRowHover?: (id: number) => void,
+   *          onRowHoverEnd?: () => void}} [opts]
    */
   constructor(tableId, searchId, opts = {}) {
     this.#tableId = tableId;
@@ -36,7 +36,7 @@ class StreetStatusTable {
 
   /**
    * Renders the table and wires search, sort, and row interactions (once).
-   * @param {Array<object>} rows - Per-region rows (region_id, name, open, no_imagery, closed, disabled, total).
+   * @param {Array<Record<string, any>>} rows - Per-region rows: region_id, name, and each status's street count.
    */
   render(rows) {
     this.#rows = rows;
@@ -112,7 +112,7 @@ class StreetStatusTable {
       }
     });
 
-    const search = document.getElementById(this.#searchId);
+    const search = /** @type {HTMLInputElement} */ (document.getElementById(this.#searchId));
     if (search) {
       search.addEventListener('input', () => {
         this.#filter = search.value;

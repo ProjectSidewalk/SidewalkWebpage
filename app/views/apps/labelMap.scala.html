@@ -27,6 +27,8 @@
   @common.labelPopup(admin = false, withPaging = true)
 
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">
+  <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
   <link href='@assets.path("css/components/filter-sidebar.css")' rel="stylesheet">
   <link href='@assets.path("css/components/map-download-control.css")' rel="stylesheet">
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
@@ -44,16 +46,20 @@
   <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
   <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
   <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
+  <script src='@assets.path("js/common/LabelTypePicker.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
   <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
   <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
   @if(commonData.imagerySource == PanoSource.Infra3d) {
-    <script src='@assets.path("vendor/proj4/proj4-2.19.10.js")'></script>
-    <script src='@assets.path("vendor/infra3d/infra3dapi-1.8.0.js")'></script>
+    <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
+    <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
   } else if (commonData.imagerySource == PanoSource.Mapillary) {
   <script src='@assets.path("vendor/three/three-0.160.1-min.js")'></script>
   <script src='@assets.path("vendor/mapillary/mapillary-4.1.2.min.js")'></script>
   <link href='@assets.path("vendor/mapillary/mapillary-4.1.2.css")' rel="stylesheet">
+  } else if (commonData.imagerySource == PanoSource.Panoramax) {
+  <script src='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1-bundle.min.js")'></script>
+  <link href='@assets.path("vendor/photo-sphere-viewer/psv-5.15.1.css")' rel="stylesheet">
   }
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
@@ -61,17 +67,18 @@
   <script src='@assets.path("js/common/timestampLocalization.js")'></script>
   <script>updateTimestamps("@messages.lang.code");</script>
 
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.js")'></script>
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
-  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.5.0.js")'></script>
-  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.21.0.css")' rel="stylesheet">
+  <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-search-1.6.0.js")'></script>
+  <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
   <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
   <script src='@assets.path("js/labelMapLocationSearch.js")'></script>
   <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
 
   <script>
     const imagerySrc = "@commonData.imagerySource.toString";
-    const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
+    const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
+      : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
     const accessToken = "@commonData.imageryAccessToken";
 
     // Shared with /admin/label-map so both label maps report loading and failure identically. Retry re-issues
@@ -126,10 +133,10 @@
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
         mapboxApiKey: '@commonData.mapboxApiKey',
         mapboxLogoLocation: 'bottom-right',
-        neighborhoodFillMode: 'singleColor',
-        neighborhoodFillColor: '#808080',
-        neighborhoodFillOpacity: 0.1,
-        neighborhoodTooltip: 'none',
+        regionFillMode: 'singleColor',
+        regionFillColor: '#808080',
+        regionFillOpacity: 0.1,
+        regionTooltip: 'none',
         differentiateUnauditedStreets: true,
         interactiveStreets: true,
         uiSource: 'LabelMap',
@@ -150,19 +157,30 @@
             if (typeof meta.camera_lng !== 'number' || typeof meta.camera_lat !== 'number') return;
             cameraCoordsByLabelId.set(labelId, [meta.camera_lng, meta.camera_lat]);
             if (spotlight.spotlightedLabelId() !== labelId) spotlight.spotlight(labelId, true);
-          }
+          },
+          // A type edited from the card (#3671) moves the dot to its new type's layer right away.
+          onEdit: (meta) => {
+            if (labelType(meta.label_id) === meta.label_type) return;
+            labelTypeByLabelId.set(meta.label_id, meta.label_type);
+            self.mapData?.updateLabelType?.(meta.label_id, meta.label_type);
+            // The navigator keeps its own label-to-type lookup, which the beacon reads its color from.
+            self.nearbyNav?.refresh();
+            spotlight.refreshBeacon(meta.label_id);
+          },
+          // The navigator isn't rebuilt: it would forget the open label, and Next needs a known label to page from.
+          onDelete: (meta) => self.mapData?.setLabelDeleted?.(meta.label_id, meta.deleted)
         }),
         navigationControlPosition: 'top-right',
         highQualityFilter: true
       };
-      params.neighborhoodsURL = new URL('/neighborhoods', window.location.origin);
-      params.completionRatesURL = new URL('/neighborhoods/completionRate', window.location.origin);
+      params.regionsURL = new URL('/regions', window.location.origin);
+      params.completionRatesURL = new URL('/regions/completionRates', window.location.origin);
       params.streetsURL = new URL('/contribution/streets/all?filterLowQuality=true', window.location.origin);
       params.labelsURL = new URL('/labels/all', window.location.origin);
 
       let regionsParam = '@{regionIds.mkString(",")}';
       if (regionsParam) {
-        params.neighborhoodsURL.searchParams.append('regions', regionsParam);
+        params.regionsURL.searchParams.append('regions', regionsParam);
         params.completionRatesURL.searchParams.append('regions', regionsParam);
         params.streetsURL.searchParams.append('regions', regionsParam);
         params.labelsURL.searchParams.append('regions', regionsParam);
@@ -202,11 +220,11 @@
       createPSMap($, params).then(m => {
         self.map = m[0];
         self.mapData = m[4];
-        // A ?regionId= link lands framed on that neighborhood, as it already does on the user dashboard's map —
+        // A ?regionId= link lands framed on that region, as it already does on the user dashboard's map —
         // unless the URL carries an explicit viewport, which wins (#4696).
         if (!self.hasUrlViewport) setRegionFocus(self.map);
         // Counts are view-scoped, matching the view-scoped downloads below: the viewport loader only holds a
-        // padded neighborhood of the view, not the whole city, so counting everything loaded would report an
+        // padded region of the view, not the whole city, so counting everything loaded would report an
         // arbitrary area.
         const sidebarFilter = new MapSidebarFilter(self.map, self.mapData, {
           highQualityFilter: true,

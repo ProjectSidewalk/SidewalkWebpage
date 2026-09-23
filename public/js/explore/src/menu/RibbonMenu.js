@@ -34,7 +34,7 @@ class RibbonMenu {
   #uiRibbonMenu;
 
   /**
-   * @param {Object} tracker - Interaction tracker for logging mode switches.
+   * @param {object} tracker - Interaction tracker for logging mode switches.
    */
   constructor(tracker) {
     this.#tracker = tracker;
@@ -60,7 +60,10 @@ class RibbonMenu {
       if (val !== 'Walk' && val !== 'Other') {
         el.setAttribute('data-toggle', 'tooltip');
         el.setAttribute('data-placement', placement);
-        el.setAttribute('title', i18next.t('top-ui.press-key', { key: util.misc.getLabelDescriptions(val).keyChar }));
+        // Markup sink despite the attribute: Main initializes every [data-toggle="tooltip"] with `html: true`.
+        el.setAttribute('title', i18next.t('top-ui.press-key', {
+          key: util.misc.getLabelDescriptions(val).keyChar, interpolation: { escapeValue: true },
+        }));
       }
     };
     document.querySelectorAll('.label-type-button-holder').forEach((el) => setKeyTooltip(el, 'top'));

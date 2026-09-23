@@ -6,6 +6,8 @@ missing.ramps = Missing Drop Kerbs
 no.sidewalk = No Footpath
 occlusion = Can''t See the Footpath
 crosswalk = Marked Pedestrian crossing
+landing.spotlight.title = Where {0}''s Footpaths Score Highest and Lowest
+cities.spotlight.title = Where Footpaths Score Highest and Lowest Across Our Cities
 landing.choropleth.title = Pick a Neighbourhood
 landing.choropleth.content = You are automatically assigned a neighbourhood when you click ''Start Exploring'', but you can also choose one by clicking on a region below!
 landing.choropleth.legend = Percent of Neighbourhood Complete
@@ -47,5 +49,5 @@ leaderboard.intro = Every label makes footpaths more accessible and safe for eve
 leaderboard.intro.you = Every label makes footpaths more accessible and safe for everyone. Here''s how the community — and you — are doing.
 
 # Community listing pages: /stories and /routes (#4688).
-community.page.sort.neighborhood = Neighbourhood
+community.page.sort.region = Neighbourhood
 stories.page.intro = Personal stories that community members have attached to footpath labels — real accounts of how accessibility barriers and features affect people''s lives.

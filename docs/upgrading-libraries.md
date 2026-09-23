@@ -1,23 +1,80 @@
 # Upgrading libraries
 
-This is the **canonical inventory** of the third-party libraries Project Sidewalk depends on, with the version we're
-on and how to check for and apply updates to each. We update libraries periodically; this page exists so that the
-next person scanning the list can tell at a glance whether something has a newer release available.
+This is the **canonical inventory** of everything Project Sidewalk depends on — the third-party libraries, and the
+runtimes, base images, and database server underneath them — with the version we're on and how to check for and apply
+updates to each. We update these periodically; this page exists so that the next person scanning the list can tell at
+a glance whether something has a newer release available, or has gone end-of-life.
 
-**Keep the versions here in sync with the code, and keep this the _only_ place full versions live.** Other docs
+**Keep the versions here in sync with the code, and keep this the only _doc_ that carries full versions.** Other docs
 ([`CLAUDE.md`](../CLAUDE.md), [`docs/architecture.md`](architecture.md), the README) mention only stable *major*
 versions (Scala 2.13, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
-recorded once. When you upgrade a library, bump its version number below in the same change.
+recorded once. When you upgrade something, bump its version number below in the same change.
 
 > Many entries carry a **note** explaining *why* we're pinned where we are (a known incompatibility, an abandoned
 > upstream, a migration we haven't taken on yet). Those notes are institutional knowledge — preserve and update them
 > rather than dropping them.
 
+## Platform (runtimes, base images, database server)
+
+What the app runs *on*, as opposed to what it links against. **Prod isn't containerized** — it's bare-metal Rocky
+Linux 9.8 on makelab1 ([#4398](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4398)) — so dev and prod are
+listed separately and are *expected* to differ; the goal is skew that's written down, not a parity we can't reach.
+**The "latest" and EOL columns were checked on 2026-09-09** — re-check and re-date them rather than trusting them.
+
+### Runtimes and base images
+
+| | Ours | Latest | Upstream EOL | Set in |
+|---|---|---|---|---|
+| Java (JDK) | Temurin **17** | 25 LTS | Oct 2027 | web base image, `build.sbt`, `ci.yml` |
+| Node (+ npm) | **24.x** (npm ≥ 11) | 26.x | Apr 2028 | `Dockerfile`, `package.json` `engines`, `ci.yml` |
+| Python (app) | **3.8** | 3.14.7 | **Oct 2024 — past** | web base image ([why two](#interpreters)) |
+| Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
+| web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
+| db image | **`postgis/postgis:16-3.5`** | (see below) | **Aug 2026 — past** | `db/Dockerfile` |
+
+- **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
+  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)), and its glibc 2.31 is older than the
+  2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all and everything uses
+  `sbt --jvm-client` instead (#5268). Jammy (glibc 2.35, `python3` 3.10) or noble (2.39, 3.12) fixes both, but a
+  move has to say what happens to 3.8 first.
+- **The `16-3.5` image line is a dead end.** apt.postgresql.org's bullseye pool stops at PostGIS 3.5.2, and
+  docker-postgis publishes no `16-3.6` tag (3.6 images start at Postgres 17) or bookworm variant for 16 — so newer
+  geospatial libraries in dev means moving the Postgres major *and* the base OS together, not a version bump.
+- **Java 17** is two LTS lines behind but patched through 2027, so it's a planned migration rather than an exposure;
+  prod's JVM version has never been collected (#4398 captured its OS and DB stack only). Dependabot deliberately
+  ignores major `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
+
+### Database server
+
+Prod is the target dev tracks. Prod's column was read off makelab1 on 2026-07-01 (#4398); re-check either side with
+`SELECT version();` and `SELECT PostGIS_Full_Version();` (in dev, `docker exec projectsidewalk-db psql -U
+readonly_user -d sidewalk`).
+
+| | dev (`projectsidewalk-db`) | prod (makelab1) | Latest |
+|---|---|---|---|
+| OS | Debian 11 bullseye (EOL Aug 2026) | Rocky Linux 9.8 (EOL May 2032) | — |
+| Postgres | **16.15** | **16.14** | 18.6 |
+| PostGIS | **3.5.2** | **3.4.6** | 3.6.4 |
+| GEOS | **3.9.0** | **3.14.1** | 3.15.0 |
+| PROJ | **7.2.1** | **9.8.1** | 9.8.1 |
+| GDAL | **3.2.2** (`libgdal28`) | not collected | 3.13.3 |
+
+- **Dev is both ahead and years behind**: newer PostGIS, but a 2020 GEOS/PROJ out of bullseye's system packages
+  against prod's hand-built ones. Geometry output can genuinely differ across that GEOS gap, so a spatial result that
+  reproduces in only one environment starts here. The same skew breaks dev's JIT — PostGIS bitcode built with LLVM 16
+  against a runtime linked to LLVM 11, so an expensive spatial query segfaults the backend
+  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — hence `withJitOff` in `ConfigTable`.
+- **Dev's Postgres is what a fresh build gets:** the base image ships 16.4 and `db/Dockerfile` upgrades it, so an old
+  container reports an older patch. The geospatial libraries are fixed by the base image and that upgrade never moves
+  them. **Prod's PostGIS is half-upgraded** — library 3.4.6, SQL functions still 3.4.1, which is the `need upgrade`
+  at the end of its `PostGIS_Full_Version()`; it wants an `ALTER EXTENSION postgis UPDATE`. **GDAL** isn't reported
+  by that function in either place (no raster support), so dev's comes from the installed package.
+
 ## Scala / sbt / Play
 
 These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`](../project/build.properties), and
-[`project/plugins.sbt`](../project/plugins.sbt). After changing any of them, rerun `npm start` (or
-`sbt --client compile`) so the new versions download and the build re-resolves.
+[`project/plugins.sbt`](../project/plugins.sbt). After changing any of them, rerun `npm start` so the new versions
+download and the build re-resolves (a running sbt, which `make compile` reuses, ignores the change until it reloads).
 
 ### Core toolchain
 
@@ -25,8 +82,11 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
   [#3936](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3936) (unclear if all our libraries support it
   yet). Edit `scalaVersion` in `build.sbt`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
-- **sbt: 1.12.13** — set in `project/build.properties`; downloaded automatically on the next `npm start`. You may need
-  to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
+- **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
+  `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump
+  (Compose won't rebuild on its own). sbt **2.x** is gated on Play: its `sbt-plugin` has no sbt 2 build outside the
+  3.1.0 milestones, and sbt 2 build definitions are Scala 3, so it's a tracked migration rather than a bump. You may
+  need to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
 - **Play Framework: 3.0.11** — to update: (1) change the version in `project/plugins.sbt` (the `sbt-plugin`
   dependency), and (2) change it in `build.sbt` for the Play-provided libraries that share Play's versioning scheme
   (`play-guice`, `play-cache`, `play-ws`, `play-caffeine-cache`).
@@ -54,7 +114,10 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 
 ### Database (Slick + Postgres + PostGIS)
 
-- **postgresql (JDBC driver): 42.7.10** — the `org.postgresql` driver in `build.sbt`.
+These are the JVM libraries we talk to the database *through*; the database server's own versions are under
+[Database server](#database-server) above.
+
+- **postgresql (JDBC driver): 42.7.13** — the `org.postgresql` driver in `build.sbt`.
   [Releases](https://mvnrepository.com/artifact/org.postgresql/postgresql) · [Changelog](https://jdbc.postgresql.org/)
 - **play-slick / play-slick-evolutions: 6.2.0**.
   [Releases](https://mvnrepository.com/artifact/org.playframework/play-slick) ·
@@ -73,19 +136,19 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
   [other repos](https://mvnrepository.com/search?q=jackson-datatype-jts)) but may not work. Take minor bumps from the
   link below; a full upgrade needs dedicated investigation.
   [Releases](https://mvnrepository.com/artifact/org.n52.jackson/jackson-datatype-jts)
-- **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 29.6** — Shapefile/GeoPackage generation. **Note:** we froze
-  here over a compatibility issue, though it's not confirmed we *couldn't* move forward. GeoTools is actively
-  maintained, so there are likely benefits to figuring out the upgrade.
+- **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 35.1** — Shapefile/GeoPackage generation. Served by the
+  OSGeo resolver in `build.sbt`, not Maven Central. Needs Java 17. We use a tiny corner of the API, so bumps are
+  usually mechanical; check both exports afterward (#4393). Brings Eclipse ImageN, sqlite-jdbc, and Jackson 3's
+  `jackson-core` along (its own package, so no clash with Play's Jackson 2). The GeoPackage writer relies on gt-geopkg
+  handing back a `JDBCDataStore` and on it leaving the `gpkg_contents` bounds to us (#5275), so after a bump confirm
+  `ogrinfo -so <file>.gpkg <layer>` shows a real Extent, not (0, 0) - (0, 0).
   [Releases](https://mvnrepository.com/artifact/org.geotools/gt-shapefile?repo=geotools-releases) ·
-  [Changelog](https://github.com/geotools/geotools/releases)
-- **jai_core: 1.1.3** — pulled in by GeoTools; not on Maven Central, so `build.sbt` downloads it from the OSGeo repo.
-  **Note:** no new releases; GeoTools has
-  [long-term plans to phase it out](https://github.com/geotools/geotools/wiki/Replace-JAI).
-  [Releases](https://mvnrepository.com/artifact/javax.media/jai_core)
+  [Changelog](https://github.com/geotools/geotools/releases) ·
+  [Upgrade notes](https://docs.geotools.org/latest/userguide/welcome/upgrade.html)
 
 ### Other Scala
 
-- **metadata-extractor: 2.19.0** — reads EXIF (photos) and QuickTime/MP4 atoms (videos) from user-uploaded story
+- **metadata-extractor: 2.21.0** — reads EXIF (photos) and QuickTime/MP4 atoms (videos) from user-uploaded story
   media (#4054). Pure Java with one small transitive dep (`xmpcore`); used transiently on ingest — the derived
   recency/proximity buckets are stored, the precise values discarded.
   [Releases](https://mvnrepository.com/artifact/com.drewnoakes/metadata-extractor) ·
@@ -99,7 +162,7 @@ These versions live in [`build.sbt`](../build.sbt), [`project/build.properties`]
 ### Build plugins & test (`project/plugins.sbt`, `.scalafmt.conf`, test deps)
 
 - **sbt-plugin (Play): 3.0.11** — tracks the Play version above (`project/plugins.sbt`).
-- **scalafmt: 3.9.10** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.5.6**,
+- **scalafmt: 3.11.5** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.6.2**,
   `project/plugins.sbt`) fetches it. `scalafmtCheckAll` is a blocking CI gate.
   [Releases](https://github.com/scalameta/scalafmt/releases)
 - **sbt-scoverage: 2.4.4** — coverage, for a later CI phase with a ratcheting threshold.
@@ -119,11 +182,17 @@ images together, upstream layout preserved so relative `url()` refs keep working
 edited or linted.**
 
 **To upgrade a self-hosted library:** download the new version, drop it in `public/vendor/<lib>/`, **rename it to
-include the version number** (e.g. `turf-7.3.4.min.js`) for clarity, update every reference to the old filename across
+include the version number** (e.g. `turf-7.4.0.min.js`) for clarity, update every reference to the old filename across
 the code, and delete the old file. The version baked into each filename under `vendor/` is the real source of truth for
 the frontend — it names in the URL what a reader would otherwise have to diff for, and lets two versions sit side by
-side mid-upgrade — keep this list matching it.
+side mid-upgrade — keep this list matching it. `make lint-vendor-versions` (part of `make lint`, and a
+blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn't listed here at all.
 
+- **animate.css: unversioned (a 3.x from 2015)** — CSS keyframe animations, used by Explore's compass message
+  and the tutorial's fades (`Onboarding.js`). **Note:** this copy predates our filename rule and carries no version
+  in its name or header, so which 3.x it is can't be recovered. v4 renamed every class to an `animate__` prefix, so
+  an upgrade means editing the markup that uses it, not just swapping the file.
+  [Changelog](https://github.com/animate-css/animate.css/releases)
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
   [Versions](https://github.com/rogierschouten/async-lock/releases)
@@ -143,37 +212,43 @@ side mid-upgrade — keep this list matching it.
   [Download](https://unpkg.com/chart.js) · [Changelog](https://github.com/chartjs/Chart.js/releases)
 - **countUp.js: 1.9.3** — animates the counting-up of stats on the landing page; lightly used. (Several libraries
   share this name — be careful which you grab.)
-- **floating-ui: 1.7.6 (`@floating-ui/dom`), 1.7.5 (`@floating-ui/core`)** — **note:** start from the newest `dom`
+- **floating-ui: 1.8.0 (`@floating-ui/dom`), 1.8.0 (`@floating-ui/core`)** — **note:** start from the newest `dom`
   version, then pick a `core` version that satisfies its dependency.
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
-  [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.7.6) ·
-  [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.7.5)
+  [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.8.0) ·
+  [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.8.0)
 - **i18next: 23.16.8** — **note:** v24+ has breaking changes we haven't worked through (the changelog links a
   migration guide); take minor bumps meanwhile.
   [Download](https://unpkg.com/i18next/dist/umd/i18next.min.js) ·
   [Changelog](https://github.com/i18next/i18next/blob/master/CHANGELOG.md)
-- **i18next-http-backend: 3.0.4** — loads translation files (`i18nextHttpBackend-3.0.4.min.js`).
+- **i18next-http-backend: 3.0.6** — loads translation files (`i18nextHttpBackend-3.0.6.min.js`).
   [Project + downloads](https://github.com/i18next/i18next-http-backend) ·
   [Changelog](https://github.com/i18next/i18next-http-backend/blob/master/CHANGELOG.md)
-- **infra3dapi: 1.8.0** — Infra3d imagery provider. **Note:** we currently ship a locally-patched build with fixes we
-  needed; expect those to land upstream soon. Test by panning in a circle — watch for jumpiness.
-  [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.8.0/infra3dapi.js) ·
+- **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` reaches past the documented API into
+  `_sdk_viewer` (`moveToKey`, `movePosition`, `setFilter`, `resize`, the component toggles, the `nodechanged` event, the
+  navigator's `imagesByKNN$`) and each node's `spatialEdges$` stream, none of which the changelog covers, so after a
+  bump grep the new file for each name.
+  [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.12.1/infra3dapi.js) ·
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
-- **js-cookie: 3.0.5** — [Download](https://unpkg.com/js-cookie) ·
-  [Changelog](https://github.com/js-cookie/js-cookie/releases)
 - **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
   [no longer maintained](https://github.com/ericdrowell/KineticJS). Could bump to 5.1.0 and leave it.
-- **mapbox-gl (js & css): 3.21.0** — check with `mapboxgl.version`.
+- **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a
+  symbol layer that shares a source with feature-state paint (Route Builder's region labels, AccessScore's) crashes
+  the map with `Cannot read properties of undefined (reading 'paint')` once that state changes
+  ([mapbox-gl-js#13714](https://github.com/mapbox/mapbox-gl-js/issues/13714)); take 3.25+ once the fix
+  ([#13721](https://github.com/mapbox/mapbox-gl-js/pull/13721)) ships, or give every such symbol layer a
+  feature-state paint expression first.
   [Install/download](https://docs.mapbox.com/mapbox-gl-js/guides/install/) ·
   [Changelog](https://github.com/mapbox/mapbox-gl-js/blob/main/CHANGELOG.md)
 - **mapbox-gl-language: 1.0.1** — [Download](https://unpkg.com/@mapbox/mapbox-gl-language) ·
   [Changelog](https://github.com/mapbox/mapbox-gl-language/releases)
-- **mapbox-search-js: 1.5.0** — [Install/download](https://docs.mapbox.com/mapbox-search-js/guides/install/) ·
+- **mapbox-search-js: 1.6.0** — ships in `public/vendor/mapbox-gl/` with the rest of the Mapbox stack.
+  [Install/download](https://docs.mapbox.com/mapbox-search-js/guides/install/) ·
   [Changelog](https://docs.mapbox.com/mapbox-search-js/guides/changelog/)
 - **mapillary: 4.1.2** — Mapillary imagery provider.
   [Downloads](https://mapillary.github.io/mapillary-js/docs/intro/try/#using-a-cdn) ·
   [Changelog](https://github.com/mapillary/mapillary-js/releases)
-- **moment.js: 2.30.1** — vendored alongside one locale file per supported language. Only `en` and `en-US` need none,
+- **moment.js: 2.31.0** — vendored alongside one locale file per supported language. Only `en` and `en-US` need none,
   since moment has US English built in; other English variants do have their own file (`en-NZ` formats dates
   differently). **Adding a language means adding its locale file too**, or its dates silently render in English;
   `common/main.scala.html` picks the file by lowercased language code. [Download](https://momentjs.com/) ·
@@ -183,6 +258,12 @@ side mid-upgrade — keep this list matching it.
   [Changelog](https://github.com/mpetroff/pannellum/blob/2.5.7/changelog.md)
 - **panzoom: 9.4.4** — zoom/pan for static images in LabelMap/Gallery.
   [Download](https://unpkg.com/panzoom@9.4.4/dist/panzoom.min.js) · [Versions](https://github.com/anvaka/panzoom/tags)
+- **photo-sphere-viewer: 5.15.1** (bundling **three.js 0.185.1**) — the renderer behind the Panoramax imagery
+  provider (#5185). **Not an upstream file:** a self-contained bundle built by
+  `public/vendor/photo-sphere-viewer/build/build.sh`, because upstream ships ES modules only and needs a newer
+  three.js than the standalone 0.160.1 below. Upgrade by running the script with the new version (three.js follows
+  from PSV's own dependency pin); see the README beside it. [Releases](https://github.com/mistic100/Photo-Sphere-Viewer/releases) ·
+  [Docs](https://photo-sphere-viewer.js.org/guide/)
 - **prism: 1.30.0** — syntax highlighting for the API docs' code blocks. We ship the core plus only the language
   components the docs use (`json`, `csv`), so a new `language-*` class in a docs page means adding that component too.
   **No stock theme:** the `.token.*` colors are ours, in `css/pages/api-docs/api-docs.css`, so the blocks stay on the
@@ -191,7 +272,7 @@ side mid-upgrade — keep this list matching it.
   a different dist layout). So 1.x is the stable line to track, and `1.30.0 → 2.x` will be a migration rather than a
   file swap. [Download (pick components)](https://prismjs.com/download.html) ·
   [Changelog](https://github.com/PrismJS/prism/releases)
-- **proj4js: 2.19.10** — [Download](https://cdnjs.com/libraries/proj4js) ·
+- **proj4js: 2.22.0** — [Download](https://cdnjs.com/libraries/proj4js) ·
   [Changelog](https://github.com/proj4js/proj4js/releases)
 - **selectize.js: 0.15.2** — **note:** unmaintained (last release 2022). The suggested successor is
   [tom-select](https://github.com/orchidjs/tom-select), a maintained fork that drops jQuery — a good fit as we move
@@ -201,8 +282,13 @@ side mid-upgrade — keep this list matching it.
   (bundler-only), so upgrading isn't worth it soon.
   [Download](https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js) ·
   [Changelog](https://github.com/mrdoob/three.js/releases)
-- **turf.js: 7.3.4** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.3.4/turf.min.js) ·
+- **turf.js: 7.4.0** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.4.0/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
+- **vega: 5.33.1, vega-lite: 5.23.0, vega-embed: 6.29.0** — the coverage charts on the admin dashboard. We
+  write Vega-Lite specs and hand them to `vegaEmbed`, which pulls in Vega itself as the renderer, so all three move
+  together. **Note:** each has a major out (6 / 6 / 7) that we haven't looked at.
+  [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
+  [Changelog](https://github.com/vega/vega-lite/releases)
 - **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
 > **jQuery / Bootstrap removal:** several entries above (Bootstrap, magnific-popup, selectize) are part of
@@ -220,15 +306,16 @@ rebuild the web image (`docker compose build web`) and run `make test-python`.
 The web image carries two, and **which one a package targets decides which file it goes in**
 ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)):
 
-- **Python 3.8** (`python3`) — the `eclipse-temurin:17-jdk-focal` base image's own. **Note:** EOL since October 2024,
-  kept only because the deployed app shells out to it for in-band clustering (prod runs on Rocky's system Python).
+- **Python 3.8** (`python3`) — the base image's own, and past EOL. **Note:** kept only because the deployed app
+  shells out to it for in-band clustering (prod runs on Rocky's system Python).
   Retiring it means changing the base image, gated on the prod-environment audit
   ([#4385](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4385)) — until then, don't add libraries to
   `requirements.txt`, because current releases have all dropped 3.8.
-- **Python 3.13.15** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
-  CPython fetched by **uv 0.12.5** at image build time, since no PPA carries 3.13 for focal. Where offline tooling
-  runs. Both versions are pinned exactly in the `Dockerfile` (the installer URL and the `uv python install` argument),
-  so bump them there and here together. [Python releases](https://www.python.org/downloads/) ·
+- **Python 3.13** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
+  CPython fetched by **uv 0.12.15** at image build time, since no PPA carries 3.13 for focal. Where offline tooling
+  runs. Both interpreters are pinned to exact patch versions in the `Dockerfile` (the installer URL and the
+  `uv python install` argument); those patches are in the [runtimes table](#runtimes-and-base-images), so bump the
+  `Dockerfile` and that table together. [Python releases](https://www.python.org/downloads/) ·
   [uv releases](https://github.com/astral-sh/uv/releases)
 
 ### Packages
@@ -238,13 +325,21 @@ The web image carries two, and **which one a package targets decides which file 
   frozen until the interpreter moves. [pandas](https://pandas.pydata.org/docs/whatsnew/) ·
   [scipy](https://docs.scipy.org/doc/scipy/release.html) ·
   [haversine](https://github.com/mapado/haversine/releases) · [requests](https://github.com/psf/requests/releases)
-- **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py`) — **pandas 3.0.5**,
-  **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**, **tenacity 9.1.4**, **tqdm 4.70.0**. Self-contained rather
-  than layered on `requirements.txt`, since the two files target different interpreters and so can't share a pin.
+- **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py` + `onboard_city.py` +
+  `street_gradient.py`) — **pandas 3.0.5**, **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**,
+  **tenacity 9.1.4**, **tqdm 4.70.1**, plus the onboarding geo stack: **osmnx 2.1.1**, **geopandas 1.1.4**,
+  **pyogrio 0.13.0**, **scipy 1.17.1**, and the street-gradient raster stack: **rasterio 1.5.1** (its wheel bundles
+  GDAL, so nothing comes from the OS), **pyproj 3.8.0**. Self-contained rather than layered on `requirements.txt`,
+  since the two files target different interpreters and so can't share a pin.
   **Note:** requires **Python ≥ 3.11**, and pandas is what sets that floor — re-check it when bumping pandas, and
   update the docs that quote it. [shapely](https://github.com/shapely/shapely/releases) ·
   [geopy](https://github.com/geopy/geopy/releases) · [tenacity](https://github.com/jd/tenacity/releases) ·
-  [tqdm](https://github.com/tqdm/tqdm/releases)
+  [tqdm](https://github.com/tqdm/tqdm/releases) · [osmnx](https://github.com/gboeing/osmnx/releases) ·
+  [geopandas](https://github.com/geopandas/geopandas/releases) ·
+  [pyogrio](https://github.com/geopandas/pyogrio/blob/main/CHANGES.md) ·
+  [scipy](https://docs.scipy.org/doc/scipy/release.html) ·
+  [rasterio](https://github.com/rasterio/rasterio/blob/main/CHANGES.txt) ·
+  [pyproj](https://pyproj4.github.io/pyproj/stable/history.html)
 - **`requirements-dev.txt`** (both) — **pytest 9.1.1** / **pytest-cov 7.1.0** on 3.10+, **pytest 8.3.5** /
   **pytest-cov 5.0.0** below, by environment marker. **Note:** the boundary is pytest 9's own floor, not the 3.8 side
   — 8.3.5 is both the last pytest supporting 3.8 and the first supporting 3.13, so it covers the 3.8–3.9 gap. Keep the

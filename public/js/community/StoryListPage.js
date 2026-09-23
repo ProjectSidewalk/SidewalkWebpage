@@ -13,6 +13,7 @@ class StoryListPage {
   constructor() {
     this.#list = new CommunityListPage('StoryListPage', {
       newest: { key: 'created', numeric: true, desc: true },
+      // Also logged as `_Sort=neighborhood`, so renaming it would split that event's history.
       neighborhood: { key: 'region' },
       labeltype: { key: 'labeltype' },
     });
@@ -23,6 +24,7 @@ class StoryListPage {
     this.#colorTypeChips();
     this.#addReadMoreToggles();
     this.#addShareChips();
+    StoryListPage.#dropBrokenPhotos();
     document.querySelectorAll('.story-card__location').forEach((link) => {
       link.addEventListener('click', () => {
         window.logWebpageActivity(`Click_module=StoryListPage_Location_LabelId=${link.dataset.labelId}`);
@@ -40,7 +42,7 @@ class StoryListPage {
   }
 
   /**
-   * @param {{showLabel: function(number, string): Promise}} popup - A LabelPopup instance.
+   * @param {{showLabel: (labelId: number, source: string) => Promise<void>}} popup - A LabelPopup instance.
    */
   setLabelPopup(popup) {
     this.#labelPopup = popup;
@@ -104,9 +106,7 @@ class StoryListPage {
 
       const widget = new ShareWidget(trigger, { host: wrap });
       const excerpt = StoryListPage.#excerpt(card.querySelector('.story-card__text').textContent);
-      // escapeValue off: the text feeds only plain-text sinks (share intent URLs, mailto, the native sheet), so
-      // i18next's default HTML-escaping would ship literal entities in the storyteller's words ("It&#39;s icy").
-      const shareText = i18next.t('common:share.story-text', { excerpt, interpolation: { escapeValue: false } });
+      const shareText = i18next.t('common:share.story-text', { excerpt });
       widget.setTarget({
         url: `${window.location.origin}/label/${labelId}?storyId=${storyId}`,
         // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
@@ -132,6 +132,23 @@ class StoryListPage {
     // Break at the last word boundary unless it lands absurdly early (or nowhere — CJK text has no spaces).
     const lastSpace = cut.lastIndexOf(' ');
     return `${cut.slice(0, lastSpace > CAP - 30 ? lastSpace : CAP).trimEnd()}…`;
+  }
+
+  /**
+   * Drops a card photo that fails to load, leaving a text-only card (#5327). The photo is either the storyteller's
+   * own upload or the label's preview, a Street View still requested with `return_error_code`, so a label whose pano
+   * has expired answers 404 — and the photo is a 180px cover image across the top of the card, where a broken-image
+   * icon reads as a page fault rather than as a story without a picture. The dashboard's story rows swap in a
+   * neutral placeholder thumb instead; here a story without a picture is a shape the card already has.
+   *
+   * Both branches are needed: this page's script tag is at the bottom of the document, so some photos have already
+   * settled by the time it runs and will never fire `error` for a listener to catch.
+   */
+  static #dropBrokenPhotos() {
+    document.querySelectorAll('.story-card__photo').forEach((/** @type {HTMLImageElement} */ photo) => {
+      if (photo.complete && photo.naturalWidth === 0) photo.remove();
+      else photo.addEventListener('error', () => photo.remove(), { once: true });
+    });
   }
 
   /** Tints each label-type chip with its canonical color (data-sourced; inline style attrs are lint-banned). */

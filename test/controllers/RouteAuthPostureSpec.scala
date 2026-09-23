@@ -55,7 +55,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val LabelMapProperties: Set[String] = Set("label_id", "label_type", "severity", "correct", "has_validations",
     "ai_validation", "expired", "has_backup", "high_quality_user", "ai_generated", "tags")
 
-  /** Every key `/neighborhoods/completionRate` publishes per region. */
+  /** Every key `/regions/completionRates` publishes per region. */
   private val CompletionRateKeys: Set[String] =
     Set("region_id", "total_distance_m", "completed_distance_m", "outdated_distance_m", "rate", "name")
 
@@ -246,16 +246,16 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
   }
 
-  "GET /neighborhoods/completionRate" should {
-    "serve neighborhood completion rates anonymously" in {
-      val resp = route(app, FakeRequest(GET, "/neighborhoods/completionRate")).get
+  "GET /regions/completionRates" should {
+    "serve region completion rates anonymously" in {
+      val resp = route(app, FakeRequest(GET, "/regions/completionRates")).get
       status(resp) mustBe OK
       contentAsJson(resp).as[Seq[JsObject]] // Must be an array of objects, empty or not.
       succeed
     }
 
     "publish exactly the documented key set on every region" in {
-      val rates = contentAsJson(route(app, FakeRequest(GET, "/neighborhoods/completionRate")).get).as[Seq[JsObject]]
+      val rates = contentAsJson(route(app, FakeRequest(GET, "/regions/completionRates")).get).as[Seq[JsObject]]
       assume(rates.nonEmpty, "no regions in this schema; per-region shape needs a seeded DB")
       rates.foreach { rate =>
         rate.keys mustBe CompletionRateKeys
@@ -265,7 +265,7 @@ class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
 
     "filter by the regions param" in {
-      val resp = route(app, FakeRequest(GET, "/neighborhoods/completionRate?regions=999999999")).get
+      val resp = route(app, FakeRequest(GET, "/regions/completionRates?regions=999999999")).get
       status(resp) mustBe OK
       contentAsJson(resp).as[Seq[JsObject]] mustBe empty
     }

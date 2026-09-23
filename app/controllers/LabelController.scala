@@ -6,14 +6,26 @@ import formats.json.LabelFormats
 import formats.json.ValidateFormats.{labelEditSubmissionReads, LabelEditSubmission}
 import models.auth.DefaultEnv
 import models.label._
+import models.user.SidewalkUserWithRole
+import models.utils.CommonUtils.UiSource
 import models.utils.LatLngBBox
 import play.api.Logger
 import play.api.libs.json._
+import play.api.mvc.Result
 import play.silhouette.api.Silhouette
-import service.{LabelEditOutcome, LabelEditService, LabelService, PanoDataService}
+import service.{
+  AiService,
+  CropService,
+  LabelEditOutcome,
+  LabelEditService,
+  LabelService,
+  PanoDataService,
+  ValidationService
+}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 @Singleton
 class LabelController @Inject() (
@@ -22,7 +34,10 @@ class LabelController @Inject() (
     implicit val ec: ExecutionContext,
     labelService: LabelService,
     labelEditService: LabelEditService,
-    panoDataService: PanoDataService
+    validationService: ValidationService,
+    aiService: AiService,
+    panoDataService: PanoDataService,
+    cropService: CropService
 ) extends CustomBaseController(cc) {
 
   private val logger = Logger(this.getClass)
@@ -59,22 +74,29 @@ class LabelController @Inject() (
    */
   def getLabelData(labelId: Int) = silhouette.UserAwareAction.async { implicit request =>
     val userId: String = request.identity.map(_.userId).getOrElse(NoUserId)
-    labelService.getSingleLabelMetadata(labelId, userId).map {
+    labelService.getSingleLabelMetadata(labelId, userId).flatMap {
       case Some(metadata) =>
-        Ok(
-          LabelFormats.labelMetadataWithValidationToJson(metadata, request.identity.map(_.username)) ++
-            Json.obj(
-              "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
-              "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-              "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity))
-            )
-        )
-      case None => NotFound(s"No label found with ID: $labelId")
+        cropService.cropMarker(labelId).map { marker =>
+          Ok(
+            LabelFormats.labelMetadataWithValidationToJson(metadata, request.identity.map(_.username)) ++
+              Json.obj(
+                "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
+                "crop_marker"      -> marker,
+                "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
+                "can_edit"         -> (metadata.fromCurrentUser || isAdmin(request.identity)),
+                "deleted"          -> metadata.deleted,
+                "can_restore"      -> LabelDeletion.canRestore(metadata.deleted, metadata.deletedBy, request.identity)
+              )
+          )
+        }
+      case None => Future.successful(NotFound(s"No label found with ID: $labelId"))
     }
   }
 
   /**
-   * Edits a label's severity and tags from the label popup (#2575). Allowed to the labeler and to admins. Responds
+   * Edits a label's type, severity or tags from the label popup (#2575, #3671). Allowed to the labeler and to
+   * admins. An edit built on a type the label no longer has is refused with a 409 carrying the label's current
+   * state, which the card redraws itself from. Responds
    * with the label's resulting severity and tags, which can differ from what was sent if invalid tags were dropped.
    */
   def editLabel = cc.securityService.SecuredAction(parse.json) { implicit request =>
@@ -87,10 +109,31 @@ class LabelController @Inject() (
             Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "severity must be 1-3 or null")))
           } else {
             labelEditService
-              .editLabel(submission.labelId, request.identity, submission.severity, submission.tags, submission.source)
+              .editLabel(submission.labelId, request.identity, submission.labelType, submission.newLabelType,
+                submission.severity, submission.tags, submission.source)
               .map {
                 case LabelEditOutcome.Applied(label) =>
-                  Ok(Json.obj("status" -> "Success", "severity" -> label.severity, "tags" -> label.tags))
+                  // Not waited on: the AI's old assessment was about the old type, and the nightly sweep can take days.
+                  if (submission.labelType.exists(_ != label.labelType))
+                    aiService.reassessAfterTypeChange(label.labelId)
+                  Ok(
+                    Json.obj(
+                      "status"     -> "Success",
+                      "label_type" -> label.labelType.name,
+                      "severity"   -> label.severity,
+                      "tags"       -> label.tags
+                    )
+                  )
+                // The label's type changed under the editor; the current state comes back so the card can redraw.
+                case LabelEditOutcome.Conflict(label) =>
+                  Conflict(
+                    Json.obj(
+                      "status"     -> "Conflict",
+                      "label_type" -> label.labelType.name,
+                      "severity"   -> label.severity,
+                      "tags"       -> label.tags
+                    )
+                  )
                 case LabelEditOutcome.Forbidden =>
                   Forbidden(Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can edit a label"))
                 case LabelEditOutcome.NotFound =>
@@ -100,6 +143,46 @@ class LabelController @Inject() (
         }
       )
   }
+
+  /**
+   * Soft-deletes a label, as its labeler or as an admin (#3591). `source` names the host page; Explore is refused,
+   * since an Explore delete is the one kind that leaves the labeler's accuracy.
+   */
+  def deleteLabel(labelId: Int, source: String) = cc.securityService.SecuredAction { implicit request =>
+    Try(UiSource.withName(source)).toOption.filter(_ != UiSource.Explore) match {
+      case None => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> s"Invalid source: $source")))
+      case Some(uiSource) =>
+        validationService
+          .deleteLabel(labelId, request.identity, uiSource)
+          .map(deletionResponse(labelId, request.identity))
+    }
+  }
+
+  /** Undoes a delete (#3591): the labeler their own, an admin any. */
+  def restoreLabel(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
+    labelEditService.restoreLabel(labelId, request.identity).map(deletionResponse(labelId, request.identity))
+  }
+
+  /**
+   * The label's state after a delete or restore. `can_restore` is the server's say, since a delete can find that an
+   * admin got there first.
+   */
+  private def deletionResponse(labelId: Int, user: SidewalkUserWithRole)(outcome: LabelEditOutcome): Result =
+    outcome match {
+      case LabelEditOutcome.Applied(label) =>
+        Ok(
+          Json.obj(
+            "status"      -> "Success",
+            "deleted"     -> label.deleted,
+            "can_restore" -> LabelDeletion.canRestore(label.deleted, label.deletedBy, Some(user))
+          )
+        )
+      case LabelEditOutcome.Forbidden =>
+        Forbidden(
+          Json.obj("status" -> "Error", "message" -> "Only the labeler or an admin can delete or restore a label")
+        )
+      case _ => NotFound(Json.obj("status" -> "Error", "message" -> s"No label found with ID: $labelId"))
+    }
 
   /**
    * Get all labels with the metadata needed for /labelMap, as a GeoJSON FeatureCollection of points.

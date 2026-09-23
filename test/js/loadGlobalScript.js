@@ -12,6 +12,7 @@
  * the next (these modules keep a module-scoped `config` singleton).
  */
 
+const fs = require('fs');
 const path = require('path');
 
 // Repo root is two levels up from test/js/.
@@ -41,4 +42,28 @@ function loadGlobalScript(relativePath) {
  */
 const assetPathStub = (logicalPath) => `/assets/${logicalPath}`;
 
-module.exports = { loadGlobalScript, REPO_ROOT, assetPathStub };
+/**
+ * Stamps `window.labelTypes` the way main.scala.html does, so `util.misc` has a label-type table to build from.
+ *
+ * The fixture is a committed copy of what LabelTypeEnum serializes, and LabelTypeEnumSpec fails if the two diverge —
+ * so this can't quietly become the stale duplicate that sourcing the table from the backend was meant to remove.
+ */
+function stampLabelTypes() {
+    const fixture = path.join(REPO_ROOT, 'test/resources/label-types-stamp.json');
+    window.labelTypes = JSON.parse(fs.readFileSync(fixture, 'utf8'));
+}
+
+/**
+ * Installs the real `util.misc` (public/js/common/utilitiesSidewalk.js) onto an already-stubbed `window.util`.
+ *
+ * For suites that want the genuine helper rather than a copy of its logic — `labelMarkerFraction` above all, which
+ * three separate card surfaces share, so a stub in each would be three chances to drift from the thing they call.
+ * `window.util = window.util || {}` at the top of the source means the caller's own fields survive; `util.assetPath`
+ * must already be set, since `getIconImagePaths` builds its paths through it.
+ */
+function installUtilitiesMisc() {
+    stampLabelTypes();
+    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js'), 'utf8'));
+}
+
+module.exports = { loadGlobalScript, REPO_ROOT, assetPathStub, installUtilitiesMisc, stampLabelTypes };

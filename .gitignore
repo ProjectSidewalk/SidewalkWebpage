@@ -1,5 +1,4 @@
 node_modules
-package-lock.json
 .DS_Store
 tmp/**/*
 .idea
@@ -14,7 +13,12 @@ coverage/
 bower.json
 component.json
 docker-compose.override*.yml
+ga-service-account.json
 db/*-dump
+
+# Generated per-city artifacts from scripts/onboard_city.py and check_streets_for_imagery.py (QA GeoPackage,
+# staging SQL, report, imagery-scan CSVs, osmnx cache)
+db/onboarding/
 
 # Playwright smoke-suite output (test/e2e/)
 playwright-report/
@@ -97,10 +101,12 @@ public/js/explore/build/*
 public/js/user-dashboard/build/*
 public/js/validate/build/*
 public/js/gallery/build/*
+public/js/access-score/build/*
 public/js/ps-map/build/*
 public/js/route-builder/build/*
 public/js/shared-label/build/*
 public/js/common/pano-viewer/build/*
+public/js/common/pano-credit/build/*
 # Bundles written to the pre-#2292 asset layout by an out-of-date Gruntfile; the paths are dead but a stale
 # checkout can still regenerate them, and they'd otherwise slip past the public/js/*/build/* rules above.
 public/javascripts/
@@ -154,9 +160,14 @@ project/project/
 
 # CSV downloads written to the project root by the aggregate-stats endpoints during local test runs.
 projectSidewalkStats_*.csv
+# Where file-based API downloads (shapefile, GeoPackage, zipped CSVs) are built before being streamed.
+api-downloads/
 
 # GSV FOV probe raw recordings (issue #5083) — live-imagery screenshots stay local; derived numbers are committed.
 tools/gsv-fov-probe/runs/
 # The full run manifest is ~11 MB of per-capture readbacks that only mean anything alongside those
 # screenshots; analyze.mjs --copy-recorded commits manifest-extract.json instead.
 tools/gsv-fov-probe/recorded/**/manifest.json
+tools/street_side/data/
+tools/street_side/out/
+tools/street_side/compute.log

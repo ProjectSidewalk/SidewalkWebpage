@@ -4,7 +4,7 @@
  * Three sections, all driven from /adminapi/getUserStats (users + teams) plus the existing admin mutation endpoints:
  *   - Users: a searchable, sortable, paginated directory with inline role and team assignment.
  *   - Teams: open/closed and visible/hidden toggles.
- *   - Maintenance: recalc user stats, recalc street priority, clear cache (each confirmed before running).
+ *   - Maintenance: recalc user stats, recalc street priority, generate crops, clear cache (each confirmed first).
  *
  * The full user list (~13k on a large deployment like Seattle, after anonymous-with-no-activity are filtered out) is
  * downloaded once and then filtered/sorted/paginated entirely client-side — small enough to keep every column sortable
@@ -15,8 +15,8 @@
  */
 class ManagementPage {
   /** Roles an admin may assign from this page. Owner is intentionally excluded (the backend forbids it); the system
-     *  roles (Anonymous, AI) aren't hand-assignable here either. A user already in an unassignable role is shown it as
-     *  a disabled, locked select. */
+   *  roles (Anonymous, AI) aren't hand-assignable here either. A user already in an unassignable role is shown it as
+   *  a disabled, locked select. */
   static #ASSIGNABLE_ROLES = ['Registered', 'Turker', 'Researcher', 'Administrator'];
 
   /** Page-size options for the directory; the first is the default. */
@@ -37,7 +37,9 @@ class ManagementPage {
 
   /**
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
-   *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string}} urls
+   *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
+   *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
+   *          refreshPlacesUrl: string, recountGradientStalenessUrl: string}} urls
    */
   constructor(urls) {
     this.#urls = urls;
@@ -45,7 +47,7 @@ class ManagementPage {
 
   async init() {
     try {
-      const data = await this.#fetchJson(this.#urls.userStatsUrl);
+      const data = await AdminShell.fetchJson(this.#urls.userStatsUrl);
       this.#users = (data && data.user_stats) || [];
       this.#teams = (data && data.teams) || [];
       this.#teamsByName = new Map(this.#teams.map((t) => [t.name, t]));
@@ -84,9 +86,9 @@ class ManagementPage {
         sort: (u) => u.ownValidatedAgreedPct || 0,
         help: 'Share of this user’s own labels that other people agreed with when validating them '
           + '(with how many were validated).' },
-      { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => ManagementPage.#ts(u.signUpTime) },
+      { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => AdminShell.ts(u.signUpTime) },
       { key: 'lastSignInTime', label: 'Last sign-in', align: 'right',
-        sort: (u) => ManagementPage.#ts(u.lastSignInTime) },
+        sort: (u) => AdminShell.ts(u.lastSignInTime) },
       { key: 'signInCount', label: 'Sign-ins', align: 'right', sort: (u) => u.signInCount || 0 },
     ];
   }
@@ -147,7 +149,11 @@ class ManagementPage {
     }).join('');
 
     document.getElementById('mgmt-users').innerHTML = rows.length
-      ? `<table class="ps-table ps-table--compact contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`
+      ? `
+        <table class="ps-table ps-table--compact contrib-table mgmt-table">
+          <thead>${head}</thead>
+          <tbody>${body}</tbody>
+        </table>`
       : '<p class="dq-empty">No users match your search.</p>';
 
     this.#renderCount(all.length);
@@ -224,7 +230,7 @@ class ManagementPage {
     const container = document.getElementById('mgmt-users');
     // Sort header clicks (delegated; survives table re-render). Sorting resets to the first page.
     container.addEventListener('click', (e) => {
-      const btn = e.target.closest('.mgmt-sort');
+      const btn = /** @type {Element} */ (e.target).closest('.mgmt-sort');
       if (!btn) return;
       const key = btn.getAttribute('data-key');
       if (this.#sort.key === key) {
@@ -237,7 +243,7 @@ class ManagementPage {
     });
     // Role / team changes.
     container.addEventListener('change', (e) => {
-      const sel = e.target.closest('.mgmt-select');
+      const sel = /** @type {HTMLSelectElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-select'));
       if (!sel || sel.disabled) return;
       const userId = sel.getAttribute('data-user-id');
       if (sel.getAttribute('data-kind') === 'role') this.#changeRole(userId, sel);
@@ -248,12 +254,12 @@ class ManagementPage {
       const bar = document.getElementById(id);
       if (!bar) continue;
       bar.addEventListener('click', (e) => {
-        const btn = e.target.closest('.mgmt-page-btn');
+        const btn = /** @type {HTMLButtonElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-btn'));
         if (!btn || btn.disabled) return;
         this.#gotoPage(btn.getAttribute('data-page'));
       });
       bar.addEventListener('change', (e) => {
-        const sel = e.target.closest('.mgmt-page-size');
+        const sel = /** @type {HTMLSelectElement} */ (/** @type {Element} */ (e.target).closest('.mgmt-page-size'));
         if (!sel) return;
         this.#pageSize = parseInt(sel.value, 10) || ManagementPage.#PAGE_SIZES[0];
         this.#page = 1;
@@ -276,7 +282,7 @@ class ManagementPage {
     const previous = user ? user.role : null;
     const newRole = sel.value;
     try {
-      const res = await this.#mutate(this.#urls.setRoleUrl, 'PUT', { user_id: userId, role_id: newRole });
+      const res = await AdminShell.mutate(this.#urls.setRoleUrl, 'PUT', { user_id: userId, role_id: newRole });
       if (user) user.role = res.role || newRole;
       this.#flash(`Set ${user ? user.username : userId} to ${newRole}.`);
     } catch (err) {
@@ -292,7 +298,7 @@ class ManagementPage {
     const teamId = parseInt(sel.value, 10);
     const team = this.#teams.find((t) => t.teamId === teamId);
     try {
-      await this.#mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
+      await AdminShell.mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
       if (user) user.team = team ? team.name : user.team;
       this.#flash(`Assigned ${user ? user.username : userId} to ${team ? team.name : `team ${teamId}`}.`);
     } catch (err) {
@@ -314,21 +320,27 @@ class ManagementPage {
     }
     const head = `<tr>
       <th scope="col">Team</th><th scope="col">Description</th>
-      <th scope="col">Status</th><th scope="col">Visibility</th>
+      <th scope="col">Status</th><th scope="col">Visibility</th><th scope="col">Labels</th>
     </tr>`;
     const body = this.#teams.map((t) => `
       <tr data-team-id="${t.teamId}">
-        <td>${ManagementPage.#esc(t.name)}</td>
+        <td><a href="/admin/team/${t.teamId}">${ManagementPage.#esc(t.name)}</a></td>
         <td>${ManagementPage.#esc(t.description || '')}</td>
         <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
         <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
+        <td><a class="dq-validate-btn" href="/expertValidate?teams=${t.teamId}"
+          aria-label="Validate labels from ${ManagementPage.#esc(t.name)}">Validate</a></td>
       </tr>`).join('');
-    el.innerHTML = `<table class="ps-table ps-table--compact contrib-table mgmt-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    el.innerHTML = `
+      <table class="ps-table ps-table--compact contrib-table mgmt-table">
+        <thead>${head}</thead>
+        <tbody>${body}</tbody>
+      </table>`;
   }
 
   #wireTeams() {
     document.getElementById('mgmt-teams').addEventListener('click', (e) => {
-      const btn = e.target.closest('.mgmt-toggle');
+      const btn = /** @type {Element} */ (e.target).closest('.mgmt-toggle');
       if (!btn) return;
       const teamId = parseInt(btn.getAttribute('data-team-id'), 10);
       const kind = btn.getAttribute('data-kind');
@@ -340,7 +352,7 @@ class ManagementPage {
 
   async #toggleTeam(btn, teamId, baseUrl, field, next, onLabel, offLabel) {
     try {
-      await this.#mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
+      await AdminShell.mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
       const team = this.#teams.find((t) => t.teamId === teamId);
       if (team) team[field === 'open' ? 'open' : 'visible'] = next;
       ManagementPage.#setToggle(btn, next, onLabel, offLabel);
@@ -353,8 +365,19 @@ class ManagementPage {
   // --- Maintenance ------------------------------------------------------------------------------------------------
 
   #wireMaintenance() {
-    const run = (id, url, method, label) => {
-      const btn = document.getElementById(id);
+    /**
+     * Wires one maintenance button: confirm, call the endpoint, report in the status region.
+     *
+     * @param {string} id - The button's element id.
+     * @param {string} url - The endpoint to call.
+     * @param {string} method - Its HTTP method.
+     * @param {string} label - The action, as the status line names it.
+     * @param {string | ((result: any) => string)} [done] - What the button reports on success: a trigger that
+     *   answers before its job finishes can't say "Done", and one that answers with its counts hands them to a
+     *   function so the admin need not open the Health panel.
+     */
+    const run = (id, url, method, label, done = `Done: ${label}.`) => {
+      const btn = /** @type {HTMLButtonElement} */ (document.getElementById(id));
       if (!btn) return;
       btn.addEventListener('click', async () => {
         const confirmed = await ConfirmDialog.confirm({
@@ -366,8 +389,8 @@ class ManagementPage {
         btn.disabled = true;
         this.#maintResult(`Running: ${label}…`);
         try {
-          await this.#mutate(url, method);
-          this.#maintResult(`Done: ${label}.`);
+          const result = await AdminShell.mutate(url, method);
+          this.#maintResult(typeof done === 'function' ? done(result) : done);
         } catch (err) {
           this.#maintResult(`Failed: ${label} — ${err.message}`, true);
         } finally {
@@ -377,13 +400,25 @@ class ManagementPage {
     };
     run('mgmt-recalc-stats', this.#urls.recalcStatsUrl, 'GET', 'recalculate user stats');
     run('mgmt-recalc-priority', this.#urls.recalcPriorityUrl, 'GET', 'recalculate street priority');
+    run('mgmt-recalc-validation-counts', this.#urls.recalcValidationCountsUrl, 'POST',
+      'recalculate validation counts');
+    run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops',
+      'Started: generate crops. It runs in the background — the Health panel reports how it ended.');
+    run('mgmt-rebuild-sidewalk-presence', this.#urls.rebuildSidewalkPresenceUrl, 'POST',
+      'rebuild sidewalk presence');
+    run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
+      'Started: refresh places. It runs in the background — the Health panel reports how it ended.');
+    run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
+      'recount street gradient staleness',
+      (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
+        + `${AdminShell.num(counts.streets_stale)} sampled on an older geometry. The Health panel shows the same.`);
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 
   // --- Search -----------------------------------------------------------------------------------------------------
 
   #wireSearch() {
-    const input = document.getElementById('mgmt-user-search');
+    const input = /** @type {HTMLInputElement} */ (document.getElementById('mgmt-user-search'));
     if (!input) return;
     input.addEventListener('input', () => {
       this.#filter = input.value;
@@ -393,32 +428,6 @@ class ManagementPage {
   }
 
   // --- Networking + helpers ---------------------------------------------------------------------------------------
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
-  }
-
-  /**
-   * Fires a mutation request and resolves to the parsed JSON (or {} for empty bodies). Throws an Error carrying the
-   * server's message on a non-2xx response so callers can revert the control and surface why.
-   */
-  async #mutate(url, method, body) {
-    const opts = { method, headers: { Accept: 'application/json' } };
-    if (body !== undefined) {
-      opts.headers['Content-Type'] = 'application/json; charset=utf-8';
-      opts.body = JSON.stringify(body);
-    }
-    const resp = await fetch(url, opts);
-    const text = await resp.text();
-    if (!resp.ok) throw new Error(text || `HTTP ${resp.status}`);
-    try {
-      return text ? JSON.parse(text) : {};
-    } catch {
-      return {};
-    }
-  }
 
   #flash(message, isError = false) {
     this.#setStatus(message, isError, false);
@@ -483,12 +492,6 @@ class ManagementPage {
   static #pctFactor(rows, field) {
     const maxVal = rows.reduce((m, u) => Math.max(m, u[field] || 0), 0);
     return maxVal <= 1 ? 100 : 1;
-  }
-
-  static #ts(iso) {
-    if (!iso) return 0;
-    const t = Date.parse(iso);
-    return isNaN(t) ? 0 : t;
   }
 
   static #date(iso) {

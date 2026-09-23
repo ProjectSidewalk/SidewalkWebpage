@@ -50,7 +50,7 @@ class StreetPriorityTiers {
   /**
    * Classifies one street into a tier from the audit counts the priority formula uses.
    *
-   * @param {{fresh_good_count: number, outdated_good_count: number}} street - A row from /adminapi/streetPriority.
+   * @param {Record<string, any>} street - A row from /adminapi/streetPriority; only its audit counts are read.
    * @returns {string} The tier key.
    */
   static tierFor(street) {
@@ -60,13 +60,19 @@ class StreetPriorityTiers {
     return 'unaudited';
   }
 
-  /** @param {string} key @returns {string} the tier's color, or the fallback if unrecognized. */
+  /**
+   * @param {string} key - A priority tier key.
+   * @returns {string} The tier's color, or the fallback if unrecognized.
+   */
   static colorFor(key) {
     const match = StreetPriorityTiers.TIERS.find((tier) => tier.key === key);
     return match ? match.color : StreetPriorityTiers.FALLBACK;
   }
 
-  /** @param {string} key @returns {string} the tier's label, or the raw key if unrecognized. */
+  /**
+   * @param {string} key - A priority tier key.
+   * @returns {string} The tier's label, or the raw key if unrecognized.
+   */
   static labelFor(key) {
     const match = StreetPriorityTiers.TIERS.find((tier) => tier.key === key);
     return match ? match.label : key;
@@ -112,11 +118,11 @@ class StreetPriorityMap {
   #hoverId = null;
 
   /**
-   * @param {string} containerId - id of the map container element.
-   * @param {{mapboxToken: string, onRegionClick?: function(number): void, onRegionHover?: function(number): void,
-   *          onRegionHoverEnd?: function(): void}} [opts]
+   * @param {string} containerId - ID of the map container element.
+   * @param {{mapboxToken: string, onRegionClick?: (id: number) => void, onRegionHover?: (id: number) => void,
+   *          onRegionHoverEnd?: () => void}} opts
    */
-  constructor(containerId, opts = {}) {
+  constructor(containerId, opts) {
     this.containerId = containerId;
     this.#mapboxToken = opts.mapboxToken;
     this.#onRegionClick = opts.onRegionClick || (() => {});
@@ -127,9 +133,9 @@ class StreetPriorityMap {
   /**
    * Initializes the map and draws the street segments.
    *
-   * @param {object} geojson - FeatureCollection of routable streets, each carrying priority_tier, priority, the audit
+   * @param {GeoJSON.FeatureCollection} geojson - Routable streets, each carrying priority_tier, priority, the audit
    *   counts, and region_id in its properties.
-   * @returns {Promise<void>} resolves once the map's first render is ready.
+   * @returns {Promise<void>} Resolves once the map's first render is ready.
    */
   init(geojson) {
     if (!this.#mapboxToken) throw new Error('StreetPriorityMap: missing Mapbox access token');
