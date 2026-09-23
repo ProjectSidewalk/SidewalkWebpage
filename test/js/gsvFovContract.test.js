@@ -1,7 +1,7 @@
 /**
  * Pins the recorded GSV FOV-vs-aspect measurements (issue #5083) against the projection code in
  * public/js/common/pano-viewer/src/panoUtilities.js. The fixture (test/js/fixtures/gsvFovMeasurements.json)
- * holds focal lengths measured from live GSV rendering by tools/gsv-fov-probe/; its README has the protocol,
+ * holds focal lengths measured from live GSV rendering by test/js/gsv-fov-probe/; its README has the protocol,
  * the regeneration steps, and when a re-record is called for.
  *
  * What this suite catches: a change to panoUtilities.js (or to the width-spanning assumption it encodes) that
@@ -39,7 +39,7 @@ const describeWithFixture = fixture ? describe : describe.skip;
 // curve constant reads ~0.13° low, the same class of error as the zoom-3 one below but a fifth the size),
 // so this carries better than 2x headroom over the measurements while still biting: the hypotheses the probe
 // separated are 5°-50° apart. Per-config it widens to 3 bootstrap sigmas for noisier cells, mirroring
-// VERDICT_INVARIANCE_TOL_DEG's 3-sigma widening in tools/gsv-fov-probe/analyze.mjs.
+// VERDICT_INVARIANCE_TOL_DEG's 3-sigma widening in test/js/gsv-fov-probe/analyze.mjs.
 const CONTRACT_TOL_DEG = 0.35;
 
 // The clamp window the verdict reports, as literals rather than reads of fixture.clamp: a regenerated
@@ -49,7 +49,7 @@ const CLAMP_CEILING_DEG = 89.84;
 const CLAMP_BOUND_TOL_DEG = 0.05;
 
 // The aspect at which each clamp bound starts binding, per zoom — the engineering deliverable #5085 consumes
-// (tools/gsv-fov-probe/README.md, "Where the clamp bites"). Derived from the measured control hFovs and the
+// (test/js/gsv-fov-probe/README.md, "Where the clamp bites"). Derived from the measured control hFovs and the
 // clamp window; pinned here so neither input can drift without this failing.
 const FLOOR_BINDS_AT_ASPECT = {1: 7.59, 2: 3.80, 3: 1.90};
 const CEILING_BINDS_AT_ASPECT = {1: 1.00, 2: 0.50, 3: 0.25};
@@ -101,7 +101,7 @@ function predictedHFov(cfg) {
             return aspect >= 1 ? pano.vFovToHFov(curve, aspect) : curve;
         case 'width-pinned-vfov-clamped': {
             // Width-pinned, but the implied vFov is clamped to the measured [floor, ceiling] window; a
-            // binding bound takes over the pin (see tools/gsv-fov-probe/README.md amendment 2).
+            // binding bound takes over the pin (see test/js/gsv-fov-probe/README.md amendment 2).
             const unclampedV = pano.hFovToVFov(curve, aspect);
             if (unclampedV > CLAMP_CEILING_DEG) return pano.vFovToHFov(CLAMP_CEILING_DEG, aspect);
             if (unclampedV < CLAMP_FLOOR_DEG) return pano.vFovToHFov(CLAMP_FLOOR_DEG, aspect);
@@ -109,7 +109,7 @@ function predictedHFov(cfg) {
         }
         default:
             throw new Error(
-                `Unpinnable verdict "${fixture.verdict}" — regenerate via tools/gsv-fov-probe (see its ` +
+                `Unpinnable verdict "${fixture.verdict}" — regenerate via test/js/gsv-fov-probe (see its ` +
                 'README) and, if the verdict really changed, update this suite and issue #5083.');
     }
 }
@@ -263,11 +263,11 @@ describeWithFixture('GSV FOV contract (recorded fixture, #5083)', () => {
     });
 
     test('the analyzer measures against the same zoomToFov curve the app renders with', () => {
-        // tools/gsv-fov-probe/analyze.mjs keeps its own copy of the curve (it is an ES module run outside
+        // test/js/gsv-fov-probe/analyze.mjs keeps its own copy of the curve (it is an ES module run outside
         // jsdom and cannot load panoUtilities.js). Nothing links the two definitions, and the tracked
         // zoom-3 correction would silently desync them — so compare them here.
         const src = fs.readFileSync(
-            path.resolve(__dirname, '..', '..', 'tools/gsv-fov-probe/analyze.mjs'), 'utf8');
+            path.join(__dirname, 'gsv-fov-probe', 'analyze.mjs'), 'utf8');
         const match = src.match(/const zoomToFov = \(zoom\) =>\s*(\([^;]*?\));/);
         expect(match).not.toBeNull();
         const analyzerCurve = new Function('zoom', `return ${match[1]};`);

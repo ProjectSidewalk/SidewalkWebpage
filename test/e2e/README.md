@@ -153,7 +153,7 @@ during local development** — your edit / `grunt watch` / reload loop is untouc
 
 `fixtures/ci-seed.sql`, applied by this job and by `backend-tests`, and the one definition of what CI's database
 holds: one real Teaneck neighbourhood — its four streets, 33 labels, and the panoramas they sit on — pulled from
-prod with `../../tools/ci_seed_slice.sql` and rebuilt by `../../tools/gen_ci_seed.py`. Real, because a fixture that
+prod with `fixtures/ci_seed_slice.sql` and rebuilt by `fixtures/gen_ci_seed.py`. Real, because a fixture that
 invents its own coordinates and panorama ids can only show that the code runs, not that it runs on the shape of data
 it will meet. Small on purpose: enough that every page renders real content and every backend spec has something to
 read, not a second city dump to maintain. Three things about it shape this suite:
@@ -226,8 +226,8 @@ read, not a second city dump to maintain. Three things about it shape this suite
 | `fixtures/ci-seed.sql` | The CI test city: region, streets, users, labels, missions, panos. Applied by both CI jobs |
 | `fixtures/install-media.sh` | Copies `fixtures/media/` into the app's pano and crop directories |
 | `fixtures/media/` | The seeded labels' real imagery, downscaled: backup panoramas and label crops |
-| `../../tools/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
-| `../../tools/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
+| `fixtures/gen_ci_seed.py` | Regenerates `fixtures/ci-seed.sql` from a prod slice; holds the fixture's invariants |
+| `fixtures/ci_seed_slice.sql` | The read-only prod query the slice comes from (which rows, and why those) |
 | `auth.setup.js` | Registers a throwaway user, saves storageState for registered-user specs |
 | `pages.js` | **The** page table: every anonymous page the suite walks, and how each loads. Adding one here opts it into the smoke tests *and* the accessibility gate |
 | `pages.spec.js` | Table-driven phase-1 anonymous pages |

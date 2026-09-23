@@ -3,7 +3,7 @@
  */
 
 /**
- * Unit tests for the `i18n-escape-in-markup` ESLint rule (tools/eslint-rules/i18n-escape-in-markup.js, #5389).
+ * Unit tests for the `i18n-escape-in-markup` ESLint rule (tools/lint/eslint-rules/i18n-escape-in-markup.js, #5389).
  *
  * The rule is the standing guard on the site-wide `interpolation.escapeValue: false` default: a translated string
  * that interpolates values and lands in an HTML sink has to state its escaping at the call site. These cases pin
@@ -16,7 +16,7 @@
  */
 
 const { RuleTester } = require('eslint');
-const rule = require('../../tools/eslint-rules/i18n-escape-in-markup');
+const rule = require('../../tools/lint/eslint-rules/i18n-escape-in-markup');
 
 const ruleTester = new RuleTester({
     languageOptions: { ecmaVersion: 2022, sourceType: 'script' },

@@ -45,7 +45,7 @@ util.pano.jwtExpiryMs = (token) => {
  * Ranking weights and decay scales for a provider that picks its own pano from a box of candidates.
  *
  * The numbers come from conf/pano-scoring.json by way of the data-pano-scoring stamp main.scala.html puts on every
- * page. They live in that file, not in the viewers, because score_pano() in scripts/check_streets_for_imagery.py has
+ * page. They live in that file, not in the viewers, because score_pano() in tools/city/check_streets_for_imagery.py has
  * to rank Mapillary candidates identically: it records the capture date of the pano we would display, and a street
  * whose recorded date came from a pano we never show is a street we stop flagging as outdated while still serving the
  * old imagery (#4411). Mapillary and Panoramax share every term but the resolution cap, so they share this file too.
@@ -138,7 +138,7 @@ util.pano.hFovToVFov = (horizontalFov, aspect) => {
 };
 
 /**
- * GSV's silent vertical field-of-view clamp, in degrees, measured in #5083 (tools/gsv-fov-probe/README.md, "Verdict").
+ * GSV's silent vertical field-of-view clamp, in degrees, measured in #5083 (test/js/gsv-fov-probe/README.md, "Verdict").
  *
  * GSV spans zoomToFov(zoom) across the container's width at every aspect ratio, except that the vertical field this
  * implies is clamped to this window; when a bound binds, the vertical field pins there and the horizontal one follows
