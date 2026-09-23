@@ -17,9 +17,10 @@ body.svl-immersive .tool-ui {
      zeroing --ribbon-height, which the ribbon and the controls under it still read. */
   --street-view-top: 0px;
 
-  /* The strip is the type circles alone (66px plus their 5px rings, and 4px above and below); the boxed 110px
-     carried the group titles and names. applyToolScale reads this too, so the fit follows. */
-  --ribbon-base-height: 84px;
+  /* The strip is the type circles (66px plus their 5px rings) with a name pill under each (about 20px plus a 3px
+     gap) and 4px above and below; the boxed 110px carried the group titles as well. applyToolScale reads this too,
+     so the fit follows. */
+  --ribbon-base-height: 108px;
 }
 
 /* The screen edge is the frame. */
@@ -31,10 +32,10 @@ body.svl-immersive #pano-border-frame {
   display: none;
 }
 
-/* The label-type ribbon floats over the top-centre of the pano as a strip of the type circles alone, straight on
-   the imagery: mode switching is the core loop, so it stays always-on, and the minimal version is the circles, with
-   no group titles, names, divider or surface. The selected type still reads from its circle's coloured ring and
-   fill, which RibbonMenu sets inline. */
+/* The label-type ribbon floats over the top-centre of the pano as a strip of the type circles, each named by a
+   pill under it, straight on the imagery: mode switching is the core loop, so it stays always-on, and the minimal
+   version has no group titles, divider or surface. The selected type still reads from its circle's coloured ring
+   and fill, which RibbonMenu sets inline. */
 body.svl-immersive #ribbon-menu-holder {
   top: 0;
   left: 50%;
@@ -45,13 +46,28 @@ body.svl-immersive #ribbon-menu-holder {
 }
 
 body.svl-immersive #ribbon-menu-buttons {
-  gap: calc(4px * var(--ui-scale));
+  gap: calc(8px * var(--ui-scale));
 }
 
 body.svl-immersive .ribbon-menu-title-holder,
-body.svl-immersive .label-type-name,
 body.svl-immersive #label-type-divider-major {
   display: none;
+}
+
+/* Each name is a pill in the same family as the overlay controls (asphalt, white text, the same stroke), since the
+   boxed ribbon's plain black text relied on the page's white. One line, sized to its text, centred under the circle;
+   the shortcut letter keeps its underline from the markup. */
+body.svl-immersive .label-type-name {
+  width: fit-content;
+  margin: calc(3px * var(--ui-scale)) auto 0;
+  padding: calc(3px * var(--ui-scale)) calc(8px * var(--ui-scale));
+  font-size: calc(9px * var(--ui-scale));
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--color-neutral-white);
+  background: rgb(from var(--color-asphalt-400) r g b / 85%);
+  border-radius: calc(999px * var(--ui-scale));
+  box-shadow: 0 0 0 1px var(--color-neutral-600);
 }
 
 /* The boxed offset lines the Explore circle up under the titles the other circles have; there are none here. */
@@ -59,14 +75,14 @@ body.svl-immersive #mode-switch-button-walk {
   margin-top: 0;
 }
 
-/* The boxed width made room for a two-line name under each circle. */
+/* The boxed width made room for a two-line name under each circle; here the holder is as wide as its pill or circle. */
 body.svl-immersive .label-type-button-holder {
   width: auto;
 }
 
-/* The Other circle's subcategory popover opened under the name it no longer has, so it clears the circle instead. */
+/* The Other circle's subcategory popover clears the pill under the circle. */
 body.svl-immersive #ribbon-menu-other-subcategory-holder {
-  top: calc(74px * var(--ui-scale));
+  top: calc(100px * var(--ui-scale));
 }
 
 /* The Stuck, speed, zoom and immersive controls keep the boxed layout's top corners (svl-canvas.css); the centred
