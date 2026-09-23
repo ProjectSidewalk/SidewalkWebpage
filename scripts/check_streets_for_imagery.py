@@ -61,11 +61,15 @@ the one ``PanoramaxViewer.#scorePano`` would pick, so its dates carry the mismat
 Search area: every sampled point is queried at ``SEARCH_RADIUS_KM``, the same 25 m the viewer searches, so the scan
 and the tool agree on what counts as imagery at a location. A circle is not quite the right shape for the job — it has
 to be generous *along* the street to clear the provider's capture interval, but everything it also reaches *across*
-the street can accept a pano belonging to an adjacent carriageway or alley. Each street therefore records
-``max_cross_track_m``, the largest distance from the street centerline among the panos it saw, so the threshold for
-rejecting off-street imagery can be read off a real distribution rather than guessed (#5091). GSV's ``radius`` is only
-a hint -- it has answered a 25 m query with a photosphere in another state (#5114) -- so ``within_search_radius`` also
-drops any GSV pano reported beyond the radius of both the query point and the street, rather than trusting Google.
+the street can accept a pano belonging to an adjacent carriageway or alley. So a GSV pano is held to two tests. Along
+the street, ``within_search_radius`` keeps it only within the radius of the query point or of the street (GSV's
+``radius`` is only a hint -- it has answered a 25 m query with a photosphere in another state, #5114). Across it,
+``pano_counts`` counts it only within ``--max-cross-track-m`` of the centerline (``cross_track_m``, measured with the
+street's end segments extended), except near the street's ends, where the nearest pano is often on the crossing
+street. The limit's default and the end zone were measured on Teaneck and Seattle (see ``DEFAULT_CROSS_TRACK_LIMIT_M``).
+Each street records ``max_cross_track_m``, the farthest pano it saw whether or not it counted, and ``--point-log``
+writes every visited point's pano and offsets to ``street_points_<provider>.csv``, which is how the limit was chosen
+and how another provider or city would get one.
 
 Infra3d has no metadata endpoint of its own; the check uses the same nearest-frame query (``framegate``'s
 ``knn/query``) that the vendored Infra3d viewer SDK issues on every ``setLocation``, authenticated with the same
@@ -89,7 +93,8 @@ derived from the checkpoint, so its schema is unchanged.
 
 The pure functions (``create_bounding_box``, ``redistribute_vertices``, ``gsv_has_imagery``, ``mapillary_has_imagery``,
 ``infra3d_pano_info``, ``infra3d_campaigns``, ``standardize_capture_date``, ``gsv_capture_date``, ``score_pano``,
-``best_pano``, ``mapillary_pano_info``, ``cross_track_m``, ``within_search_radius``, ``imagery_verdict``,
+``best_pano``, ``mapillary_pano_info``, ``street_distance_m``, ``cross_track_m``, ``end_distance_m``,
+``within_search_radius``, ``pano_counts``, ``imagery_verdict``,
 ``street_has_no_imagery``, ``summarize_dates``) are import-safe and unit-tested in
 ``test/python/test_check_streets_for_imagery.py``; network and file I/O live in thin wrappers and ``main``.
 
@@ -162,6 +167,8 @@ SUMMARY_FILE = 'db/onboarding/{}/street_imagery_summary.csv'
 CHECKPOINT_FILE = 'db/onboarding/{}/streets_imagery_checkpoint_{}.csv'
 # Streets that still errored after the end-of-run retry, for follow-up.
 FAILED_FILE = 'db/onboarding/{}/failed_streets.csv'
+# Per-point measurements, written only with --point-log (see POINT_COLUMNS).
+POINT_LOG_FILE = 'db/onboarding/{}/street_points_{}.csv'
 # A --sample preflight keeps its files apart from a full scan's, per provider, so sampling several providers never
 # touches the checkpoint a full scan resumes from; the report collects every provider sampled so far.
 PREFLIGHT_DIR = 'db/onboarding/{}/preflight/{}'
@@ -225,6 +232,20 @@ MS_PER_YEAR = 365.25 * 24 * 3600 * 1000
 # interval, or the box can straddle a gap and report no imagery where there is some: Mapillary's smart spacing targets
 # 20 m on highways, and 12.6% of Budapest's consecutive captures exceed 20 m (#5091 collects the measurements).
 SEARCH_RADIUS_KM = 0.025
+# How far off a street's centerline (cross_track_m), in metres, a GSV pano may sit and still count as imagery of it;
+# --max-cross-track-m overrides it. Measured with --point-log on every pano a street's walk visited (#5091): Teaneck,
+# 12,562 panos with no limit, sits at p99 7.5 m / p99.9 18.5 m, and Seattle, 166,279 panos, at p99 6.5 m / p99.9
+# 15.3 m. Mid-block, a car in the outer lane of an arterial stays inside that: Teaneck's trunk roads peak at 11.8 m,
+# and Seattle's primaries reach p99.9 15.8 m. Beyond it are panos of a different roadway: Teaneck street 834's panos
+# sit 20 m off it and 0.7-1.3 m from the parallel street 833, and Seattle's are mostly off-network mid-block alleys
+# 17-25 m out. 15 m leaves arterials their margin and still rejects those. With INTERSECTION_ZONE_M it hides 1 more of
+# Teaneck's 2,172 streets and 10 more of Seattle's 27,645; 12 m would hide 1 and 13, 20 m 0 and 3.
+DEFAULT_CROSS_TRACK_LIMIT_M = 15.0
+# Within this many metres of either end of a street (end_distance_m), a pano counts whatever its cross-track offset.
+# A street's ends are intersections, and there the nearest pano is often on the crossing street. Without the zone, a
+# 10 m limit hid 8 Teaneck streets, all wrongly: each had on-street panos 0.2-4 m off at its other points, and the pano
+# that failed it sat on the crossing street, 0-9 m from the street's end. 10 m is also about GSV's capture interval.
+INTERSECTION_ZONE_M = 10.0
 # How close, in degrees, a walked coordinate must be to a street endpoint to reuse that endpoint's answer (~1 cm). The
 # geom's vertices and the exported x1/y1 come from the same row but not always the same float formatting.
 ENDPOINT_MATCH_DEG = 1e-7
@@ -269,16 +290,24 @@ FAILED = 'failed'
 CAPTURE_DATE_FORMATS = ('%Y-%m-%d', '%Y-%m', '%Y')
 
 CHECKPOINT_COLUMNS = ['street_edge_id', 'region_id', 'outcome', 'oldest_capture', 'newest_capture', 'n_panos',
-                      'max_cross_track_m', 'search_radius_m']
+                      'max_cross_track_m', 'search_radius_m', 'cross_track_limit_m']
 # Columns of the per-street imagery summary output.
 SUMMARY_COLUMNS = ['street_edge_id', 'region_id', 'has_imagery', 'oldest_capture', 'newest_capture', 'n_panos',
                    'max_cross_track_m']
 
 # Outcome of checking one street: its ids, the outcome (NO_IMAGERY / HAS_IMAGERY / FAILED), the imagery capture-date
 # range observed (oldest/newest ISO dates and the number of dated panos seen; empty/0 when no dated imagery was found),
-# the largest street offset among the panos seen, and the search radius the verdict was reached at. The radius rides
-# along in every checkpoint row so a resume can refuse to mix two definitions of "has imagery" (see load_processed).
+# the largest street offset among the panos seen, and the search radius and cross-track limit (0 when none applied) the
+# verdict was reached at. Those two ride along in every checkpoint row so a resume can refuse to mix two definitions of
+# "has imagery" (see load_processed).
 StreetResult = namedtuple('StreetResult', CHECKPOINT_COLUMNS)
+
+# One row per point a street's walk actually visited, endpoints included, for --point-log: where the point was, what
+# the provider answered, how far that pano sat from the query point and from the street, and whether it counted toward
+# the verdict. max_cross_track_m can only say how far the farthest pano *seen* sat; this says which panos decided.
+POINT_COLUMNS = ['street_edge_id', 'lat', 'lng', 'has_imagery', 'pano_lat', 'pano_lng', 'point_distance_m',
+                 'cross_track_m', 'end_distance_m', 'counted', 'capture_date']
+PointRecord = namedtuple('PointRecord', POINT_COLUMNS)
 
 # Imagery seen at one queried location: whether imagery is present, the (standardized) capture date of the pano we
 # would show there, and that pano's own position. The position is what `cross_track_m` measures the street offset
@@ -754,15 +783,41 @@ def _infra3d_value_list(response_json: dict) -> list:
     return value
 
 
+def street_distance_m(street_geom: LineString, pano_lat: float, pano_lng: float) -> float:
+    """
+    Measures how far a pano is from the street: its distance to the nearest point of the centerline, in metres.
+
+    Past either end of the street that nearest point is the endpoint itself, so this grows with how far *along* the
+    street's extension a pano sits; that is what ``within_search_radius`` needs to bound, and what ``cross_track_m``
+    deliberately does not measure.
+
+    Args:
+        street_geom: The street's centerline, in lat/lng degrees.
+        pano_lat:    Latitude of the pano.
+        pano_lng:    Longitude of the pano.
+
+    Returns:
+        Metres from the pano to the nearest point of the centerline.
+    """
+    # The nearest point is found in degree space, where a degree of longitude is shorter than one of latitude, so it
+    # can sit slightly off the true nearest point; the distance to it is then measured geodesically. Over the tens of
+    # metres in play the placement error is centimetres, which is well inside what this measurement is for.
+    nearest = street_geom.interpolate(street_geom.project(Point(pano_lng, pano_lat)))
+    return geodesic((pano_lat, pano_lng), (nearest.y, nearest.x)).meters
+
+
 def cross_track_m(street_geom: LineString, pano_lat: float | None, pano_lng: float | None) -> float | None:
     """
-    Measures how far off the street a pano sits: its distance to the nearest point of the street centerline.
+    Measures how far off the street a pano sits *across* it: its perpendicular distance from the centerline, with the
+    street's end segments extended past its endpoints.
 
     This is the number that decides whether a circular search box is the right shape at all. The radius has to clear
     the provider's capture interval *along* the street, but everything it also reaches *across* the street is a chance
-    to accept a pano belonging to an adjacent carriageway, alley or frontage road — imagery of a different street.
-    Recording the offset per street means the threshold for rejecting those can be read off a real distribution
-    instead of guessed (#5091).
+    to accept a pano belonging to an adjacent carriageway, alley or frontage road — imagery of a different street
+    (#5091). Extending the end segments matters because a street's endpoints sit at intersections: a pano across the
+    intersection is along the street, not beside it, yet its distance to the endpoint reads like a lateral offset. Of
+    the panos more than 8 m from their street's nearest point, 96 of 158 on Teaneck and 298 of 805 on Seattle lay
+    past one of its ends.
 
     Args:
         street_geom: The street's centerline, in lat/lng degrees.
@@ -770,15 +825,82 @@ def cross_track_m(street_geom: LineString, pano_lat: float | None, pano_lng: flo
         pano_lng:    Longitude of the pano.
 
     Returns:
-        Metres from the pano to the centerline, or ``None`` if there is no pano to measure.
+        Metres from the pano to the centerline across the street's direction, or ``None`` if there is no pano.
+
+    Example:
+        >>> street = LineString([(-122.300, 47.60), (-122.299, 47.60)])   # ~75 m due east
+        >>> round(cross_track_m(street, 47.60, -122.2985))              # ~37 m past its eastern end, on its line
+        0
     """
     if pano_lat is None or pano_lng is None:
         return None
-    # The nearest point is found in degree space, where a degree of longitude is shorter than one of latitude, so it
-    # can sit slightly off the true nearest point; the distance to it is then measured geodesically. Over the tens of
-    # metres in play the placement error is centimetres, which is well inside what this measurement is for.
-    nearest = street_geom.interpolate(street_geom.project(Point(pano_lng, pano_lat)))
-    return geodesic((pano_lat, pano_lng), (nearest.y, nearest.x)).meters
+    along = street_geom.project(Point(pano_lng, pano_lat))
+    if 0 < along < street_geom.length:
+        return street_distance_m(street_geom, pano_lat, pano_lng)
+    coords = list(street_geom.coords)
+    (end_lng, end_lat), (next_lng, next_lat) = (coords[0], coords[1]) if along <= 0 else (coords[-1], coords[-2])
+    # Only the angle between the end segment and the line to the pano is taken from a local flat projection (a degree
+    # of longitude scaled by cos(latitude)); the distance it scales is geodesic. Over tens of metres the two agree to
+    # well under a centimetre.
+    scale = math.cos(math.radians(end_lat))
+    segment = ((next_lng - end_lng) * scale, next_lat - end_lat)
+    to_pano = ((pano_lng - end_lng) * scale, pano_lat - end_lat)
+    distance = geodesic((end_lat, end_lng), (pano_lat, pano_lng)).meters
+    norms = math.hypot(*segment) * math.hypot(*to_pano)
+    if norms == 0:
+        return distance
+    return distance * abs(segment[0] * to_pano[1] - segment[1] * to_pano[0]) / norms
+
+
+def end_distance_m(street_geom: LineString, pano_lat: float, pano_lng: float) -> float:
+    """
+    Measures how close to one of the street's ends a pano sits: the distance from the pano's foot on the centerline to
+    the nearer endpoint, and 0 for a pano past either end.
+
+    Args:
+        street_geom: The street's centerline, in lat/lng degrees.
+        pano_lat:    Latitude of the pano.
+        pano_lng:    Longitude of the pano.
+
+    Returns:
+        Metres from the pano's nearest point on the centerline to the nearer endpoint, measured straight rather than
+        along a curve -- it only has to tell an intersection's neighbourhood from the middle of the block.
+    """
+    foot = street_geom.interpolate(street_geom.project(Point(pano_lng, pano_lat)))
+    return min(geodesic((foot.y, foot.x), (lat, lng)).meters
+               for lng, lat in (street_geom.coords[0], street_geom.coords[-1]))
+
+
+def pano_counts(info: PanoInfo, offset_m: float | None, limit_m: float | None, end_m: float | None = None) -> bool:
+    """
+    Decides whether a point's pano is imagery *of this street*: present, and either no farther off the centerline than
+    ``limit_m`` or within ``INTERSECTION_ZONE_M`` of one of the street's ends.
+
+    The ends are exempt because a street's endpoints are intersections, and there the nearest pano is often on the
+    crossing street -- imagery of the intersection this street opens onto, which Explore would show. Without the
+    exemption, every Teaneck street a 10 m limit hid was a short street with on-street panos (0.2-4 m off) at its
+    other points, hidden because one endpoint's pano sat on the crossing street and a failed endpoint tightens the
+    verdict thresholds (see ``imagery_verdict``).
+
+    Args:
+        info:     The ``PanoInfo`` answered for the point.
+        offset_m: The pano's ``cross_track_m`` from the street, or ``None`` if it has no position.
+        limit_m:  The cross-track limit in metres, or ``None`` to count any pano the provider answered with.
+        end_m:    The pano's ``end_distance_m``, or ``None`` if it has no position.
+
+    Returns:
+        ``True`` if the point counts as having imagery toward the street's verdict.
+
+    Example:
+        >>> pano_counts(PanoInfo(True, None, 47.6, -122.3), 22.0, 15.0, end_m=40.0)
+        False
+    """
+    if not info.has_imagery:
+        return False
+    # A pano without a position can't be measured, so it gets the benefit of the doubt, as within_search_radius gives.
+    if limit_m is None or offset_m is None or offset_m <= limit_m:
+        return True
+    return end_m is not None and end_m < INTERSECTION_ZONE_M
 
 
 def imagery_verdict(n_fail: int, n_success: int, n_coords: int, endpoint_failed: bool) -> str | None:
@@ -1004,7 +1126,7 @@ def within_search_radius(info: PanoInfo, lat: float, lng: float, radius_km: floa
         return info
     if geodesic((lat, lng), (info.pano_lat, info.pano_lng)).km <= radius_km:
         return info
-    if street_geom is not None and cross_track_m(street_geom, info.pano_lat, info.pano_lng) <= radius_km * 1000:
+    if street_geom is not None and street_distance_m(street_geom, info.pano_lat, info.pano_lng) <= radius_km * 1000:
         return info
     logger.debug("Rejected pano at (%s, %s) for query (%s, %s): beyond %.0f m of the point and of the street",
                  info.pano_lat, info.pano_lng, lat, lng, radius_km * 1000)
@@ -1059,7 +1181,8 @@ def summarize_dates(dates: Collection[str]) -> tuple[str | None, str | None, int
 
 
 def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url: str, mapillary_url: str,
-                   radius_km: float = SEARCH_RADIUS_KM, infra3d: Infra3dScan | None = None) -> StreetResult:
+                   radius_km: float = SEARCH_RADIUS_KM, infra3d: Infra3dScan | None = None,
+                   cross_track_limit_m: float | None = None, points: list | None = None) -> StreetResult:
     """
     Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
 
@@ -1068,57 +1191,76 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
     scan can continue.
 
     Args:
-        street:           A street row (Series) with ``street_edge_id``, ``region_id``, endpoint x/y, and ``geom``.
-        api:              ``'GSV'``, ``'Mapillary'``, ``'Panoramax'``, or ``'Infra3d'``.
-        fetch:            A ``fetch(url, **kwargs) -> json`` (typically from ``make_fetch``, with retry).
-        gsv_url:       GSV metadata base URL with the search radius baked in (GSV only).
-        mapillary_url: Mapillary images base URL (Mapillary only).
-        radius_km:     How far from a sampled point a pano still counts as imagery for it.
-        infra3d:       An ``Infra3dScan`` (token holder + campaign scope) (Infra3d only).
+        street:              A street row (Series) with ``street_edge_id``, ``region_id``, endpoint x/y, and ``geom``.
+        api:                 ``'GSV'``, ``'Mapillary'``, ``'Panoramax'``, or ``'Infra3d'``.
+        fetch:               A ``fetch(url, **kwargs) -> json`` (typically from ``make_fetch``, with retry).
+        gsv_url:             GSV metadata base URL with the search radius baked in (GSV only).
+        mapillary_url:       Mapillary images base URL (Mapillary only).
+        radius_km:           How far from a sampled point a pano still counts as imagery for it.
+        infra3d:             An ``Infra3dScan`` (token holder + campaign scope) (Infra3d only).
+        cross_track_limit_m: How far off the centerline a pano may sit and still count (see ``pano_counts``), or
+                             ``None`` for no limit.
+        points:              If given, a ``PointRecord`` is appended for every point the walk visits.
 
     Returns:
         A ``StreetResult`` with outcome ``NO_IMAGERY`` / ``HAS_IMAGERY`` / ``FAILED`` and, for settled streets, the
         observed imagery capture-date range and the largest street offset among the panos seen. Those come from the
         responses we already fetch, so the early-exit point sampling means no extra API calls are made.
     """
+    geom = street['geom']
     try:
+        dates, offsets = [], []
+
+        # Measures one point's answer and records its date and offset as a side effect. The offset is recorded
+        # whether or not the pano counts, so max_cross_track_m stays the farthest pano *seen* and a limit can't hide
+        # the evidence of what it rejected; a date is only recorded for a pano that counts, since an off-street pano's
+        # date says nothing about this street's imagery.
+        def settle(lat: float, lng: float, info: PanoInfo) -> bool:
+            offset = cross_track_m(geom, info.pano_lat, info.pano_lng)
+            end = None if offset is None else end_distance_m(geom, info.pano_lat, info.pano_lng)
+            counted = pano_counts(info, offset, cross_track_limit_m, end)
+            if offset is not None:
+                offsets.append(offset)
+            if counted and info.capture_date:
+                dates.append(info.capture_date)
+            if points is not None:
+                distance = None if offset is None else geodesic((lat, lng), (info.pano_lat, info.pano_lng)).meters
+                points.append(PointRecord(int(street.street_edge_id), lat, lng, info.has_imagery, info.pano_lat,
+                                          info.pano_lng, *(None if m is None else round(m, 2)
+                                                           for m in (distance, offset, end)),
+                                          counted, info.capture_date))
+            return counted
+
         first, second = _check_endpoints(street, api, fetch, gsv_url, mapillary_url, radius_km, infra3d)
-        coords = list(street['geom'].coords)
-        dates = [d for d in (first.capture_date, second.capture_date) if d]
-        offsets = [d for d in (cross_track_m(street['geom'], first.pano_lat, first.pano_lng),
-                               cross_track_m(street['geom'], second.pano_lat, second.pano_lng)) if d is not None]
+        first_counts = settle(street.y1, street.x1, first)
+        second_counts = settle(street.y2, street.x2, second)
+        coords = list(geom.coords)
 
         # The walk starts and ends on the endpoints, which were just queried at the same radius. Reuse those answers
         # rather than send identical requests, and skip re-recording their date and offset, which are already counted.
-        endpoint_answers = [((street.x1, street.y1), first), ((street.x2, street.y2), second)]
+        endpoint_answers = [((street.x1, street.y1), first_counts), ((street.x2, street.y2), second_counts)]
 
-        def known_answer(lng: float, lat: float) -> PanoInfo | None:
-            return next((info for (x, y), info in endpoint_answers
+        def known_answer(lng: float, lat: float) -> bool | None:
+            return next((counts for (x, y), counts in endpoint_answers
                          if math.isclose(lng, x, abs_tol=ENDPOINT_MATCH_DEG)
                          and math.isclose(lat, y, abs_tol=ENDPOINT_MATCH_DEG)), None)
 
-        # Yield the per-point has_imagery booleans to the (unchanged) decision function, recording each point's capture
-        # date and street offset as a side effect. Because street_has_no_imagery consumes this lazily and stops at the
-        # verdict, we only fetch — and only measure — the points actually visited.
+        # Yield the per-point booleans to the (unchanged) decision function. Because street_has_no_imagery consumes
+        # this lazily and stops at the verdict, we only fetch — and only measure — the points actually visited.
         def has_imagery_stream() -> Iterator[bool]:
             # `no branch`: street_has_no_imagery settles and stops consuming before this loop is exhausted (for any
             # real street, which has >= 2 points), so the generator is abandoned rather than run to completion.
             for coord in coords:  # pragma: no branch  -- Shapely coords are (x=lng, y=lat).
                 known = known_answer(coord[0], coord[1])
                 if known is not None:
-                    yield known.has_imagery
+                    yield known
                     continue
                 info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_url, radius_km, infra3d,
-                                        street['geom'])
-                if info.capture_date:
-                    dates.append(info.capture_date)
-                offset = cross_track_m(street['geom'], info.pano_lat, info.pano_lng)
-                if offset is not None:
-                    offsets.append(offset)
-                yield info.has_imagery
+                                        geom)
+                yield settle(coord[1], coord[0], info)
 
-        no_imagery = street_has_no_imagery(not first.has_imagery, not second.has_imagery,
-                                           has_imagery_stream(), n_coords=len(coords))
+        no_imagery = street_has_no_imagery(not first_counts, not second_counts, has_imagery_stream(),
+                                           n_coords=len(coords))
         outcome = NO_IMAGERY if no_imagery else HAS_IMAGERY
         oldest, newest, n_panos = summarize_dates(dates)
         # The largest offset, not the mean: the question a threshold answers is whether a street has *any* point whose
@@ -1128,28 +1270,29 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
         logger.warning("Could not check street %s after %d attempts: %s", street.street_edge_id, MAX_ATTEMPTS, err)
         outcome, oldest, newest, n_panos, max_cross_track = FAILED, None, None, 0, None
     return StreetResult(int(street.street_edge_id), int(street.region_id), outcome, oldest, newest, n_panos,
-                        max_cross_track, round(radius_km * 1000, 3))
+                        max_cross_track, round(radius_km * 1000, 3), cross_track_limit_m or 0.0)
 
 
-def load_processed(checkpoint_file: str, search_radius_m: float) -> set[int]:
+def load_processed(checkpoint_file: str, search_radius_m: float, cross_track_limit_m: float = 0.0) -> set[int]:
     """
     Returns the ``street_edge_id`` values already settled in the checkpoint, so a re-run resumes rather than restarts.
 
     Failed streets are left out so they get re-attempted. A checkpoint is only resumable when it was written with the
-    same columns and at the same search radius as this run: rows from another radius carry another definition of "has
-    imagery", and rows with another column count would make the appended file unparseable -- ``finalize_outputs`` and
-    every later run would then fail on it (#5091).
+    same columns, at the same search radius and with the same cross-track limit as this run: rows reached under other
+    settings carry another definition of "has imagery", and rows with another column count would make the appended
+    file unparseable -- ``finalize_outputs`` and every later run would then fail on it (#5091).
 
     Args:
-        checkpoint_file: Path to this city and provider's checkpoint CSV.
-        search_radius_m: The search radius, in metres, this run queries at.
+        checkpoint_file:     Path to this city and provider's checkpoint CSV.
+        search_radius_m:     The search radius, in metres, this run queries at.
+        cross_track_limit_m: The cross-track limit, in metres, this run applies (0 for none).
 
     Returns:
         The settled (non-failed) street ids, or an empty set when there is no checkpoint yet.
 
     Raises:
         CheckpointMismatchError: If the checkpoint's columns differ from ``CHECKPOINT_COLUMNS``, or any row was written
-                                 at a different radius. The message names the file to move or delete.
+                                 at a different radius or limit. The message names the file to move or delete.
     """
     if not os.path.isfile(checkpoint_file):
         return set()
@@ -1158,13 +1301,25 @@ def load_processed(checkpoint_file: str, search_radius_m: float) -> set[int]:
         raise CheckpointMismatchError(
             '%s was written by an older version of this scan (columns %s), so it cannot be resumed. Move or delete it '
             'to rescan this city.' % (checkpoint_file, ', '.join(checkpoint.columns)))
-    radii = set(checkpoint['search_radius_m'].dropna())
-    if any(not math.isclose(radius, search_radius_m) for radius in radii) or checkpoint['search_radius_m'].isna().any():
-        raise CheckpointMismatchError(
-            '%s was written at a search radius of %s m, not %s m, so resuming would mix two definitions of "has '
-            'imagery". Move or delete it, or give this radius its own --city-id.'
-            % (checkpoint_file, '/'.join('%g' % r for r in sorted(radii)) or 'unknown', '%g' % search_radius_m))
+    for column, label, expected in (('search_radius_m', 'search radius', search_radius_m),
+                                    ('cross_track_limit_m', 'cross-track limit', cross_track_limit_m)):
+        values = set(checkpoint[column].dropna())
+        if any(not math.isclose(value, expected) for value in values) or checkpoint[column].isna().any():
+            raise CheckpointMismatchError(
+                '%s was written at a %s of %s m, not %s m, so resuming would mix two definitions of "has imagery". '
+                'Move or delete it, or give this run its own --city-id.'
+                % (checkpoint_file, label, '/'.join('%g' % v for v in sorted(values)) or 'unknown', '%g' % expected))
     return set(checkpoint[checkpoint['outcome'] != FAILED]['street_edge_id'])
+
+
+def append_point_log(records: Iterable[PointRecord], point_log_file: str) -> None:
+    """Appends one street's visited points to the point log (writing the header on first use)."""
+    write_header = not os.path.isfile(point_log_file)
+    with open(point_log_file, 'a', newline='') as handle:
+        writer = csv.writer(handle)
+        if write_header:
+            writer.writerow(POINT_COLUMNS)
+        writer.writerows(list(record) for record in records)
 
 
 def append_checkpoint(result: StreetResult, checkpoint_file: str) -> None:
@@ -1362,6 +1517,12 @@ def main(argv: list[str] | None = None) -> int:
                         help='How far from a sampled point a pano still counts as imagery for it (default: '
                              '%(default)s, matching Explore). Changing it changes which streets are reported as '
                              'having imagery, so give a run at a different radius its own output directory.')
+    parser.add_argument('--max-cross-track-m', type=float, default=DEFAULT_CROSS_TRACK_LIMIT_M, metavar='METERS',
+                        help='GSV only: how far off the street centerline a pano may sit and still count as imagery '
+                             'of the street (default: %(default)s, measured in #5091; 0 turns the limit off).')
+    parser.add_argument('--point-log', action='store_true',
+                        help="Also write every visited point's pano position and street offset to "
+                             'street_points_<provider>.csv, to measure where the panos that decide a verdict sit.')
     args = parser.parse_args(argv)
     if args.sample is not None and args.sample <= 0:
         parser.error('--sample needs a positive number of streets (bare --sample checks %d).' % DEFAULT_SAMPLE)
@@ -1369,7 +1530,17 @@ def main(argv: list[str] | None = None) -> int:
     # 12 m while within_search_radius held its answers to 12.5 m.
     if args.search_radius_m < 1 or args.search_radius_m != int(args.search_radius_m):
         parser.error('--search-radius-m needs a whole number of metres, at least 1.')
+    if args.max_cross_track_m < 0:
+        parser.error('--max-cross-track-m needs a distance of 0 (off) or more.')
     api = 'GSV' if args.gsv else 'Mapillary' if args.mapillary else 'Panoramax' if args.panoramax else 'Infra3d'
+    # The limit is GSV's alone. It was measured on Google's car-mounted captures, and GSV answers with the one pano the
+    # viewer would open there. Mapillary's answer is reduced to the viewer's pick by score_pano: holding that pick to
+    # the limit would hide points where an on-street runner-up exists, and filtering candidates before scoring would
+    # record a date the viewer never shows (#4411). Mapillary and Panoramax are also captured on foot and by bike, off
+    # the roadway, so a limit measured on cars would reject their sidewalk captures. Infra3d answers with its nearest
+    # frame as GSV does, but no Infra3d city has been measured. --point-log records every provider's offsets, so each
+    # can be given a limit of its own from its own distribution (#5091).
+    cross_track_limit_m = (args.max_cross_track_m or None) if api == 'GSV' else None
     # One shared rate limiter caps total request rate across all worker threads.
     fetch = make_fetch(rate_limiter=RateLimiter(args.max_qps))
 
@@ -1409,9 +1580,9 @@ def main(argv: list[str] | None = None) -> int:
         os.makedirs(scan_dir, exist_ok=True)
     else:
         scan_dir = os.path.dirname(input_path)
-    checkpoint_path, output_path, failed_path, summary_path = (
+    checkpoint_path, output_path, failed_path, summary_path, point_log_path = (
         os.path.join(scan_dir, os.path.basename(template.format(args.city_id, provider)))
-        for template in (CHECKPOINT_FILE, OUTPUT_FILE, FAILED_FILE, SUMMARY_FILE))
+        for template in (CHECKPOINT_FILE, OUTPUT_FILE, FAILED_FILE, SUMMARY_FILE, POINT_LOG_FILE))
 
     if not os.path.isfile(input_path):
         print(f"Couldn't find {input_path} — export this city's street_edge endpoints there first "
@@ -1429,7 +1600,7 @@ def main(argv: list[str] | None = None) -> int:
         # --seed or N) would otherwise accumulate into it, and the outputs are derived from the whole checkpoint.
         if checkpoint_ids(checkpoint_path) - set(street_data['street_edge_id']):
             print('A previous %s preflight sampled different streets; starting this sample fresh.' % api)
-            for path in (checkpoint_path, output_path, failed_path, summary_path):
+            for path in (checkpoint_path, output_path, failed_path, summary_path, point_log_path):
                 with contextlib.suppress(FileNotFoundError):
                     os.remove(path)
     street_data = street_data.sort_values(by=['region_id', 'street_edge_id'])
@@ -1446,14 +1617,19 @@ def main(argv: list[str] | None = None) -> int:
     checkpoint_lock = threading.Lock()
 
     def check_and_record(street: pd.Series) -> StreetResult:
-        result = process_street(street, api, fetch, gsv_url, mapillary_url, args.search_radius_m / 1000, infra3d)
-        with checkpoint_lock:  # process_street does no file I/O; only the checkpoint append needs serializing.
+        points = [] if args.point_log else None
+        result = process_street(street, api, fetch, gsv_url, mapillary_url, args.search_radius_m / 1000, infra3d,
+                                cross_track_limit_m, points)
+        with checkpoint_lock:  # process_street does no file I/O; only the file appends need serializing.
+            # A failed street is rescanned from scratch, so its partial walk would only be logged twice.
+            if points is not None and result.outcome != FAILED:
+                append_point_log(points, point_log_path)
             append_checkpoint(result, checkpoint_path)
         return result
 
     # Resume: skip streets already settled in the checkpoint; failed/unprocessed streets are (re)checked.
     try:
-        processed = load_processed(checkpoint_path, args.search_radius_m)
+        processed = load_processed(checkpoint_path, args.search_radius_m, cross_track_limit_m or 0.0)
     except CheckpointMismatchError as err:
         print(err)
         return 1

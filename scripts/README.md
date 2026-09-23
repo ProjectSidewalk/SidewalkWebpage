@@ -135,24 +135,56 @@ consecutive captures exceed 20 m.
 
 A circle is not quite the right shape for the job, though: it has to be generous *along* the street to clear that
 interval, but everything it also reaches *across* the street is a chance to accept a pano belonging to an adjacent
-carriageway, alley or frontage road — imagery of a different street. So each street records `max_cross_track_m`, the
-largest distance from its centerline among the panos it saw. Once a scan has produced that distribution, the
-threshold for rejecting off-street imagery can be read off real data rather than guessed. The measurements and the
-plan are in #5091.
+carriageway, alley or frontage road — imagery of a different street. So a GSV pano has to pass two tests before it
+counts toward a street's verdict:
 
-GSV's `radius` parameter is a search hint, not a bound. A 25 m query has returned a pano 77 m away, and in Seattle a
-user photosphere in another state (#5114); a 15 m scan accepted the same far panos. So the scan checks the position each
-GSV response reports, and treats a pano as no imagery at that point when it lies beyond the search radius of both the
-point and the street's own centerline. The street half matters: a pano more than 25 m further down the same street is
-still imagery of it, and a point-only check hid six Teaneck streets that way. Explore's own viewer does not yet make
-that check, so it can still open such a pano (#5114). Mapillary and Panoramax already filter to the box server-side, and
-Infra3d applies its radius client-side.
+- **Along the street:** GSV's `radius` parameter is a search hint, not a bound. A 25 m query has returned a pano 77 m
+  away, and in Seattle a user photosphere in another state (#5114); a 15 m scan accepted the same far panos. So the
+  scan treats a pano as no imagery when it lies beyond the search radius of both the query point and the street's own
+  centerline. The street half matters: a pano more than 25 m further down the same street is still imagery of it, and
+  a point-only check hid six Teaneck streets that way. Explore's own viewer does not yet make that check, so it can
+  still open such a pano (#5114).
+- **Across the street:** the pano must sit within `--max-cross-track-m` (default **15 m**) of the centerline, measured
+  perpendicular to the street and with its end segments extended, so a pano across the intersection at a street's end
+  reads as along the street rather than beside it. Panos within 10 m of either end of the street are exempt, because
+  a street's ends are intersections and the nearest pano there is often on the crossing street.
 
-`--search-radius-m` (whole metres) turns that knob, which is how the two radii get compared on a real city. Changing
-it changes which streets count as having imagery, so every checkpoint row records the radius it was checked at, and
-the scan refuses to resume a checkpoint written at another radius or by an older version of the scan. Give each
-radius its own `--city-id` (and so its own `db/onboarding/<city-id>/` dir), or move that provider's
+Both numbers were measured, not picked (#5091), from the panos each street's walk actually visited, recorded with
+`--point-log` (below):
+
+| | Teaneck (2,172 streets) | Seattle (27,645 streets) |
+| --- | --- | --- |
+| panos measured | 12,562 | 166,279 |
+| cross-track p50 / p99 / p99.9 | 1.6 / 7.5 / 18.5 m | 0.9 / 6.5 / 15.3 m |
+| widest arterial, mid-block | trunk, max 11.8 m | primary, p99.9 15.8 m |
+| streets hidden, no limit | 26 | 287 |
+| more hidden at 10 / 12 / **15** / 18 / 20 m | 1 / 1 / **1** / 1 / 0 | 21 / 13 / **10** / 6 / 3 |
+
+Below 15 m, the limit starts cutting into lane offsets on wide arterials. Beyond it are panos of another roadway:
+Teaneck street 834's panos sit 20 m off it and 0.7–1.3 m from the parallel street 833, and most of Seattle's are
+off-network mid-block alleys 17–25 m out. The end zone is there because, without it, a 10 m limit hid 8 Teaneck
+streets, all wrongly. Each had on-street panos at its other points, and one endpoint's pano sat on the crossing street.
+
+The limit applies to GSV only. It was measured on Google's car-mounted captures, and a GSV response is the one pano
+the viewer would open. Mapillary and Panoramax are also captured on foot and by bike, off the roadway, so a car's
+limit would reject their sidewalk captures. For Mapillary, holding the viewer's pick (`score_pano`) to the limit would
+hide points that have an on-street runner-up, and filtering the candidates before scoring would record a date the
+viewer never shows (#4411). Infra3d answers with its nearest frame as GSV does, but no Infra3d city has been measured.
+`--point-log` works for every provider, so each one's limit can come from its own distribution.
+
+Each street's `max_cross_track_m` in the summary is the farthest pano it saw, counted or not, so a street hidden by
+the limit still shows why.
+
+`--search-radius-m` (whole metres) and `--max-cross-track-m` (`0` turns the limit off) are the knobs these
+comparisons turn. Changing either changes which streets count as having imagery, so every checkpoint row records both,
+and the scan refuses to resume a checkpoint written with other values or by an older version of the scan. Give each
+setting its own `--city-id` (and so its own `db/onboarding/<city-id>/` dir), or move that provider's
 `streets_imagery_checkpoint_<provider>.csv` aside between runs.
+
+`--point-log` also writes `street_points_<provider>.csv`: one row per point a street's walk visited, with the pano the
+provider answered, its distance from the query point (`point_distance_m`), from the centerline (`cross_track_m`) and
+from the nearer street end (`end_distance_m`), and whether it `counted`. That is the distribution the numbers above
+came from.
 
 ### Resilience & resume
 
