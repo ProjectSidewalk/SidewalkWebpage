@@ -98,14 +98,11 @@ body.svl-immersive #explore-sidebar {
   z-index: 2;
 }
 
-body.svl-immersive #minimap-holder {
-  box-shadow: var(--box-shadow-lg);
-}
-
 /* In a height:auto column the minimap's flex: 1 1 auto; min-height: 0 would collapse it, so give it its square back. */
 body.svl-immersive #minimap-holder {
   flex: 0 0 auto;
   height: var(--sidebar-width);
+  box-shadow: var(--box-shadow-lg);
 }
 
 /* The route-guidance message shares the bottom-right corner with the card in the boxed layout, so step it left. */
