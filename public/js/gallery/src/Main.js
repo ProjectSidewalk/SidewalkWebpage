@@ -47,10 +47,12 @@ class Main {
     // Region names for the cards' location line, keyed by the region id each label carries.
     sg.regionNames = params.regionNames ?? {};
 
-    // Initialize functional components of UI elements.
+    // Initialize functional components of UI elements. Review-list mode (#5444) renders neither the sidebar nor the
+    // reset, so both lookups come back null; GalleryFilter is still built, because it owns the address bar and the
+    // filter state CardContainer reads, and it runs sidebar-less.
     sg.cardFilter = new GalleryFilter(
       document.getElementById('card-filter'),
-      /** @type {HTMLButtonElement} */ (document.getElementById('clear-filters')),
+      /** @type {?HTMLButtonElement} */ (document.getElementById('clear-filters')),
       params.initialFilters,
     );
     sg.cardContainer = await CardContainer.create(

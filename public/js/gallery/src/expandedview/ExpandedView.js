@@ -7,7 +7,8 @@
  * Construct instances via the `static async create()` factory, which initializes LabelDetail before resolving.
  */
 class ExpandedView {
-  static #cardsPerPage = 9;
+  // The page size is the card container's, read back on every use rather than copied: it differs between the
+  // filtered grid and a review list (#5444), and a stale copy here would page past or repeat a label.
   static #unselectedCardClassName = 'expanded-view-background-card';
 
   #uiModal;
@@ -281,7 +282,8 @@ class ExpandedView {
 
     if (sg.cardContainer.isLastPage()) {
       const page = sg.cardContainer.getCurrentPage();
-      const lastCardIndex = (page - 1) * ExpandedView.#cardsPerPage + sg.cardContainer.getCurrentPageCards().length - 1;
+      const lastCardIndex
+        = (page - 1) * sg.cardContainer.getCardsPerPage() + sg.cardContainer.getCurrentPageCards().length - 1;
       if (this.cardIndex === lastCardIndex && this.rightArrow) this.rightArrow.disabled = true;
     }
   }
@@ -318,7 +320,7 @@ class ExpandedView {
   nextLabel(keyboardShortcut) {
     sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
     const page = sg.cardContainer.getCurrentPage();
-    if (this.cardIndex < page * ExpandedView.#cardsPerPage - 1) {
+    if (this.cardIndex < page * sg.cardContainer.getCardsPerPage() - 1) {
       this.#updateExpandedViewCardByIndex(this.cardIndex + 1);
     } else {
       this.cardIndex += 1;
@@ -334,7 +336,7 @@ class ExpandedView {
   previousLabel(keyboardShortcut) {
     sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
     const page = sg.cardContainer.getCurrentPage();
-    if (this.cardIndex > (page - 1) * ExpandedView.#cardsPerPage) {
+    if (this.cardIndex > (page - 1) * sg.cardContainer.getCardsPerPage()) {
       this.#updateExpandedViewCardByIndex(this.cardIndex - 1);
     } else {
       this.cardIndex -= 1;
@@ -353,7 +355,7 @@ class ExpandedView {
     const page = sg.cardContainer.getCurrentPage();
     const totalCards = sg.cardContainer.getCurrentCards().getSize();
     galleryCard.scrollIntoView({
-      block: (index < page * ExpandedView.#cardsPerPage - 1 && index < totalCards - 1) ? 'center' : 'end',
+      block: (index < page * sg.cardContainer.getCardsPerPage() - 1 && index < totalCards - 1) ? 'center' : 'end',
       behavior: 'smooth',
     });
 

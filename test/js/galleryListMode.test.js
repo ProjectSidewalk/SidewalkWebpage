@@ -22,8 +22,10 @@ const CARD_CONTAINER_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/cards
 const EXPANDED_VIEW_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/expandedview/ExpandedView.js'), 'utf8');
 
 const LIST_IDS = [42, 7, 19];
-/** A list longer than one 9-card page, so paging and the page-boundary handoff are exercised. */
-const LONG_LIST = [101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112];
+/** Exactly one list-mode page (12), so the boundary between "one page" and "two" is pinned from both sides. */
+const FULL_PAGE = [201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212];
+/** One card past a page, so paging and the page-boundary handoff are exercised. */
+const LONG_LIST = [...FULL_PAGE, 213, 214, 215];
 
 describe('the Gallery in review-list mode', () => {
     beforeAll(() => {
@@ -38,23 +40,16 @@ describe('the Gallery in review-list mode', () => {
 
     describe('the sidebar and the address bar', () => {
         /**
-         * Builds a GalleryFilter over the list-mode sidebar, which renders no filter sections at all.
+         * Builds a GalleryFilter the way list mode does: with no sidebar and no reset in the page at all. It is
+         * still constructed, because it owns the address bar and the filter state CardContainer reads.
+         *
          * @param {number[]} labelIds The review list the page was opened with.
          * @returns {GalleryFilter} The filter under test.
          */
         function build(labelIds) {
-            document.body.innerHTML = `
-              <div class="gallery-filter-header gallery-filter-header--list">
-                <h4 id="filter-header">Label List</h4>
-                <button type="button" id="clear-filters" hidden><span>Clear Filters</span></button>
-              </div>
-              <div id="card-filter"><div class="gallery-list-panel"></div></div>`;
+            document.body.innerHTML = '<div class="gallery-list-bar"></div>';
             window.sg = { tracker: { push: jest.fn() }, cardContainer: { updateCardsByFilter: jest.fn() } };
-            return new window.GalleryFilter(
-                document.getElementById('card-filter'),
-                document.getElementById('clear-filters'),
-                { regionIds: [], aiValidationOptions: [], labelIds },
-            );
+            return new window.GalleryFilter(null, null, { regionIds: [], aiValidationOptions: [], labelIds });
         }
 
         beforeEach(() => {
@@ -73,10 +68,21 @@ describe('the Gallery in review-list mode', () => {
             expect(window.location.pathname + window.location.search).toBe('/gallery?labelIds=42,7,19');
         });
 
-        it('leaves the reset hidden, since there is nothing to reset', () => {
-            build(LIST_IDS);
+        it('answers the empty default for every filter it has no controls for', () => {
+            const filter = build(LIST_IDS);
 
-            expect(document.getElementById('clear-filters').hidden).toBe(true);
+            // CardContainer asks for all of these on the paths list mode shares with the filtered grid, so each
+            // has to have an answer rather than throwing on the missing sidebar.
+            expect(filter.getStatus().currentLabelTypes).toEqual([]);
+            expect(filter.getAppliedSeverities()).toEqual([]);
+            expect(filter.getAppliedValidationOptions()).toEqual([]);
+            expect(filter.getAppliedTagsByType()).toEqual({});
+            expect(filter.getAppliedTagNames()).toEqual([]);
+            expect(() => {
+                filter.disable();
+                filter.enable();
+                filter.clearFilters();
+            }).not.toThrow();
         });
 
         it('keeps a ?labelId= deep link alongside the list', () => {
@@ -148,10 +154,15 @@ describe('the Gallery in review-list mode', () => {
             // A bare URL: the real ExpandedView reads ?labelId= on construction, and the suite above leaves one set.
             window.history.replaceState({}, '', '/gallery');
             document.body.innerHTML = `
-              <p id="gallery-list-count">Showing 3 labels, in the order given.</p>
+              <p id="gallery-list-count" data-requested="3">3 labels</p>
               <p id="gallery-list-truncated" data-dropped="100" data-max="500">100 ids were past the limit.</p>
               <p id="gallery-list-error" hidden>The list couldn't be loaded.</p>
-              <div id="gallery-list-unavailable" hidden><ul class="gallery-list-panel__ids"></ul></div>
+              <div aria-live="polite">
+                <details id="gallery-list-unavailable" hidden>
+                  <summary id="gallery-list-unavailable-heading"></summary>
+                  <ul class="gallery-list-bar__ids" tabindex="0"></ul>
+                </details>
+              </div>
               <div class="gallery-expanded-view">
                 <button class="label-detail__paging label-detail__paging--prev"></button>
                 <span class="label-detail__position" hidden></span>
@@ -268,7 +279,19 @@ describe('the Gallery in review-list mode', () => {
 
             const unavailable = document.getElementById('gallery-list-unavailable');
             expect(unavailable.hidden).toBe(false);
+            expect(unavailable.querySelector('summary').textContent)
+                .toBe('gallery:list-unavailable:{"count":1}');
             expect([...unavailable.querySelectorAll('li')].map((li) => li.textContent)).toEqual(['#7']);
+        });
+
+        it('says both numbers once the list came back short, and only one when it did not', async () => {
+            await listContainer([42, 19], [7]);
+            expect(document.getElementById('gallery-list-count').textContent)
+                .toBe('gallery:list-count-partial:{"shown":2,"count":3}');
+
+            await listContainer(LIST_IDS, []);
+            expect(document.getElementById('gallery-list-count').textContent)
+                .toBe('gallery:list-count:{"count":3}');
         });
 
         it('restates the truncation notice with the numbers the server wrote onto it', async () => {
@@ -296,9 +319,8 @@ describe('the Gallery in review-list mode', () => {
             expect(document.getElementById('gallery-list-error').hidden).toBe(false);
             // "No matches, start exploring" is the filtered grid's copy; a failed request is not an empty list.
             expect(sg.labelsNotFound.show).not.toHaveBeenCalled();
-            // The count the server rendered still stands, rather than being rewritten to "Showing 0 labels".
-            expect(document.getElementById('gallery-list-count').textContent)
-                .toBe('Showing 3 labels, in the order given.');
+            // The count the server rendered still stands, rather than being rewritten to "0 labels".
+            expect(document.getElementById('gallery-list-count').textContent).toBe('3 labels');
         });
 
         describe('paging a list longer than one page', () => {
@@ -309,14 +331,29 @@ describe('the Gallery in review-list mode', () => {
                 container = await listContainer(LONG_LIST, [], LONG_LIST);
             });
 
+            // A list page holds twelve, not the filtered grid's nine (#5444), and the container is the one place
+            // that knows which — ExpandedView reads it back rather than keeping a copy that could disagree.
+            it('holds twelve cards to a page, and says so once', () => {
+                expect(container.getCardsPerPage()).toBe(12);
+            });
+
+            it('fits exactly one page when the list is exactly a page long', async () => {
+                const full = await listContainer(FULL_PAGE, [], FULL_PAGE);
+
+                expect(full.getCurrentPage()).toBe(1);
+                expect(full.isLastPage()).toBe(true);
+                expect(full.getCurrentPageCards()).toHaveLength(12);
+            });
+
             it('knows where the last page ends', () => {
-                expect(container.getListSize()).toBe(12);
+                expect(container.getListSize()).toBe(15);
                 expect(container.getCurrentPage()).toBe(1);
-                expect(container.isLastPage()).toBe(false); // 12 cards, 9 per page.
+                expect(container.isLastPage()).toBe(false); // 15 cards, 12 per page.
 
                 sg.ui.cardContainer.nextPage.handlers.click({});
                 expect(container.getCurrentPage()).toBe(2);
-                expect(container.isLastPage()).toBe(true); // Cards 10-12.
+                expect(container.isLastPage()).toBe(true); // Cards 13-15.
+                expect(container.getCurrentPageCards()).toHaveLength(3);
                 expect(requests).toHaveLength(1); // Still no second query.
 
                 sg.ui.cardContainer.prevPage.handlers.click({});
@@ -326,8 +363,8 @@ describe('the Gallery in review-list mode', () => {
 
             it('hands a card on the next page to the expanded view across the page turn', async () => {
                 const view = container.getExpandedView();
-                view.updateCardIndex(8); // Last card of page 1.
-                expect(positionText()).toBe('gallery:list-position:{"k":9,"n":12}');
+                view.updateCardIndex(11); // Last card of page 1.
+                expect(positionText()).toBe('gallery:list-position:{"k":12,"n":15}');
 
                 view.nextLabel(false);
                 await flush();
@@ -335,23 +372,23 @@ describe('the Gallery in review-list mode', () => {
                 // The arrow ran out of page, so it set a pending index and clicked through; the new page's render is
                 // what opens it. Landing on the wrong card here is how a review queue silently skips a label.
                 expect(container.getCurrentPage()).toBe(2);
-                expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[9]);
-                expect(positionText()).toBe('gallery:list-position:{"k":10,"n":12}');
+                expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[12]);
+                expect(positionText()).toBe('gallery:list-position:{"k":13,"n":15}');
 
                 view.previousLabel(false);
                 await flush();
                 expect(container.getCurrentPage()).toBe(1);
-                expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[8]);
-                expect(positionText()).toBe('gallery:list-position:{"k":9,"n":12}');
+                expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[11]);
+                expect(positionText()).toBe('gallery:list-position:{"k":12,"n":15}');
             });
 
             it('jumps a deep link to its card on a later page', async () => {
-                expect(container.jumpToLabel(LONG_LIST[10])).toBe(true);
+                expect(container.jumpToLabel(LONG_LIST[13])).toBe(true);
                 await flush();
 
                 expect(container.getCurrentPage()).toBe(2);
-                expect(container.getExpandedView().getReferenceCard().getLabelId()).toBe(LONG_LIST[10]);
-                expect(positionText()).toBe('gallery:list-position:{"k":11,"n":12}');
+                expect(container.getExpandedView().getReferenceCard().getLabelId()).toBe(LONG_LIST[13]);
+                expect(positionText()).toBe('gallery:list-position:{"k":14,"n":15}');
                 expect(requests).toHaveLength(1);
             });
 
@@ -359,7 +396,7 @@ describe('the Gallery in review-list mode', () => {
                 expect(container.jumpToLabel(LONG_LIST[2])).toBe(true);
 
                 expect(container.getCurrentPage()).toBe(1);
-                expect(positionText()).toBe('gallery:list-position:{"k":3,"n":12}');
+                expect(positionText()).toBe('gallery:list-position:{"k":3,"n":15}');
             });
 
             it('reports a label the list does not hold, so the caller can fall back', () => {
@@ -368,16 +405,16 @@ describe('the Gallery in review-list mode', () => {
 
             it('reopens a ?labelId= deep link by its place in the list, not just by id', async () => {
                 const view = container.getExpandedView();
-                view.initialUrlLabelId = LONG_LIST[10]; // What #init reads off the URL on a real load.
+                view.initialUrlLabelId = LONG_LIST[13]; // What #init reads off the URL on a real load.
 
                 view.restoreFromUrl();
                 await flush();
 
                 // Opened by index, so it has a reference card and paging carries on through the list; the old
                 // by-id path left cardIndex at -1 and restarted from the first card.
-                expect(view.cardIndex).toBe(10);
-                expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[10]);
-                expect(positionText()).toBe('gallery:list-position:{"k":11,"n":12}');
+                expect(view.cardIndex).toBe(13);
+                expect(view.getReferenceCard().getLabelId()).toBe(LONG_LIST[13]);
+                expect(positionText()).toBe('gallery:list-position:{"k":14,"n":15}');
             });
         });
     });

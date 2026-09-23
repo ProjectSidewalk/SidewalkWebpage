@@ -8,7 +8,12 @@ class CardContainer {
   // The number of labels to grab from database on initial page load.
   static #initialLoad = 30;
 
-  static #cardsPerPage = 9;
+  // Cards per page, by mode. Review-list mode has no sidebar, so its grid runs full width and falls to four, three
+  // and two columns as the window narrows; twelve fills every one of those evenly, where nine leaves a ragged row
+  // on four. The filtered grid sits beside the 275px sidebar and never reaches four columns, so it keeps nine.
+  static #listCardsPerPage = 12;
+
+  static #filteredCardsPerPage = 9;
 
   #uiCardContainer;
   #initialFilters;
@@ -122,7 +127,7 @@ class CardContainer {
             return;
           }
           this.#currentCards = new CardBucket(newCards);
-          this.#lastPage = this.#currentCards.getSize() <= this.#currentPage * CardContainer.#cardsPerPage;
+          this.#lastPage = this.#currentCards.getSize() <= this.#currentPage * this.getCardsPerPage();
           CardContainer.#renderListCount(this.#currentCards.getSize());
           CardContainer.#renderListTruncated();
           CardContainer.#renderUnavailableIds(unavailableLabelIds);
@@ -142,7 +147,7 @@ class CardContainer {
         undefined,
         () => {
           this.#currentCards = this.#collectCurrentCards(filters);
-          this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
+          this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * this.getCardsPerPage();
           this.render();
         },
       );
@@ -392,7 +397,7 @@ class CardContainer {
 
     // The list is fully loaded, so paging within it is pure arithmetic — never another query.
     if (this.#listMode) {
-      this.#lastPage = this.#currentCards.getSize() <= this.#currentPage * CardContainer.#cardsPerPage;
+      this.#lastPage = this.#currentCards.getSize() <= this.#currentPage * this.getCardsPerPage();
       this.render();
       return;
     }
@@ -409,11 +414,11 @@ class CardContainer {
 
     this.#currentCards = this.#collectCurrentCards(filters);
 
-    if (this.#currentCards.getSize() < CardContainer.#cardsPerPage * this.#currentPage + 1) {
+    if (this.#currentCards.getSize() < this.getCardsPerPage() * this.#currentPage + 1) {
       // When we don't have enough cards of specific query to show on one page, see if more can be grabbed.
       this.fetchLabels(
         filters.types,
-        CardContainer.#cardsPerPage * 2,
+        this.getCardsPerPage() * 2,
         filters.valOptions,
         Array.from(this.#loadedLabelIds),
         this.#initialFilters.regionIds,
@@ -423,7 +428,7 @@ class CardContainer {
         undefined,
         () => {
           this.#currentCards = this.#collectCurrentCards(filters);
-          this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * CardContainer.#cardsPerPage;
+          this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * this.getCardsPerPage();
           this.render();
         },
       );
@@ -537,11 +542,11 @@ class CardContainer {
    * @returns {Card[]} Array of cards from the current page.
    */
   getCurrentPageCards() {
-    let idx = (this.#currentPage - 1) * CardContainer.#cardsPerPage;
+    let idx = (this.#currentPage - 1) * this.getCardsPerPage();
     const cardBucket = this.#currentCards.getCards();
 
     const currentPageCards = [];
-    while (idx < this.#currentPage * CardContainer.#cardsPerPage && idx < cardBucket.length) {
+    while (idx < this.#currentPage * this.getCardsPerPage() && idx < cardBucket.length) {
       currentPageCards.push(cardBucket[idx]);
       idx++;
     }
@@ -559,6 +564,19 @@ class CardContainer {
 
   getExpandedView() {
     return this.#expandedView;
+  }
+
+  /**
+   * How many cards a page holds, which depends on the mode and so has to be asked for rather than assumed.
+   *
+   * The single source for every consumer — this container's page math, and ExpandedView's paging and position
+   * indicator. Two copies of this number disagreeing is a review queue that skips or repeats a label at each page
+   * boundary, which looks like nothing at all until someone audits the results.
+   *
+   * @returns {number} Cards per page in the mode this container is in.
+   */
+  getCardsPerPage() {
+    return this.#listMode ? CardContainer.#listCardsPerPage : CardContainer.#filteredCardsPerPage;
   }
 
   /** @returns {boolean} Whether the page is showing an explicit `?labelIds=` review list (#5444). */
@@ -587,7 +605,7 @@ class CardContainer {
     if (index < 0) return false;
 
     this.#expandedView.pendingCardIndex = index;
-    const page = Math.floor(index / CardContainer.#cardsPerPage) + 1;
+    const page = Math.floor(index / this.getCardsPerPage()) + 1;
     if (page === this.#currentPage) {
       // This page's cards are already rendered (render() is what calls restoreFromUrl), so open it right away.
       this.#expandedView.onPageCardsRendered();
@@ -599,16 +617,21 @@ class CardContainer {
   }
 
   /**
-   * Writes the review list's size into the sidebar panel, replacing the count the page was rendered with.
+   * Writes the review list's size into the strip, replacing the count the page was rendered with.
    *
-   * The server-rendered number is how many ids were *asked for*; this is how many came back, which is lower when the
-   * city doesn't have one of them or its imagery is gone.
+   * The server-rendered number is how many ids were *asked for*; this is how many came back. A list that came back
+   * whole just says how many labels there are; a short one says both numbers, so the gap is on screen rather than
+   * only inside the unavailable disclosure.
    *
    * @param {number} shown - How many labels the list is showing.
    */
   static #renderListCount(shown) {
     const countEl = document.getElementById('gallery-list-count');
-    if (countEl) countEl.textContent = i18next.t('gallery:list-count', { count: shown });
+    if (!countEl) return;
+    const requested = Number(countEl.dataset.requested);
+    countEl.textContent = shown < requested
+      ? i18next.t('gallery:list-count-partial', { shown, count: requested })
+      : i18next.t('gallery:list-count', { count: shown });
   }
 
   /**
@@ -616,6 +639,7 @@ class CardContainer {
    *
    * Both numbers come off the element the server wrote them onto — how many ids were dropped, and the cap that
    * dropped them — so the limit is never a frontend literal. A list that fits the cap renders no such element.
+   * (The strip's other lines are static text and localize themselves through `data-i18n`.)
    */
   static #renderListTruncated() {
     const truncatedEl = document.getElementById('gallery-list-truncated');
@@ -632,22 +656,28 @@ class CardContainer {
   }
 
   /**
-   * Lists the requested ids the server could not serve, so a short list reads as explained rather than broken.
+   * Fills the strip's unavailable disclosure, so a short list reads as explained rather than broken.
+   *
+   * Behind a disclosure rather than inline: the usual case is that every id came back, and a reviewer who needs to
+   * chase the ones that didn't is the only one who wants a few hundred numbers on screen.
+   *
    * @param {number[]|undefined} labelIds - The unavailable ids, in the order they were requested.
    */
   static #renderUnavailableIds(labelIds) {
-    const container = document.getElementById('gallery-list-unavailable');
-    if (!container) return;
-    const list = container.querySelector('.gallery-list-panel__ids');
-    if (!list || !labelIds || labelIds.length === 0) {
-      container.hidden = true;
+    const disclosure = document.getElementById('gallery-list-unavailable');
+    if (!disclosure) return;
+    const list = disclosure.querySelector('.gallery-list-bar__ids');
+    const summary = disclosure.querySelector('summary');
+    if (!list || !summary || !labelIds || labelIds.length === 0) {
+      disclosure.hidden = true;
       return;
     }
+    summary.textContent = i18next.t('gallery:list-unavailable', { count: labelIds.length });
     list.replaceChildren(...labelIds.map((labelId) => {
       const item = document.createElement('li');
       item.textContent = `#${labelId}`;
       return item;
     }));
-    container.hidden = false;
+    disclosure.hidden = false;
   }
 }

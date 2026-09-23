@@ -191,6 +191,19 @@ describe('GalleryFilter', () => {
             expect(currentUrl()).toBe('/gallery?labelType=CurbRamp,Crosswalk,Obstacle&labelId=123');
         });
 
+        it('runs with no sidebar in the page at all, still writing the URL', () => {
+            // Review-list mode renders neither the sidebar nor the reset (#5444), but this class still owns the
+            // address bar, so it has to construct and keep working against nothing.
+            window.history.replaceState({}, '', '/gallery?labelIds=5,6&labelId=6');
+            buildFixture();
+            const filter = new window.GalleryFilter(null, null, {
+                regionIds: [], aiValidationOptions: [], labelIds: [5, 6],
+            });
+
+            expect(currentUrl()).toBe('/gallery?labelIds=5,6&labelId=6');
+            expect(filter.getStatus().currentLabelTypes).toEqual([]);
+        });
+
         it('does not treat a deep link as a filter worth offering to clear', () => {
             window.history.replaceState({}, '', '/gallery?labelId=123');
             build();

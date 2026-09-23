@@ -566,12 +566,9 @@ gallery.all = Tous les types d''étiquettes
 gallery.labels.not.found = Aucun résultat. <a href="/explore">Commencez à explorer</a> pour contribuer plus de données !
 gallery.cards = Les étiquettes sont triées aléatoirement selon les filtres sélectionnés
 gallery.clear.filters = Effacer les filtres
-gallery.list.heading = Liste d''étiquettes
-gallery.list.count = Affichage de {0,choice,1#1 étiquette|1<{0} étiquettes}, dans l''ordre indiqué.
-gallery.list.hint = Pour enregistrer une relecture, modifiez l''étiquette si nécessaire, puis votez « D''accord ». Une étiquette inchangée ne laisse aucune trace par elle-même.
+gallery.list.count = {0,choice,1#1 étiquette|1<{0} étiquettes}
 gallery.list.truncated = {0,choice,1#1 identifiant dépassait|1<{0} identifiants dépassaient} la limite de {1} et n''a pas pu être chargé.
 gallery.list.error = La liste n''a pas pu être chargée. Rechargez la page pour réessayer.
-gallery.list.unavailable = Étiquettes indisponibles
 gallery.list.show.all = Afficher toutes les étiquettes
 
 routebuilder.name = RouteBuilder

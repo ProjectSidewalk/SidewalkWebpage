@@ -108,6 +108,74 @@
   visibility: hidden;
 }
 
+/* Review-list mode (#5444). With no sidebar the grid runs full width — four columns on a desktop, which is why a
+   page holds twelve — and everything the list has to say about itself sits in this one strip above it. One line
+   while there is nothing unusual to report; it wraps to more as the notices below appear. */
+.gallery-list-bar {
+  display: flex;
+
+  /* flex-start, not center: an opened disclosure grows its own box instead of stretching the whole strip. */
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 4px 0 12px;
+}
+
+.gallery-list-bar__count {
+  margin: 0;
+  font: var(--text-body-medium);
+  color: var(--color-neutral-black);
+
+  /* Matches the disclosure summary and the button beside it, so the strip reads as one line of text. */
+  line-height: 24px;
+}
+
+.gallery-list-bar__summary {
+  font: var(--text-body-regular);
+  line-height: 24px;
+  color: var(--color-asphalt-500);
+  cursor: pointer;
+}
+
+.gallery-list-bar__summary:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+}
+
+.gallery-list-bar__ids {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  font: var(--text-small-regular);
+  color: var(--color-asphalt-500);
+
+  /* An opened list of a few hundred ids must not push the card grid off the screen. */
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+/* The list is a focusable scroll region (see gallery.scala.html), so it needs a focus ring of its own — it is not a
+   control, so it inherits none. */
+.gallery-list-bar__ids:focus-visible {
+  outline: 2px solid var(--color-asphalt-400);
+  outline-offset: 2px;
+}
+
+/* The two lines that say the list isn't what was asked for: one cut off at the cap, and one that failed to load at
+   all. Both read as warnings rather than as part of the ordinary strip copy. */
+.gallery-list-bar__truncated,
+.gallery-list-bar__error {
+  margin: 0;
+  font: var(--text-small-medium);
+  line-height: 24px;
+  color: var(--color-error-300); /* The contrast-safe error token; -200 fails AA on white. */
+}
+
+/* Pushed to the end of the strip: it leaves the list, so it shouldn't sit among the lines describing it. */
+.gallery-list-bar__show-all {
+  margin-left: auto;
+}
+
 .cards {
   display: grid;
 
@@ -154,6 +222,17 @@ We should allow the pointer events to pass through and behave the same way as th
   /* Resolves against the initial containing block, which the stacked sidebar now overlaps. */
   #labels-not-found-text {
     position: static;
+  }
+
+  /* Stacked, so each notice gets its own line and the action isn't pushed to a far edge nothing else reaches. */
+  .gallery-list-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gallery-list-bar__show-all {
+    margin-left: 0;
+    align-self: flex-start;
   }
 
   /* Full-screen sheet below the navbar (and test banner). dvh tracks the visible viewport under mobile

@@ -121,14 +121,30 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       pageLabelIds(galleryPage()) mustBe empty
     }
 
-    "replace the filter sidebar with the list panel, rather than rendering both" in {
+    // The list named the cards, so there is nothing left to filter and the grid takes the whole width. Rendering
+    // the sidebar hidden instead would leave the grid three columns wide for no reason a reader could see.
+    "render no sidebar at all in list mode, and the strip instead" in {
       val listPage = galleryPage("?labelIds=8,3")
-      listPage must include("gallery-list-panel")
+      listPage must not include """class="sidebar""""
+      listPage must not include """id="card-filter""""
       listPage must not include "gallery-filter-sections"
+      listPage must include("gallery-list-bar")
+      listPage must include("""id="gallery-list-count"""")
+    }
 
+    // /gallery?labelIds= is a sharing URL as much as a review queue, so the strip carries no heading and no
+    // instructions about how to run a review pass.
+    "leave the review hint and the mode heading off the list page" in {
+      val listPage = galleryPage("?labelIds=8,3")
+      listPage must not include "gallery:list-hint"
+      listPage must not include "gallery:list-heading"
+    }
+
+    "still render the filter sidebar, and no strip, without a list" in {
       val filteredPage = galleryPage()
+      filteredPage must include("""id="card-filter"""")
       filteredPage must include("gallery-filter-sections")
-      filteredPage must not include "gallery-list-panel"
+      filteredPage must not include "gallery-list-bar"
     }
 
     "cap a label list at MaxLabelIds rather than trusting its length" in {
@@ -151,8 +167,14 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     // The server-rendered count is what a reviewer reads before the cards land, so its plural has to be right then
     // — i18next only takes over once the card query returns.
     "render the count with the plural the number calls for" in {
-      galleryPage("?labelIds=8") must include("Showing 1 label,")
-      galleryPage("?labelIds=8,3") must include("Showing 2 labels,")
+      galleryPage("?labelIds=8") must include(">1 label<")
+      galleryPage("?labelIds=8,3") must include(">2 labels<")
+    }
+
+    // The client turns this into "N of M" once it knows how many came back, so M has to reach it without the
+    // client re-parsing the URL the server already parsed.
+    "carry the requested count to the client for the partial-count wording" in {
+      galleryPage("?labelIds=8,3,5") must include("""data-requested="3"""")
     }
 
     "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
