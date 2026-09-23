@@ -2059,6 +2059,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _lb.userId === userId &&               // Only include the given user's labels.
         _vc._3 =!= userId &&                    // Exclude any cases where the user may have validated their own label.
         _vc._2 === ValidationOption.Disagree && // Only times when users validated as incorrect.
+        _us.excluded === false &&               // Don't use validations from excluded users
         _us.highQuality === true &&             // For now, we only include validations from high quality users.
         _pd.expired === false &&                // Only include those with non-expired imagery.
         _lb.correct.isDefined && _lb.correct === false && // Exclude outlier validations on a correct label.
@@ -2488,7 +2489,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     // Combine all conditions.
     val whereClause  = ("TRUE" +: whereConditions).mkString(" AND ")
-    val contributors = if (filters.highQualityUserOnly) Contributors.HighQualityOnly else Contributors.NotExcluded
+    val contributors = Contributors(filters.highQualityUserOnly)
 
     // Create a plain SQL query as a string and execute it.
     sql"""
@@ -2575,7 +2576,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       launchDate: String,
       avgRecentLabels: Option[OffsetDateTime]
   ): DBIO[ProjectSidewalkStats] = {
-    val contributors = if (filterLowQuality) Contributors.HighQualityOnly else Contributors.NotExcluded
+    val contributors = Contributors(filterLowQuality)
     val userFilter   = FilteredTables.contributorFilter(contributors)
 
     // The validation stats are reported three ways: combined (all votes), human (non-AI votes), and ai (AI votes).
@@ -3068,7 +3069,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
-    val contributors = if (filterLowQuality) Contributors.HighQualityOnly else Contributors.NotExcluded
+    val contributors = Contributors(filterLowQuality)
     val whereClauses = scala.collection.mutable.ListBuffer("TRUE")
     startDate.foreach(d => whereClauses += s"label.time_created >= '$d'::date")
     endDate.foreach(d => whereClauses += s"label.time_created < ('$d'::date + INTERVAL '1 day')")

@@ -124,7 +124,9 @@ class StreetEdgeTable @Inject() (
     .join(userStats)
     .on(_.userId === _.userId)
     .filter { case (t, u) => t.completed && !u.excluded }
-  val countedAuditTasks = countedAuditTasksWithUsers.map(_._1)
+  // Written as "no excluded row" so it uses the tiny index of excluded users (evolution 404), not all of user_stat.
+  val countedAuditTasks =
+    auditTasks.filter(t => t.completed && !userStats.filter(u => u.userId === t.userId && u.excluded).exists)
 
   val completedAuditTasksWithUsers = countedAuditTasksWithUsers.join(streets).on(_._1.streetEdgeId === _.streetEdgeId)
   val completedAuditTasks          = completedAuditTasksWithUsers.map(_._1._1)

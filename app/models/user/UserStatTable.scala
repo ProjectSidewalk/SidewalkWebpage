@@ -200,6 +200,7 @@ class UserStatTableDef(tag: Tag) extends Table[UserStat](tag, "user_stat") {
 
   def user       = foreignKey("user_stat_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def userUnique = index("user_stat_user_id_key", userId, unique = true)
+  // The DB also has user_stat_excluded_user_id_idx, an index of just the excluded users. Slick can't declare it.
 }
 
 @ImplementedBy(classOf[UserStatTable])
@@ -1139,7 +1140,7 @@ class UserStatTable @Inject() (
     }
 
     val contributorSql =
-      FilteredTables.contributorFilter(if (highQualityOnly) Contributors.HighQualityOnly else Contributors.NotExcluded)
+      FilteredTables.contributorFilter(Contributors(highQualityOnly))
 
     // Add in the task completion logic.
     val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
@@ -1191,7 +1192,7 @@ class UserStatTable @Inject() (
     val minLabelsClause = minLabels.map(min => s"AND COALESCE(label_counts.labels, 0) >= $min").getOrElse("")
     val minMetersClause = minMetersExplored.map(min => s"AND user_stat.meters_audited >= $min").getOrElse("")
     val contributorSql  =
-      FilteredTables.contributorFilter(if (highQualityOnly) Contributors.HighQualityOnly else Contributors.NotExcluded)
+      FilteredTables.contributorFilter(Contributors(highQualityOnly))
     val minAccuracyClause =
       minAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
 

@@ -168,14 +168,22 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   private def schemaHasValidationLabelType(schema: String): DBIO[Boolean] =
     if (schemasWithValidationLabelType.contains(schema)) DBIO.successful(true)
     else
-      sql"""
-        SELECT EXISTS (
-          SELECT 1 FROM information_schema.columns
-          WHERE table_schema = '#$schema' AND table_name = 'label_validation' AND column_name = 'label_type'
-        )""".as[Boolean].head.map { hasColumn =>
+      columnExists(schema, "label_validation", "label_type").map { hasColumn =>
         if (hasColumn) schemasWithValidationLabelType.add(schema)
         hasColumn
       }
+
+  /**
+   * Whether a city's schema has this column yet. Some cities may not have run the newest evolution.
+   *
+   * @return True if the column exists.
+   */
+  private def columnExists(schema: String, tableName: String, column: String): DBIO[Boolean] =
+    sql"""
+      SELECT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_schema = $schema AND table_name = $tableName AND column_name = $column
+      )""".as[Boolean].head
 
   // Only a "yes" is cached, like schemasOnLabelTypeEnum.
   private val schemasWithValidationLabelType = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
@@ -264,12 +272,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               SELECT COUNT(*) FROM #${FilteredTables.votesCast(Some(schema))}
           ) + (
               SELECT COUNT(*)
-              FROM "#$schema".voided_label_validation
-              WHERE #${FilteredTables.userCounts(
-          Some(schema),
-          "voided_label_validation.user_id",
-          Contributors.NotExcluded
-        )}
+              FROM #${FilteredTables.voidedVotesCast(Some(schema))}
           ) AS validation_count
       ) AS total_val_count;
     """
@@ -297,8 +300,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * A "contributor" is a non-excluded user who added at least one non-tutorial label OR validated at least one label
    * (including votes since voided by the #4842 repair — the participation happened). The arms read the same
-   * [[FilteredTables]] fragments as `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count` subqueries, so
-   * the contributing set is consistent with `total_labels` / `total_validations`. The `UNION` dedupes
+   * [[FilteredTables]] fragments as `getCityAggregateDataBySchema`'s `label_counts` and `total_val_count` subqueries,
+   * so the contributing set is consistent with `total_labels` / `total_validations`. The `UNION` dedupes
    * within this city; cross-city dedup (by the global `user_id`) is done by the caller, which unions these id sets
    * across schemas. Returns ids (not a count) precisely so that caller-side cross-schema dedup is possible.
    *
@@ -314,8 +317,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       FROM #${FilteredTables.votesCast(Some(schema))}
       UNION
       SELECT voided_label_validation.user_id
-      FROM "#$schema".voided_label_validation
-      WHERE #${FilteredTables.userCounts(Some(schema), "voided_label_validation.user_id", Contributors.NotExcluded)};
+      FROM #${FilteredTables.voidedVotesCast(Some(schema))};
     """.as[String]
 
   /**
@@ -446,16 +448,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     // filter on the column existing so unmigrated schemas fall back to counting every completed audit instead of
     // erroring out their whole scorecard. Once every deployed schema has the column this gate (and the branch in
     // coreQuery) can go away -- tracked in #4705.
-    //
-    // Unlike the `"#$schema".table` splices below, which have to be raw because an identifier can't be a bind
-    // parameter, this one compares against a plain string column, so bind it properly.
-    val upToDateFilterQuery =
-      sql"""
-        SELECT EXISTS (
-            SELECT FROM information_schema.columns
-            WHERE table_schema::text = $schema AND table_name = 'audit_task' AND column_name = 'outdated_imagery'
-        );
-      """.as[Boolean].head
+    val upToDateFilterQuery = columnExists(schema, "audit_task", "outdated_imagery")
 
     def coreQuery(upToDateFilter: String, labelTypeSql: LabelTypeSql, hasValidationLabelType: Boolean) = {
       sql"""
@@ -547,8 +540,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           -- not the agree/disagree verdict columns — those verdicts were cast against an off-target marker, so they
           -- are kept as study material and deliberately left out of the agreement signal.
           SELECT COUNT(*) AS cnt
-          FROM "#$schema".voided_label_validation
-          WHERE #${FilteredTables.userCounts(Some(schema), "voided_label_validation.user_id", Contributors.NotExcluded)}
+          FROM #${FilteredTables.voidedVotesCast(Some(schema))}
       ) AS voided_val_counts, (
           SELECT COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '7 days')  AS audits_7d,
                  COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '30 days') AS audits_30d
@@ -570,12 +562,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               -- arms above: the archive is human-only by construction.
               UNION
               SELECT voided_label_validation.user_id AS contributor_id
-              FROM "#$schema".voided_label_validation
-              WHERE #${FilteredTables.userCounts(
-          Some(schema),
-          "voided_label_validation.user_id",
-          Contributors.NotExcluded
-        )}
+              FROM #${FilteredTables.voidedVotesCast(Some(schema))}
           ) AS contributor_union
       ) AS active_contributors, (
           -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
@@ -1015,7 +1002,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       schema: String,
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
-    val contributors = if (filterLowQuality) Contributors.HighQualityOnly else Contributors.NotExcluded
+    val contributors = Contributors(filterLowQuality)
 
     implicit val getResult: GetResult[(LocalDate, String, Int, Int)] =
       GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
@@ -1054,7 +1041,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       schema: String,
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
-    val contributors = if (filterLowQuality) Contributors.HighQualityOnly else Contributors.NotExcluded
+    val contributors = Contributors(filterLowQuality)
 
     implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
       GetResult(r =>

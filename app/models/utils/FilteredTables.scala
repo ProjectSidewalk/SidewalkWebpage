@@ -13,6 +13,9 @@ object Contributors {
 
   /** Everyone, excluded users included, e.g. a user's own dashboard. */
   case object Everyone extends Contributors
+
+  /** For a high-quality-only toggle like the API's `filterLowQuality`. */
+  def apply(highQualityOnly: Boolean): Contributors = if (highQualityOnly) HighQualityOnly else NotExcluded
 }
 
 /**
@@ -47,7 +50,11 @@ object FilteredTables {
   def userCounts(schema: Option[String], userIdColumn: String, contributors: Contributors): String =
     contributors match {
       case Contributors.Everyone => "TRUE"
-      case _                     =>
+      // Written as "no excluded row" so it uses the tiny index of excluded users (evolution 404).
+      case Contributors.NotExcluded =>
+        s"NOT EXISTS (SELECT 1 FROM ${table(schema, "user_stat")} AS user_stat " +
+          s"WHERE user_stat.user_id = $userIdColumn AND user_stat.excluded)"
+      case Contributors.HighQualityOnly =>
         s"EXISTS (SELECT 1 FROM ${table(schema, "user_stat")} AS user_stat " +
           s"WHERE user_stat.user_id = $userIdColumn AND ${contributorFilter(contributors)})"
     }
@@ -72,7 +79,7 @@ object FilteredTables {
              AND label.tutorial = FALSE
              AND label.street_edge_id <> $tutorialStreet
              AND audit_task.street_edge_id <> $tutorialStreet
-             AND ${userCounts(schema, "label.user_id", contributors)}
+             AND ${userCounts(schema, "audit_task.user_id", contributors)}
        ) AS label"""
   }
 
@@ -157,4 +164,18 @@ object FilteredTables {
          FROM ${table(schema, "label_validation")} AS label_validation
          WHERE ${userCounts(schema, "label_validation.user_id", contributors)}
        ) AS label_validation"""
+
+  /**
+   * Votes voided by the #4842 repair, from users who count. The votes no longer decide anything, but the work still
+   * happened, so activity totals include them.
+   *
+   * @param schema A city schema to read instead of the current one.
+   * @return       A subquery for a FROM or JOIN clause.
+   */
+  def voidedVotesCast(schema: Option[String] = None): String =
+    s"""(
+         SELECT voided_label_validation.*
+         FROM ${table(schema, "voided_label_validation")} AS voided_label_validation
+         WHERE ${userCounts(schema, "voided_label_validation.user_id", Contributors.NotExcluded)}
+       ) AS voided_label_validation"""
 }

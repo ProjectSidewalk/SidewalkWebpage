@@ -1,7 +1,6 @@
 package models.label
 
 import models.user.UserStatTable
-import models.utils.FilteredTables
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -137,8 +136,8 @@ class ValidationRecountSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
 
         _                 <- userStatTable.updateAccuracyForLabelersValidatedBy(v1)
         storedValidated   <- sql"SELECT own_labels_validated FROM user_stat WHERE user_id = $labeler".as[Int].head
-        expectedValidated <- sql"""SELECT COUNT(*) FROM #${FilteredTables.accuracyLabels}
-                                   WHERE user_id = $labeler AND correct IS NOT NULL""".as[Int].head
+        expectedValidated <-
+          labelTable.labelsForAccuracy.filter(l => l.userId === labeler && l.correct.isDefined).length.result
 
         // A user none of whose labels v1 voted on; flipping their flag shows whether the update reached them.
         bystander <- sql"""SELECT user_id FROM user_stat

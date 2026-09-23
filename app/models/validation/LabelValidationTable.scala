@@ -549,7 +549,7 @@ class LabelValidationTable @Inject() (
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
-    val contributors = if (filterLowQuality) Contributors.HighQualityOnly else Contributors.NotExcluded
+    val contributors = Contributors(filterLowQuality)
     val whereClauses = scala.collection.mutable.ListBuffer("label.deleted = FALSE")
     startDate.foreach(d => whereClauses += s"label_validation.end_timestamp >= '$d'::date")
     endDate.foreach(d => whereClauses += s"label_validation.end_timestamp < ('$d'::date + INTERVAL '1 day')")
