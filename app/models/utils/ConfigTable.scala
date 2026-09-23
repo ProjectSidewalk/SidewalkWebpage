@@ -580,10 +580,15 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
           WHERE user_stat.excluded
       ) AS low_quality, (
+          -- ORDER BY ... LIMIT 1 rather than MAX, so each arm reads its time index backwards and stops at the first hit.
           SELECT GREATEST(
-              (SELECT MAX(time_created)  FROM "#$schema".label),
-              (SELECT MAX(end_timestamp) FROM "#$schema".label_validation),
-              (SELECT MAX(task_end)      FROM "#$schema".audit_task)
+              (SELECT label.time_created FROM #${CountedSql.labels(Some(schema))}
+               ORDER BY label.time_created DESC LIMIT 1),
+              (SELECT label_validation.end_timestamp FROM #${CountedSql.votesCast(Some(schema))}
+               ORDER BY label_validation.end_timestamp DESC LIMIT 1),
+              (SELECT audit_task.task_end FROM #${CountedSql.completedAudits(Some(schema))}
+               WHERE audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+               ORDER BY audit_task.task_end DESC NULLS LAST LIMIT 1)
           ) AS ts
       ) AS last_activity;
     """.as[ScorecardCore].head
@@ -953,6 +958,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               SELECT (timestamp - LAG(timestamp, 1) OVER (PARTITION BY user_id ORDER BY timestamp)) AS diff
               FROM "#$schema".audit_task_interaction_small
               INNER JOIN "#$schema".mission ON audit_task_interaction_small.mission_id = mission.mission_id
+              WHERE #${CountedSql.userCounts(Some(schema), "mission.user_id", Contributors.NotExcluded)}
           ) time_diffs
           WHERE diff < '00:05:00' AND diff > '00:00:00'
       ) AS audit_time, (

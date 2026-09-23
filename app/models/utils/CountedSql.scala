@@ -46,7 +46,7 @@ object CountedSql {
   }
 
   /** Whether a user's work counts, looked up by id so the query needs no `user_stat` join of its own. */
-  private def userCounts(schema: Option[String], userIdColumn: String, contributors: Contributors): String =
+  def userCounts(schema: Option[String], userIdColumn: String, contributors: Contributors): String =
     contributors match {
       case Contributors.NotExcluded =>
         s"NOT EXISTS (SELECT 1 FROM ${table(schema, "user_stat")} AS user_stat " +
