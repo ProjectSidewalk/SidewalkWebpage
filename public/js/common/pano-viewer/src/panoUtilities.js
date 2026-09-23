@@ -138,7 +138,7 @@ util.pano.hFovToVFov = (horizontalFov, aspect) => {
 };
 
 /**
- * GSV's silent vertical field-of-view clamp, in degrees, measured in #5083 (tools/gsv-fov-probe/README.md, "Verdict").
+ * GSV's silent vertical field-of-view clamp, in degrees, measured in #5083 (test/js/gsv-fov-probe/README.md, "Verdict").
  *
  * GSV spans zoomToFov(zoom) across the container's width at every aspect ratio, except that the vertical field this
  * implies is clamped to this window; when a bound binds, the vertical field pins there and the horizontal one follows
