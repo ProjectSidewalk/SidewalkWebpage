@@ -75,7 +75,7 @@ body.svl-immersive #ribbon-menu-other-subcategory-holder {
 body.svl-immersive .pano-overlay-button,
 body.svl-immersive .zoom-button,
 body.svl-immersive .speed-limit-sign {
-  box-shadow: 0 0 0 1px var(--color-neutral-300);
+  box-shadow: 0 0 0 1px var(--color-neutral-600);
 }
 
 body.svl-immersive #alert-holder {
