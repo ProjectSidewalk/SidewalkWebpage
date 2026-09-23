@@ -175,8 +175,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
   }
 
   /**
-   * The labels a funnel counts as "placed a real label". Excluded users are kept, like everywhere else in the funnels:
-   * dropping only their labels would show them quitting at that step rather than leaving them out.
+   * Labels for the funnel's "placed a label" step. Keeps excluded users, or they'd look like they quit there.
    *
    * @return A subquery for a FROM clause.
    */

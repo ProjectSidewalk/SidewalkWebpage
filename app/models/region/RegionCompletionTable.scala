@@ -89,10 +89,8 @@ class RegionCompletionTable @Inject() (
         .result
         .head
 
-      // Only streets that count toward total_distance can hold the region back: the tutorial street and closed or
-      // imagery-less streets sit at priority 1.0 forever, so counting them would block the 100% snap below. The
-      // street being audited is skipped too, since its priority update runs separately in partiallyUpdatePriority;
-      // without that, the last street in a region always looks un-audited here and the snap never fires.
+      // Only open, non-tutorial streets can hold a region back; the others never lose priority 1.0. The street being
+      // audited is skipped too, since its priority updates separately and would always look unfinished here.
       regionIncomplete: Boolean <- streetEdgeRegion
         .join(streetEdgeTable.streets)
         .on(_.streetEdgeId === _.streetEdgeId)

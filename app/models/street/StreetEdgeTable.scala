@@ -119,7 +119,7 @@ class StreetEdgeTable @Inject() (
   val streetsWithTutorial = streetsUnfiltered.filter(_.status === StreetEdgeStatus.Open)
   val streets             = streetsWithTutorial.filterNot(_.streetEdgeId in tutorialStreetId)
 
-  // Completed audits by users who aren't excluded, on any street. The Slick twin of CountedSql.completedAudits.
+  // Completed audits by non-excluded users, on any street (twin of CountedSql.completedAudits).
   val countedAuditTasksWithUsers = auditTasks
     .join(userStats)
     .on(_.userId === _.userId)

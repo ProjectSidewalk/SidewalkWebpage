@@ -36,8 +36,7 @@ trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
   protected def now: OffsetDateTime = OffsetDateTime.now.truncatedTo(ChronoUnit.MILLIS)
 
   /**
-   * A throwaway mapper with no work anywhere, so their street set is exactly what a case seeds. Gets the `user_stat`
-   * row every signed-in user gets on their first request to a city.
+   * A throwaway mapper with no work yet, plus the `user_stat` row every real user gets on their first visit.
    */
   protected def insertUser(): DBIO[String] = {
     val userId = UUID.randomUUID.toString

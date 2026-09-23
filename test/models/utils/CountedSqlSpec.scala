@@ -12,12 +12,8 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, StreetFixtures}
 
 /**
- * The shared "what counts" SQL fragments (#5287): each keeps exactly what its Slick twin keeps, and the queries built
- * on them drop what they should. Runs against the connected database, every seeded case inside a rolled-back
- * transaction.
- *
- * Seeded labels borrow an existing label's mission and pano for their foreign keys, so a schema without any label
- * (CI's) cancels those cases rather than failing them.
+ * The shared "what counts" SQL (#5287) keeps exactly what its Slick twin keeps. Seeded cases are rolled back, and
+ * are skipped on a database with no labels to borrow ids from (CI's).
  */
 class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
@@ -29,7 +25,7 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
   private lazy val auditTaskTable: AuditTaskTable   = app.injector.instanceOf[AuditTaskTable]
 
   /**
-   * Seeds a label on a street, filed under the given audit so the tutorial-street check sees the seeded street.
+   * Seeds a label on a street, under the given audit.
    *
    * @return The new label_id.
    */
@@ -61,7 +57,7 @@ class CountedSqlSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
            FROM label
            WHERE label.label_id = $labelId"""
 
-  /** What's in one set but not the other, a few of each, so a mismatch reads as ids rather than two huge sets. */
+  /** Up to 10 ids from each side that the other lacks, so a failure is readable. */
   private def differences(slick: Seq[Int], raw: Seq[Int]): (Seq[Int], Seq[Int]) = {
     val (slickSet, rawSet) = (slick.toSet, raw.toSet)
     ((slickSet -- rawSet).toSeq.sorted.take(10), (rawSet -- slickSet).toSeq.sorted.take(10))

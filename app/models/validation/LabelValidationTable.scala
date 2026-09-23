@@ -534,8 +534,8 @@ class LabelValidationTable @Inject() (
    * administratively excluded users are removed; when true, only high_quality users are included.
    *
    * validation_result is compared via ::text cast to support both integer and validation_option enum
-   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure'). Each vote is filed under the type it
-   * judged, which differs from the label's current type if the label was retyped since.
+   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure'). Votes are grouped by the type they
+   * judged.
    *
    * @param startDate        Inclusive lower bound on end_timestamp (Pacific date); no bound if None.
    * @param endDate          Inclusive upper bound on end_timestamp; no bound if None.

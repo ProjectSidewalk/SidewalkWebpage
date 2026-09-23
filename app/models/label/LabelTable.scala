@@ -2398,7 +2398,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       filters: RawLabelFiltersForApi
   ): SqlStreamingAction[Vector[LabelDataForApi], LabelDataForApi, Effect] = {
     // TODO convert to Slick syntax now that we can use .makeEnvelope, .within, and array aggregation.
-    // The caller's filters. Which labels count at all is handled by CountedSql.labels below.
     var whereConditions = Seq.empty[String]
 
     // Apply filter precedence logic for location filters:
@@ -2520,8 +2519,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
       INNER JOIN user_stat ON label.user_id = user_stat.user_id
       LEFT JOIN (
-          -- Only the votes that count toward the verdict, so the list adds up to agree/disagree/unsure_count. EXISTS,
-          -- not a join, so it can never repeat a vote.
+          -- Only votes that count, so the list adds up to agree/disagree/unsure_count.
           SELECT label_validation.label_id,
                  json_agg(json_build_object(
                    'user_id', label_validation.user_id,
@@ -3070,8 +3068,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   /**
    * Recounts agree/disagree/unsure counts and `correct` on labels from their validations.
    *
-   * Must match the live counting in `ValidationService`: only votes passing `CountedSql.isVerdictVote` count, and a
-   * tie leaves `correct` empty. Only changed rows are written.
+   * Must match `ValidationService`: only `CountedSql.isVerdictVote` votes count, and a tie leaves `correct` empty.
    *
    * @param validatorId Only recount the labels this user validated; recount every label if None.
    * @return The number of labels whose counts changed.

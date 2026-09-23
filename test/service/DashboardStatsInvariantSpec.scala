@@ -80,8 +80,8 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   /**
    * Inserts a mapper whose only period activity is a label placed *now* — their mission ended 30 days ago and their
    * audit task is not completed, so neither the mission-count nor the distance aggregate has a qualifying weekly row —
-   * then runs the real leaderboard query in the same (rolled-back) transaction. The label sits on a street of its own,
-   * since a database's only street can be the tutorial street, whose labels never count.
+   * then runs the real leaderboard query in the same (rolled-back) transaction. The label gets its own street, since
+   * CI's only street is the tutorial street.
    *
    * @param onLeaderboard Value for the user's `on_leaderboard` privacy flag.
    * @param timePeriod    "weekly" or "overall".

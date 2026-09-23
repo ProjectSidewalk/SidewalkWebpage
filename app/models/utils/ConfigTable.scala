@@ -159,9 +159,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   private val schemasOnLabelTypeEnum = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
 
   /**
-   * Whether a city's schema is past evolution 395, which records on each vote the label type it judged. Like
-   * schemaHasLabelTypeEnum, it's needed while other cities' servers may still be on an older release. Remove once 395
-   * is on every server (#5458).
+   * Whether a city's schema has evolution 395 (votes record the label type they judged). Some servers may lag behind.
+   * Remove once 395 is on every server (#5458).
    *
    * @param schema The database schema to probe.
    * @return       DBIO yielding true when label_validation has a label_type column.
@@ -178,7 +177,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         hasColumn
       }
 
-  // Only the "has it" answer is remembered, for the same reason as schemasOnLabelTypeEnum.
+  // Only a "yes" is cached, like schemasOnLabelTypeEnum.
   private val schemasWithValidationLabelType = java.util.concurrent.ConcurrentHashMap.newKeySet[String]()
 
   /**
@@ -335,7 +334,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         COUNT(DISTINCT CASE WHEN label.disagree_count > label.agree_count THEN label.label_id END) AS labels_disagreed
       FROM
         #${labelTypeSql.allTypesFrom}
-      -- A LEFT JOIN so label types with no counted labels still get a row with a count of 0.
+      -- LEFT JOIN so types with no labels still get a row of 0.
       LEFT JOIN
         #${CountedSql.labels(Some(schema))} ON #${labelTypeSql.allTypesJoinOnLabel}
       GROUP BY
@@ -519,14 +518,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           FROM #${CountedSql.labels(Some(schema))}
           LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
       ) AS label_counts, (
-          -- ALL validations, AI included: the activity volume, so a vote counts even if its label was later deleted.
+          -- All votes, AI included: how much validating happened.
           SELECT COUNT(*) AS val_count,
                  COUNT(*) FILTER (WHERE end_timestamp >= NOW() - INTERVAL '7 days')  AS val_7d,
                  COUNT(*) FILTER (WHERE end_timestamp >= NOW() - INTERVAL '30 days') AS val_30d
           FROM #${CountedSql.votesCast(Some(schema))}
       ) AS val_counts, (
-          -- The agreement quality signal: only votes that count toward a verdict, and only people's (AI verdicts are
-          -- reported separately in ai_val_counts). user_role has one row per user, so its join can't repeat a vote.
+          -- Agreement: only votes that count toward a verdict, from people (AI is in ai_val_counts).
           SELECT COUNT(*) FILTER (WHERE validation_result::text = 'Agree'    AND user_role.role IS DISTINCT FROM 'AI') AS agree_count,
                  COUNT(*) FILTER (WHERE validation_result::text = 'Disagree' AND user_role.role IS DISTINCT FROM 'AI') AS disagree_count
           FROM #${CountedSql.verdictVotes(Some(schema), voteTypeKnown = labelTypeSql.hasEnum && hasValidationLabelType)}
@@ -570,13 +568,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           ) AS contributor_union
       ) AS active_contributors, (
           -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
-          -- Reads everyone's labels, since the point here is to find the excluded users.
+          -- Everyone's labels, since this counts the excluded users.
           SELECT COUNT(DISTINCT label.user_id) AS cnt
           FROM #${CountedSql.labels(Some(schema), Contributors.Everyone)}
           INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
           WHERE user_stat.excluded
       ) AS low_quality, (
-          -- ORDER BY ... LIMIT 1 rather than MAX, so the label and vote arms read their time indexes backwards.
+          -- ORDER BY ... LIMIT 1 instead of MAX, so the label and vote parts can use their time indexes.
           SELECT GREATEST(
               (SELECT label.time_created FROM #${CountedSql.labels(Some(schema))}
                ORDER BY label.time_created DESC LIMIT 1),
@@ -827,7 +825,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * same rows for both. The username join is a LEFT JOIN so a person missing from `sidewalk_user` still contributes
    * their counts to those totals.
    *
-   * Labels are picked by the same [[CountedSql]] fragment as the scorecard's labels_7d, so the two agree.
+   * Uses the same labels as the scorecard's labels_7d, so the two agree.
    *
    * @param schema The database schema to query.
    * @return       DBIO yielding one row per person with activity in either window, busiest first.
@@ -1056,7 +1054,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     schemaHasLabelTypeEnum(schema).zip(schemaHasValidationLabelType(schema)).flatMap {
       case (hasLabelTypeEnum, hasValidationLabelType) =>
         val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
-        // File each vote under the type it judged; older schemas only know the label's current type.
+        // Group by the type the vote judged; older schemas only have the label's current type.
         val typeName = if (hasValidationLabelType) "label_validation.label_type::text" else labelTypeSql.name
         sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,

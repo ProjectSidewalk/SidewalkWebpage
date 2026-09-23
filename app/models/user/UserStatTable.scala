@@ -709,7 +709,7 @@ class UserStatTable @Inject() (
           INNER JOIN #${CountedSql.completedAudits()} ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
-          -- The same streets the dashboard's distance counts (StreetEdgeTable.streets), so the two numbers agree.
+          -- Same streets as the dashboard's distance, so the two numbers agree.
           WHERE (task_end AT TIME ZONE 'US/Pacific') > #$statStartTime
               AND street_edge.status = 'open'
               AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
@@ -914,9 +914,8 @@ class UserStatTable @Inject() (
       // built as plain strings, so an interpolated `$userId` inside them would be spliced rather than bound.
       val blocks: String = citySchemas
         .map { schema =>
-          // "Excluded" users' labels are counted on purpose — this is their own dashboard, and countLabelsFromUser
-          // makes the same call. Validations add the archive back for the same reason countValidations does: the #4842
-          // repair moved voided votes out of label_validation, but the work happened.
+          // Excluded users' labels count here, since it's their own dashboard. Voided votes count too (#4842): the
+          // work still happened.
           s"""  SELECT '$schema'::text AS city_schema,
          (SELECT COUNT(*)::int
             FROM ${CountedSql.labels(Some(schema), Contributors.Everyone)}
@@ -1021,7 +1020,7 @@ class UserStatTable @Inject() (
   def getActivityDayCounts(userId: String): DBIO[Seq[(String, Int)]] = {
     sql"""
       WITH activity AS (
-          -- Everyone, because excluded users still see their own streak.
+          -- Excluded users still see their own streak.
           SELECT (label.time_created AT TIME ZONE 'US/Pacific')::date AS d
           FROM #${CountedSql.labels(contributors = Contributors.Everyone)}
           WHERE label.user_id = $userId

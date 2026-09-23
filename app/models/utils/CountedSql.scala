@@ -11,19 +11,15 @@ object Contributors {
   /** Only high-quality users, for the public API's `filterLowQuality` option. */
   case object HighQualityOnly extends Contributors
 
-  /** Everyone, excluded users included, e.g. for a page about an excluded user or a count of excluded users. */
+  /** Everyone, excluded users included, e.g. a user's own dashboard. */
   case object Everyone extends Contributors
 }
 
 /**
- * The rules for which labels, audits and votes count, written once for raw SQL queries (#5287).
+ * The rules for which labels, audits and votes count, written once for raw SQL (#5287), so copies can't drift apart.
  *
- * Hand-typed copies of these filters drift apart, so raw queries use these instead. Each fragment is a subquery named
- * after the table it stands in for, so a query swaps `FROM label` for `FROM #${CountedSql.labels()}` and keeps reading
- * `label.*` columns as before.
- *
- * Users are checked with EXISTS rather than a join, so a fragment never repeats a row. `CountedSqlSpec` checks each
- * fragment against its Slick twin.
+ * Each is a subquery named after the table it replaces: swap `FROM label` for `FROM #${CountedSql.labels()}`.
+ * `CountedSqlSpec` checks each against its Slick twin.
  */
 object CountedSql {
 
@@ -31,7 +27,7 @@ object CountedSql {
   private def table(schema: Option[String], name: String): String = schema.fold(name)(s => s""""$s".$name""")
 
   /**
-   * The check on whose work counts, for any query with a `user_stat` row in scope.
+   * Whose work counts, for a query that already has `user_stat`.
    *
    * @param userStat The name `user_stat` goes by in the query.
    * @return         A boolean SQL expression.
@@ -43,7 +39,7 @@ object CountedSql {
   }
 
   /**
-   * Whether a user's work counts, looked up by id so the query needs no `user_stat` join of its own.
+   * Whose work counts, for a query without `user_stat`.
    *
    * @param userIdColumn The column holding the user's id, e.g. `label.user_id`.
    * @return             A boolean SQL expression.
@@ -57,11 +53,9 @@ object CountedSql {
     }
 
   /**
-   * Labels that count: not deleted, not from the tutorial, not by an excluded user, and not on the tutorial street.
-   * The raw SQL twin of `LabelTable.labels`.
-   *
-   * The tutorial street is checked on both the label and its audit task, since a label placed during a tutorial walk
-   * can be filed under a nearby real street.
+   * Labels that count: not deleted, not tutorial, not by an excluded user, not on the tutorial street. Twin of
+   * `LabelTable.labels`. The tutorial street is checked on the audit too, since a tutorial label can land on a real
+   * street.
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause.
@@ -84,8 +78,7 @@ object CountedSql {
   }
 
   /**
-   * The labels a labeler's accuracy is judged on: [[models.label.LabelTable.countsTowardAccuracySql]] (#3591), minus
-   * tutorial labels and the tutorial street. Everyone's, since accuracy describes each user, excluded or not.
+   * The labels a user's accuracy is based on (#3591), minus tutorial ones. Includes excluded users.
    *
    * @return   A subquery for a FROM or JOIN clause.
    */
@@ -101,8 +94,7 @@ object CountedSql {
        ) AS label"""
 
   /**
-   * Completed audits by users who count. The raw SQL twin of `StreetEdgeTable.completedAuditTasks`, minus its street
-   * filter: callers pick which streets they report on.
+   * Completed audits by users who count, on any street. Twin of `StreetEdgeTable.countedAuditTasks`.
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause.
@@ -119,12 +111,10 @@ object CountedSql {
        ) AS audit_task"""
 
   /**
-   * Whether a vote counts toward its label's verdict: cast on the label's current type, not by the label's own author,
-   * and not by an excluded user. The same rule `ValidationService` uses to keep each label's agree/disagree counts.
-   * For queries that already join the label; [[verdictVotes]] is the standalone form.
+   * Whether a vote counts: on the label's current type, not by its author, not by an excluded user. Same rule as
+   * `ValidationService`. For a query that already has the label; otherwise use [[verdictVotes]].
    *
-   * @param voteTypeKnown False for a city schema from before evolution 395, whose votes don't record the type they
-   *                      judged; the type check is then skipped.
+   * @param voteTypeKnown False for a schema before evolution 395, which skips the type check.
    * @return              A boolean SQL expression.
    */
   def isVerdictVote(
@@ -137,7 +127,7 @@ object CountedSql {
   }
 
   /**
-   * The votes that count toward their label's verdict ([[isVerdictVote]]).
+   * Votes that count ([[isVerdictVote]]).
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause.
@@ -154,8 +144,7 @@ object CountedSql {
        ) AS label_validation"""
 
   /**
-   * Every vote cast by a user who counts, on any label. For work-credit totals ("how many validations happened"),
-   * which count a vote even if the label was later deleted or retyped.
+   * Every vote by a user who counts, on any label. For "how many validations happened" totals.
    *
    * @param schema A city schema to read instead of the current one.
    * @return       A subquery for a FROM or JOIN clause.

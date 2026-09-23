@@ -175,8 +175,7 @@ class StreetEdgePriorityTable @Inject() (
           FROM completions
           GROUP BY street_edge_id
       ), audit_activity AS (
-          -- Every counted audit, not just the high-quality ones: this is the audited/outdated bookkeeping the rest of
-          -- the app reports, not the priority formula's weighted view of the same audits.
+          -- All counted audits, not just high-quality ones, to match the audited/outdated status shown elsewhere.
           SELECT street_edge_id,
                  COUNT(*) AS audit_count,
                  COUNT(*) FILTER (WHERE NOT outdated_imagery) AS up_to_date_audit_count,

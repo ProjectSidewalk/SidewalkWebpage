@@ -204,11 +204,8 @@ class RegionTable @Inject() (
       -- Get the distance of streets needing re-audit in each region: streets audited before, but whose completed
       -- audits all predate newer imagery (audit_task.outdated_imagery, #4384).
       --
-      -- This counts every completed audit by a user who isn't excluded, whereas audited_distance below comes from
-      -- region_completion, which only counts completion-worthy audits. So the two aren't exact complements: a street
-      -- audited solely by a low-quality user counts here but not there, and the API docs say so. Reproducing the
-      -- completion formula here would duplicate it in SQL and guarantee drift; overallStats already exposes a strictly
-      -- complementary pair over one population.
+      -- Counts any audit by a non-excluded user, while audited_distance only counts high-quality ones, so a street
+      -- audited only by a low-quality user shows here but not there. The API docs say so.
       region_outdated AS (
         SELECT street_edge_region.region_id,
                SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance
@@ -306,8 +303,7 @@ class RegionTable @Inject() (
   }
 
   /**
-   * Whether the street in `street_edge_region` needs a re-audit: someone who counts audited it, but every one of those
-   * audits predates newer imagery (audit_task.outdated_imagery, #4384).
+   * Whether a street needs a re-audit: it was audited, but every audit predates newer imagery (#4384).
    */
   private val needsReauditSql: String =
     s"""EXISTS (

@@ -179,13 +179,11 @@ class AuditTaskTable @Inject() (
   val activeTasks    = auditTasks.filterNot(_.completed)
   val completedTasks = auditTasks.filter(_.completed)
 
-  // Completed audits still valid against current imagery. A street whose completed audits are all on since-replaced
-  // imagery reads as not-done, so it is re-offered to users. Credit/stats/completion queries use completedTasks
-  // instead -- an outdated audit still counts as the user's work and as city-wide coverage (#4384).
+  // Audits still valid for today's imagery. Streets without one get offered again. Credit and stats use completedTasks,
+  // since an outdated audit still counts as work done (#4384).
   val upToDateCompletedTasks = completedTasks.filterNot(_.outdatedImagery)
 
-  // The same, minus excluded users, for a street's status as everyone sees it. Questions about one user's own streets
-  // use upToDateCompletedTasks, since their own audits count for them either way.
+  // Same, minus excluded users: a street's status for everyone. A user's own streets use upToDateCompletedTasks.
   val upToDateCountedTasks = streetEdgeTable.countedAuditTasks.filterNot(_.outdatedImagery)
 
   val regionsWithoutDeleted       = regions.filterNot(_.deleted)
