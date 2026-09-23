@@ -576,6 +576,50 @@ describe('Explore, when the imagery search runs out along a street', () => {
         });
     });
 
+    describe('and the user can see the whole street from where they stand (#5474)', () => {
+        const standWestOfStreet = (metersAway) => {
+            const lng = -74.0 - (metersAway / 1000) * DEG_PER_KM_LNG;
+            svl.panoViewer.getPosition = () => ({ lat: FIXTURE_LAT, lng });
+        };
+
+        it('ends the street rather than reporting it', async () => {
+            const [short, next] = [makeTask(101, { lengthKm: 0.012 }), makeTask(102)];
+            assignStreets(short, next);
+            standWestOfStreet(9);
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(short);
+            expect(reportNoImagery).not.toHaveBeenCalled();
+            expect(svl.tracker.push).toHaveBeenCalledWith('NoImagery_StreetInView');
+        });
+
+        it('still ends it when the provider stopped answering, since the user can see it', async () => {
+            const [short, next] = [makeTask(101, { lengthKm: 0.001 }), makeTask(102)];
+            assignStreets(short, next);
+            standWestOfStreet(9);
+            respondToSearch = providerFailure;
+
+            await nav.moveForward();
+
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(short);
+            expect(reportNoImagery).not.toHaveBeenCalled();
+        });
+
+        it('still reports a street whose far end is out of view', async () => {
+            const [long, next] = [makeTask(101, { lengthKm: 0.02 }), makeTask(102)];
+            assignStreets(long, next);
+            standWestOfStreet(9);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === long ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            expect(reportNoImagery).toHaveBeenCalledTimes(1);
+            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+        });
+    });
+
     describe('and the labeler steps to a linked pano instead of searching the street', () => {
         it('gives the session its flag allowance back when the step lands', async () => {
             // Walking on through the link graph is as much evidence that imagery is fine as a street sweep landing
