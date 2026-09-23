@@ -676,8 +676,14 @@ class MapillaryViewer extends PanoViewer {
   }
 
   resize = () => {
-    // The POV change this implies is reported by _onRenderCamera, once the SDK has rendered the new box.
     this.viewer.resize();
+    // The camera keeps its vertical fov across a resize, so the horizontal one, and the zoom getPov() reports, is
+    // set by the container's new shape, which the SDK renders on a later tick and whose render-camera stream was not
+    // seen to report until the camera next moved (#5085). The container's box is what it will render at, so getPov()
+    // reads the new aspect from there now, and a page redrawing its labels as soon as this returns gets the right
+    // projection; the render camera confirms it, or corrects it, when it ticks (_onRenderCamera).
+    this.currAspect = this._viewportAspect();
+    this._firePovChangedAfterResize();
   };
 
   /**
