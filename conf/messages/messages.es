@@ -55,7 +55,6 @@ no.caps = No
 no.caps.shortcut = <u>N</u>o
 unsure.caps = Inseguro
 unsure.caps.shortcut = Inseg<u>u</u>ro
-wrong.type.shortcut = <u>T</u>ipo incorrecto
 thanks = ¡Gracias!
 username = Nombre de usuario/a
 loading = Cargando...

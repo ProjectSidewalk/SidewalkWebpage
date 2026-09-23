@@ -839,7 +839,7 @@ def rename_regions(regions, mapping):
     return renamed
 
 
-def validate_staging(roads, regions):
+def validate_staging(roads, regions, overlaps_are_fatal=True):
     """
     Checks hand-edited (or generated) staging data against what fill-new-schema.sh and the DB schema require.
 
@@ -881,7 +881,66 @@ def validate_staging(roads, regions):
         errors.append('streets must have non-null highway and region_id')
     if roads['osm_ids'].map(lambda way_ids: not isinstance(way_ids, list) or not way_ids).any():
         errors.append('every street needs at least one OSM way id in osm_ids (a hand-built layer: osm_ids = osm_id)')
+    # Overlapping pieces of one OSM way can't be a bridge over a road, so they're wrong (#3067); different ways
+    # might be, and staging data has no tags to tell, so those always only warn.
+    if not errors:
+        overlapping = find_overlapping_streets(roads)
+        same_way = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if shares_way]
+        different_ways = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if not shares_way]
+        if same_way:
+            more = ' ...' if len(same_way) > 10 else ''
+            trouble = (f'{len(same_way)} pair(s) of streets cut from the same OSM way lie on top of each other '
+                       f'(road_id pairs: {same_way[:10]}{more}) — delete the copies in QGIS, or fix the region '
+                       f'dataset if its polygons overlap')
+            if overlaps_are_fatal:
+                errors.append(trouble)
+            else:
+                logger.warning('%s', trouble)
+        if different_ways:
+            more = ' ...' if len(different_ways) > 10 else ''
+            logger.warning('%d pair(s) of streets from different OSM ways lie on top of each other — check each in '
+                           'QGIS and delete the copy unless one is a bridge or tunnel over the other (road_id pairs: '
+                           '%s%s)', len(different_ways), different_ways[:10], more)
     return errors
+
+
+def find_overlapping_streets(roads, tol_m=0.5, min_len_m=10.0, min_coverage=0.8):
+    """
+    Finds pairs of streets drawn on top of each other (#3067), by the rule db/scripts/one-off/find_duplicate_streets.sql
+    uses on a live city: one street lies at least ``min_coverage`` inside a ``tol_m``-wide corridor around the other.
+
+    Longitude is squashed by cos(latitude) first so a degree is the same number of meters both ways and the corridor
+    is round; the share covered is a ratio of two lengths measured in that same space, so it needs no conversion.
+
+    Args:
+        roads:        GeoDataFrame with ``road_id``, ``osm_ids`` (a list per street), lon/lat LineString geometry,
+                      and ``length_m`` where the caller already measured it.
+        tol_m:        Corridor half-width in meters.
+        min_len_m:    Shorter streets are skipped; any corridor swallows the stubs that meet a street at a junction.
+        min_coverage: Share of a street that must lie in the other's corridor.
+
+    Returns:
+        ``(road_id_a, road_id_b, shares_osm_way)`` tuples, road_id_a < road_id_b.
+    """
+    if roads.empty:
+        return []
+    mid_lat = (roads.total_bounds[1] + roads.total_bounds[3]) / 2
+    flat = shapely.transform(roads.geometry.values, lambda coords: coords * [cos(radians(mid_lat)), 1.0])
+    corridors = shapely.buffer(flat, tol_m / 111_320, quad_segs=4)
+    lengths_m = (roads['length_m'] if 'length_m' in roads.columns
+                 else pd.Series([geodesic_length_m(geom) for geom in roads.geometry])).to_numpy()
+    # Every geometry call below is made once over whole arrays; one call per candidate pair is ~10x slower on a city
+    # the size of Chicago.
+    left, right = shapely.STRtree(flat).query(corridors, predicate='intersects')
+    worth_testing = (left < right) & (lengths_m[left] >= min_len_m) & (lengths_m[right] >= min_len_m)
+    left, right = left[worth_testing], right[worth_testing]
+    flat_lengths = shapely.length(flat)
+    left_in_right = shapely.length(shapely.intersection(flat[left], corridors[right])) / flat_lengths[left]
+    right_in_left = shapely.length(shapely.intersection(flat[right], corridors[left])) / flat_lengths[right]
+    overlapping = (left_in_right >= min_coverage) | (right_in_left >= min_coverage)
+    road_ids, way_ids = list(roads['road_id']), [set(ways) for ways in roads['osm_ids']]
+    return sorted({(*sorted((road_ids[i], road_ids[j])), bool(way_ids[i] & way_ids[j]))
+                   for i, j in zip(left[overlapping], right[overlapping])})
 
 
 def copy_escape(value):
@@ -1186,16 +1245,18 @@ def absorb_small_parts(parts, min_part_m2):
     return keep
 
 
-def prepare_regions(raw_regions, boundary, min_part_m2):
+def prepare_regions(raw_regions, boundary, min_part_m2, max_sliver_width_m=5.0):
     """
     Clips raw region polygons to the city boundary, cleans them up, and assigns region ids.
 
     Args:
-        raw_regions: GeoDataFrame with ``name`` + polygonal geometry, EPSG:4326.
-        boundary:    Single-row GeoDataFrame of the city boundary.
-        min_part_m2: Polygon parts smaller than this (m²) are absorbed into the neighbor sharing the longest border,
-                     or dropped when isolated (see :func:`absorb_small_parts`). Whole regions reduced to nothing are
-                     removed.
+        raw_regions:        GeoDataFrame with ``name`` + polygonal geometry, EPSG:4326.
+        boundary:           Single-row GeoDataFrame of the city boundary.
+        min_part_m2:        Polygon parts smaller than this (m²) are absorbed into the neighbor sharing the longest
+                            border, or dropped when isolated (see :func:`absorb_small_parts`). Whole regions
+                            reduced to nothing are removed.
+        max_sliver_width_m: Overlaps thinner than this are traced-a-bit-differently noise and are repaired; a
+                            thicker one is a real disagreement about where a region is and stops the build.
 
     Returns:
         A GeoDataFrame with ``region_id`` (1..N), ``name``, and MultiPolygon geometry.
@@ -1209,6 +1270,7 @@ def prepare_regions(raw_regions, boundary, min_part_m2):
     # Each source polygon keeps its identity through clip -> explode -> dissolve. Dissolving by *name* would fold
     # two same-named polygons into one region: census tract names repeat across counties ("Census Tract 203"), and
     # an OSM dataset can carry two "Downtown"s.
+    regions = resolve_region_overlaps(regions, max_sliver_width_m)
     regions['source_key'] = regions.index
 
     clipped = gpd.overlay(regions, boundary[['geometry']], how='intersection', keep_geom_type=True)
@@ -1222,6 +1284,8 @@ def prepare_regions(raw_regions, boundary, min_part_m2):
     dissolved['region_id'] = dissolved.index + 1
     dissolved['geometry'] = dissolved.geometry.map(to_multipolygon)
 
+    # Clipping and absorbing can't reintroduce an overlap, but a hand-built --regions-file reaches this through a
+    # different door, so the check stays as a backstop.
     warn_if_overlapping(dissolved)
     return dissolved[['region_id', 'name', 'geometry']]
 
@@ -1284,6 +1348,109 @@ def disambiguate_names(names):
                            '"%s (2)".. — merge them deliberately with --merge-regions if they are one place.',
                            name, count, name)
     return unique
+
+
+def resolve_region_overlaps(regions, max_sliver_width_m):
+    """
+    Repairs a region dataset whose polygons overlap, which they must never do.
+
+    Regions have to tile the city: street pieces are cut out of the region polygons, so a street lying under two of
+    them is cut twice and lands in the database twice (#3067). Two kinds of overlap turn up, and they want opposite
+    answers. A hairline along a shared border is two people tracing the same line slightly differently, nobody's
+    idea of a boundary dispute, and is repaired silently. Anything thicker is a real disagreement about where a
+    region is -- a neighborhood drawn inside a district, or a dataset mixing two vintages -- and no automatic choice
+    is honest, so the build stops and a person settles it.
+
+    A repaired overlap goes to the smaller region: it is the more specific answer to "which region is this street
+    in", and at hairline widths the choice barely moves any ground anyway.
+
+    Args:
+        regions:            GeoDataFrame of region polygons in EPSG:4326, already made valid, with a ``name`` column.
+        max_sliver_width_m: The widest overlap still treated as tracing noise. An overlap's width is its area over
+                            half its perimeter, so a long thin sliver reads as thin however far it runs.
+
+    Returns:
+        ``regions`` with the slivers cut out, reindexed from 0. Exits the program on a thicker overlap.
+    """
+    if len(regions) < 2:
+        return regions
+    areas_m2 = [geodesic_area_m2(geom) for geom in regions.geometry]
+    # Smallest first, so a region only ever loses ground to one that is more specific than it is.
+    rank = {index: place for place, index in enumerate(sorted(range(len(regions)), key=lambda i: areas_m2[i]))}
+    tree = shapely.STRtree(regions.geometry.values)
+    serious = []
+    for i, j in {(min(a, b), max(a, b))
+                 for a in range(len(regions))
+                 for b in tree.query(regions.geometry.iloc[a], predicate='intersects') if a != b}:
+        for piece in shapely.get_parts(regions.geometry.iloc[i].intersection(regions.geometry.iloc[j])):
+            if piece.geom_type not in ('Polygon', 'MultiPolygon') or piece.is_empty:
+                continue
+            width_m = overlap_width_m(piece)
+            if width_m > max_sliver_width_m:
+                serious.append((regions['name'].iloc[i], regions['name'].iloc[j], geodesic_area_m2(piece), width_m))
+    if serious:
+        serious.sort(key=lambda row: -row[2])
+        listed = '\n  - '.join(f'"{name_a}" and "{name_b}" overlap by {area / 1e6:.3f} km² ({width:.0f} m wide)'
+                                for name_a, name_b, area, width in serious[:10])
+        sys.exit(f'error: {len(serious)} region overlap(s) are too big to be a tracing error, and regions must tile '
+                 f'the city — a street under two of them would be imported twice:\n  - {listed}'
+                 + ('\n  - ...' if len(serious) > 10 else '')
+                 + '\nFix the region dataset (in QGIS, say) and rerun, or --merge-regions the pair if they are one '
+                   'place.')
+
+    trimmed, lost_m2 = [], 0.0
+    for i, geom in enumerate(regions.geometry):
+        # Regions that merely share a border are not rivals, and cutting one out of the other would only shift the
+        # border by a rounding error. Only ground claimed twice counts.
+        winners = [regions.geometry.iloc[j] for j in tree.query(geom, predicate='intersects')
+                   if j != i and rank[j] < rank[i] and geom.intersection(regions.geometry.iloc[j]).area > 0]
+        if winners:
+            geom = polygonal_parts(shapely.make_valid(geom.difference(shapely.union_all(winners))))
+            lost_m2 += areas_m2[i] - geodesic_area_m2(geom)
+        trimmed.append(geom)
+    if lost_m2 <= 0:
+        return regions
+    logger.info('Region borders overlapped by a hairline in places (%.0f m² claimed twice); gave each overlap to the '
+                'smaller region so no street is imported once per region.', lost_m2)
+    regions = regions.copy()
+    regions['geometry'] = trimmed
+    return regions[~regions.geometry.is_empty].reset_index(drop=True)
+
+
+def overlap_width_m(geom):
+    """
+    Measures how thick a patch of ground is, so a hairline along a border can be told from a real overlap.
+
+    Area alone can't: a 2 m sliver running the length of a long border covers more ground than a small but genuine
+    overlap. Area over half the perimeter gives a long thin shape its width rather than its size.
+
+    Args:
+        geom: A polygon in lon/lat (EPSG:4326).
+
+    Returns:
+        The width in meters, or 0 for a degenerate shape with no perimeter.
+    """
+    _, perimeter_m = WGS84_GEOD.geometry_area_perimeter(geom)
+    return 0.0 if not perimeter_m else 2 * geodesic_area_m2(geom) / abs(perimeter_m)
+
+
+def polygonal_parts(geom):
+    """
+    Keeps only the polygon parts of a geometry.
+
+    Subtracting one polygon from another that touches it can leave stray points and lines in the result, which are
+    not ground and break anything downstream that expects a polygon.
+
+    Args:
+        geom: Any shapely geometry.
+
+    Returns:
+        The polygonal parts as one geometry, or an empty Polygon when there are none.
+    """
+    if geom.is_empty or geom.geom_type in ('Polygon', 'MultiPolygon'):
+        return geom
+    parts = [part for part in shapely.get_parts(geom) if part.geom_type in ('Polygon', 'MultiPolygon')]
+    return shapely.union_all(parts) if parts else Polygon()
 
 
 def warn_if_overlapping(regions):
@@ -1748,6 +1915,11 @@ def parse_args(argv=None):
                              'the other side\'s region, i.e. along the boundary instead of across it (default: 15 m).')
     parser.add_argument('--min-segment-m', type=float, default=15,
                         help='Drop street fragments shorter than this after clipping and healing (default: 15 m).')
+    parser.add_argument('--max-region-sliver-m', type=float, default=5,
+                        help='Regions must never overlap. An overlap thinner than this is taken as two people '
+                             'tracing the same border slightly differently and is repaired by giving the ground to '
+                             'the smaller region; a thicker one stops the build for a human to settle '
+                             '(default: 5 m).')
     parser.add_argument('--min-region-part-m2', type=float, default=10000,
                         help='Region polygon parts smaller than this after clipping are merged into the neighboring '
                              'region sharing the longest border, or dropped when they touch no other region '
@@ -1910,7 +2082,7 @@ def main(argv=None):
             region_source = 'city boundary'
     logger.info('Region source: %s (%d raw polygons)', region_source, len(raw_regions))
 
-    regions = prepare_regions(raw_regions, boundary, args.min_region_part_m2)
+    regions = prepare_regions(raw_regions, boundary, args.min_region_part_m2, args.max_region_sliver_m)
     logger.info('Regions after clipping/cleanup: %d', len(regions))
     if rename_mapping:
         regions = rename_regions(regions, rename_mapping)
@@ -1942,7 +2114,9 @@ def main(argv=None):
     if roads.empty:
         sys.exit('error: no street landed in any region — check that the boundary and the regions overlap the '
                  'street network (the fetch found %d edges).' % len(streets))
-    errors = validate_staging(roads, regions)
+    # Overlaps only warn here: prepare_regions has already given each one to a single region, so anything left is
+    # worth seeing in QGIS, and dying now would deny the operator the QA GeoPackage that shows it.
+    errors = validate_staging(roads, regions, overlaps_are_fatal=False)
     if errors:  # A pipeline-invariant safety net; any hit here is a bug in the steps above.
         sys.exit('error: generated staging data failed validation:\n  - ' + '\n  - '.join(errors))
     stats = region_street_stats(roads, regions, args.max_region_street_km)
