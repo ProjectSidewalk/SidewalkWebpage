@@ -13,8 +13,20 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { loadGlobalScript } = require('./loadGlobalScript');
 
 const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
+
+// getPov() converts through util.pano; utilities.js builds a Bowser parser at load time that nothing here consults.
+window.bowser = {
+    getParser: () => ({
+        getBrowserName: () => 'Test', getBrowserVersion: () => '1',
+        getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
+    }),
+};
+loadGlobalScript('public/js/common/utilities.js');
+loadGlobalScript('public/js/common/utilitiesMath.js');
+loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
 
 /** Loads PanoViewer + MapillaryViewer fresh into the jsdom global scope. */
 function loadViewers() {
@@ -59,6 +71,7 @@ describe('PanoViewer resize reports a POV change once the new box has rendered',
         expect(onPov).not.toHaveBeenCalled();
         viewer._onRenderCamera(camera(1.5)); // An ordinary render tick.
         expect(onPov).not.toHaveBeenCalled();
+        const boxedZoom = viewer.getPov().zoom;
 
         viewer.resize();
         expect(viewer.viewer.resize).toHaveBeenCalledTimes(1);
@@ -67,7 +80,7 @@ describe('PanoViewer resize reports a POV change once the new box has rendered',
         expect(onPov).not.toHaveBeenCalled(); // No frames are trusted; only the camera itself.
         viewer._onRenderCamera(camera(16 / 9)); // The SDK renders the new box.
         expect(onPov).toHaveBeenCalledTimes(1);
-        expect(viewer.getPov().zoom).toBeLessThan(1.01); // A wider box at the same vertical fov is a wider view.
+        expect(viewer.getPov().zoom).toBeLessThan(boxedZoom); // A wider box at the same vertical fov is a wider view.
         viewer._onRenderCamera(camera(16 / 9)); // Later ticks at that aspect are quiet.
         expect(onPov).toHaveBeenCalledTimes(1);
     });
