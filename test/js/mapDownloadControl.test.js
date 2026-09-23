@@ -255,7 +255,7 @@ describe('MapDownloadControl panel', () => {
         items().find((item) => item.dataset.format === 'csv').click();
         await settle();
 
-        expect(window.fetch).toHaveBeenCalledWith(anchorClicks[0], { method: 'HEAD' });
+        expect(window.fetch).toHaveBeenCalledWith(anchorClicks[0], { method: 'HEAD', cache: 'no-store' });
         expect(anchorClicks).toHaveLength(1);
         const params = queryOf(anchorClicks[0]);
         expect(anchorClicks[0].startsWith('/v3/api/rawLabels?')).toBe(true);

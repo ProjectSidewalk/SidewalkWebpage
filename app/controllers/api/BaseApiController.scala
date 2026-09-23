@@ -7,7 +7,7 @@ import models.label.LabelTypeEnum
 import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import play.api.Logger
-import play.api.http.{ContentTypes, HttpVerbs}
+import play.api.http.{ContentTypes, HttpEntity, HttpVerbs}
 import play.api.mvc.{RequestHeader, Result}
 
 import java.io.BufferedInputStream
@@ -235,7 +235,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
     }
   }
 
-  /** Streams a finished file and deletes its folder when the stream ends, however it ends. */
+  /** Streams a finished file with its size (for download progress), then deletes its folder however the stream ends. */
   private def serveDownloadFile(
       dir: Path,
       file: Path,
@@ -246,7 +246,10 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
     val fileSource = StreamConverters
       .fromInputStream(() => new BufferedInputStream(Files.newInputStream(file)))
       .mapMaterializedValue(_.andThen { case _ => deleteDownloadDir(dir) })
-    Ok.chunked(releasing(fileSource, entry)).as(contentType).withHeaders(CONTENT_DISPOSITION -> disposition)
+    // Gzip (GeoPackages are compressed) drops Content-Length, so the size is repeated in a header of our own.
+    val size = Files.size(file)
+    Ok.sendEntity(HttpEntity.Streamed(releasing(fileSource, entry), Some(size), Some(contentType)))
+      .withHeaders(CONTENT_DISPOSITION -> disposition, BaseApiController.fileSizeHeader -> size.toString)
   }
 
   /**
@@ -557,6 +560,9 @@ object BaseApiController {
    */
   def timestampedFilename(prefix: String): String =
     s"${prefix}_${OffsetDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd-HHmmss"))}"
+
+  /** Names the file's uncompressed size, for clients showing download progress. */
+  val fileSizeHeader: String = "X-File-Size"
 
   /** Where file downloads (shapefile, GeoPackage, zipped CSVs) are built, one folder each. */
   val downloadsDir: Path = Paths.get("api-downloads")

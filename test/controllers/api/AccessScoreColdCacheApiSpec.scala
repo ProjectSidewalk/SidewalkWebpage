@@ -1,6 +1,7 @@
 package controllers.api
 
 import models.api.ApiError
+import models.utils.IpAddress
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
@@ -61,11 +62,11 @@ class AccessScoreColdCacheApiSpec extends PlaySpec with GuiceOneAppPerSuite {
         bind[SwrCache].to[ColdSwrCache],
         bind[LoggingService].toInstance(new LoggingService {
           private def record(activity: String): Future[Int] = { logged.add(activity); Future.successful(1) }
-          def insert(userId: String, ipAddress: String, activity: String, timestamp: OffsetDateTime): Future[Int] =
+          def insert(userId: String, ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime): Future[Int] =
             record(activity)
-          def insert(userId: String, ipAddress: String, activity: String): Future[Int]         = record(activity)
-          def insert(userId: Option[String], ipAddress: String, activity: String): Future[Int] = record(activity)
-          def insert(userId: Option[String], ipAddress: String, activity: String, timestamp: OffsetDateTime)
+          def insert(userId: String, ipAddress: IpAddress, activity: String): Future[Int]         = record(activity)
+          def insert(userId: Option[String], ipAddress: IpAddress, activity: String): Future[Int] = record(activity)
+          def insert(userId: Option[String], ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime)
               : Future[Int] = record(activity)
         })
       )

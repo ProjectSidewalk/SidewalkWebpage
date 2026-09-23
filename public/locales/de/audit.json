@@ -160,10 +160,18 @@
     },
     "reaudit": {
       "title": "Für diese Straße gibt es neuere Bilder",
-      "message-you": "Du hast diese Straße zuletzt im {{lastMapped}} kartiert, aber die Bilder wurden seitdem erneuert (im {{newImagery}}). Schauen wir, was sich verändert hat!",
-      "message-you-no-dates": "Du hast diese Straße schon einmal kartiert, aber die Bilder wurden seitdem erneuert. Schauen wir, was sich verändert hat!",
-      "message-others": "Ein anderer Nutzer hat diese Straße im {{lastMapped}} kartiert, aber die Bilder wurden seitdem erneuert (im {{newImagery}}). Schauen wir, was sich verändert hat!",
-      "message-others-no-dates": "Ein anderer Nutzer hat diese Straße schon einmal kartiert, aber die Bilder wurden seitdem erneuert. Schauen wir, was sich verändert hat!"
+      "message-you": "Du hast diese Straße zuletzt im {{lastMapped}} bewertet, aber die Bilder wurden seitdem erneuert (im {{newImagery}}). Bitte bewerte diese Straße noch einmal, damit wir analysieren können, was sich verändert hat.",
+      "message-you-no-dates": "Du hast diese Straße schon einmal bewertet, aber die Bilder wurden seitdem erneuert. Bitte bewerte diese Straße noch einmal, damit wir analysieren können, was sich verändert hat.",
+      "message-others": "Diese Straße wurde zuletzt im {{lastMapped}} bewertet, aber die Bilder wurden seitdem erneuert (im {{newImagery}}). Bitte bewerte diese Straße noch einmal, damit wir analysieren können, was sich verändert hat.",
+      "message-others-no-dates": "Diese Straße wurde schon einmal bewertet, aber die Bilder wurden seitdem erneuert. Bitte bewerte diese Straße noch einmal, damit wir analysieren können, was sich verändert hat."
+    },
+    "pano-date-note": {
+      "image-date": "Bild: {{date}}",
+      "needs-reassessment": "Neubewertung nötig",
+      "already-assessed": "Bereits bewertet",
+      "already-assessed-tip": "Du hast diesen Ort zuletzt im {{assessedDate}} bewertet, und die Bilder ({{captureDate}}) haben sich seit dieser Bewertung nicht verändert. Setz gerne neue Beschriftungen, wenn dir etwas auffällt!",
+      "needs-reassessment-tip-you": "Du hast diesen Ort zuletzt im {{assessedDate}} bewertet, aber die Bilder hier sind neuer ({{captureDate}}). Bitte bewerte ihn noch einmal, damit wir analysieren können, was sich verändert hat.",
+      "needs-reassessment-tip-others": "Ein Nutzer hat diesen Ort zuletzt im {{assessedDate}} bewertet, aber die Bilder hier sind neuer ({{captureDate}}). Bitte bewerte ihn noch einmal, damit wir analysieren können, was sich verändert hat."
     },
     "minimap": {
       "coach-dismiss": "Verstanden",
@@ -184,11 +192,14 @@
       "forward-crumb-title": "Zu Haltepunkt {{rank}} gehen",
       "legend-other-links": "Andere Richtungen",
       "legend-faced": "Gefüllt: wohin Vorwärts führt",
+      "legend-earlier-labels": "Meine früheren Labels",
       "link-crumb-title": "Zu diesem Panorama gehen",
       "legend-next-step": "Hellblau: nächster Schritt (Leertaste)",
       "route-stop-title": "Haltepunkt {{rank}} auf Ihrer Route",
       "breadcrumb-title": "Besucht: klicken, um hierher zurückzukehren",
       "label-marker-title": "{{labelType}}-Markierung: klicken zum Überprüfen",
+      "label-marker-title-prior": "„{{labelType}}“-Markierung aus einer früheren Mission",
+      "label-marker-title-outdated": "Alte „{{labelType}}“-Markierung auf einer Straße mit neuen Bildern",
       "route-start-flag": "Routenstart",
       "route-finish-flag": "Routenziel",
       "mission-start-flag": "Wo diese Mission begann",
