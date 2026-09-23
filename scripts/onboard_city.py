@@ -838,7 +838,59 @@ def validate_staging(roads, regions):
         errors.append('streets must have non-null highway and region_id')
     if roads['osm_ids'].map(lambda way_ids: not isinstance(way_ids, list) or not way_ids).any():
         errors.append('every street needs at least one OSM way id in osm_ids (a hand-built layer: osm_ids = osm_id)')
+    # Overlapping pieces of one OSM way can't be a bridge over a road, so they're an error (#3067); different ways
+    # might be, and staging data has no tags to tell, so those only warn.
+    if not errors:
+        overlapping = find_overlapping_streets(roads)
+        same_way = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if shares_way]
+        different_ways = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if not shares_way]
+        if same_way:
+            errors.append(f'{len(same_way)} pair(s) of streets cut from the same OSM way lie on top of each other, '
+                          f'usually because two overlapping regions each got a copy (road_id pairs: {same_way[:10]}'
+                          f'{" ..." if len(same_way) > 10 else ""}) — fix the region overlap and rebuild')
+        if different_ways:
+            more = ' ...' if len(different_ways) > 10 else ''
+            logger.warning('%d pair(s) of streets from different OSM ways lie on top of each other — check each in '
+                           'QGIS and delete the copy unless one is a bridge or tunnel over the other (road_id pairs: '
+                           '%s%s)', len(different_ways), different_ways[:10], more)
     return errors
+
+
+def find_overlapping_streets(roads, tol_m=0.5, min_len_m=10.0, min_coverage=0.8):
+    """
+    Finds pairs of streets drawn on top of each other (#3067), by the rule db/scripts/one-off/find_duplicate_streets.sql
+    uses on a live city: one street lies at least ``min_coverage`` inside a ``tol_m``-wide corridor around the other.
+
+    Longitude is squashed by cos(latitude) first so a degree is the same number of meters both ways and the corridor
+    is round; the share covered is a ratio of two lengths measured in that same space, so it needs no conversion.
+
+    Args:
+        roads:        GeoDataFrame with ``road_id``, ``osm_ids`` (a list per street), lon/lat LineString geometry.
+        tol_m:        Corridor half-width in meters.
+        min_len_m:    Shorter streets are skipped; any corridor swallows the stubs that meet a street at a junction.
+        min_coverage: Share of a street that must lie in the other's corridor.
+
+    Returns:
+        ``(road_id_a, road_id_b, shares_osm_way)`` tuples, road_id_a < road_id_b.
+    """
+    if roads.empty:
+        return []
+    mid_lat = (roads.total_bounds[1] + roads.total_bounds[3]) / 2
+    flat = shapely.transform(roads.geometry.values, lambda coords: coords * [cos(radians(mid_lat)), 1.0])
+    corridors = shapely.buffer(flat, tol_m / 111_320, quad_segs=4)
+    lengths_m = [geodesic_length_m(geom) for geom in roads.geometry]
+    left, right = shapely.STRtree(flat).query(corridors, predicate='intersects')
+    road_ids, way_ids = list(roads['road_id']), [set(ways) for ways in roads['osm_ids']]
+    pairs = []
+    for i, j in zip(left, right):
+        if i >= j or min(lengths_m[i], lengths_m[j]) < min_len_m:
+            continue
+        i_in_j = shapely.intersection(flat[i], corridors[j]).length / flat[i].length
+        j_in_i = shapely.intersection(flat[j], corridors[i]).length / flat[j].length
+        if max(i_in_j, j_in_i) >= min_coverage:
+            road_a, road_b = sorted((road_ids[i], road_ids[j]))
+            pairs.append((road_a, road_b, bool(way_ids[i] & way_ids[j])))
+    return sorted(pairs)
 
 
 def copy_escape(value):

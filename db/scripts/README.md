@@ -49,8 +49,13 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 | `import-street-imagery.sh` | `make import-street-imagery` | Ingests `check_streets_for_imagery.py`'s per-street imagery summary CSV into the `street_imagery` table. | When backfilling imagery-age data for a city (#4348). |
 | `lint-evolutions.sh` | `make lint-evolutions` | **Static lint** for `conf/evolutions/default/*.sql` (catches semicolons mid-comment and missing `!Ups`/`!Downs` markers). Runs in CI. | Automatically in CI; run locally before pushing an evolution. |
 | `helpers.sh` | _(sourced, not run)_ | Shared bash functions: `prompt_with_default`, `read_street_ids_from_csv`, `mark_streets_no_imagery` (which takes a `street_edge_status_change_source` value as its second argument), and `run_with_progress` (the spinner/clock used by the restore scripts). | Never directly — it's `source`d by the others. |
-| `remove_streets.sql` | _(run by hand in psql)_ | **Playbook** to remove a set of `street_edge`s (soft-delete if they have work, hard-delete otherwise), with a preview and `ROLLBACK` guard. | One-off cleanup of bad/duplicate streets. |
-| `remove_validations.sql` | _(run by hand in psql)_ | **Playbook** to remove a set of `label_validation`s and reconcile the derived counts, with a preview and `ROLLBACK` guard. | One-off cleanup (e.g. self-validations from a past bug). |
+| `one-off/remove_streets.sql` | _(run by hand in psql)_ | **Playbook** to remove a set of `street_edge`s (soft-delete if they have work, hard-delete otherwise), with a preview and `ROLLBACK` guard. | One-off cleanup of bad streets. |
+| `one-off/remove_validations.sql` | _(run by hand in psql)_ | **Playbook** to remove a set of `label_validation`s and reconcile the derived counts, with a preview and `ROLLBACK` guard. | One-off cleanup (e.g. self-validations from a past bug). |
+| `one-off/find_duplicate_streets.sql` | _(run by hand, or on every city)_ | **Read-only.** Lists every pair of streets drawn on top of each other, which one the merge would drop, and the data on each side (#3067). | Before running the merge below. |
+| `one-off/merge_duplicate_streets.sql` | _(run by hand, or on every city)_ | **Playbook** that keeps one street per group of duplicates, moves labels, audits, route stops and issues onto it, and deletes the rest (#3067). Dry run unless `-v apply=1`. | Cleaning up streets our imports or OSM duplicated. |
+
+`one-off/` holds the playbooks: cleanups a person runs deliberately, as opposed to the scripts above that the `make`
+targets call as part of normal work.
 
 ## Typical workflows
 
@@ -87,16 +92,29 @@ and `db/scripts/` are invisible to it.
 
 - Open/close regions: `make reveal-or-hide-regions`
 - Mark no-imagery streets: `make hide-streets-without-imagery`
-- Remove specific streets / validations: run `remove_streets.sql` / `remove_validations.sql` by hand (below).
+- Remove specific streets / validations: run `one-off/remove_streets.sql` / `one-off/remove_validations.sql` by hand
+  (below).
+- Merge duplicate streets: `one-off/find_duplicate_streets.sql` to look, then `one-off/merge_duplicate_streets.sql`
+  (below).
 
 **Running the `.sql` playbooks** (they are not automated on purpose — they're destructive and want a human in the loop):
 
 ```bash
-docker exec -it projectsidewalk-db psql -U sidewalk -d sidewalk -f /opt/scripts/remove_streets.sql
+docker exec -it projectsidewalk-db psql -U sidewalk -d sidewalk -f /opt/scripts/one-off/remove_streets.sql
 ```
 
-Each file runs inside a `BEGIN; … COMMIT;` block with a **preview query** in the middle — read the preview, then commit
-or `ROLLBACK`. Edit the candidate-id list and the `search_path` (target city schema) at the top before running.
+`remove_streets.sql` and `remove_validations.sql` each run inside a `BEGIN; … COMMIT;` block with a **preview query**
+in the middle — read the preview, then commit or `ROLLBACK`. Edit the candidate-id list and the `search_path` (target
+city schema) at the top before running.
+
+The duplicate-street pair takes no edits. Both read the city from `-v city=` and expect the caller to set the
+`search_path`, which is how `sidewalk-server-tools/run-query-in-every-city.sh` runs them across every city. The merge
+does all its work, prints one summary row per city and rolls back; run it again with `-v apply=1` to keep the result:
+
+```bash
+docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=sidewalk_chicago,public" \
+  -U sidewalk_chicago -v city=chicago -v apply=0 -f /opt/scripts/one-off/merge_duplicate_streets.sql
+```
 
 ## Gotchas
 

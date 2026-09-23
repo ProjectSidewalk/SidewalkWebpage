@@ -403,6 +403,50 @@ def test_validate_staging_catches_broken_edits():
     assert any('region id(s) [9]' in error for error in errors)
 
 
+def _overlap_roads(geometries, osm_ids):
+    """Builds a minimal roads layer, one street per geometry, all in region 1."""
+    return gpd.GeoDataFrame({'road_id': list(range(1, len(geometries) + 1)), 'osm_ids': osm_ids,
+                             'highway': ['residential'] * len(geometries), 'region_id': [1] * len(geometries),
+                             'geometry': geometries}, crs='EPSG:4326')
+
+
+# ~111 m of longitude at the equator, and 2 m of latitude.
+OVERLAP_STREET = LineString([(0, 0), (0.001, 0)])
+OVERLAP_TWO_METERS = 2 / 111_320
+
+
+def test_find_overlapping_streets_finds_twins_and_pieces():
+    piece = LineString([(0.0002, 0), (0.0006, 0)])
+    roads = _overlap_roads([OVERLAP_STREET, OVERLAP_STREET, piece], [[11], [11], [22]])
+    assert oc.find_overlapping_streets(roads) == [(1, 2, True), (1, 3, False), (2, 3, False)]
+
+
+def test_find_overlapping_streets_ignores_crossings_neighbors_offsets_and_stubs():
+    crossing = LineString([(0.0005, -0.0005), (0.0005, 0.0005)])
+    next_block = LineString([(0.001, 0), (0.002, 0)])
+    parallel_2m = LineString([(0, OVERLAP_TWO_METERS), (0.001, OVERLAP_TWO_METERS)])
+    stub_on_top = LineString([(0.0003, 0), (0.00035, 0)])  # ~5.6 m, under the 10 m floor
+    roads = _overlap_roads([OVERLAP_STREET, crossing, next_block, parallel_2m, stub_on_top], [[1], [2], [3], [4], [5]])
+    assert oc.find_overlapping_streets(roads) == []
+
+
+def test_find_overlapping_streets_handles_no_streets():
+    assert oc.find_overlapping_streets(_overlap_roads([], [])) == []
+
+
+def test_validate_staging_rejects_one_way_drawn_twice():
+    errors = oc.validate_staging(_overlap_roads([OVERLAP_STREET, OVERLAP_STREET], [[11], [11]]), _region_set())
+    assert any('cut from the same OSM way lie on top of each other' in error and '[(1, 2)]' in error
+               for error in errors)
+
+
+def test_validate_staging_only_warns_about_overlapping_different_ways(caplog):
+    with caplog.at_level(logging.WARNING):
+        errors = oc.validate_staging(_overlap_roads([OVERLAP_STREET, OVERLAP_STREET], [[11], [22]]), _region_set())
+    assert errors == []
+    assert 'streets from different OSM ways lie on top of each other' in caplog.text
+
+
 # --------------------------------------------------------------------------------------------------------------------
 # SQL serialization helpers
 # --------------------------------------------------------------------------------------------------------------------
