@@ -46,7 +46,13 @@ body.svl-immersive #ribbon-menu-holder {
 }
 
 body.svl-immersive #ribbon-menu-buttons {
-  gap: calc(8px * var(--ui-scale));
+  gap: calc(6px * var(--ui-scale));
+}
+
+/* The circles sit straight on imagery, so each gets the overlay controls' stroke to keep an edge against a bright
+   sky or a pale wall; the selected circle's coloured ring (set inline by RibbonMenu) sits just inside it. */
+body.svl-immersive .label-type-icon {
+  box-shadow: 0 0 0 1px var(--color-neutral-600);
 }
 
 body.svl-immersive .ribbon-menu-title-holder,
@@ -55,13 +61,17 @@ body.svl-immersive #label-type-divider-major {
 }
 
 /* Each name is a pill in the same family as the overlay controls (asphalt, white text, the same stroke), since the
-   boxed ribbon's plain black text relied on the page's white. One line, sized to its text, centred under the circle;
-   the shortcut letter keeps its underline from the markup. */
+   boxed ribbon's plain black text relied on the page's white. One line, sized to its text, centred under the circle
+   and out of the flow, so a long name cannot push the circles apart; the shortcut letter keeps its underline from
+   the markup. */
 body.svl-immersive .label-type-name {
-  width: fit-content;
-  margin: calc(3px * var(--ui-scale)) auto 0;
-  padding: calc(3px * var(--ui-scale)) calc(8px * var(--ui-scale));
-  font-size: calc(9px * var(--ui-scale));
+  position: absolute;
+  top: calc(79px * var(--ui-scale)); /* The 66px circle, its 5px rings, and a 3px gap. */
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  padding: calc(3px * var(--ui-scale)) calc(7px * var(--ui-scale));
+  font-size: calc(8px * var(--ui-scale));
   line-height: 1.2;
   white-space: nowrap;
   color: var(--color-neutral-white);
@@ -75,9 +85,11 @@ body.svl-immersive #mode-switch-button-walk {
   margin-top: 0;
 }
 
-/* The boxed width made room for a two-line name under each circle; here the holder is as wide as its pill or circle. */
+/* Every circle gets the same slot, a little wider than the circle, so the strip is evenly spaced whatever the
+   names' lengths; the bottom padding reserves the pill's row, since the pill is out of the flow. */
 body.svl-immersive .label-type-button-holder {
-  width: auto;
+  width: calc(86px * var(--ui-scale));
+  padding-bottom: calc(24px * var(--ui-scale));
 }
 
 /* The Other circle's subcategory popover clears the pill under the circle. */
