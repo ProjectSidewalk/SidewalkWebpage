@@ -33,6 +33,8 @@ class LabelEditSpec
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
+  private lazy val labelTable = app.injector.instanceOf[models.label.LabelTable]
+
   /** Pre-test type, severity and tags of every real label the suite edited, restored in `afterAll`. */
   private var labelBackup: Map[Int, Target] = Map.empty
 
@@ -234,10 +236,11 @@ class LabelEditSpec
         )
       }
       labelBackup.foreach { case (labelId, t) =>
+        // Recount after putting the type back, or the next run starts from counts taken at the other type.
         val _ = run(
           sqlu"""UPDATE label SET label_type = ${t.labelType}::label_type, severity = ${t.severity},
                      tags = string_to_array(${t.tags.mkString("|")}, '|')
-                 WHERE label_id = $labelId"""
+                 WHERE label_id = $labelId""" >> labelTable.recalculateValidationCountsForLabel(labelId)
         )
       }
     } finally super.afterAll()

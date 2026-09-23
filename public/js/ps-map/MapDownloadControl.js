@@ -296,7 +296,7 @@ class MapDownloadControl {
    */
   static async #alreadyBuilding(url) {
     try {
-      return (await fetch(url, { method: 'HEAD' })).status === 429;
+      return (await fetch(url, { method: 'HEAD', cache: 'no-store' })).status === 429;
     } catch {
       return false;
     }

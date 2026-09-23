@@ -62,6 +62,7 @@ class ExpandedView {
       currUsername: this.#currUsername,
       onVote: this.#handleVote,
       onEdit: this.#handleEdit,
+      onDelete: this.#handleDelete,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
       showLabelMapLink: true,
@@ -155,6 +156,8 @@ class ExpandedView {
       pano_data: p.pano_data,
       from_current_user: p.from_current_user,
       can_edit: p.can_edit,
+      deleted: p.deleted,
+      can_restore: p.can_restore,
       expired: p.expired,
       comments: p.comments,
     };
@@ -179,6 +182,19 @@ class ExpandedView {
       this.refCard.updateLabelType(meta.label_type);
       this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
     }
+  };
+
+  /**
+   * Called by LabelDetail after a delete or restore (#3591); syncs the small card, incl. an admin delete's Disagree.
+   * Looked up by id, since paging while the request was in flight may have moved refCard on to a neighbor.
+   * @param {{label_id: number, deleted: boolean, can_restore: boolean, user_validation: ?string}} meta - The
+   *     label's metadata as it now stands.
+   */
+  #handleDelete = (meta) => {
+    const card = sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id);
+    if (!card) return;
+    card.setDeleted(!!meta.deleted, !!meta.can_restore);
+    card.updateUserValidation(meta.user_validation ?? null);
   };
 
   /**

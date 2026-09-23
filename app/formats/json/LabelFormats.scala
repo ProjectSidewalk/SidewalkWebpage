@@ -3,6 +3,7 @@ package formats.json
 import models.label._
 import models.pano.PanoSource.PanoSource
 import models.pano.{ImageryAttribution, PanoData, PanoViewerMetadata}
+import models.utils.CommonUtils.UiSource.UiSource
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -10,6 +11,7 @@ import java.time.OffsetDateTime
 
 object LabelFormats {
   implicit val labelTypeEnumWrites: Writes[LabelTypeEnum.Base] = Writes(lt => JsString(lt.name))
+  implicit val uiSourceWrites: Writes[UiSource]                = Writes(s => JsString(s.toString))
 
   implicit val labelWrites: Writes[Label] = (
     (__ \ "label_id").write[Int] and
@@ -29,7 +31,10 @@ object LabelFormats {
       (__ \ "correct").writeNullable[Boolean] and
       (__ \ "severity").writeNullable[Int] and
       (__ \ "description").writeNullable[String] and
-      (__ \ "tags").write[List[String]]
+      (__ \ "tags").write[List[String]] and
+      (__ \ "deleted_by").writeNullable[String] and
+      (__ \ "deleted_at").writeNullable[OffsetDateTime] and
+      (__ \ "deleted_source").writeNullable[UiSource]
   )(unlift(Label.unapply))
 
   implicit val POVWrites: Writes[POV] = (
@@ -374,7 +379,9 @@ object LabelFormats {
       "auditTaskId"      -> label.labelData.auditTaskId,
       "missionId"        -> label.labelData.missionId,
       "labelLat"         -> label.pointData.lat,
-      "labelLng"         -> label.pointData.lng
+      "labelLng"         -> label.pointData.lng,
+      // With missionId, what lets the minimap tell this pass's labels from an earlier era's (#4945).
+      "fromOutdatedImagery" -> label.fromOutdatedImagery
     )
   }
 

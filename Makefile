@@ -3,7 +3,8 @@
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
         hide-streets-without-imagery \
-        import-street-imagery reveal-or-hide-regions \
+        import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
+        reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions lint-js-types \
         scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
@@ -231,7 +232,9 @@ fill-new-schema:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/fill-new-schema.sh"
 
 # Host-side (edits conf/ and drives both containers), so no docker exec wrapper. Flags go through args=, e.g.
-# `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`.
+# `make onboard-city id=laurens-ia args="--skip-scan"`, `args="--dump-only"`, `args="--allow-running-apps"`, and for
+# a country with no registered elevation model, the sampler's own flags once its rasters are downloaded:
+# `args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
 onboard-city:
 	@python3 tools/setup_new_city.py $(id) $(args)
 
@@ -257,15 +260,33 @@ hide-streets-without-imagery:
 import-street-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-imagery.sh"
 
+# Street gradient (#5223, docs/street-gradient.md) in three steps: export the streets that need sampling, sample them
+# against a bare-earth elevation model (scripts/street_gradient.py, in the web container), load the result. The export
+# takes `args=--all` to resample every street, `args=--allow-empty-osm-way` for a city with no OSM ways, and
+# `args="--structures onboarding/<city-id>/street_structures.csv"` to take the bridge/tunnel flags from the street
+# build instead of the nightly osm_way cache (what onboard-city does). The export and import prompt for the schema
+# unless the positional args ride in args=; the sampler takes its flags via args=, e.g.
+# `make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
+# Main checkout only, like build-city-data: the db container sees only that checkout's db/.
+export-street-gradient-input:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/export-street-gradient-input.sh $(args)"
+
+street-gradient:
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/street_gradient.py --city-id $(id) $(args)"
+
+import-street-gradient:
+	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-gradient.sh $(args)"
+
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
 # offline tooling needs >= 3.11. Each half runs the whole directory minus the files only the other's interpreter can
-# import, so a new test file runs in both by default instead of silently in neither. COVERAGE_OMIT/COVERAGE_OMIT2 are
+# import, so a new test file runs in both by default instead of silently in neither. The COVERAGE_OMIT* slots are
 # explained in pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
-                    --ignore=test/python/test_onboard_city.py
+                    --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
-cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py -e COVERAGE_OMIT2=scripts/onboard_city.py
+cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py -e COVERAGE_OMIT2=scripts/onboard_city.py \
+                    -e COVERAGE_OMIT3=scripts/street_gradient.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
 # Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.

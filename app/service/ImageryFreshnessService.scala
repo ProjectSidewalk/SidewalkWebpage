@@ -441,7 +441,9 @@ class ImageryFreshnessServiceImpl @Inject() (
    * resulting dates: older coverage can sit closer to the sample point than a newer drive, so new imagery goes
    * unnoticed until another sample point or another night catches it. The mirror-image false positive -- the radius
    * reaching a pano on a parallel service road or alley -- is handled downstream: the response carries the pano's
-   * position, and pollOneStreet drops observations that don't lie on the polled street.
+   * position, and pollOneStreet drops observations that don't lie on the polled street. The same filter is what stops
+   * an answer from outside the radius altogether, which Google does give: `radius` is a hint, not a bound, and a 25 m
+   * query has come back with a photosphere in another state (#5114).
    */
   private def fetchGsvPointObservations(
       apiKey: String

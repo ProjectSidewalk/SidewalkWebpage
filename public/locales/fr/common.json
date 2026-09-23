@@ -358,12 +358,14 @@
   "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant.",
   "label-type-picker": {
     "current": "{{labelType}} (type actuel)",
-    "change": "modifier"
+    "change": "modifier",
+    "change-type": "Changer le type d'étiquette",
+    "change-type-hint": "Les tags qui ne correspondent pas au nouveau type sont retirés. Une note n'est conservée qu'entre des types notés de la même façon."
   },
   "access-score-spotlight": {
     "subtitle-regions": "Les trottoirs de chaque quartier reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
     "subtitle-streets": "Les trottoirs de chaque rue reçoivent une note de 0 à 100 avec notre algorithme <a href=\"{{href}}\">AccessScore</a> (100 est la meilleure).",
-    "subtitle-one-region": "Cette ville est cartographiée comme un seul quartier : il n'y a donc qu'une note à afficher. Passez à Rues pour un regard plus détaillé.",
+    "subtitle-one-region": "Cette ville est cartographiée comme un seul quartier : il n'y a donc qu'une note à afficher.",
     "units-label": "Classer les quartiers ou les rues",
     "unit-regions": "Quartiers",
     "unit-streets": "Rues",

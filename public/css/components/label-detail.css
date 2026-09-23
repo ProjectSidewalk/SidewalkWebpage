@@ -93,71 +93,6 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-black);
 }
 
-/* The type's icon and name, as a span or as the picker button (#3671); the button inherits the heading's font. */
-.label-detail__type {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.label-detail__type-icon {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-}
-
-.label-detail__type-button {
-  margin: -2px -6px;
-  padding: 2px 6px;
-  border: none;
-  border-radius: 6px;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-
-.label-detail__type-button[aria-disabled="true"] {
-  cursor: default;
-}
-
-.label-detail__type-button:not([aria-disabled="true"]):hover {
-  background: rgb(0 0 0 / 6%);
-}
-
-.label-detail__type-button:focus-visible {
-  outline: 2px solid var(--color-link-100);
-  outline-offset: 2px;
-}
-
-.label-detail__type-chevron {
-  width: 16px;
-  height: 16px;
-  transition: transform 150ms ease;
-}
-
-.label-detail__type-button[aria-expanded="true"] .label-detail__type-chevron {
-  transform: rotate(180deg);
-}
-
-/* The type picker: a popover LabelDetail parks under the title, or an inline block where popovers don't exist. */
-.label-detail__type-picker {
-  margin: 0;
-  padding: 12px;
-  max-width: 400px;
-  border: 1px solid var(--color-neutral-300);
-  border-radius: var(--border-radius-lg);
-  background: var(--color-neutral-white);
-  box-shadow: var(--box-shadow-lg);
-}
-
-.label-detail__type-hint {
-  margin: 0 0 8px;
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
-}
-
 /* The Undo inside the status line after a type change (#3671). */
 .label-detail__edit-status-action {
   margin-left: 6px;
@@ -186,6 +121,101 @@ dialog.label-detail[open]::backdrop {
 .label-detail__own-badge img {
   width: 14px;
   height: 14px;
+}
+
+/* Delete (#3591): grey at rest, a muted red only on hover. The [hidden] rule beats display: inline-flex. */
+.label-detail__delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-neutral-700);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.label-detail__delete[hidden] {
+  display: none;
+}
+
+.label-detail__delete:not([aria-disabled="true"]):hover {
+  background: var(--color-orange-100);
+  color: var(--color-error-300);
+}
+
+/* The same trash glyph in the chip and in the notice, taking each one's color. */
+.label-detail__trash-icon {
+  width: 14px;
+  height: 14px;
+  -webkit-mask-image: url("../../images/icons/trash-2-feather.svg");
+  mask-image: url("../../images/icons/trash-2-feather.svg");
+}
+
+/* Inert (no imagery): greyed and no pointer, but still a hover and focus target so the tooltip can say why. */
+.label-detail__delete[aria-disabled="true"] {
+  color: var(--color-neutral-400);
+  cursor: default;
+}
+
+.label-detail__delete:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 2px;
+}
+
+/* The imagery greys out but keeps its marker, so there's something to judge a Restore by; the notice takes the pan
+   hint's spot. */
+.label-detail--deleted .label-detail__pano {
+  filter: grayscale(1) brightness(0.8);
+}
+
+.label-detail--deleted .label-detail__pan-hint {
+  display: none;
+}
+
+.label-detail__deleted-notice {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  z-index: 6; /* Above the validation ring (5), below the info popover (10). */
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px 5px 14px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 65%);
+  color: var(--color-neutral-white);
+  font: var(--text-caption-medium);
+  white-space: nowrap;
+}
+
+.label-detail__deleted-notice[hidden] {
+  display: none;
+}
+
+.label-detail__restore {
+  padding: 3px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  font: var(--text-caption-semibold);
+  cursor: pointer;
+}
+
+.label-detail__restore:hover {
+  background: var(--color-banana-200);
+}
+
+.label-detail__restore:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
 }
 
 .label-detail__close {
@@ -1355,6 +1385,7 @@ button.label-detail__meta-cell:focus-visible {
     padding: 6px 9px;
   }
 }
+
 
 /* Cross-surface hops: to the LabelMap (#4572) and into Explore at the label's pano (#4637); styled as siblings of
    the share pill. Hidden until LabelDetail fills the href (hosts opt in) — explicit so the attribute beats

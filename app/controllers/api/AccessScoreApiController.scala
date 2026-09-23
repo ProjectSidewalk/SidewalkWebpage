@@ -5,11 +5,14 @@ import controllers.helper.ShapefilesCreatorHelper
 import models.api.{
   AccessScoreConfigForApi,
   ApiError,
+  DemSourceForApi,
   IntersectionAccessScoreForApi,
   RegionAccessScoreForApi,
   SpotlightUnit,
-  StreetAccessScoreForApi
+  StreetAccessScoreForApi,
+  StreetGradientConfigForApi
 }
+import models.street.DemSource
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
@@ -230,9 +233,21 @@ class AccessScoreApiController @Inject() (
    */
   def getAccessScoreConfig = silhouette.UserAwareAction.async { implicit request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-    // The engine's constants plus the one runtime fact a reader of the scores needs: how fresh the clusters are.
-    accessScoreService.clustersUpdatedAt.map { updatedAt =>
-      Ok(AccessScoreConfigForApi.current.toJson + ("clusters_updated_at" -> Json.toJson(updatedAt)))
+    // The engine's constants plus the runtime facts a reader needs: how fresh the clusters are, and which elevation
+    // models the city's grades came from (a per-city fact, so the credit cannot be a constant either).
+    val updatedAtFuture = accessScoreService.clustersUpdatedAt
+    val sourcesFuture   = accessScoreService.gradientSourceCounts
+    for {
+      updatedAt <- updatedAtFuture
+      sources   <- sourcesFuture
+    } yield {
+      val gradient = StreetGradientConfigForApi(sources.map { case (name, n) =>
+        DemSourceForApi(DemSource.forName(name), Some(n))
+      })
+      Ok(
+        AccessScoreConfigForApi.current.toJson +
+          ("clusters_updated_at" -> Json.toJson(updatedAt)) + ("grade" -> gradient.toJson)
+      )
     }
   }
 

@@ -1101,6 +1101,17 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         + "auditCount:Integer,"        // Number of completed audits
         + "lengthM:Double,"            // Street length in meters
         + "labelCount:Integer,"        // Number of labels contributing to the score
+        + "meanGrade:Double,"          // Mean absolute grade as a fraction (null if unsampled or a structure)
+        + "maxGrade:Double,"           // Steepest grade over a 30 m baseline
+        + "netGrade:Double,"           // End-to-end grade, signed in the digitized direction
+        + "climbM:Double,"             // Summed rise in meters
+        + "descentM:Double,"           // Summed fall in meters
+        + "mOver5pct:Double,"          // Meters steeper than 1:20
+        + "mOver8pct:Double,"          // Meters steeper than 1:12 (8.33%)
+        + "gradeConf:String,"          // high / medium / low, from the elevation model's grid size
+        + "gradeQual:String,"          // measured / structure / suspect / no_data
+        + "demSource:String,"          // The elevation model, for attribution
+        + "gradeTerm:Double,"          // What grade adds to the segment's pre-sigmoid sum (never positive)
         + perTypeSpec + ","            // Per-type cluster count (n<code>) and sub-score (s<code>)
         + perBucketSpec + ","          // Per-type cluster count per rating bucket (n1..n3<code>, n0<code> unrated)
         + perTagSpec                   // Per-type summed tag adjustment (t<code>)
@@ -1121,6 +1132,17 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(s.auditCount)
       fb.add(s.lengthMeters)
       fb.add(s.labelCount)
+      fb.add(s.gradient.flatMap(_.meanGrade).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.maxGrade).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.netGrade).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.climbM).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.descentM).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.metersOver5pctGrade).map(Double.box).orNull)
+      fb.add(s.gradient.flatMap(_.metersOver8pctGrade).map(Double.box).orNull)
+      fb.add(s.gradient.map(_.confidence.toString).orNull)
+      fb.add(s.gradient.map(_.quality.toString).orNull)
+      fb.add(s.gradient.map(_.demSource).orNull)
+      fb.add(s.slopeTerm)
       AccessScoreApiModels.orderedTypes.foreach { t =>
         fb.add(s.clusterCounts.getOrElse(t, 0))
         fb.add(s.subScores.getOrElse(t, 0.0))

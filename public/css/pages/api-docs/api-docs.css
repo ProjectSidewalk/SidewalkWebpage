@@ -267,39 +267,70 @@ pre > code.language-csv {
   margin-left: auto;
 }
 
-/* ---- Status Indicators ---- */
+/* ---- Download Status ---- */
 
-.status-container {
-  margin: var(--space-md) 0;
-  padding: var(--space-md);
-  border-radius: var(--border-radius);
-  background-color: var(--color-blue-300);
-  border: 1px solid;
+.download-status {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  font: var(--text-body-medium);
+  color: var(--color-neutral-900);
 }
 
-.status-loading {
-  border-color: var(--color-link-200);
+/* Takes no room until the first click; kept in the page so its live region is already being watched. */
+.download-status:not([data-state]) {
+  margin: 0;
 }
 
-.status-message {
-  font: var(--text-body-bold);
-  margin: 5px 0;
+.download-status:not([data-state]) .download-status-icon {
+  display: none;
 }
 
-.status-message--warning {
+.download-status-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Takes the rest of the row, so a long message wraps beside its icon rather than below it. */
+.download-status-message {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.download-status-icon.loading-spinner {
+  border-width: 3px;
+}
+
+.download-status-icon--done {
+  color: var(--color-pine-700);
+  -webkit-mask-image: url("../../../images/icons/check-circle-feather.svg");
+  mask-image: url("../../../images/icons/check-circle-feather.svg");
+}
+
+.download-status-icon--warning {
   color: var(--color-orange-600);
+  -webkit-mask-image: url("../../../images/icons/alert-triangle-feather.svg");
+  mask-image: url("../../../images/icons/alert-triangle-feather.svg");
 }
 
-.status-message--error {
+.download-status-icon--error {
   color: var(--color-error-300);
+  -webkit-mask-image: url("../../../images/icons/alert-circle.svg");
+  mask-image: url("../../../images/icons/alert-circle.svg");
 }
 
-.status-progress {
+/* Sits beside the message, and wraps under it on a narrow screen. */
+.download-status-bar {
+  flex: 1 1 200px;
+  max-width: 400px;
+}
+
+.download-status-detail {
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---- Message Components ---- */
@@ -440,7 +471,8 @@ pre > code.language-csv {
   font: var(--text-small-bold);
 }
 
-.map-popup p {
+/* Not the elevation chart's own paragraphs, which its component styles and this rule would otherwise outrank. */
+.map-popup p:not(.elevation-profile p) {
   margin: 4px 0;
   font: var(--text-caption-regular);
 }
@@ -597,7 +629,7 @@ pre > code.language-csv {
     font: var(--text-caption-semibold);
   }
 
-  .map-popup p {
+  .map-popup p:not(.elevation-profile p) {
     font: var(--text-tiny-regular);
   }
 

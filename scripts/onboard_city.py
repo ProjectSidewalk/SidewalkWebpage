@@ -21,7 +21,9 @@ Workflow:
 
      Besides the QA GeoPackage, SQL, and report, every run writes ``street_edge_endpoints.csv`` in the scan's input
      format, so ``check_streets_for_imagery.py --city-id <id> --sample 150 --<provider>`` can answer "does this city
-     have imagery, and how fresh?" from the build alone, before any database exists.
+     have imagery, and how fresh?" from the build alone, before any database exists, and ``street_structures.csv``
+     (which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags), so the street-gradient export
+     can run during onboarding rather than after the first nightly ``osm_way`` refresh (#5223).
 
      Streets always come from OSM (fetched with osmnx). Region boundaries come from the first source that works:
        * ``--regions-file <path>`` — bring your own neighborhood dataset (any OGR-readable format, any CRS; the
@@ -97,6 +99,7 @@ pay its startup cost.
 
 import argparse
 import csv
+import hashlib
 import logging
 import re
 import sys
@@ -122,7 +125,17 @@ def _osmnx():
     """Imports osmnx with its HTTP cache pointed into the git-ignored onboarding dir instead of CWD-relative cache/."""
     import osmnx as ox
     ox.settings.cache_folder = str(REPO_ROOT / 'db' / 'onboarding' / 'osmnx-cache')
+    # osmnx keeps bridge and tunnel on every edge by default but drops covered; is_structure needs all three.
+    tags = list(getattr(ox.settings, 'useful_tags_way', []))
+    ox.settings.useful_tags_way = tags + [tag for tag in STRUCTURE_TAGS if tag not in tags]
     return ox
+
+
+# The OSM way tags that put a street on a structure, read by is_structure_tag. The same three tags, with the same
+# value readings, decide is_structure in db/scripts/export-street-gradient-input.sh once a city has its osm_way
+# cache; that path sees only the way a street starts on (osm_way_street_edge holds one way per street), where the
+# build reads every way the street spans.
+STRUCTURE_TAGS = ('bridge', 'tunnel', 'covered')
 
 # The way types we audit — the same filter the manual QGIS flow applies (the retired QGIS runbook).
 # Every value is a label of the DB's way_type enum, so fill-new-schema.sh's ::way_type cast can't fail.
@@ -218,6 +231,33 @@ def normalize_way_type(highway, allowed=DEFAULT_WAY_TYPES):
     return highway
 
 
+def is_structure_tag(bridge, tunnel, covered):
+    """
+    Whether an edge's OSM tags put it on a bridge, in a tunnel, or under cover (#5223).
+
+    A bare-earth elevation model removes bridges and knows nothing of tunnels, so the street-gradient sampler reads
+    such a street at its ends only. The value readings match ``export-street-gradient-input.sh``: any ``bridge`` or
+    ``tunnel`` value but ``no`` counts (``viaduct``, ``movable``, ``building_passage``, ``culvert``), and ``covered``
+    only when ``yes``. After simplification a tag can be a list of the merged ways' values, and a street that is a
+    structure on any part of its length is one, since the alternative is sampling the ravine under that part (the
+    export's ``osm_way`` path sees only the way a street starts on, so it can miss such a street).
+
+    Args:
+        bridge:  The edge's ``bridge`` tag — a scalar, a list, or NaN/None when untagged.
+        tunnel:  The edge's ``tunnel`` tag, likewise.
+        covered: The edge's ``covered`` tag, likewise.
+
+    Returns:
+        True when the edge lies on a structure.
+    """
+    def values(tag):
+        # NaN is tested per element: a NaN inside a list would otherwise read as the string 'nan', which is not 'no'.
+        return [str(value) for value in (tag if isinstance(tag, list) else [tag])
+                if value is not None and not (pd.api.types.is_scalar(value) and pd.isna(value))]
+    return (any(value != 'no' for value in values(bridge)) or any(value != 'no' for value in values(tunnel))
+            or any(value == 'yes' for value in values(covered)))
+
+
 def geodesic_length_m(geom):
     """
     Measures a geometry's length geodesically (repo convention: never measure through a projection).
@@ -257,7 +297,8 @@ def merge_tiny_same_way(streets, max_m):
     until no short piece has a same-way neighbour.
 
     Args:
-        streets: GeoDataFrame from :func:`fetch_streets` (``u``, ``v``, ``osm_ids``, ``highway``, geometry).
+        streets: GeoDataFrame from :func:`fetch_streets` (``u``, ``v``, ``osm_ids``, ``highway``, ``is_structure``,
+                 geometry).
         max_m:   Pieces shorter than this (meters) are merged; 0 disables the pass.
 
     Returns:
@@ -266,7 +307,8 @@ def merge_tiny_same_way(streets, max_m):
     if max_m <= 0 or streets.empty:
         return streets, 0
     edges = [{'u': int(row.u), 'v': int(row.v), 'osm_ids': list(row.osm_ids), 'highway': row.highway,
-              'geometry': row.geometry, 'length_m': geodesic_length_m(row.geometry)} for row in streets.itertuples()]
+              'is_structure': bool(row.is_structure), 'geometry': row.geometry,
+              'length_m': geodesic_length_m(row.geometry)} for row in streets.itertuples()]
     alive = [True] * len(edges)
     by_node = defaultdict(set)
     for i, edge in enumerate(edges):
@@ -304,6 +346,7 @@ def merge_tiny_same_way(streets, max_m):
                 by_node[old_node].discard(i)
                 by_node[old_node].discard(j)
             edges[i] = {'u': ends[0], 'v': ends[1], 'osm_ids': way_ids, 'highway': other['highway'],
+                        'is_structure': edge['is_structure'] or other['is_structure'],
                         'geometry': geometry, 'length_m': edge['length_m'] + other['length_m']}
             alive[j] = False
             by_node[ends[0]].add(i)
@@ -313,7 +356,7 @@ def merge_tiny_same_way(streets, max_m):
 
     kept = [edge for edge, keep in zip(edges, alive) if keep]
     merged = gpd.GeoDataFrame(kept, geometry='geometry', crs=streets.crs)
-    return merged[['u', 'v', 'osm_ids', 'highway', 'geometry']], n_merged
+    return merged[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']], n_merged
 
 
 # Per-run tiny-segment figures (#4717): counts under 5/10/20 m, the sub-20 m share, the median street length, and
@@ -796,7 +839,7 @@ def rename_regions(regions, mapping):
     return renamed
 
 
-def validate_staging(roads, regions):
+def validate_staging(roads, regions, overlaps_are_fatal=True):
     """
     Checks hand-edited (or generated) staging data against what fill-new-schema.sh and the DB schema require.
 
@@ -838,7 +881,66 @@ def validate_staging(roads, regions):
         errors.append('streets must have non-null highway and region_id')
     if roads['osm_ids'].map(lambda way_ids: not isinstance(way_ids, list) or not way_ids).any():
         errors.append('every street needs at least one OSM way id in osm_ids (a hand-built layer: osm_ids = osm_id)')
+    # Overlapping pieces of one OSM way can't be a bridge over a road, so they're wrong (#3067); different ways
+    # might be, and staging data has no tags to tell, so those always only warn.
+    if not errors:
+        overlapping = find_overlapping_streets(roads)
+        same_way = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if shares_way]
+        different_ways = [(road_a, road_b) for road_a, road_b, shares_way in overlapping if not shares_way]
+        if same_way:
+            more = ' ...' if len(same_way) > 10 else ''
+            trouble = (f'{len(same_way)} pair(s) of streets cut from the same OSM way lie on top of each other '
+                       f'(road_id pairs: {same_way[:10]}{more}) — delete the copies in QGIS, or fix the region '
+                       f'dataset if its polygons overlap')
+            if overlaps_are_fatal:
+                errors.append(trouble)
+            else:
+                logger.warning('%s', trouble)
+        if different_ways:
+            more = ' ...' if len(different_ways) > 10 else ''
+            logger.warning('%d pair(s) of streets from different OSM ways lie on top of each other — check each in '
+                           'QGIS and delete the copy unless one is a bridge or tunnel over the other (road_id pairs: '
+                           '%s%s)', len(different_ways), different_ways[:10], more)
     return errors
+
+
+def find_overlapping_streets(roads, tol_m=0.5, min_len_m=10.0, min_coverage=0.8):
+    """
+    Finds pairs of streets drawn on top of each other (#3067), by the rule db/scripts/one-off/find_duplicate_streets.sql
+    uses on a live city: one street lies at least ``min_coverage`` inside a ``tol_m``-wide corridor around the other.
+
+    Longitude is squashed by cos(latitude) first so a degree is the same number of meters both ways and the corridor
+    is round; the share covered is a ratio of two lengths measured in that same space, so it needs no conversion.
+
+    Args:
+        roads:        GeoDataFrame with ``road_id``, ``osm_ids`` (a list per street), lon/lat LineString geometry,
+                      and ``length_m`` where the caller already measured it.
+        tol_m:        Corridor half-width in meters.
+        min_len_m:    Shorter streets are skipped; any corridor swallows the stubs that meet a street at a junction.
+        min_coverage: Share of a street that must lie in the other's corridor.
+
+    Returns:
+        ``(road_id_a, road_id_b, shares_osm_way)`` tuples, road_id_a < road_id_b.
+    """
+    if roads.empty:
+        return []
+    mid_lat = (roads.total_bounds[1] + roads.total_bounds[3]) / 2
+    flat = shapely.transform(roads.geometry.values, lambda coords: coords * [cos(radians(mid_lat)), 1.0])
+    corridors = shapely.buffer(flat, tol_m / 111_320, quad_segs=4)
+    lengths_m = (roads['length_m'] if 'length_m' in roads.columns
+                 else pd.Series([geodesic_length_m(geom) for geom in roads.geometry])).to_numpy()
+    # Every geometry call below is made once over whole arrays; one call per candidate pair is ~10x slower on a city
+    # the size of Chicago.
+    left, right = shapely.STRtree(flat).query(corridors, predicate='intersects')
+    worth_testing = (left < right) & (lengths_m[left] >= min_len_m) & (lengths_m[right] >= min_len_m)
+    left, right = left[worth_testing], right[worth_testing]
+    flat_lengths = shapely.length(flat)
+    left_in_right = shapely.length(shapely.intersection(flat[left], corridors[right])) / flat_lengths[left]
+    right_in_left = shapely.length(shapely.intersection(flat[right], corridors[left])) / flat_lengths[right]
+    overlapping = (left_in_right >= min_coverage) | (right_in_left >= min_coverage)
+    road_ids, way_ids = list(roads['road_id']), [set(ways) for ways in roads['osm_ids']]
+    return sorted({(*sorted((road_ids[i], road_ids[j])), bool(way_ids[i] & way_ids[j]))
+                   for i, j in zip(left[overlapping], right[overlapping])})
 
 
 def copy_escape(value):
@@ -1079,7 +1181,7 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
     Returns:
         A GeoDataFrame of street edges: ``u``/``v`` (the OSM node ids at each end, which :func:`merge_tiny_same_way`
         uses to find touching pieces), ``osm_ids`` (every OSM way the edge spans), ``highway`` (single way-type
-        string), geometry.
+        string), ``is_structure`` (:func:`is_structure_tag`), geometry.
     """
     ox = _osmnx()
     buffer_deg = fetch_buffer_m / (111_320 * cos(radians(boundary_poly.centroid.y)))
@@ -1089,7 +1191,10 @@ def fetch_streets(boundary_poly, include_alleys, fetch_buffer_m):
     edges = ox.convert.graph_to_gdfs(graph, nodes=False, edges=True).reset_index()
     edges['osm_ids'] = edges['osmid'].map(as_id_list)
     edges['highway'] = edges['highway'].map(normalize_way_type)
-    return edges[['u', 'v', 'osm_ids', 'highway', 'geometry']]
+    # osmnx only materializes a tag column when some edge in the graph carries the tag.
+    tags = [edges[tag] if tag in edges.columns else [None] * len(edges) for tag in STRUCTURE_TAGS]
+    edges['is_structure'] = [is_structure_tag(*values) for values in zip(*tags)]
+    return edges[['u', 'v', 'osm_ids', 'highway', 'is_structure', 'geometry']]
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1140,16 +1245,18 @@ def absorb_small_parts(parts, min_part_m2):
     return keep
 
 
-def prepare_regions(raw_regions, boundary, min_part_m2):
+def prepare_regions(raw_regions, boundary, min_part_m2, max_sliver_width_m=5.0):
     """
     Clips raw region polygons to the city boundary, cleans them up, and assigns region ids.
 
     Args:
-        raw_regions: GeoDataFrame with ``name`` + polygonal geometry, EPSG:4326.
-        boundary:    Single-row GeoDataFrame of the city boundary.
-        min_part_m2: Polygon parts smaller than this (m²) are absorbed into the neighbor sharing the longest border,
-                     or dropped when isolated (see :func:`absorb_small_parts`). Whole regions reduced to nothing are
-                     removed.
+        raw_regions:        GeoDataFrame with ``name`` + polygonal geometry, EPSG:4326.
+        boundary:           Single-row GeoDataFrame of the city boundary.
+        min_part_m2:        Polygon parts smaller than this (m²) are absorbed into the neighbor sharing the longest
+                            border, or dropped when isolated (see :func:`absorb_small_parts`). Whole regions
+                            reduced to nothing are removed.
+        max_sliver_width_m: Overlaps thinner than this are traced-a-bit-differently noise and are repaired; a
+                            thicker one is a real disagreement about where a region is and stops the build.
 
     Returns:
         A GeoDataFrame with ``region_id`` (1..N), ``name``, and MultiPolygon geometry.
@@ -1163,6 +1270,7 @@ def prepare_regions(raw_regions, boundary, min_part_m2):
     # Each source polygon keeps its identity through clip -> explode -> dissolve. Dissolving by *name* would fold
     # two same-named polygons into one region: census tract names repeat across counties ("Census Tract 203"), and
     # an OSM dataset can carry two "Downtown"s.
+    regions = resolve_region_overlaps(regions, max_sliver_width_m)
     regions['source_key'] = regions.index
 
     clipped = gpd.overlay(regions, boundary[['geometry']], how='intersection', keep_geom_type=True)
@@ -1176,6 +1284,8 @@ def prepare_regions(raw_regions, boundary, min_part_m2):
     dissolved['region_id'] = dissolved.index + 1
     dissolved['geometry'] = dissolved.geometry.map(to_multipolygon)
 
+    # Clipping and absorbing can't reintroduce an overlap, but a hand-built --regions-file reaches this through a
+    # different door, so the check stays as a backstop.
     warn_if_overlapping(dissolved)
     return dissolved[['region_id', 'name', 'geometry']]
 
@@ -1238,6 +1348,109 @@ def disambiguate_names(names):
                            '"%s (2)".. — merge them deliberately with --merge-regions if they are one place.',
                            name, count, name)
     return unique
+
+
+def resolve_region_overlaps(regions, max_sliver_width_m):
+    """
+    Repairs a region dataset whose polygons overlap, which they must never do.
+
+    Regions have to tile the city: street pieces are cut out of the region polygons, so a street lying under two of
+    them is cut twice and lands in the database twice (#3067). Two kinds of overlap turn up, and they want opposite
+    answers. A hairline along a shared border is two people tracing the same line slightly differently, nobody's
+    idea of a boundary dispute, and is repaired silently. Anything thicker is a real disagreement about where a
+    region is -- a neighborhood drawn inside a district, or a dataset mixing two vintages -- and no automatic choice
+    is honest, so the build stops and a person settles it.
+
+    A repaired overlap goes to the smaller region: it is the more specific answer to "which region is this street
+    in", and at hairline widths the choice barely moves any ground anyway.
+
+    Args:
+        regions:            GeoDataFrame of region polygons in EPSG:4326, already made valid, with a ``name`` column.
+        max_sliver_width_m: The widest overlap still treated as tracing noise. An overlap's width is its area over
+                            half its perimeter, so a long thin sliver reads as thin however far it runs.
+
+    Returns:
+        ``regions`` with the slivers cut out, reindexed from 0. Exits the program on a thicker overlap.
+    """
+    if len(regions) < 2:
+        return regions
+    areas_m2 = [geodesic_area_m2(geom) for geom in regions.geometry]
+    # Smallest first, so a region only ever loses ground to one that is more specific than it is.
+    rank = {index: place for place, index in enumerate(sorted(range(len(regions)), key=lambda i: areas_m2[i]))}
+    tree = shapely.STRtree(regions.geometry.values)
+    serious = []
+    for i, j in {(min(a, b), max(a, b))
+                 for a in range(len(regions))
+                 for b in tree.query(regions.geometry.iloc[a], predicate='intersects') if a != b}:
+        for piece in shapely.get_parts(regions.geometry.iloc[i].intersection(regions.geometry.iloc[j])):
+            if piece.geom_type not in ('Polygon', 'MultiPolygon') or piece.is_empty:
+                continue
+            width_m = overlap_width_m(piece)
+            if width_m > max_sliver_width_m:
+                serious.append((regions['name'].iloc[i], regions['name'].iloc[j], geodesic_area_m2(piece), width_m))
+    if serious:
+        serious.sort(key=lambda row: -row[2])
+        listed = '\n  - '.join(f'"{name_a}" and "{name_b}" overlap by {area / 1e6:.3f} km² ({width:.0f} m wide)'
+                                for name_a, name_b, area, width in serious[:10])
+        sys.exit(f'error: {len(serious)} region overlap(s) are too big to be a tracing error, and regions must tile '
+                 f'the city — a street under two of them would be imported twice:\n  - {listed}'
+                 + ('\n  - ...' if len(serious) > 10 else '')
+                 + '\nFix the region dataset (in QGIS, say) and rerun, or --merge-regions the pair if they are one '
+                   'place.')
+
+    trimmed, lost_m2 = [], 0.0
+    for i, geom in enumerate(regions.geometry):
+        # Regions that merely share a border are not rivals, and cutting one out of the other would only shift the
+        # border by a rounding error. Only ground claimed twice counts.
+        winners = [regions.geometry.iloc[j] for j in tree.query(geom, predicate='intersects')
+                   if j != i and rank[j] < rank[i] and geom.intersection(regions.geometry.iloc[j]).area > 0]
+        if winners:
+            geom = polygonal_parts(shapely.make_valid(geom.difference(shapely.union_all(winners))))
+            lost_m2 += areas_m2[i] - geodesic_area_m2(geom)
+        trimmed.append(geom)
+    if lost_m2 <= 0:
+        return regions
+    logger.info('Region borders overlapped by a hairline in places (%.0f m² claimed twice); gave each overlap to the '
+                'smaller region so no street is imported once per region.', lost_m2)
+    regions = regions.copy()
+    regions['geometry'] = trimmed
+    return regions[~regions.geometry.is_empty].reset_index(drop=True)
+
+
+def overlap_width_m(geom):
+    """
+    Measures how thick a patch of ground is, so a hairline along a border can be told from a real overlap.
+
+    Area alone can't: a 2 m sliver running the length of a long border covers more ground than a small but genuine
+    overlap. Area over half the perimeter gives a long thin shape its width rather than its size.
+
+    Args:
+        geom: A polygon in lon/lat (EPSG:4326).
+
+    Returns:
+        The width in meters, or 0 for a degenerate shape with no perimeter.
+    """
+    _, perimeter_m = WGS84_GEOD.geometry_area_perimeter(geom)
+    return 0.0 if not perimeter_m else 2 * geodesic_area_m2(geom) / abs(perimeter_m)
+
+
+def polygonal_parts(geom):
+    """
+    Keeps only the polygon parts of a geometry.
+
+    Subtracting one polygon from another that touches it can leave stray points and lines in the result, which are
+    not ground and break anything downstream that expects a polygon.
+
+    Args:
+        geom: Any shapely geometry.
+
+    Returns:
+        The polygonal parts as one geometry, or an empty Polygon when there are none.
+    """
+    if geom.is_empty or geom.geom_type in ('Polygon', 'MultiPolygon'):
+        return geom
+    parts = [part for part in shapely.get_parts(geom) if part.geom_type in ('Polygon', 'MultiPolygon')]
+    return shapely.union_all(parts) if parts else Polygon()
 
 
 def warn_if_overlapping(regions):
@@ -1346,7 +1559,7 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
     slivers with nothing to merge into — is separated out for QA review.
 
     Args:
-        streets:              GeoDataFrame of street edges (``osm_ids``, ``highway``, geometry).
+        streets:              GeoDataFrame of street edges (``osm_ids``, ``highway``, ``is_structure``, geometry).
         regions:              GeoDataFrame from :func:`prepare_regions`.
         min_segment_m:        Minimum street-piece length to keep, in meters.
         heal_m:               Pieces shorter than this are absorbed into a touching neighbor piece of the same
@@ -1356,7 +1569,8 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
 
     Returns:
         A ``(roads, dropped, heal_stats, rider_junctions)`` tuple: ``roads`` has ``road_id`` (1..N), ``osm_ids``,
-        ``highway``, ``region_id``, ``length_m``; ``dropped`` holds the too-short fragments; ``heal_stats`` is a
+        ``highway``, ``is_structure``, ``region_id``, ``length_m``; ``dropped`` holds the too-short fragments;
+        ``heal_stats`` is a
         :data:`HealStats`; ``rider_junctions`` is a GeoDataFrame of the junction points where boundary-running
         splits were merged (for the QA layer).
     """
@@ -1397,10 +1611,10 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
         junction_rows += [{'osm_ids': edge['osm_ids'], 'geometry': junction} for junction in junctions]
         for piece in healed_pieces:
             healed_rows.append({'osm_ids': edge['osm_ids'], 'highway': edge['highway'],
-                                'region_id': piece.region_id, 'length_m': piece.length_m,
-                                'geometry': piece.geometry})
-    healed = gpd.GeoDataFrame(healed_rows, columns=['osm_ids', 'highway', 'region_id', 'length_m', 'geometry'],
-                              geometry='geometry', crs=streets.crs)
+                                'is_structure': bool(edge['is_structure']), 'region_id': piece.region_id,
+                                'length_m': piece.length_m, 'geometry': piece.geometry})
+    healed = gpd.GeoDataFrame(healed_rows, columns=['osm_ids', 'highway', 'is_structure', 'region_id', 'length_m',
+                                                    'geometry'], geometry='geometry', crs=streets.crs)
     rider_junctions = gpd.GeoDataFrame(junction_rows, geometry='geometry', crs=streets.crs,
                                        columns=['osm_ids', 'geometry'])
 
@@ -1410,8 +1624,8 @@ def assign_regions(streets, regions, min_segment_m, heal_m, boundary_merge_tol_m
     roads['road_id'] = roads.index + 1
     heal_stats = HealStats(n_raw_pieces - len(healed) - len(rider_junctions), n_bridged_total, restored_m_total,
                            len(rider_junctions))
-    return (roads[['road_id', 'osm_ids', 'highway', 'region_id', 'length_m', 'geometry']], dropped, heal_stats,
-            rider_junctions)
+    return (roads[['road_id', 'osm_ids', 'highway', 'is_structure', 'region_id', 'length_m', 'geometry']], dropped,
+            heal_stats, rider_junctions)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1467,6 +1681,29 @@ def write_endpoints_csv(path, roads):
         'x1': [pt[0] for pt in starts], 'y1': [pt[1] for pt in starts],
         'x2': [pt[0] for pt in ends], 'y2': [pt[1] for pt in ends],
         'geom': [shapely.to_wkb(geom, hex=True) for geom in roads.geometry],
+    }).to_csv(path, index=False)
+
+
+def write_structures_csv(path, roads):
+    """
+    Writes which streets lie on a bridge, in a tunnel, or under cover, for the street-gradient export (#5223).
+
+    A new city's ``osm_way`` cache is empty until the first nightly refresh, and the export refuses to read structure
+    flags from an empty cache, since every bridge would then be sampled as the ravine beneath it. This file lets
+    ``export-street-gradient-input.sh --structures`` take the flags from the build instead, so the city can be
+    sampled during onboarding. Booleans are written as Postgres ``t``/``f``, which psql's ``\\copy`` reads into a
+    boolean column. ``geom_md5`` is the hash the export computes as ``md5(ST_AsBinary(geom))``: shapely's WKB is
+    byte-identical to PostGIS's for the geometry the SQL loads, so the export can tell a file from this build apart
+    from one whose streets happen to share the ids (every build numbers them 1..N).
+
+    Args:
+        path:  Output ``.csv`` path.
+        roads: Final street GeoDataFrame, with ``road_id``, ``is_structure`` and geometry.
+    """
+    pd.DataFrame({
+        'street_edge_id': roads['road_id'].values,
+        'is_structure': ['t' if flag else 'f' for flag in roads['is_structure']],
+        'geom_md5': [hashlib.md5(geom.wkb).hexdigest() for geom in roads.geometry],
     }).to_csv(path, index=False)
 
 
@@ -1557,6 +1794,10 @@ def write_report(path, args, region_source, roads, regions, dropped, stats, cove
         f'- Regions: **{len(regions)}**{coverage_note}',
         f'- Loop roads (start = end): **{street_stats.n_loops}** — kept as OSM maps them; check them in QGIS',
     ]
+    if 'is_structure' in roads.columns:
+        n_structures = int(roads['is_structure'].sum())
+        lines.append(f'- Streets on a bridge, in a tunnel, or covered (OSM tags): **{n_structures}** — the '
+                     'street-gradient sampler reads these at their ends only (`street_structures.csv`)')
     if n_tier1_merged is not None:
         lines.append(f'- Merged sub-{args.merge_tiny_m:g} m pieces into a touching piece of the same OSM way '
                      f'(#4717 tier 1): **{n_tier1_merged}**')
@@ -1674,6 +1915,11 @@ def parse_args(argv=None):
                              'the other side\'s region, i.e. along the boundary instead of across it (default: 15 m).')
     parser.add_argument('--min-segment-m', type=float, default=15,
                         help='Drop street fragments shorter than this after clipping and healing (default: 15 m).')
+    parser.add_argument('--max-region-sliver-m', type=float, default=5,
+                        help='Regions must never overlap. An overlap thinner than this is taken as two people '
+                             'tracing the same border slightly differently and is repaired by giving the ground to '
+                             'the smaller region; a thicker one stops the build for a human to settle '
+                             '(default: 5 m).')
     parser.add_argument('--min-region-part-m2', type=float, default=10000,
                         help='Region polygon parts smaller than this after clipping are merged into the neighboring '
                              'region sharing the longest border, or dropped when they touch no other region '
@@ -1743,6 +1989,19 @@ def run_from_gpkg(args):
     else:  # A hand-built layer (the QGIS runbook's shape) carries one way id per street.
         roads['osm_ids'] = (roads['osm_id'].map(lambda way_id: [] if pd.isna(way_id) else [int(way_id)])
                             if 'osm_id' in roads.columns else None)
+    if 'is_structure' in roads.columns:
+        # A street drawn by hand in QGIS has no flag; not a structure is the reading the nightly osm_way cache would
+        # give a street that maps to no tagged way, so it is the reading here.
+        untagged = roads['is_structure'].isna()
+        if untagged.any():
+            logger.info('%d street(s) carry no is_structure flag (added by hand?); treating them as not on a '
+                        'structure.', int(untagged.sum()))
+        roads['is_structure'] = roads['is_structure'].fillna(False).astype(bool)
+    else:
+        logger.warning('The qgis_road layer has no is_structure column, so street_structures.csv is not written: '
+                       'sample the street gradient after the first nightly OSM way refresh (docs/street-gradient.md).')
+        # An earlier build's file would otherwise be taken for this one's by the onboarding orchestrator.
+        (out_dir / 'street_structures.csv').unlink(missing_ok=True)
     roads['length_m'] = [geodesic_length_m(geom) for geom in roads.geometry]
 
     errors = validate_staging(roads, regions)
@@ -1767,10 +2026,14 @@ def run_from_gpkg(args):
     endpoints_path = out_dir / 'street_edge_endpoints.csv'
     write_sql(sql_path, roads, regions)
     write_endpoints_csv(endpoints_path, roads)
+    written = [sql_path, endpoints_path]
+    if 'is_structure' in roads.columns:
+        write_structures_csv(out_dir / 'street_structures.csv', roads)
+        written.append(out_dir / 'street_structures.csv')
     write_report(report_path, args, f'edited GeoPackage ({gpkg_path.name})', roads, regions, roads.iloc[0:0],
                  stats, coverage, None)
-    logger.info('\nWrote:\n  %s\n  %s\n  %s\nThe SQL now matches the edited GeoPackage.', sql_path, endpoints_path,
-                report_path)
+    logger.info('\nWrote:\n%s\nThe SQL now matches the edited GeoPackage.',
+                '\n'.join(f'  {path}' for path in written + [report_path]))
 
 
 def main(argv=None):
@@ -1819,7 +2082,7 @@ def main(argv=None):
             region_source = 'city boundary'
     logger.info('Region source: %s (%d raw polygons)', region_source, len(raw_regions))
 
-    regions = prepare_regions(raw_regions, boundary, args.min_region_part_m2)
+    regions = prepare_regions(raw_regions, boundary, args.min_region_part_m2, args.max_region_sliver_m)
     logger.info('Regions after clipping/cleanup: %d', len(regions))
     if rename_mapping:
         regions = rename_regions(regions, rename_mapping)
@@ -1851,7 +2114,9 @@ def main(argv=None):
     if roads.empty:
         sys.exit('error: no street landed in any region — check that the boundary and the regions overlap the '
                  'street network (the fetch found %d edges).' % len(streets))
-    errors = validate_staging(roads, regions)
+    # Overlaps only warn here: prepare_regions has already given each one to a single region, so anything left is
+    # worth seeing in QGIS, and dying now would deny the operator the QA GeoPackage that shows it.
+    errors = validate_staging(roads, regions, overlaps_are_fatal=False)
     if errors:  # A pipeline-invariant safety net; any hit here is a bug in the steps above.
         sys.exit('error: generated staging data failed validation:\n  - ' + '\n  - '.join(errors))
     stats = region_street_stats(roads, regions, args.max_region_street_km)
@@ -1877,10 +2142,11 @@ def main(argv=None):
     write_gpkg(gpkg_path, roads, regions, boundary, dropped, rider_junctions)
     write_sql(sql_path, roads, regions)
     write_endpoints_csv(endpoints_path, roads)
+    write_structures_csv(out_dir / 'street_structures.csv', roads)
     write_report(report_path, args, region_source, roads, regions, dropped, stats, coverage, heal_stats,
                  n_tier1_merged)
-    logger.info('\nWrote:\n  %s\n  %s\n  %s\n  %s\nQA the GeoPackage in QGIS before loading the SQL (see the report).',
-                gpkg_path, sql_path, endpoints_path, report_path)
+    logger.info('\nWrote:\n  %s\n  %s\n  %s\n  %s\n  %s\nQA the GeoPackage in QGIS before loading the SQL (see the '
+                'report).', gpkg_path, sql_path, endpoints_path, out_dir / 'street_structures.csv', report_path)
 
 
 if __name__ == '__main__':

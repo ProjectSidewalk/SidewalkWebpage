@@ -230,7 +230,9 @@ FROM (
                       + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS new_accuracy,
            COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS new_validated_count
     FROM label
-    WHERE label.deleted = FALSE
+    -- Same rule as LabelTable.countsTowardAccuracySql (#3591): a deleted label keeps an "incorrect" verdict unless it
+    -- was deleted in Explore.
+    WHERE (NOT label.deleted OR (label.deleted_source <> 'Explore' AND label.correct = FALSE))
         AND label.tutorial = FALSE
     GROUP BY label.user_id
 ) AS accuracy_subquery

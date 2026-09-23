@@ -11,16 +11,13 @@
   <div class="label-detail__title-wrap">
     @* The title is the type: a button opening the type picker for those who may edit (#3671), a span otherwise. *@
     <h2 class="label-detail__title">
-      <span class="label-detail__type label-detail__type--static">
-        <img class="label-detail__type-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" aria-hidden="true">
-        <span class="label-detail__type-name"><!-- populated by JS --></span>
-      </span>
-      <button type="button" class="label-detail__type label-detail__type-button" hidden aria-expanded="false">
-        <img class="label-detail__type-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" aria-hidden="true">
-        <span class="label-detail__type-name"></span>
-        <img class="label-detail__type-chevron" src="@assets.path("images/icons/chevron-down-feather.svg")" alt="" aria-hidden="true">
-      </button>
+      @components.labelTypeTrigger()
     </h2>
+    @* Delete (#3591): LabelDetail shows it to the labeler and admins and confirms first. *@
+    <button type="button" class="label-detail__delete" hidden data-i18n-aria-label="labelmap:delete-label"
+            data-ps-tooltip-placement="bottom">
+      <span class="label-detail__trash-icon ps-mask-icon" aria-hidden="true"></span>
+    </button>
     @* Own-label chip (#2575); LabelDetail sets its aria-label and tooltip. *@
     <span class="label-detail__own-badge" role="img" hidden>
       <img src="@assets.path("images/icons/user-feather.svg")" alt="" aria-hidden="true">
@@ -31,10 +28,7 @@
     <img src="@assets.path("images/icons/cross.svg")" alt="Close">
   </button>
 </header>
-<div class="label-detail__type-picker" popover hidden>
-  <p class="label-detail__type-hint" data-i18n="labelmap:change-type-hint">Tags that don't fit the new type are removed. A rating carries over only between types rated the same way.</p>
-  <div class="label-detail__type-picker-chips"></div>
-</div>
+@components.labelTypePopover()
 
 <div class="label-detail__pano-wrap">
   @if(withPaging) {
@@ -47,6 +41,13 @@
   <div class="label-detail__pano-loading" role="status" hidden>
     <img class="label-detail__pano-loading-img" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt="" aria-hidden="true">
     <span data-i18n="common:loading-imagery">Loading imagery...</span>
+  </div>
+  @* Deleted-label notice (#3591); it carries the undo so the way back is where the eye lands. *@
+  <div class="label-detail__deleted-notice" role="status" hidden>
+    <span class="label-detail__trash-icon ps-mask-icon" aria-hidden="true"></span>
+    <span class="label-detail__deleted-notice-text"></span>
+    <button type="button" class="label-detail__restore" hidden data-i18n-aria-label="labelmap:restore-label"
+            data-i18n="labelmap:restore-label-brief">Restore</button>
   </div>
   @* Hide-label toggle (#2477): steps the marker aside so the feature under it can be seen, leaving a dashed ring.
      LabelDetail fills in the icon and wording, which reverse with the state  . *@

@@ -195,6 +195,14 @@ a pasted copy for the one-time population of existing cities, the nightly rebuil
 into a temp table and touches only the rows that changed, and a spec (`IntersectionTableSpec`,
 `SidewalkPresenceTableSpec`) runs the evolution's statement and then the rebuild to prove the two copies still agree.
 
+`street_gradient` (399.sql, #5223; read through `StreetGradientTable`) is per-street too but is not one of these: its
+elevations come from rasters the database never sees, so there is no SQL derivation and no nightly rebuild. An offline
+script samples a bare-earth elevation model and a db script upserts the CSV, the way the imagery scan feeds
+`street_imagery`; new cities get it during onboarding. Staleness is a `geom_md5` comparison the export script makes,
+and the one nightly job in this area, `StreetGradientStalenessActor`, only counts it: the served streets with no row
+and those sampled on an older geometry, recorded so the Health panel says when a city needs a fill or a top-up
+(Admin > Management can recount on demand). See [`street-gradient.md`](street-gradient.md).
+
 A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
 the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to
 `record`. A details object built from a literal at each call site would let the two shapes drift, and `/admin/health`
@@ -223,7 +231,9 @@ The `/v3` API is the canonical public surface (handlers in `app/controllers/api/
 - **One file download per URL at a time.** While a file is being built and streamed, a repeat of the same URL gets a
   429 with `Retry-After`, so an impatient retry can't double minutes of work (#4161). Plain CSV/GeoJSON streams are
   not guarded, since the site's own pages fetch the same URLs in parallel. A `HEAD` request gets the same 429 without
-  building anything, which is how the Label Map and API docs download buttons warn before they start.
+  building anything, which is how the Label Map's download button warns before it starts; the API docs buttons fetch
+  the file themselves, so they read the 429 off the download. A built file also carries its uncompressed size in
+  `X-File-Size`, for clients showing download progress, since gzip strips `Content-Length`.
 - v3 is a **preview** surface: breaking changes are made in place rather than minting a new version (precedent: #4223).
 
 **Data structures (DTOs).** The response/filter types live in **`app/models/api/`** (`package models.api`), in
@@ -310,9 +320,12 @@ corresponding Twirl view:
   cards), the weights sidebar, URL state, and the insights band along the bottom of the map (`AccessScoreDock.js`
   coordinating four hand-rolled HTML views — the score histogram, which doubles as the legend and takes a
   drag-and-keyboard brush; what's here, a per-type cluster count split by rating and pooled over streets and
-  intersections (`AccessScoreWhatsHere.js`); the ranked neighborhoods; and a photo strip of label crops from the
-  scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked ones
-  (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
+  intersections (`AccessScoreWhatsHere.js`); the rank list, which ranks whichever unit is in force — every neighborhood
+  above the completion floor, or, in the streets unit, the 20 best-scoring streets with a toggle to the 20 worst
+  (`AccessScoreModel#rankedStreets`, #5223) — and which steps out of the band above 1100px, the other three panels
+  closing over its column, while a city mapped as one neighborhood is in the neighborhoods unit (#5419); and a photo
+  strip of label crops from the scope's neighborhood feed, ranked worst first with confirmed labels ahead of unchecked
+  ones (`AccessScorePhotoStrip.js`) — the first three subclasses of `AccessScoreChart.js`;
   the whole city is the population, a brush emphasizes in the overview views, narrows what's here and dims the
   map, and a selection marks the overview views, scopes what's here and the photos, and fades the rest of the
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
@@ -324,10 +337,13 @@ corresponding Twirl view:
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
   answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
-  section hides itself when the city has nothing ranked. Hovering or focusing a row lights that neighborhood on the
-  landing choropleth — or that city's circle on `/cities` — through the same `hover` feature-state the maps' own
-  pointer handlers use, and the map never moves. The completion floor below which a neighborhood is not ranked is
-  the backend's `min_region_completion`, the same number the AccessScore tool hatches by.
+  section hides itself when the city has nothing ranked. A city mapped as one neighborhood has no neighborhood ranking
+  to give, so that unit is dropped in favor of its street list — unless no street is ranked either, where the one score
+  is still better than an empty section — and the unit switch is only drawn when both units have something to show.
+  Hovering or focusing a row lights that neighborhood on the landing choropleth — or that city's circle on `/cities` —
+  through the same `hover` feature-state the maps' own pointer handlers use, and the map never moves. The completion
+  floor below which a neighborhood is not ranked is the backend's `min_region_completion`, the same number the
+  AccessScore tool hatches by.
 - **`ps-map/`** — shared map component used across pages.
 - **`common/`** — modules shared across bundles: `pano-viewer/` (an abstraction over the GSV / Mapillary / Infra3d /
   Panoramax / Pannellum imagery providers), `label-detail/` (label popups), and various utilities. The popup's pano viewer is
@@ -339,7 +355,11 @@ corresponding Twirl view:
   until it nears expiry), stamped into the page once, and renewed in place by `Infra3dViewer` through
   `GET /imageryAccessToken` five minutes before it expires, since the SDK has no refresh flow of its own. Failures
   inside a viewer that no return value carries reach the logs through `PanoViewer._fireDiagnostic`
-  (`docs/logged-events.md`).
+  (`docs/logged-events.md`). A GSV search by location is held to its radius on our side: Google's `radius` is only a
+  hint and has answered a 25 m query with a photosphere in another state (#5114), so `GsvViewer` treats a reply
+  beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
+  that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
+  `setLocation`.
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`

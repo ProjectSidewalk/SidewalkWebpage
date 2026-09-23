@@ -358,12 +358,14 @@
   "download-already-preparing": "Diese Datei wird bereits für eine andere Anfrage vorbereitet. Bitte versuchen Sie es gleich noch einmal.",
   "label-type-picker": {
     "current": "{{labelType}} (aktueller Typ)",
-    "change": "ändern"
+    "change": "ändern",
+    "change-type": "Etikettentyp ändern",
+    "change-type-hint": "Tags, die nicht zum neuen Typ passen, werden entfernt. Eine Bewertung bleibt nur zwischen Typen erhalten, die gleich bewertet werden."
   },
   "access-score-spotlight": {
     "subtitle-regions": "Die Gehwege jedes Quartiers werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
     "subtitle-streets": "Die Gehwege jeder Straße werden von unserem <a href=\"{{href}}\">AccessScore</a>-Algorithmus mit 0 bis 100 bewertet (100 ist am besten).",
-    "subtitle-one-region": "Diese Stadt ist als ein einziges Quartier kartiert, es gibt also nur eine Bewertung. Wechseln Sie zu Straßen für einen genaueren Blick.",
+    "subtitle-one-region": "Diese Stadt ist als ein einziges Quartier kartiert, es gibt also nur eine Bewertung.",
     "units-label": "Quartiere oder Straßen einordnen",
     "unit-regions": "Quartiere",
     "unit-streets": "Straßen",

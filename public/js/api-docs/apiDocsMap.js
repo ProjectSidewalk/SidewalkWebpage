@@ -104,16 +104,19 @@ window.ApiDocsMap = (function () {
    * @param {mapboxgl.Map} map - The Mapbox map.
    * @param {object|Array<number>} lngLat - Where to anchor the popup.
    * @param {string} html - The popup's contents.
+   * @param {object} [options] - Extra `mapboxgl.Popup` options, e.g. `closeButton: false` for a hover preview.
+   * @param {string} [options.modifier] - A class added beside `map-popup`, for a popup styled apart from the rest.
    * @returns {mapboxgl.Popup} The opened popup.
    */
-  function popup(map, lngLat, html) {
+  function popup(map, lngLat, html, { modifier, ...options } = {}) {
     return new mapboxgl.Popup({
       // Lands on the popup root, so the stylesheet can reach Mapbox's frame and our content through the one class.
-      className: 'map-popup',
+      className: modifier ? `map-popup ${modifier}` : 'map-popup',
       // Any truthy maxWidth is written onto the frame as an inline style that no stylesheet rule can outrank — the
       // documented 'none' included. Falsy leaves the width to CSS, where the rest of the popup's styling lives.
       maxWidth: '',
       focusAfterOpen: false,
+      ...options,
     })
       .setLngLat(lngLat)
       .setHTML(html)

@@ -91,7 +91,7 @@
   "edit-failed": "Não foi possível salvar a alteração. Tente novamente.",
   "edit-failed-short": "Não salvo",
   "no-imagery-disabled": "Você não pode validar nem comentar quando não há imagens disponíveis para este rótulo",
-  "no-imagery-edit-disabled": "Você não pode avaliar este rótulo nem editar suas etiquetas quando não há imagens disponíveis",
+  "no-imagery-edit-disabled": "Você não pode avaliar, editar nem excluir este rótulo quando não há imagens disponíveis",
   "admin-only": "Apenas administradores",
   "not-admin-validated": "Não validado por um administrador",
   "download": {
@@ -177,10 +177,18 @@
       "photo-invalid": "Não conseguimos ler esse arquivo como imagem (JPEG ou PNG)."
     }
   },
-  "change-type": "Alterar o tipo de rótulo",
-  "change-type-hint": "Tags que não se aplicam ao novo tipo são removidas. Uma avaliação só é mantida entre tipos avaliados da mesma forma.",
   "edit-type-changed": "Alterado para {{labelType}}",
   "edit-undo": "Desfazer",
   "edit-conflict-short": "Tipo de rótulo alterado em outro lugar",
-  "edit-conflict": "O tipo deste rótulo foi alterado em outro lugar, então o cartão agora mostra seu estado atual."
+  "edit-conflict": "O tipo deste rótulo foi alterado em outro lugar, então o cartão agora mostra seu estado atual.",
+  "delete-label": "Excluir rótulo",
+  "delete-label-confirm": "Tem certeza de que deseja excluir este rótulo?",
+  "delete-label-confirm-admin": "Tem certeza de que deseja excluir este rótulo? O seu voto \"Discordo\" fica registrado nele.",
+  "delete-label-failed": "Não foi possível excluir o rótulo. Tente novamente.",
+  "restore-label": "Restaurar rótulo",
+  "restore-label-brief": "Restaurar",
+  "restore-label-failed": "Não foi possível restaurar o rótulo. Tente novamente.",
+  "you-deleted-label": "Você excluiu este rótulo",
+  "label-was-deleted": "Este rótulo foi excluído",
+  "deleted-label-disabled": "Este rótulo foi excluído, então não pode ser validado nem editado até ser restaurado"
 }

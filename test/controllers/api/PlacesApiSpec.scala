@@ -125,7 +125,10 @@ class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
     "return a SQLite GeoPackage when filetype=geopackage" in {
       val resp = route(app, FakeRequest(GET, s"/v3/api/places?$tinyBbox&filetype=geopackage")).get
       status(resp) mustBe OK
-      contentAsBytes(resp).take(15).utf8String mustBe "SQLite format 3"
+      val bytes = contentAsBytes(resp)
+      bytes.take(15).utf8String mustBe "SQLite format 3"
+      // The size the download-progress bar counts against. Gzip would drop Content-Length, so it has its own header.
+      header("X-File-Size", resp) mustBe Some(bytes.length.toString)
     }
 
     "return a nonempty ZIP archive when filetype=shapefile" in {

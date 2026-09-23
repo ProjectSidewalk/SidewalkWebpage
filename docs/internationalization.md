@@ -141,7 +141,7 @@ nested `$t(...)` references, and i18next's plural suffixes compose with them.
 
 **Rendering a distance is the `distance` formatter's job** (`AppManager._addDistanceFormatter`):
 `{{meters, distance(style: small)}}` converts, rounds, localizes the number, and appends the unit. Params are `style`
-(`small` → m/ft to the nearest 25; `large` → km/mi), `precision`, and `unit: false` for a bare number; separate several
+(`small` → m/ft to the nearest 25; `fine` → m/ft to the whole unit, for elevations; `large` → km/mi), `precision`, and `unit: false` for a bare number; separate several
 with `;`. `util.distanceToString(meters)` and `util.longDistanceToString(km, precision)` call it from outside a string.
 
 **Its input must be canonical** — meters for `small`, km for `large`. Values that arrive already converted

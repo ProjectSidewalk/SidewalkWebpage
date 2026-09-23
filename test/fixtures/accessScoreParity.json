@@ -183,7 +183,27 @@
       }
     },
     "min_region_completion" : 0.8,
-    "place_categories" : [ "school", "health", "library", "grocery", "transit", "park", "community" ]
+    "place_categories" : [ "school", "health", "library", "grocery", "transit", "park", "community" ],
+    "grade_scoring" : {
+      "defaults" : {
+        "weight" : 1,
+        "statistic" : "max_grade",
+        "low_threshold" : 0.05,
+        "high_threshold" : 0.08333333333333333,
+        "barrier_enabled" : false,
+        "barrier_threshold" : 0.125,
+        "include_approximate" : false
+      },
+      "statistics" : [ "mean_grade", "max_grade", "meters_over_limit" ],
+      "weight_range" : {
+        "min" : 0,
+        "max" : 3
+      },
+      "threshold_range" : {
+        "min" : 0.01,
+        "max" : 0.4
+      }
+    }
   },
   "streets" : [ {
     "name" : "empty street",
@@ -13700,6 +13720,574 @@
     "segment_score" : null,
     "end_scores" : [ ],
     "score" : null
+  } ],
+  "slope_cases" : [ {
+    "name" : "the default settings take the whole weight off a steep street",
+    "street" : "problems on a 300 m street",
+    "slope" : {
+      "mean_grade" : 0.12,
+      "max_grade" : 0.2,
+      "net_grade" : 0.12,
+      "meters_over_5pct" : 300,
+      "meters_over_8pct" : 250,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "max_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 1,
+    "slope_term" : -1,
+    "barrier" : false,
+    "segment_score" : 0.18643649234355056
+  }, {
+    "name" : "the default settings leave a gentle street alone",
+    "street" : "problems on a 300 m street",
+    "slope" : {
+      "mean_grade" : 0.02,
+      "max_grade" : 0.04,
+      "net_grade" : 0.02,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "max_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.3838275923683222
+  }, {
+    "name" : "a mean grade halfway between the limits takes half the weight",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.06666666666666667,
+      "max_grade" : 0.09,
+      "net_grade" : -0.06,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0.5,
+    "slope_term" : -0.5,
+    "barrier" : false,
+    "segment_score" : 0.5621765008857981
+  }, {
+    "name" : "a mean grade exactly at the low threshold costs nothing",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.05,
+      "max_grade" : 0.07,
+      "net_grade" : 0.05,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.679178699175393
+  }, {
+    "name" : "a mean grade over the high threshold takes the whole weight",
+    "street" : "problems on a 300 m street",
+    "slope" : {
+      "mean_grade" : 0.11,
+      "max_grade" : 0.14,
+      "net_grade" : 0.1,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1.75,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 1,
+    "slope_term" : -1.75,
+    "barrier" : false,
+    "segment_score" : 0.09767462906972679
+  }, {
+    "name" : "the max-grade statistic reads the steepest stretch",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.03,
+      "max_grade" : 0.075,
+      "net_grade" : 0.02,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "max_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0.75,
+    "slope_term" : -0.75,
+    "barrier" : false,
+    "segment_score" : 0.5
+  }, {
+    "name" : "meters over the limits is a share of the length, the ramp limit counted twice",
+    "street" : "problems on a 300 m street",
+    "slope" : {
+      "mean_grade" : 0.06,
+      "max_grade" : 0.1,
+      "net_grade" : 0.05,
+      "meters_over_5pct" : 180,
+      "meters_over_8pct" : 60,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "meters_over_limit",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0.4,
+    "slope_term" : -0.4,
+    "barrier" : false,
+    "segment_score" : 0.29456117836013185
+  }, {
+    "name" : "meters over the limits ignores the reader's thresholds",
+    "street" : "problems on a 300 m street",
+    "slope" : {
+      "mean_grade" : 0.06,
+      "max_grade" : 0.1,
+      "net_grade" : 0.05,
+      "meters_over_5pct" : 180,
+      "meters_over_8pct" : 60,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "meters_over_limit",
+      "low_threshold" : 0.2,
+      "high_threshold" : 0.3,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0.4,
+    "slope_term" : -0.4,
+    "barrier" : false,
+    "segment_score" : 0.29456117836013185
+  }, {
+    "name" : "custom thresholds move the ramp",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.09,
+      "max_grade" : 0.11,
+      "net_grade" : 0.09,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.08,
+      "high_threshold" : 0.1,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0.49999999999999967,
+    "slope_term" : -0.49999999999999967,
+    "barrier" : false,
+    "segment_score" : 0.5621765008857982
+  }, {
+    "name" : "thresholds that have met act as a step",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.0801,
+      "max_grade" : 0.1,
+      "net_grade" : 0.08,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.08,
+      "high_threshold" : 0.08,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 1,
+    "slope_term" : -1,
+    "barrier" : false,
+    "segment_score" : 0.43782349911420193
+  }, {
+    "name" : "a barrier scores zero whatever the labels say",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.07,
+      "max_grade" : 0.15,
+      "net_grade" : 0.07,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : true,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0.6000000000000002,
+    "slope_term" : -0.6000000000000002,
+    "barrier" : true,
+    "segment_score" : 0
+  }, {
+    "name" : "a street exactly at the barrier threshold is not a barrier",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.06,
+      "max_grade" : 0.1,
+      "net_grade" : 0.06,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : true,
+      "barrier_threshold" : 0.1,
+      "include_approximate" : false
+    },
+    "units" : 0.29999999999999993,
+    "slope_term" : -0.29999999999999993,
+    "barrier" : false,
+    "segment_score" : 0.610639233949222
+  }, {
+    "name" : "a barrier needs no weight",
+    "street" : "problems on a 300 m street",
+    "slope" : {
+      "mean_grade" : 0.07,
+      "max_grade" : 0.15,
+      "net_grade" : 0.07,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 0,
+      "statistic" : "max_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : true,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 1,
+    "slope_term" : 0,
+    "barrier" : true,
+    "segment_score" : 0
+  }, {
+    "name" : "a coarse-model grade sits out by default, barrier included",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : null,
+      "max_grade" : null,
+      "net_grade" : -0.2,
+      "meters_over_5pct" : null,
+      "meters_over_8pct" : null,
+      "grade_confidence" : "low",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : true,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.679178699175393
+  }, {
+    "name" : "an admitted coarse-model grade stands in its end-to-end size",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : null,
+      "max_grade" : null,
+      "net_grade" : -0.07,
+      "meters_over_5pct" : null,
+      "meters_over_8pct" : null,
+      "grade_confidence" : "low",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : true
+    },
+    "units" : 0.6000000000000002,
+    "slope_term" : -0.6000000000000002,
+    "barrier" : false,
+    "segment_score" : 0.5374298453437495
+  }, {
+    "name" : "an admitted coarse-model grade can be a barrier",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : null,
+      "max_grade" : null,
+      "net_grade" : 0.2,
+      "meters_over_5pct" : null,
+      "meters_over_8pct" : null,
+      "grade_confidence" : "low",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : true,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : true
+    },
+    "units" : 1,
+    "slope_term" : -1,
+    "barrier" : true,
+    "segment_score" : 0
+  }, {
+    "name" : "a distrusted profile sits out by default, like a coarse one",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.2,
+      "max_grade" : 0.2,
+      "net_grade" : 0.2,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "suspect"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : true,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.679178699175393
+  }, {
+    "name" : "an admitted distrusted profile scores by its straight line",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.07,
+      "max_grade" : 0.07,
+      "net_grade" : -0.07,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "suspect"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : true
+    },
+    "units" : 0.6000000000000002,
+    "slope_term" : -0.6000000000000002,
+    "barrier" : false,
+    "segment_score" : 0.5374298453437495
+  }, {
+    "name" : "thresholds that have crossed act as a step at the low one",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.09,
+      "max_grade" : 0.11,
+      "net_grade" : 0.09,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.1,
+      "high_threshold" : 0.06,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.679178699175393
+  }, {
+    "name" : "a grade over crossed thresholds takes the whole weight",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : 0.11,
+      "max_grade" : 0.12,
+      "net_grade" : 0.11,
+      "meters_over_5pct" : 0,
+      "meters_over_8pct" : 0,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.1,
+      "high_threshold" : 0.06,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 1,
+    "slope_term" : -1,
+    "barrier" : false,
+    "segment_score" : 0.43782349911420193
+  }, {
+    "name" : "the over-limit statistic finds no lengths on a coarse-model row",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : null,
+      "max_grade" : null,
+      "net_grade" : 0.2,
+      "meters_over_5pct" : null,
+      "meters_over_8pct" : null,
+      "grade_confidence" : "low",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "meters_over_limit",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : false,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : true
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.679178699175393
+  }, {
+    "name" : "an unsampled street takes no slope term",
+    "street" : "problems on a 300 m street",
+    "slope" : null,
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : true,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.3838275923683222
+  }, {
+    "name" : "a bridge has a row and no grade, so no term and no barrier",
+    "street" : "one good curb ramp",
+    "slope" : {
+      "mean_grade" : null,
+      "max_grade" : null,
+      "net_grade" : null,
+      "meters_over_5pct" : null,
+      "meters_over_8pct" : null,
+      "grade_confidence" : "high",
+      "grade_quality" : "measured"
+    },
+    "settings" : {
+      "weight" : 1,
+      "statistic" : "mean_grade",
+      "low_threshold" : 0.05,
+      "high_threshold" : 0.08333333333333333,
+      "barrier_enabled" : true,
+      "barrier_threshold" : 0.125,
+      "include_approximate" : false
+    },
+    "units" : 0,
+    "slope_term" : 0,
+    "barrier" : false,
+    "segment_score" : 0.679178699175393
   } ],
   "regions" : [ {
     "name" : "two streets",

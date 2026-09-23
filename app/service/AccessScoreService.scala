@@ -6,7 +6,7 @@ import models.api.{IntersectionAccessScoreForApi, RegionAccessScoreForApi, Stree
 import models.cluster.ClusterScoreRow
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, StreetEnd}
 import models.region.Region
-import models.street.StreetEdgeInfo
+import models.street.{StreetEdgeInfo, StreetGradientConfidence, StreetGradientQuality, StreetGradientStats}
 import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
@@ -30,10 +30,12 @@ object AccessScoreService {
   /**
    * Where the full-city [[AccessScores]] live in the Play cache. One constant because two writers share it: the
    * request path's stale-while-revalidate refresh and the nightly snapshot's seed
-   * ([[AccessScoreService.computeCityWideScores]]). The `:v2` names the value's shape, since [[SwrCache]] cannot tell
-   * a differently-shaped value under a reused key.
+   * ([[AccessScoreService.computeCityWideScores]]). Bump the version whenever the value's shape *or* the engine's
+   * numbers change: [[SwrCache]] cannot tell a differently-shaped value under a reused key, and a value cached by the
+   * release before is well-formed and wrong, with nothing else to evict it. v4 is grade in the score by default
+   * (#5223).
    */
-  val FullCityCacheKey: String = "accessScore:full-city:v2"
+  val FullCityCacheKey: String = "accessScore:full-city:v4"
 
   /**
    * Age past which a full-city AccessScore is served stale while a background recompute runs. Clustering — the only
@@ -98,6 +100,7 @@ class AccessScoreService @Inject() (
         val streetIds: Seq[Int] = streets.map(_.street.streetEdgeId)
         val lengthsFuture       = apiService.getStreetLengths(streetIds)
         val namesFuture         = apiService.getStreetNames(streetIds)
+        val gradientsFuture     = apiService.getStreetGradientStats(streetIds)
         val intersectionsFuture = apiService.getIntersectionsForStreets(spatialQueryType, bbox)
         val streetEndsFuture    = apiService.getStreetEnds(spatialQueryType, bbox)
 
@@ -118,6 +121,7 @@ class AccessScoreService @Inject() (
         for {
           lengths       <- lengthsFuture
           names         <- namesFuture
+          gradients     <- gradientsFuture
           intersections <- intersectionsFuture
           streetEnds    <- streetEndsFuture
           _             <- streamFuture
@@ -143,6 +147,7 @@ class AccessScoreService @Inject() (
                 names.get(streetId),
                 rows,
                 lengths.getOrElse(streetId, 0.0),
+                gradients.get(streetId),
                 startId,
                 endId,
                 startId.flatMap(scoreByIntersection.get).flatten,
@@ -163,6 +168,7 @@ class AccessScoreService @Inject() (
    * @param streetName             The street's OSM name, if its way has one.
    * @param rows                   The cluster rows scoring the street's segment.
    * @param lengthMeters           The street's length in meters.
+   * @param gradient               The street's slope statistics, if it has been sampled (#5223).
    * @param startIntersectionId    The intersection at the street's start, if any.
    * @param endIntersectionId      The intersection at the street's end, if any.
    * @param startIntersectionScore Its score, if it has one.
@@ -174,6 +180,7 @@ class AccessScoreService @Inject() (
       streetName: Option[String],
       rows: Seq[ClusterScoreRow],
       lengthMeters: Double,
+      gradient: Option[StreetGradientStats],
       startIntersectionId: Option[Int],
       endIntersectionId: Option[Int],
       startIntersectionScore: Option[Double],
@@ -183,8 +190,13 @@ class AccessScoreService @Inject() (
     // The score is squashed from the same per-type terms the API reports, so `sub_scores` always explains
     // `segment_score`.
     val subScores: Map[String, Double] = AccessScoreCalculator.scoreByType(inputs, Some(lengthMeters))
-    val segmentScore: Option[Double]   =
-      if (s.auditCount > 0) Some(AccessScoreCalculator.scoreFromSubScores(subScores)) else None
+    // Slope is its own field rather than folded into `sub_scores`, which are per label type (#5223), so that
+    // `logit(segment_score) = sum(sub_scores) + grade_term` holds and subtracting it recovers the label-only score.
+    val slope: Option[AccessScoreCalculator.SlopeInput] = gradient.map(toSlopeInput)
+    val slopeTerm: Double                               =
+      AccessScoreCalculator.slopeTerm(slope, lengthMeters, AccessScoreCalculator.defaultSlopeSettings)
+    val segmentScore: Option[Double] =
+      if (s.auditCount > 0) Some(AccessScoreCalculator.segmentScoreWithSlope(subScores, slope, lengthMeters)) else None
 
     StreetAccessScoreForApi(
       streetEdgeId = s.street.streetEdgeId,
@@ -205,9 +217,25 @@ class AccessScoreService @Inject() (
       subScores = subScores,
       severityCounts = AccessScoreCalculator.severityCountsByType(inputs),
       tagAdjustments = AccessScoreCalculator.tagAdjustmentsByType(inputs),
+      gradient = gradient,
+      slopeTerm = slopeTerm,
       geometry = s.street.geom
     )
   }
+
+  /**
+   * A street's stored slope as the engine takes it. `approximate` gathers the two ways a row's grade is an
+   * end-to-end line: the coarse-model tier (`low` confidence), and a profile the sampler distrusted (`suspect`).
+   */
+  private def toSlopeInput(g: StreetGradientStats): AccessScoreCalculator.SlopeInput =
+    AccessScoreCalculator.SlopeInput(
+      meanGrade = g.meanGrade,
+      maxGrade = g.maxGrade,
+      netGrade = g.netGrade,
+      metersOver5pct = g.metersOver5pctGrade,
+      metersOver8pct = g.metersOver8pctGrade,
+      approximate = g.confidence == StreetGradientConfidence.Low || g.quality == StreetGradientQuality.Suspect
+    )
 
   /**
    * Builds a single intersection's AccessScore DTO from the cluster rows attributed to it.
@@ -320,6 +348,18 @@ class AccessScoreService @Inject() (
    * @return The finish time, or None if clustering has never succeeded on this deployment.
    */
   def clustersUpdatedAt: Future[Option[OffsetDateTime]] = apiService.lastSuccessfulJobFinish(ClusteringActor.Name)
+
+  /**
+   * The elevation models the city's street gradients came from, as (dem_source, street count), most streets first
+   * (#5223). Cached like the full-city scores: `accessScoreConfig` is asked for on every AccessScore tool load and
+   * was a constant before it carried this, while the answer only changes when someone imports a gradient CSV.
+   */
+  def gradientSourceCounts: Future[Seq[(String, Int)]] =
+    swrCache.staleWhileRevalidate[Seq[(String, Int)]](
+      "accessScore:gradient-sources:v1",
+      AccessScoreService.FullCityFreshFor,
+      AccessScoreService.FullCityMaxAge
+    )(apiService.getStreetGradientSourceCounts)
 
   /** The city's configured map bounds, the area every unfiltered v3 request is resolved to. */
   private def cityBbox: Future[LatLngBBox] =

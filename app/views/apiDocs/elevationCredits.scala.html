@@ -1,0 +1,26 @@
+@import models.street.DemSource
+@*
+ * Every elevation model the app can credit, with the credit line its licence asks for and the citation its publisher
+ * suggests (#5223). Shared by the Street Grade and AccessScore: Streets pages so the two cannot disagree.
+ *
+ * @param labelledBy The id of the heading that names the table, for its scrollable region.
+ *@
+@(labelledBy: String)
+<div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="@labelledBy">
+  <table class="ps-table">
+    <thead>
+      <tr><th><code>dem_source</code></th><th>Elevation model</th><th>Credit</th><th>Licence</th><th>Citation</th></tr>
+    </thead>
+    <tbody>
+      @for(source <- DemSource.registered) {
+        <tr>
+          <td><code>@source.name</code></td>
+          <td>@source.url.map { url => <a href="@url">@source.title</a> }.getOrElse { @source.title }</td>
+          <td>@source.credit</td>
+          <td>@source.licence</td>
+          <td>@source.citation.getOrElse("—")</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

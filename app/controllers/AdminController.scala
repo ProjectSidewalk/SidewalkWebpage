@@ -6,7 +6,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
-import models.label.LabelTypeEnum
+import models.label.{LabelDeletion, LabelTypeEnum}
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -120,7 +120,10 @@ class AdminController @Inject() (
                   "crop_url"         -> panoDataService.cropUrl(metadata.labelId, metadata.labelType),
                   "crop_marker"      -> marker,
                   "backup_image_url" -> panoDataService.backupImageUrl(metadata.panoId),
-                  "can_edit"         -> true
+                  "can_edit"         -> true,
+                  "deleted"          -> metadata.deleted,
+                  "can_restore"      -> LabelDeletion
+                    .canRestore(metadata.deleted, metadata.deletedBy, Some(request.identity))
                 )
             )
         }
@@ -1146,6 +1149,24 @@ class AdminController @Inject() (
         }
       Future.successful(Accepted("Places refresh started. It reports to the Health panel when it finishes."))
     }
+  }
+
+  /**
+   * Recounts the served streets whose gradient is missing or stale (#5223), as the nightly job does, so the Health
+   * panel reflects an import the moment it lands rather than the next morning. Recorded as a `Manual` run of that
+   * job; two counts, so it answers with them.
+   */
+  def recountStreetGradientStaleness = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    jobRunService
+      .record(StreetGradientStalenessActor.Name, JobRunTrigger.Manual)(streetService.countStreetGradientStaleness)(
+        _.runDetails
+      )
+      .map(counts => Ok(counts.runDetails))
+      .recover { case NonFatal(e) =>
+        logger.error("Street gradient staleness recount failed.", e)
+        ServiceUnavailable(Json.obj("error" -> s"Recount failed (${e.getMessage})."))
+      }
   }
 
   /**

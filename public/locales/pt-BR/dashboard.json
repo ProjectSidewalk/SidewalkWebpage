@@ -68,8 +68,7 @@
     "add-note": "💬 Adicionar uma nota",
     "note-placeholder": "Adicione uma nota sobre este rótulo (opcional)…",
     "save-note": "Salvar nota",
-    "popup-heading": "Seu rótulo foi validado como incorreto. Você concorda que foi um erro?",
-    "your-label": "Seu rótulo: {{type}}"
+    "popup-heading": "Seu rótulo foi validado como incorreto. Você concorda que foi um erro?"
   },
   "settings-form": {
     "saving": "Salvando…",

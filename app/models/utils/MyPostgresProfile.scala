@@ -12,6 +12,8 @@ import models.street.{
   StreetEdgeIssueType,
   StreetEdgeStatus,
   StreetEdgeStatusChangeSource,
+  StreetGradientConfidence,
+  StreetGradientQuality,
   StreetImagerySource,
   WayType
 }
@@ -23,6 +25,7 @@ import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
 import play.api.libs.json._
 import slick.ast.TypedType
+import slick.jdbc.JdbcType
 import slick.lifted.ExtensionMethods
 
 trait MyPostgresProfile
@@ -56,6 +59,9 @@ trait MyPostgresProfile
 
     /** Postgres's `random()`, a fresh draw in [0, 1) per row, so `sortBy(_ => random)` shuffles a query's rows. */
     val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
+
+    // Postgres won't save plain text into an inet column, so the value is sent untyped and Postgres reads it as an IP.
+    implicit val ipAddressMapper: JdbcType[IpAddress] = new GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
 
     // Shared, because slick-pg looks an array's element type up by `tag.repr`: left to materialize itself, each
     // `nextArray[T]()` rebuilds the tag and re-renders that string per row, ~0.3 µs inside the `GetResult`.
@@ -244,6 +250,24 @@ trait MyPostgresProfile
         quoteName = false
       )
 
+    // Mapper for street_gradient_quality enum type.
+    implicit val streetGradientQualityMapper: BaseColumnType[StreetGradientQuality.Value] =
+      createEnumJdbcType[StreetGradientQuality.Value](
+        "street_gradient_quality",
+        _.toString,
+        StreetGradientQuality.withName,
+        quoteName = false
+      )
+
+    // Mapper for street_gradient_confidence enum type.
+    implicit val streetGradientConfidenceMapper: BaseColumnType[StreetGradientConfidence.Value] =
+      createEnumJdbcType[StreetGradientConfidence.Value](
+        "street_gradient_confidence",
+        _.toString,
+        StreetGradientConfidence.withName,
+        quoteName = false
+      )
+
     // Mapper for street_edge_issue_type enum type.
     implicit val streetEdgeIssueTypeMapper: BaseColumnType[StreetEdgeIssueType.Value] =
       createEnumJdbcType[StreetEdgeIssueType.Value](
@@ -279,6 +303,11 @@ trait MyPostgresProfile
         quoteName = false
       )
   }
+}
+
+/** A visitor's IP address, stored as `inet`. Prints as just the address, so it works in rate-limit keys. */
+case class IpAddress(value: String) {
+  override def toString: String = value
 }
 
 // Define ExcludedTag and it's formatter. Stored in the database as JSONB.

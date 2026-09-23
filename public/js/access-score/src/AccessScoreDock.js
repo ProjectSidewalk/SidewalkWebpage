@@ -1,4 +1,17 @@
 /**
+ * A brush over a score range, in histogram bin indices with `to` exclusive.
+ * @typedef {{kind: 'score', from: number, to: number}} AccessScoreScoreBrush
+ */
+
+/**
+ * A brush over slope classes (#5223), as indices into the map legend's, gentlest first, with
+ * `AccessScoreGradeRamp.NO_GRADE` for the streets that have no slope at all.
+ * @typedef {{kind: 'grade', classes: number[]}} AccessScoreGradeBrush
+ */
+
+/** @typedef {AccessScoreScoreBrush|AccessScoreGradeBrush} AccessScoreBrush */
+
+/**
  * The AccessScore insights dock (#5217): the collapsible band along the bottom of the map that holds the KPI
  * strip and four linked views — the score histogram (which doubles as the score legend), what's here, the ranked
  * regions, and the photo strip — and coordinates them with the map.
@@ -9,7 +22,9 @@
  *    brush (a histogram of the brush would collapse to the bins just brushed).
  * 2. **A brush emphasizes in the overview views and filters the detail views.** The histogram marks brushed bins
  *    and mutes the rest, the rank list mutes non-matching rows, and what's here is counted over the brush. On
- *    the map, everything outside the brush dims.
+ *    the map, everything outside the brush dims. There are two kinds — a score range from the histogram and a set of
+ *    slope classes from the map's legend (#5223) — and only ever one in force, since two would dim each other's
+ *    streets. A slope brush says nothing about score bins, so the histogram marks none while one is in force.
  * 3. **A selection marks the overview views and scopes the detail views.** Selecting a region leaves the
  *    histogram city-wide and drops a caret at that region's score — the point of the view is to place it
  *    among the others — while what's here and the photo strip narrow to it, and the map fades every other
@@ -54,8 +69,10 @@ class AccessScoreDock {
   static PHOTO_MOVE_DEBOUNCE_MS = 500;
 
   #open = true;
-  /** `{from, to}` in histogram bin indices, `to` exclusive; null with none. */
+  /** @type {?AccessScoreBrush} The brush in force, of either kind; null with none. */
   #brush = null;
+  /** The ascending slope-class breaks, for reading a grade brush back into streets; null in an unsampled city. */
+  #gradeBreaks = null;
   #selection = null;
   /** Ids of the active unit hovered in a view, or null. */
   #hover = null;
@@ -64,6 +81,8 @@ class AccessScoreDock {
   #cityName;
   /** A region chosen from the rank list as the band's scope, when the map has no selection of its own. */
   #focusRegionId = null;
+  /** Which end of the street leaderboard the rank list shows (#5223); the neighborhoods list has no ends. */
+  #rankWorst = false;
 
   #frame = null;
   #needDim = true;
@@ -81,15 +100,20 @@ class AccessScoreDock {
    * @param {AccessScoreMapView} options.mapView - The map view, for the dim.
    * @param {mapboxgl.Map} options.map - The map, for the bottom padding.
    * @param {string} [options.cityName] - The city's short name, as the backend states it, for the needle label.
-   * @param {(regionId: number) => void} options.onRankSelect - Called when a rank row is clicked.
+   * @param {(row: {unit: AccessScoreUnit, id: number}) => void} options.onRankSelect - Called when a rank row is
+   *   clicked, with the id in the unit the list is ranking.
    * @param {(labelId: number, stripLabelIds: number[]) => void} [options.onOpenLabel] - Called when a photo is
    *   chosen, with the strip's label ids for the card's arrows to page through.
    * @param {() => void} options.onStateChange - Called after any change the URL should carry.
    * @param {(kind: string, value?: string|number) => void} [options.log] - Called for an interaction worth logging.
+   * @param {?number[]} [options.gradeBreaks] - The slope-class breaks a grade brush is read against (#5223); null
+   *   in a city whose streets have no slope.
    */
   constructor(root, {
     model, mapView, map, cityName = '', onRankSelect, onOpenLabel = () => {}, onStateChange, log = () => {},
+    gradeBreaks = null,
   }) {
+    this.#gradeBreaks = gradeBreaks;
     this.#root = root;
     this.#model = model;
     this.#mapView = mapView;
@@ -114,6 +138,10 @@ class AccessScoreDock {
       brushText: root.querySelector('#acs-dock-brush-text'),
       brushClear: root.querySelector('#acs-dock-brush-clear'),
       status: root.querySelector('#acs-dock-status'),
+      rankTitle: root.querySelector('#acs-dock-rank-title'),
+      rankInfo: root.querySelector('.acs-dock__panel--rank .acs-info'),
+      rankOrder: root.querySelector('#acs-rank-order'),
+      rankPanel: root.querySelector('.acs-dock__panel--rank'),
     };
     // The collapsed band keeps a slim ramp, so the legend is never off screen. The ramp is data, not styling.
     if (this.#els.stripBar) this.#els.stripBar.style.background = ScoreRamp.cssGradient();
@@ -129,12 +157,19 @@ class AccessScoreDock {
       log,
     });
     this.#rank = new AccessScoreRankBars(root.querySelector('#acs-rank-bars'), {
-      onSelect: (regionId) => {
-        this.#callbacks.log('RankSelect_regionId', regionId);
-        this.setFocusRegion(regionId);
-        this.#callbacks.onRankSelect(regionId);
+      // A street row is a map selection, which arrives back through `setSelection` and scopes the band itself; a
+      // region row in the streets unit has no map selection to make, so the dock's own focus is the whole answer.
+      onSelect: (id) => {
+        const unit = this.#model.state.unit;
+        if (unit === 'streets') {
+          this.#callbacks.log('RankSelect_streetId', id);
+        } else {
+          this.#callbacks.log('RankSelect_regionId', id);
+          this.setFocusRegion(id);
+        }
+        this.#callbacks.onRankSelect({ unit, id });
       },
-      onHover: (regionId) => this.#hoverRegion(regionId),
+      onHover: (id) => this.#hoverRankRow(id),
       onHoverEnd: () => this.#hoverEnd(),
     });
     this.#bind();
@@ -142,9 +177,17 @@ class AccessScoreDock {
     this.#schedule({ dim: false });
   }
 
-  /** The dock's own state, for the URL: `{open, brush, focus}`. */
+  /**
+   * The dock's own state, for the URL.
+   * @returns {{open: boolean, brush: ?AccessScoreBrush, focus: ?number}}
+   */
   get state() {
-    return { open: this.#open, brush: this.#brush ? { ...this.#brush } : null, focus: this.#focusRegionId };
+    const held = this.#brush;
+    /** @type {?AccessScoreBrush} */
+    let brush = null;
+    if (held?.kind === 'grade') brush = { kind: 'grade', classes: [...held.classes] };
+    else if (held) brush = { ...held };
+    return { open: this.#open, brush, focus: this.#focusRegionId };
   }
 
   /**
@@ -162,8 +205,8 @@ class AccessScoreDock {
 
   /**
    * Applies the state a URL carried.
-   * @param {{open?: boolean, brush?: ?{from: number, to: number}, focus?: ?number}} [state] - Whether the dock is
-   *   open, the brush in bin indices, and the focused region's id; each left out when the URL didn't say.
+   * @param {{open?: boolean, brush?: ?AccessScoreBrush, focus?: ?number}} [state] - Each left out when the URL
+   *   didn't say.
    */
   applyUrlState({ open, brush, focus } = {}) {
     if (open === false) this.setOpen(false, { log: false });
@@ -178,6 +221,11 @@ class AccessScoreDock {
   applyChange(meta) {
     // A focused region belongs to the unit it was chosen in; the reset puts the band back to the city.
     if (meta.kind === 'Unit' || meta.kind === 'ResetAll') this.setFocusRegion(null);
+    // A slope brush goes wherever its classes stop describing what is on screen — the regions unit has no slope, a
+    // statistic change re-classes every street — or it would stand for a different set than the reader picked.
+    if (this.#brush?.kind === 'grade' && ['Unit', 'ResetAll', 'GradeStat', 'GradeReset'].includes(meta.kind)) {
+      this.setBrush(null, { log: false, announce: false });
+    }
     const settled = !(meta.kind === 'Weight' && !meta.final);
     this.#schedule({ dim: settled, photos: settled });
   }
@@ -201,8 +249,10 @@ class AccessScoreDock {
   markHover(hover) {
     this.#mapHover = hover;
     this.#markCaret(hover?.score ?? this.#selectionScore());
-    const regionId = hover ? this.#regionOf(hover) : null;
-    if (regionId !== null) this.#rank.highlight([regionId]);
+    // The list ranks the unit in force, so a hovered street marks its own row where it has one, and a hovered
+    // region marks the region's.
+    const rowId = hover ? (hover.unit === 'streets' ? hover.id : this.#regionOf(hover)) : null;
+    if (rowId !== null) this.#rank.highlight([rowId]);
     else this.#rank.clearHighlight();
   }
 
@@ -221,20 +271,49 @@ class AccessScoreDock {
   }
 
   /**
-   * Sets or clears the brush.
-   * @param {?{from: number, to: number}} range - Bin indices, `to` exclusive, or null to clear.
+   * Sets or clears the brush. The two kinds displace each other, since only one thing is ever emphasized; either
+   * way the legend is told, so its pressed classes match what the map is dimming.
+   * @param {?(AccessScoreBrush|{from: number, to: number})} range - A brush of either kind, a bare score range as
+   *   the histogram reports one, or null to clear.
    * @param {{final?: boolean, log?: boolean, announce?: boolean}} [options] - `final` false mid-sweep, so nothing
    *   is logged or announced until release; `log` false for a programmatic change; `announce` false for a change
    *   the live region should not read out, such as the brush a shared link carried in.
    */
   setBrush(range, { final = true, log = true, announce = true } = {}) {
-    this.#brush = range ? { from: range.from, to: range.to } : null;
+    const brush = AccessScoreDock.#normalizeBrush(range);
+    this.#brush = brush;
+    this.#mapView.setGradeSelection(brush?.kind === 'grade' ? brush.classes : []);
     this.#schedule({ dim: true });
     if (!final) return;
-    const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
-    if (log) this.#callbacks.log('Brush', range ? `${range.from * step}-${range.to * step}` : 'clear');
+    if (log) this.#callbacks.log('Brush', AccessScoreDock.#brushLogValue(brush));
     if (announce) this.#announce = true;
     this.#callbacks.onStateChange();
+  }
+
+  /**
+   * A brush argument in the one internal shape; a bare `{from, to}` is the score range the histogram reports.
+   * @param {?(AccessScoreBrush|{from: number, to: number})} range - What a caller passed.
+   * @returns {?AccessScoreBrush} Null where it selects nothing.
+   */
+  static #normalizeBrush(range) {
+    if (!range) return null;
+    if ('kind' in range && range.kind === 'grade') {
+      const classes = [...new Set(range.classes)].sort((a, b) => a - b);
+      return classes.length > 0 ? { kind: 'grade', classes } : null;
+    }
+    return { kind: 'score', from: range.from, to: range.to };
+  }
+
+  /**
+   * What a brush change logs: the score range in whole percent, or the slope classes, or a clear.
+   * @param {?AccessScoreBrush} brush - The brush now in force.
+   * @returns {string}
+   */
+  static #brushLogValue(brush) {
+    if (!brush) return 'clear';
+    if (brush.kind === 'grade') return `grade=${brush.classes.join(',')}`;
+    const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+    return `${brush.from * step}-${brush.to * step}`;
   }
 
   /** Coalesces every change into one animation frame; the flags accumulate until it runs. */
@@ -273,7 +352,8 @@ class AccessScoreDock {
             label: i18next.t('accessscore:histogram-city',
               { city: this.#cityName, score: AccessScoreChart.score(cityScore) }),
           },
-      brush: this.#brush,
+      // Only a score brush marks bins; a slope brush is not a range over this axis and marking nothing is honest.
+      brush: this.#brush?.kind === 'score' ? this.#brush : null,
       selection: this.#selectionScore(),
       hover: this.#mapHover?.score ?? null,
     });
@@ -292,14 +372,7 @@ class AccessScoreDock {
       empty: breakdown.streets === 0 && breakdown.intersections === 0,
     });
     if (needPhotos) this.#showPhotos(this.#photoScope());
-    const rows = this.#model.rankedRegions();
-    this.#rank.draw({
-      shapeKey: rows.map((r) => r.regionId).sort((a, b) => a - b).join(','),
-      rows,
-      brush: this.#brush,
-      selectedId: this.#selection ? this.#regionOf(this.#selection) : this.#focusRegionId,
-      floored: this.#model.regionStats.length - rows.length,
-    });
+    this.#drawRank(brushStreets, kpis.auditedStreets);
 
     this.#renderKpis(kpis);
     this.#renderCaption();
@@ -312,6 +385,135 @@ class AccessScoreDock {
         ? this.#els.brushText.textContent
         : i18next.t('accessscore:brush-cleared');
     }
+  }
+
+  /**
+   * Shows or hides the rank panel, closing the band's grid over its column when it goes.
+   *
+   * A city mapped as one neighborhood has nothing to rank it against (#5419), so the panel is out only while the
+   * neighborhoods unit is in force: the streets leaderboard is a real list in such a city, and comes back with the
+   * unit switch.
+   *
+   * Nothing else is written while the panel is out: the caller returns on a false, leaving the title, the info
+   * tooltip and the order button holding the values they had. All three are rewritten when it comes back. The one
+   * thing that is cleared is the hover mark, since the rows outlive the suppression — the map and the histogram
+   * both keep calling `highlight` while the panel is hidden, and a mark left on a row would still be on it when
+   * the unit switch brings the same rows back.
+   *
+   * @param {boolean} streets - Whether the streets unit is in force.
+   * @returns {boolean} Whether the panel is showing, and so whether there is a list to draw into it.
+   */
+  #showRank(streets) {
+    const show = streets || this.#model.regionStats.length > 1;
+    if (this.#els.rankPanel) this.#els.rankPanel.hidden = !show;
+    this.#els.body.classList.toggle('acs-dock__body--no-rank', !show);
+    if (!show) this.#rank.clearHighlight();
+    return show;
+  }
+
+  /**
+   * Draws the rank list for whichever unit is in force, and the panel's title and order toggle with it.
+   *
+   * The neighborhoods list is the whole city, best first, since a city has tens of them. Streets run to
+   * thousands, so that list is a leaderboard: one end of it at a time, with the toggle for the other end
+   * (#5223). Both are drawn from the same view, so a brush mutes and a selection marks the same way.
+   *
+   * A city mapped as one neighborhood has no neighborhoods list to give, so the panel steps out of the band
+   * there (#5419) and `#showRank` says nothing more is drawn.
+   *
+   * @param {?Set<number>} brushStreets - The streets a brush keeps, or null with none.
+   * @param {number} auditedStreets - How many streets the city has a score for, for the list's note.
+   */
+  #drawRank(brushStreets, auditedStreets) {
+    const streets = this.#model.state.unit === 'streets';
+    if (!this.#showRank(streets)) return;
+    const limit = AccessScoreModel.RANK_LIMIT;
+    const titleKey = `accessscore:chart-rank${streets ? '-streets' : ''}`;
+    if (this.#els.rankTitle) this.#els.rankTitle.textContent = i18next.t(titleKey);
+    if (this.#els.rankInfo) {
+      // The help sits in both attributes the shared info button uses: the styled tooltip and its accessible name.
+      const help = i18next.t(`${titleKey}-help`);
+      this.#els.rankInfo.setAttribute('data-ps-tooltip', help);
+      this.#els.rankInfo.setAttribute('aria-label', help);
+    }
+    if (this.#els.rankOrder) {
+      this.#els.rankOrder.hidden = !streets;
+      this.#els.rankOrder.textContent
+        = i18next.t(`accessscore:rank-show-${this.#rankWorst ? 'best' : 'worst'}`, { n: limit });
+    }
+    const rows = streets ? this.#rankStreetRows(limit) : this.#rankRegionRows();
+    let note = '';
+    if (streets && auditedStreets > rows.length) {
+      note = i18next.t(`accessscore:rank-streets-${this.#rankWorst ? 'worst' : 'best'}`,
+        { shown: rows.length, total: auditedStreets });
+    } else if (!streets) {
+      const floored = this.#model.regionStats.length - rows.length;
+      if (floored > 0) note = i18next.t('accessscore:rank-floored', { count: floored });
+    }
+    this.#rank.draw({
+      // The roster changes with the unit and with which end of it is shown, and a street's rank changes under a
+      // slider without the roster changing, so both belong in the key.
+      shapeKey: `${this.#model.state.unit}:${this.#rankWorst}:${rows.map((r) => r.id).sort((a, b) => a - b).join(',')}`,
+      rows,
+      outIds: this.#outRowIds(rows, brushStreets),
+      selectedId: this.#rankSelectedId(streets),
+      note,
+      empty: i18next.t(`accessscore:rank-empty${streets ? '-streets' : ''}`),
+    });
+  }
+
+  /** @returns {AccessScoreRankRow[]} Every scored neighborhood, best first. */
+  #rankRegionRows() {
+    return this.#model.rankedRegions().map((r, i) => ({
+      id: r.regionId,
+      name: r.name,
+      score: r.score,
+      label: i18next.t('accessscore:rank-row', {
+        position: i + 1, name: r.name, score: AccessScoreChart.score(r.score),
+        percent: Math.round(r.completion * 100),
+      }),
+    }));
+  }
+
+  /**
+   * @param {number} limit - How many rows the leaderboard holds.
+   * @returns {AccessScoreRankRow[]} One end of the street leaderboard, its best row first.
+   */
+  #rankStreetRows(limit) {
+    return this.#model.rankedStreets({ worst: this.#rankWorst, limit }).map((s, i) => {
+      // An unnamed way is a real street with a real score, so it is ranked like any other and named for the reader
+      // rather than left blank.
+      const name = s.name ?? i18next.t('accessscore:rank-street-unnamed');
+      return {
+        id: s.streetId,
+        name,
+        score: s.score,
+        label: i18next.t('accessscore:rank-row-street', {
+          position: i + 1, name, score: AccessScoreChart.score(s.score), meters: s.lengthM,
+        }),
+      };
+    });
+  }
+
+  /**
+   * The row the list marks: the selection when it was made in the unit the list ranks, else the region the band
+   * is focused on. A street selection marks no neighborhood row, matching the histogram's caret.
+   * @param {boolean} streets - Whether the list is ranking streets.
+   * @returns {?number}
+   */
+  #rankSelectedId(streets) {
+    if (streets) return this.#selection?.unit === 'streets' ? this.#selection.id : null;
+    return this.#selection ? this.#regionOf(this.#selection) : this.#focusRegionId;
+  }
+
+  /**
+   * Shows the other end of the street leaderboard.
+   * @param {boolean} worst - True for the worst-scoring streets.
+   */
+  setRankWorst(worst) {
+    if (worst === this.#rankWorst) return;
+    this.#rankWorst = worst;
+    this.#schedule({ dim: false, photos: false });
   }
 
   /**
@@ -412,10 +614,16 @@ class AccessScoreDock {
     } else {
       text = i18next.t('accessscore:scope-city');
     }
-    if (brushStreets) {
-      const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
-      const range = { from: this.#brush.from * step, to: this.#brush.to * step };
-      text += ` · ${i18next.t('accessscore:scope-brush', range)}`;
+    const brush = this.#brush;
+    if (brushStreets && brush) {
+      if (brush.kind === 'grade') {
+        const classes = this.#gradeClassNames(brush.classes).join(i18next.t('accessscore:list-separator'));
+        text += ` · ${i18next.t('accessscore:scope-brush-grade', { classes })}`;
+      } else {
+        const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
+        text += ` · ${i18next.t('accessscore:scope-brush',
+          { from: brush.from * step, to: brush.to * step })}`;
+      }
     }
     return text;
   }
@@ -459,7 +667,10 @@ class AccessScoreDock {
       request = lowest
         ? {
             caption: i18next.t('accessscore:photos-from', {
-              scope: i18next.t('accessscore:photos-lowest', { name: lowest.name }),
+              // "(lowest scoring)" is a comparison, so a city with one region is captioned by its name alone.
+              scope: this.#model.regionStats.length > 1
+                ? i18next.t('accessscore:photos-lowest', { name: lowest.name })
+                : lowest.name,
             }),
             regionId: lowest.regionId,
           }
@@ -478,18 +689,64 @@ class AccessScoreDock {
    * @returns {?Set<number>} Street ids, or null with no brush.
    */
   #brushStreetIds() {
-    if (!this.#brush) return null;
-    const { from, to } = this.#brush;
-    if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(from, to);
-    return this.#model.streetIdsInRegions(this.#model.regionIdsInBins(from, to));
+    const brush = this.#brush;
+    if (!brush) return null;
+    if (brush.kind === 'grade') return this.#gradeBrushStreetIds(brush.classes);
+    if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(brush.from, brush.to);
+    return this.#model.streetIdsInRegions(this.#model.regionIdsInBins(brush.from, brush.to));
   }
 
   /** The ids of the active unit the brush keeps, for the map. */
   #brushUnitIds() {
-    if (!this.#brush) return null;
-    const { from, to } = this.#brush;
-    if (this.#model.state.unit === 'streets') return this.#model.streetIdsInBins(from, to);
-    return this.#model.regionIdsInBins(from, to);
+    const brush = this.#brush;
+    if (!brush) return null;
+    const streets = this.#model.state.unit === 'streets';
+    if (brush.kind === 'grade') return streets ? this.#gradeBrushStreetIds(brush.classes) : null;
+    if (streets) return this.#model.streetIdsInBins(brush.from, brush.to);
+    return this.#model.regionIdsInBins(brush.from, brush.to);
+  }
+
+  /**
+   * The ranked rows a brush leaves out, muted in the list: for a score brush the ones scoring outside it, for a
+   * slope brush the regions holding none of its streets, since grades say nothing about where a score sits. A
+   * street row is simply in the brushed set or not, whichever kind the brush is.
+   * @param {AccessScoreRankRow[]} rows - The rows on show.
+   * @param {?Set<number>} brushStreets - The streets the brush keeps, or null with no brush.
+   * @returns {?Set<number>} Ids to mute, or null with no brush.
+   */
+  #outRowIds(rows, brushStreets) {
+    const brush = this.#brush;
+    if (!brush) return null;
+    if (this.#model.state.unit === 'streets') {
+      return new Set(rows.filter((r) => !brushStreets?.has(r.id)).map((r) => r.id));
+    }
+    if (brush.kind === 'score') {
+      const { from, to } = brush;
+      return new Set(rows.filter((r) => {
+        const bin = AccessScoreModel.binOf(r.score);
+        return bin < from || bin >= to;
+      }).map((r) => r.id));
+    }
+    const kept = new Set();
+    for (const r of rows) {
+      for (const id of this.#model.regionStreetIds(r.id)) {
+        if (brushStreets.has(id)) {
+          kept.add(r.id);
+          break;
+        }
+      }
+    }
+    return new Set(rows.filter((r) => !kept.has(r.id)).map((r) => r.id));
+  }
+
+  /**
+   * The streets a slope-class brush keeps; empty where the city publishes no classes to have brushed on.
+   * @param {number[]} classes - The brushed class indices.
+   * @returns {Set<number>}
+   */
+  #gradeBrushStreetIds(classes) {
+    if (this.#gradeBreaks === null) return new Set();
+    return this.#model.streetIdsInGradeClasses(classes, this.#gradeBreaks);
   }
 
   /** The ids of the active unit a selection keeps bright: its region, as regions or as streets. */
@@ -509,15 +766,26 @@ class AccessScoreDock {
     const streets = this.#model.state.unit === 'streets';
     const ids = streets ? this.#model.streetIdsInBins(bin, bin + 1) : this.#model.regionIdsInBins(bin, bin + 1);
     this.#hover = { ids };
-    this.#rank.highlight(this.#model.regionIdsInBins(bin, bin + 1));
+    // The rank list holds whatever the unit ranks, so a bin marks its own members in the streets unit rather than
+    // the regions they sit in — a bin of steep blocks would otherwise light up half the list.
+    this.#rank.highlight(streets ? ids : this.#model.regionIdsInBins(bin, bin + 1));
     this.#applyMapDim();
   }
 
-  #hoverRegion(regionId) {
-    const r = this.#model.explainRegion(regionId);
-    const ids = this.#model.state.unit === 'streets' ? this.#model.regionStreetIds(regionId) : [regionId];
-    this.#hover = { ids };
-    this.#markCaret(r && !r.belowFloor ? r.score : null);
+  /**
+   * A rank row under the pointer or focus: the map keeps its feature bright and the caret moves to its score.
+   * @param {number} id - The row's id, a street in the streets unit and a region otherwise.
+   */
+  #hoverRankRow(id) {
+    if (this.#model.state.unit === 'streets') {
+      const street = this.#model.explainStreet(id);
+      this.#hover = { ids: [id] };
+      this.#markCaret(street?.score ?? null);
+    } else {
+      const r = this.#model.explainRegion(id);
+      this.#hover = { ids: [id] };
+      this.#markCaret(r && !r.belowFloor ? r.score : null);
+    }
     this.#applyMapDim();
   }
 
@@ -595,16 +863,26 @@ class AccessScoreDock {
 
   #renderBrushBar(brushStreets) {
     const bar = this.#els.brush;
-    if (!this.#brush) {
+    const brush = this.#brush;
+    if (!brush) {
       bar.hidden = true;
       return;
     }
     bar.hidden = false;
+    if (brush.kind === 'grade') {
+      const meters = this.#model.totalLengthM(brushStreets);
+      this.#els.brushText.textContent = i18next.t('accessscore:brush-grade', {
+        classes: this.#gradeClassNames(brush.classes).join(i18next.t('accessscore:list-separator')),
+        count: brushStreets.size,
+        length: i18next.t('accessscore:length-large', { km: meters / 1000 }),
+      });
+      return;
+    }
     const step = 100 / AccessScoreModel.HISTOGRAM_BINS;
-    const range = { from: this.#brush.from * step, to: this.#brush.to * step };
+    const range = { from: brush.from * step, to: brush.to * step };
     let text;
     if (this.#model.state.unit === 'regions') {
-      const n = this.#model.regionIdsInBins(this.#brush.from, this.#brush.to).size;
+      const n = this.#model.regionIdsInBins(brush.from, brush.to).size;
       text = i18next.t('accessscore:brush-regions', { ...range, count: n });
     } else {
       const meters = this.#model.totalLengthM(brushStreets);
@@ -615,9 +893,31 @@ class AccessScoreDock {
     this.#els.brushText.textContent = text;
   }
 
+  /**
+   * A grade brush's classes as the legend words them, so the two say the same thing. Built here rather than read
+   * off the legend's DOM, which belongs to a Mapbox control the dock does not own.
+   * @param {number[]} selected - The brushed class indices.
+   * @returns {string[]} Gentlest first, the no-grade class last.
+   */
+  #gradeClassNames(selected) {
+    const percent = AccessScoreGradeRamp.percent;
+    const classes = AccessScoreGradeRamp.classes(this.#gradeBreaks ?? []);
+    return selected.map((index) => {
+      if (index === AccessScoreGradeRamp.NO_GRADE) return i18next.t('accessscore:grade-legend-none');
+      const { from, to } = classes[index] ?? { from: null, to: null };
+      if (from === null) return i18next.t('accessscore:grade-class-under', { to: percent(to) });
+      if (to === null) return i18next.t('accessscore:grade-class-over', { from: percent(from) });
+      return i18next.t('accessscore:grade-class-between', { from: percent(from), to: percent(to) });
+    });
+  }
+
   #bind() {
     this.#els.toggle.addEventListener('click', () => this.setOpen(!this.#open));
     this.#els.brushClear.addEventListener('click', () => this.setBrush(null));
+    this.#els.rankOrder?.addEventListener('click', () => {
+      this.setRankWorst(!this.#rankWorst);
+      this.#callbacks.log('RankOrder', this.#rankWorst ? 'worst' : 'best');
+    });
   }
 
   /**
