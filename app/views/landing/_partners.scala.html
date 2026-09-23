@@ -10,6 +10,12 @@
 * With no partners yet, only the created-by half renders — never an orphaned heading. Anchors carry
 * data-partner-source so the landing pages' delegated handlers (homepage.js on desktop, mobileLanding's inline
 * script on mobile) can log clicks without per-partner markup.
+*
+* Each community-partner logo names its partner in a psTooltip on hover or keyboard focus (#5469), since a logo alone
+* is often not legible as a name. The trigger is the .partner-logo wrapper rather than the link, so the tooltip covers
+* no-URL partners too, and so the aria-describedby psTooltip adds lands on a non-focusable div: the name is already
+* the image's alt, and a screen reader would otherwise announce it twice. psTooltip renders its text as HTML, so the
+* admin-supplied name is escaped here once and again by Twirl's attribute escaping (see psTooltip.js).
 *@
 
 @logoImg(p: PartnerMetadata) = {
@@ -30,7 +36,7 @@
     <p class="partner-section-tagline" id="partners-tagline">@Messages("landing.partners.tagline", cityName)</p>
     <div class="partner-logos">
       @for(p <- partners) {
-        <div class="partner-logo">
+        <div class="partner-logo" data-ps-tooltip="@play.twirl.api.HtmlFormat.escape(p.name).body">
           @* No-URL partners render a bare img — an <a> without href would read as a broken link. *@
           @if(p.url.isDefined) {
             <a href="@p.url" data-partner-source="@SlugUtils.slugify(p.name, s"partner-${p.partnerId}")">@logoImg(p)</a>
