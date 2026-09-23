@@ -574,6 +574,14 @@ class Main {
         svl.CANVAS_FRAME = util.exploreCanvasFrame();
         svl.LABEL_ICON_RADIUS = util.labelIconRadius(displayScale);
         svl.LABEL_HIT_MARGIN = util.labelHitMargin(displayScale);
+        // Toasts float 10% down the pano, which in immersive mode is where the label-type strip is; keep them under it.
+        const pano = document.getElementById('pano');
+        const ribbon = document.getElementById('ribbon-menu-holder');
+        if (immersive && pano && ribbon) {
+          pano.style.setProperty('--toast-min-top', `${ribbon.getBoundingClientRect().bottom + 8 * displayScale}px`);
+        } else if (pano) {
+          pano.style.removeProperty('--toast-min-top');
+        }
       };
       /**
        * Re-lays out the tool for its current box: rescale, then re-raster the canvases and tell the pano viewer its

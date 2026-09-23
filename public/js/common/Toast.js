@@ -247,7 +247,10 @@ class Toast {
   }
 
   /**
-   * Positions the toast horizontally centered over the reference element. Vertically it sits 10% down from the top.
+   * Positions the toast horizontally centered over the reference element. Vertically it sits 10% down from the top,
+   * or at the reference's inline `--toast-min-top` (a px length the page's layout code sets) when that is lower:
+   * Explore's immersive mode floats its label-type strip over the top of the pano, and a toast 10% down a full-window
+   * pano lands on it.
    *
    * The center is then pulled back inside the viewport if half the toast would hang past either edge. The toast is
    * fixed-positioned, so an overhang is not scrollable — whatever lands outside is simply unreachable — and a
@@ -267,7 +270,8 @@ class Toast {
     const center = Math.min(Math.max(rect.left + rect.width / 2, minCenter), Math.max(maxCenter, minCenter));
 
     this.#el.style.left = `${center}px`;
-    this.#el.style.top = `${rect.top + rect.height * VERTICAL_FRACTION}px`;
+    const minTop = parseFloat(this.#reference?.style?.getPropertyValue('--toast-min-top')) || 0;
+    this.#el.style.top = `${Math.max(rect.top + rect.height * VERTICAL_FRACTION, minTop)}px`;
   }
 
   /** Fades the toast out and removes it from the DOM. Safe to call more than once. */
