@@ -1,5 +1,5 @@
 -- =====================================================================
--- Merge duplicate streets (#3067).
+-- Merge duplicate streets (#3067). Written against evolution 401; applied on prod 2026-09-22.
 --
 -- Some cities have street_edge rows drawn on top of each other: the same OSM way imported twice, a road OSM later
 -- deleted or kept only as an untagged line, or a short piece lying on a longer road. Explore then routes people back
@@ -8,7 +8,7 @@
 -- DRY RUN BY DEFAULT: everything is done inside a transaction and then rolled back, and one summary row per city is
 -- printed. Pass -v apply=1 to commit instead. Built for sidewalk-server-tools/run-query-in-every-city.sh (-m), which
 -- sets the search_path and the city variable; for one city by hand:
---   psql -v city=chicago -v apply=0 "options=--search_path=sidewalk_chicago,public" -f merge_duplicate_streets.sql
+--   psql -v city=chicago -v apply=0 "options=--search_path=sidewalk_chicago,public" -f 3067-merge-duplicate-streets.sql
 --
 -- Which street stays, tested in this order:
 --   1. Pairs where OSM says one is a bridge, a tunnel or on another layer are left alone: that's a road passing over
@@ -35,8 +35,8 @@
 -- Each kept street moves to the live region holding most of its length. The nightly jobs rebuild priority, sidewalk
 -- presence, clusters, intersections, access scores and user distance; region completion is cleared and refills.
 --
--- The duplicate detection matches find_duplicate_streets.sql next to this file, which prints the pairs one per row;
--- use that to look at a city before applying. ~40s on the largest schema (Chicago, 331k streets).
+-- The duplicate detection matches 3067-find-duplicate-streets.sql next to this file, which prints the pairs one per
+-- row; use that to look at a city before applying. ~40s on the largest schema (Chicago, 331k streets).
 -- =====================================================================
 
 \set QUIET on

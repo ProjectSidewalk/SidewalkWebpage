@@ -221,7 +221,7 @@ import-dump:
 max-evolution = $(shell ls conf/evolutions/default | sed 's/\.sql$$//' | grep -E '^[0-9]+$$' | sort -n | tail -1)
 # Play's hash of that evolution's file: a donor whose top evolution carries the same hash is certainly on this
 # checkout's evolution, not another branch's under the same number (see create-new-schema.sh).
-max-evolution-hash = $(shell python3 -c 'import sys; sys.path.insert(0, "tools"); import setup_new_city; print(setup_new_city.highest_evolution_hash())')
+max-evolution-hash = $(shell python3 -c 'import sys; sys.path.insert(0, "tools/city"); import setup_new_city; print(setup_new_city.highest_evolution_hash())')
 
 # Clone a live city's structure (+ seed rows) into a new empty schema. e.g.
 # `make create-new-schema name=sidewalk_laurens_ia donor=sidewalk_richmond`; donor defaults to the active dev city.

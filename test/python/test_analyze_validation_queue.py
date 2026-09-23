@@ -539,13 +539,17 @@ def test_load_filters_a_merged_every_city_export_by_city_and_ignores_a_single_ci
                [dict(base, city="seattle", label_id=1), dict(base, city="chicago", label_id=2),
                 dict(base, city="seattle", label_id=3)])
     assert list(avq.load_pool(str(merged_pool), city="seattle").label_id) == [1, 3]
-    assert list(avq.load_pool(str(merged_pool)).label_id) == [1, 2, 3]
     vote = {"label_type": "CurbRamp", "validation_result": "Agree", "end_timestamp": "2026-01-01 00:00:00+00",
             "source": "Validate", "self_vote": "f", "is_ai": "f"}
     merged_votes = tmp_path / "validations.csv"
     _write_csv(merged_votes, ["city"] + VALIDATION_CSV_FIELDS,
                [dict(vote, city="chicago", label_id=2), dict(vote, city="seattle", label_id=1)])
     assert [row["label_id"] for row in avq.load_validations(str(merged_votes), city="seattle")] == [1]
+    # A merged export must name a city, and a city it does not hold is a typo, not an empty pool.
+    with pytest.raises(SystemExit, match="pass --city"):
+        avq.load_pool(str(merged_pool))
+    with pytest.raises(SystemExit, match="holds: chicago, seattle"):
+        avq.load_validations(str(merged_votes), city="Seattle")
     # A single-city export has no city column, so asking for a city changes nothing.
     single = tmp_path / "single.csv"
     _write_csv(single, VALIDATION_CSV_FIELDS, [dict(vote, label_id=5)])

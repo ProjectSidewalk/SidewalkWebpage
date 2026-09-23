@@ -1,8 +1,10 @@
 # City tools
 
-Scripts that build, check or update one city's data. They run on `python3.13` with
-[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (host-side, >= 3.11) and resolve their paths
-relative to the repo root, so they can be launched from any working directory. Unit tests live in
+Scripts that build, check or update one city's data. `onboard_city.py`, `check_streets_for_imagery.py` and
+`street_gradient.py` run in the web container as `python3.13` with
+[`requirements-offline-tools.txt`](../../requirements-offline-tools.txt) (host-side: >= 3.11), which is what their
+`make` targets do; the other three are stdlib-only and run on the host as `python3`. All resolve their paths relative
+to the repo root, so they can be launched from any working directory. Unit tests live in
 [`test/python/`](../../test/python).
 
 | Script | Run with | What it does |

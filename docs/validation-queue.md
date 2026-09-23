@@ -543,28 +543,30 @@ Both exports are written for `run-query-in-every-city.sh` in the sibling `sidewa
 runs them on prod across every city and merges the rows into one CSV with a `city` column. Per export:
 
 ```bash
-scp tools/validation_queue/pool.sql saugstad@makelab1.cs.washington.edu:sidewalk-server-tools/current-query.sql
-./run-query-in-every-city.sh -p -m -o "validation-queue-pool"
-scp saugstad@makelab1.cs.washington.edu:sidewalk-server-tools/validation-queue-pool.csv scratchpad/
+mkdir -p tmp/validation-queue
+scp tools/validation_queue/pool.sql <netid>@makelab1.cs.washington.edu:sidewalk-server-tools/current-query.sql
+./run-query-in-every-city.sh -p -m -o "validation-queue-pool"          # add -c "seattle" for one city
+scp <netid>@makelab1.cs.washington.edu:sidewalk-server-tools/validation-queue-pool.csv tmp/validation-queue/
 ```
 
 Then the same three lines with `validations.sql` / `validation-queue-validations`, and the analysis for one city:
 
 ```bash
 python3.13 tools/validation_queue/analyze_validation_queue.py \
-    --pool scratchpad/validation-queue-pool.csv --validations scratchpad/validation-queue-validations.csv \
-    --city seattle --out scratchpad/validation-queue-seattle.md
+    --pool tmp/validation-queue/validation-queue-pool.csv \
+    --validations tmp/validation-queue/validation-queue-validations.csv \
+    --city seattle --out tmp/validation-queue/validation-queue-seattle.md
 ```
 
-The CSVs are a snapshot of a database and stay in `scratchpad/`; only the report is meant to leave the machine. The
-analyzer needs numpy, so on the host it wants a Python that has it (the web container's `python3.13` does).
+The CSVs are a snapshot of a database and stay in `tmp/` (ignored); only the report is meant to leave the machine.
+The analyzer needs numpy, so on the host it wants a Python that has it (the web container's `python3.13` does).
 
 For one city on the dev DB, run an export the way the runner does (`readonly_user` needs `USAGE` on the schema):
 
 ```bash
 docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=sidewalk_seattle,public" \
     -U readonly_user -v ON_ERROR_STOP=1 -P footer=off -A --csv -F"," -v city=seattle \
-    -f - < tools/validation_queue/pool.sql > scratchpad/validation-queue-pool.csv
+    -f - < tools/validation_queue/pool.sql > tmp/validation-queue/validation-queue-pool.csv
 ```
 
 ## QA

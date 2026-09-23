@@ -1,5 +1,5 @@
 -- =====================================================================
--- Remove a set of street_edges from the DB.
+-- Remove a set of street_edges from the DB (#4181). Written against evolution 401.
 --   - Soft-delete (set `status = 'disabled'`) if any work exists on the street (audit_task, label, or route_street).
 --   - Hard-delete otherwise, cleaning up FK-referenced tables first.
 --

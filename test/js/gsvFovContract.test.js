@@ -255,7 +255,7 @@ describeWithFixture('GSV FOV contract (recorded fixture, #5083)', () => {
         // jsdom and cannot load panoUtilities.js). Nothing links the two definitions, and the tracked
         // zoom-3 correction would silently desync them — so compare them here.
         const src = fs.readFileSync(
-            path.resolve(__dirname, '..', '..', 'test/js/gsv-fov-probe/analyze.mjs'), 'utf8');
+            path.join(__dirname, 'gsv-fov-probe', 'analyze.mjs'), 'utf8');
         const match = src.match(/const zoomToFov = \(zoom\) =>\s*(\([^;]*?\));/);
         expect(match).not.toBeNull();
         const analyzerCurve = new Function('zoom', `return ${match[1]};`);

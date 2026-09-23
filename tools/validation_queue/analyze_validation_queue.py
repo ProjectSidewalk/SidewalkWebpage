@@ -1138,11 +1138,19 @@ def _to_bool(value):
 
 
 def _city_rows(reader, city):
-    """Yield the reader's rows, keeping only `city`'s when asked and the CSV has a `city` column (a merged run)."""
-    keyed = city is not None and reader.fieldnames is not None and "city" in reader.fieldnames
-    for record in reader:
-        if not keyed or record["city"] == city:
-            yield record
+    """Return the reader's rows, narrowed to `city` when the CSV is a merged every-city export (has a `city` column).
+
+    Label and street ids repeat across cities, so a merged CSV without a city named would silently blend them.
+    """
+    records = list(reader)
+    if reader.fieldnames is None or "city" not in reader.fieldnames:
+        return records
+    cities = sorted({record["city"] for record in records})
+    if city is None:
+        raise SystemExit(f"this CSV holds {len(cities)} cities ({', '.join(cities)}); pass --city")
+    if city not in cities:
+        raise SystemExit(f"no rows for --city {city!r}; the CSV holds: {', '.join(cities)}")
+    return [record for record in records if record["city"] == city]
 
 
 def load_pool(path, city=None):

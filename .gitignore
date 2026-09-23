@@ -1,6 +1,8 @@
 node_modules
 .DS_Store
 tmp/**/*
+# Per-developer scratch: check queries, one-time scripts and their outputs (tools/README.md).
+scratchpad/
 .idea
 *.iml
 *.sublime-*

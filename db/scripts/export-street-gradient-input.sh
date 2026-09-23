@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Step 1 of filling the street_gradient table (#5223): write the streets that tools/city/street_gradient.py should sample
-# to db/onboarding/<city-id>/street_gradient_input.csv. By default that is only the streets with no street_gradient row
-# or whose geometry has changed since they were sampled (geom_md5), so after a street import the same three commands
-# top the table up instead of resampling the city. Pass --all to export every street, e.g. after the sampling method
-# itself changes. The tutorial street is never exported: it is the shared DC geometry, so no elevation model the city
-# is sampled from says anything true about it.
+# Step 1 of filling the street_gradient table (#5223): write the streets that tools/city/street_gradient.py should
+# sample to db/onboarding/<city-id>/street_gradient_input.csv. By default that is only the streets with no
+# street_gradient row or whose geometry has changed since they were sampled (geom_md5), so after a street import the
+# same three commands top the table up instead of resampling the city. Pass --all to export every street, e.g. after
+# the sampling method itself changes. The tutorial street is never exported: it is the shared DC geometry, so no
+# elevation model the city is sampled from says anything true about it.
 #
 # is_structure marks a street whose OSM way is a bridge, a tunnel or a covered way, read from the nightly osm_way
 # table the same way the intersection derivation reads it. A bare-earth elevation model has the ground under a bridge

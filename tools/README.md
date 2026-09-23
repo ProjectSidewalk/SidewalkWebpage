@@ -20,7 +20,7 @@ beside that fixture under `test/`.
 Cheap to add, cheap to ignore. Coverage and lint skip this folder, and nothing keeps a script here working.
 
 - A script goes in only if it **writes to a database**. A read-only script comes along only when a write script's
-  header says to run it first. Checks, EXPLAINs and one-time comparisons stay in the ignored `scratchpad/`, and
+  header says to run it first. Checks, EXPLAINs and one-time comparisons stay in `scratchpad/` (ignored), and
   outputs never come in.
 - Name it `<issue>-<what-it-does>.<ext>`, kebab-case, the same key as the branch.
 - The header says which evolution or release it was written against. A rerun starts by checking that.
@@ -33,8 +33,10 @@ docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=si
   -U sidewalk_chicago -v city=chicago -v apply=0 -f - < tools/one-off/3067-merge-duplicate-streets.sql
 ```
 
-`4181-remove-streets.sql` and `4190-remove-validations.sql` take their inputs by edit: set the id list and
-`search_path` at the top, then run inside their `BEGIN; ... COMMIT;` and read the preview before committing.
+`4181-remove-streets.sql` and `4190-remove-validations.sql` take their inputs by edit (the id list, and 4181's
+`search_path`) and run as one transaction that commits at the end, so paste them into psql up to the preview, read
+it, and finish with `COMMIT` or `ROLLBACK` yourself. The runner passes no psql variables: to apply the merge across
+cities, send it a copy with `\set apply 1` in place of `\set apply 0`.
 
 ## `experiments/`
 

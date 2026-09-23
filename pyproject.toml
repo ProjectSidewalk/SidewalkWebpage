@@ -26,6 +26,8 @@ omit = ["${COVERAGE_OMIT-}", "${COVERAGE_OMIT2-}", "${COVERAGE_OMIT3-}", "tools/
 
 [tool.coverage.report]
 show_missing = true
+# The tools/ subfolders are not packages, so without this a script nobody imports is never reported as 0%.
+include_namespace_packages = true
 # The script entrypoint guard only runs when executed as `python3 scripts/...`, never under pytest.
 exclude_also = [
     "if __name__ == .__main__.:",

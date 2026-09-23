@@ -1,13 +1,14 @@
 -- =====================================================================
 -- Find duplicate streets (#3067): one row per pair of street_edge rows drawn on top of each other, with which one
--- merge_duplicate_streets.sql would drop and everything riding on each side. Read-only; run it to look at a city
+-- 3067-merge-duplicate-streets.sql would drop and everything riding on each side. Read-only; run it to look at a city
 -- before applying the merge. Pairs where one road passes over or under the other are listed with stacked = t and
 -- are never merged.
 --
--- READ-ONLY. SAFE TO RUN ON PROD. ~30s on the largest schema (Chicago, 331k streets), a few seconds on the rest.
+-- READ-ONLY. SAFE TO RUN ON PROD. Written against evolution 401. ~30s on the largest schema (Chicago, 331k streets),
+-- a few seconds on the rest.
 -- Built for sidewalk-server-tools/run-query-in-every-city.sh (-m), which sets the search_path and the city variable.
 -- Margins are overridable: -v tol_m=, -v min_len_m=, -v min_cov=. The detection and the keep/drop rules must stay
--- the same as merge_duplicate_streets.sql's, which explains them.
+-- the same as 3067-merge-duplicate-streets.sql's, which explains them.
 --
 -- Reading the output:
 --   * stacked: OSM says one is a bridge or tunnel, or they're on different layers -- a road passing over another,
@@ -169,7 +170,7 @@ SELECT :'city' AS city, dup_pair.street_a_id, dup_pair.street_b_id, dup_pair.sta
        round(ST_X(ST_LineInterpolatePoint(CASE WHEN dup_pair.a_len_m <= dup_pair.b_len_m
                                                THEN dup_pair.a_geom ELSE dup_pair.b_geom END, 0.5))::numeric, 6)
          AS midpoint_latlng,
-       -- Must stay in step with merge_duplicate_streets.sql's rules, which its header explains.
+       -- Must stay in step with 3067-merge-duplicate-streets.sql's rules, which its header explains.
        CASE
          WHEN dup_pair.stacked THEN 'neither: one is over or under the other'
          WHEN dup_pair.a_status = 'open' AND dup_pair.b_status <> 'open' THEN 'drop B: only A is open'

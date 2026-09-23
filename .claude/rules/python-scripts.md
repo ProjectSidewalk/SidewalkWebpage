@@ -1,7 +1,7 @@
 ---
 paths:
   - "scripts/**"
-  - "tools/**"
+  - "tools/**/*.py"
   - "test/python/**"
   - "requirements*.txt"
 ---

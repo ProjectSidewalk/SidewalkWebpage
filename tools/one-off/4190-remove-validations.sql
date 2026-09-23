@@ -1,5 +1,5 @@
 -- =====================================================================
--- Remove a set of label_validations from the DB.
+-- Remove a set of label_validations from the DB (#4190). Written against evolution 401.
 --
 -- Tables with a FK to label_validation:
 --   label_edit              (label_validation_id nullable; the edit submitted with the validation, if it changed
