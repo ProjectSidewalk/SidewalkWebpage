@@ -198,8 +198,10 @@ into a temp table and touches only the rows that changed, and a spec (`Intersect
 `street_gradient` (399.sql, #5223; read through `StreetGradientTable`) is per-street too but is not one of these: its
 elevations come from rasters the database never sees, so there is no SQL derivation and no nightly rebuild. An offline
 script samples a bare-earth elevation model and a db script upserts the CSV, the way the imagery scan feeds
-`street_imagery`. Staleness is a `geom_md5` comparison the export script makes. See
-[`street-gradient.md`](street-gradient.md).
+`street_imagery`; new cities get it during onboarding. Staleness is a `geom_md5` comparison the export script makes,
+and the one nightly job in this area, `StreetGradientStalenessActor`, only counts it: the served streets with no row
+and those sampled on an older geometry, recorded so the Health panel says when a city needs a fill or a top-up
+(Admin > Management can recount on demand). See [`street-gradient.md`](street-gradient.md).
 
 A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
 the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to

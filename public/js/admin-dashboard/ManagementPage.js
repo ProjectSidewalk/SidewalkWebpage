@@ -38,7 +38,8 @@ class ManagementPage {
   /**
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
-   *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string}} urls
+   *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
+   *          refreshPlacesUrl: string, recountGradientStalenessUrl: string}} urls
    */
   constructor(urls) {
     this.#urls = urls;
@@ -364,7 +365,17 @@ class ManagementPage {
   // --- Maintenance ------------------------------------------------------------------------------------------------
 
   #wireMaintenance() {
-    // `done` is what the button reports on success: a trigger that answers before its job finishes can't say "Done".
+    /**
+     * Wires one maintenance button: confirm, call the endpoint, report in the status region.
+     *
+     * @param {string} id - The button's element id.
+     * @param {string} url - The endpoint to call.
+     * @param {string} method - Its HTTP method.
+     * @param {string} label - The action, as the status line names it.
+     * @param {string | ((result: any) => string)} [done] - What the button reports on success: a trigger that
+     *   answers before its job finishes can't say "Done", and one that answers with its counts hands them to a
+     *   function so the admin need not open the Health panel.
+     */
     const run = (id, url, method, label, done = `Done: ${label}.`) => {
       const btn = /** @type {HTMLButtonElement} */ (document.getElementById(id));
       if (!btn) return;
@@ -378,8 +389,8 @@ class ManagementPage {
         btn.disabled = true;
         this.#maintResult(`Running: ${label}…`);
         try {
-          await AdminShell.mutate(url, method);
-          this.#maintResult(done);
+          const result = await AdminShell.mutate(url, method);
+          this.#maintResult(typeof done === 'function' ? done(result) : done);
         } catch (err) {
           this.#maintResult(`Failed: ${label} — ${err.message}`, true);
         } finally {
@@ -397,6 +408,10 @@ class ManagementPage {
       'rebuild sidewalk presence');
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
       'Started: refresh places. It runs in the background — the Health panel reports how it ended.');
+    run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
+      'recount street gradient staleness',
+      (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
+        + `${AdminShell.num(counts.streets_stale)} sampled on an older geometry. The Health panel shows the same.`);
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 

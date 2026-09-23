@@ -8,7 +8,8 @@ import service.{
   CropSizingRule,
   IntersectionRebuildResult,
   OsmWayRefreshResult,
-  SidewalkPresenceRebuildResult
+  SidewalkPresenceRebuildResult,
+  StreetGradientStaleness
 }
 
 /**
@@ -33,6 +34,10 @@ class JobRunDetailsSpec extends PlaySpec {
 
     "record funnel stats under the key its readers use" in {
       FunnelStatActor.runDetails(12) mustBe Json.obj("rows_written" -> 12)
+    }
+
+    "record the street gradient staleness counts under the keys the Health panel shows" in {
+      StreetGradientStaleness(1204, 37).runDetails mustBe Json.obj("streets_unsampled" -> 1204, "streets_stale" -> 37)
     }
 
     "record the OSM way refresh under the key its readers use" in {

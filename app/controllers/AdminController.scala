@@ -1152,6 +1152,24 @@ class AdminController @Inject() (
   }
 
   /**
+   * Recounts the served streets whose gradient is missing or stale (#5223), as the nightly job does, so the Health
+   * panel reflects an import the moment it lands rather than the next morning. Recorded as a `Manual` run of that
+   * job; two counts, so it answers with them.
+   */
+  def recountStreetGradientStaleness = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
+    cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
+    jobRunService
+      .record(StreetGradientStalenessActor.Name, JobRunTrigger.Manual)(streetService.countStreetGradientStaleness)(
+        _.runDetails
+      )
+      .map(counts => Ok(counts.runDetails))
+      .recover { case NonFatal(e) =>
+        logger.error("Street gradient staleness recount failed.", e)
+        ServiceUnavailable(Json.obj("error" -> s"Recount failed (${e.getMessage})."))
+      }
+  }
+
+  /**
    * Refreshes the cached OSM way data (speed limits etc.). Same as the nightly process, for QA and initial backfill.
    *
    * Recorded as a `Manual` run of that nightly job (#4928). This one runs for tens of minutes and can half-fail, so
