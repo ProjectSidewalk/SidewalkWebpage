@@ -117,8 +117,9 @@ accumulating into it.
 
 The responses we already fetch also carry an imagery capture date, so — for **no extra API calls** — the scan records
 each street's capture-date range (oldest/newest) and pano count into `street_imagery_summary.csv` (`street_edge_id,
-region_id, has_imagery, oldest_capture, newest_capture, n_panos, max_cross_track_m`). That tells us not just whether a
-street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is the one recorded.
+region_id, has_imagery, oldest_capture, newest_capture, n_panos, max_cross_track_m, cross_track_limit_m`). That tells us
+not just whether a street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is
+the one recorded.
 Mapillary instead returns every image in the queried box, and the date recorded belongs to the image Explore would
 actually display: `score_pano` ports the viewer's ranking (distance, resolution, recency), reading its weights from
 `conf/pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look freshly
@@ -144,47 +145,75 @@ counts toward a street's verdict:
   centerline. The street half matters: a pano more than 25 m further down the same street is still imagery of it, and
   a point-only check hid six Teaneck streets that way. Explore's own viewer does not yet make that check, so it can
   still open such a pano (#5114).
-- **Across the street:** the pano must sit within `--max-cross-track-m` (default **15 m**) of the centerline, measured
-  perpendicular to the street and with its end segments extended, so a pano across the intersection at a street's end
-  reads as along the street rather than beside it. Panos within 10 m of either end of the street are exempt, because
-  a street's ends are intersections and the nearest pano there is often on the crossing street.
+- **Across the street:** the pano must sit within `--max-cross-track-m` (default **15 m**) of the centerline. The
+  one exception is the answer to either of the street's two endpoint queries: it also counts if the pano lies within
+  **25 m** of an endpoint. An endpoint is an intersection, and the nearest pano to one is often up the crossing street.
+  The allowance is a disc around each endpoint, and only the endpoint queries get it: every point between them is held
+  to the limit, however near an end its pano is.
 
-Both numbers were measured, not picked (#5091), from the panos each street's walk actually visited, recorded with
-`--point-log` (below):
+Every distance is measured from the street's stored centerline. The walk samples points from a resampled copy, whose
+straight chords cut the corners of a bend.
+
+Both numbers were measured, not picked (#5091). They come from the panos each street's walk actually visited, recorded
+with `--point-log` (below):
 
 | | Teaneck (2,172 streets) | Seattle (27,645 streets) |
 | --- | --- | --- |
-| panos measured | 12,562 | 166,279 |
-| cross-track p50 / p99 / p99.9 | 1.6 / 7.5 / 18.5 m | 0.9 / 6.5 / 15.3 m |
-| widest arterial, mid-block | trunk, max 11.8 m | primary, p99.9 15.8 m |
+| panos measured (mid-street / endpoint answers) | 8,435 / 4,311 | 111,804 / 54,830 |
+| mid-street offset p50 / p99 / p99.9 | 1.4 / 6.6 / 14.7 m | 0.8 / 5.4 / 14.8 m |
+| widest arterials, mid-street | trunk, max 11.8 m | primary p99.9 13.9 m, secondary 13.0 m |
+| endpoint answers > 15 m off, within 25 m of an endpoint | 21 of 21 | 123 of 125 |
 | streets hidden, no limit | 26 | 287 |
-| more hidden at 10 / 12 / **15** / 18 / 20 m | 1 / 1 / **1** / 1 / 0 | 21 / 13 / **10** / 6 / 3 |
+| more hidden at 10 / 12 / **15** / 18 / 20 m | 3 / 2 / **1** / 1 / 0 | 27 / 20 / **15** / 9 / 6 |
+| … at 15 m without the endpoint allowance | 9 | 49 |
 
-Below 15 m, the limit starts cutting into lane offsets on wide arterials. Beyond it are panos of another roadway:
-Teaneck street 834's panos sit 20 m off it and 0.7–1.3 m from the parallel street 833, and most of Seattle's are
-off-network mid-block alleys 17–25 m out. The end zone is there because, without it, a 10 m limit hid 8 Teaneck
-streets, all wrongly. Each had on-street panos at its other points, and one endpoint's pano sat on the crossing street.
+- **Below 15 m**, the limit starts cutting into lane offsets on wide arterials.
+- **Beyond 15 m**, most of what it rejects is a pano of another roadway. Teaneck's one extra hidden street, 834, is
+  seen mid-street only from panos 1–2 m from the parallel street 833. Twelve of Seattle's fifteen are seen mid-street
+  only from panos on another street 0.4–1.7 m away, or on an alley the street network leaves out. Two are downtown
+  primary streets with complex carriageways, and one (1109) has its crossing-street pano 25.9 m from the endpoint,
+  just outside the disc.
+- **The allowance's cost:** a street short enough to have no sampled point between its endpoints (400 in Teaneck, 3,615
+  in Seattle, mostly under about 15 m) is judged by its endpoint answers alone, so for it the limit is in effect the
+  25 m disc.
 
 The limit applies to GSV only. It was measured on Google's car-mounted captures, and a GSV response is the one pano
 the viewer would open. Mapillary and Panoramax are also captured on foot and by bike, off the roadway, so a car's
 limit would reject their sidewalk captures. For Mapillary, holding the viewer's pick (`score_pano`) to the limit would
 hide points that have an on-street runner-up, and filtering the candidates before scoring would record a date the
 viewer never shows (#4411). Infra3d answers with its nearest frame as GSV does, but no Infra3d city has been measured.
-`--point-log` works for every provider, so each one's limit can come from its own distribution.
+`--point-log` works for every provider, so each one's limit can come from its own distribution. Passing
+`--max-cross-track-m` with another provider is an error.
 
-Each street's `max_cross_track_m` in the summary is the farthest pano it saw, counted or not, so a street hidden by
-the limit still shows why.
+Each street's `max_cross_track_m` in the summary is the distance from its centerline to the farthest pano it saw,
+counted or not, so a street hidden by the limit still shows why. Past either end of a street, that distance is to the
+endpoint. The summary also records the `cross_track_limit_m` its verdict was reached under (0 for none).
 
 `--search-radius-m` (whole metres) and `--max-cross-track-m` (`0` turns the limit off) are the knobs these
-comparisons turn. Changing either changes which streets count as having imagery, so every checkpoint row records both,
-and the scan refuses to resume a checkpoint written with other values or by an older version of the scan. Give each
-setting its own `--city-id` (and so its own `db/onboarding/<city-id>/` dir), or move that provider's
-`streets_imagery_checkpoint_<provider>.csv` aside between runs.
+comparisons turn. Changing either one changes which streets count as having imagery. So every checkpoint row records
+both, and the scan refuses to resume a checkpoint written with other values or by an older version of the scan. Give
+each setting its own `--city-id` (and so its own `db/onboarding/<city-id>/` dir), or move that provider's
+`streets_imagery_checkpoint_<provider>.csv` aside between runs, and `street_points_<provider>.csv` with it.
 
-`--point-log` also writes `street_points_<provider>.csv`: one row per point a street's walk visited, with the pano the
-provider answered, its distance from the query point (`point_distance_m`), from the centerline (`cross_track_m`) and
-from the nearer street end (`end_distance_m`), and whether it `counted`. That is the distribution the numbers above
-came from.
+`--point-log` writes `street_points_<provider>.csv`, one row per point a street's walk visited. Each row records:
+- whether the point was an endpoint query;
+- the pano the provider answered;
+- its distance from the query point (`point_distance_m`), from the centerline (`cross_track_m`) and, for an endpoint
+  query, from the nearer endpoint;
+- whether it `counted`;
+- the radius and limit it was counted under.
+
+That is the distribution the numbers above came from. The log follows the checkpoint:
+- **A fresh scan** (no settled streets) starts the log empty.
+- **A resumed scan** keeps only the rows of streets the checkpoint has settled. A street logged just before a crash,
+  whose checkpoint row was never written, is rescanned and logged once.
+- **The flag has to be on from a scan's first run.** A resume with `--point-log` into a scan that ran without it is
+  refused, since the streets already settled were never logged.
+
+Because every step of a street's walk is logged, a log from a run at a strict setting can be replayed at any looser one
+without querying again. A replay gives the same verdict as a direct run (to within the 1 cm the log rounds distances
+to, and given identical GSV answers) wherever the looser rule settles within the logged walk. That is how the table
+above was built, with a targeted rescan of each street whose walk ended before the replay settled.
 
 ### Resilience & resume
 
