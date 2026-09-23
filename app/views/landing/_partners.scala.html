@@ -11,10 +11,11 @@
 * data-partner-source so the landing pages' delegated handlers (homepage.js on desktop, mobileLanding's inline
 * script on mobile) can log clicks without per-partner markup.
 *
-* Each community-partner logo names its partner in a psTooltip on hover or keyboard focus (#5469), since a logo alone
-* is often not legible as a name. The trigger is the .partner-logo wrapper rather than the link, so the tooltip covers
-* no-URL partners too, and so the aria-describedby psTooltip adds lands on a non-focusable div: the name is already
-* the image's alt, and a screen reader would otherwise announce it twice. psTooltip renders its text as HTML, so the
+* Each community-partner logo names its partner in a psTooltip on hover, or on keyboard focus for linked logos (#5469),
+* since a logo alone is often not legible as a name. The trigger is the .partner-logo wrapper rather than the link, so
+* the tooltip covers no-URL partners' bare images too, and so the aria-describedby psTooltip adds lands on a
+* non-focusable div: the image's alt already describes the logo, and a screen reader would otherwise read the name as
+* a second, redundant description. psTooltip renders its text as HTML, so the
 * admin-supplied name is escaped here once and again by Twirl's attribute escaping (see psTooltip.js).
 *@
 
