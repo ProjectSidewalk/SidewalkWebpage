@@ -83,8 +83,7 @@ same per-city OAuth client credentials the app uses (`PanoDataService.getInfra3d
 differ from the other providers:
 
 - The query returns the nearest frame **with no distance cap** (a point far outside the city still gets the city's
-  closest frame), so "has imagery" is decided client-side: the nearest frame within the same 25 m (endpoints) / 15 m
-  (along-street) radius GSV uses.
+  closest frame), so "has imagery" is decided client-side: the nearest frame within the same 25 m radius GSV uses.
 - Frames are filtered server-side to 360° types (`calotte`/`cubemap`), matching the viewer's `setFilter` — Infra3d
   datasets mix in flat mono/stereo photos that Explore can't label on, so a street with only flat frames counts as
   having no imagery.
@@ -117,14 +116,107 @@ accumulating into it.
 ### Imagery age
 
 The responses we already fetch also carry an imagery capture date, so — for **no extra API calls** — the scan records
-each street's capture-date range (oldest/newest) and pano count into `street_imagery_summary.csv`
-(`street_edge_id, region_id, has_imagery, oldest_capture, newest_capture, n_panos`). That tells us not just whether a
-street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is the one recorded.
+each street's capture-date range (oldest/newest) and pano count into `street_imagery_summary.csv` (`street_edge_id,
+region_id, has_imagery, oldest_capture, newest_capture, n_panos, max_cross_track_m, cross_track_limit_m`). That tells us
+not just whether a street has imagery but how old it is. GSV and Infra3d each answer with a single pano, so its date is
+the one recorded.
 Mapillary instead returns every image in the queried box, and the date recorded belongs to the image Explore would
 actually display: `score_pano` ports the viewer's ranking (distance, resolution, recency), reading its weights from
-`conf/pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look
-freshly imaged while the viewer went on serving older panos (#4411). Persisting this into the database — to power a
-"stale imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a separate follow-up (#4348).
+`conf/pano-scoring.json` so the two can't drift. Recording the *newest* image instead would let a street look freshly
+imaged while the viewer went on serving older panos (#4411). Persisting this into the database — to power a "stale
+imagery" signal alongside the `street_edge_status` work (#3888) — is tracked as a separate follow-up (#4348).
+
+### Search radius, and how far off the street a pano sits
+
+Every sampled point — street endpoints and the points between them alike — is queried at **25 m**, the radius Explore
+searches (`svl.STREETVIEW_MAX_DISTANCE`). Matching it is what makes the hide list mean "Explore has no imagery of this
+street"; and the radius has to clear each provider's capture interval anyway, or the box can straddle a gap and report
+no imagery where there is some. Mapillary's smart spacing targets 20 m on highways, and 12.6% of Budapest's
+consecutive captures exceed 20 m.
+
+A circle is not quite the right shape for the job, though: it has to be generous *along* the street to clear that
+interval, but everything it also reaches *across* the street is a chance to accept a pano belonging to an adjacent
+carriageway, alley or frontage road — imagery of a different street. So a GSV pano has to pass two tests before it
+counts toward a street's verdict:
+
+- **Along the street:** GSV's `radius` parameter is a search hint, not a bound. A 25 m query has returned a pano 77 m
+  away, and in Seattle a user photosphere in another state (#5114); a 15 m scan accepted the same far panos. So the
+  scan checks the position each GSV response reports, and treats a pano as no imagery at that point when it lies
+  beyond the search radius of both the query point and the street's own centerline. The street half matters: a pano
+  more than 25 m further down the same street is still imagery of it, and a point-only check hid six Teaneck streets
+  that way. Explore's viewer makes the point half of that check (#5114) and gets the street half from sampling the
+  street every 10 m, so the two agree on which panos count as imagery at a point. Their street-level verdicts still
+  differ: the scan weighs endpoints and a failure fraction, while Explore needs only one point along the street to
+  work. Mapillary and Panoramax already filter to the box server-side, and Infra3d applies its radius client-side.
+- **Across the street:** the pano must sit within `--max-cross-track-m` (default **15 m**) of the centerline. The
+  one exception is the answer to either of the street's two endpoint queries: it also counts if the pano lies within
+  **25 m** of an endpoint. An endpoint is an intersection, and the nearest pano to one is often up the crossing street.
+  The allowance is a disc around each endpoint, and only the endpoint queries get it: every point between them is held
+  to the limit, however near an end its pano is. Explore does not apply this test; it is the scan's alone.
+
+Every distance is measured from the street's stored centerline. The walk samples points from a resampled copy, whose
+straight chords cut the corners of a bend.
+
+Both numbers were measured, not picked (#5091). They come from the panos each street's walk actually visited, recorded
+with `--point-log` (below):
+
+| | Teaneck (2,172 streets) | Seattle (27,645 streets) |
+| --- | --- | --- |
+| panos measured (mid-street / endpoint answers) | 8,435 / 4,311 | 111,804 / 54,830 |
+| mid-street offset p50 / p99 / p99.9 | 1.4 / 6.6 / 14.7 m | 0.8 / 5.4 / 14.8 m |
+| widest arterials, mid-street | trunk, max 11.8 m | primary p99.9 13.9 m, secondary 13.0 m |
+| endpoint answers > 15 m off, within 25 m of an endpoint | 21 of 21 | 123 of 125 |
+| streets hidden, no limit | 26 | 287 |
+| more hidden at 10 / 12 / **15** / 18 / 20 m | 3 / 2 / **1** / 1 / 0 | 27 / 20 / **15** / 9 / 6 |
+| … at 15 m without the endpoint allowance | 9 | 49 |
+
+- **Below 15 m**, the limit starts cutting into lane offsets on wide arterials.
+- **Beyond 15 m**, most of what it rejects is a pano of another roadway. Teaneck's one extra hidden street, 834, is
+  seen mid-street only from panos 1–2 m from the parallel street 833. Twelve of Seattle's fifteen are seen mid-street
+  only from panos on another street 0.4–1.7 m away, or on an alley the street network leaves out. Two are downtown
+  primary streets with complex carriageways, and one (1109) has its crossing-street pano 25.9 m from the endpoint,
+  just outside the disc.
+- **The allowance's cost:** a street short enough to have no sampled point between its endpoints (400 in Teaneck, 3,615
+  in Seattle, mostly under about 15 m) is judged by its endpoint answers alone, so for it the limit is in effect the
+  25 m disc.
+
+The limit applies to GSV only. It was measured on Google's car-mounted captures, and a GSV response is the one pano
+the viewer would open. Mapillary and Panoramax are also captured on foot and by bike, off the roadway, so a car's
+limit would reject their sidewalk captures. For Mapillary, holding the viewer's pick (`score_pano`) to the limit would
+hide points that have an on-street runner-up, and filtering the candidates before scoring would record a date the
+viewer never shows (#4411). Infra3d answers with its nearest frame as GSV does, but no Infra3d city has been measured.
+`--point-log` works for every provider, so each one's limit can come from its own distribution. Passing
+`--max-cross-track-m` with another provider is an error.
+
+Each street's `max_cross_track_m` in the summary is the distance from its centerline to the farthest pano it saw,
+counted or not, so a street hidden by the limit still shows why. Past either end of a street, that distance is to the
+endpoint. The summary also records the `cross_track_limit_m` its verdict was reached under (0 for none).
+
+`--search-radius-m` (whole metres) and `--max-cross-track-m` (`0` turns the limit off) are the knobs these
+comparisons turn. Changing either one changes which streets count as having imagery. So every checkpoint row records
+both, and the scan refuses to resume a checkpoint written with other values or by an older version of the scan. Give
+each setting its own `--city-id` (and so its own `db/onboarding/<city-id>/` dir), or move that provider's
+`streets_imagery_checkpoint_<provider>.csv` aside between runs, and `street_points_<provider>.csv` with it.
+
+`--point-log` writes `street_points_<provider>.csv`, one row per point a street's walk visited. Each row records:
+- whether the point was an endpoint query;
+- the pano the provider answered;
+- its distance from the query point (`point_distance_m`), from the centerline (`cross_track_m`) and, for an endpoint
+  query, from the nearer endpoint;
+- whether it `counted`;
+- the radius and limit it was counted under.
+
+That is the distribution the numbers above came from. The log follows the checkpoint:
+- **A fresh scan** (no settled streets) starts the log empty.
+- **A resumed scan** keeps only the rows of streets the checkpoint has settled. A street logged just before a crash,
+  whose checkpoint row was never written, is rescanned and logged once.
+- **The flag has to be on from a scan's first run.** A resume with `--point-log` into a scan that ran without it is
+  refused, since the streets already settled were never logged.
+
+Because every step of a street's walk is logged, a log from a run at a strict setting can be replayed at any looser one
+without querying again. A replay gives the same verdict as a direct run (to within the 1 cm the log rounds distances
+to, and given identical GSV answers) wherever the looser rule settles within the logged walk. That is how the table
+above was built, with a targeted rescan of each street whose walk ended before the replay settled.
 
 ### Resilience & resume
 
@@ -209,7 +301,10 @@ first source that works: `--regions-file` (any OGR format/CRS; `--region-name-co
 
 Outputs land in `db/onboarding/<city-id>/` (git-ignored; visible to the db container at `/opt/onboarding/` when run
 from the main checkout): the QA GeoPackage, `qgis_tables.sql`, `street_edge_endpoints.csv` (the scan's input, so the
-preflight below runs before any database exists), and `report.md` with the tiny-segment histogram (production
+preflight below runs before any database exists), `street_structures.csv` (which streets are on a bridge, in a
+tunnel or covered, from the OSM tags, with each street's geometry hash, so the street-gradient export can run before
+the nightly `osm_way` cache exists and can refuse a file from another build; it rides in the GeoPackage too, so a
+`--from-gpkg` re-export rewrites it), and `report.md` with the tiny-segment histogram (production
 averages 18% of streets under 20 m; Bayonne rebuilt at 4%), per-region km with `SPARSE`/`OVERSIZED`/`EMPTY` flags,
 and boundary coverage. The QA loop: rerun with tweaked flags — `--merge-regions
 "Census Tract 513:Census Tract 523.01"` folds regions by *name* and re-splits the streets against the merged
@@ -231,6 +326,10 @@ make street-gradient id=cdmx args="--dem-dir db/onboarding/cdmx/dem --dem-name i
 make import-street-gradient
 ```
 
+`make onboard-city` runs the three for a new city (step 8), passing the export
+`--structures onboarding/<city-id>/street_structures.csv` so it needs no `osm_way` cache; a live city is topped up
+by hand with the same three commands, and the nightly `StreetGradientStalenessActor` says when (Admin > Health).
+
 - **Sources.** A registered source is chosen from the city's `country-id` in `conf/cityparams.conf` (only the USA so
   far). Anything else goes through `--dem-dir`: a directory of hand-downloaded GeoTIFFs in any mix of coordinate
   systems, elevations in meters.
@@ -239,7 +338,9 @@ make import-street-gradient
   untagged street whose profile holds an implausible pitch is drawn as a straight line between its endpoints
   (`quality = suspect`).
 - **An empty `osm_way` stops the export**, since every bridge would then be sampled as the ground beneath it. Pass
-  `args=--allow-empty-osm-way` for a city that really has none, and `args=--all` to resample every street.
+  `args="--structures onboarding/<city-id>/street_structures.csv"` to take the flags from the street build (what
+  onboarding does), `args=--allow-empty-osm-way` for a city that really has none, and `args=--all` to resample
+  every street. The tutorial street is never exported.
 - **Resume.** Rows are flushed a grid cell at a time; `--resume` keeps the ones that answer the current export (same
   street, same `geom_md5`) and samples the rest.
 - **No network in tests.** `test/python/test_street_gradient.py` writes small GeoTIFFs whose elevation is a known

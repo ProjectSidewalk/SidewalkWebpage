@@ -35,7 +35,9 @@ class Main {
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
-    svl.STREETVIEW_MAX_DISTANCE = 25; // 25 meters.
+    // Pano search radius in meters. GsvViewer also rejects any reply farther than this, since Google's radius is only
+    // a hint (#5114); scripts/check_streets_for_imagery.py and Task.ON_STREET_MAX_DISTANCE_M mirror it.
+    svl.STREETVIEW_MAX_DISTANCE = 25;
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
     svl.CONNECTED_TASK_THRESHOLD = 0.025; // 25 meters.
 
@@ -194,7 +196,9 @@ class Main {
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
 
-    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, () => svl.panoViewer,
+    // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
+    // capture date and the audit note is the one place it would read as belonging to neither (#5413).
+    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.datePill, () => svl.panoViewer,
       () => svl.panoViewer.getPosition(), () => svl.panoViewer.getPanoId(),
       () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
       () => svl.regionModel.currentRegion().getRegionId(),
@@ -210,6 +214,16 @@ class Main {
       () => {
         svl.tracker.push('PanoInfoViewInPano_Click');
       },
+    );
+
+    svl.panoDateNote = new PanoDateNote(svl.tracker, svl.ui.streetview.dateHolder[0],
+      svl.ui.streetview.datePill[0], svl.ui.streetview.date[0]);
+    // The first pano and the first task both land before this line, so their own updates find no note to draw on and
+    // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
+    const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
+    svl.panoDateNote.update(
+      initialCaptureDate ? initialCaptureDate.format('YYYY-MM-DD') : null,
+      svl.taskContainer.getCurrentTask(),
     );
 
     // Speed limit
@@ -649,6 +663,7 @@ class Main {
     svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
     svl.ui.minimap.legendCard = $('#minimap-legend-card');
     svl.ui.minimap.legendClose = $('#minimap-legend-close');
+    svl.ui.minimap.legendEarlierLabels = $('#minimap-legend-earlier-labels');
     svl.ui.minimap.routeOverview = $('#minimap-route-overview');
     svl.ui.minimap.routeOverviewCanvas = $('#minimap-route-overview-canvas');
 
@@ -660,6 +675,7 @@ class Main {
     svl.ui.streetview.modeSwitchWalk = $('#mode-switch-button-walk');
     svl.ui.streetview.navArrows = $('#arrow-group');
     svl.ui.streetview.dateHolder = $('#svl-panorama-date-holder');
+    svl.ui.streetview.datePill = $('#svl-panorama-date-pill');
     svl.ui.streetview.date = $('#svl-panorama-date');
 
     // Canvas for the labeling area.
