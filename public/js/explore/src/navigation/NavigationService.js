@@ -159,7 +159,7 @@ class NavigationService {
     const furthest = currentTask.getFurthestPointReached().geometry.coordinates;
     const nearEnd = currentTask.isAtEnd(svl.panoViewer.getPosition(), NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD)
       || currentTask.isAtEnd({ lat: furthest[1], lng: furthest[0] }, NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD);
-    if (nearEnd) {
+    if (nearEnd || this.#isStubInView(currentTask)) {
       this.#endTheCurrentTask(currentTask, currentMission);
       this.#updateUiAfterMove();
       return Promise.resolve(null);
@@ -262,6 +262,18 @@ class NavigationService {
       }
       return Promise.resolve(null);
     }
+  }
+
+  /**
+   * Whether the street is a tiny stub the user can already see. Those can't be walked, so seeing it counts (#5474).
+   * @param {Task} task
+   * @returns {boolean}
+   */
+  #isStubInView(task) {
+    if (task.lineDistance({ units: 'meters' }) >= NavigationService.DIST_INCREMENT * 1000) return false;
+    const position = svl.panoViewer.getPosition();
+    const here = turf.point([position.lng, position.lat]);
+    return turf.pointToLineDistance(here, task.getFeature(), { units: 'meters' }) <= svl.STREETVIEW_MAX_DISTANCE;
   }
 
   /**

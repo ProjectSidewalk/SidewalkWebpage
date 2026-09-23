@@ -89,6 +89,14 @@ const turfStub = {
         lineFeature([startPoint.geometry.coordinates, line.geometry.coordinates.at(-1)]),
     lineSliceAlong: (line, startKm) =>
         lineFeature([interpolate(line.geometry.coordinates, startKm), line.geometry.coordinates.at(-1)]),
+    // Works because fixture streets run due east.
+    pointToLineDistance: (point, line, options = {}) => {
+        const [lng, lat] = point.geometry.coordinates;
+        const lngs = line.geometry.coordinates.map(([lineLng]) => lineLng);
+        const nearest = [Math.min(Math.max(lng, Math.min(...lngs)), Math.max(...lngs)), line.geometry.coordinates[0][1]];
+        const km = kmBetween([lng, lat], nearest);
+        return options.units === 'meters' ? km * 1000 : km;
+    },
 };
 
 /**
@@ -573,6 +581,49 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             expect(svl.taskContainer.endTask).toHaveBeenCalledWith(nearlyDone);
             expect(reportNoImagery).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('and the street is a stub shorter than one search step (#5474)', () => {
+        const standWestOfStreet = (metersAway) => {
+            svl.panoViewer.getPosition = () => ({ lat: FIXTURE_LAT, lng: -74.0 - (metersAway / 1000) * DEG_PER_KM_LNG });
+        };
+
+        it('ends the stub rather than reporting it, when the labeler can see it from where they stand', async () => {
+            const [stub, next] = [makeTask(101, { lengthKm: 0.001 }), makeTask(102)];
+            assignStreets(stub, next);
+            standWestOfStreet(9);
+            respondToSearch = emptyGround;
+
+            await nav.moveForward();
+
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(stub);
+            expect(reportNoImagery).not.toHaveBeenCalled();
+            expect(window.NoImageryFlagGuard.count()).toBe(0);
+        });
+
+        it('still reports the stub when the labeler is too far away to see it', async () => {
+            const [stub, next] = [makeTask(101, { lengthKm: 0.001 }), makeTask(102)];
+            assignStreets(stub, next);
+            standWestOfStreet(40);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === stub ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            expect(reportNoImagery).toHaveBeenCalledTimes(1);
+            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+        });
+
+        it('still reports a street one search step or longer, however close the labeler stands', async () => {
+            const [short, next] = [makeTask(101, { lengthKm: 0.012 }), makeTask(102)];
+            assignStreets(short, next);
+            standWestOfStreet(1);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === short ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            expect(reportNoImagery).toHaveBeenCalledTimes(1);
+            expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
         });
     });
 
