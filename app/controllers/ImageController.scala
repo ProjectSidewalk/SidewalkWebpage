@@ -85,18 +85,19 @@ class ImageController @Inject() (
         val resizedImage: BufferedImage = resize(bufferedImage, w, h)
 
         val f = new File(filename)
+        // A failed write is refused rather than reported as stored: the caller records the crop's provenance on a
+        // Right, and a label_crop row for a file that isn't there would send every card to a broken image.
         try {
-          val result: Boolean = ImageIO.write(resizedImage, "png", f)
-          if (!result) {
+          if (ImageIO.write(resizedImage, "png", f)) Right((w, h))
+          else {
             logger.error("Failed to write image file: " + filename)
+            Left("The crop could not be stored.")
           }
         } catch {
           case e: IOException =>
             logger.error(s"IOException while writing image file $filename: ${e.getMessage}")
-          case e: Exception =>
-            logger.error(s"Unexpected error while writing image file $filename: ${e.getMessage}")
+            Left("The crop could not be stored.")
         }
-        Right((w, h))
     }
   }
 
@@ -262,6 +263,8 @@ class ImageController @Inject() (
           // uploads can't starve the HTTP dispatcher (#4415).
           Future(writeImageFile(filename, b64String))(cpuEc)
             .flatMap {
+              case Left(reason) if reason.startsWith("The crop could not be stored") =>
+                Future.successful(InternalServerError(reason))
               case Left(reason) =>
                 logger.warn(s"Refused crop upload for label $labelId: $reason")
                 Future.successful(BadRequest(reason))

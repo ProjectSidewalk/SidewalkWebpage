@@ -98,6 +98,8 @@ class LabelContainer {
           height: labelArr[i].canvasHeight ?? util.EXPLORE_CANVAS_HEIGHT,
         };
 
+        // The imagery the click was made on decides the fov it was projected with, and an Explore page renders one
+        // imagery source, so the page's viewer is the label's source too.
         const viewerType = svl.panoViewer.getViewerType();
         const povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(
           labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y,

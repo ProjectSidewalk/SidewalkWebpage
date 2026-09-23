@@ -95,7 +95,8 @@ object CropService {
     def summary: String =
       s"Crop generation (rule ${CropSizingRule.Version}): opened $panosOpened panos, wrote $cropsWritten crops " +
         s"($shiftedVertically shifted to stay inside the pano, $dimsUnverified against a pano whose dimensions the " +
-        s"database doesn't record); skipped $panosWithoutBackup panos with no self-hosted image, $dimsMismatch labels " +
+        s"database doesn't record); skipped $panosWithoutBackup panos with no self-hosted image, " +
+        s"$dimsMismatch labels " +
         s"on a dimension mismatch and $outOfFrame labels outside the image; recorded provenance for " +
         s"$provenanceExplore Explore-frame and $provenanceWindow pano-window crops, $provenanceUnresolved " +
         s"unresolved; $errors errors."
@@ -124,7 +125,7 @@ object CropService {
    * snapshot by size.
    */
   val ExploreFrameCropWidth: Int  = 1440
-  val ExploreFrameCropHeight: Int = 960
+  val ExploreFrameCropHeight: Int = 960 // The boxed 720x480 frame's snapshot height; the specs plant crops at it.
 
   /**
    * The size a snapshot of a labeling frame is stored at: [[ExploreFrameCropWidth]] wide, the frame's aspect ratio
@@ -410,11 +411,11 @@ class CropServiceImpl @Inject() (
    * Decides which writer produced a crop with no row, and where its label is (#2660).
    *
    * Two writers share the path. The browser's snapshot is [[ExploreFrameCropWidth]] wide at the aspect ratio of the
-   * label's frame ([[exploreSnapshotSize]]), give or take the pixel the browser's own rounding of its canvas can add
-   * (so a boxed snapshot is 1440x959 to 961); the job's window is stored at the size [[storedSize]] gives its box —
-   * which is the same 1440x960 whenever the window was at least that wide, so size settles most cases and not all. Where it
+   * label's frame ([[exploreSnapshotSize]]), give or take the pixels the upload path's rounding can add
+   * ([[snapshotSizeAgrees]]); the job's window is stored at the size [[storedSize]] gives its box — which is the
+   * same 1440x960 whenever the window was at least that wide, so size settles most cases and not all. Where it
    * cannot, the file's age does: an Explore upload lands within [[ExploreUploadWindow]] of the label, and an AI label
-   * never had a browser to upload one. A pano whose frame is recorded nowhere — not in `pano_data`, not in the store —
+   * never had a browser to upload one. A pano whose frame is recorded nowhere, not in `pano_data`, not in the store,
    * leaves the window uncomputable, so the crop is counted unresolved and left for a run that can read it.
    *
    * No branch calls a crop a snapshot on size alone: the window is recomputed from `pano_data` and the store *as they
@@ -428,7 +429,7 @@ class CropServiceImpl @Inject() (
     val file = panoDataService.cropFile(c.labelId, c.labelType.name)
     try {
       val (fileW, fileH) = ImageUtils.withReader(file)((_, w, h) => (w, h))
-      val isExploreSize  = sizesAgree(exploreSnapshotSize(c.canvasWidth, c.canvasHeight), (fileW, fileH))
+      val isExploreSize  = snapshotSizeAgrees(exploreSnapshotSize(c.canvasWidth, c.canvasHeight), (fileW, fileH))
       val panoDims       = (c.panoWidth, c.panoHeight) match {
         case (Some(w), Some(h)) => Some((w, h))
         case _                  => storedPanoDims(c.panoId)
@@ -493,6 +494,14 @@ class CropServiceImpl @Inject() (
   /** The stored file's height is rounded by the resampler, so a unit of slack; the width cap is exact. */
   private def sizesAgree(expected: (Int, Int), actual: (Int, Int)): Boolean =
     expected._1 == actual._1 && math.abs(expected._2 - actual._2) <= 1
+
+  /**
+   * Whether a file is the browser's snapshot of a frame, to within the rounding the upload path can add: the
+   * browser rounds its canvas to whole pixels, and `POST /saveImage` scales a canvas narrower than 1440 up, which
+   * multiplies that rounding (a 584-wide boxed canvas stores as 1440x962).
+   */
+  private def snapshotSizeAgrees(expected: (Int, Int), actual: (Int, Int)): Boolean =
+    expected._1 == actual._1 && math.abs(expected._2 - actual._2) <= 2
 
   /** The pano's frame from its header in the store, for a `pano_data` row that records none. */
   private def storedPanoDims(panoId: String): Option[(Int, Int)] =

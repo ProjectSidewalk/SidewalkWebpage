@@ -35,7 +35,8 @@ describe('Explore F shortcut for immersive mode', () => {
             immersiveMode: { toggle: jest.fn() },
         });
         window.svl = svl;
-        document.body.innerHTML = '<input id="field"><div id="note" contenteditable="true"></div><button id="btn"></button>';
+        document.body.innerHTML
+            = '<input id="field"><div id="note" contenteditable="true"></div><button id="btn"></button>';
     });
 
     /** Releases the F key on the element, as a physical KeyF, with the given modifier state. */

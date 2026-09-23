@@ -66,7 +66,6 @@ describe('ImmersiveMode', () => {
         expect(document.documentElement.classList.contains('chromeless')).toBe(true);
         expect(relayout).toHaveBeenCalledTimes(1);
         expect(button.getAttribute('aria-label')).toBe('controls.immersive-exit');
-        expect(button.getAttribute('aria-label')).toBe('controls.immersive-exit');
         expect(document.getElementById('immersive-toggle-icon').getAttribute('src')).toContain('minimize-2');
 
         button.click();
@@ -116,7 +115,8 @@ describe('ImmersiveMode', () => {
     });
 
     it('still enters when session storage is unavailable', () => {
-        const getItem = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
+        const getItem = jest.spyOn(Storage.prototype, 'getItem')
+            .mockImplementation(() => { throw new Error('denied'); });
         const mode = build();
         mode.toggle('Click');
         expect(mode.isActive()).toBe(true);
@@ -148,7 +148,8 @@ describe('ImmersiveMode', () => {
         expect(restored.isActive()).toBe(true);
         expect(document.body.classList.contains('svl-immersive')).toBe(true);
         expect(document.documentElement.classList.contains('chromeless')).toBe(true);
-        expect(document.getElementById('immersive-toggle-button').getAttribute('aria-label')).toBe('controls.immersive-exit');
+        expect(document.getElementById('immersive-toggle-button').getAttribute('aria-label'))
+            .toBe('controls.immersive-exit');
         expect(relayout).not.toHaveBeenCalled();
         expect(tracker.push).toHaveBeenCalledTimes(1);
         expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored', expect.objectContaining({

@@ -160,7 +160,9 @@ util.pano.GSV_VFOV_CLAMP_DEG = Object.freeze({ min: 14.97, max: 89.84 });
  *
  * @param {number} zoom - The zoom level (GSV's scale).
  * @param {number} aspect - Width:height of the viewport, or of the frame a stored click was made in.
- * @param {string} viewerType - PanoViewer#getViewerType(): 'gsv', 'mapillary', 'infra3d', or 'pannellum'.
+ * @param {string} viewerType - The imagery the frame rendered: PanoViewer#getViewerType() ('gsv', 'mapillary',
+ *   'infra3d', 'panoramax', 'pannellum') or a label's stored pano source, which can also be 'tutorial'. Only 'gsv'
+ *   clamps; every other value gets the curve.
  * @returns {number} The rendered horizontal field of view, in degrees.
  */
 util.pano.renderedHFov = (zoom, aspect, viewerType) => {

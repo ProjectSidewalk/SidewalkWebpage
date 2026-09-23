@@ -2987,13 +2987,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param labelIds Label ids to fetch metadata for.
    * @return Per label: (labelId, panoId, panoSource, heading, pitch, zoom).
    */
-  def getPanoMetadataForLabels(labelIds: Seq[Int]): DBIO[Seq[(Int, String, PanoSource, Double, Double, Double)]] = {
+  def getPanoMetadataForLabels(
+      labelIds: Seq[Int]
+  ): DBIO[Seq[(Int, String, PanoSource, Double, Double, Double, Int, Int)]] = {
     (for {
       _label      <- labels if _label.labelId inSet labelIds
       _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
       _panoData   <- panoData if _label.panoId === _panoData.panoId
-    } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch,
-      _labelPoint.zoom)).result
+    } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch, _labelPoint.zoom,
+      _labelPoint.canvasWidth, _labelPoint.canvasHeight)).result
   }
 
   /**

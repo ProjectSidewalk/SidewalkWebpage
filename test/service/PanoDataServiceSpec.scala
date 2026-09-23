@@ -214,10 +214,20 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
   test("the still's URL asks for 640x427 at the labeling POV and an error code, not a placeholder (#5327)") {
     // return_error_code is load-bearing for every consumer's fallback: drop it and missing imagery arrives as a 200
     // grey card that renders like a photo.
-    val url = PanoDataService.staticStillUrl("vlX_YTSWIfEkGRYydxIPuA", 183.9990625, -6.5, 1.0, "KEY")
+    val url = PanoDataService.staticStillUrl("vlX_YTSWIfEkGRYydxIPuA", 183.9990625, -6.5, 1.0, 720, 480, "KEY")
     url shouldBe "https://maps.googleapis.com/maps/api/streetview?pano=vlX_YTSWIfEkGRYydxIPuA" +
       "&size=640x427&heading=183.9990625&pitch=-6.5&fov=" + PanoDataService.getFov(1.0) + "&return_error_code=true" +
       "&key=KEY"
+  }
+
+  test("the still is requested at the fov the label's frame rendered, not the zoom curve alone (#5085)") {
+    // A zoom-3 label placed in a maximised immersive window (aspect ~1.98) was rendered under GSV's vertical clamp,
+    // wider than the curve; the still has to share that fov for its marker to land where the frame's does.
+    val curve   = PanoDataService.getFov(3.0)
+    val widened = PanoDataService.renderedHFov(3.0, 720.0 / 364, PanoSource.Gsv)
+    widened should be > curve
+    PanoDataService.staticStillUrl("p", 0, 0, 3.0, 720, 364, "KEY") should include(s"&fov=$widened&")
+    PanoDataService.staticStillUrl("p", 0, 0, 3.0, 720, 480, "KEY") should include(s"&fov=$curve&")
   }
 
   test("the street-endpoint URL is the request the endpoint images have always made") {

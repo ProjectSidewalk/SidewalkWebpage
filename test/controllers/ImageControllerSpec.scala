@@ -50,7 +50,7 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
   private val otherSyntheticLabelId = Int.MaxValue - 4727
   private val labelType             = "CurbRamp"
 
-  /** A real PNG of the given size as the `data:` URL the canvas sends, since the controller decodes and re-encodes it. */
+  /** A real PNG of the given size as the `data:` URL the canvas sends; the controller decodes and re-encodes it. */
   private def pngDataUrl(width: Int, height: Int): String = {
     val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
     img.setRGB(0, 0, 0x00ff00)
@@ -60,6 +60,23 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
   }
 
   private lazy val cropDataUrl: String = pngDataUrl(2, 2)
+
+  /** A 2x2 PNG whose header claims another size, with the IHDR checksum recomputed so a reader trusts the claim. */
+  private def pngDataUrlClaiming(width: Int, height: Int): String = {
+    val img = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB)
+    val out = new ByteArrayOutputStream()
+    val _   = ImageIO.write(img, "png", out)
+    val png = out.toByteArray
+    // Signature (8 bytes), IHDR length (4), "IHDR" (4), then width and height as big-endian ints, then a CRC over
+    // the chunk type and data.
+    val buf = java.nio.ByteBuffer.wrap(png)
+    buf.putInt(16, width)
+    buf.putInt(20, height)
+    val crc = new java.util.zip.CRC32()
+    crc.update(png, 12, 4 + 13)
+    buf.putInt(12 + 4 + 13, crc.getValue.toInt)
+    s"data:image/png;base64,${Base64.getEncoder.encodeToString(png)}"
+  }
 
   private def postCrop(session: Seq[Cookie], labelId: Int, lblType: String = labelType, b64: String = cropDataUrl) =
     route(
@@ -155,6 +172,16 @@ class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerS
       val labelId = Int.MaxValue - 5086
       try {
         status(postCrop(freshAnonSession(), labelId, b64 = pngDataUrl(1, 300))) mustBe BAD_REQUEST
+        cropFileFor(labelId).exists() mustBe false
+      } finally cleanUp(labelId)
+    }
+
+    "refuse an upload whose header declares more pixels than any snapshot has, without decoding it" in {
+      // A small PNG whose IHDR claims 6000x4000: the size check reads the header, so the body is never decoded and no
+      // raster is allocated for the claim.
+      val labelId = Int.MaxValue - 5087
+      try {
+        status(postCrop(freshAnonSession(), labelId, b64 = pngDataUrlClaiming(6000, 4000))) mustBe BAD_REQUEST
         cropFileFor(labelId).exists() mustBe false
       } finally cleanUp(labelId)
     }

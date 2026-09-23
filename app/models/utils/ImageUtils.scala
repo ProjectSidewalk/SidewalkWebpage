@@ -20,19 +20,6 @@ import scala.util.{Try, Using}
 object ImageUtils {
 
   /**
-   * Opens an image for region reads, handing `f` the reader plus the dimensions from the header alone.
-   *
-   * This is how a panorama is read without ever decoding it whole: a 16384x8192 pano is ~512 MB as a BufferedImage,
-   * so every consumer of one reads windows through [[readRegion]] instead. The reader is reused for as many windows
-   * as the caller wants — the stream is opened seekable, so each read starts over from the image's first byte — and
-   * is disposed with the stream on the way out.
-   *
-   * @param file The image file.
-   * @param f    Receives the reader, the image width and the image height.
-   * @return     Whatever `f` returns.
-   * @throws IllegalArgumentException when no ImageIO reader claims the file.
-   */
-  /**
    * The size an encoded image declares, read from its header without decoding a pixel. What `POST /saveImage` checks
    * an upload against before `ImageIO.read` allocates a raster for it.
    *
@@ -51,6 +38,19 @@ object ImageUtils {
       }
     }
 
+  /**
+   * Opens an image for region reads, handing `f` the reader plus the dimensions from the header alone.
+   *
+   * This is how a panorama is read without ever decoding it whole: a 16384x8192 pano is ~512 MB as a BufferedImage,
+   * so every consumer of one reads windows through [[readRegion]] instead. The reader is reused for as many windows
+   * as the caller wants — the stream is opened seekable, so each read starts over from the image's first byte — and
+   * is disposed with the stream on the way out.
+   *
+   * @param file The image file.
+   * @param f    Receives the reader, the image width and the image height.
+   * @return     Whatever `f` returns.
+   * @throws IllegalArgumentException when no ImageIO reader claims the file.
+   */
   def withReader[T](file: File)(f: (ImageReader, Int, Int) => T): T = {
     Using.resource(new FileImageInputStream(file)) { stream =>
       val reader = ImageIO

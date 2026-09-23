@@ -117,22 +117,32 @@ object PanoDataService {
 
   /**
    * The unsigned Static API URL for a label's still: the labeling POV at `StaticStillWidth x StaticStillHeight`, with
-   * the fov the canvas projection uses for that zoom. Pure so the request can be pinned without an app; `getImageUrl`
-   * signs it.
+   * the horizontal fov the label's frame was rendered at (`renderedHFov`: the zoom curve, widened where GSV's
+   * vertical clamp bound in a wide immersive frame, #5085). The still keeps the boxed 3:2 whatever the frame was, so
+   * every consumer's marker math (`CropService.stillMarker`, `util.misc.labelMarkerFraction`) rests on the two sharing
+   * the fov, which this is what guarantees. Pure so the request can be pinned without an app; `getImageUrl` signs it.
    *
    * `return_error_code` is what makes missing imagery legible downstream: without it Google answers 200 with a flat
    * "no imagery" placeholder that nothing can tell from a photo, while a 404 lands in the `error` handler every
    * `<img>` consumer already has (a replacement card, a hidden thumb, a text-only card) and in the non-200 branch
    * `ShareController` serves its branded fallback from.
    */
-  def staticStillUrl(panoId: String, heading: Double, pitch: Double, zoom: Double, apiKey: String): String =
+  def staticStillUrl(
+      panoId: String,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int,
+      apiKey: String
+  ): String =
     staticApiUrl(
       Seq(
         "pano"              -> panoId,
         "size"              -> s"${StaticStillWidth}x$StaticStillHeight",
         "heading"           -> heading,
         "pitch"             -> pitch,
-        "fov"               -> getFov(zoom),
+        "fov"               -> renderedHFov(zoom, canvasWidth.toDouble / canvasHeight, PanoSource.Gsv),
         "return_error_code" -> true // An expired or removed pano is a 404, not a placeholder image.
       ),
       apiKey
@@ -517,7 +527,15 @@ trait PanoDataService {
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
   def signUrl(urlString: String): String
   def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
-  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String]
+  def getImageUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int
+  ): Option[String]
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
@@ -804,11 +822,21 @@ class PanoDataServiceImpl @Inject() (
    * @param heading Compass heading of the camera.
    * @param pitch Up or down angle of the camera relative to the vehicle.
    * @param zoom Zoom level of the canvas (for fov calculation).
+   * @param canvasWidth With `canvasHeight`, the frame the label was placed in (#5085), which sets the fov it rendered at.
+   * @param canvasHeight Height of that frame.
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String] =
+  def getImageUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int
+  ): Option[String] =
     if (panoSrc != PanoSource.Gsv) None
-    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, googleApiKey)))
+    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, canvasWidth, canvasHeight, googleApiKey)))
 
   /**
    * Creates a signed URL that retrieves a static image at the given lat/lng and heading from the GSV Static API.

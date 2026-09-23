@@ -197,6 +197,7 @@ object LabelFormats {
       "canvas_y"           -> labelMetadata.canvasXY.y,
       "canvas_width"       -> labelMetadata.canvasWidth,
       "canvas_height"      -> labelMetadata.canvasHeight,
+      "pano_source"        -> labelMetadata.panoSource.toString, // Decides the fov the click was projected with.
       "lat"                -> labelMetadata.location.map(_.lat),
       "lng"                -> labelMetadata.location.map(_.lng),
       "camera_lat"         -> labelMetadata.cameraLocation.map(_.lat),

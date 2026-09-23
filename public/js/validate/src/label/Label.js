@@ -13,8 +13,8 @@ class Label {
     canvasX: undefined,
     canvasY: undefined,
     canvasWidth: undefined,
-    panoSource: undefined,
     canvasHeight: undefined,
+    panoSource: undefined,
     panoId: undefined,
     imageCaptureDate: undefined,
     labelTimestamp: undefined,
@@ -83,8 +83,8 @@ class Label {
       if ('canvas_x' in params) this.setAuditProperty('canvasX', params.canvas_x);
       if ('canvas_y' in params) this.setAuditProperty('canvasY', params.canvas_y);
       if ('canvas_width' in params) this.setAuditProperty('canvasWidth', params.canvas_width);
-      if ('pano_source' in params) this.setAuditProperty('panoSource', params.pano_source);
       if ('canvas_height' in params) this.setAuditProperty('canvasHeight', params.canvas_height);
+      if ('pano_source' in params) this.setAuditProperty('panoSource', params.pano_source);
       if ('pano_id' in params) this.setAuditProperty('panoId', params.pano_id);
       if ('image_capture_date' in params) this.setAuditProperty('imageCaptureDate', moment(params.image_capture_date));
       if ('label_timestamp' in params) this.setAuditProperty('labelTimestamp', moment(params.label_timestamp));

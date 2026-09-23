@@ -141,6 +141,7 @@ class ExpandedView {
       canvas_y: p.original_canvas_y,
       canvas_width: p.original_canvas_width,
       canvas_height: p.original_canvas_height,
+      pano_source: p.pano_source,
       severity: p.severity,
       description: p.description,
       street_edge_id: p.street_edge_id,

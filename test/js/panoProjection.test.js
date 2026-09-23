@@ -29,7 +29,8 @@ window.bowser = {
     }),
 };
 loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js'); // renderedHFov's aspect bridges use util.math.to{Degrees,Radians}.
+// renderedHFov's aspect bridges use util.math.to{Degrees,Radians}.
+loadGlobalScript('public/js/common/utilitiesMath.js');
 loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
 
 const pano = window.util.pano;
@@ -259,7 +260,8 @@ describe('util.pano projection', () => {
             const legacy = new ValidateLabel(common).getOriginalPov();
             const boxed = pano.canvasCoordToCenteredPov(authored, 360, 202, CANVAS_WIDTH, CANVAS_HEIGHT);
             expect(legacy.pitch).toBeCloseTo(boxed.pitch, 6);
-            expect(legacy.pitch).toBeGreaterThan(authored.pitch + 2); // 38 px above the boxed center reads as looking up.
+            // 38 px above the boxed center reads as looking up.
+            expect(legacy.pitch).toBeGreaterThan(authored.pitch + 2);
         });
     });
 });

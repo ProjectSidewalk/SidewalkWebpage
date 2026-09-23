@@ -56,7 +56,8 @@ describe('PopupPanoManager fallback marker', () => {
             isMobile: () => false,
             misc: { getIconImagePaths: () => ({ iconImagePath: 'icon.png' }), getLabelColors: () => '#000' },
         };
-        installUtilitiesMisc(); // The real util.misc, so the labelMarkerFraction the fallback places by is the shipped one.
+        // The real util.misc, so the labelMarkerFraction the fallback places by is the shipped one.
+        installUtilitiesMisc();
         window.i18next = { t: (k) => k };
         window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
         window.createPanoAttribution = () => ({ show: jest.fn(), hide: jest.fn() });

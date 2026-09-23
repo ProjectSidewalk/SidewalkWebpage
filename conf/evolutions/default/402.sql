@@ -12,13 +12,13 @@
 -- The defaults are exact history rather than a guess: the client has divided every click by its display scale since
 -- the tool was built, so every existing row's canvas_x/canvas_y are in a 720x480 frame, and so are AI labels' (their
 -- canvas_x/canvas_y are the center of that notional frame). ADD COLUMN with a constant default is metadata-only on
--- PostgreSQL 11+, so this does not rewrite label_point on any schema. The CHECK is added NOT VALID and validated in a
--- second statement: validation still reads every row, but under a lock that lets the app keep writing meanwhile.
+-- PostgreSQL 11+, so this does not rewrite label_point on any schema. The CHECK does scan the table, over two columns
+-- that are all default, which is a moment even for the largest city. (NOT VALID plus a later VALIDATE would buy
+-- nothing here: evolutions run as one transaction, so the ALTER's lock is held to the end either way.)
 ALTER TABLE label_point
   ADD COLUMN canvas_width INTEGER NOT NULL DEFAULT 720,
   ADD COLUMN canvas_height INTEGER NOT NULL DEFAULT 480,
-  ADD CONSTRAINT label_point_canvas_frame_check CHECK (canvas_width > 0 AND canvas_height > 0) NOT VALID;
-ALTER TABLE label_point VALIDATE CONSTRAINT label_point_canvas_frame_check;
+  ADD CONSTRAINT label_point_canvas_frame_check CHECK (canvas_width > 0 AND canvas_height > 0);
 
 # --- !Downs
 ALTER TABLE label_point
