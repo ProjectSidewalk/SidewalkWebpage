@@ -365,7 +365,7 @@
   "access-score-spotlight": {
     "subtitle-regions": "As calçadas de cada bairro recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
     "subtitle-streets": "As calçadas de cada rua recebem de 0 a 100 pontos pelo nosso algoritmo <a href=\"{{href}}\">AccessScore</a> (100 é o melhor).",
-    "subtitle-one-region": "Esta cidade é mapeada como um único bairro, então há apenas uma pontuação para mostrar. Mude para Ruas para ver com mais detalhes.",
+    "subtitle-one-region": "Esta cidade é mapeada como um único bairro, então há apenas uma pontuação para mostrar.",
     "units-label": "Classificar bairros ou ruas",
     "unit-regions": "Bairros",
     "unit-streets": "Ruas",
