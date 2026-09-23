@@ -1,7 +1,7 @@
 -- =====================================================================================================================
 -- The test city CI runs against (sidewalk_teaneck): real prod rows for region 18 (Tyron Park) -- its
--- streets, labels and panoramas. GENERATED: edit tools/gen_ci_seed.py and re-run it, not this file (#5115). The
--- slice it reads comes from tools/ci_seed_slice.sql, which records which rows were taken and why those.
+-- streets, labels and panoramas. GENERATED: edit test/e2e/fixtures/gen_ci_seed.py and re-run it, not this file (#5115). The
+-- slice it reads comes from test/e2e/fixtures/ci_seed_slice.sql, which records which rows were taken and why those.
 --
 -- Real data, because a fixture that invents its own coordinates and panorama ids can only show that the code runs,
 -- not that it runs on the shape of data it will meet.

@@ -169,7 +169,7 @@ class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "stree
  * Read-only DAO for the street_gradient table (#5223).
  *
  * The app never writes this table: its elevations come from rasters the database never sees, so an offline script
- * (scripts/street_gradient.py) samples them and db/scripts/import-street-gradient.sh upserts the result.
+ * (tools/city/street_gradient.py) samples them and db/scripts/import-street-gradient.sh upserts the result.
  */
 @Singleton
 class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit

@@ -46,7 +46,7 @@ class Main {
     svl.TUTORIAL_PANO_WIDTH = 13312;
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
     // Pano search radius in meters. GsvViewer also rejects any reply farther than this, since Google's radius is only
-    // a hint (#5114); scripts/check_streets_for_imagery.py and Task.ON_STREET_MAX_DISTANCE_M mirror it.
+    // a hint (#5114); tools/city/check_streets_for_imagery.py and Task.ON_STREET_MAX_DISTANCE_M mirror it.
     svl.STREETVIEW_MAX_DISTANCE = 25;
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
     svl.CONNECTED_TASK_THRESHOLD = 0.025; // 25 meters.

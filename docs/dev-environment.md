@@ -264,10 +264,10 @@ The dev server hot-reloads, so you rarely restart it.
   `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
-- **Python** (the standalone utilities in `scripts/`) — the container has **two** interpreters. `python3` is the base
-  image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the offline tooling
-  and its libraries live. Run offline scripts as `python3.13 scripts/...`. Details in
-  [`scripts/README.md`](../scripts/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
+- **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`
+  is the base image's 3.8, kept because the app shells out to it for in-band clustering; `python3.13` is where the
+  offline tooling and its libraries live. Run offline scripts as `python3.13 tools/...`. Details in
+  [`tools/README.md`](../tools/README.md); pins in [`docs/upgrading-libraries.md`](upgrading-libraries.md).
 
 ### npm dependencies
 
@@ -316,7 +316,7 @@ An idle one stops itself after an hour (`serverIdleTimeout`) instead of holding 
 That server serves one command at a time, so **it will not run anything while `~ run` is up in the same
 checkout** — `run` holds the task for as long as the app lives, and your command queues behind it forever with
 nothing on screen. (A `~ compile` is fine; a watch loop yields between runs.) So run the app and compile it from
-different checkouts. [`tools/sbt-run.sh`](../tools/sbt-run.sh) refuses with an explanation rather than hanging.
+different checkouts. [`tools/dev/sbt-run.sh`](../tools/dev/sbt-run.sh) refuses with an explanation rather than hanging.
 
 ### Running the backend tests
 
@@ -381,11 +381,11 @@ reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree
 also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
 web container.
 
-Both targets run the **worktree's own** copy of `tools/qa-worktree.sh` when it has one (falling back to the main
+Both targets run the **worktree's own** copy of `tools/dev/qa-worktree.sh` when it has one (falling back to the main
 checkout's), so the branch being QA'd supplies its own tooling. `make` itself still reads the **main checkout's**
 Makefile, so when that checkout sits on a branch without the target, make reports `No rule to make target`; either
 check out a branch that has it or run the script directly:
-`docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/qa-worktree.sh <name>`.
+`docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/dev/qa-worktree.sh <name>`.
 
 **Every other container target checks the checkout you run it from.** The container mounts the main checkout at
 `/home` and so sees the worktrees inside it: `make lint`, `make test-js`, `make compile`, `make test-scala`,
@@ -424,7 +424,7 @@ instead. It stops and tells you if the worktree still has uncommitted or untrack
 those along with it) or if the worktree is **locked**: an active Claude Code worktree session holds a lock, and git
 refuses a locked worktree even with `--force`. Unlike the QA targets it runs host-side, because a worktree's `.git`
 file points at the main repo by absolute host path; the direct invocation is
-`bash .claude/worktrees/<name>/tools/worktree-remove.sh <name>`.
+`bash .claude/worktrees/<name>/tools/dev/worktree-remove.sh <name>`.
 
 To QA admin-only pages you need an account with a role. The dev database is seeded from a dump that includes real
 accounts, so if your own account is in it you can sign in normally — password checks work the same locally as in

@@ -8,9 +8,9 @@ description: Stands up a new Project Sidewalk city end to end — neighborhood d
 Two commands and this skill. Read `docs/onboarding-a-city.md` once; it is the runbook this skill drives.
 
 ```
-make build-city-data id=<city-id> args="..."   # scripts/onboard_city.py → db/onboarding/<city-id>/ (QA gpkg, SQL, report, endpoints csv)
+make build-city-data id=<city-id> args="..."   # tools/city/onboard_city.py → db/onboarding/<city-id>/ (QA gpkg, SQL, report, endpoints csv)
 make check-imagery   id=<city-id> args="--sample --<provider>"   # preflight, one row per provider in preflight_report.md
-make onboard-city    id=<city-id>              # tools/setup_new_city.py → configs, GA, schema, fill, scan, gradient, dump + handoff
+make onboard-city    id=<city-id>              # tools/city/setup_new_city.py → configs, GA, schema, fill, scan, gradient, dump + handoff
 ```
 
 Everything under `db/onboarding/` is git-ignored. The db container sees it at `/opt/onboarding/` **only from the main
@@ -164,7 +164,7 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
   all three and clears the donor's `mapathon_event_link`. Ask; don't guess.
 - **Optional flags** left unset on purpose: `private-profiles-by-default`, `global-leaderboard-excluded`,
   `ai-label-submission-enabled` (all false by default).
-- **GA.** If step 2 was skipped, `python3 tools/create_ga_properties.py <city-id>` fills both id maps later; new
+- **GA.** If step 2 was skipped, `python3 tools/city/create_ga_properties.py <city-id>` fills both id maps later; new
   properties go inside the existing "Project Sidewalk - Prod/Test" accounts, never new accounts.
 - **Docs.** The City IDs row is added for you; `docs/dev-environment.md` is a convenience copy of `cityparams.conf`.
 
@@ -172,7 +172,7 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
 
 Follow the checklist the orchestrator prints: dump to the server (`scp` to `<netid>@makelab1.cs.washington.edu`,
 renamed to `<schema>-empty-dump` at the destination), the IT tooling's `setup-new.pl`, Maps-key referrers (step 2
-asks before adding them to the live production key; if gcloud can't edit it, `python3 tools/maps_key_referrers.py
+asks before adding them to the live production key; if gcloud can't edit it, `python3 tools/city/maps_key_referrers.py
 <city-id>`), DNS, the pano scraper's manifest row (`<city-id>,<prod fqdn>` in `/etc/sidewalk/cities.csv` on the
 scraper host), then the PR (configs + messages + docs). The checklist's step 7 says whether the street grades are in
 the dump; when they are not (no registered elevation model, or `--skip-gradient`), the maintainer either samples
