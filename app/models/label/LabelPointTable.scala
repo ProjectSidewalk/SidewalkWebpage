@@ -45,7 +45,7 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
   def panoY: Rep[Int]        = column[Int]("pano_y")
   def canvasX: Rep[Int]      = column[Int]("canvas_x")
   def canvasY: Rep[Int]      = column[Int]("canvas_y")
-  // The frame canvasX/canvasY are expressed in (#5085). DEFAULT 720/480 covers rows that predate evolution 402; a
+  // The frame canvasX/canvasY are expressed in (#5085). DEFAULT 720/480 covers rows that predate evolution 403; a
   // CHECK keeps both positive.
   def canvasWidth: Rep[Int]    = column[Int]("canvas_width", O.Default(LabelPointTable.canvasWidth))
   def canvasHeight: Rep[Int]   = column[Int]("canvas_height", O.Default(LabelPointTable.canvasHeight))
@@ -77,7 +77,7 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
 object LabelPointTable {
 
   /**
-   * The boxed Explore frame, 720x480 logical px: the frame of every label stored before evolution 402, of AI labels
+   * The boxed Explore frame, 720x480 logical px: the frame of every label stored before evolution 403, of AI labels
    * (never drawn on a canvas, so their canvas_x/canvas_y are this frame's center), and the fallback when a client
    * omits the frame. A human label's own frame is `LabelPoint.canvasWidth/canvasHeight`, never these (#5085).
    */

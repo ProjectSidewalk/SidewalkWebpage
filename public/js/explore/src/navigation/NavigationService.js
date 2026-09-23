@@ -159,7 +159,9 @@ class NavigationService {
     const furthest = currentTask.getFurthestPointReached().geometry.coordinates;
     const nearEnd = currentTask.isAtEnd(svl.panoViewer.getPosition(), NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD)
       || currentTask.isAtEnd({ lat: furthest[1], lng: furthest[0] }, NavigationService.#NEAR_END_NO_IMAGERY_THRESHOLD);
-    if (nearEnd) {
+    const inView = !nearEnd && this.#isWholeStreetInView(currentTask);
+    if (inView) svl.tracker.push('NoImagery_StreetInView');
+    if (nearEnd || inView) {
       this.#endTheCurrentTask(currentTask, currentMission);
       this.#updateUiAfterMove();
       return Promise.resolve(null);
@@ -262,6 +264,19 @@ class NavigationService {
       }
       return Promise.resolve(null);
     }
+  }
+
+  /**
+   * Whether the user can see the whole street from where they stand. Short streets often can't be walked, since the
+   * search skips the pano the user is on, so seeing it counts (#5474).
+   * @param {Task} task
+   * @returns {boolean}
+   */
+  #isWholeStreetInView(task) {
+    const position = svl.panoViewer.getPosition();
+    const here = turf.point([position.lng, position.lat]);
+    return task.getFeature().geometry.coordinates.every((coord) =>
+      turf.distance(here, turf.point(coord), { units: 'meters' }) <= svl.STREETVIEW_MAX_DISTANCE);
   }
 
   /**

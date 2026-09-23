@@ -18,6 +18,9 @@ import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
+/** The AI server rejected our password, so no request in this run can succeed. */
+class AiApiAuthException(message: String) extends Exception(message)
+
 /**
  * What [[AiService.ensureSeedRows]] had to insert: whether the AI's user_stat row was missing, and the label types
  * whose `aiValidation` mission was. Both empty means the schema already carried every row.
@@ -90,6 +93,10 @@ class AiServiceImpl @Inject() (
   private val AI_VALIDATIONS_ON: Boolean     = config.get[Boolean](s"city-params.ai-validation-enabled.$cityId")
   private val AI_TAG_SUGGESTIONS_ON: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$cityId")
   private val AI_VALIDATION_MIN_ACCURACY: Double = config.get[Double](s"city-params.ai-validation-min-accuracy.$cityId")
+  // The password the AI server checks on every request (#4003). Warn at startup if it's missing rather than at 3am.
+  private val AI_API_KEY: String = config.getOptional[String]("sidewalk-ai-api-key").map(_.trim).getOrElse("")
+  if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON) && AI_API_KEY.isEmpty)
+    logger.error("SIDEWALK_AI_API_KEY is not set: every request to the AI server will be rejected with 401.")
 
   def validateLabelsWithAi(labelIds: Seq[Int]): Future[Seq[Option[LabelAiAssessment]]] = {
     if (AI_ENABLED && (AI_VALIDATIONS_ON || AI_TAG_SUGGESTIONS_ON)) {
@@ -238,7 +245,10 @@ class AiServiceImpl @Inject() (
       "city"        -> cityId
     )
 
+    // No redirects, so the password can't be forwarded to some other host.
     ws.url(url)
+      .withHttpHeaders("Authorization" -> s"Bearer $AI_API_KEY")
+      .withFollowRedirects(false)
       .post(formData)
       .flatMap { response =>
         try {
@@ -288,6 +298,10 @@ class AiServiceImpl @Inject() (
               logger.warn(s"AI API for label $labelId returned 502: $reason. Recording permanent failure.")
               db.run(labelAiFailureTable.save(labelId, reason)).map(_ => None)
             }
+          } else if (response.status == 401 || response.status == 403) {
+            // Wrong password means every label would fail the same way, so stop the whole run here.
+            val msg = s"AI API returned ${response.status} for label $labelId: SIDEWALK_AI_API_KEY is missing or wrong."
+            Future.failed(new AiApiAuthException(msg))
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source).map(_ => None)
@@ -298,9 +312,10 @@ class AiServiceImpl @Inject() (
             Future.successful(None)
         }
       }
-      .recover { case e: Exception =>
-        logger.warn(s"AI API request failed for label $labelId: ${e.getMessage}")
-        None
+      .recover {
+        case e: Exception if !e.isInstanceOf[AiApiAuthException] =>
+          logger.warn(s"AI API request failed for label $labelId: ${e.getMessage}")
+          None
       }
   }
 
