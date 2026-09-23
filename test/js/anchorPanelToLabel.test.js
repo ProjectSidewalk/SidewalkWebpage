@@ -174,6 +174,21 @@ describe('util.anchorPanelToLabel', () => {
         });
     });
 
+    it('measures the frame\'s height from the drawing layer when the caller omits it (#5085)', () => {
+        // A 16:9 fill-window pano: the drawing layer is 720 wide and 405 tall, so the bottom clamp is at 405, not 480.
+        document.getElementById('label-drawing-layer').getBoundingClientRect = () => ({
+            left: 0, right: 720, width: 720, height: 405, top: 0, bottom: 405,
+        });
+        const implicit = makePanel(240, 150);
+        util.anchorPanelToLabel(implicit, { x: 300, y: 380 }, 17);
+
+        const explicit = makePanel(240, 150);
+        util.anchorPanelToLabel(explicit, { x: 300, y: 380 }, 17, { frameHeight: 405 });
+
+        expect(implicit.placed).toEqual(explicit.placed);
+        expect(implicit.placed.top).toBeLessThan(405 - 150);
+    });
+
     it('treats an omitted options object exactly like Explore\'s frame stated explicitly', () => {
         const implicit = makePanel(240, 150);
         util.anchorPanelToLabel(implicit, { x: 300, y: 200 }, 17);

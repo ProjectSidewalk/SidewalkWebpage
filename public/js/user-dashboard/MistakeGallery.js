@@ -8,6 +8,9 @@
  * Shows an encouraging empty state when the user has no mistakes.
  */
 class MistakeGallery {
+  // Width:height of the card's photo box (.ud-card-img); crops and stills are cover-fitted into it.
+  static CARD_IMAGE_ASPECT = 3 / 2;
+
   /**
    * @param {HTMLElement} rootEl - Container to fill with cards.
    * @param {object} opts
@@ -377,7 +380,10 @@ class MistakeGallery {
    * @param {?string} source - Which source is showing: 'crop', 'api', or null for the bare gradient.
    */
   static #positionMarker(marker, m, source) {
-    const { x, y } = util.misc.labelMarkerFraction(source, m.crop_marker, m.canvas_x, m.canvas_y);
+    // Fractions of the card's 3:2 box (.ud-card-img), into which the image is cover-fitted.
+    const { x, y } = util.misc.labelMarkerFraction(source, m.crop_marker, m.canvas_x, m.canvas_y, {
+      canvasWidth: m.canvas_width, canvasHeight: m.canvas_height, boxAspect: MistakeGallery.CARD_IMAGE_ASPECT,
+    });
     marker.style.left = `${100 * x}%`;
     marker.style.top = `${100 * y}%`;
   }

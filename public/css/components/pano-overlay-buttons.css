@@ -10,6 +10,12 @@
   gap: calc(2px * var(--ui-scale, 1));
 }
 
+/* `display: flex` above beats the browser's own `[hidden] { display: none }`, so a holder hidden by script (the
+   immersive toggle during the tutorial, #5085) needs the attribute restated at higher specificity. */
+.zoom-buttons-holder[hidden] {
+  display: none;
+}
+
 .zoom-buttons-holder .tooltip {
   width: calc(70px * var(--ui-scale, 1));
   font: var(--text-caption-regular);

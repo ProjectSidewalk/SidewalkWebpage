@@ -21,6 +21,8 @@
  * validation. Nothing is fetched during page load; the grid fills itself once the visitor interacts with the page.
  */
 class LandingValidationGrid {
+  // Width:height of the card's photo box (.lvg-card-img); crops and stills are cover-fitted into it.
+  static CARD_IMAGE_ASPECT = 3 / 2;
   static #GRID_SIZE = 6;
   // Cards past the third are hidden by CSS below 650px — keep in sync with the nth-child(n+4) rule in
   // css/components/landing-validation-grid.css. A layout breakpoint, so there's no backend value to source it from.
@@ -82,10 +84,15 @@ class LandingValidationGrid {
   /**
    * @param {LabelEntry} entry - One entry from /label/labels.
    * @param {string} imageSource - Which source the card is actually showing: 'crop' or 'api'.
-   * @returns {{x: number, y: number}} Fractions of the image's width and height.
+   * @returns {{x: number, y: number}} Fractions of the card's 3:2 photo box (.lvg-card-img), into which the image is
+   *   cover-fitted; the photo fills that box, so they are fractions of the photo element too.
    */
   static #markerFraction(entry, imageSource) {
-    return util.misc.labelMarkerFraction(imageSource, entry.cropMarker, entry.label.canvas_x, entry.label.canvas_y);
+    return util.misc.labelMarkerFraction(imageSource, entry.cropMarker, entry.label.canvas_x, entry.label.canvas_y, {
+      canvasWidth: entry.label.canvas_width,
+      canvasHeight: entry.label.canvas_height,
+      boxAspect: LandingValidationGrid.CARD_IMAGE_ASPECT,
+    });
   }
 
   /**

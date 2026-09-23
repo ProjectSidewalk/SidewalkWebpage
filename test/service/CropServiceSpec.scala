@@ -94,6 +94,8 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
   // the job's window would also be stored at 1440x960, where the size cannot decide and the label's age or its AI
   // authorship does. Plus one nothing can classify: no frame anywhere to recompute the window from.
   private val snapshotPanoId     = s"${prefix}snapshot"
+  private val immersivePanoId    = s"${prefix}immersive"
+  private val offByOnePanoId     = s"${prefix}offbyone"
   private val windowPanoId       = s"${prefix}window"
   private val ambiguousOldPanoId = s"${prefix}ambiguous-old"
   private val ambiguousNewPanoId = s"${prefix}ambiguous-new"
@@ -221,6 +223,12 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
     } yield Seeded(labelId, labelType, streetEdgeId, auditTaskId, missionId, userId)).transactionally)
   }
 
+  /** Records the frame a seeded label's click was made in (#5085); the seed's default is the boxed 720x480. */
+  private def setFrame(panoId: String, width: Int, height: Int): Unit = {
+    val labelId = seeded(panoId).labelId
+    val _ = runDb(sqlu"UPDATE label_point SET canvas_width = $width, canvas_height = $height WHERE label_id = $labelId")
+  }
+
   private def hasBackup(panoId: String): Option[Boolean] =
     runDb(sql"SELECT has_backup FROM pano_data WHERE pano_id = $panoId".as[Option[Boolean]].head)
 
@@ -284,6 +292,8 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       preexistingPanoId  -> seedLabel(preexistingPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
       narrowPanoId       -> seedLabel(narrowPanoId, Some((NarrowW, NarrowH)), panoX = 128, panoY = 70),
       snapshotPanoId     -> seedLabel(snapshotPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
+      immersivePanoId    -> seedLabel(immersivePanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
+      offByOnePanoId     -> seedLabel(offByOnePanoId, Some((WideW, WideH)), panoX = WideW / 2, panoY = WideY),
       windowPanoId       -> seedLabel(windowPanoId, Some((PanoW, PanoH)), panoX = 512, panoY = 300),
       ambiguousOldPanoId -> seedLabel(
         ambiguousOldPanoId,
@@ -317,7 +327,13 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
     val _           = preexisting.getParentFile.mkdirs()
     val _           = Files.write(preexisting.toPath, preexistingCropBytes)
     // Crops from before label_crop existed, for the reconcile pass to classify.
-    val _         = plantCrop(snapshotPanoId, CropService.ExploreFrameCropWidth, CropService.ExploreFrameCropHeight)
+    val _ = plantCrop(snapshotPanoId, CropService.ExploreFrameCropWidth, CropService.ExploreFrameCropHeight)
+    // A label placed in a 16:9 immersive window (#5085): its frame is 720x405 and its snapshot 1440x810.
+    setFrame(immersivePanoId, 720, 405)
+    val _ = plantCrop(immersivePanoId, 1440, 810)
+    // A boxed snapshot a pixel taller than 3:2, as the browser's rounding of its own canvas can make it, on a pano
+    // whose job window would be exactly 1440x960.
+    val _         = plantCrop(offByOnePanoId, 1440, 961)
     val windowBox = boxFor(512, 300, PanoW, PanoH)
     val _         = plantCrop(windowPanoId, windowBox.width, windowBox.height)
     val _         = plantSharePreview(windowPanoId)
@@ -468,6 +484,22 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       labelCrop(mismatchedPanoId) mustBe None
     }
 
+    "recognise a snapshot by its label's frame, within the pixel the browser's rounding adds (#5085)" in {
+      // 1440x810 is no job window on this pano and is exactly the 720x405 frame's snapshot: the label at its
+      // canvas fraction of that frame, not of 720x480.
+      val immersive = labelCrop(immersivePanoId).value
+      immersive.source mustBe CropSource.ExploreFrame
+      immersive.markerX mustBe 0.5 +- 1e-9
+      immersive.markerY mustBe (240.0 / 405) +- 1e-9
+      (immersive.width, immersive.height) mustBe ((1440, 810))
+
+      // 1440x961 is within a pixel of both writers' sizes; the file's age settles it as the labeler's upload, and it
+      // must not be taken for the job's window on the strength of a rounding pixel.
+      val offByOne = labelCrop(offByOnePanoId).value
+      offByOne.source mustBe CropSource.ExploreFrame
+      (offByOne.markerX, offByOne.markerY) mustBe ((0.5, 0.5))
+    }
+
     "tell a browser snapshot from a job window by size, where the size can tell" in {
       // A 1440x960 file where the job's window would be far smaller: the browser's snapshot, label at its canvas
       // fraction (the seed clicks the canvas centre).
@@ -512,7 +544,7 @@ class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues 
       // cannot be recomputed; and the tiny pre-existing file is a size neither writer produces.
       labelCrop(unresolvedPanoId) mustBe None
       labelCrop(preexistingPanoId) mustBe None
-      firstRun.provenanceExplore mustBe 2
+      firstRun.provenanceExplore mustBe 4 // The boxed and the ambiguous-but-fresh snapshots, plus the two #5085 ones.
       firstRun.provenanceWindow mustBe 3
     }
 
