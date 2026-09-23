@@ -479,7 +479,7 @@ Two things about that stage are load-bearing:
 - **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
   `make lint-asset-paths` applies the same rule to `public/css/` (rule 5 in
-  [`tools/check-asset-paths.mjs`](../tools/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
+  [`tools/lint/check-asset-paths.mjs`](../tools/lint/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
   Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means

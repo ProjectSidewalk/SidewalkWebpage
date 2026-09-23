@@ -1,5 +1,5 @@
 """
-Unit tests for scripts/onboard_city.py.
+Unit tests for tools/city/onboard_city.py.
 
 Covers the pure helpers — the Overpass filter builder, osmnx tag flattening/normalization, geodesic measures, the
 short-segment and region-stats QA logic, boundary-coverage, and the COPY/EWKB serialization used to build the SQL

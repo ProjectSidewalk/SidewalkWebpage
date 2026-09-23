@@ -262,8 +262,8 @@ aggregate.
 
 ### Evidence (Teaneck, 2026-09-13)
 
-From `tools/validation_queue/run.sh sidewalk_teaneck` against the dev schema (evolution 385, the only local schema
-with `street_side`); the section is the tool's "NoSidewalk by block face" output. Seattle's dev dump predates
+From `tools/validation_queue/analyze_validation_queue.py` against the dev Teaneck schema (evolution 385, the only
+local schema with `street_side` at the time); the section is the tool's "NoSidewalk by block face" output. Seattle's dev dump predates
 evolution 377, so its face numbers above come from the #5222 study and the prod checks on the issue.
 
 | human labelers on the face | agreeing votes on the face | faces | % faces | labels | labels / face |
@@ -351,7 +351,7 @@ two cannot drift apart.
 
 ## Evidence (Seattle, 2026-09)
 
-Every number below is pasted from `tools/analyze_validation_queue.py` (see
+Every number below is pasted from `tools/validation_queue/analyze_validation_queue.py` (see
 [Re-running the analysis](#re-running-the-analysis)) against the Seattle city schema of the dev DB dump — a recent
 production snapshot, 304,948 non-deleted labels and 422,284 validations. Nothing here is typed by hand. Those three
 counts are direct `count(*)`s against the schema; every other number comes from the tool's report, and the tables are
@@ -539,21 +539,33 @@ unsure-heavy, 3,029 AI-contested (the three overlap).
 
 ## Re-running the analysis
 
+Both exports are written for `run-query-in-every-city.sh` in the sibling `sidewalk-server-tools` checkout, which
+runs them on prod across every city and merges the rows into one CSV with a `city` column. Per export:
+
 ```bash
-# tools/validation_queue/run.sh <schema> <out-dir>
-tools/validation_queue/run.sh sidewalk_seattle tmp/validation-queue
+scp tools/validation_queue/pool.sql saugstad@makelab1.cs.washington.edu:sidewalk-server-tools/current-query.sql
+./run-query-in-every-city.sh -p -m -o "validation-queue-pool"
+scp saugstad@makelab1.cs.washington.edu:sidewalk-server-tools/validation-queue-pool.csv scratchpad/
 ```
 
-Run it from the host with both containers up. It exports two CSVs with `psql` through the `db` container
-(`tools/validation_queue/pool.sql`, the honest servable pool; `tools/validation_queue/validations.sql`, every
-validation for the replay), then runs `tools/analyze_validation_queue.py` in the web container, where numpy lives, and
-writes `report.md` into the output directory. The output directory must be inside the repo so the web container can
-see it; `tmp/` is gitignored, so keep the CSVs there and never commit them.
+Then the same three lines with `validations.sql` / `validation-queue-validations`, and the analysis for one city:
 
-The tool reads either schema shape — it checks `max(id)` in the schema's `play_evolutions` and selects the label-type
-expression accordingly — so it runs against a city schema that has not caught up to the current evolution level.
+```bash
+python3.13 tools/validation_queue/analyze_validation_queue.py \
+    --pool scratchpad/validation-queue-pool.csv --validations scratchpad/validation-queue-validations.csv \
+    --city seattle --out scratchpad/validation-queue-seattle.md
+```
 
-To point the analysis at a different city, pass that schema name; `readonly_user` needs `USAGE` on it.
+The CSVs are a snapshot of a database and stay in `scratchpad/`; only the report is meant to leave the machine. The
+analyzer needs numpy, so on the host it wants a Python that has it (the web container's `python3.13` does).
+
+For one city on the dev DB, run an export the way the runner does (`readonly_user` needs `USAGE` on the schema):
+
+```bash
+docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=sidewalk_seattle,public" \
+    -U readonly_user -v ON_ERROR_STOP=1 -P footer=off -A --csv -F"," -v city=seattle \
+    -f - < tools/validation_queue/pool.sql > scratchpad/validation-queue-pool.csv
+```
 
 ## QA
 

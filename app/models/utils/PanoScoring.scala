@@ -43,7 +43,7 @@ case class PanoScoringParams(
  * Mapillary and Panoramax both answer a location query with every picture in a box and leave the choice to us, and
  * three consumers have to agree on how that choice is made: `MapillaryViewer.#scorePano` and
  * `PanoramaxViewer.#scorePano` pick the pano Explore displays, while `score_pano` in
- * `scripts/check_streets_for_imagery.py` picks the pano whose capture date we record for a street. If they disagreed,
+ * `tools/city/check_streets_for_imagery.py` picks the pano whose capture date we record for a street. If they disagreed,
  * we would report a street as freshly imaged and then never show the imagery that said so. The Python script reads the
  * file straight off disk; the browser gets it from the `data-pano-scoring` stamp that `main.scala.html` puts on every
  * page.

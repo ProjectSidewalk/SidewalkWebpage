@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Step 1 of filling the street_gradient table (#5223): write the streets that scripts/street_gradient.py should sample
+# Step 1 of filling the street_gradient table (#5223): write the streets that tools/city/street_gradient.py should sample
 # to db/onboarding/<city-id>/street_gradient_input.csv. By default that is only the streets with no street_gradient row
 # or whose geometry has changed since they were sampled (geom_md5), so after a street import the same three commands
 # top the table up instead of resampling the city. Pass --all to export every street, e.g. after the sampling method
@@ -14,7 +14,7 @@ set -euo pipefail
 # city before its first nightly refresh, or a dev database that never ran one) would export every street as not a
 # structure and have its bridges sampled as the ravine beneath them, with nothing downstream able to tell. So an empty
 # osm_way stops the export unless --allow-empty-osm-way says it is expected, or --structures names the flags the
-# street build wrote from the same OSM tags (db/onboarding/<city-id>/street_structures.csv, scripts/onboard_city.py),
+# street build wrote from the same OSM tags (db/onboarding/<city-id>/street_structures.csv, tools/city/onboard_city.py),
 # which is how a city is sampled during onboarding rather than a night later.
 
 source /opt/scripts/helpers.sh
@@ -50,14 +50,14 @@ done
 SCHEMA_NAME=${POSITIONAL[0]:-$(prompt_with_default "Schema name")}
 CITY_ID=${POSITIONAL[1]:-$(prompt_with_default \
     "City id (the db/onboarding/<city-id> dir to write into, e.g. seattle-wa)")}
-# The same shape scripts/street_gradient.py accepts, so a typo cannot create a directory the sampler then refuses.
+# The same shape tools/city/street_gradient.py accepts, so a typo cannot create a directory the sampler then refuses.
 if [[ ! "$CITY_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
     echo "Error: city id \"$CITY_ID\" is not lowercase kebab-case (e.g. seattle-wa)." >&2
     exit 1
 fi
 
 if [[ -n "$STRUCTURES_FILE" && ! -f "$STRUCTURES_FILE" ]]; then
-    echo "Error: structures file not found at $STRUCTURES_FILE. scripts/onboard_city.py writes it beside the" >&2
+    echo "Error: structures file not found at $STRUCTURES_FILE. tools/city/onboard_city.py writes it beside the" >&2
     echo "build's other artifacts (make build-city-data)." >&2
     exit 1
 fi

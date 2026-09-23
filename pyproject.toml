@@ -1,12 +1,11 @@
-# Python tooling config for the standalone utility scripts in scripts/ and their tests in test/python/.
+# Python tooling config for the standalone utility scripts in scripts/ and tools/ and their tests in test/python/.
 # (The application itself is Scala/Play; this file only covers the Python utilities.)
 
 [tool.pytest.ini_options]
 # Only collect the Python utility tests; keep pytest away from the Scala/JS test trees.
 testpaths = ["test/python"]
-# Put scripts/ and tools/ on sys.path so tests can `import label_clustering` / `import verify_latlng_backfill`
-# without packaging.
-pythonpath = ["scripts", "tools"]
+# Put the script folders on sys.path so tests can `import label_clustering` / `import onboard_city` without packaging.
+pythonpath = ["scripts", "tools/city", "tools/validation_queue"]
 python_files = ["test_*.py"]
 # Coverage is on for every invocation, so no run can quietly skip the gate. Branch coverage means both sides of a
 # decision must be exercised, not just every line. Bare `--cov` defers scoping to [tool.coverage.run] below.
@@ -15,14 +14,14 @@ addopts = "--cov --cov-branch --cov-report=term-missing --cov-fail-under=100"
 [tool.coverage.run]
 branch = true
 # `source`, not `include`: it also reports a file nothing imported as 0%, so a script arriving with no tests fails the
-# gate rather than going unmeasured. tools/ is in too — the onboarding orchestrator and the GA script are supported
-# paths, not one-offs; only the two CI helpers below (their own workflow steps exercise them) are exempt.
+# gate rather than going unmeasured. Exempt: tools/one-off/ (unmaintained by design, see tools/README.md) and the
+# route lint, which its own CI step exercises.
 source = ["scripts", "tools"]
 # Each half of the interpreter-split suite omits the script(s) it cannot import (`make test-python` sets these; the
 # 3.8 half needs all three slots). Unset, nothing is omitted and a hand-run fails loudly rather than measuring less
 # than it appears to.
-omit = ["${COVERAGE_OMIT-}", "${COVERAGE_OMIT2-}", "${COVERAGE_OMIT3-}", "tools/check_route_reachability.py",
-        "tools/gen_ci_seed.py"]
+omit = ["${COVERAGE_OMIT-}", "${COVERAGE_OMIT2-}", "${COVERAGE_OMIT3-}", "tools/lint/check_route_reachability.py",
+        "tools/one-off/*"]
 
 [tool.coverage.report]
 show_missing = true

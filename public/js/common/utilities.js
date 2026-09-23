@@ -319,7 +319,7 @@ util.turfDistanceUnits = () => (util.isMetric() ? 'kilometers' : 'miles');
  * the families JS references. Returns the fingerprinted URL when the stamp has an entry, otherwise the plain
  * `/assets/<path>` — byte-identical to the historical hardcoded form — so dev mode (`sbt run` builds no digests),
  * jsdom tests, and files the pipeline missed behave exactly as before. Never hardcode `/assets/...` in JS;
- * tools/check-asset-paths.mjs enforces this.
+ * tools/lint/check-asset-paths.mjs enforces this.
  *
  * @param {string} logicalPath - Path under public/, e.g. 'images/icons/openhand.cur'. No leading slash, no
  *                               '/assets/' prefix.

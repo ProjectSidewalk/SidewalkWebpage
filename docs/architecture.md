@@ -32,7 +32,7 @@ Play backend ── routes → Controller → Service → Table (DAO/Slick)
         ▼
 External imagery providers (Google Street View / Mapillary / Infra3d / Panoramax / Pannellum)
 
-Out-of-band Python utilities: scripts/label_clustering.py, scripts/check_streets_for_imagery.py
+Out-of-band Python utilities: scripts/label_clustering.py, tools/city/check_streets_for_imagery.py
 ```
 
 ## Backend
@@ -372,7 +372,7 @@ than one page links (one component per file — the `page-shell.css` sidebar + c
 `tables.css`, `label-detail.css`, `toast.css`, …), and `css/pages/` for everything page-specific (a single file per
 page, or a subdir for a multi-file page family such as `pages/explore/` or `pages/api-docs/`). A page's stylesheet is
 linked only by that page, and a page's class prefix (`ud-`, `ac-`, `svl-`, …) is defined only in that page's
-stylesheet(s) — `tools/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
+stylesheet(s) — `tools/lint/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
 otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
 **Assets are named by logical path, never by URL** (#4893). A Twirl template asks for one with `assets.path("…")`,
@@ -384,7 +384,7 @@ resulting `{logical path → md5}` map onto every page as `window.assetDigests` 
 tool bundles resolve icon URLs in module-level constants at script-eval time. Frontend code then writes
 `util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
 varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
-`/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/check-asset-paths.mjs`
+`/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/lint/check-asset-paths.mjs`
 (`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
 `util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
 string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
@@ -430,19 +430,12 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English var
 For how these configs map to hosted **stages** (test / staging / prod), how a branch or tag deploys to each, and the
 production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-stages.md).
 
-## Python utilities
+## Scripts and tools
 
-Three standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
-
-- `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
-  `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
-  system Python.
-- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
-  the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
-- `scripts/onboard_city.py` — builds a new city's street/region staging data from open sources (#4291), feeding
-  `db/scripts/fill-new-schema.sh`. Also `python3.13`. Run via `make build-city-data`; `make check-imagery` samples the
-  imagery, and `make onboard-city` (`tools/setup_new_city.py`) chains the rest of a new city's setup — see
-  [`docs/onboarding-a-city.md`](onboarding-a-city.md).
+A script lives where its caller is: [`scripts/`](../scripts/README.md) holds only what the running app shells out
+to (`label_clustering.py`, bundled into the staged package by `build.sbt`), [`tools/`](../tools/README.md) holds
+what a person or CI runs, sorted by caller (`lint/`, `dev/`, `city/`, `validation_queue/`, and the unmaintained
+`one-off/`), and [`db/scripts/`](../db/scripts/README.md) holds what runs inside the DB container.
 
 `label_clustering.py` is invoked **in-band** (`ClusterService.runMultiUserClustering` shells out to it per region
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to
