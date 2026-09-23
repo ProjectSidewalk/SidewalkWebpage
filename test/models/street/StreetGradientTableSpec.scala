@@ -177,14 +177,15 @@ class StreetGradientTableSpec
       // Deltas against whatever the connected city already holds, so the case reads the same on a sampled dev DB.
       val servedStreets = app.injector.instanceOf[StreetEdgeTable].streets
       val ((unsampledBefore, staleBefore), (unsampledAfter, staleAfter)) = runRolledBack(for {
-        before  <- table.stalenessCounts(servedStreets)
-        current <- insertStreet()
-        moved   <- insertStreet()
-        missing <- insertStreet()
-        hidden  <- insertStreet(status = "no_imagery")
-        // The tutorial street is never exported or served, so it is not owed a grade either; rolled back with the rest.
+        // The tutorial street is never exported or served, so it is not owed a grade either. Moved before the
+        // baseline, since the street it replaces becomes an ordinary served street the moment config lets go of it.
         tutorial <- insertStreet()
         _        <- sqlu"UPDATE config SET tutorial_street_edge_id = $tutorial"
+        before   <- table.stalenessCounts(servedStreets)
+        current  <- insertStreet()
+        moved    <- insertStreet()
+        missing  <- insertStreet()
+        hidden   <- insertStreet(status = "no_imagery")
         _        <- insertMeasured(current)
         _        <- sqlu"""UPDATE street_gradient
                            SET geom_md5 = (SELECT md5(ST_AsBinary(geom)) FROM street_edge
