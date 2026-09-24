@@ -85,7 +85,8 @@ class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_
   def medianNewestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("median_newest_capture")
   def nPanos: Rep[Int]                            = column[Int]("n_panos") // DB CHECK (356.sql): n_panos >= 0.
   def dataSource: Rep[StreetImagerySource.Value]  = column[StreetImagerySource.Value]("data_source")
-  def updatedAt: Rep[OffsetDateTime]              = column[OffsetDateTime]("updated_at")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
 
   def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt) <>
     ((StreetImagery.apply _).tupled, StreetImagery.unapply)

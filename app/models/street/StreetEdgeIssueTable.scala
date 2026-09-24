@@ -48,7 +48,8 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
   def issue: Rep[StreetEdgeIssueType.Value] = column[StreetEdgeIssueType.Value]("issue")
   def userId: Rep[String]                   = column[String]("user_id")
   def ipAddress: Rep[IpAddress]             = column[IpAddress]("ip_address")
-  def timestamp: Rep[OffsetDateTime]        = column[OffsetDateTime]("timestamp")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp) <> (
     (StreetEdgeIssue.apply _).tupled,

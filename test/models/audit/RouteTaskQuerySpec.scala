@@ -105,7 +105,7 @@ class RouteTaskQuerySpec extends PlaySpec with org.scalatest.BeforeAndAfterAll w
           "Spec Route",
           s"spec-route-${java.util.UUID.randomUUID}",
           None,
-          public = false,
+          public = true,
           deleted = false,
           OffsetDateTime.now,
           0d,

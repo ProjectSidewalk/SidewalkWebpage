@@ -144,9 +144,10 @@ class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "stree
   def demSource: Rep[String]                          = column[String]("dem_source")
   def demResolutionM: Rep[Double]                     = column[Double]("dem_resolution_m")
   def geomMd5: Rep[String]                            = column[String]("geom_md5")
-  def sampledAt: Rep[OffsetDateTime]                  = column[OffsetDateTime]("sampled_at")
-  def maxGradeFromM: Rep[Option[Double]]              = column[Option[Double]]("max_grade_from_m")
-  def maxGradeToM: Rep[Option[Double]]                = column[Option[Double]]("max_grade_to_m")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def sampledAt: Rep[OffsetDateTime]     = column[OffsetDateTime]("sampled_at")
+  def maxGradeFromM: Rep[Option[Double]] = column[Option[Double]]("max_grade_from_m")
+  def maxGradeToM: Rep[Option[Double]]   = column[Option[Double]]("max_grade_to_m")
 
   /** The statistics alone, so a city-wide read never pulls every street's profile array across the wire. */
   def stats = (

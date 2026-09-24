@@ -64,9 +64,10 @@ case class BackgroundJobRun(
 )
 
 class BackgroundJobRunTableDef(tag: Tag) extends Table[BackgroundJobRun](tag, "background_job_run") {
-  def backgroundJobRunId: Rep[Int]            = column[Int]("background_job_run_id", O.PrimaryKey, O.AutoInc)
-  def jobName: Rep[String]                    = column[String]("job_name")
-  def triggeredBy: Rep[JobRunTrigger.Value]   = column[JobRunTrigger.Value]("triggered_by")
+  def backgroundJobRunId: Rep[Int]          = column[Int]("background_job_run_id", O.PrimaryKey, O.AutoInc)
+  def jobName: Rep[String]                  = column[String]("job_name")
+  def triggeredBy: Rep[JobRunTrigger.Value] = column[JobRunTrigger.Value]("triggered_by")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def startedAt: Rep[OffsetDateTime]          = column[OffsetDateTime]("started_at")
   def finishedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("finished_at")
   def status: Rep[JobRunStatus.Value]         = column[JobRunStatus.Value]("status")

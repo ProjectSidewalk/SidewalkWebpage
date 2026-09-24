@@ -30,10 +30,11 @@ case class ApiFormatSourceCount(format: String, source: String, count: Long)
 case class ApiSourceIpCount(source: String, uniqueIps: Long)
 
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
-  def webpageActivityId: Rep[Int]    = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String]            = column[String]("user_id")
-  def ipAddress: Rep[IpAddress]      = column[IpAddress]("ip_address")
-  def activity: Rep[String]          = column[String]("activity")
+  def webpageActivityId: Rep[Int] = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
+  def userId: Rep[String]         = column[String]("user_id")
+  def ipAddress: Rep[IpAddress]   = column[IpAddress]("ip_address")
+  def activity: Rep[String]       = column[String]("activity")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (webpageActivityId, userId, ipAddress, activity, timestamp) <> (
