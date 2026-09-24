@@ -145,7 +145,8 @@
       "shadows": "Schaduwen",
       "brightness": "Helderheid",
       "contrast": "Contrast",
-      "reset": "Standaardwaarden herstellen"
+      "reset": "Standaardwaarden herstellen",
+      "persist-note": "Deze instellingen blijven behouden tussen missies totdat u ze herstelt."
     }
   },
   "right-ui": {

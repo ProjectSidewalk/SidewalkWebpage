@@ -11,7 +11,7 @@
   margin: 0;
   left: -9999px;       /* Off-screen until positioned, so the first paint never flashes at the origin. */
   top: -9999px;
-  width: calc(260px * var(--ui-scale, 1));
+  width: calc(290px * var(--ui-scale, 1));
   padding: calc(12px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
   background: var(--color-neutral-white);
   color: var(--color-neutral-900);
@@ -87,6 +87,13 @@
 
 .pano-image-adjustments__row .ps-range {
   grid-column: 1 / -1;
+}
+
+/* Directly under the title, before the sliders, so the persistence is read before anything is changed. */
+.pano-image-adjustments__note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: 0 0 calc(4px * var(--ui-scale, 1));
 }
 
 .pano-image-adjustments__footer {

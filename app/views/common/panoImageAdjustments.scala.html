@@ -8,7 +8,7 @@
 @()(implicit assets: AssetsFinder)
 
 <div id="pano-image-adjustments" class="pano-image-adjustments" popover="manual" role="dialog"
-aria-labelledby="pano-image-adjustments-title">
+aria-labelledby="pano-image-adjustments-title" aria-describedby="pano-image-adjustments-note">
   <header class="pano-image-adjustments__header">
     <span id="pano-image-adjustments-title" class="pano-image-adjustments__title"
     data-i18n="audit:controls.image-adjustments.title">Image adjustments</span>
@@ -17,6 +17,9 @@ aria-labelledby="pano-image-adjustments-title">
       <img src='@assets.path("images/icons/cross.svg")' alt="" aria-hidden="true">
     </button>
   </header>
+  @* Persistence is otherwise invisible: without this a filter set last week reads as "the imagery looks odd". *@
+  <p id="pano-image-adjustments-note" class="pano-image-adjustments__note"
+  data-i18n="audit:controls.image-adjustments.persist-note">These settings persist across missions until you reset them.</p>
   <div class="pano-image-adjustments__row">
     <label class="pano-image-adjustments__label" for="pano-image-adjustments-shadows"
     data-i18n="audit:controls.image-adjustments.shadows">Shadows</label>

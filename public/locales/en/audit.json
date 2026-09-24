@@ -145,7 +145,8 @@
       "shadows": "Shadows",
       "brightness": "Brightness",
       "contrast": "Contrast",
-      "reset": "Reset to defaults"
+      "reset": "Reset to defaults",
+      "persist-note": "These settings persist across missions until you reset them."
     }
   },
   "right-ui": {

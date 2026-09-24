@@ -145,7 +145,8 @@
       "shadows": "Sombras",
       "brightness": "Brilho",
       "contrast": "Contraste",
-      "reset": "Restaurar padrões"
+      "reset": "Restaurar padrões",
+      "persist-note": "Estas configurações persistem entre missões até você redefini-las."
     }
   },
   "right-ui": {

@@ -145,7 +145,8 @@
       "shadows": "Sombras",
       "brightness": "Brillo",
       "contrast": "Contraste",
-      "reset": "Restablecer valores"
+      "reset": "Restablecer valores",
+      "persist-note": "Estos ajustes se mantienen entre misiones hasta que los restablezcas."
     }
   },
   "right-ui": {

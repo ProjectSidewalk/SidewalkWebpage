@@ -145,7 +145,8 @@
       "shadows": "Schatten",
       "brightness": "Helligkeit",
       "contrast": "Kontrast",
-      "reset": "Auf Standard zurücksetzen"
+      "reset": "Auf Standard zurücksetzen",
+      "persist-note": "Diese Einstellungen bleiben über Missionen hinweg erhalten, bis Sie sie zurücksetzen."
     }
   },
   "right-ui": {
