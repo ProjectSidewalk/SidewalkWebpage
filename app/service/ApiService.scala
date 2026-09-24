@@ -278,6 +278,9 @@ class ApiServiceImpl @Inject() (
   /**
    * Sets up a streaming query to fetch data from the database in batches.
    *
+   * Plans each run for its own filter values. The API binds its filters as parameters, and after a few identical calls
+   * Postgres would otherwise switch to one reused plan, which was 2-3x slower for whole-city requests (#2756).
+   *
    * @param query The SQL streaming action to execute.
    * @param batchSize The number of records to fetch in each batch from the database.
    * @tparam A The type of records being fetched.
@@ -287,7 +290,10 @@ class ApiServiceImpl @Inject() (
       query: SqlStreamingAction[Vector[A], A, Effect.Read],
       batchSize: Int
   ): Source[A, _] = {
-    Source.fromPublisher(db.stream(query.transactionally.withStatementParameters(fetchSize = batchSize)))
+    val planPerRun = sqlu"SET LOCAL plan_cache_mode = force_custom_plan"
+    Source.fromPublisher(
+      db.stream((planPerRun >> query.withStatementParameters(fetchSize = batchSize)).transactionally)
+    )
   }
 
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _] = {

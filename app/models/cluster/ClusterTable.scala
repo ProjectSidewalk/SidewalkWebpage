@@ -240,7 +240,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       FROM cluster
       INNER JOIN (#$labelCounts) label_counts ON cluster.cluster_id = label_counts.cluster_id
       INNER JOIN (#$tagCounts) cluster_tag_counts ON cluster.cluster_id = cluster_tag_counts.cluster_id
-      WHERE cluster.label_type = ANY(${labelTypes.toSeq}::label_type[])
+      WHERE cluster.label_type = ANY(${SqlFragments.enumList(labelTypes)}::label_type[])
           AND (cluster.street_edge_id IN (#$inScopeStreets)
                OR cluster.intersection_id IN (
                    SELECT intersection_street_edge.intersection_id
@@ -269,7 +269,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
     // Apply the rest of the filters.
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
-      whereConditions :+= sql"cluster.label_type = ANY(${filters.labelTypes.get}::label_type[])"
+      whereConditions :+= sql"cluster.label_type = ANY(${SqlFragments.enumList(filters.labelTypes.get)}::label_type[])"
     }
 
     if (filters.minClusterSize.isDefined) {

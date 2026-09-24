@@ -19,8 +19,8 @@ import util.RolledBackDb
 import java.time.{LocalDate, OffsetDateTime}
 
 /**
- * Every filter of the public API's raw-SQL queries runs, and keeps only what it asks for (#2756). Also covers the
- * other raw queries that take a value from outside the SQL, such as label metadata for a validator.
+ * The public API's raw-SQL queries run with their filters set, and keep only what they ask for (#2756). Also covers
+ * the other raw queries that take a value from outside the SQL, such as label metadata for a validator.
  *
  * The filter values are sent to Postgres as bound values, so a wrong cast or a miscounted value only shows up when a
  * query runs; compiling can't catch it. On a database with no matching rows (CI's) the row checks pass trivially, but
@@ -91,6 +91,13 @@ class ApiFilterQueriesSpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
 
     "find nothing for a region name with a quote in it" in {
       run(labelTable.getLabelDataWithFilters(RawLabelFiltersForApi(regionName = Some(quotedName)))) mustBe empty
+    }
+
+    "ignore a severity filter with nothing in it" in {
+      val noSeverities = SeverityFilterForApi(Set.empty, includeNullSeverity = false)
+      val filters      = RawLabelFiltersForApi(labelTypes = Some(Seq("Signal")), severity = Some(noSeverities))
+      run(labelTable.getLabelDataWithFilters(filters)).size mustBe
+        run(labelTable.getLabelDataWithFilters(RawLabelFiltersForApi(labelTypes = Some(Seq("Signal"))))).size
     }
   }
 

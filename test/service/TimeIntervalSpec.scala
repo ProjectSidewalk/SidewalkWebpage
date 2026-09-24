@@ -12,6 +12,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import util.RolledBackDb
 
 import java.time.OffsetDateTime
+import java.time.temporal.ChronoUnit
 
 /**
  * The admin page's today/week/all-time windows. [[TimeInterval.start]] and [[TimeInterval.sqlFilter]] say the same
@@ -34,14 +35,12 @@ class TimeIntervalSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBack
   "TimeInterval" should {
     "start each window at the same moment in Scala and in SQL" in {
       Seq(TimeInterval.Today, TimeInterval.Week).foreach { interval =>
-        val sqlStart = run(sql"""SELECT MIN(t) FROM (VALUES
-                                   (NOW() - INTERVAL '30 days'), (date_trunc('day', NOW() AT TIME ZONE 'US/Pacific')
-                                   AT TIME ZONE 'US/Pacific'), (NOW() - INTERVAL '7 days'), (NOW())
-                                 ) AS moments(t)
-                                 WHERE #${TimeInterval.sqlFilter(interval, "t")}""".as[OffsetDateTime].head)
-        val scalaStart = TimeInterval.start(interval).get
-        // The two clocks read a moment apart, so allow a few seconds.
-        math.abs(java.time.Duration.between(sqlStart, scalaStart).getSeconds) must be <= 5L
+        // A minute either side of the Scala start: the SQL filter must drop the first and keep the second.
+        val start           = TimeInterval.start(interval).get.truncatedTo(ChronoUnit.SECONDS)
+        val (before, after) = (start.minusMinutes(1), start.plusMinutes(1))
+        val kept            = run(sql"""SELECT t FROM (VALUES ($before::timestamptz), ($after::timestamptz)) AS moments(t)
+                               WHERE #${TimeInterval.sqlFilter(interval, "t")}""".as[OffsetDateTime])
+        kept.map(_.toInstant) mustBe Seq(after.toInstant)
       }
       TimeInterval.start(TimeInterval.AllTime) mustBe None
       TimeInterval.sqlFilter(TimeInterval.AllTime, "t") mustBe "TRUE"

@@ -63,7 +63,6 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
 @ImplementedBy(classOf[StreetEdgeIssueTable])
 trait StreetEdgeIssueTableRepository {}
 
-@Singleton
 object StreetEdgeIssueTable {
 
   /**
@@ -82,6 +81,7 @@ object StreetEdgeIssueTable {
       issue.issue === StreetEdgeIssueType.PanoNotAvailable && issue.timestamp >= taskStart
 }
 
+@Singleton
 class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
     extends StreetEdgeIssueTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

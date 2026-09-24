@@ -1,7 +1,9 @@
 package models.utils
 
 import models.utils.MyPostgresProfile.api._
-import slick.jdbc.SQLActionBuilder
+import slick.jdbc.{SQLActionBuilder, SetParameter}
+
+import java.sql.Types
 
 /**
  * Glue for raw SQL built from optional pieces, such as an API's filters. Each piece is a `sql"..."` fragment, so a
@@ -31,4 +33,26 @@ object SqlFragments {
    */
   def allOf(conditions: Seq[SQLActionBuilder]): SQLActionBuilder =
     if (conditions.isEmpty) sql"TRUE" else join(conditions, " AND ")
+
+  /**
+   * A list of values for an enum column, written `= ANY(${SqlFragments.enumList(values)}::label_type[])`.
+   *
+   * A plain `Seq[String]` reaches Postgres as a text list, and converting that to an enum list hides the values from
+   * its row estimates: `labelType=Signal` was planned for 220k rows instead of 4.6k on Seattle. Sent without a type,
+   * the list is read straight as the enum, so Postgres estimates from the real values.
+   *
+   * @return The values, ready to bind.
+   */
+  def enumList(values: Iterable[String]): EnumList = EnumList(values.toSeq)
+
+  /** Enum values bound as one untyped Postgres array; see [[enumList]]. */
+  final case class EnumList(values: Seq[String])
+
+  object EnumList {
+    // Quotes every element so a comma or quote in a value stays inside it.
+    implicit val setEnumList: SetParameter[EnumList] = SetParameter { (list, pp) =>
+      val elements = list.values.map(v => "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
+      pp.setObject(elements.mkString("{", ",", "}"), Types.OTHER)
+    }
+  }
 }

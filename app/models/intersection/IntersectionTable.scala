@@ -6,7 +6,7 @@ import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{FilteredTables, LatLngBBox, SpatialQueryType}
+import models.utils.{FilteredTables, LatLngBBox, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -252,7 +252,9 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
                      ORDER BY ST_Distance(intersection.geom::geography, cluster.geom::geography)
                      LIMIT 1
                  ) candidate ON TRUE
-                 WHERE cluster.label_type = ANY(${labelTypes.toSeq.sorted}::label_type[]) #$sessionFilter
+                 WHERE cluster.label_type = ANY(${SqlFragments.enumList(
+          labelTypes.toSeq.sorted
+        )}::label_type[]) #$sessionFilter
              ) nearest
              WHERE cluster.cluster_id = nearest.cluster_id
                AND cluster.intersection_id IS DISTINCT FROM nearest.intersection_id"""

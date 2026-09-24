@@ -283,10 +283,10 @@ class StreetEdgeTable @Inject() (
       filters.bbox.map { bbox =>
         sql"ST_Intersects(s.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
       },
-      filters.wayTypes.map { wayTypes => sql"s.way_type = ANY($wayTypes::way_type[])" },
+      filters.wayTypes.map { wayTypes => sql"s.way_type = ANY(${SqlFragments.enumList(wayTypes)}::way_type[])" },
       filters.regionId.map { regionId => sql"r.region_id = $regionId" },
       filters.regionName.map { regionName => sql"LOWER(reg.name) = LOWER($regionName)" },
-      filters.statuses.map { statuses => sql"s.status = ANY($statuses::street_edge_status[])" }
+      filters.statuses.map { statuses => sql"s.status = ANY(${SqlFragments.enumList(statuses)}::street_edge_status[])" }
     ).flatten
 
     // Filters on the per-street counts, which only exist once the streets are chosen.

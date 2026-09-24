@@ -196,9 +196,11 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       },
       filters.regionId.map(id => sql"region.region_id = $id"),
       filters.regionName.map(name => sql"LOWER(region.name) = LOWER($name)"),
-      filters.wayTypes.map(w => sql"street_edge.way_type = ANY($w::way_type[])"),
-      filters.statuses.map(st => sql"street_edge.status = ANY($st::street_edge_status[])"),
-      filters.presence.map(p => sql"sidewalk_presence.presence = ANY($p::sidewalk_presence_status[])"),
+      filters.wayTypes.map(w => sql"street_edge.way_type = ANY(${SqlFragments.enumList(w)}::way_type[])"),
+      filters.statuses.map(st => sql"street_edge.status = ANY(${SqlFragments.enumList(st)}::street_edge_status[])"),
+      filters.presence.map(p =>
+        sql"sidewalk_presence.presence = ANY(${SqlFragments.enumList(p)}::sidewalk_presence_status[])"
+      ),
       filters.minNoSidewalkLabels.map(n => sql"sidewalk_presence.no_sidewalk_label_count >= $n"),
       filters.minValidatedNoSidewalkLabels.map(n => sql"sidewalk_presence.validated_no_sidewalk_count >= $n"),
       filters.minAuditCount.map(n => sql"sidewalk_presence.audit_count >= $n")

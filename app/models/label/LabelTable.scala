@@ -478,7 +478,7 @@ object LabelTable {
     val otherTypesCondition: SQLActionBuilder = if (scopedTags.isEmpty) {
       anyOf(unscopedTags)
     } else {
-      val notScoped = sql"label.label_type <> ALL(${scopedTags.keys.toSeq.sorted}::label_type[])"
+      val notScoped = sql"label.label_type <> ALL(${SqlFragments.enumList(scopedTags.keys.toSeq.sorted)}::label_type[])"
       // No unscoped tags means the types nobody scoped are left unnarrowed, so they pass on type alone.
       if (unscopedTags.isEmpty) notScoped
       else sql"(".concat(notScoped).concat(sql" AND ").concat(anyOf(unscopedTags)).concat(sql")")
@@ -2474,7 +2474,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     // Apply the rest of the existing filters.
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
-      whereConditions :+= sql"label.label_type = ANY(${filters.labelTypes.get}::label_type[])"
+      whereConditions :+= sql"label.label_type = ANY(${SqlFragments.enumList(filters.labelTypes.get)}::label_type[])"
     }
 
     if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
@@ -2488,7 +2488,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         ),
         Option.when(severityFilter.includeNullSeverity)(sql"label.severity IS NULL")
       ).flatten
-      whereConditions :+= sql"(".concat(SqlFragments.join(severityConditions, " OR ")).concat(sql")")
+      if (severityConditions.nonEmpty) {
+        whereConditions :+= sql"(".concat(SqlFragments.join(severityConditions, " OR ")).concat(sql")")
+      }
     }
 
     if (filters.minSeverity.isDefined) {
