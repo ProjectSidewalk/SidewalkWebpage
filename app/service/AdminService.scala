@@ -103,7 +103,15 @@ case class RecentActivityItem(
  * The pano + point-of-view metadata needed to build a preview-image URL for one label (a saved crop or a Street View
  * Static thumbnail). Carried alongside a recent-activity item so the admin Activity feed can show a thumbnail.
  */
-case class LabelThumbnailMeta(panoId: String, panoSource: PanoSource, heading: Double, pitch: Double, zoom: Double)
+case class LabelThumbnailMeta(
+    panoId: String,
+    panoSource: PanoSource,
+    heading: Double,
+    pitch: Double,
+    zoom: Double,
+    canvasWidth: Int,
+    canvasHeight: Int
+)
 
 /**
  * A compact "who is this contributor" summary for annotating a recent-activity item: their role plus how much they've
@@ -527,8 +535,8 @@ class AdminServiceImpl @Inject() (
     if (labelIds.isEmpty) Future.successful(Map.empty)
     else
       db.run(labelTable.getPanoMetadataForLabels(labelIds)).map { rows =>
-        rows.map { case (id, panoId, source, heading, pitch, zoom) =>
-          id -> LabelThumbnailMeta(panoId, source, heading, pitch, zoom)
+        rows.map { case (id, panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight) =>
+          id -> LabelThumbnailMeta(panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight)
         }.toMap
       }
   }

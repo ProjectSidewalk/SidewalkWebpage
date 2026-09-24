@@ -16,8 +16,8 @@
   @common.navbar(commonData, Some(user))
 
   <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
-  <script src='@assets.path("vendor/selectize/selectize-0.15.2.min.js")'></script>
-  <link rel="stylesheet" href='@assets.path("vendor/selectize/selectize-0.15.2.min.css")'>
+  <script src='@assets.path("vendor/tom-select/tom-select-2.6.2.base.min.js")'></script>
+  <link rel="stylesheet" href='@assets.path("vendor/tom-select/tom-select-2.6.2.min.css")'>
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
     <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
@@ -90,7 +90,9 @@
         labelId = "mission-progress-bar-text"
       )
       <div id="admin-info-section">
-        <button type="button" id="admin-info-button"class="button-ps button--secondary button--small">Admin info</button>
+        <button type="button" id="admin-info-button" class="button-ps button--secondary button--small" popovertarget="admin-info-popover">Admin info</button>
+        @* Filled from #admin-info-template by AdminInfo.js, which also parks it under the button. *@
+        <div id="admin-info-popover" class="admin-info-popover" popover></div>
       </div>
       <div id="svv-panorama-holder">
         <div id="svv-panorama"></div>
@@ -120,12 +122,12 @@
         <div id="svv-panorama-date-holder">
           <span id="svv-panorama-date"></span>
         </div>
-        <div id="zoom-buttons-holder" class="zoom-buttons-holder">
-          <button type="button" id="zoom-in-button"class="zoom-button" title="@Messages("press.key", "Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
-            <img class="zoom-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
+        <div id="zoom-buttons-holder" class="ps-icon-button-stack">
+          <button type="button" id="zoom-in-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.key", "Z")" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+            <img class="ps-icon-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
           </button>
-          <button type="button" id="zoom-out-button"class="zoom-button" title="@Messages("press.keys", "Shift + Z")" data-toggle="tooltip" data-placement="top" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
-            <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
+          <button type="button" id="zoom-out-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.keys", "Shift + Z")" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+            <img class="ps-icon-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
           </button>
         </div>
       </div>
@@ -189,14 +191,14 @@
           <div id="current-tags-list"></div>
           <div id="sidewalk-ai-suggestions-block">
             <div class="sidewalk-ai-suggestions-header">
-              <img src='@assets.path("images/icons/ai-icon-small.png")' alt="AI icon" title="@Messages("validate.ai.disclaimer")" class="ai-icon">
+              <img src='@assets.path("images/icons/ai-icon-small.png")' alt="AI icon" data-ps-tooltip="@Messages("validate.ai.disclaimer")" class="ai-icon">
               @Messages("validate.suggestions")
             </div>
             <div class="sidewalk-ai-suggestions-list-holder">
               <div class="sidewalk-ai-suggested-tag tag-pill template"></div>
             </div>
           </div>
-          <select id="select-tag" multiple></select>
+          <select id="select-tag" multiple aria-hidden="true"></select>
         </div>
         <div id="validate-severity-section" class="validation-menu-section">
           @* Header and severity level labels are swapped by DesktopValidationMenu JS based on curr label type. *@
@@ -206,17 +208,17 @@
              swapped between severity and quality wording by #renderSeverity, which runs before the section is
              shown, so the name follows the label type. *@
           <div id="severity-radio-holder" role="radiogroup" aria-labelledby="validate-severity-header">
-            <label class="severity-button" id="severity-button-1" for="validate-severity-radio-1" data-severity="1" data-toggle="tooltip">
+            <label class="severity-button" id="severity-button-1" for="validate-severity-radio-1" data-severity="1">
               <input type="radio" name="label-severity" id="validate-severity-radio-1" value="1" class="severity-button__radio">
               <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
               <span class="severity-button__label"></span>
             </label>
-            <label class="severity-button" id="severity-button-2" for="validate-severity-radio-2" data-severity="2" data-toggle="tooltip">
+            <label class="severity-button" id="severity-button-2" for="validate-severity-radio-2" data-severity="2">
               <input type="radio" name="label-severity" id="validate-severity-radio-2" value="2" class="severity-button__radio">
               <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
               <span class="severity-button__label"></span>
             </label>
-            <label class="severity-button" id="severity-button-3" for="validate-severity-radio-3" data-severity="3" data-toggle="tooltip">
+            <label class="severity-button" id="severity-button-3" for="validate-severity-radio-3" data-severity="3">
               <input type="radio" name="label-severity" id="validate-severity-radio-3" value="3" class="severity-button__radio">
               <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
               <span class="severity-button__label"></span>

@@ -47,7 +47,7 @@ class MistakeCardQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
       LabelTypeEnum.primaryValidateLabelTypes.foreach { labelType =>
         busiestUser(labelType).foreach { userId =>
           val rows       = run(labelTable.getValidatedLabelsForUserQuery(userId, labelType).take(25).result)
-          val timestamps = rows.map(_._10)
+          val timestamps = rows.map(_._12)
           withClue(s"$labelType rows for $userId came back out of order: ") {
             timestamps mustBe timestamps.sortWith(_.isAfter(_))
           }

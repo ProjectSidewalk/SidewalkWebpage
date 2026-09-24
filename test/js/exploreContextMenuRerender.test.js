@@ -29,7 +29,7 @@ function makeNode(overrides = {}) {
         0: undefined,
     };
     const chainable = ['find', 'each', 'text', 'html', 'attr', 'prop', 'addClass', 'removeClass', 'toggleClass',
-        'css', 'val', 'on', 'off', 'blur', 'focus', 'filter', 'tooltip', 'trigger', 'append', 'remove'];
+        'css', 'val', 'on', 'off', 'blur', 'focus', 'filter', 'removeAttr', 'trigger', 'append', 'remove'];
     chainable.forEach((name) => { node[name] = () => node; });
     return Object.assign(node, overrides);
 }

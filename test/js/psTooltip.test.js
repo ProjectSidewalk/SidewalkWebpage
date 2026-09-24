@@ -231,3 +231,324 @@ describe('psTooltip live refresh', () => {
         expect(card.innerHTML).toBe('Hide the label.');
     });
 });
+
+describe('psTooltip beside the trigger', () => {
+    test('opens to the left, centered on the trigger, tail aimed at it', () => {
+        const trigger = addTrigger(
+            { left: 600, top: 300, width: 100, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
+        );
+        const card = open(trigger);
+
+        expect(card.classList.contains('ps-tooltip--beside-left')).toBe(true);
+        expect(card.style.left).toBe(`${600 - TRIGGER_GAP - CARD_WIDTH}px`);
+        expect(card.style.top).toBe(`${300 + (60 - CARD_HEIGHT) / 2}px`);
+        expect(card.style.getPropertyValue('--ps-tooltip-tail-top')).toBe(`${CARD_HEIGHT / 2}px`);
+    });
+
+    test('takes the other side when the asked-for one has no room', () => {
+        const trigger = addTrigger(
+            { left: 20, top: 300, width: 100, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
+        );
+        const card = open(trigger);
+
+        expect(card.classList.contains('ps-tooltip--beside-right')).toBe(true);
+        expect(card.style.left).toBe(`${120 + TRIGGER_GAP}px`);
+    });
+
+    test('falls back to above when neither side fits', () => {
+        window.innerWidth = 300;
+        const trigger = addTrigger(
+            { left: 50, top: 300, width: 200, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
+        );
+        const card = open(trigger);
+
+        expect(card.className).not.toMatch(/beside/);
+        expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    });
+});
+
+describe('psTooltip theme', () => {
+    test('a light trigger gets the light card, and the next dark one takes it back', () => {
+        const light = addTrigger(
+            { left: 400, top: 300, width: 100, height: 30 }, 'light', { 'data-ps-tooltip-theme': 'light' }
+        );
+        const dark = addTrigger({ left: 400, top: 500, width: 100, height: 30 }, 'dark');
+
+        expect(open(light).classList.contains('ps-tooltip--light')).toBe(true);
+        document.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        expect(open(dark).classList.contains('ps-tooltip--light')).toBe(false);
+    });
+});
+
+describe('psTooltip retirement', () => {
+    test('removing the attribute takes an open card down', async () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'going');
+        const card = open(trigger);
+
+        trigger.removeAttribute('data-ps-tooltip');
+        await Promise.resolve();
+
+        expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
+    });
+
+    test('a show still waiting out the hover delay is dropped once the attribute is gone', () => {
+        // The AI tag suggestion clicked within the delay: its click removes the attribute, and the card that then
+        // opened was empty.
+        jest.useFakeTimers();
+        try {
+            const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'quick');
+            trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            trigger.removeAttribute('data-ps-tooltip');
+            jest.runAllTimers();
+
+            expect(document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false)
+                .toBe(false);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('a trigger removed from the page takes its card with it', async () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'replaced');
+        const card = open(trigger);
+
+        trigger.remove();
+        await Promise.resolve();
+
+        expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
+    });
+});
+
+describe('psTooltip images', () => {
+    test('places the card again once an image inside it loads', () => {
+        // Before the image lands the card measures short and sits close above the trigger; the reload after `load`
+        // measures the taller card and moves it up.
+        const complete = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'complete');
+        Object.defineProperty(HTMLImageElement.prototype, 'complete', { configurable: true, get: () => false });
+        try {
+            const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'text<br><img src="x.png">');
+            const card = open(trigger);
+            expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+
+            cardHeight = 200;
+            card.querySelector('img').dispatchEvent(new Event('load'));
+
+            expect(card.style.top).toBe(`${300 - 200 - TRIGGER_GAP}px`);
+        } finally {
+            Object.defineProperty(HTMLImageElement.prototype, 'complete', complete);
+        }
+    });
+});
+
+describe('psTooltip pinning (#5495)', () => {
+    /** A pinnable trigger, like the Across Cities day bars, whose card carries a link. */
+    function addPinnable() {
+        return addTrigger(
+            { left: 400, top: 300, width: 100, height: 30 },
+            '<a id="card-link" href="https://example.org/admin/user/a">a</a>',
+            {
+                'data-ps-tooltip-pinnable': '', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
+                'aria-label': 'Mon',
+            },
+        );
+    }
+
+    const card = () => document.getElementById('ps-tooltip');
+    const isVisible = () => card()?.classList.contains('ps-tooltip--visible') ?? false;
+    const isPinned = () => card()?.classList.contains('ps-tooltip--pinned') ?? false;
+    const key = (target, k) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true }));
+
+    test('a click pins the card open as a labeled dialog', () => {
+        const trigger = addPinnable();
+        trigger.click();
+
+        expect(isVisible()).toBe(true);
+        expect(isPinned()).toBe(true);
+        expect(card().getAttribute('role')).toBe('dialog');
+        expect(card().getAttribute('aria-label')).toBe('Mon');
+        expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    });
+
+    test('a pinned card ignores the pointer passing over another trigger on the way to its links', () => {
+        const trigger = addPinnable();
+        const other = addTrigger({ left: 0, top: 0, width: 10, height: 10 }, 'other');
+        trigger.click();
+        other.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        document.dispatchEvent(new MouseEvent('mouseleave'));
+
+        expect(isPinned()).toBe(true);
+        expect(card().innerHTML).toContain('card-link');
+    });
+
+    test('focus moving from the trigger into the card keeps it pinned', () => {
+        const trigger = addPinnable();
+        trigger.click();
+        trigger.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        document.getElementById('card-link').dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+        expect(isPinned()).toBe(true);
+    });
+
+    test('focus landing elsewhere closes it', () => {
+        const trigger = addPinnable();
+        const elsewhere = addTrigger({ left: 0, top: 0, width: 10, height: 10 }, 'elsewhere');
+        trigger.click();
+        elsewhere.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+
+        expect(isPinned()).toBe(false);
+        expect(card().innerHTML).toBe('elsewhere');
+    });
+
+    test('a pointerdown outside closes it; one inside does not', () => {
+        const trigger = addPinnable();
+        trigger.click();
+        document.getElementById('card-link').dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+        expect(isPinned()).toBe(true);
+
+        document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+        expect(isVisible()).toBe(false);
+        expect(isPinned()).toBe(false);
+        expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    });
+
+    test('clicking the same trigger again unpins and closes it', () => {
+        const trigger = addPinnable();
+        trigger.click();
+        trigger.click();
+
+        expect(isVisible()).toBe(false);
+    });
+
+    test('Enter pins from the keyboard and moves focus into the card, and Escape hands it back', () => {
+        const trigger = addPinnable();
+        trigger.setAttribute('tabindex', '0');
+        trigger.focus();
+        key(trigger, 'Enter');
+
+        expect(isPinned()).toBe(true);
+        expect(document.activeElement).toBe(card());
+
+        key(card(), 'Escape');
+        expect(isVisible()).toBe(false);
+        expect(document.activeElement).toBe(trigger);
+    });
+
+    test('Space pins too, without scrolling the page', () => {
+        const trigger = addPinnable();
+        const event = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+        trigger.dispatchEvent(event);
+
+        expect(isPinned()).toBe(true);
+        expect(event.defaultPrevented).toBe(true);
+    });
+
+    test('a trigger that does not opt in is not pinned by a click', () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'plain');
+        open(trigger);
+        trigger.click();
+
+        expect(isPinned()).toBe(false);
+    });
+
+    test('a pinned card follows its trigger through a scroll instead of closing', () => {
+        const trigger = addPinnable();
+        trigger.click();
+        trigger._rect = { left: 400, top: 200, width: 100, height: 30 };
+        window.dispatchEvent(new Event('scroll'));
+
+        expect(isPinned()).toBe(true);
+        expect(card().style.top).toBe(`${200 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    });
+
+    test('a click no pointer made (a screen reader\'s Enter) moves focus into the card like a keyboard pin', () => {
+        const trigger = addPinnable();
+        trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+
+        expect(isPinned()).toBe(true);
+        expect(document.activeElement).toBe(card());
+    });
+
+    test('a pointer click leaves focus where it was', () => {
+        const trigger = addPinnable();
+        trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+
+        expect(isPinned()).toBe(true);
+        expect(document.activeElement).not.toBe(card());
+    });
+
+    test('a pinned card closes on scroll once a redraw has detached its trigger', () => {
+        const trigger = addPinnable();
+        trigger.click();
+        trigger.remove(); // What MiniLineChart's resize redraw does to a bar.
+        window.dispatchEvent(new Event('scroll'));
+
+        expect(isVisible()).toBe(false);
+    });
+
+    test('a held Enter pins once rather than toggling on every repeat', () => {
+        const trigger = addPinnable();
+        key(trigger, 'Enter');
+        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, repeat: true }));
+
+        expect(isPinned()).toBe(true);
+    });
+
+    test('a modified Enter is left to whoever it belongs to', () => {
+        const trigger = addPinnable();
+        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, ctrlKey: true }));
+
+        expect(isVisible()).toBe(false);
+    });
+
+    test('stops describing the trigger with the card once it is a dialog', () => {
+        const trigger = addPinnable();
+        open(trigger);
+        expect(trigger.getAttribute('aria-describedby')).toBe('ps-tooltip');
+
+        trigger.click();
+        expect(trigger.hasAttribute('aria-describedby')).toBe(false);
+    });
+
+    test('Tab off either end of a pinned card goes back to its trigger and keeps it open', () => {
+        const trigger = addPinnable();
+        trigger.setAttribute('tabindex', '0');
+        trigger.focus();
+        key(trigger, 'Enter');
+        const link = document.getElementById('card-link');
+        link.focus();
+
+        const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+        link.dispatchEvent(tab);
+        expect(tab.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(trigger);
+        expect(isPinned()).toBe(true);
+
+        link.focus();
+        const back = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+        link.dispatchEvent(back);
+        expect(document.activeElement).toBe(trigger);
+    });
+
+    test('a pinned card keeps its content while focus is in it, not re-rendering the link away', async () => {
+        const trigger = addPinnable();
+        trigger.setAttribute('tabindex', '0');
+        trigger.focus();
+        key(trigger, 'Enter');
+        const link = document.getElementById('card-link');
+        link.focus();
+        trigger.setAttribute('data-ps-tooltip', 'replaced');
+        await Promise.resolve();
+
+        expect(document.activeElement).toBe(link);
+        expect(link.isConnected).toBe(true);
+    });
+
+    test('a pinned card closes once its trigger scrolls out of view', () => {
+        const trigger = addPinnable();
+        trigger.click();
+        trigger._rect = { left: 400, top: -100, width: 100, height: 30 };
+        window.dispatchEvent(new Event('scroll'));
+
+        expect(isVisible()).toBe(false);
+    });
+});

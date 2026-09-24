@@ -3,7 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
 import models.user.UserStatTableDef
-import models.utils.MyPostgresProfile
+import models.utils.{FilteredTables, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json, Writes}
@@ -159,10 +159,8 @@ class StreetEdgePriorityTable @Inject() (
       WITH completions AS (
           SELECT DISTINCT audit_task.street_edge_id, audit_task.user_id, audit_task.low_quality,
                  audit_task.incomplete, audit_task.stale, audit_task.outdated_imagery, user_stat.high_quality
-          FROM audit_task
+          FROM #${FilteredTables.completedAudits()}
           INNER JOIN user_stat ON user_stat.user_id = audit_task.user_id
-          WHERE audit_task.completed = TRUE
-              AND user_stat.excluded = FALSE
       ), priority_inputs AS (
           SELECT street_edge_id,
                  COUNT(*) FILTER (
@@ -177,14 +175,12 @@ class StreetEdgePriorityTable @Inject() (
           FROM completions
           GROUP BY street_edge_id
       ), audit_activity AS (
-          -- Unfiltered by user quality on purpose: this is the audited/outdated bookkeeping the rest of the app
-          -- reports, not the priority formula's weighted view of the same audits.
+          -- All counted audits, not just high-quality ones, to match the audited/outdated status shown elsewhere.
           SELECT street_edge_id,
                  COUNT(*) AS audit_count,
                  COUNT(*) FILTER (WHERE NOT outdated_imagery) AS up_to_date_audit_count,
                  MAX((task_end AT TIME ZONE 'UTC')::date) AS last_audit_date
-          FROM audit_task
-          WHERE completed = TRUE
+          FROM #${FilteredTables.completedAudits()}
           GROUP BY street_edge_id
       )
       SELECT street_edge.street_edge_id,
@@ -200,15 +196,13 @@ class StreetEdgePriorityTable @Inject() (
              street_imagery.median_newest_capture,
              street_imagery.updated_at,
              ST_Length(street_edge.geom::geography)
-      FROM street_edge
+      FROM #${FilteredTables.streets()}
       INNER JOIN street_edge_region ON street_edge_region.street_edge_id = street_edge.street_edge_id
       INNER JOIN region ON region.region_id = street_edge_region.region_id
       LEFT JOIN street_edge_priority ON street_edge_priority.street_edge_id = street_edge.street_edge_id
       LEFT JOIN priority_inputs ON priority_inputs.street_edge_id = street_edge.street_edge_id
       LEFT JOIN audit_activity ON audit_activity.street_edge_id = street_edge.street_edge_id
       LEFT JOIN street_imagery ON street_imagery.street_edge_id = street_edge.street_edge_id
-      WHERE street_edge.status = 'open'
-          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ORDER BY street_edge.street_edge_id;
     """.as[StreetPriorityForAdmin]
   }

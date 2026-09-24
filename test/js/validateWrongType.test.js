@@ -30,6 +30,7 @@ const TAGS_BY_TYPE = {
 };
 
 beforeAll(() => {
+  window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
   window.util = {
     assetPath: assetPathStub,
     isMobile: () => false,
@@ -499,11 +500,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
   beforeAll(() => {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8'));
-    window.$.fn.tooltip = function tooltip() { return this; };
-    window.$.fn.selectize = function selectize() {
-      this[0].selectize = { clearOptions() {}, addOption() {}, clear() {}, removeOption() {} };
-      return this;
-    };
+    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
     window.util.getImage = () => Promise.resolve('img');
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
     loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
@@ -516,6 +513,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       <button id="validate-no-button"></button>
       <button id="validate-unsure-button"></button>
       <div id="validate-label-type-section"><div id="label-type-picker"></div></div>
+      <div class="current-tag template"><div class="tag-name"></div><button class="remove-tag-x"></button></div>
       <div id="validate-tags-section">
         <div id="current-tags-list"></div>
         <div id="sidewalk-ai-suggestions-block"><div class="sidewalk-ai-suggested-tag template"></div></div>
@@ -569,6 +567,17 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
   const shown = (id) => document.getElementById(id).style.display === 'block';
   const submitDisabled = () => document.getElementById('validate-submit-button').disabled;
+
+  it('Agree still renders a label that carries AI tag suggestions', () => {
+    label = makeLabel({ tags: ['pole'], ai_tags: ['trash/recycling can'], ai_tags_not_present: ['pole'] });
+    menu.resetMenu(label);
+
+    window.$('#validate-yes-button').click();
+
+    expect(label.getProperty('validationResult')).toBe('Agree');
+    expect(document.querySelectorAll('.sidewalk-ai-suggested-tag:not(.template)')).toHaveLength(2);
+    expect(submitDisabled()).toBe(false);
+  });
 
   it('the "wrong label type" reason swaps the reasons for the type picker under a chosen Disagree', () => {
     window.$('#validate-no-button').click();

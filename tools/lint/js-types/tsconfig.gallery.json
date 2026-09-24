@@ -1,0 +1,7 @@
+// The Gallery bundle's own code plus common/, the global scope it runs in. See tools/lint/check-js-types.mjs.
+{
+  "extends": "../../../jsconfig.json",
+  "compilerOptions": {"checkJs": true},
+  "include": ["../../../public/js/gallery/**/*.js", "../../../public/js/common/**/*.js", "*.d.ts"],
+  "exclude": ["../../../public/js/**/build/**"]
+}

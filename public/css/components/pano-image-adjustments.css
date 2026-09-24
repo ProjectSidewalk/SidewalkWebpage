@@ -1,0 +1,103 @@
+/*
+ * The pano image adjustments popover (shadows / brightness / contrast sliders, #3136). Opened from the Image pill in
+ * the menu under Explore's Stuck button; the markup is app/views/common/panoImageAdjustments.scala.html and the
+ * sliders are the shared .ps-range primitive. A component rather than a page file because the JS that drives it is page-agnostic
+ * and Validate is expected to mount the same panel. Sizes scale with --ui-scale like the rest of the tool UI.
+ */
+
+.pano-image-adjustments {
+  position: fixed;
+  inset: unset;        /* Override the browser's default centered placement; JS sets left/top. */
+  margin: 0;
+  left: -9999px;       /* Off-screen until positioned, so the first paint never flashes at the origin. */
+  top: -9999px;
+  width: calc(290px * var(--ui-scale, 1));
+  padding: calc(12px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1)) calc(14px * var(--ui-scale, 1));
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-300);
+  border-radius: calc(12px * var(--ui-scale, 1));
+  box-shadow: var(--box-shadow);
+}
+
+.pano-image-adjustments__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: calc(6px * var(--ui-scale, 1));
+}
+
+/* Matches the pano info popover's eyebrow title. */
+.pano-image-adjustments__title {
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pano-image-adjustments__close {
+  background: none;
+  border: none;
+  padding: calc(3px * var(--ui-scale, 1));
+  border-radius: calc(4px * var(--ui-scale, 1));
+  cursor: pointer;
+  line-height: 0;
+  opacity: 0.75;
+}
+
+.pano-image-adjustments__close:hover {
+  opacity: 1;
+  background: var(--color-neutral-200);
+}
+
+.pano-image-adjustments__close:focus-visible {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+.pano-image-adjustments__close img {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
+}
+
+/* Label and live value on one line, the slider full-width underneath. */
+.pano-image-adjustments__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: var(--space-xs);
+  align-items: center;
+  margin-top: calc(6px * var(--ui-scale, 1));
+}
+
+.pano-image-adjustments__label {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-900);
+  margin: 0;
+}
+
+/* Tabular figures so the readout doesn't jitter as the digits change under the thumb. */
+.pano-image-adjustments__value {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  font-variant-numeric: tabular-nums;
+  min-width: calc(36px * var(--ui-scale, 1));
+  text-align: right;
+}
+
+.pano-image-adjustments__row .ps-range {
+  grid-column: 1 / -1;
+}
+
+/* Directly under the title, before the sliders, so the persistence is read before anything is changed. */
+.pano-image-adjustments__note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: 0 0 calc(4px * var(--ui-scale, 1));
+}
+
+.pano-image-adjustments__footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: calc(10px * var(--ui-scale, 1));
+}

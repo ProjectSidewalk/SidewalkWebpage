@@ -151,11 +151,6 @@
   width: calc(15px * var(--ui-scale));
 }
 
-.context-menu-tooltip {
-  font: var(--text-tiny-regular);
-  z-index: calc(var(--navbar-z-index) + 1);
-}
-
 .context-menu-tooltip__img--severity {
   width: calc(138px * var(--ui-scale, 1));
   height: calc(110px * var(--ui-scale, 1));
@@ -281,8 +276,4 @@ tag-underline {
   display: inline;
   text-decoration: underline;
   pointer-events: none;
-}
-
-.tooltip.in {
-  opacity: 1;
 }

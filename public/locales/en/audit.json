@@ -134,7 +134,20 @@
     "feedback": "Feedback",
     "feedback-tooltip": "Share your thoughts with us",
     "feedback-submitted": "Feedback Submitted",
-    "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!"
+    "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!",
+    "immersive-enter": "Enter immersive mode",
+    "immersive-exit": "Exit immersive mode",
+    "immersive-exit-hint": "Immersive mode. Press F to exit.",
+    "image": "Image",
+    "image-tooltip": "Adjust shadows, brightness and contrast of the imagery",
+    "image-adjustments": {
+      "title": "Image adjustments",
+      "shadows": "Shadows",
+      "brightness": "Brightness",
+      "contrast": "Contrast",
+      "reset": "Reset to defaults",
+      "persist-note": "These settings persist across Explore missions until you reset them."
+    }
   },
   "right-ui": {
     "opens-new-tab": "(opens in a new tab)",

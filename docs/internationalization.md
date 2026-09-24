@@ -86,14 +86,12 @@ row.button.setAttribute('data-ps-tooltip', util.escapeHTML(label)); // psTooltip
 ```
 
 Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`,
-jQuery's `.html()` / `.append()` / `$('<p>…')`, a Bootstrap tooltip built with `html: true`, and the
-**`data-ps-tooltip` attribute**, which `psTooltip.js` writes into the tooltip card's `innerHTML`. Helpers count too:
-`AlertController.showAlert`, `PopUpMessage.notify`, and the onboarding message boxes all render HTML. Text sinks are
-everything else — a text node, `.text()`, `alert` / `confirm`, a share sheet, and an attribute *unless* something
-renders it as markup: `title` is plain text on most elements and HTML on one carrying `data-toggle="tooltip"`, since
-`explore/src/Main.js` initializes every one of those with `html: true`.
+jQuery's `.html()` / `.append()` / `$('<p>…')`, and the **`data-ps-tooltip` attribute**, which `psTooltip.js`
+writes into the tooltip card's `innerHTML`. Helpers count too: `AlertController.showAlert`, `PopUpMessage.notify`,
+and the onboarding message boxes all render HTML. Text sinks are everything else — a text node, `.text()`,
+`alert` / `confirm`, a share sheet, and any other attribute, `title` included.
 
-The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/eslint-rules/i18n-escape-in-markup.js`) blocks the ones it can
+The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) blocks the ones it can
 see syntactically — a `t()` call with interpolation variables that reaches one of those sinks, directly or through a
 template literal, a concatenation, a pass-through string method, a `map(…).join('')`, or a local variable, without
 stating `interpolation.escapeValue`.
@@ -209,7 +207,7 @@ The frontend i18next JSON under `public/locales/` is linted in CI (blocking step
   and checks it for **duplicate keys** (a plain `JSON.parse` silently keeps the last of a duplicated key, so a dup
   translation that overwrites a real one is otherwise invisible — nothing caught this before #5132), empty key names,
   and unsafe numbers. Run with `make eslint`.
-- **Cross-locale key parity and empty values** — `tools/check-locale-parity.mjs` (`make lint-locales`) checks that
+- **Cross-locale key parity and empty values** — `tools/lint/check-locale-parity.mjs` (`make lint-locales`) checks that
   every locale carries the same keys as the `en` reference, and that no value is anything but a non-empty string
   (i18next only falls back on an *absent* key, so an empty string renders as blank rather than falling back to `en`).
   It's i18next-aware where a per-file JSON rule can't be: it **normalizes plural suffixes** (`_one`/`_other`/…

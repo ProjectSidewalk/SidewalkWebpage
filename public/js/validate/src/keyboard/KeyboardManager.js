@@ -45,11 +45,16 @@ class KeyboardManager {
     if (document.activeElement === validationMenuUi.optionalCommentTextBox[0]
       || document.activeElement === validationMenuUi.disagreeReasonTextBox[0]
       || document.activeElement === validationMenuUi.unsureReasonTextBox[0]
-      || document.activeElement === document.getElementById('select-tag-selectized')) {
+      || this.#inTagPicker()) {
       this.#addingComment = true;
     } else {
       this.#addingComment = false;
     }
+  }
+
+  /** @returns {boolean} Whether the tag picker's text box has focus. */
+  #inTagPicker() {
+    return document.activeElement === document.getElementById('select-tag-ts-control');
   }
 
   /**
@@ -154,8 +159,9 @@ class KeyboardManager {
     this.#checkIfTextAreaSelected();
 
     // Handle the various keyboard shortcuts.
-    // Enter submits validation regardless of whether a text box is focused.
-    if (!this.#disableKeyboard && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+    // Enter submits the validation even from a comment box. The tag picker is the exception: there it adds the
+    // highlighted tag, and submitting would move on to the next label before the tag is added.
+    if (!this.#disableKeyboard && !this.#inTagPicker() && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
       e.preventDefault();
       validationMenuUi.submitButton.click();
     }

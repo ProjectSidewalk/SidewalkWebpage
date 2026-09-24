@@ -82,10 +82,11 @@ class DesktopValidationMenu {
         }
       });
 
-      // Initialize the selectize object for tags (this is the auto-completing tag picker).
-      this.#tagSelect = $('#select-tag').selectize({
+      // Capped at one item: a pick goes straight to the tag list through onItemAdd, then the box clears.
+      this.#tagSelect = new TomSelect('#select-tag', {
         maxItems: 1,
-        placeholder: 'Add more tags here',
+        placeholder: i18next.t('validate:validate-menu.tag-search-placeholder'),
+        refreshThrottle: 0, // Filter on every keystroke, so a quick Enter picks from the current list.
         labelField: 'tag_name',
         valueField: 'tag_name',
         searchField: 'tag_name',
@@ -103,16 +104,23 @@ class DesktopValidationMenu {
           this.#addTag(tagName, false);
         },
         render: {
-          option: (item, escape) => {
+          no_results: () => {
+            return `<div class="no-results">${i18next.t('validate:validate-menu.tag-search-no-results')}</div>`;
+          },
+          option: (item) => {
             // Add an example image tooltip to the tag.
             const translatedTagName = i18next.t(`common:tag.${item.tag_name.replace(/:/g, '-')}`);
-            const $tagDiv = $(`<div class="option tag-pill tag-pill--interactive">${escape(translatedTagName)}</div>`);
+            const tagDiv = document.createElement('div');
+            tagDiv.className = 'tag-pill tag-pill--interactive';
+            tagDiv.textContent = translatedTagName;
             const tooltipText = `"${translatedTagName}" example`;
-            this.#addTooltip($tagDiv, tooltipText, util.assetPath(`images/examples/tags/${item.tag_id}.png`));
-            return $tagDiv[0];
+            this.#addTooltip(tagDiv, tooltipText, util.assetPath(`images/examples/tags/${item.tag_id}.png`));
+            return tagDiv;
           },
         },
       });
+      // Gives the box a name for screen readers, using the header above it.
+      this.#tagSelect.control_input.setAttribute('aria-labelledby', 'validate-tags-header');
     }
 
     // Add onclick for disagree and unsure reason buttons.
@@ -270,13 +278,13 @@ class DesktopValidationMenu {
         $reasonButton.html(buttonInfo.buttonText);
 
         // Remove any old tooltip (from a previous label type) and add a new tooltip.
-        $reasonButton.tooltip('destroy');
+        $reasonButton.removeAttr('data-ps-tooltip');
         if (buttonInfo.tooltipImage) {
           util.getImage(buttonInfo.tooltipImage).then((img) => {
-            this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
+            this.#addTooltip(reasonButton, buttonInfo.tooltipText, img);
           });
         } else {
-          this.#addTooltip($reasonButton, buttonInfo.tooltipText);
+          this.#addTooltip(reasonButton, buttonInfo.tooltipText);
         }
 
         $reasonButton.addClass('defaultOption');
@@ -420,20 +428,15 @@ class DesktopValidationMenu {
   }
 
   /**
-   * Adds a jquery tooltip to the given element with the given text and image (if given).
-   * @param {JQuery} $elem - Element to add the tooltip to, as jquery wrapped object.
+   * Adds a tooltip to the given element with the given text and image (if given).
+   * @param {Element} elem - Element to add the tooltip to.
    * @param {string} tooltipText - Text to display in the tooltip.
    * @param {string} [img] - Optional image to display in the tooltip.
    */
-  #addTooltip($elem, tooltipText, img) {
+  #addTooltip(elem, tooltipText, img) {
+    if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
     const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" class="validate-tooltip-img"/>` : tooltipText;
-    $elem.tooltip(({
-      placement: 'auto top', // Prefer above the element, but flip below when it doesn't fit in the viewport.
-      html: true,
-      container: 'body',
-      delay: { show: 500, hide: 10 },
-      title: tooltipHtml,
-    })).tooltip('show').tooltip('hide');
+    elem.setAttribute('data-ps-tooltip', tooltipHtml);
   }
 
   // TAG SECTION.
@@ -454,8 +457,8 @@ class DesktopValidationMenu {
     // New tag added, add to list and rerender.
     svv.tracker.push(`Click=TagAdd_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
     currLabel.getProperty('newTags').push(tagName);
-    this.#tagSelect[0].selectize.clear();
-    this.#tagSelect[0].selectize.removeOption(tagName);
+    this.#tagSelect.clear();
+    this.#tagSelect.removeOption(tagName);
     this.#renderTags();
     svv.labelCard?.render(currLabel);
   }
@@ -473,7 +476,7 @@ class DesktopValidationMenu {
   #removeTagListener(e, label) {
     const allTagOptions = structuredClone(svv.tagsByLabelType[label.getProperty('newLabelType')] ?? []);
     const tagElem = $(e.target).parents('.current-tag');
-    tagElem.tooltip('destroy');
+    tagElem.removeAttr('data-ps-tooltip');
     const tagIdToRemove = tagElem.data('tag-id');
     const tagToRemove = allTagOptions.find((t) => t.tag_id === tagIdToRemove).tag_name;
     this.#removeTag(tagToRemove, label, false);
@@ -507,7 +510,7 @@ class DesktopValidationMenu {
       // Add an example image tooltip to the tag.
       const tagId = allTagOptions.find((t) => t.tag_name === tag).tag_id;
       const tooltipText = `"${translatedTagName}" example`;
-      this.#addTooltip($tagDiv, tooltipText, util.assetPath(`images/examples/tags/${tagId}.png`));
+      this.#addTooltip($tagDiv[0], tooltipText, util.assetPath(`images/examples/tags/${tagId}.png`));
 
       // Add to current list of tags, and remove from options for new tags to add.
       menuUI.currentTags.append($tagDiv);
@@ -522,8 +525,8 @@ class DesktopValidationMenu {
     }
 
     // Clear the possible tags to add and add all appropriate options.
-    this.#tagSelect[0].selectize.clearOptions();
-    this.#tagSelect[0].selectize.addOption(allTagOptions);
+    this.#tagSelect.clearOptions();
+    this.#tagSelect.addOption(allTagOptions);
 
     // AI SUGGESTION TAGS SECTION.
     // Remove all AI suggested tags from the previous label.
@@ -576,11 +579,11 @@ class DesktopValidationMenu {
 
         // Show tooltip with example image for the tag.
         const tooltipText = `"${translatedTagName}" example`;
-        this.#addTooltip(template, tooltipText, util.assetPath(`images/examples/tags/${tag.tag_id}.png`));
+        this.#addTooltip(template[0], tooltipText, util.assetPath(`images/examples/tags/${tag.tag_id}.png`));
 
         // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
         template.on('click', () => {
-          template.tooltip('destroy'); // Fix for the tooltip showing up on later labels, #4071.
+          template.removeAttr('data-ps-tooltip'); // Fix for the tooltip showing up on later labels, #4071.
           if (tag.action === 'add') {
             this.#addTag(tag.tag_name, true);
           } else {
@@ -610,12 +613,10 @@ class DesktopValidationMenu {
 
     // Add example image tooltips to the severity buttons after removing old ones (in case label type changed).
     for (const severityButton of menuUI.severityMenu.find('.severity-button')) {
-      const $button = $(severityButton);
       const sev = severityButton.dataset.severity;
       const tooltipText = i18next.t(`common:${tooltipKey}-${sev}`);
       const tooltipImage = util.assetPath(`images/examples/severity/${labelType}_Severity${sev}.png`);
-      $button.tooltip('destroy');
-      this.#addTooltip($button, tooltipText, tooltipImage);
+      this.#addTooltip(severityButton, tooltipText, tooltipImage);
 
       const labelSpan = severityButton.querySelector('.severity-button__label');
       if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[Number(sev)]}`);

@@ -227,8 +227,6 @@ class LabelTypeDropdown {
         const opening = /** @type {ToggleEvent} */ (e).newState === 'open';
         if (!opening) return;
         if (!this.#mayOpen()) e.preventDefault();
-        // Before its first paint: `toggle` only fires once it is already up, so placing there flashes it in the
-        // corner of the window first.
         else this.#place();
       });
       popover.addEventListener('toggle', (e) => {
@@ -318,31 +316,8 @@ class LabelTypeDropdown {
     /** @type {?HTMLElement} */ (this.#popover.querySelector('.label-type-picker__chip[tabindex="0"]'))?.focus();
   }
 
-  /** A popover is centered in the window by default; this parks it under the button. */
+  /** Parks the popover under its button, since a popover opens centered in the window by default. */
   #place() {
-    const anchor = this.#button.getBoundingClientRect();
-    const { width, height } = this.#size();
-    const left = Math.max(8, Math.min(anchor.left, window.innerWidth - width - 8));
-    // Above the button where there is no room below, so a card low in the pano still gets the whole list.
-    const above = anchor.top - 6 - height;
-    const below = anchor.bottom + 6;
-    this.#popover.style.left = `${left}px`;
-    this.#popover.style.top = `${below + height + 8 > window.innerHeight && above >= 8 ? above : below}px`;
-  }
-
-  /**
-   * A closed popover has no size, so it is laid out out of sight for an instant to measure it. Nothing paints
-   * mid-handler, so none of that reaches the screen.
-   * @returns {{width: number, height: number}} The popover's size in px.
-   */
-  #size() {
-    if (this.#popover.offsetWidth) {
-      return { width: this.#popover.offsetWidth, height: this.#popover.offsetHeight };
-    }
-    const style = this.#popover.style;
-    Object.assign(style, { display: 'block', visibility: 'hidden', left: '0px', top: '0px' });
-    const size = { width: this.#popover.offsetWidth, height: this.#popover.offsetHeight };
-    Object.assign(style, { display: '', visibility: '' });
-    return size;
+    util.placePopover(this.#popover, this.#button);
   }
 }

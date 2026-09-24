@@ -111,6 +111,10 @@ class GsvViewer extends PanoViewer {
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
+      // Let the keys through in a text field, where they move the cursor rather than the pano.
+      if (e.target instanceof HTMLTextAreaElement || (e.target instanceof HTMLInputElement && e.target.type === 'text')) {
+        return;
+      }
       if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
         e.stopPropagation();
       }
@@ -297,7 +301,7 @@ class GsvViewer extends PanoViewer {
    * one at 46 m. Holding the reply to the radius is the only enforcement there is, and the reply already carries the
    * position, so it costs no extra request.
    *
-   * A point test, not the imagery scan's street-aware one (scripts/check_streets_for_imagery.py), because a location
+   * A point test, not the imagery scan's street-aware one (tools/city/check_streets_for_imagery.py), because a location
    * search here has no street attached. Explore gets the street-aware behaviour anyway from how it samples: the walk
    * (moveForward) and the start-of-street backups step along the street every NavigationService.DIST_INCREMENT
    * (10 m), and a seed off the street falls back to its projection onto it first (PanoManager.backupPointsAlongStreet),

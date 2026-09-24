@@ -472,7 +472,8 @@ class AdminController @Inject() (
         panoDataService
           .cropUrl(id, LabelTypeEnum.byName(labelType))
           .orElse(metaById.get(id).flatMap { m =>
-            panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom)
+            panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
+              m.canvasHeight)
           })
       case _ => None
     }
@@ -822,6 +823,7 @@ class AdminController @Inject() (
             Json.obj(
               "city_id"      -> city.cityId,
               "city_name"    -> cityName,
+              "url"          -> cityInfoById.get(city.cityId).map(_.URL),
               "labels"       -> city.labels,
               "validations"  -> city.validations,
               "contributors" -> city.contributors
@@ -832,7 +834,19 @@ class AdminController @Inject() (
               "username"    -> c.username,
               "kind"        -> c.kind.toString,
               "labels"      -> c.labels,
-              "validations" -> c.validations
+              "validations" -> c.validations,
+              // Each city's URL rides along so the pinned card can link a name to that person's admin page on the
+              // deployment that holds their work (#5495).
+              "cities" -> JsArray(c.cities.map { city =>
+                val info = cityInfoById.get(city.cityId)
+                Json.obj(
+                  "city_id"     -> city.cityId,
+                  "city_name"   -> info.map(_.cityNameShort).getOrElse[String](city.cityId),
+                  "url"         -> info.map(_.URL),
+                  "labels"      -> city.labels,
+                  "validations" -> city.validations
+                )
+              })
             )
           })
         )

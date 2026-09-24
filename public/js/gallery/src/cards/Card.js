@@ -2,6 +2,9 @@
  * A Card module.
  */
 class Card {
+  // Width:height of the card's photo box (.static-gallery-image fills a 3:2 container); crops are cover-fitted into it.
+  static CARD_IMAGE_ASPECT = 3 / 2;
+
   #params;
   #cropUrl;
   #cropMarker;
@@ -34,6 +37,8 @@ class Card {
     zoom: undefined,
     original_canvas_x: undefined,
     original_canvas_y: undefined,
+    original_canvas_width: undefined,
+    original_canvas_height: undefined,
     severity: undefined,
     description: undefined,
     street_edge_id: undefined,
@@ -104,6 +109,9 @@ class Card {
     properties.pov = { heading: param.heading, pitch: param.pitch, zoom: param.zoom };
     properties.original_canvas_x = param.canvas_x;
     properties.original_canvas_y = param.canvas_y;
+    // The frame the click was made in (#5085); the boxed 720x480 covers payloads that predate the columns.
+    properties.original_canvas_width = param.canvas_width ?? util.EXPLORE_CANVAS_WIDTH;
+    properties.original_canvas_height = param.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT;
     properties.val_counts = {
       Agree: param.agree_count,
       Disagree: param.disagree_count,
@@ -208,15 +216,7 @@ class Card {
     this.#positionMarker();
     markerWrapper.appendChild(labelIcon);
     if (properties.ai_generated) {
-      const aiIndicator = aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']);
-      markerWrapper.appendChild(aiIndicator);
-      $(aiIndicator)
-        .tooltip({
-          template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div>'
-            + '<div class="tooltip-inner"></div></div>',
-          container: 'body',
-        })
-        .tooltip('hide');
+      markerWrapper.appendChild(aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']));
     }
     imageHolder.appendChild(markerWrapper);
     imageHolder.appendChild(panoImage);
@@ -283,11 +283,15 @@ class Card {
   }
 
   /**
-   * @returns {{x: number, y: number}} Fractions of the image's width and height.
+   * @returns {{x: number, y: number}} Fractions of the card's 3:2 photo box, into which the image is cover-fitted.
    */
   #markerFraction() {
     return util.misc.labelMarkerFraction(this.#status.imageSource, this.#cropMarker,
-      this.#properties.original_canvas_x, this.#properties.original_canvas_y);
+      this.#properties.original_canvas_x, this.#properties.original_canvas_y, {
+        canvasWidth: this.#properties.original_canvas_width,
+        canvasHeight: this.#properties.original_canvas_height,
+        boxAspect: Card.CARD_IMAGE_ASPECT,
+      });
   }
 
   /** Custom properties rather than offsets, so the marker's centring on the point stays in CSS beside its size. */

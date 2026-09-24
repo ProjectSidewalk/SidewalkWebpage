@@ -44,6 +44,8 @@ test('/explore loads the tutorial without console errors', async ({page, context
   await page.waitForTimeout(1000);
   expect(reloads, 'page reloaded — pano viewer creation failed at the starting location').toBe(0);
   expect(consoleErrors).toEqual([]);
+  // The tutorial's choreography assumes the boxed layout, so the immersive-mode toggle (#5085) stays out of it.
+  await expect(page.locator('#immersive-toggle-holder')).toBeHidden();
 });
 
 test('/validate falls back to Pannellum and the backup image for an expired pano', async ({page, consoleErrors}) => {

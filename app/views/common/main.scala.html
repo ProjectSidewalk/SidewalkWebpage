@@ -39,7 +39,7 @@
    data-measurement-system does the same for units (ControllerUtils.measurementSystem): the user's override if they
    set one, else the language default, resolved once here so util.isMetric() can't disagree with the server.
    data-pano-scoring carries conf/pano-scoring.json, which the Mapillary and Panoramax viewers read back through
-   util.pano.scoring() and scripts/check_streets_for_imagery.py reads off disk. Stamped here rather than beside each
+   util.pano.scoring() and tools/city/check_streets_for_imagery.py reads off disk. Stamped here rather than beside each
    of the dozen pano-viewer.js script tags so a new page that loads a viewer can't forget it (#4411). *@
 <html lang="@messages.lang.code" data-mobile-device="@ControllerUtils.isMobile" data-measurement-system="@ControllerUtils.measurementSystem" data-pano-scoring="@PanoScoring.json">
   <head>
@@ -68,11 +68,8 @@
     <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.6.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
     <link href='@assets.path("vendor/bootstrap/css/bootstrap-3.3.5.min.css")' rel='stylesheet'>
-    <link href='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.css")' rel='stylesheet'>
 
     <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
-    <script src='@assets.path("vendor/bootstrap/js/bootstrap-3.1.1.min.js")'></script>
-    <script src='@assets.path("vendor/bootstrap-accessibility/bootstrap-accessibility.min.js")'></script>
 
     <script>
       (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({

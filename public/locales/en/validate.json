@@ -16,6 +16,8 @@
   },
   "validate-menu": {
     "remove-tag": "Remove tag: {{tag}}",
+    "tag-search-placeholder": "Add more tags here",
+    "tag-search-no-results": "No matching tags",
     "disagree-reason": {
       "common": {
         "wrong-type": "This is the wrong label type",

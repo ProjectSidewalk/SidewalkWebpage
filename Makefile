@@ -31,15 +31,15 @@ worktree-force-flag = $(if $(filter 1 true yes,$(force)),--force,)
 import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
-# container's /home, so /home/tools/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
+# container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
 # happens to be on — which may predate the script entirely (#4628). Prefer the worktree's own copy so the branch being
 # QA'd supplies its own tooling, and fall back to the main repo's for worktrees branched before the script existed.
 # Held in a variable rather than written inline in a recipe: make condenses a variable's backslash-continuations into
 # single spaces at parse time, so the container's shell receives one flat line — no reliance on how a given make version
 # passes continuations and leading tabs through to the shell (macOS still ships make 3.81, WSL/Linux run 4.x).
-qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/qa-worktree.sh"; \
-  [ -f "$$script" ] || script=/home/tools/qa-worktree.sh; \
-  [ -f "$$script" ] || { echo "error: no tools/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
+qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/dev/qa-worktree.sh"; \
+  [ -f "$$script" ] || script=/home/tools/dev/qa-worktree.sh; \
+  [ -f "$$script" ] || { echo "error: no tools/dev/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
   exec bash "$$script" $(1)
 # Every wt= target fails fast on a missing name rather than passing an empty one along.
 worktree-require-wt = @[ -n "$(wt)" ] || { echo "usage: make $@ wt=<name>   (a dir under .claude/worktrees/)"; exit 2; }
@@ -58,7 +58,7 @@ check-host-dir = $(if $(findstring /,$(wt)),$(error wt= takes a worktree's name,
 node-modules = /home/node_modules
 # The checkout `make` ran from, whatever wt= points the work at, so a repo script matches the Makefile calling it.
 self-container-dir = /home$(patsubst $(main-root)%,%,$(CURDIR))
-# Same sbt settings as tools/qa-worktree.sh (reuse the main checkout's downloads, cap memory). Set through SBT_OPTS,
+# Same sbt settings as tools/dev/qa-worktree.sh (reuse the main checkout's downloads, cap memory). Set through SBT_OPTS,
 # since sbt drops command-line flags when it starts a background server.
 sbt-opts = -Dsbt.coursier.home=/home/.coursier -Dsbt.global.base=/home/.sbt -Dsbt.boot.directory=/home/.sbt/boot \
            -Dsbt.repository.config=/home/.sbt/repositories -Xmx1536m
@@ -177,20 +177,20 @@ docker-stop:
 # until it does.
 docker-run:
 	@docker compose run --rm --service-ports --name $(web-container) web \
-		/bin/bash -c "bash /home/tools/npm-sync.sh || echo '!! npm-sync failed -- node_modules may be incomplete'; exec /bin/bash"
+		/bin/bash -c "bash /home/tools/dev/npm-sync.sh || echo '!! npm-sync failed -- node_modules may be incomplete'; exec /bin/bash"
 
 # For a container that is already up; `make dev` does this for you. `npm ci` empties node_modules before refilling
-# it, so stop a running `npm start` first. See tools/npm-sync.sh.
+# it, so stop a running `npm start` first. See tools/dev/npm-sync.sh.
 npm-sync:
 	@docker inspect -f '{{.State.Running}}' $(web-container) 2>/dev/null | grep -q true \
 	  || { echo "error: $(web-container) is not running — start it with 'make dev'"; exit 2; }
-	@docker exec $(web-container) bash /home/tools/npm-sync.sh
+	@docker exec $(web-container) bash /home/tools/dev/npm-sync.sh
 
 # Usage: make ssh target=web|db.
 ssh:
 	@docker exec -it $($(target)-container) /bin/bash
 
-# Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/qa-worktree.sh and CLAUDE.md
+# Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/dev/qa-worktree.sh and CLAUDE.md
 # "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
 qa-worktree:
 	$(worktree-require-wt)
@@ -204,11 +204,11 @@ qa-worktree-stop:
 	@docker exec $(web-container) bash -c '$(call qa-worktree-exec,$(wt) --stop $(qa-stop-clean-flag))'
 
 # Tear a worktree down for good: its QA session, its directory, its git registration, and its branch once that branch is
-# in develop. Host-side (git can't reach a worktree from inside the container — see tools/worktree-remove.sh). Add
+# in develop. Host-side (git can't reach a worktree from inside the container — see tools/dev/worktree-remove.sh). Add
 # `force=1` to discard uncommitted work in it. e.g. `make worktree-remove wt=remove-admin-classic`.
 worktree-remove:
 	$(worktree-require-wt)
-	@bash tools/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
+	@bash tools/dev/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh $(import-users-replace-flag)"
@@ -221,7 +221,7 @@ import-dump:
 max-evolution = $(shell ls conf/evolutions/default | sed 's/\.sql$$//' | grep -E '^[0-9]+$$' | sort -n | tail -1)
 # Play's hash of that evolution's file: a donor whose top evolution carries the same hash is certainly on this
 # checkout's evolution, not another branch's under the same number (see create-new-schema.sh).
-max-evolution-hash = $(shell python3 -c 'import sys; sys.path.insert(0, "tools"); import setup_new_city; print(setup_new_city.highest_evolution_hash())')
+max-evolution-hash = $(shell python3 -c 'import sys; sys.path.insert(0, "tools/city"); import setup_new_city; print(setup_new_city.highest_evolution_hash())')
 
 # Clone a live city's structure (+ seed rows) into a new empty schema. e.g.
 # `make create-new-schema name=sidewalk_laurens_ia donor=sidewalk_richmond`; donor defaults to the active dev city.
@@ -236,23 +236,23 @@ fill-new-schema:
 # a country with no registered elevation model, the sampler's own flags once its rasters are downloaded:
 # `args="--dem-dir db/onboarding/cdmx/dem --dem-name inegi-mdt-5m --dem-resolution-m 5"`.
 onboard-city:
-	@python3 tools/setup_new_city.py $(id) $(args)
+	@python3 tools/city/setup_new_city.py $(id) $(args)
 
-# Build a city's street/region staging data + QA GeoPackage (scripts/onboard_city.py, in the web container), passing
+# Build a city's street/region staging data + QA GeoPackage (tools/city/onboard_city.py, in the web container), passing
 # the script's flags via args=. The same target re-exports the SQL after hand edits: a bare --from-gpkg targets the
 # city's own QA GeoPackage.
 # Runs in the main checkout even from a worktree, since the db container only sees that checkout's db/.
 # e.g. `make build-city-data id=newport-ky args="--place 'Newport, Kentucky, USA'"`
 #      `make build-city-data id=newport-ky args="--from-gpkg"`
 build-city-data:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/onboard_city.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/onboard_city.py --city-id $(id) $(args)"
 
-# Imagery preflight or full scan for a city's streets (scripts/check_streets_for_imagery.py, in the web container,
+# Imagery preflight or full scan for a city's streets (tools/city/check_streets_for_imagery.py, in the web container,
 # which holds the provider keys). A preflight samples the build artifacts before the city has a database:
 # e.g. `make check-imagery id=laurens-ia args="--sample 150 --mapillary"`; the full scan (`args="--mapillary"`) is
 # what `make onboard-city` runs for you. Main checkout only, like build-city-data.
 check-imagery:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/check_streets_for_imagery.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/check_streets_for_imagery.py --city-id $(id) $(args)"
 
 hide-streets-without-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/hide-streets-without-imagery.sh"
@@ -261,7 +261,7 @@ import-street-imagery:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-imagery.sh"
 
 # Street gradient (#5223, docs/street-gradient.md) in three steps: export the streets that need sampling, sample them
-# against a bare-earth elevation model (scripts/street_gradient.py, in the web container), load the result. The export
+# against a bare-earth elevation model (tools/city/street_gradient.py, in the web container), load the result. The export
 # takes `args=--all` to resample every street, `args=--allow-empty-osm-way` for a city with no OSM ways, and
 # `args="--structures onboarding/<city-id>/street_structures.csv"` to take the bridge/tunnel flags from the street
 # build instead of the nightly osm_way cache (what onboard-city does). The export and import prompt for the schema
@@ -272,7 +272,7 @@ export-street-gradient-input:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/export-street-gradient-input.sh $(args)"
 
 street-gradient:
-	@docker exec -it $(web-container) sh -c "cd /home && python3.13 scripts/street_gradient.py --city-id $(id) $(args)"
+	@docker exec -it $(web-container) sh -c "cd /home && python3.13 tools/city/street_gradient.py --city-id $(id) $(args)"
 
 import-street-gradient:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-street-gradient.sh $(args)"
@@ -285,8 +285,8 @@ import-street-gradient:
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
                     --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
 pytest-args-tools = test/python --ignore=test/python/test_label_clustering.py
-cov-omit-app      = -e COVERAGE_OMIT=scripts/check_streets_for_imagery.py -e COVERAGE_OMIT2=scripts/onboard_city.py \
-                    -e COVERAGE_OMIT3=scripts/street_gradient.py
+cov-omit-app      = -e COVERAGE_OMIT=tools/city/check_streets_for_imagery.py -e COVERAGE_OMIT2=tools/city/onboard_city.py \
+                    -e COVERAGE_OMIT3=tools/city/street_gradient.py
 cov-omit-tools    = -e COVERAGE_OMIT=scripts/label_clustering.py
 
 # Both halves run even when the first fails, matching CI's `fail-fast: false`; prerequisites would stop at the first.
@@ -368,7 +368,7 @@ lint-evolutions:
 # rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-locales:
 	@echo "Running locale checks...";
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-locale-parity.mjs"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-locale-parity.mjs"
 	@echo "Finished locale checks";
 
 # Layout of public/css/ (#5030): a page's stylesheet is linked only by that page, page class prefixes stay in the
@@ -376,7 +376,7 @@ lint-locales:
 # blocking CI step.
 lint-css-layout:
 	@echo "Checking CSS layout...";
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-css-layout.mjs"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-css-layout.mjs"
 	@echo "Finished checking CSS layout";
 
 # Asset URLs in public/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
@@ -384,7 +384,7 @@ lint-css-layout:
 # literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-asset-paths:
 	@echo "Checking asset paths...";
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-asset-paths.mjs"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-asset-paths.mjs"
 	@echo "Finished checking asset paths";
 
 # Self-hosted libraries in public/vendor/ (#4399): every folder is listed in docs/upgrading-libraries.md, and the
@@ -393,31 +393,31 @@ lint-asset-paths:
 # present. Also a blocking CI step.
 lint-vendor-versions:
 	@echo "Checking vendor versions...";
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-vendor-versions.mjs"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-vendor-versions.mjs"
 	@echo "Finished checking vendor versions";
 
 # Type-checks public/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
 lint-js-types:
 	@echo "Checking JS types...";
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/check-js-types.mjs"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-js-types.mjs"
 	@echo "Finished checking JS types";
 
-# The sbt targets below go through tools/sbt-run.sh; its header says what that guards against.
+# The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.
 #
 # Scala formatting (.scalafmt.conf). `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/sbt-run.sh --dir $(container-dir) scalafmtCheckAll"
+	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll"
 
 scalafmt-fix:
-	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/sbt-run.sh --dir $(container-dir) scalafmtAll"
+	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtAll"
 
 # Compile, and run the Scala tests (which need the db container). Narrow the tests with only=, e.g.
 # `make test-scala only=controllers.api.PublicApiSpec`. A test run waits for any other checkout's to finish first.
 compile:
-	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/sbt-run.sh --dir $(container-dir) compile"
+	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) compile"
 
 test-scala:
-	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
+	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
 
 # Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,
 # keeping compiled classes so the next `make compile` is still incremental.

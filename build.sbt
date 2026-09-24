@@ -4,7 +4,7 @@ import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
-version := "11.15.0"
+version := "11.16.0"
 
 scalaVersion := "2.13.18"
 
@@ -153,7 +153,7 @@ Compile / sourceGenerators += Def.task {
 // `util.assetPath` (#4893). Everything under these prefixes goes into the generated inventory below, which
 // AssetManifestService turns into the `window.assetDigests` stamp main.scala.html puts on every page.
 //
-// tools/check-asset-paths.mjs parses this Seq to decide which logical paths `util.assetPath` may name, so keep the
+// tools/lint/check-asset-paths.mjs parses this Seq to decide which logical paths `util.assetPath` may name, so keep the
 // literal shape — one quoted prefix per line. `locales` is deliberately absent: i18next-http-backend interpolates its
 // own `loadPath` template, so those URLs never reach the helper.
 val assetManifestPrefixes = Seq(

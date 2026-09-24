@@ -28,15 +28,25 @@ class Main {
     svl.isExploreAddressMode = () => this.#params.mission.mission_type === 'exploreAddress';
     svl.regionId = params.regionId;
 
-    // Both are derived from --ui-scale and refreshed by applyExploreScale() below, which owns that variable. They
-    // start at their scale-1 values because the tool renders at scale 1 until that first call (#4838).
+    // All three are derived from the displayed pano's size and refreshed by applyExploreScale() below. They start at
+    // their scale-1, boxed values because the tool renders at scale 1 until that first call (#4838, #5085).
+    svl.CANVAS_FRAME = { width: util.EXPLORE_CANVAS_WIDTH, height: util.EXPLORE_CANVAS_HEIGHT };
     svl.LABEL_ICON_RADIUS = util.labelIconRadius(1);
     svl.LABEL_HIT_MARGIN = util.labelHitMargin(1);
+    /**
+     * The horizontal fov the pano viewer renders at a zoom for the current frame, which the projection has to be fed
+     * off 3:2 because GSV clamps its vertical field on wide viewports (#5083, #5085).
+     * @param {number} zoom - The viewer zoom.
+     * @returns {number} Degrees.
+     */
+    svl.renderedHFov = (zoom) => util.pano.renderedHFov(
+      zoom, svl.CANVAS_FRAME.width / svl.CANVAS_FRAME.height, svl.panoViewer.getViewerType(),
+    );
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
     // Pano search radius in meters. GsvViewer also rejects any reply farther than this, since Google's radius is only
-    // a hint (#5114); scripts/check_streets_for_imagery.py and Task.ON_STREET_MAX_DISTANCE_M mirror it.
+    // a hint (#5114); tools/city/check_streets_for_imagery.py and Task.ON_STREET_MAX_DISTANCE_M mirror it.
     svl.STREETVIEW_MAX_DISTANCE = 25;
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
     svl.CONNECTED_TASK_THRESHOLD = 0.025; // 25 meters.
@@ -195,6 +205,34 @@ class Main {
     svl.feedbackModal = new FeedbackModal(svl, svl.tracker, svl.ribbon, svl.taskContainer);
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
+    // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
+    svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout?.());
+
+    // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
+    // they never carry it. svl.keyboard is built later, hence the lookups at call time. Suspending the shortcuts
+    // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano; the suspension is
+    // only undone if the panel was what suspended them, since a pop-up can disable the keyboard while it is open.
+    svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    let panelSuspendedKeyboard = false;
+    svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
+      document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
+        onOpen: () => {
+          svl.tracker.push('Click_ImageAdjustments_Open');
+          panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');
+          if (panelSuspendedKeyboard) svl.keyboard.disableKeyboard();
+        },
+        onClose: (via) => {
+          svl.tracker.push('Click_ImageAdjustments_Close', { via });
+          if (panelSuspendedKeyboard) svl.keyboard.enableKeyboard();
+          panelSuspendedKeyboard = false;
+        },
+        onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
+        onReset: () => svl.tracker.push('Click_ImageAdjustments_Reset'),
+      });
+    // The Image pill hides in the chevron's menu, so mirror its active state onto the chevron while the menu is closed.
+    svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault());
+    svl.imageAdjustments.onChange(() =>
+      svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault()));
 
     // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
     // capture date and the audit note is the one place it would read as belonging to neither (#5413).
@@ -252,13 +290,6 @@ class Main {
     signInModal?.addEventListener('ps:modal:show', () => {
       svl.popUpMessage.disableInteractions();
       $('.tool-ui').css('opacity', 0.5);
-    });
-
-    // Ribbon-button tooltip attributes are set in RibbonMenu (which owns those buttons); this just initializes them.
-    $('[data-toggle="tooltip"]').tooltip({
-      delay: { show: 500, hide: 100 },
-      html: true,
-      container: 'body',
     });
 
     // Clean up the URL in the address bar.
@@ -546,26 +577,50 @@ class Main {
 
       // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
       const applyExploreScale = () => {
-        const scale = util.applyToolScale(
-          ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
+        // Immersive mode (#5085) sizes the pano with CSS and floats the controls over it, so the scale fits only the
+        // pano-wide ribbon and its own height into the whole window, with no page margins to keep clear of.
+        const immersive = svl.immersiveMode?.isActive() ?? false;
+        util.applyToolScale(
+          immersive ? ['--pano-base-width'] : ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
           ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
+          immersive ? { maxScale: 3, hMargin: 0, bottomReserve: 0 } : {},
         );
-        // The label icon and its click target are capped in screen px, so both depend on the scale just applied
-        // (#4838). Cached rather than computed per render: they're read once per label per canvas render, and per
-        // label on every mousemove, and each read would otherwise force a style recalculation.
-        svl.LABEL_ICON_RADIUS = util.labelIconRadius(scale);
-        svl.LABEL_HIT_MARGIN = util.labelHitMargin(scale);
+        // The logical frame follows the displayed pano's aspect (#5085), and the label icon and its click target are
+        // capped in screen px, so they depend on the pano's display scale (#4838), which is --ui-scale in the boxed
+        // tool but not in a fill-window one. Cached rather than computed per render: they're read once per label per
+        // canvas render, and per label on every mousemove, and each read would otherwise force a style recalculation.
+        const displayScale = util.exploreDisplayScale();
+        svl.CANVAS_FRAME = util.exploreCanvasFrame();
+        svl.LABEL_ICON_RADIUS = util.labelIconRadius(displayScale);
+        svl.LABEL_HIT_MARGIN = util.labelHitMargin(displayScale);
+        // Toasts float 10% down the pano, which in immersive mode is where the label-type strip is; keep them under it.
+        const pano = document.getElementById('pano');
+        const ribbon = document.getElementById('ribbon-menu-holder');
+        if (immersive && pano && ribbon) {
+          pano.style.setProperty('--toast-min-top', `${ribbon.getBoundingClientRect().bottom + 8 * displayScale}px`);
+        } else if (pano) {
+          pano.style.removeProperty('--toast-min-top');
+        }
       };
-      applyExploreScale();
-      // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
-      // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
-      // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
-      svl.panoViewer.resize();
-      svl.panoViewer.repaint();
-      // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
-      if (svl.canvas) svl.canvas.resize();
-      if (svl.onboarding) svl.onboarding.resize();
-      if (svl.observedArea) svl.observedArea.update();
+      /**
+       * Re-lays out the tool for its current box: rescale, then re-raster the canvases and tell the pano viewer its
+       * element changed size. Synchronous, so a layout switch (immersive mode, #5085) lands in one frame.
+       */
+      svl.relayout = () => {
+        applyExploreScale();
+        // A live toast is anchored to the pano's old box; nothing else tells it the box moved.
+        Toast.repositionAll();
+        // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
+        // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
+        // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
+        svl.panoViewer?.resize();
+        svl.panoViewer?.repaint();
+        // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
+        if (svl.canvas) svl.canvas.resize();
+        if (svl.onboarding) svl.onboarding.resize();
+        if (svl.observedArea) svl.observedArea.update();
+      };
+      svl.relayout();
       // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
       if (svl.observedArea && svl.minimap) {
         google.maps.event.addListenerOnce(svl.minimap.getMap(), 'bounds_changed', () => svl.observedArea.update());

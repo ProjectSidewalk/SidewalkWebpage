@@ -138,11 +138,16 @@ class Main {
     svv.ui.status.upperMenuTitle = $('#mission-title');
     svv.ui.status.zoomInButton = $('#zoom-in-button');
     svv.ui.status.zoomOutButton = $('#zoom-out-button');
+    // A tap would pin the markup's tooltips open on a touch device; the ones added by script check the same query.
+    if (!window.matchMedia('(hover: hover)').matches) {
+      document.querySelectorAll('[data-ps-tooltip]').forEach((el) => el.removeAttribute('data-ps-tooltip'));
+    }
     svv.ui.status.labelVisibilityControlButton = $('#label-visibility-control-button');
 
     svv.ui.status.admin = {
       holder: $('#admin-info-section'),
       button: $('#admin-info-button'),
+      popover: $('#admin-info-popover'),
       template: $('#admin-info-template'),
     };
 
@@ -335,15 +340,6 @@ class Main {
       svv.keyboard?.disableKeyboard();
       $('.tool-ui').css('opacity', 0.5);
     });
-
-    // Initialize bootstrap tooltips (except on touch devices).
-    if (window.matchMedia('(hover: hover)').matches) {
-      $('[data-toggle="tooltip"]').tooltip({
-        delay: { show: 500, hide: 100 },
-        html: true,
-        container: 'body',
-      });
-    }
   }
 
   /**

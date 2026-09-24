@@ -175,25 +175,12 @@ class MissionController {
     // Show the survey modal if the user has just completed more than 60% (but less than 90%) of the current
     // mission. The server decides whether the survey should actually be shown (e.g. not shown twice).
     if (completionRate > 0.6 && completionRate < 0.9) {
-      $.ajax({
-        async: true,
-        url: '/survey/display',
-        method: 'GET',
-        success(data) {
-          if (data.displayModal) {
-            $('#survey-modal-container').modal({
-              backdrop: 'static',
-              keyboard: false,
-            });
-
-            // Log in the webpage activity table if the survey has been shown.
-            window.logWebpageActivity('SurveyShown', true);
-          }
-        },
-        error(xhr, ajaxOptions, thrownError) {
-          console.log(thrownError);
-        },
-      });
+      fetch('/survey/display').then((response) => response.json()).then((data) => {
+        if (data.displayModal) {
+          svl.modalSurvey.open();
+          window.logWebpageActivity('SurveyShown', true);
+        }
+      }).catch((error) => console.log(error));
     }
   }
 }

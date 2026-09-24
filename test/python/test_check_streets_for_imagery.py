@@ -1,5 +1,5 @@
 """
-Unit tests for scripts/check_streets_for_imagery.py.
+Unit tests for tools/city/check_streets_for_imagery.py.
 
 Covers the pure helpers (bounding box, vertex interpolation, response parsers, capture-date parsing, Mapillary
 pano ranking, decision thresholds), the retry/fetch and per-street worker (including imagery-age capture), the

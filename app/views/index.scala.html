@@ -5,7 +5,7 @@
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], openStatus: String,
   mapathonLink: Option[String], streetDistance: Double, auditedDistance: Double, labelCount: Int, valCount: Int,
-  partners: Seq[models.partner.PartnerMetadata]
+  partners: Seq[models.partner.PartnerMetadata], officialContact: Option[models.utils.OfficialContact]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -262,7 +262,7 @@
       @common.cityPopupTemplate()
     </div>
 
-    @landing._partners(partners, currentCity.cityNameShort)
+    @landing._partners(partners, officialContact, currentCity.cityNameShort)
 
 
     @* Deferred: every reference below sits inside an appManager.ready callback, which runs off $(document).ready and so lands after all deferred scripts. i18next and its http backend are NOT re-included here — common/main.scala.html already loads both, deferred, on every page (#4486). *@

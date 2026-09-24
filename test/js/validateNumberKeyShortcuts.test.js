@@ -204,6 +204,36 @@ describe('KeyboardManager number-key shortcuts', () => {
         });
     });
 
+    describe('Enter', () => {
+        /** Presses Enter from whatever has focus. */
+        function pressEnter() {
+            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter', bubbles: true, cancelable: true }));
+        }
+
+        beforeEach(() => {
+            document.body.innerHTML = '<input id="select-tag-ts-control" type="text"><input id="other" type="text">';
+            validationMenuUi.submitButton.click = jest.fn();
+        });
+
+        afterEach(() => {
+            document.body.innerHTML = ''; // A box left focused would mute the shortcuts in later tests.
+        });
+
+        it('submits from anywhere else, a comment box included', () => {
+            document.getElementById('other').focus();
+            pressEnter();
+
+            expect(validationMenuUi.submitButton.click).toHaveBeenCalled();
+        });
+
+        it('is the tag picker\'s own key while its box has focus, so it does not submit', () => {
+            document.getElementById('select-tag-ts-control').focus();
+            pressEnter();
+
+            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+        });
+    });
+
     describe('Ctrl+Z, the other way to press Back (#5409)', () => {
         let undoButton;
 

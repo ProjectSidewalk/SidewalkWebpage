@@ -55,7 +55,7 @@ make build-city-data id=bayonne-fr args="--boundary-file bayonne.geojson --regio
     --region-name-col nom --regions-source 'https://www.data.gouv.fr/… (Ville de Bayonne, Licence Ouverte 2.0)'"
 ```
 
-`scripts/onboard_city.py` geocodes the boundary (or reads yours), fetches the streets from OpenStreetMap with the
+`tools/city/onboard_city.py` geocodes the boundary (or reads yours), fetches the streets from OpenStreetMap with the
 same highway filter the QGIS runbook used (`--include-alleys` for `service=alley`), splits them only where included
 ways meet, and applies the anti-tiny-segment rules from #4717: pieces under 20 m left between close intersections
 (roundabout arcs, dual-carriageway stubs) merge back into a touching piece of the same OSM way, never closing a ring;
@@ -115,7 +115,7 @@ make onboard-city id=laurens-ia
 make onboard-city id=laurens-ia args="--skip-scan"        # any of the script's flags go through args=
 ```
 
-`tools/setup_new_city.py` is host-side and stdlib-only; it edits repo files and drives the two containers. It pauses
+`tools/city/setup_new_city.py` is host-side and stdlib-only; it edits repo files and drives the two containers. It pauses
 where a person is needed and skips whatever a previous run already did. **Run it from the checkout the containers
 were started from** — they mount that checkout's `db/` at `/opt` and the whole tree at `/home`, and every db step
 reads that copy, so from a git worktree or a second clone the script would check its own artifacts and evolutions
@@ -139,10 +139,10 @@ its default either way.
    and prints the translation keys you still owe. The false-by-default flags (`private-profiles-by-default`,
    `global-leaderboard-excluded`, `ai-label-submission-enabled`) are left unset.
 2. **Google Analytics** — with `ga-service-account.json` in the repo root (one-time setup in
-   `tools/create_ga_properties.py`), creates the prod and test properties inside the existing GA accounts and fills
+   `tools/city/create_ga_properties.py`), creates the prod and test properties inside the existing GA accounts and fills
    both the `G-…` measurement ids and the numeric property ids. Skipped with a pointer otherwise; run the script
    standalone later. Then it asks to add both URLs' hostnames to the production Maps key's referrers
-   (`tools/maps_key_referrers.py`, which only ever appends); without them the city's map and panos don't load. It
+   (`tools/city/maps_key_referrers.py`, which only ever appends); without them the city's map and panos don't load. It
    needs `gcloud` signed in as an identity that can edit the key, and when gcloud can't read or edit it, the step is
    skipped with a pointer.
 3. **Schema** — `db/scripts/create-new-schema.sh` clones a **donor** city's structure and seed rows (evolutions,
@@ -186,7 +186,7 @@ its default either way.
    provider (resumable; an hour or so for a mid-sized city), hides the no-imagery streets, and imports the imagery-age
    summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up.
 8. **Street gradient** — exports the streets with the build's `street_structures.csv` standing in for the `osm_way`
-   cache, samples the elevation model registered for the city's country (`scripts/street_gradient.py`, seconds for
+   cache, samples the elevation model registered for the city's country (`tools/city/street_gradient.py`, seconds for
    most cities), and imports the result into `street_gradient`, so the grades ride into prod inside the dump
    ([`street-gradient.md`](street-gradient.md)). A country with no registered model (every one but the USA today)
    gets the hand-download recipe printed and the run goes on; once the rasters are downloaded, rerun with
@@ -212,7 +212,8 @@ its default either way.
   owed (`docs/internationalization.md`). `make lint-locales` must stay green.
 - **The `config` row.** The clone carries the donor's `excluded_tags` (a European city may want a different set),
   `update_offset_hours` (assigned from the load-spreading spreadsheet), and `make_crops`; the fill prints all three
-  and clears the donor's `mapathon_event_link`. Check them before launch.
+  and clears the donor's `mapathon_event_link` and official contact. If the city's government wants residents
+  pointed to its own contact page (#5462), set it on `/admin/partners` after launch. Check them before launch.
 - **Visual QA.** Land on the site as the new city (`SIDEWALK_CITY_ID` + `DATABASE_USER` in
   `docker-compose.override.yml`, recreate the container): the map centers on the city, neighborhood names read right,
   one street walks in Explore on the chosen imagery, the Explore tag lists match `excluded_tags`. Two things the
@@ -244,7 +245,7 @@ its default either way.
   dump step. The QA data stays in your local schema and out of the dump; the one thing the step changes is the
   street priorities a walk moved, which it resets to the fill's 1 on a `y`. Then the IT tooling
   (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs if step 2
-  skipped them (`python3 tools/maps_key_referrers.py <city-id>`), DNS, and the PR with the config, message, and docs
+  skipped them (`python3 tools/city/maps_key_referrers.py <city-id>`), DNS, and the PR with the config, message, and docs
   changes. Where the tooling can't be used, the fallback is an email to CS support asking for the test and prod
   servers, with both URLs, any redirect from an older name, `SIDEWALK_CITY_ID`, and `DATABASE_USER`.
 

@@ -21,7 +21,7 @@ const KEYBOARD_MANAGER_SRC = read('public/js/explore/src/keyboard/KeyboardManage
 function makeNode() {
   const node = { length: 0, 0: undefined };
   ['find', 'each', 'text', 'html', 'attr', 'prop', 'addClass', 'removeClass', 'toggleClass', 'css', 'val', 'on',
-    'off', 'blur', 'focus', 'filter', 'tooltip', 'trigger', 'append', 'remove'].forEach((name) => {
+    'off', 'blur', 'focus', 'filter', 'removeAttr', 'trigger', 'append', 'remove'].forEach((name) => {
     node[name] = () => node;
   });
   return node;
