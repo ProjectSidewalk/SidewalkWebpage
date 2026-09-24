@@ -2,7 +2,7 @@ package models.utils
 
 import models.pano.PanoImageryChangeSource
 import models.street.StreetEdgeStatusChangeSource
-import models.validation.ValidationCommentChangeType
+import models.validation.{ValidationCommentChangeType, ValidationReason}
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -65,6 +65,12 @@ class EnumTypeParitySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBa
       // Cast from a Scala-supplied string in raw SQL like the one above, on a path where drift costs the comment
       // text itself: the archiving insert is what the delete of the live row hangs off (#5076).
       labelsOf("validation_comment_change_type") mustBe ValidationCommentChangeType.values.map(_.toString)
+    }
+
+    "match ValidationReason exactly" in {
+      // Written on every canned reason from three surfaces (#5475); a label on one side only would fail the comment
+      // POST it rides in with, or the read of every label card that comment appears on.
+      labelsOf("validation_reason") mustBe ValidationReason.values.map(_.toString)
     }
   }
 }

@@ -2,6 +2,7 @@
 @import models.label.LabelTypeEnum
 @import models.pano.ImageryAttribution
 @import models.utils.PanoScoring
+@import models.validation.ValidationReason
 @import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.CommonPageData
@@ -114,6 +115,10 @@
        literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
        that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
     <script>window.labelTypes = @Html(LabelTypeEnum.pageStampJson);</script>
+    @* The canned reasons each label type offers for a Disagree or Unsure vote, in menu order (#5475).
+       ValidationReason owns it; validationReasons.js builds every reason list from it, for the Validate menus, the
+       label detail card and the Gallery cards alike, with the text for each id coming from the locale files. *@
+    <script>window.validationReasons = @Html(ValidationReason.pageStampJson);</script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>

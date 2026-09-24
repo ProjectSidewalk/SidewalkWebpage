@@ -21,6 +21,7 @@ import models.utils.IpAddress
 import models.validation.{
   LabelValidation,
   ValidationOption,
+  ValidationReason,
   ValidationTaskComment,
   ValidationTaskEnvironment,
   ValidationTaskInteraction
@@ -371,6 +372,13 @@ class ValidateController @Inject() (
         BadRequest(Json.obj("status" -> "Error", "message" -> "validations need a label_type or a mission_progress"))
       )
     }
+    // A canned reason has to be one the label's type offers (#5475); the whole batch is refused rather than one
+    // vote dropped, since a client sending an unknown id is a client out of step with the vocabulary.
+    val badReason: Option[Result] = data.validations
+      .flatMap(v => v.comment.flatMap(_.reason).map(r => (labelTypeSeen(v), r)))
+      .collectFirst { case (labelType, id) if parseReason(Some(id), labelType).isLeft => id }
+      .map(id => BadRequest(Json.obj("status" -> "Error", "message" -> s"unknown validation reason '$id'")))
+    if (badReason.isDefined) return Future.successful(badReason.get)
 
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
@@ -387,7 +395,7 @@ class ValidateController @Inject() (
           newVal.comment.map(c =>
             ValidationTaskComment(
               0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
-              currTime, c.comment
+              currTime, c.comment, c.reason.flatMap(ValidationReason.withNameOption)
             )
           ),
           newVal.undone,
@@ -620,22 +628,46 @@ class ValidateController @Inject() (
       submission => {
         val userId: String                = request.identity.userId
         val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(submission.labelType)
-        for {
-          mission <- missionService.resumeOrCreateNewValidateMission(
-            userId,
-            MissionType.LabelmapValidation,
-            labelType
-          )
-          commentId: Int <- validationService.replaceComment(
-            ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
-              submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng,
-              OffsetDateTime.now, submission.comment)
-          )
-        } yield {
-          Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
+        parseReason(submission.reason, labelType) match {
+          case Left(badRequest) => Future.successful(badRequest)
+          case Right(reason)    =>
+            for {
+              mission <- missionService.resumeOrCreateNewValidateMission(
+                userId,
+                MissionType.LabelmapValidation,
+                labelType
+              )
+              commentId: Int <- validationService.replaceComment(
+                ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
+                  submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat,
+                  submission.lng, OffsetDateTime.now, submission.comment, reason)
+              )
+            } yield {
+              Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
+            }
         }
       }
     )
+  }
+
+  /**
+   * Resolves a submitted canned-reason id against what the label's type offers (#5475).
+   *
+   * @return `Right(None)` for free text, `Right(Some(reason))` for an offered reason, and a 400 in `Left` for an id
+   *         the vocabulary doesn't know or the type doesn't offer, so a stale client can't file a reason no menu
+   *         showed for this label.
+   */
+  private def parseReason(
+      reasonId: Option[String],
+      labelType: LabelTypeEnum.Base
+  ): Either[Result, Option[ValidationReason.Value]] = reasonId match {
+    case None     => Right(None)
+    case Some(id) =>
+      ValidationReason.withNameOption(id).filter(ValidationReason.offered(labelType, _)) match {
+        case Some(reason) => Right(Some(reason))
+        case None         =>
+          Left(BadRequest(Json.obj("status" -> "Error", "message" -> s"unknown validation reason '$id'")))
+      }
   }
 
   /**

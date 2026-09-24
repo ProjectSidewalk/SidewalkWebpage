@@ -55,6 +55,7 @@ case class ValidationTaskCommentHistory(
     lng: Double,
     timestamp: OffsetDateTime,
     comment: String,
+    reason: Option[ValidationReason.Value],
     supersededAt: OffsetDateTime,
     changeType: ValidationCommentChangeType.Value
 )
@@ -63,26 +64,27 @@ class ValidationTaskCommentHistoryTableDef(tag: Tag)
     extends Table[ValidationTaskCommentHistory](tag, "validation_task_comment_history") {
   def validationTaskCommentHistoryId: Rep[Int] =
     column[Int]("validation_task_comment_history_id", O.PrimaryKey, O.AutoInc)
-  def validationTaskCommentId: Rep[Int] = column[Int]("validation_task_comment_id")
-  def missionId: Rep[Int]               = column[Int]("mission_id")
-  def labelId: Rep[Int]                 = column[Int]("label_id")
-  def userId: Rep[String]               = column[String]("user_id")
-  def ipAddress: Rep[IpAddress]         = column[IpAddress]("ip_address")
-  def panoId: Rep[String]               = column[String]("pano_id")
-  def heading: Rep[Double]              = column[Double]("heading")
-  def pitch: Rep[Double]                = column[Double]("pitch")
-  def zoom: Rep[Double]                 = column[Double]("zoom")
-  def lat: Rep[Double]                  = column[Double]("lat")
-  def lng: Rep[Double]                  = column[Double]("lng")
-  def timestamp: Rep[OffsetDateTime]    = column[OffsetDateTime]("timestamp")
-  def comment: Rep[String]              = column[String]("comment")
+  def validationTaskCommentId: Rep[Int]           = column[Int]("validation_task_comment_id")
+  def missionId: Rep[Int]                         = column[Int]("mission_id")
+  def labelId: Rep[Int]                           = column[Int]("label_id")
+  def userId: Rep[String]                         = column[String]("user_id")
+  def ipAddress: Rep[IpAddress]                   = column[IpAddress]("ip_address")
+  def panoId: Rep[String]                         = column[String]("pano_id")
+  def heading: Rep[Double]                        = column[Double]("heading")
+  def pitch: Rep[Double]                          = column[Double]("pitch")
+  def zoom: Rep[Double]                           = column[Double]("zoom")
+  def lat: Rep[Double]                            = column[Double]("lat")
+  def lng: Rep[Double]                            = column[Double]("lng")
+  def timestamp: Rep[OffsetDateTime]              = column[OffsetDateTime]("timestamp")
+  def comment: Rep[String]                        = column[String]("comment")
+  def reason: Rep[Option[ValidationReason.Value]] = column[Option[ValidationReason.Value]]("reason")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def supersededAt: Rep[OffsetDateTime]                  = column[OffsetDateTime]("superseded_at")
   def changeType: Rep[ValidationCommentChangeType.Value] =
     column[ValidationCommentChangeType.Value]("change_type")
 
   def * = (validationTaskCommentHistoryId, validationTaskCommentId, missionId, labelId, userId, ipAddress, panoId,
-    heading, pitch, zoom, lat, lng, timestamp, comment, supersededAt, changeType) <> (
+    heading, pitch, zoom, lat, lng, timestamp, comment, reason, supersededAt, changeType) <> (
     (ValidationTaskCommentHistory.apply _).tupled,
     ValidationTaskCommentHistory.unapply
   )

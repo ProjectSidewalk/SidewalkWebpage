@@ -28,7 +28,8 @@ case class ValidationTaskComment(
     lat: Double,
     lng: Double,
     timestamp: OffsetDateTime,
-    comment: String
+    comment: String,
+    reason: Option[ValidationReason.Value]
 )
 
 class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskComment](tag, "validation_task_comment") {
@@ -45,9 +46,11 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def lng: Rep[Double]                  = column[Double]("lng")
   def timestamp: Rep[OffsetDateTime]    = column[OffsetDateTime]("timestamp")
   def comment: Rep[String]              = column[String]("comment")
+  // The canned reason the text is, when it is one (#5475); NULL for free text or a comment older than the column.
+  def reason: Rep[Option[ValidationReason.Value]] = column[Option[ValidationReason.Value]]("reason")
 
   def * = (validationTaskCommentId, missionId, labelId, userId, ipAddress, panoId, heading, pitch, zoom, lat, lng,
-    timestamp, comment) <> ((ValidationTaskComment.apply _).tupled, ValidationTaskComment.unapply)
+    timestamp, comment, reason) <> ((ValidationTaskComment.apply _).tupled, ValidationTaskComment.unapply)
 
   def labelUserUnique =
     index("validation_task_comment_label_id_user_id_unique", (labelId, userId), unique = true)
@@ -102,9 +105,9 @@ class ValidationTaskCommentTable @Inject() (
            )
            INSERT INTO validation_task_comment_history (validation_task_comment_id, mission_id, label_id, user_id,
                                                         ip_address, pano_id, heading, pitch, zoom, lat, lng,
-                                                        timestamp, comment, change_type)
+                                                        timestamp, comment, reason, change_type)
            SELECT validation_task_comment_id, mission_id, label_id, user_id, ip_address, pano_id, heading, pitch,
-                  zoom, lat, lng, timestamp, comment, ${changeType.toString}::validation_comment_change_type
+                  zoom, lat, lng, timestamp, comment, reason, ${changeType.toString}::validation_comment_change_type
            FROM superseded"""
   }
 

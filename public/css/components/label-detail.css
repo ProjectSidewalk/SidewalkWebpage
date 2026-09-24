@@ -907,6 +907,18 @@ button.label-detail__meta-cell:focus-visible {
   gap: 4px;
 }
 
+/* ─── Reason row ──────────────────────────────────────────────────────── */
+
+/* The one-tap reasons (#5475; drawn by components/reason-chips.css). Sits between the columns and the comments
+   zone, so it reads as the follow-up to the vote above and the source of the comment that lands below. */
+.label-detail__reasons {
+  margin-bottom: 16px;
+}
+
+.label-detail__reasons[hidden] {
+  display: none;
+}
+
 /* ─── Comment row ─────────────────────────────────────────────────────── */
 
 /* Leads the Validator Comments section; newest comments render right beneath it. Collapsed until a

@@ -260,12 +260,14 @@ case class LabelMetadata(
  * @param validation  The commenter's current vote on the label ("Agree"/"Disagree"/"Unsure"), joined per
  *                    (label_id, user_id) rather than stored with the comment, so it is `None` when they have no
  *                    vote on the label.
+ * @param reason      The canned reason the comment is, by id (#5475), or `None` for free text.
  */
 case class LabelComment(
     username: String,
     comment: String,
     timeCreated: Option[OffsetDateTime],
-    validation: Option[String]
+    validation: Option[String],
+    reason: Option[String]
 )
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
@@ -642,7 +644,8 @@ object LabelTable {
         (obj \ "username").as[String],
         (obj \ "comment").as[String],
         (obj \ "time_created").asOpt[OffsetDateTime],
-        (obj \ "validation").asOpt[String]
+        (obj \ "validation").asOpt[String],
+        (obj \ "reason").asOpt[String]
       )
     }
   }
@@ -1407,7 +1410,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  json_agg(json_build_object('username', sidewalk_user.username,
                                             'comment', validation_task_comment.comment,
                                             'time_created', validation_task_comment.timestamp,
-                                            'validation', label_validation.validation_result)
+                                            'validation', label_validation.validation_result,
+                                            'reason', validation_task_comment.reason)
                           ORDER BY validation_task_comment.timestamp)::text AS comments
           FROM validation_task_comment
           INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id

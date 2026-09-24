@@ -1,0 +1,87 @@
+{
+  "CurbRamp": {
+    "Disagree": [
+      "wrong-type",
+      "driveway",
+      "driveway-transition"
+    ],
+    "Unsure": [
+      "better-image",
+      "placement-incorrect",
+      "ramp-required-unsure"
+    ]
+  },
+  "NoCurbRamp": {
+    "Disagree": [
+      "wrong-type",
+      "residential-walkway",
+      "no-sidewalk-here",
+      "unsafe-crossing"
+    ],
+    "Unsure": [
+      "better-image",
+      "placement-incorrect",
+      "ramp-required-unsure"
+    ]
+  },
+  "Obstacle": {
+    "Disagree": [
+      "wrong-type",
+      "not-pedestrian-path",
+      "ample-space"
+    ],
+    "Unsure": [
+      "better-image",
+      "placement-incorrect",
+      "space-to-avoid-unsure"
+    ]
+  },
+  "SurfaceProblem": {
+    "Disagree": [
+      "wrong-type",
+      "not-pedestrian-path",
+      "normal-tiles"
+    ],
+    "Unsure": [
+      "better-image",
+      "placement-incorrect",
+      "too-minor-unsure"
+    ]
+  },
+  "Crosswalk": {
+    "Disagree": [
+      "wrong-type",
+      "no-visible-crosswalk",
+      "stop-line",
+      "speed-bump"
+    ],
+    "Unsure": [
+      "better-image",
+      "placement-incorrect"
+    ]
+  },
+  "Signal": {
+    "Disagree": [
+      "wrong-type",
+      "vehicle-signal-only",
+      "sign-no-light",
+      "pole-no-signal"
+    ],
+    "Unsure": [
+      "better-image",
+      "placement-incorrect"
+    ]
+  },
+  "NoSidewalk": {
+    "Disagree": [
+      "wrong-type",
+      "sidewalk-here",
+      "traffic-median"
+    ],
+    "Unsure": [
+      "better-image",
+      "placement-incorrect",
+      "sidewalk-needed-unsure"
+    ]
+  }
+}

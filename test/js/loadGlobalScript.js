@@ -54,6 +54,16 @@ function stampLabelTypes() {
 }
 
 /**
+ * Stamps `window.validationReasons` the way main.scala.html does (#5475), so `util.validationReasons` has a catalog
+ * to build from. Same arrangement as the label types: a committed copy of what ValidationReason serializes, which
+ * ValidationReasonSpec fails on if the two diverge.
+ */
+function stampValidationReasons() {
+    const fixture = path.join(REPO_ROOT, 'test/resources/validation-reasons-stamp.json');
+    window.validationReasons = JSON.parse(fs.readFileSync(fixture, 'utf8'));
+}
+
+/**
  * Installs the real `util.misc` (public/js/common/utilitiesSidewalk.js) onto an already-stubbed `window.util`.
  *
  * For suites that want the genuine helper rather than a copy of its logic — `labelMarkerFraction` above all, which
@@ -66,4 +76,6 @@ function installUtilitiesMisc() {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js'), 'utf8'));
 }
 
-module.exports = { loadGlobalScript, REPO_ROOT, assetPathStub, installUtilitiesMisc, stampLabelTypes };
+module.exports = {
+    loadGlobalScript, REPO_ROOT, assetPathStub, installUtilitiesMisc, stampLabelTypes, stampValidationReasons,
+};

@@ -356,6 +356,101 @@
     "vote-failed": "Your vote didn't save. Please try again."
   },
   "download-already-preparing": "This file is already being prepared for another request. Please try again shortly.",
+  "validation-reason": {
+    "prompt-disagree": "Why do you disagree?",
+    "prompt-unsure": "What makes you unsure?",
+    "other": "Other…",
+    "other-hint": "Write your own reason",
+    "saved": "Reason saved",
+    "dismiss": "Dismiss",
+    "wrong-type": {
+      "text": "This is the wrong label type",
+      "tooltip": "Something is here, but it should be marked with a different label type",
+      "tooltip-curb-ramp": "Sometimes a missing curb ramp is accidentally mislabeled as a curb ramp",
+      "tooltip-no-curb-ramp": "Sometimes a curb ramp is mislabeled as a missing ramp, often because it's missing a tactile warning",
+      "tooltip-obstacle": "Grass and debris like leaves should be marked with a Surface Problem label",
+      "tooltip-surface-problem": "Gravel or grass are not considered a sidewalk, and should be marked with a No Sidewalk label",
+      "tooltip-no-sidewalk": "Surface problems or obstacles may be mistakenly labeled as No Sidewalk"
+    },
+    "driveway": {
+      "text": "This is a driveway"
+    },
+    "driveway-transition": {
+      "text": "This is a sidewalk to driveway transition",
+      "tooltip": "Sidewalk to driveway transitions are not curb ramps unless a dedicated ramp has been added"
+    },
+    "residential-walkway": {
+      "text": "This is a residential walkway"
+    },
+    "no-sidewalk-here": {
+      "text": "There is no sidewalk here"
+    },
+    "unsafe-crossing": {
+      "text": "It is not safe to cross here",
+      "tooltip": "Pedestrians are not meant to cross at this spot, so no curb ramp is expected"
+    },
+    "not-pedestrian-path": {
+      "text": "This is not on a pedestrian path",
+      "tooltip-obstacle": "If there is no sidewalk or the object is not on the part of the sidewalk meant for pedestrians, like in the image below, an Obstacle label is not needed",
+      "tooltip-surface-problem": "If a surface problem is not on a path meant for pedestrians, it should not be labeled as a surface problem"
+    },
+    "ample-space": {
+      "text": "There is ample space to avoid this object",
+      "tooltip": "On very wide sidewalks, easily avoidable objects should <b>not</b> be labeled as obstacles"
+    },
+    "normal-tiles": {
+      "text": "These are normal sidewalk tiles"
+    },
+    "sidewalk-here": {
+      "text": "There is a sidewalk here"
+    },
+    "traffic-median": {
+      "text": "This is a traffic median"
+    },
+    "no-visible-crosswalk": {
+      "text": "There is no visible crosswalk here"
+    },
+    "stop-line": {
+      "text": "This is a stop line for cars"
+    },
+    "speed-bump": {
+      "text": "This is a speed bump"
+    },
+    "vehicle-signal-only": {
+      "text": "This is only a traffic light for vehicles"
+    },
+    "sign-no-light": {
+      "text": "This is a sign with no light to indicate safe crossing"
+    },
+    "pole-no-signal": {
+      "text": "This is a pole with no pedestrian signal or button"
+    },
+    "better-image": {
+      "text": "Need a better image",
+      "tooltip": "This could be because the image is blurry, what's being labeled is too far away, or a different angle is needed"
+    },
+    "placement-incorrect": {
+      "text": "Label placement looks incorrect",
+      "tooltip": "Sometimes what's being labeled is visible but the label appears far away from it"
+    },
+    "ramp-required-unsure": {
+      "text": "Not sure if a curb ramp is required",
+      "tooltip-curb-ramp": "Some alleyways or commercial driveways require ramps due to height differences, others do not. Sometimes it's not clear if a seam between a sidewalk requires a ramp or tactile surface indicator.",
+      "tooltip-no-curb-ramp": "It may be unclear whether pedestrians should be able to cross at an intersection with a busier road"
+    },
+    "space-to-avoid-unsure": {
+      "text": "There might be enough space to avoid the object",
+      "tooltip": "The width of the sidewalk may be difficult to judge from a picture"
+    },
+    "too-minor-unsure": {
+      "text": "Might be too minor to label",
+      "tooltip": "It may be unclear whether an issue like grass between sidewalk blocks needs to be labeled"
+    },
+    "sidewalk-needed-unsure": {
+      "text": "Not sure if there should be a sidewalk here",
+      "tooltip": "Sometimes more context is necessary, and it's hard to determine if a sidewalk is necessary from just one image"
+    }
+  },
   "label-type-picker": {
     "current": "{{labelType}} (current type)",
     "change": "change",

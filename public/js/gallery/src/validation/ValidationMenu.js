@@ -1,7 +1,14 @@
 /**
  * A Validation Menu appended to a small Gallery Card for validation purposes.
+ *
+ * A Disagree or Unsure cast here opens a small popover over the card's image offering the one-tap reasons Validate
+ * asks for (#5475), so a vote from the grid can carry a reason without the expanded view. Its "Other…" opens the
+ * expanded view with the comment box ready. Dismissing it leaves the vote standing.
  */
 class ValidationMenu {
+  /** How long the picked chip is shown landing before the popover closes on its own. */
+  static REASON_CLOSE_DELAY_MS = 700;
+
   static #classToValidationOption = {
     'validate-agree': 'Agree',
     'validate-disagree': 'Disagree',
@@ -20,6 +27,17 @@ class ValidationMenu {
   #overlay;
   #validationButtons = undefined;
   #galleryCard;
+  /** @type {?HTMLElement} The reason popover, built on the first Disagree/Unsure (#5475). */
+  #reasonPopover = null;
+  /** @type {?ReasonChips} */
+  #reasonChips = null;
+  /** @type {?string} The vote the open popover is asking about, or null while it is closed. */
+  #reasonVote = null;
+  /** @type {?HTMLElement} The control whose vote opened the popover, which gets focus back when it closes. */
+  #reasonOpener = null;
+  #reasonCloseTimer = null;
+  #boundOutsideClick = (e) => this.#handleOutsideClick(e);
+  #boundKeydown = (e) => this.#handleKeydown(e);
 
   /**
    * @param {Card} referenceCard - The Card this menu belongs to.
@@ -110,13 +128,15 @@ class ValidationMenu {
    * @param {string} newValKey
    * @param {boolean} thumbsClick - Whether the validation came from clicking the thumb icons.
    * @param {boolean} keyboardShortcut - Whether the validation came from a keyboard shortcut.
-   * @returns {() => Promise<?Response>} A function returning a Promise that resolves once the validation has
-   *     been submitted, with the server's response, or null if the request never completed.
+   * @returns {(e?: Event) => Promise<?Response>} A function returning a Promise that resolves once the validation
+   *     has been submitted, with the server's response, or null if the request never completed. The event, when
+   *     there is one, names the control that voted, which the reason popover hands focus back to (#5475).
    */
   validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
-    return async () => {
+    return async (e) => {
       const undone = this.#currSelected === newValKey;
       const validationOption = ValidationMenu.#classToValidationOption[newValKey];
+      const opener = e?.currentTarget instanceof HTMLElement ? e.currentTarget : null;
 
       // #validateLabel has to run first: it reads the card's *previous* user_validation to set `redone` and to decide
       // whether this is a new validation worth a badge check.
@@ -124,7 +144,13 @@ class ValidationMenu {
         const res = await this.#validateLabel(validationOption, thumbsClick, keyboardShortcut, undone);
         // Restyle the card only once the server has taken the vote. Updating it up front would leave the card showing
         // a vote — or a cleared vote — that the backend never recorded, whenever the request fails.
-        if (res.ok) this.#refCard.updateUserValidation(undone ? null : validationOption);
+        if (res.ok) {
+          this.#refCard.updateUserValidation(undone ? null : validationOption);
+          // Only a vote that landed gets asked about, and only from this card: a vote the expanded view relays back
+          // has its own reason row over there.
+          if (!undone && ValidationMenu.#reasonedVote(validationOption)) this.#openReasons(validationOption, opener);
+          else this.#closeReasons(false);
+        }
         return res;
       } catch (err) {
         console.error(err); // Network failure: leave the card showing what the server still holds.
@@ -149,6 +175,9 @@ class ValidationMenu {
       }
     }
     this.#currSelected = validationClass;
+    // A vote changed from the expanded view makes the open question stale; a Disagree relayed back reopens nothing,
+    // since that side has its own reason row.
+    if (this.#reasonVote && this.#reasonVote !== validationOption) this.#closeReasons(false);
 
     // Add the visual effects from the new validation.
     if (validationClass) {
@@ -226,5 +255,227 @@ class ValidationMenu {
       if (res.ok && isNewValidation) BadgeAchievements.recordValidation();
       return res;
     });
+  }
+
+  /** @returns {boolean} Whether a vote is one the card asks a reason for. */
+  static #reasonedVote(vote) {
+    return vote === 'Disagree' || vote === 'Unsure';
+  }
+
+  /** @returns {boolean} Whether the reason popover is up. */
+  get reasonsOpen() {
+    return this.#reasonVote !== null;
+  }
+
+  /**
+   * The signed-in user's own comment on this label, as the card payload carries it, or null.
+   * @returns {?Record<string, any>}
+   */
+  #ownComment() {
+    const comments = this.#refCard.getProperty('comments');
+    return (Array.isArray(comments) ? comments : []).find((c) => c && typeof c === 'object' && c.mine) ?? null;
+  }
+
+  /** Builds the popover once: a close control, the shared chips, and a live region for the outcome of a pick. */
+  #buildReasonPopover() {
+    const popover = document.createElement('div');
+    popover.className = 'gallery-card__reasons';
+    popover.hidden = true;
+    const dismiss = util.escapeHTML(i18next.t('common:validation-reason.dismiss'));
+    popover.innerHTML = `
+      <button type="button" class="gallery-card__reasons-close" aria-label="${dismiss}">
+        <img src="${util.assetPath('images/icons/cross.svg')}" alt="">
+      </button>
+      <div class="gallery-card__reasons-chips"></div>
+      <span class="gallery-card__reasons-status" role="status" aria-live="polite"></span>`;
+    popover.querySelector('.gallery-card__reasons-close').addEventListener('click', () => {
+      this.#log('ReasonMenu_Dismiss');
+      this.#closeReasons(true);
+    });
+    this.#reasonChips = new ReasonChips(popover.querySelector('.gallery-card__reasons-chips'), {
+      onPick: (id, viaKeyboard) => this.#pickReason(id, viaKeyboard),
+      onOther: (viaKeyboard) => this.#openOtherReason(viaKeyboard),
+      // Keyboard voters get the number keys too, but a grid card is mostly tapped, so the digits stay out of the
+      // tooltips.
+      showKeys: false,
+    });
+    this.#galleryCard[0].appendChild(popover);
+    this.#reasonPopover = popover;
+  }
+
+  /**
+   * Opens the popover for a vote that just landed, with the reason the user's own comment already records marked.
+   * A type with no canned reasons opens nothing: the expanded view's box is the way to say why there.
+   *
+   * @param {'Disagree'|'Unsure'} vote
+   * @param {?HTMLElement} opener - The control that cast the vote.
+   */
+  #openReasons(vote, opener) {
+    if (!this.#reasonPopover) this.#buildReasonPopover();
+    clearTimeout(this.#reasonCloseTimer);
+    const own = this.#ownComment();
+    const count = this.#reasonChips.render({
+      labelType: this.#refCard.getLabelType(),
+      vote,
+      selected: typeof own?.reason === 'string' ? own.reason : null,
+    });
+    if (count === 0) {
+      this.#closeReasons(false);
+      return;
+    }
+    this.#reasonPopover.querySelector('.gallery-card__reasons-status').textContent = '';
+    this.#reasonVote = vote;
+    this.#reasonOpener = opener;
+    this.#reasonPopover.hidden = false;
+    this.#galleryCard.addClass('gallery-card--reasons-open');
+    // Registered after the click that opened the popover has finished dispatching, so it isn't taken as the
+    // outside click that closes it.
+    setTimeout(() => {
+      if (!this.reasonsOpen) return;
+      document.addEventListener('click', this.#boundOutsideClick, true);
+      document.addEventListener('keydown', this.#boundKeydown, true);
+    }, 0);
+    // Focus goes to the chips so a keyboard voter can answer at once; a pointer voter's next tap lands wherever
+    // it lands, focus or no focus.
+    this.#reasonChips.focus();
+  }
+
+  /**
+   * Closes the popover, leaving the vote as it stands.
+   * @param {boolean} returnFocus - Hand focus back to the control that cast the vote (not on an outside click,
+   *     which has its own target).
+   */
+  #closeReasons(returnFocus) {
+    clearTimeout(this.#reasonCloseTimer);
+    document.removeEventListener('click', this.#boundOutsideClick, true);
+    document.removeEventListener('keydown', this.#boundKeydown, true);
+    if (!this.reasonsOpen) return;
+    this.#reasonVote = null;
+    this.#reasonPopover.hidden = true;
+    this.#galleryCard.removeClass('gallery-card--reasons-open');
+    const opener = this.#reasonOpener;
+    this.#reasonOpener = null;
+    if (returnFocus && opener?.isConnected) opener.focus();
+  }
+
+  #handleOutsideClick(e) {
+    if (this.#reasonPopover.contains(e.target)) return;
+    this.#log('ReasonMenu_Dismiss');
+    this.#closeReasons(false);
+  }
+
+  /** Escape closes; 1–N pick, the way the label card's number keys do (#5475). */
+  #handleKeydown(e) {
+    if (!this.reasonsOpen || e.ctrlKey || e.metaKey || e.altKey) return;
+    const target = e.target instanceof Element ? e.target : null;
+    if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      this.#log('ReasonMenu_Dismiss');
+      this.#closeReasons(true);
+      return;
+    }
+    const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code)?.[1];
+    if (digit && this.#reasonChips.pickByNumber(Number(digit))) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }
+
+  /**
+   * Records the picked reason as the user's comment on the label — the same POST the expanded view's box makes,
+   * with the card's own point of view since the crop is a screenshot of it — then closes the popover once the
+   * chip has been seen landing.
+   *
+   * @param {string} id - The reason id.
+   * @param {boolean} viaKeyboard - Picked with a number key (or Enter/Space on the chip).
+   */
+  async #pickReason(id, viaKeyboard) {
+    const vote = this.#reasonVote;
+    const text = util.validationReasons.text(id);
+    if (!vote || !text) return;
+    this.#log(`${vote}Reason_Option=${id}`, viaKeyboard);
+    const refCard = this.#refCard;
+    const pov = refCard.getProperty('pov');
+    const data = {
+      label_id: refCard.getProperty('label_id'),
+      label_type: refCard.getLabelType(),
+      comment: text,
+      reason: id,
+      pano_id: refCard.getProperty('pano_id'),
+      heading: pov.heading,
+      pitch: pov.pitch,
+      zoom: pov.zoom,
+      lat: refCard.getProperty('lat'),
+      lng: refCard.getProperty('lng'),
+    };
+    const status = this.#reasonPopover.querySelector('.gallery-card__reasons-status');
+    this.#reasonChips.setBusy(true);
+    try {
+      const res = await util.lazyIdentityFetch('/labelmap/comment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // The popover may have been dismissed, or the vote moved, while the POST was in flight.
+      if (this.#reasonVote !== vote) return;
+      this.#recordOwnComment(text, id, vote);
+      this.#reasonChips.setSelected(id);
+      status.textContent = i18next.t('common:validation-reason.saved');
+      this.#reasonCloseTimer = setTimeout(() => this.#closeReasons(viaKeyboard), ValidationMenu.REASON_CLOSE_DELAY_MS);
+    } catch (err) {
+      console.error(err);
+      if (this.#reasonVote === vote) status.textContent = i18next.t('labelmap:comment-save-failed');
+    } finally {
+      this.#reasonChips.setBusy(false);
+    }
+  }
+
+  /**
+   * Mirrors the server's replace-my-comment onto the card's payload, so the expanded view opened next shows the
+   * comment and marks the chip, and reopening this popover marks it too.
+   *
+   * @param {string} text - The reason's text, as posted.
+   * @param {string} reason - The reason id.
+   * @param {string} vote - The vote it explains.
+   */
+  #recordOwnComment(text, reason, vote) {
+    const existing = this.#refCard.getProperty('comments');
+    const comments = Array.isArray(existing) ? existing.filter((c) => !(c && typeof c === 'object' && c.mine)) : [];
+    const own = this.#ownComment();
+    const commenter = own?.commenter
+      ?? comments.reduce((max, c) => Math.max(max, (c && c.commenter) ?? -1), -1) + 1;
+    comments.push({ comment: text, reason, mine: true, time_created: new Date().toISOString(), commenter,
+      validation: vote });
+    this.#refCard.setProperty('comments', comments);
+  }
+
+  /**
+   * "Other…": the grid card has no box to type in, so the expanded view opens on this label with its comment box
+   * ready (#5475).
+   * @param {boolean} viaKeyboard
+   */
+  #openOtherReason(viaKeyboard) {
+    const vote = this.#reasonVote;
+    if (!vote) return;
+    this.#log(`${vote}Reason_Other`, viaKeyboard);
+    this.#closeReasons(false);
+    sg.cardContainer.openCardForComment(this.#refCard);
+  }
+
+  /**
+   * Logs a reason-popover interaction the way this card's votes are logged, keyboard and pointer apart.
+   * @param {string} action - The event name (see docs/logged-events.md).
+   * @param {boolean} [viaKeyboard=false]
+   */
+  #log(action, viaKeyboard = false) {
+    const refCard = this.#refCard;
+    sg.tracker.push(
+      `${viaKeyboard ? 'KeyboardShortcut' : 'Click'}_${action}`,
+      { panoId: refCard.getProperty('pano_id') },
+      { labelId: refCard.getProperty('label_id') },
+    );
   }
 }

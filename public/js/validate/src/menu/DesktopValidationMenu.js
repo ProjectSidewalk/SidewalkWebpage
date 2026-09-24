@@ -733,8 +733,11 @@ class DesktopValidationMenu {
     // Save anything they typed in either text box so that it's there again if they undo their validation.
     this.saveValidationState();
 
-    // Fill in the comment based on the disagree options they picked or one of the free form text boxes.
+    // Fill in the comment based on the disagree options they picked or one of the free form text boxes. A canned
+    // reason also travels as its id (#5475), so it is stored as one rather than only as the text shown.
     let comment = '';
+    let reasonId = null;
+    const reasons = svv.reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))] ?? {};
     if (action === 'Agree') {
       comment = currLabel.getProperty('agreeComment');
     } else if (action === 'Disagree') {
@@ -743,6 +746,7 @@ class DesktopValidationMenu {
         comment = currLabel.getProperty('disagreeReasonTextBox');
       } else if (disagreeReason) {
         comment = menuUI.disagreeReasonOptions.find(`#${disagreeReason}`).html().replace('<br>', ' ');
+        reasonId = reasons[disagreeReason]?.reasonId ?? null;
       } else {
         comment = '';
       }
@@ -752,11 +756,13 @@ class DesktopValidationMenu {
         comment = currLabel.getProperty('unsureReasonTextBox');
       } else if (unsureReason) {
         comment = menuUI.unsureReasonOptions.find(`#${unsureReason}`).html().replace('<br>', ' ');
+        reasonId = reasons[unsureReason]?.reasonId ?? null;
       } else {
         comment = '';
       }
     }
     currLabel.setProperty('comment', comment);
+    currLabel.setProperty('reasonId', reasonId);
 
     // If enough time has passed between validations, log the new validation.
     if (timestamp.getTime() - svv.labelContainer.getProperty('validationTimestamp') > 800) {
