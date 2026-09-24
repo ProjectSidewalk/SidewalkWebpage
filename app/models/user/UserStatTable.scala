@@ -706,14 +706,12 @@ class UserStatTable @Inject() (
       ) "missions_counts" ON label_counts.#$groupingColName = missions_counts.#$groupingColName
       LEFT JOIN (
           SELECT #$groupingCol, COALESCE(SUM(ST_Length(geom::geography)), 0) AS distance_meters
-          FROM street_edge
+          -- Same streets as the dashboard's distance, so the two numbers agree.
+          FROM #${FilteredTables.streets()}
           INNER JOIN #${FilteredTables.completedAudits()} ON street_edge.street_edge_id = audit_task.street_edge_id
           INNER JOIN sidewalk_user ON audit_task.user_id = sidewalk_user.user_id
           #$joinUserTeamTable
-          -- Same streets as the dashboard's distance, so the two numbers agree.
           WHERE (task_end AT TIME ZONE 'US/Pacific') > #$statStartTime
-              AND street_edge.status = 'open'
-              AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
           GROUP BY #$groupingCol
       ) "distance" ON label_counts.#$groupingColName = distance.#$groupingColName
       LEFT JOIN (

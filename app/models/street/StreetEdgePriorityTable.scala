@@ -196,15 +196,13 @@ class StreetEdgePriorityTable @Inject() (
              street_imagery.median_newest_capture,
              street_imagery.updated_at,
              ST_Length(street_edge.geom::geography)
-      FROM street_edge
+      FROM #${FilteredTables.streets()}
       INNER JOIN street_edge_region ON street_edge_region.street_edge_id = street_edge.street_edge_id
       INNER JOIN region ON region.region_id = street_edge_region.region_id
       LEFT JOIN street_edge_priority ON street_edge_priority.street_edge_id = street_edge.street_edge_id
       LEFT JOIN priority_inputs ON priority_inputs.street_edge_id = street_edge.street_edge_id
       LEFT JOIN audit_activity ON audit_activity.street_edge_id = street_edge.street_edge_id
       LEFT JOIN street_imagery ON street_imagery.street_edge_id = street_edge.street_edge_id
-      WHERE street_edge.status = 'open'
-          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ORDER BY street_edge.street_edge_id;
     """.as[StreetPriorityForAdmin]
   }

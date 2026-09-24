@@ -3,8 +3,8 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.api.{SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
 import models.label.StreetSide
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.utils.{FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -234,7 +234,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
       INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
-      WHERE street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      WHERE ${FilteredTables.notTutorialStreet("street_edge.street_edge_id")}
         $bboxFilter
         $regionIdFilter
         $regionNameFilter

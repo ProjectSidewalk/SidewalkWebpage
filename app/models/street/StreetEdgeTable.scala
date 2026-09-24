@@ -320,7 +320,7 @@ class StreetEdgeTable @Inject() (
         JOIN region reg ON r.region_id = reg.region_id
         -- The API returns all streets (open, no_imagery, disabled) tagged with their status (#3888); only the tutorial
         -- street is excluded. Availability filtering is opt-in via the `status` query param ($statusFilter).
-        WHERE s.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        WHERE ${FilteredTables.notTutorialStreet("s.street_edge_id")}
             $bboxFilter
             $wayTypeFilter
             $regionIdFilter

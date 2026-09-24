@@ -19,7 +19,8 @@ object Contributors {
 }
 
 /**
- * The rules for which labels, audits and votes count, written once for raw SQL (#5287), so copies can't drift apart.
+ * The rules for which streets, labels, audits and votes count, written once for raw SQL (#5287), so copies can't
+ * drift apart.
  *
  * Each is a subquery named after the table it replaces: swap `FROM label` for `FROM #${FilteredTables.labels()}`.
  * `FilteredTablesSpec` checks each against its Slick twin.
@@ -28,6 +29,33 @@ object FilteredTables {
 
   /** A table in the given city's schema, or in the current one. */
   private def table(schema: Option[String], name: String): String = schema.fold(name)(s => s""""$s".$name""")
+
+  /** The tutorial street's id, as a scalar subquery. */
+  def tutorialStreetId(schema: Option[String] = None): String =
+    s"(SELECT tutorial_street_edge_id FROM ${table(schema, "config")})"
+
+  /**
+   * Whether a street isn't the tutorial street, for a query that keeps streets of every status.
+   *
+   * @param streetIdColumn The column holding the street's id, e.g. `audit_task.street_edge_id`.
+   * @return               A boolean SQL expression.
+   */
+  def notTutorialStreet(streetIdColumn: String, schema: Option[String] = None): String =
+    s"$streetIdColumn <> ${tutorialStreetId(schema)}"
+
+  /**
+   * Streets that count: open and not the tutorial street. Twin of `StreetEdgeTable.streets`.
+   *
+   * @param schema A city schema to read instead of the current one.
+   * @return       A subquery for a FROM or JOIN clause.
+   */
+  def streets(schema: Option[String] = None): String =
+    s"""(
+         SELECT street_edge.*
+         FROM ${table(schema, "street_edge")} AS street_edge
+         WHERE street_edge.status = 'open'
+             AND ${notTutorialStreet("street_edge.street_edge_id", schema)}
+       ) AS street_edge"""
 
   /**
    * Whose work counts, for a query that already has `user_stat`.
@@ -69,19 +97,17 @@ object FilteredTables {
   def labels(
       schema: Option[String] = None,
       contributors: Contributors = Contributors.NotExcluded
-  ): String = {
-    val tutorialStreet = s"(SELECT tutorial_street_edge_id FROM ${table(schema, "config")})"
+  ): String =
     s"""(
          SELECT label.*
          FROM ${table(schema, "label")} AS label
          INNER JOIN ${table(schema, "audit_task")} AS audit_task ON label.audit_task_id = audit_task.audit_task_id
          WHERE label.deleted = FALSE
              AND label.tutorial = FALSE
-             AND label.street_edge_id <> $tutorialStreet
-             AND audit_task.street_edge_id <> $tutorialStreet
+             AND ${notTutorialStreet("label.street_edge_id", schema)}
+             AND ${notTutorialStreet("audit_task.street_edge_id", schema)}
              AND ${userCounts(schema, "audit_task.user_id", contributors)}
        ) AS label"""
-  }
 
   /**
    * The labels a user's accuracy is based on (#3591), minus tutorial ones. Includes excluded users.
@@ -95,8 +121,8 @@ object FilteredTables {
          INNER JOIN audit_task ON label.audit_task_id = audit_task.audit_task_id
          WHERE ${models.label.LabelTable.countsTowardAccuracySql}
              AND label.tutorial = FALSE
-             AND label.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-             AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+             AND ${notTutorialStreet("label.street_edge_id")}
+             AND ${notTutorialStreet("audit_task.street_edge_id")}
        ) AS label"""
 
   /**

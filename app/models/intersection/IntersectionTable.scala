@@ -6,7 +6,7 @@ import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{LatLngBBox, SpatialQueryType}
+import models.utils.{FilteredTables, LatLngBBox, SpatialQueryType}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -274,12 +274,10 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
       if (spatialQueryType == SpatialQueryType.Region) s"ST_Within(region.geom, $envelope)"
       else s"ST_Intersects(street_edge.geom, $envelope)"
     s"""SELECT street_edge.street_edge_id
-       |FROM street_edge
+       |FROM ${FilteredTables.streets()}
        |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
        |INNER JOIN region ON street_edge_region.region_id = region.region_id
-       |WHERE street_edge.status = 'open'
-       |  AND street_edge.street_edge_id NOT IN (SELECT tutorial_street_edge_id FROM config)
-       |  AND $locationFilter""".stripMargin
+       |WHERE $locationFilter""".stripMargin
   }
 
   def getIntersectionsForStreets(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): DBIO[Seq[IntersectionInfo]] = {

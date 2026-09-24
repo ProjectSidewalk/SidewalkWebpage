@@ -180,23 +180,19 @@ class RegionTable @Inject() (
             $regionIdFilter
             $regionNameFilter
       ),
-      -- Get the number of (non-deleted, non-tutorial) streets in each region.
+      -- Get the number of streets that count in each region.
       region_streets AS (
         SELECT street_edge_region.region_id, COUNT(DISTINCT street_edge.street_edge_id) AS street_count
         FROM street_edge_region
-        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        WHERE street_edge.status = 'open'
-            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
-            AND street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
+        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
       -- Get the number of completed audits of streets in each region.
       region_audits AS (
         SELECT street_edge_region.region_id, COUNT(audit_task.audit_task_id) AS audit_count
         FROM street_edge_region
-        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.status = 'open'
-            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
         JOIN ${FilteredTables.completedAudits()} ON street_edge_region.street_edge_id = audit_task.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
@@ -210,9 +206,7 @@ class RegionTable @Inject() (
         SELECT street_edge_region.region_id,
                SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance
         FROM street_edge_region
-        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.status = 'open'
-            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
             AND $needsReauditSql
         GROUP BY street_edge_region.region_id
@@ -225,9 +219,7 @@ class RegionTable @Inject() (
                MIN(label.time_created) AS first_label_date,
                MAX(label.time_created) AS last_label_date
         FROM street_edge_region
-        JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-            AND street_edge.status = 'open'
-            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
         JOIN ${FilteredTables.labels()} ON street_edge_region.street_edge_id = label.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
@@ -294,9 +286,7 @@ class RegionTable @Inject() (
     sql"""
       SELECT street_edge_region.region_id, SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance_m
       FROM street_edge_region
-      JOIN street_edge ON street_edge_region.street_edge_id = street_edge.street_edge_id
-          AND street_edge.status = 'open'
-          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
       WHERE #$needsReauditSql
       GROUP BY street_edge_region.region_id
     """.as[(Int, Double)]
