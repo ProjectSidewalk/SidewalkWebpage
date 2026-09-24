@@ -272,9 +272,10 @@ class Canvas {
   }
 
   /**
-   * Calls `onExit` when the pointer leaves the pano. Toasts float over the pano but mount on <body> (#5496), so the
-   * pointer crossing onto one fires `mouseleave` although it never left the pano; the real exit is then when it
-   * leaves the toast for somewhere outside the pano.
+   * Calls `onExit` when the pointer leaves the pano. Toasts float over the pano but mount on <body> (#5496). While
+   * labeling their card is click-through (svl-canvas.css), but their buttons are not, so the pointer reaching the
+   * close X fires `mouseleave` although it never left the pano; the real exit is then when it leaves the toast for
+   * somewhere outside the pano.
    * @param {HTMLElement} holder - The element wrapping the pano and its drawing layers.
    * @param {() => void} onExit - Called once per exit.
    */

@@ -140,6 +140,9 @@ class RibbonMenu {
         if ('audioEffect' in svl) svl.audioEffect.load('drip');
       }
 
+      // Lets a toast over the pano go click-through while a label type is armed (svl-canvas.css, #5496).
+      document.body.classList.toggle('explore-labeling', mode !== 'Walk');
+
       if (this.#uiRibbonMenu) {
         this.#setLabelTypeButtonBorderColors(mode);
 
