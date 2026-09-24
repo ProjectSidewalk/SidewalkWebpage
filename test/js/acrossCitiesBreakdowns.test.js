@@ -417,25 +417,27 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
         return host;
       }
 
-      it('names a one-city person\'s city under their line, without repeating their numbers', async () => {
+      it('names a one-city person\'s city right after their name, on the same line', async () => {
         await render({
           daily: [makeDay('2026-09-24', { labels: 57, contributors: 1, contributor_total: 1,
             contributor_list: [dayContributor('DW', 57, 0, 'registered', [dayCity('stl', 57, 0)])] })],
         });
-        const sub = parse(barCard(0)).querySelector('.ac-tip-sub');
+        const row = parse(barCard(0)).querySelector('.ac-tip-where').closest('.ac-tip-row');
 
-        expect(sub.textContent).toBe('STL');
+        expect(row.firstElementChild.textContent).toBe('DW · STL');
+        expect(row.querySelector('.ac-tip-num').textContent).toBe('57 · 0');
       });
 
-      it('splits a multi-city person\'s numbers by city, busiest first as sent', async () => {
+      it('names each of a multi-city person\'s cities, busiest first, with each share in its title', async () => {
         await render({
           daily: [makeDay('2026-09-24', { labels: 52, validations: 9, contributors: 1, contributor_total: 1,
             contributor_list: [dayContributor('alice', 52, 9, 'registered',
               [dayCity('sea', 40, 9), dayCity('chi', 12, 0)])] })],
         });
-        const sub = parse(barCard(0)).querySelector('.ac-tip-sub');
+        const where = parse(barCard(0)).querySelector('.ac-tip-where');
 
-        expect(sub.textContent).toBe('SEA 40 · 9, CHI 12 · 0');
+        expect(where.textContent).toBe(' · SEA, CHI');
+        expect(where.querySelector('a').getAttribute('title')).toBe('40 labels · 9 validations');
       });
 
       it('caps a long city list, which an AI account working everywhere would fill', async () => {
@@ -445,7 +447,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
             contributor_list: [dayContributor('bot', 0, 40, 'ai', cities)] })],
         });
 
-        expect(parse(barCard(0)).querySelector('.ac-tip-sub').textContent).toContain('+ 2 more');
+        expect(parse(barCard(0)).querySelector('.ac-tip-where').textContent).toBe(' · A, B +3');
       });
 
       it('links a name to their admin page on the city where they did the most', async () => {
@@ -664,7 +666,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       expect(host.querySelector('a.ac-tip-link').getAttribute('href'))
         .toBe('https://sidewalk-chicago.example.org/admin/user/alice');
       // The city is the card's title, so a per-person "where" line would only repeat it.
-      expect(host.querySelector('.ac-tip-sub')).toBeNull();
+      expect(host.querySelector('.ac-tip-where')).toBeNull();
       expect(document.querySelectorAll('#ac-top-tbody tr')[0].cells[2].hasAttribute('data-ps-tooltip-pinnable'))
         .toBe(true);
     });

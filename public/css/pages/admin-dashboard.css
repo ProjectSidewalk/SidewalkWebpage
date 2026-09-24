@@ -2236,12 +2236,8 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   font-style: italic;
 }
 
-/* Where a person in a cross-city card did their work (#5495): indented under their name so it reads as part of that
-   person's line rather than as a line of its own. */
-.ac-tip-sub {
-  padding-left: 10px;
-  opacity: 0.75;
-}
+/* Where a person in a cross-city card did their work, right after their name (#5495). Muted so the name still leads. */
+.ac-tip-where { opacity: 0.75; }
 
 /* White on the card's dark fill, like the text around it; the underline alone says it is a link, and it goes solid
    once the card is pinned and the link can actually be followed. */
