@@ -1,6 +1,8 @@
 node_modules
 .DS_Store
 tmp/**/*
+# Per-developer scratch: check queries, one-time scripts and their outputs (tools/README.md).
+scratchpad/
 .idea
 *.iml
 *.sublime-*
@@ -16,7 +18,7 @@ docker-compose.override*.yml
 ga-service-account.json
 db/*-dump
 
-# Generated per-city artifacts from scripts/onboard_city.py and check_streets_for_imagery.py (QA GeoPackage,
+# Generated per-city artifacts from tools/city/onboard_city.py and check_streets_for_imagery.py (QA GeoPackage,
 # staging SQL, report, imagery-scan CSVs, osmnx cache)
 db/onboarding/
 
@@ -164,10 +166,12 @@ projectSidewalkStats_*.csv
 api-downloads/
 
 # GSV FOV probe raw recordings (issue #5083) — live-imagery screenshots stay local; derived numbers are committed.
-tools/gsv-fov-probe/runs/
+test/js/gsv-fov-probe/runs/
 # The full run manifest is ~11 MB of per-capture readbacks that only mean anything alongside those
 # screenshots; analyze.mjs --copy-recorded commits manifest-extract.json instead.
-tools/gsv-fov-probe/recorded/**/manifest.json
-tools/street_side/data/
-tools/street_side/out/
-tools/street_side/compute.log
+test/js/gsv-fov-probe/recorded/**/manifest.json
+
+# Street-side experiment (#2886) inputs and outputs; the figures its report embeds sit beside it in the repo.
+tools/experiments/2886-street-side/data/
+tools/experiments/2886-street-side/out/
+tools/experiments/2886-street-side/compute.log

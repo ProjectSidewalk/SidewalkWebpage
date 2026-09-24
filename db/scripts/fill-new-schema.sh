@@ -3,7 +3,7 @@
 # fill-new-schema.sh — populate a fresh city schema's streets and regions from QGIS-imported staging tables.
 #
 # WHY THIS EXISTS: after create-new-schema.sh gives you an empty city schema, the geographic data (streets + regions)
-# is loaded into two staging tables — qgis_road and qgis_region — by scripts/onboard_city.py (or a QGIS export).
+# is loaded into two staging tables — qgis_road and qgis_region — by tools/city/onboard_city.py (or a QGIS export).
 # This script turns that staging data into the app's real tables (street_edge, region, street_edge_region,
 # street_edge_priority, ...), relocates the schema's seeded tutorial street to sit after the imported streets, sets
 # the city center/bounds/zoom in `config`, drops the staging tables, and prints what landed.
@@ -13,7 +13,7 @@
 #
 # HOW IT'S RUN:  make fill-new-schema   →   /opt/scripts/fill-new-schema.sh   (inside projectsidewalk-db).
 # PRECONDITION:  the target schema exists (create-new-schema.sh) and qgis_road + qgis_region are loaded into it, in
-#                the canonical shape scripts/onboard_city.py emits: qgis_road (road_id, osm_ids bigint[], highway,
+#                the canonical shape tools/city/onboard_city.py emits: qgis_road (road_id, osm_ids bigint[], highway,
 #                region_id, geom) and qgis_region (region_id, name, data_source, geom) — a hand-built export must
 #                match it (osm_ids = ARRAY[osm_id]).
 #
@@ -25,7 +25,7 @@ set -euo pipefail
 source /opt/scripts/helpers.sh
 
 # Optional positional args ($1 schema, $2 tutorial region id, $3 regions to open: 'all', 'include:<ids>', or
-# 'exclude:<ids>', ids space-separated) so tools/setup_new_city.py can drive the script without faking its prompts.
+# 'exclude:<ids>', ids space-separated) so tools/city/setup_new_city.py can drive the script without faking its prompts.
 # Anything omitted is prompted for; the confirmation prompt is skipped only when all three are given.
 SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}
 TUTORIAL_REGION_ID=${2:-$(prompt_with_default "Tutorial region id" "1")}
@@ -168,9 +168,23 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
         WHERE status = 'open';
 
     -- Update config table's open_status column based on whether regions were removed. The clone carried the donor's
-    -- whole config row: a mapathon banner is the donor's event, never this city's, so it is cleared here; the other
-    -- inherited settings (excluded_tags, update_offset_hours, make_crops) are printed below for review.
+    -- whole config row: a mapathon banner is the donor's event, never this city's, so it is cleared here, and so is
+    -- the official contact below. The other inherited settings (excluded_tags, update_offset_hours, make_crops) are
+    -- printed further down for review.
     UPDATE config SET open_status = '$OPEN_STATUS_Q', mapathon_event_link = NULL;
+
+    -- The official contact (#5462) names the donor's government, never this city's. A donor still below evolution 406
+    -- has no such columns (the new schema then gets them, empty, at boot), so the clear runs only when they exist.
+    DO \$\$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'config' AND column_name = 'official_contact_url'
+      ) THEN
+        EXECUTE 'UPDATE config SET official_contact_name = NULL, official_contact_url = NULL';
+      END IF;
+    END
+    \$\$;
 
     -- Set the city center, map bounds, and default map zoom in the config table from the open regions' geoms. The
     -- bounds are the regions' extent padded by 0.5° (~55 km): they only bound map views, and existing cities sit at

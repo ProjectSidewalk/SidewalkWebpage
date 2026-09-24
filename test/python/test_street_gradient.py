@@ -1,5 +1,5 @@
 """
-Unit tests for scripts/street_gradient.py.
+Unit tests for tools/city/street_gradient.py.
 
 Covers the profile math (sampling points along a street, bilinear lookup, gap filling, smoothing, the windowed grade
 statistics, the structure / suspect / no-data verdicts), the elevation sources (USGS tile naming, the hand-downloaded

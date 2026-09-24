@@ -31,11 +31,11 @@ file, and this table says which doc to read first:
 | Storing uploaded media (DB row vs. media dir) | `docs/architecture.md` → "Media storage" |
 | Label crops, or a marker drawn on one (`label_crop` provenance, #2660) | `docs/architecture.md` → "Media storage" |
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |
-| `scripts/*.py` | `scripts/README.md` |
+| A script under `scripts/` or `tools/` | `tools/README.md` |
 | Onboarding a new city (streets, regions, schema, configs) | `docs/onboarding-a-city.md` (and the `onboard-city` skill) |
 | Google Maps keys, quotas, or a Google Cloud bill | `docs/google-cloud.md` |
 | The label lat/lng estimator or the labeling viewport frame | `docs/label-latlng-estimation.md` |
-| Street gradient / slope (`street_gradient`, `scripts/street_gradient.py`) | `docs/street-gradient.md` |
+| Street gradient / slope (`street_gradient`, `tools/city/street_gradient.py`) | `docs/street-gradient.md` |
 
 ## Workflow
 

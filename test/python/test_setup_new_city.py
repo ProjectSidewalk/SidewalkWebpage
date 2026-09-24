@@ -1,5 +1,5 @@
 """
-Unit tests for tools/setup_new_city.py — the derivations, the config-file edits, and the docker-backed steps
+Unit tests for tools/city/setup_new_city.py — the derivations, the config-file edits, and the docker-backed steps
 `make onboard-city` performs.
 
 The file edits run against copies of the real conf/cityparams.conf, conf/messages/*, and docs/dev-environment.md, so
@@ -227,7 +227,7 @@ def test_handoff_checklist_names_the_dump_both_urls_and_what_the_nightly_jobs_ow
 
 def test_the_samplers_no_source_refusal_is_the_string_setup_matches():
     """The one sampler exit onboarding continues past is told by its wording; a reword would turn it into a stop."""
-    assert snc.GRADIENT_NO_SOURCE in (Path(snc.REPO_ROOT) / 'scripts' / 'street_gradient.py').read_text()
+    assert snc.GRADIENT_NO_SOURCE in (Path(snc.REPO_ROOT) / 'tools' / 'city' / 'street_gradient.py').read_text()
 
 
 # --------------------------------------------------------------------------------------------------------------------
@@ -711,7 +711,7 @@ def test_run_street_gradient_exports_samples_and_imports(monkeypatch, tmp_path, 
     # The build's flags stand in for the osm_way cache, which a city has no rows in until its first nightly refresh.
     assert any('export-street-gradient-input.sh sidewalk_x x --structures onboarding/x/street_structures.csv' in cmd
                for cmd in joined)
-    assert any('projectsidewalk-web python3.13 scripts/street_gradient.py --city-id x' in cmd for cmd in joined)
+    assert any('projectsidewalk-web python3.13 tools/city/street_gradient.py --city-id x' in cmd for cmd in joined)
     assert any('import-street-gradient.sh sidewalk_x onboarding/x/street_gradient.csv' in cmd for cmd in joined)
     captured = capsys.readouterr()
     assert 'Sampling the elevation model' in captured.out and 'usgs-3dep-10m' in captured.err
@@ -728,7 +728,7 @@ def test_run_street_gradient_hands_the_dem_flags_to_the_sampler(monkeypatch, tmp
     calls = _fake_run(monkeypatch, {})
     flags = ['--dem-dir', 'db/onboarding/x/dem', '--dem-name', 'inegi-mdt-5m', '--dem-resolution-m', '5']
     assert snc.run_street_gradient('sidewalk_x', 'x', flags) == 'sampled'
-    assert any(cmd.endswith('scripts/street_gradient.py --city-id x ' + ' '.join(flags)) for cmd in _joined(calls))
+    assert any(cmd.endswith('tools/city/street_gradient.py --city-id x ' + ' '.join(flags)) for cmd in _joined(calls))
 
 
 def test_run_street_gradient_skips_without_the_builds_structure_flags(monkeypatch, tmp_path, capsys):
@@ -776,7 +776,7 @@ def test_run_imagery_scan_handles_no_hidden_streets_and_a_terminal(monkeypatch, 
     monkeypatch.setattr(snc.sys, 'stdin', SimpleNamespace(isatty=lambda: True))
     calls = _fake_run(monkeypatch, {'COPY (SELECT': (0, 'street_edge_id,region_id\n1,1\n')})
     snc.run_imagery_scan('sidewalk_x', 'x', 'panoramax')
-    scan = next(cmd for cmd in calls if 'scripts/check_streets_for_imagery.py' in cmd)
+    scan = next(cmd for cmd in calls if 'tools/city/check_streets_for_imagery.py' in cmd)
     assert '-t' in scan   # the progress bar gets a TTY when there is one
     assert '0 street(s) without imagery' in capsys.readouterr().out
 

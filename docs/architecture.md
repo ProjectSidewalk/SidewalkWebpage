@@ -32,7 +32,7 @@ Play backend ── routes → Controller → Service → Table (DAO/Slick)
         ▼
 External imagery providers (Google Street View / Mapillary / Infra3d / Panoramax / Pannellum)
 
-Out-of-band Python utilities: scripts/label_clustering.py, scripts/check_streets_for_imagery.py
+Out-of-band Python utilities: scripts/label_clustering.py, tools/city/check_streets_for_imagery.py
 ```
 
 ## Backend
@@ -64,6 +64,10 @@ The backend follows a consistent layering: **routes → Controller → Service �
   (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
+- **Which rows count** — never re-type the "deleted / tutorial / excluded user / tutorial street" filters. Slick queries
+  start from the named sets (`LabelTable.labels` and its variants, `StreetEdgeTable.streets`, `countedAuditTasks`,
+  `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala`
+  (#5287), e.g. `FilteredTables.streets()`, or `notTutorialStreet` for a query that keeps streets of every status.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
   `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
   in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the
@@ -178,12 +182,12 @@ background; the AccessScore tool retries on that header and says so under its sp
 
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
-transit, parks, community centers), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
-refreshes, with the containing region and the nearest open street within 250 m computed in SQL as it lands. It ticks
-nightly like every job but fetches only when the newest place is more than a week old, or the table is empty, which
-is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so the Health
-panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with `SwrCache`,
-cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
+transit, parks, community centers, government offices), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its
+`place_id` across refreshes, with the containing region and the nearest open street within 250 m computed in SQL as
+it lands. It ticks nightly like every job but fetches only when the newest place is more than a week old, or the table
+is empty, which is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so
+the Health panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with
+`SwrCache`, cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
 
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
@@ -300,7 +304,29 @@ corresponding Twirl view:
   [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
-- **`gallery/`** — browsable, filterable gallery of labels.
+- **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
+  (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
+  rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four
+  columns on a desktop, which is why a list page holds 12 cards where the filtered grid holds 9;
+  `CardContainer.getCardsPerPage()` is the one place that knows, and `ExpandedView` reads it back rather than
+  keeping a copy). What the list has to say about itself sits in one left-aligned line above the grid
+  (`.gallery-list-bar`), flush with the first card: a "← Browse all labels" link back to the plain Gallery (a link,
+  not a button — it navigates), then the count as a pill ("20 labels in this list", or "18 of 20 labels in this
+  list" once some aren't available), then the unavailable-ids disclosure, the over-cap notice and any load error.
+  There is deliberately no heading and no review instructions there: the URL is a sharing link as much as a queue.
+  `GalleryFilter` is still constructed with `null` for the absent sidebar and reset, because it owns the address
+  bar (both `?labelIds=` and the `?labelId=` deep link) and the filter state `CardContainer` reads.
+  List mode also skips the quality gates the filtered query applies (contributor quality, the disagree ratio,
+  already-loaded ids), since the rater asked for these ids by name. `LabelService.getGalleryLabels` takes the
+  branch, `LabelTable.getGalleryLabelsByIdQuery` is the query, and both share the row projection with the filtered
+  query. Ids the city doesn't have, or whose imagery is gone with no crop to fall back on, come back in the card
+  query's `unavailableLabelIds` and are named on the page, so a short list never reads as a complete one. The list
+  is capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query, and a list that
+  hits the cap says on the page how many ids were dropped — a truncated review queue that looked complete would be
+  worse than a refused one. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
+  `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
+  runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
+  once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
@@ -378,7 +404,7 @@ than one page links (one component per file — the `page-shell.css` sidebar + c
 `tables.css`, `label-detail.css`, `toast.css`, …), and `css/pages/` for everything page-specific (a single file per
 page, or a subdir for a multi-file page family such as `pages/explore/` or `pages/api-docs/`). A page's stylesheet is
 linked only by that page, and a page's class prefix (`ud-`, `ac-`, `svl-`, …) is defined only in that page's
-stylesheet(s) — `tools/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
+stylesheet(s) — `tools/lint/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
 otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
 **Assets are named by logical path, never by URL** (#4893). A Twirl template asks for one with `assets.path("…")`,
@@ -390,7 +416,7 @@ resulting `{logical path → md5}` map onto every page as `window.assetDigests` 
 tool bundles resolve icon URLs in module-level constants at script-eval time. Frontend code then writes
 `util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
 varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
-`/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/check-asset-paths.mjs`
+`/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/lint/check-asset-paths.mjs`
 (`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
 `util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
 string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
@@ -436,19 +462,12 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English var
 For how these configs map to hosted **stages** (test / staging / prod), how a branch or tag deploys to each, and the
 production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-stages.md).
 
-## Python utilities
+## Scripts and tools
 
-Three standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
-
-- `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
-  `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
-  system Python.
-- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
-  the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
-- `scripts/onboard_city.py` — builds a new city's street/region staging data from open sources (#4291), feeding
-  `db/scripts/fill-new-schema.sh`. Also `python3.13`. Run via `make build-city-data`; `make check-imagery` samples the
-  imagery, and `make onboard-city` (`tools/setup_new_city.py`) chains the rest of a new city's setup — see
-  [`docs/onboarding-a-city.md`](onboarding-a-city.md).
+A script lives where its caller is: [`scripts/`](../scripts/README.md) holds only what the running app shells out
+to (`label_clustering.py`, bundled into the staged package by `build.sbt`), [`tools/`](../tools/README.md) holds
+what a person or CI runs, sorted by caller (`lint/`, `dev/`, `city/`, `validation_queue/`, and the unmaintained
+`one-off/` and `experiments/`), and [`db/scripts/`](../db/scripts/README.md) holds what runs inside the DB container.
 
 `label_clustering.py` is invoked **in-band** (`ClusterService.runMultiUserClustering` shells out to it per region
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to

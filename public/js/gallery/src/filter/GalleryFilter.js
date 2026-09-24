@@ -12,11 +12,11 @@ class GalleryFilter {
   /** Validation options shown by default, matching the `/gallery` route's default query param. */
   static #DEFAULT_VALIDATIONS = ['correct', 'unvalidated'];
 
-  /** @type {HTMLElement} */
+  /** @type {?HTMLElement} Absent in review-list mode, which renders no filter controls at all (#5444). */
   #root;
-  /** @type {FilterSidebar} */
-  #sidebar;
-  /** @type {HTMLButtonElement} */
+  /** @type {?FilterSidebar} Absent with no root; every reader below then answers the empty default. */
+  #sidebar = null;
+  /** @type {?HTMLButtonElement} Absent in review-list mode — there are no filters to reset. */
   #clearButton;
   /** @type {{currentLabelTypes: string[]}} */
   #status;
@@ -24,8 +24,13 @@ class GalleryFilter {
   #initialFilters;
 
   /**
-   * @param {HTMLElement} root - The sidebar element holding the filter controls.
-   * @param {HTMLButtonElement} clearButton - The button that resets every filter to its default.
+   * Review-list mode renders no sidebar and no reset, so both elements arrive null — but this class is still
+   * constructed, because it is the page's only writer of the address bar (it carries `?labelIds=` and the
+   * `?labelId=` deep link, #5446) and CardContainer still asks it for the filter state. Every method below is
+   * therefore a safe no-op, or answers the empty default, when there is nothing to read.
+   *
+   * @param {?HTMLElement} root - The sidebar element holding the filter controls, or null when none is rendered.
+   * @param {?HTMLButtonElement} clearButton - The button that resets every filter, or null when none is rendered.
    * @param {Record<string, any>} initialFilters - Filters parsed from the URL by the server, passed through the page.
    */
   constructor(root, clearButton, initialFilters) {
@@ -34,13 +39,16 @@ class GalleryFilter {
     this.#initialFilters = initialFilters;
     this.#status = { currentLabelTypes: [] };
 
-    this.#sidebar = new FilterSidebar(root, { onChange: (change) => this.#onChange(change) });
-    this.#status.currentLabelTypes = this.#selectedLabelTypes();
-
-    this.#clearButton.addEventListener('click', () => {
-      this.clearFilters();
-      this.update();
-    });
+    if (this.#root) {
+      this.#sidebar = new FilterSidebar(this.#root, { onChange: (change) => this.#onChange(change) });
+      this.#status.currentLabelTypes = this.#selectedLabelTypes();
+    }
+    if (this.#clearButton) {
+      this.#clearButton.addEventListener('click', () => {
+        this.clearFilters();
+        this.update();
+      });
+    }
 
     this.#renderSeverity();
     this.#updateURL();
@@ -68,7 +76,7 @@ class GalleryFilter {
 
   /** @returns {string[]} The label types currently checked, in the sidebar's order. */
   #selectedLabelTypes() {
-    return this.#sidebar.getState().sections['label-type'] ?? [];
+    return this.#sidebar?.getState().sections['label-type'] ?? [];
   }
 
   /**
@@ -79,7 +87,7 @@ class GalleryFilter {
    */
   #renderSeverity() {
     const types = this.#status.currentLabelTypes;
-    const section = this.#root.querySelector('[data-filter-section="severity"]');
+    const section = this.#root?.querySelector('[data-filter-section="severity"]');
     if (!section) return;
 
     section.hidden = !types.some((type) => util.misc.labelTypeHasSeverity(type));
@@ -117,19 +125,50 @@ class GalleryFilter {
 
   /** Rewrites the address bar to match the filters, so the view can be linked and reloaded. */
   #updateURL() {
-    const url = this.#buildCurrentURL();
-    this.#clearButton.hidden = url === '/gallery';
+    const params = this.#filterParams();
+    // The reset speaks for the filters alone, so the deep link below doesn't make it appear.
+    if (this.#clearButton) this.#clearButton.hidden = [...params.keys()].length === 0;
 
+    // The open label is not a filter, but this is the page's only writer of the address bar, so it has to carry the
+    // deep link through: rebuilding the URL from the filters alone scrubbed `?labelId=` during the constructor's
+    // first pass — before ExpandedView could read it — which left every shared Gallery deep link opening the plain
+    // grid (#5446). Read fresh each time, so a filter change (which closes the expanded view and clears the param)
+    // correctly drops it.
+    const openLabelId = LabelDetail.urlLabelId();
+    if (openLabelId) params.set('labelId', String(openLabelId));
+
+    const query = util.url.serialize(params);
+    const url = query ? `/gallery?${query}` : '/gallery';
     const fullUrl = `${window.location.protocol}//${window.location.host}${url}`;
     if (fullUrl !== window.location.href) window.history.pushState({}, '', fullUrl);
   }
 
   /**
-   * Builds the `/gallery` URL for the current filters, leaving out every filter that is at its default.
-   * @returns {string} The path, with a query string when anything is filtered.
+   * The `/gallery` query params for the current filters, leaving out every filter that is at its default.
+   * @returns {URLSearchParams} The filter params; empty when nothing is filtered.
    */
-  #buildCurrentURL() {
+  #filterParams() {
     const params = new URLSearchParams();
+
+    // Review-list mode (#5444): the list is the whole selection and no filter controls are rendered, so reading the
+    // sidebar here would write `severities=&validationOptions=` — claiming filters that aren't being applied — and
+    // leaving the list out would scrub it from the address bar on the constructor's first pass. The `!#sidebar`
+    // half is belt and braces — the view renders the sidebar exactly when the list is empty, so the first half
+    // already covers it — but every line below here needs a sidebar, so it stays.
+    const listLabelIds = this.#listLabelIds();
+    if (listLabelIds.length > 0 || !this.#sidebar) {
+      if (listLabelIds.length > 0) {
+        // The ids the URL asked for, not the ones the page is showing: what the page carries is what the server
+        // kept, capped at MaxLabelIds, so writing from that would rewrite a 600-id link down to 500 — under a
+        // strip that is at that moment reporting 100 as dropped. (The value is re-serialized, so an encoded space
+        // comes back as "+"; what matters is that the ids are the ones that arrived.) A URL with no labelIds at
+        // all is the only case written from the parsed list.
+        const asGiven = new URLSearchParams(window.location.search).get('labelIds');
+        params.set('labelIds', asGiven ?? listLabelIds.join());
+      }
+      return params;
+    }
+
     const severities = this.getAppliedSeverities();
     const valOptions = this.getAppliedValidationOptions().sort();
 
@@ -151,8 +190,7 @@ class GalleryFilter {
     // TODO once we add a UI for filtering on AI validation, have that process mirror the other filters.
     if (aiValidationOptions.length > 0) params.set('aiValidationOptions', aiValidationOptions.join());
 
-    const query = util.url.serialize(params);
-    return query ? `/gallery?${query}` : '/gallery';
+    return params;
   }
 
   /**
@@ -194,6 +232,11 @@ class GalleryFilter {
     return section === 'label-type' ? 'LabelType' : 'ValidationOption';
   }
 
+  /** @returns {number[]} The review list the page was opened with, or an empty list outside list mode (#5444). */
+  #listLabelIds() {
+    return this.#initialFilters.labelIds ?? [];
+  }
+
   /** @returns {{currentLabelTypes: string[]}} The label types the cards are being fetched for. */
   getStatus() {
     return this.#status;
@@ -201,12 +244,12 @@ class GalleryFilter {
 
   /** @returns {string[]} The selected severities, as the card query spells them ("null" for the N/A bucket). */
   getAppliedSeverities() {
-    return this.#sidebar.getState().severities.map((s) => (s === 0 ? 'null' : String(s)));
+    return (this.#sidebar?.getState().severities ?? []).map((s) => (s === 0 ? 'null' : String(s)));
   }
 
   /** @returns {Record<string, string[]>} The tags narrowing each selected label type, keyed by type name. */
   getAppliedTagsByType() {
-    const tags = this.#sidebar.getState().tags;
+    const tags = this.#sidebar?.getState().tags ?? {};
     return Object.fromEntries(this.#status.currentLabelTypes.map((type) => [type, tags[type] ?? []]));
   }
 
@@ -217,24 +260,25 @@ class GalleryFilter {
 
   /** @returns {string[]} The selected validation options. */
   getAppliedValidationOptions() {
-    return this.#sidebar.getState().sections['label-validations'] ?? [];
+    return this.#sidebar?.getState().sections['label-validations'] ?? [];
   }
 
   /** Blocks interaction with the filters while a page of cards loads. */
   disable() {
-    this.#sidebar.disable();
+    this.#sidebar?.disable();
     // The reset sits outside the sidebar (see gallery.scala.html), so it needs disabling on its own.
-    this.#clearButton.disabled = true;
+    if (this.#clearButton) this.#clearButton.disabled = true;
   }
 
   /** Restores interaction with the filters. */
   enable() {
-    this.#sidebar.enable();
-    this.#clearButton.disabled = false;
+    this.#sidebar?.enable();
+    if (this.#clearButton) this.#clearButton.disabled = false;
   }
 
   /** Resets every filter to its default state. Callers follow with update() to apply it. */
   clearFilters() {
+    if (!this.#sidebar) return;
     this.#sidebar.clearAllTags();
     this.#sidebar.setSection('label-type', () => true);
     this.#sidebar.setSection(FilterSidebar.SEVERITY, () => true);

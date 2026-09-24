@@ -289,6 +289,7 @@ landing.deployment.map.title = Explore other cities
 landing.deployment.map.subtitle = Click on a circle below to explore other Project Sidewalk cities!
 landing.partners.title = Community Partners in {0}
 landing.partners.tagline = Our work in {0} is made possible through our community partners, including:
+landing.partners.official.contact = Project Sidewalk is a research tool. To report a problem or request a repair, contact {0} directly. Feel free to include links to Project Sidewalk <a href="/labelMap" data-partner-source="official-contact-labelmap">labels</a> or <a href="/stories" data-partner-source="official-contact-stories">stories</a> in your request.
 landing.partners.logo.alt = {0} logo
 landing.partners.created.by = Project Sidewalk was created with {0} by
 landing.partners.created.heart = love
@@ -559,6 +560,10 @@ gallery.all = All Label Types
 gallery.labels.not.found = No matches. <a href="/explore">Start exploring</a> to contribute more data!
 gallery.cards = Labels are sorted randomly based on selected filters
 gallery.clear.filters = Clear Filters
+gallery.list.count = {0,choice,1#1 label|1<{0} labels} in this list
+gallery.list.truncated = {0,choice,1#1 id was|1<{0} ids were} past the {1}-id limit and could not be loaded.
+gallery.list.error = The list couldn''t be loaded. Reload the page to try again.
+gallery.list.browse.all = Browse all labels
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Welcome to RouteBuilder

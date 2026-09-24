@@ -17,7 +17,7 @@
 
   <div class="page-section" id="places-intro-section">
     <h1 class="page-heading" id="places-api">Places API <a href="#places-api" class="permalink">#</a></h1>
-    <p>The Places API returns the destinations that matter most to people with disabilities and to the city staff who plan for them: schools, health care, libraries, grocery stores, transit stops, parks, and community centers. Each is a point with a category, a name, the region it lies in, and the nearest street, so a street's <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore</a> can be read as "the block between a bus stop and a clinic" rather than as a block on its own. The <a href="/accessScore">AccessScore map</a> draws this layer.</p>
+    <p>The Places API returns the destinations that matter most to people with disabilities and to the city staff who plan for them: schools, health care, libraries, grocery stores, transit stops, parks, community centers, and government offices. Each is a point with a category, a name, the region it lies in, and the nearest street, so a street's <a href="@routes.ApiDocsController.accessScoreStreets">AccessScore</a> can be read as "the block between a bus stop and a clinic" rather than as a block on its own. The <a href="/accessScore">AccessScore map</a> draws this layer.</p>
     <p>Places come from <a href="https://www.openstreetmap.org/">OpenStreetMap</a>, fetched for the city's bounds by a job that runs weekly, so a place added or corrected on OSM appears here within the week. OSM-derived fields (every field of an <code>osm</code> place) are &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>, available under the <a href="https://opendatacommons.org/licenses/odbl/">Open Database License</a>. A wrong or missing place is best fixed on OSM itself, where the fix reaches everyone; <code>osm_url</code> links straight to the object.</p>
   </div>
 
@@ -67,7 +67,7 @@
           @for(category <- PlaceCategory.all) {
           <tr>
             <td><code>@category.id</code></td>
-            <td>@for((rule, i) <- category.rules.zipWithIndex) {@if(i > 0){; }@for((v, j) <- rule.values.toSeq.sorted.zipWithIndex) {@if(j > 0){, }<code>@rule.key=@v</code>}}</td>
+            <td>@for((rule, i) <- category.rules.zipWithIndex) {@if(i > 0){; }@for((v, j) <- rule.values.toSeq.sorted.zipWithIndex) {@if(j > 0){, }<code>@rule.key=@v</code>}@for(qualifier <- rule.qualifier) { with <code>@qualifier.key</code> one of @for((v, j) <- qualifier.values.toSeq.sorted.zipWithIndex) {@if(j > 0){, }<code>@v</code>}}}</td>
           </tr>
           }
         </tbody>

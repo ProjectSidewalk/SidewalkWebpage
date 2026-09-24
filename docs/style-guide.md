@@ -147,7 +147,7 @@ consistent with it.
   `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page (`about.css`,
   `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several files
   (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest, both
-  enforced by `make lint-css-layout` (`tools/check-css-layout.mjs`, a blocking CI step): every entry under `pages/`
+  enforced by `make lint-css-layout` (`tools/lint/check-css-layout.mjs`, a blocking CI step): every entry under `pages/`
   is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the Grunt-bundled
   tools its own bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the site-wide
   layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
@@ -294,7 +294,7 @@ Rules:
 
 Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one, including `#private` methods.
 The types are checked: `make lint-js-types` runs TypeScript over `public/js/`
-([`tools/check-js-types.mjs`](../tools/check-js-types.mjs)), so a type that doesn't match the code fails the build.
+([`tools/lint/check-js-types.mjs`](../tools/lint/check-js-types.mjs)), so a type that doesn't match the code fails the build.
 
 **Method / function:**
 
@@ -343,7 +343,7 @@ Rules:
 - When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
   (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
 - Every file in `public/js/` is type-checked. Globals that no file in `public/js/` declares (vendor libraries,
-  values a view sets on `window`) go in [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
+  values a view sets on `window`) go in [`tools/lint/js-types/globals.d.ts`](../tools/lint/js-types/globals.d.ts).
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.

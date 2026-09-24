@@ -293,6 +293,7 @@ landing.deployment.map.title = Explora otras ciudades
 landing.deployment.map.subtitle = ¡Haga clic en un círculo a continuación para explorar otras ciudades del Proyecto Sidewalk!
 landing.partners.title = Socios comunitarios en {0}
 landing.partners.tagline = Nuestro trabajo en {0} es posible gracias a nuestros socios comunitarios, incluyendo:
+landing.partners.official.contact = Project Sidewalk es una herramienta de investigación. Para reportar un problema o solicitar una reparación, comunícate directamente con {0}. Puedes incluir en tu solicitud enlaces a <a href="/labelMap" data-partner-source="official-contact-labelmap">etiquetas</a> o <a href="/stories" data-partner-source="official-contact-stories">historias</a> de Project Sidewalk.
 landing.partners.logo.alt = Logotipo de {0}
 landing.partners.created.by = Project Sidewalk fue creado con {0} por
 landing.partners.created.heart = amor
@@ -561,6 +562,10 @@ gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
 gallery.clear.filters = Borrar Filtros
+gallery.list.count = {0,choice,1#1 etiqueta|1<{0} etiquetas} en esta lista
+gallery.list.truncated = {0,choice,1#1 ID superaba el límite de {1} y no se pudo cargar.|1<{0} ID superaban el límite de {1} y no se pudieron cargar.}
+gallery.list.error = No se pudo cargar la lista. Recarga la página para volver a intentarlo.
+gallery.list.browse.all = Explorar todas las etiquetas
 
 routebuilder.name = Constructor de rutas
 routebuilder.welcome = Bienvenido a RouteBuilder

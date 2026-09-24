@@ -1,8 +1,6 @@
 # Python utility tests
 
-Unit tests for the four standalone Python scripts in [`scripts/`](../../scripts) — `label_clustering.py`,
-`check_streets_for_imagery.py`, `onboard_city.py`, and `street_gradient.py`. This is the **first** Python test layer
-for Project Sidewalk. See [`docs/testing-and-ci.md`](../../docs/testing-and-ci.md) for where it fits in the overall
+Unit tests for the standalone Python scripts in [`scripts/`](../../scripts) and [`tools/`](../../tools). See [`docs/testing-and-ci.md`](../../docs/testing-and-ci.md) for where it fits in the overall
 testing plan.
 
 ## What is covered
@@ -26,19 +24,18 @@ functions — no network, no live Google/Mapillary/OSM or app calls.
   naming, the hand-downloaded-directory locator, the raster sampler, and `main` with `--resume`. Rasters are synthetic
   planes written to `tmp_path`, so expected grades are arithmetic and nothing touches the network. 3.13-only
   (rasterio).
-- `test_verify_latlng_backfill.py` — the one-off checker in [`tools/`](../../tools), which is stdlib-only.
-- `test_setup_new_city.py` — `make onboard-city`'s orchestrator in [`tools/`](../../tools) (#4291): the id/URL/date
+- `test_setup_new_city.py` — `make onboard-city`'s orchestrator in [`tools/city/`](../../tools/city) (#4291): the id/URL/date
   derivations, the cityparams/messages/docs edits (run against copies of the real files so a structural change there
   fails here first), the docker-backed steps with `subprocess` faked (the one-shot evolutions boot and its hash
   verification, the imagery scan, the dump), and `main` end to end with the prompts scripted — dry run, a full run,
   and every resume gate. Stdlib-only, so it runs in both halves.
-- `test_create_ga_properties.py` — the GA4 property/stream creation in [`tools/`](../../tools): the naming
+- `test_create_ga_properties.py` — the GA4 property/stream creation in [`tools/city/`](../../tools/city): the naming
   convention and cityparams lookups, the paged property search, idempotent reruns, the placeholder rewrite, and the
   dry run, with `urllib` faked. Stdlib-only, both halves.
-- `test_maps_key_referrers.py` — the Maps key referrer tool in [`tools/`](../../tools) (#5339): which referrer forms
+- `test_maps_key_referrers.py` — the Maps key referrer tool in [`tools/city/`](../../tools/city) (#5339): which referrer forms
   cover a site, the append-only update, `--check`'s dedup and exit codes, and gcloud errors, with `subprocess` faked.
   Stdlib-only, both halves.
-- `test_analyze_validation_queue.py` — the Validate queue evidence tool in [`tools/`](../../tools) (#4715, #5285):
+- `test_analyze_validation_queue.py` — the Validate queue evidence tool in [`tools/validation_queue/`](../../tools/validation_queue) (#4715, #5285):
   the retirement rule and triage predicates, the scores and sort keys, the mission and type selection, the historical
   replay, the forward simulations, NoSidewalk's block-face evidence and spread, CSV loading and the report; plus a
   pin of the tool's mirrored policy constants against `ValidationQueuePolicy.scala` and `pool.sql`. numpy only, so
@@ -82,7 +79,7 @@ There are no `--cov` flags to pass; `COVERAGE_OMIT` is the one thing a direct in
 the run rather than skipping the gate. See [Coverage](#coverage).
 
 Config lives in [`pyproject.toml`](../../pyproject.toml) (`[tool.pytest.ini_options]` + `[tool.coverage.*]`): it scopes
-collection to `test/python/` and puts `scripts/` and `tools/` on `sys.path` so the tests can `import label_clustering` /
+collection to `test/python/` and puts the script folders on `sys.path` so the tests can `import label_clustering` /
 `import check_streets_for_imagery` directly.
 
 **Adding a test file:** nothing to register. Each half runs the whole directory *minus* the files the other
@@ -100,12 +97,12 @@ or DB is touched. The two narrow exclusions are documented where they sit: the `
 guards (never run under pytest) and one provably-unreachable loop-exit branch in `check_streets` (`# pragma: no
 branch`, justified inline).
 
-Scoping is a bare `--cov` plus `source = ["scripts"]`. `source` is what reports a file nothing imported as 0%, so a
+Scoping is a bare `--cov` plus `source = ["scripts", "tools"]`. `source` is what reports a file nothing imported as 0%, so a
 script arriving with no tests fails the gate rather than going unmeasured — the arm `include` would drop. It applies
 to the scripts the running interpreter *cannot* import too, so each half omits those files via **`COVERAGE_OMIT`**
 (plus **`COVERAGE_OMIT2`** and **`COVERAGE_OMIT3`** on the 3.8 half, which can't import any of the three offline
 scripts) — `cov-omit-*` in the [`Makefile`](../../Makefile), `coverage-omit`/`-2`/`-3` in the CI matrix; unset, a
-hand-run fails loudly instead. (`tools/` is outside `source`: one-off utilities, not held to 100%.)
+hand-run fails loudly instead. `tools/one-off/` is omitted: those scripts are unmaintained by design.
 
 If you add logic, add a test — keep new code pure where possible (or hide I/O behind a thin wrapper and mock it) so the
 100% gate stays meaningful rather than something to lower.

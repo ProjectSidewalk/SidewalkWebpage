@@ -11,7 +11,7 @@ GET     /labelMap                                       controllers.ApplicationC
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /accessScore                                    controllers.ApplicationController.accessScore
 GET     /accessscore                                    controllers.ApplicationController.accessScore
-GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "")
+GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "", labelIds: String ?= "")
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                        controllers.ApplicationController.labelingGuideCurbRamps
@@ -129,6 +129,9 @@ PUT     /adminapi/partners/order                        controllers.PartnerContr
 PUT     /adminapi/globalPartners/order                  controllers.PartnerController.reorderGlobalPartners
 PUT     /adminapi/partners/:partnerId                   controllers.PartnerController.updatePartner(partnerId: Int)
 DELETE  /adminapi/partners/:partnerId                   controllers.PartnerController.deletePartner(partnerId: Int)
+# The "contact <city> directly" notice in the landing page's partners section (#5462), edited on the same admin page.
+GET     /adminapi/officialContact                       controllers.PartnerController.getOfficialContact
+PUT     /adminapi/officialContact                       controllers.PartnerController.updateOfficialContact
 GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()
 GET     /adminapi/recalculateStreetPriority             controllers.AdminController.recalculateStreetPriority
 POST    /adminapi/recalculateValidationCounts           controllers.AdminController.recalculateValidationCounts

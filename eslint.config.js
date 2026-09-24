@@ -11,8 +11,8 @@ const stylistic = require('@stylistic/eslint-plugin');
 const json = require('@eslint/json').default;
 const jsdoc = require('eslint-plugin-jsdoc');
 // Our own rules, as an inline plugin: flat config takes a plugin object directly, so a one-rule plugin needs no
-// package, no build step and no npm publish. See tools/eslint-rules/ for what each rule guards.
-const i18nEscapeInMarkup = require('./tools/eslint-rules/i18n-escape-in-markup');
+// package, no build step and no npm publish. See tools/lint/eslint-rules/ for what each rule guards.
+const i18nEscapeInMarkup = require('./tools/lint/eslint-rules/i18n-escape-in-markup');
 const psPlugin = {rules: {'i18n-escape-in-markup': i18nEscapeInMarkup}};
 
 module.exports = [
@@ -207,7 +207,7 @@ module.exports = [
   // --- i18n translation JSON (public/locales/) ---
   // These catch what a JSON.parse silently swallows: a duplicate key keeps the last value, so a second `"foo"`
   // overwrites an existing translation with no error anywhere. Key parity and empty values need to know about
-  // i18next plurals and override-only locales, so they live in tools/check-locale-parity.mjs instead.
+  // i18next plurals and override-only locales, so they live in tools/lint/check-locale-parity.mjs instead.
   // `sort-keys` is off: our files are ordered logically, not alphabetically, so enabling it would be pure churn.
   {
     files: ['public/locales/**/*.json'],

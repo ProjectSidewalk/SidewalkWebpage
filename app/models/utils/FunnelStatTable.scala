@@ -141,7 +141,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         SELECT user_id, 4 AS step FROM "$schema".mission
             WHERE mission_type = 'audit' AND COALESCE(distance_progress, 0) > 0 ${b.mStart}
         UNION ALL
-        SELECT user_id, 5 AS step FROM "$schema".label WHERE deleted = FALSE AND tutorial = FALSE ${b.label}
+        SELECT user_id, 5 AS step FROM ${realLabels(schema)} WHERE TRUE ${b.label}
         UNION ALL
         SELECT user_id, 6 AS step FROM "$schema".mission WHERE mission_type = 'audit' AND completed = TRUE ${b.mEnd}
       """
@@ -164,7 +164,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         SELECT user_id, 1 AS step FROM "$schema".webpage_activity
             WHERE activity IN ('Visit_Index', 'Visit_MobileLanding') ${b.wa}
         UNION ALL
-        SELECT user_id, 2 AS step FROM "$schema".label WHERE deleted = FALSE AND tutorial = FALSE ${b.label}
+        SELECT user_id, 2 AS step FROM ${realLabels(schema)} WHERE TRUE ${b.label}
         UNION ALL
         SELECT user_id, 2 AS step FROM "$schema".label_validation WHERE TRUE ${b.validation}
         UNION ALL
@@ -173,6 +173,13 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       """
     computeFunnel(schema, events, numSteps = 3)
   }
+
+  /**
+   * Labels for the funnel's "placed a label" step. Keeps excluded users, or they'd look like they quit there.
+   *
+   * @return A subquery for a FROM clause.
+   */
+  private def realLabels(schema: String): String = FilteredTables.labels(Some(schema), Contributors.Everyone)
 
   /** Per-source window-bound SQL fragments (empty for all-time). windowDays is an Int, so it is safe to interpolate. */
   private case class Bounds(wa: String, mStart: String, mEnd: String, label: String, validation: String)

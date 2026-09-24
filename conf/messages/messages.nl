@@ -280,6 +280,7 @@ landing.deployment.map.title = Ontdek andere steden
 landing.deployment.map.subtitle = Klik op een cirkel hieronder om andere Project Sidewalk-steden te ontdekken!
 landing.partners.title = Communitypartners in {0}
 landing.partners.tagline = Ons werk in {0} is mogelijk dankzij onze communitypartners, waaronder:
+landing.partners.official.contact = Project Sidewalk is een onderzoekstool. Neem voor het melden van een probleem of het aanvragen van een reparatie rechtstreeks contact op met {0}. Je kunt links naar <a href="/labelMap" data-partner-source="official-contact-labelmap">labels</a> of <a href="/stories" data-partner-source="official-contact-stories">verhalen</a> van Project Sidewalk aan je verzoek toevoegen.
 landing.partners.logo.alt = Logo van {0}
 landing.partners.created.by = Project Sidewalk is met {0} ontwikkeld door
 landing.partners.created.heart = liefde
@@ -547,6 +548,10 @@ gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
 gallery.clear.filters = Filters Wissen
+gallery.list.count = {0,choice,1#1 label|1<{0} labels} in deze lijst
+gallery.list.truncated = {0,choice,1#1 id lag boven de limiet van {1} en kon niet worden geladen.|1<{0} ids lagen boven de limiet van {1} en konden niet worden geladen.}
+gallery.list.error = De lijst kon niet worden geladen. Herlaad de pagina om het opnieuw te proberen.
+gallery.list.browse.all = Alle labels bekijken
 
 routebuilder.name = Routebuilder
 routebuilder.welcome = Welkom bij Routebuilder
