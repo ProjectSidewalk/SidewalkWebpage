@@ -250,14 +250,11 @@
   gap: 0;
 }
 
-/* Removing default styling for "active" options in dropdown. Would be left over after hover. */
-.ts-dropdown .option.active {
-  background: inherit;
-  color: inherit;
-}
-
+/* The keyboard cursor looks like hover. It stays on the last pill the mouse left, which is the one Enter picks. */
+.ts-dropdown .option.tag-pill.active,
 .ts-dropdown .option.tag-pill:hover {
   background: var(--color-pine-200);
+  color: inherit;
   outline: none;
 }
 

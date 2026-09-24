@@ -45,11 +45,16 @@ class KeyboardManager {
     if (document.activeElement === validationMenuUi.optionalCommentTextBox[0]
       || document.activeElement === validationMenuUi.disagreeReasonTextBox[0]
       || document.activeElement === validationMenuUi.unsureReasonTextBox[0]
-      || document.activeElement === document.getElementById('select-tag-ts-control')) {
+      || this.#inTagPicker()) {
       this.#addingComment = true;
     } else {
       this.#addingComment = false;
     }
+  }
+
+  /** @returns {boolean} Whether the tag picker's text box has focus. Tom Select names the box after the select it wraps. */
+  #inTagPicker() {
+    return document.activeElement === document.getElementById('select-tag-ts-control');
   }
 
   /**
@@ -154,8 +159,10 @@ class KeyboardManager {
     this.#checkIfTextAreaSelected();
 
     // Handle the various keyboard shortcuts.
-    // Enter submits validation regardless of whether a text box is focused.
-    if (!this.#disableKeyboard && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+    // Enter submits validation regardless of whether a comment box is focused. The tag picker is the exception: there
+    // Enter adds the highlighted tag, and since this listener runs first, submitting from here would advance the
+    // label before the tag is added and the load guard would then drop it.
+    if (!this.#disableKeyboard && !this.#inTagPicker() && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
       e.preventDefault();
       validationMenuUi.submitButton.click();
     }
