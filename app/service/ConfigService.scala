@@ -402,10 +402,10 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * Counts use the same exclusions as the rest of the stats code (`NOT user_stat.excluded`, non-deleted, non-tutorial).
  *
  * @param cityId                  The city id (e.g. "seattle-wa").
- * @param totalStreets            Open streets in the city.
- * @param auditedStreets          Distinct open streets with a current-imagery audit by a non-excluded user.
+ * @param totalStreets            Open streets in the city, minus the tutorial street.
+ * @param auditedStreets          Distinct counted streets with a current-imagery audit by a non-excluded user.
  * @param coverage                auditedStreets / totalStreets in [0, 1]; 0.0 when the city has no streets.
- * @param totalKm                 Total length of the open street network, in km.
+ * @param totalKm                 Total length of the counted streets, in km.
  * @param auditedKm               Distinct audited length (no double-counting overlapping audits), in km.
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.

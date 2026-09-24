@@ -1,9 +1,8 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import models.utils.FilteredTables
+import models.utils.{FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult

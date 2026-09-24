@@ -159,8 +159,8 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * a street only leaves the auditing pool once the checker confirms it — but a street several *different* people
    * independently found empty is the strongest evidence the app can offer without asking a provider, and it is
    * corroboration rather than volume that separates that from one labeler's bad session or a transient provider
-   * outage. Restricted to `open` streets in live regions, since a street already retired — or sitting in a
-   * region that was — needs no further evidence.
+   * outage. Restricted to `open`, non-tutorial streets in live regions, since a street already retired — or sitting
+   * in a region that was — needs no further evidence.
    *
    * Counts distinct `user_id`s, which is distinct *accounts* rather than distinct people: an anonymous sign-up gets
    * its own user row, so one person returning to a street across two sessions reaches the threshold. That is

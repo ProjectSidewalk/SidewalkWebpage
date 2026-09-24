@@ -949,6 +949,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               FROM "#$schema".audit_task_interaction_small
               INNER JOIN "#$schema".mission ON audit_task_interaction_small.mission_id = mission.mission_id
               WHERE #${FilteredTables.userCounts(Some(schema), "mission.user_id", Contributors.NotExcluded)}
+                  AND mission.mission_type <> 'auditOnboarding' -- Tutorial time out, like its distance below.
           ) time_diffs
           WHERE diff < '00:05:00' AND diff > '00:00:00'
       ) AS audit_time, (

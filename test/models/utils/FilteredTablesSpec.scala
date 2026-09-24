@@ -12,8 +12,8 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, StreetFixtures}
 
 /**
- * The shared "what counts" SQL (#5287, #5485) keeps exactly what its Slick twin keeps. Seeded cases are rolled back, and
- * are skipped on a database with no labels to borrow ids from (CI's).
+ * The shared "what counts" SQL (#5287, #5485) keeps exactly what its Slick twin keeps. Seeded cases are rolled back,
+ * and are skipped on a database with no labels to borrow ids from (CI's).
  */
 class FilteredTablesSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
@@ -71,6 +71,18 @@ class FilteredTablesSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBa
       } yield (slick, raw))
 
       differences(slick, raw) mustBe ((Seq.empty, Seq.empty))
+    }
+
+    "drop streets that aren't open, and the tutorial street" in {
+      val (kept, open, noImagery, tutorial) = runRolledBack(for {
+        open      <- insertStreet()
+        noImagery <- insertStreet(status = "no_imagery")
+        tutorial  <- sql"SELECT tutorial_street_edge_id FROM config".as[Int].head
+        kept      <- sql"""SELECT street_edge_id FROM #${FilteredTables.streets()}
+                           WHERE street_edge_id IN ($open, $noImagery, $tutorial)""".as[Int]
+      } yield (kept, open, noImagery, tutorial))
+
+      kept mustBe Seq(open)
     }
   }
 

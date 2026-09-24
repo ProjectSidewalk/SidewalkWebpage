@@ -66,8 +66,8 @@ The backend follows a consistent layering: **routes → Controller → Service �
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
 - **Which rows count** — never re-type the "deleted / tutorial / excluded user / tutorial street" filters. Slick queries
   start from the named sets (`LabelTable.labels` and its variants, `StreetEdgeTable.streets`, `countedAuditTasks`,
-  `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala` (#5287), e.g.
-  `FilteredTables.streets()`, or `notTutorialStreet` for a query that keeps streets of every status (#5485).
+  `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala`
+  (#5287), e.g. `FilteredTables.streets()`, or `notTutorialStreet` for a query that keeps streets of every status.
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
   `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
   in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the

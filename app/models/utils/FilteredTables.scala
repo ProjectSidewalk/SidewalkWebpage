@@ -19,7 +19,8 @@ object Contributors {
 }
 
 /**
- * The rules for which streets, labels, audits and votes count, written once for raw SQL (#5287), so copies can't drift apart.
+ * The rules for which streets, labels, audits and votes count, written once for raw SQL (#5287), so copies can't
+ * drift apart.
  *
  * Each is a subquery named after the table it replaces: swap `FROM label` for `FROM #${FilteredTables.labels()}`.
  * `FilteredTablesSpec` checks each against its Slick twin.
