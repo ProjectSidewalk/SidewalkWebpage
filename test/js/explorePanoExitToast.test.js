@@ -100,10 +100,12 @@ describe('Canvas.watchPanoExit', () => {
         expect(onExit).toHaveBeenCalledTimes(1);
     });
 
-    test('a toast visit that went back to the pano does not count a later toast exit twice', () => {
+    test('returning to the pano forgets the toast visit, so a later off-pano toast is not an exit', () => {
         movePointer(pano, panoToastClose);
         movePointer(panoToastClose, pano);
         movePointer(pano, ribbon);
+        movePointer(ribbon, otherToastClose);
+        movePointer(otherToastClose, ribbon);
         expect(onExit).toHaveBeenCalledTimes(1);
     });
 

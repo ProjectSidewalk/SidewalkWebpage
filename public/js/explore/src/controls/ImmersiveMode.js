@@ -111,7 +111,14 @@ class ImmersiveMode {
   #showExitHintOnce() {
     if (ImmersiveMode.#readStored(ImmersiveMode.#EXIT_HINT_SEEN_KEY)) return;
     ImmersiveMode.#writeStored(ImmersiveMode.#EXIT_HINT_SEEN_KEY, '1');
-    Toast.show({ message: i18next.t('controls.immersive-exit-hint'), dark: true, compact: true });
+    // Anchored to the pano (which fills the window here) so it clears the label strip, queues behind the other pano
+    // toasts, and goes click-through while a label type is armed like they do (#5496).
+    Toast.show({
+      message: i18next.t('controls.immersive-exit-hint'),
+      reference: document.getElementById('pano'),
+      dark: true,
+      compact: true,
+    });
   }
 
   /**
