@@ -2,9 +2,10 @@ package models.validation
 
 import models.label.LabelTypeEnum
 import org.scalatestplus.play.PlaySpec
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 
-import java.io.File
+import scala.io.Source
+import scala.util.Using
 
 /**
  * Pure unit tests for the canned-reason vocabulary (#5475). No app boot or DB required.
@@ -16,10 +17,10 @@ import java.io.File
  */
 class ValidationReasonSpec extends PlaySpec {
 
-  private val english: JsObject = {
-    val file = new File("public/locales/en/common.json")
-    (Json.parse(file.toURI.toURL.openStream()) \ "validation-reason").as[JsObject]
-  }
+  /** Closes the file after parsing: streams left open accumulate across repeated runs in one sbt JVM. */
+  private def readJson(path: String): JsValue = Using.resource(Source.fromFile(path))(src => Json.parse(src.mkString))
+
+  private val english: JsObject = (readJson("public/locales/en/common.json") \ "validation-reason").as[JsObject]
 
   "catalog" should {
     "lead every type's Disagree reasons with wrong-type, which Expert Validate turns into the type picker (#5409)" in {
@@ -87,7 +88,7 @@ class ValidationReasonSpec extends PlaySpec {
     "match the committed fixture the JS suite stamps as window.validationReasons" in {
       // test/js/loadGlobalScript.js stamps that fixture. If it stops matching what the pages actually stamp, the JS
       // suite is testing a catalog no browser ever sees — so fail here instead, with the diff.
-      val fixture = Json.parse(new File("test/resources/validation-reasons-stamp.json").toURI.toURL.openStream())
+      val fixture = readJson("test/resources/validation-reasons-stamp.json")
       Json.parse(ValidationReason.pageStampJson) mustBe fixture
     }
 
