@@ -7,12 +7,12 @@ import models.label.LabelTypeEnum
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType}
+import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json._
 import slick.dbio.Effect
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -199,11 +199,6 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
     }
 
-    // Restrict to the scored label types. Single-quote-escaped; empty set short-circuits to no rows.
-    val labelTypeFilter: String =
-      if (labelTypes.isEmpty) "FALSE"
-      else s"cluster.label_type IN (${labelTypes.map(lt => s"'${lt.replace("'", "''")}'").mkString(", ")})"
-
     // Number of member labels per cluster (the denominator for the tag-active threshold).
     val labelCounts =
       """SELECT cluster_label.cluster_id AS cluster_id,
@@ -245,7 +240,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       FROM cluster
       INNER JOIN (#$labelCounts) label_counts ON cluster.cluster_id = label_counts.cluster_id
       INNER JOIN (#$tagCounts) cluster_tag_counts ON cluster.cluster_id = cluster_tag_counts.cluster_id
-      WHERE #$labelTypeFilter
+      WHERE cluster.label_type = ANY(${labelTypes.toSeq}::label_type[])
           AND (cluster.street_edge_id IN (#$inScopeStreets)
                OR cluster.intersection_id IN (
                    SELECT intersection_street_edge.intersection_id
@@ -259,48 +254,43 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       filters: LabelClusterFiltersForApi
   ): SqlStreamingAction[Vector[LabelClusterForApi], LabelClusterForApi, Effect] = {
     // Build the query conditions.
-    var whereConditions = Seq.empty[String]
+    var whereConditions = Seq.empty[SQLActionBuilder]
 
     // Apply location filters based on precedence logic.
     if (filters.bbox.isDefined) {
       val bbox = filters.bbox.get
-      whereConditions :+= s"cluster.geom && ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
+      whereConditions :+=
+        sql"cluster.geom && ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
     } else if (filters.regionId.isDefined) {
-      whereConditions :+= s"street_edge_region.region_id = ${filters.regionId.get}"
+      whereConditions :+= sql"street_edge_region.region_id = ${filters.regionId.get}"
     } else if (filters.regionName.isDefined) {
-      whereConditions :+= s"region.name = '${filters.regionName.get.replace("'", "''")}'"
+      whereConditions :+= sql"region.name = ${filters.regionName.get}"
     }
 
     // Apply the rest of the filters.
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
-      val labelTypeList = filters.labelTypes.get.map(lt => s"'${lt.replace("'", "''")}'").mkString(", ")
-      whereConditions :+= s"cluster.label_type IN ($labelTypeList)"
+      whereConditions :+= sql"cluster.label_type = ANY(${filters.labelTypes.get}::label_type[])"
     }
 
     if (filters.minClusterSize.isDefined) {
-      whereConditions :+= s"label_counts.label_count >= ${filters.minClusterSize.get}"
+      whereConditions :+= sql"label_aggregates.label_count >= ${filters.minClusterSize.get}"
     }
 
     if (filters.minAvgImageCaptureDate.isDefined) {
-      val dateStr = filters.minAvgImageCaptureDate.get.toString
-      whereConditions :+= s"image_capture_dates.avg_capture_date >= '$dateStr'"
+      whereConditions :+= sql"avg_image_capture_dates.avg_capture_date >= ${filters.minAvgImageCaptureDate.get}"
     }
 
     if (filters.minAvgLabelDate.isDefined) {
-      val dateStr = filters.minAvgLabelDate.get.toString
-      whereConditions :+= s"validation_counts.avg_label_date >= '$dateStr'"
+      whereConditions :+= sql"label_aggregates.avg_label_date >= ${filters.minAvgLabelDate.get}"
     }
 
     if (filters.minSeverity.isDefined) {
-      whereConditions :+= s"cluster.severity >= ${filters.minSeverity.get}"
+      whereConditions :+= sql"cluster.severity >= ${filters.minSeverity.get}"
     }
 
     if (filters.maxSeverity.isDefined) {
-      whereConditions :+= s"cluster.severity <= ${filters.maxSeverity.get}"
+      whereConditions :+= sql"cluster.severity <= ${filters.maxSeverity.get}"
     }
-
-    // Combine all conditions. An unfiltered request has none, so fall back to TRUE to keep the WHERE clause valid.
-    val whereClause = if (whereConditions.isEmpty) "TRUE" else whereConditions.mkString(" AND ")
 
     // Aggregate per-label data for each cluster: validation counts, dates, label IDs, and user IDs.
     val labelAggregates =
@@ -348,7 +338,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |GROUP BY capture_dates.cluster_id""".stripMargin
 
     // Base query for label clusters.
-    var finalQuery = s"""
+    val baseQuery: SQLActionBuilder = sql"""
     SELECT cluster.cluster_id AS label_cluster_id,
           cluster.label_type::text,
           cluster.street_edge_id,
@@ -373,18 +363,24 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
     INNER JOIN region ON street_edge_region.region_id = region.region_id
     INNER JOIN osm_way_street_edge ON cluster.street_edge_id = osm_way_street_edge.street_edge_id
-    INNER JOIN (${labelAggregates}) label_aggregates ON cluster.cluster_id = label_aggregates.cluster_id
-    INNER JOIN (${avgImageCaptureDates}) avg_image_capture_dates ON cluster.cluster_id = avg_image_capture_dates.cluster_id
-    INNER JOIN (${tagCounts}) cluster_tag_counts ON cluster.cluster_id = cluster_tag_counts.cluster_id
-    WHERE ${whereClause}
+    INNER JOIN (#$labelAggregates) label_aggregates ON cluster.cluster_id = label_aggregates.cluster_id
+    INNER JOIN (#$avgImageCaptureDates) avg_image_capture_dates ON cluster.cluster_id = avg_image_capture_dates.cluster_id
+    INNER JOIN (#$tagCounts) cluster_tag_counts ON cluster.cluster_id = cluster_tag_counts.cluster_id
+    WHERE """
+      .concat(SqlFragments.allOf(whereConditions))
+      .concat(sql"""
     ORDER BY cluster.cluster_id
-    """
+    """)
 
-    // If includeRawLabels is true, modify the query to fetch raw label data.
-    if (filters.includeRawLabels) {
-      finalQuery = s"""
+    // If includeRawLabels is true, wrap the query to also fetch raw label data.
+    val finalQuery: SQLActionBuilder =
+      if (!filters.includeRawLabels) baseQuery
+      else {
+        sql"""
         WITH base_query AS (
-          ${finalQuery}
+          """
+          .concat(baseQuery)
+          .concat(sql"""
         )
         SELECT base_query.*,
                COALESCE(jsonb_agg(
@@ -426,10 +422,10 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
             base_query.lat,
             base_query.lng,
             base_query.tag_counts
-      """
-    }
+      """)
+      }
 
-    sql"""#$finalQuery""".as[LabelClusterForApi]
+    finalQuery.as[LabelClusterForApi]
   }
 
   def countClusters: DBIO[Int] = {

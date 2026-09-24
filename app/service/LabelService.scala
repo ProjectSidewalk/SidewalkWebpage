@@ -282,7 +282,7 @@ class LabelServiceImpl @Inject() (
   }
 
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]] =
-    db.run(labelTable.getRecentLabelsMetadata(1, None, Some(userId), Some(labelId)).map(_.headOption))
+    db.run(labelTable.getRecentLabelsMetadata(1, Some(userId), Some(labelId)).map(_.headOption))
 
   def getLabelLatLng(labelId: Int): Future[Option[LatLng]] = db.run(labelTable.getLabelLatLng(labelId))
 

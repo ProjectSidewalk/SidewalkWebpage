@@ -27,7 +27,7 @@ import models.user._
 import models.utils.MyPostgresProfile.api._
 import models.utils.CommonUtils.UiSource
 import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.{ConfigTableDef, Contributors, FilteredTables, LatLngBBox, MyPostgresProfile}
+import models.utils.{ConfigTableDef, Contributors, FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
 import models.validation.{
   LabelValidationTableDef,
   ValidationLabelFilter,
@@ -456,15 +456,12 @@ object LabelTable {
    * `Obstacle` (#4095). With no scoped entries the clause reduces to a flat OR over the tags, which is the behavior
    * unscoped callers have always had.
    *
-   * Label types are allowlisted `LabelTypeEnum` names (validated at parse time) and so are safe to splice; only the
-   * caller-supplied tag text needs escaping.
-   *
    * @param tags Parsed tag filters; must be non-empty.
    * @return A parenthesized SQL condition over `label.tags` and `label.label_type`.
    */
-  def tagWhereClause(tags: Seq[TagFilterForApi]): String = {
-    def matchesTag(tag: String): String         = s"'${tag.replace("'", "''")}' = ANY(label.tags)"
-    def anyOf(tagsToMatch: Seq[String]): String = tagsToMatch.distinct.map(matchesTag).mkString(" OR ")
+  def tagWhereClause(tags: Seq[TagFilterForApi]): SQLActionBuilder = {
+    // `&&` is true when the label shares at least one tag with the list.
+    def anyOf(tagsToMatch: Seq[String]): SQLActionBuilder = sql"label.tags && ${tagsToMatch.distinct}::text[]"
 
     val unscopedTags: Seq[String]            = tags.collect { case TagFilterForApi(None, tag) => tag }
     val scopedTags: Map[String, Seq[String]] = tags
@@ -474,20 +471,20 @@ object LabelTable {
       .groupMap(_._1)(_._2)
 
     // Sorted so the emitted SQL is deterministic regardless of the order the caller listed the entries in.
-    val scopedConditions: Seq[String] = scopedTags.toSeq.sortBy(_._1).map { case (labelType, tagsForType) =>
-      s"(label.label_type = '$labelType' AND (${anyOf(tagsForType ++ unscopedTags)}))"
+    val scopedConditions: Seq[SQLActionBuilder] = scopedTags.toSeq.sortBy(_._1).map { case (labelType, tagsForType) =>
+      sql"(label.label_type = $labelType::label_type AND ".concat(anyOf(tagsForType ++ unscopedTags)).concat(sql")")
     }
 
-    val otherTypesCondition: String = if (scopedTags.isEmpty) {
+    val otherTypesCondition: SQLActionBuilder = if (scopedTags.isEmpty) {
       anyOf(unscopedTags)
     } else {
-      val scopedTypeList = scopedTags.keys.toSeq.sorted.map(labelType => s"'$labelType'").mkString(", ")
-      val notScoped      = s"label.label_type NOT IN ($scopedTypeList)"
+      val notScoped = sql"label.label_type <> ALL(${scopedTags.keys.toSeq.sorted}::label_type[])"
       // No unscoped tags means the types nobody scoped are left unnarrowed, so they pass on type alone.
-      if (unscopedTags.isEmpty) notScoped else s"($notScoped AND (${anyOf(unscopedTags)}))"
+      if (unscopedTags.isEmpty) notScoped
+      else sql"(".concat(notScoped).concat(sql" AND ").concat(anyOf(unscopedTags)).concat(sql")")
     }
 
-    s"(${(scopedConditions :+ otherTypesCondition).mkString(" OR ")})"
+    sql"(".concat(SqlFragments.join(scopedConditions :+ otherTypesCondition, " OR ")).concat(sql")")
   }
 
   // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
@@ -1284,42 +1281,17 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Gets metadata for the `takeN` most recent labels. Optionally filter by user_id of the labeler.
+   * Gets metadata for the `takeN` most recent labels.
    * @param takeN Number of labels to retrieve
-   * @param labelerId user_id of the person who placed the labels; an optional filter
    * @param validatorId optionally include this user's validation info for each label in the userValidation field
    * @param labelId optionally include this if you only want the metadata for the single given label
    * @return
    */
   def getRecentLabelsMetadata(
       takeN: Int,
-      labelerId: Option[String] = None,
       validatorId: Option[String] = None,
       labelId: Option[Int] = None
   ): DBIO[Seq[LabelMetadata]] = {
-    // These user_ids are spliced into raw SQL below, so escape single quotes to keep the query injection-safe if a
-    // caller ever passes a request-derived id (today they are server-generated UUIDs).
-    val escapedLabelerId: Option[String]   = labelerId.map(_.replace("'", "''"))
-    val escapedValidatorId: Option[String] = validatorId.map(_.replace("'", "''"))
-
-    // Optional filter to only get labels placed by the given user.
-    val labelerFilter: String = escapedLabelerId.map(id => s"""u.user_id = '$id'""").getOrElse("TRUE")
-
-    // Whether the label was placed by the current user (prevents self-validation).
-    val fromCurrentUserExpr: String = escapedValidatorId.map(id => s"""u.user_id = '$id'""").getOrElse("FALSE")
-
-    // Optionally include the given user's validation info for each label in the userValidation field.
-    val validatorJoin: String =
-      escapedValidatorId
-        .map { id =>
-          s"""LEFT JOIN (
-             |    SELECT label_id, validation_result, label_type
-             |    FROM label_validation WHERE user_id = '$id'
-             |) AS user_validation ON lb.label_id = user_validation.label_id
-             |    AND user_validation.label_type = lb.label_type""".stripMargin
-        }
-        .getOrElse("LEFT JOIN ( SELECT NULL AS validation_result ) AS user_validation ON lb.label_id = NULL")
-
     // Either filter for the given labelId or filter out deleted and tutorial labels.
     val labelFilter: String = if (labelId.isDefined) {
       s"""lb1.label_id = ${labelId.get}"""
@@ -1364,7 +1336,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              pano_data.lng AS camera_lng,
              ur.role = 'AI' AS ai_generated,
              pano_data.expired,
-             #$fromCurrentUserExpr AS from_current_user,
+             COALESCE(u.user_id = $validatorId, FALSE) AS from_current_user,
              pano_data.width AS pano_width,
              pano_data.height AS pano_height,
              pano_data.tile_width,
@@ -1394,7 +1366,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  user_validation.validation_result,
                  lb.tags
           FROM label AS lb
-          #$validatorJoin
+          -- With no validator this matches nothing, leaving userValidation empty.
+          LEFT JOIN (
+              SELECT label_id, validation_result, label_type
+              FROM label_validation WHERE user_id = $validatorId
+          ) AS user_validation ON lb.label_id = user_validation.label_id
+              AND user_validation.label_type = lb.label_type
       ) AS lb_big ON lb1.label_id = lb_big.label_id
       LEFT JOIN (
           SELECT label_validation.label_id, label_validation.validation_result, label_validation.label_type
@@ -1418,7 +1395,6 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           GROUP BY validation_task_comment.label_id
        ) AS comment ON lb1.label_id = comment.label_id
       WHERE #$labelFilter
-          AND #$labelerFilter
       ORDER BY lb1.label_id DESC
       LIMIT $takeN
     """.as[LabelMetadata]
@@ -2481,7 +2457,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       filters: RawLabelFiltersForApi
   ): SqlStreamingAction[Vector[LabelDataForApi], LabelDataForApi, Effect] = {
     // TODO convert to Slick syntax now that we can use .makeEnvelope, .within, and array aggregation.
-    var whereConditions = Seq.empty[String]
+    var whereConditions = Seq.empty[SQLActionBuilder]
 
     // Apply filter precedence logic for location filters:
     // - If bbox is defined, it takes precedence over region filters
@@ -2491,19 +2467,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       // BBox filter takes precedence over region filters.
       val bbox = filters.bbox.get
       whereConditions :+=
-        s"label_point.geom && ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
+        sql"label_point.geom && ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
     } else if (filters.regionId.isDefined) {
       // Region ID filter takes precedence over region name.
-      whereConditions :+= s"street_edge_region.region_id = ${filters.regionId.get}"
+      whereConditions :+= sql"street_edge_region.region_id = ${filters.regionId.get}"
     } else if (filters.regionName.isDefined) {
       // Use region name if no bbox or region ID is provided.
-      whereConditions :+= s"region.name = '${filters.regionName.get.replace("'", "''")}'"
+      whereConditions :+= sql"region.name = ${filters.regionName.get}"
     }
 
     // Apply the rest of the existing filters.
     if (filters.labelTypes.isDefined && filters.labelTypes.get.nonEmpty) {
-      val labelTypeList = filters.labelTypes.get.map(lt => s"'${lt.replace("'", "''")}'").mkString(", ")
-      whereConditions :+= s"label.label_type IN ($labelTypeList)"
+      whereConditions :+= sql"label.label_type = ANY(${filters.labelTypes.get}::label_type[])"
     }
 
     if (filters.tags.isDefined && filters.tags.get.nonEmpty) {
@@ -2511,22 +2486,21 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     }
 
     filters.severity.foreach { severityFilter =>
-      // Severities are validated Ints and the null token is a boolean, so the condition is injection-safe.
       val severityConditions = Seq(
         Option.when(severityFilter.severities.nonEmpty)(
-          s"label.severity IN (${severityFilter.severities.toSeq.sorted.mkString(", ")})"
+          sql"label.severity = ANY(${severityFilter.severities.toSeq.sorted})"
         ),
-        Option.when(severityFilter.includeNullSeverity)("label.severity IS NULL")
+        Option.when(severityFilter.includeNullSeverity)(sql"label.severity IS NULL")
       ).flatten
-      whereConditions :+= s"(${severityConditions.mkString(" OR ")})"
+      whereConditions :+= sql"(".concat(SqlFragments.join(severityConditions, " OR ")).concat(sql")")
     }
 
     if (filters.minSeverity.isDefined) {
-      whereConditions :+= s"label.severity >= ${filters.minSeverity.get}"
+      whereConditions :+= sql"label.severity >= ${filters.minSeverity.get}"
     }
 
     if (filters.maxSeverity.isDefined) {
-      whereConditions :+= s"label.severity <= ${filters.maxSeverity.get}"
+      whereConditions :+= sql"label.severity <= ${filters.maxSeverity.get}"
     }
 
     filters.validationStatuses.foreach { statuses =>
@@ -2539,22 +2513,20 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         RawLabelValidationStatus.Unvalidated ->
           "(label.correct IS NULL AND label.agree_count = 0 AND label.disagree_count = 0 AND label.unsure_count = 0)"
       )
-      whereConditions :+= s"(${statuses.toSeq.sortBy(_.id).map(conditionsByStatus).mkString(" OR ")})"
+      whereConditions :+= sql"(#${statuses.toSeq.sortBy(_.id).map(conditionsByStatus).mkString(" OR ")})"
     }
 
     if (filters.startDate.isDefined) {
-      whereConditions :+= s"label.time_created >= '${filters.startDate.get.toString}'"
+      whereConditions :+= sql"label.time_created >= ${filters.startDate.get}"
     }
 
     if (filters.endDate.isDefined) {
-      whereConditions :+= s"label.time_created <= '${filters.endDate.get.toString}'"
+      whereConditions :+= sql"label.time_created <= ${filters.endDate.get}"
     }
 
-    // Combine all conditions.
-    val whereClause  = ("TRUE" +: whereConditions).mkString(" AND ")
     val contributors = Contributors(filters.highQualityUserOnly)
 
-    // Create a plain SQL query as a string and execute it.
+    // Create a plain SQL query and execute it.
     sql"""
       SELECT label.label_id,
              label.user_id,
@@ -2618,9 +2590,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM #${FilteredTables.verdictVotes()}
           GROUP BY label_validation.label_id
       ) AS "vals" ON label.label_id = vals.label_id
-      WHERE #$whereClause
+      WHERE """
+      .concat(SqlFragments.allOf(whereConditions))
+      .concat(sql"""
       ORDER BY label.label_id;
-    """.as[LabelDataForApi]
+    """)
+      .as[LabelDataForApi]
   }
 
   def recentLabelsAvgLabelDate(n: Int): DBIO[Option[OffsetDateTime]] = {

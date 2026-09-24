@@ -7,12 +7,12 @@ import models.region.RegionTableDef
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{ConfigTableDef, FilteredTables, LatLngBBox, MyPostgresProfile, SpatialQueryType}
+import models.utils.{ConfigTableDef, FilteredTables, LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.Effect
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -278,38 +278,25 @@ class StreetEdgeTable @Inject() (
   def getStreetsForApi(
       filters: StreetFiltersForApi
   ): SqlStreamingAction[Vector[StreetDataForApi], StreetDataForApi, Effect.Read] = {
-    // Set up query filters.
-    val bboxFilter = filters.bbox
-      .map { bbox =>
-        s"AND ST_Intersects(s.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      }
-      .getOrElse("")
+    // Filters on the streets themselves.
+    val streetFilters: Seq[SQLActionBuilder] = Seq(
+      filters.bbox.map { bbox =>
+        sql"ST_Intersects(s.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
+      },
+      filters.wayTypes.map { wayTypes => sql"s.way_type = ANY($wayTypes::way_type[])" },
+      filters.regionId.map { regionId => sql"r.region_id = $regionId" },
+      filters.regionName.map { regionName => sql"LOWER(reg.name) = LOWER($regionName)" },
+      filters.statuses.map { statuses => sql"s.status = ANY($statuses::street_edge_status[])" }
+    ).flatten
 
-    val wayTypeFilter = filters.wayTypes
-      .map { wayTypes => s"AND s.way_type IN (${wayTypes.map(wt => s"'${wt.replace("'", "''")}'").mkString(",")})" }
-      .getOrElse("")
+    // Filters on the per-street counts, which only exist once the streets are chosen.
+    val countFilters: Seq[SQLActionBuilder] = Seq(
+      filters.minLabelCount.map { count => sql"l.label_count >= $count" },
+      filters.minAuditCount.map { count => sql"a.audit_count >= $count" },
+      filters.minUserCount.map { count => sql"array_length(l.user_ids, 1) >= $count" }
+    ).flatten
 
-    val regionIdFilter = filters.regionId.map { regionId => s"AND r.region_id = $regionId" }.getOrElse("")
-
-    val regionNameFilter =
-      filters.regionName
-        .map { regionName => s"AND LOWER(reg.name) = LOWER('${regionName.replace("'", "''")}')" }
-        .getOrElse("")
-
-    val statusFilter = filters.statuses
-      .map { statuses => s"AND s.status IN (${statuses.map(st => s"'${st.replace("'", "''")}'").mkString(",")})" }
-      .getOrElse("")
-
-    val minLabelCountFilter = filters.minLabelCount.map { count => s"AND label_count >= $count" }.getOrElse("")
-
-    val minAuditCountFilter = filters.minAuditCount.map { count => s"AND audit_count >= $count" }.getOrElse("")
-
-    val minUserCountFilter =
-      filters.minUserCount.map { count => s"AND array_length(user_ids, 1) >= $count" }.getOrElse("")
-
-    // Build the query string. User-supplied string values (wayType, regionName) are single-quote-escaped above and
-    // numeric filters are safe; see #2756 for migrating these raw builders to bound parameters.
-    val queryStr = s"""
+    val query: SQLActionBuilder = sql"""
       WITH filtered_streets AS (
         SELECT s.street_edge_id, s.geom, s.way_type, s.status, o.osm_way_id, osm_way.maxspeed AS max_speed,
                r.region_id, reg.name as region_name
@@ -319,20 +306,18 @@ class StreetEdgeTable @Inject() (
         JOIN street_edge_region r ON s.street_edge_id = r.street_edge_id
         JOIN region reg ON r.region_id = reg.region_id
         -- The API returns all streets (open, no_imagery, disabled) tagged with their status (#3888); only the tutorial
-        -- street is excluded. Availability filtering is opt-in via the `status` query param ($statusFilter).
-        WHERE ${FilteredTables.notTutorialStreet("s.street_edge_id")}
-            $bboxFilter
-            $wayTypeFilter
-            $regionIdFilter
-            $regionNameFilter
-            $statusFilter
+        -- street is excluded. Availability filtering is opt-in via the `status` query param.
+        WHERE #${FilteredTables.notTutorialStreet("s.street_edge_id")}
+            AND """
+      .concat(SqlFragments.allOf(streetFilters))
+      .concat(sql"""
       ),
       -- Get audit counts.
       audit_counts AS (
         SELECT s.street_edge_id, COUNT(audit_task.audit_task_id) as audit_count,
                COUNT(audit_task.audit_task_id) FILTER (WHERE NOT audit_task.outdated_imagery) as up_to_date_audit_count
         FROM filtered_streets s
-        LEFT JOIN ${FilteredTables.completedAudits()} ON s.street_edge_id = audit_task.street_edge_id
+        LEFT JOIN #${FilteredTables.completedAudits()} ON s.street_edge_id = audit_task.street_edge_id
         GROUP BY s.street_edge_id
       ),
       -- Get label counts, users, and timestamps.
@@ -348,7 +333,7 @@ class StreetEdgeTable @Inject() (
                MIN(label.time_created) as first_label_date,
                MAX(label.time_created) as last_label_date
         FROM filtered_streets s
-        LEFT JOIN ${FilteredTables.labels()} ON s.street_edge_id = label.street_edge_id
+        LEFT JOIN #${FilteredTables.labels()} ON s.street_edge_id = label.street_edge_id
         GROUP BY s.street_edge_id
       )
       -- Final selection with all filters applied.
@@ -365,11 +350,8 @@ class StreetEdgeTable @Inject() (
       FROM filtered_streets s
       LEFT JOIN audit_counts a ON s.street_edge_id = a.street_edge_id
       LEFT JOIN label_stats l ON s.street_edge_id = l.street_edge_id
-      WHERE 1=1
-        $minLabelCountFilter
-        $minAuditCountFilter
-        $minUserCountFilter
-    """
+      WHERE """)
+      .concat(SqlFragments.allOf(countFilters))
 
     // Use the plainSQL function with GetResult implicit for StreetDataForApi.
     implicit val getStreetDataForApi: GetResult[StreetDataForApi] = GetResult { r =>
@@ -397,7 +379,7 @@ class StreetEdgeTable @Inject() (
     }
 
     // Return a Query that can be used with db.stream.
-    sql"""#$queryStr""".as[StreetDataForApi]
+    query.as[StreetDataForApi]
   }
 
   /**

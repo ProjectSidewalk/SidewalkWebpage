@@ -234,7 +234,6 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   def attributeClusters(labelTypes: Set[String], radiusMeters: Double, sessionId: Option[Int]): DBIO[Int] = {
     if (labelTypes.isEmpty) DBIO.successful(0)
     else {
-      val typeFilter: String    = labelTypes.toSeq.sorted.map(t => s"'${t.replace("'", "''")}'").mkString(", ")
       val sessionFilter: String = sessionId.fold("")(id => s"AND cluster.clustering_session_id = $id")
       // The degree box is the index prefilter and must contain the geodesic radius anywhere a city sits: 0.0005 deg
       // covers 25 m up to ~63 deg latitude, so scale it with the radius from that same footing.
@@ -253,7 +252,7 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
                      ORDER BY ST_Distance(intersection.geom::geography, cluster.geom::geography)
                      LIMIT 1
                  ) candidate ON TRUE
-                 WHERE cluster.label_type IN (#$typeFilter) #$sessionFilter
+                 WHERE cluster.label_type = ANY(${labelTypes.toSeq.sorted}::label_type[]) #$sessionFilter
              ) nearest
              WHERE cluster.cluster_id = nearest.cluster_id
                AND cluster.intersection_id IS DISTINCT FROM nearest.intersection_id"""
