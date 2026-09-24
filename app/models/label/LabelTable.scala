@@ -2761,7 +2761,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           FROM (
               SELECT status, ST_Length(geom::geography) / 1000 AS len
               FROM street_edge
-              WHERE street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+              WHERE #${FilteredTables.notTutorialStreet("street_edge.street_edge_id")}
           ) street_lengths
       ) AS km_by_status, (
           SELECT COUNT(DISTINCT(users.user_id)) AS total_users,

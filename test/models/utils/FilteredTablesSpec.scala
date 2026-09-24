@@ -12,7 +12,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, StreetFixtures}
 
 /**
- * The shared "what counts" SQL (#5287) keeps exactly what its Slick twin keeps. Seeded cases are rolled back, and
+ * The shared "what counts" SQL (#5287, #5485) keeps exactly what its Slick twin keeps. Seeded cases are rolled back, and
  * are skipped on a database with no labels to borrow ids from (CI's).
  */
 class FilteredTablesSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
@@ -63,6 +63,17 @@ class FilteredTablesSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBa
     ((slickSet -- rawSet).toSeq.sorted.take(10), (rawSet -- slickSet).toSeq.sorted.take(10))
   }
 
+  "FilteredTables.streets" should {
+    "keep exactly the streets StreetEdgeTable.streets keeps" in {
+      val (slick, raw) = run(for {
+        slick <- streetEdgeTable.streets.map(_.streetEdgeId).result
+        raw   <- sql"SELECT street_edge_id FROM #${FilteredTables.streets()}".as[Int]
+      } yield (slick, raw))
+
+      differences(slick, raw) mustBe ((Seq.empty, Seq.empty))
+    }
+  }
+
   "FilteredTables.labels" should {
     "keep exactly the labels LabelTable.labels keeps" in {
       val (slick, raw) = run(for {
@@ -101,9 +112,8 @@ class FilteredTablesSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBa
         slick <- streetEdgeTable.completedAuditTasks.map(_.auditTaskId).result
         raw   <- sql"""SELECT audit_task.audit_task_id
                        FROM #${FilteredTables.completedAudits()}
-                       INNER JOIN street_edge ON audit_task.street_edge_id = street_edge.street_edge_id
-                       WHERE street_edge.status = 'open'
-                           AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)""".as[Int]
+                       INNER JOIN #${FilteredTables.streets()}
+                           ON audit_task.street_edge_id = street_edge.street_edge_id""".as[Int]
       } yield (slick, raw))
 
       differences(slick, raw) mustBe ((Seq.empty, Seq.empty))

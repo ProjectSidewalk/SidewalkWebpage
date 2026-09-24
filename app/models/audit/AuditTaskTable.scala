@@ -8,7 +8,7 @@ import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteT
 import models.street._
 import models.user.{Role, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTableDef, MyPostgresProfile}
+import models.utils.{ConfigTableDef, FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
@@ -1180,14 +1180,14 @@ class AuditTaskTable @Inject() (
           AND street_imagery.median_newest_capture IS NOT NULL
           AND street_imagery.median_newest_capture <= (now() AT TIME ZONE 'UTC')::date
           AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.median_newest_capture
-          AND audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM config);
+          AND #${FilteredTables.notTutorialStreet("audit_task.street_edge_id")};
     """
     val clearPass = sqlu"""
       UPDATE audit_task
       SET outdated_imagery = FALSE, outdated_imagery_at = NULL
       WHERE audit_task.outdated_imagery
           AND (
-              audit_task.street_edge_id = (SELECT tutorial_street_edge_id FROM config)
+              audit_task.street_edge_id = #${FilteredTables.tutorialStreetId()}
               OR NOT EXISTS (
                   SELECT FROM street_imagery
                   WHERE street_imagery.street_edge_id = audit_task.street_edge_id

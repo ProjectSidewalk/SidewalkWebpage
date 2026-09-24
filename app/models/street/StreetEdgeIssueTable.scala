@@ -3,7 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.IpAddress
+import models.utils.{FilteredTables, IpAddress}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -182,12 +182,11 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
                  COUNT(*),
                  MAX(street_edge_issue.timestamp)
           FROM street_edge_issue
-          JOIN street_edge ON street_edge_issue.street_edge_id = street_edge.street_edge_id
+          JOIN #${FilteredTables.streets()} ON street_edge_issue.street_edge_id = street_edge.street_edge_id
           JOIN street_edge_region ON street_edge_issue.street_edge_id = street_edge_region.street_edge_id
           JOIN region ON street_edge_region.region_id = region.region_id
           WHERE street_edge_issue.issue = '#$NoImageryIssue'
               AND street_edge_issue.timestamp >= $since
-              AND street_edge.status = 'open'
               AND region.deleted = FALSE
           GROUP BY street_edge_issue.street_edge_id, region.region_id, region.name
           HAVING COUNT(DISTINCT street_edge_issue.user_id) >= $minReporters

@@ -476,27 +476,25 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
              audit_windows.audits_30d   AS audits_30d,
              last_activity.ts           AS last_activity
       FROM (
-          SELECT COUNT(*) AS cnt FROM "#$schema".street_edge WHERE status = 'open'
+          SELECT COUNT(*) AS cnt FROM #${FilteredTables.streets(Some(schema))}
       ) AS total_streets, (
           -- Filter audited streets to open-only so the numerator can't exceed total_streets (non-open streets can
           -- still have audit_task rows, which would push coverage above 100% and make "streets left" negative). #4329
           SELECT COUNT(DISTINCT street_edge.street_edge_id) AS cnt
-          FROM "#$schema".street_edge
+          FROM #${FilteredTables.streets(Some(schema))}
           INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
-              ON street_edge.street_edge_id = audit_task.street_edge_id
-          WHERE street_edge.status = 'open' #$upToDateFilter
+              ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
       ) AS audited_streets, (
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
-          FROM "#$schema".street_edge WHERE status = 'open'
+          FROM #${FilteredTables.streets(Some(schema))}
       ) AS street_km, (
           -- Distinct audited length (no double-counting overlapping audits), open-only (see audited_streets).
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
           FROM (
               SELECT DISTINCT street_edge.street_edge_id, geom
-              FROM "#$schema".street_edge
+              FROM #${FilteredTables.streets(Some(schema))}
               INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
-                  ON street_edge.street_edge_id = audit_task.street_edge_id
-              WHERE street_edge.status = 'open' #$upToDateFilter
+                  ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
           ) AS distinct_audited
       ) AS audited_km, (
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
@@ -545,7 +543,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           SELECT COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '7 days')  AS audits_7d,
                  COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '30 days') AS audits_30d
           FROM #${FilteredTables.completedAudits(Some(schema))}
-          WHERE audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+          WHERE #${FilteredTables.notTutorialStreet("audit_task.street_edge_id", Some(schema))}
       ) AS audit_windows, (
           -- Distinct PEOPLE who labeled or validated: union of non-excluded, non-AI label authors and validators.
           SELECT COUNT(DISTINCT contributor_id) AS cnt FROM (
@@ -579,7 +577,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               (SELECT label_validation.end_timestamp FROM #${FilteredTables.votesCast(Some(schema))}
                ORDER BY label_validation.end_timestamp DESC LIMIT 1),
               (SELECT audit_task.task_end FROM #${FilteredTables.completedAudits(Some(schema))}
-               WHERE audit_task.street_edge_id <> (SELECT tutorial_street_edge_id FROM "#$schema".config)
+               WHERE #${FilteredTables.notTutorialStreet("audit_task.street_edge_id", Some(schema))}
                ORDER BY audit_task.task_end DESC NULLS LAST LIMIT 1)
           ) AS ts
       ) AS last_activity;
@@ -955,10 +953,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           WHERE diff < '00:05:00' AND diff > '00:00:00'
       ) AS audit_time, (
           SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
-          FROM "#$schema".street_edge
+          FROM #${FilteredTables.streets(Some(schema))}
           INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
               ON street_edge.street_edge_id = audit_task.street_edge_id
-          WHERE street_edge.status = 'open'
       ) AS audited;
     """.as[(Double, Double)].head)
   }
