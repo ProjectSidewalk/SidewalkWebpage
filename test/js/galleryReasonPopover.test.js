@@ -345,6 +345,95 @@ describe('the Gallery card reason popover (#5475)', () => {
     expect(isOpen()).toBe(true);
   });
 
+  /** A mouse vote: a click with a nonzero detail, which is what marks a pointer vote. */
+  const pointerVote = async (option) => {
+    cardEl.querySelector(`#gallery-card-${option}-button`).dispatchEvent(
+      new window.MouseEvent('click', { bubbles: true, detail: 1 }),
+    );
+    await flush();
+    jest.advanceTimersByTime(0);
+  };
+
+  test('a pointer vote that lands after the mouse left closes at once; a keyboard vote is left alone', async () => {
+    // A fast grader clicks Disagree and is on the next card before the POST resolves; no second leave comes.
+    leaveCard();
+    await pointerVote('disagree');
+    expect(isOpen()).toBe(false);
+    expect(window.sg.tracker.push).toHaveBeenCalledWith('MouseLeave_ReasonMenu_Dismiss', { panoId: 'pano-1' }, { labelId: 42 });
+
+    // Where an idle mouse rests says nothing about a vote from the keyboard.
+    await vote('unsure');
+    expect(isOpen()).toBe(true);
+  });
+
+  test('a pointer pick that fails after the mouse left closes once the save settles', async () => {
+    await pointerVote('disagree');
+    let fail;
+    responses.push(new Promise((resolve) => { fail = () => resolve({ ok: false, status: 500 }); }));
+    chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush();
+    leaveCard();
+    expect(isOpen()).toBe(true); // Held while the save is in flight.
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    fail();
+    await flush();
+    expect(isOpen()).toBe(false);
+    console.error.mockRestore();
+  });
+
+  test('a typed reason that fails to save keeps its draft and its submit button', async () => {
+    await vote('disagree');
+    box().value = 'Only 2 cars';
+    box().dispatchEvent(new window.Event('input'));
+    responses.push({ ok: false, status: 500 });
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    boxSubmit().click();
+    await flush();
+    console.error.mockRestore();
+    expect(isOpen()).toBe(true);
+    expect(box().value).toBe('Only 2 cars');
+    expect(box().readOnly).toBe(false);
+    expect(boxSubmit().disabled).toBe(false);
+    expect(status().textContent).toBe('labelmap:comment-save-failed');
+  });
+
+  test('the first Escape in a drafted box puts it back as it opened; the second closes', async () => {
+    card.properties.comments = [{ comment: 'Hidden by a bin', reason: null, mine: true, validation: 'Disagree' }];
+    await vote('disagree');
+    box().focus();
+    box().value = 'Hidden by a bin, and a car';
+    box().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(isOpen()).toBe(true);
+    expect(box().value).toBe('Hidden by a bin');
+    expect(window.sg.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ReasonMenu_DraftCleared', { panoId: 'pano-1' }, { labelId: 42 });
+    box().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(isOpen()).toBe(false);
+  });
+
+  test('a typed reason on record is not a draft: its button says Save, and a mouse leave still closes', async () => {
+    card.properties.comments = [{ comment: 'Hidden by a bin', reason: null, mine: true, validation: 'Disagree' }];
+    await pointerVote('disagree');
+    expect(boxSubmit().textContent).toBe('labelmap:comment-save');
+    leaveCard();
+    expect(isOpen()).toBe(false);
+
+    card.properties.comments = [];
+    await pointerVote('unsure');
+    expect(boxSubmit().textContent).toBe('labelmap:comment');
+  });
+
+  test('a mouse leave hands focus from the popover to the vote control, never to the page', async () => {
+    // The thumbs cannot take focus, so a vote cast on one lands on the overlay button for the same vote.
+    cardEl.appendChild(card.validationInfoDisplay.disagreeContainer);
+    card.validationInfoDisplay.disagreeContainer.dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush();
+    jest.advanceTimersByTime(0);
+    expect(document.activeElement).toBe(popover());
+    leaveCard();
+    expect(isOpen()).toBe(false);
+    expect(document.activeElement).toBe(cardEl.querySelector('#gallery-card-disagree-button'));
+  });
+
   test('a typed reason on record comes back in the box; a canned one does not', async () => {
     card.properties.comments = [{ comment: 'Hidden by a bin', reason: null, mine: true, validation: 'Disagree' }];
     await vote('disagree');

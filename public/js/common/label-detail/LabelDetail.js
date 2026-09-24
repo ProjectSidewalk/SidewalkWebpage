@@ -451,6 +451,9 @@ class LabelDetail {
       Disagree: voteEl('disagree', '.label-detail__vote-count'),
       Unsure:   voteEl('unsure', '.label-detail__vote-count'),
     };
+    // Each vote's icon and count together, the shape util.misc.animateVoteChange takes.
+    els.voteTallies = Object.fromEntries(Object.keys(els.voteIcons).map((action) => (
+      [action, { icon: els.voteIcons[action], count: els.voteCounts[action] }])));
     // Icon + count rows, which #flashVoteEcho mounts its ghost icon into.
     els.voteTops = {
       Agree:    voteEl('agree', '.label-detail__vote-top'),
@@ -548,6 +551,8 @@ class LabelDetail {
       els.commentButton.classList.toggle('is-active', els.commentInput.value.trim().length > 0);
     });
     els.commentInput.addEventListener('keydown', (e) => {
+      // Safari reports the Enter that confirms an IME composition with isComposing false but keyCode 229.
+      if (e.isComposing || e.keyCode === 229) return;
       if (e.key === 'Enter') {
         e.preventDefault();
         if (this.#interactionBlocked) return;
@@ -1319,9 +1324,7 @@ class LabelDetail {
       // vote being *cleared* is the opposite of what a rising icon says.
       if (viaKeyboard && !undone) this.#flashVoteEcho(action);
       // Every vote, however cast, pops the icon it gained and moves the counts it changed, as a Gallery card does.
-      const voteEls = Object.fromEntries(Object.keys(this.#els.voteIcons).map((key) => (
-        [key, { icon: this.#els.voteIcons[key], count: this.#els.voteCounts[key] }])));
-      util.misc.animateVoteChange(voteEls, previousAction, newAction);
+      util.misc.animateVoteChange(this.#els.voteTallies, previousAction, newAction);
       // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
       // here too so the list and its vote chips (#5015) match what a reload would show.
       const commentDropped = (undone || data.redone) && this.#dropOwnComment();
@@ -1583,6 +1586,10 @@ class LabelDetail {
     // once and reused for every label the card shows — so left alone it would go on rising over a label the reader
     // never voted on, which is the one thing an affordance that reports a vote must never say.
     for (const ghost of this.#root.querySelectorAll('.label-detail__vote-pop')) ghost.remove();
+    // The same goes for the icon pop and the count rise or dip, which run on those same cached elements.
+    for (const { icon, count } of Object.values(this.#els.voteTallies)) {
+      for (const el of [icon, count]) el?.getAnimations?.().forEach((animation) => animation.cancel());
+    }
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.classList.remove('is-selected');
       btn.setAttribute('aria-pressed', 'false');

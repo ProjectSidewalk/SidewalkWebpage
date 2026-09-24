@@ -5,6 +5,8 @@ class ValidationInfoDisplay {
   #aiValidation;
   #userValidation;
   #lockReason = null;
+  /** @type {Record<string, {icon: HTMLImageElement, count: HTMLElement}>} Each thumb and its count, by vote. */
+  #voteTallies = {};
 
   /**
    * @param {HTMLElement} container - The DOM element that contains the display.
@@ -41,8 +43,10 @@ class ValidationInfoDisplay {
     disagreeCountContainer.className = 'validation-info-count-container';
 
     // Build the agree/disagree icons. There is a `-ai` variant of each icon.
-    agreeCountContainer.appendChild(this.#makeVoteIcon('Agree'));
-    disagreeCountContainer.appendChild(this.#makeVoteIcon('Disagree'));
+    const agreeIcon = this.#makeVoteIcon('Agree');
+    const disagreeIcon = this.#makeVoteIcon('Disagree');
+    agreeCountContainer.appendChild(agreeIcon);
+    disagreeCountContainer.appendChild(disagreeIcon);
 
     // Create the agree and disagree count text elements.
     this.agreeText = document.createElement('div');
@@ -54,6 +58,10 @@ class ValidationInfoDisplay {
     disagreeCountContainer.append(this.disagreeText);
 
     this.updateValCounts(this.agreeCount, this.disagreeCount);
+    this.#voteTallies = {
+      Agree: { icon: agreeIcon, count: this.agreeText },
+      Disagree: { icon: disagreeIcon, count: this.disagreeText },
+    };
 
     this.agreeContainer.append(agreeCountContainer);
     this.disagreeContainer.append(disagreeCountContainer);
@@ -113,13 +121,7 @@ class ValidationInfoDisplay {
    * @param {?string} current - The viewer's vote now, or null once cleared.
    */
   animateVoteChange(previous, current) {
-    const els = (container) => ({
-      icon: container.querySelector('.validation-info-image'),
-      count: container.querySelector('.validation-info-count'),
-    });
-    util.misc.animateVoteChange(
-      { Agree: els(this.agreeContainer), Disagree: els(this.disagreeContainer) }, previous, current,
-    );
+    util.misc.animateVoteChange(this.#voteTallies, previous, current);
   }
 
   /**

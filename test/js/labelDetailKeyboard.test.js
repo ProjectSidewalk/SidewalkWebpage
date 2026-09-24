@@ -701,6 +701,22 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             expect(pop().mock.calls[0].slice(1)).toEqual(['Agree', null]);
         });
 
+        test('paging away cancels a pop still running, so it cannot report a vote on the next label', async () => {
+            // Same rule as the echo: the icon and count elements are cached once and reused for every label.
+            await showLabel({ label_id: 100 });
+            press('KeyA');
+            await flush();
+            const cancel = jest.fn();
+            const icon = q('.label-detail__vote--agree .label-detail__vote-icon');
+            const count = q('.label-detail__vote--agree .label-detail__vote-count');
+            icon.getAnimations = () => [{ cancel }];
+            count.getAnimations = () => [{ cancel }];
+
+            await showLabel({ label_id: 101 });
+
+            expect(cancel).toHaveBeenCalledTimes(2);
+        });
+
         test('a vote the server refused moves nothing', async () => {
             await showLabel();
             post.mockImplementation(async () => ({ ok: false, status: 500, json: async () => ({}) }));

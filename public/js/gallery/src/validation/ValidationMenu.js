@@ -39,6 +39,10 @@ class ValidationMenu {
   #otherInput = null;
   /** @type {?HTMLButtonElement} */
   #otherSubmit = null;
+  /** The typed reason the box opened with, so only text the viewer changed counts as a draft worth keeping. */
+  #otherPrefill = '';
+  /** Whether the mouse is off the card, tracked all along so a popover that opens after it left can still close. */
+  #mouseOutside = false;
   /** @type {?string} The vote the open popover is asking about, or null while it is closed. */
   #reasonVote = null;
   /** @type {?HTMLElement} The control whose vote opened the popover, which gets focus back when it closes. */
@@ -49,6 +53,9 @@ class ValidationMenu {
   #boundOutsideClick = (e) => this.#handleOutsideClick(e);
   #boundKeydown = (e) => this.#handleKeydown(e);
   #boundPointerLeave = (e) => this.#handlePointerLeave(e);
+  #boundPointerEnter = (e) => {
+    if (e.pointerType === 'mouse') this.#mouseOutside = false;
+  };
 
   /**
    * @param {Card} referenceCard - The Card this menu belongs to.
@@ -106,6 +113,8 @@ class ValidationMenu {
       }
 
       this.#addValidationInfoOnClicks(refCard.validationInfoDisplay);
+      this.#galleryCard[0].addEventListener('pointerenter', this.#boundPointerEnter);
+      this.#galleryCard[0].addEventListener('pointerleave', this.#boundPointerLeave);
     }
     this.#gsvImage.append(this.#overlay);
   }
@@ -327,7 +336,8 @@ class ValidationMenu {
     this.#otherSubmit = popover.querySelector('.gallery-card__reasons-submit');
     this.#otherInput.addEventListener('input', () => this.#syncOtherSubmit());
     this.#otherInput.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter' || e.isComposing) return;
+      // Safari reports the Enter that confirms an IME composition with isComposing false but keyCode 229.
+      if (e.key !== 'Enter' || e.isComposing || e.keyCode === 229) return;
       e.preventDefault();
       this.#submitOtherReason(true);
     });
@@ -379,7 +389,10 @@ class ValidationMenu {
     this.#reasonPopover.querySelector('.gallery-card__reasons-other label').textContent = boxPrompt;
     // A typed reason already on record comes back for editing; a canned one is shown by its chip instead.
     const typedReason = own && typeof own.reason !== 'string' && typeof own.comment === 'string';
-    this.#otherInput.value = typedReason ? own.comment : '';
+    this.#otherPrefill = typedReason ? own.comment : '';
+    this.#otherInput.value = this.#otherPrefill;
+    // Revising a typed reason on record reads as saving a change, as the label card's comment box says it.
+    this.#otherSubmit.textContent = i18next.t(typedReason ? 'labelmap:comment-save' : 'labelmap:comment');
     this.#syncOtherSubmit();
     this.#reasonVote = vote;
     this.#reasonOpener = opener;
@@ -392,11 +405,13 @@ class ValidationMenu {
       document.addEventListener('click', this.#boundOutsideClick, true);
       document.addEventListener('keydown', this.#boundKeydown, true);
     }, 0);
-    this.#galleryCard[0].addEventListener('pointerleave', this.#boundPointerLeave);
     // A pointer voter gets the dialog, not a chip: after a click on the unfocusable thumbs, a focused chip would
     // match :focus-visible and look hovered.
     if (viaPointer) this.#reasonPopover.focus();
     else this.#reasonChips.focus();
+    // A mouse that left while its vote was landing sends no second leave to close this. A keyboard vote is left
+    // alone: where an idle mouse happens to rest says nothing about it.
+    if (viaPointer) this.#dismissIfMouseGone();
   }
 
   /**
@@ -408,15 +423,19 @@ class ValidationMenu {
     clearTimeout(this.#reasonCloseTimer);
     document.removeEventListener('click', this.#boundOutsideClick, true);
     document.removeEventListener('keydown', this.#boundKeydown, true);
-    this.#galleryCard[0].removeEventListener('pointerleave', this.#boundPointerLeave);
     if (!this.reasonsOpen) return;
     if (ValidationMenu.#openMenu === this) ValidationMenu.#openMenu = null;
+    const vote = this.#reasonVote;
     this.#reasonVote = null;
     this.#reasonPopover.hidden = true;
     this.#galleryCard.removeClass('gallery-card--reasons-open');
     const opener = this.#reasonOpener;
     this.#reasonOpener = null;
-    if (returnFocus && opener?.isConnected) opener.focus();
+    if (!returnFocus) return;
+    // The thumbs are plain containers that can't take focus, so a vote cast on one hands focus to the overlay
+    // button for the same vote instead; otherwise it would fall from the hidden popover to <body>.
+    const focusable = opener?.isConnected && opener.matches('button, a[href], input, [tabindex]') ? opener : null;
+    (focusable ?? this.#validationButtons[ValidationMenu.#validationOptionToClass[vote]]?.[0])?.focus();
   }
 
   #handleOutsideClick(e) {
@@ -432,16 +451,32 @@ class ValidationMenu {
   }
 
   /**
-   * A mouse leaving the card closes the popover, so the question doesn't linger over the grid. It stays while a save
-   * is landing (that closes it itself) and while the box has focus or a draft, so a nudged mouse can't lose typing.
-   * Touch and pen have no hover; a tap elsewhere is their outside click.
+   * Notes a mouse leaving the card and closes the popover if one is up. Touch and pen have no hover; a tap
+   * elsewhere is their outside click.
    * @param {PointerEvent} e
    */
   #handlePointerLeave(e) {
-    if (e.pointerType !== 'mouse' || this.#voteLocked) return;
-    if (document.activeElement === this.#otherInput || this.#otherInput.value.trim() !== '') return;
+    if (e.pointerType !== 'mouse') return;
+    this.#mouseOutside = true;
+    this.#dismissIfMouseGone();
+  }
+
+  /** @returns {boolean} Whether the box holds text the viewer typed, rather than the reason it opened with. */
+  #hasDraft() {
+    const value = this.#otherInput?.value.trim() ?? '';
+    return value !== '' && value !== this.#otherPrefill.trim();
+  }
+
+  /**
+   * With the mouse off the card, closes the popover so the question doesn't linger over the grid. It stays while a
+   * save is landing (that closes it itself, or calls back here if it fails) and while the box has focus or a draft,
+   * so a nudged mouse can't lose typing. Focus goes back to the vote control only if it was in the popover.
+   */
+  #dismissIfMouseGone() {
+    if (!this.#mouseOutside || !this.reasonsOpen || this.#voteLocked) return;
+    if (document.activeElement === this.#otherInput || this.#hasDraft()) return;
     this.#log('ReasonMenu_Dismiss', false, 'MouseLeave');
-    this.#closeReasons(false);
+    this.#closeReasons(this.#reasonPopover.contains(document.activeElement));
   }
 
   /** Escape closes; 1–N pick and N+1 moves to the box, the way the label card's number keys do (#5475). */
@@ -450,6 +485,14 @@ class ValidationMenu {
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopImmediatePropagation();
+      // A draft is too much to lose to one keystroke: the first Escape puts the box back as it opened, the next
+      // one closes, as the label card's comment box treats an edit.
+      if (e.target === this.#otherInput && this.#hasDraft()) {
+        this.#log('ReasonMenu_DraftCleared', true);
+        this.#otherInput.value = this.#otherPrefill;
+        this.#syncOtherSubmit();
+        return;
+      }
       this.#log('ReasonMenu_Dismiss', true);
       this.#closeReasons(true);
       return;
@@ -465,6 +508,7 @@ class ValidationMenu {
   }
 
   /**
+   * Saves a canned reason as the viewer's comment, logged by its id.
    * @param {string} id - The reason id.
    * @param {boolean} viaKeyboard - Picked with a number key (or Enter/Space on the chip).
    */
@@ -472,15 +516,18 @@ class ValidationMenu {
     const text = util.validationReasons.text(id);
     if (!this.#reasonVote || !text || this.#voteLocked) return;
     this.#log(`${this.#reasonVote}Reason_Option=${id}`, viaKeyboard);
-    this.#saveReason(text, id);
+    this.#saveReason(text, id, viaKeyboard);
   }
 
-  /** @param {boolean} viaKeyboard - Submitted with Enter, or Enter/Space on the button. */
+  /**
+   * Saves what was typed in the box as the viewer's comment, with no reason id.
+   * @param {boolean} viaKeyboard - Submitted with Enter, or Enter/Space on the button.
+   */
   #submitOtherReason(viaKeyboard) {
     const text = this.#otherInput.value.trim();
     if (!this.#reasonVote || !text || this.#voteLocked) return;
     this.#log(`${this.#reasonVote}Reason_Other`, viaKeyboard);
-    this.#saveReason(text, null);
+    this.#saveReason(text, null, viaKeyboard);
   }
 
   /**
@@ -490,8 +537,9 @@ class ValidationMenu {
    *
    * @param {string} text - The comment: a reason's text, or what was typed.
    * @param {?string} reason - The reason id, or null for a typed reason.
+   * @param {boolean} viaKeyboard - Sent from the keyboard, which a mouse resting off the card has no say over.
    */
-  async #saveReason(text, reason) {
+  async #saveReason(text, reason, viaKeyboard) {
     const vote = this.#reasonVote;
     const refCard = this.#refCard;
     const pov = refCard.getProperty('pov');
@@ -526,6 +574,8 @@ class ValidationMenu {
       this.#reasonChips.setSelected(reason);
       // One comment per voter: a pick replaces a typed reason, and a typed one stays in its box.
       if (reason) this.#otherInput.value = '';
+      // What was sent is on record now, so it is no longer a draft for Escape or a mouse leave to protect.
+      this.#otherPrefill = reason ? '' : text;
       this.#syncOtherSubmit();
       status.textContent = i18next.t('common:validation-reason.saved');
       // Focus goes back to the control that voted: the chips it was on are about to be hidden.
@@ -536,6 +586,8 @@ class ValidationMenu {
     } finally {
       this.#setReasonBusy(false);
       this.#setVoteControlsLocked(false);
+      // A leave during the save was held off; a save that failed with nothing typed is no reason to keep it up.
+      if (!viaKeyboard) this.#dismissIfMouseGone();
     }
   }
 
@@ -546,6 +598,7 @@ class ValidationMenu {
     this.#syncOtherSubmit();
   }
 
+  /** Enables the box's submit button only when there is something to send and no save is in flight. */
   #syncOtherSubmit() {
     this.#otherSubmit.disabled = this.#otherInput.readOnly || this.#otherInput.value.trim() === '';
   }
