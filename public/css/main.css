@@ -1088,7 +1088,7 @@ textarea.ps-input {
 .pano-info-popover::after {
   content: "";
   position: absolute;
-  left: 50%;
+  left: var(--pano-info-arrow-left, 50%); /* Moved by PanoInfoPopover near a screen edge. */
   transform: translateX(-50%);
   width: 0;
   height: 0;

@@ -58,22 +58,48 @@
   right: calc(7px * var(--ui-scale));
 }
 
-/* Stuck/sound/feedback controls in the top-left. Shared pill look lives in pano-overlay-buttons.css;
-   here we only position the holder and drive the expand/collapse of the optional buttons. */
+/* The arrows reach their icon's corners, so a smaller icon keeps them off the button's edge. */
+#immersive-toggle-icon {
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+}
+
 #explore-control-buttons-holder {
   position: absolute;
   z-index: 2;
-  top: calc(7px * var(--ui-scale));
-  left: calc(7px * var(--ui-scale));
+  top: calc(7px * var(--ui-scale, 1));
+  left: calc(7px * var(--ui-scale, 1));
 }
 
-/* Collapsed by default: only the Stuck button and chevron toggle show. */
-#explore-control-buttons-holder .collapsible-control-button {
+/* The menu opens downward: to the right, it would slide under the label-type buttons in full-screen mode. It hangs
+   below the Stuck row rather than sitting in it, so it can't widen the row and move the chevron. */
+#explore-control-menu {
   display: none;
+  position: absolute;
+  top: calc(100% + 3px * var(--ui-scale, 1));
+  left: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(3px * var(--ui-scale, 1));
+
+  /* Only the buttons take clicks, so the space beside a short button still reaches the pano. */
+  pointer-events: none;
 }
 
-#explore-control-buttons-holder.expanded .collapsible-control-button {
+#explore-control-menu > .pano-overlay-button {
+  pointer-events: auto;
+}
+
+#explore-control-buttons-toggle[aria-expanded="true"] + #explore-control-menu {
   display: flex;
+}
+
+#explore-control-buttons-toggle .pano-overlay-button-icon {
+  transform: rotate(90deg);
+}
+
+#explore-control-buttons-toggle[aria-expanded="true"] .pano-overlay-button-icon {
+  transform: rotate(-90deg);
 }
 
 #nav-arrows-container {
