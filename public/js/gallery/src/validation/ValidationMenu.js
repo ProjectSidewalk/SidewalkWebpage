@@ -9,6 +9,9 @@ class ValidationMenu {
   /** How long the picked chip is shown landing before the popover closes on its own. */
   static REASON_CLOSE_DELAY_MS = 700;
 
+  /** @type {?ValidationMenu} The card whose popover is up; a vote elsewhere closes it, one question at a time. */
+  static #openMenu = null;
+
   static #classToValidationOption = {
     'validate-agree': 'Agree',
     'validate-disagree': 'Disagree',
@@ -148,7 +151,7 @@ class ValidationMenu {
           this.#refCard.updateUserValidation(undone ? null : validationOption);
           // Only a vote that landed gets asked about, and only from this card: a vote the expanded view relays back
           // has its own reason row over there.
-          if (!undone && ValidationMenu.#reasonedVote(validationOption)) this.#openReasons(validationOption, opener);
+          if (!undone && this.#reasonedVote(validationOption)) this.#openReasons(validationOption, opener);
           else this.#closeReasons(false);
         }
         return res;
@@ -257,9 +260,9 @@ class ValidationMenu {
     });
   }
 
-  /** @returns {boolean} Whether a vote is one the card asks a reason for. */
-  static #reasonedVote(vote) {
-    return vote === 'Disagree' || vote === 'Unsure';
+  /** @returns {boolean} Whether a vote is one this card's type asks a reason for. */
+  #reasonedVote(vote) {
+    return util.validationReasons.hasReasons(this.#refCard.getLabelType(), vote);
   }
 
   /** @returns {boolean} Whether the reason popover is up. */
@@ -282,6 +285,7 @@ class ValidationMenu {
     popover.className = 'gallery-card__reasons';
     popover.hidden = true;
     const dismiss = util.escapeHTML(i18next.t('common:validation-reason.dismiss'));
+    popover.setAttribute('role', 'group');
     popover.innerHTML = `
       <button type="button" class="gallery-card__reasons-close" aria-label="${dismiss}">
         <img src="${util.assetPath('images/icons/cross.svg')}" alt="">
@@ -323,7 +327,13 @@ class ValidationMenu {
       this.#closeReasons(false);
       return;
     }
+    // One question at a time: a second card's vote before this one answered would otherwise leave two popovers
+    // both listening for the same digit.
+    if (ValidationMenu.#openMenu && ValidationMenu.#openMenu !== this) ValidationMenu.#openMenu.#closeReasons(false);
+    ValidationMenu.#openMenu = this;
     this.#reasonPopover.querySelector('.gallery-card__reasons-status').textContent = '';
+    const promptKey = vote === 'Unsure' ? 'prompt-unsure' : 'prompt-disagree';
+    this.#reasonPopover.setAttribute('aria-label', i18next.t(`common:validation-reason.${promptKey}`));
     this.#reasonVote = vote;
     this.#reasonOpener = opener;
     this.#reasonPopover.hidden = false;
@@ -350,6 +360,7 @@ class ValidationMenu {
     document.removeEventListener('click', this.#boundOutsideClick, true);
     document.removeEventListener('keydown', this.#boundKeydown, true);
     if (!this.reasonsOpen) return;
+    if (ValidationMenu.#openMenu === this) ValidationMenu.#openMenu = null;
     this.#reasonVote = null;
     this.#reasonPopover.hidden = true;
     this.#galleryCard.removeClass('gallery-card--reasons-open');
@@ -371,15 +382,15 @@ class ValidationMenu {
     if (target?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
     if (e.key === 'Escape') {
       e.preventDefault();
-      e.stopPropagation();
-      this.#log('ReasonMenu_Dismiss');
+      e.stopImmediatePropagation();
+      this.#log('ReasonMenu_Dismiss', true);
       this.#closeReasons(true);
       return;
     }
     const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code)?.[1];
     if (digit && this.#reasonChips.pickByNumber(Number(digit))) {
       e.preventDefault();
-      e.stopPropagation();
+      e.stopImmediatePropagation();
     }
   }
 
@@ -419,12 +430,14 @@ class ValidationMenu {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // The popover may have been dismissed, or the vote moved, while the POST was in flight.
-      if (this.#reasonVote !== vote) return;
+      // The server replaced the comment whether or not the popover is still up, so the card records it either way
+      // and only the popover's own feedback waits on it still being open with the same question.
       this.#recordOwnComment(text, id, vote);
+      if (this.#reasonVote !== vote) return;
       this.#reasonChips.setSelected(id);
       status.textContent = i18next.t('common:validation-reason.saved');
-      this.#reasonCloseTimer = setTimeout(() => this.#closeReasons(viaKeyboard), ValidationMenu.REASON_CLOSE_DELAY_MS);
+      // Focus goes back to the control that voted: the chips it was on are about to be hidden.
+      this.#reasonCloseTimer = setTimeout(() => this.#closeReasons(true), ValidationMenu.REASON_CLOSE_DELAY_MS);
     } catch (err) {
       console.error(err);
       if (this.#reasonVote === vote) status.textContent = i18next.t('labelmap:comment-save-failed');

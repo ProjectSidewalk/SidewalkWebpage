@@ -526,6 +526,12 @@ class Card {
         properties.val_counts[properties.user_validation] = Math.max(
           0, properties.val_counts[properties.user_validation] - 1,
         );
+        // Clearing or changing a vote deletes the user's comment server-side (the `undone`/`redone` paths), so the
+        // cached copy goes too; otherwise the reason popover and the expanded view would show a comment, and mark a
+        // chip, the server no longer holds (#5475).
+        if (Array.isArray(properties.comments)) {
+          properties.comments = properties.comments.filter((c) => !(c && typeof c === 'object' && c.mine));
+        }
       }
       if (newUserValidation) properties.val_counts[newUserValidation] += 1;
       properties.user_validation = newUserValidation;

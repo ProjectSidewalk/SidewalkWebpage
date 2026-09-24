@@ -98,7 +98,7 @@ object ValidationReason extends Enumeration {
     catalog.getOrElse(labelType, Map.empty).getOrElse(vote, Seq.empty)
 
   /** @return Whether `labelType` offers `reason` for either reasoned vote. */
-  def offered(labelType: LabelTypeEnum.Base, reason: Value): Boolean =
+  def offersReason(labelType: LabelTypeEnum.Base, reason: Value): Boolean =
     catalog.getOrElse(labelType, Map.empty).values.exists(_.contains(reason))
 
   /** Parses a reason id, `None` for an unknown one (the shape a request validator wants). */

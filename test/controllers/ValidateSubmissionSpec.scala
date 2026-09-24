@@ -341,16 +341,18 @@ class ValidateSubmissionSpec
   }
 
   /**
-   * A canned Disagree reason the label's type offers, and one no type-mate would — the id a stale or hostile client
-   * could send. Cancels on a label whose type has no canned reasons (none of the types Validate serves).
+   * A canned Disagree reason the label's type offers, one of its Unsure reasons (offered, but for the other vote),
+   * and one no type-mate would — the ids a stale or hostile client could send. Cancels on a label whose type has no
+   * canned reasons (none of the types Validate serves).
    */
-  private def reasonsFor(label: JsObject): (String, String) = {
+  private def reasonsFor(label: JsObject): (String, String, String) = {
     val labelType = LabelTypeEnum.withName((label \ "label_type").as[String])
-    val offered   = ValidationReason.offered(labelType, ValidationOption.Disagree)
-    assume(offered.nonEmpty, s"${labelType.name} offers no canned reasons")
-    val foreign = ValidationReason.values.find(r => !ValidationReason.offered(labelType, r))
+    val disagree  = ValidationReason.offered(labelType, ValidationOption.Disagree)
+    val unsure    = ValidationReason.offered(labelType, ValidationOption.Unsure)
+    assume(disagree.nonEmpty && unsure.nonEmpty, s"${labelType.name} offers no canned reasons")
+    val foreign = ValidationReason.values.find(r => !ValidationReason.offersReason(labelType, r))
     assume(foreign.isDefined, "every reason is offered on this type")
-    (offered.last.toString, foreign.get.toString)
+    (disagree.last.toString, unsure.head.toString, foreign.get.toString)
   }
 
   /** How many `label_history` rows the label carries; a validation that changes nothing must not add one. */
@@ -819,12 +821,15 @@ class ValidateSubmissionSpec
     }
 
     "store a canned reason as its id beside the text, and hand it back to the label card (#5475)" in {
-      val session     = freshAnonSession()
-      val b           = fetchValidateBootstrap(session)
-      val label       = b.labels.head
-      val labelId     = (label \ "label_id").as[Int]
-      val (reason, _) = reasonsFor(label)
+      val session        = freshAnonSession()
+      val b              = fetchValidateBootstrap(session)
+      val label          = b.labels.head
+      val labelId        = (label \ "label_id").as[Int]
+      val _              = backupLabel(labelId)
+      val (reason, _, _) = reasonsFor(label)
 
+      // The chips only appear once a vote is on record, and the server holds the reason to that vote.
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Disagree"))) mustBe OK
       status(postLabelMapComment(session, labelMapCommentJson(label, "This is a driveway", Some(reason)))) mustBe OK
       reasonsOn(labelId, b.userId) mustBe (Some(reason), Seq.empty)
       (ownComment(session, labelId) \ "reason").asOpt[String] mustBe Some(reason)
@@ -835,36 +840,44 @@ class ValidateSubmissionSpec
       (ownComment(session, labelId) \ "reason").asOpt[String] mustBe None
     }
 
-    "refuse a reason the label's type doesn't offer, and one the vocabulary doesn't know (#5475)" in {
-      val session      = freshAnonSession()
-      val b            = fetchValidateBootstrap(session)
-      val label        = b.labels.head
-      val labelId      = (label \ "label_id").as[Int]
-      val (_, foreign) = reasonsFor(label)
+    "refuse a reason the user's vote doesn't take, the type doesn't offer, or the vocabulary doesn't know (#5475)" in {
+      val session                         = freshAnonSession()
+      val b                               = fetchValidateBootstrap(session)
+      val label                           = b.labels.head
+      val labelId                         = (label \ "label_id").as[Int]
+      val _                               = backupLabel(labelId)
+      val (reason, unsureReason, foreign) = reasonsFor(label)
 
-      // Either would store an id no menu showed for this label, which is the drift the enum exists to prevent.
+      // No vote yet: there is nothing for a reason to explain.
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Nope", Some(reason)))) mustBe BAD_REQUEST
+      status(postLabelMapValidation(session, labelMapValidationJson(label, "Disagree"))) mustBe OK
+      // Each of these would store an id no menu showed for this label and vote, the drift the enum exists to
+      // prevent — including a Disagree-vote user sending an Unsure reason after the vote moved under the pick.
+      status(postLabelMapComment(session, labelMapCommentJson(label, "Nope", Some(unsureReason)))) mustBe BAD_REQUEST
       status(postLabelMapComment(session, labelMapCommentJson(label, "Nope", Some(foreign)))) mustBe BAD_REQUEST
       status(postLabelMapComment(session, labelMapCommentJson(label, "Nope", Some("no-button-2")))) mustBe BAD_REQUEST
       commentsOn(labelId, b.userId) mustBe empty
     }
 
-    "store the reason a Validate-tool vote carries, and refuse a batch naming one its type doesn't offer (#5475)" in {
-      val session           = freshAnonSession()
-      val b                 = fetchValidateBootstrap(session)
-      val label             = b.labels.head
-      val labelId           = (label \ "label_id").as[Int]
-      val _                 = backupLabel(labelId)
-      val (reason, foreign) = reasonsFor(label)
-      val progress          = Some(missionProgressJson(b, 1))
+    "store the reason a Validate-tool vote carries, and drop one its vote doesn't take without losing the vote (#5475)" in {
+      val session              = freshAnonSession()
+      val b                    = fetchValidateBootstrap(session)
+      val label                = b.labels.head
+      val labelId              = (label \ "label_id").as[Int]
+      val _                    = backupLabel(labelId)
+      val (reason, _, foreign) = reasonsFor(label)
+      val progress             = Some(missionProgressJson(b, 1))
 
       val canned = Seq(validationJson(label, b.missionId, "Disagree", comment = Some("Canned"), reason = Some(reason)))
       status(postValidationTask(session, taskSubmission(b, canned, progress))) mustBe OK
       reasonsOn(labelId, b.userId) mustBe (Some(reason), Seq.empty)
 
-      val bad = Seq(validationJson(label, b.missionId, "Disagree", comment = Some("Canned"), reason = Some(foreign)))
-      status(postValidationTask(session, taskSubmission(b, bad, progress))) mustBe BAD_REQUEST
-      // The refused batch changed nothing: the earlier reason still stands.
-      reasonsOn(labelId, b.userId) mustBe (Some(reason), Seq.empty)
+      // A page open across a catalog change may name a reason no menu shows any more: the vote and its text land,
+      // the id does not, and nothing in the batch is refused.
+      val stale = Seq(validationJson(label, b.missionId, "Disagree", comment = Some("Stale"), reason = Some(foreign)))
+      status(postValidationTask(session, taskSubmission(b, stale, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Stale")
+      reasonsOn(labelId, b.userId) mustBe (None, Seq((Some(reason), "edit")))
     }
 
     "delete the user's own comment without touching their vote (#5015)" in {

@@ -70,7 +70,7 @@ describe('the Gallery card reason popover (#5475)', () => {
   /** Drains the microtask queue the menu's promise chain runs on; the fake clock below covers its timers. */
   const flush = async () => { for (let i = 0; i < 10; i += 1) await Promise.resolve(); };
   const popover = () => cardEl.querySelector('.gallery-card__reasons');
-  const chips = () => [...cardEl.querySelectorAll('.gallery-card__reasons [role="radio"]')];
+  const chips = () => [...cardEl.querySelectorAll('.gallery-card__reasons .reason-chips__group .reason-chips__chip')];
   const chipById = (id) => cardEl.querySelector(`.gallery-card__reasons [data-reason-id="${id}"]`);
   const other = () => cardEl.querySelector('.gallery-card__reasons .reason-chips__chip--other');
   const status = () => cardEl.querySelector('.gallery-card__reasons-status');
@@ -122,6 +122,8 @@ describe('the Gallery card reason popover (#5475)', () => {
     expect(chips().map((c) => c.dataset.reasonId)).toEqual(['wrong-type', 'driveway', 'driveway-transition']);
     expect(document.activeElement).toBe(chips()[0]);
     expect(popover().querySelector('.gallery-card__reasons-close').getAttribute('aria-label')).toBe('Dismiss');
+    expect(popover().getAttribute('role')).toBe('group');
+    expect(popover().getAttribute('aria-label')).toBe('Why do you disagree?');
   });
 
   test('an Agree, a refused vote, and a type with no reasons open nothing', async () => {
@@ -150,7 +152,7 @@ describe('the Gallery card reason popover (#5475)', () => {
     expect(window.sg.tracker.push).toHaveBeenCalledWith(
       'Click_DisagreeReason_Option=driveway', { panoId: 'pano-1' }, { labelId: 42 },
     );
-    expect(chipById('driveway').getAttribute('aria-checked')).toBe('true');
+    expect(chipById('driveway').getAttribute('aria-pressed')).toBe('true');
     expect(status().textContent).toBe('Reason saved');
     // What the expanded view will read when it opens next: the comment, marked mine, with its reason.
     expect(card.properties.comments).toEqual([expect.objectContaining({ comment: 'This is a driveway', reason: 'driveway', mine: true, validation: 'Disagree' })]);
@@ -159,18 +161,58 @@ describe('the Gallery card reason popover (#5475)', () => {
     jest.advanceTimersByTime(window.ValidationMenu.REASON_CLOSE_DELAY_MS);
     expect(isOpen()).toBe(false);
     expect(cardEl.classList.contains('gallery-card--reasons-open')).toBe(false);
+    // The chip that had focus is hidden now, so focus goes back to the control that voted.
+    expect(document.activeElement).toBe(cardEl.querySelector('#gallery-card-disagree-button'));
+  });
+
+  test('a pick that lands after the popover was dismissed is still recorded on the card', async () => {
+    await vote('disagree');
+    let release;
+    window.util.lazyIdentityFetch.mockImplementationOnce((url, init) => new Promise((resolve) => {
+      posted.push({ url, body: JSON.parse(init.body) });
+      release = () => resolve({ ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1 }) });
+    }));
+    chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(isOpen()).toBe(false);
+    release();
+    await flush();
+    // The server replaced the comment, so the expanded view opened next must see it.
+    expect(card.properties.comments).toEqual([expect.objectContaining({ reason: 'driveway', mine: true })]);
+    expect(isOpen()).toBe(false);
+  });
+
+  test('a vote on another card closes this card\'s question, so one digit answers one label', async () => {
+    await vote('disagree');
+    const otherEl = document.createElement('div');
+    otherEl.className = 'gallery-card';
+    otherEl.innerHTML = '<div class="image-holder"></div>';
+    document.body.appendChild(otherEl);
+    const otherCard = makeCard({ label_id: 99 });
+    otherCard.validationMenu = new window.ValidationMenu(otherCard, window.$(otherEl).find('.image-holder'));
+    otherEl.querySelector('#gallery-card-disagree-button').click();
+    await flush();
+    jest.advanceTimersByTime(0);
+    expect(isOpen()).toBe(false);
+    expect(otherEl.querySelector('.gallery-card__reasons').hidden).toBe(false);
+
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { code: 'Digit2', bubbles: true, cancelable: true }));
+    await flush();
+    const picks = posted.filter((p) => p.url === '/labelmap/comment');
+    expect(picks).toHaveLength(1);
+    expect(picks[0].body.label_id).toBe(99);
   });
 
   test('reopening marks the reason on record, and a failed pick says so without marking', async () => {
     card.properties.comments = [{ comment: 'Dit is een oprit', mine: true, reason: 'driveway', commenter: 0 }];
     await vote('disagree');
-    expect(chipById('driveway').getAttribute('aria-checked')).toBe('true');
+    expect(chipById('driveway').getAttribute('aria-pressed')).toBe('true');
 
     responses.push({ ok: false, status: 500 });
     chipById('driveway-transition').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
     await flush();
-    expect(chipById('driveway-transition').getAttribute('aria-checked')).toBe('false');
-    expect(chipById('driveway').getAttribute('aria-checked')).toBe('true');
+    expect(chipById('driveway-transition').getAttribute('aria-pressed')).toBe('false');
+    expect(chipById('driveway').getAttribute('aria-pressed')).toBe('true');
     expect(status().textContent).toBe('labelmap:comment-save-failed');
     expect(isOpen()).toBe(true);
   });
@@ -186,8 +228,9 @@ describe('the Gallery card reason popover (#5475)', () => {
 
     document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     expect(isOpen()).toBe(false);
-    expect(window.sg.tracker.push).toHaveBeenCalledWith('Click_ReasonMenu_Dismiss', { panoId: 'pano-1' }, { labelId: 42 });
+    expect(window.sg.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ReasonMenu_Dismiss', { panoId: 'pano-1' }, { labelId: 42 });
     expect(card.properties.user_validation).toBe('Disagree');
+    expect(document.activeElement).toBe(cardEl.querySelector('#gallery-card-disagree-button'));
   });
 
   test('an outside click dismisses; a click inside does not', async () => {

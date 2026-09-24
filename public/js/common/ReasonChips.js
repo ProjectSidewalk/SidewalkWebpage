@@ -6,10 +6,12 @@
  * from `util.validationReasons`, the catalog the backend stamps on every page; the host stores the pick, since how
  * the pick is posted differs per surface.
  *
- * Accessible shape: a `radiogroup` named by the prompt, one `radio` chip per reason with a roving tabindex and
- * arrow keys between them, and the "Other…" button beside it. Nothing is required — the vote is already saved when
- * the row appears — so a reader who does not care can move on. Number keys are the host's to route (it knows when
- * it owns the keyboard); `pickByNumber` does the picking.
+ * Accessible shape: a `group` named by the prompt, one toggle button per reason (`aria-pressed` marks the one on
+ * record) with a roving tabindex and arrow keys between them, and the "Other…" button beside the group. Toggle
+ * buttons rather than radios: a pick posts at once, so an arrow that *selected* as it moved would file a reason per
+ * keypress on the way past. Nothing is required — the vote is already saved when the row appears — so a reader who
+ * does not care can move on. Number keys are the host's to route (it knows when it owns the keyboard);
+ * `pickByNumber` does the picking.
  */
 class ReasonChips {
   static #KEY_NEXT = new Set(['ArrowRight', 'ArrowDown']);
@@ -58,6 +60,8 @@ class ReasonChips {
    */
   render({ labelType, vote, selected = null }) {
     const reasons = vote ? util.validationReasons.forLabel(labelType, vote) : [];
+    // Focus rides along to the same chip in the rebuilt row, so a host redrawing after a pick doesn't move it.
+    const focusedId = this.#chips.find((c) => c === document.activeElement)?.dataset.reasonId ?? null;
     const hadFocus = this.#root.contains(document.activeElement);
     this.#root.replaceChildren();
     this.#chips = [];
@@ -71,20 +75,26 @@ class ReasonChips {
     const promptId = `reason-chips-prompt-${Math.random().toString(36).slice(2, 8)}`;
     const promptKey = vote === 'Unsure' ? 'prompt-unsure' : 'prompt-disagree';
     const prompt = util.escapeHTML(i18next.t(`common:validation-reason.${promptKey}`));
+    // "Other…" sits beside the group, not in it: it opens a box rather than picking, so it is no peer of the chips.
     this.#root.innerHTML = `
       <span class="reason-chips__prompt" id="${promptId}">${prompt}</span>
-      <div class="reason-chips__list" role="radiogroup" aria-labelledby="${promptId}"></div>`;
-    const list = this.#root.querySelector('.reason-chips__list');
+      <div class="reason-chips__list">
+        <div class="reason-chips__group" role="group" aria-labelledby="${promptId}"></div>
+      </div>`;
+    const group = this.#root.querySelector('.reason-chips__group');
     reasons.forEach((reason, i) => {
       const chip = this.#buildChip(reason, i + 1);
       this.#chips.push(chip);
-      list.appendChild(chip);
+      group.appendChild(chip);
     });
     this.#otherButton = this.#buildOther(reasons.length + 1);
-    list.appendChild(this.#otherButton);
+    this.#root.querySelector('.reason-chips__list').appendChild(this.#otherButton);
     this.#syncState();
-    // Focus rides along to the rebuilt chip, so a host redrawing the row after a pick doesn't drop the keyboard.
-    if (hadFocus) this.focus();
+    if (hadFocus) {
+      const same = this.#chips.find((c) => c.dataset.reasonId === focusedId);
+      if (same) same.focus();
+      else this.focus();
+    }
     return reasons.length;
   }
 
@@ -156,7 +166,7 @@ class ReasonChips {
     chip.type = 'button';
     chip.className = 'reason-chips__chip';
     chip.dataset.reasonId = reason.id;
-    chip.setAttribute('role', 'radio');
+    chip.setAttribute('aria-pressed', 'false');
     chip.textContent = reason.text;
     // The tooltip renders as HTML (psTooltip.js), which is fine for these first-party strings and lets one carry
     // inline emphasis; nothing user-supplied reaches it.
@@ -179,12 +189,12 @@ class ReasonChips {
     return button;
   }
 
-  /** Reflects the selection into aria-checked and the roving tabindex. */
+  /** Reflects the selection into aria-pressed and the roving tabindex. */
   #syncState() {
     const focusable = this.#chips.find((c) => c.dataset.reasonId === this.#selected) ?? this.#chips[0];
     for (const chip of this.#chips) {
       const checked = chip.dataset.reasonId === this.#selected;
-      chip.setAttribute('aria-checked', String(checked));
+      chip.setAttribute('aria-pressed', String(checked));
       chip.classList.toggle('reason-chips__chip--selected', checked);
       chip.tabIndex = chip === focusable ? 0 : -1;
     }
@@ -218,7 +228,7 @@ class ReasonChips {
     else this.#pick(chip, viaKeyboard);
   };
 
-  /** Arrow keys move focus along the chips (a radiogroup's convention) without picking; Enter/Space pick natively. */
+  /** Arrow keys move focus along the chips without picking; Enter/Space pick natively. */
   #handleKeydown = (e) => {
     const idx = this.#chips.findIndex((chip) => chip === document.activeElement);
     if (idx < 0) return;

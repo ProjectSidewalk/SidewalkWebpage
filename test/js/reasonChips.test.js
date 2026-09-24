@@ -89,7 +89,7 @@ describe('ReasonChips', () => {
   let onOther;
   let chips;
 
-  const chipEls = () => [...root.querySelectorAll('[role="radio"]')];
+  const chipEls = () => [...root.querySelectorAll('.reason-chips__group .reason-chips__chip')];
   const other = () => root.querySelector('.reason-chips__chip--other');
 
   beforeEach(() => {
@@ -100,7 +100,7 @@ describe('ReasonChips', () => {
     chips = new window.ReasonChips(root, { onPick, onOther, showKeys: true });
   });
 
-  test('draws one radio per reason under a prompt for the vote, plus Other, and hides for an Agree', () => {
+  test('draws one toggle per reason under a prompt for the vote, plus Other, and hides for an Agree', () => {
     expect(root.hidden).toBe(true);
     expect(chips.render({ labelType: 'NoCurbRamp', vote: 'Disagree' })).toBe(4);
     expect(root.hidden).toBe(false);
@@ -124,12 +124,15 @@ describe('ReasonChips', () => {
     expect(root.hidden).toBe(true);
   });
 
-  test('is a radiogroup with a roving tabindex that arrow keys move without picking', () => {
+  test('is a named group of toggles with a roving tabindex that arrow keys move without picking', () => {
     chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
-    const list = root.querySelector('[role="radiogroup"]');
-    expect(list.getAttribute('aria-labelledby')).toBe(root.querySelector('.reason-chips__prompt').id);
+    const group = root.querySelector('[role="group"]');
+    expect(group.getAttribute('aria-labelledby')).toBe(root.querySelector('.reason-chips__prompt').id);
+    // "Other…" opens a box rather than picking, so it stands beside the group, not among its toggles.
+    expect(group.contains(other())).toBe(false);
+    expect(root.querySelector('.reason-chips__list').contains(other())).toBe(true);
     expect(chipEls().map((c) => c.tabIndex)).toEqual([0, -1, -1]);
-    expect(chipEls().map((c) => c.getAttribute('aria-checked'))).toEqual(['false', 'false', 'false']);
+    expect(chipEls().map((c) => c.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false']);
 
     chipEls()[0].focus();
     chipEls()[0].dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
@@ -151,7 +154,7 @@ describe('ReasonChips', () => {
     // The host reflects the server's answer; until it does, nothing is selected.
     expect(chips.getSelected()).toBeNull();
     chips.setSelected('ample-space');
-    expect(chipEls()[2].getAttribute('aria-checked')).toBe('true');
+    expect(chipEls()[2].getAttribute('aria-pressed')).toBe('true');
     expect(chipEls()[2].classList.contains('reason-chips__chip--selected')).toBe(true);
     expect(chipEls().map((c) => c.tabIndex)).toEqual([-1, -1, 0]);
     onPick.mockClear();
@@ -164,7 +167,7 @@ describe('ReasonChips', () => {
 
   test('renders a reason already on record as selected', () => {
     chips.render({ labelType: 'SurfaceProblem', vote: 'Unsure', selected: 'too-minor-unsure' });
-    expect(chipEls().map((c) => c.getAttribute('aria-checked'))).toEqual(['false', 'false', 'true']);
+    expect(chipEls().map((c) => c.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true']);
   });
 
   test('number keys pick 1–N, N+1 is Other, and anything else is left to the page', () => {
@@ -193,7 +196,12 @@ describe('ReasonChips', () => {
 
     chips.focus();
     expect(document.activeElement).toBe(chipEls()[0]);
+    // A redraw keeps focus on the chip that had it, so a host re-rendering mid-arrow-navigation doesn't move it;
+    // only when that chip is gone does focus fall to the selected one.
+    chipEls()[1].focus();
     chips.render({ labelType: 'Obstacle', vote: 'Disagree', selected: 'ample-space' });
+    expect(document.activeElement).toBe(chipEls()[1]);
+    chips.render({ labelType: 'Crosswalk', vote: 'Disagree', selected: 'stop-line' });
     expect(document.activeElement).toBe(chipEls()[2]);
   });
 });

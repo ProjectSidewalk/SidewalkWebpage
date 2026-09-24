@@ -61,10 +61,15 @@ class ValidationReasonSpec extends PlaySpec {
 
   "offered" should {
     "answer for a type's own reasons and refuse another type's" in {
-      ValidationReason.offered(LabelTypeEnum.CurbRamp, ValidationReason.Driveway) mustBe true
-      ValidationReason.offered(LabelTypeEnum.Obstacle, ValidationReason.Driveway) mustBe false
+      ValidationReason.offersReason(LabelTypeEnum.CurbRamp, ValidationReason.Driveway) mustBe true
+      ValidationReason.offersReason(LabelTypeEnum.Obstacle, ValidationReason.Driveway) mustBe false
+      // A reason belongs to one vote: a Disagree reason is not an Unsure one on the same type.
+      ValidationReason.offered(
+        LabelTypeEnum.CurbRamp,
+        ValidationOption.Unsure
+      ) must not contain ValidationReason.Driveway
       // A type with no canned reasons offers none, rather than throwing on a lookup.
-      ValidationReason.offered(LabelTypeEnum.Other, ValidationReason.WrongType) mustBe false
+      ValidationReason.offersReason(LabelTypeEnum.Other, ValidationReason.WrongType) mustBe false
       ValidationReason.offered(LabelTypeEnum.Other, ValidationOption.Disagree) mustBe empty
     }
   }

@@ -638,15 +638,20 @@ class LabelDetail {
     if (!this.#ownsKeyboard(e)) return;
 
     // 1–N pick a reason while the row is open, N+1 is "Other…" (#5475), the way Validate's number keys read. A
-    // digit with nothing to name is left to the page, like any other key the card has no button for.
+    // digit with nothing to name is left to the page, like any other key the card has no button for. Not over words
+    // the reader typed: a pick replaces their comment, so with a free-text comment on record, or a draft sitting in
+    // the box, only a deliberate tap on a chip may do that.
     const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code)?.[1];
     if (digit && this.#reasonChips?.isShowing) {
-      if (this.#reasonChips.pickByNumber(Number(digit))) {
+      if (!this.#digitsWouldOverwriteText() && this.#reasonChips.pickByNumber(Number(digit))) {
         e.preventDefault();
         e.stopPropagation();
       }
       return;
     }
+    // Focus on a chip: the arrows move along the row (ReasonChips' own handler), not through the labels.
+    const target = e.target instanceof Element ? e.target : null;
+    if (target?.closest('.reason-chips')) return;
 
     const vote = LabelDetail.#VOTE_KEYS[e.code];
     let button = null;
@@ -1108,11 +1113,22 @@ class LabelDetail {
     if (!this.#reasonChips) return false;
     const meta = this.#currentLabelMeta;
     const action = this.#prevAction;
-    const reasoned = action === 'Disagree' || action === 'Unsure';
-    const vote = meta && reasoned && !this.#locked ? action : null;
+    const reasoned = !!meta && !!action && util.validationReasons.hasReasons(meta.label_type, action);
+    const vote = reasoned && !this.#locked ? action : null;
     const own = this.#comments?.[this.#myCommentIdx];
     const selected = own && typeof own === 'object' && typeof own.reason === 'string' ? own.reason : null;
     return this.#reasonChips.render({ labelType: meta?.label_type, vote, selected }) > 0;
+  }
+
+  /**
+   * Whether a number-key pick would replace words the reader wrote: a free-text comment of theirs on the label, or
+   * a draft in the box. A tap on a chip still may; a key that could land with focus nowhere in particular may not.
+   * @returns {boolean}
+   */
+  #digitsWouldOverwriteText() {
+    const own = this.#comments?.[this.#myCommentIdx];
+    const ownIsFreeText = !!own && typeof own === 'object' && typeof own.reason !== 'string';
+    return ownIsFreeText || this.#els.commentInput.value.trim().length > 0;
   }
 
   /**
@@ -1495,6 +1511,9 @@ class LabelDetail {
     for (const btn of Object.values(this.#els.voteButtons)) {
       btn.disabled = off;
     }
+    // A reason explains the vote on record, and while a vote POST is out that vote is moving: a pick made in that
+    // window would race the server's delete of the old comment and could land under the new vote (#5475).
+    this.#reasonChips?.setBusy(off);
   }
 
   #renderVoteCounts() {
@@ -2702,13 +2721,20 @@ class LabelDetail {
       lng: context.lng,
     };
 
+    // Paging isn't blocked while this is in flight, so pin the label the comment belongs to and leave the card alone
+    // if a newer one has been shown by the time the reply lands — the same guard #submitValidation keeps. The
+    // comment itself landed server-side; reopening that label shows it.
+    const commentedLabelMeta = this.#currentLabelMeta;
+
     return this.#postJson('/labelmap/comment', data).then(async (res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
+      if (this.#currentLabelMeta !== commentedLabelMeta) return;
       const wasEdit = this.#editingComment;
       els.commentInput.value = '';
       els.commentButton.classList.remove('is-active');
-      if (wasEdit) this.#logAction('EditComment');
+      // A chip picked while the box was open is a pick, already logged as one, not an edit of the old text.
+      if (wasEdit && !reason) this.#logAction('EditComment');
 
       // Update the visible list. Admin views render objects with a username; non-admin views render bare comment
       // strings. Replace the user's existing comment (if any) rather than appending — the backend deletes prior
@@ -2742,7 +2768,9 @@ class LabelDetail {
       this.#flashCommentStatus(statusKey);
     }).catch((err) => {
       console.error(err);
-      this.#flashCommentStatus('labelmap:comment-save-failed', 'failed');
+      if (this.#currentLabelMeta === commentedLabelMeta) {
+        this.#flashCommentStatus('labelmap:comment-save-failed', 'failed');
+      }
     }).finally(() => {
       els.commentButton.disabled = false;
     });

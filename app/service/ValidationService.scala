@@ -44,6 +44,7 @@ trait ValidationService {
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
   def replaceComment(comment: ValidationTaskComment): Future[Int]
   def deleteComment(labelId: Int, userId: String): Future[Int]
+  def currentVote(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Option[ValidationOption.Value]]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
   def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome]
@@ -209,6 +210,13 @@ class ValidationServiceImpl @Inject() (
       commentId <- validationTaskCommentTable.insert(comment)
     } yield commentId).transactionally
   }
+
+  /**
+   * The user's standing vote on a label, as the reason a comment may carry has to be one that vote takes (#5475).
+   * @return The vote on the label's current type, or None when they have none.
+   */
+  def currentVote(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Option[ValidationOption.Value]] =
+    db.run(labelValidationTable.getValidation(labelId, userId, labelType)).map(_.map(_.validationResult))
 
   /**
    * Removes the user's comment on a label, if they left one.

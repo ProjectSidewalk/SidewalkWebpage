@@ -87,6 +87,8 @@ function buildCard() {
         <section class="label-detail__stories" hidden></section>
         <span class="label-detail__story-status sr-only" role="status" aria-live="polite"></span>
         <div class="label-detail__footer"><a class="label-detail__explore-link" hidden></a><a class="label-detail__labelmap-link" hidden></a></div>
+        <button type="button" class="label-detail__paging--prev">Prev</button>
+        <button type="button" class="label-detail__paging--next">Next</button>
       </div>`;
     return document.getElementById('card');
 }
@@ -133,6 +135,8 @@ describe('the one-tap reasons on the label card (#5475)', () => {
     let card;
     let setPano;
     let posted;
+    /** When set, the next POST waits on it, so a test can page or vote while a request is in flight. */
+    let holdPost = null;
 
     const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
@@ -150,7 +154,7 @@ describe('the one-tap reasons on the label card (#5475)', () => {
 
     const q = (sel) => card.querySelector(sel);
     const reasons = () => q('.label-detail__reasons');
-    const chips = () => [...card.querySelectorAll('.label-detail__reasons [role="radio"]')];
+    const chips = () => [...card.querySelectorAll('.label-detail__reasons .reason-chips__group .reason-chips__chip')];
     const chipById = (id) => card.querySelector(`.label-detail__reasons [data-reason-id="${id}"]`);
     const other = () => q('.reason-chips__chip--other');
     const boxOpen = () => q('.label-detail__comment-row').classList.contains('is-open');
@@ -177,6 +181,7 @@ describe('the one-tap reasons on the label card (#5475)', () => {
             isMobile: () => false,
             lazyIdentityFetch: jest.fn(async (url, init) => {
                 posted.push({ url, body: JSON.parse(init.body) });
+                if (holdPost) await holdPost.promise;
                 return { ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1 }) };
             }),
             camelToKebab: window.camelToKebab,
@@ -260,7 +265,7 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         // Stored text is whatever the writer's menu showed; the id is what crosses languages.
         await showLabel({ comments: [comment('Dit is een oprit', true, { reason: 'driveway' })] });
         await resolveImagery();
-        expect(chipById('driveway').getAttribute('aria-checked')).toBe('true');
+        expect(chipById('driveway').getAttribute('aria-pressed')).toBe('true');
         expect(listText()).toContain('This is a driveway');
         expect(listText()).not.toContain('Dit is een oprit');
         expect(boxOpen()).toBe(false); // A comment of theirs exists; Edit on it is the way back into the box.
@@ -268,7 +273,7 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         // An id these locale files don't know falls back to the stored words rather than a raw key.
         await showLabel({ comments: [comment('Something new', true, { reason: 'not-yet-translated' })] });
         await resolveImagery();
-        expect(chips().every((c) => c.getAttribute('aria-checked') === 'false')).toBe(true);
+        expect(chips().every((c) => c.getAttribute('aria-pressed') === 'false')).toBe(true);
         expect(listText()).toContain('Something new');
     });
 
@@ -283,7 +288,7 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         expect(posted[0].url).toBe('/labelmap/comment');
         expect(posted[0].body).toMatchObject({ label_id: 42, label_type: 'CurbRamp', comment: 'This is a driveway', reason: 'driveway' });
         expect(window.logWebpageActivity).toHaveBeenCalledWith('Click_module=LabelDetail_action=DisagreeReason_option=driveway_labelId=42');
-        expect(chipById('driveway').getAttribute('aria-checked')).toBe('true');
+        expect(chipById('driveway').getAttribute('aria-pressed')).toBe('true');
         expect(reasons().classList.contains('reason-chips--busy')).toBe(false);
         expect(listText()).toContain('This is a driveway');
         expect(status().hidden).toBe(false);
@@ -293,8 +298,8 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         chipById('driveway-transition').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
         await flush();
         expect(posted).toHaveLength(2);
-        expect(chipById('driveway').getAttribute('aria-checked')).toBe('false');
-        expect(chipById('driveway-transition').getAttribute('aria-checked')).toBe('true');
+        expect(chipById('driveway').getAttribute('aria-pressed')).toBe('false');
+        expect(chipById('driveway-transition').getAttribute('aria-pressed')).toBe('true');
         expect(listText()).not.toContain('This is a driveway');
         expect(listText()).toContain('sidewalk to driveway transition');
     });
@@ -305,7 +310,7 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         window.util.lazyIdentityFetch.mockImplementationOnce(async () => ({ ok: false, status: 500 }));
         chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
         await flush();
-        expect(chipById('driveway').getAttribute('aria-checked')).toBe('false');
+        expect(chipById('driveway').getAttribute('aria-pressed')).toBe('false');
         expect(status().textContent).toBe('labelmap:comment-save-failed');
         expect(reasons().classList.contains('reason-chips--busy')).toBe(false);
     });
@@ -355,7 +360,7 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         q('.label-detail__comment-submit').click();
         await flush();
         expect(posted[0].body).toMatchObject({ comment: 'It is a garage entrance.', reason: null });
-        expect(chips().every((c) => c.getAttribute('aria-checked') === 'false')).toBe(true);
+        expect(chips().every((c) => c.getAttribute('aria-pressed') === 'false')).toBe(true);
         expect(boxOpen()).toBe(false);
         expect(status().textContent).toBe('labelmap:comment-submitted');
     });
@@ -363,7 +368,7 @@ describe('the one-tap reasons on the label card (#5475)', () => {
     test('changing the vote to Agree drops the chips along with the comment the vote carried', async () => {
         await showLabel({ user_validation: 'Disagree', comments: [comment('This is a driveway', true, { reason: 'driveway' })] });
         await resolveImagery();
-        expect(chipById('driveway').getAttribute('aria-checked')).toBe('true');
+        expect(chipById('driveway').getAttribute('aria-pressed')).toBe('true');
         q('.label-detail__pano-overlay-button--agree').click();
         await flush();
         expect(reasons().hidden).toBe(true);
@@ -380,6 +385,95 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         await resolveImagery();
         expect(boxOpen()).toBe(true);
         expect(document.activeElement).toBe(input());
+    });
+
+    test('arrow keys on a focused chip move along the row rather than paging the card', async () => {
+        await showLabel({ user_validation: 'Disagree' });
+        await resolveImagery();
+        const paged = jest.fn();
+        q('.label-detail__paging--next').addEventListener('click', paged);
+        chips()[0].focus();
+        const right = new window.KeyboardEvent('keydown', { code: 'ArrowRight', key: 'ArrowRight', bubbles: true, cancelable: true });
+        chips()[0].dispatchEvent(right);
+        expect(paged).not.toHaveBeenCalled();
+        expect(document.activeElement).toBe(chips()[1]);
+        // Off the chips, the arrows are the card's again.
+        chips()[1].blur();
+        keydown('ArrowRight');
+        expect(paged).toHaveBeenCalled();
+    });
+
+    test('a pick that lands after paging leaves the label now on screen alone', async () => {
+        await showLabel({ user_validation: 'Disagree' });
+        await resolveImagery();
+        holdPost = deferred();
+        chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        await flush();
+        // Page on before the reply: the next label has no comment of ours and no vote.
+        setPano = deferred();
+        await showLabel({ label_id: 43, user_validation: null, comments: [] });
+        holdPost.resolve();
+        holdPost = null;
+        await flush();
+        expect(listText()).toBe('labelmap:no-comments-yet');
+        expect(reasons().hidden).toBe(true);
+        expect(status().hidden).toBe(true);
+    });
+
+    test('the chips lock while a vote is in flight, so a reason can\'t be filed under a moving vote', async () => {
+        await showLabel({ user_validation: 'Disagree' });
+        await resolveImagery();
+        holdPost = deferred();
+        q('.label-detail__pano-overlay-button--unsure').click();
+        await flush();
+        expect(reasons().classList.contains('reason-chips--busy')).toBe(true);
+        keydown('Digit2');
+        chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        await flush();
+        expect(posted.filter((p) => p.url === '/labelmap/comment')).toHaveLength(0);
+        holdPost.resolve();
+        holdPost = null;
+        await flush();
+        // The vote landed: the Unsure reasons are up and live again.
+        expect(reasons().classList.contains('reason-chips--busy')).toBe(false);
+        expect(chips().map((c) => c.dataset.reasonId)).toEqual(['better-image', 'placement-incorrect', 'ramp-required-unsure']);
+    });
+
+    test('number keys never replace words the reader wrote; a tap still may', async () => {
+        await showLabel({ user_validation: 'Disagree', comments: [comment('The ramp is behind the car.', true)] });
+        await resolveImagery();
+        expect(reasons().hidden).toBe(false);
+        keydown('Digit2');
+        await flush();
+        expect(posted).toHaveLength(0);
+        chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        await flush();
+        expect(posted[0].body.reason).toBe('driveway');
+
+        // The same for a draft sitting in the box after "Other…".
+        await showLabel({ user_validation: 'Disagree' });
+        await resolveImagery();
+        posted.length = 0;
+        other().dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        input().value = 'Half a thought';
+        input().blur();
+        keydown('Digit1');
+        await flush();
+        expect(posted).toHaveLength(0);
+        expect(input().value).toBe('Half a thought');
+    });
+
+    test('a chip picked while the box is open is logged as a pick, not as an edit', async () => {
+        await showLabel({ user_validation: 'Disagree', comments: [comment('This is a driveway', true, { reason: 'driveway' })] });
+        await resolveImagery();
+        other().dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        expect(boxOpen()).toBe(true);
+        chipById('driveway-transition').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        await flush();
+        const logged = window.logWebpageActivity.mock.calls.map((c) => c[0]);
+        expect(logged).toContain('Click_module=LabelDetail_action=DisagreeReason_option=driveway-transition_labelId=42');
+        expect(logged.some((l) => l.includes('action=EditComment_'))).toBe(false);
+        expect(boxOpen()).toBe(false);
     });
 
     test('the viewer\'s own label offers no reasons', async () => {

@@ -521,7 +521,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .gallery-card__reasons-status {
-  min-height: 1.2em;
+  min-height: 16px; /* Holds the line so "Reason saved" doesn't shift the chips when it appears. */
   font: var(--text-caption-semibold);
   font-size: max(11px, 2.8cqw);
   color: var(--color-pine-700);

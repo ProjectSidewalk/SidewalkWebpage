@@ -372,13 +372,15 @@ class ValidateController @Inject() (
         BadRequest(Json.obj("status" -> "Error", "message" -> "validations need a label_type or a mission_progress"))
       )
     }
-    // A canned reason has to be one the label's type offers (#5475); the whole batch is refused rather than one
-    // vote dropped, since a client sending an unknown id is a client out of step with the vocabulary.
-    val badReason: Option[Result] = data.validations
-      .flatMap(v => v.comment.flatMap(_.reason).map(r => (labelTypeSeen(v), r)))
-      .collectFirst { case (labelType, id) if parseReason(Some(id), labelType).isLeft => id }
-      .map(id => BadRequest(Json.obj("status" -> "Error", "message" -> s"unknown validation reason '$id'")))
-    if (badReason.isDefined) return Future.successful(badReason.get)
+    // A reason the type doesn't offer for the vote is dropped, keeping the vote and the text (#5475): a page open
+    // across a deploy that changed the catalog would otherwise lose its whole batch, and with it the mission.
+    def reasonFor(newVal: LabelValidationSubmission, id: String): Option[ValidationReason.Value] =
+      parseReason(Some(id), labelTypeSeen(newVal), Some(newVal.validationResult)) match {
+        case Right(reason) => reason
+        case Left(_)       =>
+          logger.warn(s"Dropping validation reason '$id' on label ${newVal.labelId}: not offered for this vote")
+          None
+      }
 
     // First do all the important stuff that needs to be done synchronously.
     val response: Future[Result] = for {
@@ -394,8 +396,20 @@ class ValidateController @Inject() (
           newVal.tags,
           newVal.comment.map(c =>
             ValidationTaskComment(
-              0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
-              currTime, c.comment, c.reason.flatMap(ValidationReason.withNameOption)
+              0,
+              c.missionId,
+              c.labelId,
+              user.userId,
+              ipAddress,
+              c.panoId,
+              c.heading,
+              c.pitch,
+              c.zoom,
+              c.lat,
+              c.lng,
+              currTime,
+              c.comment,
+              c.reason.flatMap(reasonFor(newVal, _))
             )
           ),
           newVal.undone,
@@ -628,45 +642,55 @@ class ValidateController @Inject() (
       submission => {
         val userId: String                = request.identity.userId
         val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(submission.labelType)
-        parseReason(submission.reason, labelType) match {
-          case Left(badRequest) => Future.successful(badRequest)
-          case Right(reason)    =>
-            for {
-              mission <- missionService.resumeOrCreateNewValidateMission(
-                userId,
-                MissionType.LabelmapValidation,
-                labelType
-              )
-              commentId: Int <- validationService.replaceComment(
-                ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
-                  submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat,
-                  submission.lng, OffsetDateTime.now, submission.comment, reason)
-              )
-            } yield {
-              Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
-            }
+        // Checked against the vote as it stands server-side rather than one the client claims, so a reason for a
+        // vote that was replaced while the pick was in flight is refused instead of stored under the wrong vote.
+        val vote: Future[Option[ValidationOption.Value]] =
+          if (submission.reason.isDefined) validationService.currentVote(submission.labelId, userId, labelType)
+          else Future.successful(None)
+        vote.flatMap { currentVote =>
+          parseReason(submission.reason, labelType, currentVote) match {
+            case Left(badRequest) => Future.successful(badRequest)
+            case Right(reason)    =>
+              for {
+                mission <- missionService.resumeOrCreateNewValidateMission(
+                  userId,
+                  MissionType.LabelmapValidation,
+                  labelType
+                )
+                commentId: Int <- validationService.replaceComment(
+                  ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
+                    submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat,
+                    submission.lng, OffsetDateTime.now, submission.comment, reason)
+                )
+              } yield {
+                Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
+              }
+          }
         }
       }
     )
   }
 
   /**
-   * Resolves a submitted canned-reason id against what the label's type offers (#5475).
+   * Resolves a submitted canned-reason id against what the label's type offers for the user's vote (#5475).
    *
-   * @return `Right(None)` for free text, `Right(Some(reason))` for an offered reason, and a 400 in `Left` for an id
-   *         the vocabulary doesn't know or the type doesn't offer, so a stale client can't file a reason no menu
-   *         showed for this label.
+   * @param vote The vote the reason explains; a reason with no vote behind it, or one the vote doesn't take, is
+   *             refused the same as an unknown id.
+   * @return `Right(None)` for free text, `Right(Some(reason))` for an offered reason, and a 400 in `Left` otherwise,
+   *         so a stale client can't file a reason no menu showed for this label and vote.
    */
   private def parseReason(
       reasonId: Option[String],
-      labelType: LabelTypeEnum.Base
+      labelType: LabelTypeEnum.Base,
+      vote: Option[ValidationOption.Value]
   ): Either[Result, Option[ValidationReason.Value]] = reasonId match {
     case None     => Right(None)
     case Some(id) =>
-      ValidationReason.withNameOption(id).filter(ValidationReason.offered(labelType, _)) match {
+      val offered = vote.map(ValidationReason.offered(labelType, _)).getOrElse(Seq.empty)
+      ValidationReason.withNameOption(id).filter(offered.contains) match {
         case Some(reason) => Right(Some(reason))
         case None         =>
-          Left(BadRequest(Json.obj("status" -> "Error", "message" -> s"unknown validation reason '$id'")))
+          Left(BadRequest(Json.obj("status" -> "Error", "message" -> s"validation reason '$id' not offered here")))
       }
   }
 
