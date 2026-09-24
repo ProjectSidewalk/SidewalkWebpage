@@ -1,15 +1,19 @@
 @import models.partner.PartnerMetadata
-@import models.utils.SlugUtils
-@(partners: Seq[PartnerMetadata], cityName: String)(implicit messages: Messages, assets: AssetsFinder)
+@import models.utils.{OfficialContact, SlugUtils}
+@(partners: Seq[PartnerMetadata], officialContact: Option[OfficialContact], cityName: String
+)(implicit messages: Messages, assets: AssetsFinder)
 
 @*
 * The landing page's partners section (#4516), in two halves: the admin-managed "Community Partners in <city>" logos
 * (global partners first, then the current city's), served from the DB via /partnerLogo with a logo-version cache
 * buster; and a "Project Sidewalk was created with <heart> by" credit — the three static creator logos (Makeability
 * Lab, UW, UIC IDHD) plus a prose credit to the long-time partners, students, and volunteers who shaped the tool.
-* With no partners yet, only the created-by half renders — never an orphaned heading. Anchors carry
-* data-partner-source so the landing pages' delegated handlers (homepage.js on desktop, mobileLanding's inline
-* script on mobile) can log clicks without per-partner markup.
+* With no partners yet, only the created-by half renders — never an orphaned heading. A city can also point residents
+* to its own contact page (#5462) so nobody mistakes Project Sidewalk for a way to request repairs. That notice sits
+* under the city's partner logos, which is where it reads as the city speaking; with no logos to sit under it would
+* float alone above the created-by heading, so it moves to the foot of the section instead. Anchors carry
+* data-partner-source so the landing pages' delegated handlers (homepage.js on desktop, mobileLanding's inline script
+* on mobile) can log clicks without per-partner markup.
 *
 * Each community-partner logo names its partner in a psTooltip on hover, or on keyboard focus for linked logos (#5469),
 * since a logo alone is often not legible as a name. The trigger is the .partner-logo wrapper rather than the link, so
@@ -23,6 +27,17 @@
   <img loading="lazy" src="@routes.PartnerController.servePartnerLogo(p.partnerId)?v=@p.logoVersion"
   width="@p.logoWidth" height="@p.logoHeight"
   alt="@p.altText.getOrElse(Messages("landing.partners.logo.alt", p.name))">
+}
+
+@* Twirl escapes the admin-entered name and URL here; only the message's own text is trusted by the @Html below. *@
+@contactLink(c: OfficialContact) = {<a href="@c.url" data-partner-source="official-contact">@c.name</a>}
+
+@officialContactNotice = {
+  @for(contact <- officialContact) {
+    <p class="partner-section-notice" id="partners-official-contact">
+      @Html(Messages("landing.partners.official.contact", contactLink(contact)))
+    </p>
+  }
 }
 
 @* A flat heart rather than the ❤️ emoji, whose glossy, drop-shadowed platform rendering out-shouted the words
@@ -47,6 +62,7 @@
         </div>
       }
     </div>
+    @officialContactNotice
   }
   <h2 class="partner-section-heading" id="creators-title">
     @Html(Messages("landing.partners.created.by", heart))
@@ -72,4 +88,7 @@
     </div>
   </div>
   <p class="partner-section-tagline" id="partners-credit">@Html(Messages("landing.partners.created.credits"))</p>
+  @if(partners.isEmpty) {
+    @officialContactNotice
+  }
 </div>

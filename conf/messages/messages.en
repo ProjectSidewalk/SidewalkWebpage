@@ -289,6 +289,7 @@ landing.deployment.map.title = Explore other cities
 landing.deployment.map.subtitle = Click on a circle below to explore other Project Sidewalk cities!
 landing.partners.title = Community Partners in {0}
 landing.partners.tagline = Our work in {0} is made possible through our community partners, including:
+landing.partners.official.contact = Project Sidewalk is a research tool. To report a problem or request a repair, contact {0} directly. Feel free to include links to Project Sidewalk <a href="/labelMap" data-partner-source="official-contact-labelmap">labels</a> or <a href="/stories" data-partner-source="official-contact-stories">stories</a> in your request.
 landing.partners.logo.alt = {0} logo
 landing.partners.created.by = Project Sidewalk was created with {0} by
 landing.partners.created.heart = love

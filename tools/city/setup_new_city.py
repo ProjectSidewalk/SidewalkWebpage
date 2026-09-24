@@ -1453,7 +1453,7 @@ DATABASE_USER={schema} in docker-compose.override.yml and recreate the container
 a running container's environment can't be changed in place.
 {handoff_checklist(city_id, schema, prod_url, test_url, gradient)}
 Still on a human: the translations listed under step 1; the donor's values the clone carried in the city's config row
-— `excluded_tags`, `update_offset_hours`, `make_crops` (the fill printed them; `mapathon_event_link` was cleared);
+— `excluded_tags`, `update_offset_hours`, `make_crops` (the fill printed them; `mapathon_event_link` was cleared, as was any official contact);
 and the GA ids if step 2 was skipped. The `/onboard-city` skill walks through all of it.''')
 
 

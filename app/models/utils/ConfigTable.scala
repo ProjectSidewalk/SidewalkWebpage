@@ -13,6 +13,15 @@ import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
+/**
+ * Who a city's residents should contact for repairs and service requests (#5462). The landing page names it so
+ * nobody mistakes Project Sidewalk for an official reporting channel.
+ *
+ * @param name How the landing page names the agency, as it reads mid-sentence (e.g. "the City of Burnaby").
+ * @param url  The agency's own contact page, always https.
+ */
+case class OfficialContact(name: String, url: String)
+
 case class MapParams(
     centerLat: Double,
     centerLng: Double,
@@ -49,6 +58,11 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   def makeCrops: Rep[Boolean]                = column[Boolean]("make_crops", O.Default(true))
   // CHECK (jsonb_typeof(excluded_tags) = 'array') in the DB, so an empty value must be '[]' and not '{}'.
   def excludedTags: Rep[Seq[ExcludedTag]] = column[Seq[ExcludedTag]]("excluded_tags")
+  // Left out of `*` so the Config mapping stays as is. CHECKs in the DB: both columns are NULL or both are set, the
+  // name is 1-100 characters once trimmed, and the URL starts with https:// and is at most 500 characters. The caps match
+  // ConfigService.OfficialContactMaxNameLength / OfficialContactMaxUrlLength.
+  def officialContactName: Rep[Option[String]] = column[Option[String]]("official_contact_name")
+  def officialContactUrl: Rep[Option[String]]  = column[Option[String]]("official_contact_url")
 
   override def * = (
     openStatus,
@@ -983,6 +997,30 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
   def getExcludedTagsString: DBIO[Seq[ExcludedTag]] = {
     config.map(_.excludedTags).result.head
+  }
+
+  /**
+   * The city's official contact for the landing-page notice, if one is set.
+   *
+   * @return DBIO yielding the contact, or None when the city has no notice.
+   */
+  def getOfficialContact: DBIO[Option[OfficialContact]] = {
+    config.map(c => (c.officialContactName, c.officialContactUrl)).result.head.map {
+      case (Some(name), Some(url)) => Some(OfficialContact(name, url))
+      case _                       => None
+    }
+  }
+
+  /**
+   * Sets or clears the city's official contact.
+   *
+   * @param contact The new contact, or None to turn the landing-page notice off.
+   * @return        DBIO yielding the number of config rows updated.
+   */
+  def setOfficialContact(contact: Option[OfficialContact]): DBIO[Int] = {
+    config
+      .map(c => (c.officialContactName, c.officialContactUrl))
+      .update((contact.map(_.name), contact.map(_.url)))
   }
 
   /**

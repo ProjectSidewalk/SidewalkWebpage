@@ -540,6 +540,42 @@ case class CurrentCityFunnels(computedAt: Option[OffsetDateTime], byType: Map[St
  */
 object ConfigService {
 
+  /** Longest official-contact name the admin page accepts; it renders mid-sentence on the landing page (#5462). */
+  val OfficialContactMaxNameLength: Int = 100
+
+  /** Longest official-contact URL the admin page accepts. */
+  val OfficialContactMaxUrlLength: Int = 500
+
+  /**
+   * Checks and trims what an admin entered for the landing page's official-contact notice (#5462). A blank URL turns
+   * the notice off, whatever the name says. Otherwise the URL has to be an absolute https link with no user info,
+   * because it lands in an href on the public landing page (`https://city.gov@elsewhere.example` would read as the
+   * city's site), and the name has to be non-blank. The scheme is lowercased so the stored value meets the DB's
+   * case-sensitive `LIKE 'https://%'` CHECK.
+   *
+   * @param name The agency's name as the sentence should read it, e.g. "the City of Burnaby".
+   * @param url  The agency's contact page.
+   * @return     Right(None) to clear the notice, Right(Some(contact)) to set it, or Left with an English message for
+   *             the admin page (admin UI is English-only).
+   */
+  def validateOfficialContact(name: String, url: String): Either[String, Option[OfficialContact]] = {
+    val cleanName  = name.trim
+    val cleanUrl   = url.trim
+    val urlIsHttps = Try {
+      val uri = new java.net.URI(cleanUrl)
+      Option(uri.getScheme).exists(_.equalsIgnoreCase("https")) && uri.getHost != null && uri.getRawUserInfo == null
+    }.getOrElse(false)
+    if (cleanUrl.isEmpty) Right(None)
+    else if (cleanName.isEmpty) Left("Enter the name to show, e.g. \"the City of Burnaby\".")
+    else if (cleanName.length > OfficialContactMaxNameLength)
+      Left(s"The name can be at most $OfficialContactMaxNameLength characters.")
+    else if (cleanUrl.length > OfficialContactMaxUrlLength)
+      Left(s"The URL can be at most $OfficialContactMaxUrlLength characters.")
+    else if (!urlIsHttps)
+      Left("The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us.")
+    else Right(Some(OfficialContact(cleanName, "https" + cleanUrl.drop("https".length))))
+  }
+
   /** Cached aggregate stats older than this trigger a background recompute when served (#4600). */
   val AggregateStatsFreshFor: FiniteDuration = Duration(5, "minutes")
 
@@ -1115,6 +1151,8 @@ trait ConfigService {
   def getTutorialStreetId: Future[Int]
   def getMakeCrops: Future[Boolean]
   def getMapathonEventLink: Future[Option[String]]
+  def getOfficialContact: Future[Option[OfficialContact]]
+  def setOfficialContact(contact: Option[OfficialContact]): Future[Unit]
   def getOpenStatus: Future[String]
   def getOffsetHours: Future[Int]
   def getExcludedTags: DBIO[Seq[ExcludedTag]]
@@ -2043,6 +2081,20 @@ class ConfigServiceImpl @Inject() (
 
   def getMapathonEventLink: Future[Option[String]] =
     cacheApi.getOrElseUpdate[Option[String]]("getMapathonEventLink")(db.run(configTable.getMapathonEventLink))
+
+  def getOfficialContact: Future[Option[OfficialContact]] =
+    cacheApi.getOrElseUpdate[Option[OfficialContact]](OfficialContactCacheKey)(db.run(configTable.getOfficialContact))
+
+  /**
+   * Writes the city's official contact, then drops the cached copy so the landing page shows the change on its next
+   * load. Each city runs a single app instance, so this one invalidation is complete.
+   *
+   * @param contact An already-validated contact (see [[ConfigService.validateOfficialContact]]), or None to clear it.
+   */
+  def setOfficialContact(contact: Option[OfficialContact]): Future[Unit] =
+    db.run(configTable.setOfficialContact(contact)).flatMap(_ => cacheApi.remove(OfficialContactCacheKey)).map(_ => ())
+
+  private val OfficialContactCacheKey = "getOfficialContact"
 
   def getOpenStatus: Future[String] =
     cacheApi.getOrElseUpdate[String]("getOpenStatus")(db.run(configTable.getOpenStatus))
