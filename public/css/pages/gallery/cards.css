@@ -421,6 +421,10 @@ with respect to the image holder. This allows the validation menu to be placed o
   opacity: 1;
 }
 
+.validation-button-selected:focus-visible {
+  background-color: var(--validation-button-selected-bg);
+}
+
 /* Read-only mode: the card shows the viewer's own label, so validating isn't allowed. The UI stays in place but
    appears disabled, matching the Gallery expanded view / LabelMap popup. */
 .gallery-card--readonly #gallery-card-agree-button,

@@ -422,16 +422,74 @@ describe('the Gallery card reason popover (#5475)', () => {
     expect(boxSubmit().textContent).toBe('labelmap:comment');
   });
 
-  test('a mouse leave hands focus from the popover to the vote control, never to the page', async () => {
-    // The thumbs cannot take focus, so a vote cast on one lands on the overlay button for the same vote.
+  test('a mouse leave hands a keyboard user\'s focus to the vote control, and leaves a mouse user\'s alone', async () => {
+    // The thumbs cannot take focus, so a vote cast on one lands on the overlay button for the same vote. jsdom
+    // matches :focus-visible on any focus, which stands in for the keyboard case.
     cardEl.appendChild(card.validationInfoDisplay.disagreeContainer);
-    card.validationInfoDisplay.disagreeContainer.dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
-    await flush();
-    jest.advanceTimersByTime(0);
+    const thumbVote = async () => {
+      card.validationInfoDisplay.disagreeContainer.dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+      await flush();
+      jest.advanceTimersByTime(0);
+    };
+    const overlay = () => cardEl.querySelector('#gallery-card-disagree-button');
+    await thumbVote();
     expect(document.activeElement).toBe(popover());
     leaveCard();
     expect(isOpen()).toBe(false);
-    expect(document.activeElement).toBe(cardEl.querySelector('#gallery-card-disagree-button'));
+    expect(document.activeElement).toBe(overlay());
+
+    // A mouse user's focus is not parked on a hidden vote toggle, where a later Space would clear the vote.
+    overlay().blur();
+    card.validationInfoDisplay.disagreeContainer.dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush(); // Cleared (#4653).
+    cardEl.dispatchEvent(new window.MouseEvent('pointerenter'));
+    await thumbVote();
+    const matches = popover().matches.bind(popover());
+    popover().matches = (selector) => (selector === ':focus-visible' ? false : matches(selector));
+    leaveCard();
+    expect(isOpen()).toBe(false);
+    expect(document.activeElement).not.toBe(overlay());
+  });
+
+  test('a touch tap after the mouse left counts as being on the card, so its popover stays', async () => {
+    // A touchscreen laptop: the mouse crossed the card and left, then a finger voted on it.
+    leaveCard();
+    const tap = new window.MouseEvent('pointerenter');
+    Object.defineProperty(tap, 'pointerType', { value: 'touch' });
+    cardEl.dispatchEvent(tap);
+    await pointerVote('disagree');
+    expect(isOpen()).toBe(true);
+  });
+
+  test('a pointer pick that saves after the mouse left shows "saved" before it closes', async () => {
+    await pointerVote('disagree');
+    let land;
+    responses.push(new Promise((resolve) => {
+      land = () => resolve({ ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1 }) });
+    }));
+    chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush();
+    leaveCard();
+    land();
+    await flush();
+    expect(isOpen()).toBe(true);
+    expect(status().textContent).not.toBe('');
+    jest.advanceTimersByTime(window.ValidationMenu.REASON_CLOSE_DELAY_MS);
+    expect(isOpen()).toBe(false);
+  });
+
+  test('keys that belong to an IME composition neither submit nor dismiss', async () => {
+    await vote('disagree');
+    box().focus();
+    box().value = '無障礙';
+    box().dispatchEvent(new window.Event('input'));
+    // Safari's composition-confirming Enter: isComposing false, keyCode 229.
+    box().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', keyCode: 229, bubbles: true, cancelable: true }));
+    await flush();
+    expect(posted).toHaveLength(1); // The vote only.
+    box().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', isComposing: true, bubbles: true, cancelable: true }));
+    expect(isOpen()).toBe(true);
+    expect(box().value).toBe('無障礙');
   });
 
   test('a typed reason on record comes back in the box; a canned one does not', async () => {

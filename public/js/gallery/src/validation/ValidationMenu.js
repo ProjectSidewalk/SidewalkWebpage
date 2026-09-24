@@ -39,9 +39,9 @@ class ValidationMenu {
   #otherInput = null;
   /** @type {?HTMLButtonElement} */
   #otherSubmit = null;
-  /** The typed reason the box opened with, so only text the viewer changed counts as a draft worth keeping. */
+  /** @type {string} The typed reason the box opened with; only text the viewer changed is a draft worth keeping. */
   #otherPrefill = '';
-  /** Whether the mouse is off the card, tracked all along so a popover that opens after it left can still close. */
+  /** @type {boolean} The mouse is off the card, tracked all along so a popover opening after it left can close. */
   #mouseOutside = false;
   /** @type {?string} The vote the open popover is asking about, or null while it is closed. */
   #reasonVote = null;
@@ -53,8 +53,9 @@ class ValidationMenu {
   #boundOutsideClick = (e) => this.#handleOutsideClick(e);
   #boundKeydown = (e) => this.#handleKeydown(e);
   #boundPointerLeave = (e) => this.#handlePointerLeave(e);
-  #boundPointerEnter = (e) => {
-    if (e.pointerType === 'mouse') this.#mouseOutside = false;
+  // Any pointer counts: on a touchscreen laptop a finger tapping the card is as present as the mouse.
+  #boundPointerEnter = () => {
+    this.#mouseOutside = false;
   };
 
   /**
@@ -424,6 +425,9 @@ class ValidationMenu {
     document.removeEventListener('click', this.#boundOutsideClick, true);
     document.removeEventListener('keydown', this.#boundKeydown, true);
     if (!this.reasonsOpen) return;
+    // Read before hiding, which blurs whatever had focus in the popover.
+    const active = document.activeElement;
+    const keyboardFocusInside = this.#reasonPopover.contains(active) && !!active?.matches(':focus-visible');
     if (ValidationMenu.#openMenu === this) ValidationMenu.#openMenu = null;
     const vote = this.#reasonVote;
     this.#reasonVote = null;
@@ -431,11 +435,15 @@ class ValidationMenu {
     this.#galleryCard.removeClass('gallery-card--reasons-open');
     const opener = this.#reasonOpener;
     this.#reasonOpener = null;
-    if (!returnFocus) return;
+    // Only a keyboard user still working in the popover gets focus back. A mouse user's focus is left to drop: parked
+    // on a hidden vote toggle, a later Space to scroll the grid would clear the vote and its comment. And one who
+    // has already moved focus elsewhere keeps it there.
+    if (!returnFocus || !keyboardFocusInside) return;
     // The thumbs are plain containers that can't take focus, so a vote cast on one hands focus to the overlay
     // button for the same vote instead; otherwise it would fall from the hidden popover to <body>.
     const focusable = opener?.isConnected && opener.matches('button, a[href], input, [tabindex]') ? opener : null;
-    (focusable ?? this.#validationButtons[ValidationMenu.#validationOptionToClass[vote]]?.[0])?.focus();
+    (focusable ?? this.#validationButtons[ValidationMenu.#validationOptionToClass[vote]]?.[0])
+      ?.focus({ preventScroll: true });
   }
 
   #handleOutsideClick(e) {
@@ -470,18 +478,19 @@ class ValidationMenu {
   /**
    * With the mouse off the card, closes the popover so the question doesn't linger over the grid. It stays while a
    * save is landing (that closes it itself, or calls back here if it fails) and while the box has focus or a draft,
-   * so a nudged mouse can't lose typing. Focus goes back to the vote control only if it was in the popover.
+   * so a nudged mouse can't lose typing. Focus goes back only to a keyboard user still in the popover.
    */
   #dismissIfMouseGone() {
     if (!this.#mouseOutside || !this.reasonsOpen || this.#voteLocked) return;
     if (document.activeElement === this.#otherInput || this.#hasDraft()) return;
     this.#log('ReasonMenu_Dismiss', false, 'MouseLeave');
-    this.#closeReasons(this.#reasonPopover.contains(document.activeElement));
+    this.#closeReasons(true);
   }
 
   /** Escape closes; 1–N pick and N+1 moves to the box, the way the label card's number keys do (#5475). */
   #handleKeydown(e) {
-    if (!this.reasonsOpen || e.ctrlKey || e.metaKey || e.altKey) return;
+    // A key mid-composition belongs to the IME: an Escape there cancels the composition, not the draft or popover.
+    if (!this.reasonsOpen || e.ctrlKey || e.metaKey || e.altKey || e.isComposing || e.keyCode === 229) return;
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -556,6 +565,7 @@ class ValidationMenu {
       lng: refCard.getProperty('lng'),
     };
     const status = this.#reasonPopover.querySelector('.gallery-card__reasons-status');
+    let saved = false;
     this.#setReasonBusy(true);
     // The vote must hold while its reason is written, or the server's delete-on-vote-change races the pick.
     this.#setVoteControlsLocked(true);
@@ -566,6 +576,7 @@ class ValidationMenu {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      saved = true;
       // The server replaced the comment whether or not the popover is still up, so the card records it either way
       // — unless the vote moved meanwhile, in which case the server archived it again and the card must not show
       // it; only the popover's own feedback waits on it still being open with the same question.
@@ -586,8 +597,9 @@ class ValidationMenu {
     } finally {
       this.#setReasonBusy(false);
       this.#setVoteControlsLocked(false);
-      // A leave during the save was held off; a save that failed with nothing typed is no reason to keep it up.
-      if (!viaKeyboard) this.#dismissIfMouseGone();
+      // A leave during the save was held off. A saved reason closes on its own timer, after "saved" has been seen;
+      // a failed one with nothing typed is no reason to keep the popover up.
+      if (!saved && !viaKeyboard) this.#dismissIfMouseGone();
     }
   }
 
