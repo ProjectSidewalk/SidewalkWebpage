@@ -107,9 +107,11 @@ class OfficialContactAdminSpec extends PlaySpec with RoleSession with GuiceOneAp
 
     "store an uppercase scheme lowercased rather than failing the DB's https CHECK" in {
       val resp =
-        put(adminCookies, Json.obj("name" -> burnaby.name, "url" -> "HTTPS://www.burnaby.ca/our-city/contact-us"))
+        put(adminCookies, Json.obj("name" -> burnaby.name, "url" -> "HTTPS://www.burnaby.ca/our-city/Contact-Us"))
       status(resp) mustBe OK
-      (getSaved \ "url").as[String] mustBe burnaby.url
+      // A value no earlier case saved, so this fails if the PUT answers OK without writing. The path keeps its case.
+      (getSaved \ "url").as[String] mustBe "https://www.burnaby.ca/our-city/Contact-Us"
+      status(put(adminCookies, Json.obj("name" -> burnaby.name, "url" -> burnaby.url))) mustBe OK
     }
 
     "reject what can't go in a public href, leaving the saved value alone" in {

@@ -173,7 +173,7 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
     -- printed further down for review.
     UPDATE config SET open_status = '$OPEN_STATUS_Q', mapathon_event_link = NULL;
 
-    -- The official contact (#5462) names the donor's government, never this city's. A donor still below evolution 405
+    -- The official contact (#5462) names the donor's government, never this city's. A donor still below evolution 406
     -- has no such columns (the new schema then gets them, empty, at boot), so the clear runs only when they exist.
     DO \$\$
     BEGIN

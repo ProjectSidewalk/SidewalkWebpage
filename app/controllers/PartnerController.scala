@@ -16,8 +16,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * HTTP surface for community-partner logos (#4516): the admin CRUD under /adminapi and the public logo bytes the
- * landing page renders. It also serves the Partners page's official-contact notice (#5462), which renders in the landing
- * page's partners section and is edited on the same admin page. City-scoped writes are admin-gated; the global
+ * landing page renders. It also serves the Partners page's official-contact notice (#5462), which renders in the
+ * landing page's partners section and is edited on the same admin page. City-scoped writes are admin-gated; the global
  * (all-cities) scope is Owner-only, split onto its own /adminapi/globalPartners routes so the posture is visible in
  * the routes file.
  */

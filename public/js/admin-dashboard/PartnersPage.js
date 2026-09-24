@@ -79,7 +79,11 @@ class PartnersPage {
     this.#loadOfficialContact(form);
   }
 
-  /** @param {OfficialContactForm} form */
+  /**
+   * Fills the form with the city's saved contact, or shows an inline error if it can't be read.
+   *
+   * @param {OfficialContactForm} form
+   */
   async #loadOfficialContact(form) {
     try {
       const res = await fetch('/adminapi/officialContact');

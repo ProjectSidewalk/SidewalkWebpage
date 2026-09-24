@@ -16,7 +16,7 @@ import java.time.OffsetDateTime
  * @param placeId                Project Sidewalk's identifier for the place; stable across refreshes
  * @param category               The place's category: one of the ids `/v3/api/accessScoreConfig` lists as
  *                               `place_categories` (`school`, `health`, `library`, `grocery`, `transit`, `park`,
- *                               `community`)
+ *                               `community`, `government`)
  * @param name                   The place's name, or `null` when its source has none
  * @param source                 `osm` for a place from OpenStreetMap, `city` for one the city supplied
  * @param osmType                The OpenStreetMap object type (`node`, `way`, `relation`), or `null` for a city place

@@ -556,7 +556,7 @@ object ConfigService {
    * @param name The agency's name as the sentence should read it, e.g. "the City of Burnaby".
    * @param url  The agency's contact page.
    * @return     Right(None) to clear the notice, Right(Some(contact)) to set it, or Left with an English message for
-   *             admin page (admin UI is English-only).
+   *             the admin page (admin UI is English-only).
    */
   def validateOfficialContact(name: String, url: String): Either[String, Option[OfficialContact]] = {
     val cleanName  = name.trim
