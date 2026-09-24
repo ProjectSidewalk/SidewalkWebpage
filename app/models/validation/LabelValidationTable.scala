@@ -330,12 +330,8 @@ class LabelValidationTable @Inject() (
   def countValidationsByResultAndLabelType(
       timeInterval: TimeInterval = TimeInterval.AllTime
   ): DBIO[Seq[ValidationCount]] = {
-    // Filter by the given time interval.
-    val validationsInTimeInterval = timeInterval match {
-      case TimeInterval.Today => validations.filter(l => l.endTimestamp > OffsetDateTime.now().minusDays(1))
-      case TimeInterval.Week  => validations.filter(l => l.endTimestamp >= OffsetDateTime.now().minusDays(7))
-      case _                  => validations
-    }
+    val validationsInTimeInterval =
+      TimeInterval.start(timeInterval).map(s => validations.filter(_.endTimestamp >= s)).getOrElse(validations)
 
     // Join with labels to get label type. Group by validation result and label type and get counts.
     validationsInTimeInterval

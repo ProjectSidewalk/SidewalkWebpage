@@ -1111,64 +1111,24 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Returns a count of all users under the specified conditions.
-   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
-   * @param taskCompletedOnly if true, only counts users who have completed one audit task or at least one validation.
-   * @param highQualityOnly if true, only counts users who are marked as high quality.
+   * Counts everyone who has explored or validated, leaving out AI and excluded users.
    */
-  def countAllUsersContributed(
-      timeInterval: TimeInterval = TimeInterval.AllTime,
-      taskCompletedOnly: Boolean = false,
-      highQualityOnly: Boolean = false
-  ): DBIO[UserCount] = {
-    // Build up SQL string related to validation and audit task time intervals.
-    // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval match {
-      case TimeInterval.Today =>
-        (
-          "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
-          "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-        )
-      case TimeInterval.Week =>
-        (
-          "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
-          "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-        )
-      case _ => ("TRUE", "TRUE")
-    }
-
-    val contributorSql =
-      FilteredTables.contributorFilter(Contributors(highQualityOnly))
-
-    // Add in the task completion logic.
-    val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-    val validationCompletedSql = if (taskCompletedOnly) "all_validations.end_timestamp IS NOT NULL" else "TRUE"
-
+  def countAllUsersContributed(): DBIO[UserCount] = {
     sql"""
       SELECT COUNT(DISTINCT(users.user_id))
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          LEFT JOIN (
-              -- Votes voided by the #4842 repair still count as participation.
-              SELECT mission_id, end_timestamp FROM label_validation
-              UNION ALL
-              SELECT mission_id, end_timestamp FROM voided_label_validation
-          ) AS all_validations ON mission.mission_id = all_validations.mission_id
           WHERE mission.mission_type IN ('validation', 'labelmapValidation')
-              AND #$lblValidationTimeIntervalSql
-              AND #$validationCompletedSql
           UNION
           SELECT DISTINCT(user_id)
           FROM audit_task
-          WHERE #$auditTaskCompletedSql
-              AND #$auditTaskTimeIntervalSql
       ) users
       INNER JOIN user_stat ON users.user_id = user_stat.user_id
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
       WHERE user_role.role <> 'AI'
-          AND #$contributorSql;
-    """.as[Int].head.map(n => UserCount(n, "combined", "all", timeInterval, taskCompletedOnly, highQualityOnly))
+          AND #${FilteredTables.contributorFilter(Contributors.NotExcluded)};
+    """.as[Int].head.map(n => UserCount(n, "combined", "all", TimeInterval.AllTime, false, false))
   }
 
   /**

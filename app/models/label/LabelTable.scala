@@ -1055,12 +1055,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
   def countLabelsByType(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Seq[LabelCount]] = {
-    // Filter by the given time interval.
-    val labelsInTimeInterval = timeInterval match {
-      case TimeInterval.Today => labelsWithTutorial.filter(l => l.timeCreated > OffsetDateTime.now().minusDays(1))
-      case TimeInterval.Week  => labelsWithTutorial.filter(l => l.timeCreated >= OffsetDateTime.now().minusDays(7))
-      case _                  => labelsWithTutorial
-    }
+    val labelsInTimeInterval =
+      TimeInterval.start(timeInterval).fold(labelsWithTutorial)(s => labelsWithTutorial.filter(_.timeCreated >= s))
 
     labelsInTimeInterval
       .groupBy(_.labelType)

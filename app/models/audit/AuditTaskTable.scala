@@ -264,14 +264,7 @@ class AuditTaskTable @Inject() (
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
   def countCompletedAudits(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[Int] = {
-    // Filter by the given time interval.
-    val tasksInTimeInterval = timeInterval match {
-      case TimeInterval.Today => completedTasks.filter(l => l.taskEnd > OffsetDateTime.now().minusDays(1))
-      case TimeInterval.Week  => completedTasks.filter(l => l.taskEnd >= OffsetDateTime.now().minusDays(7))
-      case _                  => completedTasks
-    }
-
-    tasksInTimeInterval.length.result
+    TimeInterval.start(timeInterval).fold(completedTasks)(s => completedTasks.filter(_.taskEnd >= s)).length.result
   }
 
   /**
