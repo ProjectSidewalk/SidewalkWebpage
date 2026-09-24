@@ -137,7 +137,17 @@
     "feedback-title": "Alguma opinião? Encontrou algo confuso? Viu algum bug?<br>Envie seus comentários!",
     "immersive-enter": "Entrar no modo imersivo",
     "immersive-exit": "Sair do modo imersivo",
-    "immersive-exit-hint": "Modo imersivo. Pressione F para sair."
+    "immersive-exit-hint": "Modo imersivo. Pressione F para sair.",
+    "image": "Imagem",
+    "image-tooltip": "Ajuste as sombras, o brilho e o contraste da imagem",
+    "image-adjustments": {
+      "title": "Ajustes de imagem",
+      "shadows": "Sombras",
+      "brightness": "Brilho",
+      "contrast": "Contraste",
+      "reset": "Restaurar padrões",
+      "persist-note": "Estas configurações persistem entre missões de Explorar até você redefini-las."
+    }
   },
   "right-ui": {
     "opens-new-tab": "(abre em uma nova aba)",

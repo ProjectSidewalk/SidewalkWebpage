@@ -302,6 +302,13 @@ corresponding Twirl view:
   Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
   browser window with the pano; the labeling frame it stores with every label, and why, is in
   [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
+  The Image pill in the Stuck row (#3136, `common/PanoImageAdjustments.js` + `PanoImageAdjustmentsPopover.js`)
+  lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount — display-only, for the labeler's
+  eyes: the mount is a sibling of every overlay, and crops are cut from the provider's raw canvas, so neither the
+  label markers nor the stored imagery carry it. Shadows is a gamma curve (an SVG `feComponentTransfer` the model
+  injects on first use) rather than brightness, because the dark sidewalks people struggle with sit in otherwise
+  well-exposed scenes and a brightness multiplier clips the sky before it opens the shadows. Values persist in
+  localStorage and the same two classes are meant to mount on Validate.
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**

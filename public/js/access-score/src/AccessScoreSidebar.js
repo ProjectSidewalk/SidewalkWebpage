@@ -179,7 +179,7 @@ class AccessScoreSidebar {
                   title="${roleTitle}">${role}</span>
             <output class="acs-weight__value" for="acs-weight-${type}"></output>
           </div>
-          <input type="range" class="acs-range" id="acs-weight-${type}" min="0" max="${this.#maxWeight()}"
+          <input type="range" class="ps-range" id="acs-weight-${type}" min="0" max="${this.#maxWeight()}"
                  step="0.05" data-type="${type}">
           <div class="acs-weight__contrib" aria-hidden="true">
             <span class="acs-weight__bar"></span><span class="acs-weight__bar-label"></span>
