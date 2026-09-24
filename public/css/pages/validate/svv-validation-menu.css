@@ -127,7 +127,7 @@
 .sidewalk-ai-suggested-tag {
   font: var(--text-tiny-semibold);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: background 0.3s; /* Not the outline: animating it back in flashes a thick outline as the highlight leaves. */
 }
 
 .sidewalk-ai-suggested-tag.to-add {
@@ -242,7 +242,7 @@
   padding: calc(5px * var(--ui-scale)) calc(10px * var(--ui-scale));
   font: var(--text-tiny-semibold);
   text-align: center;
-  transition: all 0.3s;
+  transition: background 0.3s; /* Not the outline: animating it back in flashes a thick outline as the highlight leaves. */
 
   /* Tom Select wraps the matched search substring in a <span class="highlight">, splitting the option's text into
      separate children. The shared .tag-pill class is an inline-flex container with a gap, which would then insert a
