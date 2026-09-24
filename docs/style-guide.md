@@ -199,7 +199,7 @@ How to show one depends on where its color comes from:
 - **Color baked into the file: an `<img>`**, e.g.
   `<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a
   text label). Feather/material SVGs carry a **fixed** stroke color (`#242424` for the standard dark icon), so another
-  color this way is a **separate file** with a color qualifier (`chevron-left-white-feather.svg`).
+  color this way is a **separate file** with a color qualifier (`chevron-right-white-feather.svg`).
 - **Color set in CSS: a mask.** When the color is a token or changes with state (hover, correct/incorrect,
   error/info), give an empty `<span>` the **`.ps-mask-icon`** primitive from `main.css`, then set its file with
   `mask-image` (plus the `-webkit-mask-image` copy), its size, and its `color`. One file then serves every color, as

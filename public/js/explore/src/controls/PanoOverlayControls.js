@@ -1,7 +1,7 @@
 /**
  * Handles the compact control buttons overlaid on the top-left of the panorama on the Explore page: the Stuck button
- * and the chevron toggle that expands/collapses the optional controls (sound, feedback). The sound and feedback buttons
- * are owned by AudioEffect and FeedbackModal; this class owns the button group container and the Stuck button.
+ * and the chevron that opens/closes the menu under it (image, sound, feedback). Other classes run the menu buttons;
+ * this one runs the Stuck button and the chevron.
  */
 class PanoOverlayControls {
   #blinkInterval = null;
@@ -9,7 +9,6 @@ class PanoOverlayControls {
   #stuck;
   #controlButtonsHolder;
   #controlButtonsToggle;
-  #controlButtonsToggleIcon;
 
   /**
    * @param {Tracker} tracker
@@ -26,7 +25,6 @@ class PanoOverlayControls {
     this.#stuck = document.getElementById('explore-control-stuck');
     this.#controlButtonsHolder = document.getElementById('explore-control-buttons-holder');
     this.#controlButtonsToggle = document.getElementById('explore-control-buttons-toggle');
-    this.#controlButtonsToggleIcon = document.getElementById('explore-control-buttons-toggle-icon');
 
     // The stuck handler is attached once and gated by #stuckEnabled; enable/disable just flip the flag.
     this.#stuck.addEventListener('click', this.#handleClickStuck);
@@ -34,15 +32,13 @@ class PanoOverlayControls {
   }
 
   /**
-   * Callback for the chevron toggle: expands/collapses the optional control buttons (sound, feedback).
+   * Opens/closes the menu when the chevron is clicked. CSS flips the chevron.
    * @param {Event} e
    */
   #handleToggleControls = (e) => {
     e.preventDefault();
     const expanded = this.#controlButtonsHolder.classList.toggle('expanded');
     this.#controlButtonsToggle.setAttribute('aria-expanded', expanded);
-    const chevron = expanded ? 'chevron-left-white-feather.svg' : 'chevron-right-white-feather.svg';
-    this.#controlButtonsToggleIcon.setAttribute('src', util.assetPath(`images/icons/${chevron}`));
   };
 
   /**
@@ -69,7 +65,7 @@ class PanoOverlayControls {
 
   /**
    * Badges the chevron toggle while a control hidden behind it (the Image adjustments) is off its default, so a
-   * persisted filter is visible with the row collapsed. The CSS hides the badge once the row is expanded.
+   * persisted filter is visible with the menu closed. The CSS hides the badge once the menu is open.
    * @param {boolean} active
    */
   setCollapsedIndicator = (active) => {

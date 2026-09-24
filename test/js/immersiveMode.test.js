@@ -32,8 +32,8 @@ describe('ImmersiveMode', () => {
 
     beforeEach(() => {
         document.body.innerHTML = `
-            <div id="immersive-toggle-holder" class="zoom-buttons-holder">
-              <button type="button" id="immersive-toggle-button" class="zoom-button">
+            <div id="immersive-toggle-holder" class="icon-button-stack">
+              <button type="button" id="immersive-toggle-button" class="icon-button">
                 <img id="immersive-toggle-icon" src="/assets/images/icons/maximize-2-white-feather.svg" alt="">
               </button>
             </div>`;
