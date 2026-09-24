@@ -229,7 +229,7 @@ class Main {
         onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
         onReset: () => svl.tracker.push('Click_ImageAdjustments_Reset'),
       });
-    // The Image pill sits behind the chevron, so mirror its active state onto the chevron for the collapsed row.
+    // The Image pill hides in the chevron's menu, so mirror its active state onto the chevron while the menu is closed.
     svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault());
     svl.imageAdjustments.onChange(() =>
       svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault()));

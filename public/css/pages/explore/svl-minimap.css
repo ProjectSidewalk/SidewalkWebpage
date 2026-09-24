@@ -665,7 +665,7 @@ gmp-advanced-marker:has(> .minimap-peg) {
   display: none;
 }
 
-/* The +/- buttons take their look from the shared .icon-button styling, with some minor tweaks. */
+/* The +/- buttons take their look from the shared .ps-icon-button styling, with some minor tweaks. */
 #minimap-zoom-controls {
   position: absolute;
   inset: auto;
@@ -674,12 +674,12 @@ gmp-advanced-marker:has(> .minimap-peg) {
   z-index: 4;
 }
 
-#minimap-zoom-controls .icon-button {
+#minimap-zoom-controls .ps-icon-button {
   width: calc(18px * var(--ui-scale, 1));
   height: calc(18px * var(--ui-scale, 1));
 }
 
-#minimap-zoom-controls .icon-button-icon {
+#minimap-zoom-controls .ps-icon-button-icon {
   width: calc(14px * var(--ui-scale, 1));
   height: calc(14px * var(--ui-scale, 1));
 }

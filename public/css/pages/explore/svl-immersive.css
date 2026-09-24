@@ -106,7 +106,7 @@ body.svl-immersive #ribbon-menu-other-subcategory-holder {
    strip leaves them free on any window wider than the strip plus the controls. Over imagery rather than the boxed
    layout's asphalt frame, each gets a single light stroke so it reads on a bright or dark sky alike. */
 body.svl-immersive .pano-overlay-button,
-body.svl-immersive .icon-button,
+body.svl-immersive .ps-icon-button,
 body.svl-immersive .speed-limit-sign {
   box-shadow: 0 0 0 1px var(--color-neutral-600);
 }

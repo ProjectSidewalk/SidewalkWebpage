@@ -7,7 +7,6 @@ class PanoOverlayControls {
   #blinkInterval = null;
   #stuckEnabled = true;
   #stuck;
-  #controlButtonsHolder;
   #controlButtonsToggle;
 
   /**
@@ -23,7 +22,6 @@ class PanoOverlayControls {
     this.keyboardShortcutAlert = keyboardShortcutAlert;
 
     this.#stuck = document.getElementById('explore-control-stuck');
-    this.#controlButtonsHolder = document.getElementById('explore-control-buttons-holder');
     this.#controlButtonsToggle = document.getElementById('explore-control-buttons-toggle');
 
     // The stuck handler is attached once and gated by #stuckEnabled; enable/disable just flip the flag.
@@ -37,7 +35,7 @@ class PanoOverlayControls {
    */
   #handleToggleControls = (e) => {
     e.preventDefault();
-    const expanded = this.#controlButtonsHolder.classList.toggle('expanded');
+    const expanded = this.#controlButtonsToggle.getAttribute('aria-expanded') !== 'true';
     this.#controlButtonsToggle.setAttribute('aria-expanded', expanded);
   };
 

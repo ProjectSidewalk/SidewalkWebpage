@@ -173,7 +173,10 @@ class PanoInfoPopover {
 
     this.#popoverEl.style.left = `${Math.round(left)}px`;
     this.#popoverEl.style.top = `${Math.round(top)}px`;
-    const arrowLeft = btnRect.left + btnRect.width / 2 - left;
+    // Kept clear of the popover's rounded corners.
+    const arrowInset = 20 * uiScale;
+    const btnCenter = btnRect.left + btnRect.width / 2 - left;
+    const arrowLeft = Math.max(arrowInset, Math.min(btnCenter, popRect.width - arrowInset));
     this.#popoverEl.style.setProperty('--pano-info-arrow-left', `${Math.round(arrowLeft)}px`);
   }
 

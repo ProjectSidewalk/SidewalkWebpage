@@ -64,26 +64,33 @@
   height: calc(15px * var(--ui-scale));
 }
 
-/* The menu opens downward: to the right, it would slide under the label-type buttons in full-screen mode. */
 #explore-control-buttons-holder {
   position: absolute;
   z-index: 2;
-  top: calc(7px * var(--ui-scale));
-  left: calc(7px * var(--ui-scale));
-  display: grid;
-  grid-template-columns: auto auto;
-  justify-items: start;
-  gap: calc(3px * var(--ui-scale));
+  top: calc(7px * var(--ui-scale, 1));
+  left: calc(7px * var(--ui-scale, 1));
 }
 
+/* The menu opens downward: to the right, it would slide under the label-type buttons in full-screen mode. It hangs
+   below the Stuck row rather than sitting in it, so it can't widen the row and move the chevron. */
 #explore-control-menu {
   display: none;
-  grid-column: 1 / -1; /* Full width, so a wide menu button can't push the chevron away from Stuck. */
+  position: absolute;
+  top: calc(100% + 3px * var(--ui-scale, 1));
+  left: 0;
   flex-direction: column;
   align-items: flex-start;
+  gap: calc(3px * var(--ui-scale, 1));
+
+  /* Only the buttons take clicks, so the space beside a short button still reaches the pano. */
+  pointer-events: none;
 }
 
-#explore-control-buttons-holder.expanded #explore-control-menu {
+#explore-control-menu > .pano-overlay-button {
+  pointer-events: auto;
+}
+
+#explore-control-buttons-toggle[aria-expanded="true"] + #explore-control-menu {
   display: flex;
 }
 
