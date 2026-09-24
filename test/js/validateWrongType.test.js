@@ -11,7 +11,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT } = require('./loadGlobalScript');
+const {
+  assetPathStub, installUtilitiesMisc, loadGlobalScript, REPO_ROOT, stampValidationReasons,
+} = require('./loadGlobalScript');
 
 /**
  * Loads bare top-level declarations out of a production file into window scope.
@@ -21,6 +23,16 @@ const { assetPathStub, installUtilitiesMisc, REPO_ROOT } = require('./loadGlobal
 function loadClass(relPath, ...names) {
   const src = fs.readFileSync(path.join(REPO_ROOT, relPath), 'utf8');
   window.eval(`${src}\n${names.map((n) => `window.${n} = ${n};`).join('\n')}`);
+}
+
+const EN_COMMON = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/common.json'), 'utf8'));
+
+/** @returns {?string} The English string a `common:` i18next key resolves to, or null when the key is missing. */
+function resolve(key) {
+  const [ns, rest] = key.split(':');
+  if (ns !== 'common') return 'not checked here';
+  const hit = rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : null), EN_COMMON);
+  return typeof hit === 'string' ? hit : null;
 }
 
 const TAGS_BY_TYPE = {
@@ -36,8 +48,15 @@ beforeAll(() => {
     camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
   };
   installUtilitiesMisc();
-  // i18next echoes its key so assertions can name the key they expect rather than an English string.
-  window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
+  // The reason vocabulary the menus render from (#5475), stamped from the same fixture the backend is held to.
+  stampValidationReasons();
+  loadGlobalScript('public/js/common/validationReasons.js');
+  // i18next echoes its key so assertions can name the key they expect rather than an English string. `exists`
+  // answers from the real English file, since the vocabulary drops a reason whose text is missing.
+  window.i18next = {
+    t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key),
+    exists: (key) => resolve(key) !== null,
+  };
   window.moment = (v) => v;
   loadClass('public/js/common/LabelTypePicker.js', 'LabelTypePicker', 'LabelTypeDropdown');
   loadClass('public/js/validate/src/label/Label.js', 'Label');
@@ -447,15 +466,6 @@ describe('LabelTypeDropdown', () => {
 });
 
 describe('the disagree reasons (#5409)', () => {
-  const EN = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/validate.json'), 'utf8'));
-
-  /** @returns {?string} The English string an i18next key resolves to, or null when the key is missing. */
-  function resolve(key) {
-    const [ns, rest] = key.split(':');
-    if (ns !== 'validate') return 'not checked here';
-    return rest.split('.').reduce((node, part) => (node && typeof node === 'object' ? node[part] : null), EN) ?? null;
-  }
-
   beforeAll(() => {
     loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
   });
@@ -471,7 +481,7 @@ describe('the disagree reasons (#5409)', () => {
     }
   });
 
-  it('every reason still points at a string that exists, so the renumbering left nothing dangling', () => {
+  it('every reason still points at a string that exists, so the move to the shared vocabulary left nothing dangling', () => {
     const missing = [];
     for (const [type, reasons] of Object.entries(window.svv.reasonButtonInfo)) {
       for (const [id, info] of Object.entries(reasons)) {
@@ -483,6 +493,21 @@ describe('the disagree reasons (#5409)', () => {
       }
     }
     expect(missing).toEqual([]);
+  });
+
+  it('every button carries the id its reason is stored as, and the same id wherever the reason recurs (#5475)', () => {
+    const info = window.svv.reasonButtonInfo;
+    expect(info['curb-ramp']['no-button-2'].reasonId).toBe('driveway');
+    expect(info['obstacle']['no-button-2'].reasonId).toBe('not-pedestrian-path');
+    expect(info['surface-problem']['no-button-2'].reasonId).toBe('not-pedestrian-path');
+    for (const reasons of Object.values(info)) {
+      expect(reasons['unsure-button-1'].reasonId).toBe('better-image');
+      for (const button of Object.values(reasons)) expect(typeof button.reasonId).toBe('string');
+    }
+    // Every type Validate serves has its buttons, in the backend's order.
+    expect(Object.keys(info)).toEqual(
+      ['curb-ramp', 'no-curb-ramp', 'obstacle', 'surface-problem', 'crosswalk', 'signal', 'no-sidewalk'],
+    );
   });
 
   it('there are never more disagree reasons than the four buttons the menu has', () => {

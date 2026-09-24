@@ -503,6 +503,20 @@ is unrated, and Signal is a `feature` that is unrated. Source both rather than h
 `utilitiesSidewalk.js` builds every frontend label-type list, colour and rating flag from it. A page that doesn't
 stamp it gets an empty table, so `util.misc`'s lists come back empty rather than erroring.
 
+The canned **validation reasons** ride the same way (#5475). `ValidationReason` (`app/models/validation/`) is the
+enum behind the `validation_reason` Postgres type and holds the catalog of which reasons each label type offers for
+a Disagree and an Unsure vote, in menu order; `main.scala.html` stamps it as `window.validationReasons`, and
+`public/js/common/validationReasons.js` is the one frontend reader. Validate's menus, the label detail card and the
+Gallery cards all render their reasons from it (the card and the Gallery through the shared `ReasonChips`
+component), with each reason's text and tooltip in the locale files under its id (`common:validation-reason.<id>`),
+so the stamp stays language-free. A pick is stored as the validator's comment on the label with the id in
+`validation_task_comment.reason` beside the text; the label card's comment feed carries that id back so a revisit
+marks the chosen chip and a canned reason renders in the reader's language rather than the writer's. Ids are
+semantic (`driveway`, `not-pedestrian-path`), so a reason offered on two types is one reason, and the enum is what
+the backend checks a submitted id against: a reason the user's standing vote on that label doesn't take is refused
+on the label-card endpoint (checked on a locked vote row, so a vote change in flight can't slip a reason under the
+new vote), and dropped, with the vote and text kept, on the Validate batch.
+
 ## Where to go next
 
 - [`docs/dev-environment.md`](dev-environment.md) — get it running locally.

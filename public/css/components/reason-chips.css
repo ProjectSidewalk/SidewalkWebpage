@@ -1,0 +1,89 @@
+/* Reason chips (ReasonChips.js, #5475): the one-tap reasons offered after a Disagree or Unsure vote, on the label
+   detail card and in the Gallery card's reason popover. The host places the row; this file only draws it. */
+.reason-chips {
+  display: flex;
+  flex-direction: column;
+  gap: calc(6px * var(--ui-scale, 1));
+}
+
+.reason-chips[hidden] {
+  display: none; /* The display rule above would otherwise beat the hidden attribute. */
+}
+
+/* Same quiet eyebrow as the card's section titles, so the question reads as part of the card, not a dialog. */
+.reason-chips__prompt {
+  font: var(--text-caption-semibold);
+  color: var(--color-neutral-700);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.reason-chips__list,
+.reason-chips__group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: calc(6px * var(--ui-scale, 1));
+}
+
+/* The label-type picker's chip, minus the icon: a pill with a hairline ring, so the two pickers on one card read as
+   the same control. The ring is a box-shadow rather than an outline so the focus outline below can sit around the
+   selected ring instead of replacing it. */
+.reason-chips__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: calc(4px * var(--ui-scale, 1)) calc(12px * var(--ui-scale, 1));
+  border: none;
+  border-radius: 200px;
+  box-shadow: 0 0 0 1px var(--color-neutral-700);
+  background: var(--color-neutral-white);
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-black);
+  text-align: left;
+  cursor: pointer;
+}
+
+@media (hover: hover) {
+  .reason-chips__chip:hover {
+    background: var(--color-neutral-200);
+  }
+}
+
+/* The picked reason takes the vote's own color, the one the pano ring and the comment's vote chip use for it. */
+.reason-chips--disagree .reason-chips__chip--selected {
+  box-shadow: 0 0 0 2px var(--color-orange-500);
+  background: var(--color-orange-100);
+}
+
+.reason-chips--unsure .reason-chips__chip--selected {
+  box-shadow: 0 0 0 2px var(--color-asphalt-300);
+  background: var(--color-asphalt-100);
+}
+
+/* "Other…" opens a text box rather than recording anything, so it is drawn as the way out rather than as a peer. */
+.reason-chips__chip--other {
+  box-shadow: none;
+  outline: 1px dashed var(--color-neutral-700);
+  color: var(--color-neutral-800);
+}
+
+.reason-chips__chip:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 3px;
+}
+
+/* Box-shadow doesn't paint under forced colors, so the ring and the selected ring become borders there. */
+@media (forced-colors: active) {
+  .reason-chips__chip {
+    border: 1px solid ButtonText;
+  }
+
+  .reason-chips__chip--selected {
+    border: 2px solid Highlight;
+  }
+}
+
+/* A pick in flight: the chips stay visible so the picked one can be seen landing, but take no second pick. */
+.reason-chips--busy .reason-chips__chip {
+  cursor: progress;
+  opacity: 0.7;
+}

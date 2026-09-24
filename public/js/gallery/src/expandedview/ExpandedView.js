@@ -202,7 +202,8 @@ class ExpandedView {
     const card = sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id);
     if (!card) return;
     card.setDeleted(!!meta.deleted, !!meta.can_restore);
-    card.updateUserValidation(meta.user_validation ?? null);
+    // An admin's delete files a Disagree but leaves their comment; a restore clears that vote the same way.
+    card.updateUserValidation(meta.user_validation ?? null, { dropOwnComment: false });
   };
 
   /**
@@ -328,6 +329,16 @@ class ExpandedView {
    */
   updateCardIndex(newIndex) {
     this.#updateExpandedViewCardByIndex(newIndex);
+  }
+
+  /**
+   * Opens a card and puts the reader in its comment box, for a typed reason the small card had no room for
+   * (#5475). The card defers the box until the label's imagery settles, since the box is disabled until then.
+   * @param {number} index - The card's index in the current set.
+   */
+  openForOtherReason(index) {
+    this.#updateExpandedViewCardByIndex(index);
+    if (this.open) this.labelDetail.requestOtherReason();
   }
 
   /**

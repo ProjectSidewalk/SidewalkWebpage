@@ -9,226 +9,91 @@ function defineValidateConstants() {
     Signal: i18next.t('common:signal'),
   };
 
+  const expert = (file) => `images/validate/ExpertValidateTooltips/${file}`;
+  const example = (file) => `images/examples/${file}`;
+  const mst = (type, slide) => `common:mission-start-tutorial.${type}.slide-${slide}.description`;
   /**
-   * Every type's first disagree reason. On Expert Validate it opens the label type picker instead of being saved as
-   * a comment (#5409). A fresh object per type, since the tooltip gets its key number appended below.
+   * Validate's tooltip extras per reason, on top of the shared text: an example image, and for reasons whose
+   * explanation is one of the mission-start tutorial's slides, that slide's text in place of the shared tooltip.
+   * Keyed by label type (kebab-case) and reason id; `common` holds the per-reason defaults every type shares.
+   * Presentation only — which reasons a type offers comes from the backend's catalog via util.validationReasons.
    *
-   * @param {string} [type] - The label type, where its tooltip names the type it is usually mistaken for. The button
-   *     stays generic either way: the tooltip suggests, it doesn't pick for the validator.
-   * @param {string} [tooltipImage] - Example image for that tooltip, by file name under the tooltip image folder.
-   * @returns {object} The reason, in the shape the menu renders.
+   * @type {Record<string, Record<string, {image?: string, textKey?: string}>>}
    */
-  const wrongTypeReason = (type, tooltipImage) => ({
-    buttonText: i18next.t('validate:validate-menu.disagree-reason.common.wrong-type'),
-    tooltipText: type
-      ? i18next.t(`validate:validate-menu.disagree-reason.${type}.wrong-type-tooltip`)
-      : i18next.t('validate:validate-menu.disagree-reason.common.wrong-type-tooltip'),
-    ...(tooltipImage ? { tooltipImage: util.assetPath(`images/validate/ExpertValidateTooltips/${tooltipImage}`) } : {}),
-    wrongType: true,
-  });
-  svv.reasonButtonInfo = {
+  const tooltipExtras = {
+    'common': {
+      'better-image': { image: expert('CommonUnsure1.png') },
+      'placement-incorrect': { image: expert('CommonUnsure2.png') },
+    },
     'curb-ramp': {
-      'no-button-1': wrongTypeReason('curb-ramp', 'CurbRampDisagree3.png'),
-      'no-button-2': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.curb-ramp.no-button-2'),
-        tooltipText: i18next.t('common:mission-start-tutorial.curb-ramp.slide-2.description'),
-        tooltipImage: util.assetPath('images/examples/CurbRampCounterExample3.png'),
-      },
-      'no-button-3': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.curb-ramp.no-button-3'),
-        tooltipText: i18next.t('validate:validate-menu.disagree-reason.curb-ramp.no-button-3-tooltip'),
-        tooltipImage: util.assetPath('images/examples/CurbRampCounterExample2.png'),
-      },
-      'unsure-button-1': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure1.png'),
-      },
-      'unsure-button-2': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure2.png'),
-      },
-      'unsure-button-3': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.no-curb-ramp.unsure-button-3'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.curb-ramp.unsure-button-3-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CurbRampUnsure3.png'),
-      },
+      'wrong-type': { image: expert('CurbRampDisagree3.png') },
+      'driveway': { textKey: mst('curb-ramp', 2), image: example('CurbRampCounterExample3.png') },
+      'driveway-transition': { image: example('CurbRampCounterExample2.png') },
+      'ramp-required-unsure': { image: expert('CurbRampUnsure3.png') },
     },
     'no-curb-ramp': {
-      'no-button-1': wrongTypeReason('no-curb-ramp', 'NoCurbRampDisagree3.png'),
-      'no-button-2': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-2'),
-        tooltipText: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-2.description'),
-        tooltipImage: util.assetPath('images/examples/NoCurbRampCounterExample1.png'),
-      },
-      'no-button-3': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-3'),
-        tooltipText: i18next.t('common:mission-start-tutorial.no-curb-ramp.slide-4.description'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/NoCurbRampDisagree2.png'),
-      },
-      'no-button-4': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-4'),
-        tooltipText: i18next.t('validate:validate-menu.disagree-reason.no-curb-ramp.no-button-4-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/NoCurbRampDisagree4.png'),
-      },
-      'unsure-button-1': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure1.png'),
-      },
-      'unsure-button-2': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure2.png'),
-      },
-      'unsure-button-3': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.no-curb-ramp.unsure-button-3'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.no-curb-ramp.unsure-button-3-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/NoCurbRampUnsure3.png'),
-      },
+      'wrong-type': { image: expert('NoCurbRampDisagree3.png') },
+      'residential-walkway': { textKey: mst('no-curb-ramp', 2), image: example('NoCurbRampCounterExample1.png') },
+      'no-sidewalk-here': { textKey: mst('no-curb-ramp', 4), image: expert('NoCurbRampDisagree2.png') },
+      'unsafe-crossing': { image: expert('NoCurbRampDisagree4.png') },
+      'ramp-required-unsure': { image: expert('NoCurbRampUnsure3.png') },
     },
     'obstacle': {
-      'no-button-1': wrongTypeReason('obstacle', 'ObstacleDisagree3.png'),
-      'no-button-2': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-2'),
-        tooltipText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-2-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/ObstacleDisagree1.png'),
-      },
-      'no-button-3': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-3'),
-        tooltipText: i18next.t('validate:validate-menu.disagree-reason.obstacle.no-button-3-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/ObstacleDisagree2.png'),
-      },
-      'unsure-button-1': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure1.png'),
-      },
-      'unsure-button-2': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure2.png'),
-      },
-      'unsure-button-3': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.obstacle.unsure-button-3'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.obstacle.unsure-button-3-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/ObstacleUnsure3.png'),
-      },
+      'wrong-type': { image: expert('ObstacleDisagree3.png') },
+      'not-pedestrian-path': { image: expert('ObstacleDisagree1.png') },
+      'ample-space': { image: expert('ObstacleDisagree2.png') },
+      'space-to-avoid-unsure': { image: expert('ObstacleUnsure3.png') },
     },
     'surface-problem': {
-      'no-button-1': wrongTypeReason('surface-problem', 'SurfaceProblemDisagree1.png'),
-      'no-button-2': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.surface-problem.no-button-2'),
-        tooltipText: i18next.t('validate:validate-menu.disagree-reason.surface-problem.no-button-2-tooltip'),
-        tooltipImage: util.assetPath('images/examples/SurfaceProblemCounterExample3.png'),
-      },
-      'no-button-3': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.surface-problem.no-button-3'),
-        tooltipText: i18next.t('common:mission-start-tutorial.surface-problem.slide-2.description'),
-        tooltipImage: util.assetPath('images/examples/SurfaceProblemCounterExample4.png'),
-      },
-      'unsure-button-1': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure1.png'),
-      },
-      'unsure-button-2': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure2.png'),
-      },
-      'unsure-button-3': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.surface-problem.unsure-button-3'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.surface-problem.unsure-button-3-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/SurfaceProblemUnsure3.png'),
-      },
+      'wrong-type': { image: expert('SurfaceProblemDisagree1.png') },
+      'not-pedestrian-path': { image: example('SurfaceProblemCounterExample3.png') },
+      'normal-tiles': { textKey: mst('surface-problem', 2), image: example('SurfaceProblemCounterExample4.png') },
+      'too-minor-unsure': { image: expert('SurfaceProblemUnsure3.png') },
     },
     'no-sidewalk': {
-      'no-button-1': wrongTypeReason('no-sidewalk', 'NoSidewalkDisagree3.png'),
-      'no-button-2': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.no-sidewalk.no-button-2'),
-        tooltipText: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-3.description'),
-        tooltipImage: util.assetPath('images/examples/NoSidewalkCounterExample1.png'),
-      },
-      'no-button-3': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.no-sidewalk.no-button-3'),
-        tooltipText: i18next.t('common:mission-start-tutorial.no-sidewalk.slide-2.description'),
-        tooltipImage: util.assetPath('images/examples/NoSidewalkCounterExample3.png'),
-      },
-      'unsure-button-1': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure1.png'),
-      },
-      'unsure-button-2': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure2.png'),
-      },
-      'unsure-button-3': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.no-sidewalk.unsure-button-3'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.no-sidewalk.unsure-button-3-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/NoSidewalkUnsure3.png'),
-      },
+      'wrong-type': { image: expert('NoSidewalkDisagree3.png') },
+      'sidewalk-here': { textKey: mst('no-sidewalk', 3), image: example('NoSidewalkCounterExample1.png') },
+      'traffic-median': { textKey: mst('no-sidewalk', 2), image: example('NoSidewalkCounterExample3.png') },
+      'sidewalk-needed-unsure': { image: expert('NoSidewalkUnsure3.png') },
     },
     'crosswalk': {
-      'no-button-1': wrongTypeReason(),
-      'no-button-2': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.crosswalk.no-button-2'),
-        tooltipText: i18next.t('common:mission-start-tutorial.crosswalk.slide-2.description'),
-        tooltipImage: util.assetPath('images/examples/CrosswalkCounterExample1.png'),
-      },
-      'no-button-3': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.crosswalk.no-button-3'),
-        tooltipText: i18next.t('common:mission-start-tutorial.crosswalk.slide-3.description'),
-        tooltipImage: util.assetPath('images/examples/CrosswalkCounterExample2.png'),
-      },
-      'no-button-4': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.crosswalk.no-button-4'),
-        tooltipText: i18next.t('common:mission-start-tutorial.crosswalk.slide-4.description'),
-        tooltipImage: util.assetPath('images/examples/CrosswalkCounterExample3.png'),
-      },
-      'unsure-button-1': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure1.png'),
-      },
-      'unsure-button-2': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure2.png'),
-      },
+      'no-visible-crosswalk': { textKey: mst('crosswalk', 2), image: example('CrosswalkCounterExample1.png') },
+      'stop-line': { textKey: mst('crosswalk', 3), image: example('CrosswalkCounterExample2.png') },
+      'speed-bump': { textKey: mst('crosswalk', 4), image: example('CrosswalkCounterExample3.png') },
     },
     'signal': {
-      'no-button-1': wrongTypeReason(),
-      'no-button-2': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.signal.no-button-2'),
-        tooltipText: i18next.t('common:mission-start-tutorial.signal.slide-4.description'),
-        tooltipImage: util.assetPath('images/examples/SignalCounterExample3.png'),
-      },
-      'no-button-3': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.signal.no-button-3'),
-        tooltipText: i18next.t('common:mission-start-tutorial.signal.slide-2.description'),
-        tooltipImage: util.assetPath('images/examples/SignalCounterExample1.png'),
-      },
-      'no-button-4': {
-        buttonText: i18next.t('validate:validate-menu.disagree-reason.signal.no-button-4'),
-        tooltipText: i18next.t('common:mission-start-tutorial.signal.slide-3.description'),
-        tooltipImage: util.assetPath('images/examples/SignalCounterExample2.png'),
-      },
-      'unsure-button-1': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-1-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure1.png'),
-      },
-      'unsure-button-2': {
-        buttonText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2'),
-        tooltipText: i18next.t('validate:validate-menu.unsure-reason.common.reason-2-tooltip'),
-        tooltipImage: util.assetPath('images/validate/ExpertValidateTooltips/CommonUnsure2.png'),
-      },
+      'vehicle-signal-only': { textKey: mst('signal', 4), image: example('SignalCounterExample3.png') },
+      'sign-no-light': { textKey: mst('signal', 2), image: example('SignalCounterExample1.png') },
+      'pole-no-signal': { textKey: mst('signal', 3), image: example('SignalCounterExample2.png') },
     },
   };
+
+  /**
+   * The reason buttons per label type, in the shape the menus render: `no-button-N` / `unsure-button-N` by menu
+   * position, each carrying the reason's id so the pick is stored as an id and not only as its text (#5475). Built
+   * from the catalog the backend stamps on the page, so Validate offers exactly what the label card and Gallery do.
+   * The first disagree reason is "wrong label type"; on Expert Validate it opens the label type picker instead of
+   * being saved as a comment (#5409), which `wrongType` marks. Tooltips get their key number appended below.
+   */
+  svv.reasonButtonInfo = {};
+  for (const labelType of util.validationReasons.labelTypes()) {
+    const kebab = util.camelToKebab(labelType);
+    const buttons = {};
+    for (const [vote, prefix] of [['Disagree', 'no-button-'], ['Unsure', 'unsure-button-']]) {
+      util.validationReasons.forLabel(labelType, vote).forEach((reason, i) => {
+        const extras = tooltipExtras[kebab]?.[reason.id] ?? tooltipExtras.common[reason.id] ?? {};
+        const tooltipText = extras.textKey ? i18next.t(extras.textKey) : reason.tooltip;
+        buttons[`${prefix}${i + 1}`] = {
+          reasonId: reason.id,
+          buttonText: reason.text,
+          tooltipText: tooltipText ?? reason.text,
+          ...(extras.image ? { tooltipImage: util.assetPath(extras.image) } : {}),
+          ...(reason.id === 'wrong-type' ? { wrongType: true } : {}),
+        };
+      });
+    }
+    svv.reasonButtonInfo[kebab] = buttons;
+  }
   // Append button numbers to tooltipText.
   for (const labelType in svv.reasonButtonInfo) {
     for (const buttonId in svv.reasonButtonInfo[labelType]) {

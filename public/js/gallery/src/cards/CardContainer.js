@@ -226,6 +226,16 @@ class CardContainer {
   }
 
   /**
+   * Opens the expanded view on a card with its comment box ready: the small card's reason popover has no box of its
+   * own, so its "Other…" comes here (#5475).
+   * @param {Card} card - The card whose label to open.
+   */
+  openCardForComment(card) {
+    sg.ui.expandedView.container.css('visibility', 'visible');
+    this.#expandedView.openForOtherReason(this.#findCardIndex(card.getImageId()));
+  }
+
+  /**
    * Gets a card from the current CardBucket given an index.
    *
    * @param {number} index - The index of the card to find.

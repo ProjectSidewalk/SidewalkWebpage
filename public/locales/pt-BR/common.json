@@ -356,6 +356,101 @@
     "vote-failed": "Seu voto não foi salvo. Tente novamente."
   },
   "download-already-preparing": "Este arquivo já está sendo preparado para outra solicitação. Tente novamente em instantes.",
+  "validation-reason": {
+    "prompt-disagree": "Por que você discorda?",
+    "prompt-unsure": "O que deixa você em dúvida?",
+    "other": "Outro…",
+    "other-hint": "Escreva seu próprio motivo",
+    "saved": "Motivo salvo",
+    "dismiss": "Fechar",
+    "wrong-type": {
+      "text": "Este é o tipo de rótulo errado",
+      "tooltip": "Há algo aqui, mas deveria ser marcado com outro tipo de rótulo",
+      "tooltip-curb-ramp": "Às vezes uma rampa ausente é rotulada por engano como rampa de calçada",
+      "tooltip-no-curb-ramp": "Às vezes uma rampa de calçada é rotulada como ausente, geralmente porque falta o piso tátil de alerta",
+      "tooltip-obstacle": "Grama e detritos como folhas devem ser marcados como Problema na Superfície",
+      "tooltip-surface-problem": "Cascalho ou grama não são considerados calçada e devem ser marcados como Sem Calçada",
+      "tooltip-no-sidewalk": "Problemas de superfície ou obstáculos podem ser rotulados incorretamente como Sem Calçada"
+    },
+    "driveway": {
+      "text": "Isto é uma entrada de garagem"
+    },
+    "driveway-transition": {
+      "text": "Isto é uma transição entre calçada e entrada de garagem",
+      "tooltip": "As transições entre calçada e entrada de garagem não são consideradas rampas de acesso, a menos que uma rampa específica tenha sido adicionada"
+    },
+    "residential-walkway": {
+      "text": "Isto é um passagem residencial"
+    },
+    "no-sidewalk-here": {
+      "text": "Não há calçada aqui"
+    },
+    "unsafe-crossing": {
+      "text": "Não é seguro atravessar aqui",
+      "tooltip": "Os pedestres não devem atravessar neste ponto, portanto não se espera uma rampa de calçada"
+    },
+    "not-pedestrian-path": {
+      "text": "Isto não está em um caminho de pedestres",
+      "tooltip-obstacle": "Se não houver calçada ou se o objeto não estiver na parte da calçada destinada aos pedestres, como na imagem abaixo, não é necessário rotular como Obstáculo",
+      "tooltip-surface-problem": "Se um problema de superfície não estiver em um caminho destinado a pedestres, não deve ser rotulado como Problema de Superfície"
+    },
+    "ample-space": {
+      "text": "Há espaço suficiente para evitar este objeto",
+      "tooltip": "Em calçadas muito largas, objetos fáceis de evitar <b>não</b> devem ser rotulados como obstáculos"
+    },
+    "normal-tiles": {
+      "text": "Estas são placas normais de calçada"
+    },
+    "sidewalk-here": {
+      "text": "Há uma calçada aqui"
+    },
+    "traffic-median": {
+      "text": "Isto é um canteiro central de tráfego"
+    },
+    "no-visible-crosswalk": {
+      "text": "Não há faixa de pedestres visível aqui"
+    },
+    "stop-line": {
+      "text": "Isto é uma linha de parada para carros"
+    },
+    "speed-bump": {
+      "text": "Isto é uma lombada"
+    },
+    "vehicle-signal-only": {
+      "text": "Isto é apenas um semáforo para veículos"
+    },
+    "sign-no-light": {
+      "text": "Isto é uma placa indicando travessia segura"
+    },
+    "pole-no-signal": {
+      "text": "Isto é um poste sem sinal ou botão de pedestres"
+    },
+    "better-image": {
+      "text": "Preciso de uma imagem melhor",
+      "tooltip": "Isso pode acontecer porque a imagem está borrada, o objeto está muito distante ou seria necessário outro ângulo"
+    },
+    "placement-incorrect": {
+      "text": "A posição do rótulo parece incorreta",
+      "tooltip": "Às vezes o que está sendo rotulado é visível, mas o rótulo aparece muito distante"
+    },
+    "ramp-required-unsure": {
+      "text": "Não tenho certeza se uma rampa é necessária",
+      "tooltip-curb-ramp": "Algumas vielas ou entradas comerciais exigem rampas devido a diferenças de altura, outras não. Às vezes não está claro se uma transição em uma calçada exige uma rampa ou piso tátil de alerta.",
+      "tooltip-no-curb-ramp": "Pode não estar claro se pedestres deveriam conseguir atravessar em um cruzamento com uma via mais movimentada"
+    },
+    "space-to-avoid-unsure": {
+      "text": "Pode haver espaço suficiente para evitar o objeto",
+      "tooltip": "A largura da calçada pode ser difícil de avaliar apenas pela imagem"
+    },
+    "too-minor-unsure": {
+      "text": "Pode ser pequeno demais para rotular",
+      "tooltip": "Pode não estar claro se algo como grama entre blocos de calçada precisa ser rotulado"
+    },
+    "sidewalk-needed-unsure": {
+      "text": "Não tenho certeza se deveria haver uma calçada aqui",
+      "tooltip": "Às vezes é necessário mais contexto e pode ser difícil determinar isso a partir de apenas uma imagem"
+    }
+  },
   "label-type-picker": {
     "current": "{{labelType}} (tipo atual)",
     "change": "alterar",

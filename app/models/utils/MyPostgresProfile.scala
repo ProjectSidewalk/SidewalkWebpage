@@ -19,7 +19,7 @@ import models.street.{
 }
 import models.user.{MeasurementSystem, Role}
 import models.utils.CommonUtils.{UiSource, ViewerType}
-import models.validation.{ValidationCommentChangeType, ValidationOption}
+import models.validation.{ValidationCommentChangeType, ValidationOption, ValidationReason}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
@@ -182,6 +182,15 @@ trait MyPostgresProfile
         "validation_comment_change_type",
         _.toString,
         ValidationCommentChangeType.withName,
+        quoteName = false
+      )
+
+    // Mapper for validation_reason enum type.
+    implicit val validationReasonMapper: BaseColumnType[ValidationReason.Value] =
+      createEnumJdbcType[ValidationReason.Value](
+        "validation_reason",
+        _.toString,
+        ValidationReason.withName,
         quoteName = false
       )
 

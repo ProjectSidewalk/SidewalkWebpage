@@ -356,6 +356,101 @@
     "vote-failed": "Votre vote n'a pas été enregistré. Veuillez réessayer."
   },
   "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant.",
+  "validation-reason": {
+    "prompt-disagree": "Pourquoi n'êtes-vous pas d'accord ?",
+    "prompt-unsure": "Qu'est-ce qui vous rend incertain ?",
+    "other": "Autre…",
+    "other-hint": "Écrivez votre propre raison",
+    "saved": "Raison enregistrée",
+    "dismiss": "Fermer",
+    "wrong-type": {
+      "text": "Ce n'est pas le bon type d'étiquette",
+      "tooltip": "Il y a bien quelque chose ici, mais ce devrait être un autre type d'étiquette",
+      "tooltip-curb-ramp": "Il arrive qu'un bateau manquant soit étiqueté par erreur comme un bateau",
+      "tooltip-no-curb-ramp": "Il arrive qu'un bateau soit étiqueté par erreur comme manquant, souvent parce qu'il n'a pas de bande d'éveil",
+      "tooltip-obstacle": "L'herbe et les débris comme les feuilles doivent être marqués avec une étiquette Problème de surface",
+      "tooltip-surface-problem": "Le gravier ou l'herbe ne sont pas considérés comme un trottoir et doivent être marqués avec une étiquette Absence de trottoir",
+      "tooltip-no-sidewalk": "Des problèmes de surface ou des obstacles sont parfois étiquetés par erreur comme Absence de trottoir"
+    },
+    "driveway": {
+      "text": "C'est une entrée charretière"
+    },
+    "driveway-transition": {
+      "text": "C'est une transition trottoir–entrée charretière",
+      "tooltip": "Les transitions entre trottoir et entrée charretière ne sont pas des bateaux, sauf si une rampe dédiée a été ajoutée"
+    },
+    "residential-walkway": {
+      "text": "C'est une allée privée"
+    },
+    "no-sidewalk-here": {
+      "text": "Il n'y a pas de trottoir ici"
+    },
+    "unsafe-crossing": {
+      "text": "Il n'est pas sûr de traverser ici",
+      "tooltip": "Les piétons ne sont pas censés traverser à cet endroit, donc aucun bateau n'est attendu"
+    },
+    "not-pedestrian-path": {
+      "text": "Ce n'est pas sur un cheminement piéton",
+      "tooltip-obstacle": "S'il n'y a pas de trottoir, ou si l'objet n'est pas sur la partie du trottoir réservée aux piétons, comme sur l'image ci-dessous, aucune étiquette Obstacle n'est nécessaire",
+      "tooltip-surface-problem": "Si un problème de surface n'est pas sur un chemin destiné aux piétons, il ne doit pas être étiqueté comme problème de surface"
+    },
+    "ample-space": {
+      "text": "Il y a largement la place d'éviter cet objet",
+      "tooltip": "Sur les trottoirs très larges, les objets faciles à éviter ne doivent <b>pas</b> être étiquetés comme obstacles"
+    },
+    "normal-tiles": {
+      "text": "Ce sont des dalles de trottoir normales"
+    },
+    "sidewalk-here": {
+      "text": "Il y a un trottoir ici"
+    },
+    "traffic-median": {
+      "text": "C'est un terre-plein central"
+    },
+    "no-visible-crosswalk": {
+      "text": "Il n'y a aucun passage piéton visible ici"
+    },
+    "stop-line": {
+      "text": "C'est une ligne d'arrêt pour les voitures"
+    },
+    "speed-bump": {
+      "text": "C'est un ralentisseur"
+    },
+    "vehicle-signal-only": {
+      "text": "Ce n'est qu'un feu de circulation pour véhicules"
+    },
+    "sign-no-light": {
+      "text": "C'est un panneau sans feu indiquant quand traverser"
+    },
+    "pole-no-signal": {
+      "text": "C'est un poteau sans feu ni bouton piéton"
+    },
+    "better-image": {
+      "text": "Il faudrait une meilleure image",
+      "tooltip": "L'image est peut-être floue, l'élément étiqueté trop éloigné, ou un autre angle serait nécessaire"
+    },
+    "placement-incorrect": {
+      "text": "Le placement de l'étiquette semble incorrect",
+      "tooltip": "Il arrive que l'élément étiqueté soit visible mais que l'étiquette en soit éloignée"
+    },
+    "ramp-required-unsure": {
+      "text": "Pas sûr qu'un bateau soit nécessaire",
+      "tooltip-curb-ramp": "Certaines ruelles ou entrées commerciales nécessitent une rampe en raison d'une différence de niveau, d'autres non. Il n'est pas toujours clair qu'un raccord de trottoir nécessite une rampe ou une bande d'éveil.",
+      "tooltip-no-curb-ramp": "Il peut être difficile de savoir si les piétons doivent pouvoir traverser à une intersection avec une route plus fréquentée"
+    },
+    "space-to-avoid-unsure": {
+      "text": "Il y a peut-être assez de place pour éviter l'objet",
+      "tooltip": "La largeur du trottoir peut être difficile à juger sur une image"
+    },
+    "too-minor-unsure": {
+      "text": "Peut-être trop mineur pour être étiqueté",
+      "tooltip": "Il peut être difficile de savoir si un défaut comme de l'herbe entre des dalles mérite une étiquette"
+    },
+    "sidewalk-needed-unsure": {
+      "text": "Pas sûr qu'il devrait y avoir un trottoir ici",
+      "tooltip": "Il faut parfois plus de contexte, et il est difficile de déterminer d'après une seule image si un trottoir est nécessaire"
+    }
+  },
   "label-type-picker": {
     "current": "{{labelType}} (type actuel)",
     "change": "modifier",

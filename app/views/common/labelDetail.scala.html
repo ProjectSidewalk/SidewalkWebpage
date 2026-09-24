@@ -180,6 +180,11 @@
   </section>
 </div>
 
+@* One-tap reasons after a Disagree or Unsure vote (#5475): ReasonChips fills it from the vocabulary the backend
+   stamps on the page, and LabelDetail shows it in place of the open comment box, whose "Other…" reopens that box.
+   Full-width under the columns rather than inside the narrow votes column, so three or four reasons fit on a line. *@
+<div class="label-detail__reasons" hidden></div>
+
 <div class="label-detail__desc-comments">
   @* Both sources are attributed (#4572): the description comes from whoever placed the label, the comments from
      the people who validated it. *@

@@ -37,6 +37,8 @@ module.exports = function (grunt) {
           'public/js/validate/src/user/*.js',
           'public/js/validate/src/util/*.js',
           'public/js/validate/src/zoom/*.js',
+          // The canned-reason vocabulary the menus render from (#5475); read at defineValidateConstants() time.
+          'public/js/common/validationReasons.js',
           'public/js/common/ProgressBar.js',
           'public/js/common/PanoMarker.js',
           'public/js/common/LabelVisibilityToggle.js',
@@ -68,6 +70,9 @@ module.exports = function (grunt) {
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/TagEditor.js',
           'public/js/common/LabelTypePicker.js',
+          // The canned-reason vocabulary and chips (#5475), for the expanded view's card and the small cards alike.
+          'public/js/common/validationReasons.js',
+          'public/js/common/ReasonChips.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           // The shared filter sidebar owns the sidebar controls; GalleryFilter is the Gallery's adapter for it.
@@ -156,6 +161,8 @@ module.exports = function (grunt) {
           'public/js/common/label-detail/StorySection.js',
           'public/js/common/label-detail/TagEditor.js',
           'public/js/common/LabelTypePicker.js',
+          'public/js/common/validationReasons.js',
+          'public/js/common/ReasonChips.js',
           'public/js/common/label-detail/LabelDetail.js',
           'public/js/common/share/ShareWidget.js',
           'public/js/shared-label/*.js'

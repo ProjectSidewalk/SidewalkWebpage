@@ -160,6 +160,24 @@ class LabelValidationTable @Inject() (
     labelsUnfiltered.filter(_.labelId inSetBind labelIds).map(_.userId).groupBy(x => x).map(_._1).result
   }
 
+  /**
+   * The user's current vote on the label as the given type, locked for the rest of the transaction, so a comment
+   * whose reason must match that vote can't interleave with a vote change (#5475). A vote change deletes and
+   * re-inserts the row, so after waiting on one this finds no row, which the caller treats as "no vote".
+   */
+  def lockValidation(
+      labelId: Int,
+      userId: String,
+      labelType: LabelTypeEnum.Base
+  ): DBIO[Option[ValidationOption.Value]] = {
+    validations
+      .filter(x => x.labelId === labelId && x.userId === userId && x.labelType === labelType)
+      .map(_.validationResult)
+      .forUpdate
+      .result
+      .headOption
+  }
+
   /** The user's vote on the label as the given type, the one a new vote on that type replaces. */
   def getValidation(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): DBIO[Option[LabelValidation]] = {
     validations

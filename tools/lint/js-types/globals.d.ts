@@ -162,6 +162,8 @@ interface Window {
   localizeSubtree: (root: ParentNode) => void;
   logWebpageActivity: (activity: string, async?: boolean) => void;
   panoramaxLicenses: Record<string, { name: string; url: string }>;
+  // Stamped from ValidationReason.pageStampJson (#5475): label type -> vote -> reason ids in menu order.
+  validationReasons: Record<string, Record<string, string[]>>;
   psAuthModal: AuthModal;
   PsModal: typeof Modal;
 }

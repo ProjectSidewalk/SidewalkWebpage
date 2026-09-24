@@ -57,6 +57,7 @@ class Label {
     unsureOption: undefined,
     unsureReasonTextBox: '',
     comment: undefined,
+    reasonId: undefined, // The canned reason `comment` is, when it is one (#5475).
     zoom: undefined,
     isMobile: undefined,
   };
@@ -246,6 +247,7 @@ class Label {
     if (comment) {
       return {
         comment,
+        reason: this.getProperty('reasonId') ?? null,
         label_id: this.getAuditProperty('labelId'),
         pano_id: this.getAuditProperty('panoId'),
         heading: this.getProperty('heading'),

@@ -453,6 +453,86 @@ with respect to the image holder. This allows the validation menu to be placed o
   }
 }
 
+/* Reason popover (#5475): after a Disagree or Unsure cast on this card, the one-tap reasons over the image the vote
+   was about. It covers the image area exactly (the same 3:2 box as .image-holder, from the card's top edge), on a
+   near-opaque panel so the picture still shows through faintly; a card too narrow to fit the chips lets them run
+   past the panel's bottom edge over the info band rather than clipping them. Appended to the card root, not
+   .image-holder, whose overflow: hidden would clip exactly that. */
+.gallery-card__reasons {
+  position: absolute;
+  inset: 0 0 auto;
+  aspect-ratio: 3 / 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 10px;
+  border-radius: 20px 20px 0 0;
+  background: rgb(from var(--color-neutral-white) r g b / 92%);
+  box-shadow: var(--box-shadow);
+
+  /* Above the vote row (z-index 2), which the vote already answered. */
+  z-index: 3;
+}
+
+.gallery-card__reasons[hidden] {
+  display: none;
+}
+
+/* An open popover has to paint over the neighboring cards it may spill onto (see .gallery-card:hover). */
+.gallery-card--reasons-open {
+  z-index: 2;
+}
+
+/* A reason pick in flight holds the vote (ValidationMenu): the thumbs read as inert until it lands. */
+.gallery-card--vote-locked .validation-section-content {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.gallery-card__reasons-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.gallery-card__reasons-close img {
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: hover) {
+  .gallery-card__reasons-close:hover {
+    background: var(--color-neutral-200);
+  }
+}
+
+.gallery-card__reasons-close:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: 1px;
+}
+
+/* The chips are sized in card units like the rest of the card's text, with a px floor for tappability. */
+.gallery-card__reasons .reason-chips__chip {
+  font-size: max(11px, 3cqw);
+}
+
+.gallery-card__reasons-status {
+  min-height: 16px; /* Holds the line so "Reason saved" doesn't shift the chips when it appears. */
+  font: var(--text-caption-semibold);
+  font-size: max(11px, 2.8cqw);
+  color: var(--color-pine-700);
+}
+
 .expanded-view-background-card {
   opacity: 0.5;
 }
