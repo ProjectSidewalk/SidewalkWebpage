@@ -132,6 +132,13 @@ describe('set / reset', () => {
         expect(model.get('shadows')).toBe(33);
     });
 
+    test('snaps to the control\'s step', () => {
+        const model = new PanoImageAdjustments(target, memoryStorage());
+        expect(model.set('brightness', 103)).toBe(105);
+        expect(model.set('contrast', 62)).toBe(60);
+        expect(model.set('shadows', 33.4)).toBe(33);
+    });
+
     test('falls back to the default for a non-numeric value', () => {
         const model = new PanoImageAdjustments(target, memoryStorage());
         model.set('contrast', 140);
@@ -189,10 +196,28 @@ describe('persistence', () => {
 
     test('takes only the stored fields that are finite numbers within range', () => {
         const storage = memoryStorage({
-            panoImageAdjustments: JSON.stringify({ shadows: 500, brightness: 'bright', contrast: 120, extra: 1 }),
+            panoImageAdjustments: JSON.stringify({ v: 1, shadows: 500, brightness: 'bright', contrast: 120, extra: 1 }),
         });
         const model = new PanoImageAdjustments(target, storage);
         expect(model.values()).toEqual({ shadows: 0, brightness: 100, contrast: 120 });
+    });
+
+    test('ignores a record from another format version rather than half-reading it', () => {
+        const storage = memoryStorage({
+            panoImageAdjustments: JSON.stringify({ v: 2, shadows: 40, brightness: 120, contrast: 120 }),
+        });
+        expect(new PanoImageAdjustments(target, storage).isDefault()).toBe(true);
+        const unversioned = memoryStorage({ panoImageAdjustments: JSON.stringify({ shadows: 40 }) });
+        expect(new PanoImageAdjustments(target, unversioned).isDefault()).toBe(true);
+    });
+
+    test('snaps a stored value that is off the slider step, so the slider and the pano agree', () => {
+        const storage = memoryStorage({
+            panoImageAdjustments: JSON.stringify({ v: 1, shadows: 0, brightness: 103, contrast: 100 }),
+        });
+        const model = new PanoImageAdjustments(target, storage);
+        expect(model.get('brightness')).toBe(105);
+        expect(target.style.filter).toBe('brightness(1.05)');
     });
 
     test.each([

@@ -19,7 +19,7 @@ module.exports = function (grunt) {
           'public/js/common/Toast.js',
           'public/js/common/BadgeAchievements.js',
           'public/js/common/share/ShareWidget.js',
-          // The model must precede the popover, which reads PanoImageAdjustments.SPECS while wiring its sliders.
+          // The pano image adjustments: the model, then the popover that drives it.
           'public/js/common/PanoImageAdjustments.js',
           'public/js/common/PanoImageAdjustmentsPopover.js'
         ],

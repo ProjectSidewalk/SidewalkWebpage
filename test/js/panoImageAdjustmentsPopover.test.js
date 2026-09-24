@@ -122,6 +122,7 @@ describe('open and close', () => {
         expect(shown).toBe(false);
         expect(button.getAttribute('aria-expanded')).toBe('false');
         expect(hooks.onClose).toHaveBeenCalledTimes(1);
+        expect(hooks.onClose).toHaveBeenCalledWith('toggle');
         expect(document.activeElement).toBe(button);
     });
 
@@ -134,20 +135,59 @@ describe('open and close', () => {
         expect(hooks.onClose).toHaveBeenCalledTimes(1);
     });
 
-    test('Escape closes it and is stopped before the page sees it', () => {
+    test('Escape closes it and is stopped before the page sees it, keyup included', () => {
         mount();
         button.click();
-        const pageSaw = jest.fn();
-        window.addEventListener('keydown', pageSaw);
-        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        const pageSawDown = jest.fn();
+        const pageSawUp = jest.fn();
+        window.addEventListener('keydown', pageSawDown);
+        window.addEventListener('keyup', pageSawUp);
+        const slider = popover.querySelector('[data-adjust="shadows"]');
+        slider.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         expect(shown).toBe(false);
-        expect(hooks.onClose).toHaveBeenCalledTimes(1);
-        expect(pageSaw).not.toHaveBeenCalled();
-        window.removeEventListener('keydown', pageSaw);
+        expect(hooks.onClose).toHaveBeenCalledWith('escape');
+        expect(pageSawDown).not.toHaveBeenCalled();
+        // Explore's "back to Walk" shortcut fires on keyup, after the panel has re-enabled shortcuts: the keyup that
+        // belongs to the closing keydown must not reach it.
+        button.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape', bubbles: true }));
+        expect(pageSawUp).not.toHaveBeenCalled();
+        // Only that one keyup; the next Escape is the page's again.
+        button.dispatchEvent(new KeyboardEvent('keyup', { key: 'Escape', bubbles: true }));
+        expect(pageSawUp).toHaveBeenCalledTimes(1);
+        window.removeEventListener('keydown', pageSawDown);
+        window.removeEventListener('keyup', pageSawUp);
 
         // Escape with the panel closed is left alone for whoever else wants it.
         document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
         expect(hooks.onClose).toHaveBeenCalledTimes(1);
+    });
+
+    test('Tab leaving the panel closes it; moving focus within it does not', () => {
+        mount();
+        button.click();
+        const shadows = popover.querySelector('[data-adjust="shadows"]');
+        const contrast = popover.querySelector('[data-adjust="contrast"]');
+        shadows.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: contrast }));
+        expect(shown).toBe(true);
+        shadows.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: button }));
+        expect(shown).toBe(true);
+        shadows.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: pano }));
+        expect(shown).toBe(false);
+        expect(hooks.onClose).toHaveBeenCalledWith('focusout');
+    });
+
+    test('a window resize repositions an open panel', () => {
+        mount();
+        button.click();
+        popover.style.top = '';
+        popover.style.left = '';
+        window.dispatchEvent(new Event('resize'));
+        expect(popover.style.top).not.toBe('');
+        expect(popover.style.left).not.toBe('');
+        button.click();
+        popover.style.top = '';
+        window.dispatchEvent(new Event('resize'));
+        expect(popover.style.top).toBe('');
     });
 
     test('a click outside closes it; a click inside does not', () => {
@@ -157,7 +197,7 @@ describe('open and close', () => {
         expect(shown).toBe(true);
         pano.click();
         expect(shown).toBe(false);
-        expect(hooks.onClose).toHaveBeenCalledTimes(1);
+        expect(hooks.onClose).toHaveBeenCalledWith('outside');
     });
 
     test('the close button closes it', () => {
@@ -165,15 +205,16 @@ describe('open and close', () => {
         button.click();
         popover.querySelector('[data-action="close"]').click();
         expect(shown).toBe(false);
+        expect(hooks.onClose).toHaveBeenCalledWith('close');
     });
 
-    test('falls back to the hidden attribute where the Popover API is missing', () => {
+    test('falls back to the hidden attribute where the Popover API is missing, hiding it from Tab until opened', () => {
         document.body.innerHTML = MARKUP;
         const p = document.getElementById('pano-image-adjustments');
-        p.setAttribute('hidden', '');
         const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
         const b = document.getElementById('explore-control-image');
         new window.PanoImageAdjustmentsPopover(m, b, p);
+        expect(p.hasAttribute('hidden')).toBe(true);
         b.click();
         expect(p.hasAttribute('hidden')).toBe(false);
         b.click();

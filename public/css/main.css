@@ -576,13 +576,13 @@ textarea.ps-input {
 }
 
 .ps-range::-webkit-slider-runnable-track {
-  height: 3px;
+  height: calc(3px * var(--ui-scale, 1));
   border-radius: 2px;
   background: var(--color-neutral-300);
 }
 
 .ps-range::-moz-range-track {
-  height: 3px;
+  height: calc(3px * var(--ui-scale, 1));
   border-radius: 2px;
   background: var(--color-neutral-300);
 }

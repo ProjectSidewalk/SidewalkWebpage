@@ -95,6 +95,12 @@
   background-color: var(--color-asphalt-400);
 }
 
+/* The pills sit on imagery, so the ring is white rather than the page's blue; only keyboard focus draws it. */
+.pano-overlay-button:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
 /* A pill whose setting is off its default (the Image adjustments) wears a small dot, so a value persisted in an
    earlier session is visible without opening the panel. The chevron toggle wears the same dot while the row is
    collapsed and hides it once expanded, since the pill itself then shows it — the usual overflow-menu badge. */

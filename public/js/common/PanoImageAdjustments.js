@@ -232,11 +232,14 @@ class PanoImageAdjustments {
     } catch {
       return values;
     }
-    if (!stored || typeof stored !== 'object') return values;
+    // A record from a different format version is ignored rather than half-read; migrate here when one exists.
+    if (!stored || typeof stored !== 'object' || stored.v !== PanoImageAdjustments.STORAGE_VERSION) return values;
     for (const k of PanoImageAdjustments.KEYS) {
       const spec = PanoImageAdjustments.SPECS[k];
       const v = stored[k];
-      if (typeof v === 'number' && Number.isFinite(v) && v >= spec.min && v <= spec.max) values[k] = v;
+      if (typeof v === 'number' && Number.isFinite(v) && v >= spec.min && v <= spec.max) {
+        values[k] = PanoImageAdjustments.#clamp(v, spec);
+      }
     }
     return values;
   }
@@ -258,14 +261,17 @@ class PanoImageAdjustments {
   }
 
   /**
+   * Snaps a value to the control's step and holds it within its range, so the model never carries a value the
+   * slider can't show (a stored 103 would otherwise render as 105 while the pano used 1.03).
    * @param {number} value
-   * @param {{min: number, max: number, default: number}} spec
-   * @returns {number} `value` held within the range, or the default when it isn't a finite number.
+   * @param {{min: number, max: number, step: number, default: number}} spec
+   * @returns {number} The snapped, clamped value, or the default when `value` isn't a finite number.
    */
   static #clamp(value, spec) {
     const n = Number(value);
     if (!Number.isFinite(n)) return spec.default;
-    return Math.min(spec.max, Math.max(spec.min, n));
+    const snapped = spec.min + Math.round((n - spec.min) / spec.step) * spec.step;
+    return Math.min(spec.max, Math.max(spec.min, snapped));
   }
 
   /** @returns {Storage|null} localStorage when the browser lets us touch it, else null. */
