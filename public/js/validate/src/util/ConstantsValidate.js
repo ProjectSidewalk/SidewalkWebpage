@@ -9,8 +9,8 @@ function defineValidateConstants() {
     Signal: i18next.t('common:signal'),
   };
 
-  const expert = (file) => `images/validate/ExpertValidateTooltips/${file}`;
-  const example = (file) => `images/examples/${file}`;
+  const expert = (file) => util.assetPath(`images/validate/ExpertValidateTooltips/${file}`);
+  const example = (file) => util.assetPath(`images/examples/${file}`);
   const mst = (type, slide) => `common:mission-start-tutorial.${type}.slide-${slide}.description`;
   /**
    * Validate's tooltip extras per reason, on top of the shared text: an example image, and for reasons whose
@@ -87,7 +87,7 @@ function defineValidateConstants() {
           reasonId: reason.id,
           buttonText: reason.text,
           tooltipText: tooltipText ?? reason.text,
-          ...(extras.image ? { tooltipImage: util.assetPath(extras.image) } : {}),
+          ...(extras.image ? { tooltipImage: extras.image } : {}),
           ...(reason.id === 'wrong-type' ? { wrongType: true } : {}),
         };
       });

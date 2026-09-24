@@ -886,8 +886,9 @@ class ValidateSubmissionSpec
       reasonsOn(labelId, b.userId)._1 mustBe None
 
       // An undo carrying a reasoned comment retracts rather than stores it, reason included (#5076).
-      val undo = Seq(validationJson(label, b.missionId, "Unsure", undone = true, comment = Some("Crossed"),
-        reason = Some(reason)))
+      val undo = Seq(
+        validationJson(label, b.missionId, "Unsure", undone = true, comment = Some("Crossed"), reason = Some(reason))
+      )
       status(postValidationTask(session, taskSubmission(b, undo, progress))) mustBe OK
       commentsOn(labelId, b.userId) mustBe empty
       reasonsOn(labelId, b.userId)._2.last mustBe (None, "validation_change")
