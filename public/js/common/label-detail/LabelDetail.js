@@ -454,12 +454,6 @@ class LabelDetail {
     // Each vote's icon and count together, the shape util.misc.animateVoteChange takes.
     els.voteTallies = Object.fromEntries(Object.keys(els.voteIcons).map((action) => (
       [action, { icon: els.voteIcons[action], count: els.voteCounts[action] }])));
-    // Icon + count rows, which #flashVoteEcho mounts its ghost icon into.
-    els.voteTops = {
-      Agree:    voteEl('agree', '.label-detail__vote-top'),
-      Disagree: voteEl('disagree', '.label-detail__vote-top'),
-      Unsure:   voteEl('unsure', '.label-detail__vote-top'),
-    };
     // Hover-reveal overlay buttons on the pano. Both these and the column buttons fire a vote.
     els.panoOverlayButtons = {
       Agree:    this.#root.querySelector('.label-detail__pano-overlay-button--agree'),
@@ -1254,7 +1248,7 @@ class LabelDetail {
    *     backend deletes the validation and the user's comment on the label rather than inserting a new row, so the
    *     label returns to no-vote for this user.
    * @param {boolean} [viaKeyboard=false] - The vote came from the keyboard rather than a pointer. Reaches the
-   *     ClearVote event, which logs the two input paths apart, and the vote echo, which only the keyboard gets.
+   *     ClearVote event, which logs the two input paths apart.
    */
   #submitValidation(action, source, undone = false, viaKeyboard = false) {
     const isNewValidation = !undone && !this.#prevAction;
@@ -1320,9 +1314,6 @@ class LabelDetail {
       const previousAction = this.#prevAction;
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
-      // Only for a vote cast from the keyboard: a pointer already has the button it pressed as feedback, and a
-      // vote being *cleared* is the opposite of what a rising icon says.
-      if (viaKeyboard && !undone) this.#flashVoteEcho(action);
       // Every vote, however cast, pops the icon it gained and moves the counts it changed, as a Gallery card does.
       util.misc.animateVoteChange(this.#els.voteTallies, previousAction, newAction);
       // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
@@ -1582,11 +1573,9 @@ class LabelDetail {
   }
 
   #resetVoteButtonStyles() {
-    // A vote echo still in flight belongs to the label being left, and the tally rows it mounts into are cached
-    // once and reused for every label the card shows — so left alone it would go on rising over a label the reader
-    // never voted on, which is the one thing an affordance that reports a vote must never say.
-    for (const ghost of this.#root.querySelectorAll('.label-detail__vote-pop')) ghost.remove();
-    // The same goes for the icon pop and the count rise or dip, which run on those same cached elements.
+    // A vote pop still running belongs to the label being left, and the icon and count elements it runs on are
+    // cached once and reused for every label the card shows — so left alone it would go on reporting a vote on a
+    // label the reader never voted on, which is the one thing an affordance that reports a vote must never say.
     for (const { icon, count } of Object.values(this.#els.voteTallies)) {
       for (const el of [icon, count]) el?.getAnimations?.().forEach((animation) => animation.cancel());
     }
@@ -1946,51 +1935,6 @@ class LabelDetail {
   static #voteIconSrc(action, filled, isAi) {
     const state = filled ? 'filled' : 'outline';
     return util.assetPath(`images/icons/validation/${action.toLowerCase()}-${state}${isAi ? '-ai' : ''}.svg`);
-  }
-
-  /**
-   * How long the keyboard-vote echo lives, in ms. Must match the animation duration on `.label-detail__vote-pop`.
-   *
-   * The timer, rather than an `animationend` listener, is what removes the ghost: closing the card mid-flight
-   * cancels the animation instead of ending it, and a listener on the event that doesn't come would leak a node
-   * into the markup on every such vote.
-   */
-  static #VOTE_ECHO_MS = 700;
-
-  /**
-   * Echoes a keyboard-cast vote as a ghost of that vote's icon drifting off the tally it just incremented (#5194).
-   *
-   * A shortcut leaves nothing under the cursor to watch, so the change it makes — a filled icon and a count one
-   * higher, both small and both in the column rather than on the imagery the reader was looking at — is easy to
-   * miss entirely. The ghost moves in the direction of the verdict (up for agree and unsure, down for disagree),
-   * which is what makes it readable in the corner of the eye rather than something to look at.
-   *
-   * Decorative and silent: `aria-hidden` with an empty alt, since the vote it reports is already carried by the
-   * button's `aria-pressed` and the count beside it. Skipped entirely under prefers-reduced-motion, the way every
-   * other optional flourish here is (Confetti, ObservedArea, StorySection).
-   *
-   * Tied to the label it was cast on: #resetVoteButtonStyles() drops one still in flight when the card moves to
-   * another label, since the tally row it lives in is shared by every label the card shows.
-   *
-   * @param {'Agree'|'Disagree'|'Unsure'} action - The vote that was cast.
-   */
-  #flashVoteEcho(action) {
-    const host = this.#els.voteTops?.[action];
-    if (!host || window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
-
-    // One ghost per control: a second vote can only land after the first POST resolves, but a lingering one would
-    // otherwise restart mid-flight and read as a stutter.
-    host.querySelector('.label-detail__vote-pop')?.remove();
-
-    const ghost = document.createElement('img');
-    ghost.className = `label-detail__vote-pop label-detail__vote-pop--${action.toLowerCase()}`;
-    // Always the filled, non-AI variant: the ghost stands for the verdict the user just cast, not for the state
-    // of the icon underneath it.
-    ghost.src = LabelDetail.#voteIconSrc(action, true, false);
-    ghost.alt = '';
-    ghost.setAttribute('aria-hidden', 'true');
-    host.appendChild(ghost);
-    setTimeout(() => ghost.remove(), LabelDetail.#VOTE_ECHO_MS);
   }
 
   /**
