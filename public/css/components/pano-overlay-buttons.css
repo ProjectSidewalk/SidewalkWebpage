@@ -3,8 +3,8 @@
  * This file owns only the LOOK of the buttons (scaled by --ui-scale); each page positions the holder itself.
  */
 
-/* Stacked +/- zoom control: two square buttons separated by a small gap. */
-.zoom-buttons-holder {
+/* A column of small square icon buttons (zoom, minimap, full screen), spaced so they read as one control. */
+.ps-icon-button-stack {
   display: flex;
   flex-direction: column;
   gap: calc(2px * var(--ui-scale, 1));
@@ -12,11 +12,11 @@
 
 /* `display: flex` above beats the browser's own `[hidden] { display: none }`, so a holder hidden by script (the
    immersive toggle during the tutorial, #5085) needs the attribute restated at higher specificity. */
-.zoom-buttons-holder[hidden] {
+.ps-icon-button-stack[hidden] {
   display: none;
 }
 
-.zoom-button {
+.ps-icon-button {
   width: calc(22px * var(--ui-scale, 1));
   height: calc(22px * var(--ui-scale, 1));
   cursor: pointer;
@@ -29,34 +29,35 @@
   justify-content: center;
 }
 
-/* Round only the outer corners so the gap-separated pair still reads as one stacked control. */
-.zoom-button:first-of-type {
-  border-radius: calc(7px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1)) 0 0;
+/* Round only the stack's outer corners; a button on its own gets all four. */
+.ps-icon-button:first-of-type {
+  border-top-left-radius: calc(7px * var(--ui-scale, 1));
+  border-top-right-radius: calc(7px * var(--ui-scale, 1));
 }
 
-.zoom-button:last-of-type {
-  border-radius: 0 0 calc(7px * var(--ui-scale, 1)) calc(7px * var(--ui-scale, 1));
+.ps-icon-button:last-of-type {
+  border-bottom-left-radius: calc(7px * var(--ui-scale, 1));
+  border-bottom-right-radius: calc(7px * var(--ui-scale, 1));
 }
 
-.zoom-button.disabled {
+.ps-icon-button.disabled {
   opacity: 0.7;
   cursor: default;
   pointer-events: none;
 }
 
-/* White +/- glyphs (public/images/icons/{plus,minus}-white.svg) shown over the black pill. */
-.zoom-button-icon {
+.ps-icon-button-icon {
   display: block;
   width: calc(18px * var(--ui-scale, 1));
   height: calc(18px * var(--ui-scale, 1));
   transition: transform 0.1s ease;
 }
 
-.zoom-button:hover .zoom-button-icon {
+.ps-icon-button:hover .ps-icon-button-icon {
   transform: scale(1.15);
 }
 
-/* Stuck/sound/feedback buttons look; positioning and the expand/collapse behavior in the {svl,svv}-canvas.css. */
+/* A row of pill buttons over the pano; each page positions its own row. */
 .pano-overlay-button-group {
   display: flex;
   gap: calc(3px * var(--ui-scale, 1));
@@ -97,8 +98,8 @@
 }
 
 /* A pill whose setting is off its default (the Image adjustments) wears a small dot, so a value persisted in an
-   earlier session is visible without opening the panel. The chevron toggle wears the same dot while the row is
-   collapsed and hides it once expanded, since the pill itself then shows it — the usual overflow-menu badge. */
+   earlier session is visible without opening the panel. The chevron wears the same dot while its menu is closed and
+   drops it once open, since the pill itself then shows it — the usual overflow-menu badge. */
 .pano-overlay-button--active {
   position: relative;
 }
@@ -121,11 +122,11 @@
   background: var(--color-neutral-white);
 }
 
-.pano-overlay-button-group.expanded .pano-overlay-toggle.pano-overlay-button--active::after {
+.pano-overlay-toggle[aria-expanded="true"].pano-overlay-button--active::after {
   display: none;
 }
 
-/* Chevron-only toggle: a square pill with no label, sitting at the end of the row. */
+/* Chevron-only toggle: a square pill with no label. */
 .pano-overlay-toggle {
   width: calc(28px * var(--ui-scale, 1));
   padding: 0;

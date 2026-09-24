@@ -1,7 +1,7 @@
 /*
- * The pano image adjustments popover (shadows / brightness / contrast sliders, #3136). Opened from the Image pill
- * in Explore's Stuck row; the markup is app/views/common/panoImageAdjustments.scala.html and the sliders are the
- * shared .ps-range primitive. A component rather than a page file because the JS that drives it is page-agnostic
+ * The pano image adjustments popover (shadows / brightness / contrast sliders, #3136). Opened from the Image pill in
+ * the menu under Explore's Stuck button; the markup is app/views/common/panoImageAdjustments.scala.html and the
+ * sliders are the shared .ps-range primitive. A component rather than a page file because the JS that drives it is page-agnostic
  * and Validate is expected to mount the same panel. Sizes scale with --ui-scale like the rest of the tool UI.
  */
 

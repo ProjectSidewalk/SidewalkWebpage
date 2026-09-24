@@ -5,7 +5,7 @@
  * The markup lives in app/views/common/panoImageAdjustments.scala.html (id="pano-image-adjustments") so its text
  * goes through i18n; this class only wires it. Slider ranges come from the model's SPECS rather than the markup, so
  * there is one place that knows what "100" means. The popover uses the native Popover API like PanoInfoPopover,
- * positioned by JS below the button, and falls back to the `hidden` attribute where the API is missing.
+ * positioned by JS beside the button, and falls back to the `hidden` attribute where the API is missing.
  *
  * Page-specific concerns — what to log, and suspending the page's keyboard shortcuts so Arrow keys nudge a slider
  * instead of panning the pano — are injected as callbacks, which keeps the class mountable on any page with a pano.
@@ -212,7 +212,7 @@ class PanoImageAdjustmentsPopover {
     return `${value}%`;
   }
 
-  /** Places the panel under the trigger, left edges aligned, clamped to the viewport. */
+  /** Places the panel to the right of the trigger, so it doesn't cover the menu buttons under it. */
   #position() {
     const uiScale = typeof util !== 'undefined' && util.uiScale
       ? util.uiScale()
@@ -221,13 +221,14 @@ class PanoImageAdjustmentsPopover {
     const margin = 8;
     const btn = this.#button.getBoundingClientRect();
     const pop = this.#popover.getBoundingClientRect();
-    let left = btn.left;
-    let top = btn.bottom + gap;
-    left = Math.max(margin, Math.min(left, window.innerWidth - pop.width - margin));
-    // Below is the natural spot; only flip above when there is no room.
-    if (top + pop.height > window.innerHeight - margin && btn.top - gap - pop.height >= margin) {
-      top = btn.top - gap - pop.height;
+    let left = btn.right + gap;
+    let top = btn.top;
+    // No room on the right: fall back to below the button.
+    if (left + pop.width > window.innerWidth - margin) {
+      left = Math.max(margin, Math.min(btn.left, window.innerWidth - pop.width - margin));
+      top = btn.bottom + gap;
     }
+    top = Math.max(margin, Math.min(top, window.innerHeight - pop.height - margin));
     this.#popover.style.left = `${Math.round(left)}px`;
     this.#popover.style.top = `${Math.round(top)}px`;
   }
