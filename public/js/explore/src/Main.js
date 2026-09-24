@@ -225,6 +225,10 @@ class Main {
         onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
         onReset: () => svl.tracker.push('Click_ImageAdjustments_Reset'),
       });
+    // The Image pill sits behind the chevron, so mirror its active state onto the chevron for the collapsed row.
+    svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault());
+    svl.imageAdjustments.onChange(() =>
+      svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault()));
 
     // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
     // capture date and the audit note is the one place it would read as belonging to neither (#5413).
