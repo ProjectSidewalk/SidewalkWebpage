@@ -523,6 +523,11 @@ p#conditional-text {
   text-wrap: balance;
 }
 
+/* Underlined because the link color sits too close to the gray text to be the only cue (WCAG 1.4.1). */
+.partner-section-notice a {
+  text-decoration: underline;
+}
+
 .partner-section-tagline {
   margin: 0 auto var(--space-xl);
   max-width: 640px;

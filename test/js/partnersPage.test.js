@@ -210,6 +210,7 @@ describe('PartnersPage official-contact form (#5462)', () => {
         <p id="official-contact-preview" data-template="${TEMPLATE}"></p>
         <button type="submit">Save</button>
         <button type="button" id="official-contact-clear">Turn off</button>
+        <p id="official-contact-status"></p>
         <p class="partners-form-error" hidden></p>
       </form>`);
     return /** @type {any} */ (document.getElementById('official-contact-form'));
@@ -269,7 +270,7 @@ describe('PartnersPage official-contact form (#5462)', () => {
     const put = calls.find((c) => c.options.method === 'PUT');
     expect(JSON.parse(put.options.body)).toEqual({ name: ` ${burnaby.name} `, url: burnaby.url });
     expect(form.elements.name.value).toBe(burnaby.name); // The server's trimmed value comes back into the field.
-    expect(document.getElementById('partners-status').textContent).toContain('saved');
+    expect(document.getElementById('official-contact-status').textContent).toContain('saved');
   });
 
   test('turn off PUTs blank fields and empties the form', async () => {
@@ -284,7 +285,18 @@ describe('PartnersPage official-contact form (#5462)', () => {
     const put = calls.find((c) => c.options.method === 'PUT');
     expect(JSON.parse(put.options.body)).toEqual({ name: '', url: '' });
     expect(form.elements.url.value).toBe('');
-    expect(document.getElementById('partners-status').textContent).toContain('turned off');
+    expect(document.getElementById('official-contact-status').textContent).toContain('turned off');
+  });
+
+  test('previews a name containing $ patterns literally', async () => {
+    const form = buildContactDom();
+    stubContactFetch({ name: "the $' & $& Office", url: burnaby.url }, null);
+    new PartnersPage({ isOwner: false }).init();
+    await flush();
+
+    expect(form.elements.name.value).toBe("the $' & $& Office");
+    expect(document.getElementById('official-contact-preview').textContent)
+      .toContain("contact the $' & $& Office directly.");
   });
 
   test("shows the server's rejection inline and keeps what the admin typed", async () => {

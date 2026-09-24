@@ -113,7 +113,9 @@ class PartnersPage {
         return;
       }
       this.#fillOfficialContact(form, data);
-      this.#setStatus(data.url ? 'Official contact notice saved.' : 'Official contact notice turned off.');
+      // Its own live region: #partners-status belongs to the partner lists' counts.
+      const statusEl = document.getElementById('official-contact-status');
+      statusEl.textContent = data.url ? 'Official contact notice saved.' : 'Official contact notice turned off.';
     } catch (err) {
       console.error('Partners page: official contact failed to save.', err);
       this.#showError(form, 'Something went wrong — please try again.');
@@ -143,7 +145,8 @@ class PartnersPage {
       preview.textContent = 'Off: nothing shows on the landing page.';
     } else {
       // textContent, not innerHTML: the name is admin-entered free text.
-      preview.textContent = `Landing page preview: ${preview.dataset.template.replace('{name}', name || '…')}`;
+      // A replacer function, so a `$&` or `$'` in the name is inserted literally rather than read as a pattern.
+      preview.textContent = `Landing page preview: ${preview.dataset.template.replace('{name}', () => name || '…')}`;
     }
   }
 

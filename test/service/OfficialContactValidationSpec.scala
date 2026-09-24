@@ -17,8 +17,10 @@ class OfficialContactValidationSpec extends PlaySpec {
       validate("  the City of Burnaby ", s" $url ") mustBe Right(Some(OfficialContact("the City of Burnaby", url)))
     }
 
-    "accept an uppercase scheme" in {
-      validate("x", "HTTPS://example.org").isRight mustBe true
+    "accept an uppercase scheme, stored lowercase so it meets the DB's https CHECK" in {
+      validate("x", "HTTPS://example.org/Contact") mustBe Right(
+        Some(OfficialContact("x", "https://example.org/Contact"))
+      )
     }
 
     "turn the notice off for a blank URL, whatever the name" in {
@@ -31,7 +33,10 @@ class OfficialContactValidationSpec extends PlaySpec {
     }
 
     "reject anything that isn't an absolute https URL" in {
-      Seq("http://example.org", "javascript:alert(1)", "//example.org", "example.org", "https://", "https://a b")
+      Seq(
+        "http://example.org", "javascript:alert(1)", "//example.org", "example.org", "https://", "https://a b",
+        "https://www.burnaby.ca@evil.example/", "https://user:pass@example.org/"
+      )
         .foreach(bad => withClue(bad)(validate("x", bad).isLeft mustBe true))
     }
 

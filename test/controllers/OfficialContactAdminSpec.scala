@@ -105,6 +105,13 @@ class OfficialContactAdminSpec extends PlaySpec with RoleSession with GuiceOneAp
       (getSaved \ "url").as[String] mustBe burnaby.url
     }
 
+    "store an uppercase scheme lowercased rather than failing the DB's https CHECK" in {
+      val resp =
+        put(adminCookies, Json.obj("name" -> burnaby.name, "url" -> "HTTPS://www.burnaby.ca/our-city/contact-us"))
+      status(resp) mustBe OK
+      (getSaved \ "url").as[String] mustBe burnaby.url
+    }
+
     "reject what can't go in a public href, leaving the saved value alone" in {
       Seq(
         Json.obj("name" -> burnaby.name, "url" -> "http://www.burnaby.ca/contact"),

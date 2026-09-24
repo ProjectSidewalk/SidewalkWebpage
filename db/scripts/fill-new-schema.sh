@@ -168,9 +168,12 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
         WHERE status = 'open';
 
     -- Update config table's open_status column based on whether regions were removed. The clone carried the donor's
-    -- whole config row: a mapathon banner is the donor's event, never this city's, so it is cleared here; the other
-    -- inherited settings (excluded_tags, update_offset_hours, make_crops) are printed below for review.
-    UPDATE config SET open_status = '$OPEN_STATUS_Q', mapathon_event_link = NULL;
+    -- whole config row: a mapathon banner is the donor's event and the official contact (#5462) is the donor's
+    -- government, never this city's, so both are cleared here; the other inherited settings (excluded_tags,
+    -- update_offset_hours, make_crops) are printed below for review.
+    UPDATE config
+    SET open_status = '$OPEN_STATUS_Q', mapathon_event_link = NULL, official_contact_name = NULL,
+        official_contact_url = NULL;
 
     -- Set the city center, map bounds, and default map zoom in the config table from the open regions' geoms. The
     -- bounds are the regions' extent padded by 0.5° (~55 km): they only bound map views, and existing cities sit at
