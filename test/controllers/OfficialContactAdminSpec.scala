@@ -125,7 +125,7 @@ class OfficialContactAdminSpec extends PlaySpec with RoleSession with GuiceOneAp
   }
 
   "the landing pages" should {
-    "show the saved notice under the partner logos, with the name escaped" in {
+    "show the saved notice, with the name escaped" in {
       status(put(adminCookies, Json.obj("name" -> "the City of <b>Burnaby</b>", "url" -> burnaby.url))) mustBe OK
       Seq("/", "/mobileLanding").foreach { path =>
         val html = body(path)
@@ -134,7 +134,6 @@ class OfficialContactAdminSpec extends PlaySpec with RoleSession with GuiceOneAp
         html must include(s"""<a href="${burnaby.url}" data-partner-source="official-contact">""")
         html must include("the City of &lt;b&gt;Burnaby&lt;/b&gt;")
         html must not include "the City of <b>Burnaby</b>"
-        html.indexOf("partners-official-contact") must be < html.indexOf("creators-title")
       }
     }
 

@@ -523,6 +523,14 @@ p#conditional-text {
   text-wrap: balance;
 }
 
+/* With no partner logos above it, the notice closes the section as a footnote under the credit line, set off by a
+   rule so it doesn't read as part of the credits. */
+#partners-credit + .partner-section-notice {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--color-neutral-200);
+}
+
 /* Underlined because the link color sits too close to the gray text to be the only cue (WCAG 1.4.1). */
 .partner-section-notice a {
   text-decoration: underline;

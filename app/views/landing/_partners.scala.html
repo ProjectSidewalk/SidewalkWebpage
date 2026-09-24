@@ -8,9 +8,10 @@
 * (global partners first, then the current city's), served from the DB via /partnerLogo with a logo-version cache
 * buster; and a "Project Sidewalk was created with <heart> by" credit — the three static creator logos (Makeability
 * Lab, UW, UIC IDHD) plus a prose credit to the long-time partners, students, and volunteers who shaped the tool.
-* With no partners yet, only the created-by half renders — never an orphaned heading. Between the halves, a city can
-* point residents to its own contact page (#5462) so nobody mistakes Project Sidewalk for a way to request repairs;
-* that notice renders whether or not the city has partner logos. Anchors carry data-partner-source so the landing
+* With no partners yet, only the created-by half renders — never an orphaned heading. A city can also point residents
+* to its own contact page (#5462) so nobody mistakes Project Sidewalk for a way to request repairs. That notice sits
+* under the city's partner logos, which is where it reads as the city speaking; with no logos to sit under it would
+* float alone above the created-by heading, so it moves to the foot of the section instead. Anchors carry data-partner-source so the landing
 * pages' delegated handlers (homepage.js on desktop, mobileLanding's inline script on mobile) can log clicks without
 * per-partner markup.
 *
@@ -30,6 +31,14 @@
 
 @* Twirl escapes the admin-entered name and URL here; only the message's own text is trusted by the @Html below. *@
 @contactLink(c: OfficialContact) = {<a href="@c.url" data-partner-source="official-contact">@c.name</a>}
+
+@officialContactNotice = {
+  @for(contact <- officialContact) {
+    <p class="partner-section-notice" id="partners-official-contact">
+      @Html(Messages("landing.partners.official.contact", contactLink(contact)))
+    </p>
+  }
+}
 
 @* A flat heart rather than the ❤️ emoji, whose glossy, drop-shadowed platform rendering out-shouted the words
 * around it. role/aria-label so it is still read as the word it stands in for. *@
@@ -53,11 +62,7 @@
         </div>
       }
     </div>
-  }
-  @for(contact <- officialContact) {
-    <p class="partner-section-notice" id="partners-official-contact">
-      @Html(Messages("landing.partners.official.contact", contactLink(contact)))
-    </p>
+    @officialContactNotice
   }
   <h2 class="partner-section-heading" id="creators-title">
     @Html(Messages("landing.partners.created.by", heart))
@@ -83,4 +88,7 @@
     </div>
   </div>
   <p class="partner-section-tagline" id="partners-credit">@Html(Messages("landing.partners.created.credits"))</p>
+  @if(partners.isEmpty) {
+    @officialContactNotice
+  }
 </div>
