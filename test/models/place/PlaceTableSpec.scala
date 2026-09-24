@@ -72,7 +72,7 @@ class PlaceTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
         try source.mkString
         finally source.close()
       }
-      // The Ups' ADD CONSTRAINT, the first CHECK in the file; the Downs restore the list before it.
+      // The Ups' ADD CONSTRAINT is the first CHECK in the file; the Downs' CHECK, later, holds the old list.
       val check  = "CHECK \\(category IN \\(([^)]*)\\)\\)".r
       val listed =
         check.findFirstMatchIn(script).value.group(1).split(",").map(_.trim.stripPrefix("'").stripSuffix("'"))

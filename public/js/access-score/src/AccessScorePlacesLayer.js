@@ -122,11 +122,9 @@ class AccessScorePlacesLayer {
   }
 
   /**
-   * The presentation of a category. No zoom gate: every category starts off, so one that is on was asked for, and a
-   * reader who ticks "Transit stops" at city scale should see stops, not an empty map. Collision detection keeps a
-   * crowded category to what fits.
+   * The presentation of a category.
    * @param {string} category - A category id.
-   * @returns {{icon: string}} The glyph file, shared with the Explore minimap (PlaceCategoryIcons).
+   * @returns {{icon: string}} The glyph file, from the shared PlaceCategoryIcons.
    */
   static presentation(category) {
     return { icon: PlaceCategoryIcons.file(category) };
@@ -369,7 +367,13 @@ class AccessScorePlacesLayer {
     }));
   }
 
-  /** One source + symbol layer for a category, gated at the category's zoom and named from `NAME_ZOOM`. */
+  /**
+   * One source + symbol layer for a category, named from `NAME_ZOOM`. No zoom gate: every category starts off, so one
+   * that is on was asked for, and a reader who ticks "Transit stops" at city scale should see stops, not an empty map.
+   * Collision detection keeps a crowded category to what fits.
+   * @param {string} category - A category id.
+   * @returns {string} The layer's id, which is also its source's.
+   */
   #addLayer(category) {
     const id = AccessScorePlacesLayer.#layerId(category);
     this.#map.addSource(id, {

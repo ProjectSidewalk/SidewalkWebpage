@@ -5,7 +5,8 @@ package models.place
  *
  * @param key       The OSM tag key, e.g. `amenity`.
  * @param values    The values that put an object in the category, e.g. `school`, `kindergarten`.
- * @param qualifier A second test the object must also pass, for a tag too broad on its own.
+ * @param qualifier A second test the object must also pass, for a tag too broad on its own. One level
+ *                  deep: the API docs' category table prints no deeper.
  */
 final case class OsmTagRule(key: String, values: Set[String], qualifier: Option[OsmTagRule] = None) {
 
@@ -69,22 +70,23 @@ object PlaceCategory {
   val Park: PlaceCategory      = PlaceCategory("park", Seq(OsmTagRule("leisure", Set("park", "playground"))))
   val Community: PlaceCategory =
     PlaceCategory("community", Seq(OsmTagRule("amenity", Set("community_centre", "social_facility"))))
-  val Government: PlaceCategory = PlaceCategory(
-    "government",
-    Seq(
-      OsmTagRule("amenity", Set("townhall", "courthouse")),
-      OsmTagRule("office", Set("government"), Some(OsmTagRule("government", PublicFacingGovernment)))
-    )
-  )
 
   /**
    * The `government=*` values of offices people visit in person. Bare `office=government` in Seattle's OSM (2026-09-22)
    * also tagged a radar site, a detention center, and maintenance yards, so untagged offices are dropped with them.
    * `transportation` is left out for the same reason, though it costs us the motor-vehicle offices tagged with it.
    */
-  private lazy val PublicFacingGovernment: Set[String] = Set(
+  private val PublicFacingGovernment: Set[String] = Set(
     "administrative", "cadaster", "housing", "legislative", "migration", "passport", "pension_fund", "public_service",
     "register_office", "social_security", "social_services", "social_welfare", "tax"
+  )
+
+  val Government: PlaceCategory = PlaceCategory(
+    "government",
+    Seq(
+      OsmTagRule("amenity", Set("townhall", "courthouse")),
+      OsmTagRule("office", Set("government"), Some(OsmTagRule("government", PublicFacingGovernment)))
+    )
   )
 
   /** Every category, in display and precedence order. */

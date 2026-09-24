@@ -145,7 +145,7 @@
   "type-short-signal": "Semáforo",
   "type-short-no-sidewalk": "Sin banqueta",
   "places": "Lugares",
-  "places-help": "Escuelas, centros de salud, bibliotecas, supermercados, paradas de transporte, parques, centros comunitarios y oficinas de gobierno, de OpenStreetMap, para leer una puntuación según adónde necesita ir la gente. Las escuelas, los centros de salud y las bibliotecas se ven a escala de ciudad; el resto al acercar a nivel de calle. Haz clic en un lugar para ver la puntuación de la calle donde está.",
+  "places-help": "Escuelas, centros de salud, bibliotecas, supermercados, paradas de transporte, parques, centros comunitarios y oficinas de gobierno, de OpenStreetMap, para leer una puntuación según adónde necesita ir la gente. Haz clic en un lugar para ver la puntuación de la calle donde está.",
   "place-school": "Escuelas",
   "place-health": "Centros de salud",
   "place-library": "Bibliotecas",

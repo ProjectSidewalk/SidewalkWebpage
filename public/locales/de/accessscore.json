@@ -145,7 +145,7 @@
   "type-short-signal": "Signal",
   "type-short-no-sidewalk": "Kein Trottoir",
   "places": "Orte",
-  "places-help": "Schulen, Gesundheitsversorgung, Bibliotheken, Lebensmittelgeschäfte, Haltestellen, Parks, Gemeindezentren und Behörden aus OpenStreetMap, damit ein Wert daran gemessen werden kann, wohin Menschen müssen. Schulen, Gesundheitsversorgung und Bibliotheken erscheinen auf Stadtebene, der Rest beim Hineinzoomen auf Straßenebene. Klicken Sie auf einen Ort, um den Wert der Straße zu sehen, an der er liegt.",
+  "places-help": "Schulen, Gesundheitsversorgung, Bibliotheken, Lebensmittelgeschäfte, Haltestellen, Parks, Gemeindezentren und Behörden aus OpenStreetMap, damit ein Wert daran gemessen werden kann, wohin Menschen müssen. Klicken Sie auf einen Ort, um den Wert der Straße zu sehen, an der er liegt.",
   "place-school": "Schulen",
   "place-health": "Gesundheitsversorgung",
   "place-library": "Bibliotheken",

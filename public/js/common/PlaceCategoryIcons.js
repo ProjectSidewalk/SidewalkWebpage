@@ -25,6 +25,9 @@ class PlaceCategoryIcons {
    * @returns {string} The glyph's file name under `images/icons/`.
    */
   static file(category) {
-    return PlaceCategoryIcons.#FILES[category] ?? PlaceCategoryIcons.DEFAULT_FILE;
+    // Own keys only, so an id like `constructor` gets the pin rather than a property of Object.prototype.
+    return Object.hasOwn(PlaceCategoryIcons.#FILES, category)
+      ? PlaceCategoryIcons.#FILES[category]
+      : PlaceCategoryIcons.DEFAULT_FILE;
   }
 }

@@ -145,7 +145,7 @@
   "type-short-signal": "Sinal",
   "type-short-no-sidewalk": "Sem calçada",
   "places": "Lugares",
-  "places-help": "Escolas, serviços de saúde, bibliotecas, mercados, pontos de transporte, parques, centros comunitários e órgãos públicos, do OpenStreetMap, para ler uma pontuação em relação a onde as pessoas precisam ir. Escolas, serviços de saúde e bibliotecas aparecem na escala da cidade; o resto ao aproximar até o nível da rua. Clique em um lugar para ver a pontuação da rua onde ele fica.",
+  "places-help": "Escolas, serviços de saúde, bibliotecas, mercados, pontos de transporte, parques, centros comunitários e órgãos públicos, do OpenStreetMap, para ler uma pontuação em relação a onde as pessoas precisam ir. Clique em um lugar para ver a pontuação da rua onde ele fica.",
   "place-school": "Escolas",
   "place-health": "Saúde",
   "place-library": "Bibliotecas",

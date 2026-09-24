@@ -138,6 +138,13 @@ describe('AccessScorePlacesLayer', () => {
         expect(map.layers.get('acs-places-skatepark').layout['icon-image'][1]).toBe('acs-place-skatepark-');
     });
 
+    test('gives a category id that names an Object.prototype property the plain pin too', () => {
+        for (const id of ['constructor', 'toString', '__proto__']) {
+            expect(window.PlaceCategoryIcons.file(id)).toBe(window.PlaceCategoryIcons.DEFAULT_FILE);
+        }
+        expect(window.PlaceCategoryIcons.file('government')).toBe('landmark-white-lucide.svg');
+    });
+
     test('buffers data given before the icons are ready, then splits it by category', async () => {
         const { map, layer } = mount();
         const data = { type: 'FeatureCollection', features: [
