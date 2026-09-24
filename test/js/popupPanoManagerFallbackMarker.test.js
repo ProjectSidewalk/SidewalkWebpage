@@ -15,6 +15,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { installUtilitiesMisc } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const JQUERY_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8');
@@ -55,6 +56,8 @@ describe('PopupPanoManager fallback marker', () => {
             isMobile: () => false,
             misc: { getIconImagePaths: () => ({ iconImagePath: 'icon.png' }), getLabelColors: () => '#000' },
         };
+        // The real util.misc, so the labelMarkerFraction the fallback places by is the shipped one.
+        installUtilitiesMisc();
         window.i18next = { t: (k) => k };
         window.createPanoViewerLogo = () => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() });
         window.createPanoAttribution = () => ({ show: jest.fn(), hide: jest.fn() });

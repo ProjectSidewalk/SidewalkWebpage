@@ -3,8 +3,8 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.api.{SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
 import models.label.StreetSide
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.utils.{FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -234,7 +234,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
       INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
-      WHERE street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+      WHERE ${FilteredTables.notTutorialStreet("street_edge.street_edge_id")}
         $bboxFilter
         $regionIdFilter
         $regionNameFilter
@@ -302,8 +302,7 @@ object SidewalkPresenceTable {
    * Labels *and* audits from `user_stat.excluded` contributors are dropped, the population [[models.label.LabelTable.labels]]
    * serves everywhere else. It has to be both: dropping only their labels would leave their audit behind, and an audit with no labels
    * is exactly what calls a face `present` — a banned contributor would flip the very faces they mislabeled.
-   * `COALESCE(..., FALSE)` rather than an inner join so a row with no `user_stat` yet still counts (prod has none,
-   * but a spec's seeded user does).
+   * Hand-written, not `FilteredTables`, because it must match evolution 388 exactly.
    */
   val derivationSql: String =
     """WITH face AS (

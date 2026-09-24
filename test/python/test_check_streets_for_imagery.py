@@ -1,5 +1,5 @@
 """
-Unit tests for scripts/check_streets_for_imagery.py.
+Unit tests for tools/city/check_streets_for_imagery.py.
 
 Covers the pure helpers (bounding box, vertex interpolation, response parsers, capture-date parsing, Mapillary
 pano ranking, decision thresholds), the retry/fetch and per-street worker (including imagery-age capture), the
@@ -800,11 +800,11 @@ def test_rate_limiter_throttles_when_depleted():
 
 
 def _street(line, street_edge_id=100, region_id=1):
-    """A street row as main builds it: endpoints from the line, geom redistributed so the walk has interior points."""
+    """A street row as main builds it: endpoints from the line, and the redistributed copy the walk samples."""
     x1, y1 = line.coords[0]
     x2, y2 = line.coords[-1]
-    return pd.Series({'street_edge_id': street_edge_id, 'region_id': region_id,
-                      'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'geom': cs.redistribute_vertices(line)})
+    return pd.Series({'street_edge_id': street_edge_id, 'region_id': region_id, 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
+                      'geom': line, 'sample_geom': cs.redistribute_vertices(line)})
 
 
 def _run_process(line, api, fetch):
@@ -996,10 +996,11 @@ def test_process_street_point_error_is_failed():
 # --------------------------------------------------------------------------------------------------------------------
 
 
-def _checkpoint_at(path, outcomes, radius_m=25.0):
-    """Writes a current-schema checkpoint holding one row per outcome, every row checked at ``radius_m``."""
+def _checkpoint_at(path, outcomes, radius_m=25.0, limit_m=0.0):
+    """Writes a current-schema checkpoint holding one row per outcome, each checked at ``radius_m`` and ``limit_m``."""
     for street_edge_id, outcome in enumerate(outcomes, start=1):
-        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, outcome, None, None, 0, None, radius_m), str(path))
+        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, outcome, None, None, 0, None, radius_m, limit_m),
+                            str(path))
 
 
 def test_load_processed_no_file(tmp_path):
@@ -1026,7 +1027,7 @@ def test_load_processed_refuses_a_checkpoint_from_another_radius(tmp_path, radii
     # Resuming across a radius change would mix two definitions of "has imagery" into one set of outputs.
     checkpoint = tmp_path / 'cp.csv'
     for street_edge_id, radius in enumerate(radii, start=1):
-        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, cs.HAS_IMAGERY, None, None, 0, None, radius),
+        cs.append_checkpoint(cs.StreetResult(street_edge_id, 1, cs.HAS_IMAGERY, None, None, 0, None, radius, 0.0),
                              str(checkpoint))
     with pytest.raises(cs.CheckpointMismatchError, match='search radius'):
         cs.load_processed(str(checkpoint), 25)
@@ -1034,8 +1035,9 @@ def test_load_processed_refuses_a_checkpoint_from_another_radius(tmp_path, radii
 
 def test_append_checkpoint_writes_header_then_appends(tmp_path):
     checkpoint = str(tmp_path / 'cp.csv')
-    cs.append_checkpoint(cs.StreetResult(1, 10, cs.NO_IMAGERY, None, None, 0, None, 25.0), checkpoint)
-    cs.append_checkpoint(cs.StreetResult(2, 20, cs.HAS_IMAGERY, '2019-06-01', '2020-01-01', 5, 3.4, 25.0), checkpoint)
+    cs.append_checkpoint(cs.StreetResult(1, 10, cs.NO_IMAGERY, None, None, 0, None, 25.0, 15.0), checkpoint)
+    cs.append_checkpoint(cs.StreetResult(2, 20, cs.HAS_IMAGERY, '2019-06-01', '2020-01-01', 5, 3.4, 25.0, 15.0),
+                         checkpoint)
     written = pd.read_csv(checkpoint)
     assert list(written.columns) == cs.CHECKPOINT_COLUMNS
     assert written['street_edge_id'].tolist() == [1, 2]
@@ -1043,6 +1045,7 @@ def test_append_checkpoint_writes_header_then_appends(tmp_path):
     assert written['n_panos'].tolist() == [0, 5]
     assert written['max_cross_track_m'].tolist() == [pytest.approx(float('nan'), nan_ok=True), 3.4]
     assert written['search_radius_m'].tolist() == [25.0, 25.0]
+    assert written['cross_track_limit_m'].tolist() == [15.0, 15.0]
 
 
 def test_write_ids_csv_coerces_to_int(tmp_path):
@@ -1054,8 +1057,10 @@ def test_write_ids_csv_coerces_to_int(tmp_path):
 
 
 def _settled_checkpoint(rows):
-    """Build a checkpoint DataFrame from row tuples, padding omitted columns with None and the radius with 25 m."""
-    padded = [tuple(row) + (None,) * (len(cs.CHECKPOINT_COLUMNS) - 1 - len(row)) + (25.0,) for row in rows]
+    """Build a checkpoint DataFrame from row tuples, padding omitted columns with None, the radius with 25 m and the
+    cross-track limit with the default a GSV run applies."""
+    padded = [tuple(row) + (None,) * (len(cs.CHECKPOINT_COLUMNS) - 2 - len(row))
+              + (25.0, cs.DEFAULT_CROSS_TRACK_LIMIT_M) for row in rows]
     return pd.DataFrame(padded, columns=cs.CHECKPOINT_COLUMNS)
 
 
@@ -1439,7 +1444,8 @@ def test_main_keyboard_interrupt_finalizes_and_returns_1(monkeypatch, tmp_path):
 
 
 def _summary_frame(rows):
-    return pd.DataFrame(rows, columns=cs.SUMMARY_COLUMNS)
+    """A summary frame from rows that leave out the trailing cross-track limit (irrelevant to a preflight)."""
+    return pd.DataFrame([tuple(row) + (15.0,) for row in rows], columns=cs.SUMMARY_COLUMNS)
 
 
 def test_preflight_summary_aggregates_coverage_and_newest_captures():
@@ -1578,3 +1584,338 @@ def test_main_rejects_a_non_positive_sample_and_a_malformed_city_id():
     with pytest.raises(SystemExit):
         cs.main(['--city-id', '../etc', '--gsv'])
     assert cs.valid_city_id('newport-ky') == 'newport-ky'
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Cross-track limit and the per-point log (#5091 step 2)
+# --------------------------------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize('info, offset, limit, expected', [
+    (cs.PanoInfo(False, None), None, 15.0, False),
+    (cs.PanoInfo(True, None, 47.6, -122.3), 14.9, 15.0, True),
+    (cs.PanoInfo(True, None, 47.6, -122.3), 15.0, 15.0, True),
+    (cs.PanoInfo(True, None, 47.6, -122.3), 15.1, 15.0, False),
+    (cs.PanoInfo(True, None, 47.6, -122.3), 80.0, None, True),
+    # No position to measure, so nothing to reject it on.
+    (cs.PanoInfo(True, None), None, 15.0, True),
+])
+def test_pano_counts(info, offset, limit, expected):
+    assert cs.pano_counts(info, offset, limit) is expected
+
+
+@pytest.mark.parametrize('endpoint_m, expected', [(None, False), (cs.INTERSECTION_ZONE_M, True),
+                                                  (cs.INTERSECTION_ZONE_M + 0.1, False)])
+def test_pano_counts_gives_an_endpoint_querys_answer_the_intersection_disc(endpoint_m, expected):
+    # None is a mid-street point: held to the limit however close to an end its pano is.
+    assert cs.pano_counts(cs.PanoInfo(True, None, 47.6, -122.3), 20.0, 15.0, endpoint_m) is expected
+
+
+def test_endpoint_distance_m_is_the_distance_to_the_nearer_endpoint_in_any_direction():
+    # _LINE_60 runs ~75 m due east from (_LAT, _LNG): 9 m north of its western end is 9 m from that end.
+    assert cs.endpoint_distance_m(_LINE_60, _lat_north_of_origin(9), _LNG) == pytest.approx(9, abs=0.05)
+    assert cs.endpoint_distance_m(_LINE_60, 47.60, -122.2995) == pytest.approx(37.5, abs=0.5)  # mid-street
+
+
+def _run_process_limited(fetch, limit, points=None):
+    return cs.process_street(_street(_LINE_60), 'GSV', fetch, 'gsv&radius=25', 'mapillary',
+                             cross_track_limit_m=limit, points=points)
+
+
+def test_process_street_limit_hides_a_street_seen_only_from_beside_it():
+    # Every point is answered by a pano 20 m to the north: inside the radius, so imagery with no limit, but beside the
+    # street rather than on it. Mid-street that fails a 15 m limit; at the two endpoints the same pano is inside the
+    # intersection disc and counts, and the street is still hidden because its middle has no imagery of it.
+    beside = lambda url: _gsv_pano_north_of_query(url, 20)  # noqa: E731
+    assert _run_process_limited(beside, None).outcome == cs.HAS_IMAGERY
+    points = []
+    result = _run_process_limited(beside, 15.0, points)
+    assert result.outcome == cs.NO_IMAGERY
+    assert result.cross_track_limit_m == 15.0
+    assert [(p.is_endpoint, p.counted) for p in points[:3]] == [(True, True), (True, True), (False, False)]
+    # The rejected panos still show in the offset (it's the evidence of what the limit rejected), but their dates say
+    # nothing about this street's imagery.
+    assert result.max_cross_track_m == pytest.approx(20, abs=0.1)
+    assert result.n_panos == 2
+
+
+def test_process_street_without_a_limit_records_zero():
+    result = _run_process_limited(lambda url: {'status': 'OK'}, None)
+    assert result.cross_track_limit_m == 0.0
+
+
+def test_process_street_logs_each_visited_point_once():
+    urls, points = [], []
+
+    def fetch(url):
+        urls.append(url)
+        return _gsv_pano_north_of_query(url, 3)
+
+    result = _run_process_limited(fetch, 15.0, points)
+    assert result.outcome == cs.HAS_IMAGERY
+    # One row per request: the walk reuses the endpoints' answers rather than logging them again.
+    assert len(points) == len(urls)
+    first = points[0]
+    assert (first.street_edge_id, first.lat, first.lng) == (100, 47.60, -122.300)
+    assert first.has_imagery and first.counted
+    assert first.point_distance_m == pytest.approx(3, abs=0.05)
+    assert first.cross_track_m == pytest.approx(3, abs=0.05)
+    assert first.capture_date == '2021-07-15'
+
+
+def test_process_street_logs_a_point_without_imagery_with_no_position():
+    points = []
+    _run_process_limited(lambda url: {'status': 'ZERO_RESULTS'}, 15.0, points)
+    assert [(p.has_imagery, p.pano_lat, p.point_distance_m, p.cross_track_m, p.counted) for p in points] == [
+        (False, None, None, None, False)] * 2
+
+
+def test_load_processed_refuses_a_checkpoint_from_another_cross_track_limit(tmp_path):
+    checkpoint = tmp_path / 'cp.csv'
+    _checkpoint_at(checkpoint, [cs.HAS_IMAGERY], limit_m=0.0)
+    assert cs.load_processed(str(checkpoint), 25, 0.0) == {1}
+    with pytest.raises(cs.CheckpointMismatchError, match='cross-track limit of 0 m, not 15 m'):
+        cs.load_processed(str(checkpoint), 25, 15.0)
+
+
+def test_append_point_log_writes_header_then_appends(tmp_path):
+    log = str(tmp_path / 'points.csv')
+    record = cs.PointRecord(1, 47.6, -122.3, False, True, 47.6001, -122.3, 11.1, 11.1, None, True, '2021-07-15', 25.0,
+                            15.0)
+    cs.append_point_log([record], log)
+    cs.append_point_log([record._replace(street_edge_id=2), record._replace(street_edge_id=3)], log)
+    written = pd.read_csv(log)
+    assert list(written.columns) == cs.POINT_COLUMNS
+    assert written['street_edge_id'].tolist() == [1, 2, 3]
+
+
+def test_main_applies_the_default_limit_to_gsv(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)])
+    off_by = cs.DEFAULT_CROSS_TRACK_LIMIT_M + 3
+    monkeypatch.setattr(cs, '_get_json', lambda url: _gsv_pano_north_of_query(url, off_by))
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
+    assert _output(tmp_path)['street_edge_id'].tolist() == [200]
+    checkpoint = pd.read_csv(tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv'))
+    assert checkpoint['cross_track_limit_m'].tolist() == [cs.DEFAULT_CROSS_TRACK_LIMIT_M]
+
+
+def test_main_limit_of_zero_turns_it_off(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: _gsv_pano_north_of_query(url, 20))
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-cross-track-m', '0', '--max-qps', '1000']) == 0
+    assert _output(tmp_path).empty
+
+
+def test_main_limit_does_not_apply_to_other_providers(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='MAPILLARY_ACCESS_TOKEN')
+    monkeypatch.setattr(cs, '_get_json', lambda url: {'data': [_image(lat=_lat_north_of_origin(20))]})
+    assert cs.main(['--city-id', _CITY, '--mapillary', '--max-qps', '1000']) == 0
+    assert _output(tmp_path).empty
+    checkpoint = pd.read_csv(tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'mapillary'))
+    assert checkpoint['cross_track_limit_m'].tolist() == [0.0]
+
+
+def test_main_rejects_a_negative_limit():
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', _CITY, '--gsv', '--max-cross-track-m', '-1'])
+
+
+def test_main_point_log_records_settled_streets_only(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
+    monkeypatch.setattr(cs.time, 'sleep', lambda *_a: None)
+
+    def fetch(url):
+        if '47.6,' in url:  # Street 100 never answers, so it fails, and its partial walk is not logged.
+            raise requests.exceptions.ConnectionError('down')
+        return _gsv_pano_north_of_query(url, 2)
+
+    monkeypatch.setattr(cs, '_get_json', fetch)
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-qps', '1000']) == 0
+    log = pd.read_csv(tmp_path / cs.POINT_LOG_FILE.format(_CITY, 'gsv'))
+    assert set(log['street_edge_id']) == {200}
+    assert log['counted'].all()
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# Street geometry the cross-track test has to get right
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def _offset(lat, lng, east_m=0.0, north_m=0.0):
+    """(lng, lat) of the point east_m east and north_m north of (lat, lng), for building streets in metres."""
+    point = GeoPoint(lat, lng)
+    if east_m:
+        point = geodesic(meters=abs(east_m)).destination(point, bearing=90 if east_m > 0 else 270)
+    if north_m:
+        point = geodesic(meters=abs(north_m)).destination(point, bearing=0 if north_m > 0 else 180)
+    return point.longitude, point.latitude
+
+
+# An L-shaped street: 40 m east from the origin, then 40 m north. Its corner is a real vertex.
+_CORNER = _offset(_LAT, _LNG, east_m=40)
+_L_STREET = LineString([(_LNG, _LAT), _CORNER, _offset(_LAT, _LNG, east_m=40, north_m=40)])
+
+
+def test_cross_track_m_follows_every_segment_of_a_bent_street():
+    # Beside the second leg, 6 m east of it: its nearest point is on that leg, not on the first.
+    lng, lat = _offset(_LAT, _LNG, east_m=46, north_m=20)
+    assert cs.cross_track_m(_L_STREET, lat, lng) == pytest.approx(6, abs=0.1)
+    corner_lng, corner_lat = _CORNER
+    assert cs.cross_track_m(_L_STREET, corner_lat, corner_lng) == pytest.approx(0, abs=0.01)
+
+
+def test_the_resampled_line_cuts_the_corner_the_stored_one_keeps():
+    # Why distances are measured from the stored geometry: redistribute_vertices' chords miss the real corner.
+    corner_lng, corner_lat = _CORNER
+    assert cs.cross_track_m(cs.redistribute_vertices(_L_STREET), corner_lat, corner_lng) > 1
+
+
+def test_cross_track_m_past_an_end_does_not_depend_on_the_last_segments_direction():
+    # A street whose last 3 m jogs north: a pano 20 m past its eastern end reads 20 m from that end either way.
+    straight = LineString([(_LNG, _LAT), _offset(_LAT, _LNG, east_m=60)])
+    jogged = LineString([(_LNG, _LAT), _offset(_LAT, _LNG, east_m=57), _offset(_LAT, _LNG, east_m=60, north_m=3)])
+    for street in (straight, jogged):
+        end_lng, end_lat = street.coords[-1]
+        lng, lat = _offset(end_lat, end_lng, east_m=20)
+        assert cs.cross_track_m(street, lat, lng) == pytest.approx(20, abs=0.1)
+
+
+def _gsv_pano_at(lng, lat):
+    return {'status': 'OK', 'date': '2021-07-15', 'location': {'lat': lat, 'lng': lng}}
+
+
+def test_process_street_measures_a_bend_from_the_stored_geometry():
+    # Every point is answered by the pano on the real corner: 0 m off the street, but metres off the resampled chord.
+    result = cs.process_street(_street(_L_STREET), 'GSV', lambda url: _gsv_pano_at(*_CORNER), 'gsv&radius=25',
+                               'mapillary', cross_track_limit_m=0.5)
+    assert result.outcome == cs.HAS_IMAGERY
+    assert result.max_cross_track_m == pytest.approx(0, abs=0.01)
+
+
+def test_process_street_counts_a_pano_on_the_crossing_street_at_an_endpoint():
+    # The eastern end's nearest pano is up the crossing street, over the limit but inside the intersection zone; the
+    # rest of the street has on-street imagery. Without the zone that one endpoint would tighten the verdict.
+    east = _LINE_60.coords[-1]
+    crossing_lng, crossing_lat = _offset(east[1], east[0], north_m=cs.INTERSECTION_ZONE_M - 1)
+
+    def fetch(url):
+        lat, lng = (float(v) for v in url.split('&location=')[1].split(','))
+        if math.isclose(lng, east[0]) and math.isclose(lat, east[1]):
+            return _gsv_pano_at(crossing_lng, crossing_lat)
+        return _gsv_pano_north_of_query(url, 1)
+
+    points = []
+    result = cs.process_street(_street(_LINE_60), 'GSV', fetch, 'gsv&radius=25', 'mapillary',
+                               cross_track_limit_m=cs.INTERSECTION_ZONE_M - 2, points=points)
+    assert result.outcome == cs.HAS_IMAGERY
+    assert points[1].is_endpoint and points[1].counted
+    assert points[1].endpoint_distance_m == pytest.approx(cs.INTERSECTION_ZONE_M - 1, abs=0.05)
+
+
+def test_process_street_holds_a_short_street_to_the_limit_away_from_its_ends():
+    # An 18 m street seen only from a pano 24 m off its middle: within the search radius of the street, but 25.6 m from
+    # either endpoint, so outside the intersection discs too. The whole street is near its ends; the pano is not.
+    short = LineString([(_LNG, _LAT), _offset(_LAT, _LNG, east_m=18)])
+    beside = _offset(_LAT, _LNG, east_m=9, north_m=24)
+    result = cs.process_street(_street(short), 'GSV', lambda url: _gsv_pano_at(*beside), 'gsv&radius=25',
+                               'mapillary', cross_track_limit_m=15.0)
+    assert result.outcome == cs.NO_IMAGERY
+    assert cs.process_street(_street(short), 'GSV', lambda url: _gsv_pano_at(*beside), 'gsv&radius=25',
+                             'mapillary').outcome == cs.HAS_IMAGERY
+
+
+def test_process_street_holds_a_mid_street_point_to_the_limit_even_beside_an_end():
+    # A pano beside the street 5 m in from its eastern end, 18 m off: a mid-street query answered with it is held to
+    # the limit even though it is inside the eastern endpoint's disc -- the disc belongs to the endpoint's own answer.
+    east_lng, east_lat = _LINE_60.coords[-1]
+    beside = _offset(east_lat, east_lng, east_m=-5, north_m=18)
+    points = []
+
+    def fetch(url):
+        lat, lng = (float(v) for v in url.split('&location=')[1].split(','))
+        is_endpoint = any(math.isclose(lng, x) and math.isclose(lat, y) for x, y in (_LINE_60.coords[0],
+                                                                                   _LINE_60.coords[-1]))
+        return _gsv_pano_north_of_query(url, 1) if is_endpoint else _gsv_pano_at(*beside)
+
+    cs.process_street(_street(_LINE_60), 'GSV', fetch, 'gsv&radius=25', 'mapillary', cross_track_limit_m=15.0,
+                      points=points)
+    mid = [p for p in points if not p.is_endpoint and p.pano_lat == beside[1]]
+    assert mid and not any(p.counted for p in mid)
+
+
+# --------------------------------------------------------------------------------------------------------------------
+# The point log across runs
+# --------------------------------------------------------------------------------------------------------------------
+
+
+def _point_log(tmp_path):
+    return tmp_path / cs.POINT_LOG_FILE.format(_CITY, 'gsv')
+
+
+def test_main_fresh_scan_replaces_an_old_point_log(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(200, 1, _LINE_61)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: _gsv_pano_north_of_query(url, 2))
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-qps', '1000']) == 0
+    first = pd.read_csv(_point_log(tmp_path))
+    # The README's recipe for a rerun at another limit: move the checkpoint aside, keep everything else.
+    (tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv')).unlink()
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-cross-track-m', '0', '--max-qps', '1000']) == 0
+    second = pd.read_csv(_point_log(tmp_path))
+    assert len(second) == len(first)
+    assert second['cross_track_limit_m'].tolist() == [0.0] * len(second)
+
+
+def test_main_resume_keeps_only_the_settled_streets_rows(monkeypatch, tmp_path):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: _gsv_pano_north_of_query(url, 2))
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-qps', '1000']) == 0
+    # Simulate a crash after street 200's rows were logged but before its checkpoint row was written.
+    checkpoint = tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'gsv')
+    rows = pd.read_csv(checkpoint)
+    rows[rows['street_edge_id'] == 100].to_csv(checkpoint, index=False)
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-qps', '1000']) == 0
+    log = pd.read_csv(_point_log(tmp_path))
+    per_street = log.groupby('street_edge_id').size()
+    assert per_street[200] == per_street[100]  # Street 200 was logged once, not twice.
+
+
+def test_main_refuses_to_resume_into_a_point_log_it_never_started(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: _gsv_pano_north_of_query(url, 2))
+    assert cs.main(['--city-id', _CITY, '--gsv', '--max-qps', '1000']) == 0
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-qps', '1000']) == 1
+    assert 'has to be on from the start of a scan' in capsys.readouterr().out
+
+
+def test_main_refuses_a_point_log_with_a_gap_from_a_resume_without_the_flag(monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60), (200, 1, _LINE_61)])
+    monkeypatch.setattr(cs, '_get_json', lambda url: _gsv_pano_north_of_query(url, 2))
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-qps', '1000']) == 0
+    # Drop street 200's rows, as if an interrupted logged run had been resumed without --point-log.
+    log = pd.read_csv(_point_log(tmp_path))
+    log[log['street_edge_id'] == 100].to_csv(_point_log(tmp_path), index=False)
+    assert cs.main(['--city-id', _CITY, '--gsv', '--point-log', '--max-qps', '1000']) == 1
+    assert 'has no rows for 1 streets' in capsys.readouterr().out
+    assert not os.path.exists(str(_point_log(tmp_path)) + '.tmp')
+
+
+def test_prepare_point_log_refuses_a_log_from_other_settings(tmp_path):
+    log = str(tmp_path / 'points.csv')
+    record = cs.PointRecord(1, 47.6, -122.3, False, True, 47.6001, -122.3, 11.1, 11.1, None, True, '2021-07-15', 25.0,
+                            15.0)
+    cs.append_point_log([record], log)
+    cs.prepare_point_log(log, {1}, 25.0, 15.0)  # Same settings: resumable.
+    with pytest.raises(cs.CheckpointMismatchError, match='other settings'):
+        cs.prepare_point_log(log, {1}, 25.0, 12.0)
+    pd.DataFrame({'street_edge_id': [1]}).to_csv(log, index=False)
+    with pytest.raises(cs.CheckpointMismatchError, match='other settings'):
+        cs.prepare_point_log(log, {1}, 25.0, 15.0)
+
+
+@pytest.mark.parametrize('flags', [['--mapillary', '--max-cross-track-m', '10'],
+                                   ['--gsv', '--max-cross-track-m', 'nan'],
+                                   ['--gsv', '--max-cross-track-m', 'inf']])
+def test_main_rejects_a_limit_it_cannot_apply(monkeypatch, flags):
+    monkeypatch.setenv('MAPILLARY_ACCESS_TOKEN', 'dummy')
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', _CITY, *flags])

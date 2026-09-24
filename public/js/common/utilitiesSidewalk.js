@@ -502,6 +502,25 @@ function UtilitiesMisc(JSON) {
   }
 
   /**
+   * Re-expresses a point given as fractions of an image as fractions of the box the image is cover-fitted into.
+   * Untouched when the aspects match, so a 3:2 image in a 3:2 box keeps its fractions bit for bit.
+   *
+   * @param {number} fracX - The point's x as a fraction of the image's width.
+   * @param {number} fracY - The point's y as a fraction of the image's height.
+   * @param {number} imageAspect - Width:height of the image.
+   * @param {number} boxAspect - Width:height of the box.
+   * @returns {{x: number, y: number}} Fractions of the box's width and height.
+   */
+  function fractionInCoverBox(fracX, fracY, imageAspect, boxAspect) {
+    if (imageAspect > boxAspect) {
+      // The image is wider than the box: only boxAspect / imageAspect of its width is visible, centered.
+      return { x: (fracX - 0.5) * (imageAspect / boxAspect) + 0.5, y: fracY };
+    }
+    if (imageAspect < boxAspect) return { x: fracX, y: (fracY - 0.5) * (boxAspect / imageAspect) + 0.5 };
+    return { x: fracX, y: fracY };
+  }
+
+  /**
    * Merges a tutorial state's own annotations with the ones carried over from earlier states, without duplicates.
    *
    * The carry-over list is rebuilt from this merged list on every draw, and a state is drawn many times over (once
@@ -699,28 +718,58 @@ function UtilitiesMisc(JSON) {
   }
 
   /**
-   * Where a label sits in the image a card is showing, as fractions of its width and height (#2660).
+   * Where a label sits in the image a card is showing, as fractions of its width and height (#2660), or of the box
+   * the image is cover-fitted into.
    *
    * A crop at `<crops>/<LabelType>/crop_<id>.png` is one of two things: the browser's snapshot of the Explore canvas,
    * in which the label is at its canvas fraction, or the window the crop job cut around the label, in which it is near
    * the center. Only a `label_crop` row tells them apart, so a crop without one falls back to the canvas fraction — as
    * does the Street View still, which reproduces the Explore frame and where the canvas fraction is already correct.
    *
+   * The canvas fraction is taken in the frame the label was placed in (#5085): the boxed 720x480 tool unless the
+   * payload says otherwise, the window's aspect in immersive mode. A still is 3:2 whatever the frame was and shares
+   * its width and horizontal field of view, so a frame of another aspect sits in it vertically centered. Card surfaces
+   * cover-fit the image into a fixed-aspect box, which trims a wider image's sides or a taller one's top and bottom;
+   * given `opts.boxAspect`, the fractions are re-expressed in the visible part, the identity for a 3:2 image in a 3:2
+   * box.
+   *
    * @param {string} imageSource - Which source is on screen: 'crop' or 'api'.
-   * @param {?{x: number, y: number}} cropMarker - The crop's recorded position, when one exists.
-   * @param {?number} canvasX - The label's x on the 720x480 labeling canvas.
+   * @param {?{x: number, y: number, width?: ?number, height?: ?number}} cropMarker - The crop's recorded position,
+   *   and its stored size, when a row exists.
+   * @param {?number} canvasX - The label's x on the labeling canvas.
    * @param {?number} canvasY - The label's y on that canvas.
-   * @returns {{x: number, y: number}} Fractions of the image's width and height.
+   * @param {object} [opts] - The frame and the box; omit both for a boxed-tool label and fractions of the image.
+   * @param {number} [opts.canvasWidth=720] - Width of the frame canvasX/canvasY are expressed in.
+   * @param {number} [opts.canvasHeight=480] - Height of that frame.
+   * @param {?number} [opts.boxAspect] - Width:height of the box the image is cover-fitted into.
+   * @returns {{x: number, y: number}} Fractions of the image's width and height, or of the box's when one is given.
    */
-  function labelMarkerFraction(imageSource, cropMarker, canvasX, canvasY) {
-    if (imageSource === 'crop' && cropMarker) return cropMarker;
+  function labelMarkerFraction(imageSource, cropMarker, canvasX, canvasY, opts = {}) {
+    const {
+      canvasWidth = util.EXPLORE_CANVAS_WIDTH, canvasHeight = util.EXPLORE_CANVAS_HEIGHT, boxAspect = null,
+    } = opts;
+    const frameAspect = canvasWidth / canvasHeight;
+    // A Street View still reproduces the boxed Explore frame, so it has that frame's aspect (#3095).
+    const stillAspect = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANVAS_HEIGHT;
     // Clamped to the image, as CropService.exploreFrameMarker clamps the fraction it records for the same frame: a
     // historic row can sit outside the canvas, and an unclamped fraction puts the marker off the card entirely.
     const clamp = (f) => Math.min(1, Math.max(0, f));
-    return {
-      x: typeof canvasX === 'number' ? clamp(canvasX / util.EXPLORE_CANVAS_WIDTH) : 0.5,
-      y: typeof canvasY === 'number' ? clamp(canvasY / util.EXPLORE_CANVAS_HEIGHT) : 0.5,
-    };
+    let x;
+    let y;
+    let imageAspect;
+    if (imageSource === 'crop' && cropMarker) {
+      ({ x, y } = cropMarker);
+      imageAspect = cropMarker.width > 0 && cropMarker.height > 0 ? cropMarker.width / cropMarker.height : frameAspect;
+    } else if (imageSource === 'crop') {
+      x = typeof canvasX === 'number' ? clamp(canvasX / canvasWidth) : 0.5;
+      y = typeof canvasY === 'number' ? clamp(canvasY / canvasHeight) : 0.5;
+      imageAspect = frameAspect;
+    } else {
+      x = typeof canvasX === 'number' ? clamp(canvasX / canvasWidth) : 0.5;
+      y = typeof canvasY === 'number' ? clamp(0.5 + (canvasY / canvasHeight - 0.5) * (stillAspect / frameAspect)) : 0.5;
+      imageAspect = stillAspect;
+    }
+    return boxAspect ? fractionInCoverBox(x, y, imageAspect, boxAspect) : { x, y };
   }
 
   self.labelMarkerFraction = labelMarkerFraction;

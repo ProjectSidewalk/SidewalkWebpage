@@ -190,7 +190,7 @@ class Onboarding {
    * @returns {Onboarding}
    */
   clear() {
-    if (this.#ctx) this.#ctx.clearRect(0, 0, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT);
+    if (this.#ctx) this.#ctx.clearRect(0, 0, svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height);
     return this;
   }
 
@@ -386,7 +386,7 @@ class Onboarding {
       imX = util.misc.unwrapPanoX(imX, currentPov.heading, svl.TUTORIAL_PANO_WIDTH);
       centeredPov = util.pano.horizonRelativeCoordToPov(imX, imY, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT);
       const canvasCoord = util.pano.centeredPovToCanvasCoord(
-        centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+        centeredPov, currentPov, svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height, svl.LABEL_ICON_RADIUS,
       ) || { x: null, y: null };
       const onCanvas = canvasCoord.x !== null;
 
@@ -503,7 +503,7 @@ class Onboarding {
 
     const coord = util.pano.centeredPovToCanvasCoord(
       centeredPov, this.#svl.panoViewer.getPov(),
-      util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, Infinity,
+      this.#svl.CANVAS_FRAME.width, this.#svl.CANVAS_FRAME.height, Infinity,
     );
     if (!coord) return null;
 
@@ -654,7 +654,7 @@ class Onboarding {
       imX, panoCoord.y, svl.TUTORIAL_PANO_WIDTH, svl.TUTORIAL_PANO_HEIGHT,
     );
     const canvasCoord = util.pano.centeredPovToCanvasCoord(
-      centeredPov, currentPov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+      centeredPov, currentPov, svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height, svl.LABEL_ICON_RADIUS,
     );
     if (!canvasCoord || canvasCoord.x === null) return; // Off-screen: keep the default top-left position.
 

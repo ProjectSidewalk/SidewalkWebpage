@@ -12,7 +12,7 @@ name: CI
 #   - e2e-smoke:       Playwright browser smoke tests (test/e2e/) against a staged app + the CI database. Loads each
 #                      core page in headless Chromium and fails on uncaught console/page errors (BLOCKING since
 #                      #5115); also carries the axe-core accessibility gate (a11y.spec.js, #5060), also BLOCKING.
-#   - python-tests:    pytest unit tests for the standalone scripts in scripts/. One leg per interpreter the web
+#   - python-tests:    pytest unit tests for the Python scripts in scripts/ and tools/. One leg per interpreter the web
 #                      container ships — 3.8 for the in-band script (BLOCKING), 3.13 for the offline tooling
 #                      (ADVISORY — it covers an operator utility that never runs on the server).
 # ESLint (JavaScript), Stylelint (CSS), and htmlhint (HTML) are all wired into the `frontend` job as blocking steps now
@@ -116,7 +116,7 @@ jobs:
       # overlays as override-only. Run locally with `make lint-locales`.
       - name: Locale checks (blocking)
         if: always()
-        run: node tools/check-locale-parity.mjs
+        run: node tools/lint/check-locale-parity.mjs
 
       # Blocking: the public/css/ layout (#5030) -- a page's stylesheet is linked only by that page, page class prefixes
       # stay in the page's own files, and every stylesheet a view links exists (a moved file is a 500 at render time,
@@ -124,7 +124,7 @@ jobs:
       # `make lint-css-layout`.
       - name: CSS layout (blocking)
         if: always()
-        run: node tools/check-css-layout.mjs
+        run: node tools/lint/check-css-layout.mjs
 
       # Blocking: asset URLs in public/js/ (#4893) -- no hardcoded '/assets/...' outside the tool's allowlist, and
       # every literal util.assetPath() argument names a real file in a family the digest manifest covers. Both halves
@@ -133,7 +133,7 @@ jobs:
       # `make lint-asset-paths`.
       - name: Asset paths (blocking)
         if: always()
-        run: node tools/check-asset-paths.mjs
+        run: node tools/lint/check-asset-paths.mjs
 
       # Blocking: the self-hosted libraries in public/vendor/ (#4399) are listed in docs/upgrading-libraries.md at
       # the versions in their filenames. No Dependabot ecosystem watches that folder (the npm one reads
@@ -141,13 +141,13 @@ jobs:
       # `make lint-vendor-versions`.
       - name: Vendor versions (blocking)
         if: always()
-        run: node tools/check-vendor-versions.mjs
+        run: node tools/lint/check-vendor-versions.mjs
 
       # Blocking: TypeScript checks public/js/ against its JSDoc types (#5278). `if: always()` so it reports even
       # when an earlier frontend step failed. Run locally with `make lint-js-types`.
       - name: JS types (blocking)
         if: always()
-        run: node tools/check-js-types.mjs
+        run: node tools/lint/check-js-types.mjs
 
       # Blocking: the jsdom unit suite (test/js/). Thin *coverage* is why there's no `coverageThreshold`
       # (jest.config.js says why); it is not a reason to let a suite that does exist go red.
@@ -186,7 +186,7 @@ jobs:
       # only the Python stdlib (no pip install). The faithful compiled-router counterpart is RouteReachabilitySpec (run
       # in backend-tests), which additionally covers routes contributed by any sub-router includes.
       - name: Check route reachability
-        run: python3 tools/check_route_reachability.py
+        run: python3 tools/lint/check_route_reachability.py
 
   backend-tests:
     name: Backend tests (API, PostGIS)
@@ -211,6 +211,7 @@ jobs:
       SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
       SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
       INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
+      SIDEWALK_AI_API_KEY: DUMMY_SIDEWALK_AI_API_KEY
       MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
       GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
       GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
@@ -354,6 +355,7 @@ jobs:
       SILHOUETTE_SIGNER_KEY: DUMMY_SILHOUETTE_SIGNER_KEY
       SILHOUETTE_CRYPTER_KEY: DUMMY_SILHOUETTE_CRYPTER_KEY
       INTERNAL_API_KEY: DUMMY_INTERNAL_API_KEY
+      SIDEWALK_AI_API_KEY: DUMMY_SIDEWALK_AI_API_KEY
       MAPBOX_API_KEY: DUMMY_MAPBOX_API_KEY
       GOOGLE_MAPS_API_KEY: DUMMY_GOOGLE_API_KEY
       GOOGLE_MAPS_SECRET: DUMMY_GOOGLE_SECRET
@@ -530,9 +532,9 @@ jobs:
             pytest-args: >-
               test/python --ignore=test/python/test_check_streets_for_imagery.py
               --ignore=test/python/test_onboard_city.py --ignore=test/python/test_street_gradient.py
-            coverage-omit: scripts/check_streets_for_imagery.py
-            coverage-omit-2: scripts/onboard_city.py
-            coverage-omit-3: scripts/street_gradient.py
+            coverage-omit: tools/city/check_streets_for_imagery.py
+            coverage-omit-2: tools/city/onboard_city.py
+            coverage-omit-3: tools/city/street_gradient.py
           - half: offline tooling
             advisory: true
             python: '3.13'

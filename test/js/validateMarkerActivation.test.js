@@ -65,6 +65,7 @@ describe('Validate pano marker activation', () => {
             pano: {
                 centeredPovToCanvasCoord2d: () => ({x: 0, y: 0}),
                 centeredPovToCanvasCoord: () => ({x: 0, y: 0}),
+                renderedHFov: () => 90,
             },
         };
         // jsdom has no WebGL, so PanoMarker takes its 2d projection fallback; where the marker lands is irrelevant

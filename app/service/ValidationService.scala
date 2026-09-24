@@ -141,7 +141,7 @@ class ValidationServiceImpl @Inject() (
 
   /**
    * Whether a vote goes into the label's counts: not the labeler's own, not from an excluded user, and cast on the
-   * type the label has now (#3671). Must match `LabelTable.recalculateValidationCounts`.
+   * type the label has now (#3671). Must match `FilteredTables.isVerdictVote`.
    */
   private def counts(vote: LabelValidation, label: Label, excludedUser: Boolean): Boolean =
     label.userId != vote.userId && !excludedUser && vote.labelType == label.labelType
@@ -266,8 +266,8 @@ class ValidationServiceImpl @Inject() (
         Seq(
           ValidationSubmission(
             LabelValidation(0, label.labelId, label.labelType, ValidationOption.Disagree, adminId, missionId,
-              Some(point.canvasX), Some(point.canvasY), point.heading, point.pitch, point.zoom,
-              LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, now, now, source, ViewerType.Default),
+              Some(point.canvasX), Some(point.canvasY), point.heading, point.pitch, point.zoom, point.canvasWidth,
+              point.canvasHeight, now, now, source, ViewerType.Default),
             newLabelType = None,
             label.severity,
             label.tags,

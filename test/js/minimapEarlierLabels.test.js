@@ -90,6 +90,8 @@ describe('Label minimap eras (#4945)', () => {
             missionContainer: { getCurrentMission: () => ({ getProperty: () => currentMissionId }) },
             contextMenu: { isOpen: () => false },
             LABEL_ICON_RADIUS: 10,
+            CANVAS_FRAME: { width: 720, height: 480 },
+            renderedHFov: () => 90,
             panoViewer: { getPov: () => ({ heading: 90, pitch: -10, zoom: 1 }) },
             tracker: { push: jest.fn() },
             storage: fakeStorage(),
@@ -108,7 +110,7 @@ describe('Label minimap eras (#4945)', () => {
                 getIconImagePaths: (t) => ({ iconImagePath: `/icons/${t}_small.svg` }),
                 labelTypeHasSeverity: () => false,
             },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }) },
+            pano: { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }), renderedHFov: () => 90 },
         };
         window.i18next = { t: (key, opts) => `${key}|${opts?.labelType ?? ''}` };
         // The icon raster and hover card are DOM/canvas work outside what these tests exercise.

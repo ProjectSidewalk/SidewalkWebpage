@@ -178,7 +178,7 @@ class StreetSideSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues
               .head
             geom = gf.createPoint(new Coordinate(coords._1, coords._2))
             labelPointId <- labelPointTable.insert(
-              LabelPoint(0, labelId.get, 0, 0, 0, 0, 0d, 0d, 1d, Some(geom.getY), Some(geom.getX), Some(geom),
+              LabelPoint(0, labelId.get, 0, 0, 0, 0, 720, 480, 0d, 0d, 1d, Some(geom.getY), Some(geom.getX), Some(geom),
                 Some(ComputationMethod.Approximation3), centerlineOffsetM = None, streetSide = None)
             )
             updated <- labelPointTable.computeCenterlineOffset(labelPointId, streetEdgeId)
@@ -209,7 +209,7 @@ class StreetSideSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues
 
     "refuse to insert a street_side, which only the database may set" in {
       an[IllegalArgumentException] must be thrownBy labelPointTable.insert(
-        LabelPoint(0, 1, 0, 0, 0, 0, 0d, 0d, 1d, None, None, None, None, centerlineOffsetM = None,
+        LabelPoint(0, 1, 0, 0, 0, 0, 720, 480, 0d, 0d, 1d, None, None, None, None, centerlineOffsetM = None,
           streetSide = Some(StreetSide.Left))
       )
     }

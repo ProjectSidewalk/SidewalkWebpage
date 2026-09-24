@@ -356,7 +356,7 @@ landing.ml.gif.explain.alt = GIF 解释了 Project Sidewalk 上的众包和机�
 landing.deployment.map.title = 探索其他城市
 landing.deployment.map.subtitle = 點擊下面的圓圈來探索其他 Project Sidewalk 城市！
 landing.partners.title = {0}的社群合作夥伴
-landing.partners.tagline = 我們在{0}的工作有賴這些出色的社群合作夥伴，包括：
+landing.partners.tagline = 我們在{0}的工作有賴這些社群合作夥伴，包括：
 landing.partners.official.contact = Project Sidewalk 是一項研究工具。如需回報問題或申請維修，請直接聯絡{0}。
 landing.partners.logo.alt = {0} 標誌
 landing.partners.created.by = 用 {0} 打造 Project Sidewalk 的團隊
@@ -626,6 +626,10 @@ gallery.all = 所有的標記類型
 gallery.labels.not.found = 無相符資料。 <a href="/explore">開始探索</a>以蒐集更多的資料！
 gallery.cards = 所有標記依據所選定的過濾器而隨機排序
 gallery.clear.filters = 清除過濾器
+gallery.list.count = 此清單中的 {0} 個標記
+gallery.list.truncated = 有 {0} 個 ID 超過 {1} 個的上限，因此未載入。
+gallery.list.error = 無法載入清單。請重新整理頁面再試一次。
+gallery.list.browse.all = 瀏覽所有標記
 
 routebuilder.name = 路線設立工具
 routebuilder.welcome = 歡迎使用路線設立工具

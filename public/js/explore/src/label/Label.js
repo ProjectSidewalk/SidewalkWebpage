@@ -38,6 +38,7 @@ class Label {
     missionId: undefined,
     labelType: undefined,
     originalCanvasXY: undefined,
+    originalCanvasFrame: undefined, // The logical frame originalCanvasXY is in (#5085); stored with the label.
     currCanvasXY: undefined,
     panoXY: undefined,
     originalPov: undefined,
@@ -312,7 +313,7 @@ class Label {
   /**
    * Renders this label on a canvas.
    * @param {CanvasRenderingContext2D} ctx
-   * @param {object} pov
+   * @param {{heading: number, pitch: number, zoom: number}} pov
    * @returns {Label} this.
    */
   render(ctx, pov) {
@@ -324,7 +325,7 @@ class Label {
       // Update the coordinates of the label on the canvas.
       this.#properties.currCanvasXY = util.pano.centeredPovToCanvasCoord(
         this.#properties.povOfLabelIfCentered, pov,
-        util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+        svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height, svl.LABEL_ICON_RADIUS, svl.renderedHFov(pov.zoom),
       );
 
       // Draw the label icon if it's in the visible part of the pano.
