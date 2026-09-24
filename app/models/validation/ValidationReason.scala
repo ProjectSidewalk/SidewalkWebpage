@@ -16,7 +16,7 @@ import play.api.libs.json.{JsObject, Json}
  * menu reorders and the same reason offered on two types (`not-pedestrian-path` on Obstacle and SurfaceProblem)
  * counts as one thing. The frontend's strings and tooltips are keyed by the same ids (`common:validation-reason.*`).
  *
- * NOTE: if changing these values, update the `validation_reason` Postgres enum type as well (405.sql), and the
+ * NOTE: if changing these values, update the `validation_reason` Postgres enum type as well (407.sql), and the
  * locale files that carry each id's text.
  */
 object ValidationReason extends Enumeration {
