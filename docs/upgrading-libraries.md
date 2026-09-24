@@ -199,12 +199,9 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **betterknown: 1.2.0** — [Download](https://unpkg.com/betterknown) ·
   [Versions](https://www.npmjs.com/package/betterknown?activeTab=versions) ·
   [Changelog](https://github.com/placemark/betterknown/releases)
-- **bootstrap: 3.3.5** — **note:** upgrading Bootstrap is a huge undertaking, deferred indefinitely — the goal is to
-  remove the dependency entirely (a slow, ongoing transition). (A separate copy of Bootstrap 3.1.1 ships inside the
-  `bootstrap-accessibility-plugin/` bundle below.)
-- **bootstrap-accessibility-plugin** (bundles Bootstrap 3.1.1 + jQuery 1.12.2) — accessibility patches for our
-  Bootstrap 3 UI; lives in `public/vendor/bootstrap-accessibility/` (with the bundled Bootstrap 3.1.1 JS and jQuery
-  1.12.2 split out into `public/vendor/bootstrap/` and `public/vendor/jquery/`). Tied to the Bootstrap-removal effort.
+- **bootstrap: 3.3.5** — CSS only; its JS components are gone (tooltips and popovers are `psTooltip.js` and the
+  native `popover` attribute, modals are `<dialog>`). **note:** never upgrade it — the rest of #4394 removes the CSS
+  too, page by page.
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)
@@ -289,6 +286,8 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   together. **Note:** each has a major out (6 / 6 / 7) that we haven't looked at.
   [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
   [Changelog](https://github.com/vega/vega-lite/releases)
+- **jquery: 1.12.2** — **note:** never upgrade it; #4394 removes it outright, so a call site is replaced with native
+  DOM / `fetch` rather than kept on a newer jQuery.
 - **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
 > **jQuery / Bootstrap removal:** several entries above (Bootstrap, magnific-popup, selectize) are part of

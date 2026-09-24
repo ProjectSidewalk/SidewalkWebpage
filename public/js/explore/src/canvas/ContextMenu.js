@@ -225,16 +225,12 @@ class ContextMenu {
 
     const $header = $('#severity-header-text');
     if ($header.length) $header.text(i18next.t(`common:${headerKey}`));
-    // data-original-title only, never title: Bootstrap moves title into data-original-title when it initializes the
-    // tooltip and blanks the attribute, so writing title back here restores the browser's own tooltip on top of
-    // Bootstrap's and both appear at once (#4731). The other info icons set title from Twirl, before that init, so
-    // they never hit this.
     const $info = $('#severity-header-info');
     // The alt rides along because it is this icon's accessible name, and the markup's static one says "severity"
     // whichever dimension is on screen.
     if ($info.length) {
       const info = i18next.t(`common:${infoKey}`);
-      $info.attr({ 'data-original-title': info, 'alt': info });
+      $info.attr({ 'data-ps-tooltip': info, 'alt': info });
     }
     for (let sev = 1; sev <= 3; sev++) {
       $(`.severity-button[data-severity="${sev}"] .severity-button__label`)
@@ -471,7 +467,7 @@ class ContextMenu {
             });
 
             // Remove old tooltip for that button.
-            this.#tagHolder.find(`button[id=${buttonIdx}]`).tooltip('destroy');
+            this.#tagHolder.find(`button[id=${buttonIdx}]`).removeAttr('data-ps-tooltip');
 
             // Add tooltip with tag example if we have an example image to show.
             // If there's a server-specific image, try that first. Get default image as a backup.
@@ -517,18 +513,8 @@ class ContextMenu {
               });
               const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`;
 
-              // Create the tooltip. 'auto top' flips it below the tag if it would clip the viewport top.
-              this.#tagHolder.find(`button[id=${buttonIdx}]`).tooltip(({
-                placement: 'auto top',
-                html: true,
-                delay: { show: 300, hide: 10 },
-                height: '130',
-                title: `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
-                container: 'body',
-                // Add template so we can attach a custom CSS class.
-                template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div>'
-                  + '<div class="tooltip-inner"></div></div>',
-              })).tooltip('show').tooltip('hide');
+              this.#tagHolder.find(`button[id=${buttonIdx}]`)
+                .attr('data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`);
             });
 
             count += 1;
@@ -561,17 +547,9 @@ class ContextMenu {
       util.getImage(util.assetPath(`images/examples/severity/${labelType}_Severity${sev}.png`)).then((img) => {
         const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
         const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`;
-        // 'auto top' flips the tooltip below the button if it would clip the viewport top.
-        $(`.severity-button[data-severity="${sev}"]`).tooltip({
-          placement: 'auto top', html: true, delay: { show: 300, hide: 10 },
-          // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
-          title: `${tooltipHeader}<br/><img class="context-menu-tooltip__img--severity" src="${img}"/><br/>`
-            + `${tooltipFooter}`,
-          container: 'body',
-          // Add template so we can attach a custom CSS class.
-          template: '<div class="tooltip context-menu-tooltip" role="tooltip"><div class="tooltip-arrow"></div>'
-            + '<div class="tooltip-inner"></div></div>',
-        });
+        // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
+        $(`.severity-button[data-severity="${sev}"]`).attr('data-ps-tooltip',
+          `${tooltipHeader}<br/><img class="context-menu-tooltip__img--severity" src="${img}"/><br/>${tooltipFooter}`);
       });
     }
   }
@@ -581,7 +559,7 @@ class ContextMenu {
    */
   #removePrevSeverityTooltips() {
     for (let severity = 1; severity < 4; severity++) {
-      $(`.severity-button[data-severity="${severity}"]`).tooltip('destroy');
+      $(`.severity-button[data-severity="${severity}"]`).removeAttr('data-ps-tooltip');
     }
   }
 

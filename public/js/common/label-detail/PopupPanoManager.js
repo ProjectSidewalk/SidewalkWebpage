@@ -590,9 +590,7 @@ class PopupPanoManager {
    */
   #attachAiIndicatorToMarker(panoMarker) {
     if (!panoMarker.marker_.querySelector('.admin-ai-icon-marker')) {
-      const indicator = aiLabelIndicator(['admin-ai-icon-marker']);
-      panoMarker.marker_.appendChild(indicator);
-      ensureAiTooltip(indicator);
+      panoMarker.marker_.appendChild(aiLabelIndicator(['admin-ai-icon-marker']));
     }
   }
 

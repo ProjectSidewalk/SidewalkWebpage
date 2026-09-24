@@ -5,7 +5,7 @@
  * the same approach anchorPanelToLabel.test.js takes. The stand-in models the page's global `box-sizing: border-box`
  * the way a browser does: a declared width is the pill's content box, and `outerWidth` adds the padding, border and
  * margins on top. That is enough to pin the things that matter here: the fitting arithmetic (which tags show whole,
- * which is ellipsized, which fall into the "+n" popover), that a pill is charged for its own chrome, that a narrow
+ * which is ellipsized, which fall into the "+n" tooltip), that a pill is charged for its own chrome, that a narrow
  * card still shows a tag rather than a bare "+n" (#5009), and that the measurements are read off pills this card
  * built rather than whatever the document happens to contain.
  */
@@ -46,7 +46,6 @@ function stubJQuery(widthOf) {
     const emptySet = {
         empty: () => emptySet,
         append: () => emptySet,
-        popover: () => emptySet,
         width: () => null,
         outerWidth: () => null,
         css: () => undefined,
@@ -80,10 +79,6 @@ function stubJQuery(widthOf) {
             }
             if (prop === 'marginLeft' || prop === 'marginRight') return `${TAG_MARGIN}px`;
             return '';
-        },
-        // The "+n" pill's Bootstrap popover; chained, so every call has to return the wrapper.
-        popover() {
-            return this;
         },
     });
     global.$ = wrap;
@@ -150,7 +145,7 @@ describe('TagDisplay', () => {
         expect(overflowPill(container)).toBeNull();
     });
 
-    it('moves the tags that do not fit into the "+n" popover', () => {
+    it('moves the tags that do not fit into the "+n" tooltip', () => {
         // 380px of room; the first two pills eat 332px of it, leaving too little for even a stub of a third.
         const {container} = render(['narrow', 'grass', 'uneven'], {narrow: 150, grass: 150, uneven: 150}, 380);
 
@@ -186,11 +181,14 @@ describe('TagDisplay', () => {
         expect(overflowPill(container)).toBe(' + 1');
     });
 
-    it('keeps the popover contents out of the card, marked as not shown', () => {
+    it('keeps the tooltip contents out of the card, marked as not shown', () => {
         const {container} = render(['narrow', 'grass', 'uneven'], {narrow: 150, grass: 150, uneven: 150}, 380);
 
         expect(container.querySelector('.not-added')).toBeNull();
         expect(overflowPill(container)).toBe(' + 1');
+        const tooltip = container.querySelector('.additional-count').getAttribute('data-ps-tooltip');
+        expect(tooltip).toContain('not-added');
+        expect(tooltip).toContain('uneven');
     });
 
     it('measures pills this card built, so the first card on a page fits like any other', () => {

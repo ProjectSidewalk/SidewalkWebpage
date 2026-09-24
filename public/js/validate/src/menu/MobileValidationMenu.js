@@ -209,7 +209,7 @@ class MobileValidationMenu {
         $reasonButton.html(buttonInfo.buttonText);
 
         // Remove any old tooltip (from a previous label type) and add a new tooltip.
-        $reasonButton.tooltip('destroy');
+        $reasonButton.removeAttr('data-ps-tooltip');
         if (buttonInfo.tooltipImage) {
           util.getImage(buttonInfo.tooltipImage).then((img) => {
             this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
@@ -262,7 +262,7 @@ class MobileValidationMenu {
   }
 
   /**
-   * Adds a jquery tooltip to the given element with the given text and image (if given).
+   * Adds a tooltip to the given element with the given text and image (if given).
    * @param {JQuery} $elem - Element to add the tooltip to, as jquery wrapped object.
    * @param {string} tooltipText - Text to display in the tooltip.
    * @param {string} [img] - Optional image to display in the tooltip.
@@ -270,14 +270,7 @@ class MobileValidationMenu {
   #addTooltip($elem, tooltipText, img) {
     // Add the tooltip only on non-touch devices.
     if (window.matchMedia('(hover: hover)').matches) {
-      const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" height="140"/>` : tooltipText;
-      $elem.tooltip(({
-        placement: 'top',
-        html: true,
-        container: 'body',
-        delay: { show: 500, hide: 10 },
-        title: tooltipHtml,
-      })).tooltip('show').tooltip('hide');
+      $elem.attr('data-ps-tooltip', img ? `${tooltipText}<br/><img src="${img}" height="140"/>` : tooltipText);
     }
   }
 

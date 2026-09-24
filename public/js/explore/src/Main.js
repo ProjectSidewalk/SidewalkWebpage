@@ -266,13 +266,6 @@ class Main {
       $('.tool-ui').css('opacity', 0.5);
     });
 
-    // Ribbon-button tooltip attributes are set in RibbonMenu (which owns those buttons); this just initializes them.
-    $('[data-toggle="tooltip"]').tooltip({
-      delay: { show: 500, hide: 100 },
-      html: true,
-      container: 'body',
-    });
-
     // Clean up the URL in the address bar.
     this.#updateURL();
   }

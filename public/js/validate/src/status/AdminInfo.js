@@ -1,76 +1,80 @@
 /**
- * Creates the popup when clicking on the Admin Info button from template HTML. Used on /expertValidate.
+ * The Admin Info popover on /expertValidate: who placed the current label, its id, and its previous validations.
  */
 class AdminInfo {
+  /** @type {HTMLTemplateElement} */
+  #template;
+
+  /** @type {HTMLElement} */
+  #popover;
+
+  /** @type {HTMLButtonElement} */
+  #button;
+
   /**
-   * Saves the pointers to the admin info and template. Adds event listeners to close the popover.
+   * Open/close, light dismiss and stacking are the browser's, via the `popover` attribute; this fills and parks it.
    *
-   * @param {object} adminUi - An object containing jQuery pointers to different elements of the Admin Info UI
-   * @param {JQuery} adminUi.holder - A jQuery pointer to the Admin Info button
-   * @param {JQuery} adminUi.button - A jQuery pointer to the Admin Info button
-   * @param {JQuery} adminUi.template - A jQuery pointer to the template HTML for the admin info popover
+   * @param {object} adminUi - jQuery pointers to the Admin Info UI
+   * @param {JQuery} adminUi.holder - The section holding the button
+   * @param {JQuery} adminUi.button - The Admin Info button
+   * @param {JQuery} adminUi.popover - The popover the button opens
+   * @param {JQuery} adminUi.template - The template HTML the popover is filled from
    */
   constructor(adminUi) {
-    this.$templateAdminContent = adminUi.template;
-    this.$adminInfoButton = adminUi.button;
+    this.#template = /** @type {HTMLTemplateElement} */ (adminUi.template[0]);
+    this.#popover = adminUi.popover[0];
+    this.#button = /** @type {HTMLButtonElement} */ (adminUi.button[0]);
 
-    // Show the admin info button.
     adminUi.holder.css('display', 'block');
 
-    // Hide when clicking outside the popover or hitting the esc key.
-    $(document).on('click', (e) => {
-      if (!$(e.target).closest(`.popover, #${this.$adminInfoButton[0].id}`).length) {
-        this.$adminInfoButton.popover('hide');
-      }
-    });
-    $(document).on('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.$adminInfoButton.popover('hide');
-      }
+    this.#popover.addEventListener('beforetoggle', (e) => {
+      if (/** @type {ToggleEvent} */ (e).newState === 'open') util.placePopover(this.#popover, this.#button);
     });
   }
 
   /**
-   * Updates the HTML in the popover for the Admin Info button on /expertValidate.
+   * Fills the popover with the current label's admin info.
    *
    * @param {Label} currentLabel - The current label shown; we show admin info related to this label
    */
   updateAdminInfo(currentLabel) {
-    const newAdminContent = $(this.$templateAdminContent.html());
+    const content = /** @type {DocumentFragment} */ (this.#template.content.cloneNode(true));
+    const root = /** @type {HTMLElement} */ (content.firstElementChild);
 
-    // Update the popover HTML with the current label's username and label_id.
-    const user = currentLabel.getAdminProperty('username');
-    newAdminContent.find('#curr-label-username').html(`<a href="/admin/user/${user}" target="_blank">${user}</a>`);
-    newAdminContent.find('#curr-label-id').html(currentLabel.getAuditProperty('labelId'));
+    const username = currentLabel.getAdminProperty('username');
+    root.querySelector('#curr-label-username').replaceChildren(this.#userLink(username));
+    root.querySelector('#curr-label-id').textContent = currentLabel.getAuditProperty('labelId');
 
-    // Append the set of prior validations to the popover HTML.
     const prevVals = currentLabel.getAdminProperty('previousValidations');
     if (prevVals.length === 0) {
-      newAdminContent.append(`<p class="prev-val">None</p>`);
+      root.append(this.#prevValLine('None'));
     } else {
-      for (const prevVal of currentLabel.getAdminProperty('previousValidations')) {
+      for (const prevVal of prevVals) {
         const prevValText = i18next.t(`common:${util.camelToKebab(prevVal.validation)}`);
-        newAdminContent.append(
-          `<p class="prev-val"><a href="/admin/user/${prevVal.username}" target="_blank">${prevVal.username}</a>`
-          + `: ${prevValText}</p>`,
-        );
+        root.append(this.#prevValLine(this.#userLink(prevVal.username), `: ${prevValText}`));
       }
     }
+    this.#popover.replaceChildren(root);
+    if (this.#popover.matches(':popover-open')) util.placePopover(this.#popover, this.#button);
+  }
 
-    // Destroy the old popover and create a new one with the info for the new label. The custom class on the
-    // template lets us override Bootstrap's small default max-width (see svv-upper-row.css).
-    this.$adminInfoButton.popover('destroy').popover({
-      content: newAdminContent.prop('outerHTML'),
-      placement: 'bottom',
-      html: true,
-      container: 'body',
-      trigger: 'click',
-      template: `
-        <div class="popover admin-info-popover" role="tooltip">
-          <div class="arrow"></div>
-          <h3 class="popover-title"></h3>
-          <div class="popover-content"></div>
-        </div>`,
-    });
+  /**
+   * @param {string} username - User-supplied, so it goes in as text, never markup.
+   * @returns {HTMLAnchorElement} A link to that user's admin page.
+   */
+  #userLink(username) {
+    const link = document.createElement('a');
+    link.href = `/admin/user/${encodeURIComponent(username)}`;
+    link.target = '_blank';
+    link.textContent = username;
+    return link;
+  }
+
+  /** @returns {HTMLParagraphElement} One previous-validation line holding `parts`. */
+  #prevValLine(...parts) {
+    const line = document.createElement('p');
+    line.className = 'prev-val';
+    line.append(...parts);
+    return line;
   }
 }

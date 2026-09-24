@@ -499,7 +499,6 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
   beforeAll(() => {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8'));
-    window.$.fn.tooltip = function tooltip() { return this; };
     window.$.fn.selectize = function selectize() {
       this[0].selectize = { clearOptions() {}, addOption() {}, clear() {}, removeOption() {} };
       return this;

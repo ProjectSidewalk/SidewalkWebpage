@@ -4,12 +4,6 @@
 class TagDisplay {
   #container;
   #tags;
-  #popoverTemplate = `
-    <div class="popover additional-tag-popover" role="tooltip">
-      <div class="arrow"></div>
-      <h3 class="popover-title"></h3>
-      <div class="popover-content additional-tag-popover-content"></div>
-    </div>`;
 
   /**
    * @param {HTMLElement} container - The DOM element to contain the label information.
@@ -116,24 +110,18 @@ class TagDisplay {
           // Since we cut off with an ellipsis, add a tooltip with the full text.
           tagEl.title = tagsText[i];
         } else {
-          // If the tag does not fit at all, add it to the list of hidden tags to show in the popover.
+          // If the tag does not fit at all, add it to the list of hidden tags to show in the tooltip.
           tagEl.remove();
           tagEl.classList.add('not-added');
           hiddenTags.push(tagEl);
         }
       }
 
-      // If there was not enough space to display all the tags, show the rest in a popover on the '+n' text.
+      // If there was not enough space to display all the tags, show the rest in a tooltip on the '+n' text.
       if (hiddenTags.length > 0) {
         overflowPill.innerText = ` + ${hiddenTags.length}`;
-        $(overflowPill).popover('destroy').popover({
-          placement: 'top',
-          html: true,
-          delay: { show: 300, hide: 10 },
-          content: hiddenTags.map((tag) => tag.outerHTML).join(''),
-          trigger: 'hover',
-          template: this.#popoverTemplate,
-        }).popover('show').popover('hide');
+        overflowPill.setAttribute('data-ps-tooltip', hiddenTags.map((tag) => tag.outerHTML).join(''));
+        overflowPill.setAttribute('data-ps-tooltip-theme', 'light');
       } else {
         overflowPill.remove();
       }

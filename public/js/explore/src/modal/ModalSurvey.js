@@ -1,32 +1,36 @@
 /**
  * Shows a survey modal for select users and reports whether it was completed or skipped.
  *
- * The modal itself is a Bootstrap modal, so its events and hide call go through jQuery; remaining code is plain JS.
+ * A native <dialog>, opened modally so the page behind it is inert. There is no dismissing it with Escape or a click
+ * outside: the user either submits it or skips it with the X, and both close it.
  */
 class ModalSurvey {
-  #uiModalSurvey;
+  /** @type {HTMLDialogElement} */
+  #dialog;
+
+  /** @type {HTMLFormElement} */
+  #form;
 
   constructor() {
-    this.#uiModalSurvey = {
-      container: $('#survey-modal-container'),
-      form: $('#survey-form'),
-      skipButton: $('#survey-skip-button'),
-    };
+    this.#dialog = /** @type {HTMLDialogElement} */ (document.getElementById('survey-modal-container'));
+    this.#form = /** @type {HTMLFormElement} */ (document.getElementById('survey-form'));
 
-    this.#uiModalSurvey.container.on('show.bs.modal', this.#handleShowSurvey);
-    this.#uiModalSurvey.container.on('hide.bs.modal', this.#handleHideSurvey);
-    this.#uiModalSurvey.container.on('keydown', (e) => e.stopPropagation());
-    this.#uiModalSurvey.form.on('submit', this.#handleSubmitSurvey);
-    this.#uiModalSurvey.skipButton.on('click', this.#handleSkipSurvey);
+    this.#dialog.addEventListener('cancel', (e) => e.preventDefault()); // Escape would otherwise close it.
+    this.#dialog.addEventListener('close', this.#handleHideSurvey);
+    this.#dialog.addEventListener('keydown', (e) => e.stopPropagation()); // Typing an answer isn't a shortcut.
+    this.#form.addEventListener('submit', this.#handleSubmitSurvey);
+    document.getElementById('survey-skip-button').addEventListener('click', this.#handleSkipSurvey);
   }
 
-  // Disables panorama interactions while the survey modal is open.
-  #handleShowSurvey = () => {
+  /** Opens the survey, with panorama interactions disabled for as long as it is up. */
+  open() {
+    if (this.#dialog.open) return;
     svl.popUpMessage.disableInteractions();
     svl.ribbon.disableModeSwitch();
     svl.zoomControl.disableZoomIn();
     svl.zoomControl.disableZoomOut();
-  };
+    this.#dialog.showModal();
+  }
 
   // Re-enables panorama interactions once the survey modal is closed.
   #handleHideSurvey = () => {
@@ -39,15 +43,16 @@ class ModalSurvey {
   // Submits the survey responses, then hides the modal. Prevents the page from reloading with the posted data.
   #handleSubmitSurvey = (e) => {
     e.preventDefault();
+    const answers = [...new FormData(this.#form)].map(([name, value]) => ({ name, value }));
     fetch('/survey', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify(this.#uiModalSurvey.form.serializeArray()),
-    }).then(() => this.#uiModalSurvey.container.modal('hide'));
+      body: JSON.stringify(answers),
+    }).then(() => this.#dialog.close());
   };
 
-  // Logs that the survey was skipped to WebpageActivityTable.
   #handleSkipSurvey = () => {
     window.logWebpageActivity('SurveySkip', true);
+    this.#dialog.close();
   };
 }

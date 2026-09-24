@@ -1,33 +1,12 @@
-const aiTooltipTemplate = [
-  '<div class="tooltip ai-tooltip" role="tooltip">',
-  '<div class="tooltip-arrow"></div>',
-  '<div class="tooltip-inner"></div>',
-  '</div>',
-].join('');
-
-const aiTooltipOptions = {
-  template: aiTooltipTemplate,
-  container: 'body',
-  trigger: 'hover',
-};
-
-// Validate's marker badge is a .ai-icon-marker too, but never reaches these handlers: main.css gives it
-// pointer-events: none, since there the label card carries the disclaimer (#5359).
-const aiHoverSelectors = [
-  '.ai-icon',
-  '.ai-icon-marker',
-  '.ai-icon-marker-card',
-  '.ai-icon-marker-expanded',
-  '.admin-ai-icon-marker',
-  '.label-view-ai-icon',
-].join(', ');
-
 /**
- * Creates the reusable AI indicator icon with optional tooltip behavior.
+ * Creates the reusable AI indicator icon with an optional "AI can make mistakes" tooltip.
+ *
+ * Validate's marker badge is a .ai-icon-marker too, but never shows the tooltip: main.css gives it
+ * pointer-events: none, since there the label card carries the disclaimer (#5359).
+ *
  * @param {Array<string>} extraClasses - Additional CSS classes to apply.
  * @param {object} [options]
- * @param {boolean} [options.tooltip] - Attach the "AI can make mistakes" tooltip. Off for a badge whose surroundings
- *     already say it — Validate's marker, where hovering opens a label card that carries the same sentence (#5359).
+ * @param {boolean} [options.tooltip] - Attach the tooltip; off where the surroundings already say it (#5359).
  * @returns {HTMLElement} Configured AI indicator element.
  */
 function aiLabelIndicator(extraClasses = [], { tooltip = true } = {}) {
@@ -36,59 +15,6 @@ function aiLabelIndicator(extraClasses = [], { tooltip = true } = {}) {
   icon.alt = 'AI indicator';
   icon.classList.add('ai-icon-marker');
   extraClasses.forEach((cls) => icon.classList.add(cls));
-
-  if (!tooltip) return icon;
-
-  const tooltipText = i18next.t('common:ai-generated-label-tooltip');
-
-  icon.setAttribute('data-toggle', 'tooltip');
-  icon.setAttribute('data-placement', 'top');
-  icon.setAttribute('title', tooltipText);
-
-  ensureAiTooltip(icon);
-
-  icon.addEventListener('mouseenter', () => ensureAiTooltip(icon).tooltip('show'));
-  icon.addEventListener('mouseleave', () => ensureAiTooltip(icon).tooltip('hide'));
-
+  if (tooltip) icon.setAttribute('data-ps-tooltip', i18next.t('common:ai-generated-label-tooltip'));
   return icon;
 }
-
-/**
- * Ensures the provided icon has a tooltip initialized with shared options.
- * @param {HTMLElement} icon
- * @returns {JQuery} The tooltip-enabled icon.
- */
-function ensureAiTooltip(icon) {
-  const $icon = $(icon);
-  if (!$icon.attr('title') && !$icon.attr('data-original-title')) {
-    $icon.attr('title', i18next.t('common:ai-generated-label-tooltip'));
-  }
-
-  const tooltipInstance = $icon.data('bs.tooltip');
-  if (!tooltipInstance) {
-    return $icon.tooltip(aiTooltipOptions).tooltip('hide');
-  }
-
-  const hasBodyContainer = tooltipInstance.options && tooltipInstance.options.container === 'body';
-  const hasAiTemplate = tooltipInstance.options && tooltipInstance.options.template === aiTooltipTemplate;
-  if (!hasBodyContainer || !hasAiTemplate) {
-    $icon.tooltip('destroy');
-    return $icon.tooltip(aiTooltipOptions).tooltip('hide');
-  }
-  return $icon;
-}
-
-function initializeExistingAiTooltips() {
-  document.querySelectorAll(aiHoverSelectors).forEach((el) => ensureAiTooltip(el));
-}
-
-// Delegate hover handling for dynamically inserted indicators.
-$(document).on('mouseenter', aiHoverSelectors, function () {
-  ensureAiTooltip(this).tooltip('show');
-});
-$(document).on('mouseleave', aiHoverSelectors, function () {
-  ensureAiTooltip(this).tooltip('hide');
-});
-
-// Initialize any AI icons already in the DOM on load (covers server-rendered cases).
-$(initializeExistingAiTooltips);

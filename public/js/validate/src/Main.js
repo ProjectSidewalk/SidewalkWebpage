@@ -143,6 +143,7 @@ class Main {
     svv.ui.status.admin = {
       holder: $('#admin-info-section'),
       button: $('#admin-info-button'),
+      popover: $('#admin-info-popover'),
       template: $('#admin-info-template'),
     };
 
@@ -335,15 +336,6 @@ class Main {
       svv.keyboard?.disableKeyboard();
       $('.tool-ui').css('opacity', 0.5);
     });
-
-    // Initialize bootstrap tooltips (except on touch devices).
-    if (window.matchMedia('(hover: hover)').matches) {
-      $('[data-toggle="tooltip"]').tooltip({
-        delay: { show: 500, hide: 100 },
-        html: true,
-        container: 'body',
-      });
-    }
   }
 
   /**

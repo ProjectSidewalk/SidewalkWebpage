@@ -54,10 +54,7 @@ class SeverityDisplay {
 
     if (severity === null) {
       // Add tooltip indicating the user didn't add a severity rating for this label.
-      holder.setAttribute('data-toggle', 'tooltip');
-      holder.setAttribute('data-placement', 'top');
-      holder.setAttribute('title', i18next.t(this.#positive ? 'no-quality' : 'no-severity'));
-      $(holder).tooltip('hide');
+      holder.setAttribute('data-ps-tooltip', i18next.t(this.#positive ? 'no-quality' : 'no-severity'));
     }
 
     // Add all of the severity circles to the DOM.
