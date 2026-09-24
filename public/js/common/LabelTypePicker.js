@@ -316,6 +316,7 @@ class LabelTypeDropdown {
     /** @type {?HTMLElement} */ (this.#popover.querySelector('.label-type-picker__chip[tabindex="0"]'))?.focus();
   }
 
+  /** Parks the popover under its button, since a popover opens centered in the window by default. */
   #place() {
     util.placePopover(this.#popover, this.#button);
   }

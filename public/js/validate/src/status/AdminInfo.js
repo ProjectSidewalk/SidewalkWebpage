@@ -55,7 +55,10 @@ class AdminInfo {
       }
     }
     this.#popover.replaceChildren(root);
-    if (this.#popover.matches(':popover-open')) util.placePopover(this.#popover, this.#button);
+    // The pseudo-class is a syntax error where the popover API is missing, and there is nothing to re-park then.
+    if ('popover' in HTMLElement.prototype && this.#popover.matches(':popover-open')) {
+      util.placePopover(this.#popover, this.#button);
+    }
   }
 
   /**
@@ -70,7 +73,10 @@ class AdminInfo {
     return link;
   }
 
-  /** @returns {HTMLParagraphElement} One previous-validation line holding `parts`. */
+  /**
+   * @param {...(string|Node)} parts - The line's content.
+   * @returns {HTMLParagraphElement} One previous-validation line.
+   */
   #prevValLine(...parts) {
     const line = document.createElement('p');
     line.className = 'prev-val';

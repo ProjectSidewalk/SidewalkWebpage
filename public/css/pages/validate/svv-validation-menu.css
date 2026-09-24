@@ -341,7 +341,8 @@
   object-fit: cover;
 }
 
-/* A card holding one narrows to the image plus the card's padding (main.css), so the text wraps to the picture. */
+/* A card holding one narrows to the image plus the card's 9px side padding (main.css), so the text wraps to the
+   picture. */
 .ps-tooltip:has(.validate-tooltip-img) {
-  max-width: calc(218px * var(--ui-scale));
+  max-width: calc((200px + 2 * 9px) * var(--ui-scale));
 }

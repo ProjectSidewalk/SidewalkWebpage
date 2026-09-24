@@ -426,6 +426,7 @@ class DesktopValidationMenu {
    * @param {string} [img] - Optional image to display in the tooltip.
    */
   #addTooltip($elem, tooltipText, img) {
+    if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
     const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" class="validate-tooltip-img"/>` : tooltipText;
     $elem.attr('data-ps-tooltip', tooltipHtml);
   }

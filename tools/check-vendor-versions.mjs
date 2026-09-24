@@ -12,8 +12,9 @@
 // filename alone would satisfy a library whose entry had been deleted outright.
 //
 // It deliberately does *not* ask npm what the newest release is. Half these libraries aren't plain npm packages (the
-// photo-sphere-viewer bundle is ours, several come from a project's own CDN) and a third of the list is frozen on purpose, so such a report would need a hand-kept map
-// of npm names and freeze reasons — a second copy of the doc — and would nag monthly about decisions already made.
+// photo-sphere-viewer bundle is ours, several come from a project's own CDN) and a third of the list is frozen on
+// purpose, so such a report would need a hand-kept map of npm names and freeze reasons — a second copy of the doc —
+// and would nag monthly about decisions already made.
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';

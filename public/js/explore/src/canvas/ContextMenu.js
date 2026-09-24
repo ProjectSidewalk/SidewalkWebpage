@@ -507,7 +507,7 @@ class ContextMenu {
                 keyChar = tagText[underlineIndex + underlineClassOffset];
                 tooltipHeader = tagText[0].toUpperCase() + tagText.substring(1);
               }
-              // The tooltip is built with `html: true`, so its shortcut letter is escaped on the way in.
+              // The tooltip renders as HTML, so its shortcut letter is escaped on the way in.
               const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {
                 c: keyChar, interpolation: { escapeValue: true },
               });

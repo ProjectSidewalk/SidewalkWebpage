@@ -138,6 +138,10 @@ class Main {
     svv.ui.status.upperMenuTitle = $('#mission-title');
     svv.ui.status.zoomInButton = $('#zoom-in-button');
     svv.ui.status.zoomOutButton = $('#zoom-out-button');
+    // A tap would pin the markup's tooltips open on a touch device; the ones added by script check the same query.
+    if (!window.matchMedia('(hover: hover)').matches) {
+      document.querySelectorAll('[data-ps-tooltip]').forEach((el) => el.removeAttribute('data-ps-tooltip'));
+    }
     svv.ui.status.labelVisibilityControlButton = $('#label-visibility-control-button');
 
     svv.ui.status.admin = {

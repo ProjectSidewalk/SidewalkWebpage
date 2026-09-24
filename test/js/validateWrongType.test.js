@@ -30,6 +30,7 @@ const TAGS_BY_TYPE = {
 };
 
 beforeAll(() => {
+  window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
   window.util = {
     assetPath: assetPathStub,
     isMobile: () => false,

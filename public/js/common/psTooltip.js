@@ -42,6 +42,9 @@
   // Watches the open trigger's text for changes under it. A toggle button relabels itself on click, and the pointer
   // is still resting on it at that moment, so without this the card sits there describing the state just left.
   let textObserver = null;
+  // Watches for the open trigger leaving the document (a re-rendered tag row, a card swapped out under the pointer):
+  // no mouse event announces that, so the card would sit there until the pointer next crossed an element.
+  let removalObserver = null;
 
   /**
    * Reads the zoom factor `util.applyToolScale` puts on the document root, so the gaps measured here match the tail
@@ -93,6 +96,12 @@
    * @param {Element} trigger - The element carrying data-ps-tooltip.
    */
   const show = (trigger) => {
+    // The trigger can be gone by the time a delayed or repeated show runs: a tag pill clicked away inside the hover
+    // delay, or replaced before its image loaded.
+    if (!trigger.isConnected || !trigger.hasAttribute('data-ps-tooltip')) {
+      hide();
+      return;
+    }
     const card = ensureTooltip();
     // A modal <dialog> paints in the top layer, above every z-index in the page's normal stacking order, so a card
     // parked on <body> opens behind it. Follow the trigger into its dialog (the label detail popup) instead. The
@@ -115,6 +124,10 @@
     // Reset before measuring; the placement below re-adds whichever of these it needs.
     card.classList.remove('ps-tooltip--flipped', 'ps-tooltip--beside-left', 'ps-tooltip--beside-right',
       'ps-tooltip--untailed');
+    // A fixed element's natural width is limited by the room to the right of its `left`, so a card measured where
+    // the last one sat near the right edge comes out narrower than its text.
+    card.style.left = '0px';
+    card.style.top = '0px';
 
     const scale = uiScale();
     const gap = TRIGGER_GAP_PX * scale;
@@ -201,6 +214,12 @@
     }
     textObserver.disconnect();
     textObserver.observe(trigger, { attributes: true, attributeFilter: ['data-ps-tooltip'] });
+    if (removalObserver === null) {
+      removalObserver = new MutationObserver(() => {
+        if (activeTrigger !== null && !activeTrigger.isConnected) hide();
+      });
+    }
+    removalObserver.observe(document.body, { childList: true, subtree: true });
   };
 
   /**
@@ -208,6 +227,7 @@
    */
   const hide = () => {
     textObserver?.disconnect();
+    removalObserver?.disconnect();
     if (showTimer !== null) {
       clearTimeout(showTimer);
       showTimer = null;

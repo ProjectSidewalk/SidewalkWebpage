@@ -52,8 +52,9 @@
     </div>
   </div>
 
-  @* Opened by ModalSurvey.js, which also keeps Escape and outside clicks from closing it. *@
-  <dialog id="survey-modal-container" class="survey-dialog" aria-labelledby="survey-modal-title">
+  @* Opened by ModalSurvey.js, which also moves the initial focus onto the dialog itself (hence the tabindex).
+     closedby="none" keeps Escape from closing it: browsers let a second Escape through a cancelled first one. *@
+  <dialog id="survey-modal-container" class="survey-dialog" aria-labelledby="survey-modal-title" closedby="none" tabindex="-1">
     <div class="survey-dialog__header">
       <h4 class="survey-dialog__title" id="survey-modal-title">@Html(Messages("audit.survey." + "title"))</h4>
       <button type="button" class="survey-dialog__close" id="survey-skip-button" aria-label="Close" data-i18n-aria-label="common:close">×</button>

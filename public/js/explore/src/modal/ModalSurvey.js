@@ -11,29 +11,37 @@ class ModalSurvey {
   /** @type {HTMLFormElement} */
   #form;
 
+  #submitted = false;
+
   constructor() {
     this.#dialog = /** @type {HTMLDialogElement} */ (document.getElementById('survey-modal-container'));
     this.#form = /** @type {HTMLFormElement} */ (document.getElementById('survey-form'));
 
-    this.#dialog.addEventListener('cancel', (e) => e.preventDefault()); // Escape would otherwise close it.
+    this.#dialog.addEventListener('cancel', (e) => e.preventDefault()); // Escape, where closedby is unsupported.
     this.#dialog.addEventListener('close', this.#handleHideSurvey);
     this.#dialog.addEventListener('keydown', (e) => e.stopPropagation()); // Typing an answer isn't a shortcut.
     this.#form.addEventListener('submit', this.#handleSubmitSurvey);
-    document.getElementById('survey-skip-button').addEventListener('click', this.#handleSkipSurvey);
+    document.getElementById('survey-skip-button').addEventListener('click', () => this.#dialog.close());
   }
 
   /** Opens the survey, with panorama interactions disabled for as long as it is up. */
   open() {
     if (this.#dialog.open) return;
+    this.#submitted = false;
     svl.popUpMessage.disableInteractions();
     svl.ribbon.disableModeSwitch();
     svl.zoomControl.disableZoomIn();
     svl.zoomControl.disableZoomOut();
     this.#dialog.showModal();
+    // showModal() lands focus on the first control, the skip X. The survey opens on its own mid-labeling, so a key
+    // the user is already pressing would skip it; the dialog itself takes the focus instead.
+    this.#dialog.focus();
   }
 
-  // Re-enables panorama interactions once the survey modal is closed.
+  // Re-enables panorama interactions once the survey modal is closed. Any close that isn't the submit is a skip,
+  // whichever way it happened, so the skip is logged here rather than on the X.
   #handleHideSurvey = () => {
+    if (!this.#submitted) window.logWebpageActivity('SurveySkip', true);
     svl.popUpMessage.enableInteractions();
     svl.ribbon.enableModeSwitch();
     svl.zoomControl.enableZoomIn();
@@ -48,11 +56,9 @@ class ModalSurvey {
       method: 'POST',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
       body: JSON.stringify(answers),
-    }).then(() => this.#dialog.close());
-  };
-
-  #handleSkipSurvey = () => {
-    window.logWebpageActivity('SurveySkip', true);
-    this.#dialog.close();
+    }).then(() => {
+      this.#submitted = true;
+      this.#dialog.close();
+    });
   };
 }
