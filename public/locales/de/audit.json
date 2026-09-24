@@ -146,7 +146,7 @@
       "brightness": "Helligkeit",
       "contrast": "Kontrast",
       "reset": "Auf Standard zurücksetzen",
-      "persist-note": "Diese Einstellungen bleiben über Missionen hinweg erhalten, bis Sie sie zurücksetzen."
+      "persist-note": "Diese Einstellungen bleiben über Erkunden-Missionen hinweg erhalten, bis Sie sie zurücksetzen."
     }
   },
   "right-ui": {

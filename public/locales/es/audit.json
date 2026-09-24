@@ -146,7 +146,7 @@
       "brightness": "Brillo",
       "contrast": "Contraste",
       "reset": "Restablecer valores",
-      "persist-note": "Estos ajustes se mantienen entre misiones hasta que los restablezcas."
+      "persist-note": "Estos ajustes se mantienen entre misiones de Explorar hasta que los restablezcas."
     }
   },
   "right-ui": {

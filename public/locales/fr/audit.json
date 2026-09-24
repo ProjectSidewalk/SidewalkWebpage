@@ -146,7 +146,7 @@
       "brightness": "Luminosité",
       "contrast": "Contraste",
       "reset": "Rétablir les valeurs par défaut",
-      "persist-note": "Ces réglages sont conservés d'une mission à l'autre jusqu'à leur réinitialisation."
+      "persist-note": "Ces réglages sont conservés d'une mission Explorer à l'autre jusqu'à leur réinitialisation."
     }
   },
   "right-ui": {

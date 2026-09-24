@@ -146,7 +146,7 @@
       "brightness": "亮度",
       "contrast": "對比",
       "reset": "重設為預設值",
-      "persist-note": "這些設定會在不同任務間保留，直到您重設為止。"
+      "persist-note": "這些設定會在不同探索任務間保留，直到您重設為止。"
     }
   },
   "right-ui": {

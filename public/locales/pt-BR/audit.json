@@ -146,7 +146,7 @@
       "brightness": "Brilho",
       "contrast": "Contraste",
       "reset": "Restaurar padrões",
-      "persist-note": "Estas configurações persistem entre missões até você redefini-las."
+      "persist-note": "Estas configurações persistem entre missões de Explorar até você redefini-las."
     }
   },
   "right-ui": {

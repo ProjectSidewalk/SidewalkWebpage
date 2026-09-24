@@ -146,7 +146,7 @@
       "brightness": "Brightness",
       "contrast": "Contrast",
       "reset": "Reset to defaults",
-      "persist-note": "These settings persist across missions until you reset them."
+      "persist-note": "These settings persist across Explore missions until you reset them."
     }
   },
   "right-ui": {
