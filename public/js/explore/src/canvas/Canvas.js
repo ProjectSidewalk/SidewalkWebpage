@@ -59,7 +59,7 @@ class Canvas {
     svl.ui.canvas.drawingLayer.on('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
     svl.ui.canvas.drawingLayer.on('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
     svl.ui.canvas.drawingLayer.on('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
-    $('#interaction-area-holder').on('mouseleave', () => this.#handleDrawingLayerMouseOut());
+    Canvas.watchPanoExit(document.getElementById('interaction-area-holder'), () => this.#handleDrawingLayerMouseOut());
     svl.ui.canvas.hoverCard.on('click', () => this.#handleHoverCardClick('card'));
     svl.ui.canvas.hoverCard.on('mouseenter', () => this.#cancelScheduledHoverCardHide());
     svl.ui.canvas.hoverCard.on('mouseleave', () => this.#scheduleHoverCardHide());
@@ -269,6 +269,25 @@ class Canvas {
 
     this.#mouseStatus.prevX = currMousePosition.x;
     this.#mouseStatus.prevY = currMousePosition.y;
+  }
+
+  /**
+   * Calls `onExit` when the pointer leaves the pano. Toasts float over the pano but mount on <body> (#5496), so the
+   * pointer crossing onto one fires `mouseleave` although it never left the pano; the real exit is then when it
+   * leaves the toast for somewhere outside the pano.
+   * @param {HTMLElement} holder - The element wrapping the pano and its drawing layers.
+   * @param {() => void} onExit - Called once per exit.
+   */
+  static watchPanoExit(holder, onExit) {
+    const isToast = (el) => el instanceof Element && el.closest('.ps-toast') !== null;
+    const isOverPano = (el) => isToast(el) || (el instanceof Node && holder.contains(el));
+    holder.addEventListener('mouseleave', (e) => {
+      if (!isToast(e.relatedTarget)) onExit();
+    });
+    // mouseout rather than mouseleave: it bubbles, so one listener covers toasts created after this runs.
+    document.addEventListener('mouseout', (e) => {
+      if (isToast(e.target) && !isOverPano(e.relatedTarget)) onExit();
+    });
   }
 
   /**
