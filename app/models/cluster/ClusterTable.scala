@@ -193,11 +193,9 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       bbox: LatLngBBox,
       labelTypes: Set[String]
   ): SqlStreamingAction[Vector[ClusterScoreRow], ClusterScoreRow, Effect] = {
-    val locationFilter: String = if (spatialQueryType == SpatialQueryType.Region) {
-      s"ST_Within(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-    } else {
-      s"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-    }
+    val locationFilter: SQLActionBuilder =
+      if (spatialQueryType == SpatialQueryType.Region) SqlFragments.withinBBox("region.geom", bbox)
+      else SqlFragments.intersectsBBox("street_edge.geom", bbox)
 
     // Number of member labels per cluster (the denominator for the tag-active threshold).
     val labelCounts =
@@ -223,12 +221,12 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |GROUP BY cluster.cluster_id""".stripMargin
 
     // The streets the filter selects; a cluster is in scope through its own street or its intersection's streets.
-    val inScopeStreets =
-      s"""SELECT street_edge.street_edge_id
-         |FROM street_edge
-         |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-         |INNER JOIN region ON street_edge_region.region_id = region.region_id
-         |WHERE $locationFilter""".stripMargin
+    val inScopeStreets: SQLActionBuilder = sql"""
+      SELECT street_edge.street_edge_id
+      FROM street_edge
+      INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+      INNER JOIN region ON street_edge_region.region_id = region.region_id
+      WHERE """.concat(locationFilter)
 
     sql"""
       SELECT cluster.street_edge_id,
@@ -241,13 +239,18 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       INNER JOIN (#$labelCounts) label_counts ON cluster.cluster_id = label_counts.cluster_id
       INNER JOIN (#$tagCounts) cluster_tag_counts ON cluster.cluster_id = cluster_tag_counts.cluster_id
       WHERE cluster.label_type = ANY(${SqlFragments.enumList(labelTypes)}::label_type[])
-          AND (cluster.street_edge_id IN (#$inScopeStreets)
+          AND (cluster.street_edge_id IN ("""
+      .concat(inScopeStreets)
+      .concat(sql""")
                OR cluster.intersection_id IN (
                    SELECT intersection_street_edge.intersection_id
                    FROM intersection_street_edge
-                   WHERE intersection_street_edge.street_edge_id IN (#$inScopeStreets)
+                   WHERE intersection_street_edge.street_edge_id IN (""")
+      .concat(inScopeStreets)
+      .concat(sql""")
                ));
-    """.as[ClusterScoreRow]
+    """)
+      .as[ClusterScoreRow]
   }
 
   def getLabelClustersV3(
@@ -260,7 +263,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     if (filters.bbox.isDefined) {
       val bbox = filters.bbox.get
       whereConditions :+=
-        sql"cluster.geom && ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
+        SqlFragments.overlapsBBox("cluster.geom", bbox)
     } else if (filters.regionId.isDefined) {
       whereConditions :+= sql"street_edge_region.region_id = ${filters.regionId.get}"
     } else if (filters.regionName.isDefined) {

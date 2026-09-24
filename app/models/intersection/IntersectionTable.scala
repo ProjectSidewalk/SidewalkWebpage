@@ -9,7 +9,7 @@ import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{FilteredTables, LatLngBBox, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -269,20 +269,20 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
    * would score nothing. `ClusterTable.getClusterScoreRows` scopes clusters more widely (any status); its extra rows
    * belong to no scored unit and are dropped.
    */
-  private def inScopeStreetsSql(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): String = {
-    val envelope: String = s"ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
-    val locationFilter: String =
-      if (spatialQueryType == SpatialQueryType.Region) s"ST_Within(region.geom, $envelope)"
-      else s"ST_Intersects(street_edge.geom, $envelope)"
-    s"""SELECT street_edge.street_edge_id
-       |FROM ${FilteredTables.streets()}
-       |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-       |INNER JOIN region ON street_edge_region.region_id = region.region_id
-       |WHERE $locationFilter""".stripMargin
+  private def inScopeStreetsSql(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): SQLActionBuilder = {
+    val locationFilter: SQLActionBuilder =
+      if (spatialQueryType == SpatialQueryType.Region) SqlFragments.withinBBox("region.geom", bbox)
+      else SqlFragments.intersectsBBox("street_edge.geom", bbox)
+    sql"""
+      SELECT street_edge.street_edge_id
+      FROM #${FilteredTables.streets()}
+      INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+      INNER JOIN region ON street_edge_region.region_id = region.region_id
+      WHERE """.concat(locationFilter)
   }
 
   def getIntersectionsForStreets(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): DBIO[Seq[IntersectionInfo]] = {
-    val inScope: String = inScopeStreetsSql(spatialQueryType, bbox)
+    val inScope: SQLActionBuilder = inScopeStreetsSql(spatialQueryType, bbox)
     // Audits are counted per incident street, and each street links to a node once (the derivation drops any edge
     // with both ends in one node), so the DISTINCT is a guard on that invariant rather than a working de-duplication.
     sql"""SELECT intersection.intersection_id,
@@ -306,17 +306,22 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
           WHERE intersection.intersection_id IN (
               SELECT intersection_street_edge.intersection_id
               FROM intersection_street_edge
-              WHERE intersection_street_edge.street_edge_id IN (#$inScope)
+              WHERE intersection_street_edge.street_edge_id IN ("""
+      .concat(inScope)
+      .concat(sql""")
           )
           GROUP BY intersection.intersection_id
-          ORDER BY intersection.intersection_id""".as[IntersectionInfo]
+          ORDER BY intersection.intersection_id""")
+      .as[IntersectionInfo]
   }
 
   def getStreetEnds(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): DBIO[Seq[IntersectionStreetEnd]] = {
-    val inScope: String = inScopeStreetsSql(spatialQueryType, bbox)
     sql"""SELECT street_edge_id, street_end, intersection_id
           FROM intersection_street_edge
-          WHERE street_edge_id IN (#$inScope)""".as[IntersectionStreetEnd]
+          WHERE street_edge_id IN ("""
+      .concat(inScopeStreetsSql(spatialQueryType, bbox))
+      .concat(sql")")
+      .as[IntersectionStreetEnd]
   }
 }
 

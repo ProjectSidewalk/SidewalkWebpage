@@ -280,9 +280,7 @@ class StreetEdgeTable @Inject() (
   ): SqlStreamingAction[Vector[StreetDataForApi], StreetDataForApi, Effect.Read] = {
     // Filters on the streets themselves.
     val streetFilters: Seq[SQLActionBuilder] = Seq(
-      filters.bbox.map { bbox =>
-        sql"ST_Intersects(s.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      },
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("s.geom", bbox) },
       filters.wayTypes.map { wayTypes => sql"s.way_type = ANY(${SqlFragments.enumList(wayTypes)}::way_type[])" },
       filters.regionId.map { regionId => sql"r.region_id = $regionId" },
       filters.regionName.map { regionName => sql"LOWER(reg.name) = LOWER($regionName)" },

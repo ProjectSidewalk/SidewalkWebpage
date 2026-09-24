@@ -191,9 +191,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
     // wayType, presence, and status are validated against their enums in the controller (an invalid one would be a
     // Postgres error rather than an empty result).
     val conditions: Seq[SQLActionBuilder] = Seq(
-      filters.bbox.map { bbox =>
-        sql"ST_Intersects(street_edge.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      },
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("street_edge.geom", bbox) },
       filters.regionId.map(id => sql"region.region_id = $id"),
       filters.regionName.map(name => sql"LOWER(region.name) = LOWER($name)"),
       filters.wayTypes.map(w => sql"street_edge.way_type = ANY(${SqlFragments.enumList(w)}::way_type[])"),

@@ -2,7 +2,7 @@ package models.audit
 
 import com.google.inject.ImplementedBy
 import models.mission.MissionTableDef
-import models.utils.MyPostgresProfile
+import models.utils.{MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
@@ -148,10 +148,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
    * @return       Hours, or 0 when nothing is logged for them there.
    */
   def getHoursAuditingAndValidatingBySchema(userId: String, schema: String): DBIO[Double] = {
-    require(
-      schema.matches("^[a-z_][a-z0-9_]*$"),
-      s"Refusing to build schema-qualified SQL for a non-identifier schema name: $schema"
-    )
+    SqlFragments.requireSafeIdentifiers(Seq(schema))
     sql"""
       SELECT CAST(extract( second from SUM(diff) ) / 60 +
              extract( minute from SUM(diff) ) +

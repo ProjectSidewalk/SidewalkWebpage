@@ -153,9 +153,7 @@ class RegionTable @Inject() (
       limit: Option[Int]
   ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] = {
     val regionFilters: Seq[SQLActionBuilder] = Seq(
-      filters.bbox.map { bbox =>
-        sql"ST_Intersects(region.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      },
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("region.geom", bbox) },
       filters.regionId.map { regionId => sql"region.region_id = $regionId" },
       filters.regionName.map { regionName => sql"LOWER(region.name) = LOWER($regionName)" }
     ).flatten

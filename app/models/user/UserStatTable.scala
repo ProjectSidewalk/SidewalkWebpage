@@ -6,7 +6,7 @@ import models.audit.AuditTaskTable
 import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionType}
 import models.user.Role.ROLES_RESEARCHER_COLLAPSED
-import models.utils.{Contributors, FilteredTables, MyPostgresProfile}
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -588,23 +588,6 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Runs `action` in a transaction with JIT disabled for the duration of that transaction.
-   *
-   * Interim workaround for #4376 (mirrors `ConfigTable.withJitOff`): the projectsidewalk/db image ships a broken
-   * Postgres JIT (PostGIS bitcode built with LLVM 16, runtime llvmjit linked against LLVM 11). A query expensive enough
-   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (e.g. ST_LENGTH) segfaults the backend,
-   * dropping the connection (SQLSTATE 08006) and forcing Postgres crash-recovery — which surfaces as a site-wide 502.
-   * `getLeaderboardStats` computes audited distance with PostGIS ST_Length and is expensive enough to trip
-   * this (#4545), so it must run with JIT off. `SET LOCAL` scopes the setting to this one transaction. Remove once #4376
-   * disables JIT at the DB config level.
-   *
-   * @param action The DBIO to run with JIT off.
-   * @return       The same action, wrapped so JIT is disabled for its transaction.
-   */
-  private def withJitOff[T](action: DBIO[T]): DBIO[T] =
-    (sqlu"SET LOCAL jit = off" >> action).transactionally
-
-  /**
    * Gets leaderboard stats for the top `n` users in the given time period.
    *
    * Top users are calculated using: score = sqrt(# labels) * (0.5 * distance_audited / city_distance + 0.5 * accuracy).
@@ -658,7 +641,7 @@ class UserStatTable @Inject() (
         "INNER JOIN (SELECT user_id, username FROM sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
-    withJitOff(
+    SqlFragments.withJitOff(
       sql"""
       SELECT usernames.username,
              label_counts.label_count,
@@ -761,9 +744,7 @@ class UserStatTable @Inject() (
     if (citySchemas.isEmpty) {
       DBIO.successful(Seq.empty[GlobalLeaderboardStat])
     } else {
-      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
-      val unsafe: Seq[String] = (citySchemas ++ optOutSchemas).filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
-      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+      SqlFragments.requireSafeIdentifiers(citySchemas ++ optOutSchemas)
 
       // Per-city totals keyed by the global user_id. MAX(meters_audited) picks the single per-city value (user_stat
       // holds one row per user per city); the FILTERs zero out a city where the user is excluded while still letting
@@ -895,9 +876,7 @@ class UserStatTable @Inject() (
     if (citySchemas.isEmpty) {
       DBIO.successful(Seq.empty[CrossCityUserStat])
     } else {
-      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
-      val unsafe: Seq[String] = citySchemas.filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
-      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+      SqlFragments.requireSafeIdentifiers(citySchemas)
 
       // The user id is bound once in a CTE and read back as `(SELECT user_id FROM me)`; the per-schema blocks are
       // built as plain strings, so an interpolated `$userId` inside them would be spliced rather than bound.

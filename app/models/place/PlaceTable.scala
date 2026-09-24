@@ -293,9 +293,7 @@ class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       filters: PlaceFiltersForApi
   ): SqlStreamingAction[Vector[PlaceForApi], PlaceForApi, Effect.Read] = {
     val conditions: Seq[SQLActionBuilder] = Seq(
-      filters.bbox.map { bbox =>
-        sql"ST_Intersects(place.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      },
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("place.geom", bbox) },
       filters.regionId.map(id => sql"place.region_id = $id"),
       filters.regionName.map(name => sql"LOWER(region.name) = LOWER($name)"),
       filters.categories.map(cs => sql"place.category = ANY($cs)")

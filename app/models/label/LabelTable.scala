@@ -2463,7 +2463,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       // BBox filter takes precedence over region filters.
       val bbox = filters.bbox.get
       whereConditions :+=
-        sql"label_point.geom && ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
+        SqlFragments.overlapsBBox("label_point.geom", bbox)
     } else if (filters.regionId.isDefined) {
       // Region ID filter takes precedence over region name.
       whereConditions :+= sql"street_edge_region.region_id = ${filters.regionId.get}"
