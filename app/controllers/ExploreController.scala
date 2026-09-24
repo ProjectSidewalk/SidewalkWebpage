@@ -58,7 +58,7 @@ class ExploreController @Inject() (
       placeName: Option[String],
       heading: Option[Double],
       pitch: Option[Double],
-      zoom: Option[Int]
+      zoom: Option[Double]
   ) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
 

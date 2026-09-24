@@ -301,7 +301,14 @@ corresponding Twirl view:
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
   Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
   browser window with the pano; the labeling frame it stores with every label, and why, is in
-  [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
+  [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract". Its URL follows the
+  labeler (#5480, `src/navigation/ExploreUrlSync.js`): on every pano change, and on POV changes at most twice a
+  second, it is rewritten in place (`replaceState`, never a Back entry) with `panoId`, `lat`, `lng`, `heading`,
+  `pitch`, `zoom` and, in immersive mode, `immersive=1` — the same params `ExploreController.explore` reads, so
+  the address bar is always a shareable link to that view. The URL names a place, not a session: opening it lands
+  in free exploration there (the `?lat&lng` drop-in of #4451), never in the sharer's mission or route, so
+  `routeId`, `resumeRoute`, `regionId` and `streetEdgeId` are dropped from it once the page is up. That holds for
+  the labeler's own refresh too; the audit mission they were in is untouched and resumes from a bare `/explore`.
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**

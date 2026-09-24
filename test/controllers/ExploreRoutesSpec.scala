@@ -52,5 +52,13 @@ class ExploreRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
       location must include("pitch")
       location must include("zoom")
     }
+
+    "bind a fractional zoom, since the live URL writes the wheel's continuous value (#5480)" in {
+      val result =
+        route(app, FakeRequest(GET, "/explore?lat=47.615&lng=-122.332&panoId=abc-123&heading=90&zoom=1.75")).get
+      // An Int binder would answer 400 here before any redirect.
+      status(result) must (be >= 300 and be < 400)
+      redirectLocation(result).value must include("zoom=1.75")
+    }
   }
 }
