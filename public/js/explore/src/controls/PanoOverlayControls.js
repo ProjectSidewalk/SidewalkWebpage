@@ -67,6 +67,15 @@ class PanoOverlayControls {
       .catch(() => this.tracker.push('ModalStuck_PanoNotAvailable'));
   };
 
+  /**
+   * Badges the chevron toggle while a control hidden behind it (the Image adjustments) is off its default, so a
+   * persisted filter is visible with the row collapsed. The CSS hides the badge once the row is expanded.
+   * @param {boolean} active
+   */
+  setCollapsedIndicator = (active) => {
+    this.#controlButtonsToggle.classList.toggle('pano-overlay-button--active', active);
+  };
+
   /* Enable the stuck button. */
   enableStuckButton = () => {
     this.#stuckEnabled = true;

@@ -208,6 +208,32 @@ class Main {
     // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
     svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout?.());
 
+    // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
+    // they never carry it. svl.keyboard is built later, hence the lookups at call time. Suspending the shortcuts
+    // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano; the suspension is
+    // only undone if the panel was what suspended them, since a pop-up can disable the keyboard while it is open.
+    svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    let panelSuspendedKeyboard = false;
+    svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
+      document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
+        onOpen: () => {
+          svl.tracker.push('Click_ImageAdjustments_Open');
+          panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');
+          if (panelSuspendedKeyboard) svl.keyboard.disableKeyboard();
+        },
+        onClose: (via) => {
+          svl.tracker.push('Click_ImageAdjustments_Close', { via });
+          if (panelSuspendedKeyboard) svl.keyboard.enableKeyboard();
+          panelSuspendedKeyboard = false;
+        },
+        onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
+        onReset: () => svl.tracker.push('Click_ImageAdjustments_Reset'),
+      });
+    // The Image pill sits behind the chevron, so mirror its active state onto the chevron for the collapsed row.
+    svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault());
+    svl.imageAdjustments.onChange(() =>
+      svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault()));
+
     // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
     // capture date and the audit note is the one place it would read as belonging to neither (#5413).
     svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.datePill, () => svl.panoViewer,

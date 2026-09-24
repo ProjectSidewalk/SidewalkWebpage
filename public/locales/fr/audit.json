@@ -137,7 +137,17 @@
     "feedback-title": "Une idée ? Quelque chose de confus ? Un bug repéré ?<br>Envoyez-nous vos commentaires !",
     "immersive-enter": "Entrer en mode immersif",
     "immersive-exit": "Quitter le mode immersif",
-    "immersive-exit-hint": "Mode immersif. Appuyez sur F pour quitter."
+    "immersive-exit-hint": "Mode immersif. Appuyez sur F pour quitter.",
+    "image": "Image",
+    "image-tooltip": "Ajustez les ombres, la luminosité et le contraste de l'image",
+    "image-adjustments": {
+      "title": "Réglages de l'image",
+      "shadows": "Ombres",
+      "brightness": "Luminosité",
+      "contrast": "Contraste",
+      "reset": "Rétablir les valeurs par défaut",
+      "persist-note": "Ces réglages sont conservés d'une mission Explorer à l'autre jusqu'à leur réinitialisation."
+    }
   },
   "right-ui": {
     "opens-new-tab": "(s'ouvre dans un nouvel onglet)",
