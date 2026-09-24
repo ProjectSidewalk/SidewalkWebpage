@@ -2375,3 +2375,18 @@ kbd {
   opacity: 1;
   visibility: visible;
 }
+
+/* Pinned open by a click or Enter on a `data-ps-tooltip-pinnable` trigger (#5495): it now holds links, so it has to
+   take the pointer, and it takes focus from the keyboard pin, so it needs a ring (WCAG 2.4.7). */
+.ps-tooltip--pinned {
+  pointer-events: auto;
+}
+
+.ps-tooltip--pinned:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
+[data-ps-tooltip-pinnable] {
+  cursor: pointer;
+}
