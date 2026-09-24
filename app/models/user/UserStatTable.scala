@@ -2,10 +2,9 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.api.UserStatForApi
-import models.audit.AuditTaskTableDef
+import models.audit.AuditTaskTable
 import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionType}
-import models.street.StreetEdgeTable
 import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
@@ -220,15 +219,14 @@ object UserStatTable {
 class UserStatTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     sidewalkUserTable: SidewalkUserTable,
-    streetEdgeTable: StreetEdgeTable,
-    labelTable: LabelTable
+    labelTable: LabelTable,
+    auditTaskTable: AuditTaskTable
 )(implicit ec: ExecutionContext)
     extends UserStatTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val userStats            = TableQuery[UserStatTableDef]
   private val userRoleTable        = TableQuery[UserRoleTableDef]
-  private val auditTaskTable       = TableQuery[AuditTaskTableDef]
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
@@ -319,21 +317,13 @@ class UserStatTable @Inject() (
    * @param usersToUpdate A query for the users whose audited distance is being calculated
    */
   def updateAuditedDistanceHelper(usersToUpdate: Query[Rep[String], String, Seq]): DBIO[Unit] = {
-    // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
     auditTaskTable
-      .filter(_.completed === true)
-      .join(usersToUpdate)
-      .on(_.userId === _)
-      .join(streetEdgeTable.streets)
-      .on(_._1.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._1._1.userId)
-      .map(x => (x._1, x._2.map(_._2.geom.lengthGeodesic).sum))
+      .metersAuditedByUser(_.in(usersToUpdate))
       .result
-      .flatMap { auditedDists: Seq[(String, Option[Double])] =>
-        // Update the meters_audited column in the user_stat table.
+      .flatMap { auditedDists: Seq[(String, Double)] =>
         val updateActions = auditedDists.map { case (userId, auditedDist) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
-          updateQuery.update(auditedDist.getOrElse(0d))
+          updateQuery.update(auditedDist)
         }
         DBIO.sequence(updateActions).map(_ => ())
       }
@@ -398,7 +388,7 @@ class UserStatTable @Inject() (
    * @param users A list of user_ids to update, update all users if the list is empty.
    */
   def updateAccuracy(users: Seq[String]): DBIO[Unit] =
-    updateAccuracyWhere(if (users.isEmpty) None else Some(sql"""IN ('#${users.mkString("','")}')"""))
+    updateAccuracyWhere(if (users.isEmpty) None else Some(sql"= ANY($users)"))
 
   /**
    * Update the accuracy column for everyone whose labels the given user validated, e.g. after excluding that user.
@@ -416,7 +406,7 @@ class UserStatTable @Inject() (
 
   /**
    * Recomputes own_labels_validated and accuracy for the given labelers.
-   * @param userSet An `IN (...)` clause scoping both the labels aggregated and the rows written; None for every user.
+   * @param userSet A set test (`IN (...)` or `= ANY(...)`) scoping both the labels aggregated and the rows written; None for every user.
    */
   private def updateAccuracyWhere(userSet: Option[SQLActionBuilder]): DBIO[Unit] = {
     def scoped(column: String): SQLActionBuilder = userSet.map(set => sql" AND #$column ".concat(set)).getOrElse(sql"")
@@ -581,7 +571,7 @@ class UserStatTable @Inject() (
   def usersThatAuditedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
     val fromMissions: Query[Rep[String], String, Seq] = auditMissions.filter(_.missionEnd > cutoffTime).map(_.userId)
     val fromTasks: Query[Rep[String], String, Seq]    =
-      auditTaskTable.filter(task => task.completed && task.taskEnd > cutoffTime).map(_.userId)
+      auditTaskTable.completedTasks.filter(_.taskEnd > cutoffTime).map(_.userId)
 
     (fromMissions ++ fromTasks).distinct
   }

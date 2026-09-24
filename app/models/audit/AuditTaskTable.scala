@@ -534,16 +534,8 @@ class AuditTaskTable @Inject() (
   /**
    * Gets total distance audited by a user in meters.
    */
-  def getDistanceAudited(userId: String): DBIO[Double] = {
-    completedTasks
-      .filter(_.userId === userId)
-      .join(streetEdgeTable.streets)
-      .on(_.streetEdgeId === _.streetEdgeId)
-      .map(_._2.geom.lengthGeodesic)
-      .sum
-      .getOrElse(0d)
-      .result
-  }
+  def getDistanceAudited(userId: String): DBIO[Double] =
+    metersAuditedByUser(_ === userId).map(_._2).result.headOption.map(_.getOrElse(0d))
 
   /**
    * Sums the same geodesic street lengths [[getDistanceAudited]] does, rather than reading the nightly
@@ -552,15 +544,25 @@ class AuditTaskTable @Inject() (
    * @param userIds The users to measure.
    * @return One entry per user with a completed audit: (user id, meters explored).
    */
-  def getDistanceAuditedByUsers(userIds: Seq[String]): DBIO[Seq[(String, Double)]] = {
+  def getDistanceAuditedByUsers(userIds: Seq[String]): DBIO[Seq[(String, Double)]] =
+    metersAuditedByUser(_ inSet userIds).result
+
+  /**
+   * The one definition of distance explored, shared by the profile, team pages, and `user_stat.meters_audited`: the
+   * geodesic length of every street a user has a completed audit on, counting a street again each time it's audited.
+   *
+   * @param includeUser Which users to measure.
+   * @return A query of (user id, meters explored), one row per user with a completed audit.
+   */
+  def metersAuditedByUser(
+      includeUser: Rep[String] => Rep[Boolean]
+  ): Query[(Rep[String], Rep[Double]), (String, Double), Seq] =
     completedTasks
-      .filter(_.userId inSet userIds)
+      .filter(task => includeUser(task.userId))
       .join(streetEdgeTable.streets)
       .on(_.streetEdgeId === _.streetEdgeId)
       .groupBy(_._1.userId)
       .map { case (_userId, rows) => (_userId, rows.map(_._2.geom.lengthGeodesic).sum.getOrElse(0d)) }
-      .result
-  }
 
   /**
    * Get the sum of the line distance of all streets in the region that the user has not audited.
@@ -838,10 +840,14 @@ class AuditTaskTable @Inject() (
       .filter(_.userRouteId === userRouteId.bind)
       .join(auditTasks)
       .on(_.auditTaskId === _.auditTaskId)
-      .join(streetEdgeIssues.filter(_.issue === StreetEdgeIssueType.PanoNotAvailable))
+      .join(streetEdgeIssues)
       .on { case ((_, auditTask), issue) =>
-        auditTask.streetEdgeId === issue.streetEdgeId && auditTask.userId === issue.userId &&
-        issue.timestamp >= auditTask.taskStart
+        StreetEdgeIssueTable.reportedNoImageryDuringTask(
+          issue,
+          auditTask.streetEdgeId,
+          auditTask.userId,
+          auditTask.taskStart
+        )
       }
       .map { case (_, issue) => issue.streetEdgeId }
   }
@@ -878,11 +884,9 @@ class AuditTaskTable @Inject() (
    * walked metres are recorded on it, so handing the street back from its start makes them re-walk and re-label what
    * they already did. The region-audit counterpart of [[resumableRouteTask]].
    *
-   * The no-imagery exclusion below is a **second copy** of the predicate ExploreService's page-load resume applies to
-   * the mission's current task, via StreetEdgeIssueTable.reportedNoImagerySince. They are not shared because that path
-   * tests one already-loaded task while this one is a query predicate over many, and the other two exclusions here
-   * would change that path's behaviour if it adopted them wholesale. So they can drift: a change to what counts as a
-   * no-imagery give-up has to be made in both places, and there is no compiler or test that will say so.
+   * The no-imagery exclusion below uses the same StreetEdgeIssueTable.reportedNoImageryDuringTask test that
+   * ExploreService's page-load resume applies to the mission's current task. Only that test is shared: the other two
+   * exclusions here would change that path's behaviour if it adopted them.
    *
    * Three exclusions, each for a reason the street is not really resumable:
    *   - Drop-in tasks (`start_offset_m` set) cover only the stretch from where free exploration began (#4451).
@@ -943,10 +947,7 @@ class AuditTaskTable @Inject() (
       )
       .filterNot(task =>
         streetEdgeIssues
-          .filter(issue =>
-            issue.streetEdgeId === task.streetEdgeId && issue.userId === userId &&
-              issue.issue === StreetEdgeIssueType.PanoNotAvailable && issue.timestamp >= task.taskStart
-          )
+          .filter(StreetEdgeIssueTable.reportedNoImageryDuringTask(_, task.streetEdgeId, userId.bind, task.taskStart))
           .exists
       )
   }
@@ -1099,11 +1100,7 @@ class AuditTaskTable @Inject() (
   def updateTaskFlag(auditTaskId: Int, flag: String, state: Boolean): DBIO[Int] = {
     val q = for {
       t <- auditTasks if t.auditTaskId === auditTaskId
-    } yield flag match {
-      case "low_quality" => t.lowQuality
-      case "incomplete"  => t.incomplete
-      case "stale"       => t.stale
-    }
+    } yield flagColumn(t, flag)
 
     q.update(state)
   }
@@ -1119,13 +1116,21 @@ class AuditTaskTable @Inject() (
   def updateTaskFlagsBeforeDate(userId: String, date: OffsetDateTime, flag: String, state: Boolean): DBIO[Int] = {
     val q = for {
       t <- auditTasks if t.userId === userId && t.taskStart < date
-    } yield flag match {
-      case "low_quality" => t.lowQuality
-      case "incomplete"  => t.incomplete
-      case "stale"       => t.stale
-    }
+    } yield flagColumn(t, flag)
 
     q.update(state)
+  }
+
+  /**
+   * The column behind an admin-set task flag.
+   *
+   * @param flag One of "low_quality", "incomplete", or "stale".
+   * @return That flag's column on the task.
+   */
+  private def flagColumn(t: AuditTaskTableDef, flag: String): Rep[Boolean] = flag match {
+    case "low_quality" => t.lowQuality
+    case "incomplete"  => t.incomplete
+    case "stale"       => t.stale
   }
 
   /**
@@ -1144,8 +1149,8 @@ class AuditTaskTable @Inject() (
    * flagged. The tutorial street is excluded. Unlike the manually-set flags above, this flag is never set by admins,
    * so the clear-pass owns every TRUE value -- including tutorial-street rows, which the set-pass can never produce.
    *
-   * The two passes apply the *same* outdated test, so together they partition audit_task exactly; any change to one
-   * predicate has to be mirrored in the other or the sync stops being idempotent. Three details of that test:
+   * The two passes share one outdated test (`auditPredatesImagery`), so together they partition audit_task exactly and
+   * the sync stays idempotent. Three details of that test:
    *
    *   - The strict < is deliberately conservative with GSV's varying-precision capture dates: a month-only capture
    *     date standardizes to the 1st, so an audit any time in that month is not flagged.
@@ -1163,16 +1168,17 @@ class AuditTaskTable @Inject() (
    * @return (number of audits flagged, number of audits unflagged)
    */
   def syncOutdatedImageryFlags: DBIO[(Int, Int)] = {
-    val setPass = sqlu"""
+    val auditPredatesImagery = """street_imagery.median_newest_capture IS NOT NULL
+          AND street_imagery.median_newest_capture <= (now() AT TIME ZONE 'UTC')::date
+          AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.median_newest_capture"""
+    val setPass              = sqlu"""
       UPDATE audit_task
       SET outdated_imagery = TRUE, outdated_imagery_at = now()
       FROM street_imagery
       WHERE audit_task.street_edge_id = street_imagery.street_edge_id
           AND audit_task.completed
           AND NOT audit_task.outdated_imagery
-          AND street_imagery.median_newest_capture IS NOT NULL
-          AND street_imagery.median_newest_capture <= (now() AT TIME ZONE 'UTC')::date
-          AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.median_newest_capture
+          AND #$auditPredatesImagery
           AND #${FilteredTables.notTutorialStreet("audit_task.street_edge_id")};
     """
     val clearPass = sqlu"""
@@ -1184,9 +1190,7 @@ class AuditTaskTable @Inject() (
               OR NOT EXISTS (
                   SELECT FROM street_imagery
                   WHERE street_imagery.street_edge_id = audit_task.street_edge_id
-                      AND street_imagery.median_newest_capture IS NOT NULL
-                      AND street_imagery.median_newest_capture <= (now() AT TIME ZONE 'UTC')::date
-                      AND (audit_task.task_end AT TIME ZONE 'UTC')::date < street_imagery.median_newest_capture
+                      AND #$auditPredatesImagery
               )
           );
     """

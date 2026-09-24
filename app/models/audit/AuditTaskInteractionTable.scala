@@ -298,7 +298,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
           FROM audit_task_interaction_small
           INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
           WHERE audit_task.user_id = $userId
-              AND audit_task_interaction_small.timestamp < '#${timeRangeEnd.toString}'
+              AND audit_task_interaction_small.timestamp < $timeRangeEnd
               AND audit_task_interaction_small.timestamp > (
                   SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
                   FROM label

@@ -1,10 +1,13 @@
 package models.api
 
+import models.audit.AuditTaskInteractionTable
 import models.cluster.ClusterTable
 import models.label.LabelTable
 import models.place.PlaceTable
 import models.region.RegionTable
 import models.street.{SidewalkPresenceTable, StreetEdgeTable}
+import models.user.UserStatTable
+import models.validation.LabelValidationTable
 import models.utils.{LatLngBBox, SpatialQueryType}
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
@@ -13,11 +16,11 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import util.RolledBackDb
 
-import java.time.OffsetDateTime
+import java.time.{LocalDate, OffsetDateTime}
 
 /**
- * Every filter of the public API's raw-SQL queries runs, and keeps only what it asks for (#2756). Also covers the two
- * other raw queries that take a value from outside the SQL: label metadata for a validator, and access-score clusters.
+ * Every filter of the public API's raw-SQL queries runs, and keeps only what it asks for (#2756). Also covers the
+ * other raw queries that take a value from outside the SQL, such as label metadata for a validator.
  *
  * The filter values are sent to Postgres as bound values, so a wrong cast or a miscounted value only shows up when a
  * query runs; compiling can't catch it. On a database with no matching rows (CI's) the row checks pass trivially, but
@@ -34,6 +37,9 @@ class ApiFilterQueriesSpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
   private lazy val regionTable: RegionTable                     = app.injector.instanceOf[RegionTable]
   private lazy val placeTable: PlaceTable                       = app.injector.instanceOf[PlaceTable]
   private lazy val sidewalkPresenceTable: SidewalkPresenceTable = app.injector.instanceOf[SidewalkPresenceTable]
+  private lazy val labelValidationTable: LabelValidationTable   = app.injector.instanceOf[LabelValidationTable]
+  private lazy val userStatTable: UserStatTable                 = app.injector.instanceOf[UserStatTable]
+  private lazy val interactionTable: AuditTaskInteractionTable  = app.injector.instanceOf[AuditTaskInteractionTable]
 
   // A name with a quote in it, which the queries once had to escape by hand.
   private val quotedName = "O'Brien Park"
@@ -218,6 +224,28 @@ class ApiFilterQueriesSpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
         label.userValidation mustBe None
         label.fromCurrentUser mustBe false
       }
+    }
+  }
+
+  "The daily stats queries" should {
+    "keep only the days asked for" in {
+      // Days are bucketed in Pacific time but the bounds compare in the database's time zone, so allow a day each side.
+      val (from, to)              = (LocalDate.parse("2020-01-01"), LocalDate.now())
+      def inRange(day: LocalDate) = !day.isBefore(from.minusDays(1)) && !day.isAfter(to.plusDays(1))
+      run(labelTable.getDailyLabelStats(Some(from), Some(to), filterLowQuality = false)).foreach(row =>
+        inRange(row._1) mustBe true
+      )
+      run(labelValidationTable.getDailyValidationStats(Some(from), Some(to), filterLowQuality = true)).foreach(row =>
+        inRange(row._1) mustBe true
+      )
+    }
+  }
+
+  "The per-user recounts" should {
+    "take a list of user ids, including one with a quote in it" in {
+      val someUser = run(sql"SELECT user_id FROM user_stat ORDER BY user_id LIMIT 1".as[String].headOption)
+      runRolledBack(userStatTable.updateAccuracy(someUser.toSeq :+ quotedName)) mustBe (())
+      someUser.foreach(user => run(interactionTable.secondsSpentAuditing(user, 1, until)) must be >= 0d)
     }
   }
 

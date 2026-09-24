@@ -1289,11 +1289,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       labelId: Option[Int] = None
   ): DBIO[Seq[LabelMetadata]] = {
     // Either filter for the given labelId or filter out deleted and tutorial labels.
-    val labelFilter: String = if (labelId.isDefined) {
-      s"""lb1.label_id = ${labelId.get}"""
-    } else {
-      "lb1.deleted = FALSE AND lb1.tutorial = FALSE"
-    }
+    val labelFilter: SQLActionBuilder =
+      labelId.map(id => sql"lb1.label_id = $id").getOrElse(sql"lb1.deleted = FALSE AND lb1.tutorial = FALSE")
 
     sql"""
       SELECT lb1.label_id,
@@ -1390,10 +1387,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
               AND label_validation.label_type = commented_label.label_type
           GROUP BY validation_task_comment.label_id
        ) AS comment ON lb1.label_id = comment.label_id
-      WHERE #$labelFilter
+      WHERE """
+      .concat(labelFilter)
+      .concat(sql"""
       ORDER BY lb1.label_id DESC
       LIMIT $takeN
-    """.as[LabelMetadata]
+    """)
+      .as[LabelMetadata]
   }
 
   /**
@@ -3104,10 +3104,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
     val contributors = Contributors(filterLowQuality)
-    val whereClauses = scala.collection.mutable.ListBuffer("TRUE")
-    startDate.foreach(d => whereClauses += s"label.time_created >= '$d'::date")
-    endDate.foreach(d => whereClauses += s"label.time_created < ('$d'::date + INTERVAL '1 day')")
-    val where = whereClauses.mkString(" AND ")
+    val dateBounds   = Seq(
+      startDate.map(d => sql"label.time_created >= $d::date"),
+      endDate.map(d => sql"label.time_created < ($d::date + INTERVAL '1 day')")
+    ).flatten
 
     implicit val getResult: GetResult[(LocalDate, String, Int, Int)] =
       GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
@@ -3119,10 +3119,13 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              COUNT(CASE WHEN user_role.role = 'AI'               THEN label.label_id END) AS ai_labels
       FROM #${FilteredTables.labels(contributors = contributors)}
       LEFT JOIN sidewalk_login.user_role ON label.user_id = user_role.user_id
-      WHERE #$where
+      WHERE """
+      .concat(SqlFragments.allOf(dateBounds))
+      .concat(sql"""
       GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, label.label_type::text
       ORDER BY date ASC, label.label_type::text
-    """.as[(LocalDate, String, Int, Int)]
+    """)
+      .as[(LocalDate, String, Int, Int)]
   }
 
   /**
