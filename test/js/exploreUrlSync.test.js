@@ -157,14 +157,17 @@ describe('ExploreUrlSync', () => {
         expect(currentUrl()).toBe('/explore?routeId=12&resumeRoute=true&placeName=Here');
     });
 
-    test('writes the session params after the live ones, on every write', () => {
-        const sync = new ExploreUrlSync(viewer, () => immersive, { missionId: 42 });
+    test('writes the session params after the live ones, as they read at write time', () => {
+        let missionId = 42;
+        const sync = new ExploreUrlSync(viewer, () => immersive, () => ({ missionId }));
         sync.start();
         expect(window.location.search).toMatch(/&zoom=1.5&missionId=42$/);
+        // The mission rolled over in-page: the next write names the new one.
+        missionId = 43;
         viewer.state.pov = { heading: 10, pitch: 0, zoom: 1 };
         jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
         sync.request();
-        expect(window.location.search).toMatch(/&heading=10&pitch=0&zoom=1&missionId=42$/);
+        expect(window.location.search).toMatch(/&heading=10&pitch=0&zoom=1&missionId=43$/);
         // Free exploration passes none, and the default is none.
         expect(ExploreUrlSync.paramsFor(viewer, false, {}).has('missionId')).toBe(false);
         expect(ExploreUrlSync.paramsFor(viewer, false).has('missionId')).toBe(false);

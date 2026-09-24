@@ -660,10 +660,18 @@ class Main {
    */
   #syncURL() {
     if (svl.isOnboarding()) {
+      // The tutorial intro says "your route is still waiting" to a user who clicked through to one; that fact
+      // lives only in the URL about to be pinned, and a route that failed to resolve (#5156) is not waiting.
+      svl.tutorialRouteWaiting = new URLSearchParams(window.location.search).has('routeId')
+        && !this.#params.routeUnavailable;
       ExploreUrlSync.pinTutorialUrl();
       return;
     }
-    const sessionParams = svl.isExploreAddressMode() ? {} : { missionId: this.#params.mission.mission_id };
+    // Read at write time: a mission completes and its successor arrives in-page, and the URL has to name the one
+    // the labeler is in now for the server to seed their reload.
+    const sessionParams = () => (svl.isExploreAddressMode()
+      ? {}
+      : { missionId: svl.missionContainer.getCurrentMission().getProperty('missionId') });
     svl.urlSync = new ExploreUrlSync(
       svl.panoViewer, () => svl.immersiveMode?.isActive() ?? false, sessionParams,
     );

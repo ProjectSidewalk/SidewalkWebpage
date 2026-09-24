@@ -37,7 +37,7 @@ class ExploreUrlSync {
   #viewer;
   /** @type {() => boolean} */
   #isImmersive;
-  /** @type {Record<string, string|number>} */
+  /** @type {() => Record<string, string|number>} */
   #sessionParams;
   #timer = null;
   #lastWriteAt = Number.NEGATIVE_INFINITY;
@@ -45,10 +45,11 @@ class ExploreUrlSync {
   /**
    * @param {PanoViewer} viewer - The pano viewer whose pano and POV the URL follows.
    * @param {() => boolean} isImmersive - Whether immersive mode (#5085) is on, read at write time.
-   * @param {Record<string, string|number>} [sessionParams] - Params naming the labeler's own session (`missionId`),
-   *   written after the live ones on every write; the server honors them only for their owner.
+   * @param {() => Record<string, string|number>} [sessionParams] - Params naming the labeler's own session
+   *   (`missionId`), read at write time since missions roll over in-page, and written after the live ones; the
+   *   server honors them only for their owner.
    */
-  constructor(viewer, isImmersive, sessionParams = {}) {
+  constructor(viewer, isImmersive, sessionParams = () => ({})) {
     this.#viewer = viewer;
     this.#isImmersive = isImmersive;
     this.#sessionParams = sessionParams;
@@ -80,7 +81,7 @@ class ExploreUrlSync {
 
   /** Rewrites the URL from the viewer's current state, skipping the write when it would change nothing. */
   writeNow() {
-    const params = ExploreUrlSync.paramsFor(this.#viewer, this.#isImmersive(), this.#sessionParams);
+    const params = ExploreUrlSync.paramsFor(this.#viewer, this.#isImmersive(), this.#sessionParams());
     // A viewer mid-load has nothing to say yet; that is not a write, so it must not push the next one out.
     if (params === null) return;
     this.#lastWriteAt = Date.now();

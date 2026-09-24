@@ -7,7 +7,14 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.AnonSession
+import models.user.UserAccountStateTable
+import models.utils.MyPostgresProfile
+import play.api.db.slick.DatabaseConfigProvider
+import play.api.mvc.Cookie
+import util.{AnonSession, RoleSession}
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 /**
  * Route-wiring smoke tests for the Explore page's address-drop-in entry (#4451). Boots the real app and hits
@@ -15,19 +22,33 @@ import util.AnonSession
  * preserves the lat/lng query params — that round-trip is what lets a brand-new visitor coming from the LabelMap's
  * "Explore the sidewalks here" button land at their searched address after the anonymous account is minted.
  */
-class ExploreRoutesSpec extends PlaySpec with GuiceOneAppPerSuite with AnonSession {
+class ExploreRoutesSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    new GuiceApplicationBuilder()
+      .disable[modules.ActorModule]
+      .configure("rate-limit.anon-signup.enabled" -> false)
+      .build()
 
   implicit lazy val mat: Materializer = app.materializer
 
+  private lazy val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+
+  /** Marks a session's user as past the tutorial, so /explore hands them a real audit mission. */
+  private def completeTutorial(cookies: Seq[Cookie]): Unit = {
+    val table = app.injector.instanceOf[UserAccountStateTable]
+    val _     = Await.result(dbConfig.db.run(table.markExploreTutorialCompleted(userIdOf(cookies))), 30.seconds)
+  }
+
   "GET /explore with a live URL's missionId (#5480)" should {
-    "resume the owner's own session with the pano seed, dropping seed values that are not finite" in {
+    "resume the owner's own mission with the pano seed, dropping seed values that are not finite" in {
       val cookies = freshAnonSession()
-      val first   = route(app, FakeRequest(GET, "/explore").withCookies(cookies: _*)).get
+      completeTutorial(cookies)
+      val first = route(app, FakeRequest(GET, "/explore").withCookies(cookies: _*)).get
       status(first) mustBe OK
-      val missionId = """"mission_id":(\d+)""".r.findFirstMatchIn(contentAsString(first)).value.group(1)
+      val firstHtml = contentAsString(first)
+      firstHtml must include(""""mission_type":"audit"""")
+      val missionId = """"mission_id":(\d+)""".r.findFirstMatchIn(firstHtml).value.group(1)
 
       val own = route(
         app,
@@ -40,6 +61,7 @@ class ExploreRoutesSpec extends PlaySpec with GuiceOneAppPerSuite with AnonSessi
       val html = contentAsString(own)
       // The same mission as the bare visit, not a drop-in, and the seed rode along.
       html must include(s""""mission_id":$missionId""")
+      html must include(""""mission_type":"audit"""")
       html must include("mainParam.startPanoId = \"abc-123\"")
       html must include("mainParam.startLat = 47.615")
       // A POV whose heading is not a number is no POV.
@@ -55,18 +77,41 @@ class ExploreRoutesSpec extends PlaySpec with GuiceOneAppPerSuite with AnonSessi
       contentAsString(refined) must include("mainParam.startPov = { heading: 90.0, pitch: 0.0, zoom: 1.0 }")
     }
 
-    "treat a missionId the visitor does not own as inert" in {
-      val cookies = freshAnonSession()
-      val result  = route(
+    "treat another user's missionId as inert: the recipient never enters that mission" in {
+      val owner = freshAnonSession()
+      completeTutorial(owner)
+      val ownerPage = contentAsString(route(app, FakeRequest(GET, "/explore").withCookies(owner: _*)).get)
+      val missionId = """"mission_id":(\d+)""".r.findFirstMatchIn(ownerPage).value.group(1)
+
+      val recipient = freshAnonSession()
+      val result    = route(
         app,
-        FakeRequest(GET, "/explore?lat=47.615&lng=-122.332&panoId=abc-123&missionId=2147483647")
+        FakeRequest(GET, s"/explore?lat=47.615&lng=-122.332&panoId=abc-123&missionId=$missionId")
+          .withCookies(recipient: _*)
+      ).get
+      status(result) mustBe OK
+      val html = contentAsString(result)
+      html must not include s""""mission_id":$missionId"""
+      // The seed is rendered only for the drop-in mission (when a street is near enough) — never as a resumed one.
+      if (html.contains("mainParam.startPanoId")) html must include(""""mission_type":"exploreAddress"""")
+    }
+
+    "never seed the tutorial, even for the owner of its onboarding mission" in {
+      val cookies = freshAnonSession()
+      val first   = contentAsString(route(app, FakeRequest(GET, "/explore").withCookies(cookies: _*)).get)
+      first must include(""""mission_type":"auditOnboarding"""")
+      val missionId = """"mission_id":(\d+)""".r.findFirstMatchIn(first).value.group(1)
+
+      val result = route(
+        app,
+        FakeRequest(GET, s"/explore?lat=47.615&lng=-122.332&panoId=abc-123&heading=90&missionId=$missionId")
           .withCookies(cookies: _*)
       ).get
       status(result) mustBe OK
       val html = contentAsString(result)
-      html must not include "\"mission_id\":2147483647"
-      // The seed is rendered only for the drop-in mission (when a street is near enough) — never as a resumed one.
-      if (html.contains("mainParam.startPanoId")) html must include("\"mission_type\":\"exploreAddress\"")
+      html must include(s""""mission_id":$missionId""")
+      html must not include "mainParam.startPanoId"
+      html must not include "mainParam.startPov"
     }
   }
 

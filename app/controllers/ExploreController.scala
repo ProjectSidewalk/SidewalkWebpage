@@ -122,6 +122,12 @@ class ExploreController @Inject() (
       } yield {
         val isExploreAddress: Boolean =
           exploreData.mission.missionType == MissionType.ExploreAddress
+        // The owner's seed is only right for the mission it was written in. A resume that landed elsewhere -- the
+        // mission completed since (a modal was up, a bookmark is days old), a route ended -- opens at its own task
+        // instead of kilometres away at a stale pano; the tutorial takes no seed either.
+        val seedOwnSession: Boolean =
+          ownSession && missionId.contains(exploreData.mission.missionId) &&
+            exploreData.mission.missionType != MissionType.AuditOnboarding
         val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
 
         // Log visit to the Explore page.
@@ -158,7 +164,7 @@ class ExploreController @Inject() (
               views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), None, None,
                 seedHeading, seedPitch, seedZoom)
             )
-          case (None, _, p, Some(lt), Some(lg)) if isExploreAddress || ownSession =>
+          case (None, _, p, Some(lt), Some(lg)) if isExploreAddress || seedOwnSession =>
             // placeName rides along only on the drop-in path — it names the searched place in the landing greeting.
             Ok(
               views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), p, placeName,
