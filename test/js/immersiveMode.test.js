@@ -179,6 +179,23 @@ describe('ImmersiveMode', () => {
             expect.objectContaining({ source: 'session' }));
     });
 
+    it('credits the tab, not the link, when both say immersive: only a new arrival reads as url (#5480)', () => {
+        window.sessionStorage.setItem('svl-immersive-active', '1');
+        window.history.replaceState(null, '', '/explore?panoId=abc&immersive=1');
+        expect(build().isActive()).toBe(true);
+        expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored',
+            expect.objectContaining({ source: 'session' }));
+    });
+
+    it('keeps the tutorial boxed even when the link says immersive=1', () => {
+        window.history.replaceState(null, '', '/explore?retakeTutorial=true&immersive=1');
+        onboarding = true;
+        expect(build().isActive()).toBe(false);
+        expect(document.body.classList.contains('svl-immersive')).toBe(false);
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+        expect(tracker.push).not.toHaveBeenCalled();
+    });
+
     it('tells its onChange hook after every toggle, once the tool is laid out (#5480)', () => {
         const onChange = jest.fn();
         const mode = new ImmersiveMode(tracker, relayout, onChange);

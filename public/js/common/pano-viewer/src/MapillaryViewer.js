@@ -93,10 +93,11 @@ class MapillaryViewer extends PanoViewer {
       return this._getPanoramaCallback(e.image);
     };
     const panoChangeListener = async (e) => {
-      for (const listener of this.panoChangedListeners) {
-        // Skip the updateImageData() call if it's already happening through setPano/setLocation.
-        if (!this.changingPanoOurselves || listener !== this.updateImageData) await listener(e);
-      }
+      // A move this class started is announced from setPano instead, once the metadata behind getPanoId() and
+      // getPosition() has caught up with the new image; announced from here, on the SDK's own event, a listener
+      // asking for the pano would still be told the previous one (#5480).
+      if (this.changingPanoOurselves) return;
+      for (const listener of this.panoChangedListeners) await listener(e);
     };
     this.viewer.on('image', panoChangeListener);
 
@@ -585,7 +586,21 @@ class MapillaryViewer extends PanoViewer {
     this.changingPanoOurselves = true;
     try {
       return await Promise.race([
-        this.viewer.moveTo(panoId).then(this._getPanoramaCallback),
+        this.viewer.moveTo(panoId).then(async (image) => {
+          const panoData = await this._getPanoramaCallback(image);
+          // The SDK's 'image' event was held back above; tell the listeners now that the getters answer for the
+          // new image. updateImageData has just run, so it is the one listener not called again. A listener's own
+          // failure is its own: the move succeeded, and reporting it as a failed load would misroute the walk.
+          for (const listener of this.panoChangedListeners) {
+            if (listener === this.updateImageData) continue;
+            try {
+              await listener({ image, target: this.viewer, type: 'image' });
+            } catch (err) {
+              console.error('pano_changed listener failed', err);
+            }
+          }
+          return panoData;
+        }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 12000)),
       ]);
     } catch {

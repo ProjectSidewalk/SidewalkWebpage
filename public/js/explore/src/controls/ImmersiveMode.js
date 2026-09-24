@@ -57,15 +57,17 @@ class ImmersiveMode {
     // Re-enter the mode this tab was in before the page load, or the one a link asks for (#5480). A link's ask
     // becomes this sitting's choice, so finishing a route (a fresh /explore, no param) lands back in it too. Only the
     // classes and the button are set here: the tool has not been laid out yet, and the first relayout reads
-    // isActive(), so the pano is born at window size.
+    // isActive(), so the pano is born at window size. The `source` note credits the tab first: an immersive tab's
+    // own URL always says immersive=1, so only a tab that did not already have the mode was brought in by a link.
+    const stored = Boolean(ImmersiveMode.#readStored(ImmersiveMode.#ACTIVE_KEY));
     const askedByUrl = new URLSearchParams(window.location.search).get(ImmersiveMode.URL_PARAM) === '1';
-    if (askedByUrl || ImmersiveMode.#readStored(ImmersiveMode.#ACTIVE_KEY)) {
+    if (stored || askedByUrl) {
       this.#active = true;
       this.#applyClasses();
       this.#renderButton();
-      if (askedByUrl) ImmersiveMode.#writeStored(ImmersiveMode.#ACTIVE_KEY, '1');
+      if (!stored) ImmersiveMode.#writeStored(ImmersiveMode.#ACTIVE_KEY, '1');
       this.#tracker.push('ImmersiveMode_Restored', {
-        source: askedByUrl ? 'url' : 'session',
+        source: stored ? 'session' : 'url',
         innerWidth: window.innerWidth,
         innerHeight: window.innerHeight,
       });

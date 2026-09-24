@@ -651,21 +651,22 @@ class Main {
    * Puts the address bar in step with the labeler (#5480): from here on ExploreUrlSync rewrites it with the current
    * pano and view, so it is always a shareable link to this spot, and a refresh or a copied link lands on the exact
    * view rather than only the seed the page opened with (#4451, #4637). The load-time params — the mission's own
-   * (`routeId`, `resumeRoute`, …) and the drop-in greeting's `placeName` — have done their work by now and go.
+   * (`routeId`, `resumeRoute`, …) and the drop-in greeting's `placeName` — have done their work by now and go; what
+   * stays is this mission's id, which the server honors for its owner alone, so the labeler's own reloads resume
+   * the mission while a recipient of the link lands in free exploration. A free-exploration session writes no id:
+   * the `?lat&lng` path already resumes the user's own open drop-in mission.
    *
-   * The tutorial is the exception: its pano is synthetic, so its URL is normalized to a bare /explore, or
-   * ?retakeTutorial=true, which is the one param a refresh mid-tutorial has to keep.
+   * The tutorial is the exception: its pano is synthetic, so its URL is only pinned (ExploreUrlSync.pinTutorialUrl).
    */
   #syncURL() {
     if (svl.isOnboarding()) {
-      const url = new URL(ExploreUrlSync.PATH, window.location.origin);
-      if (new URLSearchParams(window.location.search).get('retakeTutorial') === 'true') {
-        url.searchParams.set('retakeTutorial', 'true');
-      }
-      util.url.replaceQuery(url);
+      ExploreUrlSync.pinTutorialUrl();
       return;
     }
-    svl.urlSync = new ExploreUrlSync(svl.panoViewer, () => svl.immersiveMode?.isActive() ?? false);
+    const sessionParams = svl.isExploreAddressMode() ? {} : { missionId: this.#params.mission.mission_id };
+    svl.urlSync = new ExploreUrlSync(
+      svl.panoViewer, () => svl.immersiveMode?.isActive() ?? false, sessionParams,
+    );
     svl.urlSync.start();
   }
 

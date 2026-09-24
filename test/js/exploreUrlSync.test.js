@@ -157,6 +157,45 @@ describe('ExploreUrlSync', () => {
         expect(currentUrl()).toBe('/explore?routeId=12&resumeRoute=true&placeName=Here');
     });
 
+    test('writes the session params after the live ones, on every write', () => {
+        const sync = new ExploreUrlSync(viewer, () => immersive, { missionId: 42 });
+        sync.start();
+        expect(window.location.search).toMatch(/&zoom=1.5&missionId=42$/);
+        viewer.state.pov = { heading: 10, pitch: 0, zoom: 1 };
+        jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
+        sync.request();
+        expect(window.location.search).toMatch(/&heading=10&pitch=0&zoom=1&missionId=42$/);
+        // Free exploration passes none, and the default is none.
+        expect(ExploreUrlSync.paramsFor(viewer, false, {}).has('missionId')).toBe(false);
+        expect(ExploreUrlSync.paramsFor(viewer, false).has('missionId')).toBe(false);
+    });
+
+    test('a request that finds the viewer mid-load does not delay the first real write', () => {
+        viewer.state.panoId = null;
+        const sync = new ExploreUrlSync(viewer, () => immersive);
+        sync.start();
+        expect(replaceState).not.toHaveBeenCalled();
+
+        jest.advanceTimersByTime(20);
+        viewer.state.panoId = 'abc123';
+        fire('pov_changed');
+        expect(replaceState).toHaveBeenCalledTimes(1);
+        expect(window.location.search).toContain('panoId=abc123');
+    });
+
+    test('pins the tutorial URL: retakeTutorial kept, the rest dropped, /audit normalized, no Back entry', () => {
+        const pushState = jest.spyOn(window.history, 'pushState');
+        window.history.replaceState(null, '', '/audit?retakeTutorial=true&routeId=12&immersive=1');
+        ExploreUrlSync.pinTutorialUrl();
+        expect(currentUrl()).toBe('/explore?retakeTutorial=true');
+
+        window.history.replaceState(null, '', '/explore?routeId=12&lat=1&lng=2');
+        ExploreUrlSync.pinTutorialUrl();
+        expect(currentUrl()).toBe('/explore');
+        expect(pushState).not.toHaveBeenCalled();
+        pushState.mockRestore();
+    });
+
     test('survives a browser that has run out of history writes', () => {
         replaceState.mockImplementation(() => { throw new Error('SecurityError'); });
         const sync = new ExploreUrlSync(viewer, () => immersive);
