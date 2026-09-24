@@ -60,7 +60,7 @@ describe('a Gallery card\'s location line', () => {
         window.TagDisplay = class {};
         window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
         window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
-        window.$ = () => ({ tooltip: () => ({ tooltip: () => {} }) });
+        window.$ = () => ({}); // Card wraps its image holder for the ValidationMenu stubbed above.
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });
 

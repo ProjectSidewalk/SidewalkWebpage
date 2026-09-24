@@ -334,7 +334,15 @@
   }
 }
 
-/* Tooltip example images (reason buttons, tags, severity) are sized by JS via this class so they scale with the UI. */
+/* One 5:4 box for every example image; the odd one out is cropped to it rather than reshaping the card. */
 .validate-tooltip-img {
-  height: calc(140px * var(--ui-scale));
+  width: calc(200px * var(--ui-scale));
+  aspect-ratio: 5 / 4;
+  object-fit: cover;
+}
+
+/* A card holding one narrows to the image plus the card's 9px side padding (main.css), so the text wraps to the
+   picture. */
+.ps-tooltip:has(.validate-tooltip-img) {
+  max-width: calc((200px + 2 * 9px) * var(--ui-scale));
 }

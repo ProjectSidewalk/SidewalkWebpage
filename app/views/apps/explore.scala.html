@@ -52,63 +52,59 @@
     </div>
   </div>
 
-  <div class="modal fade" id="survey-modal-container" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content" id="survey-modal">
-        <div class="modal-header">
-          <button type="button" class="close" id="survey-skip-button" data-dismiss="modal" aria-hidden="true">×</button>
-          <h4 class="modal-title" id="sign-in-label">@Html(Messages("audit.survey." + "title"))</h4>
-        </div>
-        <div class="modal-body">
-          <form id="survey-form" method="post">
-            <ol>
-            @for(surveyQuestion <- data.surveyData) {
-              <li>
-                @if(surveyQuestion.required) {
-                  <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question")) *</h4>
-                } else {
-                  <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question"))</h4>
-                }
-                @if(surveyQuestion.surveyInputType == "radio") {
-                  <ul class="survey-option-holder">
-                  @for(surveyOption <- surveyQuestion.options) {
-                    <li class="survey-option">
-                      <input type="@surveyQuestion.surveyInputType" id="survey-radio-option-@surveyOption.surveyOptionId" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" @if(surveyQuestion.required){required}>
-                      <label for="survey-radio-option-@surveyOption.surveyOptionId">@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
-                    </li>
-                  }
-                  </ul>
-                } else {
-                  @if(surveyQuestion.surveyInputType == "checkbox") {
-                    <ul class="survey-option-holder">
-                    @for(surveyOption <- surveyQuestion.options) {
-                      <li class="survey-option">
-                        <input type="@surveyQuestion.surveyInputType" id="survey-checkbox-option-@surveyOption.surveyOptionId" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
-                        <label for="survey-checkbox-option-@surveyOption.surveyOptionId">@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
-                      </li>
-                    }
-                    </ul>
-                  } else {
-                    @if(surveyQuestion.surveyInputType == "free-text-feedback") {
-                      @if(surveyQuestion.required) {
-                        <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
-                      } else {
-                        <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
-                      }
-                    }
-                  }
-                }
-              </li>
+  @* Opened by ModalSurvey.js, which also moves the initial focus onto the dialog itself (hence the tabindex).
+     closedby="none" keeps Escape from closing it: browsers let a second Escape through a cancelled first one. *@
+  <dialog id="survey-modal-container" class="survey-dialog" aria-labelledby="survey-modal-title" closedby="none" tabindex="-1">
+    <div class="survey-dialog__header">
+      <h4 class="survey-dialog__title" id="survey-modal-title">@Html(Messages("audit.survey." + "title"))</h4>
+      <button type="button" class="survey-dialog__close" id="survey-skip-button" aria-label="Close" data-i18n-aria-label="common:close">×</button>
+    </div>
+    <div class="survey-dialog__body">
+      <form id="survey-form" method="post">
+        <ol>
+        @for(surveyQuestion <- data.surveyData) {
+          <li>
+            @if(surveyQuestion.required) {
+              <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question")) *</h4>
+            } else {
+              <h4 class="survey-question">@Html(Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".question"))</h4>
             }
-            </ol>
-            <button type="submit" value="Submit" class="btn btn-sm btn-primary btn-block">@Messages("submit")</button>
-          </form>
-        </div>
-        <div class="modal-footer">
-        </div>
-      </div><!-- /.modal-content -->
-    </div><!-- /.modal-dialog -->
-  </div><!-- /.modal -->
+            @if(surveyQuestion.surveyInputType == "radio") {
+              <ul class="survey-option-holder">
+              @for(surveyOption <- surveyQuestion.options) {
+                <li class="survey-option">
+                  <input type="@surveyQuestion.surveyInputType" id="survey-radio-option-@surveyOption.surveyOptionId" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId" @if(surveyQuestion.required){required}>
+                  <label for="survey-radio-option-@surveyOption.surveyOptionId">@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
+                </li>
+              }
+              </ul>
+            } else {
+              @if(surveyQuestion.surveyInputType == "checkbox") {
+                <ul class="survey-option-holder">
+                @for(surveyOption <- surveyQuestion.options) {
+                  <li class="survey-option">
+                    <input type="@surveyQuestion.surveyInputType" id="survey-checkbox-option-@surveyOption.surveyOptionId" name="@surveyQuestion.surveyQuestionId" value="@surveyOption.surveyOptionId">
+                    <label for="survey-checkbox-option-@surveyOption.surveyOptionId">@Messages("audit.survey." + surveyQuestion.surveyQuestionTextId + ".option." + surveyOption.surveyDisplayRank.get)</label>
+                  </li>
+                }
+                </ul>
+              } else {
+                @if(surveyQuestion.surveyInputType == "free-text-feedback") {
+                  @if(surveyQuestion.required) {
+                    <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder="" required></textarea>
+                  } else {
+                    <textarea class="survey-textarea" name="@surveyQuestion.surveyQuestionId" placeholder=""></textarea>
+                  }
+                }
+              }
+            }
+          </li>
+        }
+        </ol>
+        <button type="submit" class="button-ps button--primary button--small survey-dialog__submit">@Messages("submit")</button>
+      </form>
+    </div>
+  </dialog>
 
   <div class="container tool-ui ps-invisible">
     <div id="area-completion-overlay-wrapper">
@@ -595,7 +591,7 @@
                 <div class="context-menu-header">
                   @* Header text and info tooltip are swapped between the severity/quality strings by ContextMenu JS based on the current label type (positive vs negative). *@
                   <span id="severity-header-text"></span>
-                  <img id="severity-header-info" src='@assets.path("images/icons/info-button.svg")' class="context-menu-info-icon" alt="More information about severity" data-toggle="tooltip" data-placement="top">
+                  <img id="severity-header-info" src='@assets.path("images/icons/info-button.svg")' class="context-menu-info-icon" alt="More information about severity">
                 </div>
                 @* Radios, not toggle buttons: a rating is pick-one where tags are pick-any, and the segmented
                    enclosure in CSS is the visual half of that same statement. *@
@@ -603,17 +599,17 @@
                    the info icon's alt into the announcement. Unnamed, the group announces "1, radio button, 1 of 3"
                    without saying what is being rated. *@
                 <div id="severity-radio-holder" class="severity-segments" role="radiogroup" aria-labelledby="severity-header-text">
-                  <label class="severity-button" for="explore-severity-radio-1" data-severity="1" data-toggle="tooltip">
+                  <label class="severity-button" for="explore-severity-radio-1" data-severity="1">
                     <input type="radio" name="label-severity" id="explore-severity-radio-1" value="1" class="severity-button__radio">
                     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
                     <span class="severity-button__label">@Messages("low")</span>
                   </label>
-                  <label class="severity-button" for="explore-severity-radio-2" data-severity="2" data-toggle="tooltip">
+                  <label class="severity-button" for="explore-severity-radio-2" data-severity="2">
                     <input type="radio" name="label-severity" id="explore-severity-radio-2" value="2" class="severity-button__radio">
                     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
                     <span class="severity-button__label">@Messages("medium")</span>
                   </label>
-                  <label class="severity-button" for="explore-severity-radio-3" data-severity="3" data-toggle="tooltip">
+                  <label class="severity-button" for="explore-severity-radio-3" data-severity="3">
                     <input type="radio" name="label-severity" id="explore-severity-radio-3" value="3" class="severity-button__radio">
                     <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" class="severity-button__icon">
                     <span class="severity-button__label">@Messages("high")</span>
@@ -624,7 +620,7 @@
               <div id="context-menu-tag-section" class="context-menu-section">
                 <div class="context-menu-header">
                   <span>@Messages("audit.center.ui.tags.header")</span>
-                  <img src='@assets.path("images/icons/info-button.svg")' class="context-menu-info-icon" title="@Messages("audit.center.ui.tags.info")" data-toggle="tooltip" data-placement="top" alt="More information about tags">
+                  <img src='@assets.path("images/icons/info-button.svg")' class="context-menu-info-icon" data-ps-tooltip="@Messages("audit.center.ui.tags.info")" alt="More information about tags">
                 </div>
                 <div id="context-menu-tag-holder">
                   <button type="button" class="context-menu-tag tag-pill tag-pill--interactive" name="tag" id="0"></button>

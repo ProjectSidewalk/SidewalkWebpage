@@ -216,15 +216,7 @@ class Card {
     this.#positionMarker();
     markerWrapper.appendChild(labelIcon);
     if (properties.ai_generated) {
-      const aiIndicator = aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']);
-      markerWrapper.appendChild(aiIndicator);
-      $(aiIndicator)
-        .tooltip({
-          template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div>'
-            + '<div class="tooltip-inner"></div></div>',
-          container: 'body',
-        })
-        .tooltip('hide');
+      markerWrapper.appendChild(aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']));
     }
     imageHolder.appendChild(markerWrapper);
     imageHolder.appendChild(panoImage);

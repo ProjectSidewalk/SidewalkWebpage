@@ -270,7 +270,7 @@ class DesktopValidationMenu {
         $reasonButton.html(buttonInfo.buttonText);
 
         // Remove any old tooltip (from a previous label type) and add a new tooltip.
-        $reasonButton.tooltip('destroy');
+        $reasonButton.removeAttr('data-ps-tooltip');
         if (buttonInfo.tooltipImage) {
           util.getImage(buttonInfo.tooltipImage).then((img) => {
             this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
@@ -420,20 +420,15 @@ class DesktopValidationMenu {
   }
 
   /**
-   * Adds a jquery tooltip to the given element with the given text and image (if given).
+   * Adds a tooltip to the given element with the given text and image (if given).
    * @param {JQuery} $elem - Element to add the tooltip to, as jquery wrapped object.
    * @param {string} tooltipText - Text to display in the tooltip.
    * @param {string} [img] - Optional image to display in the tooltip.
    */
   #addTooltip($elem, tooltipText, img) {
+    if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
     const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" class="validate-tooltip-img"/>` : tooltipText;
-    $elem.tooltip(({
-      placement: 'auto top', // Prefer above the element, but flip below when it doesn't fit in the viewport.
-      html: true,
-      container: 'body',
-      delay: { show: 500, hide: 10 },
-      title: tooltipHtml,
-    })).tooltip('show').tooltip('hide');
+    $elem.attr('data-ps-tooltip', tooltipHtml);
   }
 
   // TAG SECTION.
@@ -473,7 +468,7 @@ class DesktopValidationMenu {
   #removeTagListener(e, label) {
     const allTagOptions = structuredClone(svv.tagsByLabelType[label.getProperty('newLabelType')] ?? []);
     const tagElem = $(e.target).parents('.current-tag');
-    tagElem.tooltip('destroy');
+    tagElem.removeAttr('data-ps-tooltip');
     const tagIdToRemove = tagElem.data('tag-id');
     const tagToRemove = allTagOptions.find((t) => t.tag_id === tagIdToRemove).tag_name;
     this.#removeTag(tagToRemove, label, false);
@@ -580,7 +575,7 @@ class DesktopValidationMenu {
 
         // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
         template.on('click', () => {
-          template.tooltip('destroy'); // Fix for the tooltip showing up on later labels, #4071.
+          template.removeAttr('data-ps-tooltip'); // Fix for the tooltip showing up on later labels, #4071.
           if (tag.action === 'add') {
             this.#addTag(tag.tag_name, true);
           } else {
@@ -614,7 +609,6 @@ class DesktopValidationMenu {
       const sev = severityButton.dataset.severity;
       const tooltipText = i18next.t(`common:${tooltipKey}-${sev}`);
       const tooltipImage = util.assetPath(`images/examples/severity/${labelType}_Severity${sev}.png`);
-      $button.tooltip('destroy');
       this.#addTooltip($button, tooltipText, tooltipImage);
 
       const labelSpan = severityButton.querySelector('.severity-button__label');

@@ -48,27 +48,22 @@ class RibbonMenu {
     this.#init();
   }
 
-  /**
-   * Adds the tooltip attributes (showing each label type's keyboard shortcut) to the menu buttons.
-   *
-   * The global Bootstrap tooltip initializer in Main reads these attributes when it runs, and it only picks up
-   * elements that already have them — so this must run during construction, before that init call.
-   */
+  /** Adds each label type's keyboard-shortcut tooltip to its menu button. */
   #initTooltipAttributes() {
     const setKeyTooltip = (el, placement) => {
       const val = el.getAttribute('val');
       if (val !== 'Walk' && val !== 'Other') {
-        el.setAttribute('data-toggle', 'tooltip');
-        el.setAttribute('data-placement', placement);
-        // Markup sink despite the attribute: Main initializes every [data-toggle="tooltip"] with `html: true`.
-        el.setAttribute('title', i18next.t('top-ui.press-key', {
+        if (placement) el.setAttribute('data-ps-tooltip-placement', placement);
+        // psTooltip renders the attribute as HTML, hence the escaping.
+        el.setAttribute('data-ps-tooltip', i18next.t('top-ui.press-key', {
           key: util.misc.getLabelDescriptions(val).keyChar, interpolation: { escapeValue: true },
         }));
       }
     };
-    // 'auto top': above the button, except where that leaves the window, as it does with the ribbon at the very top
-    // of it in immersive mode (#5085), where Bootstrap flips it below.
-    document.querySelectorAll('.label-type-button-holder').forEach((el) => setKeyTooltip(el, 'auto top'));
+    // Above the button by default, except where that leaves the window, as it does with the ribbon at the very top of
+    // it in immersive mode (#5085), where psTooltip flips it below.
+    document.querySelectorAll('.label-type-button-holder').forEach((el) => setKeyTooltip(el, null));
+    // Beside the Other types, which stack in a column: a card above one would cover the one above it.
     document.querySelectorAll('.ribbon-menu-other-subcategory').forEach((el) => setKeyTooltip(el, 'left'));
   }
 

@@ -232,6 +232,114 @@ describe('psTooltip live refresh', () => {
     });
 });
 
+describe('psTooltip beside the trigger', () => {
+    test('opens to the left, centered on the trigger, tail aimed at it', () => {
+        const trigger = addTrigger(
+            { left: 600, top: 300, width: 100, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
+        );
+        const card = open(trigger);
+
+        expect(card.classList.contains('ps-tooltip--beside-left')).toBe(true);
+        expect(card.style.left).toBe(`${600 - TRIGGER_GAP - CARD_WIDTH}px`);
+        expect(card.style.top).toBe(`${300 + (60 - CARD_HEIGHT) / 2}px`);
+        expect(card.style.getPropertyValue('--ps-tooltip-tail-top')).toBe(`${CARD_HEIGHT / 2}px`);
+    });
+
+    test('takes the other side when the asked-for one has no room', () => {
+        const trigger = addTrigger(
+            { left: 20, top: 300, width: 100, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
+        );
+        const card = open(trigger);
+
+        expect(card.classList.contains('ps-tooltip--beside-right')).toBe(true);
+        expect(card.style.left).toBe(`${120 + TRIGGER_GAP}px`);
+    });
+
+    test('falls back to above when neither side fits', () => {
+        window.innerWidth = 300;
+        const trigger = addTrigger(
+            { left: 50, top: 300, width: 200, height: 60 }, 'left', { 'data-ps-tooltip-placement': 'left' }
+        );
+        const card = open(trigger);
+
+        expect(card.className).not.toMatch(/beside/);
+        expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    });
+});
+
+describe('psTooltip theme', () => {
+    test('a light trigger gets the light card, and the next dark one takes it back', () => {
+        const light = addTrigger(
+            { left: 400, top: 300, width: 100, height: 30 }, 'light', { 'data-ps-tooltip-theme': 'light' }
+        );
+        const dark = addTrigger({ left: 400, top: 500, width: 100, height: 30 }, 'dark');
+
+        expect(open(light).classList.contains('ps-tooltip--light')).toBe(true);
+        document.dispatchEvent(new FocusEvent('focusout', { bubbles: true }));
+        expect(open(dark).classList.contains('ps-tooltip--light')).toBe(false);
+    });
+});
+
+describe('psTooltip retirement', () => {
+    test('removing the attribute takes an open card down', async () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'going');
+        const card = open(trigger);
+
+        trigger.removeAttribute('data-ps-tooltip');
+        await Promise.resolve();
+
+        expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
+    });
+
+    test('a show still waiting out the hover delay is dropped once the attribute is gone', () => {
+        // The AI tag suggestion clicked within the delay: its click removes the attribute, and the card that then
+        // opened was empty.
+        jest.useFakeTimers();
+        try {
+            const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'quick');
+            trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+            trigger.removeAttribute('data-ps-tooltip');
+            jest.runAllTimers();
+
+            expect(document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false)
+                .toBe(false);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('a trigger removed from the page takes its card with it', async () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'replaced');
+        const card = open(trigger);
+
+        trigger.remove();
+        await Promise.resolve();
+
+        expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
+    });
+});
+
+describe('psTooltip images', () => {
+    test('places the card again once an image inside it loads', () => {
+        // Before the image lands the card measures short and sits close above the trigger; the reload after `load`
+        // measures the taller card and moves it up.
+        const complete = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'complete');
+        Object.defineProperty(HTMLImageElement.prototype, 'complete', { configurable: true, get: () => false });
+        try {
+            const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'text<br><img src="x.png">');
+            const card = open(trigger);
+            expect(card.style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+
+            cardHeight = 200;
+            card.querySelector('img').dispatchEvent(new Event('load'));
+
+            expect(card.style.top).toBe(`${300 - 200 - TRIGGER_GAP}px`);
+        } finally {
+            Object.defineProperty(HTMLImageElement.prototype, 'complete', complete);
+        }
+    });
+});
+
 describe('psTooltip pinning (#5495)', () => {
     /** A pinnable trigger, like the Across Cities day bars, whose card carries a link. */
     function addPinnable() {

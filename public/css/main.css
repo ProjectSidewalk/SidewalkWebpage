@@ -305,7 +305,6 @@
   --navbar-z-index: var(--z-index-fixed);
 }
 
-
 /* Global visibility utilities. !important so they hide an element regardless of the display/visibility its own
    classes set; scripts show the element again by removing the class (never by setting an inline style). */
 .ps-hidden {
@@ -329,7 +328,6 @@
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
-
 
 /* General styles */
 
@@ -413,7 +411,6 @@ a {
   background-color: var(--color-link-200);
   border: var(--color-link-200);
 }
-
 
 /*
  * Custom styles
@@ -877,7 +874,6 @@ textarea.ps-input {
   cursor: default;
 }
 
-
 #content {
   position: relative;
   top: 0;
@@ -1210,7 +1206,6 @@ textarea.ps-input {
   font-weight: bold;
 }
 
-
 kbd {
   /* overriding bootstraps's ugly kbd tag */
   background-color: var(--color-neutral-white);
@@ -1290,7 +1285,6 @@ kbd {
   line-height: 2.1em;
   letter-spacing: 0.05em;
 }
-
 
 /*
  * Test server warning banner: a soft amber notice shown only on non-prod servers. Colors, type, and spacing come from
@@ -1450,7 +1444,6 @@ kbd {
     height: 32px;
   }
 }
-
 
 .navbar-nav {
   display: flex;
@@ -1947,7 +1940,6 @@ kbd {
   filter: drop-shadow(0 2px 5px rgb(0 0 0 / 18%));
 }
 
-
 /*
 * Responsive navigation.
 *
@@ -2218,9 +2210,7 @@ kbd {
 }
 
 /* Validate's badge is display-only (#5359): it sits on the marker whose hover opens the label card, and that card
-   carries the AI disclaimer, so the badge must not intercept the pointer — its own tooltip and cursor would fire on top
-   of the card. With no pointer events it can't be the target of the delegated .ai-icon-marker hover handlers either
-   (aiLabelIndicator.js). */
+   carries the AI disclaimer, so the badge must not intercept the pointer — its cursor would fire on top of the card. */
 .ai-icon-marker-validate {
   pointer-events: none;
 }
@@ -2235,15 +2225,6 @@ kbd {
   top: 0;
   height: 60%;
   z-index: 3;
-}
-
-.ai-tooltip .tooltip-inner {
-  max-width: calc(220px * var(--ui-scale, 1));
-}
-
-.tooltip.ai-tooltip {
-  /* Keep AI tooltips above map/canvas overlays without unnecessarily high stacking */
-  z-index: 1160;
 }
 
 /* Severity face button — a smiley icon + label pair used across the site. Per-context CSS still owns the container
@@ -2365,6 +2346,27 @@ kbd {
   clip-path: polygon(0 100%, 100% 100%, 50% 0);
 }
 
+/* Beside the trigger (placement left/right): the tail turns sideways, and psTooltip.js aims it up or down the edge. */
+.ps-tooltip--beside-left::after,
+.ps-tooltip--beside-right::after {
+  top: var(--ps-tooltip-tail-top, 50%);
+  width: calc(6px * var(--ui-scale, 1));
+  height: calc(12px * var(--ui-scale, 1));
+  margin-left: 0;
+  margin-top: calc(-6px * var(--ui-scale, 1));
+}
+
+.ps-tooltip--beside-left::after {
+  left: 100%;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.ps-tooltip--beside-right::after {
+  left: auto;
+  right: 100%;
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+}
+
 /* A card too tall to fit on either side of its trigger gets clamped into the viewport, which leaves its edges away
    from the trigger — a tail would point at nothing, so there is none. */
 .ps-tooltip--untailed::after {
@@ -2374,6 +2376,23 @@ kbd {
 .ps-tooltip--visible {
   opacity: 1;
   visibility: visible;
+}
+
+/* Light variant (data-ps-tooltip-theme="light"), for content drawn for a light ground. */
+.ps-tooltip--light {
+  background: var(--color-neutral-white);
+  color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-300);
+}
+
+.ps-tooltip--light::after {
+  background: var(--color-neutral-white);
+}
+
+/* Example images sit between lines of text; without this they butt up against both. */
+.ps-tooltip img {
+  margin: calc(3px * var(--ui-scale, 1)) 0;
+  vertical-align: middle;
 }
 
 /* Pinned open by a click or Enter on a `data-ps-tooltip-pinnable` trigger (#5495): it now holds links, so it has to

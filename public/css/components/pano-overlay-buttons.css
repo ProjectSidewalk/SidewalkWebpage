@@ -16,11 +16,6 @@
   display: none;
 }
 
-.zoom-buttons-holder .tooltip {
-  width: calc(70px * var(--ui-scale, 1));
-  font: var(--text-caption-regular);
-}
-
 .zoom-button {
   width: calc(22px * var(--ui-scale, 1));
   height: calc(22px * var(--ui-scale, 1));

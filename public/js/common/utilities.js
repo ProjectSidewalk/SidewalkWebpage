@@ -311,6 +311,35 @@ util.uiScale = function () {
   return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
 };
 
+/**
+ * Parks a `popover` element under its anchor (above it when there is no room below), kept inside the window. The
+ * browser centers a popover in the window by default, so every one we anchor to a button goes through here.
+ *
+ * Call it from the popover's `beforetoggle` handler, or right after `showPopover()` in the same task: `toggle`
+ * fires only after the popover has painted at the default spot, so placing there flashes it in a corner first.
+ * A popover that is not open yet has no size, so it is laid out out of sight for an instant to measure it; nothing
+ * paints mid-handler, so none of that reaches the screen.
+ *
+ * @param {HTMLElement} popover - The element carrying the `popover` attribute, with `margin: 0` in its CSS.
+ * @param {Element} anchor - The button it opens from.
+ * @param {number} [gapPx=6] - Space between the two, before UI scaling.
+ */
+util.placePopover = function (popover, anchor, gapPx = 6) {
+  let { offsetWidth: width, offsetHeight: height } = popover;
+  if (!width) {
+    const style = popover.style;
+    Object.assign(style, { display: 'block', visibility: 'hidden', left: '0px', top: '0px' });
+    ({ offsetWidth: width, offsetHeight: height } = popover);
+    Object.assign(style, { display: '', visibility: '' });
+  }
+  const rect = anchor.getBoundingClientRect();
+  const gap = gapPx * util.uiScale();
+  const above = rect.top - gap - height;
+  const below = rect.bottom + gap;
+  popover.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))}px`;
+  popover.style.top = `${below + height + 8 > window.innerHeight && above >= 8 ? above : below}px`;
+};
+
 // Browser detection helpers backed by Bowser 2.x. The vendor script loads deferred (this file does not), so the
 // parser must be built lazily: every caller runs at DOMContentLoaded or later, by which point bowser exists.
 let _bowserParser;

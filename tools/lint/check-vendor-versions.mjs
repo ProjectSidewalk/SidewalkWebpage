@@ -12,9 +12,9 @@
 // filename alone would satisfy a library whose entry had been deleted outright.
 //
 // It deliberately does *not* ask npm what the newest release is. Half these libraries aren't plain npm packages (the
-// photo-sphere-viewer bundle is ours, bootstrap-accessibility vendors two other libraries inside itself, several
-// come from a project's own CDN) and a third of the list is frozen on purpose, so such a report would need a hand-kept map
-// of npm names and freeze reasons — a second copy of the doc — and would nag monthly about decisions already made.
+// photo-sphere-viewer bundle is ours, several come from a project's own CDN) and a third of the list is frozen on
+// purpose, so such a report would need a hand-kept map of npm names and freeze reasons — a second copy of the doc —
+// and would nag monthly about decisions already made.
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
@@ -72,7 +72,7 @@ const files = walkVendor(VENDOR_DIR);
 // --- The doc's entries --------------------------------------------------------------------------------------------
 
 // One per bullet, carrying both the versions its bold head claims (what we're on *now*) and every version in its text
-// — the Bootstrap and jQuery copies split out of the bootstrap-accessibility bundle are named only in prose.
+// — a library that ships inside another's bundle is named only in prose.
 const starts = [...section.matchAll(DOC_ENTRY)];
 const entries = starts.map((match, i) => {
   const body = section.slice(match.index, starts[i + 1]?.index ?? section.length);

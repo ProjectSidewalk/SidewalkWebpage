@@ -86,12 +86,10 @@ row.button.setAttribute('data-ps-tooltip', util.escapeHTML(label)); // psTooltip
 ```
 
 Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`,
-jQuery's `.html()` / `.append()` / `$('<p>…')`, a Bootstrap tooltip built with `html: true`, and the
-**`data-ps-tooltip` attribute**, which `psTooltip.js` writes into the tooltip card's `innerHTML`. Helpers count too:
-`AlertController.showAlert`, `PopUpMessage.notify`, and the onboarding message boxes all render HTML. Text sinks are
-everything else — a text node, `.text()`, `alert` / `confirm`, a share sheet, and an attribute *unless* something
-renders it as markup: `title` is plain text on most elements and HTML on one carrying `data-toggle="tooltip"`, since
-`explore/src/Main.js` initializes every one of those with `html: true`.
+jQuery's `.html()` / `.append()` / `$('<p>…')`, and the **`data-ps-tooltip` attribute**, which `psTooltip.js`
+writes into the tooltip card's `innerHTML`. Helpers count too: `AlertController.showAlert`, `PopUpMessage.notify`,
+and the onboarding message boxes all render HTML. Text sinks are everything else — a text node, `.text()`,
+`alert` / `confirm`, a share sheet, and any other attribute, `title` included.
 
 The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) blocks the ones it can
 see syntactically — a `t()` call with interpolation variables that reaches one of those sinks, directly or through a
