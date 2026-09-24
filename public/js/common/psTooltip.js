@@ -26,7 +26,9 @@
  * so links inside it work; it becomes a non-modal dialog, and pinning from the keyboard moves focus into it so its
  * links are reachable with Tab. Escape, a click outside, focus leaving, or clicking the trigger again unpins it, and
  * Escape hands focus back to the trigger. Give such a trigger `aria-haspopup="dialog"` and it gets `aria-expanded`
- * kept in step. Everything else about the tooltip is unchanged for triggers that don't opt in.
+ * kept in step. Make the trigger a focusable non-native element (`role="button"` + `tabindex`), never a `<button>` or
+ * `<a href>`: those have an Enter/click action of their own, which pinning would fight with. Everything else about the
+ * tooltip is unchanged for triggers that don't opt in.
  *
  * Loaded globally from main.scala.html (like i18nDom.js); no per-app setup needed — listeners are delegated on the
  * document, so triggers added at any time just work.
@@ -101,9 +103,11 @@
     // refreshing the copy alone would leave it centered and tailed for the old one.
     if (textObserver === null) {
       textObserver = new MutationObserver(() => {
-        if (activeTrigger !== null && tooltip?.classList.contains('ps-tooltip--visible')) {
-          show(activeTrigger);
-        }
+        if (activeTrigger === null || !tooltip?.classList.contains('ps-tooltip--visible')) return;
+        // Re-rendering replaces the card's children, so a pinned card being read from the keyboard would lose the
+        // focused link out from under the reader. Keep the old content until they leave it.
+        if (pinned && tooltip.contains(document.activeElement)) return;
+        show(activeTrigger);
       });
     }
     textObserver.disconnect();
@@ -194,6 +198,9 @@
     tooltip.setAttribute('aria-label', activeTrigger.getAttribute('aria-label') || 'Details');
     tooltip.setAttribute('tabindex', '-1');
     if (activeTrigger.hasAttribute('aria-haspopup')) activeTrigger.setAttribute('aria-expanded', 'true');
+    // A pinned card is a dialog of links, not a description: left as the trigger's description, a screen reader would
+    // read every link out as part of the trigger's name.
+    activeTrigger.removeAttribute('aria-describedby');
     if (moveFocus) tooltip.focus({ preventScroll: true });
   };
 
@@ -233,6 +240,24 @@
       show(trigger);
     }
     pin(fromKeyboard);
+  };
+
+  /**
+   * Keeps Tab from wandering off a pinned card's ends. The card is appended at the end of `<body>`, far from its
+   * trigger in document order, so Shift+Tab off its first stop would land on the page's last focusable element and Tab
+   * off its last would leave the page. Both go back to the trigger instead, which keeps the card open; the next Tab
+   * from there carries on through the page and closes it.
+   * @param {KeyboardEvent} event - A Tab keydown with focus inside the pinned card.
+   */
+  const wrapTab = (event) => {
+    const stops = [...tooltip.querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])')];
+    const active = document.activeElement;
+    const atStart = active === tooltip || active === stops[0];
+    const atEnd = stops.length === 0 || active === stops[stops.length - 1];
+    if ((event.shiftKey ? atStart : atEnd) && activeTrigger?.isConnected) {
+      event.preventDefault();
+      activeTrigger.focus({ preventScroll: true });
+    }
   };
 
   /**
@@ -285,6 +310,12 @@
       hide();
       return;
     }
+    // A chart redraw (MiniLineChart re-renders on resize) can detach the trigger while its card is pinned. A detached
+    // element measures all zeros, which would read as "in view" and park the card in the viewport's corner.
+    if (!activeTrigger.isConnected) {
+      hide();
+      return;
+    }
     const r = activeTrigger.getBoundingClientRect();
     if (r.bottom < 0 || r.top > window.innerHeight) hide();
     else place(tooltip, activeTrigger);
@@ -294,12 +325,16 @@
   });
   document.addEventListener('click', (event) => {
     const trigger = event.target instanceof Element ? event.target.closest('[data-ps-tooltip-pinnable]') : null;
-    if (trigger !== null && !tooltip?.contains(trigger)) togglePin(trigger, false);
+    // `detail` is 0 for a click no pointer made: a screen reader in browse mode turns Enter on a role="button" into
+    // one of these instead of a keydown, and that user needs focus moved into the card as much as a keyboard user.
+    if (trigger !== null && !tooltip?.contains(trigger)) togglePin(trigger, event.detail === 0);
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       // Escape from inside a pinned card returns focus to where the reader was, rather than dropping it on <body>.
-      const returnTo = pinned && tooltip.contains(document.activeElement) ? activeTrigger : null;
+      const returnTo = pinned && tooltip.contains(document.activeElement) && activeTrigger?.isConnected
+        ? activeTrigger
+        : null;
       hide();
       // Focus events fire synchronously, so this flag covers exactly the focusin that returning focus causes, which
       // would otherwise reopen the card Escape just closed.
@@ -311,8 +346,14 @@
       }
       return;
     }
+    if (event.key === 'Tab' && pinned && tooltip.contains(document.activeElement)) {
+      wrapTab(event);
+      return;
+    }
     if ((event.key === 'Enter' || event.key === ' ') && event.target instanceof Element
-      && event.target.matches('[data-ps-tooltip-pinnable]')) {
+      && event.target.matches('[data-ps-tooltip-pinnable]')
+      // A held key would toggle the card every repeat; a modified or already-handled key belongs to someone else.
+      && !event.repeat && !event.defaultPrevented && !event.ctrlKey && !event.metaKey && !event.altKey) {
       event.preventDefault(); // Space would otherwise scroll the page out from under the card it just pinned.
       togglePin(event.target, true);
     }

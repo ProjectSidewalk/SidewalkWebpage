@@ -239,7 +239,8 @@ describe('psTooltip pinning (#5495)', () => {
             { left: 400, top: 300, width: 100, height: 30 },
             '<a id="card-link" href="https://example.org/admin/user/a">a</a>',
             {
-                'data-ps-tooltip-pinnable': '', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', 'aria-label': 'Mon',
+                'data-ps-tooltip-pinnable': '', 'aria-haspopup': 'dialog', 'aria-expanded': 'false',
+                'aria-label': 'Mon',
             },
         );
     }
@@ -349,6 +350,89 @@ describe('psTooltip pinning (#5495)', () => {
 
         expect(isPinned()).toBe(true);
         expect(card().style.top).toBe(`${200 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    });
+
+    test('a click no pointer made (a screen reader\'s Enter) moves focus into the card like a keyboard pin', () => {
+        const trigger = addPinnable();
+        trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+
+        expect(isPinned()).toBe(true);
+        expect(document.activeElement).toBe(card());
+    });
+
+    test('a pointer click leaves focus where it was', () => {
+        const trigger = addPinnable();
+        trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+
+        expect(isPinned()).toBe(true);
+        expect(document.activeElement).not.toBe(card());
+    });
+
+    test('a pinned card closes on scroll once a redraw has detached its trigger', () => {
+        const trigger = addPinnable();
+        trigger.click();
+        trigger.remove(); // What MiniLineChart's resize redraw does to a bar.
+        window.dispatchEvent(new Event('scroll'));
+
+        expect(isVisible()).toBe(false);
+    });
+
+    test('a held Enter pins once rather than toggling on every repeat', () => {
+        const trigger = addPinnable();
+        key(trigger, 'Enter');
+        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, repeat: true }));
+
+        expect(isPinned()).toBe(true);
+    });
+
+    test('a modified Enter is left to whoever it belongs to', () => {
+        const trigger = addPinnable();
+        trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, ctrlKey: true }));
+
+        expect(isVisible()).toBe(false);
+    });
+
+    test('stops describing the trigger with the card once it is a dialog', () => {
+        const trigger = addPinnable();
+        open(trigger);
+        expect(trigger.getAttribute('aria-describedby')).toBe('ps-tooltip');
+
+        trigger.click();
+        expect(trigger.hasAttribute('aria-describedby')).toBe(false);
+    });
+
+    test('Tab off either end of a pinned card goes back to its trigger and keeps it open', () => {
+        const trigger = addPinnable();
+        trigger.setAttribute('tabindex', '0');
+        trigger.focus();
+        key(trigger, 'Enter');
+        const link = document.getElementById('card-link');
+        link.focus();
+
+        const tab = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+        link.dispatchEvent(tab);
+        expect(tab.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(trigger);
+        expect(isPinned()).toBe(true);
+
+        link.focus();
+        const back = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true });
+        link.dispatchEvent(back);
+        expect(document.activeElement).toBe(trigger);
+    });
+
+    test('a pinned card keeps its content while focus is in it, not re-rendering the link away', async () => {
+        const trigger = addPinnable();
+        trigger.setAttribute('tabindex', '0');
+        trigger.focus();
+        key(trigger, 'Enter');
+        const link = document.getElementById('card-link');
+        link.focus();
+        trigger.setAttribute('data-ps-tooltip', 'replaced');
+        await Promise.resolve();
+
+        expect(document.activeElement).toBe(link);
+        expect(link.isConnected).toBe(true);
     });
 
     test('a pinned card closes once its trigger scrolls out of view', () => {

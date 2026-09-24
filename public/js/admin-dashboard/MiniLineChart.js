@@ -20,15 +20,15 @@ class MiniLineChart {
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
    *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number, width?: number,
    *          refLine?: {value: number, label?: string, key?: string}, pinnableTips?: boolean}} [opts] - yMax
-   *   defaults to a nice rounded max above the data; tickFormat labels the y-axis (abbreviated by default, e.g.
-   *   "1.6M") while valueFormat formats values in the default tooltip and in bar value labels, so hovering still gives
-   *   the exact count; dotRadius sizes the point markers (default 3); kind 'bar' draws bars instead of lines;
-   *   maxXLabels caps how many x labels are drawn (default 6); barValues draws each bar's value above it (meant for
-   *   single-series bar charts — grouped bars would collide); emphasisIndex marks that index's bar and labels with `--emphasis` classes (e.g. an
-   *   in-progress "today" bar); minMarginL/minMarginR raise the axis margins, which renderInto uses to redraw at
-   *   measured label widths; refLine draws a labeled horizontal target the bars are read against, and is included in
-   *   the y scale; width is the SVG's pixel width (default 760); pinnableTips lets a click (or Enter) pin a point's
-   *   rich card open so links inside it can be followed (psTooltip's `data-ps-tooltip-pinnable`, #5495).
+   *   defaults to a nice rounded max above the data; tickFormat labels the y-axis (abbreviated by default, e.g. "1.6M")
+   *   while valueFormat formats values in the default tooltip and in bar value labels, so hovering still gives the
+   *   exact count; dotRadius sizes the point markers (default 3); kind 'bar' draws bars instead of lines; maxXLabels
+   *   caps how many x labels are drawn (default 6); barValues draws each bar's value above it (meant for single-series
+   *   bar charts — grouped bars would collide); emphasisIndex marks that index's bar and labels with `--emphasis`
+   *   classes (e.g. an in-progress "today" bar); minMarginL/minMarginR raise the axis margins, which renderInto uses to
+   *   redraw at measured label widths; refLine draws a labeled horizontal target the bars are read against, and is
+   *   included in the y scale; width is the SVG's pixel width (default 760); pinnableTips lets a click (or Enter) pin a
+   *   point's rich card open so links inside it can be followed (psTooltip's `data-ps-tooltip-pinnable`, #5495).
    * @returns {string} SVG markup plus an optional HTML legend.
    */
   static svg(categories, series, opts = {}) {

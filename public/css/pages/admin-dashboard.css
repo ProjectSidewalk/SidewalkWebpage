@@ -2177,14 +2177,17 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 
 .ac-cell-ai { margin-top: 1px; }
 
-/* A cell whose hover card is also keyboard reachable: it takes focus, so it needs a focus ring (WCAG 2.4.7) and a
-   cursor that says there is more here than the number — a pointer where a click pins that card open (#5495). */
-.ac-table td[data-ps-tooltip] { cursor: help; }
-.ac-table td[data-ps-tooltip-pinnable] { cursor: pointer; }
+/* The button inside a "Most active cities" cell that carries its hover card. It takes focus, so it needs a focus ring
+   (WCAG 2.4.7), and a click pins its card open (#5495), hence the pointer. Block, so the whole cell content is the
+   target rather than just the number. */
+.ac-cell-trigger {
+  display: block;
+  cursor: pointer;
+}
 
-.ac-table td[data-ps-tooltip]:focus-visible {
+.ac-cell-trigger:focus-visible {
   outline: 2px solid var(--color-link-200);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 
 /* Hover-card contents (#4931). The card itself is styled in main.css (.ps-tooltip); these are the rows inside it,

@@ -149,9 +149,14 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
     return page;
   }
 
+  /** The card trigger inside the nth cell of the first table row (0 = city name). */
+  function cellTrigger(index) {
+    return document.querySelectorAll('#ac-top-tbody tr')[0].cells[index].querySelector('[data-ps-tooltip]');
+  }
+
   /** The hover-card markup on the nth cell of the first table row (0 = city name). */
   function cellCard(index) {
-    return document.querySelectorAll('#ac-top-tbody tr')[0].cells[index].getAttribute('data-ps-tooltip');
+    return cellTrigger(index).getAttribute('data-ps-tooltip');
   }
 
   /** The hover/focus target for the bar at `index` of a per-day chart. */
@@ -426,6 +431,8 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
 
         expect(row.firstElementChild.textContent).toBe('DW · STL');
         expect(row.querySelector('.ac-tip-num').textContent).toBe('57 · 0');
+        // The lone city would link exactly where the name does, so only the name is a link.
+        expect([...row.querySelectorAll('a')].map((a) => a.textContent)).toEqual(['DW']);
       });
 
       it('names each of a multi-city person\'s cities, busiest first, with each share in its title', async () => {
@@ -667,15 +674,19 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
         .toBe('https://sidewalk-chicago.example.org/admin/user/alice');
       // The city is the card's title, so a per-person "where" line would only repeat it.
       expect(host.querySelector('.ac-tip-where')).toBeNull();
-      expect(document.querySelectorAll('#ac-top-tbody tr')[0].cells[2].hasAttribute('data-ps-tooltip-pinnable'))
-        .toBe(true);
+      const trigger = cellTrigger(2);
+      expect(trigger.hasAttribute('data-ps-tooltip-pinnable')).toBe(true);
+      // A <td> can't say it opens anything; the button inside it can.
+      expect(trigger.getAttribute('role')).toBe('button');
+      expect(trigger.getAttribute('aria-haspopup')).toBe('dialog');
+      expect(trigger.getAttribute('aria-label')).toBe('chicago · Labels, last 7 days: 2');
     });
 
     it('makes the cells focusable so their cards are reachable by keyboard', async () => {
       await render({ cities: CITIES });
       const cells = [...document.querySelectorAll('#ac-top-tbody tr')[0].cells];
 
-      expect(cells.filter((td) => td.getAttribute('tabindex') === '0').length).toBe(4);
+      expect(cells.filter((td) => td.querySelector('[tabindex="0"][data-ps-tooltip]')).length).toBe(4);
     });
   });
 });
