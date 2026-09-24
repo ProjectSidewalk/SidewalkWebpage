@@ -11,7 +11,7 @@ GET     /labelMap                                       controllers.ApplicationC
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /accessScore                                    controllers.ApplicationController.accessScore
 GET     /accessscore                                    controllers.ApplicationController.accessScore
-GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "")
+GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "", labelIds: String ?= "")
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                        controllers.ApplicationController.labelingGuideCurbRamps

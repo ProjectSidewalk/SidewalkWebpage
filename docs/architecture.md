@@ -304,7 +304,29 @@ corresponding Twirl view:
   [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
-- **`gallery/`** — browsable, filterable gallery of labels.
+- **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
+  (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
+  rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four
+  columns on a desktop, which is why a list page holds 12 cards where the filtered grid holds 9;
+  `CardContainer.getCardsPerPage()` is the one place that knows, and `ExpandedView` reads it back rather than
+  keeping a copy). What the list has to say about itself sits in one left-aligned line above the grid
+  (`.gallery-list-bar`), flush with the first card: a "← Browse all labels" link back to the plain Gallery (a link,
+  not a button — it navigates), then the count as a pill ("20 labels in this list", or "18 of 20 labels in this
+  list" once some aren't available), then the unavailable-ids disclosure, the over-cap notice and any load error.
+  There is deliberately no heading and no review instructions there: the URL is a sharing link as much as a queue.
+  `GalleryFilter` is still constructed with `null` for the absent sidebar and reset, because it owns the address
+  bar (both `?labelIds=` and the `?labelId=` deep link) and the filter state `CardContainer` reads.
+  List mode also skips the quality gates the filtered query applies (contributor quality, the disagree ratio,
+  already-loaded ids), since the rater asked for these ids by name. `LabelService.getGalleryLabels` takes the
+  branch, `LabelTable.getGalleryLabelsByIdQuery` is the query, and both share the row projection with the filtered
+  query. Ids the city doesn't have, or whose imagery is gone with no crop to fall back on, come back in the card
+  query's `unavailableLabelIds` and are named on the page, so a short list never reads as a complete one. The list
+  is capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query, and a list that
+  hits the cap says on the page how many ids were dropped — a truncated review queue that looked complete would be
+  worse than a refused one. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
+  `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
+  runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
+  once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its

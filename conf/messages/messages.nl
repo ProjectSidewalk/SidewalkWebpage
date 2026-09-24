@@ -547,6 +547,10 @@ gallery.all = Alle labeltypen
 gallery.labels.not.found = Geen overeenkomsten. <a href="/explore">Begin met verkennen</a> om meer data bij te dragen!
 gallery.cards = Labels worden willekeurig gesorteerd op basis van geselecteerde filters
 gallery.clear.filters = Filters Wissen
+gallery.list.count = {0,choice,1#1 label|1<{0} labels} in deze lijst
+gallery.list.truncated = {0,choice,1#1 id lag boven de limiet van {1} en kon niet worden geladen.|1<{0} ids lagen boven de limiet van {1} en konden niet worden geladen.}
+gallery.list.error = De lijst kon niet worden geladen. Herlaad de pagina om het opnieuw te proberen.
+gallery.list.browse.all = Alle labels bekijken
 
 routebuilder.name = Routebuilder
 routebuilder.welcome = Welkom bij Routebuilder

@@ -561,6 +561,10 @@ gallery.all = Todos los tipos de etiquetas
 gallery.labels.not.found = No hay resultados. ¡<a href="/explore">Comienza a explorar</a> para aportar más datos!
 gallery.cards = Las etiquetas se ordenan aleatoriamente según los filtros seleccionados
 gallery.clear.filters = Borrar Filtros
+gallery.list.count = {0,choice,1#1 etiqueta|1<{0} etiquetas} en esta lista
+gallery.list.truncated = {0,choice,1#1 ID superaba el límite de {1} y no se pudo cargar.|1<{0} ID superaban el límite de {1} y no se pudieron cargar.}
+gallery.list.error = No se pudo cargar la lista. Recarga la página para volver a intentarlo.
+gallery.list.browse.all = Explorar todas las etiquetas
 
 routebuilder.name = Constructor de rutas
 routebuilder.welcome = Bienvenido a RouteBuilder
