@@ -145,6 +145,10 @@ class LabelDetail {
   #otherReasonRequested = false;
   // A Gallery card's "Other…" asked for the box before this label's imagery had loaded, so it is opened once it has.
   #otherReasonPending = false;
+  // A vote POST, and a reason pick, in flight for the label on screen. Either locks both the vote controls and the
+  // chips: a reason explains the vote on record, so neither may move while the other is being written (#5475).
+  #votePending = false;
+  #pickPending = false;
   #shareWidget;
   #storySection;
   #highlightStoryId;
@@ -643,15 +647,17 @@ class LabelDetail {
     // the box, only a deliberate tap on a chip may do that.
     const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code)?.[1];
     if (digit && this.#reasonChips?.isShowing) {
-      if (!this.#digitsWouldOverwriteText() && this.#reasonChips.pickByNumber(Number(digit))) {
+      const isOther = Number(digit) === this.#reasonChips.count + 1;
+      if ((isOther || !this.#digitsWouldOverwriteText()) && this.#reasonChips.pickByNumber(Number(digit))) {
         e.preventDefault();
         e.stopPropagation();
       }
       return;
     }
-    // Focus on a chip: the arrows move along the row (ReasonChips' own handler), not through the labels.
+    // Focus on a chip: the arrows move along the row (ReasonChips' own handler), not through the labels; every
+    // other key is still the card's, so A/D/U vote from a chip as from anywhere else.
     const target = e.target instanceof Element ? e.target : null;
-    if (target?.closest('.reason-chips')) return;
+    if (e.code.startsWith('Arrow') && target?.closest('.reason-chips')) return;
 
     const vote = LabelDetail.#VOTE_KEYS[e.code];
     let button = null;
@@ -989,6 +995,8 @@ class LabelDetail {
     this.#editingComment = false;
     this.#otherReasonRequested = false;
     this.#otherReasonPending = false;
+    this.#votePending = false;
+    this.#pickPending = false;
     this.#renderComments();
 
     // A typed-but-unsent comment belongs to the label it was typed on, so it doesn't ride along to the next one
@@ -1117,7 +1125,9 @@ class LabelDetail {
     const vote = reasoned && !this.#locked ? action : null;
     const own = this.#comments?.[this.#myCommentIdx];
     const selected = own && typeof own === 'object' && typeof own.reason === 'string' ? own.reason : null;
-    return this.#reasonChips.render({ labelType: meta?.label_type, vote, selected }) > 0;
+    const count = this.#reasonChips.render({ labelType: meta?.label_type, vote, selected });
+    this.#reasonChips.setBusy(this.#interactionBlocked || this.#votePending || this.#pickPending);
+    return count > 0;
   }
 
   /**
@@ -1144,8 +1154,15 @@ class LabelDetail {
     if (!vote || !text || this.#interactionBlocked) return;
     this.#logAction(`${vote}Reason_option=${id}`, viaKeyboard);
     this.#otherReasonRequested = false;
-    this.#reasonChips.setBusy(true);
-    this.#submitComment(text, { reason: id }).finally(() => this.#reasonChips?.setBusy(false));
+    const meta = this.#currentLabelMeta;
+    this.#pickPending = true;
+    this.#syncControlLocks();
+    this.#submitComment(text, { reason: id }).finally(() => {
+      // A reply for a label already paged away from must not unlock the label now on screen.
+      if (this.#currentLabelMeta !== meta) return;
+      this.#pickPending = false;
+      this.#syncControlLocks();
+    });
   }
 
   /**
@@ -1365,9 +1382,16 @@ class LabelDetail {
    */
   #dropOwnComment() {
     if (!this.#comments) return false;
-    const remaining = this.#comments.filter((c) => !this.#isOwnComment(c));
-    if (remaining.length === this.#comments.length) return false;
-    this.#comments = remaining;
+    // In place, not a new array: a Gallery host hands the card its own comments array and reads it back when the
+    // label is reopened, so replacing it here would leave the host with the list as it stood before this vote.
+    let removed = false;
+    for (let i = this.#comments.length - 1; i >= 0; i -= 1) {
+      if (this.#isOwnComment(this.#comments[i])) {
+        this.#comments.splice(i, 1);
+        removed = true;
+      }
+    }
+    if (!removed) return false;
     this.#myCommentIdx = -1;
     this.#renderComments();
     return true;
@@ -1504,15 +1528,24 @@ class LabelDetail {
    * @param {boolean} disabled
    */
   #setVoteButtonsDisabled(disabled) {
-    const off = disabled || this.#interactionBlocked;
+    this.#votePending = disabled;
+    this.#syncControlLocks();
+  }
+
+  /**
+   * Applies the one lock the vote controls and the reason chips share: the card's own lock, plus any vote or pick
+   * still in flight for this label. A reason explains the vote on record, so while either is being written the
+   * other must hold, or a pick could race the server's delete of the old comment and land under the new vote
+   * (#5475). Re-run whenever any input to it changes, including a new label, so nothing stays stuck from the last one.
+   */
+  #syncControlLocks() {
+    const off = this.#interactionBlocked || this.#votePending || this.#pickPending;
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
       btn.disabled = off;
     }
     for (const btn of Object.values(this.#els.voteButtons)) {
       btn.disabled = off;
     }
-    // A reason explains the vote on record, and while a vote POST is out that vote is moving: a pick made in that
-    // window would race the server's delete of the old comment and could land under the new vote (#5475).
     this.#reasonChips?.setBusy(off);
   }
 
@@ -1680,8 +1713,7 @@ class LabelDetail {
     // greyed across the imagery (#5047). Every other lock keeps the buttons: those are states that pass, and a
     // disabled control that explains itself is the thing that tells you to come back.
     if (els.panoOverlay) els.panoOverlay.hidden = this.#readonly || this.#deleted;
-    for (const btn of Object.values(els.panoOverlayButtons)) btn.disabled = blocked;
-    for (const btn of Object.values(els.voteButtons)) btn.disabled = blocked;
+    this.#syncControlLocks();
 
     // Comment input and submit button. The reason rides the row rather than the two controls it applies to: a
     // disabled control swallows the hover that opens a tooltip on it.
@@ -2772,7 +2804,7 @@ class LabelDetail {
         this.#flashCommentStatus('labelmap:comment-save-failed', 'failed');
       }
     }).finally(() => {
-      els.commentButton.disabled = false;
+      els.commentButton.disabled = this.#interactionBlocked;
     });
   }
 

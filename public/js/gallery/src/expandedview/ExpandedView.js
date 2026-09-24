@@ -202,7 +202,8 @@ class ExpandedView {
     const card = sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id);
     if (!card) return;
     card.setDeleted(!!meta.deleted, !!meta.can_restore);
-    card.updateUserValidation(meta.user_validation ?? null);
+    // An admin's delete files a Disagree but leaves their comment; a restore clears that vote the same way.
+    card.updateUserValidation(meta.user_validation ?? null, { dropOwnComment: false });
   };
 
   /**

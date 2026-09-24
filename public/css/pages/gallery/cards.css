@@ -483,6 +483,12 @@ with respect to the image holder. This allows the validation menu to be placed o
   z-index: 2;
 }
 
+/* A reason pick in flight holds the vote (ValidationMenu): the thumbs read as inert until it lands. */
+.gallery-card--vote-locked .validation-section-content {
+  cursor: progress;
+  opacity: 0.6;
+}
+
 .gallery-card__reasons-close {
   position: absolute;
   top: 6px;

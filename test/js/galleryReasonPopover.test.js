@@ -122,7 +122,7 @@ describe('the Gallery card reason popover (#5475)', () => {
     expect(chips().map((c) => c.dataset.reasonId)).toEqual(['wrong-type', 'driveway', 'driveway-transition']);
     expect(document.activeElement).toBe(chips()[0]);
     expect(popover().querySelector('.gallery-card__reasons-close').getAttribute('aria-label')).toBe('Dismiss');
-    expect(popover().getAttribute('role')).toBe('group');
+    expect(popover().getAttribute('role')).toBe('dialog');
     expect(popover().getAttribute('aria-label')).toBe('Why do you disagree?');
   });
 
@@ -180,6 +180,30 @@ describe('the Gallery card reason popover (#5475)', () => {
     // The server replaced the comment, so the expanded view opened next must see it.
     expect(card.properties.comments).toEqual([expect.objectContaining({ reason: 'driveway', mine: true })]);
     expect(isOpen()).toBe(false);
+  });
+
+  test('a pick reply arriving after the card\'s vote moved is not recorded, and the vote holds while a pick is out', async () => {
+    await vote('disagree');
+    let release;
+    window.util.lazyIdentityFetch.mockImplementationOnce((url, init) => new Promise((resolve) => {
+      posted.push({ url, body: JSON.parse(init.body) });
+      release = () => resolve({ ok: true, status: 200, json: async () => ({ username: 'tester', comment_id: 1 }) });
+    }));
+    chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    // The thumbs and the vote strip take no vote while the pick is out.
+    expect(cardEl.querySelector('#gallery-card-unsure-button').disabled).toBe(true);
+    expect(cardEl.classList.contains('gallery-card--vote-locked')).toBe(true);
+    cardEl.querySelector('#gallery-card-unsure-button').click();
+    await flush();
+    expect(posted.filter((p) => p.url === '/labelmap/validate')).toHaveLength(1);
+
+    // The expanded view relays a vote change meanwhile (its own lock is separate): the card prunes and the popover
+    // closes, and the late reply must not put a Disagree reason back on an Unsure card.
+    card.updateUserValidation('Unsure');
+    release();
+    await flush();
+    expect(card.properties.comments).toEqual([]);
+    expect(cardEl.querySelector('#gallery-card-unsure-button').disabled).toBe(false);
   });
 
   test('a vote on another card closes this card\'s question, so one digit answers one label', async () => {

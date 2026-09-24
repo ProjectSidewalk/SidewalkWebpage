@@ -878,6 +878,19 @@ class ValidateSubmissionSpec
       status(postValidationTask(session, taskSubmission(b, stale, progress))) mustBe OK
       commentsOn(labelId, b.userId) mustBe Seq("Stale")
       reasonsOn(labelId, b.userId) mustBe (None, Seq((Some(reason), "edit")))
+
+      // A reason the type offers, but for the other vote, is dropped the same way: the id has to explain this vote.
+      val crossed = Seq(validationJson(label, b.missionId, "Unsure", comment = Some("Crossed"), reason = Some(reason)))
+      status(postValidationTask(session, taskSubmission(b, crossed, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("Crossed")
+      reasonsOn(labelId, b.userId)._1 mustBe None
+
+      // An undo carrying a reasoned comment retracts rather than stores it, reason included (#5076).
+      val undo = Seq(validationJson(label, b.missionId, "Unsure", undone = true, comment = Some("Crossed"),
+        reason = Some(reason)))
+      status(postValidationTask(session, taskSubmission(b, undo, progress))) mustBe OK
+      commentsOn(labelId, b.userId) mustBe empty
+      reasonsOn(labelId, b.userId)._2.last mustBe (None, "validation_change")
     }
 
     "delete the user's own comment without touching their vote (#5015)" in {

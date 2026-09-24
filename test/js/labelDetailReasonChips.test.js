@@ -476,6 +476,77 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         expect(boxOpen()).toBe(false);
     });
 
+    test('the vote controls hold while a pick is in flight, and both unlock once it lands', async () => {
+        await showLabel({ user_validation: 'Disagree' });
+        await resolveImagery();
+        holdPost = deferred();
+        chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        await flush();
+        expect(q('.label-detail__pano-overlay-button--unsure').disabled).toBe(true);
+        expect(q('.label-detail__vote--agree').disabled).toBe(true);
+        q('.label-detail__pano-overlay-button--unsure').click();
+        await flush();
+        expect(posted.filter((p) => p.url === '/labelmap/validate')).toHaveLength(0);
+        holdPost.resolve();
+        holdPost = null;
+        await flush();
+        expect(q('.label-detail__pano-overlay-button--unsure').disabled).toBe(false);
+        expect(reasons().classList.contains('reason-chips--busy')).toBe(false);
+    });
+
+    test('a vote left in flight by paging does not leave the next label\'s chips stuck', async () => {
+        await showLabel({ user_validation: 'Disagree' });
+        await resolveImagery();
+        holdPost = deferred();
+        q('.label-detail__pano-overlay-button--unsure').click();
+        await flush();
+        setPano = deferred();
+        await showLabel({ label_id: 43, user_validation: 'Disagree', comments: [] });
+        await resolveImagery();
+        holdPost.resolve();
+        holdPost = null;
+        await flush();
+        expect(reasons().classList.contains('reason-chips--busy')).toBe(false);
+        expect(q('.label-detail__pano-overlay-button--agree').disabled).toBe(false);
+        chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        await flush();
+        // The stubbed pano manager pins the posted label id, so the count is what says the tap went through.
+        expect(posted.filter((p) => p.url === '/labelmap/comment')).toHaveLength(1);
+    });
+
+    test('a reply landing after paging leaves the comment button in the new label\'s lock', async () => {
+        await showLabel({ user_validation: 'Disagree' });
+        await resolveImagery();
+        holdPost = deferred();
+        chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        await flush();
+        setPano = deferred();
+        await showLabel({ label_id: 43, user_validation: null });
+        // Still loading: the box is disabled, and the stale reply must not switch its button back on.
+        holdPost.resolve();
+        holdPost = null;
+        await flush();
+        expect(q('.label-detail__comment-submit').disabled).toBe(true);
+        expect(input().disabled).toBe(true);
+    });
+
+    test('A/D/U still vote from a focused chip; only the arrows are the row\'s', async () => {
+        await showLabel({ user_validation: 'Disagree' });
+        await resolveImagery();
+        chips()[0].focus();
+        chips()[0].dispatchEvent(new window.KeyboardEvent('keydown', { code: 'KeyU', bubbles: true, cancelable: true }));
+        await flush();
+        expect(posted.at(-1)).toMatchObject({ url: '/labelmap/validate', body: { validation_result: 'Unsure' } });
+    });
+
+    test('the "Other…" digit is never held back by typed words, since it overwrites nothing', async () => {
+        await showLabel({ user_validation: 'Disagree', comments: [comment('The ramp is behind the car.', true)] });
+        await resolveImagery();
+        keydown('Digit4');
+        expect(boxOpen()).toBe(true);
+        expect(document.activeElement).toBe(input());
+    });
+
     test('the viewer\'s own label offers no reasons', async () => {
         await showLabel({ user_validation: 'Disagree', from_current_user: true });
         await resolveImagery();

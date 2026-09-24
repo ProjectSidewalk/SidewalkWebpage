@@ -30,7 +30,7 @@ import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.mvc.Result
-import service.ValidationSubmission
+import service.{ReasonNotOffered, ValidationSubmission}
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
@@ -647,26 +647,33 @@ class ValidateController @Inject() (
         val vote: Future[Option[ValidationOption.Value]] =
           if (submission.reason.isDefined) validationService.currentVote(submission.labelId, userId, labelType)
           else Future.successful(None)
-        vote.flatMap { currentVote =>
-          parseReason(submission.reason, labelType, currentVote) match {
-            case Left(badRequest) => Future.successful(badRequest)
-            case Right(reason)    =>
-              for {
-                mission <- missionService.resumeOrCreateNewValidateMission(
-                  userId,
-                  MissionType.LabelmapValidation,
-                  labelType
-                )
-                commentId: Int <- validationService.replaceComment(
-                  ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
-                    submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat,
-                    submission.lng, OffsetDateTime.now, submission.comment, reason)
-                )
-              } yield {
-                Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
-              }
+        vote
+          .flatMap { currentVote =>
+            parseReason(submission.reason, labelType, currentVote) match {
+              case Left(badRequest) => Future.successful(badRequest)
+              case Right(reason)    =>
+                for {
+                  mission <- missionService.resumeOrCreateNewValidateMission(
+                    userId,
+                    MissionType.LabelmapValidation,
+                    labelType
+                  )
+                  commentId: Int <- validationService.replaceComment(
+                    ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
+                      submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat,
+                      submission.lng, OffsetDateTime.now, submission.comment, reason),
+                    labelType
+                  )
+                } yield {
+                  Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
+                }
+            }
           }
-        }
+          .recover { case ReasonNotOffered(reason) =>
+            // The vote moved under the pick (the early read above passed, the locked read inside the transaction did
+            // not): the card shows "couldn't save", and the reason for the new vote can be picked afresh.
+            BadRequest(Json.obj("status" -> "Error", "message" -> s"validation reason '$reason' not offered here"))
+          }
       }
     )
   }

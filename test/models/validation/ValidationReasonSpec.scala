@@ -59,7 +59,7 @@ class ValidationReasonSpec extends PlaySpec {
     }
   }
 
-  "offered" should {
+  "offered and offersReason" should {
     "answer for a type's own reasons and refuse another type's" in {
       ValidationReason.offersReason(LabelTypeEnum.CurbRamp, ValidationReason.Driveway) mustBe true
       ValidationReason.offersReason(LabelTypeEnum.Obstacle, ValidationReason.Driveway) mustBe false

@@ -513,7 +513,9 @@ so the stamp stays language-free. A pick is stored as the validator's comment on
 `validation_task_comment.reason` beside the text; the label card's comment feed carries that id back so a revisit
 marks the chosen chip and a canned reason renders in the reader's language rather than the writer's. Ids are
 semantic (`driveway`, `not-pedestrian-path`), so a reason offered on two types is one reason, and the enum is what
-the backend checks a submitted id against — a reason the label's type doesn't offer is refused.
+the backend checks a submitted id against: a reason the user's standing vote on that label doesn't take is refused
+on the label-card endpoint (checked on a locked vote row, so a vote change in flight can't slip a reason under the
+new vote), and dropped, with the vote and text kept, on the Validate batch.
 
 ## Where to go next
 

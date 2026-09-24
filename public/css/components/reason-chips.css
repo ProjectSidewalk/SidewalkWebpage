@@ -71,6 +71,17 @@
   outline-offset: 3px;
 }
 
+/* Box-shadow doesn't paint under forced colors, so the ring and the selected ring become borders there. */
+@media (forced-colors: active) {
+  .reason-chips__chip {
+    border: 1px solid ButtonText;
+  }
+
+  .reason-chips__chip--selected {
+    border: 2px solid Highlight;
+  }
+}
+
 /* A pick in flight: the chips stay visible so the picked one can be seen landing, but take no second pick. */
 .reason-chips--busy .reason-chips__chip {
   cursor: progress;

@@ -45,8 +45,18 @@ beforeAll(() => {
 describe('the own-comment cache on a Gallery card (#5475)', () => {
     test('a changed vote drops the viewer\'s own comment, as the server does, and keeps everyone else\'s', () => {
         const card = makeCard('Disagree');
+        const shared = card.getProperty('comments');
         card.updateUserValidation('Unsure');
         expect(card.getProperty('comments')).toEqual([theirs]);
+        // In place: the expanded view holds this same array and pushes comments made there into it, so a new
+        // array here would leave those comments behind when the label is reopened.
+        expect(card.getProperty('comments')).toBe(shared);
+    });
+
+    test('an admin\'s delete files a vote but leaves the comment, so its relay keeps the cache', () => {
+        const card = makeCard('Agree');
+        card.updateUserValidation('Disagree', { dropOwnComment: false });
+        expect(card.getProperty('comments')).toEqual([theirs, own]);
     });
 
     test('a cleared vote drops it too', () => {

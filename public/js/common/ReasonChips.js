@@ -67,6 +67,8 @@ class ReasonChips {
     this.#chips = [];
     this.#otherButton = null;
     this.#selected = selected;
+    this.#busy = false;
+    this.#root.classList.remove('reason-chips--busy');
     this.#root.classList.toggle('reason-chips--disagree', vote === 'Disagree' && reasons.length > 0);
     this.#root.classList.toggle('reason-chips--unsure', vote === 'Unsure' && reasons.length > 0);
     this.#root.hidden = reasons.length === 0;

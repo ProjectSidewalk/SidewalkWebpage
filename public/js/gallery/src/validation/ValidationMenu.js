@@ -39,6 +39,8 @@ class ValidationMenu {
   /** @type {?HTMLElement} The control whose vote opened the popover, which gets focus back when it closes. */
   #reasonOpener = null;
   #reasonCloseTimer = null;
+  // A pick in flight holds the vote: see #setVoteControlsLocked.
+  #voteLocked = false;
   #boundOutsideClick = (e) => this.#handleOutsideClick(e);
   #boundKeydown = (e) => this.#handleKeydown(e);
 
@@ -137,6 +139,7 @@ class ValidationMenu {
    */
   validateOnClickOrKeyPress(newValKey, thumbsClick, keyboardShortcut) {
     return async (e) => {
+      if (this.#voteLocked) return null;
       const undone = this.#currSelected === newValKey;
       const validationOption = ValidationMenu.#classToValidationOption[newValKey];
       const opener = e?.currentTarget instanceof HTMLElement ? e.currentTarget : null;
@@ -285,7 +288,9 @@ class ValidationMenu {
     popover.className = 'gallery-card__reasons';
     popover.hidden = true;
     const dismiss = util.escapeHTML(i18next.t('common:validation-reason.dismiss'));
-    popover.setAttribute('role', 'group');
+    // A non-modal dialog: it takes focus, Escape closes it, and its name is the question; the chips inside are
+    // their own named group, so the popover isn't a second group announcing the same prompt.
+    popover.setAttribute('role', 'dialog');
     popover.innerHTML = `
       <button type="button" class="gallery-card__reasons-close" aria-label="${dismiss}">
         <img src="${util.assetPath('images/icons/cross.svg')}" alt="">
@@ -371,7 +376,13 @@ class ValidationMenu {
 
   #handleOutsideClick(e) {
     if (this.#reasonPopover.contains(e.target)) return;
-    this.#log('ReasonMenu_Dismiss');
+    // A click on this card's own vote controls is a new vote, which reopens or closes the popover on its own
+    // terms and is logged as that vote, not as a dismissal.
+    const target = e.target instanceof Element ? e.target : null;
+    const valInfo = this.#refCard.validationInfoDisplay;
+    const onVoteControl = !!target && (this.#overlay[0].contains(target)
+      || !!valInfo?.agreeContainer?.contains(target) || !!valInfo?.disagreeContainer?.contains(target));
+    if (!onVoteControl) this.#log('ReasonMenu_Dismiss');
     this.#closeReasons(false);
   }
 
@@ -423,6 +434,8 @@ class ValidationMenu {
     };
     const status = this.#reasonPopover.querySelector('.gallery-card__reasons-status');
     this.#reasonChips.setBusy(true);
+    // The vote must hold while its reason is written, or the server's delete-on-vote-change races the pick.
+    this.#setVoteControlsLocked(true);
     try {
       const res = await util.lazyIdentityFetch('/labelmap/comment', {
         method: 'POST',
@@ -431,8 +444,9 @@ class ValidationMenu {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       // The server replaced the comment whether or not the popover is still up, so the card records it either way
-      // and only the popover's own feedback waits on it still being open with the same question.
-      this.#recordOwnComment(text, id, vote);
+      // — unless the vote moved meanwhile, in which case the server archived it again and the card must not show
+      // it; only the popover's own feedback waits on it still being open with the same question.
+      if (refCard.getProperty('user_validation') === vote) this.#recordOwnComment(text, id, vote);
       if (this.#reasonVote !== vote) return;
       this.#reasonChips.setSelected(id);
       status.textContent = i18next.t('common:validation-reason.saved');
@@ -443,7 +457,19 @@ class ValidationMenu {
       if (this.#reasonVote === vote) status.textContent = i18next.t('labelmap:comment-save-failed');
     } finally {
       this.#reasonChips.setBusy(false);
+      this.#setVoteControlsLocked(false);
     }
+  }
+
+  /**
+   * Holds the card's vote controls while a reason pick is in flight (#5475). The overlay buttons take `disabled`;
+   * the thumbs are plain containers, so they get a class the click handlers check.
+   * @param {boolean} locked
+   */
+  #setVoteControlsLocked(locked) {
+    this.#voteLocked = locked;
+    for (const button of Object.values(this.#validationButtons)) button.prop('disabled', locked);
+    this.#galleryCard.toggleClass('gallery-card--vote-locked', locked);
   }
 
   /**
