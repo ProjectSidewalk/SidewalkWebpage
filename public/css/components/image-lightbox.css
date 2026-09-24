@@ -16,8 +16,19 @@ dialog.ps-lightbox::backdrop {
 .ps-lightbox__img {
   display: block;
   max-width: calc(100vw - 32px);
-  max-height: calc(100dvh - 32px);
+  max-height: calc(100dvh - 72px); /* Leaves a line for the caption. */
   border-radius: var(--border-radius);
+}
+
+.ps-lightbox__caption {
+  margin: 8px 0 0;
+  color: var(--color-neutral-white);
+  font: var(--text-small-regular);
+  text-align: center;
+}
+
+.ps-lightbox__caption[hidden] {
+  display: none;
 }
 
 .ps-lightbox__close {

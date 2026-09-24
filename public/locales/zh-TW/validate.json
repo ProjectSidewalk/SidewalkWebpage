@@ -16,6 +16,8 @@
   },
   "validate-menu": {
     "remove-tag": "移除標籤：{{tag}}",
+    "tag-search-placeholder": "在此新增更多標籤",
+    "tag-search-no-results": "沒有符合的標籤",
     "disagree-reason": {
       "common": {
         "wrong-type": "標籤類型錯誤",

@@ -568,6 +568,17 @@ describe('DesktopValidationMenu on Expert Validate', () => {
   const shown = (id) => document.getElementById(id).style.display === 'block';
   const submitDisabled = () => document.getElementById('validate-submit-button').disabled;
 
+  it('Agree still renders a label that carries AI tag suggestions', () => {
+    label = makeLabel({ tags: ['pole'], ai_tags: ['trash/recycling can'], ai_tags_not_present: ['pole'] });
+    menu.resetMenu(label);
+
+    window.$('#validate-yes-button').click();
+
+    expect(label.getProperty('validationResult')).toBe('Agree');
+    expect(document.querySelectorAll('.sidewalk-ai-suggested-tag:not(.template)')).toHaveLength(2);
+    expect(submitDisabled()).toBe(false);
+  });
+
   it('the "wrong label type" reason swaps the reasons for the type picker under a chosen Disagree', () => {
     window.$('#validate-no-button').click();
     document.getElementById('no-button-1').click();

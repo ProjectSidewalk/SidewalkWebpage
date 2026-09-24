@@ -85,7 +85,8 @@ class DesktopValidationMenu {
       // Capped at one item so a pick lands in the tag list through onItemAdd and the box clears for the next one.
       this.#tagSelect = new TomSelect('#select-tag', {
         maxItems: 1,
-        placeholder: 'Add more tags here',
+        placeholder: i18next.t('validate:validate-menu.tag-search-placeholder'),
+        refreshThrottle: 0, // Filter on every keystroke, or a quick Enter picks the option from before the keystroke.
         labelField: 'tag_name',
         valueField: 'tag_name',
         searchField: 'tag_name',
@@ -103,6 +104,7 @@ class DesktopValidationMenu {
           this.#addTag(tagName, false);
         },
         render: {
+          no_results: () => `<div class="no-results">${i18next.t('validate:validate-menu.tag-search-no-results')}</div>`,
           option: (item) => {
             // Add an example image tooltip to the tag.
             const translatedTagName = i18next.t(`common:tag.${item.tag_name.replace(/:/g, '-')}`);
@@ -575,7 +577,7 @@ class DesktopValidationMenu {
 
         // Show tooltip with example image for the tag.
         const tooltipText = `"${translatedTagName}" example`;
-        this.#addTooltip(template, tooltipText, util.assetPath(`images/examples/tags/${tag.tag_id}.png`));
+        this.#addTooltip(template[0], tooltipText, util.assetPath(`images/examples/tags/${tag.tag_id}.png`));
 
         // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
         template.on('click', () => {

@@ -7,6 +7,8 @@ class ImageLightbox {
   #dialog = null;
   /** @type {HTMLImageElement|null} */
   #image = null;
+  /** @type {HTMLElement|null} */
+  #caption = null;
 
   /** @param {string} selector - Matches the <img> elements that should open in the lightbox. */
   constructor(selector) {
@@ -35,16 +37,19 @@ class ImageLightbox {
         &times;
       </button>
       <img class="ps-lightbox__img" alt="">
+      <p class="ps-lightbox__caption"></p>
     `;
     dialog.querySelector('.ps-lightbox__close').addEventListener('click', () => dialog.close());
-    // A click on the backdrop lands on the dialog itself, not on the image or the button inside it.
-    dialog.addEventListener('click', (e) => {
+    // A press on the backdrop lands on the dialog itself. pointerdown rather than click, so a drag that starts on the
+    // image and ends outside it doesn't count as a backdrop click.
+    dialog.addEventListener('pointerdown', (e) => {
       if (e.target === dialog) dialog.close();
     });
     document.body.append(dialog);
     window.localizeSubtree?.(dialog);
     this.#dialog = dialog;
     this.#image = dialog.querySelector('.ps-lightbox__img');
+    this.#caption = dialog.querySelector('.ps-lightbox__caption');
     return dialog;
   }
 
@@ -53,6 +58,8 @@ class ImageLightbox {
     const dialog = this.#ensureDialog();
     this.#image.src = img.currentSrc || img.src;
     this.#image.alt = img.alt;
+    this.#caption.textContent = img.title;
+    this.#caption.hidden = !img.title;
     dialog.setAttribute('aria-label', img.alt);
     dialog.showModal();
   }

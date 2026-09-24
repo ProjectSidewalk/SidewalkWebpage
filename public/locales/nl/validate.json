@@ -16,6 +16,8 @@
   },
   "validate-menu": {
     "remove-tag": "Tag verwijderen: {{tag}}",
+    "tag-search-placeholder": "Voeg hier meer tags toe",
+    "tag-search-no-results": "Geen overeenkomende tags",
     "disagree-reason": {
       "common": {
         "wrong-type": "Dit is het verkeerde labeltype",
