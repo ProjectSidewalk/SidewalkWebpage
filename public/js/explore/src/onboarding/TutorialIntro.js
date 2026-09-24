@@ -61,8 +61,9 @@ class TutorialIntro {
   show() {
     this.#tracker.push('TutorialIntro_Start');
     // A user who clicked through to a specific route lands here instead, so say the route is still waiting —
-    // otherwise the tutorial looks like it replaced what they asked for.
-    if (this.#ui.routeNote && new URLSearchParams(window.location.search).has('routeId')) {
+    // otherwise the tutorial looks like it replaced what they asked for. Main captures the ask before it pins the
+    // URL (#5480); the page's own route params are blank during the tutorial (#4816), so they can't say.
+    if (this.#ui.routeNote && svl.tutorialRouteWaiting) {
       this.#ui.routeNote.hidden = false;
     }
     // Kick off the Impact-stats fetch now (fire-and-forget): the Impact step is last, so the server-cached numbers are

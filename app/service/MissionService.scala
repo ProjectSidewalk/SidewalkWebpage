@@ -55,6 +55,7 @@ trait MissionService {
   ): Future[Option[Mission]]
   def updateMissionTableExplore(userId: String, missionProgress: AuditMissionProgress): DBIO[Option[Mission]]
   def getCompletedExploreMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]]
+  def getMission(missionId: Int): Future[Option[Mission]]
 }
 
 @Singleton
@@ -507,4 +508,6 @@ class MissionServiceImpl @Inject() (
   def getCompletedExploreMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]] = {
     db.run(missionTable.selectCompletedExploreMissions(userId, regionId))
   }
+
+  def getMission(missionId: Int): Future[Option[Mission]] = db.run(missionTable.getMission(missionId))
 }

@@ -365,7 +365,7 @@
     "still-stuck": "Se você ainda estiver preso, clique no botão Preso novamente.",
     "stuck-skipped-street": "Essa rua não tinha imagens que pudéssemos mostrar, então movemos você para uma nova rua.",
     "stuck-skipped-street-named": "Essa rua não tinha imagens que pudéssemos mostrar, então movemos você para <b>{{streetName}}</b>.",
-    "free-explore-start": "Você foi colocado perto do endereço pesquisado. Olhe ao redor e rotule o que encontrar!",
+    "free-explore-start": "Você está explorando livremente a partir daqui. Olhe ao redor e rotule o que encontrar!",
     "free-explore-start-named": "Você chegou perto de <b>{{placeName}}</b>. Olhe ao redor e rotule o que encontrar!",
     "free-explore-no-imagery": "Não há mais imagens da rua nesta direção. Tente olhar ao redor ou seguir para o outro lado.",
     "stuck-suggestion": "Se você não conseguir se mover com as setas, tente clicar nas direções de navegação no canto inferior direito. Ou tente clicar no botão Preso à esquerda.",

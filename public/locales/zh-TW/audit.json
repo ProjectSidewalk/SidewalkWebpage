@@ -364,7 +364,7 @@
     "still-stuck": "若您仍卡住無法動彈，請再次點選「卡住」鍵。",
     "stuck-skipped-street": "這條街道沒有我們可以顯示的影像，因此我們已將您移至新的街道。",
     "stuck-skipped-street-named": "這條街道沒有我們可以顯示的影像，因此我們已將您移至<b>{{streetName}}</b>。",
-    "free-explore-start": "您已被帶到搜尋地址的附近。請環顧四周並標記您發現的問題！",
+    "free-explore-start": "您正從這裡自由探索。請環顧四周並標記您發現的問題！",
     "free-explore-start-named": "您已降落在 <b>{{placeName}}</b> 附近。四處看看，標記您發現的問題！",
     "free-explore-no-imagery": "這個方向沒有更多街景影像了。請試著環顧四周或往另一個方向前進。",
     "stuck-suggestion": "若您無法透過箭頭移動，請嘗試點選右下角的導航方向，或嘗試點選左側的「卡住」鍵。",
