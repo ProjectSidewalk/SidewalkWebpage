@@ -63,7 +63,7 @@ readonly_user -d sidewalk`).
   against prod's hand-built ones. Geometry output can genuinely differ across that GEOS gap, so a spatial result that
   reproduces in only one environment starts here. The same skew breaks dev's JIT — PostGIS bitcode built with LLVM 16
   against a runtime linked to LLVM 11, so an expensive spatial query segfaults the backend
-  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — hence `withJitOff` in `ConfigTable`.
+  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — hence `SqlFragments.withJitOff`.
 - **Dev's Postgres is what a fresh build gets:** the base image ships 16.4 and `db/Dockerfile` upgrades it, so an old
   container reports an older patch. The geospatial libraries are fixed by the base image and that upgrade never moves
   them. **Prod's PostGIS is half-upgraded** — library 3.4.6, SQL functions still 3.4.1, which is the `need upgrade`

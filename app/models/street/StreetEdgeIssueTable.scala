@@ -64,6 +64,24 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
 @ImplementedBy(classOf[StreetEdgeIssueTable])
 trait StreetEdgeIssueTableRepository {}
 
+object StreetEdgeIssueTable {
+
+  /**
+   * Whether a report is this user giving up on this street for missing imagery during a task that began at
+   * `taskStart`. The one definition the resume paths share; a report from before the task says nothing about it.
+   *
+   * @return True when the report is such a give-up.
+   */
+  def reportedNoImageryDuringTask(
+      issue: StreetEdgeIssueTableDef,
+      streetEdgeId: Rep[Int],
+      userId: Rep[String],
+      taskStart: Rep[OffsetDateTime]
+  ): Rep[Boolean] =
+    issue.streetEdgeId === streetEdgeId && issue.userId === userId &&
+      issue.issue === StreetEdgeIssueType.PanoNotAvailable && issue.timestamp >= taskStart
+}
+
 @Singleton
 class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
     extends StreetEdgeIssueTableRepository
@@ -99,10 +117,7 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def reportedNoImagerySince(streetEdgeId: Int, userId: String, taskStart: OffsetDateTime): DBIO[Boolean] = {
     streetEdgeIssues
-      .filter(issue =>
-        issue.streetEdgeId === streetEdgeId && issue.userId === userId &&
-          issue.issue === StreetEdgeIssueType.PanoNotAvailable && issue.timestamp >= taskStart
-      )
+      .filter(StreetEdgeIssueTable.reportedNoImageryDuringTask(_, streetEdgeId.bind, userId.bind, taskStart.bind))
       .exists
       .result
   }

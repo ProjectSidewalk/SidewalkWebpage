@@ -3,11 +3,11 @@ package models.place
 import com.google.inject.ImplementedBy
 import models.api.{PlaceFiltersForApi, PlaceForApi}
 import models.utils.MyPostgresProfile.api._
-import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile}
+import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json}
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -293,37 +293,26 @@ class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def getPlacesForApi(
       filters: PlaceFiltersForApi
   ): SqlStreamingAction[Vector[PlaceForApi], PlaceForApi, Effect.Read] = {
-    val bboxFilter = filters.bbox
-      .map { bbox =>
-        s"AND ST_Intersects(place.geom, " +
-          s"ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      }
-      .getOrElse("")
-    val regionIdFilter   = filters.regionId.map(id => s"AND place.region_id = $id").getOrElse("")
-    val regionNameFilter = filters.regionName
-      .map(name => s"AND LOWER(region.name) = LOWER('${name.replace("'", "''")}')")
-      .getOrElse("")
-    // Categories are allowlisted against PlaceCategory in the controller, so the literals are catalog ids.
-    val categoryFilter = filters.categories
-      .map(cs => s"AND place.category IN (${cs.map(c => s"'${c.replace("'", "''")}'").mkString(", ")})")
-      .getOrElse("")
+    val conditions: Seq[SQLActionBuilder] = Seq(
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("place.geom", bbox) },
+      filters.regionId.map(id => sql"place.region_id = $id"),
+      filters.regionName.map(name => sql"LOWER(region.name) = LOWER($name)"),
+      filters.categories.map(cs => sql"place.category = ANY($cs)")
+    ).flatten
 
     // The region is joined for its name; a place just outside every region (region_id NULL) is still returned unless
-    // a region filter asks for one. Numeric filters are safe and the name is single-quote-escaped (see #2756 for
-    // moving these to bound parameters).
-    val queryStr = s"""
+    // a region filter asks for one.
+    val query: SQLActionBuilder = sql"""
       SELECT place.place_id, place.category, place.name, place.source, place.osm_type, place.osm_id,
              place.region_id, region.name, place.nearest_street_edge_id, place.nearest_street_distance_m,
              place.fetched_at, place.geom
       FROM place
       LEFT JOIN region ON place.region_id = region.region_id
-      WHERE TRUE
-        $bboxFilter
-        $regionIdFilter
-        $regionNameFilter
-        $categoryFilter
+      WHERE """
+      .concat(SqlFragments.allOf(conditions))
+      .concat(sql"""
       ORDER BY place.category, place.place_id
-    """
+    """)
 
     implicit val getPlaceForApi: GetResult[PlaceForApi] = GetResult { r =>
       PlaceForApi(
@@ -342,6 +331,6 @@ class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       )
     }
 
-    sql"""#$queryStr""".as[PlaceForApi]
+    query.as[PlaceForApi]
   }
 }

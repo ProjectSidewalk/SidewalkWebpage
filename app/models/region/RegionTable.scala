@@ -5,11 +5,11 @@ import models.api.{RegionDataForApi, RegionFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
 import models.utils.MyPostgresProfile.api._
-import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile}
+import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.Effect
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -152,39 +152,29 @@ class RegionTable @Inject() (
       orderBy: String,
       limit: Option[Int]
   ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] = {
-    // Set up query filters. User-supplied string values (regionName) are single-quote-escaped and numeric filters are
-    // safe; see #2756 for migrating these raw builders to bound parameters.
-    val bboxFilter = filters.bbox
-      .map { bbox =>
-        s"AND ST_Intersects(region.geom, " +
-          s"ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      }
-      .getOrElse("")
+    val regionFilters: Seq[SQLActionBuilder] = Seq(
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("region.geom", bbox) },
+      filters.regionId.map { regionId => sql"region.region_id = $regionId" },
+      filters.regionName.map { regionName => sql"LOWER(region.name) = LOWER($regionName)" }
+    ).flatten
 
-    val regionIdFilter = filters.regionId.map { regionId => s"AND region.region_id = $regionId" }.getOrElse("")
+    val countFilters: Seq[SQLActionBuilder] =
+      filters.minLabelCount.map { count => sql"COALESCE(region_labels.label_count, 0) >= $count" }.toSeq
 
-    val regionNameFilter =
-      filters.regionName
-        .map { regionName => s"AND LOWER(region.name) = LOWER('${regionName.replace("'", "''")}')" }
-        .getOrElse("")
-
-    val minLabelCountFilter =
-      filters.minLabelCount.map { count => s"AND COALESCE(region_labels.label_count, 0) >= $count" }.getOrElse("")
-
-    val queryStr = s"""
+    val query: SQLActionBuilder = sql"""
       WITH filtered_regions AS (
         SELECT region.region_id, region.name, region.geom
         FROM region
         WHERE region.deleted = FALSE
-            $bboxFilter
-            $regionIdFilter
-            $regionNameFilter
+            AND """
+      .concat(SqlFragments.allOf(regionFilters))
+      .concat(sql"""
       ),
       -- Get the number of streets that count in each region.
       region_streets AS (
         SELECT street_edge_region.region_id, COUNT(DISTINCT street_edge.street_edge_id) AS street_count
         FROM street_edge_region
-        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
@@ -192,8 +182,8 @@ class RegionTable @Inject() (
       region_audits AS (
         SELECT street_edge_region.region_id, COUNT(audit_task.audit_task_id) AS audit_count
         FROM street_edge_region
-        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        JOIN ${FilteredTables.completedAudits()} ON street_edge_region.street_edge_id = audit_task.street_edge_id
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.completedAudits()} ON street_edge_region.street_edge_id = audit_task.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
@@ -206,9 +196,9 @@ class RegionTable @Inject() (
         SELECT street_edge_region.region_id,
                SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance
         FROM street_edge_region
-        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
-            AND $needsReauditSql
+            AND #$needsReauditSql
         GROUP BY street_edge_region.region_id
       ),
       -- Get label counts, distinct user counts, and label timestamps for each region.
@@ -219,8 +209,8 @@ class RegionTable @Inject() (
                MIN(label.time_created) AS first_label_date,
                MAX(label.time_created) AS last_label_date
         FROM street_edge_region
-        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        JOIN ${FilteredTables.labels()} ON street_edge_region.street_edge_id = label.street_edge_id
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.labels()} ON street_edge_region.street_edge_id = label.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       )
@@ -247,11 +237,12 @@ class RegionTable @Inject() (
       LEFT JOIN region_outdated ON filtered_regions.region_id = region_outdated.region_id
       LEFT JOIN region_labels ON filtered_regions.region_id = region_labels.region_id
       LEFT JOIN region_completion ON filtered_regions.region_id = region_completion.region_id
-      WHERE 1=1
-        $minLabelCountFilter
-      ORDER BY $orderBy
-      ${limit.map(n => s"LIMIT $n").getOrElse("")}
-    """
+      WHERE """)
+      .concat(SqlFragments.allOf(countFilters))
+      .concat(sql"""
+      ORDER BY #$orderBy
+      #${limit.map(n => s"LIMIT $n").getOrElse("")}
+    """)
 
     implicit val getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>
       RegionDataForApi(
@@ -271,7 +262,7 @@ class RegionTable @Inject() (
       )
     }
 
-    sql"""#$queryStr""".as[RegionDataForApi]
+    query.as[RegionDataForApi]
   }
 
   /**

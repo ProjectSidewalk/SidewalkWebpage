@@ -2,7 +2,7 @@ package models.audit
 
 import com.google.inject.ImplementedBy
 import models.mission.MissionTableDef
-import models.utils.MyPostgresProfile
+import models.utils.{MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
@@ -148,10 +148,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
    * @return       Hours, or 0 when nothing is logged for them there.
    */
   def getHoursAuditingAndValidatingBySchema(userId: String, schema: String): DBIO[Double] = {
-    require(
-      schema.matches("^[a-z_][a-z0-9_]*$"),
-      s"Refusing to build schema-qualified SQL for a non-identifier schema name: $schema"
-    )
+    SqlFragments.requireSafeIdentifiers(Seq(schema))
     sql"""
       SELECT CAST(extract( second from SUM(diff) ) / 60 +
              extract( minute from SUM(diff) ) +
@@ -197,12 +194,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
   def calculateTimeExploring(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[ContributionTimeStat] = {
-    val timeIntervalFilter = timeInterval match {
-      case TimeInterval.Today => "(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case TimeInterval.Week  =>
-        "(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-      case _ => "TRUE"
-    }
+    val timeIntervalFilter = TimeInterval.sqlFilter(timeInterval, "timestamp")
     sql"""
       SELECT CAST(extract(second from SUM(diff)) / 60 +
                   extract(minute from SUM(diff)) +
@@ -226,13 +218,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
   def calculateTimeValidating(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[ContributionTimeStat] = {
-    val timeIntervalFilter = timeInterval match {
-      case TimeInterval.Today =>
-        "(end_timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-      case TimeInterval.Week =>
-        "(end_timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-      case _ => "TRUE"
-    }
+    val timeIntervalFilter = TimeInterval.sqlFilter(timeInterval, "end_timestamp")
 
     sql"""
       SELECT CAST(extract(second from SUM(diff)) / 60 +
@@ -256,13 +242,8 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
    * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
    */
   def calculateMedianExploringTime(timeInterval: TimeInterval = TimeInterval.AllTime): DBIO[ContributionTimeStat] = {
-    val (timeIntervalFilter, metersFilter, minutesFilter) = timeInterval match {
-      case TimeInterval.Today =>
-        ("(timestamp AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date", 50, 15)
-      case TimeInterval.Week =>
-        ("(timestamp AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'", 50, 15)
-      case _ => ("TRUE", 100, 30)
-    }
+    val timeIntervalFilter            = TimeInterval.sqlFilter(timeInterval, "timestamp")
+    val (metersFilter, minutesFilter) = if (timeInterval == TimeInterval.AllTime) (100, 30) else (50, 15)
     sql"""
       SELECT percentile_CONT(0.5) WITHIN GROUP (ORDER BY minutes_per_100m)
       FROM (
@@ -314,7 +295,7 @@ class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: Datab
           FROM audit_task_interaction_small
           INNER JOIN audit_task ON audit_task.audit_task_id = audit_task_interaction_small.audit_task_id
           WHERE audit_task.user_id = $userId
-              AND audit_task_interaction_small.timestamp < '#${timeRangeEnd.toString}'
+              AND audit_task_interaction_small.timestamp < $timeRangeEnd
               AND audit_task_interaction_small.timestamp > (
                   SELECT COALESCE(MAX(time_created), TIMESTAMP 'epoch')
                   FROM label

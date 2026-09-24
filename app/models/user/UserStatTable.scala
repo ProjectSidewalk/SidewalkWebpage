@@ -2,12 +2,11 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.api.UserStatForApi
-import models.audit.AuditTaskTableDef
+import models.audit.AuditTaskTable
 import models.label.{LabelTable, LabelTypeEnum}
 import models.mission.{MissionTableDef, MissionType}
-import models.street.StreetEdgeTable
 import models.user.Role.ROLES_RESEARCHER_COLLAPSED
-import models.utils.{Contributors, FilteredTables, MyPostgresProfile}
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api._
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -220,15 +219,14 @@ object UserStatTable {
 class UserStatTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     sidewalkUserTable: SidewalkUserTable,
-    streetEdgeTable: StreetEdgeTable,
-    labelTable: LabelTable
+    labelTable: LabelTable,
+    auditTaskTable: AuditTaskTable
 )(implicit ec: ExecutionContext)
     extends UserStatTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val userStats            = TableQuery[UserStatTableDef]
   private val userRoleTable        = TableQuery[UserRoleTableDef]
-  private val auditTaskTable       = TableQuery[AuditTaskTableDef]
   private val missionTable         = TableQuery[MissionTableDef]
   private val labelValidationTable = TableQuery[LabelValidationTableDef]
 
@@ -319,21 +317,13 @@ class UserStatTable @Inject() (
    * @param usersToUpdate A query for the users whose audited distance is being calculated
    */
   def updateAuditedDistanceHelper(usersToUpdate: Query[Rep[String], String, Seq]): DBIO[Unit] = {
-    // Computes the audited distance in meters for each user using the audit_task and street_edge tables.
     auditTaskTable
-      .filter(_.completed === true)
-      .join(usersToUpdate)
-      .on(_.userId === _)
-      .join(streetEdgeTable.streets)
-      .on(_._1.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._1._1.userId)
-      .map(x => (x._1, x._2.map(_._2.geom.lengthGeodesic).sum))
+      .metersAuditedByUser(_.in(usersToUpdate))
       .result
-      .flatMap { auditedDists: Seq[(String, Option[Double])] =>
-        // Update the meters_audited column in the user_stat table.
+      .flatMap { auditedDists: Seq[(String, Double)] =>
         val updateActions = auditedDists.map { case (userId, auditedDist) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
-          updateQuery.update(auditedDist.getOrElse(0d))
+          updateQuery.update(auditedDist)
         }
         DBIO.sequence(updateActions).map(_ => ())
       }
@@ -398,7 +388,7 @@ class UserStatTable @Inject() (
    * @param users A list of user_ids to update, update all users if the list is empty.
    */
   def updateAccuracy(users: Seq[String]): DBIO[Unit] =
-    updateAccuracyWhere(if (users.isEmpty) None else Some(sql"""IN ('#${users.mkString("','")}')"""))
+    updateAccuracyWhere(if (users.isEmpty) None else Some(sql"= ANY($users)"))
 
   /**
    * Update the accuracy column for everyone whose labels the given user validated, e.g. after excluding that user.
@@ -416,7 +406,7 @@ class UserStatTable @Inject() (
 
   /**
    * Recomputes own_labels_validated and accuracy for the given labelers.
-   * @param userSet An `IN (...)` clause scoping both the labels aggregated and the rows written; None for every user.
+   * @param userSet A set test (`IN (...)` or `= ANY(...)`) scoping both the labels aggregated and the rows written; None for every user.
    */
   private def updateAccuracyWhere(userSet: Option[SQLActionBuilder]): DBIO[Unit] = {
     def scoped(column: String): SQLActionBuilder = userSet.map(set => sql" AND #$column ".concat(set)).getOrElse(sql"")
@@ -581,7 +571,7 @@ class UserStatTable @Inject() (
   def usersThatAuditedSinceCutoffTime(cutoffTime: OffsetDateTime): Query[Rep[String], String, Seq] = {
     val fromMissions: Query[Rep[String], String, Seq] = auditMissions.filter(_.missionEnd > cutoffTime).map(_.userId)
     val fromTasks: Query[Rep[String], String, Seq]    =
-      auditTaskTable.filter(task => task.completed && task.taskEnd > cutoffTime).map(_.userId)
+      auditTaskTable.completedTasks.filter(_.taskEnd > cutoffTime).map(_.userId)
 
     (fromMissions ++ fromTasks).distinct
   }
@@ -596,23 +586,6 @@ class UserStatTable @Inject() (
       if _labelVal.endTimestamp > cutoffTime
     } yield _label.userId).groupBy(x => x).map(_._1)
   }
-
-  /**
-   * Runs `action` in a transaction with JIT disabled for the duration of that transaction.
-   *
-   * Interim workaround for #4376 (mirrors `ConfigTable.withJitOff`): the projectsidewalk/db image ships a broken
-   * Postgres JIT (PostGIS bitcode built with LLVM 16, runtime llvmjit linked against LLVM 11). A query expensive enough
-   * to cross the JIT inline-cost threshold and inline PostGIS bitcode (e.g. ST_LENGTH) segfaults the backend,
-   * dropping the connection (SQLSTATE 08006) and forcing Postgres crash-recovery — which surfaces as a site-wide 502.
-   * `getLeaderboardStats` computes audited distance with PostGIS ST_Length and is expensive enough to trip
-   * this (#4545), so it must run with JIT off. `SET LOCAL` scopes the setting to this one transaction. Remove once #4376
-   * disables JIT at the DB config level.
-   *
-   * @param action The DBIO to run with JIT off.
-   * @return       The same action, wrapped so JIT is disabled for its transaction.
-   */
-  private def withJitOff[T](action: DBIO[T]): DBIO[T] =
-    (sqlu"SET LOCAL jit = off" >> action).transactionally
 
   /**
    * Gets leaderboard stats for the top `n` users in the given time period.
@@ -668,7 +641,7 @@ class UserStatTable @Inject() (
         "INNER JOIN (SELECT user_id, username FROM sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
-    withJitOff(
+    SqlFragments.withJitOff(
       sql"""
       SELECT usernames.username,
              label_counts.label_count,
@@ -771,9 +744,7 @@ class UserStatTable @Inject() (
     if (citySchemas.isEmpty) {
       DBIO.successful(Seq.empty[GlobalLeaderboardStat])
     } else {
-      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
-      val unsafe: Seq[String] = (citySchemas ++ optOutSchemas).filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
-      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+      SqlFragments.requireSafeIdentifiers(citySchemas ++ optOutSchemas)
 
       // Per-city totals keyed by the global user_id. MAX(meters_audited) picks the single per-city value (user_stat
       // holds one row per user per city); the FILTERs zero out a city where the user is excluded while still letting
@@ -905,9 +876,7 @@ class UserStatTable @Inject() (
     if (citySchemas.isEmpty) {
       DBIO.successful(Seq.empty[CrossCityUserStat])
     } else {
-      // Schema names are spliced, not bound, so reject anything that isn't a bare identifier before building the SQL.
-      val unsafe: Seq[String] = citySchemas.filterNot(_.matches("^[a-z_][a-z0-9_]*$"))
-      require(unsafe.isEmpty, s"Refusing to build cross-schema SQL for non-identifier schema names: $unsafe")
+      SqlFragments.requireSafeIdentifiers(citySchemas)
 
       // The user id is bound once in a CTE and read back as `(SELECT user_id FROM me)`; the per-schema blocks are
       // built as plain strings, so an interpolated `$userId` inside them would be spliced rather than bound.
@@ -1111,64 +1080,24 @@ class UserStatTable @Inject() (
   }
 
   /**
-   * Returns a count of all users under the specified conditions.
-   * @param timeInterval can be "today" or "week". If anything else, defaults to "all_time".
-   * @param taskCompletedOnly if true, only counts users who have completed one audit task or at least one validation.
-   * @param highQualityOnly if true, only counts users who are marked as high quality.
+   * Counts everyone who has explored or validated, leaving out AI and excluded users.
    */
-  def countAllUsersContributed(
-      timeInterval: TimeInterval = TimeInterval.AllTime,
-      taskCompletedOnly: Boolean = false,
-      highQualityOnly: Boolean = false
-  ): DBIO[UserCount] = {
-    // Build up SQL string related to validation and audit task time intervals.
-    // Defaults to *not* specifying a time (which is the same thing as "all_time").
-    val (lblValidationTimeIntervalSql, auditTaskTimeIntervalSql) = timeInterval match {
-      case TimeInterval.Today =>
-        (
-          "(mission.mission_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date",
-          "(audit_task.task_end AT TIME ZONE 'US/Pacific')::date = (NOW() AT TIME ZONE 'US/Pacific')::date"
-        )
-      case TimeInterval.Week =>
-        (
-          "(mission.mission_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'",
-          "(audit_task.task_end AT TIME ZONE 'US/Pacific') > (now() AT TIME ZONE 'US/Pacific') - interval '168 hours'"
-        )
-      case _ => ("TRUE", "TRUE")
-    }
-
-    val contributorSql =
-      FilteredTables.contributorFilter(Contributors(highQualityOnly))
-
-    // Add in the task completion logic.
-    val auditTaskCompletedSql  = if (taskCompletedOnly) "audit_task.completed = TRUE" else "TRUE"
-    val validationCompletedSql = if (taskCompletedOnly) "all_validations.end_timestamp IS NOT NULL" else "TRUE"
-
+  def countAllUsersContributed(): DBIO[UserCount] = {
     sql"""
       SELECT COUNT(DISTINCT(users.user_id))
       FROM (
           SELECT DISTINCT(mission.user_id)
           FROM mission
-          LEFT JOIN (
-              -- Votes voided by the #4842 repair still count as participation.
-              SELECT mission_id, end_timestamp FROM label_validation
-              UNION ALL
-              SELECT mission_id, end_timestamp FROM voided_label_validation
-          ) AS all_validations ON mission.mission_id = all_validations.mission_id
           WHERE mission.mission_type IN ('validation', 'labelmapValidation')
-              AND #$lblValidationTimeIntervalSql
-              AND #$validationCompletedSql
           UNION
           SELECT DISTINCT(user_id)
           FROM audit_task
-          WHERE #$auditTaskCompletedSql
-              AND #$auditTaskTimeIntervalSql
       ) users
       INNER JOIN user_stat ON users.user_id = user_stat.user_id
       INNER JOIN user_role ON user_stat.user_id = user_role.user_id
       WHERE user_role.role <> 'AI'
-          AND #$contributorSql;
-    """.as[Int].head.map(n => UserCount(n, "combined", "all", timeInterval, taskCompletedOnly, highQualityOnly))
+          AND #${FilteredTables.contributorFilter(Contributors.NotExcluded)};
+    """.as[Int].head.map(n => UserCount(n, "combined", "all", TimeInterval.AllTime, false, false))
   }
 
   /**

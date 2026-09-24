@@ -4,10 +4,10 @@ import com.google.inject.ImplementedBy
 import models.api.{SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
 import models.label.StreetSide
 import models.utils.MyPostgresProfile.api._
-import models.utils.{FilteredTables, MyPostgresProfile}
+import models.utils.{FilteredTables, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
@@ -188,40 +188,27 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
   def getSidewalkPresenceForApi(
       filters: SidewalkPresenceFiltersForApi
   ): SqlStreamingAction[Vector[SidewalkPresenceForApi], SidewalkPresenceForApi, Effect.Read] = {
-    def quotedList(values: Seq[String]): String = values.map(v => s"'${v.replace("'", "''")}'").mkString(", ")
-
-    val bboxFilter = filters.bbox
-      .map { bbox =>
-        s"AND ST_Intersects(street_edge.geom, " +
-          s"ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      }
-      .getOrElse("")
-    val regionIdFilter   = filters.regionId.map(id => s"AND region.region_id = $id").getOrElse("")
-    val regionNameFilter = filters.regionName
-      .map(name => s"AND LOWER(region.name) = LOWER('${name.replace("'", "''")}')")
-      .getOrElse("")
-    // wayType, presence, and status are validated against their enums in the controller, so the literals are valid
-    // enum labels (an invalid one would be a Postgres error rather than an empty result).
-    val wayTypeFilter  = filters.wayTypes.map(w => s"AND street_edge.way_type IN (${quotedList(w)})").getOrElse("")
-    val presenceFilter =
-      filters.presence.map(p => s"AND sidewalk_presence.presence IN (${quotedList(p)})").getOrElse("")
-    val statusFilter = filters.statuses.map(st => s"AND street_edge.status IN (${quotedList(st)})").getOrElse("")
-    val minNoSidewalkLabelsFilter = filters.minNoSidewalkLabels
-      .map(n => s"AND sidewalk_presence.no_sidewalk_label_count >= $n")
-      .getOrElse("")
-    val minValidatedNoSidewalkLabelsFilter = filters.minValidatedNoSidewalkLabels
-      .map(n => s"AND sidewalk_presence.validated_no_sidewalk_count >= $n")
-      .getOrElse("")
-    val minAuditCountFilter =
-      filters.minAuditCount.map(n => s"AND sidewalk_presence.audit_count >= $n").getOrElse("")
+    // wayType, presence, and status are validated against their enums in the controller (an invalid one would be a
+    // Postgres error rather than an empty result).
+    val conditions: Seq[SQLActionBuilder] = Seq(
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("street_edge.geom", bbox) },
+      filters.regionId.map(id => sql"region.region_id = $id"),
+      filters.regionName.map(name => sql"LOWER(region.name) = LOWER($name)"),
+      filters.wayTypes.map(w => sql"street_edge.way_type = ANY(${SqlFragments.enumList(w)}::way_type[])"),
+      filters.statuses.map(st => sql"street_edge.status = ANY(${SqlFragments.enumList(st)}::street_edge_status[])"),
+      filters.presence.map(p =>
+        sql"sidewalk_presence.presence = ANY(${SqlFragments.enumList(p)}::sidewalk_presence_status[])"
+      ),
+      filters.minNoSidewalkLabels.map(n => sql"sidewalk_presence.no_sidewalk_label_count >= $n"),
+      filters.minValidatedNoSidewalkLabels.map(n => sql"sidewalk_presence.validated_no_sidewalk_count >= $n"),
+      filters.minAuditCount.map(n => sql"sidewalk_presence.audit_count >= $n")
+    ).flatten
 
     // Region and OSM way are joined at read time rather than stored: both are one-to-one with the street, and the
     // Streets API resolves them the same way. Only the tutorial street is excluded, as there; every other street is
     // returned tagged with its `status` (#3888), so a consumer who wants only the live ones — the table also covers
-    // streets closed with their region, whose `region_id` /v3/api/regions never returns — asks for
-    // `status=open`. User-supplied strings are single-quote-escaped above and numeric filters are safe; see #2756
-    // for moving these to bound parameters.
-    val queryStr = s"""
+    // streets closed with their region, whose `region_id` /v3/api/regions never returns — asks for `status=open`.
+    val query: SQLActionBuilder = sql"""
       SELECT sidewalk_presence.street_edge_id, sidewalk_presence.street_side, osm_way_street_edge.osm_way_id,
              region.region_id, region.name, street_edge.way_type, street_edge.status, sidewalk_presence.presence,
              sidewalk_presence.presence_basis, sidewalk_presence.no_sidewalk_label_count,
@@ -234,18 +221,12 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       INNER JOIN osm_way_street_edge ON street_edge.street_edge_id = osm_way_street_edge.street_edge_id
       INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
       INNER JOIN region ON street_edge_region.region_id = region.region_id
-      WHERE ${FilteredTables.notTutorialStreet("street_edge.street_edge_id")}
-        $bboxFilter
-        $regionIdFilter
-        $regionNameFilter
-        $wayTypeFilter
-        $statusFilter
-        $presenceFilter
-        $minNoSidewalkLabelsFilter
-        $minValidatedNoSidewalkLabelsFilter
-        $minAuditCountFilter
+      WHERE #${FilteredTables.notTutorialStreet("street_edge.street_edge_id")}
+        AND """
+      .concat(SqlFragments.allOf(conditions))
+      .concat(sql"""
       ORDER BY sidewalk_presence.street_edge_id, sidewalk_presence.street_side
-    """
+    """)
 
     implicit val getSidewalkPresenceForApi: GetResult[SidewalkPresenceForApi] = GetResult { r =>
       SidewalkPresenceForApi(
@@ -272,7 +253,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       )
     }
 
-    sql"""#$queryStr""".as[SidewalkPresenceForApi]
+    query.as[SidewalkPresenceForApi]
   }
 }
 

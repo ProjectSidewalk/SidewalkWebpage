@@ -103,21 +103,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
 
   val config = TableQuery[ConfigTableDef]
 
-  /**
-   * Runs `action` in a transaction with JIT disabled for the duration of that transaction.
-   *
-   * Interim workaround for #4376: the projectsidewalk/db image ships a broken Postgres JIT (PostGIS bitcode built with
-   * LLVM 16, runtime llvmjit linked against LLVM 11). An expensive query that JIT-inlines PostGIS function bitcode
-   * (e.g. ST_LENGTH) segfaults the backend, surfacing as a dropped connection (SQLSTATE 08006). The cross-city
-   * scorecard and labeling-speed queries cross the JIT cost thresholds and call those functions, so they trip it.
-   * `SET LOCAL` scopes the setting to this one transaction. Remove once #4376 disables JIT at the DB config level.
-   *
-   * @param action The DBIO to run with JIT off.
-   * @return       The same action, wrapped so JIT is disabled for its transaction.
-   */
-  private def withJitOff[T](action: DBIO[T]): DBIO[T] =
-    (sqlu"SET LOCAL jit = off" >> action).transactionally
-
   def getCityMapParams: DBIO[MapParams] = {
     config.result.head.map(_.cityMapParams)
   }
@@ -602,7 +587,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     // connection), then assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on
     // a separate long-cached path (getCrossCityLabelingSpeed). Wrapped in withJitOff because coreQuery's km calc uses
     // PostGIS (#4376).
-    withJitOff(for {
+    SqlFragments.withJitOff(for {
       hasOutdatedImageryCol  <- upToDateFilterQuery
       hasLabelTypeEnum       <- schemaHasLabelTypeEnum(schema)
       hasValidationLabelType <- schemaHasValidationLabelType(schema)
@@ -953,7 +938,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     implicit val getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
 
     // Wrapped in withJitOff because the audited-km subquery uses PostGIS (#4376).
-    withJitOff(sql"""
+    SqlFragments.withJitOff(sql"""
       SELECT COALESCE(audit_time.hours, 0) AS hours,
              COALESCE(audited.km, 0)       AS km
       FROM (
