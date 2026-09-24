@@ -264,8 +264,26 @@ case class CityDayTotals(cityId: String, labels: Int, validations: Int, contribu
  * @param kind        How this account's activity is attributed.
  * @param labels      Labels they created that day.
  * @param validations Validations they submitted that day.
+ * @param cities      Where that work happened, busiest first (#5495). Kept through the merge because the card names
+ *                    who was active in order to send an admin to their work, and that work lives on one deployment
+ *                    per city — a name without its city can't be looked up.
  */
-case class DailyContributor(username: String, kind: ContributorKind.Value, labels: Int, validations: Int)
+case class DailyContributor(
+    username: String,
+    kind: ContributorKind.Value,
+    labels: Int,
+    validations: Int,
+    cities: Seq[ContributorCityDay] = Seq.empty
+)
+
+/**
+ * One contributor's share of a single city on a single day, the per-city split under their line in a day's card (#5495).
+ *
+ * @param cityId      The city id (e.g. "seattle-wa").
+ * @param labels      Labels they created there that day.
+ * @param validations Validations they submitted there that day.
+ */
+case class ContributorCityDay(cityId: String, labels: Int, validations: Int)
 
 /**
  * Cross-city rolling week-over-week activity — the trailing 7 days vs the 7 before — for the "Today & this week"
@@ -681,13 +699,23 @@ object ConfigService {
       .toSeq
       .map { case (userId, userRows) =>
         val first = userRows.head._2
+        // A person can have several rows in one city, so the split sums by city before ranking; ties break on city
+        // id for the same reproducibility reason as the list itself.
+        val cities = userRows
+          .groupBy(_._1)
+          .toSeq
+          .map { case (cityId, cityRows) =>
+            ContributorCityDay(cityId, cityRows.map(_._2.labels).sum, cityRows.map(_._2.validations).sum)
+          }
+          .sortBy(c => (-(c.labels + c.validations), c.cityId))
         (
           userId,
           DailyContributor(
             first.username,
             first.kind,
             userRows.map(_._2.labels).sum,
-            userRows.map(_._2.validations).sum
+            userRows.map(_._2.validations).sum,
+            cities
           )
         )
       }

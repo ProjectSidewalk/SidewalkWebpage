@@ -21,6 +21,13 @@
  * `AcrossCitiesPage.#dayTipHtml` is the worked example, and `test/js/acrossCitiesBreakdowns.test.js` pins it.
  * Plain-text callers need none of this — pass first-party text and it renders as-is.
  *
+ * **Pinning (opt-in).** A trigger that also carries `data-ps-tooltip-pinnable` can be clicked (or given Enter/Space
+ * from the keyboard) to pin its card open (#5495). A pinned card stops following the pointer and takes pointer events,
+ * so links inside it work; it becomes a non-modal dialog, and pinning from the keyboard moves focus into it so its
+ * links are reachable with Tab. Escape, a click outside, focus leaving, or clicking the trigger again unpins it, and
+ * Escape hands focus back to the trigger. Give such a trigger `aria-haspopup="dialog"` and it gets `aria-expanded`
+ * kept in step. Everything else about the tooltip is unchanged for triggers that don't opt in.
+ *
  * Loaded globally from main.scala.html (like i18nDom.js); no per-app setup needed — listeners are delegated on the
  * document, so triggers added at any time just work.
  */
@@ -37,6 +44,8 @@
   let tooltip = null;
   let activeTrigger = null; // The trigger whose tooltip is visible, or pending via showTimer.
   let showTimer = null;
+  let pinned = false; // True while the visible card is pinned open for its links (see the header).
+  let refocusing = false; // True while Escape hands focus back to the trigger of the card it closed.
   // Watches the open trigger's text for changes under it. A toggle button relabels itself on click, and the pointer
   // is still resting on it at that moment, so without this the card sits there describing the state just left.
   let textObserver = null;
@@ -82,6 +91,33 @@
     // Rendered as HTML per the header contract, which is also why that contract requires callers to double-escape any
     // user-supplied text they interpolate: this is the second of the two levels being consumed.
     card.innerHTML = trigger.getAttribute('data-ps-tooltip');
+    place(card, trigger);
+
+    card.classList.add('ps-tooltip--visible');
+    trigger.setAttribute('aria-describedby', 'ps-tooltip');
+    activeTrigger = trigger;
+
+    // Re-run this whole placement if the text changes while the card is up: the new string is a different width, so
+    // refreshing the copy alone would leave it centered and tailed for the old one.
+    if (textObserver === null) {
+      textObserver = new MutationObserver(() => {
+        if (activeTrigger !== null && tooltip?.classList.contains('ps-tooltip--visible')) {
+          show(activeTrigger);
+        }
+      });
+    }
+    textObserver.disconnect();
+    textObserver.observe(trigger, { attributes: true, attributeFilter: ['data-ps-tooltip'] });
+  };
+
+  /**
+   * Positions an already-filled card against its trigger: centered above it, clamped into the viewport, and flipped
+   * below when the space above is too tight. Finally aims the tail back at the trigger. Separate from `show` so a
+   * pinned card can follow its trigger through a scroll without re-rendering, which would drop focus from its links.
+   * @param {HTMLElement} card - The tooltip card, holding its final content.
+   * @param {Element} trigger - The element it describes.
+   */
+  const place = (card, trigger) => {
     card.classList.remove('ps-tooltip--flipped'); // Reset before measuring; the flip below re-adds it if needed.
 
     const scale = uiScale();
@@ -126,28 +162,13 @@
       tailInset,
       Math.min(triggerRect.left + triggerRect.width / 2 - left, cardRect.width - tailInset),
     )}px`);
-
-    card.classList.add('ps-tooltip--visible');
-    trigger.setAttribute('aria-describedby', 'ps-tooltip');
-    activeTrigger = trigger;
-
-    // Re-run this whole placement if the text changes while the card is up: the new string is a different width, so
-    // refreshing the copy alone would leave it centered and tailed for the old one.
-    if (textObserver === null) {
-      textObserver = new MutationObserver(() => {
-        if (activeTrigger !== null && tooltip?.classList.contains('ps-tooltip--visible')) {
-          show(activeTrigger);
-        }
-      });
-    }
-    textObserver.disconnect();
-    textObserver.observe(trigger, { attributes: true, attributeFilter: ['data-ps-tooltip'] });
   };
 
   /**
    * Hides the tooltip (if visible) and cancels any pending show.
    */
   const hide = () => {
+    unpin();
     textObserver?.disconnect();
     if (showTimer !== null) {
       clearTimeout(showTimer);
@@ -161,11 +182,72 @@
   };
 
   /**
+   * Pins the active trigger's card open, so it holds still and its links can be used (see the header).
+   * @param {boolean} moveFocus - True to move focus into the card, for a keyboard pin: otherwise its links sit at the
+   *   end of the document, many Tab stops away from the trigger that opened them.
+   */
+  const pin = (moveFocus) => {
+    if (activeTrigger === null || tooltip === null) return;
+    pinned = true;
+    tooltip.classList.add('ps-tooltip--pinned');
+    tooltip.setAttribute('role', 'dialog');
+    tooltip.setAttribute('aria-label', activeTrigger.getAttribute('aria-label') || 'Details');
+    tooltip.setAttribute('tabindex', '-1');
+    if (activeTrigger.hasAttribute('aria-haspopup')) activeTrigger.setAttribute('aria-expanded', 'true');
+    if (moveFocus) tooltip.focus({ preventScroll: true });
+  };
+
+  /** Returns a pinned card to an ordinary tooltip. A no-op when nothing is pinned. */
+  const unpin = () => {
+    if (!pinned) return;
+    pinned = false;
+    tooltip.classList.remove('ps-tooltip--pinned');
+    tooltip.setAttribute('role', 'tooltip');
+    tooltip.removeAttribute('aria-label');
+    tooltip.removeAttribute('tabindex');
+    if (activeTrigger?.hasAttribute('aria-haspopup')) activeTrigger.setAttribute('aria-expanded', 'false');
+  };
+
+  /**
+   * Whether an event target sits on the pinned card or on the trigger that pinned it — the two places a pinned card
+   * stays open through.
+   * @param {EventTarget} target - The event's target.
+   * @returns {boolean} True when the target is inside either.
+   */
+  const withinPinned = (target) => target instanceof Node
+    && (tooltip?.contains(target) || activeTrigger?.contains(target));
+
+  /**
+   * Pins the pinnable trigger's card, or unpins it when it is already the pinned one.
+   * @param {Element} trigger - A `[data-ps-tooltip-pinnable]` trigger.
+   * @param {boolean} fromKeyboard - True when Enter/Space did this, so focus follows into the card.
+   */
+  const togglePin = (trigger, fromKeyboard) => {
+    if (pinned && trigger === activeTrigger) {
+      hide();
+      return;
+    }
+    // Show straight away rather than through the hover delay: the click is an explicit request.
+    if (trigger !== activeTrigger || !tooltip?.classList.contains('ps-tooltip--visible')) {
+      hide();
+      show(trigger);
+    }
+    pin(fromKeyboard);
+  };
+
+  /**
    * Reacts to the pointer/focus landing on `target`: starts (or keeps) the tooltip for its trigger, or hides it.
    * @param {EventTarget} target - The element the pointer or focus moved onto.
    * @param {boolean} immediate - True to skip the hover delay (keyboard focus).
    */
   const onEnter = (target, immediate) => {
+    if (pinned) {
+      // A pinned card ignores the pointer entirely — it is being read, and passing over another trigger on the way to
+      // one of its links must not swap it out. Focus is different: focus landing somewhere else means the reader has
+      // moved on, so it closes and the new target gets its own tooltip as usual.
+      if (!immediate || withinPinned(target)) return;
+      hide();
+    }
     const trigger = target instanceof Element ? target.closest('[data-ps-tooltip]') : null;
     if (trigger === activeTrigger) {
       return; // Still on the same trigger (e.g. moving between its children); leave the tooltip as is.
@@ -185,14 +267,54 @@
   };
 
   document.addEventListener('mouseover', (event) => onEnter(event.target, false));
-  document.addEventListener('mouseleave', hide); // Pointer left the page entirely; mouseover alone would miss it.
-  document.addEventListener('focusin', (event) => onEnter(event.target, true));
-  document.addEventListener('focusout', hide);
-  // Hide on scroll (the fixed-position card would drift from its trigger) and on Escape (WCAG 1.4.13 dismissable).
-  window.addEventListener('scroll', hide, true);
+  // Pointer left the page entirely; mouseover alone would miss it. A pinned card stays, since it was asked for.
+  document.addEventListener('mouseleave', () => {
+    if (!pinned) hide();
+  });
+  document.addEventListener('focusin', (event) => {
+    if (!refocusing) onEnter(event.target, true);
+  });
+  // Focus moving from the trigger into its pinned card fires this first; the focusin that follows decides instead.
+  document.addEventListener('focusout', () => {
+    if (!pinned) hide();
+  });
+  // Hide on scroll, since the fixed-position card would drift from its trigger. A pinned card follows its trigger
+  // instead, and closes only once the trigger has scrolled out of view.
+  window.addEventListener('scroll', () => {
+    if (!pinned) {
+      hide();
+      return;
+    }
+    const r = activeTrigger.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > window.innerHeight) hide();
+    else place(tooltip, activeTrigger);
+  }, true);
+  document.addEventListener('pointerdown', (event) => {
+    if (pinned && !withinPinned(event.target)) hide();
+  });
+  document.addEventListener('click', (event) => {
+    const trigger = event.target instanceof Element ? event.target.closest('[data-ps-tooltip-pinnable]') : null;
+    if (trigger !== null && !tooltip?.contains(trigger)) togglePin(trigger, false);
+  });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
+      // Escape from inside a pinned card returns focus to where the reader was, rather than dropping it on <body>.
+      const returnTo = pinned && tooltip.contains(document.activeElement) ? activeTrigger : null;
       hide();
+      // Focus events fire synchronously, so this flag covers exactly the focusin that returning focus causes, which
+      // would otherwise reopen the card Escape just closed.
+      refocusing = true;
+      try {
+        returnTo?.focus({ preventScroll: true });
+      } finally {
+        refocusing = false;
+      }
+      return;
+    }
+    if ((event.key === 'Enter' || event.key === ' ') && event.target instanceof Element
+      && event.target.matches('[data-ps-tooltip-pinnable]')) {
+      event.preventDefault(); // Space would otherwise scroll the page out from under the card it just pinned.
+      togglePin(event.target, true);
     }
   });
 })();

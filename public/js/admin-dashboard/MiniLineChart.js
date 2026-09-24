@@ -19,16 +19,16 @@ class MiniLineChart {
    * @param {{yMax?: number, tickFormat?: (value: number) => string, valueFormat?: (value: number) => string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
    *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number, width?: number,
-   *          refLine?: {value: number, label?: string, key?: string}}} [opts] - yMax defaults to a nice
-   *   rounded max above the data; tickFormat labels the y-axis (abbreviated by default, e.g. "1.6M") while
-   *   valueFormat formats values in the default tooltip and in bar value labels, so hovering still gives the exact
-   *   count;
-   *   dotRadius sizes the point markers (default 3); kind 'bar' draws bars instead of lines; maxXLabels caps how many
-   *   x labels are drawn (default 6); barValues draws each bar's value above it (meant for single-series bar charts —
-   *   grouped bars would collide); emphasisIndex marks that index's bar and labels with `--emphasis` classes (e.g. an
+   *          refLine?: {value: number, label?: string, key?: string}, pinnableTips?: boolean}} [opts] - yMax
+   *   defaults to a nice rounded max above the data; tickFormat labels the y-axis (abbreviated by default, e.g.
+   *   "1.6M") while valueFormat formats values in the default tooltip and in bar value labels, so hovering still gives
+   *   the exact count; dotRadius sizes the point markers (default 3); kind 'bar' draws bars instead of lines;
+   *   maxXLabels caps how many x labels are drawn (default 6); barValues draws each bar's value above it (meant for
+   *   single-series bar charts — grouped bars would collide); emphasisIndex marks that index's bar and labels with `--emphasis` classes (e.g. an
    *   in-progress "today" bar); minMarginL/minMarginR raise the axis margins, which renderInto uses to redraw at
    *   measured label widths; refLine draws a labeled horizontal target the bars are read against, and is included in
-   *   the y scale; width is the SVG's pixel width (default 760).
+   *   the y scale; width is the SVG's pixel width (default 760); pinnableTips lets a click (or Enter) pin a point's
+   *   rich card open so links inside it can be followed (psTooltip's `data-ps-tooltip-pinnable`, #5495).
    * @returns {string} SVG markup plus an optional HTML legend.
    */
   static svg(categories, series, opts = {}) {
@@ -105,7 +105,7 @@ class MiniLineChart {
               + `y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}"/>`;
           out += `<rect class="mini-bar-hit" x="${bx.toFixed(1)}" y="${m.t.toFixed(1)}" `
             + `width="${barW.toFixed(1)}" height="${ih.toFixed(1)}"`
-            + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i])}</rect>`;
+            + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i], opts.pinnableTips)}</rect>`;
           if (opts.barValues) {
             out += `<text class="mini-value${emph ? ' mini-value--emphasis' : ''}" x="${(bx + barW / 2).toFixed(1)}" `
               + `y="${((h > 0 ? top : yFrac(0)) - 4).toFixed(1)}" text-anchor="middle">`
@@ -131,7 +131,7 @@ class MiniLineChart {
           const tip = s.tooltips?.[i] ?? `${categories[i]} · ${s.name}: ${valueFormat(v)}`;
           return `<circle class="mini-pt mini-pt--${s.key}" cx="${x(i).toFixed(1)}" `
             + `cy="${yFrac(v / yMax).toFixed(1)}" r="${dotRadius}"`
-            + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i])}</circle>`;
+            + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i], opts.pinnableTips)}</circle>`;
         }).join('');
         body += `<path class="mini-line mini-line--${s.key}" d="${d.trim()}"/>${dots}`;
       }
@@ -314,13 +314,20 @@ class MiniLineChart {
    * The two are exclusive on purpose — a point carrying both would answer a hover with a card and a native tooltip
    * stacked on top of each other.
    *
+   * A pinnable point is a button rather than an image, since clicking it does something: it opens its card as a
+   * dialog. `aria-haspopup` says so up front, and psTooltip keeps `aria-expanded` in step with the pin.
+   *
    * @param {string} tip - Plain-text summary of the point.
    * @param {string} [html] - Rich card markup for the point; already escaped for any user-supplied text it contains.
+   * @param {boolean} [pinnable=false] - True to let a click or Enter pin the card open.
    * @returns {string} Markup closing the point's opening tag, with its `<title>` child when there is one.
    */
-  static #pointTip(tip, html) {
+  static #pointTip(tip, html, pinnable = false) {
     if (!html) return `><title>${MiniLineChart.#esc(tip)}</title>`;
-    return ` tabindex="0" role="img" aria-label="${MiniLineChart.#esc(tip)}" `
+    const role = pinnable
+      ? 'role="button" aria-haspopup="dialog" aria-expanded="false" data-ps-tooltip-pinnable'
+      : 'role="img"';
+    return ` tabindex="0" ${role} aria-label="${MiniLineChart.#esc(tip)}" `
       + `data-ps-tooltip="${MiniLineChart.#esc(html)}">`;
   }
 

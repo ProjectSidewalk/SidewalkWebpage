@@ -227,6 +227,27 @@ class ActivityBreakdownSpec extends PlaySpec {
       summary.contributors.head.validations mustBe 3
     }
 
+    "keep where a merged person worked, busiest city first, so the card can say where and link there" in {
+      // #5495: the merge above makes one line per person, and without this split the card could name DW but not say
+      // the 57 labels were in St. Louis — nor link to the only deployment that has DW's admin page for them.
+      val summary = ConfigService.summarizeDay(
+        day,
+        Seq(dayRow("seattle-wa", "a", 5, 1), dayRow("chicago-il", "a", 7, 2), dayRow("seattle-wa", "a", 0, 1))
+      )
+
+      summary.contributors.head.cities mustBe
+        Seq(ContributorCityDay("chicago-il", 7, 2), ContributorCityDay("seattle-wa", 5, 2))
+    }
+
+    "break a person's city ties on city id, so their line reads the same on every cache refresh" in {
+      val rows   = Seq(dayRow("b-city", "a", 3, 0), dayRow("a-city", "a", 3, 0))
+      val first  = ConfigService.summarizeDay(day, rows).contributors.head.cities.map(_.cityId)
+      val second = ConfigService.summarizeDay(day, rows.reverse).contributors.head.cities.map(_.cityId)
+
+      first mustBe Seq("a-city", "b-city")
+      second mustBe first
+    }
+
     "count anonymous visitors as sessions and keep their volume in the human totals" in {
       val summary = ConfigService.summarizeDay(
         day,

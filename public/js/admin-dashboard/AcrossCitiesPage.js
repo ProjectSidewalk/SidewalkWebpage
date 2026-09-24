@@ -435,7 +435,7 @@ class AcrossCitiesPage {
    *
    * The chip carries no `title` of its own — the raw counts it would have shown are in the card, and a native tooltip
    * would open on top of it. The cell takes `tabindex` so the card is reachable by keyboard, since psTooltip opens on
-   * focus too.
+   * focus too, and is pinnable so the names in its card can be followed to their admin pages (#5495).
    *
    * @param {Record<string, any>} city - The scorecard row, carrying `activity_window`.
    * @param {string} metric - 'activity' | 'labels' | 'validations' | 'contributors'.
@@ -448,7 +448,7 @@ class AcrossCitiesPage {
     const d = showDelta && (current || prior) ? this.#deltaParts(current, prior) : null;
     const delta = d ? `<span class="ac-cell-delta ac-cell-delta--${d.dir}">${d.short}</span>` : '';
     const aiChip = ai ? `<span class="ac-cell-ai">+${this.#compact(ai)} AI</span>` : '';
-    return `<td class="ac-num" tabindex="0" data-ps-tooltip="`
+    return `<td class="ac-num" tabindex="0" data-ps-tooltip-pinnable data-ps-tooltip="`
       + `${AcrossCitiesPage.#esc(this.#cityTipHtml(city, metric))}">${this.#num(current)}${delta}${aiChip}</td>`;
   }
 
@@ -751,7 +751,7 @@ class AcrossCitiesPage {
       // filling in, so it gets the emphasis treatment.
       MiniLineChart.renderInto(host, cats, [{ name, key, values, tooltips, tooltipsHtml }],
         { ariaLabel: name, kind: 'bar', maxXLabels: 7, barValues: true, valueFormat: (v) => this.#compact(v),
-          emphasisIndex: series.length - 1 });
+          emphasisIndex: series.length - 1, pinnableTips: true });
     };
     draw('ac-chart-week-labels', 'aclabels', 'labels', 'Labels');
     draw('ac-chart-week-validations', 'acvals', 'validations', 'Validations');
@@ -1410,29 +1410,112 @@ class AcrossCitiesPage {
   }
 
   /**
-   * The named-contributor lines of a hover card: one person per line, their labels and validations at the right.
+   * One city of a person's day, as the endpoint sends it under `contributor_list[].cities` (#5495).
+   *
+   * @typedef {{city_id: string, city_name: string, url: ?string, labels: number, validations: number}} TipCity
+   */
+
+  /**
+   * The named-contributor lines of a hover card: one person per line, their labels and validations at the right, and
+   * — on a cross-city card — where they did that work on a muted line beneath (#5495).
    *
    * Usernames are user-supplied and these cards render as HTML, so every name is escaped here rather than at the call
    * sites — one place to get right. AI accounts keep their line but are marked, so a card that looks like a busy week
    * can't hide that a pipeline produced it.
    *
-   * @param {Array<{username: string, kind: string, labels: number, validations: number}>} people - Sorted, busiest
-   *   first. Already filtered to nameable accounts by the endpoint.
+   * Each name links to that person's admin page, and each city under it to their admin page on that city. A person's
+   * work lives on one deployment per city, so the link has to name a city; a cross-city name links to the city where
+   * they did the most. The links only become usable once the card is pinned (psTooltip), since a hover card lets the
+   * pointer pass straight through it.
+   *
+   * @param {Array<{username: string, kind: string, labels: number, validations: number, cities?: TipCity[]}>} people
+   *   - Sorted, busiest first. Already filtered to nameable accounts by the endpoint. `cities` is busiest first too.
    * @param {number} limit - How many lines to draw before collapsing the rest into a "+N more" line.
    * @param {number} total - How many contributors the endpoint's list was drawn from before it capped it. The "+N more"
    *   count must come from this and not from `people.length`, which is bounded by that cap and would silently
    *   understate a busy day by an unlimited amount.
+   * @param {?string} [cityUrl] - The deployment every one of these people worked on, for a single-city card whose
+   *   entries carry no `cities` of their own.
    * @returns {string} The lines' markup, empty when nobody qualifies.
    */
-  #tipPeople(people, limit, total) {
+  #tipPeople(people, limit, total, cityUrl = null) {
     if (!people.length) return '';
     const shown = people.slice(0, limit).map((p) => {
+      const cities = p.cities || [];
       const name = p.username ? AcrossCitiesPage.#esc(p.username) : 'unknown user';
+      const href = p.username ? AcrossCitiesPage.#adminUrl(cityUrl ?? cities[0]?.url, p.username) : null;
+      const linked = href ? AcrossCitiesPage.#tipLink(href, name) : name;
       const tag = p.kind === 'ai' ? '<span class="ac-tip-tag">AI</span>' : '';
-      return AcrossCitiesPage.#tipRow(`${name}${tag}`, `${this.#num(p.labels)} · ${this.#num(p.validations)}`);
+      return AcrossCitiesPage.#tipRow(`${linked}${tag}`, `${this.#num(p.labels)} · ${this.#num(p.validations)}`)
+        + this.#tipCitiesLine(p.username, cities);
     }).join('');
     const rest = Math.max(0, (total ?? people.length) - Math.min(limit, people.length));
     return rest > 0 ? `${shown}<div class="ac-tip-more">+ ${this.#num(rest)} more</div>` : shown;
+  }
+
+  /**
+   * The muted "where" line under one person in a cross-city card (#5495). A person seen in one city gets just its
+   * name, since their numbers are already on the line above; someone split across cities gets each city's share, so
+   * "57 · 0" can be read as "all of it in St. Louis" or "mostly Seattle".
+   *
+   * @param {string} username - Whose cities these are, for the per-city admin links.
+   * @param {TipCity[]} cities - Busiest first.
+   * @returns {string} The line's markup, empty when there are no cities to name.
+   */
+  #tipCitiesLine(username, cities) {
+    if (!cities.length) return '';
+    const MAX_CITIES = 3; // An AI account can touch dozens of cities in a day; past a few, the list stops being read.
+    const parts = cities.slice(0, MAX_CITIES).map((c) => {
+      const name = AcrossCitiesPage.#esc(c.city_name || c.city_id);
+      const href = username ? AcrossCitiesPage.#adminUrl(c.url, username) : null;
+      const linked = href ? AcrossCitiesPage.#tipLink(href, name) : name;
+      return cities.length === 1
+        ? linked
+        : `${linked} <span class="ac-tip-num">${this.#num(c.labels)} · ${this.#num(c.validations)}</span>`;
+    });
+    if (cities.length > MAX_CITIES) parts.push(`+ ${this.#num(cities.length - MAX_CITIES)} more`);
+    return `<div class="ac-tip-sub">${parts.join(', ')}</div>`;
+  }
+
+  /**
+   * A link inside a hover card. Opens in a new tab: it usually leads to another city's deployment, and replacing this
+   * page would throw away the pinned card and the week being read.
+   *
+   * @param {string} href - The target URL; escaped here.
+   * @param {string} text - Already-escaped link text.
+   * @returns {string} The link's markup.
+   */
+  static #tipLink(href, text) {
+    return `<a class="ac-tip-link" href="${AcrossCitiesPage.#esc(href)}" target="_blank" rel="noopener">${text}</a>`;
+  }
+
+  /**
+   * An admin page on a city's own deployment: its dashboard, or one user's page when a username is given. Every city
+   * runs as its own app, so an admin page for work done in Chicago only exists on Chicago's server.
+   *
+   * @param {?string} cityUrl - The city's landing-page URL, as the endpoint sends it.
+   * @param {string} [username] - The user whose admin page to open; omitted for the city's admin dashboard.
+   * @returns {?string} The absolute URL, or null when the city has no usable URL.
+   * @example
+   * AcrossCitiesPage.#adminUrl('https://sidewalk-sea.cs.washington.edu', 'a b'); // → '…/admin/user/a%20b'
+   */
+  static #adminUrl(cityUrl, username) {
+    if (!cityUrl) return null;
+    const path = username ? `/admin/user/${encodeURIComponent(username)}` : '/admin';
+    try {
+      return new URL(path, cityUrl).href;
+    } catch {
+      return null; // A malformed configured URL leaves the name as plain text rather than breaking the card.
+    }
+  }
+
+  /**
+   * The footer on a card that has links, saying how to reach them. Hidden by CSS once the card is pinned.
+   *
+   * @returns {string} The hint's markup.
+   */
+  static #tipPinHint() {
+    return '<div class="ac-tip-hint">Click or press Enter to pin, then follow a link.</div>';
   }
 
   /**
@@ -1486,19 +1569,25 @@ class AcrossCitiesPage {
       // Cities carry the same "labels · validations" pair as the contributor lines below rather than one combined
       // total: a lone number under a "busiest" heading reads as whichever row above it happens to match that day.
       out += AcrossCitiesPage.#tipHead('Busiest cities (labels · validations)');
-      out += cities.map((city) => AcrossCitiesPage.#tipRow(
-        AcrossCitiesPage.#esc(city.city_name || city.city_id),
-        `${this.#num(city.labels || 0)} · ${this.#num(city.validations || 0)}`,
-      )).join('');
+      out += cities.map((city) => {
+        const name = AcrossCitiesPage.#esc(city.city_name || city.city_id);
+        const href = AcrossCitiesPage.#adminUrl(city.url);
+        return AcrossCitiesPage.#tipRow(
+          href ? AcrossCitiesPage.#tipLink(href, name) : name,
+          `${this.#num(city.labels || 0)} · ${this.#num(city.validations || 0)}`,
+        );
+      }).join('');
     }
 
     const people = (d.contributor_list || []).map((c) => ({
       username: c.username, kind: c.kind, labels: c.labels || 0, validations: c.validations || 0,
+      cities: c.cities || [],
     }));
     if (people.length) {
       out += AcrossCitiesPage.#tipHead('Who was active (labels · validations)');
       out += this.#tipPeople(people, 5, d.contributor_total);
     }
+    if (out.includes('class="ac-tip-link"')) out += AcrossCitiesPage.#tipPinHint();
     return `<div class="ac-tip" data-emph="">${out}</div>`;
   }
 
@@ -1545,9 +1634,10 @@ class AcrossCitiesPage {
       // `contributor_total` counts AI alongside people, so discount the agents listed below to keep "+N more" about
       // the people this list is ranking.
       const peopleTotal = Math.max(people.length, (w.contributor_total ?? people.length) - agents.length);
-      out += this.#tipPeople(people, 5, peopleTotal);
-      out += this.#tipPeople(agents, agents.length, agents.length);
+      out += this.#tipPeople(people, 5, peopleTotal, city.url);
+      out += this.#tipPeople(agents, agents.length, agents.length, city.url);
     }
+    if (out.includes('class="ac-tip-link"')) out += AcrossCitiesPage.#tipPinHint();
     return `<div class="ac-tip">${out}</div>`;
   }
 

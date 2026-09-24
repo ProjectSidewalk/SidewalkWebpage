@@ -110,9 +110,14 @@ function contributor(username, labels, validations, kind = 'registered') {
   };
 }
 
-/** One entry of a day's contributor list. */
-function dayContributor(username, labels, validations, kind = 'registered') {
-  return { username, kind, labels, validations };
+/** One entry of a day's contributor list, optionally with the per-city split the endpoint sends (#5495). */
+function dayContributor(username, labels, validations, kind = 'registered', cities = []) {
+  return { username, kind, labels, validations, cities };
+}
+
+/** One city of a day contributor's split. */
+function dayCity(id, labels, validations, url = `https://sidewalk-${id}.example.org`) {
+  return { city_id: id, city_name: id.toUpperCase(), url, labels, validations };
 }
 
 describe('Across Cities — attribution split and hover breakdowns', () => {
@@ -404,6 +409,127 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       expect(document.querySelectorAll('#probe img').length).toBe(0);
     });
 
+    describe('where each person worked, and links to their work (#5495)', () => {
+      /** Parses a card's markup into a detached element, the way psTooltip renders it. */
+      function parse(card) {
+        const host = document.createElement('div');
+        host.innerHTML = card;
+        return host;
+      }
+
+      it('names a one-city person\'s city under their line, without repeating their numbers', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 57, contributors: 1, contributor_total: 1,
+            contributor_list: [dayContributor('DW', 57, 0, 'registered', [dayCity('stl', 57, 0)])] })],
+        });
+        const sub = parse(barCard(0)).querySelector('.ac-tip-sub');
+
+        expect(sub.textContent).toBe('STL');
+      });
+
+      it('splits a multi-city person\'s numbers by city, busiest first as sent', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 52, validations: 9, contributors: 1, contributor_total: 1,
+            contributor_list: [dayContributor('alice', 52, 9, 'registered',
+              [dayCity('sea', 40, 9), dayCity('chi', 12, 0)])] })],
+        });
+        const sub = parse(barCard(0)).querySelector('.ac-tip-sub');
+
+        expect(sub.textContent).toBe('SEA 40 · 9, CHI 12 · 0');
+      });
+
+      it('caps a long city list, which an AI account working everywhere would fill', async () => {
+        const cities = ['a', 'b', 'c', 'd', 'e'].map((id, i) => dayCity(id, 0, 10 - i));
+        await render({
+          daily: [makeDay('2026-09-24', { ai_validations: 40, ai_agents: 1, contributor_total: 1,
+            contributor_list: [dayContributor('bot', 0, 40, 'ai', cities)] })],
+        });
+
+        expect(parse(barCard(0)).querySelector('.ac-tip-sub').textContent).toContain('+ 2 more');
+      });
+
+      it('links a name to their admin page on the city where they did the most', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 52, contributors: 1, contributor_total: 1,
+            contributor_list: [dayContributor('alice', 52, 0, 'registered',
+              [dayCity('sea', 40, 0), dayCity('chi', 12, 0)])] })],
+        });
+        const links = [...parse(barCard(0)).querySelectorAll('a.ac-tip-link')].map((a) => a.getAttribute('href'));
+
+        expect(links).toEqual([
+          'https://sidewalk-sea.example.org/admin/user/alice',
+          'https://sidewalk-sea.example.org/admin/user/alice',
+          'https://sidewalk-chi.example.org/admin/user/alice',
+        ]);
+      });
+
+      it('links a busiest city to that city\'s admin dashboard', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 5, contributors: 1,
+            top_cities: [{ city_id: 'stl', city_name: 'St. Louis', url: 'https://stl.example.org/', labels: 5,
+              validations: 0, contributors: 1 }] })],
+        });
+        const link = parse(barCard(0)).querySelector('a.ac-tip-link');
+
+        expect(link.textContent).toBe('St. Louis');
+        expect(link.getAttribute('href')).toBe('https://stl.example.org/admin');
+      });
+
+      it('encodes a username into the path, so a slash or space still reaches its page', async () => {
+        await render({
+          daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+            contributor_list: [dayContributor('a b/c', 1, 0, 'registered', [dayCity('sea', 1, 0)])] })],
+        });
+
+        expect(parse(barCard(0)).querySelector('a.ac-tip-link').getAttribute('href'))
+          .toBe('https://sidewalk-sea.example.org/admin/user/a%20b%2Fc');
+      });
+
+      it('opens links in a new tab, so following one keeps the page and its pinned card', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0)])] })] });
+        const link = parse(barCard(0)).querySelector('a.ac-tip-link');
+
+        expect(link.getAttribute('target')).toBe('_blank');
+        expect(link.getAttribute('rel')).toBe('noopener');
+      });
+
+      it('leaves a name as plain text when its city has no URL', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0, null)])] })] });
+        const card = parse(barCard(0));
+
+        expect(card.querySelector('a')).toBeNull();
+        expect(card.querySelector('.ac-tip-hint')).toBeNull();
+      });
+
+      it('says how to reach the links on a card that has them', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered', [dayCity('sea', 1, 0)])] })] });
+
+        expect(parse(barCard(0)).querySelector('.ac-tip-hint').textContent).toContain('pin');
+      });
+
+      it('makes each bar a pinnable button that announces its dialog', async () => {
+        await render({ daily: DAILY });
+        const bar = barTarget(1);
+
+        expect(bar.hasAttribute('data-ps-tooltip-pinnable')).toBe(true);
+        expect(bar.getAttribute('role')).toBe('button');
+        expect(bar.getAttribute('aria-haspopup')).toBe('dialog');
+        expect(bar.getAttribute('aria-expanded')).toBe('false');
+      });
+
+      it('escapes a city name, which is config rather than user text but still goes into markup', async () => {
+        await render({ daily: [makeDay('2026-09-24', { labels: 1, contributors: 1, contributor_total: 1,
+          contributor_list: [dayContributor('a', 1, 0, 'registered',
+            [{ ...dayCity('sea', 1, 0), city_name: '<img src=x onerror=alert(1)>' }])] })] });
+        document.body.insertAdjacentHTML('beforeend', `<div id="probe">${barCard(0)}</div>`);
+
+        expect(document.querySelectorAll('#probe img').length).toBe(0);
+      });
+    });
+
     it('groups a chart whose bars are individually focusable, so their names survive in the a11y tree', async () => {
       // role="img" on the <svg> would make its subtree presentational and prune the per-bar roles and labels.
       await render({ daily: DAILY });
@@ -524,6 +650,23 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       document.body.insertAdjacentHTML('beforeend', `<div id="probe">${cellCard(2)}</div>`);
 
       expect(document.querySelectorAll('#probe img').length).toBe(0);
+    });
+
+    it('links each name to their admin page on this city, and pins to reach it (#5495)', async () => {
+      const cities = [makeCity('chicago', {
+        labels_7d: 2, contributors_7d: 1, contributor_total: 1, contributors: [contributor('alice', 2, 0)],
+      })];
+      cities[0].city.url = 'https://sidewalk-chicago.example.org';
+      await render({ cities });
+      const host = document.createElement('div');
+      host.innerHTML = cellCard(2);
+
+      expect(host.querySelector('a.ac-tip-link').getAttribute('href'))
+        .toBe('https://sidewalk-chicago.example.org/admin/user/alice');
+      // The city is the card's title, so a per-person "where" line would only repeat it.
+      expect(host.querySelector('.ac-tip-sub')).toBeNull();
+      expect(document.querySelectorAll('#ac-top-tbody tr')[0].cells[2].hasAttribute('data-ps-tooltip-pinnable'))
+        .toBe(true);
     });
 
     it('makes the cells focusable so their cards are reachable by keyboard', async () => {
