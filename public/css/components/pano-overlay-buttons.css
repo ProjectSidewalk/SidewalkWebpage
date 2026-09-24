@@ -90,6 +90,41 @@
   background-color: var(--color-asphalt-400);
 }
 
+/* The pills sit on imagery, so the ring is white rather than the page's blue; only keyboard focus draws it. */
+.pano-overlay-button:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
+/* A pill whose setting is off its default (the Image adjustments) wears a small dot, so a value persisted in an
+   earlier session is visible without opening the panel. The chevron toggle wears the same dot while the row is
+   collapsed and hides it once expanded, since the pill itself then shows it — the usual overflow-menu badge. */
+.pano-overlay-button--active {
+  position: relative;
+}
+
+.pano-overlay-button--active::after {
+  content: "";
+  position: absolute;
+  top: calc(3px * var(--ui-scale, 1));
+  right: calc(3px * var(--ui-scale, 1));
+  width: calc(5px * var(--ui-scale, 1));
+  height: calc(5px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background: var(--color-banana-600);
+  box-shadow: 0 0 0 1px var(--color-asphalt-400);
+}
+
+/* The chevron's badge is a quiet hint that lives on screen all session, so it is white rather than the pill's
+   yellow. */
+.pano-overlay-toggle.pano-overlay-button--active::after {
+  background: var(--color-neutral-white);
+}
+
+.pano-overlay-button-group.expanded .pano-overlay-toggle.pano-overlay-button--active::after {
+  display: none;
+}
+
 /* Chevron-only toggle: a square pill with no label, sitting at the end of the row. */
 .pano-overlay-toggle {
   width: calc(28px * var(--ui-scale, 1));

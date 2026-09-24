@@ -137,7 +137,17 @@
     "feedback-title": "有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！",
     "immersive-enter": "進入沉浸模式",
     "immersive-exit": "離開沉浸模式",
-    "immersive-exit-hint": "沉浸模式。按 F 離開。"
+    "immersive-exit-hint": "沉浸模式。按 F 離開。",
+    "image": "影像",
+    "image-tooltip": "調整影像的陰影、亮度與對比",
+    "image-adjustments": {
+      "title": "影像調整",
+      "shadows": "陰影",
+      "brightness": "亮度",
+      "contrast": "對比",
+      "reset": "重設為預設值",
+      "persist-note": "這些設定會在不同探索任務間保留，直到您重設為止。"
+    }
   },
   "right-ui": {
     "opens-new-tab": "(在新分頁中開啟)",

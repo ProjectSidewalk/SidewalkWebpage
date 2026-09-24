@@ -18,7 +18,10 @@ module.exports = function (grunt) {
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
           'public/js/common/BadgeAchievements.js',
-          'public/js/common/share/ShareWidget.js'
+          'public/js/common/share/ShareWidget.js',
+          // The pano image adjustments: the model, then the popover that drives it.
+          'public/js/common/PanoImageAdjustments.js',
+          'public/js/common/PanoImageAdjustmentsPopover.js'
         ],
         dest: 'public/js/explore/build/explore.js'
       },
