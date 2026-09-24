@@ -57,7 +57,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 .static-gallery-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Fills the 3:2 container. Crops and Street View stills are both 3:2 already (#3095). */
+  object-fit: cover; /* Fills the 3:2 container; a crop of another aspect (#5085) has the marker re-placed for it. */
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
 }

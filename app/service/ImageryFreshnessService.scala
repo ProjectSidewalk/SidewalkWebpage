@@ -284,7 +284,7 @@ class ImageryFreshnessServiceImpl @Inject() (
         }
       // Panoramax's API is public, so there is no credential to resolve (#5185).
       case PanoSource.Panoramax => pollStreets("Panoramax")(fetchPanoramaxPointObservations)
-      // Infra3d is deliberately not polled, though it could be: scripts/check_streets_for_imagery.py --infra3d shows
+      // Infra3d is deliberately not polled, though it could be: tools/city/check_streets_for_imagery.py --infra3d shows
       // the query (framegate's nearest-frame `knn/query`, with the token PanoDataService.getInfra3dToken mints, and
       // the frame `timestamp` as the capture date). It isn't worth a nightly run because each Infra3d city is a single
       // commissioned drive -- one campaign, whose project_uid is hardcoded per city in Infra3dViewer.js -- so the
@@ -441,7 +441,9 @@ class ImageryFreshnessServiceImpl @Inject() (
    * resulting dates: older coverage can sit closer to the sample point than a newer drive, so new imagery goes
    * unnoticed until another sample point or another night catches it. The mirror-image false positive -- the radius
    * reaching a pano on a parallel service road or alley -- is handled downstream: the response carries the pano's
-   * position, and pollOneStreet drops observations that don't lie on the polled street.
+   * position, and pollOneStreet drops observations that don't lie on the polled street. The same filter is what stops
+   * an answer from outside the radius altogether, which Google does give: `radius` is a hint, not a bound, and a 25 m
+   * query has come back with a photosphere in another state (#5114).
    */
   private def fetchGsvPointObservations(
       apiKey: String

@@ -532,24 +532,24 @@ class PopupPanoManager {
     if (W === 0 || H === 0) return;
 
     const t = this.#fallbackPanzoom.getTransform();
-    // The canvas fraction is only right for an Explore snapshot; a recorded crop says where its label is (#2660).
-    const marker = this.label.cropMarker;
-    const fracX = marker ? marker.x : this.label.canvasX / this.label.originalCanvasWidth;
-    const fracY = marker ? marker.y : this.label.canvasY / this.label.originalCanvasHeight;
-    this.#fallbackMarker.style.left = `${t.x + fracX * W * t.scale}px`;
-    this.#fallbackMarker.style.top = `${t.y + fracY * H * t.scale}px`;
+    // The canvas fraction is only right for an Explore snapshot; a recorded crop says where its label is (#2660). The
+    // crop is cover-fitted into the container, so a crop of another aspect has its overflow trimmed (#5085).
+    const { x, y } = util.misc.labelMarkerFraction(
+      'crop', this.label.cropMarker, this.label.canvasX, this.label.canvasY,
+      { canvasWidth: this.label.originalCanvasWidth, canvasHeight: this.label.originalCanvasHeight, boxAspect: W / H },
+    );
+    this.#fallbackMarker.style.left = `${t.x + x * W * t.scale}px`;
+    this.#fallbackMarker.style.top = `${t.y + y * H * t.scale}px`;
   }
 
   /**
    * Renders a PanoMarker (label) onto a Streetview Panorama.
    * @param {Record<string, any>} label - Plain-object label shape produced by LabelPopup.
-   *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
-   *   streetEdgeId, aiGenerated, and cropMarker ({x, y} fractions of the crop image, or null).
+   *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, panoSource,
+   *   pov, streetEdgeId, aiGenerated, and cropMarker ({x, y} fractions of the crop image, or null).
    */
   renderLabel(label) {
-    const pos = util.pano.canvasCoordToCenteredPov(
-      label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight,
-    );
+    const pos = this.#labelPov(label);
     // Mount the marker inside whichever canvas is currently visible so it sits over the right viewer.
     const activeCanvas = this.panoViewer === this.#pannellumViewer ? this.#pannellumCanvas : this.#panoCanvas;
     const panoMarker = new PanoMarker({
@@ -601,8 +601,25 @@ class PopupPanoManager {
    * @returns {{heading: number, pitch: number}}
    */
   getOriginalPosition() {
-    return util.pano.canvasCoordToCenteredPov(this.label.pov, this.label.canvasX, this.label.canvasY,
-      this.label.originalCanvasWidth, this.label.originalCanvasHeight);
+    return this.#labelPov(this.label);
+  }
+
+  /**
+   * The label's own direction: its stored click projected through the frame it was made in, with the fov that
+   * frame's aspect rendered at (#5085) on the imagery it was placed with, which is the label's own pano source
+   * rather than whatever this popup is showing: a GSV label shown on the self-hosted backup was still clicked
+   * through GSV's clamp.
+   * @param {Record<string, any>} label - Plain-object label shape produced by LabelPopup (see renderLabel).
+   * @returns {{heading: number, pitch: number, zoom: number}}
+   */
+  #labelPov(label) {
+    const hFov = util.pano.renderedHFov(
+      label.pov.zoom, label.originalCanvasWidth / label.originalCanvasHeight,
+      label.panoSource ?? this.panoViewer?.getViewerType(),
+    );
+    return util.pano.canvasCoordToCenteredPov(
+      label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight, hFov,
+    );
   }
 
   /**

@@ -3,7 +3,7 @@ package models.place
 import com.google.inject.ImplementedBy
 import models.api.{PlaceFiltersForApi, PlaceForApi}
 import models.utils.MyPostgresProfile.api._
-import models.utils.{LatLngBBox, MyPostgresProfile}
+import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json}
@@ -219,10 +219,8 @@ class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                       LEFT JOIN LATERAL (
                           SELECT street_edge.street_edge_id,
                                  ST_Distance(street_edge.geom::geography, fetched_place.geom::geography) AS distance_m
-                          FROM street_edge
-                          WHERE street_edge.status = 'open'
-                            AND street_edge.street_edge_id IS DISTINCT FROM (SELECT tutorial_street_edge_id FROM config)
-                            AND ST_DWithin(street_edge.geom, fetched_place.geom, 0.005)
+                          FROM #${FilteredTables.streets()}
+                          WHERE ST_DWithin(street_edge.geom, fetched_place.geom, 0.005)
                             AND ST_DWithin(street_edge.geom::geography, fetched_place.geom::geography, 250)
                           ORDER BY ST_Distance(street_edge.geom::geography, fetched_place.geom::geography)
                           LIMIT 1

@@ -44,23 +44,49 @@ class PanoManager {
   }
 
   /**
-   * Samples backup starting points along the street, used when the street's start has no usable imagery. Points are
-   * spaced at the same increment as moveForward()'s imagery search, ending with the street's endpoint, so the whole
-   * street is checked before we give up and report the street as having no imagery.
-   * @param {Task} task - The assigned Task, used for the street geometry
-   * @returns {Array<{lat: number, lng: number}>} Points along the street, ordered from start to end
+   * Backup starting points for when the seed has no usable imagery, nearest the seed first.
+   *
+   * The seed isn't always on the street. An address drop-in (#4451) passes the searched point, which can sit up to
+   * `exploreAddressMaxDistM` off it, and a label card's "Explore here" passes the label's own position. So the first
+   * backup is the seed's projection onto the street, and the rest of the street is then sampled outward from there.
+   * Otherwise a seed rejected for having no imagery within the radius, or a pano beyond it (#5114), would send the
+   * user to whichever end of the street the samples started from, however far that is from where they asked to go.
+   * Points are spaced at moveForward()'s increment and include the street's endpoint, so the whole street is checked
+   * before we give up and report it as having no imagery. With a seed at the street's start, the order is start to
+   * end.
+   *
+   * @param {turf.Feature<turf.LineString>} street - The street geometry, oriented start to end.
+   * @param {{lat: number, lng: number}} end - The street's end coordinate, sampled last among equals.
+   * @param {{lat: number, lng: number}} [seed] - Where the load was asked to start; omitted, the order is start to end.
+   * @returns {Array<{lat: number, lng: number}>} Points on the street, nearest the seed (along the street) first.
    */
-  static #backupPointsAlongStreet(task) {
-    const street = task.getFeature();
+  static backupPointsAlongStreet(street, end, seed) {
     const streetLength = turf.length(street); // km
-    const points = [];
+    const samples = [];
     for (let dist = NavigationService.DIST_INCREMENT; dist < streetLength; dist += NavigationService.DIST_INCREMENT) {
       const point = turf.along(street, dist);
-      points.push({ lat: point.geometry.coordinates[1], lng: point.geometry.coordinates[0] });
+      samples.push({ km: dist, latLng: { lat: point.geometry.coordinates[1], lng: point.geometry.coordinates[0] } });
     }
-    points.push(task.getEndCoordinate());
-    return points;
+    samples.push({ km: streetLength, latLng: end });
+    if (!seed) return samples.map((sample) => sample.latLng);
+
+    const seedPoint = turf.point([seed.lng, seed.lat]);
+    const projection = turf.nearestPointOnLine(street, seedPoint);
+    const seedKm = projection.properties.location;
+    // Array.prototype.sort is stable, so equidistant samples keep their start-to-end order.
+    const ordered = samples.sort((a, b) => Math.abs(a.km - seedKm) - Math.abs(b.km - seedKm));
+    // A seed already on the street was just tried at that very spot, so asking there again would be a wasted request.
+    if (turf.distance(seedPoint, projection, { units: 'meters' }) < PanoManager.#SAME_POINT_M) {
+      return ordered.map((sample) => sample.latLng);
+    }
+    // The projection leads; a grid point on top of it would only repeat that request.
+    const sameSpotKm = PanoManager.#SAME_POINT_M / 1000;
+    const [lng, lat] = projection.geometry.coordinates;
+    return [{ lat, lng }, ...ordered.filter((s) => Math.abs(s.km - seedKm) >= sameSpotKm).map((s) => s.latLng)];
   }
+
+  // Closer than this (m), the seed's projection onto the street is the seed itself, not a new place to look.
+  static #SAME_POINT_M = 1;
 
   // Set when a load gives up on its street, and read once by the load that follows. The reload destroys the alert
   // banner, so the explanation has to outlive it (#4918). Holds the given-up street's id because assignment picks at
@@ -178,7 +204,10 @@ class PanoManager {
     }
     if (Number.isFinite(params.startLat) && Number.isFinite(params.startLng)) {
       panoOptions.startLatLng = { lat: params.startLat, lng: params.startLng };
-      panoOptions.backupLatLngs = PanoManager.#backupPointsAlongStreet(errorParams.task);
+      const { task } = errorParams;
+      panoOptions.backupLatLngs = PanoManager.backupPointsAlongStreet(
+        task.getFeature(), task.getEndCoordinate(), panoOptions.startLatLng,
+      );
     }
 
     // Load the pano viewer.
@@ -292,8 +321,12 @@ class PanoManager {
     // Store the returned pano metadata.
     svl.panoStore.addPanoMetadata(panoId, panoData);
 
-    // Add the capture date of the image to the bottom-right corner of the UI.
-    svl.ui.streetview.date.text(panoData.getProperty('captureDate').format('MMM YYYY'));
+    // Draw the bottom-left imagery note for this pano: its capture date, and how that sits against the street's last
+    // audit (#5413). Month-granular on the wire because that is all a capture date carries.
+    svl.panoDateNote?.update(
+      panoData.getProperty('captureDate').format('YYYY-MM-DD'),
+      svl.taskContainer?.getCurrentTask() ?? null,
+    );
 
     // Mark that we visited this pano so that we can tell if they've gotten stuck.
     svl.stuckAlert.panoVisited(panoId);

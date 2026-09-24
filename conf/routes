@@ -11,7 +11,7 @@ GET     /labelMap                                       controllers.ApplicationC
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /accessScore                                    controllers.ApplicationController.accessScore
 GET     /accessscore                                    controllers.ApplicationController.accessScore
-GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "")
+GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "", labelIds: String ?= "")
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                        controllers.ApplicationController.labelingGuideCurbRamps
@@ -118,6 +118,7 @@ GET     /adminapi/checkImagery                          controllers.AdminControl
 POST    /adminapi/generateCrops                         controllers.AdminController.generateCrops
 POST    /adminapi/rebuildSidewalkPresence               controllers.AdminController.rebuildSidewalkPresence
 POST    /adminapi/refreshPlaces                         controllers.AdminController.refreshPlaces
+POST    /adminapi/recountStreetGradientStaleness        controllers.AdminController.recountStreetGradientStaleness
 
 # Community-partner logos on the landing page (#4516). Global (all-cities) scope is Owner-only; the reorder routes
 # must precede the :partnerId ones so "order" isn't captured as an id.

@@ -51,7 +51,8 @@
  * Most Project Sidewalk cities do not have enough explored ground to rank five neighborhoods, so the sparse case is
  * the common one and is treated as the ask rather than as an error: the columns become "Ranked so far" and "Closest
  * to being ranked", the latter listing the neighborhoods nearest the completion floor with a button that starts a
- * mission in one. With nothing ranked at all in either unit the section hides itself.
+ * mission in one, and "Ranked so far" dropped entirely when it has no rows rather than drawn as a bare heading.
+ * With nothing ranked at all in either unit the section hides itself.
  *
  * Nothing is fetched during page load; the module fills itself once the visitor shows a sign of engagement.
  */
@@ -110,6 +111,32 @@ class AccessScoreSpotlight {
     util.onFirstInteractionOrIdle(() => this.#start());
   }
 
+  /**
+   * Whether a unit has a column to draw: it ranks something, or it can ask for the neighborhood nearest the floor.
+   *
+   * This decides which units are offered, so it has to agree with what `#render` draws for one: both conditions on
+   * the `nearest` clause are the ones `#render` applies. The ask is a neighborhood to explore, so a streets feed
+   * never carries one, and a city of one neighborhood has none to offer either — the one it would name is the
+   * whole city, the same degenerate comparison the ranking itself would be (#5419).
+   *
+   * It deliberately does NOT gate whether the section appears: `nearest` is every unranked neighborhood, not the
+   * ones near the floor (`AccessScoreSpotlightService.nearest` sorts and takes, with no proximity test), so a city
+   * with no scores at all would qualify and the section's server-rendered "Where … Score Highest and Lowest"
+   * heading would sit over a list of neighborhoods at 0% explored.
+   *
+   * The unit is read from the feed rather than inferred from `nearest` being empty. The backend does send `[]` for
+   * streets, but two reviewers read the older wording as "streets have no `nearest` key" and reported a crash that
+   * cannot happen; naming the unit says which list this is for.
+   *
+   * @param {?SpotlightFeed} feed - The unit's feed, or null if it failed to load, which is never offerable.
+   * @returns {boolean}
+   */
+  static #hasContent(feed) {
+    if (!feed) return false;
+    if (feed.qualifying > 0) return true;
+    return feed.unit === 'regions' && feed.total > 1 && feed.nearest.length > 0;
+  }
+
   /** Fetches both units, picks the one to open on, and renders — or hides the section if nothing is ranked. */
   async #start() {
     const [regions, streets] = await Promise.all([this.#fetchUnit('regions'), this.#fetchUnit('streets')]);
@@ -121,10 +148,11 @@ class AccessScoreSpotlight {
       return;
     }
 
-    // Streets qualify almost as soon as a city starts, so a young city opens on streets and switches to
-    // neighborhoods once enough of them clear the completion floor. A city mapped as one neighborhood has no
-    // interesting neighborhood list at all, so it opens on streets too.
-    const neighborhoodsWorthOpening = ranked(regions) >= AccessScoreSpotlight.#LIST_SIZE && regions.total > 1;
+    // One neighborhood is nothing to rank against — unless no street is ranked either, when one score beats none.
+    if (!this.#crossCity && regions && regions.total === 1 && ranked(streets) > 0) this.#feeds.regions = null;
+
+    // Streets qualify early, so a young city opens on streets until enough neighborhoods clear the completion floor.
+    const neighborhoodsWorthOpening = this.#feeds.regions && ranked(regions) >= AccessScoreSpotlight.#LIST_SIZE;
     this.#unit = neighborhoodsWorthOpening || ranked(streets) === 0 ? 'regions' : 'streets';
     this.#render();
   }
@@ -177,32 +205,43 @@ class AccessScoreSpotlight {
 
     this.#renderSubtitle(feed);
 
-    const head = document.createElement('div');
-    head.className = 'spotlight-head';
-    head.appendChild(this.#buildUnitSwitch());
-    this.#root.appendChild(head);
+    const units = this.#buildUnitSwitch();
+    if (units) {
+      const head = document.createElement('div');
+      head.className = 'spotlight-head';
+      head.appendChild(units);
+      this.#root.appendChild(head);
+    }
 
     const cols = document.createElement('div');
     cols.className = 'spotlight-cols';
     const ranked = feed.qualifying >= AccessScoreSpotlight.#LIST_SIZE;
-    const oneRegion = this.#unit === 'regions' && feed.total === 1;
 
     // With a full set of ranked units the lists are a top and a bottom; below that there is only one list worth
     // showing, so the second column becomes the "help the next one across the line" ask.
-    cols.appendChild(this.#buildColumn(
-      ranked ? 'highest' : 'ranked-so-far',
-      ranked ? 4 : 3,
-      feed.top,
-      'ranked',
-      feed,
-    ));
+    //
+    // "Ranked so far" is dropped when it has nothing in it, rather than drawn as a bare heading: it is the one
+    // heading with no empty-state string, because a city in that state has the ask to lead with instead. The
+    // highest/lowest pair keeps its empty list, since "no neighborhood scores 70 or above yet" is the answer there.
+    if (ranked || feed.top.length > 0) {
+      cols.appendChild(this.#buildColumn(
+        ranked ? 'highest' : 'ranked-so-far',
+        ranked ? 4 : 3,
+        feed.top,
+        'ranked',
+        feed,
+      ));
+    }
     if (ranked) {
       cols.appendChild(this.#buildColumn('lowest', 0, feed.bottom, 'ranked', feed));
-    } else if (!oneRegion && feed.nearest.length > 0) {
+    } else if (feed.unit === 'regions' && feed.total > 1 && feed.nearest.length > 0) {
       cols.appendChild(this.#buildColumn('closest', 2, feed.nearest, 'pending', feed));
-    } else {
-      cols.classList.add('spotlight-cols--single');
     }
+    if (cols.children.length === 0) {
+      this.#section.hidden = true;
+      return;
+    }
+    if (cols.children.length < 2) cols.classList.add('spotlight-cols--single');
     this.#root.appendChild(cols);
 
     if (!this.#crossCity) this.#root.appendChild(this.#buildCta());
@@ -236,15 +275,18 @@ class AccessScoreSpotlight {
   }
 
   /**
-   * The Neighborhoods / Streets switch, as two toggle buttons rather than tabs: each redraws this same region. A unit
-   * whose feed failed to load is not offered, since switching to it would have nothing to draw.
+   * The Neighborhoods / Streets switch: toggle buttons, not tabs, since each redraws this same region.
+   * @returns {?HTMLElement} The group, or null below two offerable units: a control whose only destination is the
+   *   view you are already on is not a switch.
    */
   #buildUnitSwitch() {
+    const offered = ['regions', 'streets'].filter((u) => AccessScoreSpotlight.#hasContent(this.#feeds[u]));
+    if (offered.length < 2) return null;
     const group = document.createElement('div');
     group.className = 'spotlight-units';
     group.setAttribute('role', 'group');
     group.setAttribute('aria-label', i18next.t('common:access-score-spotlight.units-label'));
-    for (const unit of ['regions', 'streets'].filter((u) => this.#feeds[u])) {
+    for (const unit of offered) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'spotlight-unit';

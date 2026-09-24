@@ -14,7 +14,7 @@
   <div class="page-section" id="overall-stats-by-day-intro-section">
     <h1 class="page-heading" id="overall-stats-by-day-api">Overall Stats by Day API <a href="#overall-stats-by-day-api" class="permalink">#</a></h1>
     <p>The Overall Stats by Day API provides a <strong>daily time series</strong> of label and validation activity for <strong>@cityName</strong>, broken down by label type and by whether the actor was a human user or an AI. This lets you track productivity trends over time.</p>
-    <p>Each record covers one calendar day (US/Pacific time) and one label type. Label counts reflect labels <em>created</em> on that day; validation counts reflect validations <em>completed</em> on that day (on any label, not just ones created that day).</p>
+    <p>Each record covers one calendar day (US/Pacific time) and one label type. Label counts reflect labels <em>created</em> on that day; validation counts reflect validations <em>completed</em> on that day (on any label, not just ones created that day), filed under the label type the validator was judging.</p>
     <p>For aggregate counts across all Project Sidewalk deployments, see the <a href="@routes.ApiDocsController.aggregateStatsByDay">Aggregate Stats by Day API</a>. For a single-number snapshot, see the <a href="@routes.ApiDocsController.overallStats">Overall Stats API</a>.</p>
   </div>
 
@@ -73,7 +73,7 @@
             <td><code>filterLowQuality</code></td>
             <td><code>boolean</code></td>
             <td><code>false</code></td>
-            <td>If <code>true</code>, only include activity from users whose <code>high_quality</code> flag is set. If <code>false</code> (default), only users explicitly marked as <code>excluded</code> are omitted. Mirrors the same parameter on <a href="@routes.ApiDocsController.overallStats">Overall Stats</a>.</td>
+            <td>If <code>true</code>, only include activity from users whose <code>high_quality</code> flag is set. If <code>false</code> (default), don't filter by quality. Mirrors the same parameter on <a href="@routes.ApiDocsController.overallStats">Overall Stats</a>.</td>
           </tr>
           <tr>
             <td><code>filetype</code></td>
@@ -153,12 +153,6 @@
         <span class="format-icon">📊</span> CSV
         <span class="format-hint">Spreadsheet friendly</span>
       </button>
-    </div>
-
-    <div id="download-status" class="status-container status-loading ps-hidden">
-      <div class="loading-spinner"></div>
-      <div class="status-message">Preparing your download...</div>
-      <div class="status-progress">This should only take a few seconds.</div>
     </div>
   </div>
 }

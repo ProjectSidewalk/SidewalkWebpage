@@ -442,6 +442,14 @@
                 </svg>
                 <span data-i18n="audit:right-ui.minimap.legend-faced">Filled: where forward takes you</span>
               </div>
+              @* Labels from earlier missions here are drawn dimmed; this checkbox hides/shows their markers (#4945).
+                 The sample is a real marker icon at the dimmed treatment, so the key shows what the map shows. *@
+              <div class="minimap-legend-row minimap-legend-row-toggle">
+                <img class="minimap-label-icon minimap-label-icon--prior minimap-legend-sample-earlier-label"
+                     src='@assets.path("images/icons/label_type_icons/CurbRamp_small.svg")' alt="">
+                <input id="minimap-legend-earlier-labels" type="checkbox" checked>
+                <label for="minimap-legend-earlier-labels" data-i18n="audit:right-ui.minimap.legend-earlier-labels">My earlier labels</label>
+              </div>
             </div>
             @* Whole-route overview inset — shown only on designated routes (RouteOverview toggles the holder class). *@
             <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" title="Route overview: tap to see the whole route" data-i18n-title="audit:right-ui.minimap.route-overview">
@@ -478,8 +486,10 @@
               <span class="speed-limit-text"><span id="speed-limit">N/A</span><span id="speed-limit-sub">N/A</span></span>
             </div>
           </div>
+          @* Never hidden: it holds PanoInfoPopover's button too, which has to survive a pano reporting no usable
+             capture date. PanoDateNote adds .svl-pano-pill, only on panos carrying an assessment note (#5413). *@
           <div id="svl-panorama-date-holder">
-            <span id="svl-panorama-date"></span>
+            <span id="svl-panorama-date-pill"><span id="svl-panorama-date"></span></span>
           </div>
           @* Stuck / sound / feedback controls at top-left of the pano. Collapsed by default. *@
           <div id="explore-control-buttons-holder" class="pano-overlay-button-group">
@@ -506,6 +516,12 @@
             </button>
             <button type="button" id="zoom-out-button" class="zoom-button" title="@Messages("press.keys", "Shift + Z")" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
               <img class="zoom-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
+            </button>
+          </div>
+          @* Immersive mode toggle (#5085), its own holder so the zoom pair keeps its rounded bottom corner. *@
+          <div id="immersive-toggle-holder" class="zoom-buttons-holder">
+            <button type="button" id="immersive-toggle-button" class="zoom-button" title="@Messages("press.key", "F")" aria-label="Fill the window" data-i18n-aria-label="audit:controls.immersive-enter">
+              <img id="immersive-toggle-icon" class="zoom-button-icon" src='@assets.path("images/icons/maximize-2-white-feather.svg")' alt="">
             </button>
           </div>
             <!-- You can put an extra div element on top of the pano div panel to disable any of pano control. -->

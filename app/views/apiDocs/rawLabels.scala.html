@@ -92,12 +92,6 @@
       </button>
     </div>
 
-    <div id="download-status" class="status-container status-loading ps-hidden">
-      <div class="loading-spinner"></div>
-      <div class="status-message">Generating your download...</div>
-      <div class="status-progress">This may take anywhere from a few seconds to a few minutes depending on the data size.</div>
-    </div>
-
     <p class="download-note">Note: This downloads all raw labels. For filtered data, use the API query parameters described below.</p>
   </div>
 
@@ -532,12 +526,12 @@
           <tr>
             <td><code>properties.canvas_width</code></td>
             <td><code>integer</code></td>
-            <td>Width of the user's canvas/viewport when the label was placed (in pixels).</td>
+            <td>Width of the frame <code>canvas_x</code> is expressed in. A logical frame, not the on-screen size: always 720 for labels placed in Explore, whose height then carries the aspect ratio of the viewport (480 for the classic 3:2 tool). Only the aspect ratio matters when projecting the click, and the horizontal field of view to project with is not a function of zoom alone: on Google Street View imagery, a frame far from 3:2 at zoom 3 renders wider than the zoom curve, because the viewer clamps its vertical field. The model is documented in the repository's <code>docs/label-latlng-estimation.md</code>; <code>pano_x</code>/<code>pano_y</code> carry the same point without any projection.</td>
           </tr>
           <tr>
             <td><code>properties.canvas_height</code></td>
             <td><code>integer</code></td>
-            <td>Height of the user's canvas/viewport when the label was placed (in pixels).</td>
+            <td>Height of the frame <code>canvas_y</code> is expressed in; see <code>canvas_width</code>.</td>
           </tr>
           <tr>
             <td><code>properties.pano_x</code></td>
@@ -564,7 +558,7 @@
     </div>
 
     <h5 id="street-side">How confident <code>street_side</code> is <a href="#street-side" class="permalink">#</a></h5>
-    <p>The side is computed from the label's estimated position, so it is only as sure as that position is far from the centerline. Scored against Seattle's official sidewalk and curb-ramp inventory, its accuracy is a function of <code>|centerline_offset_m|</code> alone, the same for every label type (details and method in <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/experiments/2026-09-03-street-side-assignment.md">the #2886 report</a>). The 1&nbsp;m floor is where the value stops being a coin flip; raise it if you need a surer side:</p>
+    <p>The side is computed from the label's estimated position, so it is only as sure as that position is far from the centerline. Scored against Seattle's official sidewalk and curb-ramp inventory, its accuracy is a function of <code>|centerline_offset_m|</code> alone, the same for every label type (details and method in <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/tools/experiments/2886-street-side/README.md">the #2886 report</a>). The 1&nbsp;m floor is where the value stops being a coin flip; raise it if you need a surer side:</p>
     <div class="ps-table-wrapper" tabindex="0" role="region" aria-labelledby="street-side">
       <table class="ps-table ps-table--compact">
         <thead>
@@ -607,6 +601,10 @@
       <li><strong><code>429 Too Many Requests</code>:</strong> The same file is already being built for an earlier request; wait <code>Retry-After</code> seconds and try again. A <code>HEAD</code> request gets the same answer without building anything.</li>
       <li><strong><code>500 Internal Server Error</code>:</strong> An unexpected error occurred on the server.</li>
       <li><strong><code>503 Service Unavailable</code>:</strong> The server is temporarily unable to handle the request (e.g., during maintenance).</li>
+    </ul>
+    <h3 class="page-heading" id="response-headers">Response Headers<a href="#response-headers" class="permalink">#</a></h3>
+    <ul>
+      <li><strong><code>X-File-Size</code>:</strong> On a Shapefile, GeoPackage or zipped-CSV download, the file's size in bytes. Sent alongside <code>Content-Length</code>, and still present when the response is gzipped, which drops it — use it to show download progress.</li>
     </ul>
 
     @apiDocs.errorResponseBody()

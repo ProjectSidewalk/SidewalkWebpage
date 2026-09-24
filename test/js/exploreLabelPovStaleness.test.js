@@ -25,9 +25,13 @@ const FORM_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/explore/src/data/Form.js'), 'utf8'
 );
 
-// Explore's fixed labeling canvas size (util.EXPLORE_CANVAS_WIDTH/HEIGHT in public/js/common/utilities.js).
+// Explore's boxed labeling frame (util.EXPLORE_CANVAS_WIDTH/HEIGHT in public/js/common/utilities.js). The frame is
+// always 720 wide; its height follows the displayed aspect (util.exploreCanvasFrame, #5085), so a 16:9 window is
+// 720x405.
 const CANVAS_WIDTH = 720;
 const CANVAS_HEIGHT = 480;
+const BOXED_FRAME = { width: CANVAS_WIDTH, height: CANVAS_HEIGHT };
+const WIDE_FRAME = { width: 720, height: 405 };
 
 // The pano the label is placed on. cameraHeading feeds povToPanoCoord exactly as Label's constructor does.
 const PANO = {
@@ -73,11 +77,12 @@ function panoStub() {
  *
  * @param {{heading: number, pitch: number, zoom: number}} clickPov - The live POV at the moment of the click.
  * @param {{x: number, y: number}} clickCanvasXY - The canvas point the user clicked.
+ * @param {{width: number, height: number}} [frame] - The logical frame the click was made in.
  * @returns {Object} A label stub carrying the click-time record.
  */
-function labelPlacedAt(clickPov, clickCanvasXY) {
+function labelPlacedAt(clickPov, clickCanvasXY, frame = BOXED_FRAME) {
     const povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(
-        clickPov, clickCanvasXY.x, clickCanvasXY.y, CANVAS_WIDTH, CANVAS_HEIGHT,
+        clickPov, clickCanvasXY.x, clickCanvasXY.y, frame.width, frame.height,
     );
     const panoXY = util.pano.povToPanoCoord(povOfLabelIfCentered, PANO.cameraHeading, PANO.width, PANO.height);
     const props = {
@@ -85,6 +90,7 @@ function labelPlacedAt(clickPov, clickCanvasXY) {
         tutorial: false,
         panoXY,
         originalCanvasXY: { ...clickCanvasXY },
+        originalCanvasFrame: { ...frame },
         originalPov: { ...clickPov },
         povOfLabelIfCentered,
         temporaryLabelId: 1,
@@ -161,12 +167,13 @@ describe('Explore label POV staleness (#4842 regression)', () => {
      * re-derive pano_x/y from the submitted POV + canvas point and compare to the submitted pano_x/y.
      *
      * @param {Object} sent - The submitted label_point block.
+     * @param {{width: number, height: number}} [frame] - The frame to replay through; the submitted one by default.
      * @returns {{dx: number, dy: number}} Absolute pano-pixel error of the replay.
      */
-    function replayError(sent) {
+    function replayError(sent, frame = { width: sent.canvas_width, height: sent.canvas_height }) {
         const centered = util.pano.canvasCoordToCenteredPov(
             { heading: sent.heading, pitch: sent.pitch, zoom: sent.zoom },
-            sent.canvas_x, sent.canvas_y, CANVAS_WIDTH, CANVAS_HEIGHT,
+            sent.canvas_x, sent.canvas_y, frame.width, frame.height,
         );
         const panoXY = util.pano.povToPanoCoord(centered, PANO.cameraHeading, PANO.width, PANO.height);
         return { dx: Math.abs(panoXY.x - sent.pano_x), dy: Math.abs(panoXY.y - sent.pano_y) };
@@ -213,10 +220,32 @@ describe('Explore label POV staleness (#4842 regression)', () => {
         await form.submitData(taskStub());
 
         const sent = bodies[0].labels[0].label_point;
+        expect(sent.canvas_width).toBe(CANVAS_WIDTH);
+        expect(sent.canvas_height).toBe(CANVAS_HEIGHT);
         const { dx, dy } = replayError(sent);
         // pano_x/y are Math.round()ed in the payload, so allow a pixel.
         expect(dx).toBeLessThanOrEqual(1);
         expect(dy).toBeLessThanOrEqual(1);
+    });
+
+    // The frame contract (#5085, docs/label-latlng-estimation.md): a click is only reproducible through the frame it
+    // was made in, so the record carries that frame and the server replays through it.
+    test('a label placed in a 16:9 frame submits that frame and replays only through it', async () => {
+        labels = [labelPlacedAt(viewerPov, { x: 431, y: 302 }, WIDE_FRAME)];
+        const bodies = acceptingFetch();
+
+        await form.submitData(taskStub());
+
+        const sent = bodies[0].labels[0].label_point;
+        expect(sent.canvas_width).toBe(720);
+        expect(sent.canvas_height).toBe(405);
+        const own = replayError(sent);
+        expect(own.dx).toBeLessThanOrEqual(1);
+        expect(own.dy).toBeLessThanOrEqual(1);
+        // Read against the boxed 720x480 instead, the vertical origin is 37.5 px off: about 3 degrees of pitch at
+        // zoom 2, which is dozens of pano pixels on a 4096-px-high pano.
+        const boxed = replayError(sent, BOXED_FRAME);
+        expect(boxed.dy).toBeGreaterThan(20);
     });
 
     test('submitted record still describes the click after panning and zooming before the flush', async () => {

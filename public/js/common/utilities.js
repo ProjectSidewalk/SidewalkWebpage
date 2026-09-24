@@ -6,11 +6,11 @@ util.EXPLORE_CANVAS_HEIGHT = 480;
 util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANVAS_HEIGHT;
 
 /**
- * Ratio between the Explore street view's on-screen size and its fixed 720x480 logical coordinate frame.
+ * Ratio between the Explore street view's on-screen size and its logical coordinate frame, which is always 720 px wide.
  *
- * The pano is displayed larger than the logical frame (see the --pano-width CSS variable), but all coordinate
- * math, stored canvas_x/canvas_y, and pano_x/pano_y stay in the 720x480 frame. This ratio converts between the
- * two: multiply a logical coordinate by it to position a DOM element over the pano, or divide an on-screen
+ * The pano is displayed larger than the logical frame (see the --pano-width CSS variable), but all coordinate math
+ * and the stored canvas_x/canvas_y stay in the logical frame (util.exploreCanvasFrame). This ratio converts between
+ * the two: multiply a logical coordinate by it to position a DOM element over the pano, or divide an on-screen
  * coordinate by it to map a click back into the logical frame. Measured live so it is robust to any scaling.
  *
  * @returns {number} displayWidth / EXPLORE_CANVAS_WIDTH, or 1 if the street view is not present
@@ -18,6 +18,29 @@ util.EXPLORE_CANVAS_ASPECT_RATIO = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANV
 util.exploreDisplayScale = function () {
   const layer = document.getElementById('label-drawing-layer');
   return layer ? layer.getBoundingClientRect().width / util.EXPLORE_CANVAS_WIDTH : 1;
+};
+
+/**
+ * The logical frame Explore's labeling canvas is drawn in and a click's canvas_x/canvas_y are expressed in (#5085).
+ *
+ * The frame is always EXPLORE_CANVAS_WIDTH wide and as tall as the displayed pano's aspect ratio makes it: 480 in
+ * the boxed tool, about 405 in a 16:9 window. Only the aspect ratio matters to the projection that turns a click into
+ * a direction (focal length and click offsets scale together), so a 720-wide frame is exactly as good as the
+ * on-screen size, and every label placed in the boxed tool keeps the 720x480 the whole corpus is in. Measured from
+ * the same element `util.mousePosition` reports clicks against, so the click and its frame share one coordinate
+ * space; callers cache the result per layout (svl.CANVAS_FRAME) rather than measuring per render.
+ *
+ * @returns {{width: number, height: number}} The frame in logical px; 720x480 when the street view is unmeasurable.
+ */
+util.exploreCanvasFrame = function () {
+  const rect = document.getElementById('label-drawing-layer')?.getBoundingClientRect();
+  if (!rect?.width || !rect?.height) {
+    return { width: util.EXPLORE_CANVAS_WIDTH, height: util.EXPLORE_CANVAS_HEIGHT };
+  }
+  return {
+    width: util.EXPLORE_CANVAS_WIDTH,
+    height: Math.round(util.EXPLORE_CANVAS_WIDTH * rect.height / rect.width),
+  };
 };
 
 // Radius of a placed label's icon at --ui-scale = 1, in the 720x480 logical frame. Every piece of icon geometry in
@@ -138,11 +161,14 @@ util.labelHitMargin = function (scale) {
 util.sizeCanvasToDisplay = function (el, ctx) {
   const rect = el.getBoundingClientRect();
   const displayWidth = rect.width || util.EXPLORE_CANVAS_WIDTH;
+  // The box's own height, so the bitmap follows the displayed aspect (#5085); 3:2 only when it can't be measured.
+  const displayHeight = rect.height || displayWidth / util.EXPLORE_CANVAS_ASPECT_RATIO;
   const dpr = window.devicePixelRatio || 1;
   el.width = Math.round(displayWidth * dpr);
-  el.height = Math.round(displayWidth / util.EXPLORE_CANVAS_ASPECT_RATIO * dpr);
-  // Map the 720x480 logical frame onto the full-resolution bitmap. Setting el.width/height above resets the
-  // context, so this transform must be (re)applied here.
+  el.height = Math.round(displayHeight * dpr);
+  // Map the 720-wide logical frame onto the full-resolution bitmap (the transform is uniform, so the frame's height
+  // follows the box's aspect, see util.exploreCanvasFrame). Setting el.width/height above resets the context, so
+  // this transform must be (re)applied here.
   const scale = el.width / util.EXPLORE_CANVAS_WIDTH;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   // Label icons are drawn from a raster sized for the densest display we support (see Label.preloadIcons), so on
@@ -160,8 +186,8 @@ util.sizeCanvasToDisplay = function (el, ctx) {
  * Panels styled with .label-anchored-panel read the values this sets.
  *
  * Coordinates are given in a logical frame that `scale` converts to on-screen pixels, so a caller whose marker is
- * already positioned in on-screen pixels divides by the same `scale` before calling. Both tools' panos are 720x480
- * at --ui-scale = 1, so the default `frameHeight` suits either.
+ * already positioned in on-screen pixels divides by the same `scale` before calling. The default `frameHeight` is
+ * Explore's displayed pano height, measured (its aspect follows the window in immersive mode, #5085).
  *
  * @param {JQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
  * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
@@ -185,7 +211,9 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
   const radius = iconRadius * scale;
   const width = panel.outerWidth();
   const height = panel.outerHeight();
-  const panoHeight = opts.frameHeight ?? util.EXPLORE_CANVAS_HEIGHT * scale;
+  const panoHeight = opts.frameHeight
+    ?? (document.getElementById('label-drawing-layer')?.getBoundingClientRect().height
+      || util.EXPLORE_CANVAS_HEIGHT * scale);
 
   // In Explore the panel is bounded horizontally by the whole tool, not the pano: the pano's right edge is not a
   // wall, and a panel is welcome to float over the sidebar beside it. That matters because the context menu is over
@@ -223,9 +251,16 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
  * --ui-scale = 1 is the sum of the given base-size CSS variables, which each tool defines on its .tool-ui element.
  * @param {string[]} widthVarNames - Base-size CSS variables that sum to the tool's reference width.
  * @param {string[]} heightVarNames - Base-size CSS variables that sum to the tool's reference height.
+ * @param {object} [opts] - Fit options. The defaults are the boxed tool's; a fill-window layout (Explore's immersive
+ *   mode, #5085) passes zero margins and a higher cap, since its pano is sized by CSS and the scale only sizes the
+ *   controls floating over it.
+ * @param {number} [opts.maxScale=1.8] - Cap past which text and controls balloon.
+ * @param {number} [opts.hMargin=40] - Breathing room on each side of the tool, in CSS px.
+ * @param {number} [opts.bottomReserve=60] - Space kept below the tool for the footer and a little margin, in CSS px.
  * @returns {number} The applied scale factor.
  */
-util.applyToolScale = function (widthVarNames, heightVarNames) {
+util.applyToolScale = function (widthVarNames, heightVarNames, opts = {}) {
+  const { maxScale = 1.8, hMargin = 40, bottomReserve = 60 } = opts;
   const toolUI = document.querySelector('.tool-ui');
   if (!toolUI) return 1;
 
@@ -236,17 +271,14 @@ util.applyToolScale = function (widthVarNames, heightVarNames) {
   const refHeight = heightVarNames.reduce((sum, name) => sum + cssPx(name), 0);
   if (!refWidth || !refHeight) return 1; // Base vars missing (page doesn't define them); leave --ui-scale at 1.
   const MIN_SCALE = 0.65;
-  const MAX_SCALE = 1.8;
-  const H_MARGIN = 40;       // Breathing room on each side of the tool.
-  const BOTTOM_RESERVE = 60; // Space below the tool for the footer and a little margin.
 
   // Everything above the tool (the navbar) is fixed chrome that does not scale, so reserve it.
   const topOffset = Math.max(0, toolUI.getBoundingClientRect().top + window.scrollY);
-  const availWidth = window.innerWidth - H_MARGIN * 2;
-  const availHeight = window.innerHeight - topOffset - BOTTOM_RESERVE;
+  const availWidth = window.innerWidth - hMargin * 2;
+  const availHeight = window.innerHeight - topOffset - bottomReserve;
 
   let scale = Math.min(availWidth / refWidth, availHeight / refHeight);
-  scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale));
+  scale = Math.max(MIN_SCALE, Math.min(maxScale, scale));
   const scaleStr = scale.toFixed(4);
   toolUI.style.setProperty('--ui-scale', scaleStr);
   // Also expose the scale at the document root so self-contained overlays rendered outside .tool-ui (e.g. the
@@ -319,7 +351,7 @@ util.turfDistanceUnits = () => (util.isMetric() ? 'kilometers' : 'miles');
  * the families JS references. Returns the fingerprinted URL when the stamp has an entry, otherwise the plain
  * `/assets/<path>` — byte-identical to the historical hardcoded form — so dev mode (`sbt run` builds no digests),
  * jsdom tests, and files the pipeline missed behave exactly as before. Never hardcode `/assets/...` in JS;
- * tools/check-asset-paths.mjs enforces this.
+ * tools/lint/check-asset-paths.mjs enforces this.
  *
  * @param {string} logicalPath - Path under public/, e.g. 'images/icons/openhand.cur'. No leading slash, no
  *                               '/assets/' prefix.
@@ -364,6 +396,59 @@ util.distanceToString = (meters) =>
  */
 util.longDistanceToString = (km, precision = 0) =>
   i18next.services.formatter.format(km, `distance(style: large; precision: ${precision})`, i18next.language, {});
+
+/**
+ * The calendar year and month of a month, date or timestamp string, as the reader would name it.
+ *
+ * The two shapes need opposite handling. A bare month or date (`2024-10`, `2024-10-01`: a capture date, or a
+ * `LocalDate` off the wire) names a calendar month in no zone at all, so it is read straight off the string --
+ * `Date` would land it on UTC midnight, which west of Greenwich is the month before for a first-of-month date. A
+ * timestamp names an instant, and the server writes every `OffsetDateTime` in UTC (`2024-11-01T03:00:00Z`), so it
+ * is converted into the reader's zone: that is the month the labeler did the work in, and reading the UTC fields
+ * would tell someone who assessed a street on an October evening in Seattle that they did it in November.
+ *
+ * `util.monthYear` and `PanoDateNote.monthKey` both go through here, so a chip can never disagree with its tooltip.
+ *
+ * @param {?string} iso - A month (`2024-10`), date (`2024-10-01`) or timestamp (`2024-10-01T03:00:00Z`) string.
+ * @returns {?{year: number, month: number}} `month` is 1-12, or null if there is no usable year and month.
+ * @example
+ * util.yearMonth('2024-10-01');            // { year: 2024, month: 10 }, in any zone
+ * util.yearMonth('2024-11-01T03:00:00Z');  // { year: 2024, month: 10 } in Los Angeles, month 11 in Berlin
+ * util.yearMonth('Invalid date');          // null
+ */
+util.yearMonth = function (iso) {
+  const calendar = /^(\d{4})-(\d{2})(?:-\d{2})?$/.exec(iso ?? '');
+  if (calendar !== null) {
+    const month = Number(calendar[2]);
+    // Checked by hand because `new Date(2024, 12, 1)` would roll into January rather than reject.
+    return month >= 1 && month <= 12 ? { year: Number(calendar[1]), month } : null;
+  }
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(iso ?? '')) return null;
+  const instant = new Date(iso);
+  if (Number.isNaN(instant.getTime())) return null;
+  return { year: instant.getFullYear(), month: instant.getMonth() + 1 };
+};
+
+/**
+ * Renders a date at month precision for this reader, e.g. "October 2024" or "Oct 2024".
+ *
+ * Month precision because that is all an imagery capture date carries — GSV reports `2024-10` — so anything finer
+ * would be inventing a day we do not have. Null for a missing or unparseable value rather than a fallback string:
+ * `pano_data.capture_date` is free text holding whatever the imagery API returned, including the literal
+ * "Invalid date", and callers want to drop the date from their sentence rather than print that at a labeler. Which
+ * month a string names is `util.yearMonth`'s call.
+ *
+ * @param {?string} iso - A month (`2024-10`), date (`2024-10-01`) or timestamp (`2024-10-01T03:00:00Z`) string.
+ * @param {object} [options]
+ * @param {boolean} [options.short=false] - Abbreviate the month ("Oct" rather than "October").
+ * @returns {?string} The localized month and year, or null if there is no usable date.
+ */
+util.monthYear = function (iso, { short = false } = {}) {
+  const ym = util.yearMonth(iso);
+  if (ym === null) return null;
+  return new Date(ym.year, ym.month - 1, 1)
+    .toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
+};
 
 // A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
 // real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.

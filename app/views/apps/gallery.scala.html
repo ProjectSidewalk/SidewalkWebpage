@@ -4,9 +4,10 @@
 @import models.pano.PanoSource
 @import models.label.Tag
 @import play.api.libs.json.Json
+@import controllers.GalleryController
 @(commonData: service.CommonPageData, title: String, user: Option[models.user.SidewalkUserWithRole], labelTypes: Seq[String],
   allTags: Seq[Tag], regionIds: Seq[Int], regionNames: Map[Int, String], severities: Seq[String], tags: List[String],
-  valOptions: Seq[String], aiValOptions: Seq[String]
+  valOptions: Seq[String], aiValOptions: Seq[String], labelIds: Seq[Int], idsOverCap: Int
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
@@ -35,43 +36,81 @@
   @common.navbar(commonData, user)
 
   <div id="gallery">
-    <div class="sidebar">
-      @* Sits outside #card-filter, which wears filter-sidebar--loading while a page of cards loads: the disclosure
-         is the only way to reach the filters on a phone, so it has to stay live through the load that greys them. *@
-      <div class="gallery-filter-header">
-        <h4 id="filter-header" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</h4>
-        @* Narrow-layout stand-in for the heading: disclosure toggle for the filter sections (see filter.css). *@
-        <button type="button" id="gallery-filter-toggle" class="gallery-filter-toggle" aria-expanded="false" aria-controls="gallery-filter-sections">
-          <span data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</span>
-          <img class="gallery-filter-toggle__icon" src='@assets.path("images/icons/chevron-down-feather.svg")' alt="">
-        </button>
-        @* The global reset, distinct from the per-section "Deselect all" text actions beside it. *@
-        <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
-          <span aria-hidden="true">&#10006;</span>
-          <span data-i18n="gallery:clear-filters">@Messages("gallery.clear.filters")</span>
-        </button>
-      </div>
-      @* The shared filter sidebar (#4585). Sections keep the LabelMap's order so the two sidebars read the same.
-         Label types are single-select here: a card query fetches one type at a time, so the selected type's tag
-         drawer is the only one open. *@
-      <div id="card-filter" class="filter-sidebar--loading">
-        @* The sections render as bare sibling <section>s (withMapChrome = false), so the disclosure needs one
-           wrapper to toggle and point aria-controls at. *@
-        <div id="gallery-filter-sections">
-          @common.filterSidebar(
-            tags = allTags,
-            sections = Seq("severity", "label-type", "validations"),
-            withMapChrome = false,
-            checkedLabelTypes = labelTypes,
-            checkedValidations = valOptions,
-            checkedSeverities = severities.map(s => if(s == "null") "0" else s),
-            activeTags = tags
-          )
+    @* Review-list mode (#5444) renders no sidebar at all: the URL named the exact cards, so there is nothing to
+       filter, and the grid takes the full width a shared or reviewed set deserves. What the list has to say about
+       itself goes in a strip above the cards instead (see #gallery-content below). *@
+    @if(labelIds.isEmpty) {
+      <div class="sidebar">
+        @* Sits outside #card-filter, which wears filter-sidebar--loading while a page of cards loads: the disclosure
+           is the only way to reach the filters on a phone, so it has to stay live through the load that greys them. *@
+        <div class="gallery-filter-header">
+          <h4 id="filter-header" data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</h4>
+          @* Narrow-layout stand-in for the heading: disclosure toggle for the filter sections (see filter.css). *@
+          <button type="button" id="gallery-filter-toggle" class="gallery-filter-toggle" aria-expanded="false" aria-controls="gallery-filter-sections">
+            <span data-i18n="gallery:filter-by">@Messages("gallery.filter.by")</span>
+            <img class="gallery-filter-toggle__icon" src='@assets.path("images/icons/chevron-down-feather.svg")' alt="">
+          </button>
+          @* The global reset, distinct from the per-section "Deselect all" text actions beside it. *@
+          <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
+            <span aria-hidden="true">&#10006;</span>
+            <span data-i18n="gallery:clear-filters">@Messages("gallery.clear.filters")</span>
+          </button>
+        </div>
+        @* The shared filter sidebar (#4585). Sections keep the LabelMap's order so the two sidebars read the same.
+           Label types are single-select here: a card query fetches one type at a time, so the selected type's tag
+           drawer is the only one open. *@
+        <div id="card-filter" class="filter-sidebar--loading">
+          @* The sections render as bare sibling <section>s (withMapChrome = false), so the disclosure needs one
+             wrapper to toggle and point aria-controls at. *@
+          <div id="gallery-filter-sections">
+            @common.filterSidebar(
+              tags = allTags,
+              sections = Seq("severity", "label-type", "validations"),
+              withMapChrome = false,
+              checkedLabelTypes = labelTypes,
+              checkedValidations = valOptions,
+              checkedSeverities = severities.map(s => if(s == "null") "0" else s),
+              activeTags = tags
+            )
+          </div>
         </div>
       </div>
-    </div>
+    }
     <div id="labels-not-found-text">@Html(Messages("gallery.labels.not.found"))</div>
     <div id="gallery-content">
+      @if(labelIds.nonEmpty) {
+        <div class="gallery-list-bar">
+          @* A link, not a button: it leaves for the whole Gallery, and a button read as acting on the list. The arrow
+             sits in its own span so no translation carries a glyph. *@
+          <a class="gallery-list-bar__browse-all" href="@routes.GalleryController.gallery()">
+            <span class="gallery-list-bar__arrow" aria-hidden="true">&#8592;</span><span data-i18n="gallery:list-browse-all">@Messages("gallery.list.browse.all")</span>
+          </a>
+          @* Server-rendered so the count is right on first paint; CardContainer rewrites it with the number that
+             actually came back, which reads "N of M" once some of the asked-for labels aren't available here.
+             data-requested carries M, so the client never has to recount the URL. *@
+          <p class="gallery-list-bar__count" id="gallery-list-count" data-requested="@labelIds.size">@Messages("gallery.list.count", labelIds.size)</p>
+          @* Which ids didn't make it, behind a disclosure: the strip stays one line for the usual case where every
+             id came back, and the ids are there for the reviewer who needs to chase them. The wrapper is the live
+             region, so it is already being watched when the disclosure appears. *@
+          <div class="gallery-list-bar__unavailable-wrap" aria-live="polite">
+            <details class="gallery-list-bar__unavailable" id="gallery-list-unavailable" hidden>
+              <summary class="gallery-list-bar__summary" id="gallery-list-unavailable-heading"></summary>
+              @* The list scrolls once it is long, so it is a focusable region: a keyboard-only reader otherwise
+                 has no way to reach the ids below the fold (WCAG 2.1.1). *@
+              <ul class="gallery-list-bar__ids" tabindex="0" aria-labelledby="gallery-list-unavailable-heading"></ul>
+            </details>
+          </div>
+          @* The cap is part of the completeness promise, so a truncated list says so; a list that fits says
+             nothing, which is why this is absent rather than hidden. Neither number is a frontend literal: both
+             are rendered here and re-read off the data attributes when JS retranslates the strip. *@
+          @if(idsOverCap > 0) {
+            <p class="gallery-list-bar__truncated" id="gallery-list-truncated" data-dropped="@idsOverCap" data-max="@GalleryController.MaxLabelIds">@Messages("gallery.list.truncated", idsOverCap, GalleryController.MaxLabelIds)</p>
+          }
+          @* A failed card query is not an empty queue, so it gets its own line rather than the grid's
+             "no matches" copy. role="alert" announces it when CardContainer unhides it. *@
+          <p class="gallery-list-bar__error" id="gallery-list-error" role="alert" hidden data-i18n="gallery:list-error">@Messages("gallery.list.error")</p>
+        </div>
+      }
       <div id="image-card-container" class="cards"></div>
       <div class="gallery-expanded-view label-detail label-detail--inline">@common.labelDetail(withPaging = true)</div>
       @common.panoInfoPopover()
@@ -82,7 +121,11 @@
     <div class="paging" id="page-number"></div>
     <button type="button" class="paging" id="next-page">&gt</button>
   </div>
-  <div class="gallery-footer">@Messages("gallery.cards")</div>
+  @* The footer describes the filtered grid's random order, which a review list is not in: it is in the order the
+     caller asked for. *@
+  @if(labelIds.isEmpty) {
+    <div class="gallery-footer">@Messages("gallery.cards")</div>
+  }
 
   <script>
     // Get translations and such set up, then begin initializing the Gallery app.
@@ -97,7 +140,9 @@
          page carries them through for the card query and the URL. *@
       params.initialFilters = {
         regionIds: @{regionIds.mkString("[", ",", "]")},
-        aiValidationOptions: @{if (aiValOptions.isEmpty) "[]" else Html(aiValOptions.mkString("['", "','", "']"))}
+        aiValidationOptions: @{if (aiValOptions.isEmpty) "[]" else Html(aiValOptions.mkString("['", "','", "']"))},
+        @* A non-empty list puts the Gallery in review-list mode: these labels, in this order, filters ignored. *@
+        labelIds: @{labelIds.mkString("[", ",", "]")}
       }
 
       @* Region names, keyed by the region id each label carries, for the location line on a card. *@

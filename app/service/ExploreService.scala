@@ -15,7 +15,7 @@ import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.SidewalkUserTable.aiUserId
 import models.user._
 import models.utils.MyPostgresProfile.api._
-import models.utils.{ConfigTable, MyPostgresProfile, WebpageActivityTable}
+import models.utils.{ConfigTable, IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
@@ -155,7 +155,7 @@ trait ExploreService {
    * @param ipAddress IP address of the user submitting the survey.
    * @param data Data submitted from the survey.
    */
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]]
 }
 
 @Singleton
@@ -725,9 +725,9 @@ class ExploreServiceImpl @Inject() (
 
       // The side of the street is relative to calculatedStreetEdgeId, so it is filled in after the insert (#2886).
       newLabelPointId: Int <- labelPointTable.insert(
-        LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.heading, point.pitch,
-          point.zoom, point.lat, point.lng, pointGeom, point.computationMethod, centerlineOffsetM = None,
-          streetSide = None)
+        LabelPoint(0, newLabelId, point.panoX, point.panoY, point.canvasX, point.canvasY, point.canvasWidth,
+          point.canvasHeight, point.heading, point.pitch, point.zoom, point.lat, point.lng, pointGeom,
+          point.computationMethod, centerlineOffsetM = None, streetSide = None)
       )
       _ <- labelPointTable.computeCenterlineOffset(newLabelPointId, calculatedStreetEdgeId)
     } yield {
@@ -769,7 +769,10 @@ class ExploreServiceImpl @Inject() (
           PanoDataService.calculatePovIfCentered(
             POV(point.heading, point.pitch, point.zoom),
             point.canvasX.toDouble,
-            point.canvasY.toDouble
+            point.canvasY.toDouble,
+            point.canvasWidth,
+            point.canvasHeight,
+            label.panoSource
           )
         val (expectedX, expectedY) = PanoDataService.calculatePanoXYFromPov(labelPov, camHeading, width, height)
         val dxPx                   = { val d = math.abs(point.panoX - expectedX); math.min(d, width - d) }
@@ -780,7 +783,7 @@ class ExploreServiceImpl @Inject() (
               s"pano=${label.panoId} stored pano_x/y=(${point.panoX}, ${point.panoY}) " +
               s"record replays to=($expectedX, $expectedY) mismatch=${f"$mismatchDeg%.3f"}deg " +
               s"record=(h=${point.heading}, p=${point.pitch}, z=${point.zoom}, " +
-              s"canvas=${point.canvasX},${point.canvasY})"
+              s"canvas=${point.canvasX},${point.canvasY} frame=${point.canvasWidth}x${point.canvasHeight})"
           )
         }
       }
@@ -917,7 +920,8 @@ class ExploreServiceImpl @Inject() (
 
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
-            heading = pov.heading, pitch = pov.pitch, pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
+            LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, heading = pov.heading, pitch = pov.pitch,
+            pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
             computationMethod = Some(ComputationMethod.Approximation3))
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,
@@ -1070,7 +1074,7 @@ class ExploreServiceImpl @Inject() (
     })
   }
 
-  def submitSurvey(userId: String, ipAddress: String, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
+  def submitSurvey(userId: String, ipAddress: IpAddress, data: Seq[SurveySingleSubmission]): Future[Seq[Int]] = {
     db.run((for {
       numMissionsCompleted: Int <- missionTable
         .countCompletedMissions(userId, includeOnboarding = false, includeSkipped = true)

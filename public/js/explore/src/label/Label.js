@@ -8,6 +8,15 @@ class Label {
 
   #googleMarker;
 
+  // Which era of the user's work this label belongs to on the minimap: 'current' (this mission), 'prior' (an earlier
+  // mission in this region), or 'outdated' (placed on imagery that has since been replaced, #4945). See minimapEra.
+  /** @type {'current'|'prior'|'outdated'} */
+  #minimapEra = 'current';
+
+  // True while the "My earlier labels" legend toggle hides this label's minimap marker. Kept apart from the deleted /
+  // visibility status so render() can't put the marker back on the map the next time the pano is drawn.
+  #minimapSuppressed = false;
+
   // Size the label-type icons are rasterized to before being drawn (see preloadIcons). The label canvas renders at
   // its on-screen size times the device pixel ratio, so the icon tops out around 76 device pixels on a HiDPI
   // display (util.LABEL_ICON_MAX_SCREEN_DIAMETER at devicePixelRatio 2); rasterizing below that is what left the
@@ -29,6 +38,7 @@ class Label {
     missionId: undefined,
     labelType: undefined,
     originalCanvasXY: undefined,
+    originalCanvasFrame: undefined, // The logical frame originalCanvasXY is in (#5085); stored with the label.
     currCanvasXY: undefined,
     panoXY: undefined,
     originalPov: undefined,
@@ -49,6 +59,7 @@ class Label {
     temporaryLabelId: null,
     description: null,
     crop: undefined,
+    fromOutdatedImagery: false,
   };
 
   #status = {
@@ -82,12 +93,13 @@ class Label {
       );
     }
 
-    // Create the marker on the minimap.
+    // Create the marker on the minimap, styled for the era it belongs to (#4945).
     const latlng = this.toLatLng();
-    this.#googleMarker = Label.createMinimapMarker(this.#properties.labelType, latlng);
+    this.#minimapEra = Label.minimapEra(this.#properties, Label.#currentMissionId());
+    this.#googleMarker = Label.createMinimapMarker(this.#properties.labelType, latlng, this.#minimapEra);
     this.#googleMarker.map = svl.minimap.getMap();
-    // Click the marker to return to this label's pano (#2561). gmpClickable (set in createMinimapMarker) is what makes
-    // the AdvancedMarkerElement emit gmp-click.
+    // Click the marker to return to this label's pano (#2561). gmpClickable (set per era in styleMinimapMarker) is what
+    // makes the AdvancedMarkerElement emit gmp-click, so only a current-era marker ever does.
     this.#googleMarker.addListener('gmp-click', () => this.#returnToLabelFromMinimap());
   }
 
@@ -105,6 +117,82 @@ class Label {
       panoId: this.#properties.panoId,
     });
     svl.navigationService.returnToPano(this.#properties.panoId, this.#properties.povOfLabelIfCentered);
+  }
+
+  /** The current mission's id, or null before a mission is loaded (and in unit tests without a mission container). */
+  static #currentMissionId() {
+    const mission = svl.missionContainer?.getCurrentMission?.();
+    return mission ? mission.getProperty('missionId') : null;
+  }
+
+  /**
+   * Classifies a label for the minimap (#4945): the current mission's labels are the user's live work; labels from
+   * an earlier mission in the region are an earlier pass; labels whose audit task is flagged outdated_imagery were
+   * placed on imagery that has since been replaced, so during a re-audit they are the previous era's record.
+   *
+   * Era is keyed on mission rather than audit task because that is the boundary the user experiences (the
+   * mission-complete modal), and it matches the rule the marker click already uses: only current-mission labels can
+   * be returned to. The mission test comes first: a label placed in the mission the user is on right now is live work
+   * even if its audit task has since been flagged outdated_imagery (a mission spans several tasks, so one can be
+   * flagged mid-mission by the nightly freshness sync). A label with no mission id, or with no mission loaded to
+   * compare against, is never 'prior', so nothing is dimmed by accident; only the imagery flag can dim it.
+   *
+   * @param {{missionId?: number, fromOutdatedImagery?: boolean}} props - The label's properties.
+   * @param {?number} currentMissionId - The mission the user is on, or null if unknown.
+   * @returns {'current'|'prior'|'outdated'}
+   */
+  static minimapEra(props, currentMissionId) {
+    const { missionId } = props;
+    const known = (id) => id !== null && id !== undefined;
+    const bothKnown = known(currentMissionId) && known(missionId);
+    if (bothKnown && missionId === currentMissionId) return 'current';
+    if (props.fromOutdatedImagery) return 'outdated';
+    if (bothKnown) return 'prior';
+    return 'current';
+  }
+
+  getMinimapEra() {
+    return this.#minimapEra;
+  }
+
+  /**
+   * Re-derives the era against the mission now current and restyles the marker. Called when the mission changes: the
+   * labels just placed become the previous pass, and a resumed mission's labels come back as current work. Whether the
+   * marker is on the map is the legend toggle's call (LabelContainer.refreshMinimapEras re-applies it after this).
+   */
+  refreshMinimapEra() {
+    const era = Label.minimapEra(this.#properties, Label.#currentMissionId());
+    if (era === this.#minimapEra) return;
+    this.#minimapEra = era;
+    if (this.#googleMarker) {
+      Label.styleMinimapMarker(this.#googleMarker, this.#properties.labelType, era);
+    }
+  }
+
+  /**
+   * Hides or shows this label's minimap marker for the "My earlier labels" legend toggle. Only the marker: the label
+   * itself stays live, is still drawn on its pano, and still counts.
+   * @param {boolean} suppressed
+   */
+  setMinimapMarkerSuppressed(suppressed) {
+    this.#minimapSuppressed = suppressed;
+    if (!this.#googleMarker) return;
+    if (suppressed) {
+      this.#googleMarker.map = null;
+    } else if (!this.isDeleted() && !this.#googleMarker.map) {
+      // Only when off the map: the toggle re-applies to every label at each mission change, and re-assigning the map
+      // to a marker already on it would re-attach it for nothing.
+      this.#googleMarker.map = svl.minimap.getMap();
+    }
+  }
+
+  isMinimapMarkerSuppressed() {
+    return this.#minimapSuppressed;
+  }
+
+  /** @returns {google.maps.marker.AdvancedMarkerElement} This label's minimap marker. */
+  getMinimapMarker() {
+    return this.#googleMarker;
   }
 
   // Some functions for easy access to commonly accessed properties.
@@ -225,7 +313,7 @@ class Label {
   /**
    * Renders this label on a canvas.
    * @param {CanvasRenderingContext2D} ctx
-   * @param {object} pov
+   * @param {{heading: number, pitch: number, zoom: number}} pov
    * @returns {Label} this.
    */
   render(ctx, pov) {
@@ -237,7 +325,7 @@ class Label {
       // Update the coordinates of the label on the canvas.
       this.#properties.currCanvasXY = util.pano.centeredPovToCanvasCoord(
         this.#properties.povOfLabelIfCentered, pov,
-        util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+        svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height, svl.LABEL_ICON_RADIUS, svl.renderedHFov(pov.zoom),
       );
 
       // Draw the label icon if it's in the visible part of the pano.
@@ -262,8 +350,8 @@ class Label {
       }
     }
 
-    // Show the label on the Google Maps pane.
-    if (!this.isDeleted()) {
+    // Show the label on the Google Maps pane, unless the legend toggle has hidden earlier labels' markers.
+    if (!this.isDeleted() && !this.#minimapSuppressed) {
       if (this.#googleMarker && !this.#googleMarker.map) {
         this.#googleMarker.map = svl.minimap.getMap();
       }
@@ -580,30 +668,70 @@ class Label {
   }
 
   /**
+   * The minimap marker's accessible name for a label of the given type and era. Earlier eras say so, and drop the
+   * "click to review" affordance, because the click only returns to current-mission labels (#2561).
+   * @param {string} labelType
+   * @param {'current'|'prior'|'outdated'} era
+   * @returns {string}
+   */
+  static minimapMarkerTitle(labelType, era) {
+    const labelTypeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '');
+    const key = {
+      current: 'audit:right-ui.minimap.label-marker-title',
+      prior: 'audit:right-ui.minimap.label-marker-title-prior',
+      outdated: 'audit:right-ui.minimap.label-marker-title-outdated',
+    }[era];
+    return i18next.t(key, { labelType: labelTypeName });
+  }
+
+  /**
+   * Applies an era's look and behavior to a minimap marker: the CSS class that dims earlier passes
+   * (.minimap-label-icon--prior / --outdated), the matching accessible name and hover title, whether it is clickable,
+   * and its z-order.
+   *
+   * Only a current-era marker is clickable, because the click only returns to current-mission labels (#2561). Google
+   * makes a clickable AdvancedMarkerElement a keyboard-focusable control, so leaving earlier markers clickable would
+   * add a focus stop per earlier label (hundreds on a re-audit) whose activation does nothing.
+   *
+   * The z-index puts this pass's markers above earlier ones. It is deliberately low: the forward crumbs (20-30) and
+   * the peg (1000) set higher ones, so a label marker never hides the navigation it sits on.
+   * @param {google.maps.marker.AdvancedMarkerElement} marker
+   * @param {string} labelType
+   * @param {'current'|'prior'|'outdated'} era
+   */
+  static styleMinimapMarker(marker, labelType, era) {
+    const content = /** @type {HTMLImageElement} */ (marker.content);
+    content.className = era === 'current' ? 'minimap-label-icon' : `minimap-label-icon minimap-label-icon--${era}`;
+    content.dataset.era = era;
+    const title = Label.minimapMarkerTitle(labelType, era);
+    content.alt = title;
+    marker.title = title;
+    marker.gmpClickable = era === 'current';
+    marker.zIndex = era === 'current' ? 2 : 1;
+  }
+
+  /**
    * Creates the marker shown for this label on the minimap using Google Maps AdvancedMarkerElement.
    * @param {string} labelType
    * @param {{lat: number, lng: number}} latLng
+   * @param {'current'|'prior'|'outdated'} [era='current'] - See minimapEra.
    * @returns {google.maps.marker.AdvancedMarkerElement}
    */
-  static createMinimapMarker(labelType, latLng) {
+  static createMinimapMarker(labelType, latLng, era = 'current') {
     const content = document.createElement('img');
     // Sizing is set in .minimap-label-icon.
     content.src = util.misc.getIconImagePaths(labelType).iconImagePath;
-    content.className = 'minimap-label-icon';
     // AdvancedMarkerElement anchors content by its bottom-center; shift it down half its height to center it.
     content.style.transform = 'translateY(50%)';
-    // Hover tooltip and accessible name, named the way the rest of the tool names the label type.
-    const labelTypeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '');
-    const title = i18next.t('audit:right-ui.minimap.label-marker-title', { labelType: labelTypeName });
-    content.alt = title;
-    return new google.maps.marker.AdvancedMarkerElement({
+    const marker = new google.maps.marker.AdvancedMarkerElement({
       position: new google.maps.LatLng(latLng.lat, latLng.lng),
       map: svl.minimap.getMap(),
       content,
-      // Interactive so it emits gmp-click; the click handler is wired in the Label constructor (#2561).
-      gmpClickable: true,
-      title,
     });
+    // Class (and so sizing), accessible name, clickability and z-order all depend on the era, so they are set in one
+    // place that refreshMinimapEra can re-run.
+    Label.styleMinimapMarker(marker, labelType, era);
+    return marker;
   }
 }
 

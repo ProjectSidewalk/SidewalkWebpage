@@ -644,5 +644,6 @@ class Infra3dViewer extends PanoViewer {
     // promises an immediate re-measure (rotation and viewer-swap paths call this expecting the next frame to be
     // right), so delegate to the mapillary-js-fork viewer's resize directly rather than waiting out the debounce.
     this.viewer._sdk_viewer.resize();
+    this._firePovChangedAfterResize();
   };
 }

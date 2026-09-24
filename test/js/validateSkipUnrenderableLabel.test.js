@@ -65,6 +65,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     util.pano = {
       centeredPovToCanvasCoord2d: () => ({x: 0, y: 0}),
       centeredPovToCanvasCoord: () => ({x: 0, y: 0}),
+      renderedHFov: () => 90,
     };
 
     global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');

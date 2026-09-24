@@ -17,7 +17,7 @@ maintenance operation.
   run `make <target>` from the **host**, from the repo root.
 - The interactive scripts (`fill-new-schema.sh`, `hide-streets-without-imagery.sh`, `import-street-imagery.sh`) also
   take their answers as **optional positional args** (each script's header lists them) — that's how
-  `tools/setup_new_city.py` drives them; run without args they prompt as usual.
+  `tools/city/setup_new_city.py` drives them; run without args they prompt as usual.
 - `init.sh` is special: it is **not** a `make` target. Postgres' official image runs it **once, automatically**, on the
   first boot of a fresh data volume (it's mounted into `/docker-entrypoint-initdb.d/`).
 - The data is **seeded from binary `pg_restore` dumps**, not regenerated from Play evolutions. A full city is hundreds
@@ -43,14 +43,12 @@ are **git-ignored** and must be placed in `db/` yourself; see [`docs/dev-environ
 | `import-users.sh` | `make import-users [replace=1]` | **Merges** `sidewalk_users-dump` (~1 GB) into the shared **login schema** (`sidewalk_login`): adds the accounts you're missing, keeps every account you have (local test accounts included) and every city's foreign keys into the schema. `replace=1` drops and reloads the schema instead. See the script header for how the merge works (#3721). | After first boot (with `replace=1`), and whenever a newer city dump needs a newer users dump. |
 | `import-dump.sh` | `make import-dump db=<schema>` | Drops and reloads **one city's schema** from `<schema>-dump`; recreates the role, sets its `search_path`, re-grants read-only. | To load or refresh a city's data. |
 | `create-new-schema.sh` | `make create-new-schema name=<schema> donor=<schema>` | Builds a **brand-new empty city schema** by cloning a live city's structure plus its seed rows (evolutions, version, `config` + tutorial street, tags, surveys; the SidewalkAI user's rows are the app's job at boot, #5349) and bumping the sequences. Refuses a donor below evolution 373 (its `label_type` is still a table that `tag` references, so the seed copy fails half-way), one that has applied an evolution beyond the checkout's highest, or whose top evolution is another branch's under the same number — accepted when its hash is the file's (`make` passes both), otherwise the other city schemas must agree with it. The committed template is not used here — it is frozen at evolution 252 and can't be replayed past 372 (#5198). | When standing up a city you don't yet have a dump for. |
-| `fill-new-schema.sh` | `make fill-new-schema` | Populates a new city's `street_edge` / `region` / priority tables from the **staging tables** (`qgis_road`, `qgis_region` — from `scripts/onboard_city.py` or a QGIS export), relocates the seeded tutorial street past the imported ids, sets the city center, map bounds, and zoom from the open regions, and prints what landed. | After `create-new-schema` + loading the staging SQL, to bring the city online. |
+| `fill-new-schema.sh` | `make fill-new-schema` | Populates a new city's `street_edge` / `region` / priority tables from the **staging tables** (`qgis_road`, `qgis_region` — from `tools/city/onboard_city.py` or a QGIS export), relocates the seeded tutorial street past the imported ids, sets the city center, map bounds, and zoom from the open regions, and prints what landed. | After `create-new-schema` + loading the staging SQL, to bring the city online. |
 | `hide-streets-without-imagery.sh` | `make hide-streets-without-imagery` | Marks streets listed in a CSV as `status = 'no_imagery'` so they're not handed out for auditing. | After running `check_streets_for_imagery.py`. |
 | `reveal-or-hide-regions.sh` | `make reveal-or-hide-regions` | Opens or closes whole **regions** for auditing (flips `region.deleted` + street status between `open`/`closed`); relocates the tutorial street if its region is hidden. | Phased city launches; pulling a region back. |
 | `import-street-imagery.sh` | `make import-street-imagery` | Ingests `check_streets_for_imagery.py`'s per-street imagery summary CSV into the `street_imagery` table. | When backfilling imagery-age data for a city (#4348). |
 | `lint-evolutions.sh` | `make lint-evolutions` | **Static lint** for `conf/evolutions/default/*.sql` (catches semicolons mid-comment and missing `!Ups`/`!Downs` markers). Runs in CI. | Automatically in CI; run locally before pushing an evolution. |
 | `helpers.sh` | _(sourced, not run)_ | Shared bash functions: `prompt_with_default`, `read_street_ids_from_csv`, `mark_streets_no_imagery` (which takes a `street_edge_status_change_source` value as its second argument), and `run_with_progress` (the spinner/clock used by the restore scripts). | Never directly — it's `source`d by the others. |
-| `remove_streets.sql` | _(run by hand in psql)_ | **Playbook** to remove a set of `street_edge`s (soft-delete if they have work, hard-delete otherwise), with a preview and `ROLLBACK` guard. | One-off cleanup of bad/duplicate streets. |
-| `remove_validations.sql` | _(run by hand in psql)_ | **Playbook** to remove a set of `label_validation`s and reconcile the derived counts, with a preview and `ROLLBACK` guard. | One-off cleanup (e.g. self-validations from a past bug). |
 
 ## Typical workflows
 
@@ -64,9 +62,9 @@ make dev  ─▶  init.sh (auto)  ─▶  make import-users replace=1  ─▶  m
 [`docs/onboarding-a-city.md`](../../docs/onboarding-a-city.md). In short:
 
 ```
-make build-city-data id=<city-id> args="--place '<City, State, Country>'"   # scripts/onboard_city.py → db/onboarding/<city-id>/
+make build-city-data id=<city-id> args="--place '<City, State, Country>'"   # tools/city/onboard_city.py → db/onboarding/<city-id>/
 make check-imagery   id=<city-id> args="--sample --gsv"                       # imagery preflight, per provider
-make onboard-city    id=<city-id>                                             # tools/setup_new_city.py: configs, GA, schema, fill, scan, dump
+make onboard-city    id=<city-id>                                             # tools/city/setup_new_city.py: configs, GA, schema, fill, scan, dump
 ```
 
 `onboard-city` drives the scripts here in this order — the same steps by hand, for a QGIS export or a partial rerun:
@@ -87,16 +85,7 @@ and `db/scripts/` are invisible to it.
 
 - Open/close regions: `make reveal-or-hide-regions`
 - Mark no-imagery streets: `make hide-streets-without-imagery`
-- Remove specific streets / validations: run `remove_streets.sql` / `remove_validations.sql` by hand (below).
-
-**Running the `.sql` playbooks** (they are not automated on purpose — they're destructive and want a human in the loop):
-
-```bash
-docker exec -it projectsidewalk-db psql -U sidewalk -d sidewalk -f /opt/scripts/remove_streets.sql
-```
-
-Each file runs inside a `BEGIN; … COMMIT;` block with a **preview query** in the middle — read the preview, then commit
-or `ROLLBACK`. Edit the candidate-id list and the `search_path` (target city schema) at the top before running.
+- Hand-run cleanups (removing streets or validations, merging duplicate streets): [`tools/one-off/`](../../tools/one-off).
 
 ## Gotchas
 

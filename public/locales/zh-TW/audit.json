@@ -134,7 +134,10 @@
     "feedback": "回饋",
     "feedback-tooltip": "和我們分享一下你的想法",
     "feedback-submitted": "已送出回饋",
-    "feedback-title": "有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！"
+    "feedback-title": "有任何想法或問題嗎？或是找到程式錯誤?<br>歡迎給我們任何回饋喔！",
+    "immersive-enter": "進入沉浸模式",
+    "immersive-exit": "離開沉浸模式",
+    "immersive-exit-hint": "沉浸模式。按 F 離開。"
   },
   "right-ui": {
     "opens-new-tab": "(在新分頁中開啟)",
@@ -160,10 +163,18 @@
     },
     "reaudit": {
       "title": "這條街道有更新的街景影像",
-      "message-you": "你上次標註這條街道是在 {{lastMapped}}，但影像之後已更新（{{newImagery}}）。一起來看看有什麼改變吧！",
-      "message-you-no-dates": "你先前標註過這條街道，但影像之後已更新。一起來看看有什麼改變吧！",
-      "message-others": "另一位使用者在 {{lastMapped}} 標註過這條街道，但影像之後已更新（{{newImagery}}）。一起來看看有什麼改變吧！",
-      "message-others-no-dates": "另一位使用者先前標註過這條街道，但影像之後已更新。一起來看看有什麼改變吧！"
+      "message-you": "你上次評估這條街道是在 {{lastMapped}}，但影像之後已更新（{{newImagery}}）。請再次評估這條街道，幫助我們分析有哪些改變。",
+      "message-you-no-dates": "你先前評估過這條街道，但影像之後已更新。請再次評估這條街道，幫助我們分析有哪些改變。",
+      "message-others": "這條街道上次評估是在 {{lastMapped}}，但影像之後已更新（{{newImagery}}）。請再次評估這條街道，幫助我們分析有哪些改變。",
+      "message-others-no-dates": "這條街道先前評估過，但影像之後已更新。請再次評估這條街道，幫助我們分析有哪些改變。"
+    },
+    "pano-date-note": {
+      "image-date": "影像：{{date}}",
+      "needs-reassessment": "需要重新評估",
+      "already-assessed": "已評估",
+      "already-assessed-tip": "你上次評估這個地點是在 {{assessedDate}}，這裡的影像（{{captureDate}}）自那次評估後沒有變更。如果你發現什麼，歡迎新增標記！",
+      "needs-reassessment-tip-you": "你上次評估這個地點是在 {{assessedDate}}，但這裡的影像更新（{{captureDate}}）。請再次評估，幫助我們分析有哪些改變。",
+      "needs-reassessment-tip-others": "有使用者在 {{assessedDate}} 最後一次評估這個地點，但這裡的影像更新（{{captureDate}}）。請再次評估，幫助我們分析有哪些改變。"
     },
     "minimap": {
       "coach-dismiss": "知道了",
@@ -184,11 +195,14 @@
       "forward-crumb-title": "前往第 {{rank}} 站",
       "legend-other-links": "其他方向",
       "legend-faced": "實心：向前會到達的位置",
+      "legend-earlier-labels": "我先前的標記",
       "link-crumb-title": "前往此全景",
       "legend-next-step": "淺藍：下一步（空白鍵）",
       "route-stop-title": "路線上的第 {{rank}} 站",
       "breadcrumb-title": "已造訪：點擊返回此處",
       "label-marker-title": "{{labelType}} 標記：點擊查看",
+      "label-marker-title-prior": "來自先前任務的「{{labelType}}」標記",
+      "label-marker-title-outdated": "「{{labelType}}」舊標記（此街道已有新影像）",
       "route-start-flag": "路線起點",
       "route-finish-flag": "路線終點",
       "mission-start-flag": "本次任務的起點",

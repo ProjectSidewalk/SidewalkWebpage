@@ -30,7 +30,11 @@ Run the three from the **main checkout**: `db/` is the bind mount the db contain
   3. what the tool finds on its own: OSM neighbourhood polygons (used only when they cover ≥ 75% of the city), then
      US census tracts, then the whole city as one region (fine for a small town).
   Whatever you use, record where it came from with `--regions-source` (a URL, or the collaborator's email); it is
-  stored in `region.data_source`.
+  stored in `region.data_source`. **Regions must tile the city — never overlap.** Street pieces are cut out of the
+  region polygons, so a street lying under two of them is cut twice and lands in the database twice (#3067). A
+  hairline where two borders were traced a metre apart is repaired for you, by giving that ground to the smaller
+  region (`--max-region-sliver-m`, 5 m). An overlap thicker than that is a real disagreement about where a region
+  is, so the build stops and names the pairs for you to settle in QGIS.
   A town small enough to come out as **one region** is named after the city, not after whatever source it landed in
   — Laurens, IA would otherwise be the neighbourhood "Census Tract 7801" everywhere a region name shows (missions,
   the dashboard, LabelMap's filters, the API's `region_name`). The name comes from `--place`; pass
@@ -51,7 +55,7 @@ make build-city-data id=bayonne-fr args="--boundary-file bayonne.geojson --regio
     --region-name-col nom --regions-source 'https://www.data.gouv.fr/… (Ville de Bayonne, Licence Ouverte 2.0)'"
 ```
 
-`scripts/onboard_city.py` geocodes the boundary (or reads yours), fetches the streets from OpenStreetMap with the
+`tools/city/onboard_city.py` geocodes the boundary (or reads yours), fetches the streets from OpenStreetMap with the
 same highway filter the QGIS runbook used (`--include-alleys` for `service=alley`), splits them only where included
 ways meet, and applies the anti-tiny-segment rules from #4717: pieces under 20 m left between close intersections
 (roundabout arcs, dual-carriageway stubs) merge back into a touching piece of the same OSM way, never closing a ring;
@@ -67,6 +71,7 @@ It never touches the database. It writes, under `db/onboarding/<city-id>/`:
 | `<city-id>_qa.gpkg` | The QA GeoPackage for QGIS: `qgis_road`, `qgis_region`, `city_boundary`, plus `dropped_segments` and `rider_merges` so you can see what the rules did. |
 | `qgis_tables.sql` | The staging tables `fill-new-schema.sh` consumes (`qgis_road`: `road_id`, `osm_ids bigint[]`, `highway`, `region_id`, `geom`; `qgis_region`: `region_id`, `name`, `data_source`, `geom`). |
 | `street_edge_endpoints.csv` | The imagery scan's input, so step 2 can run before any database exists. |
+| `street_structures.csv` | Which streets lie on a bridge, in a tunnel, or under cover, from the OSM tags the build already fetched. The street-gradient export (step 8 of the setup) reads it in place of the `osm_way` cache, which is empty until the city's first nightly refresh (#5223); each row carries the street's geometry hash, so the export refuses a file from another build. It also rides in the GeoPackage's `qgis_road` layer, so a `--from-gpkg` re-export rewrites it; a hand-built layer without the column gets no file, and the grade is sampled after launch instead. |
 
 **The QA loop.** Open the GeoPackage in QGIS over a basemap and look at the boundary, the dropped segments, and any
 flagged region. Two ways back:
@@ -74,14 +79,15 @@ flagged region. Two ways back:
 - *Parameters:* rerun with different flags. `--merge-regions "Census Tract 513:Census Tract 523.01"` folds a sparse
   region into its neighbour by **name** and reruns the whole assignment, so streets re-split against the merged
   boundary and ids stay dense. Thresholds: `--merge-tiny-m`, `--heal-segment-m`, `--boundary-merge-tol-m`,
-  `--min-segment-m`, `--max-region-street-km`. `--rename-regions` renames regions from
+  `--min-segment-m`, `--max-region-street-km`, `--max-region-sliver-m`. `--rename-regions` renames regions from
   `db/onboarding/<city-id>/region_renames.csv` (`current_name,new_name`); pass it on every build, since rows already
   applied are skipped. A repeated source name is kept as separate regions, `"X (2)"` (logged, not in the report).
 - *Hand edits:* delete a street, reassign its `region_id`, move a boundary — in the GeoPackage — then
   `make build-city-data id=<city-id> args="--from-gpkg"`, which validates the layers (unique ids, region references,
-  geometry types, non-empty names, at least one OSM way id per street) and rewrites the SQL, report, and endpoints
-  CSV so the load matches what you QA'd. Region edits big enough that streets should re-split go back in as the
-  region source instead: `--regions-file <the QA gpkg> --regions-source "..."`.
+  geometry types, non-empty names, at least one OSM way id per street, no two streets drawn on top of each other)
+  and rewrites the SQL, report, and endpoints CSV so the load matches what you QA'd. Region edits big enough that
+  streets should re-split go back in as the region source instead:
+  `--regions-file <the QA gpkg> --regions-source "..."`.
 
 Never load a stale SQL over hand edits.
 
@@ -109,7 +115,7 @@ make onboard-city id=laurens-ia
 make onboard-city id=laurens-ia args="--skip-scan"        # any of the script's flags go through args=
 ```
 
-`tools/setup_new_city.py` is host-side and stdlib-only; it edits repo files and drives the two containers. It pauses
+`tools/city/setup_new_city.py` is host-side and stdlib-only; it edits repo files and drives the two containers. It pauses
 where a person is needed and skips whatever a previous run already did. **Run it from the checkout the containers
 were started from** — they mount that checkout's `db/` at `/opt` and the whole tree at `/home`, and every db step
 reads that copy, so from a git worktree or a second clone the script would check its own artifacts and evolutions
@@ -133,10 +139,10 @@ its default either way.
    and prints the translation keys you still owe. The false-by-default flags (`private-profiles-by-default`,
    `global-leaderboard-excluded`, `ai-label-submission-enabled`) are left unset.
 2. **Google Analytics** — with `ga-service-account.json` in the repo root (one-time setup in
-   `tools/create_ga_properties.py`), creates the prod and test properties inside the existing GA accounts and fills
+   `tools/city/create_ga_properties.py`), creates the prod and test properties inside the existing GA accounts and fills
    both the `G-…` measurement ids and the numeric property ids. Skipped with a pointer otherwise; run the script
    standalone later. Then it asks to add both URLs' hostnames to the production Maps key's referrers
-   (`tools/maps_key_referrers.py`, which only ever appends); without them the city's map and panos don't load. It
+   (`tools/city/maps_key_referrers.py`, which only ever appends); without them the city's map and panos don't load. It
    needs `gcloud` signed in as an identity that can edit the key, and when gcloud can't read or edit it, the step is
    skipped with a pointer.
 3. **Schema** — `db/scripts/create-new-schema.sh` clones a **donor** city's structure and seed rows (evolutions,
@@ -179,8 +185,15 @@ its default either way.
 7. **Imagery scan** — exports the endpoints from the database, runs `check_streets_for_imagery.py` for the city's
    provider (resumable; an hour or so for a mid-sized city), hides the no-imagery streets, and imports the imagery-age
    summary into `street_imagery`. `--skip-scan` defers it; a rerun picks it up.
-8. **Dump** — `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the
-   server both restore, with the data of every table the clone, the fill and the scan do not write left out
+8. **Street gradient** — exports the streets with the build's `street_structures.csv` standing in for the `osm_way`
+   cache, samples the elevation model registered for the city's country (`tools/city/street_gradient.py`, seconds for
+   most cities), and imports the result into `street_gradient`, so the grades ride into prod inside the dump
+   ([`street-gradient.md`](street-gradient.md)). A country with no registered model (every one but the USA today)
+   gets the hand-download recipe printed and the run goes on; once the rasters are downloaded, rerun with
+   `args="--dem-dir … --dem-name … --dem-resolution-m …"` (the sampler's own flags), or backfill the live city. A
+   build without `street_structures.csv` skips the step too. `--skip-gradient` defers it; a rerun picks it up.
+9. **Dump** — `pg_dump -Fc` of the finished schema to `db/<schema>-dump`, the file `make import-dump` and the
+   server both restore, with the data of every table the clone, the fill, the scan and the gradient do not write left out
    (`--exclude-table-data`, from the schema's own catalog, with those tables' sequences), `region_completion`
    included since the app recomputes it from an empty table. A local QA pass (one walk in Explore leaves an
    `audit_task`, thousands of `audit_task_interaction` rows, a moved `audited_distance`) and a job run as the city
@@ -216,8 +229,10 @@ its default either way.
   nightly run (`app/actor/ScheduledJobs.scala`, shifted by the city's `update_offset_hours`). AccessScore reads
   zero until then. An admin can force the intersections and clusters early from `/clustering` — on the launched
   site; a local run's rows stay local, since the dump leaves those tables' data out. The `osm_way` tags come from
-  their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`, which is why
-  deriving them during onboarding would not help (#5297).
+  their own nightly refresh, and until they land every intersection is `grade_separated = FALSE`; deriving the
+  cache during onboarding would not help there, since the intersections are rebuilt nightly anyway (#5297). The
+  one consumer that cannot wait a night, the street-gradient export, takes its bridge/tunnel flags from the build's
+  `street_structures.csv` instead, which is why `street_gradient` is filled at onboarding and does ride in the dump.
 - **The pano scraper.** Add `<city-id>,<prod fqdn>` to `/etc/sidewalk/cities.csv` on the scraper host
   ([`sidewalk-panorama-tools`](https://github.com/ProjectSidewalk/sidewalk-panorama-tools)). The nightly queue picks
   it up that evening; `scrape_queue.py --only <city-id>` pulls the panos now.
@@ -229,7 +244,7 @@ its default either way.
   dump step. The QA data stays in your local schema and out of the dump; the one thing the step changes is the
   street priorities a walk moved, which it resets to the fill's 1 on a `y`. Then the IT tooling
   (`uwcseit-sidewalk-tools`: `bin/setup-new.pl`, test stage first), the Maps-key referrers for both URLs if step 2
-  skipped them (`python3 tools/maps_key_referrers.py <city-id>`), DNS, and the PR with the config, message, and docs
+  skipped them (`python3 tools/city/maps_key_referrers.py <city-id>`), DNS, and the PR with the config, message, and docs
   changes. Where the tooling can't be used, the fallback is an email to CS support asking for the test and prod
   servers, with both URLs, any redirect from an older name, `SIDEWALK_CITY_ID`, and `DATABASE_USER`.
 
@@ -259,6 +274,9 @@ make fill-new-schema                      # schema, tutorial region, regions to 
 make check-imagery id=<city-id> args="--<provider>"
 make hide-streets-without-imagery         # schema, onboarding/<city-id>/streets_with_no_imagery.csv
 make import-street-imagery                # schema, onboarding/<city-id>/street_imagery_summary.csv
+make export-street-gradient-input args="sidewalk_<city> <city-id> --structures onboarding/<city-id>/street_structures.csv"
+make street-gradient id=<city-id>         # or args="--dem-dir ..." for a country with no registered model
+make import-street-gradient args="sidewalk_<city> onboarding/<city-id>/street_gradient.csv"
 ```
 
 A hand-built `qgis_road` needs the canonical columns (`osm_ids = ARRAY[osm_id]`); `--from-gpkg` accepts a layer with

@@ -16,6 +16,7 @@ import models.street.{
   StreetEdgeTable
 }
 import models.user.SidewalkUserWithRole
+import models.utils.IpAddress
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -219,7 +220,7 @@ class ExploreAddressServiceSpec
       severity = Some(1),
       description = None,
       tagIds = Seq.empty,
-      point = LabelPointSubmission(0, 0, 0, 0, 0d, 0d, 1d, None, None, None),
+      point = LabelPointSubmission(0, 0, 0, 0, 720, 480, 0d, 0d, 1d, None, None, None),
       temporaryLabelId = temporaryLabelId,
       timeCreated = Some(OffsetDateTime.now),
       tutorial = false,
@@ -511,8 +512,8 @@ class ExploreAddressServiceSpec
           val issuesBefore   = run(streetIssues.filter(_.userId === testUser.userId).length.result)
 
           val issue =
-            StreetEdgeIssue(0, streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, testUser.userId, "127.0.0.1",
-              OffsetDateTime.now)
+            StreetEdgeIssue(0, streetEdgeId, StreetEdgeIssueType.PanoNotAvailable, testUser.userId,
+              IpAddress("127.0.0.1"), OffsetDateTime.now)
           await(exploreService.insertNoImagery(issue))
 
           run(streetIssues.filter(_.userId === testUser.userId).length.result) mustBe issuesBefore + 1

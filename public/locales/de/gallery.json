@@ -2,6 +2,17 @@
   "card-image-alt": "Street-View-Foto einer {{labelType}}-Markierung",
   "clear-filters": "Filter löschen",
   "filter-by": "Filtern nach",
+  "list-browse-all": "Alle Beschriftungen durchsuchen",
+  "list-count-partial_one": "{{shown}} von {{count}} Beschriftung in dieser Liste",
+  "list-count-partial_other": "{{shown}} von {{count}} Beschriftungen in dieser Liste",
+  "list-count_one": "{{count}} Beschriftung in dieser Liste",
+  "list-count_other": "{{count}} Beschriftungen in dieser Liste",
+  "list-error": "Die Liste konnte nicht geladen werden. Lade die Seite neu, um es erneut zu versuchen.",
+  "list-position": "{{k}} von {{n}}",
+  "list-truncated_one": "{{count}} ID lag über dem Limit von {{max}} IDs und konnte nicht geladen werden.",
+  "list-truncated_other": "{{count}} IDs lagen über dem Limit von {{max}} IDs und konnten nicht geladen werden.",
+  "list-unavailable_one": "{{count}} nicht verfügbar",
+  "list-unavailable_other": "{{count}} nicht verfügbar",
   "none": "keine",
   "not-applicable": "nicht zutreffend"
 }

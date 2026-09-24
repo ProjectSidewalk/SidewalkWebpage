@@ -11,15 +11,7 @@
   <div class="label-detail__title-wrap">
     @* The title is the type: a button opening the type picker for those who may edit (#3671), a span otherwise. *@
     <h2 class="label-detail__title">
-      <span class="label-detail__type label-detail__type--static">
-        <img class="label-detail__type-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" aria-hidden="true">
-        <span class="label-detail__type-name"><!-- populated by JS --></span>
-      </span>
-      <button type="button" class="label-detail__type label-detail__type-button" hidden aria-expanded="false">
-        <img class="label-detail__type-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" aria-hidden="true">
-        <span class="label-detail__type-name"></span>
-        <img class="label-detail__type-chevron" src="@assets.path("images/icons/chevron-down-feather.svg")" alt="" aria-hidden="true">
-      </button>
+      @components.labelTypeTrigger()
     </h2>
     @* Delete (#3591): LabelDetail shows it to the labeler and admins and confirms first. *@
     <button type="button" class="label-detail__delete" hidden data-i18n-aria-label="labelmap:delete-label"
@@ -36,16 +28,17 @@
     <img src="@assets.path("images/icons/cross.svg")" alt="Close">
   </button>
 </header>
-<div class="label-detail__type-picker" popover hidden>
-  <p class="label-detail__type-hint" data-i18n="labelmap:change-type-hint">Tags that don't fit the new type are removed. A rating carries over only between types rated the same way.</p>
-  <div class="label-detail__type-picker-chips"></div>
-</div>
+@components.labelTypePopover()
 
 <div class="label-detail__pano-wrap">
   @if(withPaging) {
     <button type="button" class="label-detail__paging label-detail__paging--prev" data-action="prev-label" aria-label="Previous label" aria-keyshortcuts="ArrowLeft">
       <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="14.5 18 8.5 12 14.5 6"/></svg>
     </button>
+    @* "k of N" for the Gallery's review-list mode (#5444); LabelDetail's hosts that page through a filtered grid
+       have no fixed N, so it stays empty and hidden unless the Gallery fills it. Deliberately not a live region:
+       it changes on every arrow press, which is exactly what the arrows' own labels already announce. *@
+    <span class="label-detail__position" hidden></span>
   }
   <div class="label-detail__pano"></div>
   @* The viewer is built on the first open (#5128), so that one wait is the longest and lands on a blank box. *@
