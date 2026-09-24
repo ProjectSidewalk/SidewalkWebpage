@@ -111,7 +111,7 @@ class GsvViewer extends PanoViewer {
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
-      // In a text field the keys move the caret or a picker's cursor, and the pano has no focus to pan with.
+      // Let the keys through in a text field, where they move the cursor rather than the pano.
       if (e.target instanceof HTMLTextAreaElement || (e.target instanceof HTMLInputElement && e.target.type === 'text')) {
         return;
       }

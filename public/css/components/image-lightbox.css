@@ -1,4 +1,4 @@
-/* Full-size image viewer (common/ImageLightbox.js): a native <dialog> holding one image over a dark backdrop. */
+/* Full-size image viewer, opened by common/ImageLightbox.js. */
 dialog.ps-lightbox {
   max-width: calc(100vw - 32px);
   max-height: calc(100dvh - 32px);
@@ -8,7 +8,7 @@ dialog.ps-lightbox {
   overflow: visible;
 }
 
-/* ::backdrop can't read :root custom properties in all Baseline browsers, so the tint is spelled out. */
+/* ::backdrop can't read our CSS variables in every browser, so the color is spelled out. */
 dialog.ps-lightbox::backdrop {
   background: rgb(0 0 0 / 80%);
 }
@@ -16,7 +16,7 @@ dialog.ps-lightbox::backdrop {
 .ps-lightbox__img {
   display: block;
   max-width: calc(100vw - 32px);
-  max-height: calc(100dvh - 72px); /* Leaves a line for the caption. */
+  max-height: calc(100dvh - 72px); /* Leaves room for the caption. */
   border-radius: var(--border-radius);
 }
 

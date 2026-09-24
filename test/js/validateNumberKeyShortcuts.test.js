@@ -216,7 +216,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         });
 
         afterEach(() => {
-            document.body.innerHTML = ''; // Drops the focused box, which would otherwise mute the shortcuts below.
+            document.body.innerHTML = ''; // A box left focused would mute the shortcuts in later tests.
         });
 
         it('submits from anywhere else, a comment box included', () => {

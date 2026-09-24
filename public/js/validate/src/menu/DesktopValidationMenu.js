@@ -82,11 +82,11 @@ class DesktopValidationMenu {
         }
       });
 
-      // Capped at one item so a pick lands in the tag list through onItemAdd and the box clears for the next one.
+      // Capped at one item: a pick goes straight to the tag list through onItemAdd, then the box clears.
       this.#tagSelect = new TomSelect('#select-tag', {
         maxItems: 1,
         placeholder: i18next.t('validate:validate-menu.tag-search-placeholder'),
-        refreshThrottle: 0, // Filter on every keystroke, or a quick Enter picks the option from before the keystroke.
+        refreshThrottle: 0, // Filter on every keystroke, so a quick Enter picks from the current list.
         labelField: 'tag_name',
         valueField: 'tag_name',
         searchField: 'tag_name',
@@ -104,7 +104,9 @@ class DesktopValidationMenu {
           this.#addTag(tagName, false);
         },
         render: {
-          no_results: () => `<div class="no-results">${i18next.t('validate:validate-menu.tag-search-no-results')}</div>`,
+          no_results: () => {
+            return `<div class="no-results">${i18next.t('validate:validate-menu.tag-search-no-results')}</div>`;
+          },
           option: (item) => {
             // Add an example image tooltip to the tag.
             const translatedTagName = i18next.t(`common:tag.${item.tag_name.replace(/:/g, '-')}`);
@@ -117,7 +119,7 @@ class DesktopValidationMenu {
           },
         },
       });
-      // Names the combobox for screen readers by the header that visually labels it.
+      // Gives the box a name for screen readers, using the header above it.
       this.#tagSelect.control_input.setAttribute('aria-labelledby', 'validate-tags-header');
     }
 
