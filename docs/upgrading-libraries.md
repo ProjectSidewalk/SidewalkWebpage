@@ -271,14 +271,15 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/PrismJS/prism/releases)
 - **proj4js: 2.22.0** — [Download](https://cdnjs.com/libraries/proj4js) ·
   [Changelog](https://github.com/proj4js/proj4js/releases)
-- **selectize.js: 0.15.2** — **note:** unmaintained (last release 2022). The suggested successor is
-  [tom-select](https://github.com/orchidjs/tom-select), a maintained fork that drops jQuery — a good fit as we move
-  off jQuery. [Download](https://selectize.dev/docs/intro) · [Changelog](https://github.com/selectize/selectize.js/releases)
 - **three.js: 0.160.1** — **note:** only used to compute camera pitch/roll for Mapillary imagery. Mapillary bundles
   three.js but doesn't expose it on `window`. After 0.160.1 upstream stopped shipping a standalone `three.min.js`
   (bundler-only), so upgrading isn't worth it soon.
   [Download](https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js) ·
   [Changelog](https://github.com/mrdoob/three.js/releases)
+- **tom-select: 2.6.2** — the tag picker on Validate (the jQuery-free successor of selectize). We ship the `base`
+  build, which has no plugins, plus the unthemed `tom-select.min.css`; the picker's look comes from
+  `svv-validation-menu.css`. [Download (set version in URL)](https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/) ·
+  [Changelog](https://github.com/orchidjs/tom-select/releases)
 - **turf.js: 7.4.0** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.4.0/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
 - **vega: 5.33.1, vega-lite: 5.23.0, vega-embed: 6.29.0** — the coverage charts on the admin dashboard. We
@@ -288,11 +289,10 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/vega/vega-lite/releases)
 - **jquery: 1.12.2** — **note:** never upgrade it; #4394 removes it outright, so a call site is replaced with native
   DOM / `fetch` rather than kept on a newer jQuery.
-- **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
-> **jQuery / Bootstrap removal:** several entries above (Bootstrap, magnific-popup, selectize) are part of
-> a slow, deliberate transition *off* jQuery and Bootstrap toward native JS/CSS. Prefer native alternatives in new
-> code rather than leaning further on these. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+> **jQuery / Bootstrap removal:** the Bootstrap and jQuery entries above are part of a slow, deliberate transition
+> *off* jQuery and Bootstrap toward native JS/CSS (#4394). Prefer native alternatives in new code rather than leaning
+> further on these. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## Python
 

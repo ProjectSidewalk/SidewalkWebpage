@@ -82,6 +82,7 @@ declare namespace PhotoSphereViewer {
 }
 declare const proj4: any;
 declare const THREE: any;
+declare const TomSelect: any;
 declare const turf: any;
 declare namespace turf {
   type Feature<G = any> = any;
@@ -95,15 +96,6 @@ declare namespace GeoJSON {
   type FeatureCollection<G = any> = any;
   type Geometry = any;
   type LineString = any;
-}
-
-// jQuery plugins from Bootstrap, Magnific Popup, and Selectize.
-interface JQuery {
-  magnificPopup(...args: any[]): JQuery;
-  modal(...args: any[]): JQuery;
-  popover(...args: any[]): JQuery;
-  selectize(...args: any[]): JQuery;
-  tooltip(...args: any[]): JQuery;
 }
 
 declare namespace JQuery {

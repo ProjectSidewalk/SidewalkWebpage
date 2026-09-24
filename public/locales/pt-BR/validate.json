@@ -16,6 +16,8 @@
   },
   "validate-menu": {
     "remove-tag": "Remover etiqueta: {{tag}}",
+    "tag-search-placeholder": "Adicione mais etiquetas aqui",
+    "tag-search-no-results": "Nenhuma etiqueta correspondente",
     "disagree-reason": {
       "common": {
         "wrong-type": "Este é o tipo de rótulo errado",
