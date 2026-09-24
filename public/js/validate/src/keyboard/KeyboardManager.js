@@ -45,7 +45,7 @@ class KeyboardManager {
     if (document.activeElement === validationMenuUi.optionalCommentTextBox[0]
       || document.activeElement === validationMenuUi.disagreeReasonTextBox[0]
       || document.activeElement === validationMenuUi.unsureReasonTextBox[0]
-      || document.activeElement === document.getElementById('select-tag-selectized')) {
+      || document.activeElement === document.getElementById('select-tag-ts-control')) {
       this.#addingComment = true;
     } else {
       this.#addingComment = false;

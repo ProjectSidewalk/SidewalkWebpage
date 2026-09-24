@@ -6,9 +6,7 @@ $(document).ready(() => {
     $('#subtopics-list').append(listItem);
   });
 
-  $('.img-responsive').magnificPopup({
-    type: 'image',
-  });
+  new ImageLightbox('.help img.img-responsive');
 
   /**
    * If the panel is a sidebar (when window width >= 978px), make the panel scrollable when the user presses the plus,

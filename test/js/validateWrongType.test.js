@@ -500,10 +500,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
   beforeAll(() => {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8'));
-    window.$.fn.selectize = function selectize() {
-      this[0].selectize = { clearOptions() {}, addOption() {}, clear() {}, removeOption() {} };
-      return this;
-    };
+    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
     window.util.getImage = () => Promise.resolve('img');
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
     loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
@@ -516,6 +513,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       <button id="validate-no-button"></button>
       <button id="validate-unsure-button"></button>
       <div id="validate-label-type-section"><div id="label-type-picker"></div></div>
+      <div class="current-tag template"><div class="tag-name"></div><button class="remove-tag-x"></button></div>
       <div id="validate-tags-section">
         <div id="current-tags-list"></div>
         <div id="sidewalk-ai-suggestions-block"><div class="sidewalk-ai-suggested-tag template"></div></div>

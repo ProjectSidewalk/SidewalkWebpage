@@ -157,7 +157,7 @@
 
 /* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the
   order of inclusion should be flipped. */
-.validate-text-input input, .selectize-input {
+.validate-text-input input, .ts-control {
   display: flex !important;
   width: 100% !important;
   height: calc(36px * var(--ui-scale)) !important;
@@ -172,17 +172,27 @@
 
 }
 
-.selectize-input.focus.input-active.has-options {
-  border-radius: calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) 0 0;
+/* Tom Select reserves right padding through this variable, with a higher-specificity rule than the one above. */
+.ts-wrapper {
+  --ts-pr-min: calc(18px * var(--ui-scale));
 }
 
-.selectize-dropdown {
-  border-radius: 0 0 calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) !important;
+.ts-wrapper.dropdown-active .ts-control {
+  border-radius: calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) 0 0 !important;
 }
 
-.selectize-input input {
+.ts-dropdown {
+  margin-top: 0;
+  border-radius: 0 0 calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale));
+}
+
+.ts-control input {
   font: var(--text-tiny-semibold);
-  width: 100% !important; /* Text was getting cut off by default. */
+}
+
+/* Tom Select's single mode gives the typing box a pointer cursor, as if it were a plain dropdown. */
+.ts-wrapper.single .ts-control input {
+  cursor: text;
 }
 
 #current-tags-list {
@@ -214,11 +224,11 @@
   mask-image: url("../../../images/icons/cross.svg");
 }
 
-.selectize-dropdown-content {
+.ts-dropdown-content {
   display: flex;
   width: calc(285px * var(--ui-scale));
   height: fit-content;
-  max-height: calc(200px * var(--ui-scale)); /* Selectize's own stylesheet caps this at a fixed 200px. */
+  max-height: calc(200px * var(--ui-scale)); /* Tom Select's own stylesheet caps this at a fixed 200px. */
   padding: calc(12px * var(--ui-scale));
   align-items: center;
   align-content: center;
@@ -226,27 +236,27 @@
   flex-wrap: wrap;
 }
 
-/* Selectize renders its own .option nodes; DesktopValidationMenu adds the tag-pill classes so they pick up the
-   shared pill look. These rules out-rank selectize's own stylesheet, which is more specific than .tag-pill. */
-.selectize-dropdown .option.tag-pill {
+/* Tom Select renders its own .option nodes; DesktopValidationMenu adds the tag-pill classes so they pick up the
+   shared pill look. These rules out-rank Tom Select's own stylesheet, which is more specific than .tag-pill. */
+.ts-dropdown .option.tag-pill {
   padding: calc(5px * var(--ui-scale)) calc(10px * var(--ui-scale));
   font: var(--text-tiny-semibold);
   text-align: center;
   transition: all 0.3s;
 
-  /* Selectize wraps the matched search substring in a <span class="highlight">, splitting the option's text into
+  /* Tom Select wraps the matched search substring in a <span class="highlight">, splitting the option's text into
      separate children. The shared .tag-pill class is an inline-flex container with a gap, which would then insert a
      visible space around the highlight span (#4523). Zero the gap here to fix the issue. */
   gap: 0;
 }
 
 /* Removing default styling for "active" options in dropdown. Would be left over after hover. */
-.selectize-dropdown .option.active {
+.ts-dropdown .option.active {
   background: inherit;
   color: inherit;
 }
 
-.selectize-dropdown .option.tag-pill:hover {
+.ts-dropdown .option.tag-pill:hover {
   background: var(--color-pine-200);
   outline: none;
 }
