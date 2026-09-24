@@ -129,7 +129,7 @@ PUT     /adminapi/partners/order                        controllers.PartnerContr
 PUT     /adminapi/globalPartners/order                  controllers.PartnerController.reorderGlobalPartners
 PUT     /adminapi/partners/:partnerId                   controllers.PartnerController.updatePartner(partnerId: Int)
 DELETE  /adminapi/partners/:partnerId                   controllers.PartnerController.deletePartner(partnerId: Int)
-# The "contact <city> directly" notice under the partner logos (#5462), edited on the same admin page.
+# The "contact <city> directly" notice in the landing page's partners section (#5462), edited on the same admin page.
 GET     /adminapi/officialContact                       controllers.PartnerController.getOfficialContact
 PUT     /adminapi/officialContact                       controllers.PartnerController.updateOfficialContact
 GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()

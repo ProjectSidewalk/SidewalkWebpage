@@ -168,12 +168,23 @@ psql -v ON_ERROR_STOP=1 -d sidewalk -U "$SCHEMA_NAME" <<-EOSQL
         WHERE status = 'open';
 
     -- Update config table's open_status column based on whether regions were removed. The clone carried the donor's
-    -- whole config row: a mapathon banner is the donor's event and the official contact (#5462) is the donor's
-    -- government, never this city's, so both are cleared here; the other inherited settings (excluded_tags,
-    -- update_offset_hours, make_crops) are printed below for review.
-    UPDATE config
-    SET open_status = '$OPEN_STATUS_Q', mapathon_event_link = NULL, official_contact_name = NULL,
-        official_contact_url = NULL;
+    -- whole config row: a mapathon banner is the donor's event, never this city's, so it is cleared here, and so is
+    -- the official contact below. The other inherited settings (excluded_tags, update_offset_hours, make_crops) are
+    -- printed further down for review.
+    UPDATE config SET open_status = '$OPEN_STATUS_Q', mapathon_event_link = NULL;
+
+    -- The official contact (#5462) names the donor's government, never this city's. A donor still below evolution 405
+    -- has no such columns (the new schema then gets them, empty, at boot), so the clear runs only when they exist.
+    DO \$\$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = current_schema() AND table_name = 'config' AND column_name = 'official_contact_url'
+      ) THEN
+        EXECUTE 'UPDATE config SET official_contact_name = NULL, official_contact_url = NULL';
+      END IF;
+    END
+    \$\$;
 
     -- Set the city center, map bounds, and default map zoom in the config table from the open regions' geoms. The
     -- bounds are the regions' extent padded by 0.5° (~55 km): they only bound map views, and existing cities sit at

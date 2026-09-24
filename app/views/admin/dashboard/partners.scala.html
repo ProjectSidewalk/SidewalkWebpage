@@ -10,7 +10,7 @@
 * Admin Partners page (#4516): the community-partner logos rendered on the landing page. Any admin manages the
 * current city's list; the global list (every deployment's landing page) is shown for context but editable only by
 * Owners — enforced server-side on the /adminapi/globalPartners routes. The page also sets the city's official-contact
-* notice (#5462), which renders just under the logos. Admin-only surface, English only.
+* notice (#5462), which renders in the landing page's partners section. Admin-only surface, English only.
 *@
 
 @isOwner = @{user.role == Role.Owner}
@@ -59,7 +59,7 @@
 
   <div class="page-section" id="official-contact-section">
     <h2 class="page-heading" id="official-contact">Official contact notice <a href="#official-contact" class="permalink">#</a></h2>
-    <p>Optional. When set, this city's landing page shows a sentence under the partner logos, so residents don't expect a response to what they map here. It's off until you add a URL; clearing the URL turns it off again. The sentence is translated for every language, but the name is shown exactly as you type it, so write it the way it reads mid-sentence.</p>
+    <p>Optional. When set, this city's landing page tells residents to contact the city directly for repairs, so they don't expect a response to what they map here. It shows under this city's partner logos, or at the bottom of the partners section if there are none. It's off until you add a URL; clearing the URL turns it off again. The sentence is translated for every language, but the name is shown exactly as you type it in all of them, so write it the way it reads mid-sentence. For a web address with non-English letters, paste its punycode (xn--) form.</p>
     <form class="official-contact-form" id="official-contact-form">
       <div class="partners-form-grid">
         <div class="partners-form-field">

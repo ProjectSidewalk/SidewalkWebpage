@@ -198,7 +198,10 @@ describe('PartnersPage', () => {
 });
 
 describe('PartnersPage official-contact form (#5462)', () => {
-  const TEMPLATE = 'Project Sidewalk is a research tool. To report a problem or request a repair, contact {name} directly.';
+  // Escaped as Twirl escapes the data-template attribute, with the message's own anchors inside.
+  const TEMPLATE = 'Project Sidewalk is a research tool. To report a problem or request a repair, contact {name} '
+    + 'directly. Feel free to include links to Project Sidewalk &lt;a href=&quot;/labelMap&quot;&gt;labels&lt;/a&gt; '
+    + 'or &lt;a href=&quot;/stories&quot;&gt;stories&lt;/a&gt; in your request.';
 
   /** The partner containers plus the official-contact form, reduced to what the class touches. */
   function buildContactDom() {
@@ -241,8 +244,10 @@ describe('PartnersPage official-contact form (#5462)', () => {
 
     expect(form.elements.name.value).toBe(burnaby.name);
     expect(form.elements.url.value).toBe(burnaby.url);
-    expect(document.getElementById('official-contact-preview').textContent)
-      .toContain('contact the City of Burnaby directly.');
+    const preview = document.getElementById('official-contact-preview').textContent;
+    expect(preview).toContain('contact the City of Burnaby directly.');
+    expect(preview).toContain('Project Sidewalk labels or stories in your request.');
+    expect(preview).not.toContain('<a');
   });
 
   test('says the notice is off when no URL is saved', async () => {
@@ -315,6 +320,7 @@ describe('PartnersPage official-contact form (#5462)', () => {
     const error = form.querySelector('.partners-form-error');
     expect(error.hidden).toBe(false);
     expect(error.textContent).toBe('The URL must be a full https:// link.');
+    expect(document.getElementById('official-contact-status').textContent).toBe('');
     expect(form.elements.url.value).toBe('http://www.burnaby.ca');
   });
 });

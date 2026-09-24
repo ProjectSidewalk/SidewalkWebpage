@@ -58,8 +58,9 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   def makeCrops: Rep[Boolean]                = column[Boolean]("make_crops", O.Default(true))
   // CHECK (jsonb_typeof(excluded_tags) = 'array') in the DB, so an empty value must be '[]' and not '{}'.
   def excludedTags: Rep[Seq[ExcludedTag]] = column[Seq[ExcludedTag]]("excluded_tags")
-  // Left out of `*` so the Config mapping stays as is. CHECKs in the DB: both columns are NULL or both are set, and the
-  // URL starts with https://.
+  // Left out of `*` so the Config mapping stays as is. CHECKs in the DB: both columns are NULL or both are set, the name
+  // is 1-100 characters once trimmed, and the URL starts with https:// and is at most 500 characters. The caps match
+  // ConfigService.OfficialContactMaxNameLength / OfficialContactMaxUrlLength.
   def officialContactName: Rep[Option[String]] = column[Option[String]]("official_contact_name")
   def officialContactUrl: Rep[Option[String]]  = column[Option[String]]("official_contact_url")
 

@@ -29,7 +29,7 @@
  * on every deployment — with per-row reorder/edit/delete and one add form per editable scope. City rows are editable
  * by any admin; global rows only by Owners (the server enforces this on the /adminapi/globalPartners routes, so the
  * flag here only decides what UI to draw). It also runs the page's official-contact form (#5462), the city's
- * "contact us directly" sentence under the landing-page logos. Admin-only page, English-only by convention.
+ * "contact us directly" sentence in the landing page's partners section. Admin-only page, English-only by convention.
  */
 class PartnersPage {
   /** Long edge, in px, of the PNG an uploaded SVG is rasterized to: ~4x the widest the strip ever renders a logo. */
@@ -101,6 +101,7 @@ class PartnersPage {
    */
   async #saveOfficialContact(form, name, url) {
     this.#showError(form, null);
+    document.getElementById('official-contact-status').textContent = '';
     try {
       const res = await fetch('/adminapi/officialContact', {
         method: 'PUT',
@@ -145,8 +146,10 @@ class PartnersPage {
       preview.textContent = 'Off: nothing shows on the landing page.';
     } else {
       // textContent, not innerHTML: the name is admin-entered free text.
-      // A replacer function, so a `$&` or `$'` in the name is inserted literally rather than read as a pattern.
-      preview.textContent = `Landing page preview: ${preview.dataset.template.replace('{name}', () => name || '…')}`;
+      // The message carries its own LabelMap/Stories anchors, so read it as HTML and keep only its text. A replacer
+      // function, so a `$&` or `$'` in the name is inserted literally rather than read as a pattern.
+      const template = new DOMParser().parseFromString(preview.dataset.template, 'text/html').body.textContent;
+      preview.textContent = `Landing page preview: ${template.replace('{name}', () => name || '…')}`;
     }
   }
 
