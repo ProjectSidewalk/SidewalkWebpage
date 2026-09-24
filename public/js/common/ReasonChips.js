@@ -17,10 +17,14 @@ class ReasonChips {
   static #KEY_NEXT = new Set(['ArrowRight', 'ArrowDown']);
   static #KEY_PREV = new Set(['ArrowLeft', 'ArrowUp']);
 
+  /** A `selected` value meaning the reader's answer is a typed reason, which "Other…" stands for. */
+  static OTHER = Symbol('other');
+
   #root;
   #onPick;
   #onOther;
   #showKeys;
+  #showOther;
   /** @type {HTMLButtonElement[]} */
   #chips = [];
   /** @type {?HTMLButtonElement} */
@@ -33,15 +37,19 @@ class ReasonChips {
    * @param {object} opts
    * @param {(id: string, viaKeyboard: boolean) => void} opts.onPick - A reason was chosen. Not fired for the
    *     chip already selected: picking what is picked is a no-op, not an unpick, so a stray tap can't erase one.
-   * @param {(viaKeyboard: boolean) => void} opts.onOther - "Other…" was chosen; the host opens its comment box.
+   * @param {(viaKeyboard: boolean) => void} opts.onOther - "Other…" was chosen (its button or its number key); the
+   *     host opens or focuses its comment box.
    * @param {boolean} [opts.showKeys=false] - Name each chip's number key in its tooltip, on a host that routes the
    *     number keys here. Off for touch surfaces, where a key number is noise.
+   * @param {boolean} [opts.showOther=true] - Draw the "Other…" button. Off on a host whose comment box is always
+   *     beside the chips, where a button that only opens it would be one tap too many; N+1 still calls `onOther`.
    */
-  constructor(root, { onPick, onOther, showKeys = false }) {
+  constructor(root, { onPick, onOther, showKeys = false, showOther = true }) {
     this.#root = root;
     this.#onPick = onPick;
     this.#onOther = onOther;
     this.#showKeys = showKeys;
+    this.#showOther = showOther;
     root.classList.add('reason-chips');
     root.hidden = true;
     root.addEventListener('click', this.#handleClick);
@@ -55,7 +63,8 @@ class ReasonChips {
    * @param {object} state
    * @param {string} state.labelType - The label's type.
    * @param {?string} state.vote - The vote to explain: 'Disagree' or 'Unsure'; anything else clears the row.
-   * @param {?string} [state.selected=null] - The reason already on record, from the reader's own comment.
+   * @param {?(string|symbol)} [state.selected=null] - The reason already on record, from the reader's own comment,
+   *     or `ReasonChips.OTHER` for a typed one.
    * @returns {number} How many reasons are offered; 0 means the row is hidden.
    */
   render({ labelType, vote, selected = null }) {
@@ -89,8 +98,10 @@ class ReasonChips {
       this.#chips.push(chip);
       group.appendChild(chip);
     });
-    this.#otherButton = this.#buildOther(reasons.length + 1);
-    this.#root.querySelector('.reason-chips__list').appendChild(this.#otherButton);
+    if (this.#showOther) {
+      this.#otherButton = this.#buildOther(reasons.length + 1);
+      this.#root.querySelector('.reason-chips__list').appendChild(this.#otherButton);
+    }
     this.#syncState();
     if (hadFocus) {
       const same = this.#chips.find((c) => c.dataset.reasonId === focusedId);
@@ -102,14 +113,14 @@ class ReasonChips {
 
   /**
    * Marks a reason as picked without firing `onPick`, for a host reflecting what the server took (or didn't).
-   * @param {?string} id - The reason id, or null for none (a free-text comment replaced it).
+   * @param {?(string|symbol)} id - The reason id, `ReasonChips.OTHER` for a typed reason, or null for none.
    */
   setSelected(id) {
     this.#selected = id;
     this.#syncState();
   }
 
-  /** @returns {?string} The reason picked so far, or null. */
+  /** @returns {?(string|symbol)} The reason picked so far, `ReasonChips.OTHER`, or null. */
   getSelected() {
     return this.#selected;
   }
@@ -199,6 +210,11 @@ class ReasonChips {
       chip.setAttribute('aria-pressed', String(checked));
       chip.classList.toggle('reason-chips__chip--selected', checked);
       chip.tabIndex = chip === focusable ? 0 : -1;
+    }
+    if (this.#otherButton) {
+      const typed = this.#selected === ReasonChips.OTHER;
+      this.#otherButton.setAttribute('aria-pressed', String(typed));
+      this.#otherButton.classList.toggle('reason-chips__chip--selected', typed);
     }
   }
 

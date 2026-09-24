@@ -143,8 +143,6 @@ class LabelDetail {
   #reasonChips = null;
   // "Other…" was chosen on the reason row, so the comment box is wanted open despite the chips standing in for it.
   #otherReasonRequested = false;
-  // A Gallery card's "Other…" asked for the box before this label's imagery had loaded, so it is opened once it has.
-  #otherReasonPending = false;
   // A vote POST, and a reason pick, in flight for the label on screen. Either locks both the vote controls and the
   // chips: a reason explains the vote on record, so neither may move while the other is being written (#5475).
   #votePending = false;
@@ -870,7 +868,6 @@ class LabelDetail {
         this.#noImagery = !imageShown;
         this.#panoLoading = false;
         this.#applyInteractionLock();
-        this.#runPendingOtherReason();
 
         // The live imagery's metadata may carry an address the label payload didn't. Only read it when the shown
         // pano is actually this label's on the primary viewer — on the static-crop fallback, currPanoData still
@@ -894,7 +891,6 @@ class LabelDetail {
         this.#noImagery = true;
         this.#panoLoading = false;
         this.#applyInteractionLock();
-        this.#runPendingOtherReason();
       });
 
     // Validation counts + AI validation.
@@ -994,7 +990,6 @@ class LabelDetail {
     // the render so the new label's own comment draws its Edit/Delete rather than an inherited open-box state.
     this.#editingComment = false;
     this.#otherReasonRequested = false;
-    this.#otherReasonPending = false;
     this.#votePending = false;
     this.#pickPending = false;
     this.#renderComments();
@@ -1124,7 +1119,8 @@ class LabelDetail {
     const reasoned = !!meta && !!action && util.validationReasons.hasReasons(meta.label_type, action);
     const vote = reasoned && !this.#locked ? action : null;
     const own = this.#comments?.[this.#myCommentIdx];
-    const selected = own && typeof own === 'object' && typeof own.reason === 'string' ? own.reason : null;
+    let selected = null;
+    if (own && typeof own === 'object') selected = typeof own.reason === 'string' ? own.reason : ReasonChips.OTHER;
     const count = this.#reasonChips.render({ labelType: meta?.label_type, vote, selected });
     this.#reasonChips.setBusy(this.#interactionBlocked || this.#votePending || this.#pickPending);
     return count > 0;
@@ -1166,9 +1162,8 @@ class LabelDetail {
   }
 
   /**
-   * "Other…": opens the comment box for a typed reason. With a comment of theirs already on the label (a chip they
-   * picked, say) it opens as an edit of that comment, emptied — the typed reason replaces the canned one — and
-   * Cancel puts the old one back.
+   * "Other…": opens the comment box for a typed reason, or edits the reader's comment already on the label — a
+   * typed one prefilled to revise, a canned one emptied since the words replace it.
    *
    * @param {boolean} viaKeyboard - Chosen with its number key rather than a pointer.
    */
@@ -1176,35 +1171,13 @@ class LabelDetail {
     const vote = this.#prevAction;
     if (!vote || this.#interactionBlocked) return;
     this.#logAction(`${vote}ReasonOther`, viaKeyboard);
-    this.requestOtherReason();
-  }
-
-  /**
-   * Opens the comment box for a typed reason and moves focus into it — what "Other…" does, on this card or on a
-   * Gallery card's reason popover, which opens the expanded view and then asks for the box (#5475).
-   */
-  requestOtherReason() {
-    if (this.#locked) return;
-    // The box is disabled while this label's imagery loads (a Gallery card's "Other…" arrives in that window), so
-    // the request waits for the load to settle rather than focusing a control that can't take input.
-    if (this.#panoLoading) {
-      this.#otherReasonPending = true;
-      return;
-    }
     if (this.#myCommentIdx >= 0) {
-      this.#startCommentEdit(false);
+      this.#startCommentEdit(typeof this.#comments[this.#myCommentIdx]?.reason !== 'string');
       return;
     }
     this.#otherReasonRequested = true;
     this.#updateCommentRow();
     this.#els.commentInput.focus();
-  }
-
-  /** Honors a `requestOtherReason()` that arrived mid-load, now that the lock has settled either way. */
-  #runPendingOtherReason() {
-    if (!this.#otherReasonPending) return;
-    this.#otherReasonPending = false;
-    this.requestOtherReason();
   }
 
   // ───────────────────────────────────────────────────────────────────
@@ -1339,11 +1312,16 @@ class LabelDetail {
       // Casting a vote is recorded by the label_validation row itself; clearing one deletes that row, so this event
       // is the only trace it happened. Logged on success so the count tracks clears that actually landed.
       if (undone) this.#logAction(`ClearVote_result=${action}`, viaKeyboard);
+      const previousAction = this.#prevAction;
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
       // Only for a vote cast from the keyboard: a pointer already has the button it pressed as feedback, and a
       // vote being *cleared* is the opposite of what a rising icon says.
       if (viaKeyboard && !undone) this.#flashVoteEcho(action);
+      // Every vote, however cast, pops the icon it gained and moves the counts it changed, as a Gallery card does.
+      const voteEls = Object.fromEntries(Object.keys(this.#els.voteIcons).map((key) => (
+        [key, { icon: this.#els.voteIcons[key], count: this.#els.voteCounts[key] }])));
+      util.misc.animateVoteChange(voteEls, previousAction, newAction);
       // Clearing a vote — and changing one (the `redone` flag) — deletes the user's comment server-side; drop it
       // here too so the list and its vote chips (#5015) match what a reload would show.
       const commentDropped = (undone || data.redone) && this.#dropOwnComment();
@@ -1401,8 +1379,8 @@ class LabelDetail {
    * Opens the comment box on the user's existing comment, prefilled and focused, so changing it is a deliberate act
    * rather than a side effect of typing into an empty box (#5015).
    *
-   * @param {boolean} [prefill=true] - Start from the existing text. "Other…" on the reason row passes false: the
-   *     reader is replacing a canned reason with words of their own, so the canned text would only be in the way.
+   * @param {boolean} [prefill=true] - Start from the existing text. "Other…" passes false over a canned reason, whose
+   *     text would only be in the way of the words replacing it.
    */
   #startCommentEdit(prefill = true) {
     const own = this.#comments?.[this.#myCommentIdx];

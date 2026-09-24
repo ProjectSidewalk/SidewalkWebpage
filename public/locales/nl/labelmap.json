@@ -59,6 +59,8 @@
   "no-comments-yet": "Nog geen opmerkingen",
   "why-disagree": "Vertel ons waarom je het er niet mee eens bent…",
   "why-unsure": "Vertel ons waarom je twijfelt…",
+  "why-disagree-or": "Of vertel ons waarom je het er niet mee eens bent…",
+  "why-unsure-or": "Of vertel ons waarom je twijfelt…",
   "why-agree": "Voeg een optionele opmerking toe…",
   "commenter-voted": "Reageerder stemde: {{vote}}",
   "submit-comment": "Opmerking",

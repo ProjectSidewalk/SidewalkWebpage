@@ -478,6 +478,11 @@ with respect to the image holder. This allows the validation menu to be placed o
   display: none;
 }
 
+/* Focused only as a landing spot after a pointer vote (ValidationMenu); its chips carry the visible focus. */
+.gallery-card__reasons:focus {
+  outline: none;
+}
+
 /* An open popover has to paint over the neighboring cards it may spill onto (see .gallery-card:hover). */
 .gallery-card--reasons-open {
   z-index: 2;
@@ -524,6 +529,24 @@ with respect to the image holder. This allows the validation menu to be placed o
 /* The chips are sized in card units like the rest of the card's text, with a px floor for tappability. */
 .gallery-card__reasons .reason-chips__chip {
   font-size: max(11px, 3cqw);
+}
+
+/* The typed-reason box: a design-system input and primary button (.ps-input, .button-ps .button--small
+   .button--primary), laid out as one row here. Stretching makes the button match the input's height. */
+.gallery-card__reasons-other {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.gallery-card__reasons-input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.gallery-card__reasons-submit {
+  flex: 0 0 auto;
 }
 
 .gallery-card__reasons-status {

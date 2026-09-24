@@ -3,9 +3,10 @@
  *
  * A Disagree or Unsure cast on a small card has nowhere to say why: the card has no comment box. So the vote
  * opens a popover over the card's image with the same one-tap reasons the label card offers. A pick posts the
- * reason through the card's comment endpoint with the card's own point of view, marks the chip, and closes; "Other…"
- * hands off to the expanded view with its comment box requested; Escape and an outside click dismiss with the vote
- * standing. An Agree, a cleared vote, and a vote relayed from the expanded view open nothing.
+ * reason through the card's comment endpoint with the card's own point of view, marks the chip, and closes; the box
+ * under the chips posts a typed reason the same way, with no reason id; Escape, an outside click, and the mouse
+ * leaving the card dismiss with the vote standing.
+ * An Agree, a cleared vote, and a vote relayed from the expanded view open nothing.
  *
  * ValidationMenu is a top-level `class` written for Grunt concatenation, so it is eval'd into the jsdom global scope
  * with its collaborators — jQuery, the Gallery's `sg` globals, the card it decorates — stubbed on `window` first.
@@ -54,6 +55,7 @@ function makeCard(overrides = {}) {
       disagreeContainer: document.createElement('div'),
       setVoteIconFilled: jest.fn(),
       setLockReason: jest.fn(),
+      animateVoteChange: jest.fn(),
     },
     properties,
   };
@@ -73,6 +75,8 @@ describe('the Gallery card reason popover (#5475)', () => {
   const chips = () => [...cardEl.querySelectorAll('.gallery-card__reasons .reason-chips__group .reason-chips__chip')];
   const chipById = (id) => cardEl.querySelector(`.gallery-card__reasons [data-reason-id="${id}"]`);
   const other = () => cardEl.querySelector('.gallery-card__reasons .reason-chips__chip--other');
+  const box = () => cardEl.querySelector('.gallery-card__reasons-input');
+  const boxSubmit = () => cardEl.querySelector('.gallery-card__reasons-submit');
   const status = () => cardEl.querySelector('.gallery-card__reasons-status');
   const isOpen = () => !!popover() && !popover().hidden;
   const vote = async (option) => {
@@ -101,7 +105,6 @@ describe('the Gallery card reason popover (#5475)', () => {
     window.BadgeAchievements = { recordValidation: jest.fn() };
     window.sg = {
       tracker: { push: jest.fn() },
-      cardContainer: { openCardForComment: jest.fn() },
     };
     window.eval(`${CHIPS_SRC}\n${MENU_SRC}\nwindow.ReasonChips = ReasonChips;\nwindow.ValidationMenu = ValidationMenu;`);
 
@@ -265,13 +268,115 @@ describe('the Gallery card reason popover (#5475)', () => {
     expect(isOpen()).toBe(false);
   });
 
-  test('"Other…" closes and hands the card to the expanded view for its comment box', async () => {
+  test('a typed reason posts from the box in place, with no reason id, and there is no "Other…" button', async () => {
     await vote('unsure');
     expect(chips().map((c) => c.dataset.reasonId)).toEqual(['better-image', 'placement-incorrect', 'ramp-required-unsure']);
-    other().dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
-    expect(isOpen()).toBe(false);
-    expect(window.sg.cardContainer.openCardForComment).toHaveBeenCalledWith(card);
+    expect(other()).toBeNull();
+    expect(box().placeholder).toBe('labelmap:why-unsure-or');
+
+    boxSubmit().dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush();
+    expect(posted).toHaveLength(1); // An empty box sends nothing.
+    expect(boxSubmit().disabled).toBe(true);
+
+    box().value = '  The ramp is behind a parked car  ';
+    box().dispatchEvent(new window.Event('input', { bubbles: true }));
+    expect(boxSubmit().disabled).toBe(false);
+    boxSubmit().dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush();
+    expect(posted[1].url).toBe('/labelmap/comment');
+    expect(posted[1].body).toMatchObject({ comment: 'The ramp is behind a parked car', reason: null, label_id: 42 });
     expect(window.sg.tracker.push).toHaveBeenCalledWith('Click_UnsureReason_Other', { panoId: 'pano-1' }, { labelId: 42 });
+    expect(chips().every((c) => c.getAttribute('aria-pressed') === 'false')).toBe(true);
+    expect(status().textContent).toBe('Reason saved');
+    expect(card.properties.comments).toEqual([expect.objectContaining({ comment: 'The ramp is behind a parked car', reason: null, mine: true })]);
+    jest.advanceTimersByTime(window.ValidationMenu.REASON_CLOSE_DELAY_MS);
+    expect(isOpen()).toBe(false);
+  });
+
+  test('Enter in the box submits; digits typed there are words, and Escape still dismisses', async () => {
+    await vote('disagree');
+    document.dispatchEvent(new window.KeyboardEvent('keydown', { code: 'Digit4', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(box()); // N+1 (three reasons here) moves to the box.
+    box().value = 'Only 2 cars';
+    box().dispatchEvent(new window.KeyboardEvent('keydown', { code: 'Digit2', key: '2', bubbles: true, cancelable: true }));
+    expect(posted).toHaveLength(1); // The vote only; the digit picked nothing.
+    box().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await flush();
+    expect(posted[1].body).toMatchObject({ comment: 'Only 2 cars', reason: null });
+    expect(window.sg.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_DisagreeReason_Other', { panoId: 'pano-1' }, { labelId: 42 });
+
+    box().dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    expect(isOpen()).toBe(false);
+  });
+
+  /** A pointer leaving the card; jsdom has no PointerEvent, so a MouseEvent carries the pointerType. */
+  const leaveCard = (pointerType = 'mouse') => {
+    const e = new window.MouseEvent('pointerleave');
+    Object.defineProperty(e, 'pointerType', { value: pointerType });
+    cardEl.dispatchEvent(e);
+  };
+
+  test('the mouse leaving the card dismisses the popover, but not a touch, a draft, or a save in flight', async () => {
+    await vote('disagree');
+    leaveCard('touch');
+    expect(isOpen()).toBe(true);
+
+    box().value = 'half a thought';
+    leaveCard();
+    expect(isOpen()).toBe(true); // An unsent draft holds it open.
+    box().value = '';
+
+    responses.push(new Promise(() => {})); // A pick whose save never lands.
+    chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush();
+    leaveCard();
+    expect(isOpen()).toBe(true);
+  });
+
+  test('a mouse leaving the card logs the dismissal, and only a new vote reopens the popover', async () => {
+    await vote('disagree');
+    leaveCard();
+    expect(isOpen()).toBe(false);
+    expect(window.sg.tracker.push).toHaveBeenCalledWith('MouseLeave_ReasonMenu_Dismiss', { panoId: 'pano-1' }, { labelId: 42 });
+    expect(card.properties.user_validation).toBe('Disagree');
+
+    await vote('unsure');
+    expect(isOpen()).toBe(true);
+  });
+
+  test('a typed reason on record comes back in the box; a canned one does not', async () => {
+    card.properties.comments = [{ comment: 'Hidden by a bin', reason: null, mine: true, validation: 'Disagree' }];
+    await vote('disagree');
+    expect(box().value).toBe('Hidden by a bin');
+    expect(boxSubmit().disabled).toBe(false);
+    chipById('driveway').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush();
+    expect(box().value).toBe(''); // The pick replaced it: one comment per voter.
+  });
+
+  test('a vote that lands animates the thumbs from the old vote to the new; one that fails does not', async () => {
+    await vote('agree');
+    expect(card.validationInfoDisplay.animateVoteChange).toHaveBeenLastCalledWith(null, 'Agree');
+    await vote('disagree');
+    expect(card.validationInfoDisplay.animateVoteChange).toHaveBeenLastCalledWith('Agree', 'Disagree');
+    await vote('disagree'); // Clears it (#4653).
+    expect(card.validationInfoDisplay.animateVoteChange).toHaveBeenLastCalledWith('Disagree', null);
+    responses.push({ ok: false, status: 500 });
+    await vote('unsure');
+    expect(card.validationInfoDisplay.animateVoteChange).toHaveBeenCalledTimes(3);
+  });
+
+  test('a pointer vote focuses the dialog, not a chip, so no chip wears a focus ring it did not ask for', async () => {
+    card.validationInfoDisplay.disagreeContainer.dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush();
+    expect(isOpen()).toBe(true);
+    expect(document.activeElement).toBe(popover());
+
+    await vote('disagree'); // Clears it.
+    cardEl.querySelector('#gallery-card-unsure-button').dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+    await flush();
+    expect(document.activeElement).toBe(popover());
   });
 
   test('a vote moved from the expanded view closes a stale question; clearing the vote closes it too', async () => {

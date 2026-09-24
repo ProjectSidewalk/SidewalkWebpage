@@ -772,7 +772,37 @@ function UtilitiesMisc(JSON) {
     return boxAspect ? fractionInCoverBox(x, y, imageAspect, boxAspect) : { x, y };
   }
 
+  /**
+   * Ties a vote to the tally it changed: the gained vote's icon pops and its count rises, a lost vote's count dips.
+   * Under prefers-reduced-motion each of those blinks instead. Shared by the Gallery cards and the Label Detail card
+   * so a vote reads the same on both. Decoration only — the icon's state and the new counts are the record — so a
+   * browser without the Web Animations API just skips it.
+   *
+   * @example
+   *   util.misc.animateVoteChange({ Agree: { icon, count }, Disagree: { icon, count } }, 'Disagree', 'Agree');
+   *
+   * @param {Record<string, {icon: ?Element, count: ?Element}>} els - Each vote's icon and count, keyed by vote.
+   * @param {?string} previous - The viewer's vote before, or null.
+   * @param {?string} current - The viewer's vote now, or null once cleared.
+   */
+  function animateVoteChange(els, previous, current) {
+    if (previous === current) return;
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+    const blink = [{ opacity: 1 }, { opacity: 0.25 }, { opacity: 1 }];
+    const pop = [{ transform: 'scale(1)' }, { transform: 'scale(1.5) rotate(-10deg)', offset: 0.4 },
+      { transform: 'scale(1)' }];
+    const rise = [{ transform: 'translateY(0)' }, { transform: 'translateY(-35%)' }, { transform: 'translateY(0)' }];
+    const dip = [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(30%)', opacity: 0.4 },
+      { transform: 'translateY(0)', opacity: 1 }];
+    const gained = current ? els[current] : null;
+    gained?.icon?.animate?.(reduceMotion ? blink : pop, { duration: 550, easing: 'ease-in-out' });
+    gained?.count?.animate?.(reduceMotion ? blink : rise, { duration: 400, delay: 100, easing: 'ease-in-out' });
+    const lost = previous ? els[previous] : null;
+    lost?.count?.animate?.(reduceMotion ? blink : dip, { duration: 400, easing: 'ease-in-out' });
+  }
+
   self.labelMarkerFraction = labelMarkerFraction;
+  self.animateVoteChange = animateVoteChange;
   self.getIconImagePaths = getIconImagePaths;
   self.getLabelDescriptions = getLabelDescriptions;
   self.isPositiveLabelType = isPositiveLabelType;

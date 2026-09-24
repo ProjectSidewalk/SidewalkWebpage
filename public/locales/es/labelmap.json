@@ -59,6 +59,8 @@
   "no-comments-yet": "Aún no hay comentarios",
   "why-disagree": "Cuéntanos por qué no estás de acuerdo…",
   "why-unsure": "Cuéntanos qué te hace dudar…",
+  "why-disagree-or": "O cuéntanos por qué no estás de acuerdo…",
+  "why-unsure-or": "O cuéntanos qué te hace dudar…",
   "why-agree": "Agrega un comentario opcional…",
   "commenter-voted": "El comentarista votó: {{vote}}",
   "submit-comment": "Enviar comentario",

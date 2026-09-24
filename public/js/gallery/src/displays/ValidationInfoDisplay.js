@@ -106,6 +106,23 @@ class ValidationInfoDisplay {
   }
 
   /**
+   * Ties a vote cast on this card to the count it changed (util.misc.animateVoteChange). The thumb stays outline,
+   * since the filled icon matches a voted card's band and would vanish.
+   *
+   * @param {?string} previous - The viewer's vote before, or null.
+   * @param {?string} current - The viewer's vote now, or null once cleared.
+   */
+  animateVoteChange(previous, current) {
+    const els = (container) => ({
+      icon: container.querySelector('.validation-info-image'),
+      count: container.querySelector('.validation-info-count'),
+    });
+    util.misc.animateVoteChange(
+      { Agree: els(this.agreeContainer), Disagree: els(this.disagreeContainer) }, previous, current,
+    );
+  }
+
+  /**
    * Writes each thumb's tooltip, in the same words the Label Detail card uses for the same vote (#4778): what
    * clicking does, how many validators have already voted that way, whether our AI's vote is among them, and — on
    * the option the viewer picked — that clicking again clears it. The two cards show the same counts, so a vote

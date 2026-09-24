@@ -59,6 +59,8 @@
   "no-comments-yet": "Pas encore de commentaire",
   "why-disagree": "Dites-nous pourquoi vous n'êtes pas d'accord…",
   "why-unsure": "Dites-nous ce qui vous rend incertain…",
+  "why-disagree-or": "Ou dites-nous pourquoi vous n'êtes pas d'accord…",
+  "why-unsure-or": "Ou dites-nous ce qui vous rend incertain…",
   "why-agree": "Ajoutez un commentaire (facultatif)…",
   "commenter-voted": "L'auteur du commentaire a voté {{vote}}",
   "submit-comment": "Envoyer le commentaire",

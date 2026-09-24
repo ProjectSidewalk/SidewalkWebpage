@@ -309,6 +309,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             isMobile: () => false,
             lazyIdentityFetch: post,
             misc: {
+                animateVoteChange: jest.fn(),
                 getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
                 getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
                 isPositiveLabelType: () => false,
@@ -665,6 +666,51 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             await new Promise((resolve) => { setTimeout(resolve, 800); });
 
             expect(echo()).toBeNull();
+        });
+    });
+
+    describe('the vote pop (#5475)', () => {
+        // Unlike the echo, every vote gets it — pointer or keyboard, cast or cleared — as a Gallery card's does.
+        const pop = () => window.util.misc.animateVoteChange;
+
+        test.each([
+            ['a click', () => overlayButton('unsure').dispatchEvent(
+                new window.MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 })
+            )],
+            ['a shortcut', () => press('KeyU')],
+        ])('%s pops the icon it gained and hands over the vote it replaced', async (_how, vote) => {
+            await showLabel({ user_validation: 'Agree', num_agree: 1 });
+
+            vote();
+            await flush();
+
+            expect(pop()).toHaveBeenCalledTimes(1);
+            const [els, previous, current] = pop().mock.calls[0];
+            expect([previous, current]).toEqual(['Agree', 'Unsure']);
+            // The unsure hand, not only the thumbs.
+            expect(els.Unsure.icon).toBe(q('.label-detail__vote--unsure .label-detail__vote-icon'));
+            expect(els.Unsure.count).toBe(q('.label-detail__vote--unsure .label-detail__vote-count'));
+        });
+
+        test('clearing a vote dips its count and pops nothing', async () => {
+            await showLabel({ user_validation: 'Agree', num_agree: 1 });
+
+            press('KeyA');
+            await flush();
+
+            expect(pop().mock.calls[0].slice(1)).toEqual(['Agree', null]);
+        });
+
+        test('a vote the server refused moves nothing', async () => {
+            await showLabel();
+            post.mockImplementation(async () => ({ ok: false, status: 500, json: async () => ({}) }));
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+
+            press('KeyA');
+            await flush();
+
+            expect(pop()).not.toHaveBeenCalled();
+            console.error.mockRestore();
         });
     });
 

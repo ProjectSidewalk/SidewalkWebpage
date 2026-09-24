@@ -186,6 +186,7 @@ describe('the one-tap reasons on the label card (#5475)', () => {
             }),
             camelToKebab: window.camelToKebab,
             misc: {
+                animateVoteChange: jest.fn(),
                 getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
                 getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
                 isPositiveLabelType: () => true,
@@ -361,8 +362,24 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         await flush();
         expect(posted[0].body).toMatchObject({ comment: 'It is a garage entrance.', reason: null });
         expect(chips().every((c) => c.getAttribute('aria-pressed') === 'false')).toBe(true);
+        expect(other().getAttribute('aria-pressed')).toBe('true'); // The typed reason is the answer on record.
         expect(boxOpen()).toBe(false);
         expect(status().textContent).toBe('labelmap:comment-submitted');
+    });
+
+    test('"Other…" over a typed reason brings it back to revise; over a canned one it starts empty', async () => {
+        await showLabel({ user_validation: 'Disagree', comments: [comment('Hidden by a bin.', true)] });
+        await resolveImagery();
+        expect(other().getAttribute('aria-pressed')).toBe('true');
+        other().dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        expect(boxOpen()).toBe(true);
+        expect(input().value).toBe('Hidden by a bin.');
+
+        await showLabel({ user_validation: 'Disagree', comments: [comment('This is a driveway', true, { reason: 'driveway' })] });
+        await resolveImagery();
+        expect(other().getAttribute('aria-pressed')).toBe('false');
+        other().dispatchEvent(new window.MouseEvent('click', { bubbles: true, detail: 1 }));
+        expect(input().value).toBe('');
     });
 
     test('changing the vote to Agree drops the chips along with the comment the vote carried', async () => {
@@ -374,17 +391,6 @@ describe('the one-tap reasons on the label card (#5475)', () => {
         expect(reasons().hidden).toBe(true);
         expect(listText()).not.toContain('driveway');
         expect(boxOpen()).toBe(true); // The Agree's own optional-note box.
-    });
-
-    test('a request for the box that arrives while the imagery loads is honored once it settles', async () => {
-        // What a Gallery card's "Other…" does: opens this card and asks for the box before the pano is up.
-        await showLabel({ user_validation: 'Disagree' });
-        card.detail.requestOtherReason();
-        expect(boxOpen()).toBe(false);
-        expect(document.activeElement).not.toBe(input());
-        await resolveImagery();
-        expect(boxOpen()).toBe(true);
-        expect(document.activeElement).toBe(input());
     });
 
     test('arrow keys on a focused chip move along the row rather than paging the card', async () => {

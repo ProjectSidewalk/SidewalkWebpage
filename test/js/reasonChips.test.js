@@ -184,6 +184,14 @@ describe('ReasonChips', () => {
     expect(chips.pickByNumber(1)).toBe(false);
   });
 
+  test('showOther: false draws no "Other…" button, but N+1 still reaches the host', () => {
+    chips = new window.ReasonChips(root, { onPick, onOther, showOther: false });
+    chips.render({ labelType: 'Crosswalk', vote: 'Unsure' });
+    expect(other()).toBeNull();
+    expect(chips.pickByNumber(3)).toBe(true);
+    expect(onOther).toHaveBeenCalledWith(true);
+  });
+
   test('takes no pick while busy, and keeps focus on the row across a redraw', () => {
     chips.render({ labelType: 'Obstacle', vote: 'Disagree' });
     chips.setBusy(true);

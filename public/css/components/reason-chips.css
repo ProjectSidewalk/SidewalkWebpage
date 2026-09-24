@@ -66,6 +66,11 @@
   color: var(--color-neutral-800);
 }
 
+/* Selected when the reader's answer is a typed reason: it takes the vote's selected ring in place of the dashes. */
+.reason-chips__chip--other.reason-chips__chip--selected {
+  outline: none;
+}
+
 .reason-chips__chip:focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: 3px;
