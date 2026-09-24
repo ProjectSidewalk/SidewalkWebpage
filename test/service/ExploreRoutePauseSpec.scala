@@ -129,7 +129,7 @@ class ExploreRoutePauseSpec
           s"4833 spec route $n",
           s"spec-4833-route-$n",
           None,
-          public = false,
+          public = true,
           deleted = false,
           OffsetDateTime.now,
           0d,
