@@ -95,6 +95,24 @@
   background-color: var(--color-asphalt-400);
 }
 
+/* A pill whose setting is off its default (the Image adjustments) wears a small dot, so a value persisted in an
+   earlier session is visible without opening the panel. */
+.pano-overlay-button--active {
+  position: relative;
+}
+
+.pano-overlay-button--active::after {
+  content: "";
+  position: absolute;
+  top: calc(4px * var(--ui-scale, 1));
+  right: calc(4px * var(--ui-scale, 1));
+  width: calc(7px * var(--ui-scale, 1));
+  height: calc(7px * var(--ui-scale, 1));
+  border-radius: 50%;
+  background: var(--color-banana-600);
+  box-shadow: 0 0 0 1px var(--color-asphalt-400);
+}
+
 /* Chevron-only toggle: a square pill with no label, sitting at the end of the row. */
 .pano-overlay-toggle {
   width: calc(28px * var(--ui-scale, 1));

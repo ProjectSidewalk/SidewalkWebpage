@@ -563,6 +563,65 @@ textarea.ps-input {
   cursor: default;
 }
 
+/* Range slider. Themed through the vendor pseudo-elements (`accent-color` is outside the Baseline set the stylelint
+   config allows): a hairline neutral track and a small neutral thumb that keeps a visible focus ring. Shared by the
+   AccessScore weight sliders and the pano image adjustments. */
+.ps-range {
+  width: 100%;
+  height: calc(20px * var(--ui-scale, 1));
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+}
+
+.ps-range::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-300);
+}
+
+.ps-range::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--color-neutral-300);
+}
+
+.ps-range::-webkit-slider-thumb {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+  margin-top: calc(-5.5px * var(--ui-scale, 1));
+  border: 2px solid var(--color-neutral-white);
+  border-radius: 50%;
+  background: var(--color-asphalt-300);
+  box-shadow: var(--box-shadow-sm);
+  appearance: none;
+}
+
+.ps-range::-moz-range-thumb {
+  width: calc(14px * var(--ui-scale, 1));
+  height: calc(14px * var(--ui-scale, 1));
+  border: 2px solid var(--color-neutral-white);
+  border-radius: 50%;
+  background: var(--color-asphalt-300);
+  box-shadow: var(--box-shadow-sm);
+}
+
+.ps-range:focus-visible {
+  outline: none;
+}
+
+.ps-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+.ps-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--color-link-200);
+  outline-offset: 2px;
+}
+
+
 /* Data table. The API docs and both dashboards draw their tables from this; the shared sticky-header and scroller
    variants are in components/tables.css, and a page adds only what its own table needs on top. Mark a numeric cell
    with `.num` so it right-aligns with tabular figures; `.ps-table--compact` tightens the cells for dense admin data. */

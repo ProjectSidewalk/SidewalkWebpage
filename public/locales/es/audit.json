@@ -137,7 +137,16 @@
     "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!",
     "immersive-enter": "Entrar en el modo inmersivo",
     "immersive-exit": "Salir del modo inmersivo",
-    "immersive-exit-hint": "Modo inmersivo. Pulsa F para salir."
+    "immersive-exit-hint": "Modo inmersivo. Pulsa F para salir.",
+    "image": "Imagen",
+    "image-tooltip": "Ajusta las sombras, el brillo y el contraste de la imagen",
+    "image-adjustments": {
+      "title": "Ajustes de imagen",
+      "shadows": "Sombras",
+      "brightness": "Brillo",
+      "contrast": "Contraste",
+      "reset": "Restablecer valores"
+    }
   },
   "right-ui": {
     "opens-new-tab": "(se abre en una pestaña nueva)",

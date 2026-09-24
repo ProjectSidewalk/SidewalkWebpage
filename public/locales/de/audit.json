@@ -137,7 +137,16 @@
     "feedback-title": "Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!",
     "immersive-enter": "Immersiven Modus starten",
     "immersive-exit": "Immersiven Modus beenden",
-    "immersive-exit-hint": "Immersiver Modus. Drücken Sie F, um ihn zu beenden."
+    "immersive-exit-hint": "Immersiver Modus. Drücken Sie F, um ihn zu beenden.",
+    "image": "Bild",
+    "image-tooltip": "Schatten, Helligkeit und Kontrast der Bilder anpassen",
+    "image-adjustments": {
+      "title": "Bildanpassungen",
+      "shadows": "Schatten",
+      "brightness": "Helligkeit",
+      "contrast": "Kontrast",
+      "reset": "Auf Standard zurücksetzen"
+    }
   },
   "right-ui": {
     "opens-new-tab": "(wird in einem neuen Tab geöffnet)",

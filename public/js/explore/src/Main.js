@@ -208,6 +208,24 @@ class Main {
     // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
     svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout?.());
 
+    // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
+    // they never carry it. svl.keyboard is built later, hence the lookups at call time. Suspending the shortcuts
+    // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano.
+    svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
+      document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
+        onOpen: () => {
+          svl.tracker.push('Click_ImageAdjustments_Open');
+          svl.keyboard?.disableKeyboard();
+        },
+        onClose: () => {
+          svl.tracker.push('Click_ImageAdjustments_Close');
+          svl.keyboard?.enableKeyboard();
+        },
+        onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
+        onReset: () => svl.tracker.push('Click_ImageAdjustments_Reset'),
+      });
+
     // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
     // capture date and the audit note is the one place it would read as belonging to neither (#5413).
     svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.datePill, () => svl.panoViewer,

@@ -137,7 +137,16 @@
     "feedback-title": "Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!",
     "immersive-enter": "Immersieve modus openen",
     "immersive-exit": "Immersieve modus verlaten",
-    "immersive-exit-hint": "Immersieve modus. Druk op F om te verlaten."
+    "immersive-exit-hint": "Immersieve modus. Druk op F om te verlaten.",
+    "image": "Beeld",
+    "image-tooltip": "Pas schaduwen, helderheid en contrast van de beelden aan",
+    "image-adjustments": {
+      "title": "Beeldinstellingen",
+      "shadows": "Schaduwen",
+      "brightness": "Helderheid",
+      "contrast": "Contrast",
+      "reset": "Standaardwaarden herstellen"
+    }
   },
   "right-ui": {
     "opens-new-tab": "(opent in een nieuw tabblad)",
