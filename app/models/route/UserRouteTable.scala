@@ -23,8 +23,8 @@ class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "us
   def userRouteId: Rep[Int]   = column[Int]("user_route_id", O.PrimaryKey, O.AutoInc)
   def routeId: Rep[Int]       = column[Int]("route_id")
   def userId: Rep[String]     = column[String]("user_id")
-  def completed: Rep[Boolean] = column[Boolean]("completed")
-  def discarded: Rep[Boolean] = column[Boolean]("discarded")
+  def completed: Rep[Boolean] = column[Boolean]("completed", O.Default(false))
+  def discarded: Rep[Boolean] = column[Boolean]("discarded", O.Default(false))
   def paused: Rep[Boolean]    = column[Boolean]("paused", O.Default(false))
 
   def * =
