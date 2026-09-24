@@ -52,7 +52,7 @@ verifiable from the deploy log rather than by curling every host:
 
 ```
 INFO m.SearchIndexingCheck - Search indexing: seattle-wa is INDEXABLE (environment-type=prod, status=public,
-pano-viewer-type=gsv); 39 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
+pano-viewer-type=gsv); 41 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
 ```
 
 `AiSeedRowsRepair` (the same module) logs one line per boot about the SidewalkAI user's per-schema rows, which a city
