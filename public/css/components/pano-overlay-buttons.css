@@ -114,6 +114,12 @@
   box-shadow: 0 0 0 1px var(--color-asphalt-400);
 }
 
+/* The chevron's badge is a quiet hint that lives on screen all session, so it is white rather than the pill's
+   yellow. */
+.pano-overlay-toggle.pano-overlay-button--active::after {
+  background: var(--color-neutral-white);
+}
+
 .pano-overlay-button-group.expanded .pano-overlay-toggle.pano-overlay-button--active::after {
   display: none;
 }
