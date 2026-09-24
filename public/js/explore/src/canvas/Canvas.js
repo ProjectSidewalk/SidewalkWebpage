@@ -275,20 +275,33 @@ class Canvas {
    * Calls `onExit` when the pointer leaves the pano. Toasts float over the pano but mount on <body> (#5496). While
    * labeling their card is click-through (svl-canvas.css), but their buttons are not, so the pointer reaching the
    * close X fires `mouseleave` although it never left the pano; the real exit is then when it leaves the toast for
-   * somewhere outside the pano.
-   * @param {HTMLElement} holder - The element wrapping the pano and its drawing layers.
+   * somewhere outside the pano. Only a toast reached from the pano counts: Explore raises toasts elsewhere too (the
+   * badge-unlock toast over the mission-complete modal), and crossing one of those says nothing about the pano.
+   *
+   * A toast removed from under the pointer fires no mouseout, so an exit made straight off it goes unseen and the
+   * label type stays armed. That is the state right after picking a type from the ribbon, so it's left alone.
+   * @param {HTMLElement|null} holder - The element wrapping the pano and its drawing layers; null watches nothing.
    * @param {() => void} onExit - Called once per exit.
+   * @param {{signal?: AbortSignal}} [opts] - `signal` removes the listeners when aborted.
    */
-  static watchPanoExit(holder, onExit) {
+  static watchPanoExit(holder, onExit, { signal } = {}) {
+    if (!holder) return;
     const isToast = (el) => el instanceof Element && el.closest('.ps-toast') !== null;
     const isOverPano = (el) => isToast(el) || (el instanceof Node && holder.contains(el));
+    let onToastFromPano = false;
+    holder.addEventListener('mouseenter', () => {
+      onToastFromPano = false;
+    }, { signal });
     holder.addEventListener('mouseleave', (e) => {
-      if (!isToast(e.relatedTarget)) onExit();
-    });
+      if (isToast(e.relatedTarget)) onToastFromPano = true;
+      else onExit();
+    }, { signal });
     // mouseout rather than mouseleave: it bubbles, so one listener covers toasts created after this runs.
     document.addEventListener('mouseout', (e) => {
-      if (isToast(e.target) && !isOverPano(e.relatedTarget)) onExit();
-    });
+      if (!onToastFromPano || !isToast(e.target) || isOverPano(e.relatedTarget)) return;
+      onToastFromPano = false;
+      onExit();
+    }, { signal });
   }
 
   /**

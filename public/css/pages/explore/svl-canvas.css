@@ -246,12 +246,14 @@
 
 /* While a label type is armed, a toast over the pano must not block the label cursor or the click that places a
    label, so the pointer passes through its card to the drawing layer. Its buttons stay reachable: the close X and
-   any action button are the only parts of it a labeler would mean to hit (#5496). */
-.explore-labeling .ps-toast {
+   any action button are the only parts of it a labeler would mean to hit (#5496). The cost: the card no longer
+   brightens or pauses on hover while labeling, only on its buttons. Toasts anchored elsewhere (the badge-unlock
+   toast over the mission-complete modal) keep taking the pointer. */
+.explore-labeling .ps-toast[data-anchor="pano"] {
   pointer-events: none;
 }
 
-.explore-labeling .ps-toast__close,
-.explore-labeling .ps-toast__button {
+.explore-labeling .ps-toast[data-anchor="pano"] .ps-toast__close,
+.explore-labeling .ps-toast[data-anchor="pano"] .ps-toast__button {
   pointer-events: auto;
 }

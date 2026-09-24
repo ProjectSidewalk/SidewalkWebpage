@@ -86,6 +86,9 @@ class Toast {
       .filter(Boolean).join(' ');
     el.setAttribute('role', 'status');
     el.setAttribute('aria-live', 'polite');
+    // Names what the toast floats over, so a page can style its own anchors' toasts and leave others alone
+    // (Explore makes pano toasts click-through while labeling, #5496).
+    if (opts.reference?.id) el.dataset.anchor = opts.reference.id;
 
     if (opts.icon) {
       const icon = document.createElement('img');
