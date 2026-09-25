@@ -9,21 +9,19 @@
 class ExpandedView {
   static #unselectedCardClassName = 'expanded-view-background-card';
 
-  #uiModal;
   #root;
   #panoViewerType;
   #viewerAccessToken;
   #currUsername;
 
   /**
-   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {HTMLElement} root - The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    */
-  constructor(uiModal, panoViewerType, viewerAccessToken, currUsername) {
-    this.#uiModal = uiModal;
-    this.#root = uiModal[0]; // Unwrap jQuery to get the DOM element for LabelDetail.
+  constructor(root, panoViewerType, viewerAccessToken, currUsername) {
+    this.#root = root;
     this.#panoViewerType = panoViewerType;
     this.#viewerAccessToken = viewerAccessToken;
     this.#currUsername = currUsername;
@@ -31,14 +29,14 @@ class ExpandedView {
 
   /**
    * Creates an ExpandedView and initializes its LabelDetail controller.
-   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {HTMLElement} root - The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    * @returns {Promise<ExpandedView>}
    */
-  static async create(uiModal, panoViewerType, viewerAccessToken, currUsername) {
-    const expandedView = new ExpandedView(uiModal, panoViewerType, viewerAccessToken, currUsername);
+  static async create(root, panoViewerType, viewerAccessToken, currUsername) {
+    const expandedView = new ExpandedView(root, panoViewerType, viewerAccessToken, currUsername);
     await expandedView.#init();
     return expandedView;
   }
@@ -113,7 +111,7 @@ class ExpandedView {
     // falls through to the by-id path below.
     if (sg.cardContainer.isListMode() && sg.cardContainer.jumpToLabel(labelId)) return;
 
-    this.#uiModal.css('visibility', 'visible');
+    this.#root.style.visibility = 'visible';
     this.open = true;
     // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
@@ -236,7 +234,7 @@ class ExpandedView {
    * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
    */
   closeExpandedView() {
-    this.#uiModal.css('visibility', 'hidden');
+    this.#root.style.visibility = 'hidden';
     LabelDetail.syncUrlLabelId(null);
     // Clear the inline visibility set by PopupPanoManager.setPano() so the parent's visibility:hidden cascades.
     // Also set a data flag so that if a pano load is still in-flight, it won't reveal itself when it finishes.
@@ -420,7 +418,7 @@ class ExpandedView {
     if (this.pendingCardIndex === undefined) return;
     const idx = this.pendingCardIndex;
     this.pendingCardIndex = undefined;
-    this.#uiModal.css('visibility', 'visible');
+    this.#root.style.visibility = 'visible';
     this.#updateExpandedViewCardByIndex(idx);
   }
 }

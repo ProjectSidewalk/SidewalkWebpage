@@ -153,26 +153,8 @@ describe('the Gallery in review-list mode', () => {
             };
         }
 
-        /**
-         * A jQuery-ish element stub: enough of the API for the container's DOM pokes, and it remembers the handlers
-         * bound to it so a test can press the paging buttons the way the page does.
-         */
-        function el() {
-            const stub = {
-                handlers: {},
-                bind(map) { Object.assign(this.handlers, map); },
-                append: jest.fn(),
-                prop: jest.fn(),
-                on: jest.fn(),
-                css: jest.fn(),
-                show: jest.fn(),
-                hide: jest.fn(),
-                children: () => ({ each: jest.fn() }),
-            };
-            stub.click = () => stub.handlers.click?.({});
-            stub[0] = document.createElement('div');
-            return stub;
-        }
+        /** @returns {boolean} Whether the container has shown the filtered grid's "no matches" notice. */
+        const labelsNotFoundShown = () => sg.labelsNotFound.style.display === 'block';
 
         beforeEach(() => {
             // A bare URL: the real ExpandedView reads ?labelId= on construction, and the suite above leaves one set.
@@ -199,16 +181,18 @@ describe('the Gallery in review-list mode', () => {
             requests = [];
             respond = () => {};
             window.scrollTo = jest.fn(); // jsdom has no implementation; the container scrolls to the top on paging.
-            window.$ = jest.fn(() => ({ prop: jest.fn() }));
-            window.$.ajax = ({ data, success, error }) => {
-                requests.push(JSON.parse(data));
+            window.fetch = (url, { body }) => new Promise((resolve) => {
+                requests.push(JSON.parse(body));
                 // Held rather than resolved inline, so a test can assert on the request before the cards land.
-                respond = (cards, unavailableLabelIds) => success({
-                    labelsOfType: cards.map((card) => ({ label: { label_id: card.getLabelId() } })),
-                    ...(unavailableLabelIds !== undefined && { unavailableLabelIds }),
+                respond = (cards, unavailableLabelIds) => resolve({
+                    ok: true,
+                    json: async () => ({
+                        labelsOfType: cards.map((card) => ({ label: { label_id: card.getLabelId() } })),
+                        ...(unavailableLabelIds !== undefined && { unavailableLabelIds }),
+                    }),
                 });
-                failRequest = () => error();
-            };
+                failRequest = () => resolve({ ok: false, status: 500 });
+            });
             window.Card = class {
                 constructor(label) { return stubCard(label.label_id); }
             };
@@ -233,8 +217,6 @@ describe('the Gallery in review-list mode', () => {
             window.ResizeObserver = class {
                 observe() {}
             };
-            const expandedHost = el();
-            expandedHost[0] = document.querySelector('.gallery-expanded-view');
             window.sg = {
                 // The whole of the interface GalleryFilter offers the container, since the filtered path reads more
                 // of it than list mode does.
@@ -247,12 +229,17 @@ describe('the Gallery in review-list mode', () => {
                     enable: jest.fn(),
                 },
                 ui: {
-                    pageControl: el(),
-                    cardContainer: { holder: el(), prevPage: el(), nextPage: el(), pageNumber: el() },
-                    expandedView: { container: expandedHost },
+                    pageControl: document.createElement('div'),
+                    cardContainer: {
+                        holder: document.createElement('div'),
+                        prevPage: document.createElement('button'),
+                        nextPage: document.createElement('button'),
+                        pageNumber: document.createElement('div'),
+                    },
+                    expandedView: { container: document.querySelector('.gallery-expanded-view') },
                 },
-                pageLoading: el(),
-                labelsNotFound: el(),
+                pageLoading: document.createElement('div'),
+                labelsNotFound: document.createElement('div'),
                 tracker: { push: jest.fn() },
             };
         });
@@ -348,7 +335,7 @@ describe('the Gallery in review-list mode', () => {
             // more data!" answers a filtered search, not this, and with no sidebar it lands on top of the strip.
             await listContainer([], LIST_IDS);
 
-            expect(sg.labelsNotFound.show).not.toHaveBeenCalled();
+            expect(labelsNotFoundShown()).toBe(false);
             expect(document.getElementById('gallery-list-count').textContent)
                 .toBe('gallery:list-count-partial:{"shown":0,"count":3}');
             const unavailable = document.getElementById('gallery-list-unavailable');
@@ -382,7 +369,7 @@ describe('the Gallery in review-list mode', () => {
 
             expect(document.getElementById('gallery-list-error').hidden).toBe(false);
             // "No matches, start exploring" is the filtered grid's copy; a failed request is not an empty list.
-            expect(sg.labelsNotFound.show).not.toHaveBeenCalled();
+            expect(labelsNotFoundShown()).toBe(false);
             // The count the server rendered still stands, rather than being rewritten to "0 labels in this list".
             expect(document.getElementById('gallery-list-count').textContent).toBe('3 labels in this list');
         });
@@ -395,7 +382,7 @@ describe('the Gallery in review-list mode', () => {
 
             expect(filtered.isListMode()).toBe(false);
             expect(filtered.getCardsPerPage()).toBe(9);
-            expect(sg.labelsNotFound.show).toHaveBeenCalled();
+            expect(labelsNotFoundShown()).toBe(true);
         });
 
         describe('paging a list longer than one page', () => {
@@ -425,13 +412,13 @@ describe('the Gallery in review-list mode', () => {
                 expect(container.getCurrentPage()).toBe(1);
                 expect(container.isLastPage()).toBe(false); // 15 cards, 12 per page.
 
-                sg.ui.cardContainer.nextPage.handlers.click({});
+                sg.ui.cardContainer.nextPage.click();
                 expect(container.getCurrentPage()).toBe(2);
                 expect(container.isLastPage()).toBe(true); // Cards 13-15.
                 expect(container.getCurrentPageCards()).toHaveLength(3);
                 expect(requests).toHaveLength(1); // Still no second query.
 
-                sg.ui.cardContainer.prevPage.handlers.click({});
+                sg.ui.cardContainer.prevPage.click();
                 expect(container.getCurrentPage()).toBe(1);
                 expect(container.isLastPage()).toBe(false);
             });
@@ -510,7 +497,7 @@ describe('the Gallery in review-list mode', () => {
                 slowExpandedView();
                 sg.tracker = undefined; // As on the real page: Main assigns it after CardContainer.create resolves.
                 // This block's beforeEach already built one container; only the one below is under test here.
-                sg.ui.pageControl.show.mockClear();
+                sg.ui.pageControl.style.display = 'none';
                 sg.cardFilter.enable.mockClear();
                 const created = window.CardContainer.create(
                     sg.ui.cardContainer,
@@ -520,13 +507,13 @@ describe('the Gallery in review-list mode', () => {
                 respond(LONG_LIST.map(stubCard), []);
                 await flushRenderOnly();
 
-                expect(sg.ui.pageControl.show).not.toHaveBeenCalled();
+                expect(sg.ui.pageControl.style.display).toBe('none');
                 expect(sg.cardFilter.enable).not.toHaveBeenCalled();
                 // And a click that slips through anyway must not take the page down with it.
-                expect(() => sg.ui.cardContainer.nextPage.handlers.click({})).not.toThrow();
+                expect(() => sg.ui.cardContainer.nextPage.click()).not.toThrow();
 
                 const raced = await created;
-                expect(sg.ui.pageControl.show).toHaveBeenCalled();
+                expect(sg.ui.pageControl.style.display).toBe('');
                 expect(sg.cardFilter.enable).toHaveBeenCalled();
                 expect(raced.getExpandedView()).toBeDefined();
             });
@@ -540,7 +527,7 @@ describe('the Gallery in review-list mode', () => {
                 await flush();
                 expect(raced.getExpandedView().cardIndex).toBe(0);
 
-                sg.ui.cardContainer.nextPage.handlers.click({});
+                sg.ui.cardContainer.nextPage.click();
                 await flush();
 
                 expect(raced.getCurrentPage()).toBe(2);

@@ -1,4 +1,12 @@
 /**
+ * @typedef {object} CardContainerUi
+ * @property {HTMLElement} holder - The grid the cards render into.
+ * @property {HTMLButtonElement} prevPage
+ * @property {HTMLButtonElement} nextPage
+ * @property {HTMLElement} pageNumber - Where the current page number is written.
+ */
+
+/**
  * Card Container module. This is responsible for managing the Card objects that are to be rendered.
  *
  * Construct instances via the `static async create()` factory, which fetches the first batch of labels and builds
@@ -61,7 +69,7 @@ class CardContainer {
   #pageHasCards = false;
 
   /**
-   * @param {*} uiCardContainer - UI element tied with this CardContainer.
+   * @param {CardContainerUi} uiCardContainer - The card grid and its paging controls.
    * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
@@ -83,7 +91,7 @@ class CardContainer {
 
   /**
    * Creates a CardContainer, fetches the first batch of labels, and builds the ExpandedView.
-   * @param {*} uiCardContainer - UI element tied with this CardContainer.
+   * @param {CardContainerUi} uiCardContainer - The card grid and its paging controls.
    * @param {Record<string, any>} initialFilters - Object containing initial set of filters in sidebar.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
@@ -107,20 +115,16 @@ class CardContainer {
 
     // Bind click actions to the forward/backward paging buttons.
     if (uiCardContainer) {
-      uiCardContainer.nextPage.bind({
-        click: this.#handleNextPageClick,
-      });
-      uiCardContainer.prevPage.bind({
-        click: this.#handlePrevPageClick,
-      });
+      uiCardContainer.nextPage.addEventListener('click', this.#handleNextPageClick);
+      uiCardContainer.prevPage.addEventListener('click', this.#handlePrevPageClick);
     }
 
     this.#pageNumberDisplay = document.createElement('h2');
     this.#pageNumberDisplay.innerText = '1';
     uiCardContainer.pageNumber.append(this.#pageNumberDisplay);
-    sg.ui.pageControl.hide();
+    sg.ui.pageControl.style.display = 'none';
     sg.cardFilter.disable();
-    sg.ui.cardContainer.prevPage.prop('disabled', true);
+    sg.ui.cardContainer.prevPage.disabled = true;
 
     // Grab first batch of labels to show.
     if (this.#listMode) {
@@ -134,7 +138,7 @@ class CardContainer {
           // when the server never answered. Say so instead, and leave the server-rendered count standing.
           if (newCards === null) {
             CardContainer.#showListError();
-            sg.pageLoading.hide();
+            sg.pageLoading.style.display = 'none';
             // render() is never reached on this path, so the handover happens here instead: it releases the
             // filters and hands the view an empty page, where a ?labelId= still opens the label by id.
             this.#pageHasCards = false;
@@ -177,23 +181,24 @@ class CardContainer {
     if (this.#expandedViewHooksDeferred) this.#notifyExpandedViewRendered();
     // Add the click event for opening the ExpandedView when a card is clicked.
     const cardClickSelector = '.static-gallery-image, .additional-count, .ai-icon-marker-card';
-    sg.ui.cardContainer.holder.on('click', cardClickSelector, (event) => {
-      sg.ui.expandedView.container.css('visibility', 'visible');
+    sg.ui.cardContainer.holder.addEventListener('click', (event) => {
+      const target = event.target.closest(cardClickSelector);
+      if (!target) return;
+      sg.ui.expandedView.container.style.visibility = 'visible';
       // If the user clicks on the image body in the card, just use the provided id.
       // If they click the AI icon, use the image id from the same card.
       // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
       // the cardId from the card-tags DOM element (as well as perform an additional prepend to put the ID in
       // the correct form).
-      const clickedImage = event.target.classList.contains('static-gallery-image');
       let cardId;
-      if (event.target.classList.contains('ai-icon-marker-card')) {
-        const imageHolder = event.target.closest('.image-holder');
+      if (target.classList.contains('ai-icon-marker-card')) {
+        const imageHolder = target.closest('.image-holder');
         const parentImage = imageHolder ? imageHolder.querySelector('.static-gallery-image') : null;
         cardId = parentImage ? parentImage.id : null;
-      } else if (clickedImage) {
-        cardId = event.target.id;
+      } else if (target.classList.contains('static-gallery-image')) {
+        cardId = target.id;
       } else {
-        cardId = `label_id_${event.target.closest('.card-tags').id}`;
+        cardId = `label_id_${target.closest('.card-tags').id}`;
       }
       if (!cardId) return;
       // Sets/Updates the label being displayed in the expanded view.
@@ -212,7 +217,7 @@ class CardContainer {
       lastTagFitWidth = width;
       clearTimeout(tagRefitTimer);
       tagRefitTimer = setTimeout(() => this.getCurrentPageCards().forEach((card) => card.refitTags()), 150);
-    }).observe(uiCardContainer.holder[0]);
+    }).observe(uiCardContainer.holder);
   }
 
   /**
@@ -236,8 +241,8 @@ class CardContainer {
   }
 
   #handleNextPageClick = (e) => {
-    // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
-    const fromUser = typeof (e.clientX) !== 'undefined';
+    // True for a real click; false when ExpandedView pages by calling the button's .click().
+    const fromUser = e.isTrusted;
 
     // Main assigns sg.tracker after CardContainer.create() resolves, so a click that beats that is untracked
     // rather than fatal.
@@ -251,14 +256,14 @@ class CardContainer {
     }
 
     this.#setPage(this.#currentPage + 1);
-    sg.ui.cardContainer.prevPage.prop('disabled', false);
+    sg.ui.cardContainer.prevPage.disabled = false;
     this.updateCardsNewPage();
   };
 
   #handlePrevPageClick = (e) => {
     if (this.#currentPage > 1) {
-      // This variable will be true if this is a "real" click. Otherwise, it will be false for .click() js code.
-      const fromUser = typeof (e.clientX) !== 'undefined';
+      // True for a real click; false when ExpandedView pages by calling the button's .click().
+      const fromUser = e.isTrusted;
 
       sg.tracker?.push('PrevPage', null, {
         from: this.#currentPage,
@@ -269,7 +274,7 @@ class CardContainer {
         sg.tracker?.push('PrevPageClick', null, null);
       }
 
-      $('#next-page').prop('disabled', false);
+      sg.ui.cardContainer.nextPage.disabled = false;
       this.#setPage(this.#currentPage - 1);
       this.updateCardsNewPage();
     }
@@ -277,7 +282,7 @@ class CardContainer {
 
   #setPage(pageNumber) {
     if (pageNumber <= 1) {
-      sg.ui.cardContainer.prevPage.prop('disabled', true);
+      sg.ui.cardContainer.prevPage.disabled = true;
     }
     this.#currentPage = pageNumber;
     this.#pageNumberDisplay.innerText = pageNumber;
@@ -300,7 +305,7 @@ class CardContainer {
    *      labels arrive, given the new cards in the order the server returned them and, for a review list, the
    *      requested ids the server could not serve. Called with `null` when the request failed.
    */
-  fetchLabels(
+  async fetchLabels(
     labelTypes, n, validationOptions, loadedLabels, regionIds, severities, tagsByLabelType, aiValidationOptions,
     labelIds, callback,
   ) {
@@ -316,34 +321,35 @@ class CardContainer {
       ...(labelIds !== undefined && labelIds.length > 0 && { label_ids: labelIds }),
       loaded_labels: loadedLabels,
     };
-    $.ajax({
-      async: true,
-      contentType: 'application/json; charset=utf-8',
-      url,
-      method: 'POST',
-      data: JSON.stringify(data),
-      dataType: 'json',
-      success: (response) => {
-        if ('labelsOfType' in response) {
-          const labels = response.labelsOfType;
-          const newCards = [];
-          for (let i = 0; i < labels.length; i++) {
-            const labelProp = labels[i];
-            const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.cropMarker);
-            this.push(card);
-            newCards.push(card);
-            this.#loadedLabelIds.add(card.getLabelId());
-          }
-          if (callback) callback(newCards, response.unavailableLabelIds);
-        }
-      },
+    let response;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(`${url} responded ${res.status}`);
+      response = await res.json();
+    } catch (err) {
       // Still run the callback on failure: it is what releases the sidebar's loading state, so skipping it leaves
       // the filters greyed and unusable for the rest of the page's life. `null` rather than an empty array, so a
       // caller that must not read a failure as "there were none" can tell the two apart.
-      error: () => {
-        if (callback) callback(null, undefined);
-      },
-    });
+      console.error(err);
+      if (callback) callback(null, undefined);
+      return;
+    }
+    if ('labelsOfType' in response) {
+      const labels = response.labelsOfType;
+      const newCards = [];
+      for (let i = 0; i < labels.length; i++) {
+        const labelProp = labels[i];
+        const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.cropMarker);
+        this.push(card);
+        newCards.push(card);
+        this.#loadedLabelIds.add(card.getLabelId());
+      }
+      if (callback) callback(newCards, response.unavailableLabelIds);
+    }
   }
 
   /**
@@ -490,30 +496,26 @@ class CardContainer {
     this.#pageHasCards = imagesToLoad.length > 0;
 
     if (imagesToLoad.length > 0) {
-      if (this.#lastPage) {
-        sg.ui.cardContainer.nextPage.prop('disabled', true);
-      } else {
-        sg.ui.cardContainer.nextPage.prop('disabled', false);
-      }
+      sg.ui.cardContainer.nextPage.disabled = this.#lastPage;
 
       // We wait for all the promises from grabbing pano images to resolve before showing cards.
       Promise.all(imagePromises).then(() => {
         imagesToLoad.forEach((card) => {
           card.render(uiCardContainer.holder);
         });
-        sg.pageLoading.hide();
+        sg.pageLoading.style.display = 'none';
         this.#notifyExpandedViewRendered();
       });
     } else if (this.#listMode) {
       // "No matches. Start exploring to contribute more data!" answers a filtered search that found nothing; it
       // answers nothing about a list whose ids this city doesn't have, and with no sidebar to sit beside it, it is
       // absolutely positioned straight over the strip that does explain it.
-      sg.pageLoading.hide();
+      sg.pageLoading.style.display = 'none';
       this.#notifyExpandedViewRendered();
     } else {
-      // TODO: figure out how to better do the toggling of this element.
-      sg.labelsNotFound.show();
-      sg.pageLoading.hide();
+      // The stylesheet hides this notice, so showing it takes an explicit display rather than clearing the inline one.
+      sg.labelsNotFound.style.display = 'block';
+      sg.pageLoading.style.display = 'none';
       this.#notifyExpandedViewRendered();
     }
   }
@@ -535,7 +537,7 @@ class CardContainer {
       return;
     }
     this.#expandedViewHooksDeferred = false;
-    if (this.#pageHasCards) sg.ui.pageControl.show();
+    if (this.#pageHasCards) sg.ui.pageControl.style.display = '';
     sg.cardFilter.enable();
     this.#expandedView.onPageCardsRendered();
     this.#expandedView.restoreFromUrl();
@@ -554,12 +556,12 @@ class CardContainer {
     window.scrollTo(0, 0);
 
     // Indicate query is sent, loading appropriate cards.
-    sg.pageLoading.show();
+    sg.pageLoading.style.display = '';
 
     // Disable interactable UI elements while query loads.
     sg.cardFilter.disable();
-    sg.labelsNotFound.hide();
-    sg.ui.pageControl.hide();
+    sg.labelsNotFound.style.display = 'none';
+    sg.ui.pageControl.style.display = 'none';
   }
 
   /**
@@ -571,12 +573,10 @@ class CardContainer {
 
   /**
    * Clear Cards from UI.
-   * @param {*} cardContainer - UI element to clear Cards from.
+   * @param {HTMLElement} cardContainer - UI element to clear Cards from.
    */
   #clearCardContainer(cardContainer) {
-    cardContainer.children().each((i, el) => {
-      $(el).detach();
-    });
+    cardContainer.replaceChildren();
   }
 
   getCurrentPage() {

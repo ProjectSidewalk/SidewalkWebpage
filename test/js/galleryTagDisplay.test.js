@@ -1,13 +1,13 @@
 /**
  * Tests the Gallery card's tag row, which fits pills into the card in measured pixels (#4691).
  *
- * jsdom has no layout engine, so widths come from a jQuery stand-in that reports whatever each test declares —
- * the same approach anchorPanelToLabel.test.js takes. The stand-in models the page's global `box-sizing: border-box`
- * the way a browser does: a declared width is the pill's content box, and `outerWidth` adds the padding, border and
- * margins on top. That is enough to pin the things that matter here: the fitting arithmetic (which tags show whole,
- * which is ellipsized, which fall into the "+n" tooltip), that a pill is charged for its own chrome, that a narrow
- * card still shows a tag rather than a bare "+n" (#5009), and that the measurements are read off pills this card
- * built rather than whatever the document happens to contain.
+ * jsdom has no layout engine, so widths come from stubbed getBoundingClientRect / getComputedStyle that report whatever
+ * each test declares. The stubs model the page's global `box-sizing: border-box` the way a browser does: a declared
+ * width is the pill's content box, and its bounding box adds the padding and border on top, with the margins read
+ * separately. That is enough to pin the things that matter here: the fitting arithmetic (which tags show whole, which
+ * is ellipsized, which fall into the "+n" tooltip), that a pill is charged for its own chrome, that a narrow card still
+ * shows a tag rather than a bare "+n" (#5009), and that the measurements are read off pills this card built rather than
+ * whatever the document happens to contain.
  */
 
 const fs = require('fs');
@@ -24,65 +24,34 @@ const PILL_CHROME = 12; // A pill's own padding + border, which border-box measu
 const CHAR_PX = 6; // Width of one character, for the strings a test doesn't size by name (probes, the "+n" pill).
 
 /**
- * Installs a jQuery stand-in over the real DOM.
+ * Installs layout stubs over the real DOM.
  *
- * Only the handful of calls TagDisplay makes are implemented. `width()` and `outerWidth()` consult `widthOf`, so a
- * test can declare what each pill measures; everything else falls through to the real element.
- *
- * A string argument is resolved as a selector and may match nothing, which is the case that matters: jQuery's
- * `.css()` on an empty set returns undefined, and reading a length off undefined is what silently poisons the
- * fitting arithmetic with NaN.
+ * `getBoundingClientRect` consults `widthOf`, so a test can declare what each pill measures, and `getComputedStyle`
+ * reports the pills' margins and the holder's (absent) padding and border. Everything else is the real element.
  *
  * @param {function(HTMLElement): number} widthOf - Reports an element's content-box width.
- * @returns {{layoutReads: number[]}} How many pills were attached at each width read, so batching is observable.
+ * @returns {{layoutReads: number[]}} How many pills were attached at each pill read, so batching is observable.
  */
-function stubJQuery(widthOf) {
+function stubLayout(widthOf) {
     const reads = [];
-    const wrap = (target) => {
-        const el = typeof target === 'string' ? document.querySelector(target) : target;
-        if (!el) return emptySet;
-        return live(el);
+    window.HTMLElement.prototype.getBoundingClientRect = function () {
+        if (!this.classList.contains('gallery-tag')) return {width: widthOf(this)};
+        reads.push(this.parentElement ? this.parentElement.children.length : 0);
+        // An ellipsized pill is clamped to its max-width, which border-box sizing applies to the whole pill.
+        const max = parseFloat(this.style.maxWidth);
+        const borderBox = Number.isNaN(max)
+            ? widthOf(this) + PILL_CHROME
+            : Math.min(max, widthOf(this) + PILL_CHROME);
+        return {width: borderBox};
     };
-    const emptySet = {
-        empty: () => emptySet,
-        append: () => emptySet,
-        width: () => null,
-        outerWidth: () => null,
-        css: () => undefined,
-    };
-    const live = (el) => ({
-        empty() {
-            el.replaceChildren();
-            return this;
-        },
-        append(child) {
-            // jQuery accepts an array of nodes; the production code relies on that to attach every pill at once.
-            el.append(...(Array.isArray(child) ? child : [child]));
-            return this;
-        },
-        width() {
-            return widthOf(el);
-        },
-        outerWidth(includeMargin) {
-            reads.push(el.parentElement ? el.parentElement.children.length : 0);
-            // An ellipsized pill is clamped to its max-width, which border-box sizing applies to the whole pill.
-            const max = parseFloat(el.style.maxWidth);
-            const borderBox = Number.isNaN(max)
-                ? widthOf(el) + PILL_CHROME
-                : Math.min(max, widthOf(el) + PILL_CHROME);
-            return borderBox + (includeMargin ? TAG_MARGIN * 2 : 0);
-        },
-        css(prop, value) {
-            if (value !== undefined) {
-                el.style[prop] = typeof value === 'number' ? `${value}px` : value;
-                return this;
-            }
-            if (prop === 'marginLeft' || prop === 'marginRight') return `${TAG_MARGIN}px`;
-            return '';
-        },
+    window.getComputedStyle = (el) => ({
+        marginLeft: el.classList.contains('gallery-tag') ? `${TAG_MARGIN}px` : '0px',
+        marginRight: el.classList.contains('gallery-tag') ? `${TAG_MARGIN}px` : '0px',
+        paddingLeft: '0px',
+        paddingRight: '0px',
+        borderLeftWidth: '0px',
+        borderRightWidth: '0px',
     });
-    global.$ = wrap;
-    window.$ = wrap;
     return {layoutReads: reads};
 }
 
@@ -98,7 +67,7 @@ function stubJQuery(widthOf) {
 function render(tags, widths, holderWidth = HOLDER_WIDTH) {
     document.body.innerHTML = '<div class="card-tags" id="1"></div>';
     const container = document.querySelector('.card-tags');
-    const probe = stubJQuery((el) => {
+    const probe = stubLayout((el) => {
         if (el.classList.contains('label-tags-holder')) return holderWidth;
         return widths[el.textContent] ?? el.textContent.length * CHAR_PX;
     });
@@ -112,6 +81,14 @@ const shownTags = (container) => [...container.querySelectorAll('.thumbnail-tag'
 
 /** @returns {?string} The "+n" pill's text, or null when every tag fit. */
 const overflowPill = (container) => container.querySelector('.additional-count')?.textContent ?? null;
+
+const realGetBoundingClientRect = window.HTMLElement.prototype.getBoundingClientRect;
+const realGetComputedStyle = window.getComputedStyle;
+
+afterAll(() => {
+    window.HTMLElement.prototype.getBoundingClientRect = realGetBoundingClientRect;
+    window.getComputedStyle = realGetComputedStyle;
+});
 
 beforeAll(() => {
     // The production file translates tag names and the "Tags" header through i18next; identity keeps the test

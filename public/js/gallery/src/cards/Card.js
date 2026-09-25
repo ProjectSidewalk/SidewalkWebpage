@@ -226,7 +226,7 @@ class Card {
     this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
-    this.validationMenu = new ValidationMenu(this, $(imageHolder));
+    this.validationMenu = new ValidationMenu(this, imageHolder);
   }
 
   /**
@@ -248,12 +248,25 @@ class Card {
   }
 
   /**
-   * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
-   * JavaScript Deepcopy:
-   * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+   * Return a deep copy of the properties object, so the caller can only modify properties from setProperty().
+   * @returns {Record<string, any>}
    */
   getProperties() {
-    return $.extend(true, {}, this.#properties);
+    return Card.#deepCopy(this.#properties);
+  }
+
+  /**
+   * Copies arrays and plain objects recursively; anything else (the moment timestamps, for one) is shared by
+   * reference, which is why structuredClone isn't used: a moment carries functions it refuses to clone.
+   * @param {*} value
+   * @returns {*}
+   */
+  static #deepCopy(value) {
+    if (Array.isArray(value)) return value.map((item) => Card.#deepCopy(item));
+    if (value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, Card.#deepCopy(item)]));
+    }
+    return value;
   }
 
   /**
@@ -396,7 +409,7 @@ class Card {
    * Renders the card.
    * TODO: should there be a safety check here to make sure pano is loaded?
    *
-   * @param {JQuery} cardContainer - UI element to render card in.
+   * @param {HTMLElement} cardContainer - UI element to render card in.
    */
   render(cardContainer) {
     // If the card had transparent background from the expanded view opening earlier, remove transparency on rerender.

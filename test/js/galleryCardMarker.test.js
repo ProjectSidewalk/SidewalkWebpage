@@ -78,7 +78,6 @@ describe('a Gallery card\'s label marker', () => {
             show: () => { credit.attribution = 'shown'; },
             hide: () => { credit.attribution = 'hidden'; },
         });
-        window.$ = () => ({}); // Card wraps its image holder for the ValidationMenu stubbed above.
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });
 
