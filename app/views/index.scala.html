@@ -265,7 +265,7 @@
     @landing._partners(partners, officialContact, currentCity.cityNameShort)
 
 
-    @* Deferred: every reference below sits inside an appManager.ready callback, which runs off $(document).ready and so lands after all deferred scripts. i18next and its http backend are NOT re-included here — common/main.scala.html already loads both, deferred, on every page (#4486). *@
+    @* Deferred: every reference below sits inside an appManager.ready callback, which runs off DOM-ready and so lands after all deferred scripts. i18next and its http backend are NOT re-included here — common/main.scala.html already loads both, deferred, on every page (#4486). *@
     <script src='@assets.path("js/homepage.js")' defer></script>
     <script src='@assets.path("js/common/utilitiesSidewalk.js")' defer></script>
     <script src='@assets.path("js/common/share/ShareWidget.js")' defer></script>

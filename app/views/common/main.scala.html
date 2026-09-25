@@ -69,8 +69,6 @@
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
     <link href='@assets.path("vendor/bootstrap/css/bootstrap-3.3.5.min.css")' rel='stylesheet'>
 
-    <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
-
     <script>
       (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
         key: "@commonData.gMapsApiKey",
@@ -142,6 +140,9 @@
         window.appManager.init(csrfToken, i18nextParams, globals);
       });
     </script>
+    @* jQuery registers its own DOM-ready listener as it loads, so it goes after the init script above: every page's
+       `$(fn)` then runs with the CSRF token and globals already in place. Goes with the last app on jQuery (#4394). *@
+    <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
       <!-- Banner is only visible if user is on local/test server-->
     @if(commonData.environmentType != "prod") {
       <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">

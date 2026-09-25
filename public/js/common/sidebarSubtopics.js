@@ -3,7 +3,12 @@ util.onDomReady(() => {
   const subtopicsList = document.getElementById('subtopics-list');
   for (const question of document.querySelectorAll('h3.question')) {
     question.classList.add('subtopic');
-    subtopicsList?.insertAdjacentHTML('beforeend', `<li><a href="#${question.id}">${question.textContent}</a></li>`);
+    const link = document.createElement('a');
+    link.href = `#${question.id}`;
+    link.textContent = question.textContent;
+    const item = document.createElement('li');
+    item.append(link);
+    subtopicsList?.append(item);
   }
 
   new ImageLightbox('.help img.img-responsive');

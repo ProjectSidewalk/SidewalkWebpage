@@ -267,7 +267,12 @@ class MissionStartTutorial {
     renderLocationIndicators();
     this.#renderSlide(this.#currentSlideIdx);
 
-    document.querySelector('.mission-start-tutorial-overlay').style.display = 'flex';
+    // A fade-out still running from the previous mission would hide the overlay again when it finished.
+    const overlay = document.querySelector('.mission-start-tutorial-overlay');
+    for (const el of [overlay, document.querySelector('.explore-mission-start-tab-bar')]) {
+      for (const animation of el.getAnimations?.() ?? []) animation.cancel();
+    }
+    overlay.style.display = 'flex';
   }
 
   /**
@@ -458,8 +463,9 @@ class MissionStartTutorial {
       hide(el);
       return;
     }
+    for (const animation of el.getAnimations()) animation.cancel(); // A second click restarts the fade.
     const fade = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, fill: 'forwards' });
-    fade.finished.then(() => {
+    fade.addEventListener('finish', () => {
       hide(el);
       // Otherwise the fill holds opacity 0 when the next mission shows the element again.
       fade.cancel();

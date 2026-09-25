@@ -189,7 +189,7 @@ util.sizeCanvasToDisplay = function (el, ctx) {
  * already positioned in on-screen pixels divides by the same `scale` before calling. The default `frameHeight` is
  * Explore's displayed pano height, measured (its aspect follows the window in immersive mode, #5085).
  *
- * @param {JQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
+ * @param {HTMLElement} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
  * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
  * @param {number} iconRadius - The label icon's radius, in that same logical frame.
  * @param {object} [opts] - Frame overrides. Omit them entirely for Explore, whose frame is the default.
@@ -209,8 +209,8 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
   const centerX = labelCanvasXY.x * scale;
   const centerY = labelCanvasXY.y * scale;
   const radius = iconRadius * scale;
-  const width = panel.outerWidth();
-  const height = panel.outerHeight();
+  const width = panel.offsetWidth;
+  const height = panel.offsetHeight;
   const panoHeight = opts.frameHeight
     ?? (document.getElementById('label-drawing-layer')?.getBoundingClientRect().height
       || util.EXPLORE_CANVAS_HEIGHT * scale);
@@ -238,9 +238,10 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
   const top = Math.min(Math.max(centerY - height / 2, EDGE), maxTop);
   const tailTop = Math.min(Math.max(centerY - top, TAIL_MARGIN), height - TAIL_MARGIN);
 
-  panel.toggleClass('label-anchored-panel--flipped', flipped);
-  panel[0].style.setProperty('--panel-tail-top', `${tailTop}px`);
-  panel.css({ left: Math.min(Math.max(left, minLeft), maxLeft), top });
+  panel.classList.toggle('label-anchored-panel--flipped', flipped);
+  panel.style.setProperty('--panel-tail-top', `${tailTop}px`);
+  panel.style.left = `${Math.min(Math.max(left, minLeft), maxLeft)}px`;
+  panel.style.top = `${top}px`;
 };
 
 /**

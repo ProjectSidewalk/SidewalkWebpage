@@ -336,9 +336,9 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             },
             getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
             getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
-            // A jQuery object in the real card: indexable, and asked for its size when a vote is submitted.
-            svHolder: Object.assign(document.createElement('div'), {
-                getBoundingClientRect: () => ({ width: 720, height: 480, top: 0, left: 0, right: 720, bottom: 480 }),
+            // Asked for its size when a vote is submitted; jsdom lays nothing out, so the size is pinned here.
+            svHolder: Object.defineProperties(document.createElement('div'), {
+                clientWidth: { value: 720 }, clientHeight: { value: 480 },
             }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
