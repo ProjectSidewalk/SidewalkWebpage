@@ -18,7 +18,7 @@ class ZoomControl {
 
     this.#zoomInButton.addEventListener('click', this.#clickZoomIn);
     this.#zoomOutButton.addEventListener('click', this.#clickZoomOut);
-    // Not passive: the handler stops the wheel from scrolling the page, which a passive listener isn't allowed to do.
+    // Not passive, so preventDefault can stop the wheel from scrolling the page.
     svv.ui.viewer.controlLayer.addEventListener('wheel', this.#wheelZoom, { passive: false });
   }
 

@@ -20,8 +20,7 @@ class MobileValidationMenu {
   #init() {
     const menuUI = this.#menuUI;
 
-    // Add onclick for each validation button. A click made by script (assistive tech aside, there are no keyboard
-    // shortcuts on a phone) is the one kind the browser doesn't mark as trusted; the logs tell the two apart by it.
+    // Add onclick for each validation button. An untrusted (scripted) click is logged as a shortcut, as on desktop.
     menuUI.yesButton.addEventListener('click', (e) => {
       // A tap that lands while the next label's pano is still loading would be answering the label on screen and
       // recording it against the one behind it (#5211). The verdict row is dimmed for that window; this is what
@@ -195,7 +194,7 @@ class MobileValidationMenu {
   }
 
   /**
-   * @param {string|undefined} id - A reason button's id, or the undefined a label without a reason carries.
+   * @param {string|undefined} id - A reason button's id; undefined for a label with no reason picked.
    * @returns {HTMLElement|null}
    */
   #reasonButton(id) {

@@ -82,7 +82,7 @@ class KeyboardManager {
   }
 
   /**
-   * Clicks the numbered reason button, or, where the label type offers no reason under that number, the comment box.
+   * Clicks the numbered reason button, or the comment box where the label type offers no reason under that number.
    * @param {HTMLElement|null} button - The reason button the number names, if the menu has one.
    * @param {HTMLElement} textBox - The menu's free-text reason box.
    * @param {KeyboardEvent} e - The keypress event.
@@ -97,8 +97,7 @@ class KeyboardManager {
   }
 
   /**
-   * Read off the physical key rather than `e.key`, which says "!" under Shift, "&" on an AZERTY layout, or "End" on
-   * a numpad with NumLock off, for the same key the case labels matched on.
+   * From the physical key, not `e.key`: Shift, an AZERTY layout, or NumLock off all change what `e.key` says.
    * @param {KeyboardEvent} e - A keydown whose code is `Digit<n>` or `Numpad<n>`.
    * @returns {number} The digit.
    */

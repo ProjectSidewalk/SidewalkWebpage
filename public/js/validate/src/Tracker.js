@@ -26,8 +26,7 @@ class Tracker {
     ];
     for (const type of mouseEvents) {
       document.addEventListener(type, (/** @type {MouseEvent} */ e) => {
-        // A click made by script (a keyboard shortcut) has no cursor behind it; its 0/0 would read as a real click
-        // in the page's top-left corner.
+        // A keyboard shortcut's scripted click has no cursor; logging 0/0 would look like a real click in the corner.
         this.push(prefix + e.type, { cursorX: e.isTrusted ? e.pageX : null, cursorY: e.isTrusted ? e.pageY : null });
       });
     }

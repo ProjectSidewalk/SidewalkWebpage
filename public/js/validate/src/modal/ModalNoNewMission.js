@@ -69,9 +69,8 @@ class ModalNoNewMission {
     this.#uiModalMission.instruction.innerHTML = imageryUnavailable
       ? this.#imageryUnavailable
       : this.#noMissionsRemaining;
-    // This dead end can follow a mission briefing, which leaves two things behind on mobile: its "YOUR MISSION"
-    // eyebrow, and the shrunk-to-one-line sizing it put on the title. This message is a sentence and wants to wrap at
-    // the heading's own size. The eyebrow is a mobile-only element; the sizing is a no-op on desktop.
+    // A mobile briefing leaves its "YOUR MISSION" eyebrow and a shrunk title behind; this message is a sentence and
+    // wants the heading's own size. Both are no-ops on desktop.
     this.#uiModalMission.eyebrow?.replaceChildren();
     this.#uiModalMission.missionTitle.style.whiteSpace = '';
     this.#uiModalMission.missionTitle.style.fontSize = '';
@@ -98,8 +97,7 @@ class ModalNoNewMission {
       this.#uiModalMission.closeButton.style.width = 'fit-content';
     }
 
-    // Assigned rather than added: the modal can be shown twice in a session with different actions on its one
-    // button, and ModalMission puts its own handler on it too.
+    // Assigned, not added: this can show twice with different actions, and ModalMission uses the same button.
     this.#uiModalMission.closeButton.onclick = imageryUnavailable ? this.#handleRetryClick : this.#handleButtonClick;
     this.#uiModalMission.holder.classList.remove('ps-hidden');
   }

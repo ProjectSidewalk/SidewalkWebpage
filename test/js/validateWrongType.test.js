@@ -585,10 +585,9 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     expect(submitDisabled()).toBe(false);
   });
 
-  // Each severity button is a <label> around a hidden radio, with the handler on the label. The 1/2/3 shortcuts click
-  // the radio (a label click would focus the radio and open its tooltip, #5298), so the click has to bubble up to the
-  // label's handler and still check the radio. The rating is read as a number, since the comparison against the
-  // label's stored rating is strict.
+  // The severity buttons are <label>s around hidden radios, with the handler on the label. The 1/2/3 shortcuts click
+  // the radio, not the label (a label click focuses the radio and opens its tooltip, #5298), so the click has to
+  // bubble to the label's handler and still check the radio.
   it('a shortcut click on a severity radio reaches the label handler and checks the radio', () => {
     document.getElementById('validate-yes-button').click();
 

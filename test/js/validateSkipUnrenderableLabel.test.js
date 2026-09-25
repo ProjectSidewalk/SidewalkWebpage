@@ -36,7 +36,7 @@ function loadClassFromFile(filePath, className) {
   return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
 }
 
-/** @returns {HTMLElement} A detached element standing in for one of the UI elements Validate dims or re-cursors. */
+/** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
 function fakeElement() {
   return document.createElement('div');
 }

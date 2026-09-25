@@ -240,8 +240,7 @@ class ModalMission {
     // run past a phone screen, so without this the next mission's opens partway down.
     this.#uiModalMission.foreground.scrollTop = 0;
     this.#uiModalMission.closeButton.innerHTML = i18next.t('common:mission-start-tutorial.start-mission');
-    // Assigned, not added: ModalNoNewMission puts its own handler on this same button, and each show must replace
-    // the other's rather than stack on it.
+    // Assigned, not added: ModalNoNewMission uses this same button, and each show must replace the other's handler.
     this.#uiModalMission.closeButton.onclick = this.#handleButtonClick;
   }
 }

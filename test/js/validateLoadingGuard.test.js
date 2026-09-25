@@ -39,7 +39,7 @@ function loadBindingFromFile(filePath, name) {
   return (0, eval)('(() => {\n' + src + '\nreturn ' + name + ';\n})()');
 }
 
-/** @returns {HTMLElement} A detached element standing in for one of the UI elements Validate dims or re-cursors. */
+/** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
 function fakeElement() {
   return document.createElement('div');
 }
@@ -338,8 +338,8 @@ describe('every menu path that writes onto the current label refuses one that is
   });
 });
 
-// An id that isn't in the view matches nothing, silently, and the tool reports itself busy to nothing at all — which
-// is how mobile came to have no busy state (#5211). These check the selector lists against the markup they cover.
+// An id missing from the view matches nothing, silently, which is how mobile came to have no busy state (#5211).
+// These check the selector lists against the markup they cover.
 describe('every element the busy state covers exists in the view it covers it in', () => {
   const busySelectors = loadBindingFromFile(MAIN_PATH, 'VALIDATE_BUSY_SELECTORS');
 

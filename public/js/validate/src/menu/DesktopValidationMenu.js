@@ -25,8 +25,7 @@ class DesktopValidationMenu {
   #init() {
     const menuUI = this.#menuUI;
 
-    // Add onclick for each validation button. A keyboard shortcut clicks the button by script, which is the one
-    // kind of click the browser doesn't mark as trusted; that is what tells the two apart in the logs.
+    // Add onclick for each validation button. A shortcut clicks by script, so an untrusted click means a shortcut.
     menuUI.yesButton.addEventListener('click', (e) => {
       // The menu is dimmed and pointer-blocked while the next label's pano loads, but a button that kept focus after
       // a click still answers Enter with a native click of its own, which no CSS stops (#5211).
@@ -255,7 +254,7 @@ class DesktopValidationMenu {
   }
 
   /**
-   * @param {string|undefined} id - A reason button's id, or the undefined a label without a reason carries.
+   * @param {string|undefined} id - A reason button's id; undefined for a label with no reason picked.
    * @returns {HTMLElement|null}
    */
   #reasonButton(id) {
@@ -490,7 +489,6 @@ class DesktopValidationMenu {
         continue; // Skip tags that are now being excluded on this server. Don't want to show them.
       }
 
-      // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
       const tagDiv = /** @type {HTMLElement} */ (tagTemplate.cloneNode(true));
       tagDiv.classList.remove('template');
       const translatedTagName = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);

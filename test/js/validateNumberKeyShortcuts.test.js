@@ -22,8 +22,8 @@ const MANAGER_SRC = fs.readFileSync(
 );
 
 /**
- * A stand-in for one of the menu's controls, with its click spied; `chosen` drives which verdict is selected. A real
- * element, since the manager compares the comment boxes against document.activeElement.
+ * A menu control with its click spied; `chosen` marks the verdict. A real element, since the manager compares the
+ * comment boxes against document.activeElement.
  */
 function makeControl({ chosen = false } = {}) {
     const control = document.createElement('textarea');

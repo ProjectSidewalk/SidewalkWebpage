@@ -23,9 +23,8 @@ class ModalMissionComplete {
     if (button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
       window.location.replace('/explore');
     } else {
-      // If there is a new validate mission available, we should show the mission screens. Desktop only: the phone's
-      // briefing is ModalMission's carousel, already raised by MissionContainer, and this tutorial's markup isn't
-      // on that page.
+      // If there is a new validate mission available, show the mission screens. Desktop only: the phone's briefing is
+      // ModalMission's carousel, and this tutorial's markup isn't on that page.
       const newMission = svv.missionContainer.getCurrentMission();
       if (!util.isMobile() && newMission && newMission.getProperty('missionType') === 'validation') {
         new MissionStartTutorial(
@@ -61,8 +60,7 @@ class ModalMissionComplete {
    * Says where this mission leaves the validator overall: the badge their all-time validation count has earned, if
    * they have earned one, and the count itself.
    *
-   * The badge and its wording are mobile's; the desktop screen has none of those elements and keeps the bare number
-   * its table column expects.
+   * The badge and its wording are mobile's; the desktop screen has no badge and keeps the bare number.
    *
    * @param {number} total - The validator's all-time validation count.
    */
@@ -181,8 +179,7 @@ class ModalMissionComplete {
    * Re-enables the start next mission button; called once a new mission has loaded from the back end.
    */
   nextMissionLoaded() {
-    // Enable button clicks, reset the CSS for primary/secondary close buttons. Assigned rather than added, so a
-    // mission that loads twice before the screen closes can't leave two handlers on a button.
+    // Re-enable the buttons. Handlers are assigned, not added, so a second load can't stack a second handler.
     const ui = this.#uiModalMissionComplete;
     ui.closeButtonPrimary.classList.remove('btn-loading');
     ui.closeButtonPrimary.classList.add('btn-primary');

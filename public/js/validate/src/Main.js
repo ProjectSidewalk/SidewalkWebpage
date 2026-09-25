@@ -69,8 +69,8 @@ class Main {
   }
 
   /**
-   * Collects the tool's DOM elements into the `svv.ui` tree that the other modules read. An element that only one
-   * layout has (the mobile briefing's eyebrow, desktop's tag editor) is null on the other, and its readers know it.
+   * Collects the tool's DOM elements into `svv.ui`. An element only one layout has (mobile's briefing eyebrow,
+   * desktop's tag editor) is null on the other.
    */
   #initUI() {
     svv.tagsByLabelType = this.#param.tagList.reduce((acc, t) => {
