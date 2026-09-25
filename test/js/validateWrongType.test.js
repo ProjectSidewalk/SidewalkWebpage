@@ -518,7 +518,14 @@ describe('DesktopValidationMenu on Expert Validate', () => {
         <div id="sidewalk-ai-suggestions-block"><div class="sidewalk-ai-suggested-tag template"></div></div>
         <select id="select-tag"></select>
       </div>
-      <div id="validate-severity-section"></div>
+      <div id="validate-severity-section"><div id="validate-severity-header"></div>
+        <div id="severity-radio-holder">${[1, 2, 3].map((n) => `
+          <label class="severity-button" id="severity-button-${n}" data-severity="${n}">
+            <input type="radio" name="label-severity" id="validate-severity-radio-${n}" class="severity-button__radio">
+            <img class="severity-button__icon" alt=""><span class="severity-button__label"></span>
+          </label>`).join('')}
+        </div>
+      </div>
       <div id="validate-optional-comment-section"><input id="add-optional-comment"></div>
       <div id="validate-why-no-section"><div id="no-reason-options">
         ${[1, 2, 3, 4].map((n) => `<button id="no-button-${n}" class="validation-reason-button"></button>`).join('')}
@@ -576,6 +583,20 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     expect(label.getProperty('validationResult')).toBe('Agree');
     expect(document.querySelectorAll('.sidewalk-ai-suggested-tag:not(.template)')).toHaveLength(2);
     expect(submitDisabled()).toBe(false);
+  });
+
+  // Each severity button is a <label> around a hidden radio, with the handler on the label. The 1/2/3 shortcuts click
+  // the radio (a label click would focus the radio and open its tooltip, #5298), so the click has to bubble up to the
+  // label's handler and still check the radio. The rating is read as a number, since the comparison against the
+  // label's stored rating is strict.
+  it('a shortcut click on a severity radio reaches the label handler and checks the radio', () => {
+    document.getElementById('validate-yes-button').click();
+
+    document.getElementById('validate-severity-radio-3').click();
+
+    expect(label.getProperty('newSeverity')).toBe(3);
+    expect(/** @type {HTMLInputElement} */ (document.getElementById('validate-severity-radio-3')).checked).toBe(true);
+    expect(window.svv.tracker.push).toHaveBeenCalledWith('Click=Severity_Old=2_New=3');
   });
 
   it('the "wrong label type" reason swaps the reasons for the type picker under a chosen Disagree', () => {

@@ -338,9 +338,8 @@ describe('every menu path that writes onto the current label refuses one that is
   });
 });
 
-// Mobile had no busy state for years because #setUiBusy named two ids that exist only in the desktop view: an
-// unmatched selector is an empty list and no complaint, so the tool went on reporting itself busy to nothing at all.
-// These check the selector lists against the markup they are meant to cover.
+// An id that isn't in the view matches nothing, silently, and the tool reports itself busy to nothing at all — which
+// is how mobile came to have no busy state (#5211). These check the selector lists against the markup they cover.
 describe('every element the busy state covers exists in the view it covers it in', () => {
   const busySelectors = loadBindingFromFile(MAIN_PATH, 'VALIDATE_BUSY_SELECTORS');
 

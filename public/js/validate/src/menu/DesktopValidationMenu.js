@@ -179,8 +179,9 @@ class DesktopValidationMenu {
       }
     });
 
-    // Add onclick for submit button. A disabled button never fires this, by pointer or by script.
+    // Add onclick for submit button.
     menuUI.submitButton.addEventListener('click', (e) => {
+      if (menuUI.submitButton.disabled) return;
       this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), !e.isTrusted);
     });
   }

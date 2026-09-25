@@ -315,7 +315,7 @@ class Main {
       );
     }
 
-    svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
+    svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, param.language);
 
     // Logs when the page's focus changes.
     function logPageFocus() {

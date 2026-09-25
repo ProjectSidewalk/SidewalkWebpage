@@ -122,8 +122,10 @@ class ModalMissionComplete {
     // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
     // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.
     const ui = this.#uiModalMissionComplete;
-    ui.closeButtonPrimary.classList.replace('btn-primary', 'btn-loading');
-    ui.closeButtonSecondary.classList.replace('btn-secondary', 'btn-loading');
+    ui.closeButtonPrimary.classList.remove('btn-primary');
+    ui.closeButtonPrimary.classList.add('btn-loading');
+    ui.closeButtonSecondary.classList.remove('btn-secondary');
+    ui.closeButtonSecondary.classList.add('btn-loading');
 
     ui.background.style.visibility = 'visible';
     ui.missionTitle.innerHTML = i18next.t('mission-complete.title');
@@ -182,9 +184,11 @@ class ModalMissionComplete {
     // Enable button clicks, reset the CSS for primary/secondary close buttons. Assigned rather than added, so a
     // mission that loads twice before the screen closes can't leave two handlers on a button.
     const ui = this.#uiModalMissionComplete;
-    ui.closeButtonPrimary.classList.replace('btn-loading', 'btn-primary');
+    ui.closeButtonPrimary.classList.remove('btn-loading');
+    ui.closeButtonPrimary.classList.add('btn-primary');
     ui.closeButtonPrimary.onclick = () => this.#handleButtonClick('primary');
-    ui.closeButtonSecondary.classList.replace('btn-loading', 'btn-secondary');
+    ui.closeButtonSecondary.classList.remove('btn-loading');
+    ui.closeButtonSecondary.classList.add('btn-secondary');
     ui.closeButtonSecondary.onclick = () => this.#handleButtonClick('secondary');
   }
 }

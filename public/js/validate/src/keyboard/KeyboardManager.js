@@ -96,6 +96,16 @@ class KeyboardManager {
     }
   }
 
+  /**
+   * Read off the physical key rather than `e.key`, which says "!" under Shift, "&" on an AZERTY layout, or "End" on
+   * a numpad with NumLock off, for the same key the case labels matched on.
+   * @param {KeyboardEvent} e - A keydown whose code is `Digit<n>` or `Numpad<n>`.
+   * @returns {number} The digit.
+   */
+  static #digitOf(e) {
+    return Number(e.code.at(-1));
+  }
+
   /** @returns {boolean} Whether the menu is on the "wrong label type" disagree (#5409). */
   #inWrongTypeView() {
     return svv.validationMenu?.inWrongTypeView() === true;
@@ -232,7 +242,7 @@ class KeyboardManager {
         case 'Numpad1':
         case 'Numpad2':
         case 'Numpad3':
-          this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
+          this.#handleNumberKeyShortcut(KeyboardManager.#digitOf(e), e);
           break;
           // '4' and '5' keys (Pick the fourth disagree reason, or focus the comment box).
         case 'Digit4':
@@ -243,7 +253,7 @@ class KeyboardManager {
           // type that offers a fourth reason, handled through #handleNumberKeyShortcut. Routed separately from 1-3 only
           // because of the Agree verdict, where it would reach for a severity button 4 or 5 that doesn't exist.
           if (validationMenuUi.noButton.classList.contains('chosen') && !this.#inWrongTypeView()) {
-            this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
+            this.#handleNumberKeyShortcut(KeyboardManager.#digitOf(e), e);
           } else {
             this.#handleCommentBoxShortcut(e);
           }
