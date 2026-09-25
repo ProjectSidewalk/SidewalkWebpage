@@ -8,17 +8,14 @@ class LabelContainer {
   // a mapper who hides earlier labels to declutter a re-audit wants them hidden on the next street too.
   static EARLIER_LABELS_STORAGE_KEY = 'minimapShowEarlierLabels';
 
-  #jquery;
   #labelsToLog = {};
   #allLabels = {};
   #nextTempLabelId;
 
   /**
-   * @param {JQueryStatic} $ - jQuery object.
    * @param {number} nextTemporaryLabelId
    */
-  constructor($, nextTemporaryLabelId) {
-    this.#jquery = $;
+  constructor(nextTemporaryLabelId) {
     this.#nextTempLabelId = nextTemporaryLabelId;
   }
 
@@ -84,7 +81,7 @@ class LabelContainer {
    * @param {(result: object) => void} [callback]
    */
   fetchLabelsToResumeMission(regionId, callback) {
-    this.#jquery.getJSON('/label/resumeMission', { regionId }, (result) => {
+    fetch(`/label/resumeMission?regionId=${regionId}`).then((res) => res.json()).then((result) => {
       const labelArr = result.labels;
       for (let i = 0; i < labelArr.length; i++) {
         const originalCanvasXY = {
@@ -260,7 +257,7 @@ class LabelContainer {
     this.getAllLabels().forEach((l) => {
       l.setMinimapMarkerSuppressed(!shown && l.getMinimapEra() !== 'current');
     });
-    svl.ui?.minimap?.legendEarlierLabels?.prop('checked', shown);
+    if (svl.ui?.minimap?.legendEarlierLabels) svl.ui.minimap.legendEarlierLabels.checked = shown;
   }
 
   /**
@@ -271,7 +268,7 @@ class LabelContainer {
       return false;
     }
     svl.tracker.push('RemoveLabel', { labelType: label.getProperty('labelType') });
-    if (svl.isOnboarding()) this.#jquery(document).trigger('RemoveLabel');
+    if (svl.isOnboarding()) document.dispatchEvent(new CustomEvent('RemoveLabel'));
     svl.overallStats.decrementLabelCount();
     label.remove();
     this.#addLabelToListObject(this.#labelsToLog, label);

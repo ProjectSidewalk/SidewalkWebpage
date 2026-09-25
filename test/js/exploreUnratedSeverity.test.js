@@ -15,16 +15,29 @@ const CONTEXT_MENU_SRC = read('public/js/explore/src/canvas/ContextMenu.js');
 const KEYBOARD_MANAGER_SRC = read('public/js/explore/src/keyboard/KeyboardManager.js');
 
 /**
- * A jQuery stand-in whose methods all return itself; `length` 0 reads as "not in the DOM".
- * @returns {object}
+ * The context menu's real markup, pared down to what ContextMenu wires up.
+ * @returns {object} The `uiContextMenu` argument ContextMenu takes.
  */
-function makeNode() {
-  const node = { length: 0, 0: undefined };
-  ['find', 'each', 'text', 'html', 'attr', 'prop', 'addClass', 'removeClass', 'toggleClass', 'css', 'val', 'on',
-    'off', 'blur', 'focus', 'filter', 'removeAttr', 'trigger', 'append', 'remove'].forEach((name) => {
-    node[name] = () => node;
+function makeContextMenuUi() {
+  const holder = document.createElement('div');
+  holder.innerHTML = `<img id="context-menu-icon"><span id="context-menu-type"></span>
+    <button id="context-menu-done"></button><button id="context-menu-delete"></button>`;
+  const radioButtons = [1, 2, 3].map((value) => {
+    const radio = document.createElement('input');
+    radio.type = 'radio';
+    radio.value = String(value);
+    return radio;
   });
-  return node;
+  return {
+    holder,
+    severityMenu: document.createElement('div'),
+    severityRadioHolder: document.createElement('div'),
+    radioButtons,
+    textBox: document.createElement('input'),
+    tagHolder: document.createElement('div'),
+    tags: [],
+    closeButton: document.createElement('button'),
+  };
 }
 
 /**
@@ -55,7 +68,6 @@ describe('Explore severity shortcuts', () => {
   let keyboard;
 
   beforeEach(() => {
-    window.$ = () => makeNode();
     window.i18next = { t: (key) => key };
     window.util = {
       assetPath: assetPathStub,
@@ -70,16 +82,7 @@ describe('Explore severity shortcuts', () => {
 
     window.eval(`${CONTEXT_MENU_SRC}\n${KEYBOARD_MANAGER_SRC}\n`
       + 'window.ContextMenu = ContextMenu; window.KeyboardManager = KeyboardManager;');
-    menu = new window.ContextMenu({
-      holder: makeNode(),
-      severityMenu: makeNode(),
-      severityRadioHolder: makeNode(),
-      radioButtons: makeNode(),
-      textBox: makeNode(),
-      tagHolder: makeNode(),
-      tags: makeNode(),
-      closeButton: makeNode(),
-    });
+    menu = new window.ContextMenu(makeContextMenuUi());
     menu.labelTags = [];
     window.svl.contextMenu = menu;
     keyboard = new window.KeyboardManager(window.svl, canvas, menu, {}, {}, {});

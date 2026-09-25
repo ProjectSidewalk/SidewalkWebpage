@@ -148,7 +148,6 @@ describe('Form pano submission staging', () => {
             math: { kmsToMeters: (km) => km * 1000 },
             pano: { TUTORIAL_PANO_IDS: new Set(['tutorial', 'afterWalkTutorial']) },
         };
-        window.$ = jest.fn(() => ({ width: () => 1920, height: () => 1080 }));
         window.i18next = { language: 'en' };
 
         panos = [panoStub('pano-A'), panoStub('pano-B')];

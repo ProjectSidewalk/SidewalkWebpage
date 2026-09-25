@@ -23,8 +23,8 @@ class Compass {
     this.#taskContainer = taskContainer;
 
     this.#uiCompass = {
-      messageHolder: $('#compass-message-holder'),
-      message: $('#compass-message'),
+      messageHolder: document.getElementById('compass-message-holder'),
+      message: document.getElementById('compass-message'),
     };
 
     this.#directionIcons = {
@@ -45,7 +45,7 @@ class Compass {
   blink() {
     this.stopBlinking();
     this.#blinkInterval = window.setInterval(() => {
-      this.#uiCompass.messageHolder.toggleClass('highlight-100');
+      this.#uiCompass.messageHolder.classList.toggle('highlight-100');
     }, 500);
   }
 
@@ -95,17 +95,11 @@ class Compass {
   }
 
   enableCompassClick() {
-    if (!this.#status.lockDisableCompassClick) {
-      this.#uiCompass.messageHolder.off('click', this.#handleCompassClick).on('click', this.#handleCompassClick);
-      this.#uiCompass.messageHolder.css('cursor', 'pointer');
-    }
+    if (!this.#status.lockDisableCompassClick) this.attachMessageClickHandler(this.#handleCompassClick);
   }
 
   disableCompassClick() {
-    if (!this.#status.lockDisableCompassClick) {
-      this.#uiCompass.messageHolder.off('click', this.#handleCompassClick);
-      this.#uiCompass.messageHolder.css('cursor', 'default');
-    }
+    if (!this.#status.lockDisableCompassClick) this.detachMessageClickHandler(this.#handleCompassClick);
   }
 
   lockDisableCompassClick() {
@@ -130,28 +124,25 @@ class Compass {
     this.removeLabelBeforeJumpMessage();
   }
 
-  // Arrow field so the reference stays stable for jQuery .off()/.on() matching in the message-box handlers.
-  #jumpToTheNewTask = async () => {
-    svl.tracker.push('LabelBeforeJump_Jump');
-    await this.#navigationService.jumpToANewTask();
-  };
+  // Kept so the "label before you jump" message's click handler can be removed again.
+  #jumpMessageOnclick = null;
 
   #makeTheLabelBeforeJumpMessageBoxClickable() {
-    let jumpMessageOnclick;
+    this.#makeTheLabelBeforeJumpMessageBoxUnclickable();
     if (svl.regionModel.isRouteOrRegionComplete()) {
-      jumpMessageOnclick = () => {
-        svl.missionController.wrapUpRouteOrRegion();
-      };
+      this.#jumpMessageOnclick = () => svl.missionController.wrapUpRouteOrRegion();
     } else {
-      jumpMessageOnclick = this.#jumpToTheNewTask;
+      this.#jumpMessageOnclick = async () => {
+        svl.tracker.push('LabelBeforeJump_Jump');
+        await this.#navigationService.jumpToANewTask();
+      };
     }
-    this.#uiCompass.messageHolder.off('click', this.#jumpToTheNewTask).on('click', jumpMessageOnclick);
-    this.#uiCompass.messageHolder.css('cursor', 'pointer');
+    this.attachMessageClickHandler(this.#jumpMessageOnclick);
   }
 
   #makeTheLabelBeforeJumpMessageBoxUnclickable() {
-    this.#uiCompass.messageHolder.off('click', this.#jumpToTheNewTask);
-    this.#uiCompass.messageHolder.css('cursor', 'default');
+    if (this.#jumpMessageOnclick) this.detachMessageClickHandler(this.#jumpMessageOnclick);
+    this.#jumpMessageOnclick = null;
   }
 
   showLabelBeforeJumpMessage() {
@@ -209,8 +200,9 @@ class Compass {
    * Hide a message.
    */
   hideMessage() {
-    this.#uiCompass.messageHolder.removeClass('fadeInUp').addClass('fadeOutDown');
-    this.#uiCompass.messageHolder.css('pointer-events', 'none');
+    this.#uiCompass.messageHolder.classList.remove('fadeInUp');
+    this.#uiCompass.messageHolder.classList.add('fadeOutDown');
+    this.#uiCompass.messageHolder.style.pointerEvents = 'none';
   }
 
   /**
@@ -224,29 +216,30 @@ class Compass {
     const message
       = `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>`
         + `${image}<span class="compass-message-large">${this.#directionToDirectionMessage(direction)}</span>`;
-    this.#uiCompass.message.html(message);
+    this.#uiCompass.message.innerHTML = message;
   }
 
   #setLabelBeforeJumpMessage() {
     if (svl.regionModel.isRouteComplete) {
-      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-route')}</div>`);
+      this.#uiCompass.message.innerHTML = `<div>${i18next.t('center-ui.compass.end-route')}</div>`;
     } else if (svl.regionModel.isRegionComplete) {
-      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-region')}</div>`);
+      this.#uiCompass.message.innerHTML = `<div>${i18next.t('center-ui.compass.end-region')}</div>`;
     } else {
-      this.#uiCompass.message.html(`<div>${i18next.t('center-ui.compass.end-street')}</div>`);
+      this.#uiCompass.message.innerHTML = `<div>${i18next.t('center-ui.compass.end-street')}</div>`;
     }
   }
 
   #setBackToRouteMessage() {
-    this.#uiCompass.message.html(i18next.t('center-ui.compass.far-away'));
+    this.#uiCompass.message.innerHTML = i18next.t('center-ui.compass.far-away');
   }
 
   /**
    * Show a message.
    */
   showMessage() {
-    this.#uiCompass.messageHolder.removeClass('fadeOutDown').addClass('fadeInUp');
-    this.#uiCompass.messageHolder.css('pointer-events', 'auto');
+    this.#uiCompass.messageHolder.classList.remove('fadeOutDown');
+    this.#uiCompass.messageHolder.classList.add('fadeInUp');
+    this.#uiCompass.messageHolder.style.pointerEvents = 'auto';
   }
 
   /**
@@ -255,7 +248,7 @@ class Compass {
   stopBlinking() {
     window.clearInterval(this.#blinkInterval);
     this.#blinkInterval = null;
-    this.#uiCompass.messageHolder.removeClass('highlight-100');
+    this.#uiCompass.messageHolder.classList.remove('highlight-100');
   }
 
   /**
@@ -323,7 +316,7 @@ class Compass {
   }
 
   // Performs the action written in the compass message for the user (turning, moving ahead, jumping).
-  // Arrow field so the reference stays stable for jQuery .off()/.on() matching in enable/disableCompassClick.
+  // Arrow field so the same function reference is added and removed by enable/disableCompassClick.
   #handleCompassClick = async () => {
     if (this.#checkEnRoute()) {
       svl.stuckAlert.compassOrStuckClicked();
@@ -352,8 +345,8 @@ class Compass {
    * @param {Function} handler
    */
   attachMessageClickHandler(handler) {
-    this.#uiCompass.messageHolder.off('click', handler).on('click', handler);
-    this.#uiCompass.messageHolder.css('cursor', 'pointer');
+    this.#uiCompass.messageHolder.addEventListener('click', handler);
+    this.#uiCompass.messageHolder.style.cursor = 'pointer';
   }
 
   /**
@@ -361,7 +354,7 @@ class Compass {
    * @param {Function} handler
    */
   detachMessageClickHandler(handler) {
-    this.#uiCompass.messageHolder.off('click', handler);
-    this.#uiCompass.messageHolder.css('cursor', 'default');
+    this.#uiCompass.messageHolder.removeEventListener('click', handler);
+    this.#uiCompass.messageHolder.style.cursor = 'default';
   }
 }

@@ -44,9 +44,9 @@ class Onboarding {
    * @param {RibbonMenu} ribbon
    * @param {Tracker} tracker
    * @param {Canvas} canvas
-   * @param {Record<string, JQuery>} uiCanvas
+   * @param {Record<string, HTMLElement>} uiCanvas
    * @param {ContextMenu} contextMenu
-   * @param {Record<string, JQuery>} uiOnboarding
+   * @param {Record<string, HTMLElement>} uiOnboarding
    * @param {ZoomControl} zoomControl
    */
   constructor(svl, compass, handAnimation, navigationService, missionContainer, panoOverlayControls, onboardingStates,
@@ -76,16 +76,17 @@ class Onboarding {
 
     this.#adjustMap();
 
-    $('#navbar-retake-tutorial-btn').css('display', 'none');
+    const retakeButton = document.getElementById('navbar-retake-tutorial-btn');
+    if (retakeButton) retakeButton.style.display = 'none';
 
-    const canvasUI = this.#uiOnboarding.canvas.get(0);
+    const canvasUI = /** @type {HTMLCanvasElement} */ (this.#uiOnboarding.canvas);
     if (canvasUI) {
       this.#ctx = canvasUI.getContext('2d');
       // Render at on-screen/HiDPI resolution while drawing stays in the 720x480 logical frame, like the main label
       // canvas — a CSS-stretched 720x480 bitmap makes the example labels visibly pixelated (#4817).
       util.sizeCanvasToDisplay(canvasUI, this.#ctx);
     }
-    this.#uiOnboarding.holder.css('visibility', 'visible');
+    this.#uiOnboarding.holder.style.visibility = 'visible';
 
     svl.panoManager.lockShowingNavArrows();
 
@@ -129,8 +130,8 @@ class Onboarding {
     const svl = this.#svl;
     // Render the minimap at its native square size and zoom the whole holder uniformly (see .minimap-tutorial) so
     // the static screenshot, the Google label markers, and the fog all share one coordinate frame and stay aligned.
-    svl.ui.minimap.holder.addClass('minimap-tutorial');
-    svl.ui.minimap.holder.css({
+    svl.ui.minimap.holder.classList.add('minimap-tutorial');
+    Object.assign(svl.ui.minimap.holder.style, {
       backgroundImage: `url('${util.assetPath('images/explore/onboarding/TutorialMiniMap.jpg')}')`,
       backgroundSize: 'cover',
       backgroundRepeat: 'no-repeat',
@@ -141,7 +142,7 @@ class Onboarding {
     this.#sizeTutorialMinimap();
     if (window.ResizeObserver && !this.#tutorialMinimapResizeObserver) {
       this.#tutorialMinimapResizeObserver = new ResizeObserver(() => this.#sizeTutorialMinimap());
-      this.#tutorialMinimapResizeObserver.observe(svl.ui.minimap.holder[0].parentElement);
+      this.#tutorialMinimapResizeObserver.observe(svl.ui.minimap.holder.parentElement);
     }
 
     // TODO use cloud-based maps styling for this potentially as well..? Hiding something in dom as workaround.
@@ -162,7 +163,7 @@ class Onboarding {
    * the peg stays centered, rather than overflowing the sidebar and getting clipped.
    */
   #sizeTutorialMinimap() {
-    const holder = this.#svl.ui.minimap.holder[0];
+    const holder = this.#svl.ui.minimap.holder;
     const sidebar = document.getElementById('explore-sidebar');
     if (!holder || !sidebar) return;
 
@@ -199,7 +200,7 @@ class Onboarding {
    * annotations. Call after the UI scale changes (e.g. on window resize), mirroring Canvas.resize().
    */
   resize() {
-    const canvasUI = this.#uiOnboarding.canvas.get(0);
+    const canvasUI = /** @type {HTMLCanvasElement} */ (this.#uiOnboarding.canvas);
     if (!canvasUI || !this.#ctx) return;
     util.sizeCanvasToDisplay(canvasUI, this.#ctx);
 
@@ -472,7 +473,7 @@ class Onboarding {
       this.#floatingCleanup();
       this.#floatingCleanup = null;
     }
-    if (this.#uiOnboarding.messageHolder.is(':visible')) this.#uiOnboarding.messageHolder.hide();
+    this.#uiOnboarding.messageHolder.style.display = 'none';
   }
 
   /**
@@ -518,9 +519,10 @@ class Onboarding {
     );
 
     const card = this.#svl.ui.canvas.hoverCard;
-    if (label.getHoverInfoVisibility() !== 'visible' || card.css('visibility') !== 'visible') return iconRect;
+    const cardShown = label.getHoverInfoVisibility() === 'visible' && getComputedStyle(card).visibility === 'visible';
+    if (!cardShown) return iconRect;
 
-    const cardRect = card[0].getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
     const left = Math.min(iconRect.left, cardRect.left);
     const top = Math.min(iconRect.top, cardRect.top);
     return new DOMRect(
@@ -556,7 +558,7 @@ class Onboarding {
       const el = document.querySelector(selector);
       if (!el) return null;
 
-      if (!this.#contextMenu.isOpen() && this.#svl.ui.contextMenu.holder[0]?.contains(el)) {
+      if (!this.#contextMenu.isOpen() && this.#svl.ui.contextMenu.holder?.contains(el)) {
         const rect = this.#labelRect(this.#contextMenu.getTargetLabel());
         if (rect) return { rect, placement: 'top', boundedByPane: true };
       }
@@ -570,7 +572,7 @@ class Onboarding {
    * @param {Function} resolveAnchor - Returns {rect, placement, boundedByPane} for the current frame, or null.
    */
   #anchorMessageTo(resolveAnchor) {
-    const floating = this.#uiOnboarding.messageHolder.get(0);
+    const floating = this.#uiOnboarding.messageHolder;
     let anchor = resolveAnchor();
     if (!anchor || !floating || typeof FloatingUIDOM === 'undefined') return;
 
@@ -660,18 +662,19 @@ class Onboarding {
 
     const scale = util.exploreDisplayScale();
     const holder = this.#uiOnboarding.messageHolder;
-    holder.addClass('onboarding-message-pano-anchored');
+    holder.classList.add('onboarding-message-pano-anchored');
     // Center on the arrow, clamped inside the pane; the class translates the box up so its bottom edge lands
     // just above the arrow's tail (annotation arrows point down at their target).
     const EDGE_PADDING = 8;    // Keeps the box off the pane's rounded corners, matching the Floating UI callouts.
     const ARROW_CLEARANCE = 60; // Logical-frame gap above the arrow tip, so the box clears the arrow's full length.
     const paneWidth = util.EXPLORE_CANVAS_WIDTH * scale;
-    const boxWidth = holder.outerWidth();
+    const boxWidth = holder.getBoundingClientRect().width;
     const left = Math.min(
       Math.max(canvasCoord.x * scale - boxWidth / 2, EDGE_PADDING), paneWidth - boxWidth - EDGE_PADDING,
     );
     const top = Math.max((canvasCoord.y - ARROW_CLEARANCE) * scale, EDGE_PADDING);
-    holder.css({ left: `${left}px`, top: `${top}px` });
+    holder.style.left = `${left}px`;
+    holder.style.top = `${top}px`;
   }
 
   /**
@@ -680,9 +683,10 @@ class Onboarding {
    */
   #showMessage(parameters) {
     const message = parameters.message;
+    const messageHolder = this.#uiOnboarding.messageHolder;
     // Flash the box yellow once to catch the user's attention.
-    this.#uiOnboarding.messageHolder.toggleClass('onboarding-message-flash');
-    setTimeout(() => this.#uiOnboarding.messageHolder.toggleClass('onboarding-message-flash'), 100);
+    messageHolder.classList.toggle('onboarding-message-flash');
+    setTimeout(() => messageHolder.classList.toggle('onboarding-message-flash'), 100);
 
     // Tear down anchor positioning from the previous message.
     if (this.#floatingCleanup) {
@@ -691,38 +695,37 @@ class Onboarding {
     }
 
     // Reset positioning state so each message starts clean.
-    this.#uiOnboarding.messageHolder
-      .removeClass('animated fadeIn fadeInLeft fadeInRight fadeInDown fadeInUp callout-floating '
-        + 'onboarding-message-takeover onboarding-message-fullpage onboarding-message-top-right '
-        + 'onboarding-message-pano-anchored onboarding-message-pass-through')
-      .css({ position: '', top: '', left: '', transform: '', width: '', maxWidth: '' });
-    this.#uiOnboarding.background.css('visibility', 'hidden');
+    messageHolder.classList.remove('animated', 'fadeIn', 'fadeInLeft', 'fadeInRight', 'fadeInDown', 'fadeInUp',
+      'callout-floating', 'onboarding-message-takeover', 'onboarding-message-fullpage', 'onboarding-message-top-right',
+      'onboarding-message-pano-anchored', 'onboarding-message-pass-through');
+    Object.assign(messageHolder.style, { position: '', top: '', left: '', transform: '', width: '', maxWidth: '' });
+    this.#uiOnboarding.background.style.visibility = 'hidden';
 
-    this.#uiOnboarding.messageHolder.show();
+    messageHolder.style.display = '';
 
     if ('fade-direction' in parameters) {
-      this.#uiOnboarding.messageHolder.addClass(`animated ${parameters['fade-direction']}`);
+      messageHolder.classList.add('animated', parameters['fade-direction']);
     }
 
     // Width is authored in logical (pre-scale) pixels; scale it to on-screen pixels.
     if ('width' in parameters) {
-      this.#uiOnboarding.messageHolder.css('width', parameters.width * util.exploreDisplayScale());
+      messageHolder.style.width = `${parameters.width * util.exploreDisplayScale()}px`;
     }
 
-    this.#uiOnboarding.messageHolder.html(typeof message === 'function' ? message() : message);
+    messageHolder.innerHTML = typeof message === 'function' ? message() : message;
 
     // Place the message in one of three coordinate-free modes; otherwise it keeps its default top-left corner.
     if (parameters.background) {
       // Takeover: dim the viewport behind the message. Centered by default; fullPage opts into a full-page canvas.
-      this.#uiOnboarding.background.css('visibility', 'visible');
-      this.#uiOnboarding.messageHolder.addClass('onboarding-message-takeover');
-      if (parameters.fullPage) this.#uiOnboarding.messageHolder.addClass('onboarding-message-fullpage');
+      this.#uiOnboarding.background.style.visibility = 'visible';
+      messageHolder.classList.add('onboarding-message-takeover');
+      if (parameters.fullPage) messageHolder.classList.add('onboarding-message-fullpage');
     } else if (parameters.anchor || parameters.labelAnchor) {
       // Anchor to a live UI element or a placed label; Floating UI computes the position and arrow.
-      this.#uiOnboarding.messageHolder.addClass('callout-floating');
+      messageHolder.classList.add('callout-floating');
       if (parameters.labelAnchor) {
         // Whatever this callout ends up over, it must not intercept the hover or click the step is asking for.
-        this.#uiOnboarding.messageHolder.addClass('onboarding-message-pass-through');
+        messageHolder.classList.add('onboarding-message-pass-through');
       }
       this.#anchorMessageTo(parameters.labelAnchor
         ? this.#labelAnchor(this.#svl.labelContainer.findLabelByTempId(this.#currentLabelId))
@@ -732,7 +735,7 @@ class Onboarding {
       this.#positionMessageAtPanoCoord(parameters.panoAnchor);
     } else if (parameters.position === 'top-right') {
       // Pin to the pano's top-right corner (used when the default top-left would cover the labeled feature).
-      this.#uiOnboarding.messageHolder.addClass('onboarding-message-top-right');
+      messageHolder.classList.add('onboarding-message-top-right');
     }
   }
 
@@ -958,7 +961,7 @@ class Onboarding {
       this.#navigationService.unlockDisableWalking().disableWalking().lockDisableWalking();
       this.#compass.detachMessageClickHandler(clickToNextPano);
       svl.panoManager.lockShowingNavArrows();
-      svl.ui.streetview.navArrows.off('click', callback);
+      svl.ui.streetview.navArrows.removeEventListener('click', clickToNextPano);
       if (listener) google.maps.event.removeListener(listener);
       this.#transitionTo(state.transition);
     };
@@ -968,8 +971,9 @@ class Onboarding {
       this.#navigationService.moveToPano(nextPanoId, true).then(callback);
     };
 
+    // PanoManager's own arrow handler bows out during the tutorial, so this one runs the move.
     this.#navigationService.unlockDisableWalking().enableWalking().lockDisableWalking();
-    svl.ui.streetview.navArrows.off('click').on('click', clickToNextPano);
+    svl.ui.streetview.navArrows.addEventListener('click', clickToNextPano);
     this.#compass.attachMessageClickHandler(clickToNextPano);
 
     this.#blinkInterface(state);
@@ -997,32 +1001,32 @@ class Onboarding {
   #visitRateSeverity(state, listener) {
     this.#contextMenu.enableRatingSeverityForTutorialLabel(state.properties.labelNumber);
     // Pulse the one section the tutorial has enabled; the message box is anchored to it as well.
-    this.#svl.ui.contextMenu.severityMenu.addClass('onboarding-attention');
-    const $target = this.#svl.ui.contextMenu.radioButtons;
+    this.#svl.ui.contextMenu.severityMenu.classList.add('onboarding-attention');
+    const radios = this.#svl.ui.contextMenu.radioButtons;
     const callback = (e) => {
       if (listener) google.maps.event.removeListener(listener);
-      $target.off('change', callback);
+      for (const radio of radios) radio.removeEventListener('change', callback);
       this.#contextMenu.disableRatingSeverity();
-      this.#svl.ui.contextMenu.severityMenu.removeClass('onboarding-attention');
+      this.#svl.ui.contextMenu.severityMenu.classList.remove('onboarding-attention');
       this.#transitionTo(state.transition, undefined, e.currentTarget);
     };
-    $target.on('change', callback);
+    for (const radio of radios) radio.addEventListener('change', callback);
   }
 
   #visitAddTag(state, listener) {
     this.#contextMenu.enableTaggingForTutorialLabel(state.properties.labelNumber);
     // Pulse the one section the tutorial has enabled; the message box is anchored to it as well.
-    this.#svl.ui.contextMenu.tagSection.addClass('onboarding-attention');
-    const $target = this.#svl.ui.contextMenu.tagHolder; // Grab tag holder so we can add an event listener.
+    this.#svl.ui.contextMenu.tagSection.classList.add('onboarding-attention');
+    const tagHolder = this.#svl.ui.contextMenu.tagHolder;
     const callback = () => {
       if (listener) google.maps.event.removeListener(listener);
-      $target.off('tagIds-updated', callback);
+      tagHolder.removeEventListener('tagIds-updated', callback);
       this.#contextMenu.disableTagging();
-      this.#svl.ui.contextMenu.tagSection.removeClass('onboarding-attention');
+      this.#svl.ui.contextMenu.tagSection.classList.remove('onboarding-attention');
       this.#transitionTo(state.transition, undefined, this.#contextMenu.getTargetLabel());
     };
     // We use a custom event here to ensure that this is triggered after the tags have been updated.
-    $target.on('tagIds-updated', callback);
+    tagHolder.addEventListener('tagIds-updated', callback);
   }
 
   #visitInstruction(state, listener) {
@@ -1034,23 +1038,22 @@ class Onboarding {
     if (!('okButton' in state) || state.okButton) {
       // Insert an ok button.
       const okButtonText = state.okButtonText || 'Ok';
-      this.#uiOnboarding.messageHolder.append(
+      this.#uiOnboarding.messageHolder.insertAdjacentHTML('beforeend',
         `<div class='onboarding-ok-button-holder'>
           <button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>${okButtonText}</button>
-        </div>`,
-      );
+        </div>`);
     }
 
-    const $target = $('#onboarding-ok-button');
+    const okButton = document.getElementById('onboarding-ok-button');
     const callback = (e) => {
       if (listener) google.maps.event.removeListener(listener);
-      $target.off('click', callback);
+      okButton.removeEventListener('click', callback);
       if ('blinks' in state.properties && state.properties.blinks) {
         this.#stopAllBlinking();
       }
       this.#transitionTo(state.transition, undefined, e.currentTarget);
     };
-    $target.on('click', callback);
+    okButton?.addEventListener('click', callback);
   }
 
   /**
@@ -1060,7 +1063,7 @@ class Onboarding {
    * gets it paused on its still — the clip's last frame — rather than a flash of motion that then stops.
    */
   #startCelebrationClip() {
-    const screen = this.#uiOnboarding.messageHolder.get(0);
+    const screen = this.#uiOnboarding.messageHolder;
     const hero = screen.querySelector('.tutorial-complete__hero');
     const toggle = screen.querySelector('.motion-toggle');
     if (!hero || !toggle) return;
@@ -1116,15 +1119,15 @@ class Onboarding {
       this.#ribbon.enableMode('Walk');
 
       // Disable only when the user places the label
-      this.#uiCanvas.drawingLayer.on('mousedown', this.#mouseDownCanvasDrawingHandler);
+      this.#uiCanvas.drawingLayer.addEventListener('mousedown', this.#mouseDownCanvasDrawingHandler);
 
       this.#ribbon.stopBlinking();
-      $(document).off(`ModeSwitch_${labelType}`, callback);
+      document.removeEventListener(`ModeSwitch_${labelType}`, callback);
       if (listener) google.maps.event.removeListener(listener);
       this.#transitionTo(state.transition);
     };
 
-    $(document).on(`ModeSwitch_${labelType}`, callback);
+    document.addEventListener(`ModeSwitch_${labelType}`, callback);
   }
 
   /**
@@ -1166,13 +1169,13 @@ class Onboarding {
         this.#zoomControl.lockDisableZoomOut();
       }
       this.#ribbon.enableMode('Walk');
-      $(document).off(event, callback);
+      document.removeEventListener(event, callback);
 
       if (listener) google.maps.event.removeListener(listener);
       this.#transitionTo(state.transition);
     };
 
-    $(document).on(event, callback);
+    document.addEventListener(event, callback);
   }
 
   /**
@@ -1210,7 +1213,7 @@ class Onboarding {
         // Disable labeling mode.
         this.#ribbon.disableMode(label.getLabelType());
         this.#ribbon.enableMode('Walk');
-        this.#uiCanvas.drawingLayer.off('mousedown', this.#mouseDownCanvasDrawingHandler);
+        this.#uiCanvas.drawingLayer.removeEventListener('mousedown', this.#mouseDownCanvasDrawingHandler);
 
         this.#transitionTo(transition[0], { accurate: true });
       } else {
@@ -1236,12 +1239,12 @@ class Onboarding {
     // Callback for deleted label.
     const deleteLabelCallback = () => {
       if (listener) google.maps.event.removeListener(listener);
-      $(document).off('RemoveLabel', deleteLabelCallback);
+      document.removeEventListener('RemoveLabel', deleteLabelCallback);
       this.clear();
       this.#removeFlashingFromArrow(); // TODO remove this if it turns out that we don't need it.
       this.#transitionTo(state.transition);
     };
-    $(document).on('RemoveLabel', deleteLabelCallback);
+    document.addEventListener('RemoveLabel', deleteLabelCallback);
   }
 
   /**

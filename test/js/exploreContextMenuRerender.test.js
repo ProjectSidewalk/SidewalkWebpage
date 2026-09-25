@@ -10,9 +10,9 @@
  *  - hide() must not repaint when nothing was open, because it is also called speculatively on navigation and on
  *    keyboard shortcuts, where a repaint per keystroke is waste.
  *
- * ContextMenu is a jQuery-bound class with private fields, so it is driven through a stubbed UI the way
+ * ContextMenu is a DOM-bound class with private fields, so it is driven through a bare-bones UI the way
  * validateLabelCardKeyboard.test.js drives Validate's KeyboardManager. Only the surface show()/hide() touch is
- * stubbed; the severity and tag sections are switched off through the same flags production uses.
+ * built; the severity and tag sections are switched off through the same flags production uses.
  */
 
 const fs = require('fs');
@@ -22,16 +22,30 @@ const CONTEXT_MENU_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/explore/src/canvas/ContextMenu.js'), 'utf8'
 );
 
-/** A chainable jQuery-wrapped-element stand-in. Every method returns the node; `length` 0 means "not in the DOM". */
-function makeNode(overrides = {}) {
-    const node = {
-        length: 0,
-        0: undefined,
+/**
+ * The context menu's real markup, pared down to what ContextMenu wires up.
+ * @returns {object} The `uiContextMenu` argument ContextMenu takes.
+ */
+function makeContextMenuUi() {
+    const holder = document.createElement('div');
+    holder.innerHTML = `<img id="context-menu-icon"><span id="context-menu-type"></span>
+      <button id="context-menu-done"></button><button id="context-menu-delete"></button>`;
+    const radioButtons = [1, 2, 3].map((value) => {
+      const radio = document.createElement('input');
+      radio.type = 'radio';
+      radio.value = String(value);
+      return radio;
+    });
+    return {
+      holder,
+      severityMenu: document.createElement('div'),
+      severityRadioHolder: document.createElement('div'),
+      radioButtons,
+      textBox: document.createElement('input'),
+      tagHolder: document.createElement('div'),
+      tags: [],
+      closeButton: document.createElement('button'),
     };
-    const chainable = ['find', 'each', 'text', 'html', 'attr', 'prop', 'addClass', 'removeClass', 'toggleClass',
-        'css', 'val', 'on', 'off', 'blur', 'focus', 'filter', 'removeAttr', 'trigger', 'append', 'remove'];
-    chainable.forEach((name) => { node[name] = () => node; });
-    return Object.assign(node, overrides);
 }
 
 /** The label a menu opens for. Only the getters show()/hide() actually call are present. */
@@ -55,7 +69,6 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
 
     beforeEach(() => {
         renders = [];
-        window.$ = () => makeNode();
         window.i18next = { t: (key) => key };
         window.util = {
             camelToKebab: (s) => s,
@@ -88,16 +101,7 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
 
         window.eval(`${CONTEXT_MENU_SRC}\nwindow.ContextMenu = ContextMenu;`);
         // No #context-menu-share element and no ShareWidget global, so the share widget stays null.
-        menu = new window.ContextMenu({
-            holder: makeNode(),
-            severityMenu: makeNode(),
-            severityRadioHolder: makeNode(),
-            radioButtons: makeNode(),
-            textBox: makeNode(),
-            tagHolder: makeNode(),
-            tags: makeNode(),
-            closeButton: makeNode(),
-        });
+        menu = new window.ContextMenu(makeContextMenuUi());
         window.svl.contextMenu = menu;
     });
 

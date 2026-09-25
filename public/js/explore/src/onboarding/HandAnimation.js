@@ -11,26 +11,26 @@ class HandAnimation {
   #closedHandReady = false;
   #imageObjOpenHand = new Image();
   #imageObjClosedHand = new Image();
-  #$handGestureHolder;
+  #handGestureHolder;
 
   /**
-   * @param {Record<string, JQuery>} uiOnboarding - Onboarding UI elements.
+   * @param {Record<string, HTMLElement>} uiOnboarding - Onboarding UI elements.
    */
   constructor(uiOnboarding) {
     this.#uiOnboarding = uiOnboarding;
-    this.#$handGestureHolder = uiOnboarding.holder.find('#hand-gesture-holder');
+    this.#handGestureHolder = uiOnboarding.holder.querySelector('#hand-gesture-holder');
   }
 
   /**
    * Sets up the Kinetic stage and loads the open/closed hand images into it.
    */
   initializeHandAnimation() {
-    if (this.#$handGestureHolder.length === 1) {
+    if (this.#handGestureHolder) {
       this.hideGrabAndDragAnimation();
 
       if (!this.#stage) {
         this.#stage = new Kinetic.Stage({
-          container: this.#$handGestureHolder.get(0),
+          container: this.#handGestureHolder,
           width: 720,
           height: 200,
         });
@@ -129,7 +129,7 @@ class HandAnimation {
    */
   showGrabAndDragAnimation() {
     if (this.#closedHandReady && this.#openHandReady) {
-      this.#uiOnboarding.handGestureHolder.css('visibility', 'visible');
+      this.#uiOnboarding.handGestureHolder.style.visibility = 'visible';
       this.animateHand('left-to-right');
       return setInterval(() => this.animateHand('left-to-right'), 2000);
     }
@@ -141,6 +141,6 @@ class HandAnimation {
    */
   hideGrabAndDragAnimation(interval) {
     clearInterval(interval);
-    this.#uiOnboarding.handGestureHolder.css('visibility', 'hidden');
+    this.#uiOnboarding.handGestureHolder.style.visibility = 'hidden';
   }
 }

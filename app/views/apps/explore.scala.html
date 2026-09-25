@@ -934,60 +934,47 @@
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
 
   <script>
-    $(document).ready(function() {
+    util.onDomReady(function() {
       // Prevents text selection with cursor. Fixes https://github.com/ProjectSidewalk/SidewalkWebpage/issues/121.
       // We also add the 'audit-selectable' class to a parent of any element that we want to have selectable.
       document.onselectstart = function (e) {
-        if ($(e.target).closest('.audit-selectable').length > 0) {
-          return true;
-        } else {
-          return false;
-        }
+        return e.target instanceof Element && e.target.closest('.audit-selectable') !== null;
       };
       enableTouchSupport();
 
       // Region Completion Overlay
-      $('#continue-current').on('click', function() {
-        $('#area-completion-overlay-wrapper').hide();
+      document.getElementById('continue-current').addEventListener('click', function() {
+        document.getElementById('area-completion-overlay-wrapper').style.display = 'none';
       });
 
-      $('#redirect-new').on('click', function() {
-        $(location).attr('href', '/explore?newRegion=true');
+      document.getElementById('redirect-new').addEventListener('click', function() {
+        window.location.href = '/explore?newRegion=true';
       });
 
       // Already Completed Region Overlay
-      $('#accept-redirect').on('click', function() {
-        $(location).attr('href', '/explore');
+      document.getElementById('accept-redirect').addEventListener('click', function() {
+        window.location.href = '/explore';
       });
     });
 
     function enableTouchSupport() {
-      $(document).on('touchstart touchmove touchend touchcancel', function(e) {
-        const event = e.originalEvent;
-        const touches = event.changedTouches;
-        const first = touches[0];
-        let type = "";
-
-        switch(event.type) {
-          case "touchstart": type = "mousedown"; break;
-          case "touchmove":  type = "mousemove"; break;
-          case "touchend":   type = "mouseup";   break;
-          default:           return;
-        }
-
-        const simulatedEvent = new MouseEvent(type, {
-          screenX: first.screenX,
-          screenY: first.screenY,
-          clientX: first.clientX,
-          clientY: first.clientY
+      const mouseTypeForTouch = { touchstart: 'mousedown', touchmove: 'mousemove', touchend: 'mouseup' };
+      for (const touchType of Object.keys(mouseTypeForTouch)) {
+        document.addEventListener(touchType, function(event) {
+          const first = event.changedTouches[0];
+          first.target.dispatchEvent(new MouseEvent(mouseTypeForTouch[touchType], {
+            screenX: first.screenX,
+            screenY: first.screenY,
+            clientX: first.clientX,
+            clientY: first.clientY
+          }));
         });
+      }
 
-        first.target.dispatchEvent(simulatedEvent);
-      });
-
-      $("#interaction-area-holder").on("touchmove", function (event) {
+      // Not passive: this is what stops a drag on the pano from scrolling the page.
+      document.getElementById('interaction-area-holder').addEventListener('touchmove', function (event) {
         event.preventDefault();
-      });
+      }, { passive: false });
     }
 
     var svl = {};
@@ -998,8 +985,8 @@
     @if(data.task.isDefined) {
       mainParam.task = @jsonForScript(data.task.get);
     } else {
-      $(".tool-ui").removeClass("ps-invisible");
-      $('#already-completed-region-overlay').show();
+      document.querySelectorAll('.tool-ui').forEach(function (el) { el.classList.remove('ps-invisible'); });
+      document.getElementById('already-completed-region-overlay').style.display = 'block';
     }
 
     mainParam.dataStoreUrl = '@routes.ExploreController.post';

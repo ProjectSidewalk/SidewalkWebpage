@@ -56,24 +56,24 @@ class Canvas {
     util.sizeCanvasToDisplay(el, this.#ctx);
 
     // Attach listeners to dom elements. view-control-layer handles panning, drawing-layer handles adding labels.
-    svl.ui.canvas.drawingLayer.on('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
-    svl.ui.canvas.drawingLayer.on('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
-    svl.ui.canvas.drawingLayer.on('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
+    svl.ui.canvas.drawingLayer.addEventListener('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
+    svl.ui.canvas.drawingLayer.addEventListener('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
+    svl.ui.canvas.drawingLayer.addEventListener('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
     Canvas.watchPanoExit(document.getElementById('interaction-area-holder'), () => this.#handleDrawingLayerMouseOut());
-    svl.ui.canvas.hoverCard.on('click', () => this.#handleHoverCardClick('card'));
-    svl.ui.canvas.hoverCard.on('mouseenter', () => this.#cancelScheduledHoverCardHide());
-    svl.ui.canvas.hoverCard.on('mouseleave', () => this.#scheduleHoverCardHide());
-    svl.ui.canvas.hoverCardEdit.on('click', (e) => {
+    svl.ui.canvas.hoverCard.addEventListener('click', () => this.#handleHoverCardClick('card'));
+    svl.ui.canvas.hoverCard.addEventListener('mouseenter', () => this.#cancelScheduledHoverCardHide());
+    svl.ui.canvas.hoverCard.addEventListener('mouseleave', () => this.#scheduleHoverCardHide());
+    svl.ui.canvas.hoverCardEdit.addEventListener('click', (e) => {
       e.stopPropagation(); // So the card's own click handler doesn't open the menu a second time.
       this.#handleHoverCardClick('edit-button');
     });
-    svl.ui.canvas.hoverCardDelete.on('click', (e) => this.#handleHoverCardDeleteClick(e));
+    svl.ui.canvas.hoverCardDelete.addEventListener('click', (e) => this.#handleHoverCardDeleteClick(e));
     this.#initShareWidget();
-    svl.ui.streetview.viewControlLayer.on('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
-    svl.ui.streetview.viewControlLayer.on('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
-    svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
-    svl.ui.streetview.viewControlLayer.on('mouseleave', () => this.#handlerViewControlLayerMouseLeave());
-    svl.ui.streetview.viewControlLayer[0].onselectstart = () => false;
+    svl.ui.streetview.viewControlLayer.addEventListener('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
+    svl.ui.streetview.viewControlLayer.addEventListener('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
+    svl.ui.streetview.viewControlLayer.addEventListener('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
+    svl.ui.streetview.viewControlLayer.addEventListener('mouseleave', () => this.#handlerViewControlLayerMouseLeave());
+    svl.ui.streetview.viewControlLayer.onselectstart = () => false;
   }
 
   /**
@@ -149,20 +149,19 @@ class Canvas {
    * @param {string} type - One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input.
    */
   #setViewControlLayerCursor(type) {
+    const layer = svl.ui.streetview.viewControlLayer;
     switch (type) {
       case 'OpenHand':
-        svl.ui.streetview.viewControlLayer
-          .css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`);
+        layer.style.cursor = `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`;
         break;
       case 'ClosedHand':
-        svl.ui.streetview.viewControlLayer
-          .css('cursor', `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`);
+        layer.style.cursor = `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`;
         break;
       case 'Pointer':
-        svl.ui.streetview.viewControlLayer.css('cursor', 'pointer');
+        layer.style.cursor = 'pointer';
         break;
       default:
-        svl.ui.streetview.viewControlLayer.css('cursor', 'default');
+        layer.style.cursor = 'default';
     }
   }
 
@@ -348,8 +347,9 @@ class Canvas {
     if (cursorUrl) {
       const hotspot = Label.CURSOR_ICON_SIZE / 2;
       // Need to reset the cursor first, otherwise Safari strangely doesn't update the cursor.
-      $(e.currentTarget).css('cursor', '');
-      $(e.currentTarget).css('cursor', `url(${cursorUrl}) ${hotspot} ${hotspot}, auto`);
+      const layer = /** @type {HTMLElement} */ (e.currentTarget);
+      layer.style.cursor = '';
+      layer.style.cursor = `url(${cursorUrl}) ${hotspot} ${hotspot}, auto`;
     }
   }
 
@@ -395,7 +395,7 @@ class Canvas {
    * for and the button is hidden instead (see #pointShareAtLabel).
    */
   #initShareWidget() {
-    const trigger = svl.ui.canvas.hoverCardShare?.[0];
+    const trigger = svl.ui.canvas.hoverCardShare;
     if (!trigger || typeof ShareWidget === 'undefined') return;
 
     // The card as a whole opens the context menu; nothing in the share control may also do that. The listener goes
@@ -433,7 +433,7 @@ class Canvas {
    * on the card, where it is meant to stay.
    */
   #handleShareDismissed() {
-    if (!svl.ui.canvas.hoverCard[0]?.matches(':hover')) this.#scheduleHoverCardHide();
+    if (!svl.ui.canvas.hoverCard.matches(':hover')) this.#scheduleHoverCardHide();
   }
 
   /**
@@ -448,7 +448,7 @@ class Canvas {
   pointShareAtLabel(label) {
     // Tutorial labels are never submitted, so no id is coming and the button would be a dead end.
     const shareable = !svl.isOnboarding() && !label.isDeleted();
-    svl.ui.canvas.hoverCard.toggleClass('label-hover-card--no-share', !shareable);
+    svl.ui.canvas.hoverCard.classList.toggle('label-hover-card--no-share', !shareable);
     if (!this.#shareWidget || !shareable) return;
 
     const id = label.getProperty('labelId');
@@ -523,7 +523,7 @@ class Canvas {
    * Hides the hover card immediately, without the grace period.
    */
   hideHoverCard() {
-    svl.ui.canvas.hoverCard.css('visibility', 'hidden');
+    svl.ui.canvas.hoverCard.style.visibility = 'hidden';
   }
 
   /**
@@ -737,7 +737,7 @@ class Canvas {
     }
 
     // Save a high-res version of the image to the label object. Uploaded after label is saved to the db.
-    const source = /** @type {HTMLCanvasElement} */ ($(`.${svl.panoViewer.getCanvasClass()}`)[0]);
+    const source = /** @type {HTMLCanvasElement} */ (document.querySelector(`.${svl.panoViewer.getCanvasClass()}`));
     label.setProperty('crop', Canvas.#cropDataUrl(source));
   }
 

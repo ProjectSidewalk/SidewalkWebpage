@@ -11,23 +11,24 @@ class MinimapLegend {
   #expanded = false;
 
   /**
-   * @param {Record<string, JQuery>} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   * @param {Record<string, HTMLElement>} uiMinimap - The svl.ui.minimap object holding the minimap's DOM elements.
    * @param {Tracker} tracker - Interaction logger.
    */
   constructor(uiMinimap, tracker) {
     this.#uiMinimap = uiMinimap;
     this.#tracker = tracker;
 
-    uiMinimap.legendToggle.on('click', () => this.#setExpanded(true, 'Click_MinimapLegend_Open'));
-    uiMinimap.legendClose.on('click', () => this.#setExpanded(false, 'Click_MinimapLegend_Close'));
-    $(document).on('keydown', (e) => {
+    uiMinimap.legendToggle.addEventListener('click', () => this.#setExpanded(true, 'Click_MinimapLegend_Open'));
+    uiMinimap.legendClose.addEventListener('click', () => this.#setExpanded(false, 'Click_MinimapLegend_Close'));
+    document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.#expanded) this.#setExpanded(false, 'MinimapLegend_EscapeClose');
     });
 
     // The checkbox reflects the remembered preference from the first paint; the markers it governs are created later
     // (LabelContainer.fetchLabelsToResumeMission applies the same preference to them).
-    uiMinimap.legendEarlierLabels.prop('checked', LabelContainer.earlierLabelsShownPreference());
-    uiMinimap.legendEarlierLabels.on('change', (e) => {
+    const earlierLabels = /** @type {HTMLInputElement} */ (uiMinimap.legendEarlierLabels);
+    earlierLabels.checked = LabelContainer.earlierLabelsShownPreference();
+    earlierLabels.addEventListener('change', (e) => {
       svl.labelContainer.setEarlierLabelsShown(/** @type {HTMLInputElement} */ (e.target).checked);
     });
   }
@@ -39,9 +40,9 @@ class MinimapLegend {
    */
   #setExpanded(expanded, logEvent) {
     this.#expanded = expanded;
-    this.#uiMinimap.legendToggle.attr('aria-expanded', String(expanded));
-    this.#uiMinimap.legendToggle.toggleClass('minimap-legend-toggle-hidden', expanded);
-    this.#uiMinimap.legendCard.toggleClass('minimap-legend-card-hidden', !expanded);
+    this.#uiMinimap.legendToggle.setAttribute('aria-expanded', String(expanded));
+    this.#uiMinimap.legendToggle.classList.toggle('minimap-legend-toggle-hidden', expanded);
+    this.#uiMinimap.legendCard.classList.toggle('minimap-legend-card-hidden', !expanded);
     if (logEvent) this.#tracker.push(logEvent);
   }
 }

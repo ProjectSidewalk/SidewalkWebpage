@@ -160,10 +160,9 @@ describe('RibbonMenu.modeSwitch and the explore-labeling class', () => {
 
     beforeEach(() => {
         document.body.className = '';
-        document.body.innerHTML = '<div id="mode-switch-button-other"></div>';
-        // A chainable jQuery stand-in: modeSwitch only styles ribbon buttons through it, which isn't under test.
-        const chain = new Proxy({}, { get: (_, prop) => (prop === 'length' ? 0 : () => chain) });
-        window.$ = Object.assign(() => chain, { each: () => {} });
+        // Only the containers modeSwitch styles; the ribbon's own markup isn't under test.
+        document.body.innerHTML = `<div id="mode-switch-button-other"></div><div id="ribbon-menu-holder"></div>
+            <div id="pano-border-frame"></div><div id="ribbon-menu-other-subcategory-holder"></div>`;
         window.util = { misc: { getLabelColors: () => new Proxy({}, { get: () => ({ fillStyle: 'black' }) }) } };
         window.svl = { ui: { canvas: {} } };
         window.eval(`${RIBBON_SRC}\nwindow.RibbonMenu = RibbonMenu;`);

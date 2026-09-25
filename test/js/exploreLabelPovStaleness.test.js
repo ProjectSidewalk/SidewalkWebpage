@@ -202,7 +202,6 @@ describe('Explore label POV staleness (#4842 regression)', () => {
             },
             tracker: { setAuditTaskID: jest.fn() },
         };
-        window.$ = jest.fn(() => ({ width: () => 1920, height: () => 1080 }));
         window.i18next = { language: 'en' };
 
         labels = [];
