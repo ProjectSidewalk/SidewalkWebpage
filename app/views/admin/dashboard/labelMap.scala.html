@@ -25,7 +25,7 @@
       <div id="admin-labelmap-choropleth" class="choropleth"></div>@common.filterSidebar(tags = tags, sections = Seq("severity", "label-type", "validations", "admin", "streets"), showOutdatedStreetFilter = true)@common.mapLoadingOverlay()</div>
   </div>
 
-  @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util, jQuery and the Google Maps loader are already loaded by common.main / adminLayout. *@
+  @* Label-detail popup + PSMap dependencies. The label-detail modules are pulled in individually (not via the legacy Admin.js bundle) to keep with the dashboard's standalone-script convention; i18next, AppManager, util and the Google Maps loader are already loaded by common.main / adminLayout. *@
 @common.labelPopup(admin = true)
   <link href='@assets.path("css/components/label-detail.css")' rel="stylesheet">
   <link href='@assets.path("css/components/label-type-picker.css")' rel="stylesheet">

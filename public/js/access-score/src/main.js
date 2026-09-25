@@ -127,7 +127,7 @@ window.AccessScoreApp = (function () {
      * @type {?{clear: () => boolean}}
      */
     let placeSearch = null;
-    const mapPromise = createPSMap($, {
+    const mapPromise = createPSMap({
       mapName: 'acs-map',
       mapStyle: dark ? MAP_STYLES.dark : MAP_STYLES.light,
       mapboxApiKey,
