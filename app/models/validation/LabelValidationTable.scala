@@ -168,6 +168,15 @@ class LabelValidationTable @Inject() (
       .headOption
   }
 
+  /** The user's most recent vote on the label, of any type: the one a redo replaces. */
+  def getNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
+    validations
+      .filter(x => x.labelId === labelId && x.userId === userId)
+      .sortBy(_.labelValidationId.desc)
+      .result
+      .headOption
+  }
+
   /**
    * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed if and only
    * if 10 of the user's labels have been validated. A label is considered validated if it has either more agree

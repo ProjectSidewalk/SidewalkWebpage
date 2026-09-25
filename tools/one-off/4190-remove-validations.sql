@@ -1,5 +1,5 @@
 -- =====================================================================
--- Remove a set of label_validations from the DB (#4190). Written against evolution 401.
+-- Remove a set of label_validations from the DB (#4190). Written against evolution 409.
 --
 -- Tables with a FK to label_validation:
 --   label_edit              (label_validation_id nullable; the edit submitted with the validation, if it changed
@@ -66,8 +66,7 @@ SELECT 'matching_comments',        COUNT(*) FROM validation_task_comment c
     WHERE EXISTS (
         SELECT 1 FROM label_validation lv
         JOIN validations_to_remove USING (label_validation_id)
-        WHERE lv.label_id = c.label_id AND lv.user_id = c.user_id AND lv.label_type = c.label_type
-            AND lv.mission_id = c.mission_id
+        WHERE lv.label_id = c.label_id AND lv.user_id = c.user_id AND lv.mission_id = c.mission_id
     )
 UNION ALL
 SELECT 'matching_comment_versions', COUNT(*) FROM validation_task_comment_history
@@ -76,7 +75,6 @@ SELECT 'matching_comment_versions', COUNT(*) FROM validation_task_comment_histor
         INNER JOIN label_validation
             ON validation_task_comment.label_id = label_validation.label_id
             AND validation_task_comment.user_id = label_validation.user_id
-            AND validation_task_comment.label_type = label_validation.label_type
             AND validation_task_comment.mission_id = label_validation.mission_id
         INNER JOIN validations_to_remove USING (label_validation_id)
         WHERE validation_task_comment.label_id = validation_task_comment_history.label_id
@@ -121,7 +119,6 @@ FROM validation_task_comment
 INNER JOIN label_validation
     ON validation_task_comment.label_id = label_validation.label_id
     AND validation_task_comment.user_id = label_validation.user_id
-    AND validation_task_comment.label_type = label_validation.label_type
     AND validation_task_comment.mission_id = label_validation.mission_id
 INNER JOIN validations_to_remove USING (label_validation_id);
 

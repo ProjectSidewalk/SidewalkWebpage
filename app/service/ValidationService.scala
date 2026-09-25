@@ -43,7 +43,7 @@ trait ValidationService {
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
   def replaceComment(comment: ValidationTaskComment): Future[Int]
-  def deleteComment(labelId: Int, userId: String): Future[Int]
+  def deleteComment(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
   def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome]
@@ -224,17 +224,11 @@ class ValidationServiceImpl @Inject() (
    * The text leaves every read path in the tool but is kept in `validation_task_comment_history`, marked a
    * deliberate delete rather than a side effect (#5076).
    *
-   * Only the current type's comment goes, since that's the only one the card shows.
-   *
+   * @param labelType The type the comment is about. Comments on the label's other types stay.
    * @return Count of comments deleted, 0 or 1.
    */
-  def deleteComment(labelId: Int, userId: String): Future[Int] = db.run {
-    labelsUnfiltered.filter(_.labelId === labelId).map(_.labelType).result.headOption.flatMap {
-      _.fold[DBIO[Int]](DBIO.successful(0)) { labelType =>
-        validationTaskCommentTable.archive(labelId, userId, labelType, ValidationCommentChangeType.Delete)
-      }
-    }
-  }
+  def deleteComment(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Int] =
+    db.run(validationTaskCommentTable.archive(labelId, userId, labelType, ValidationCommentChangeType.Delete))
 
   /**
    * Submits a set of validations from a POST request on Validate.
@@ -312,11 +306,34 @@ class ValidationServiceImpl @Inject() (
       // its labeler deleted before it had one. An admin's delete files its Disagree first, so that one lands.
       val deleted: DBIO[Boolean] =
         labelsUnfiltered.filter(_.labelId === validation.labelId).map(_.deleted).result.headOption.map(_.contains(true))
+      // A redo replaces the vote just cast, which sits on another type when it was an admin's type-changing Agree: the
+      // redo is filed on the type the validator saw, so the same-type lookup below would miss it.
+      val redoneOtherType: DBIO[Option[LabelValidation]] =
+        if (valSubmission.redone)
+          labelValidationTable
+            .getNewestValidation(validation.labelId, validation.userId)
+            .map(_.filter(_.labelType != validation.labelType))
+        else DBIO.successful(None)
+
       deleted.flatMap(
         if (_) DBIO.successful(0)
         else
-          labelValidationTable.getValidation(validation.labelId, validation.userId, validation.labelType).flatMap {
-            existingVal =>
+          labelValidationTable
+            .getValidation(validation.labelId, validation.userId, validation.labelType)
+            .zip(redoneOtherType)
+            .flatMap { case (existingVal, redoneVal) =>
+              // Removed first, and as a retraction: the redo names the old type, so keeping the type change would
+              // leave the new vote stale on arrival. Unwinding it puts the label back on the type this vote is on.
+              val redoneValRemoved = redoneVal match {
+                case Some(v) =>
+                  for {
+                    _ <- validationTaskCommentTable
+                      .archive(v.labelId, v.userId, v.labelType, ValidationCommentChangeType.ValidationChange)
+                    _ <- deleteLabelValidation(v, retracted = true)
+                  } yield ()
+                case None => DBIO.successful(())
+              }
+
               // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive
               // without them: a POST retried after its original committed, or the label served again in a later
               // mission. Removing first makes those a clean replacement (latest verdict wins) instead of a
@@ -364,11 +381,12 @@ class ValidationServiceImpl @Inject() (
               } else DBIO.successful(0)
 
               for {
+                _        <- redoneValRemoved
                 _        <- oldCommentRemoved
                 _        <- oldValRemoved
                 newValId <- newValInserted
               } yield newValId
-          }
+            }
       )
     }
 

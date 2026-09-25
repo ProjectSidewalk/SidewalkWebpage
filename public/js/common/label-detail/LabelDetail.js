@@ -78,6 +78,7 @@ class LabelDetail {
   #currUsername;
   #onVote;
   #onEdit;
+  #onComments;
   #onDelete;
   #panoOverlaySource;
   #voteColumnSource;
@@ -138,6 +139,8 @@ class LabelDetail {
   #myCommentIdx;
   #commentStatusTimer = null;
   #editingComment = false;
+  // Bumped by each comment save or delete, so a refresh fetched before one doesn't overwrite it.
+  #commentWrites = 0;
   #escapeCancelledEdit = false;  // Set on an Escape keydown that ended an edit; read by the matching keyup.
   #shareWidget;
   #storySection;
@@ -157,6 +160,8 @@ class LabelDetail {
    * @param {(meta: Record<string, any>) => void} [opts.onEdit] - Fired with the updated metadata after an edit to
    *      the label's type, severity or tags is saved (#2575, #3671), so hosts that cache label data (Gallery's
    *      cards, the LabelMap's layers) can stay in sync.
+   * @param {(meta: Record<string, any>) => void} [opts.onComments] - Fired when the comment list changes, so hosts
+   *      that cache it (Gallery's cards) stay in sync.
    * @param {(meta: Record<string, any>) => void} [opts.onDelete] - Fired after a delete or restore from the card
    *      (#3591), `meta.deleted` saying which, so a host that draws the label itself can sync its marker.
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
@@ -180,6 +185,7 @@ class LabelDetail {
     this.#currUsername = opts.currUsername;
     this.#onVote = opts.onVote;
     this.#onEdit = opts.onEdit;
+    this.#onComments = opts.onComments;
     this.#onDelete = opts.onDelete;
     this.#panoOverlaySource = opts.panoOverlaySource;
     this.#voteColumnSource = opts.voteColumnSource;
@@ -944,22 +950,10 @@ class LabelDetail {
     // imagery's value once it loads, which covers panos whose address hasn't been captured server-side yet.
     this.#showAddress(meta.pano_data?.address ?? meta.backup_image?.address ?? null);
 
-    // Validator comments. Admin endpoint returns objects {username, comment}; non-admin returns bare
-    // strings. Stash them so #submitComment() can append after a successful POST.
-    this.#comments = meta.comments || [];
-    // Index of the current user's comment in #comments, if any. The backend replaces comments rather than adding
-    // new ones, so we mirror that here.
-    this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
-    // An edit session belongs to the label it was opened on, so paging to the next label ends it. Cleared before
-    // the render so the new label's own comment draws its Edit/Delete rather than an inherited open-box state.
-    this.#editingComment = false;
-    this.#renderComments();
+    this.#loadComments(meta.comments);
 
-    // A typed-but-unsent comment belongs to the label it was typed on, so it doesn't ride along to the next one
-    // (Gallery pages between labels without ever tearing the card down). The status message is per-label for the
-    // same reason: without this, paging within its 1.5s leaves the last label's "Comment Submitted" over this one.
-    els.commentInput.value = '';
-    els.commentButton.classList.remove('is-active');
+    // The status message is per-label: without this, paging within its 1.5s leaves the last label's "Comment
+    // Submitted" over this one.
     clearTimeout(this.#commentStatusTimer);
     if (els.commentConfirm) els.commentConfirm.hidden = true;
 
@@ -1239,6 +1233,7 @@ class LabelDetail {
     this.#comments = remaining;
     this.#myCommentIdx = -1;
     this.#renderComments();
+    if (this.#currentLabelMeta) this.#commentsChanged(this.#currentLabelMeta);
     return true;
   }
 
@@ -1302,10 +1297,13 @@ class LabelDetail {
       confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
     if (!confirmed) return;
-    const labelId = this.panoManager.label.labelId;
+    const { labelId, label_type: labelType } = this.panoManager.label;
     try {
-      const res = await fetch(`/labelmap/comment/${labelId}`, { method: 'DELETE' });
+      // The type the card shows, so a card behind a type change deletes the comment the user is looking at.
+      const url = `/labelmap/comment/${labelId}?labelType=${encodeURIComponent(labelType)}`;
+      const res = await fetch(url, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.#commentWrites++;
       this.#editingComment = false;
       this.#dropOwnComment();
       this.#updateCommentRow();
@@ -2335,6 +2333,7 @@ class LabelDetail {
    */
   async #refreshVotes(meta) {
     const url = this.#admin ? `/adminapi/label/id/${meta.label_id}` : `/label/id/${meta.label_id}`;
+    const commentWrites = this.#commentWrites;
     try {
       const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
       if (!response.ok) return;
@@ -2350,11 +2349,10 @@ class LabelDetail {
       this.#aiValidation = meta.ai_validation;
       this.#renderVoteCounts();
       this.#renderVoteIcons();
-      meta.comments = fresh.comments;
-      this.#comments = meta.comments || [];
-      this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
-      this.#editingComment = false;
-      this.#renderComments();
+      if (this.#commentWrites === commentWrites) {
+        this.#loadComments(fresh.comments);
+        this.#commentsChanged(meta);
+      }
       this.#updateCommentRow();
     } catch (err) {
       console.error('Could not refresh the vote counts:', err);
@@ -2364,6 +2362,25 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
   // Comment submission
   // ───────────────────────────────────────────────────────────────────
+
+  /**
+   * Shows a fresh comment list, dropping any edit or unsent text, which was about the label (or type) it replaces.
+   * @param {Array<Record<string, any>|string>} [comments] - Admin endpoints send objects, others bare strings.
+   */
+  #loadComments(comments) {
+    this.#comments = comments || [];
+    this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
+    this.#editingComment = false;
+    this.#renderComments();
+    this.#els.commentInput.value = '';
+    this.#els.commentButton.classList.remove('is-active');
+  }
+
+  /** @param {Record<string, any>} meta - The metadata of the label whose comments changed. */
+  #commentsChanged(meta) {
+    meta.comments = this.#comments;
+    if (typeof this.#onComments === 'function') this.#onComments(meta);
+  }
 
   /**
    * The thumbs-up / thumbs-down / question glyphs the vote chip draws, keyed by vote. These are the path data from
@@ -2571,8 +2588,18 @@ class LabelDetail {
       lng: context.lng,
     };
 
+    const commentedLabelMeta = this.#currentLabelMeta;
     this.#postJson('/labelmap/comment', data).then(async (res) => {
+      if (res.status === 409) {
+        // The type changed under this card (#5510): reload so the user sees the right comments, keeping their text.
+        if (this.#currentLabelMeta !== commentedLabelMeta) return;
+        await this.showLabel(commentedLabelMeta.label_id, this.#source);
+        els.commentInput.value = comment;
+        this.#showTypeConflictToast();
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.#commentWrites++;
       const body = await res.json();
       const wasEdit = this.#editingComment;
       els.commentInput.value = '';
@@ -2603,6 +2630,7 @@ class LabelDetail {
       this.#editingComment = false;
       this.#updateCommentRow();
       this.#renderComments();
+      if (this.#currentLabelMeta === commentedLabelMeta) this.#commentsChanged(commentedLabelMeta);
       // Announced after the row has settled — the live region sits outside it, so the collapse doesn't take the
       // message with it, and the reader hears the outcome of a card that is already in its final state.
       this.#flashCommentStatus(wasEdit ? 'labelmap:comment-updated' : 'labelmap:comment-submitted');
