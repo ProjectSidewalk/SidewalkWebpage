@@ -1227,7 +1227,7 @@ class LabelDetail {
    *
    * Filters by identity rather than trusting the stored #myCommentIdx, since that index is only valid for the list as
    * it stood when it was computed and this runs a network round-trip later. Filtering also matches the breadth of
-   * `ValidationTaskCommentTable.archive`, which clears by (label, user) rather than by row id.
+   * `ValidationTaskCommentTable.archive`, which clears by (label, user, type) rather than by row id.
    *
    * @returns {boolean} Whether anything was actually removed.
    */
@@ -2328,8 +2328,8 @@ class LabelDetail {
   }
 
   /**
-   * Re-reads the vote counts after a change only the server can count: a type change (votes on the old type stop
-   * counting) or an admin's delete (which files their Disagree, #3591). A failure leaves them as they were.
+   * Re-reads votes and comments after a change only the server can resolve: a type change (the old type's stop
+   * showing, #5510) or an admin's delete (which files their Disagree, #3591). A failure leaves them as they were.
    * @param {Record<string, any>} meta - The metadata of the label that changed.
    */
   async #refreshVotes(meta) {
@@ -2349,6 +2349,12 @@ class LabelDetail {
       this.#aiValidation = meta.ai_validation;
       this.#renderVoteCounts();
       this.#renderVoteIcons();
+      meta.comments = fresh.comments;
+      this.#comments = meta.comments || [];
+      this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
+      this.#editingComment = false;
+      this.#renderComments();
+      this.#updateCommentRow();
     } catch (err) {
       console.error('Could not refresh the vote counts:', err);
     }

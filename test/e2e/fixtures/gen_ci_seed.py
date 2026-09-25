@@ -344,17 +344,18 @@ ON CONFLICT (mission_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,
                                                canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
-                                               start_timestamp, end_timestamp, source, viewer_type)
+                                               start_timestamp, end_timestamp, source, viewer_type, label_type)
 VALUES (900001, {validated}, 'Agree', {q(validator)}, 900004, 300, 200, 120.0, -10.0, 1.0,
-        480, 720, now() - INTERVAL '5 days', now() - INTERVAL '5 days', 'Validate', 'Default')
+        480, 720, now() - INTERVAL '5 days', now() - INTERVAL '5 days', 'Validate', 'Default',
+        {q(labels[0]['label_type'])})
 ON CONFLICT (label_validation_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.validation_task_comment (validation_task_comment_id, mission_id, label_id, user_id,
                                                       ip_address, pano_id, heading, pitch, zoom, lat, lng,
-                                                      timestamp, comment)
+                                                      timestamp, comment, label_type)
 VALUES (900001, 900004, {validated}, {q(validator)}, '127.0.0.1', {q(labels[0]['pano_id'])},
         120.0, -10.0, 1.0, {labels[0]['lat']}, {labels[0]['lng']}, now() - INTERVAL '5 days',
-        'Agreed, the ramp is there and usable.')
+        'Agreed, the ramp is there and usable.', {q(labels[0]['label_type'])})
 ON CONFLICT (validation_task_comment_id) DO NOTHING;
 
 -- A second Agree from the SidewalkAI account (SidewalkUserTable.aiUserId, which the evolutions create), so a label
@@ -372,9 +373,10 @@ ON CONFLICT (mission_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.label_validation (label_validation_id, label_id, validation_result, user_id, mission_id,
                                                canvas_x, canvas_y, heading, pitch, zoom, canvas_height, canvas_width,
-                                               start_timestamp, end_timestamp, source, viewer_type)
+                                               start_timestamp, end_timestamp, source, viewer_type, label_type)
 VALUES (900002, {validated}, 'Agree', {q(AI_USER)}, 900005, 300, 200, 120.0, -10.0, 1.0,
-        480, 720, now() - INTERVAL '4 days', now() - INTERVAL '4 days', 'SidewalkAI', 'Default')
+        480, 720, now() - INTERVAL '4 days', now() - INTERVAL '4 days', 'SidewalkAI', 'Default',
+        {q(labels[0]['label_type'])})
 ON CONFLICT (label_validation_id) DO NOTHING;
 
 -- What the two Agrees leave behind on the label itself.
