@@ -1,19 +1,18 @@
 let autoAdvanceLaptop = true;
 
+/**
+ * @param {Element} elem - The element to check.
+ * @returns {boolean} True if the whole element is inside the window's visible area.
+ */
 function isScrolledIntoView(elem) {
-  const docViewTop = $(window).scrollTop();
-  const docViewBottom = docViewTop + $(window).height();
-
-  const elemTop = $(elem).offset().top;
-  const elemBottom = elemTop + $(elem).height();
-
-  return ((elemBottom <= docViewBottom) && (elemTop >= docViewTop));
+  const rect = elem.getBoundingClientRect();
+  return rect.top >= 0 && rect.bottom <= window.innerHeight;
 }
 
-$(window).scroll(numbersInView);
+window.addEventListener('scroll', numbersInView, { passive: true });
 
 function numbersInView() {
-  if (isScrolledIntoView($('#percentage'))) {
+  if (isScrolledIntoView(document.getElementById('percentage'))) {
     if (percentageAnim && labelsAnim) {
       percentageAnim.start();
       labelsAnim.start();
@@ -40,73 +39,31 @@ function getVideo(id) {
   return /** @type {HTMLVideoElement} */ (document.getElementById(id));
 }
 
+// The clickable tab for each how-it-works video, in video order.
+const TAB_BOX_IDS = ['firstnumbox', 'secondnumbox', 'thirdnumbox'];
+
+/**
+ * Shows and plays one how-it-works video, highlights its tab, and hides/pauses the others.
+ * @param {number} vidnum - Which video to show, 1-3.
+ */
 function switchToVideo(vidnum) {
-  if (vidnum === 1) {
-    getVideo('vid1').classList.remove('ps-hidden');
-    getVideo('vid2').classList.add('ps-hidden');
-    getVideo('vid3').classList.add('ps-hidden');
+  for (let i = 1; i <= TAB_BOX_IDS.length; i++) {
+    const isActive = i === vidnum;
+    const video = getVideo(`vid${i}`);
+    video.classList.toggle('ps-hidden', !isActive);
 
-    $('#word1').addClass('tab-word activetab');
-    $('#word2').addClass('tab-word').removeClass('activetab');
-    $('#word3').addClass('tab-word').removeClass('activetab');
+    for (const id of [`word${i}`, TAB_BOX_IDS[i - 1], `number${i}`]) {
+      const el = document.getElementById(id);
+      el.classList.add('tab-word');
+      el.classList.toggle('activetab', isActive);
+    }
 
-    $('#firstnumbox').addClass('tab-word activetab');
-    $('#secondnumbox').addClass('tab-word').removeClass('activetab');
-    $('#thirdnumbox').addClass('tab-word').removeClass('activetab');
-
-    $('#number1').addClass('tab-word activetab');
-    $('#number2').addClass('tab-word').removeClass('activetab');
-    $('#number3').addClass('tab-word').removeClass('activetab');
-
-    getVideo('vid1').currentTime = 0;
-    safePlay(getVideo('vid1'));
-
-    getVideo('vid2').pause();
-    getVideo('vid3').pause();
-  } else if (vidnum === 2) {
-    getVideo('vid1').classList.add('ps-hidden');
-    getVideo('vid2').classList.remove('ps-hidden');
-    getVideo('vid3').classList.add('ps-hidden');
-
-    $('#word1').addClass('tab-word').removeClass('activetab');
-    $('#word2').addClass('tab-word activetab');
-    $('#word3').addClass('tab-word').removeClass('activetab');
-
-    $('#firstnumbox').addClass('tab-word').removeClass('activetab');
-    $('#secondnumbox').addClass('tab-word activetab');
-    $('#thirdnumbox').addClass('tab-word').removeClass('activetab');
-
-    $('#number1').addClass('tab-word').removeClass('activetab');
-    $('#number2').addClass('tab-word activetab');
-    $('#number3').addClass('tab-word').removeClass('activetab');
-
-    getVideo('vid2').currentTime = 0;
-    safePlay(getVideo('vid2'));
-
-    getVideo('vid1').pause();
-    getVideo('vid3').pause();
-  } else if (vidnum === 3) {
-    getVideo('vid1').classList.add('ps-hidden');
-    getVideo('vid2').classList.add('ps-hidden');
-    getVideo('vid3').classList.remove('ps-hidden');
-
-    $('#word1').addClass('tab-word').removeClass('activetab');
-    $('#word2').addClass('tab-word').removeClass('activetab');
-    $('#word3').addClass('tab-word activetab');
-
-    $('#firstnumbox').addClass('tab-word').removeClass('activetab');
-    $('#secondnumbox').addClass('tab-word').removeClass('activetab');
-    $('#thirdnumbox').addClass('tab-word activetab');
-
-    $('#number1').addClass('tab-word').removeClass('activetab');
-    $('#number2').addClass('tab-word').removeClass('activetab');
-    $('#number3').addClass('tab-word activetab');
-
-    getVideo('vid3').currentTime = 0;
-    safePlay(getVideo('vid3'));
-
-    getVideo('vid2').pause();
-    getVideo('vid1').pause();
+    if (isActive) {
+      video.currentTime = 0;
+      safePlay(video);
+    } else {
+      video.pause();
+    }
   }
 
   // Reset auto-advance counter.
@@ -145,58 +102,54 @@ function autoAdvanceLaptopVideos() {
 window.appManager.ready(() => {
   // Triggered upon clicking tabs in "How you can help" section.
   // Logs "Click_module=HowYouCanHelp_tab=<tabNumber>" in WebpageActivityTable
-  $('#firstnumbox').on('click keydown', (e) => {
-    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
-    switchToVideo(1);
-    autoAdvanceLaptop = false;
-    window.logWebpageActivity('Click_module=HowYouCanHelp_tab=1');
-  });
-  $('#secondnumbox').on('click keydown', (e) => {
-    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
-    switchToVideo(2);
-    autoAdvanceLaptop = false;
-    window.logWebpageActivity('Click_module=HowYouCanHelp_tab=2');
-  });
-  $('#thirdnumbox').on('click keydown', (e) => {
-    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
-    switchToVideo(3);
-    autoAdvanceLaptop = false;
-    window.logWebpageActivity('Click_module=HowYouCanHelp_tab=3');
+  TAB_BOX_IDS.forEach((id, i) => {
+    const onActivate = (e) => {
+      if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+      switchToVideo(i + 1);
+      autoAdvanceLaptop = false;
+      window.logWebpageActivity(`Click_module=HowYouCanHelp_tab=${i + 1}`);
+    };
+    const tab = document.getElementById(id);
+    tab.addEventListener('click', onActivate);
+    tab.addEventListener('keydown', onActivate);
   });
 
   // Triggered when a logo or credit link in the Community Partners section is clicked (#4516).
   // Logs "Click_module=Partner_source=<slugged partner name, e.g. "makeability-lab">".
-  $('#partners-container').on('click', 'a', (e) => {
-    const source = e.currentTarget.dataset.partnerSource || 'unknown';
-    window.logWebpageActivity(`Click_module=Partner_source=${source}`);
+  document.getElementById('partners-container').addEventListener('click', (e) => {
+    const link = /** @type {Element} */ (e.target).closest('a');
+    if (!link) return;
+    window.logWebpageActivity(`Click_module=Partner_source=${link.dataset.partnerSource || 'unknown'}`);
   });
 
   // Triggered when 'Start Exploring' in video container is clicked.
   // Logs "Click_module=StartExploring_location=Index"
-  $('#landing-cta-button').on('click', () => {
+  document.getElementById('landing-cta-button').addEventListener('click', () => {
     window.logWebpageActivity('Click_module=StartExploring_location=Index');
   });
 
   // Triggered when 'Click here to learn about deploying PS in your city' is clicked.
   // Logs "Click_module=NewCity_location=Index"
-  $('#new-deployment-link').on('click', () => {
+  document.getElementById('new-deployment-link').addEventListener('click', () => {
     window.logWebpageActivity('Click_module=NewCity_location=Index');
   });
 
   // Triggered when the city or mapathon links are clicked.
   // If a city link is clicked logs "Click_module=OtherCityLink_City=cityName".
   // If a mapathon link is clicked logs "Click_module=mapathonLink".
-  $('.other-city-link').on('click', (e) => {
-    const cityName = e.currentTarget.id;
-    if (cityName === 'mapathonLink') {
-      window.logWebpageActivity('Click_module=mapathonLink');
-    } else {
-      window.logWebpageActivity(`Click_module=OtherCityLink_City=${cityName}`);
-    }
-  });
+  for (const link of document.querySelectorAll('.other-city-link')) {
+    link.addEventListener('click', () => {
+      const cityName = link.id;
+      if (cityName === 'mapathonLink') {
+        window.logWebpageActivity('Click_module=mapathonLink');
+      } else {
+        window.logWebpageActivity(`Click_module=OtherCityLink_City=${cityName}`);
+      }
+    });
+  }
 
   // Setup video lazyPlay.
-  $(window).on('scroll', onScroll);
+  window.addEventListener('scroll', onScroll, { passive: true });
 
   // Toggle the tall-navbar class on scroll so the navbar shrinks once the user starts scrolling.
   const header = document.getElementById('header');
@@ -210,15 +163,11 @@ window.appManager.ready(() => {
   updateHeaderHeight();
   window.addEventListener('scroll', updateHeaderHeight, { passive: true });
 
-  vidBanner = $('#vidbanner')[0];
-  bannerVid = $('#bgvid')[0];
+  vidBanner = document.getElementById('vidbanner');
+  bannerVid = getVideo('bgvid');
 
-  instructVideoContainer = $('#instructionvideo')[0];
-  instructVideos = [
-    $('#vid1')[0],
-    $('#vid2')[0],
-    $('#vid3')[0],
-  ];
+  instructVideoContainer = document.getElementById('instructionvideo');
+  instructVideos = [getVideo('vid1'), getVideo('vid2'), getVideo('vid3')];
 
   // Auto advance instruction videos.
   switchToVideo(DEFAULT_VIDEO);
