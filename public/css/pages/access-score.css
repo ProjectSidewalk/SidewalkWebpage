@@ -1408,8 +1408,8 @@
   background: var(--color-neutral-500);
 }
 
-/* The panel measures itself: under ~340px the full type names would truncate or leave the bars no room, so the short ones take
-   over. Both are in the markup; the query only swaps which is shown. */
+/* The panel measures itself: under ~340px the full type names would truncate or leave the bars no room, so the short
+   ones take over. Both are in the markup; the query only swaps which is shown. */
 .acs-dock__panel--whats-here {
   container-type: inline-size;
 }
