@@ -29,11 +29,13 @@ class ValidationMenu {
     this.#refCard = referenceCard;
     this.#gsvImage = gsvImage;
 
+    const buttonHTML = (option) => `
+      <button class="validation-button gallery-card-${option}-button" aria-pressed="false">
+        ${i18next.t(`common:${option}`)}
+      </button>`;
     const cardOverlayHTML = `
       <div class="gallery-validation-button-holder">
-        <button class="validation-button gallery-card-agree-button">${i18next.t('common:agree')}</button>
-        <button class="validation-button gallery-card-disagree-button">${i18next.t('common:disagree')}</button>
-        <button class="validation-button gallery-card-unsure-button">${i18next.t('common:unsure')}</button>
+        ${['agree', 'disagree', 'unsure'].map(buttonHTML).join('')}
       </div>`;
     const template = document.createElement('template');
     template.innerHTML = cardOverlayHTML;
@@ -55,7 +57,7 @@ class ValidationMenu {
     };
 
     // If the signed-in user had already validated this label before loading the page, style the card.
-    const userValidation = refCard ? refCard.getProperty('user_validation') : null;
+    const userValidation = refCard.getProperty('user_validation');
     if (userValidation) {
       this.showValidationOnCard(userValidation);
     }
@@ -145,7 +147,8 @@ class ValidationMenu {
 
     // Remove the visual effects from the older validation.
     if (this.#currSelected && this.#currSelected !== validationClass) {
-      this.#validationButtons[this.#currSelected].classList.replace('validation-button-selected', 'validation-button');
+      this.#validationButtons[this.#currSelected].classList.remove('is-selected');
+      this.#validationButtons[this.#currSelected].setAttribute('aria-pressed', 'false');
       this.#galleryCard.classList.remove(this.#currSelected);
     }
     this.#currSelected = validationClass;
@@ -153,7 +156,8 @@ class ValidationMenu {
     // Add the visual effects from the new validation.
     if (validationClass) {
       this.#galleryCard.classList.add(validationClass);
-      this.#validationButtons[validationClass].classList.replace('validation-button', 'validation-button-selected');
+      this.#validationButtons[validationClass].classList.add('is-selected');
+      this.#validationButtons[validationClass].setAttribute('aria-pressed', 'true');
     }
 
     // Reset thumb icons to outline state so that they don't blend into the background after validation.

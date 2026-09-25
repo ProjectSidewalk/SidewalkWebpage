@@ -369,11 +369,10 @@ with respect to the image holder. This allows the validation menu to be placed o
   flex: 0 0 auto;
 }
 
-.validation-button, .validation-button-selected {
+.validation-button {
   opacity: 0;
   font: var(--text-body-bold);
   font-size: max(11px, 3cqw);
-  background-color: var(--color-neutral-white);
   border-style: none;
   color: var(--color-asphalt-500);
   transition: opacity 120ms ease;
@@ -381,40 +380,44 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .gallery-card-agree-button {
   width: 33%;
-  border-right: 1px solid #dcdbdb;
+  border-right: 1px solid var(--color-neutral-200);
   background-color: var(--color-pine-500);
-  color: var(--color-asphalt-500);
 }
 
 .gallery-card-disagree-button {
   width: 34%;
-  background-color: #eb734d;
-  color: var(--color-asphalt-500);
+  background-color: var(--color-orange-500);
 }
 
 .gallery-card-unsure-button {
-  border-left: 1px solid #dcdbdb;
+  border-left: 1px solid var(--color-neutral-200);
   width: 33%;
   background-color: var(--color-asphalt-100);
-  color: var(--color-asphalt-500);
 }
 
-.gallery-card:hover .validation-button {
-  opacity: 0.75;
+/* Keyboard focus reveals the row just like hovering does. */
+.gallery-card:hover .validation-button,
+.gallery-validation-button-holder:focus-within .validation-button {
+  opacity: 0.78; /* Any lower and Disagree's text is too faint over dark imagery. */
 }
 
 .gallery-card:hover .validation-button:hover {
   opacity: 0.95;
 }
 
-.gallery-card:hover .validation-button-selected {
+.gallery-card:hover .validation-button.is-selected,
+.gallery-validation-button-holder:focus-within .validation-button.is-selected {
   opacity: 1;
+}
+
+.validation-button:focus-visible {
+  outline: 2px solid var(--color-link-100);
+  outline-offset: -2px;
 }
 
 /* Read-only mode: the card shows the viewer's own label, so validating isn't allowed. The UI stays in place but
    appears disabled, matching the Gallery expanded view / LabelMap popup. */
-.gallery-card--readonly .validation-button,
-.gallery-card--readonly .validation-button-selected {
+.gallery-card--readonly .validation-button {
   background-color: #E2E2E2;
   color: rgb(0 0 0 / 40%);
   cursor: default;
@@ -425,7 +428,7 @@ with respect to the image holder. This allows the validation menu to be placed o
 }
 
 .gallery-card--readonly:hover .validation-button:hover {
-  opacity: 0.75; /* No hover bump in readonly: nothing to validate. */
+  opacity: 0.78; /* No hover bump in readonly: nothing to validate. */
 }
 
 .gallery-card--readonly .validation-section-content {
@@ -436,13 +439,13 @@ with respect to the image holder. This allows the validation menu to be placed o
   pointer-events: none;
 }
 
-/* Hover can't reveal the vote row on a touch-primary device, so it stays visible; readonly styling still wins. */
+/* Hover can't reveal the vote row on a touch-primary device, so it stays visible. */
 @media (pointer: coarse) {
   .validation-button {
-    opacity: 0.75;
+    opacity: 0.78;
   }
 
-  .validation-button-selected {
+  .validation-button.is-selected {
     opacity: 1;
   }
 }
