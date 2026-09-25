@@ -95,7 +95,6 @@ describe('mobile Validate page behavior', () => {
     afterEach(() => {
         jest.useRealTimers();
         document.body.innerHTML = '';
-        delete window.$;
     });
 
     describe('the double-tap suppressor', () => {

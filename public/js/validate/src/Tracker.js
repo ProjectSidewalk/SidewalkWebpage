@@ -21,20 +21,20 @@ class Tracker {
   #trackWindowEvents() {
     const prefix = 'LowLevelEvent_';
 
-    // track all mouse related events
-    $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', (e) => {
-      this.push(prefix + e.type, {
-        cursorX: 'pageX' in e ? e.pageX : null,
-        cursorY: 'pageY' in e ? e.pageY : null,
+    const mouseEvents = [
+      'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove', 'click', 'contextmenu', 'dblclick',
+    ];
+    for (const type of mouseEvents) {
+      document.addEventListener(type, (/** @type {MouseEvent} */ e) => {
+        this.push(prefix + e.type, { cursorX: e.pageX, cursorY: e.pageY });
       });
-    });
+    }
 
-    // keyboard related events
-    $(document).on('keydown keyup', (e) => {
-      this.push(prefix + e.type, {
-        keyCode: 'keyCode' in e ? e.keyCode : null,
+    for (const type of ['keydown', 'keyup']) {
+      document.addEventListener(type, (/** @type {KeyboardEvent} */ e) => {
+        this.push(prefix + e.type, { keyCode: e.keyCode });
       });
-    });
+    }
   }
 
   /**

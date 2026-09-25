@@ -180,7 +180,7 @@ class PanoManager {
 
     if (!util.isMobile()) {
       // Add the capture date of the image to the bottom-right corner of the UI.
-      svv.ui.viewer.date.text(panoData.getProperty('captureDate').format('MMM YYYY'));
+      svv.ui.viewer.date.textContent = panoData.getProperty('captureDate').format('MMM YYYY');
     }
 
     return panoData;
@@ -190,15 +190,15 @@ class PanoManager {
    * Moves the buttons on the bottom-right of the GSV image to the top layer so they are clickable.
    */
   #makeGsvAttributionClickable() {
-    const bottomLinks = $('.gm-style-cc');
+    const bottomLinks = document.querySelectorAll('.gm-style-cc');
     if (!this.#bottomLinksClickable && bottomLinks.length > 3) {
       this.#bottomLinksClickable = true;
 
       // Remove the first child of each remaining .gm-style-cc element because it looks better.
-      bottomLinks.each((i, el) => el.firstElementChild && el.firstElementChild.remove());
+      bottomLinks.forEach((el) => el.firstElementChild?.remove());
 
       bottomLinks[0].remove(); // Remove GSV keyboard shortcuts link.
-      svv.ui.viewer.controlLayer.append($(bottomLinks[1]).parent().parent()); // Makes remaining links clickable.
+      svv.ui.viewer.controlLayer.append(bottomLinks[1].parentElement.parentElement); // Makes remaining links clickable.
     }
 
     google.maps.event.removeListener(this.#linksListener);

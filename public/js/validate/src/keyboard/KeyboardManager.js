@@ -7,15 +7,15 @@ class KeyboardManager {
   #addingComment = false;
 
   /**
-   * @param {Record<string, JQuery>} validationMenuUi - Validation menu UI elements.
+   * @param {Record<string, HTMLElement>} validationMenuUi - Validation menu UI elements.
    */
   constructor(validationMenuUi) {
     this.#validationMenuUi = validationMenuUi;
 
     // Add keydown listeners to the text boxes because esc key press is not being recognized when selected input text.
-    validationMenuUi.optionalCommentTextBox.on('keydown', this.#handleEscapeKey);
-    validationMenuUi.disagreeReasonTextBox.on('keydown', this.#handleEscapeKey);
-    validationMenuUi.unsureReasonTextBox.on('keydown', this.#handleEscapeKey);
+    validationMenuUi.optionalCommentTextBox.addEventListener('keydown', this.#handleEscapeKey);
+    validationMenuUi.disagreeReasonTextBox.addEventListener('keydown', this.#handleEscapeKey);
+    validationMenuUi.unsureReasonTextBox.addEventListener('keydown', this.#handleEscapeKey);
 
     // Add the keyboard event listeners. We need { capture: true } for keydown to overwrite pano's shortcuts.
     window.addEventListener('keydown', this.#documentKeyDown, { capture: true });
@@ -42,9 +42,9 @@ class KeyboardManager {
   #checkIfTextAreaSelected() {
     const validationMenuUi = this.#validationMenuUi;
     // Check if expertValidate text boxes are focused.
-    if (document.activeElement === validationMenuUi.optionalCommentTextBox[0]
-      || document.activeElement === validationMenuUi.disagreeReasonTextBox[0]
-      || document.activeElement === validationMenuUi.unsureReasonTextBox[0]
+    if (document.activeElement === validationMenuUi.optionalCommentTextBox
+      || document.activeElement === validationMenuUi.disagreeReasonTextBox
+      || document.activeElement === validationMenuUi.unsureReasonTextBox
       || this.#inTagPicker()) {
       this.#addingComment = true;
     } else {
@@ -67,29 +67,32 @@ class KeyboardManager {
    */
   #handleNumberKeyShortcut(n, e) {
     const validationMenuUi = this.#validationMenuUi;
-    if (validationMenuUi.yesButton.hasClass('chosen')) {
+    if (validationMenuUi.yesButton.classList.contains('chosen')) {
       if (svv.adminVersion) this.#clickSeverity(n);
     } else if (this.#inWrongTypeView()) {
       // Severity only once its section is showing, or a rating typed before a type is picked rides along unseen.
       if (document.getElementById('validate-severity-section')?.style.display === 'block') this.#clickSeverity(n);
-    } else if (validationMenuUi.noButton.hasClass('chosen')) {
-      const buttonId = `#no-button-${n}`;
-      // If there's no default disagree option for this key, focus on the comment box, otherwise click the button.
-      if (!$(buttonId).hasClass('defaultOption')) {
-        e.preventDefault();
-        validationMenuUi.disagreeReasonTextBox.click();
-      } else {
-        $(buttonId).click();
-      }
-    } else if (validationMenuUi.unsureButton.hasClass('chosen')) {
-      const buttonId = `#unsure-button-${n}`;
-      // If there's no default unsure option for key 2 or 3, focus on the comment box, otherwise click the button.
-      if (!$(buttonId).hasClass('defaultOption')) {
-        e.preventDefault();
-        validationMenuUi.unsureReasonTextBox.click();
-      } else {
-        $(buttonId).click();
-      }
+    } else if (validationMenuUi.noButton.classList.contains('chosen')) {
+      const button = document.getElementById(`no-button-${n}`);
+      KeyboardManager.#pickReason(button, validationMenuUi.disagreeReasonTextBox, e);
+    } else if (validationMenuUi.unsureButton.classList.contains('chosen')) {
+      const button = document.getElementById(`unsure-button-${n}`);
+      KeyboardManager.#pickReason(button, validationMenuUi.unsureReasonTextBox, e);
+    }
+  }
+
+  /**
+   * Clicks the numbered reason button, or, where the label type offers no reason under that number, the comment box.
+   * @param {HTMLElement|null} button - The reason button the number names, if the menu has one.
+   * @param {HTMLElement} textBox - The menu's free-text reason box.
+   * @param {KeyboardEvent} e - The keypress event.
+   */
+  static #pickReason(button, textBox, e) {
+    if (button?.classList.contains('defaultOption')) {
+      button.click();
+    } else {
+      e.preventDefault();
+      textBox.click();
     }
   }
 
@@ -103,7 +106,7 @@ class KeyboardManager {
    * @param {number} n - The severity to pick, 1-3.
    */
   #clickSeverity(n) {
-    $(`#validate-severity-radio-${n}`).click();
+    document.getElementById(`validate-severity-radio-${n}`).click();
   }
 
   /**
@@ -114,11 +117,11 @@ class KeyboardManager {
   #handleCommentBoxShortcut(e) {
     const validationMenuUi = this.#validationMenuUi;
     e.preventDefault();
-    if (validationMenuUi.yesButton.hasClass('chosen') || this.#inWrongTypeView()) {
+    if (validationMenuUi.yesButton.classList.contains('chosen') || this.#inWrongTypeView()) {
       validationMenuUi.optionalCommentTextBox.click();
-    } else if (validationMenuUi.noButton.hasClass('chosen')) {
+    } else if (validationMenuUi.noButton.classList.contains('chosen')) {
       validationMenuUi.disagreeReasonTextBox.click();
-    } else if (validationMenuUi.unsureButton.hasClass('chosen')) {
+    } else if (validationMenuUi.unsureButton.classList.contains('chosen')) {
       validationMenuUi.unsureReasonTextBox.click();
     }
   }
@@ -239,7 +242,7 @@ class KeyboardManager {
           // The comment box is always the key one past the menu's last reason, so it moves from 4 to 5 on any label
           // type that offers a fourth reason, handled through #handleNumberKeyShortcut. Routed separately from 1-3 only
           // because of the Agree verdict, where it would reach for a severity button 4 or 5 that doesn't exist.
-          if (validationMenuUi.noButton.hasClass('chosen') && !this.#inWrongTypeView()) {
+          if (validationMenuUi.noButton.classList.contains('chosen') && !this.#inWrongTypeView()) {
             this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
           } else {
             this.#handleCommentBoxShortcut(e);

@@ -13,12 +13,13 @@ class ZoomControl {
   #wheelTrackTimeout;
 
   constructor() {
-    this.#zoomInButton = $('#zoom-in-button');
-    this.#zoomOutButton = $('#zoom-out-button');
+    this.#zoomInButton = svv.ui.status.zoomInButton;
+    this.#zoomOutButton = svv.ui.status.zoomOutButton;
 
-    this.#zoomInButton.on('click', this.#clickZoomIn);
-    this.#zoomOutButton.on('click', this.#clickZoomOut);
-    svv.ui.viewer.controlLayer.on('wheel', this.#wheelZoom);
+    this.#zoomInButton.addEventListener('click', this.#clickZoomIn);
+    this.#zoomOutButton.addEventListener('click', this.#clickZoomOut);
+    // Not passive: the handler stops the wheel from scrolling the page, which a passive listener isn't allowed to do.
+    svv.ui.viewer.controlLayer.addEventListener('wheel', this.#wheelZoom, { passive: false });
   }
 
   /**
@@ -63,14 +64,14 @@ class ZoomControl {
 
   /**
    * Callback for the scroll wheel / trackpad over the pano.
-   * @param {JQuery.TriggeredEvent & {originalEvent: WheelEvent}} e - jQuery wheel event.
+   * @param {WheelEvent} e
    */
   #wheelZoom = (e) => {
     // Prevent the page from scrolling while zooming the pano.
     e.preventDefault();
 
     // Scrolling up (negative deltaY) zooms in; scrolling down zooms out.
-    const zoomDelta = -e.originalEvent.deltaY * ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
+    const zoomDelta = -e.deltaY * ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
 
     const newZoom = Math.max(
       ZoomControl.#MIN_ZOOM, Math.min(ZoomControl.#MAX_ZOOM, svv.panoViewer.getPov().zoom + zoomDelta),
@@ -96,7 +97,7 @@ class ZoomControl {
   updateZoomAvailability() {
     const zoomLevel = svv.panoViewer.getPov().zoom;
     // The `disabled` class greys the button out; see pano-overlay-buttons.css.
-    this.#zoomInButton.toggleClass('disabled', zoomLevel >= 3);
-    this.#zoomOutButton.toggleClass('disabled', zoomLevel <= 1);
+    this.#zoomInButton.classList.toggle('disabled', zoomLevel >= 3);
+    this.#zoomOutButton.classList.toggle('disabled', zoomLevel <= 1);
   }
 }

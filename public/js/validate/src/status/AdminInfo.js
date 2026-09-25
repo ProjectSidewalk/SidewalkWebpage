@@ -14,18 +14,18 @@ class AdminInfo {
   /**
    * Open/close, light dismiss and stacking are the browser's, via the `popover` attribute; this fills and parks it.
    *
-   * @param {object} adminUi - jQuery pointers to the Admin Info UI
-   * @param {JQuery} adminUi.holder - The section holding the button
-   * @param {JQuery} adminUi.button - The Admin Info button
-   * @param {JQuery} adminUi.popover - The popover the button opens
-   * @param {JQuery} adminUi.template - The template HTML the popover is filled from
+   * @param {object} adminUi - The Admin Info UI elements
+   * @param {HTMLElement} adminUi.holder - The section holding the button
+   * @param {HTMLButtonElement} adminUi.button - The Admin Info button
+   * @param {HTMLElement} adminUi.popover - The popover the button opens
+   * @param {HTMLTemplateElement} adminUi.template - The template HTML the popover is filled from
    */
   constructor(adminUi) {
-    this.#template = /** @type {HTMLTemplateElement} */ (adminUi.template[0]);
-    this.#popover = adminUi.popover[0];
-    this.#button = /** @type {HTMLButtonElement} */ (adminUi.button[0]);
+    this.#template = adminUi.template;
+    this.#popover = adminUi.popover;
+    this.#button = adminUi.button;
 
-    adminUi.holder.css('display', 'block');
+    adminUi.holder.style.display = 'block';
 
     this.#popover.addEventListener('beforetoggle', (e) => {
       if (/** @type {ToggleEvent} */ (e).newState === 'open') util.placePopover(this.#popover, this.#button);

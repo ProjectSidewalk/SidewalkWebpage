@@ -499,7 +499,6 @@ describe('DesktopValidationMenu on Expert Validate', () => {
   let label;
 
   beforeAll(() => {
-    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8'));
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
     window.util.getImage = () => Promise.resolve('img');
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
@@ -540,27 +539,27 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     });
     window.defineValidateConstants();
 
-    const $ = window.$;
+    const byId = (id) => document.getElementById(id);
     menu = new window.DesktopValidationMenu({
-      yesButton: $('#validate-yes-button'),
-      noButton: $('#validate-no-button'),
-      unsureButton: $('#validate-unsure-button'),
-      labelTypeMenu: $('#validate-label-type-section'),
-      labelTypePicker: $('#label-type-picker'),
-      tagsMenu: $('#validate-tags-section'),
-      severityMenu: $('#validate-severity-section'),
-      optionalCommentSection: $('#validate-optional-comment-section'),
-      optionalCommentTextBox: $('#add-optional-comment'),
-      noMenu: $('#validate-why-no-section'),
-      disagreeReasonOptions: $('#no-reason-options'),
-      disagreeReasonTextBox: $('#add-disagree-comment'),
-      unsureMenu: $('#validate-why-unsure-section'),
-      unsureReasonOptions: $('#unsure-reason-options'),
-      unsureReasonTextBox: $('#add-unsure-comment'),
-      submitButton: $('#validate-submit-button'),
-      currentTags: $('#current-tags-list'),
-      aiSuggestionSection: $('#sidewalk-ai-suggestions-block'),
-      aiSuggestedTagTemplate: $('.sidewalk-ai-suggested-tag.template'),
+      yesButton: byId('validate-yes-button'),
+      noButton: byId('validate-no-button'),
+      unsureButton: byId('validate-unsure-button'),
+      labelTypeMenu: byId('validate-label-type-section'),
+      labelTypePicker: byId('label-type-picker'),
+      tagsMenu: byId('validate-tags-section'),
+      severityMenu: byId('validate-severity-section'),
+      optionalCommentSection: byId('validate-optional-comment-section'),
+      optionalCommentTextBox: byId('add-optional-comment'),
+      noMenu: byId('validate-why-no-section'),
+      disagreeReasonOptions: byId('no-reason-options'),
+      disagreeReasonTextBox: byId('add-disagree-comment'),
+      unsureMenu: byId('validate-why-unsure-section'),
+      unsureReasonOptions: byId('unsure-reason-options'),
+      unsureReasonTextBox: byId('add-unsure-comment'),
+      submitButton: byId('validate-submit-button'),
+      currentTags: byId('current-tags-list'),
+      aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
+      aiSuggestedTagTemplate: document.querySelector('.sidewalk-ai-suggested-tag.template'),
     });
     menu.resetMenu(label);
   });
@@ -572,7 +571,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     label = makeLabel({ tags: ['pole'], ai_tags: ['trash/recycling can'], ai_tags_not_present: ['pole'] });
     menu.resetMenu(label);
 
-    window.$('#validate-yes-button').click();
+    document.getElementById('validate-yes-button').click();
 
     expect(label.getProperty('validationResult')).toBe('Agree');
     expect(document.querySelectorAll('.sidewalk-ai-suggested-tag:not(.template)')).toHaveLength(2);
@@ -580,7 +579,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
   });
 
   it('the "wrong label type" reason swaps the reasons for the type picker under a chosen Disagree', () => {
-    window.$('#validate-no-button').click();
+    document.getElementById('validate-no-button').click();
     document.getElementById('no-button-1').click();
 
     expect(document.getElementById('validate-no-button').classList.contains('chosen')).toBe(true);
@@ -605,7 +604,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
   it('going back to Disagree puts the label back on its own type and brings the reasons back', () => {
     menu.pickNewLabelType('SurfaceProblem');
-    window.$('#validate-no-button').click();
+    document.getElementById('validate-no-button').click();
 
     expect(label.getProperty('newLabelType')).toBe('Obstacle');
     expect(label.getProperty('validationResult')).toBe('Disagree');
@@ -616,7 +615,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
   it('on regular Validate the reason is a plain disagree reason', () => {
     window.svv.adminVersion = false;
-    window.$('#validate-no-button').click();
+    document.getElementById('validate-no-button').click();
     document.getElementById('no-button-1').click();
 
     expect(label.getProperty('disagreeOption')).toBe('no-button-1');
