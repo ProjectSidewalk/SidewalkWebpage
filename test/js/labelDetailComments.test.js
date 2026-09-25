@@ -543,7 +543,7 @@ describe('the validator comment box (#5015)', () => {
             deleteBtn().click();
             await flush();
 
-            expect(window.fetch).toHaveBeenCalledWith('/labelmap/comment/42', { method: 'DELETE' });
+            expect(window.fetch).toHaveBeenCalledWith('/labelmap/comment/42?labelType=Obstacle', { method: 'DELETE' });
             expect(q('.label-detail__validator-comments').textContent).not.toContain('regrettable');
             // With nothing of theirs left, commenting is on offer again.
             expect(boxOpen()).toBe(true);
@@ -556,7 +556,7 @@ describe('the validator comment box (#5015)', () => {
             deleteBtn().click();
             await flush();
 
-            expect(window.fetch).not.toHaveBeenCalledWith('/labelmap/comment/42', { method: 'DELETE' });
+            expect(window.fetch).not.toHaveBeenCalledWith('/labelmap/comment/42?labelType=Obstacle', { method: 'DELETE' });
             expect(q('.label-detail__validator-comments').textContent).toContain('kept');
         });
 

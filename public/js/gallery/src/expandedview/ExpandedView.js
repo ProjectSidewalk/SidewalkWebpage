@@ -61,6 +61,7 @@ class ExpandedView {
       currUsername: this.#currUsername,
       onVote: this.#handleVote,
       onEdit: this.#handleEdit,
+      onComments: this.#handleComments,
       onDelete: this.#handleDelete,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
@@ -190,6 +191,14 @@ class ExpandedView {
       this.refCard.updateLabelType(meta.label_type);
       this.refCard.updateSeverityAndTags(meta.severity, meta.tags);
     }
+  };
+
+  /**
+   * Syncs the small card's comments so reopening the label shows them. Looked up by id, like #handleDelete.
+   * @param {{label_id: number, comments: Array<Record<string, any>|string>}} meta - The label's metadata.
+   */
+  #handleComments = (meta) => {
+    sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id)?.updateComments(meta.comments);
   };
 
   /**

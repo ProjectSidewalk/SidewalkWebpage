@@ -5,27 +5,40 @@
 ALTER TABLE validation_task_comment ADD COLUMN label_type label_type;
 ALTER TABLE validation_task_comment_history ADD COLUMN label_type label_type;
 
--- Backfill: the type the author voted on (their newest vote, if they voted on more than one), else the label's type
--- now. Type edits only began with 395, so the rare comment this guesses wrong is not worth a label_edit replay.
+-- Backfill: the type of the vote the comment was submitted with (same mission), else the mission's type. Missions are
+-- per type, so the mission alone is exact except for an admin's type-changing Agree, whose vote is on the new type.
 UPDATE validation_task_comment
-SET label_type = COALESCE(
-  (SELECT label_validation.label_type
-   FROM label_validation
-   WHERE label_validation.label_id = validation_task_comment.label_id
-     AND label_validation.user_id = validation_task_comment.user_id
-   ORDER BY label_validation.end_timestamp DESC
-   LIMIT 1),
-  (SELECT label.label_type FROM label WHERE label.label_id = validation_task_comment.label_id));
+SET label_type = comment_type.label_type
+FROM (
+  SELECT DISTINCT ON (validation_task_comment.validation_task_comment_id)
+         validation_task_comment.validation_task_comment_id,
+         COALESCE(label_validation.label_type, mission.label_type, label.label_type) AS label_type
+  FROM validation_task_comment
+  INNER JOIN mission ON validation_task_comment.mission_id = mission.mission_id
+  INNER JOIN label ON validation_task_comment.label_id = label.label_id
+  LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
+      AND validation_task_comment.user_id = label_validation.user_id
+      AND validation_task_comment.mission_id = label_validation.mission_id
+  ORDER BY validation_task_comment.validation_task_comment_id, label_validation.label_validation_id DESC
+) AS comment_type
+WHERE comment_type.validation_task_comment_id = validation_task_comment.validation_task_comment_id;
 
 UPDATE validation_task_comment_history
-SET label_type = COALESCE(
-  (SELECT label_validation.label_type
-   FROM label_validation
-   WHERE label_validation.label_id = validation_task_comment_history.label_id
-     AND label_validation.user_id = validation_task_comment_history.user_id
-   ORDER BY label_validation.end_timestamp DESC
-   LIMIT 1),
-  (SELECT label.label_type FROM label WHERE label.label_id = validation_task_comment_history.label_id));
+SET label_type = comment_type.label_type
+FROM (
+  SELECT DISTINCT ON (validation_task_comment_history.validation_task_comment_history_id)
+         validation_task_comment_history.validation_task_comment_history_id,
+         COALESCE(label_validation.label_type, mission.label_type, label.label_type) AS label_type
+  FROM validation_task_comment_history
+  INNER JOIN mission ON validation_task_comment_history.mission_id = mission.mission_id
+  INNER JOIN label ON validation_task_comment_history.label_id = label.label_id
+  LEFT JOIN label_validation ON validation_task_comment_history.label_id = label_validation.label_id
+      AND validation_task_comment_history.user_id = label_validation.user_id
+      AND validation_task_comment_history.mission_id = label_validation.mission_id
+  ORDER BY validation_task_comment_history.validation_task_comment_history_id, label_validation.label_validation_id DESC
+) AS comment_type
+WHERE comment_type.validation_task_comment_history_id
+  = validation_task_comment_history.validation_task_comment_history_id;
 
 ALTER TABLE validation_task_comment_history ALTER COLUMN label_type SET NOT NULL;
 
