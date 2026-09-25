@@ -89,22 +89,22 @@
       <div class="instructional-video-container">
         <div class="row" id="numbersrow">
           <div class="col-sm-4">
-            <div id="firstnumbox" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.explore")">
-              <span class="stepnumber" id="number1">01</span><br>
-              <span id="word1" class="stepword">@Messages("landing.how.you.help.explore")</span>
+            <div id="firstnumbox" class="tab-word" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.explore")">
+              <span class="stepnumber tab-word" id="number1">01</span><br>
+              <span id="word1" class="stepword tab-word">@Messages("landing.how.you.help.explore")</span>
             </div>
           </div>
 
           <div class="col-sm-4">
-            <div id="secondnumbox" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.find")">
-              <span class="stepnumber" id="number2">02</span><br>
-              <span id="word2" class="stepword">@Messages("landing.how.you.help.find")</span>
+            <div id="secondnumbox" class="tab-word" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.find")">
+              <span class="stepnumber tab-word" id="number2">02</span><br>
+              <span id="word2" class="stepword tab-word">@Messages("landing.how.you.help.find")</span>
             </div>
           </div>
           <div class="col-sm-4">
-            <div id="thirdnumbox" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.assess")">
-              <span class="stepnumber" id="number3">03</span><br>
-              <span id="word3" class="stepword">@Messages("landing.how.you.help.assess")</span>
+            <div id="thirdnumbox" class="tab-word" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.assess")">
+              <span class="stepnumber tab-word" id="number3">03</span><br>
+              <span id="word3" class="stepword tab-word">@Messages("landing.how.you.help.assess")</span>
             </div>
           </div>
         </div>
@@ -113,7 +113,7 @@
           <video id="vid1" width="800" playsinline autoplay muted loop poster='@assets.path("images/segment-1-1.jpg")' class="ps-hidden">
             <source src='@assets.path("videos/segment-1-1.mp4")' type="video/mp4">
           </video>
-          @* vid2/vid3 start hidden and only play once their tab is clicked (homepage.js switchToVideo calls play()),
+          @* vid2/vid3 start hidden and only play once their tab is clicked (homepage.js showHowItWorksStep calls play()),
              so they don't autoplay and preload="none" keeps them out of the page's load path. homepage.js
              warmHiddenInstructionVideos downloads them shortly after load, so the tab switch is instant. *@
           <video id="vid2" width="800" playsinline muted loop preload="none" poster='@assets.path("images/segment-2.jpg")' class="ps-hidden">
