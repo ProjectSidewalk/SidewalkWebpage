@@ -1,8 +1,9 @@
 util.onDomReady(() => {
+  // Not every guide page has a subtopics list.
   const subtopicsList = document.getElementById('subtopics-list');
   for (const question of document.querySelectorAll('h3.question')) {
     question.classList.add('subtopic');
-    subtopicsList.insertAdjacentHTML('beforeend', `<li><a href="#${question.id}">${question.textContent}</a></li>`);
+    subtopicsList?.insertAdjacentHTML('beforeend', `<li><a href="#${question.id}">${question.textContent}</a></li>`);
   }
 
   new ImageLightbox('.help img.img-responsive');
