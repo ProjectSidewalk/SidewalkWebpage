@@ -1,4 +1,30 @@
 /**
+ * Fetches a JSON endpoint, rejecting on a non-2xx status so a failed feed doesn't surface as a parse error.
+ * @param {string|URL} url - The endpoint to fetch.
+ * @returns {Promise<any>} - The parsed response body.
+ */
+async function fetchJson(url) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Fetching ${url} failed with HTTP ${response.status}.`);
+  return response.json();
+}
+
+/**
+ * Logs clicks on a link inside a map popup. The link is built fresh every time its popup opens, so the listener
+ * sits on the map's container (which is always there) and checks each click for the link.
+ * @param {mapboxgl.Map} map - The map whose popups hold the link.
+ * @param {string} selector - CSS selector matching the popup link.
+ * @param {(link: Element) => string} activityFor - Builds the webpage_activity string for the clicked link.
+ */
+function logPopupLinkClicks(map, selector, activityFor) {
+  const container = map.getContainer();
+  container.addEventListener('click', (event) => {
+    const link = /** @type {Element} */ (event.target).closest(selector);
+    if (link && container.contains(link)) window.logWebpageActivity(activityFor(link));
+  });
+}
+
+/**
  * Fetches a label feed, rejecting with an error that says what actually went wrong.
  *
  * The feed is streamed from the database under a chunked 200 (#3932), so the status and headers are committed

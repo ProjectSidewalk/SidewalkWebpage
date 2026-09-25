@@ -198,13 +198,8 @@ function addCitiesToMap(map, citiesData, params) {
 
     // Logging functionality.
     if (params.logClicks) {
-      // Delegated: popups are re-created as cities are clicked, so the listener lives on the map container.
-      document.getElementById(params.mapName).addEventListener('click', (event) => {
-        const trigger = /** @type {Element} */ (event.target).closest('.city-selection-trigger');
-        if (!trigger) return;
-        const activity = `Click_module=${params.mapName}_cityId=${trigger.getAttribute('cityId')}`;
-        window.logWebpageActivity(activity);
-      });
+      logPopupLinkClicks(map, '.city-selection-trigger',
+        (link) => `Click_module=${params.mapName}_cityId=${link.getAttribute('cityId')}`);
     }
   }
 

@@ -54,9 +54,7 @@ function createPSMap(params) {
   // Create the map.
   let map;
   const loadMapParams = fetchJson('/cityMapParams');
-  const mapLoaded = Promise.all([loadMapParams]).then((data) => {
-    return createMap(data[0]);
-  }).then((newMap) => {
+  const mapLoaded = loadMapParams.then(createMap).then((newMap) => {
     map = newMap; // Assign the returned map to the map variable.
 
     // mapbox-gl resizes itself only on the window's resize event, but a full-window map is sized in dvh, which
@@ -175,34 +173,8 @@ function createPSMap(params) {
     });
   }
 
-  // Return a promise that resolves once everything on the map has loaded.
-  const allLoaded = Promise.all([mapLoaded, renderRegions, renderCities, renderStreets, renderLabels]);
-  allLoaded.then(() => {
-    // Resize the map when the window is resized.
-    window.addEventListener('resize', () => {
-      if (window.citiesMap) {
-        window.citiesMap.resize();
-      }
-    });
-  }, () => {
-    // Failure is the caller's to report — it owns the page's error UI. Handled here as the second argument to
-    // `then` rather than left off, so this branch doesn't become a second, unhandled copy of the same rejection.
-    // Note this handler is on the DERIVED promise, which is discarded: `allLoaded` is returned untouched below
-    // and still rejects. Attaching the same handler to a promise that IS returned would convert its rejection
-    // into a resolution, and callers would receive `undefined` instead of an error.
-  });
-  return allLoaded;
-
-  /**
-   * Fetches a JSON endpoint, rejecting on a non-2xx status so a failed feed doesn't become a parse error.
-   * @param {string|URL} url - The endpoint to fetch.
-   * @returns {Promise<any>} - The parsed response body.
-   */
-  async function fetchJson(url) {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Fetching ${url} failed with HTTP ${response.status}.`);
-    return response.json();
-  }
+  // Resolves once everything on the map has loaded. Failure is the caller's to report: it owns the page's error UI.
+  return Promise.all([mapLoaded, renderRegions, renderCities, renderStreets, renderLabels]);
 
   /**
    * Create the Mapbox map object and attach a custom logging function to it.
