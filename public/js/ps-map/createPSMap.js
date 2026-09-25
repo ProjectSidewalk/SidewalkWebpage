@@ -1,7 +1,6 @@
 /**
  * Central function that handles the creation of choropleths and maps.
  *
- * @param {JQueryStatic} $ - Allows the use of jQuery.
  * @param {object} params - Properties that can change the process of choropleth creation.
  * @param {string} params.mapName - Name of the HTML ID of the map.
  * @param {string} params.mapStyle - URL of a Mapbox style.
@@ -43,7 +42,7 @@
  *     early (e.g. the LabelMap search box) instead of waiting on the returned all-loaded promise.
  * @returns {Promise} - Promise that resolves once all components of the map have loaded.
  */
-function createPSMap($, params) {
+function createPSMap(params) {
   // Set default parameters.
   params.logClicks = params.logClicks === undefined ? true : params.logClicks;
   params.scrollWheelZoom = params.scrollWheelZoom === undefined ? true : params.scrollWheelZoom;
@@ -54,7 +53,7 @@ function createPSMap($, params) {
 
   // Create the map.
   let map;
-  const loadMapParams = $.getJSON('/cityMapParams');
+  const loadMapParams = fetchJson('/cityMapParams');
   const mapLoaded = Promise.all([loadMapParams]).then((data) => {
     return createMap(data[0]);
   }).then((newMap) => {
@@ -105,7 +104,7 @@ function createPSMap($, params) {
   });
 
   // Render the regions on the map if applicable. The fetches are kept inside the guard so callers that omit
-  // these URLs (e.g. the shared-label minimap) don't fire a stray $.getJSON(undefined) at the current page.
+  // these URLs (e.g. the shared-label minimap) don't fire a stray fetch of `undefined` at the current page.
   let renderRegions;
   // Extent the labels live in; ViewportLabelLoader stops fetching once covered. Streets and regions both,
   // since /labels/all joins street_edge_region without excluding deleted regions — it serves labels the
@@ -119,8 +118,8 @@ function createPSMap($, params) {
     labelDataBounds = labelDataBounds ? labelDataBounds.extend(bounds) : bounds;
   };
   if (params.regionsURL && params.completionRatesURL) {
-    const loadRegions = $.getJSON(String(params.regionsURL));
-    const loadCompletionRates = $.getJSON(String(params.completionRatesURL));
+    const loadRegions = fetchJson(params.regionsURL);
+    const loadCompletionRates = fetchJson(params.completionRatesURL);
     renderRegions = Promise.all([mapLoaded, loadRegions, loadCompletionRates]).then((data) => {
       addRegionsToMap(map, data[1], data[2], params);
       extendLabelDataBounds(data[1]);
@@ -130,7 +129,7 @@ function createPSMap($, params) {
   // Render deployment cities on the map if applicable.
   let renderCities;
   if (params.loadCities) {
-    const loadCities = $.getJSON('/v3/api/cities?filetype=geojson');
+    const loadCities = fetchJson('/v3/api/cities?filetype=geojson');
     renderCities = Promise.all([mapLoaded, loadCities]).then((data) => {
       addCitiesToMap(map, data[1], params);
     });
@@ -139,7 +138,7 @@ function createPSMap($, params) {
   // Render the streets on the map if applicable.
   let renderStreets;
   if (params.streetsURL) {
-    const loadStreets = $.getJSON(String(params.streetsURL));
+    const loadStreets = fetchJson(params.streetsURL);
     renderStreets = Promise.all([mapLoaded, renderRegions, loadStreets]).then((data) => {
       extendLabelDataBounds(data[2]);
       return addStreetsToMap(map, data[2], params);
@@ -180,7 +179,7 @@ function createPSMap($, params) {
   const allLoaded = Promise.all([mapLoaded, renderRegions, renderCities, renderStreets, renderLabels]);
   allLoaded.then(() => {
     // Resize the map when the window is resized.
-    $(window).resize(() => {
+    window.addEventListener('resize', () => {
       if (window.citiesMap) {
         window.citiesMap.resize();
       }
@@ -193,6 +192,17 @@ function createPSMap($, params) {
     // into a resolution, and callers would receive `undefined` instead of an error.
   });
   return allLoaded;
+
+  /**
+   * Fetches a JSON endpoint, rejecting on a non-2xx status so a failed feed doesn't become a parse error.
+   * @param {string|URL} url - The endpoint to fetch.
+   * @returns {Promise<any>} - The parsed response body.
+   */
+  async function fetchJson(url) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Fetching ${url} failed with HTTP ${response.status}.`);
+    return response.json();
+  }
 
   /**
    * Create the Mapbox map object and attach a custom logging function to it.
@@ -245,7 +255,7 @@ function createPSMap($, params) {
     }
 
     // From manual testing, it looks best to hide the loading spinner at this point.
-    $('#page-loading').hide();
+    document.getElementById('page-loading')?.style.setProperty('display', 'none');
 
     // Create a promise that resolves when the map has loaded.
     return new Promise((resolve) => {

@@ -312,7 +312,7 @@
               regionFillMode: 'completionRate',
               regionTooltip: 'completionRate'
             };
-            createPSMap($, choroplethParams).then(m => {
+            createPSMap(choroplethParams).then(m => {
               window.choropleth = m[0];
             });
 
@@ -326,7 +326,7 @@
               loadCities: true,
               logClicks: true
             };
-            createPSMap($, deploymentMapParams).then(m => {
+            createPSMap(deploymentMapParams).then(m => {
               window.deploymentMap = m[0];
             });
           });

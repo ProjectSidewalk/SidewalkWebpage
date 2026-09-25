@@ -198,8 +198,11 @@ function addCitiesToMap(map, citiesData, params) {
 
     // Logging functionality.
     if (params.logClicks) {
-      $(`#${params.mapName}`).on('click', '.city-selection-trigger', function () {
-        const activity = `Click_module=${params.mapName}_cityId=${$(this).attr('cityId')}`;
+      // Delegated: popups are re-created as cities are clicked, so the listener lives on the map container.
+      document.getElementById(params.mapName).addEventListener('click', (event) => {
+        const trigger = /** @type {Element} */ (event.target).closest('.city-selection-trigger');
+        if (!trigger) return;
+        const activity = `Click_module=${params.mapName}_cityId=${trigger.getAttribute('cityId')}`;
         window.logWebpageActivity(activity);
       });
     }

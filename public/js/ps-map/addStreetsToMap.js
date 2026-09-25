@@ -116,8 +116,11 @@ function addStreetsToMap(map, streetData, params) {
     if (params.logClicks) {
       // Log to the webpage_activity table when a street is selected from the map and 'Click here' is clicked.
       // Logs look like 'Click_module=<mapName>_streetId=<streetId>_audited=<bool>_outdated=<bool>_target=explore'.
-      $(`#${params.mapName}`).on('click', '.street-selection-trigger', function () {
-        const streetId = parseInt($(this).attr('streetId'), 10);
+      // Delegated: popups are re-created as streets are clicked, so the listener lives on the map container.
+      document.getElementById(params.mapName).addEventListener('click', (event) => {
+        const trigger = /** @type {Element} */ (event.target).closest('.street-selection-trigger');
+        if (!trigger) return;
+        const streetId = parseInt(trigger.getAttribute('streetId'), 10);
         const street = streetData.features.find((s) => streetId === s.properties.street_edge_id);
         const activity = `Click_module=${params.mapName}_streetId=${streetId}`
           + `_audited=${street.properties.audited}_outdated=${street.properties.outdated}_target=explore`;

@@ -3,8 +3,8 @@
  *
  * The feed is streamed from the database under a chunked 200 (#3932), so the status and headers are committed
  * before the rows are read. A mid-flight failure therefore arrives as a *truncated body under a success status* —
- * `response.ok` cannot see it, and the JSON parse is what throws. jQuery surfaces that as a bare "parsererror"
- * indistinguishable from a malformed payload, which is why this reports the two cases separately.
+ * `response.ok` cannot see it, and the JSON parse is what throws. A plain JSON parse error would look identical to
+ * a malformed payload, which is why this reports the two cases separately.
  *
  * @param {string|URL} url - The label feed endpoint.
  * @param {object} [options]

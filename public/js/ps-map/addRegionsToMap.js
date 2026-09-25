@@ -235,8 +235,11 @@ function addRegionsToMap(map, regionGeoJSON, completionRates, params) {
       //           _needsReaudit=<bool>_target=audit' (one string; wrapped here for line length).
       // needsReaudit says whether the region had streets flagged for re-audit (#4384) when clicked, so re-audit CTA
       // clicks can be distinguished from first-audit ones.
-      $(`#${params.mapName}`).on('click', '.region-selection-trigger', function () {
-        const regionId = parseInt($(this).attr('regionId'), 10);
+      // Delegated: popups are re-created as regions are clicked, so the listener lives on the map container.
+      document.getElementById(params.mapName).addEventListener('click', (event) => {
+        const trigger = /** @type {Element} */ (event.target).closest('.region-selection-trigger');
+        if (!trigger) return;
+        const regionId = parseInt(trigger.getAttribute('regionId'), 10);
         const region = regionGeoJSON.features.find((x) => {
           return regionId === x.properties.region_id;
         });

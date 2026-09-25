@@ -158,7 +158,7 @@ class SharedLabelPage {
 
     let map;
     try {
-      const rendered = await createPSMap($, {
+      const rendered = await createPSMap({
         mapName: 'spotlight-map',
         mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
         mapboxApiKey: d.mapboxApiKey,
