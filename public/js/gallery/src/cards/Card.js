@@ -446,6 +446,11 @@ class Card {
     this.#card.classList.toggle('gallery-card--deleted', deleted);
   }
 
+  /** @param {Array<Record<string, any>|string>} comments - What the expanded view opens with. */
+  updateComments(comments) {
+    this.#properties.comments = comments;
+  }
+
   /**
    * Applies a type change made in the expanded view (#3671). The card stays even if the new type no longer matches
    * the Gallery's filter; the next load sorts that out.

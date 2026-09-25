@@ -1322,7 +1322,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
              at.low_quality,
              at.incomplete,
              at.stale,
-             comment.comments,
+             label_comments_agg.comments,
              lp.lat,
              lp.lng,
              pano_data.lat AS camera_lat,
@@ -1372,23 +1372,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           INNER JOIN user_role ON label_validation.user_id = user_role.user_id
           WHERE user_role.role = 'AI'
       ) AS ai_val ON lb1.label_id = ai_val.label_id AND ai_val.label_type = lb1.label_type
-      LEFT JOIN (
-          SELECT validation_task_comment.label_id,
-                 json_agg(json_build_object('username', sidewalk_user.username,
-                                            'comment', validation_task_comment.comment,
-                                            'time_created', validation_task_comment.timestamp,
-                                            'validation', label_validation.validation_result)
-                          ORDER BY validation_task_comment.timestamp)::text AS comments
-          FROM validation_task_comment
-          INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
-          -- Only comments on the label's current type, as in label_comments_agg.
-          INNER JOIN label AS commented_label ON validation_task_comment.label_id = commented_label.label_id
-              AND validation_task_comment.label_type = commented_label.label_type
-          LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
-              AND validation_task_comment.user_id = label_validation.user_id
-              AND label_validation.label_type = validation_task_comment.label_type
-          GROUP BY validation_task_comment.label_id
-       ) AS comment ON lb1.label_id = comment.label_id
+      LEFT JOIN label_comments_agg ON lb1.label_id = label_comments_agg.label_id
       WHERE """
       .concat(labelFilter)
       .concat(sql"""

@@ -78,7 +78,6 @@ class ValidationTaskCommentTable @Inject() (
 
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
   val users                  = TableQuery[SidewalkUserTableDef]
-  val labels                 = TableQuery[LabelTableDef]
 
   def insert(comment: ValidationTaskComment): DBIO[Int] = {
     (validationTaskComments returning validationTaskComments.map(_.validationTaskCommentId)) += comment
@@ -123,12 +122,11 @@ class ValidationTaskCommentTable @Inject() (
   }
 
   /**
-   * Take last n comments from any Validate page, skipping those about a type the label no longer has.
+   * Take last n comments from any Validate page.
    */
   def getRecentValidateComments(n: Int): DBIO[Seq[GenericComment]] = {
     (for {
       (c, u) <- validationTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-      if labels.filter(l => l.labelId === c.labelId && l.labelType === c.labelType).exists
     } yield ("validation", u.username, c.panoId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId))
       .take(n)
       .result
