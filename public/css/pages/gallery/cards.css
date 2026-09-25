@@ -1,7 +1,4 @@
 .gallery-card {
-  /* One source for the selected-vote fill, which the hover and coarse-pointer rules below both paint with. */
-  --validation-button-selected-bg: var(--color-neutral-600);
-
   position: relative;
   padding: 0;
   border-radius: 20px;
@@ -121,7 +118,7 @@ with respect to the image holder. This allows the validation menu to be placed o
   .image-holder .pano-attribution { transition: none; }
 }
 
-#gallery-validation-button-holder {
+.gallery-validation-button-holder {
   display: flex;
   flex-flow: row wrap;
   justify-content: center;
@@ -130,26 +127,6 @@ with respect to the image holder. This allows the validation menu to be placed o
   width: 100%;
   height: 14%;
   z-index: 2;
-}
-
-#gallery-card-agree-button {
-  width: 33%;
-  border-right: 1px solid #dcdbdb;
-  background-color: var(--color-pine-500);
-  color: var(--color-asphalt-500);
-}
-
-#gallery-card-disagree-button {
-  width: 34%;
-  background-color: #eb734d;
-  color: var(--color-asphalt-500);
-}
-
-#gallery-card-unsure-button {
-  border-left: 1px solid #dcdbdb;
-  width: 33%;
-  background-color: var(--color-asphalt-100);
-  color: var(--color-asphalt-500);
 }
 
 .card-header {
@@ -402,6 +379,26 @@ with respect to the image holder. This allows the validation menu to be placed o
   transition: opacity 120ms ease;
 }
 
+.gallery-card-agree-button {
+  width: 33%;
+  border-right: 1px solid #dcdbdb;
+  background-color: var(--color-pine-500);
+  color: var(--color-asphalt-500);
+}
+
+.gallery-card-disagree-button {
+  width: 34%;
+  background-color: #eb734d;
+  color: var(--color-asphalt-500);
+}
+
+.gallery-card-unsure-button {
+  border-left: 1px solid #dcdbdb;
+  width: 33%;
+  background-color: var(--color-asphalt-100);
+  color: var(--color-asphalt-500);
+}
+
 .gallery-card:hover .validation-button {
   opacity: 0.75;
 }
@@ -412,14 +409,12 @@ with respect to the image holder. This allows the validation menu to be placed o
 
 .gallery-card:hover .validation-button-selected {
   opacity: 1;
-  background-color: var(--validation-button-selected-bg);
 }
 
 /* Read-only mode: the card shows the viewer's own label, so validating isn't allowed. The UI stays in place but
    appears disabled, matching the Gallery expanded view / LabelMap popup. */
-.gallery-card--readonly #gallery-card-agree-button,
-.gallery-card--readonly #gallery-card-disagree-button,
-.gallery-card--readonly #gallery-card-unsure-button {
+.gallery-card--readonly .validation-button,
+.gallery-card--readonly .validation-button-selected {
   background-color: #E2E2E2;
   color: rgb(0 0 0 / 40%);
   cursor: default;
@@ -449,7 +444,6 @@ with respect to the image holder. This allows the validation menu to be placed o
 
   .validation-button-selected {
     opacity: 1;
-    background-color: var(--validation-button-selected-bg);
   }
 }
 
@@ -472,7 +466,7 @@ with respect to the image holder. This allows the validation menu to be placed o
   opacity: 0.4;
 }
 
-#current-severity {
+.current-severity {
   border: 2px solid var(--color-asphalt-500);
   background-color: var(--color-asphalt-500);
   color: var(--color-asphalt-500);

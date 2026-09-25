@@ -47,7 +47,7 @@ class SeverityDisplay {
         severityCircle.classList.add('no-severity-circle');
       } else if (i <= severity) {
         // Fill in a number of circles from the left equal to the severity.
-        severityCircle.id = 'current-severity';
+        severityCircle.classList.add('current-severity');
       }
       this.#circles.push(severityCircle);
     }
