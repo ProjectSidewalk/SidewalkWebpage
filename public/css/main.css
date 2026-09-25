@@ -2242,21 +2242,6 @@ kbd {
   display: none !important;
 }
 
-/* Permalink styling and behavior. */
-.permalink-anchor {
-  scroll-margin-top: calc(var(--navbar-height) + 15px);
-}
-
-.permalink-icon {
-  height: 18px;
-  opacity: 0;
-  transition: opacity 200ms ease-in-out;
-}
-
-.permalink-anchor:hover .permalink-icon {
-  opacity: 1;
-}
-
 .ai-icon-marker {
   position: absolute;
   width: calc(14px * var(--ui-scale, 1));

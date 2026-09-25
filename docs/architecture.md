@@ -438,8 +438,8 @@ tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom fac
 shadows, motion, and z-index layers — plus the component primitives `.button-ps`, `.ps-input`, `.ps-select`, and
 `.ps-table`. They mirror the "Design System Tokens" Figma; the rules for using them are in
 [`style-guide.md`](style-guide.md). One coupling worth knowing: **`css/components/page-shell.css` is the shell
-(`.page-*` classes) that the API docs, the admin dashboard, and the user dashboard all build on** for the sidebar +
-content + TOC layout and the base type, so a change there reaches all three; `css/pages/api-docs/api-docs.css` holds only
+(`.page-*` classes) that the API docs, the admin dashboard, the user dashboard, and the labeling guide all build on**
+for the sidebar + content + TOC layout and the base type, so a change there reaches all four; `css/pages/api-docs/api-docs.css` holds only
 the docs' own components (`.preview-*`, `.map-toolbar`, status messages).
 
 **Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that

@@ -1,130 +1,36 @@
-/* Guide content: body copy, figures, and the label-example images. */
-.help .maincontent {
-  padding-left: 40px;
+/* Labeling guide pages. The layout itself comes from components/page-shell.css. */
+
+/* Question headings are full sentences, so they get a smaller size than the shell's section headings. */
+.page-content h2.page-heading {
+  font: var(--text-title-bold);
 }
 
-figure figcaption {
-  padding-top: 10px;
-  font-style: italic;
+/* A row of example images that wraps onto more rows as the content column narrows. */
+.guide-figures {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-lg);
+  align-items: start;
+  margin-bottom: var(--space-md);
 }
 
-.help img {
-  box-shadow: 0 1px 1px rgb(0 0 0 / 5%);
-  border-radius: var(--border-radius);
+.guide-figures figure {
+  margin: 0;
+  text-align: center;
 }
 
-.help .help-item {
-  margin-bottom: 10px;
-}
-
-.help .help-item h2 {
-  margin-bottom: 20px;
-}
-
-/* The sticky question panel on the left. Its position and scrolling classes are toggled by
-   common/labelingGuidePanelResize.js. */
-.scrollable {
-  height: 500px;
-  overflow-y: scroll;
-}
-
-.not-scrollable {
+.guide-figures img {
+  display: block;
+  max-width: 100%;
   height: auto;
-  overflow-y: hidden;
+  margin: 0 auto;
+  border-radius: var(--border-radius);
+  cursor: zoom-in;
 }
 
-.sidebar {
-  position: fixed;
-  z-index: 1;
-}
-
-.stuck-sidebar {
-  position: absolute;
-  z-index: 1;
-}
-
-.not-sidebar {
-  position: static;
-}
-
-#help-panel .panel-body {
-  padding: 0;
-}
-
-.help ul#questions-list {
-  padding: 0;
-  list-style-type: none;
-  margin: 0;
-}
-
-.help ul#questions-list li {
-  padding: 10px;
-  border-bottom: 1px solid var(--color-neutral-200);
-}
-
-.help ul#questions-list #subtopics li {
-  padding-left: 40px;
-}
-
-#subtopics {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 0.2s ease-out;
-  padding: 0 !important;
-  border: none !important;
-}
-
-#subtopics-list {
-  padding: 0;
-  list-style-type: none;
-  margin: 0;
-}
-
-.img-container img {
-  height: 213px;
-  margin: auto;
-}
-
-.img-container-3 img {
-  height: 150px;
-  margin: auto;
-}
-
-#img-container1 img {
-  height: 150px;
-  margin: auto;
-}
-
-.col-md-4 {
-  padding-bottom: 20px;
-}
-
-.col-md-6 {
-  padding-bottom: 20px;
-}
-
-#img-grid {
-  display: inline-block;
-}
-
-.img-responsive, .plusminus {
-  cursor: pointer;
-}
-
-.plusminus {
-  float:right;
-  font-size: 18px;
-}
-
-.help-item {
-  padding-bottom: 25px;
-}
-
-/* Center a block (.img-responsive) image within its figure. */
-.guide-img-centered {
-  margin: auto;
-}
-
-.guide-figure-spaced {
-  padding-bottom: 20px;
+.guide-figures figcaption {
+  font: var(--text-small-regular);
+  font-style: italic;
+  color: var(--color-neutral-700);
+  padding-top: var(--space-xs);
 }
