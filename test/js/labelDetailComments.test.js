@@ -5,8 +5,9 @@
  * dispute, Agree invites an optional note — and a vote that moves takes its comment with it, because the server
  * deletes the comment on a cleared or changed vote and the list has to say so without a reload.
  *
- * A comment is also unique per (label, user): validation_task_comment_label_id_user_id_unique, added by evolution
- * 359 for #4942, which `ValidationService.replaceComment` enforces by deleting before inserting. So the card
+ * A comment is also unique per (label, user, type): validation_task_comment_label_id_user_id_label_type_key (409.sql,
+ * #5510), which `ValidationService.replaceComment` enforces by deleting before inserting. The card only ever sees the
+ * current type's comments, so to it there is one per (label, user). So the card
  * mirrors what a story of your own already does (`StorySection`): once yours exists the compose box closes and the
  * comment carries Edit/Delete instead, which is what keeps a second submission from silently destroying the first.
  * Cancel and Escape are the two ways out that keep the box from being a one-way door.

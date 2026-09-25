@@ -205,7 +205,12 @@ class ValidationServiceImpl @Inject() (
    */
   def replaceComment(comment: ValidationTaskComment): Future[Int] = runWithUniqueViolationRetry {
     (for {
-      _         <- validationTaskCommentTable.archive(comment.labelId, comment.userId, ValidationCommentChangeType.Edit)
+      _ <- validationTaskCommentTable.archive(
+        comment.labelId,
+        comment.userId,
+        comment.labelType,
+        ValidationCommentChangeType.Edit
+      )
       commentId <- validationTaskCommentTable.insert(comment)
     } yield commentId).transactionally
   }
@@ -219,10 +224,17 @@ class ValidationServiceImpl @Inject() (
    * The text leaves every read path in the tool but is kept in `validation_task_comment_history`, marked a
    * deliberate delete rather than a side effect (#5076).
    *
+   * Only the current type's comment goes, since that's the only one the card shows.
+   *
    * @return Count of comments deleted, 0 or 1.
    */
-  def deleteComment(labelId: Int, userId: String): Future[Int] =
-    db.run(validationTaskCommentTable.archive(labelId, userId, ValidationCommentChangeType.Delete))
+  def deleteComment(labelId: Int, userId: String): Future[Int] = db.run {
+    labelsUnfiltered.filter(_.labelId === labelId).map(_.labelType).result.headOption.flatMap {
+      _.fold[DBIO[Int]](DBIO.successful(0)) { labelType =>
+        validationTaskCommentTable.archive(labelId, userId, labelType, ValidationCommentChangeType.Delete)
+      }
+    }
+  }
 
   /**
    * Submits a set of validations from a POST request on Validate.
@@ -315,7 +327,7 @@ class ValidationServiceImpl @Inject() (
                 case None         => DBIO.successful(false)
               }
 
-              // Comments are keyed by (label, user), one apiece (#4942), so only clear one when this submission
+              // Comments are keyed by (label, user, type), like votes, so only clear one when this submission
               // accounts for it: an undo/redo retracts the comment that came with the vote, and a submission carrying
               // its own replaces it. A repeat validation carrying none leaves the user's earlier text alone.
               val oldCommentRemoved =
@@ -326,7 +338,8 @@ class ValidationServiceImpl @Inject() (
                   val changeType =
                     if (valSubmission.comment.isDefined && !valSubmission.undone) ValidationCommentChangeType.Edit
                     else ValidationCommentChangeType.ValidationChange
-                  validationTaskCommentTable.archive(validation.labelId, validation.userId, changeType)
+                  validationTaskCommentTable
+                    .archive(validation.labelId, validation.userId, validation.labelType, changeType)
                 } else DBIO.successful(0)
 
               // If the validation is new or is an update for an undone label, save it.
@@ -341,10 +354,11 @@ class ValidationServiceImpl @Inject() (
                         valSubmission.severity, valSubmission.tags, validation.source, Some(newValId))
                     } else DBIO.successful(None)
                   }
-                  // Insert the comment if there is one.
+                  // Filed under the vote's type, which is the new one after a type change.
                   _ <- valSubmission.comment match {
-                    case Some(comment) => validationTaskCommentTable.insert(comment)
-                    case None          => DBIO.successful(0)
+                    case Some(comment) =>
+                      validationTaskCommentTable.insert(comment.copy(labelType = validation.labelType))
+                    case None => DBIO.successful(0)
                   }
                 } yield newValId
               } else DBIO.successful(0)
