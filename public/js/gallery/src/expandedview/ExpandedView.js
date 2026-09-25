@@ -196,7 +196,7 @@ class ExpandedView {
    * @param {{label_id: number, comments: Array<Record<string, any>|string>}} meta - The label's metadata.
    */
   #handleComments = (meta) => {
-    sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id)?.updateComments(meta.comments);
+    sg.cardContainer.findCardByLabelId(meta.label_id)?.updateComments(meta.comments);
   };
 
   /**
@@ -206,7 +206,7 @@ class ExpandedView {
    *     label's metadata as it now stands.
    */
   #handleDelete = (meta) => {
-    const card = sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id);
+    const card = sg.cardContainer.findCardByLabelId(meta.label_id);
     if (!card) return;
     card.setDeleted(!!meta.deleted, !!meta.can_restore);
     card.updateUserValidation(meta.user_validation ?? null);
@@ -351,7 +351,7 @@ class ExpandedView {
     } else {
       this.cardIndex += 1;
       this.pendingCardIndex = this.cardIndex;
-      sg.ui.cardContainer.nextPage.click();
+      sg.cardContainer.nextPage();
     }
   }
 
@@ -367,7 +367,7 @@ class ExpandedView {
     } else {
       this.cardIndex -= 1;
       this.pendingCardIndex = this.cardIndex;
-      sg.ui.cardContainer.prevPage.click();
+      sg.cardContainer.prevPage();
     }
   }
 

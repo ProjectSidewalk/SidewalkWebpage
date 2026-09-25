@@ -114,44 +114,51 @@ class CardContainer {
     const initialFilters = this.#initialFilters;
 
     // Bind click actions to the forward/backward paging buttons.
-    if (uiCardContainer) {
-      uiCardContainer.nextPage.addEventListener('click', this.#handleNextPageClick);
-      uiCardContainer.prevPage.addEventListener('click', this.#handlePrevPageClick);
-    }
+    // The buttons log a *Click event on top of the page turn itself, which the expanded view also triggers.
+    uiCardContainer.nextPage.addEventListener('click', () => {
+      this.nextPage();
+      sg.tracker?.push('NextPageClick', null, null);
+    });
+    uiCardContainer.prevPage.addEventListener('click', () => {
+      if (this.#currentPage <= 1) return;
+      this.prevPage();
+      sg.tracker?.push('PrevPageClick', null, null);
+    });
 
     this.#pageNumberDisplay = document.createElement('h2');
     this.#pageNumberDisplay.innerText = '1';
     uiCardContainer.pageNumber.append(this.#pageNumberDisplay);
     sg.ui.pageControl.style.display = 'none';
     sg.cardFilter.disable();
-    sg.ui.cardContainer.prevPage.disabled = true;
+    uiCardContainer.prevPage.disabled = true;
 
     // Grab first batch of labels to show.
     if (this.#listMode) {
       // The server already applied the only selection there is (the id list) and returned it in order, so the cards
       // go straight into the bucket — #collectCurrentCards would re-apply the sidebar's filters and regroup by type,
       // which is exactly the ordering the list exists to avoid.
-      this.fetchLabels([], this.#listLabelIds.length, [], [], undefined, undefined, undefined, undefined,
-        this.#listLabelIds, (newCards, unavailableLabelIds) => {
-          // A failed request is not an empty list: rendering zero cards would show the filtered gallery's "No
-          // matches, start exploring" copy and a "Showing 0 labels" count, telling a reviewer their queue is empty
-          // when the server never answered. Say so instead, and leave the server-rendered count standing.
-          if (newCards === null) {
-            CardContainer.#showListError();
-            sg.pageLoading.style.display = 'none';
-            // render() is never reached on this path, so the handover happens here instead: it releases the
-            // filters and hands the view an empty page, where a ?labelId= still opens the label by id.
-            this.#pageHasCards = false;
-            this.#notifyExpandedViewRendered();
-            return;
-          }
-          this.#currentCards = new CardBucket(newCards);
-          this.#lastPage = this.#currentCards.getSize() <= this.#currentPage * this.getCardsPerPage();
-          CardContainer.#renderListCount(this.#currentCards.getSize());
-          CardContainer.#renderListTruncated();
-          CardContainer.#renderUnavailableIds(unavailableLabelIds);
-          this.render();
-        });
+      this.fetchLabels(
+        [], this.#listLabelIds.length, [], [], undefined, undefined, undefined, undefined, this.#listLabelIds,
+      ).then((result) => {
+        // A failed request is not an empty list: rendering zero cards would show the filtered gallery's "No
+        // matches, start exploring" copy and a "Showing 0 labels" count, telling a reviewer their queue is empty
+        // when the server never answered. Say so instead, and leave the server-rendered count standing.
+        if (result === null) {
+          CardContainer.#showListError();
+          sg.pageLoading.style.display = 'none';
+          // render() is never reached on this path, so the handover happens here instead: it releases the
+          // filters and hands the view an empty page, where a ?labelId= still opens the label by id.
+          this.#pageHasCards = false;
+          this.#notifyExpandedViewRendered();
+          return;
+        }
+        this.#currentCards = new CardBucket(result.newCards);
+        this.#lastPage = this.#currentCards.getSize() <= this.#currentPage * this.getCardsPerPage();
+        CardContainer.#renderListCount(this.#currentCards.getSize());
+        CardContainer.#renderListTruncated();
+        CardContainer.#renderUnavailableIds(result.unavailableLabelIds);
+        this.render();
+      });
     } else {
       const filters = this.#currentFilters();
       this.fetchLabels(
@@ -164,12 +171,11 @@ class CardContainer {
         filters.tagsByType,
         initialFilters.aiValidationOptions,
         undefined,
-        () => {
-          this.#currentCards = this.#collectCurrentCards(filters);
-          this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * this.getCardsPerPage();
-          this.render();
-        },
-      );
+      ).then(() => {
+        this.#currentCards = this.#collectCurrentCards(filters);
+        this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * this.getCardsPerPage();
+        this.render();
+      });
     }
     // Creates the ExpandedView object in the DOM element currently present.
     sg.panoStore = new PanoStore();
@@ -181,10 +187,9 @@ class CardContainer {
     if (this.#expandedViewHooksDeferred) this.#notifyExpandedViewRendered();
     // Add the click event for opening the ExpandedView when a card is clicked.
     const cardClickSelector = '.static-gallery-image, .additional-count, .ai-icon-marker-card';
-    sg.ui.cardContainer.holder.addEventListener('click', (event) => {
+    uiCardContainer.holder.addEventListener('click', (event) => {
       const target = event.target.closest(cardClickSelector);
       if (!target) return;
-      sg.ui.expandedView.container.style.visibility = 'visible';
       // If the user clicks on the image body in the card, just use the provided id.
       // If they click the AI icon, use the image id from the same card.
       // Otherwise, the user will have clicked on an existing "+n" icon on the card, meaning we need to acquire
@@ -202,6 +207,7 @@ class CardContainer {
       }
       if (!cardId) return;
       // Sets/Updates the label being displayed in the expanded view.
+      sg.ui.expandedView.container.style.visibility = 'visible';
       this.#expandedView.updateCardIndex(this.#findCardIndex(cardId));
     });
 
@@ -240,50 +246,42 @@ class CardContainer {
     return this.#currentCards.getCardByIndex(index);
   }
 
-  #handleNextPageClick = (e) => {
-    // True for a real click; false when ExpandedView pages by calling the button's .click().
-    const fromUser = e.isTrusted;
-
-    // Main assigns sg.tracker after CardContainer.create() resolves, so a click that beats that is untracked
+  /**
+   * Turns to the next page. Also called by the expanded view when stepping past the page's last label.
+   */
+  nextPage() {
+    // Main assigns sg.tracker after CardContainer.create() resolves, so a turn that beats that is untracked
     // rather than fatal.
     sg.tracker?.push('NextPage', null, {
       from: this.#currentPage,
       to: this.#currentPage + 1,
     });
-
-    if (fromUser) {
-      sg.tracker?.push('NextPageClick', null, null);
-    }
-
     this.#setPage(this.#currentPage + 1);
-    sg.ui.cardContainer.prevPage.disabled = false;
     this.updateCardsNewPage();
-  };
+  }
 
-  #handlePrevPageClick = (e) => {
-    if (this.#currentPage > 1) {
-      // True for a real click; false when ExpandedView pages by calling the button's .click().
-      const fromUser = e.isTrusted;
+  /**
+   * Turns to the previous page, if there is one. Also called by the expanded view when stepping back past the
+   * page's first label.
+   */
+  prevPage() {
+    if (this.#currentPage <= 1) return;
+    sg.tracker?.push('PrevPage', null, {
+      from: this.#currentPage,
+      to: this.#currentPage - 1,
+    });
+    this.#uiCardContainer.nextPage.disabled = false;
+    this.#setPage(this.#currentPage - 1);
+    this.updateCardsNewPage();
+  }
 
-      sg.tracker?.push('PrevPage', null, {
-        from: this.#currentPage,
-        to: this.#currentPage - 1,
-      });
-
-      if (fromUser) {
-        sg.tracker?.push('PrevPageClick', null, null);
-      }
-
-      sg.ui.cardContainer.nextPage.disabled = false;
-      this.#setPage(this.#currentPage - 1);
-      this.updateCardsNewPage();
-    }
-  };
-
+  /**
+   * Records the page number and keeps the Prev button in step with it. Next is settled in render(), which is where
+   * the last page becomes known.
+   * @param {number} pageNumber
+   */
   #setPage(pageNumber) {
-    if (pageNumber <= 1) {
-      sg.ui.cardContainer.prevPage.disabled = true;
-    }
+    this.#uiCardContainer.prevPage.disabled = pageNumber <= 1;
     this.#currentPage = pageNumber;
     this.#pageNumberDisplay.innerText = pageNumber;
   }
@@ -301,13 +299,14 @@ class CardContainer {
    * @param {string[]|undefined} aiValidationOptions - AI validation options: correct, incorrect, and/or unvalidated.
    * @param {number[]|undefined} labelIds - A review list (#5444). When non-empty the server ignores every filter
    *      above and returns exactly these labels in this order.
-   * @param {(cards: (Card[]|null), unavailableLabelIds: (number[]|undefined)) => void} [callback] - Called when
-   *      labels arrive, given the new cards in the order the server returned them and, for a review list, the
-   *      requested ids the server could not serve. Called with `null` when the request failed.
+   * @returns {Promise<?{newCards: Card[], unavailableLabelIds: (number[]|undefined)}>} The new cards in the order
+   *     the server returned them and, for a review list, the requested ids it could not serve. Resolves to `null`
+   *     when the request failed, rather than an empty list, so a caller that must not read a failure as "there
+   *     were none" can tell the two apart.
    */
   async fetchLabels(
     labelTypes, n, validationOptions, loadedLabels, regionIds, severities, tagsByLabelType, aiValidationOptions,
-    labelIds, callback,
+    labelIds,
   ) {
     const url = '/label/labels';
     const data = {
@@ -330,26 +329,18 @@ class CardContainer {
       });
       if (!res.ok) throw new Error(`${url} responded ${res.status}`);
       response = await res.json();
+      if (!Array.isArray(response?.labelsOfType)) throw new Error(`${url} returned no labels`);
     } catch (err) {
-      // Still run the callback on failure: it is what releases the sidebar's loading state, so skipping it leaves
-      // the filters greyed and unusable for the rest of the page's life. `null` rather than an empty array, so a
-      // caller that must not read a failure as "there were none" can tell the two apart.
       console.error(err);
-      if (callback) callback(null, undefined);
-      return;
+      return null;
     }
-    if ('labelsOfType' in response) {
-      const labels = response.labelsOfType;
-      const newCards = [];
-      for (let i = 0; i < labels.length; i++) {
-        const labelProp = labels[i];
-        const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.cropMarker);
-        this.push(card);
-        newCards.push(card);
-        this.#loadedLabelIds.add(card.getLabelId());
-      }
-      if (callback) callback(newCards, response.unavailableLabelIds);
-    }
+    const newCards = response.labelsOfType.map((labelProp) => {
+      const card = new Card(labelProp.label, labelProp.cropUrl, labelProp.gsvImageUrl, labelProp.cropMarker);
+      this.push(card);
+      this.#loadedLabelIds.add(card.getLabelId());
+      return card;
+    });
+    return { newCards, unavailableLabelIds: response.unavailableLabelIds };
   }
 
   /**
@@ -364,6 +355,19 @@ class CardContainer {
    */
   getCurrentCards() {
     return this.#currentCards;
+  }
+
+  /**
+   * Finds a loaded card by its label id, whichever type bucket it sits in.
+   * @param {number} labelId
+   * @returns {?Card} The card, or null when that label was never loaded.
+   */
+  findCardByLabelId(labelId) {
+    for (const bucket of Object.values(this.#cardsByType)) {
+      const card = bucket.getCards().find((c) => c.getLabelId() === labelId);
+      if (card) return card;
+    }
+    return null;
   }
 
   /**
@@ -452,12 +456,11 @@ class CardContainer {
         filters.tagsByType,
         this.#initialFilters.aiValidationOptions,
         undefined,
-        () => {
-          this.#currentCards = this.#collectCurrentCards(filters);
-          this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * this.getCardsPerPage();
-          this.render();
-        },
-      );
+      ).then(() => {
+        this.#currentCards = this.#collectCurrentCards(filters);
+        this.#lastPage = this.#currentCards.getCards().length <= this.#currentPage * this.getCardsPerPage();
+        this.render();
+      });
     } else {
       this.#lastPage = false;
       this.render();
@@ -489,14 +492,14 @@ class CardContainer {
   render() {
     const uiCardContainer = this.#uiCardContainer;
     // TODO: should we try to just empty in render method? Or assume it's was emptied in a method utilizing render?
-    this.#clearCardContainer(uiCardContainer.holder);
+    uiCardContainer.holder.replaceChildren();
 
     const imagesToLoad = this.getCurrentPageCards();
     const imagePromises = imagesToLoad.map((img) => img.loadImage());
     this.#pageHasCards = imagesToLoad.length > 0;
 
     if (imagesToLoad.length > 0) {
-      sg.ui.cardContainer.nextPage.disabled = this.#lastPage;
+      uiCardContainer.nextPage.disabled = this.#lastPage;
 
       // We wait for all the promises from grabbing pano images to resolve before showing cards.
       Promise.all(imagePromises).then(() => {
@@ -550,7 +553,7 @@ class CardContainer {
     // Close expanded views (if open) and empty cards from current page. The view is absent until the opening query
     // and the viewer build have both finished (see #notifyExpandedViewRendered).
     this.#expandedView?.closeExpandedView();
-    this.#clearCardContainer(this.#uiCardContainer.holder);
+    this.#uiCardContainer.holder.replaceChildren();
 
     // Place user back at top of page.
     window.scrollTo(0, 0);
@@ -569,14 +572,6 @@ class CardContainer {
    */
   clearCurrentCards() {
     this.#currentCards = new CardBucket();
-  }
-
-  /**
-   * Clear Cards from UI.
-   * @param {HTMLElement} cardContainer - UI element to clear Cards from.
-   */
-  #clearCardContainer(cardContainer) {
-    cardContainer.replaceChildren();
   }
 
   getCurrentPage() {

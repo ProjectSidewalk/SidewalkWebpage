@@ -74,9 +74,8 @@ class TagDisplay {
       // estimate of the header: the holder is the flex item that takes whatever the header leaves, so it already
       // accounts for the header's padding in every locale, however wide that locale writes "Tags".
       //
-      // Every pill is read as its border box plus margins, which puts the padding, border and margins a pill costs
-      // the row into the one number the fit spends — a computed `width` carries a different box depending on
-      // box-sizing. The holder is read the other way round, as the content box its pills can actually occupy.
+      // A pill's width is the full space it takes up in the row: its text plus its padding, border and margins. The
+      // holder's width is the opposite: only the space inside it that pills can actually fill.
       const widthOf = (el) => {
         const style = getComputedStyle(el);
         return el.getBoundingClientRect().width + parseFloat(style.marginLeft) + parseFloat(style.marginRight);
