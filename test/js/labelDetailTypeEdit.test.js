@@ -213,7 +213,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
       resolvePano: (shown) => resolvePano(shown),
       activeViewerName: 'Default',
       panoViewer: { currPanoData: null },
-      svHolder: [document.createElement('div')],
+      svHolder: document.createElement('div'),
     };
     window.PopupPanoManager = { create: async () => panoManager };
     // The tag catalog for the tag editor, and the label itself for the vote-count refresh after a type change.

@@ -14,20 +14,23 @@ function updateSidebarForWindowSize() {
   const scrollbarWidth = 15;
   const panel = document.getElementById('help-panel');
   if (w < smallWindowWidth) {
-    $('#help-panel').addClass('not-sidebar').removeClass('sidebar').removeClass('stuck-sidebar');
-    $('#help-panel').addClass('not-scrollable').removeClass('scrollable');
+    panel.classList.add('not-sidebar', 'not-scrollable');
+    panel.classList.remove('sidebar', 'stuck-sidebar', 'scrollable');
     panel.style.width = 'auto';
   } else {
-    const changedToFixed = $('#help-panel').hasClass('not-sidebar');
-    $('#help-panel').addClass('sidebar').removeClass('not-sidebar').removeClass('stuck-sidebar');
+    const changedToFixed = panel.classList.contains('not-sidebar');
+    panel.classList.add('sidebar');
+    panel.classList.remove('not-sidebar', 'stuck-sidebar');
     panel.style.width = w < mediumWindowWidth ? `${smallPanelWidth}px` : `${mediumPanelWidth}px`;
     updateSidebarForScrollState();
     if (changedToFixed) {
       if (panel.offsetHeight >= expandedPanelHeight) {
-        $('#help-panel').addClass('scrollable').removeClass('not-scrollable');
+        panel.classList.add('scrollable');
+        panel.classList.remove('not-scrollable');
         panel.style.width = `${panel.offsetWidth + scrollbarWidth}px`;
       } else {
-        $('#help-panel').addClass('not-scrollable').removeClass('scrollable');
+        panel.classList.add('not-scrollable');
+        panel.classList.remove('scrollable');
       }
     }
   }
@@ -43,12 +46,13 @@ function updateSidebarForScrollState() {
     const footerHeight = document.getElementById('footer-container').offsetHeight;
     const infoFooterHeight = document.getElementById('info-footer').offsetHeight;
     const panel = document.getElementById('help-panel');
-    if (!$('#help-panel').hasClass('not-sidebar')) {
+    if (!panel.classList.contains('not-sidebar')) {
       const panelRect = panel.getBoundingClientRect();
       const yOffset = document.body.clientHeight - footerHeight - infoFooterHeight - panelRect.height
         - panelDistanceFromTop;
       if (window.pageYOffset > yOffset) {
-        $('#help-panel').addClass('stuck-sidebar').removeClass('sidebar').removeClass('not-sidebar');
+        panel.classList.add('stuck-sidebar');
+        panel.classList.remove('sidebar', 'not-sidebar');
 
         // yOffset is a document-space y, but `top` on the now-absolute panel resolves against its offset parent's
         // padding box (the Bootstrap column, which is position: relative), so it has to be rebased or the panel
@@ -59,7 +63,8 @@ function updateSidebarForScrollState() {
         panel.style.top = `${yOffset - columnTop}px`;
       } else if (window.pageYOffset < yOffset) {
         panel.style.top = `${panelDistanceFromTop}px`;
-        $('#help-panel').addClass('sidebar').removeClass('stuck-sidebar').removeClass('not-sidebar');
+        panel.classList.add('sidebar');
+        panel.classList.remove('stuck-sidebar', 'not-sidebar');
       }
     }
   }
@@ -68,6 +73,4 @@ function updateSidebarForScrollState() {
 window.addEventListener('resize', updateSidebarForWindowSize);
 window.addEventListener('scroll', updateSidebarForScrollState);
 
-$(document).ready(() => {
-  updateSidebarForWindowSize();
-});
+util.onDomReady(updateSidebarForWindowSize);

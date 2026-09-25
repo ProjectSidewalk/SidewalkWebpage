@@ -479,12 +479,16 @@ util.monthYear = function (iso, { short = false } = {}) {
     .toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
 };
 
-// A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
-// real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.
+/**
+ * Where a mouse event landed, relative to the element. The UI scales through real layout sizes (var(--ui-scale)), so
+ * the element's on-screen box already reflects it.
+ * @param {MouseEvent} e
+ * @param {Element|EventTarget} dom - Usually the event's currentTarget.
+ * @returns {{x: number, y: number}} Whole pixels.
+ */
 function mousePosition(e, dom) {
-  const mx = e.pageX - $(dom).offset().left;
-  const my = e.pageY - $(dom).offset().top;
-  return { x: Math.trunc(mx), y: Math.trunc(my) };
+  const rect = /** @type {Element} */ (dom).getBoundingClientRect();
+  return { x: Math.trunc(e.clientX - rect.left), y: Math.trunc(e.clientY - rect.top) };
 }
 
 util.mousePosition = mousePosition;
@@ -642,6 +646,18 @@ function afterLoadIdle(fn) {
 }
 
 util.afterLoadIdle = afterLoadIdle;
+
+/**
+ * Runs fn once the HTML has been parsed, or right away if it already has been (when a plain DOMContentLoaded listener
+ * would never fire).
+ * @param {() => void} fn
+ */
+function onDomReady(fn) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
+  else fn();
+}
+
+util.onDomReady = onDomReady;
 
 // Any of these means a human is present. pointermove is the earliest of them by a wide margin — a single mouse
 // twitch — which is the point: the gate has to clear long before the visitor could scroll to the deferred content.

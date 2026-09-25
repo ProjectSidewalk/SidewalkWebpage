@@ -7,7 +7,7 @@
  * (the centre, unless the window shifted off a pole). The label payload carries that as `cropMarker`; these pin that
  * the fallback marker follows it when present and the canvas fraction otherwise.
  *
- * Like the other PopupPanoManager tests, the source is eval'd into jsdom with jQuery, since it is a top-level class
+ * Like the other PopupPanoManager tests, the source is eval'd into jsdom, since it is a top-level class
  * written for Grunt concatenation. The fallback is reached by declaring the imagery expired (no live attempt) with
  * no self-hosted copy (no Pannellum attempt), which is the popup's path for an old label whose pano Google has
  * dropped.
@@ -18,7 +18,6 @@ const path = require('path');
 const { installUtilitiesMisc } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const JQUERY_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8');
 const MANAGER_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/label-detail/PopupPanoManager.js'), 'utf8');
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
@@ -66,7 +65,7 @@ describe('PopupPanoManager fallback marker', () => {
         window.fetch = jest.fn(() => Promise.resolve({ ok: false }));
         jest.spyOn(console, 'error').mockImplementation(() => {});
 
-        window.eval(`${JQUERY_SRC}\n${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
+        window.eval(`${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
         PopupPanoManager = window.PopupPanoManager;
     });
 

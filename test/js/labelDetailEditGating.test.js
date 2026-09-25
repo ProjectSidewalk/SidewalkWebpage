@@ -299,7 +299,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             setPano: jest.fn(() => setPano.promise),
             activeViewerName: 'Default',
             panoViewer: { currPanoData: null, getViewerType: () => 'gsv' },
-            svHolder: [document.createElement('div')],
+            svHolder: document.createElement('div'),
         };
         window.PopupPanoManager = { create: async () => panoManager };
 

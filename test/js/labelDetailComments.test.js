@@ -294,7 +294,9 @@ describe('the validator comment box (#5015)', () => {
             getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
             getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
             // A jQuery object in the real card: indexable, and asked for its size when a vote is submitted.
-            svHolder: Object.assign([document.createElement('div')], { width: () => 720, height: () => 480 }),
+            svHolder: Object.assign(document.createElement('div'), {
+                getBoundingClientRect: () => ({ width: 720, height: 480, top: 0, left: 0, right: 720, bottom: 480 }),
+            }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
         window.PopupPanoManager = { create: async () => panoManager };

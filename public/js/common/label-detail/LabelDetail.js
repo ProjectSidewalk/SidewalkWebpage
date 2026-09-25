@@ -1133,8 +1133,7 @@ class LabelDetail {
   #submitValidation(action, source, undone = false, viaKeyboard = false) {
     const isNewValidation = !undone && !this.#prevAction;
     const validationTimestamp = new Date();
-    const canvasWidth = this.panoManager.svHolder.width();
-    const canvasHeight = this.panoManager.svHolder.height();
+    const { width: canvasWidth, height: canvasHeight } = this.panoManager.svHolder.getBoundingClientRect();
     const panoMarkerPov = this.panoManager.getOriginalPosition();
     // Where the validator was looking. On the static-crop fallback that's the label's stored POV — what the crop is
     // a screenshot of — rather than whatever the idle pano viewer happens to report (#4711). canvas_x/canvas_y are
@@ -1202,7 +1201,7 @@ class LabelDetail {
       this.#updateCommentRow();
       if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared', 'removed');
       this.#setVoteButtonsDisabled(false);
-      if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
+      if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder);
       if (typeof this.#onVote === 'function') this.#onVote(newAction, this.#currentLabelMeta);
     }).catch((err) => {
       console.error(err);

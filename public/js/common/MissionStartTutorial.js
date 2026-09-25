@@ -117,6 +117,9 @@ class MissionStartTutorial {
    */
   static EXAMPLE_PHOTO = { width: 658, height: 436 };
 
+  // The one overlay is shared by every instance, so its handlers are too; see #attachEventHandlers.
+  static #handlers = null;
+
   /**
    * The example slides that teach one label type, translated and ready to render.
    *
@@ -230,52 +233,41 @@ class MissionStartTutorial {
     const renderLocationIndicators = () => {
       // We should clear existing indicators before rendering.
       // Explore mission screens allow re-rendering of the slides for different labels.
-      $('.mst-carousel-location-indicator:not(.template)').remove();
+      for (const el of document.querySelectorAll('.mst-carousel-location-indicator:not(.template)')) el.remove();
 
-      const $missionCarouselIndicatorArea = $('.mst-carousel-location-indicator-area');
+      const indicatorArea = document.querySelector('.mst-carousel-location-indicator-area');
+      const template = document.querySelector('.mst-carousel-location-indicator.template');
       for (let i = 0; i < this.#nSlides; i++) {
-        const $indicator = $('.mst-carousel-location-indicator.template').clone().removeClass('template');
-        $indicator.attr('data-idx', i);
-        $missionCarouselIndicatorArea.append($indicator);
+        const indicator = /** @type {HTMLElement} */ (template.cloneNode(true));
+        indicator.classList.remove('template');
+        indicator.dataset.idx = String(i);
+        indicatorArea.append(indicator);
       }
     };
 
     // Explore mission screens have HTML in strings.
-    $('.mst-instruction-1').html(this.#labelTypeModule.missionInstruction1);
-    $('.mst-instruction-2').html(this.#labelTypeModule.missionInstruction2);
+    document.querySelector('.mst-instruction-1').innerHTML = this.#labelTypeModule.missionInstruction1;
+    document.querySelector('.mst-instruction-2').innerHTML = this.#labelTypeModule.missionInstruction2;
 
-    $('.mission-start-tutorial-done-btn').text(i18next.t(this.#data.resuming
+    document.querySelector('.mission-start-tutorial-done-btn').textContent = i18next.t(this.#data.resuming
       ? 'common:mission-start-tutorial.resume-mission'
-      : 'common:mission-start-tutorial.start-mission'));
+      : 'common:mission-start-tutorial.start-mission');
 
     // Show the tab bar to allow selection of different labels in explore mission screens.
     // And set up other UI.
     if (this.#missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE) {
-      $('.explore-mission-start-tab.label[data-label-type="CurbRamp"]')
-        .find('.explore-mission-start-tab-text').html(i18next.t('common:curb-ramp'));
-      $('.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]')
-        .find('.explore-mission-start-tab-text').html(i18next.t('common:no-curb-ramp'));
-      $('.explore-mission-start-tab.label[data-label-type="Obstacle"]')
-        .find('.explore-mission-start-tab-text').html(i18next.t('common:obstacle'));
-      $('.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]')
-        .find('.explore-mission-start-tab-text').html(i18next.t('common:surface-problem'));
-      $('.explore-mission-start-tab.label[data-label-type="NoSidewalk"]')
-        .find('.explore-mission-start-tab-text').html(i18next.t('common:no-sidewalk'));
-      $('.explore-mission-start-tab.label[data-label-type="Crosswalk"]')
-        .find('.explore-mission-start-tab-text').html(i18next.t('common:crosswalk'));
-      $('.explore-mission-start-tab.label[data-label-type="Signal"]')
-        .find('.explore-mission-start-tab-text').html(i18next.t('common:signal'));
-
-      $('.explore-mission-start-tab-bar').removeClass('ps-hidden');
-
-      $('.explore-mission-start-tab.label').removeClass('active');
-      $(`.explore-mission-start-tab.label[data-label-type="${this.#labelType}"]`).addClass('active');
+      for (const tab of document.querySelectorAll('.explore-mission-start-tab.label')) {
+        const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[tab.dataset.labelType];
+        tab.querySelector('.explore-mission-start-tab-text').innerHTML = i18next.t(lesson.nameKey);
+        tab.classList.toggle('active', tab.dataset.labelType === this.#labelType);
+      }
+      document.querySelector('.explore-mission-start-tab-bar').classList.remove('ps-hidden');
     }
 
     renderLocationIndicators();
     this.#renderSlide(this.#currentSlideIdx);
 
-    $('.mission-start-tutorial-overlay').css('display', 'flex');
+    document.querySelector('.mission-start-tutorial-overlay').style.display = 'flex';
   }
 
   /**
@@ -285,110 +277,115 @@ class MissionStartTutorial {
    * @param {number} idx - Index of the slide to be rendered.
    */
   #renderSlide(idx) {
-    const $mstSlide = $('.mst-slide');
-    const $labelTypeSubtitle = $('.label-type-subtitle');
-    const $mstSlideImage = $('.msts-image');
-    const $labelOnImage = $('.label-on-image');
-    const $mstDoneButton = $('.mission-start-tutorial-done-btn');
-    const $labelOnImageDescription = $('.label-on-image-description');
+    const mstSlide = document.querySelector('.mst-slide');
+    const labelTypeSubtitle = document.querySelector('.label-type-subtitle');
+    const mstSlideImage = /** @type {HTMLImageElement} */ (document.querySelector('.msts-image'));
+    const labelOnImage = document.querySelector('.label-on-image');
+    const mstDoneButton = document.querySelector('.mission-start-tutorial-done-btn');
+    const labelOnImageDescription = document.querySelector('.label-on-image-description');
+    const prevButton = document.querySelector('.previous-slide-button');
+    const nextButton = document.querySelector('.next-slide-button');
 
     /**
      * Renders the 'on-image label' and positions it.
      * @param {{left: string, top: string}} position - Position of the on-image label as top and left attributes in px.
      * @param {string} labelOnImageTitle - Title to be shown on the label.
-     * @param {string} labelOnImageDescription - Description to be shown on the label.
+     * @param {string} labelOnImageDescriptionText - Description to be shown on the label.
      */
-    const renderLabelOnImage = (position, labelOnImageTitle, labelOnImageDescription) => {
-      $labelOnImage.css({
-        top: `calc(${position.top} * var(--ui-scale))`,
-        left: `calc(${position.left} * var(--ui-scale))`,
-      });
-      $('.label-on-image-type-title', $labelOnImage).html(labelOnImageTitle);
-      $('.label-on-image-description', $labelOnImage).html(labelOnImageDescription);
+    const renderLabelOnImage = (position, labelOnImageTitle, labelOnImageDescriptionText) => {
+      labelOnImage.style.top = `calc(${position.top} * var(--ui-scale))`;
+      labelOnImage.style.left = `calc(${position.left} * var(--ui-scale))`;
+      labelOnImage.querySelector('.label-on-image-type-title').innerHTML = labelOnImageTitle;
+      labelOnImageDescription.innerHTML = labelOnImageDescriptionText;
 
-      $labelOnImage.show();
+      labelOnImage.style.display = 'block'; // Its stylesheet hides it, so clearing the inline value wouldn't show it.
     };
 
     // Change spacing for the descriptions for different languages based on how verbose they are.
     if (this.#language === 'de') {
-      $labelOnImageDescription[0].style.transform = `translateY(${-16}%)`;
+      labelOnImageDescription.style.transform = `translateY(${-16}%)`;
     } else if (this.#language === 'nl') {
-      $labelOnImage[0].style.maxWidth = 'calc(230px * var(--ui-scale))';
+      labelOnImage.style.maxWidth = 'calc(230px * var(--ui-scale))';
     }
 
     // Reset the UI first.
-    $('.mst-carousel-location-indicator').removeClass('current-location');
-    $mstSlide.removeClass(MissionStartTutorial.#EXAMPLE_TYPES.CORRECT)
-      .removeClass(MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT);
-    $mstSlideImage.attr('src', '');
-    $labelTypeSubtitle.text('');
-    $('.previous-slide-button, .next-slide-button').removeClass('disabled');
-    $labelOnImage.hide();
-    $mstDoneButton.removeClass('focus');
+    for (const el of document.querySelectorAll('.mst-carousel-location-indicator')) {
+      el.classList.remove('current-location');
+    }
+    mstSlide.classList.remove(...Object.values(MissionStartTutorial.#EXAMPLE_TYPES));
+    mstSlideImage.src = '';
+    labelTypeSubtitle.textContent = '';
+    prevButton.classList.remove('disabled');
+    nextButton.classList.remove('disabled');
+    labelOnImage.style.display = 'none';
+    mstDoneButton.classList.remove('focus');
 
     const slide = this.#labelTypeModule.slides[idx];
 
     // The slide's correct/incorrect class also picks both smileys, in mission-start-tutorial.css.
     let exampleTypeLabel;
     let labelOnImageTitle;
-    let labelOnImageDescription;
+    let labelOnImageDescriptionText;
     if (slide.isExampleCorrect) {
-      $mstSlide.addClass(MissionStartTutorial.#EXAMPLE_TYPES.CORRECT);
+      mstSlide.classList.add(MissionStartTutorial.#EXAMPLE_TYPES.CORRECT);
       exampleTypeLabel = i18next.t('common:mission-start-tutorial.example-type-label-correct');
 
       labelOnImageTitle = i18next.t('common:mission-start-tutorial.label-on-image-title-correct');
-      labelOnImageDescription = i18next.t(
+      labelOnImageDescriptionText = i18next.t(
         `${this.#messagesPrefix}:mission-start-tutorial.label-on-image-description-correct`,
       );
     } else {
-      $mstSlide.addClass(MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT);
+      mstSlide.classList.add(MissionStartTutorial.#EXAMPLE_TYPES.INCORRECT);
       exampleTypeLabel = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.example-type-label-incorrect`);
 
       labelOnImageTitle = i18next.t(`${this.#messagesPrefix}:mission-start-tutorial.label-on-image-title-incorrect`);
-      labelOnImageDescription = i18next.t(
+      labelOnImageDescriptionText = i18next.t(
         `${this.#messagesPrefix}:mission-start-tutorial.label-on-image-description-incorrect`,
       );
     }
 
     // Now that the variables have been initiated, let's set them for the UI.
-    $('.example-type-label').text(exampleTypeLabel);
+    document.querySelector('.example-type-label').textContent = exampleTypeLabel;
 
     // Note: we should set this as HTML as some strings may contain HTML tags.
-    $('.label-type-title').html(slide.slideTitle);
-    $('.label-type-description').html(slide.slideDescription);
+    document.querySelector('.label-type-title').innerHTML = slide.slideTitle;
+    document.querySelector('.label-type-description').innerHTML = slide.slideDescription;
 
     if (slide.slideSubtitle) {  // Not all slides may contain a subtitle.
-      $labelTypeSubtitle.html(slide.slideSubtitle);
+      labelTypeSubtitle.innerHTML = slide.slideSubtitle;
     }
 
-    $mstSlideImage.attr('src', slide.imageURL);
+    mstSlideImage.src = slide.imageURL;
 
-    $(`.mst-carousel-location-indicator[data-idx=${idx}]`).addClass('current-location');
+    document.querySelector(`.mst-carousel-location-indicator[data-idx="${idx}"]`).classList.add('current-location');
 
     if (slide.labelOnImage) { // Just a defensive check.
-      renderLabelOnImage(slide.labelOnImage.position, labelOnImageTitle, labelOnImageDescription);
+      renderLabelOnImage(slide.labelOnImage.position, labelOnImageTitle, labelOnImageDescriptionText);
     }
 
     // Disable the previous/next buttons based on the current slide idx
     if (idx === 0) {
-      $('.previous-slide-button').addClass('disabled');
+      prevButton.classList.add('disabled');
     } else if (idx === this.#nSlides - 1) {
       // We want users to explore other label types after they finish one in 'Explore Mission Screens'.
       // So we don't want to draw attention to the start button.
       if (this.#missionType === MissionStartTutorial.#MISSION_TYPES.VALIDATE) {
-        $mstDoneButton.addClass('focus');
+        mstDoneButton.classList.add('focus');
       }
 
-      $('.next-slide-button').addClass('disabled');
+      nextButton.classList.add('disabled');
     }
   }
 
   /**
-   * Attaches the event handlers required for the mission screen labelTypeModule.
-   * Note: we need to remove existing handlers first as this function may be called multiple times
-   * (explore mission screens).
+   * Attaches the event handlers required for the mission screen labelTypeModule. Explore rebuilds the tutorial on
+   * every tab switch, so the previous instance's handlers are dropped first or each click would fire once per build.
    */
   #attachEventHandlers() {
+    MissionStartTutorial.#handlers?.abort();
+    MissionStartTutorial.#handlers = new AbortController();
+    const { signal } = MissionStartTutorial.#handlers;
+
     // Hides the mission start tutorial, initializes the relevant svvOrsvl variables, and logs the interaction.
     const hideMST = () => {
       if (this.#svvOrsvl.zoomControl && this.#svvOrsvl.zoomControl.updateZoomAvailability) {
@@ -396,9 +393,11 @@ class MissionStartTutorial {
       }
       if (this.#svvOrsvl.keyboard && this.#svvOrsvl.keyboard.enableKeyboard) this.#svvOrsvl.keyboard.enableKeyboard();
 
-      $('.mission-start-tutorial-overlay').fadeOut(100);
-      $('.explore-mission-start-tab-bar').fadeOut(100, function () {
-        $(this).css('display', '').addClass('ps-hidden');
+      MissionStartTutorial.#fadeOut(document.querySelector('.mission-start-tutorial-overlay'), (el) => {
+        el.style.display = 'none';
+      });
+      MissionStartTutorial.#fadeOut(document.querySelector('.explore-mission-start-tab-bar'), (el) => {
+        el.classList.add('ps-hidden');
       });
 
       // Anything that wants to speak to the user at the start of a mission has to wait for this overlay to clear,
@@ -426,25 +425,44 @@ class MissionStartTutorial {
       }
     };
 
-    $('.previous-slide-button').off().click(() => {
+    document.querySelector('.previous-slide-button').addEventListener('click', () => {
       this.#currentSlideIdx = Math.max(this.#currentSlideIdx - 1, 0);
       this.#renderSlide(this.#currentSlideIdx);
       this.#svvOrsvl.tracker.push('PreviousSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
-    });
+    }, { signal });
 
-    $('.next-slide-button').off().click(() => {
+    document.querySelector('.next-slide-button').addEventListener('click', () => {
       this.#currentSlideIdx = Math.min(this.#currentSlideIdx + 1, this.#nSlides - 1);
       this.#renderSlide(this.#currentSlideIdx);
       this.#svvOrsvl.tracker.push('NextSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
-    });
+    }, { signal });
 
     // Event handler to allow selecting between different label types
-    $('.explore-mission-start-tab.label').off().click((e) => {
-      const labelType = $(e.currentTarget).attr('data-label-type');
-      // A tab switch only changes which label type is taught, so everything describing the mission has to survive it.
-      new MissionStartTutorial('audit', labelType, this.#data, svl, this.#language);
-    });
+    for (const tab of document.querySelectorAll('.explore-mission-start-tab.label')) {
+      tab.addEventListener('click', () => {
+        // A tab switch only changes which label type is taught, so everything describing the mission has to survive it.
+        new MissionStartTutorial('audit', tab.dataset.labelType, this.#data, svl, this.#language);
+      }, { signal });
+    }
 
-    $('.mission-start-tutorial-done-btn').off().click(hideMST);
+    document.querySelector('.mission-start-tutorial-done-btn').addEventListener('click', hideMST, { signal });
+  }
+
+  /**
+   * @param {HTMLElement} el
+   * @param {(el: HTMLElement) => void} hide - Runs once the fade has finished.
+   */
+  static #fadeOut(el, hide) {
+    // jsdom has no Web Animations API.
+    if (typeof el.animate !== 'function') {
+      hide(el);
+      return;
+    }
+    const fade = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, fill: 'forwards' });
+    fade.finished.then(() => {
+      hide(el);
+      // Otherwise the fill holds opacity 0 when the next mission shows the element again.
+      fade.cancel();
+    });
   }
 }

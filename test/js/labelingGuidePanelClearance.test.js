@@ -40,7 +40,7 @@ const FOOTER_TOP = BODY_HEIGHT - INFO_FOOTER_HEIGHT - FOOTER_HEIGHT;
 const COLUMN_TOP_NO_BANNER = 58;
 const COLUMN_TOP_WITH_BANNER = 109;
 
-/** Renders the guide's column/panel plus the footer bands, and loads jQuery and the subject over them. */
+/** Renders the guide's column/panel plus the footer bands, and loads the subject over them. */
 function setupDom() {
     document.body.innerHTML = `
         <div class="container help">
@@ -57,10 +57,8 @@ function setupDom() {
         </footer>
     `;
 
-    // The subject drives its class changes through jQuery, and runs updateSidebarForWindowSize() on load, so the real
-    // vendored jQuery has to be in place before it is evaluated.
-    window.eval(SRC('public/vendor/jquery/jquery-1.12.2.min.js'));
-    global.$ = window.$;
+    // The subject runs updateSidebarForWindowSize() on DOM-ready, which under jsdom has already happened.
+    window.util = { onDomReady: (fn) => fn() };
     window.eval(`${SRC('public/js/common/labelingGuidePanelResize.js')}
         window.updateSidebarForScrollState = updateSidebarForScrollState;`);
     global.updateSidebarForScrollState = window.updateSidebarForScrollState;

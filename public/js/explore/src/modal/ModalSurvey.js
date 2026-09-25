@@ -41,7 +41,7 @@ class ModalSurvey {
   // Re-enables panorama interactions once the survey modal is closed. Any close that isn't the submit is a skip,
   // whichever way it happened, so the skip is logged here rather than on the X.
   #handleHideSurvey = () => {
-    if (!this.#submitted) window.logWebpageActivity('SurveySkip', true);
+    if (!this.#submitted) window.logWebpageActivity('SurveySkip');
     svl.popUpMessage.enableInteractions();
     svl.ribbon.enableModeSwitch();
     svl.zoomControl.enableZoomIn();
