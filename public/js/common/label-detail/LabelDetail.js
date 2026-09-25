@@ -503,6 +503,9 @@ class LabelDetail {
     for (const action of Object.keys(els.panoOverlayButtons)) {
       els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, this.#panoOverlaySource));
       els.voteButtons[action].addEventListener('click', voteHandler(action, this.#voteColumnSource));
+      els.panoOverlayButtons[action].addEventListener('mouseleave', (e) => {
+        e.currentTarget.classList.remove('is-just-voted');
+      });
 
       // Hover preview of what clicking would do: the filled icon variant for a vote, and — on the option already
       // voted — the outline variant, previewing the vote being cleared.
@@ -1188,6 +1191,9 @@ class LabelDetail {
       if (undone) this.#logAction(`ClearVote_result=${action}`, viaKeyboard);
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
+      // Show the vote's result until the mouse leaves, rather than instantly previewing an undo.
+      const overlayButton = this.#els.panoOverlayButtons[action];
+      if (overlayButton?.matches(':hover')) overlayButton.classList.add('is-just-voted');
       // Only for a vote cast from the keyboard: a pointer already has the button it pressed as feedback, and a
       // vote being *cleared* is the opposite of what a rising icon says.
       if (viaKeyboard && !undone) this.#flashVoteEcho(action);
@@ -1434,7 +1440,7 @@ class LabelDetail {
     // never voted on, which is the one thing an affordance that reports a vote must never say.
     for (const ghost of this.#root.querySelectorAll('.label-detail__vote-pop')) ghost.remove();
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
-      btn.classList.remove('is-selected');
+      btn.classList.remove('is-selected', 'is-just-voted');
       btn.setAttribute('aria-pressed', 'false');
       if (!this.#interactionBlocked) btn.disabled = false;
     }
