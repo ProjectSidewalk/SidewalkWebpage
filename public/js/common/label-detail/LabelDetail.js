@@ -1127,7 +1127,7 @@ class LabelDetail {
   #submitValidation(action, source, undone = false, viaKeyboard = false) {
     const isNewValidation = !undone && !this.#prevAction;
     const validationTimestamp = new Date();
-    // Whole pixels: the backend reads canvas_width/canvas_height as integers and rejects a fraction.
+    // Whole pixels; the backend rejects a fraction.
     const canvasWidth = this.panoManager.svHolder.clientWidth;
     const canvasHeight = this.panoManager.svHolder.clientHeight;
     const panoMarkerPov = this.panoManager.getOriginalPosition();

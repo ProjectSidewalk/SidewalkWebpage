@@ -117,7 +117,7 @@ class MissionStartTutorial {
    */
   static EXAMPLE_PHOTO = { width: 658, height: 436 };
 
-  // The one overlay is shared by every instance, so its handlers are too; see #attachEventHandlers.
+  // Every instance shares the one overlay, so they share its handlers too.
   static #handlers = null;
 
   /**
@@ -267,7 +267,7 @@ class MissionStartTutorial {
     renderLocationIndicators();
     this.#renderSlide(this.#currentSlideIdx);
 
-    // A fade-out still running from the previous mission would hide the overlay again when it finished.
+    // A fade-out still running from the last mission would hide the overlay again when it finished.
     const overlay = document.querySelector('.mission-start-tutorial-overlay');
     for (const el of [overlay, document.querySelector('.explore-mission-start-tab-bar')]) {
       for (const animation of el.getAnimations?.() ?? []) animation.cancel();
@@ -383,8 +383,8 @@ class MissionStartTutorial {
   }
 
   /**
-   * Attaches the event handlers required for the mission screen labelTypeModule. Explore rebuilds the tutorial on
-   * every tab switch, so the previous instance's handlers are dropped first or each click would fire once per build.
+   * Attaches the event handlers. Explore rebuilds the tutorial on every tab switch, so the last instance's handlers
+   * are dropped first or each click would fire once per build.
    */
   #attachEventHandlers() {
     MissionStartTutorial.#handlers?.abort();
@@ -467,7 +467,7 @@ class MissionStartTutorial {
     const fade = el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 100, fill: 'forwards' });
     fade.addEventListener('finish', () => {
       hide(el);
-      // Otherwise the fill holds opacity 0 when the next mission shows the element again.
+      // Or the fill would keep it invisible when the next mission shows it.
       fade.cancel();
     });
   }

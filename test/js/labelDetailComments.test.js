@@ -294,7 +294,7 @@ describe('the validator comment box (#5015)', () => {
             },
             getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
             getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
-            // Asked for its size when a vote is submitted; jsdom lays nothing out, so the size is pinned here.
+            // Measured when a vote is submitted; jsdom lays nothing out.
             svHolder: Object.defineProperties(document.createElement('div'), {
                 clientWidth: { value: 720 }, clientHeight: { value: 480 },
             }),

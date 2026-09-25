@@ -57,7 +57,7 @@ function setupDom() {
         </footer>
     `;
 
-    // The subject runs updateSidebarForWindowSize() on DOM-ready, which under jsdom has already happened.
+    // The subject runs updateSidebarForWindowSize() on DOM-ready, already past under jsdom.
     window.util = { onDomReady: (fn) => fn() };
     window.eval(`${SRC('public/js/common/labelingGuidePanelResize.js')}
         window.updateSidebarForScrollState = updateSidebarForScrollState;`);

@@ -481,11 +481,10 @@ util.monthYear = function (iso, { short = false } = {}) {
 };
 
 /**
- * Where a mouse event landed, relative to the element. The UI scales through real layout sizes (var(--ui-scale)), so
- * the element's on-screen box already reflects it.
+ * Where a mouse event landed, in whole pixels from the element's top-left corner.
  * @param {MouseEvent} e
  * @param {Element|EventTarget} dom - Usually the event's currentTarget.
- * @returns {{x: number, y: number}} Whole pixels.
+ * @returns {{x: number, y: number}}
  */
 function mousePosition(e, dom) {
   const rect = /** @type {Element} */ (dom).getBoundingClientRect();
@@ -649,8 +648,7 @@ function afterLoadIdle(fn) {
 util.afterLoadIdle = afterLoadIdle;
 
 /**
- * Runs fn once the HTML has been parsed, or right away if it already has been (when a plain DOMContentLoaded listener
- * would never fire).
+ * Runs fn once the page's HTML is parsed, or right away if it already is.
  * @param {() => void} fn
  */
 function onDomReady(fn) {

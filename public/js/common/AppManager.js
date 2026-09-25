@@ -103,7 +103,7 @@ class AppManager {
    * @private
    */
   _setupCSRF(csrfToken) {
-    // The apps still on jQuery's ajax get the token this way; it goes with the last of them (#4394).
+    // For the apps still on $.ajax; goes with the last of them (#4394).
     if (window.jQuery) {
       window.jQuery.ajaxSetup({
         headers: {

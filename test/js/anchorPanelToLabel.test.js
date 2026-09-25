@@ -23,7 +23,7 @@ const UTILITIES_SRC = fs.readFileSync(
 const PANO_LEFT = 100;
 const APP_RIGHT = 1136;
 
-/** A panel of a fixed size (jsdom lays nothing out), with `placed` reading back where the routine put it. */
+/** A panel of a fixed size (jsdom lays nothing out); `placed` reads back where it was put. */
 function makePanel(width, height) {
     const panel = document.createElement('div');
     Object.defineProperties(panel, {

@@ -140,8 +140,7 @@
         window.appManager.init(csrfToken, i18nextParams, globals);
       });
     </script>
-    @* jQuery registers its own DOM-ready listener as it loads, so it goes after the init script above: every page's
-       `$(fn)` then runs with the CSRF token and globals already in place. Goes with the last app on jQuery (#4394). *@
+    @* Loaded after the init script so every page's `$(fn)` runs after it. Goes with the last app on jQuery (#4394). *@
     <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
       <!-- Banner is only visible if user is on local/test server-->
     @if(commonData.environmentType != "prod") {
@@ -244,7 +243,7 @@
         //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
         // Column is 'Connect',
         //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
-        // Both footers are absent on the noFooter pages, hence the optional chaining.
+        // Pages with noFooter have neither footer.
         document.getElementById('footer-container')?.addEventListener('click', function(e) {
           const link = e.target.closest('a');
           if (!link) return;

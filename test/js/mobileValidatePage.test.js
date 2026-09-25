@@ -21,7 +21,7 @@ describe('mobile Validate page behavior', () => {
 
     /** Loads mobileValidate.js into jsdom with the globals it reaches for at load time. */
     function loadPage() {
-        // The DOM-ready handler is a no-op here; the subject is the document-level touchstart listener beside it.
+        // The DOM-ready handler is a no-op here; the subject is the touchstart listener beside it.
         const ready = [];
         window.util = { onDomReady: (fn) => ready.push(fn) };
         window.eval(MOBILE_VALIDATE_SRC);
