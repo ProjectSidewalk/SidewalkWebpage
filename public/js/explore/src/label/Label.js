@@ -392,7 +392,7 @@ class Label {
     svl.canvas.pointShareAtLabel(this);
 
     // The card and the context menu it opens into share one anchor so the panel expands roughly in place.
-    util.anchorPanelToLabel(ui.hoverCard, this.getCanvasXY(), svl.LABEL_ICON_RADIUS);
+    util.anchorPanelToLabel(ui.hoverCard[0], this.getCanvasXY(), svl.LABEL_ICON_RADIUS);
     ui.hoverCard.css('visibility', 'visible');
   }
 

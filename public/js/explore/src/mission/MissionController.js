@@ -178,7 +178,7 @@ class MissionController {
       fetch('/survey/display').then((response) => response.json()).then((data) => {
         if (data.displayModal) {
           svl.modalSurvey.open();
-          window.logWebpageActivity('SurveyShown', true);
+          window.logWebpageActivity('SurveyShown');
         }
       }).catch((error) => console.log(error));
     }

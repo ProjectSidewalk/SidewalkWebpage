@@ -23,18 +23,14 @@ const UTILITIES_SRC = fs.readFileSync(
 const PANO_LEFT = 100;
 const APP_RIGHT = 1136;
 
-/** A stand-in for the jQuery panel, recording what the routine sets on it. */
+/** A panel of a fixed size (jsdom lays nothing out); `placed` reads back where it was put. */
 function makePanel(width, height) {
-    const el = document.createElement('div');
-    const panel = {
-        0: el,
-        classes: {},
-        placed: null,
-        outerWidth: () => width,
-        outerHeight: () => height,
-        toggleClass: (name, on) => { panel.classes[name] = on; },
-        css: (props) => { panel.placed = props; },
-    };
+    const panel = document.createElement('div');
+    Object.defineProperties(panel, {
+        offsetWidth: { value: width },
+        offsetHeight: { value: height },
+        placed: { get: () => ({ left: parseFloat(panel.style.left), top: parseFloat(panel.style.top) }) },
+    });
     return panel;
 }
 
@@ -48,8 +44,8 @@ function makeRectEl(rect, id) {
 }
 
 /** The tail offset the routine wrote, in px. */
-const tailTop = (panel) => parseFloat(panel[0].style.getPropertyValue('--panel-tail-top'));
-const flipped = (panel) => panel.classes['label-anchored-panel--flipped'];
+const tailTop = (panel) => parseFloat(panel.style.getPropertyValue('--panel-tail-top'));
+const flipped = (panel) => panel.classList.contains('label-anchored-panel--flipped');
 
 describe('util.anchorPanelToLabel', () => {
     let util;

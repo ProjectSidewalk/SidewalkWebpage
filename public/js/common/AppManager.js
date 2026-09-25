@@ -103,12 +103,14 @@ class AppManager {
    * @private
    */
   _setupCSRF(csrfToken) {
-    // Set up CSRF token for all AJAX requests.
-    $.ajaxSetup({
-      headers: {
-        'Csrf-Token': csrfToken,
-      },
-    });
+    // For the apps still on $.ajax; goes with the last of them (#4394).
+    if (window.jQuery) {
+      window.jQuery.ajaxSetup({
+        headers: {
+          'Csrf-Token': csrfToken,
+        },
+      });
+    }
 
     // Set up CSRF token for fetch requests by overwriting the fetch function. The token is only attached to
     // same-origin requests: Play's CSRF filter only checks requests to our own server, and a token signed by this
@@ -271,19 +273,16 @@ class AppManager {
    * @private
    */
   _setupLogging() {
-    // NOTE We are setting async as false by default since this is primarily used before a redirect.
-    window.logWebpageActivity = function (activity, async = false) {
-      $.ajax({
-        async,
-        contentType: 'application/json; charset=utf-8',
-        url: '/userapi/logWebpageActivity',
+    // Mostly called right before a redirect; `keepalive` lets the request outlive the page.
+    window.logWebpageActivity = function (activity) {
+      fetch('/userapi/logWebpageActivity', {
         method: 'POST',
-        data: JSON.stringify(activity),
-        dataType: 'json',
-        error(result) {
-          console.error(result);
-        },
-      });
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(activity),
+      }).then((response) => {
+        if (!response.ok) console.error(`logWebpageActivity failed: ${response.status}`);
+      }).catch((err) => console.error(err));
     };
   }
 

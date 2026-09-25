@@ -189,7 +189,7 @@ util.sizeCanvasToDisplay = function (el, ctx) {
  * already positioned in on-screen pixels divides by the same `scale` before calling. The default `frameHeight` is
  * Explore's displayed pano height, measured (its aspect follows the window in immersive mode, #5085).
  *
- * @param {JQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
+ * @param {HTMLElement} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
  * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
  * @param {number} iconRadius - The label icon's radius, in that same logical frame.
  * @param {object} [opts] - Frame overrides. Omit them entirely for Explore, whose frame is the default.
@@ -209,8 +209,8 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
   const centerX = labelCanvasXY.x * scale;
   const centerY = labelCanvasXY.y * scale;
   const radius = iconRadius * scale;
-  const width = panel.outerWidth();
-  const height = panel.outerHeight();
+  const width = panel.offsetWidth;
+  const height = panel.offsetHeight;
   const panoHeight = opts.frameHeight
     ?? (document.getElementById('label-drawing-layer')?.getBoundingClientRect().height
       || util.EXPLORE_CANVAS_HEIGHT * scale);
@@ -238,9 +238,10 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
   const top = Math.min(Math.max(centerY - height / 2, EDGE), maxTop);
   const tailTop = Math.min(Math.max(centerY - top, TAIL_MARGIN), height - TAIL_MARGIN);
 
-  panel.toggleClass('label-anchored-panel--flipped', flipped);
-  panel[0].style.setProperty('--panel-tail-top', `${tailTop}px`);
-  panel.css({ left: Math.min(Math.max(left, minLeft), maxLeft), top });
+  panel.classList.toggle('label-anchored-panel--flipped', flipped);
+  panel.style.setProperty('--panel-tail-top', `${tailTop}px`);
+  panel.style.left = `${Math.min(Math.max(left, minLeft), maxLeft)}px`;
+  panel.style.top = `${top}px`;
 };
 
 /**
@@ -479,12 +480,15 @@ util.monthYear = function (iso, { short = false } = {}) {
     .toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
 };
 
-// A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
-// real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.
+/**
+ * Where a mouse event landed, in whole pixels from the element's top-left corner.
+ * @param {MouseEvent} e
+ * @param {Element|EventTarget} dom - Usually the event's currentTarget.
+ * @returns {{x: number, y: number}}
+ */
 function mousePosition(e, dom) {
-  const mx = e.pageX - $(dom).offset().left;
-  const my = e.pageY - $(dom).offset().top;
-  return { x: Math.trunc(mx), y: Math.trunc(my) };
+  const rect = /** @type {Element} */ (dom).getBoundingClientRect();
+  return { x: Math.trunc(e.clientX - rect.left), y: Math.trunc(e.clientY - rect.top) };
 }
 
 util.mousePosition = mousePosition;
@@ -642,6 +646,17 @@ function afterLoadIdle(fn) {
 }
 
 util.afterLoadIdle = afterLoadIdle;
+
+/**
+ * Runs fn once the page's HTML is parsed, or right away if it already is.
+ * @param {() => void} fn
+ */
+function onDomReady(fn) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
+  else fn();
+}
+
+util.onDomReady = onDomReady;
 
 // Any of these means a human is present. pointermove is the earliest of them by a wide margin — a single mouse
 // twitch — which is the point: the gate has to clear long before the visitor could scroll to the deferred content.

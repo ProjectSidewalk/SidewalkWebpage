@@ -62,14 +62,12 @@
     @common.seoHead(commonData, title, pageMeta)
     @* Per-page <head> injection point, e.g. Open Graph / Twitter Card meta for social sharing (#456). *@
     @extraHead
-    @* Deferred: i18next is only touched from AppManager's $(document).ready callback, which runs after deferred
-       scripts execute, so these don't need to block HTML parsing. *@
+    @* Deferred: i18next is only touched from AppManager's DOM-ready callback, which runs after deferred scripts
+       execute, so these don't need to block HTML parsing. *@
     <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")' defer></script>
     <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.6.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
     <link href='@assets.path("vendor/bootstrap/css/bootstrap-3.3.5.min.css")' rel='stylesheet'>
-
-    <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
 
     <script>
       (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
@@ -120,7 +118,7 @@
   <body class="@bodyClass">
     <script>
       // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
-      $(document).ready(function() {
+      util.onDomReady(function() {
         const csrfToken = "@CSRF.getToken.map(_.value)";
         const i18nextParams = {
           language: "@messages.lang.code",
@@ -142,6 +140,8 @@
         window.appManager.init(csrfToken, i18nextParams, globals);
       });
     </script>
+    @* Loaded after the init script so every page's `$(fn)` runs after it. Goes with the last app on jQuery (#4394). *@
+    <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
       <!-- Banner is only visible if user is on local/test server-->
     @if(commonData.environmentType != "prod") {
       <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
@@ -243,17 +243,18 @@
         //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
         // Column is 'Connect',
         //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
-        $('#footer-container').on('click', 'a', function(e){
+        // Pages with noFooter have neither footer.
+        document.getElementById('footer-container')?.addEventListener('click', function(e) {
+          const link = e.target.closest('a');
+          if (!link) return;
           const currentRoute = window.location.pathname;
-          const id = e.currentTarget.id.split('-');
-          const column = id[0];
-          const link = id[1];
+          const [column, target] = link.id.split('-');
 
           let activity = 'Click_module=Footer_section=' + column + '_';
           if (column === 'sidewalk' || column === 'developer') {
-            activity = activity + 'target=' + link;
+            activity = activity + 'target=' + target;
           } else {
-            activity = activity + 'platform=' + link;
+            activity = activity + 'platform=' + target;
           }
           activity = activity + '_route=' + currentRoute;
 
@@ -262,17 +263,19 @@
 
         // Log clicks on links in the information footer to WebpageActivityTable.
         // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/labelingGuide|...>"
-        $('#info-footer').on('click','a', function(e){
+        document.getElementById('info-footer')?.addEventListener('click', function(e) {
+          const link = e.target.closest('a');
+          if (!link) return;
           const currentRoute = window.location.pathname;
-          const link = e.currentTarget.id.split('-')[0];
-          const activity = 'Click_module=InfoFooter_' + 'target=' + link + '_route=' + currentRoute;
+          const target = link.id.split('-')[0];
+          const activity = 'Click_module=InfoFooter_' + 'target=' + target + '_route=' + currentRoute;
           window.logWebpageActivity(activity);
         });
       });
     </script>
 
     @* 37KB gz of parser-blocking script, and nothing reads `moment` at parse time — updateTimestamps defers its work
-       to $(document).ready. timestampLocalization.js stays blocking so the call below still resolves (#4486). *@
+       to DOM-ready. timestampLocalization.js stays blocking so the call below still resolves (#4486). *@
     <script src='@assets.path("vendor/moment/moment-2.31.0.js")' defer></script>
     @momentLocaleFile.map { localeFile =>
       <script src='@assets.path(localeFile)' defer></script>

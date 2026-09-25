@@ -643,7 +643,7 @@ class ContextMenu {
     // targetLabel is only set for label types that get a menu at all (Occlusion doesn't).
     if (this.#getStatus('targetLabel')) {
       this.#pointShareAtLabel(this.#getStatus('targetLabel'));
-      util.anchorPanelToLabel(this.#menuWindow, labelCoord, svl.LABEL_ICON_RADIUS);
+      util.anchorPanelToLabel(this.#menuWindow[0], labelCoord, svl.LABEL_ICON_RADIUS);
       this.#menuWindow.css('visibility', 'visible');
 
       // Fade the target label's icon (see Label.render). Not every caller renders after opening the panel, and the

@@ -39,7 +39,7 @@ class PanoOverlay {
 
   /**
    * A callback function that is fired with the mouse down event on the view control layer (when panning).
-   * @param {Event} e
+   * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseDown = (e) => {
     // The hide-label button lives inside the control layer, so its mousedown bubbles here. Bail before starting a pan
@@ -76,7 +76,7 @@ class PanoOverlay {
 
   /**
    * Callback function that is fired when a user moves a mouse on the view control layer where you change the pov.
-   * @param {Event} e
+   * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseMove = (e) => {
     this.#mouseStatus.currX = mousePosition(e, e.currentTarget).x;

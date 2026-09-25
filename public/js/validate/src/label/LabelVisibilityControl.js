@@ -190,7 +190,7 @@ class LabelVisibilityControl {
     const scale = parseFloat(getComputedStyle(this.#card[0]).getPropertyValue('--ui-scale')) || 1;
     const radius = marker.offsetWidth / 2;
     util.anchorPanelToLabel(
-      this.#card,
+      this.#card[0],
       { x: (marker.offsetLeft + radius) / scale, y: (marker.offsetTop + marker.offsetHeight / 2) / scale },
       radius / scale,
       { scale, originEl: layer, boundsEl: layer, frameHeight: layer.getBoundingClientRect().height },
