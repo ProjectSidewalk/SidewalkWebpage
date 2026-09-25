@@ -1,0 +1,43 @@
+@import models.user.SidewalkUserWithRole
+@import play.api.Configuration
+@import service.CommonPageData
+@(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole], activePage: String)(content: Html
+)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+
+@navItems = @{
+  Seq(
+    ("introduction", routes.ApplicationController.labelingGuide, "Introduction"),
+    ("curb-ramps", routes.ApplicationController.labelingGuideCurbRamps, "Curb Ramps"),
+    ("surface-problems", routes.ApplicationController.labelingGuideSurfaceProblems, "Surface Problems"),
+    ("obstacles", routes.ApplicationController.labelingGuideObstacles, "Obstacles"),
+    ("no-sidewalk", routes.ApplicationController.labelingGuideNoSidewalk, "No Sidewalk"),
+    ("occlusion", routes.ApplicationController.labelingGuideOcclusion, "Can't See the Sidewalk")
+  )
+}
+
+@common.main(commonData, title) {
+  @common.navbar(commonData, user)
+  <link rel="stylesheet" href='@assets.path("css/components/page-shell.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/image-lightbox.css")'>
+  <link rel="stylesheet" href='@assets.path("css/pages/labeling-guide.css")'>
+
+  <div class="page-container">
+    <div class="page-sidebar">
+      <nav class="page-nav" aria-label="@Messages("navbar.howto")">
+        <div class="page-nav-header">@Messages("navbar.howto")</div>
+        @for((key, url, label) <- navItems) {
+          <a href="@url" class="page-nav-item @if(key == activePage){active}"
+             aria-current="@if(key == activePage){page}else{false}">@label</a>
+        }
+      </nav>
+    </div>
+
+    <main class="page-content">
+      @content
+    </main>
+  </div>
+
+  <script src='@assets.path("js/common/sidebarDisclosure.js")'></script>
+  <script src='@assets.path("js/common/ImageLightbox.js")'></script>
+  <script src='@assets.path("js/common/labelingGuide.js")'></script>
+}
