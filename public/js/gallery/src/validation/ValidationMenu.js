@@ -29,11 +29,13 @@ class ValidationMenu {
     this.#refCard = referenceCard;
     this.#gsvImage = gsvImage;
 
+    const buttonHTML = (option) => `
+      <button class="validation-button gallery-card-${option}-button" aria-pressed="false">
+        ${i18next.t(`common:${option}`)}
+      </button>`;
     const cardOverlayHTML = `
-      <div id="gallery-validation-button-holder">
-        <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
-        <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
-        <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
+      <div class="gallery-validation-button-holder">
+        ${['agree', 'disagree', 'unsure'].map(buttonHTML).join('')}
       </div>`;
     const template = document.createElement('template');
     template.innerHTML = cardOverlayHTML;
@@ -49,13 +51,13 @@ class ValidationMenu {
   #init() {
     const refCard = this.#refCard;
     this.#validationButtons = {
-      'validate-agree': this.#overlay.querySelector('#gallery-card-agree-button'),
-      'validate-disagree': this.#overlay.querySelector('#gallery-card-disagree-button'),
-      'validate-unsure': this.#overlay.querySelector('#gallery-card-unsure-button'),
+      'validate-agree': this.#overlay.querySelector('.gallery-card-agree-button'),
+      'validate-disagree': this.#overlay.querySelector('.gallery-card-disagree-button'),
+      'validate-unsure': this.#overlay.querySelector('.gallery-card-unsure-button'),
     };
 
     // If the signed-in user had already validated this label before loading the page, style the card.
-    const userValidation = refCard ? refCard.getProperty('user_validation') : null;
+    const userValidation = refCard.getProperty('user_validation');
     if (userValidation) {
       this.showValidationOnCard(userValidation);
     }
@@ -145,7 +147,8 @@ class ValidationMenu {
 
     // Remove the visual effects from the older validation.
     if (this.#currSelected && this.#currSelected !== validationClass) {
-      this.#validationButtons[this.#currSelected].className = 'validation-button';
+      this.#validationButtons[this.#currSelected].classList.remove('is-selected');
+      this.#validationButtons[this.#currSelected].setAttribute('aria-pressed', 'false');
       this.#galleryCard.classList.remove(this.#currSelected);
     }
     this.#currSelected = validationClass;
@@ -153,7 +156,8 @@ class ValidationMenu {
     // Add the visual effects from the new validation.
     if (validationClass) {
       this.#galleryCard.classList.add(validationClass);
-      this.#validationButtons[validationClass].className = 'validation-button-selected';
+      this.#validationButtons[validationClass].classList.add('is-selected');
+      this.#validationButtons[validationClass].setAttribute('aria-pressed', 'true');
     }
 
     // Reset thumb icons to outline state so that they don't blend into the background after validation.
