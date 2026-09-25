@@ -23,22 +23,18 @@
 
   <div class="page-container">
     <div class="page-sidebar">
-      <nav class="page-nav" aria-label="Labeling guide">
-        <div class="page-nav-header">Labeling Guide</div>
+      <nav class="page-nav" aria-label="@Messages("navbar.howto")">
+        <div class="page-nav-header">@Messages("navbar.howto")</div>
         @for((key, url, label) <- navItems) {
-          <a href="@url" class="page-nav-item @if(key == activePage){active}" aria-current="@if(key == activePage){page}else{false}">@label</a>
+          <a href="@url" class="page-nav-item @if(key == activePage){active}"
+             aria-current="@if(key == activePage){page}else{false}">@label</a>
         }
       </nav>
     </div>
 
-    <div class="page-content">
+    <main class="page-content">
       @content
-    </div>
-
-    <div class="page-toc">
-      <div class="page-toc-header">@Messages("dashboard.toc.header")</div>
-      <ul></ul>
-    </div>
+    </main>
   </div>
 
   <script src='@assets.path("js/common/sidebarDisclosure.js")'></script>

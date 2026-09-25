@@ -19,7 +19,8 @@ Full rules: `docs/style-guide.md` (tokens, primitives, file layout, naming) and 
 - **`public/css/` layout is linted** (`make lint-css-layout`): root holds only `main.css` + `fonts.css`;
   `components/` for anything two pages link (prefix `ps-` or component-named); `pages/` for page-specific files,
   registered in the lint's `PAGES` map and linked only by their page; a page's class prefix lives only in its own
-  stylesheet. `components/page-shell.css` is shared by the API docs and both dashboards. Never `@import`.
+  stylesheet. `components/page-shell.css` is shared by the API docs, both dashboards, and the labeling guide. Never
+  `@import`.
 - **CSS `url()` names a real file by relative path**, nothing to register. Build steps rewrite it for Grunt's bundles
   and to the fingerprinted name (`docs/deployment-and-stages.md` → "Asset caching"), and would mangle an absolute
   `/assets/` path in a bundled stylesheet. Naming a file that isn't there fails `make lint-asset-paths` and the stage

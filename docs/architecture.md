@@ -439,8 +439,8 @@ shadows, motion, and z-index layers — plus the component primitives `.button-p
 `.ps-table`. They mirror the "Design System Tokens" Figma; the rules for using them are in
 [`style-guide.md`](style-guide.md). One coupling worth knowing: **`css/components/page-shell.css` is the shell
 (`.page-*` classes) that the API docs, the admin dashboard, the user dashboard, and the labeling guide all build on**
-for the sidebar + content + TOC layout and the base type, so a change there reaches all four; `css/pages/api-docs/api-docs.css` holds only
-the docs' own components (`.preview-*`, `.map-toolbar`, status messages).
+for the sidebar + content + TOC layout and the base type, so a change there reaches all four;
+`css/pages/api-docs/api-docs.css` holds only the docs' own components (`.preview-*`, `.map-toolbar`, status messages).
 
 **Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that
 decides which UI a request is served (mobile visitors get `/mobileLanding`, the mobile Validate page at `/mobile`,

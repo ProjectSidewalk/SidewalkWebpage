@@ -11,7 +11,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="corners-with-only-one-curb-ramp">How should I label corners with only one curb ramp? <a href="#corners-with-only-one-curb-ramp" class="permalink">#</a></h2>
+    @_question("corners-with-only-one-curb-ramp") {How should I label corners with only one curb ramp?}
     <p>If a corner has only one curb ramp and it is clearly facing just one side of the street (see left image below), then you should place both a curb ramp label and a missing curb ramp label on the appropriate sides of the corner. For example, in the left image below, you should place a <i>Missing Curb Ramp</i> label at the arrow because there is a marked crosswalk without a curb ramp and the existing curb ramp at this corner faces the other direction. You should rate this <i>Missing Curb Ramp</i> label as Medium severity (rather than High severity) because the pedestrian could use the curb ramp that does exist on the corner. However, it would moderately lead them into traffic due to its orientation (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#curbramps">ADA 406.6</a>).</p>
     <p>If one curb ramp is clearly meant for crossing both streets, as seen in the right image below, you should <strong>not</strong> place a <i>Missing Curb Ramp</i> label, but the severity of the curb is likely Medium or High, depending on how much it would lead someone into traffic (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#curbramps">ADA 406.6</a>).</p>
     <div class="guide-figures">
@@ -27,7 +27,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="where-there-is-no-sidewalk,-but-there-is-a-curb-ramp">What should I do when there is a curb ramp but there is no sidewalk? <a href="#where-there-is-no-sidewalk,-but-there-is-a-curb-ramp" class="permalink">#</a></h2>
+    @_question("where-there-is-no-sidewalk,-but-there-is-a-curb-ramp") {What should I do when there is a curb ramp but there is no sidewalk?}
     <p>You should place a <i>Curb Ramp</i> label if there is a curb ramp, regardless if a sidewalk exists and regardless of the curb ramp's usefulness. In the left image below, the curb ramps could be useful for someone who wants to cross both streets, as they could safely cross one street, then safely wait on the space provided by the curb ramp before crossing the other street.</p>
     <div class="guide-figures">
       <figure>
@@ -42,7 +42,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="where-there-is-no-sidewalk-and-there-is-no-curb-ramp">What should I do when there is no curb ramp and no sidewalk? <a href="#where-there-is-no-sidewalk-and-there-is-no-curb-ramp" class="permalink">#</a></h2>
+    @_question("where-there-is-no-sidewalk-and-there-is-no-curb-ramp") {What should I do when there is no curb ramp and no sidewalk?}
     <p>If there is no sidewalk, you should <strong>not</strong> add a <i>Missing Curb Ramp</i> label. A curb ramp is not required in these situations since it is not part of a pedestrian route. You should not place a <i>Missing Curb Ramp</i> label even in cases where there are marked crosswalks but no sidewalk, as in the right image below (<a href="https://www.access-board.gov/guidelines-and-standards/buildings-and-sites/about-the-ada-standards/ada-standards/chapter-3-building-blocks#303%20Changes%20in%20Level">ADA 303.4</a>).</p>
     <div class="guide-figures">
       <figure>
@@ -57,7 +57,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="driveways">How should I label driveways? <a href="#driveways" class="permalink">#</a></h2>
+    @_question("driveways") {How should I label driveways?}
     <p>If the driveway is not level with the sidewalk, meaning there is a steep slope, you should place a <i>Surface Problem</i> label rather than a <i>Missing Curb Ramp</i> label. We cover this in more detail in the <a href='@routes.ApplicationController.labelingGuideSurfaceProblems#driveways'>Surface Problems - Driveways</a> section.</p>
     <p>You should not label driveways with <i>Curb Ramp</i> labels or <i>No Curb Ramp</i> labels, because pedestrians are not meant to follow the driveway into the street.</p>
     <div class="guide-figures">
@@ -73,7 +73,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="small-side-streets-or-alleyways">How should I label small side streets or alleyways? <a href="#small-side-streets-or-alleyways" class="permalink">#</a></h2>
+    @_question("small-side-streets-or-alleyways") {How should I label small side streets or alleyways?}
     <p>If the side street is not level with the sidewalk, you should place a <i>Curb Ramp</i> label or a <i>Missing Curb Ramp</i> label, since a curb ramp is required for the street to be passable (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#402">ADA 402.2</a>).</p>
     <p>If the side street is level with the sidewalk, you should <strong>not</strong> place a <i>Curb Ramp</i> label or a <i>Missing Curb Ramp</i> label, since the intersection is passable without a curb ramp (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#402">ADA 402.2</a>).</p>
     <div class="guide-figures">
@@ -89,7 +89,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="crosswalks">How should I label marked crosswalks? <a href="#crosswalks" class="permalink">#</a></h2>
+    @_question("crosswalks") {How should I label marked crosswalks?}
     <p>You should place a <i>Curb Ramp</i> label or a <i>Missing Curb Ramp</i> label anywhere there is a marked crosswalk, as long there is a sidewalk is present. This implies that pedestrians are meant to cross here. Be sure not to mistake stop lines for crosswalks, as in the image on the right below (<a href="https://www.access-board.gov/guidelines-and-standards/buildings-and-sites/about-the-ada-standards/ada-standards/chapter-3-building-blocks#303%20Changes%20in%20Level">ADA 303.4</a>).</p>
     <div class="guide-figures">
       <figure>
@@ -104,7 +104,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="there-is-curb-ramp-on-opposite-side-of-street">What should I do if there is a curb ramp on the opposite side of the street? <a href="#there-is-curb-ramp-on-opposite-side-of-street" class="permalink">#</a></h2>
+    @_question("there-is-curb-ramp-on-opposite-side-of-street") {What should I do if there is a curb ramp on the opposite side of the street?}
     <p>If one side of the street has a curb ramp but the opposite side does not, you should place a <i>Missing Curb Ramp</i> label, since having one curb ramp implies that this is meant to be part of a pedestrian route. In most situations, this would be High severity, but in the example below, there is an adjacent driveway that can be used in place of a curb ramp (<a href="https://www.access-board.gov/guidelines-and-standards/buildings-and-sites/about-the-ada-standards/ada-standards/chapter-3-building-blocks#303%20Changes%20in%20Level">ADA 303.4</a>), so the example would get a Medium severity.</p>
     <div class="guide-figures">
       <figure>
@@ -115,7 +115,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="islands">How should I label islands? <a href="#islands" class="permalink">#</a></h2>
+    @_question("islands") {How should I label islands?}
     <p>If the island interferes with the crosswalk, you should place a <i>Curb Ramp</i> label or a <i>Missing Curb Ramp</i> label as in the image below (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#curbramps">ADA 406.7</a>).</p>
     <p>If the island has a curb cut as in the middle image below, you should place a <i>Curb Ramp</i> label.</p>
     <p>If the island does not interfere with the crosswalk, you should <strong>not</strong> place a <i>Curb Ramp</i> label or a <i>Missing Curb Ramp</i> label.</p>
@@ -137,7 +137,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="extension-of-walkway-to-a-house">How should I label an extension of walkway to a house? <a href="#extension-of-walkway-to-a-house" class="permalink">#</a></h2>
+    @_question("extension-of-walkway-to-a-house") {How should I label an extension of walkway to a house?}
     <p>You should place a <i>Curb Ramp</i> label only if there is a curb ramp present, or you should place a <i>Missing Curb Ramp</i> label only if there is a curb ramp on the opposite side of the street.</p>
     <p>You should <strong>not</strong> place a <i>Missing Curb Ramp</i> label if there is no curb ramp on either side of the street, as curb ramps are generally not expected here because it is not at an intersection (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#curbramps">ADA 406.6</a>).</p>
     <div class="guide-figures">
@@ -153,7 +153,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="tactile-warning">How should I label tactile warning? <a href="#tactile-warning" class="permalink">#</a></h2>
+    @_question("tactile-warning") {How should I label tactile warning?}
     <p>If a curb ramp does not have a tactile warning, then the "missing tactile warning" tag should be applied. If missing a tactile warning is the only problem with a ramp, then a severity rating of Low will work (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#pgfId-1006509">ADA 705</a>).</p>
     <div class="guide-figures">
       <figure>
@@ -168,7 +168,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="surface-problems-on-curb-ramps">How should I label surface problems on curb ramps? <a href="#surface-problems-on-curb-ramps" class="permalink">#</a></h2>
+    @_question("surface-problems-on-curb-ramps") {How should I label surface problems on curb ramps?}
     <p>If a curb ramp has surface problems, you should increase its severity rating, but you do <b>not</b> need to place a <i>Surface Problem</i> label. Sidewalk cracks and such in a curb ramp are one of the many factors that can make a curb ramp less passable, which should result in a worse curb ramp severity rating.</p>
     <p>Severity ratings should be equivalent to how they are done for surface problems, described in the sections on <a href='@routes.ApplicationController.labelingGuideSurfaceProblems#sidewalk-cracks'>Sidewalk cracks</a> and <a href='@routes.ApplicationController.labelingGuideSurfaceProblems#grass-on-sidewalk-blocks'>Grass between sidewalk blocks</a>.</p>
     <div class="guide-figures">
@@ -188,7 +188,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="narrow-ramps">How should I label narrow ramps? <a href="#narrow-ramps" class="permalink">#</a></h2>
+    @_question("narrow-ramps") {How should I label narrow ramps?}
     <p>If a curb ramp appears narrow, then it should have Medium or High severity (the ADA requires a width of at least 3 ft - <a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#c4">ADA 403.5.1</a>). Since we have no measuring tools, use your best judgement.</p>
     <div class="guide-figures">
       <figure>
@@ -207,7 +207,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="debris-on/around-ramp">What should I do about debris on a curb ramp? <a href="#debris-on/around-ramp" class="permalink">#</a></h2>
+    @_question("debris-on/around-ramp") {What should I do about debris on a curb ramp?}
     <p>If a curb ramp has a large amount of dead leaves or other debris on it, the severity should be Medium (<a href="https://safety.fhwa.dot.gov/ped_bike/tools_solve/fhwasa13037/chap3.cfm">FHWA Guide for Maintaining Pedestrian Facilities for Enhanced Safety 3.2.2</a>), and you should add the "surface problem" tag. Debris could cause slippery conditions or could slow down wheelchair users in extreme cases. You do not need to place a <i>Surface Problem</i> label along with the <i>Curb Ramp</i> label. You only need to place <i>Surface Problem</i> labels on the sidewalk, not on curb ramps.</p>
     <div class="guide-figures">
       <figure>
@@ -222,7 +222,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="insufficient-landing-space">What should I do about insufficient landing space? <a href="#insufficient-landing-space" class="permalink">#</a></h2>
+    @_question("insufficient-landing-space") {What should I do about insufficient landing space?}
     <p>If a curb ramp does not have enough landing space at the top of the ramp for making turns, the severity should be Medium or High (the ADA requires at least 3ft - <a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#marker-1012120">ADA 406.4</a>). In situations of insufficient landing space, severity also depends on presence and steepness of the angled sides of a ramp (called flares), so also consult the section on <a href="#steep-flares">Steep flares</a>.</p>
     <div class="guide-figures">
       <figure>
@@ -241,7 +241,7 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="steep-flares">How should I label steep flares? <a href="#steep-flares" class="permalink">#</a></h2>
+    @_question("steep-flares") {How should I label steep flares?}
     <p>If a curb ramp has overly steep angled sides (called flares), severity should be between either Low or Medium if its flares are the only issue. Steep flares are particularly problematic when there is insufficient landing space at the top of the ramp, since wheelchair users may need to use the flares to make turns and could lose their balance. However, steep flares are not an issue when pedestrians are not expected to use them.</p>
     <div class="guide-figures">
       <figure>
@@ -256,12 +256,12 @@
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="steep-counter-slopes">What should I do about steep counter slopes? <a href="#steep-counter-slopes" class="permalink">#</a></h2>
+    @_question("steep-counter-slopes") {What should I do about steep counter slopes?}
     <p>If a curb ramp has a steep counter slope (the slope opposite to the end of a ramp), then its severity rating should be Medium or High (the ADA requires counter slopes to be at no more than a ~3 degree angle - <a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#curbramps">ADA 406.2</a>). You should only consider obvious cases of steep counter slopes, as we have no angle measurement tools.</p>
   </div>
 
   <div class="page-section">
-    <h2 class="page-heading" id="pooled-water">What should I do about pooled water? <a href="#pooled-water" class="permalink">#</a></h2>
+    @_question("pooled-water") {What should I do about pooled water?}
     <p>If a curb ramp seems to have pooled water due to poor drainage, severity should be Medium or High (<a href="https://www.ada.gov/regs2010/2010ADAStandards/2010ADAstandards.htm#c4">ADA 405.10</a>). If pooled water is the only issue, the severity should not be High, since water typically pools only after rainfall.</p>
     <div class="guide-figures">
       <figure>

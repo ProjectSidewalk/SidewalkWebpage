@@ -58,8 +58,9 @@ class ImageLightbox {
     const dialog = this.#ensureDialog();
     this.#image.src = img.currentSrc || img.src;
     this.#image.alt = img.alt;
-    this.#caption.textContent = img.title;
-    this.#caption.hidden = !img.title;
+    const caption = img.closest('figure')?.querySelector('figcaption')?.textContent.trim() ?? '';
+    this.#caption.textContent = caption;
+    this.#caption.hidden = !caption;
     dialog.setAttribute('aria-label', img.alt);
     dialog.showModal();
   }

@@ -1,11 +1,16 @@
-/* Labeling guide pages. The layout itself comes from components/page-shell.css. */
+/* Labeling guide pages. The layout comes from components/page-shell.css. */
 
-/* Question headings are full sentences, so they get a smaller size than the shell's section headings. */
+/* No right-hand table of contents here, so the text can be wider. */
+.page-content {
+  max-width: 1000px;
+}
+
+/* Questions are full sentences, so they're smaller than normal section headings. */
 .page-content h2.page-heading {
   font: var(--text-title-bold);
 }
 
-/* A row of example images that wraps onto more rows as the content column narrows. */
+/* A row of example images that wraps on narrow screens. */
 .guide-figures {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
