@@ -116,7 +116,7 @@ describe('the Gallery in review-list mode', () => {
         let requests;
         /** @type {(cards: object[], unavailable: (number[]|undefined)) => void} */
         let respond;
-        /** @type {(body: *) => void} Answers the held request with a 200 carrying exactly this body. */
+        /** @type {(body: *) => void} Answers the held request with a 200 and this body. */
         let respondWith;
         /** @type {() => void} Answers the in-flight request the way a failed POST does. */
         let failRequest;
@@ -158,11 +158,7 @@ describe('the Gallery in review-list mode', () => {
         /** @returns {boolean} Whether the container has shown the filtered grid's "no matches" notice. */
         const labelsNotFoundShown = () => sg.labelsNotFound.style.display === 'block';
 
-        /**
-         * Gives the next container its own paging controls. Every container wires click listeners onto the buttons
-         * it is handed, so two containers sharing a set would both answer a click — and one's listener could pass
-         * a test about the other's.
-         */
+        /** Fresh paging controls per container, so one container's click listener can't answer for another's. */
         function freshControls() {
             sg.ui.pageControl = document.createElement('div');
             sg.ui.cardContainer = {
@@ -383,8 +379,7 @@ describe('the Gallery in review-list mode', () => {
         });
 
         it('treats an answer with no labels in it as a failed request', async () => {
-            // The filters and the loading overlay are released on this path too; a 200 with an unexpected body used
-            // to leave them greyed out for the rest of the page's life.
+            // A 200 with an unexpected body must still release the filters and the loading overlay.
             freshControls();
             const created = window.CardContainer.create(
                 sg.ui.cardContainer, { regionIds: [], aiValidationOptions: [], labelIds: LIST_IDS }, null, null, null,
@@ -556,8 +551,8 @@ describe('the Gallery in review-list mode', () => {
             });
 
             it('pages back from a deep link that landed on the second page', async () => {
-                // The deep link turns the page without pressing Next, which is what used to enable Prev. A page
-                // turn the expanded view asks for has to work regardless of what the button thinks.
+                // A deep link turns the page without Next, so Prev may still be disabled; paging from the expanded
+                // view must not go through the button.
                 const view = container.getExpandedView();
                 view.initialUrlLabelId = LONG_LIST[12];
                 view.restoreFromUrl();

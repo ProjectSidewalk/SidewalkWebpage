@@ -114,7 +114,7 @@ class CardContainer {
     const initialFilters = this.#initialFilters;
 
     // Bind click actions to the forward/backward paging buttons.
-    // The buttons log a *Click event on top of the page turn itself, which the expanded view also triggers.
+    // The buttons also log a *Click event; the expanded view turns pages without one.
     uiCardContainer.nextPage.addEventListener('click', () => {
       this.nextPage();
       sg.tracker?.push('NextPageClick', null, null);
@@ -261,8 +261,7 @@ class CardContainer {
   }
 
   /**
-   * Turns to the previous page, if there is one. Also called by the expanded view when stepping back past the
-   * page's first label.
+   * Turns back a page, if there is one. Also called by the expanded view when stepping back past the first label.
    */
   prevPage() {
     if (this.#currentPage <= 1) return;
@@ -276,8 +275,7 @@ class CardContainer {
   }
 
   /**
-   * Records the page number and keeps the Prev button in step with it. Next is settled in render(), which is where
-   * the last page becomes known.
+   * Sets the page number and the Prev button; Next is set in render(), once the last page is known.
    * @param {number} pageNumber
    */
   #setPage(pageNumber) {
@@ -299,10 +297,8 @@ class CardContainer {
    * @param {string[]|undefined} aiValidationOptions - AI validation options: correct, incorrect, and/or unvalidated.
    * @param {number[]|undefined} labelIds - A review list (#5444). When non-empty the server ignores every filter
    *      above and returns exactly these labels in this order.
-   * @returns {Promise<?{newCards: Card[], unavailableLabelIds: (number[]|undefined)}>} The new cards in the order
-   *     the server returned them and, for a review list, the requested ids it could not serve. Resolves to `null`
-   *     when the request failed, rather than an empty list, so a caller that must not read a failure as "there
-   *     were none" can tell the two apart.
+   * @returns {Promise<?{newCards: Card[], unavailableLabelIds: (number[]|undefined)}>} The new cards in server
+   *     order and, for a review list, the ids it couldn't serve. Null (not an empty list) when the request failed.
    */
   async fetchLabels(
     labelTypes, n, validationOptions, loadedLabels, regionIds, severities, tagsByLabelType, aiValidationOptions,
@@ -360,7 +356,7 @@ class CardContainer {
   /**
    * Finds a loaded card by its label id, whichever type bucket it sits in.
    * @param {number} labelId
-   * @returns {?Card} The card, or null when that label was never loaded.
+   * @returns {?Card} Null when that label was never loaded.
    */
   findCardByLabelId(labelId) {
     for (const bucket of Object.values(this.#cardsByType)) {
@@ -516,7 +512,7 @@ class CardContainer {
       sg.pageLoading.style.display = 'none';
       this.#notifyExpandedViewRendered();
     } else {
-      // The stylesheet hides this notice, so showing it takes an explicit display rather than clearing the inline one.
+      // The stylesheet hides this notice, so it needs an explicit display value to show.
       sg.labelsNotFound.style.display = 'block';
       sg.pageLoading.style.display = 'none';
       this.#notifyExpandedViewRendered();

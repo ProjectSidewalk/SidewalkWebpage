@@ -256,8 +256,7 @@ class Card {
   }
 
   /**
-   * Copies arrays and plain objects recursively; anything else (the moment timestamps, for one) is shared by
-   * reference, which is why structuredClone isn't used: a moment carries functions it refuses to clone.
+   * Copies arrays and plain objects; moment dates are shared, since structuredClone can't copy them.
    * @param {*} value
    * @returns {*}
    */

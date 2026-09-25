@@ -2,12 +2,11 @@
  * Tests the Gallery card's tag row, which fits pills into the card in measured pixels (#4691).
  *
  * jsdom has no layout engine, so widths come from stubbed getBoundingClientRect / getComputedStyle that report whatever
- * each test declares. The stubs model the page's global `box-sizing: border-box` the way a browser does: a declared
- * width is the pill's content box, and its bounding box adds the padding and border on top, with the margins read
- * separately. That is enough to pin the things that matter here: the fitting arithmetic (which tags show whole, which
- * is ellipsized, which fall into the "+n" tooltip), that a pill is charged for its own chrome, that a narrow card still
- * shows a tag rather than a bare "+n" (#5009), and that the measurements are read off pills this card built rather than
- * whatever the document happens to contain.
+ * each test declares. The stubs follow the page's global `box-sizing: border-box`: a declared width is the pill's text
+ * box, the bounding box adds padding and border, and margins are read separately. That pins the fitting arithmetic
+ * (which tags show whole, which is ellipsized, which fall into the "+n" tooltip), that a pill pays for its own padding
+ * and border, that a narrow card still shows a tag rather than a bare "+n" (#5009), and that measurements come from
+ * this card's own pills rather than whatever else the document holds.
  */
 
 const fs = require('fs');
@@ -24,10 +23,8 @@ const PILL_CHROME = 12; // A pill's own padding + border, which border-box measu
 const CHAR_PX = 6; // Width of one character, for the strings a test doesn't size by name (probes, the "+n" pill).
 
 /**
- * Installs layout stubs over the real DOM.
- *
- * `getBoundingClientRect` consults `widthOf`, so a test can declare what each pill measures, and `getComputedStyle`
- * reports the pills' margins and the holder's (absent) padding and border. Everything else is the real element.
+ * Stubs the layout reads over the real DOM: `getBoundingClientRect` reports what `widthOf` says each element
+ * measures, and `getComputedStyle` reports the pills' margins and the holder's (absent) padding and border.
  *
  * @param {function(HTMLElement): number} widthOf - Reports an element's content-box width.
  * @returns {{layoutReads: number[]}} How many pills were attached at each pill read, so batching is observable.
