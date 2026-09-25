@@ -13,7 +13,7 @@ class LabelVisibilityControl {
   #toggle;
 
   constructor() {
-    this.#card = $('#label-card');
+    this.#card = document.getElementById('label-card');
 
     // Two buttons, one action: the pill in the pano's top-left and the one in the label card's footer.
     this.#toggle = new LabelVisibilityToggle({
@@ -36,14 +36,14 @@ class LabelVisibilityControl {
     });
 
     // Keep the card up while the cursor is on it, so its Hide-label button can actually be clicked.
-    this.#card.on('mouseenter', () => this.cancelScheduledCardHide());
-    this.#card.on('mouseleave', () => this.scheduleHideLabelCard());
+    this.#card.addEventListener('mouseenter', () => this.cancelScheduledCardHide());
+    this.#card.addEventListener('mouseleave', () => this.scheduleHideLabelCard());
 
     // Same deal for keyboard focus (#4729): the card holds while focus is inside it, and the grace timer starts
     // when focus leaves. focusout also fires on moves between the card's own controls, so those are filtered.
-    this.#card.on('focusin', () => this.cancelScheduledCardHide());
-    this.#card.on('focusout', (e) => {
-      if (!this.#card[0].contains(e.relatedTarget)) this.scheduleHideLabelCard();
+    this.#card.addEventListener('focusin', () => this.cancelScheduledCardHide());
+    this.#card.addEventListener('focusout', (e) => {
+      if (!this.#card.contains(/** @type {Node} */ (e.relatedTarget))) this.scheduleHideLabelCard();
     });
   }
 
@@ -82,7 +82,7 @@ class LabelVisibilityControl {
     if (!this.#anchorCard()) return;
     if (!this.#cardVisible) svv.tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
     this.#cardVisible = true;
-    this.#card[0].style.visibility = 'visible';
+    this.#card.style.visibility = 'visible';
     this.#setMarkerExpanded(true);
   }
 
@@ -96,7 +96,7 @@ class LabelVisibilityControl {
     // later scheduleHideLabelCard would defer to it forever.
     svv.labelCard?.closePopovers();
     this.#cardVisible = false;
-    this.#card[0].style.visibility = 'hidden';
+    this.#card.style.visibility = 'hidden';
     this.#setMarkerExpanded(false);
   }
 
@@ -123,8 +123,7 @@ class LabelVisibilityControl {
    */
   handlePopoverDismissed() {
     if (!this.#cardVisible) return;
-    const card = this.#card[0];
-    if (card.matches(':hover') || card.contains(document.activeElement)) return;
+    if (this.#card.matches(':hover') || this.#card.contains(document.activeElement)) return;
     this.scheduleHideLabelCard();
   }
 
@@ -184,13 +183,13 @@ class LabelVisibilityControl {
    */
   #anchorCard() {
     const marker = document.getElementById('validate-pano-marker');
-    const layer = svv.ui.viewer.controlLayer[0];
+    const layer = svv.ui.viewer.controlLayer;
     if (!marker || !layer || marker.offsetLeft < -1000) return false;
 
-    const scale = parseFloat(getComputedStyle(this.#card[0]).getPropertyValue('--ui-scale')) || 1;
+    const scale = parseFloat(getComputedStyle(this.#card).getPropertyValue('--ui-scale')) || 1;
     const radius = marker.offsetWidth / 2;
     util.anchorPanelToLabel(
-      this.#card[0],
+      this.#card,
       { x: (marker.offsetLeft + radius) / scale, y: (marker.offsetTop + marker.offsetHeight / 2) / scale },
       radius / scale,
       { scale, originEl: layer, boundsEl: layer, frameHeight: layer.getBoundingClientRect().height },

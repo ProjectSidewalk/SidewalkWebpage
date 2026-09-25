@@ -26,12 +26,12 @@ class LabelCard {
   #typeDropdown = null;
 
   constructor() {
-    this.#card = $('#label-card');
+    this.#card = document.getElementById('label-card');
     // No descriptionMaxLength: the description shows in full rather than truncated the way Explore's card does it.
     // Explore can afford to cut the text because clicking the label reopens the same description in an editable
     // field; here the card is the only place it appears, and it is often what tells a validator what the labeler
     // meant.
-    this.#view = new LabelCardView(this.#card[0]);
+    this.#view = new LabelCardView(this.#card);
 
     // Built once and re-pointed at each label in render(), the way LabelDetail does it. Every label Validate serves
     // came from the back end, so its id is always real and the button is never in a state where it can't work.
@@ -49,9 +49,9 @@ class LabelCard {
       });
     }
 
-    const typePopover = this.#card[0].querySelector('.label-type-popover');
+    const typePopover = this.#card.querySelector('.label-type-popover');
     if (typePopover) {
-      this.#typeDropdown = new LabelTypeDropdown(this.#card[0].querySelector('.label-hover-card__type-dropdown'),
+      this.#typeDropdown = new LabelTypeDropdown(this.#card.querySelector('.label-hover-card__type-dropdown'),
         /** @type {HTMLElement} */ (typePopover), {
           onOpen: () => this.#prepareTypePicker(),
           onPick: (labelType) => svv.validationMenu.pickNewLabelType(labelType),

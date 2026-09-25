@@ -36,9 +36,15 @@ function loadClassFromFile(filePath, className) {
   return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
 }
 
-/** @returns {object} A fake jQuery wrapper with the handful of methods Validate calls on its UI elements. */
-function fakeJqueryElement() {
-  return {addClass: jest.fn(), removeClass: jest.fn(), toggleClass: jest.fn(), css: jest.fn(), attr: jest.fn()};
+/** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
+function fakeElement() {
+  return document.createElement('div');
+}
+
+/** @returns {boolean} Whether the busy state has been taken off every element it covers, cursor included. */
+function uiReleased() {
+  return svv.ui.busyRegion.every((el) => !el.classList.contains('validate-disabled'))
+    && svv.ui.holder.style.cursor === '';
 }
 
 describe('PanoManager clears the pano when no viewer can render it (issue #4810)', () => {
@@ -199,9 +205,9 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       modalNoNewMission: {show: jest.fn()},
       form: {getValidateParams: () => ({admin_version: false, unvalidated_only: false})},
       ui: {
-        holder: fakeJqueryElement(),
-        busyRegion: fakeJqueryElement(),
-        viewer: {controlLayer: fakeJqueryElement()},
+        holder: fakeElement(),
+        busyRegion: [fakeElement(), fakeElement()],
+        viewer: {controlLayer: fakeElement()},
       },
       panoManager: {
         renderPanoMarker: jest.fn(),
@@ -394,15 +400,13 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     await buildContainer();
 
-    expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
-    expect(svv.ui.holder.css).toHaveBeenLastCalledWith('cursor', '');
+    expect(uiReleased()).toBe(true);
     expect(svv.modalNoNewMission.show).toHaveBeenCalled();
   });
 
   test('the UI is released on the ordinary path too', async () => {
     await buildContainer();
 
-    expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
-    expect(svv.ui.holder.css).toHaveBeenCalledWith('cursor', '');
+    expect(uiReleased()).toBe(true);
   });
 });

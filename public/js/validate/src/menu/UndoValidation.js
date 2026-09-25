@@ -7,11 +7,11 @@ class UndoValidation {
   #uiUndo;
 
   /**
-   * @param {Record<string, JQuery>} uiUndo - Undo button UI elements.
+   * @param {Record<string, HTMLButtonElement>} uiUndo - Undo button UI elements.
    */
   constructor(uiUndo) {
     this.#uiUndo = uiUndo;
-    uiUndo.undoButton.on('click', this.#undo);
+    uiUndo.undoButton.addEventListener('click', this.#undo);
   }
 
   /**
@@ -19,7 +19,7 @@ class UndoValidation {
    */
   enableUndo() {
     this.#disableUndo = false;
-    this.#uiUndo.undoButton.prop('disabled', false);
+    this.#uiUndo.undoButton.disabled = false;
   }
 
   /**
@@ -27,7 +27,7 @@ class UndoValidation {
    */
   disableUndo() {
     this.#disableUndo = true;
-    this.#uiUndo.undoButton.prop('disabled', true);
+    this.#uiUndo.undoButton.disabled = true;
   }
 
   /**

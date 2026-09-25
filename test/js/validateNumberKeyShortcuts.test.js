@@ -21,14 +21,15 @@ const MANAGER_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
 );
 
-/** A stand-in for one of the menu's jQuery-wrapped controls; `chosen` drives which verdict is selected. */
+/**
+ * A menu control with its click spied; `chosen` marks the verdict. A real element, since the manager compares the
+ * comment boxes against document.activeElement.
+ */
 function makeControl({ chosen = false } = {}) {
-    return {
-        on: () => {},
-        0: document.createElement('textarea'),
-        click: jest.fn(),
-        hasClass: (cls) => cls === 'chosen' && chosen,
-    };
+    const control = document.createElement('textarea');
+    control.classList.toggle('chosen', chosen);
+    control.click = jest.fn();
+    return control;
 }
 
 /**
@@ -63,14 +64,8 @@ describe('KeyboardManager number-key shortcuts', () => {
             unsureButton: makeControl(),
         });
 
-        // Minimal jQuery stand-in over the real DOM: the manager only asks a selector for `hasClass` and `click`.
-        window.$ = (selector) => {
-            const el = document.querySelector(selector);
-            return {
-                hasClass: (cls) => !!el && el.classList.contains(cls),
-                click: () => { if (el) clicks.push(el.id); },
-            };
-        };
+        // The manager looks the reason buttons and severity radios up by id and clicks them natively.
+        document.addEventListener('click', (e) => clicks.push(/** @type {Element} */ (e.target).id));
 
         window.eval(`${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
         new window.KeyboardManager(validationMenuUi);
@@ -274,7 +269,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         });
 
         it('leaves the comment box to the browser, where it undoes what was typed', () => {
-            const commentBox = validationMenuUi.optionalCommentTextBox[0];
+            const commentBox = validationMenuUi.optionalCommentTextBox;
             document.body.appendChild(commentBox);
             commentBox.focus();
 

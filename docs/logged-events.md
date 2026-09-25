@@ -174,7 +174,8 @@ worth knowing about are the **families assembled at runtime**, which you won't f
 - **`LowLevelEvent_<domType>`** — raw DOM events. `Tracker.trackWindowEvents()` (in
   `explore/src/data/Tracker.js`) binds `mousedown`, `mouseup`, `mouseover`, `mouseout`, `mousemove`, `click`,
   `contextmenu`, `dblclick`, `keydown`, `keyup` and pushes `"LowLevelEvent_" + e.type`, with `cursorX`/`cursorY` or
-  `keyCode` in the note.
+  `keyCode` in the note. In Validate a click made by a keyboard shortcut logs `cursorX`/`cursorY` as `null`, since no
+  pointer was involved.
 - **`ModeSwitch_<LabelType>`**, **`Click_ModeSwitch_<LabelType>`**, **`KeyboardShortcut_ModeSwitch_<LabelType>`** —
   labeling-mode changes; suffix is the label type (`CurbRamp`, `NoSidewalk`, …) or `Walk`. The prefix encodes *how*
   the switch happened: programmatic vs. a mouse click (emitted in `explore/src/menu/RibbonMenu.js`) vs. a keyboard

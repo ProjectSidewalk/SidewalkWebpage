@@ -28,12 +28,10 @@ const Tracker = loadTrackerClass();
 describe('Tracker before the first pano loads', () => {
     beforeEach(() => {
         jest.useFakeTimers();
-        global.$ = jest.fn(() => ({ on: jest.fn() }));
     });
 
     afterEach(() => {
         jest.useRealTimers();
-        delete global.$;
         delete global.svv;
     });
 

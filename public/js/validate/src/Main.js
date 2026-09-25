@@ -58,103 +58,109 @@ class Main {
       svv.modalNoNewMission.show();
       // The unhide in #init() never runs on this path, and the page still needs revealing: without it the loading
       // overlay sits on screen forever and the modal is visible only through its own inline visibility override.
-      $('#page-loading').css({ visibility: 'hidden' });
-      $('.tool-ui').removeClass('ps-invisible');
+      Main.#revealTool();
     }
   }
 
+  /** Takes down the loading overlay and shows the tool under it. */
+  static #revealTool() {
+    document.getElementById('page-loading').style.visibility = 'hidden';
+    svv.ui.holder.classList.remove('ps-invisible');
+  }
+
   /**
-   * Collects the tool's DOM elements into the `svv.ui` tree that the other modules read.
+   * Collects the tool's DOM elements into `svv.ui`. An element only one layout has (mobile's briefing eyebrow,
+   * desktop's tag editor) is null on the other.
    */
   #initUI() {
     svv.tagsByLabelType = this.#param.tagList.reduce((acc, t) => {
       (acc[t.label_type] ??= []).push(t);
       return acc;
     }, {});
+    const byId = (id) => document.getElementById(id);
+
     svv.ui = {};
-    svv.ui.holder = $('.tool-ui');
+    svv.ui.holder = document.querySelector('.tool-ui');
     const busySelectors = util.isMobile() ? VALIDATE_BUSY_SELECTORS.mobile : VALIDATE_BUSY_SELECTORS.desktop;
-    svv.ui.busyRegion = $(busySelectors.join(', '));
+    svv.ui.busyRegion = [...document.querySelectorAll(busySelectors.join(', '))];
 
-    svv.ui.validationMenu = {};
-    svv.ui.validationMenu.header = $('#main-validate-header');
+    svv.ui.validationMenu = {
+      header: byId('main-validate-header'),
+      yesButton: byId('validate-yes-button'),
+      noButton: byId('validate-no-button'),
+      unsureButton: byId('validate-unsure-button'),
+      labelTypeMenu: byId('validate-label-type-section'),
+      labelTypePicker: byId('label-type-picker'),
+      tagsMenu: byId('validate-tags-section'),
+      severityMenu: byId('validate-severity-section'),
+      optionalCommentSection: byId('validate-optional-comment-section'),
+      optionalCommentTextBox: byId('add-optional-comment'),
+      noMenu: byId('validate-why-no-section'),
+      disagreeReasonOptions: byId('no-reason-options'),
+      disagreeReasonTextBox: byId('add-disagree-comment'),
+      unsureMenu: byId('validate-why-unsure-section'),
+      unsureReasonOptions: byId('unsure-reason-options'),
+      unsureReasonTextBox: byId('add-unsure-comment'),
+      submitButton: byId('validate-submit-button'),
+      mobilePopupNotch: byId('mobile-popup-notch'),
+      currentTags: byId('current-tags-list'),
+      aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
+      aiSuggestedTagTemplate: document.querySelector('.sidewalk-ai-suggested-tag.template'),
+    };
 
-    svv.ui.validationMenu.yesButton = $('#validate-yes-button');
-    svv.ui.validationMenu.noButton = $('#validate-no-button');
-    svv.ui.validationMenu.unsureButton = $('#validate-unsure-button');
-    svv.ui.validationMenu.labelTypeMenu = $('#validate-label-type-section');
-    svv.ui.validationMenu.labelTypeHeader = $('#validate-label-type-header');
-    svv.ui.validationMenu.labelTypePicker = $('#label-type-picker');
+    svv.ui.undoValidation = { undoButton: byId('validate-undo-button') };
 
-    svv.ui.validationMenu.tagsMenu = $('#validate-tags-section');
-    svv.ui.validationMenu.severityMenu = $('#validate-severity-section');
-    svv.ui.validationMenu.optionalCommentSection = $('#validate-optional-comment-section');
-    svv.ui.validationMenu.optionalCommentTextBox = $('#add-optional-comment');
-    svv.ui.validationMenu.noMenu = $('#validate-why-no-section');
-    svv.ui.validationMenu.disagreeReasonOptions = $('#no-reason-options');
-    svv.ui.validationMenu.disagreeReasonTextBox = $('#add-disagree-comment');
-    svv.ui.validationMenu.unsureMenu = $('#validate-why-unsure-section');
-    svv.ui.validationMenu.unsureReasonOptions = $('#unsure-reason-options');
-    svv.ui.validationMenu.unsureReasonTextBox = $('#add-unsure-comment');
-    svv.ui.validationMenu.submitButton = $('#validate-submit-button');
-    svv.ui.validationMenu.mobilePopupNotch = $('#mobile-popup-notch');
+    svv.ui.modalMission = {
+      holder: byId('modal-mission-holder'),
+      foreground: byId('modal-mission-foreground'),
+      background: byId('modal-mission-background'),
+      eyebrow: byId('modal-mission-eyebrow'), // Mobile only.
+      missionTitle: byId('modal-mission-header'),
+      instruction: byId('modal-mission-instruction'),
+      closeButton: byId('modal-mission-close-button'),
+    };
 
-    svv.ui.validationMenu.currentTags = $('#current-tags-list');
-    svv.ui.validationMenu.aiSuggestionSection = $('#sidewalk-ai-suggestions-block');
-    svv.ui.validationMenu.aiSuggestedTagTemplate = $('.sidewalk-ai-suggested-tag.template');
+    svv.ui.modalMissionComplete = {
+      agreeCount: byId('modal-mission-complete-agree-count'),
+      background: byId('modal-mission-complete-background'),
+      closeButtonPrimary: byId('modal-mission-complete-close-button-primary'),
+      closeButtonSecondary: byId('modal-mission-complete-close-button-secondary'),
+      disagreeCount: byId('modal-mission-complete-disagree-count'),
+      foreground: byId('modal-mission-complete-foreground'),
+      holder: byId('modal-mission-complete-holder'),
+      message: byId('modal-mission-complete-message'),
+      missionTitle: byId('modal-mission-complete-title'),
+      unsureCount: byId('modal-mission-complete-unsure-count'),
+      // The mission's label type, and the validator's standing after it. Mobile only.
+      labelIcon: byId('mission-complete-label-icon'),
+      badgeIcon: byId('mission-complete-badge-icon'),
+      badgeName: byId('mission-complete-badge-name'),
+      badgeProgressFill: byId('mission-complete-badge-progress-fill'),
+      badgeNext: byId('mission-complete-badge-next'),
+      yourOverallTotalCount: byId('modal-mission-complete-your-overall-total-count'),
+    };
 
-    svv.ui.undoValidation = {};
-    svv.ui.undoValidation.undoButton = $('#validate-undo-button');
-
-    svv.ui.modalMission = {};
-    svv.ui.modalMission.holder = $('#modal-mission-holder');
-    svv.ui.modalMission.foreground = $('#modal-mission-foreground');
-    svv.ui.modalMission.background = $('#modal-mission-background');
-    svv.ui.modalMission.eyebrow = $('#modal-mission-eyebrow'); // Mobile only; empty jQuery set on desktop.
-    svv.ui.modalMission.missionTitle = $('#modal-mission-header');
-    svv.ui.modalMission.instruction = $('#modal-mission-instruction');
-    svv.ui.modalMission.closeButton = $('#modal-mission-close-button');
-
-    svv.ui.modalMissionComplete = {};
-    svv.ui.modalMissionComplete.agreeCount = $('#modal-mission-complete-agree-count');
-    svv.ui.modalMissionComplete.background = $('#modal-mission-complete-background');
-    svv.ui.modalMissionComplete.closeButtonPrimary = $('#modal-mission-complete-close-button-primary');
-    svv.ui.modalMissionComplete.closeButtonSecondary = $('#modal-mission-complete-close-button-secondary');
-    svv.ui.modalMissionComplete.disagreeCount = $('#modal-mission-complete-disagree-count');
-    svv.ui.modalMissionComplete.foreground = $('#modal-mission-complete-foreground');
-    svv.ui.modalMissionComplete.holder = $('#modal-mission-complete-holder');
-    svv.ui.modalMissionComplete.message = $('#modal-mission-complete-message');
-    svv.ui.modalMissionComplete.missionTitle = $('#modal-mission-complete-title');
-    svv.ui.modalMissionComplete.unsureCount = $('#modal-mission-complete-unsure-count');
-    // The mission's label type, and the validator's standing after it. Mobile only; empty jQuery sets on desktop.
-    svv.ui.modalMissionComplete.labelIcon = $('#mission-complete-label-icon');
-    svv.ui.modalMissionComplete.badgeIcon = $('#mission-complete-badge-icon');
-    svv.ui.modalMissionComplete.badgeName = $('#mission-complete-badge-name');
-    svv.ui.modalMissionComplete.badgeProgressFill = $('#mission-complete-badge-progress-fill');
-    svv.ui.modalMissionComplete.badgeNext = $('#mission-complete-badge-next');
-    svv.ui.modalMissionComplete.yourOverallTotalCount = $('#modal-mission-complete-your-overall-total-count');
-
-    svv.ui.status = {};
-    svv.ui.status.upperMenuTitle = $('#mission-title');
-    svv.ui.status.zoomInButton = $('#zoom-in-button');
-    svv.ui.status.zoomOutButton = $('#zoom-out-button');
     // A tap would pin the markup's tooltips open on a touch device; the ones added by script check the same query.
     if (!window.matchMedia('(hover: hover)').matches) {
       document.querySelectorAll('[data-ps-tooltip]').forEach((el) => el.removeAttribute('data-ps-tooltip'));
     }
-    svv.ui.status.labelVisibilityControlButton = $('#label-visibility-control-button');
-
-    svv.ui.status.admin = {
-      holder: $('#admin-info-section'),
-      button: $('#admin-info-button'),
-      popover: $('#admin-info-popover'),
-      template: $('#admin-info-template'),
+    svv.ui.status = {
+      upperMenuTitle: byId('mission-title'),
+      zoomInButton: byId('zoom-in-button'),
+      zoomOutButton: byId('zoom-out-button'),
+      admin: {
+        holder: byId('admin-info-section'),
+        button: byId('admin-info-button'),
+        popover: byId('admin-info-popover'),
+        template: byId('admin-info-template'),
+      },
     };
 
-    svv.ui.viewer = {};
-    svv.ui.viewer.controlLayer = $('#view-control-layer');
-    svv.ui.viewer.dateHolder = $('#svv-panorama-date-holder');
-    svv.ui.viewer.date = $('#svv-panorama-date');
+    svv.ui.viewer = {
+      controlLayer: byId('view-control-layer'),
+      dateHolder: byId('svv-panorama-date-holder'),
+      date: byId('svv-panorama-date'),
+    };
   }
 
   /**
@@ -166,8 +172,8 @@ class Main {
     // Measured live off the layer the imagery is actually drawn in, on both platforms: desktop scales the pano to
     // fit the viewport and mobile sizes it to the screen below the header, and either can change under a resize.
     // Label projection math and the canvas_width/height submitted with each validation follow the on-screen size.
-    svv.canvasWidth = () => Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().width);
-    svv.canvasHeight = () => Math.round(svv.ui.viewer.controlLayer[0].getBoundingClientRect().height);
+    svv.canvasWidth = () => Math.round(svv.ui.viewer.controlLayer.getBoundingClientRect().width);
+    svv.canvasHeight = () => Math.round(svv.ui.viewer.controlLayer.getBoundingClientRect().height);
     // A phone activates the marker by pointer — it is what opens the label card — so mobile-validate.css floors its
     // target at 44px. The mark itself stays 32px across (2 * radius + 2): bigger hides the imagery being judged.
     svv.labelRadius = util.isMobile() ? 15 : 10;
@@ -221,8 +227,7 @@ class Main {
     }
 
     // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
-    $('#page-loading').css({ visibility: 'hidden' });
-    $('.tool-ui').removeClass('ps-invisible');
+    Main.#revealTool();
 
     // The first label rendered while the tool was still invisible (visibility: hidden doesn't pause animations),
     // so its halo pulse played unseen. Replay it now that the marker can be seen — or, on desktop, once the
@@ -310,7 +315,7 @@ class Main {
       );
     }
 
-    svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user);
+    svv.modalMissionComplete = new ModalMissionComplete(svv.ui.modalMissionComplete, svv.user, param.language);
 
     // Logs when the page's focus changes.
     function logPageFocus() {
@@ -334,11 +339,11 @@ class Main {
     const signInModal = document.getElementById('sign-in-modal-container');
     signInModal?.addEventListener('ps:modal:hidden', () => {
       svv.keyboard?.enableKeyboard();
-      $('.tool-ui').css('opacity', 1);
+      svv.ui.holder.style.opacity = '1';
     });
     signInModal?.addEventListener('ps:modal:show', () => {
       svv.keyboard?.disableKeyboard();
-      $('.tool-ui').css('opacity', 0.5);
+      svv.ui.holder.style.opacity = '0.5';
     });
   }
 
@@ -406,7 +411,7 @@ class Main {
 
     const show = () => Toast.show({
       message: i18next.t('center-ui.pano-interactive-message'),
-      reference: svv.ui.viewer.controlLayer[0],
+      reference: svv.ui.viewer.controlLayer,
       duration: Main.#PANO_HINT_MS,
       dark: true,    // It floats over street imagery, where a white card glares.
       compact: true, // An aside, not an announcement.
