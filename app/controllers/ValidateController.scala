@@ -386,8 +386,8 @@ class ValidateController @Inject() (
           newVal.tags,
           newVal.comment.map(c =>
             ValidationTaskComment(
-              0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
-              currTime, c.comment
+              0, c.missionId, c.labelId, labelTypeSeen(newVal), user.userId, ipAddress, c.panoId, c.heading, c.pitch,
+              c.zoom, c.lat, c.lng, currTime, c.comment
             )
           ),
           newVal.undone,
@@ -627,7 +627,7 @@ class ValidateController @Inject() (
             labelType
           )
           commentId: Int <- validationService.replaceComment(
-            ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
+            ValidationTaskComment(0, mission.get.missionId, submission.labelId, labelType, userId, request.ipAddress,
               submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng,
               OffsetDateTime.now, submission.comment)
           )
@@ -642,7 +642,7 @@ class ValidateController @Inject() (
    * Deletes the signed-in user's own comment on a label, from the label card's Delete control (#5015).
    *
    * Keyed by label rather than by comment id: the card's comment payload carries no id, and a comment is unique per
-   * (label, user) anyway, so the identity of the row to delete is fully determined by the label and the session.
+   * (label, user, type) anyway, so the label's current type and the session fully determine the row to delete.
    * That also makes the delete inherently scoped to the caller's own comment — there is no id to forge.
    *
    * @param labelId The label whose comment should be removed.

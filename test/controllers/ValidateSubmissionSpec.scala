@@ -840,5 +840,30 @@ class ValidateSubmissionSpec
       commentsOn(labelId, b.userId) mustBe empty
       commentsOn(labelId, theirId) mustBe Seq("Theirs.")
     }
+
+    "keep a comment per label type and show only the current type's (#5510)" in {
+      val session     = freshAnonSession()
+      val b           = fetchValidateBootstrap(session)
+      val label       = b.labels.head
+      val labelId     = (label \ "label_id").as[Int]
+      val currentType = (label \ "label_type").as[String]
+      val otherType   = if (currentType == "Obstacle") "SurfaceProblem" else "Obstacle"
+      backupLabel(labelId)
+
+      // Stands in for a comment written before the label's type was changed.
+      val oldTypeComment = labelMapCommentJson(label, "About the old type.") ++ Json.obj("label_type" -> otherType)
+      status(postLabelMapComment(session, oldTypeComment)) mustBe OK
+      status(postLabelMapComment(session, labelMapCommentJson(label, "About this type."))) mustBe OK
+      commentsOn(labelId, b.userId).sorted mustBe Seq("About the old type.", "About this type.")
+
+      val res = route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session: _*)).get
+      status(res) mustBe OK
+      val own = (contentAsJson(res) \ "comments").as[Seq[JsObject]].filter(c => (c \ "mine").as[Boolean])
+      own.map(c => (c \ "comment").as[String]) mustBe Seq("About this type.")
+
+      // Delete takes only the comment the card shows; the old type's comes back if the type change is undone.
+      status(deleteLabelMapComment(session, labelId)) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("About the old type.")
+    }
   }
 }

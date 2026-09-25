@@ -1381,10 +1381,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                           ORDER BY validation_task_comment.timestamp)::text AS comments
           FROM validation_task_comment
           INNER JOIN sidewalk_user ON validation_task_comment.user_id = sidewalk_user.user_id
-          LEFT JOIN label AS commented_label ON validation_task_comment.label_id = commented_label.label_id
+          -- Only comments on the label's current type, as in label_comments_agg.
+          INNER JOIN label AS commented_label ON validation_task_comment.label_id = commented_label.label_id
+              AND validation_task_comment.label_type = commented_label.label_type
           LEFT JOIN label_validation ON validation_task_comment.label_id = label_validation.label_id
               AND validation_task_comment.user_id = label_validation.user_id
-              AND label_validation.label_type = commented_label.label_type
+              AND label_validation.label_type = validation_task_comment.label_type
           GROUP BY validation_task_comment.label_id
        ) AS comment ON lb1.label_id = comment.label_id
       WHERE """
@@ -2078,7 +2080,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // Attach comments to validations using a left join.
     val _validationsWithComments = labelValidations
       .joinLeft(validationTaskComments)
-      .on((v, c) => v.missionId === c.missionId && v.labelId === c.labelId)
+      .on((v, c) => v.missionId === c.missionId && v.labelId === c.labelId && v.labelType === c.labelType)
       .map(x =>
         (x._1.labelId, x._1.validationResult, x._1.userId, x._1.missionId, x._1.endTimestamp, x._2.map(_.comment),
           x._1.labelType)
