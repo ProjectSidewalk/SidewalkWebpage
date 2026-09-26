@@ -1,5 +1,5 @@
 /* Full-window map area: the flex-growing child of #wrap.wrap--full-window (mirrors LabelMap's choropleth holder).
-   The map fills it; the planner card, on-map CTA, and legend are its absolutely-positioned children. */
+   The map fills it; the planner card and legend are its absolutely-positioned children. */
 #routebuilder-map-area {
   position: relative;
   flex: 1 1 auto;
@@ -52,6 +52,13 @@
 
 #routebuilder-panel[data-state="empty"] .routebuilder-panel__building {
   display: none;
+}
+
+/* The on-map instruction toast (RouteBuilder.#updateCta). The shared toast caps its width for a 720 px pano; over a
+   full-width map the one-sentence instruction fits on a line at a slightly wider cap, which reads better than a
+   two-line block. The viewport bound keeps the map's 16 px gutter on a narrow window. */
+.ps-toast[data-anchor="routebuilder-map"] {
+  max-width: min(calc(640px * var(--ui-scale, 1)), calc(100vw - 32px));
 }
 
 /* While building, the intro and saved-route cards get out of the way — but once the route on the map is a saved

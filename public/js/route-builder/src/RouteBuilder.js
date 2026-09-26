@@ -453,9 +453,13 @@ class RouteBuilder {
     this.#ctaKey = key;
     if (key === null || this.#ctaDismissed.has(key)) return;
     const stage = key === 'cta-select-region' ? 'SelectRegion' : 'PickStart';
+    // The title slot, not the message: this is the page's one instruction, not an aside, and it sits over a map
+    // whose own labels are set in bold. Its top edge lines up with the planner card's, read from the card's own
+    // style so the two can't drift apart.
     this.#cta = Toast.show({
-      message: i18next.t(key),
+      title: i18next.t(key),
       reference: this.#map.getContainer(),
+      top: parseFloat(getComputedStyle(this.#panel).top),
       duration: 0,
       onClose: () => {
         this.#ctaDismissed.add(key);
