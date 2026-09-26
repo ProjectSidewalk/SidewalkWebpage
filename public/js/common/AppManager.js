@@ -26,7 +26,7 @@ class AppManager {
 
   /**
    * Initialize all registered tasks and built-in page setup.
-   * @param {string} csrfToken - The CSRF token to attach to outgoing AJAX/fetch requests.
+   * @param {string} csrfToken - The CSRF token to attach to outgoing fetch requests.
    * @param {Parameters<AppManager['_setupI18next']>[0]} i18nextParams - Parameters for i18next initialization.
    * @param {object} [globals] - Map of variable names to values to attach to `window` for global access.
    * @returns {Promise} Promise that resolves when all initialization is complete.
@@ -40,7 +40,7 @@ class AppManager {
     // Attach globals to `window` synchronously so they're available to subsequent init tasks and page scripts.
     this._setupGlobals(globals);
 
-    // CSRF token setup for AJAX and fetch requests.
+    // CSRF token setup for fetch requests.
     this.addInitTask('csrf-setup', () => {
       return this._setupCSRF(csrfToken);
     });
@@ -100,6 +100,7 @@ class AppManager {
 
   /**
    * Set up CSRF token for all fetch requests.
+   * @param {string} csrfToken - The token Play's CSRF filter expects in the `Csrf-Token` header.
    * @private
    */
   _setupCSRF(csrfToken) {

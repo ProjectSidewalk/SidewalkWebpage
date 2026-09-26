@@ -156,11 +156,10 @@
       const loadStreets = fetchJson('/contribution/streets/all?filterLowQuality=true');
       const mapParams = await fetchJson('/cityMapParams');
       const routeBuilder = new RouteBuilder('@commonData.mapboxApiKey', mapParams, @(!isAnon), @minutesPer100m);
-      loadRegions.then((regionData) => routeBuilder.renderRegions(regionData));
-      loadStreets.then((streetData) => {
-        routeBuilder.renderStreets(streetData);
-        window.routeBuilder = routeBuilder;
-      });
+      loadRegions.then((regionData) => routeBuilder.renderRegions(regionData))
+        .catch((err) => console.error('Failed to load regions:', err));
+      loadStreets.then((streetData) => routeBuilder.renderStreets(streetData))
+        .catch((err) => console.error('Failed to load streets:', err));
     });
   </script>
 }

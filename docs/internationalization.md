@@ -85,22 +85,20 @@ row.button.setAttribute('aria-label', label);
 row.button.setAttribute('data-ps-tooltip', util.escapeHTML(label)); // psTooltip renders this as HTML.
 ```
 
-Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`,
-and the **`data-ps-tooltip` attribute**, which `psTooltip.js` writes into the tooltip card's `innerHTML`. Helpers count too: `AlertController.showAlert`, `PopUpMessage.notify`,
-and the onboarding message boxes all render HTML. Text sinks are everything else — a text node, `append()`,
-`alert` / `confirm`, a share sheet, and any other attribute, `title` included.
+Markup sinks in this codebase are `innerHTML` / `outerHTML`, `insertAdjacentHTML`, a MapLibre popup's `setHTML`, and
+the **`data-ps-tooltip` attribute**, which `psTooltip.js` writes into the tooltip card's `innerHTML`. Helpers count
+too: `AlertController.showAlert`, `PopUpMessage.notify`, and the onboarding message boxes all render HTML. Text sinks
+are everything else — a text node, `append()`, `alert` / `confirm`, a share sheet, and any other attribute, `title`
+included.
 
-The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) blocks the ones it can
-see syntactically — a `t()` call with interpolation variables that reaches one of those sinks, directly or through a
-template literal, a concatenation, a pass-through string method, a `map(…).join('')`, or a local variable, without
-stating `interpolation.escapeValue`.
+The **`ps/i18n-escape-in-markup`** ESLint rule (`tools/lint/eslint-rules/i18n-escape-in-markup.js`) flags a `t()`
+call that interpolates values and reaches one of those sinks without stating `interpolation.escapeValue`, whether
+directly or through a template literal, a concatenation, a string method, a `map(…).join('')`, or a local variable.
 
-**It is a tripwire, not a proof.** Strip every `escapeValue: true` in the tree and re-lint, and it reproduces 19 of
-the 45 decisions — the #5389 audit is the guarantee, the rule is what catches the next call taking a familiar shape.
-It cannot see a value returned from a function, parked on an object property, or handed to a helper. **It also
-matches `i18next.t` literally**, so an alias, a wrapper method, or `i18next?.t(…)` turns it off for that call with no
-signal — don't wrap `i18next.t` (four such wrappers were removed in #5389 for exactly this reason), and write
-`el.innerHTML`, never `el['innerHTML']`.
+**It is a tripwire, not a proof.** It follows syntax only: a value returned from a function, stored on an object
+property, or handed to a helper that renders HTML is invisible to it, and so is a `t()` call behind an alias or a
+wrapper (don't wrap `i18next.t`, and write `el.innerHTML`, never `el['innerHTML']`). Those flows are on the author
+and the reviewer.
 
 So when a string you build ends up as HTML somewhere the rule can't follow, escape it there or say
 `escapeValue: true` here. Values we computed ourselves — a count, an id, an asset path — carry nothing to escape and

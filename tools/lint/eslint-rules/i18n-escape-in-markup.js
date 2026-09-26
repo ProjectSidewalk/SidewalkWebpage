@@ -2,36 +2,20 @@
  * ESLint rule: an `i18next.t()` call that interpolates values and lands in an HTML sink must say, at the call site,
  * whether i18next escapes those values (#5389).
  *
- * `AppManager._setupI18next` sets `interpolation.escapeValue: false`, because the overwhelming majority of these
- * strings reach a text node, an `aria-label` or a `confirm()`, where escaping prints `&#39;` at the reader. The price
- * of that default is that a value bound for `innerHTML` is not escaped for free, so a street name out of OSM or a
- * story a labeler typed would reach markup verbatim. This rule is what keeps that from happening silently: in a
- * markup-shaped position the choice has to be written down, either way.
+ * `AppManager._setupI18next` turns `interpolation.escapeValue` off site-wide, because nearly every translated string
+ * reaches a text node, an `aria-label` or a `confirm()`, where escaping would print `&#39;` at the reader. The cost
+ * is that a value bound for `innerHTML` (a street name from OSM, a story a labeler typed) is not escaped for free,
+ * so in a markup-shaped position the choice has to be written down, either way.
  *
- * **It is a tripwire, not a proof.** Measured against #5389's own audit — strip each `escapeValue: true` this
- * codebase carries and re-lint — it reproduces **19 of 45** decisions. The audit is the guarantee; this catches the
- * shapes a new call is most likely to take, and the blind spots below are why it cannot catch the rest.
+ * Markup-shaped, syntactically: an assignment to `.innerHTML` / `.outerHTML`; an argument to `.insertAdjacentHTML()`
+ * or a MapLibre popup's `.setHTML()`; `setAttribute('data-ps-tooltip', …)`, which `psTooltip.js` renders as HTML;
+ * or any of those reached through a template literal, a concatenation, a ternary, a pass-through string method, a
+ * joined array or `map`/`flatMap` callback, or a local variable.
  *
- * What counts as markup-shaped, syntactically:
- *   - the right-hand side of an assignment to `.innerHTML` / `.outerHTML`;
- *   - an argument to `.insertAdjacentHTML()` or `.setHTML()` (MapLibre popups);
- *   - `setAttribute('data-ps-tooltip', …)`, since `psTooltip.js` writes that attribute into the tooltip card's
- *     `innerHTML`;
- *   - any of the above reached through a template literal, a `+` concatenation, a ternary, a pass-through string
- *     method (`replace`, `slice`, `toUpperCase`, …), an array literal or a `map`/`flatMap` callback that is
- *     joined, or a local variable whose reads all live in the same function.
- *
- * What it deliberately does NOT catch, because a syntactic rule cannot follow it without guessing:
- *   - a string returned from an ordinary function whose caller builds the markup (`streetTitle()` in AccessScore's
- *     map) — this is why `access-score/src/main.js` contributes 0 of its 15 decisions;
- *   - a string stored on an object property or `this`, and rendered by something else later;
- *   - a string handed to a helper that inserts HTML itself (`showAlert()`, `PopUpMessage.notify()`);
- *   - `i18next.t` behind an alias or a wrapper, `i18next?.t(…)`, or `el['innerHTML'] = …`.
- * Those flows were audited by hand once, in #5389; `docs/internationalization.md` carries the rule a reviewer
- * applies to a new one. Widening this rule to chase them would mean either cross-file type inference or an
- * allowlist of "HTML-ish" helper names, and an allowlist that drifts is worse than a documented boundary.
- *
- * @see docs/internationalization.md ("Interpolated values and HTML")
+ * It is a tripwire, not a proof. It follows syntax only, so a string returned from a function, parked on an object
+ * property, handed to a helper that inserts HTML (`showAlert()`), or produced by an alias of `i18next.t` goes
+ * unseen. Those flows are reviewed by hand (docs/internationalization.md, "Interpolated values and HTML"); widening
+ * the rule to guess at them would need cross-file inference or an allowlist that drifts.
  */
 
 'use strict';

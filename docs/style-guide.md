@@ -329,7 +329,7 @@ Rules:
 - Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
 - Always include `{Type}` in `@param` and `@returns`.
 - Separate a `@param` name from its description with ` - `, and start `@param` and `@returns` descriptions with a
-  capital letter unless it opens with a code identifier (`this`, `true`, `jQuery`).
+  capital letter unless it opens with a code identifier (`this`, `true`, `util`).
 - Write types TypeScript-style: `object` and `string` (not `Object`/`String`), `Record<string, number>` for a map,
   and an arrow signature like `(id: number) => void` (not Closure's `function(number)`, which TypeScript can't read)
   for a callback.
