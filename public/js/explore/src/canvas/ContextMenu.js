@@ -245,10 +245,10 @@ class ContextMenu {
   /**
    * The tag id a tag button currently stands for (#setTags assigns them).
    * @param {HTMLElement} button
-   * @returns {number|undefined}
+   * @returns {number}
    */
   static #tagIdOf(button) {
-    return button.dataset.tagId ? parseInt(button.dataset.tagId, 10) : undefined;
+    return parseInt(button.dataset.tagId, 10);
   }
 
   /**
