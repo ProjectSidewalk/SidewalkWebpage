@@ -154,10 +154,6 @@
   color: var(--color-error-200);
 }
 
-.coverage-status.hidden {
-  display: none;
-}
-
 /* --- Map ----------------------------------------------------------------------------------------------------- */
 .coverage-map {
   width: 100%;

@@ -371,6 +371,12 @@
   box-sizing: border-box;
 }
 
+/* Phone Safari otherwise enlarges text when the phone turns to landscape, and flashes a grey box on every tap. */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   margin: 0;
 
@@ -462,6 +468,17 @@ textarea {
   font: inherit;
   color: inherit;
   margin: 0;
+}
+
+/* Safari draws a search box as a rounded pill with its own clear button; ours are styled like every other input. */
+input[type="search"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
 }
 
 button {

@@ -197,7 +197,7 @@
 .legend {
   display: flow-root; /* Contains the floated swatches and labels below. */
   height: inherit;
-  width: 250px;
+  width: 100%;
 }
 
 .legend span, .legend label {

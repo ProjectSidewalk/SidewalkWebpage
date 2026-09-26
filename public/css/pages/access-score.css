@@ -264,7 +264,6 @@
 
 .acs-weight__label {
   flex: 1 1 auto;
-  margin: 0;
   font: var(--text-small-medium);
   color: var(--color-neutral-900);
   cursor: pointer;
@@ -626,9 +625,7 @@
   display: none;
 }
 
-/* The page's base label style is bold with a bottom margin; these labels sit beside their control as plain text. */
 .acs-field label {
-  margin: 0;
   font: var(--text-caption-regular);
 }
 

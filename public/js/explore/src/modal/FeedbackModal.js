@@ -62,7 +62,7 @@ class FeedbackModal {
   /** Hides the feedback dialog and restores interaction with the tool. */
   hide = () => {
     this.#holder.classList.add('ps-hidden');
-    this.#background.style.visibility = 'ps-hidden';
+    this.#background.style.visibility = 'hidden';
     this.#svl.popUpMessage.enableInteractions();
   };
 

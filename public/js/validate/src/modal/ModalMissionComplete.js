@@ -146,16 +146,13 @@ class ModalMissionComplete {
     if (svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
       ui.closeButtonPrimary.innerHTML = i18next.t('mission-complete.explore');
       ui.closeButtonPrimary.style.visibility = 'visible';
-      ui.closeButtonPrimary.style.width = '60%';
       ui.closeButtonSecondary.innerHTML = i18next.t('mission-complete.continue');
       ui.closeButtonSecondary.style.visibility = 'visible';
-      ui.closeButtonSecondary.style.width = '39%';
+      ui.closeButtonSecondary.classList.remove('ps-hidden');
     } else {
       ui.closeButtonPrimary.innerHTML = i18next.t('mission-complete.validate-more');
       ui.closeButtonPrimary.style.visibility = 'visible';
-      ui.closeButtonPrimary.style.width = '100%';
-
-      ui.closeButtonSecondary.style.visibility = 'hidden';
+      ui.closeButtonSecondary.classList.add('ps-hidden');
     }
 
     svv.tracker.push(

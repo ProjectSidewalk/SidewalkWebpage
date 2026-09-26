@@ -119,6 +119,11 @@
   #greenbar {
     display: none;
   }
+
+  #numbersrow {
+    flex-direction: column;
+    width: auto;
+  }
 }
 
 #numbersrow {

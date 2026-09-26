@@ -285,7 +285,7 @@
 }
 
 #add-disagree-comment.chosen {
-  border-color: var(--color-orange-400) !important;
+  border-color: var(--color-orange-400);
 }
 
 #unsure-reason-options .validation-reason-button.chosen {
@@ -294,7 +294,7 @@
 }
 
 #add-unsure-comment.chosen {
-  border-color: var(--color-asphalt-300) !important;
+  border-color: var(--color-asphalt-300);
 }
 
 /* Only show hover states on non-touch devices. Same CSS as for chosen state. */
@@ -310,11 +310,11 @@
   }
 
   #add-disagree-comment:hover {
-    border-color: var(--color-orange-300) !important;
+    border-color: var(--color-orange-300);
   }
 
   #add-disagree-comment.chosen:hover {
-    border-color: var(--color-orange-400) !important;
+    border-color: var(--color-orange-400);
   }
 
   #unsure-reason-options .validation-reason-button:hover {
@@ -327,11 +327,11 @@
   }
 
   #add-unsure-comment:hover {
-    border-color: var(--color-asphalt-200) !important;
+    border-color: var(--color-asphalt-200);
   }
 
   #add-unsure-comment.chosen:hover {
-    border-color: var(--color-asphalt-300) !important;
+    border-color: var(--color-asphalt-300);
   }
 }
 

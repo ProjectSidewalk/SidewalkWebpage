@@ -329,7 +329,7 @@
   text-align: left;
   border-bottom: calc(3px * var(--ui-scale, 1)) solid var(--color-neutral-200);
   padding: 0 calc(3px * var(--ui-scale, 1));
-  white-space: nowrap; /* A tab is one short label; wrapping would break the tab bar's single row. */
+  white-space: nowrap;
   filter: saturate(0);
   transition: all 0.25s;
 }

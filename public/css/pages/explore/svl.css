@@ -167,7 +167,7 @@ input[type="radio"] {
 }
 
 .survey-question {
-  margin-bottom: calc(10px * var(--ui-scale, 1));
+  margin: calc(10px * var(--ui-scale, 1)) 0;
 }
 
 .survey-textarea {
@@ -193,7 +193,7 @@ input[type="radio"] {
 }
 
 .survey-option label {
-  width:100%;
+  display: block;
   font: var(--text-caption-regular);
 }
 

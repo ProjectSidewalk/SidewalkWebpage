@@ -551,12 +551,6 @@ body {
   opacity: 1;
 }
 
-/* Only the desktop three-missions-done screen offers a second action (ModalMissionComplete keys it on !isMobile), so
-   here the button would just hold empty space open under the primary one. */
-#modal-mission-complete-close-button-secondary {
-  display: none;
-}
-
 /* Opposite the logo on the mission briefing: a button for signed-out users, a name badge once signed in. */
 .sign-in-up-button-mobile {
   flex: 0 0 auto;
