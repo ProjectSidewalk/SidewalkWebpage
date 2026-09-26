@@ -8,24 +8,12 @@
 const fs = require('fs');
 const path = require('path');
 const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+const { makeContextMenuUi } = require('./contextMenuUiStub');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (file) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
 const CONTEXT_MENU_SRC = read('public/js/explore/src/canvas/ContextMenu.js');
 const KEYBOARD_MANAGER_SRC = read('public/js/explore/src/keyboard/KeyboardManager.js');
-
-/**
- * A jQuery stand-in whose methods all return itself; `length` 0 reads as "not in the DOM".
- * @returns {object}
- */
-function makeNode() {
-  const node = { length: 0, 0: undefined };
-  ['find', 'each', 'text', 'html', 'attr', 'prop', 'addClass', 'removeClass', 'toggleClass', 'css', 'val', 'on',
-    'off', 'blur', 'focus', 'filter', 'removeAttr', 'trigger', 'append', 'remove'].forEach((name) => {
-    node[name] = () => node;
-  });
-  return node;
-}
 
 /**
  * @param {string} labelType
@@ -55,7 +43,6 @@ describe('Explore severity shortcuts', () => {
   let keyboard;
 
   beforeEach(() => {
-    window.$ = () => makeNode();
     window.i18next = { t: (key) => key };
     window.util = {
       assetPath: assetPathStub,
@@ -66,20 +53,14 @@ describe('Explore severity shortcuts', () => {
     };
     installUtilitiesMisc();
     const canvas = { clear: () => canvas, render: () => canvas, getStatus: () => false };
-    window.svl = { canvas, tracker: { push: jest.fn() }, isOnboarding: () => false, LABEL_ICON_RADIUS: 17 };
+    window.svl = {
+      canvas, tracker: { push: jest.fn() }, ribbon: { enableModeSwitch: jest.fn() }, keyboard: { setStatus: jest.fn() },
+      isOnboarding: () => false, LABEL_ICON_RADIUS: 17,
+    };
 
     window.eval(`${CONTEXT_MENU_SRC}\n${KEYBOARD_MANAGER_SRC}\n`
       + 'window.ContextMenu = ContextMenu; window.KeyboardManager = KeyboardManager;');
-    menu = new window.ContextMenu({
-      holder: makeNode(),
-      severityMenu: makeNode(),
-      severityRadioHolder: makeNode(),
-      radioButtons: makeNode(),
-      textBox: makeNode(),
-      tagHolder: makeNode(),
-      tags: makeNode(),
-      closeButton: makeNode(),
-    });
+    menu = new window.ContextMenu(makeContextMenuUi());
     menu.labelTags = [];
     window.svl.contextMenu = menu;
     keyboard = new window.KeyboardManager(window.svl, canvas, menu, {}, {}, {});

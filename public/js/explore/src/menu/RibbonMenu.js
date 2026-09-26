@@ -39,11 +39,11 @@ class RibbonMenu {
   constructor(tracker) {
     this.#tracker = tracker;
     this.#uiRibbonMenu = {
-      holder: $('#ribbon-menu-holder'),
-      panoFrame: $('#pano-border-frame'),
-      buttons: $('.label-type-button-holder'),
-      subcategoryHolder: $('#ribbon-menu-other-subcategory-holder'),
-      subcategories: $('.ribbon-menu-other-subcategory'),
+      holder: document.getElementById('ribbon-menu-holder'),
+      panoFrame: document.getElementById('pano-border-frame'),
+      buttons: Array.from(document.querySelectorAll('.label-type-button-holder')),
+      subcategoryHolder: document.getElementById('ribbon-menu-other-subcategory-holder'),
+      subcategories: Array.from(document.querySelectorAll('.ribbon-menu-other-subcategory')),
     };
     this.#init();
   }
@@ -70,25 +70,25 @@ class RibbonMenu {
   #init() {
     this.#initTooltipAttributes();
 
-    // Initialize the jQuery DOM elements.
-    if (this.#uiRibbonMenu) {
-      this.#setLabelTypeButtonBorderColors(this.#status.mode);
+    this.#setLabelTypeButtonBorderColors(this.#status.mode);
 
-      this.#uiRibbonMenu.buttons.on('click', (e) => this.#handleModeSwitchClickCallback(e.currentTarget));
-      this.#uiRibbonMenu.buttons.on('mouseenter', (e) => this.#handleModeSwitchMouseEnter(e.currentTarget));
-      this.#uiRibbonMenu.buttons.on('mouseleave', () => this.#handleModeSwitchMouseLeave());
-      this.#uiRibbonMenu.subcategories.on('click', (e) => this.#handleSubcategoryClick(e));
+    for (const button of this.#uiRibbonMenu.buttons) {
+      button.addEventListener('click', (e) => this.#handleModeSwitchClickCallback(e.currentTarget));
+      button.addEventListener('mouseenter', (e) => this.#handleModeSwitchMouseEnter(e.currentTarget));
+      button.addEventListener('mouseleave', () => this.#handleModeSwitchMouseLeave());
+    }
+    for (const subcategory of this.#uiRibbonMenu.subcategories) {
+      subcategory.addEventListener('click', (e) => this.#handleSubcategoryClick(e));
     }
 
     // Disable mode switch when sign in modal is opened.
     // TODO this doesn't seem to be necessary for some reason?
-    if ($('#sign-in-modal-container').length !== 0) {
-      const $signInModalTextBoxes = $('#sign-in-modal-container input[type=\'text\']');
-      const $signInModalPassword = $('#sign-in-modal-container input[type=\'password\']');
-      $signInModalTextBoxes.on('focus', () => this.disableModeSwitch());
-      $signInModalTextBoxes.on('blur', () => this.enableModeSwitch());
-      $signInModalPassword.on('focus', () => this.disableModeSwitch());
-      $signInModalPassword.on('blur', () => this.enableModeSwitch());
+    const signInInputs = document.querySelectorAll(
+      '#sign-in-modal-container input[type=\'text\'], #sign-in-modal-container input[type=\'password\']',
+    );
+    for (const input of signInInputs) {
+      input.addEventListener('focus', () => this.disableModeSwitch());
+      input.addEventListener('blur', () => this.enableModeSwitch());
     }
 
     // TODO For some reason the Other label type button doesn't show in Safari if we don't reset the display attr??
@@ -109,7 +109,7 @@ class RibbonMenu {
 
     if (this.#status.disableModeSwitch === false || this.#status.disableMode[mode] === false) {
       // Triggers onboarding states.
-      $(document).trigger(`ModeSwitch_${mode}`);
+      document.dispatchEvent(new CustomEvent(`ModeSwitch_${mode}`));
 
       if (mode === 'Walk') {
         // Switch to walking mode.
@@ -127,8 +127,8 @@ class RibbonMenu {
         // A lingering hover card would sit above the drawing layer and swallow the label-placement click.
         if (svl.canvas) svl.canvas.showLabelHoverInfo(undefined);
 
-        // Change cursor before mouse is moved.
-        if (svl.ui.canvas.drawingLayer) svl.ui.canvas.drawingLayer.triggerHandler('mousemove');
+        // Change the cursor before the mouse moves. Doesn't bubble, so the tracker never logs it.
+        if (svl.ui.canvas.drawingLayer) svl.ui.canvas.drawingLayer.dispatchEvent(new MouseEvent('mousemove'));
 
         // Loads the audio for placing a label. Safari requires audio to be loaded before each play.
         // Since this takes time, it's done early (when user selects label type) so it's ready when the label is placed.
@@ -138,13 +138,11 @@ class RibbonMenu {
       // Lets a toast over the pano go click-through while a label type is armed (svl-canvas.css, #5496).
       document.body.classList.toggle('explore-labeling', mode !== 'Walk');
 
-      if (this.#uiRibbonMenu) {
-        this.#setLabelTypeButtonBorderColors(mode);
+      this.#setLabelTypeButtonBorderColors(mode);
 
-        // Recolor the panorama frame to match the selected label type (black while in Walk mode).
-        const borderColor = util.misc.getLabelColors()[mode].fillStyle;
-        this.#uiRibbonMenu.panoFrame.css('border-color', borderColor);
-      }
+      // Recolor the panorama frame to match the selected label type (black while in Walk mode).
+      const borderColor = util.misc.getLabelColors()[mode].fillStyle;
+      if (this.#uiRibbonMenu.panoFrame) this.#uiRibbonMenu.panoFrame.style.borderColor = borderColor;
     }
   }
 
@@ -153,7 +151,7 @@ class RibbonMenu {
    */
   #handleSubcategoryClick(e) {
     e.stopPropagation();
-    const subcategory = $(e.currentTarget).attr('val');
+    const subcategory = /** @type {Element} */ (e.currentTarget).getAttribute('val');
     if (this.#status.disableMode[subcategory] === false) {
       this.#tracker.push(`Click_Subcategory_${subcategory}`);
       svl.keyboardShortcutAlert.modeSwitchButtonClicked(subcategory);
@@ -163,10 +161,10 @@ class RibbonMenu {
   }
 
   /**
-   * @param {EventTarget} target - The clicked label-type button.
+   * @param {Element} target - The clicked label-type button.
    */
   #handleModeSwitchClickCallback(target) {
-    const labelType = $(target).attr('val');
+    const labelType = target.getAttribute('val');
     if (this.#status.disableModeSwitch === false || this.#status.disableMode[labelType] === false) {
       // Track the user action.
       this.#tracker.push(`Click_ModeSwitch_${labelType}`);
@@ -176,10 +174,10 @@ class RibbonMenu {
   }
 
   /**
-   * @param {EventTarget} target - The hovered label-type button.
+   * @param {Element} target - The hovered label-type button.
    */
   #handleModeSwitchMouseEnter(target) {
-    const labelType = $(target).attr('val');
+    const labelType = target.getAttribute('val');
 
     let modeDisabled;
     if (svl.isOnboarding() && labelType === 'Other') {
@@ -208,7 +206,7 @@ class RibbonMenu {
   }
 
   #hideSubcategories() {
-    this.#uiRibbonMenu.subcategoryHolder.css('visibility', 'hidden');
+    this.#uiRibbonMenu.subcategoryHolder.style.visibility = 'hidden';
   }
 
   /**
@@ -216,28 +214,31 @@ class RibbonMenu {
    * @returns {RibbonMenu} this.
    */
   #setLabelTypeButtonBorderColors(selectedLabelType) {
-    if (this.#uiRibbonMenu) { // TODO is this check necessary?
-      const labelColors = util.misc.getLabelColors();
-      const selectedBorderColor = labelColors[selectedLabelType].fillStyle;
-      $.each(this.#uiRibbonMenu.buttons, (i, v) => {
-        const currLabelType = $(v).attr('val');
-        if (currLabelType === selectedLabelType) {
-          $(v).find('.label-type-icon').css({
-            'border-color': selectedBorderColor,
-            'background-color': selectedBorderColor,
-          });
-        } else {
-          // Change border/background color if the label type is not the currently selected type.
-          $(v).find('.label-type-icon').css({ 'border-color': this.#properties.buttonDefaultBorderColor });
-          $(v).find('.label-type-icon').css({ 'background-color': this.#properties.buttonDefaultBorderColor });
-        }
-      });
+    const selectedBorderColor = util.misc.getLabelColors()[selectedLabelType].fillStyle;
+    for (const button of this.#uiRibbonMenu.buttons) {
+      const selected = button.getAttribute('val') === selectedLabelType;
+      const color = selected ? selectedBorderColor : this.#properties.buttonDefaultBorderColor;
+      for (const icon of button.querySelectorAll('.label-type-icon')) {
+        icon.style.borderColor = color;
+        icon.style.backgroundColor = color;
+      }
     }
     return this;
   }
 
   #showSubcategories() {
-    this.#uiRibbonMenu.subcategoryHolder.css('visibility', 'visible');
+    this.#uiRibbonMenu.subcategoryHolder.style.visibility = 'visible';
+  }
+
+  /**
+   * @param {HTMLElement[]} elements
+   * @param {boolean} enabled
+   */
+  static #setButtonsEnabledLook(elements, enabled) {
+    for (const el of elements) {
+      el.style.opacity = enabled ? '1' : '0.4';
+      el.style.cursor = enabled ? 'pointer' : 'default';
+    }
   }
 
   /**
@@ -269,13 +270,7 @@ class RibbonMenu {
         Signal: true,
         Other: true,
       };
-      if (this.#uiRibbonMenu) {
-        this.#uiRibbonMenu.buttons.css('opacity', 0.4);
-        this.#uiRibbonMenu.buttons.css('cursor', 'default');
-
-        this.#uiRibbonMenu.subcategories.css('opacity', 0.4);
-        this.#uiRibbonMenu.subcategories.css('cursor', 'default');
-      }
+      RibbonMenu.#setButtonsEnabledLook([...this.#uiRibbonMenu.buttons, ...this.#uiRibbonMenu.subcategories], false);
     }
     return this;
   }
@@ -287,29 +282,14 @@ class RibbonMenu {
    */
   disableMode(labelType, subLabelType) {
     if (!this.#status.lockDisableMode) {
-      const button = this.#uiRibbonMenu.holder.find(`[val="${labelType}"]`).get(0);
-      let dropdown;
-
       // So that outer category Other is disabled.
       if (labelType === 'Other') {
         this.#status.disableMode.OuterOther = true;
       } else {
         this.#status.disableMode[labelType] = true;
       }
-
-      if (subLabelType) {
-        this.#status.disableMode[subLabelType] = true;
-        dropdown = this.#uiRibbonMenu.subcategoryHolder.find(`[val="${subLabelType}"]`).get(0);
-      }
-
-      if (button) {
-        $(button).css('opacity', 0.4);
-        $(button).css('cursor', 'default');
-        if (dropdown) {
-          $(dropdown).css('opacity', 0.4);
-          $(dropdown).css('cursor', 'default');
-        }
-      }
+      if (subLabelType) this.#status.disableMode[subLabelType] = true;
+      RibbonMenu.#setButtonsEnabledLook(this.#findButtons(labelType, subLabelType), false);
     }
   }
 
@@ -333,13 +313,7 @@ class RibbonMenu {
         Signal: false,
         Other: false,
       };
-      if (this.#uiRibbonMenu) {
-        this.#uiRibbonMenu.buttons.css('opacity', 1);
-        this.#uiRibbonMenu.buttons.css('cursor', 'pointer');
-
-        this.#uiRibbonMenu.subcategories.css('opacity', 1);
-        this.#uiRibbonMenu.subcategories.css('cursor', 'pointer');
-      }
+      RibbonMenu.#setButtonsEnabledLook([...this.#uiRibbonMenu.buttons, ...this.#uiRibbonMenu.subcategories], true);
     }
     return this;
   }
@@ -351,31 +325,29 @@ class RibbonMenu {
    */
   enableMode(labelType, subLabelType) {
     if (!this.#status.lockDisableMode) {
-      const button = this.#uiRibbonMenu.holder.find(`[val="${labelType}"]`).get(0);
-      let dropdown;
-
       // So that sub category Other is not enabled.
       if (labelType === 'Other') {
         this.#status.disableMode.OuterOther = false;
       } else {
         this.#status.disableMode[labelType] = false;
       }
-
-      if (subLabelType) {
-        this.#status.disableMode[subLabelType] = false;
-        dropdown = this.#uiRibbonMenu.subcategoryHolder.find(`[val="${subLabelType}"]`).get(0);
-      }
-
-      if (button) {
-        $(button).css('opacity', 1);
-        $(button).css('cursor', 'pointer');
-
-        if (dropdown) {
-          $(dropdown).css('opacity', 1);
-          $(dropdown).css('cursor', 'pointer');
-        }
-      }
+      if (subLabelType) this.#status.disableMode[subLabelType] = false;
+      RibbonMenu.#setButtonsEnabledLook(this.#findButtons(labelType, subLabelType), true);
     }
+  }
+
+  /**
+   * The ribbon button for a label type and, if asked, its entry in the Other menu.
+   * @param {string} labelType
+   * @param {string} [subLabelType]
+   * @returns {HTMLElement[]}
+   */
+  #findButtons(labelType, subLabelType) {
+    const button = /** @type {HTMLElement} */ (this.#uiRibbonMenu.holder.querySelector(`[val="${labelType}"]`));
+    if (!button) return [];
+    const dropdown = /** @type {HTMLElement} */ (subLabelType
+      && this.#uiRibbonMenu.subcategoryHolder.querySelector(`[val="${subLabelType}"]`));
+    return dropdown ? [button, dropdown] : [button];
   }
 
   /** @returns {RibbonMenu} this. */
@@ -448,11 +420,11 @@ class RibbonMenu {
    * @param {string} [subLabelType]
    */
   startBlinking(labelType, subLabelType) {
-    const button = this.#uiRibbonMenu.holder.find(`[val="${labelType}"]`).get(0).children[0];
+    const button = this.#uiRibbonMenu.holder.querySelector(`[val="${labelType}"]`).children[0];
     let dropdown;
 
     if (subLabelType) {
-      dropdown = this.#uiRibbonMenu.subcategoryHolder.find(`[val="${subLabelType}"]`).get(0);
+      dropdown = this.#uiRibbonMenu.subcategoryHolder.querySelector(`[val="${subLabelType}"]`);
     }
 
     this.stopBlinking();
@@ -463,10 +435,8 @@ class RibbonMenu {
   }
 
   stopBlinking() {
-    $.each(this.#uiRibbonMenu.buttons, (i, v) => {
-      $(v.children[0]).removeClass('onboarding-attention');
-    });
-    this.#uiRibbonMenu.subcategories.removeClass('onboarding-attention');
+    for (const button of this.#uiRibbonMenu.buttons) button.children[0]?.classList.remove('onboarding-attention');
+    for (const subcategory of this.#uiRibbonMenu.subcategories) subcategory.classList.remove('onboarding-attention');
   }
 
   /** @returns {RibbonMenu} this. */

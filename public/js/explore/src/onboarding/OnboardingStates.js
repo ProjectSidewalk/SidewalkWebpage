@@ -1914,7 +1914,7 @@ function OnboardingStates(contextMenu, compass, panoManager) {
           + ` alt='Turn icon' />`;
         const message = `<div class='compass-message-small'>${i18next.t('center-ui.compass.unlabeled-problems')
         }</div>${image}<span class='compass-message-large'>${i18next.t('center-ui.compass.straight')}</span>`;
-        uiCompassMessageHolder.message.html(message);
+        uiCompassMessageHolder.message.innerHTML = message;
         compass.showMessage();
         return 'walk-2';
       },
@@ -1953,9 +1953,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       panoId,
       transition() {
         panoManager.setPov({ heading: 329, pitch: 0, zoom: 1 });
-        svl.ui.minimap.holder.css(
-          'backgroundImage', `url('${util.assetPath('images/explore/onboarding/afterWalkTutorialMiniMap.jpg')}')`,
-        );
+        svl.ui.minimap.holder.style.backgroundImage
+          = `url('${util.assetPath('images/explore/onboarding/afterWalkTutorialMiniMap.jpg')}')`;
         return 'walk-4';
       },
     },

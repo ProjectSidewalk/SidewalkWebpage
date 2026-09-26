@@ -215,7 +215,7 @@ describe('Label minimap eras (#4945)', () => {
 
         beforeEach(() => {
             LabelContainer = loadLabelContainer();
-            container = new LabelContainer(null, 1);
+            container = new LabelContainer(1);
         });
 
         it('brings a hidden earlier marker back when its mission becomes current again', () => {
@@ -271,11 +271,13 @@ describe('Label minimap eras (#4945)', () => {
         });
 
         it('keeps the legend checkbox in step with the applied preference', () => {
-            const checkbox = { prop: jest.fn() };
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = true;
             window.svl.ui = { minimap: { legendEarlierLabels: checkbox } };
             window.svl.storage.set(LabelContainer.EARLIER_LABELS_STORAGE_KEY, false);
             container.refreshMinimapEras();
-            expect(checkbox.prop).toHaveBeenLastCalledWith('checked', false);
+            expect(checkbox.checked).toBe(false);
         });
     });
 

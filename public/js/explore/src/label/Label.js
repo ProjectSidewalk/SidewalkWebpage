@@ -385,22 +385,22 @@ class Label {
     });
 
     // Occlusion labels have no context menu, so the card isn't a click target and the Edit button is hidden.
-    ui.hoverCard.toggleClass('label-hover-card--static', this.#properties.labelType === 'Occlusion');
+    ui.hoverCard.classList.toggle('label-hover-card--static', this.#properties.labelType === 'Occlusion');
     // The tutorial's delete lock hides the Delete button.
-    ui.hoverCard.toggleClass('label-hover-card--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
+    ui.hoverCard.classList.toggle('label-hover-card--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
     // Aims the share control at this label (and hides it for labels that can never have a public URL).
     svl.canvas.pointShareAtLabel(this);
 
     // The card and the context menu it opens into share one anchor so the panel expands roughly in place.
-    util.anchorPanelToLabel(ui.hoverCard[0], this.getCanvasXY(), svl.LABEL_ICON_RADIUS);
-    ui.hoverCard.css('visibility', 'visible');
+    util.anchorPanelToLabel(ui.hoverCard, this.getCanvasXY(), svl.LABEL_ICON_RADIUS);
+    ui.hoverCard.style.visibility = 'visible';
   }
 
   /**
    * Hides the shared hover card.
    */
   #hideHoverCard() {
-    svl.ui.canvas.hoverCard.css('visibility', 'hidden');
+    svl.ui.canvas.hoverCard.style.visibility = 'hidden';
   }
 
   /**

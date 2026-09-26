@@ -267,7 +267,9 @@ class PanoManager {
     }
 
     // Adds event listeners to the navigation arrows.
-    svl.ui.streetview.navArrows.on('click', (event) => {
+    svl.ui.streetview.navArrows.addEventListener('click', (event) => {
+      // The tutorial's walk step handles arrow clicks itself.
+      if (svl.isOnboarding()) return;
       event.stopPropagation();
       // A highlighted forward arrow that still carries a pano-id is a real link (just recolored to mark the route),
       // so it navigates like any link. Only the synthesized route-forward arrow (no pano-id, drawn when the link
@@ -286,13 +288,13 @@ class PanoManager {
     // Hovering an arrow outlines the minimap crumb it leads to, so "this arrow" and "that dot" read as one thing
     // (#4682). The synthesized route-forward arrow has no pano id; it leads to the route walk's next stop. mouseover
     // and mouseout bubble, so one delegated pair covers the arrows resetNavArrows recreates on every move.
-    svl.ui.streetview.navArrows.on('mouseover', (event) => {
+    svl.ui.streetview.navArrows.addEventListener('mouseover', (event) => {
       if (!svl.forwardCrumbs) return;
       const targetPanoId = event.target.getAttribute('pano-id');
       if (targetPanoId) svl.forwardCrumbs.highlight(targetPanoId);
       else if (event.target.classList.contains('route-forward-arrow')) svl.forwardCrumbs.highlightNextStop();
     });
-    svl.ui.streetview.navArrows.on('mouseout', () => {
+    svl.ui.streetview.navArrows.addEventListener('mouseout', () => {
       if (svl.forwardCrumbs) svl.forwardCrumbs.clearHighlight();
     });
 
@@ -389,15 +391,15 @@ class PanoManager {
    * Moves the GSV pano's bottom links to the top layer so they are clickable.
    */
   #makePanoLinksClickable = () => {
-    const panoLinks = $('.gm-style-cc', this.panoCanvas);
+    const panoLinks = this.panoCanvas.querySelectorAll('.gm-style-cc');
     if (!this.status.panoLinksClickable && panoLinks.length > 3) {
       this.status.panoLinksClickable = true;
 
       // Remove the first child of each GSV link because it looks better.
-      panoLinks.each((i, el) => el.firstElementChild && el.firstElementChild.remove());
+      panoLinks.forEach((el) => el.firstElementChild && el.firstElementChild.remove());
 
       panoLinks[0].remove(); // Remove GSV keyboard shortcuts link.
-      const gsvLinksBar = $(panoLinks[1]).parent().parent()[0];
+      const gsvLinksBar = panoLinks[1].parentElement.parentElement;
       svl.ui.streetview.viewControlLayer.append(gsvLinksBar);
       this.#liftBottomLeftAboveLinks(gsvLinksBar);
     }
@@ -452,22 +454,22 @@ class PanoManager {
    * Moves the minimap's links to the top layer so they are clickable, removing the ones that duplicate the GSV links.
    */
   #makeMinimapLinksClickable = () => {
-    const minimapLinks = $('.gm-style-cc', '#minimap');
+    const minimapLinks = document.querySelectorAll('#minimap .gm-style-cc');
     if (!this.status.minimapLinksClickable && minimapLinks.length > 4) {
       this.status.minimapLinksClickable = true;
       minimapLinks[0].remove(); // Remove mini map keyboard shortcuts link.
       minimapLinks[1].remove(); // Remove mini map copyright text (duplicate of GSV).
       minimapLinks[3].remove(); // Remove mini map terms of use link (duplicate of GSV).
-      svl.ui.minimap.overlay.append($(minimapLinks[4]).parent().parent());
+      svl.ui.minimap.overlay.append(minimapLinks[4].parentElement.parentElement);
     }
   };
 
   hideNavArrows() {
-    $('#nav-arrows-container').hide();
+    document.getElementById('nav-arrows-container').style.display = 'none';
   }
 
   showNavArrows() {
-    if (!this.status.lockShowingNavArrows) $('#nav-arrows-container').show();
+    if (!this.status.lockShowingNavArrows) document.getElementById('nav-arrows-container').style.display = '';
   }
 
   /* Prevents showNavArrows() from showing the arrows. Used to keep arrows hidden in the tutorial. */
@@ -489,7 +491,7 @@ class PanoManager {
    * blue arrow is synthesized at the route heading and its click walks the route (moveForward) instead of a link.
    */
   resetNavArrows() {
-    const arrowGroup = svl.ui.streetview.navArrows[0];
+    const arrowGroup = svl.ui.streetview.navArrows;
 
     // Clear existing arrows.
     while (arrowGroup.firstChild) {
@@ -550,7 +552,7 @@ class PanoManager {
    */
   highlightArrowTo(panoId) {
     this.clearArrowHighlight();
-    const arrowGroup = svl.ui.streetview.navArrows[0];
+    const arrowGroup = svl.ui.streetview.navArrows;
     let arrow = arrowGroup.querySelector(`image[pano-id="${CSS.escape(panoId)}"]`);
     if (!arrow && svl.forwardCrumbs && svl.forwardCrumbs.isWalkNextStop(panoId)) {
       arrow = arrowGroup.querySelector('.route-forward-arrow');
@@ -560,7 +562,7 @@ class PanoManager {
 
   /** Clears any arrow highlight set by {@link highlightArrowTo}. */
   clearArrowHighlight() {
-    for (const arrow of svl.ui.streetview.navArrows[0].querySelectorAll('.arrow-hover')) {
+    for (const arrow of svl.ui.streetview.navArrows.querySelectorAll('.arrow-hover')) {
       arrow.classList.remove('arrow-hover');
     }
   }
@@ -624,7 +626,7 @@ class PanoManager {
       if (svl.missionController) svl.missionController.maybeAutoCompleteRoute();
     }
 
-    const arrowGroup = svl.ui.streetview.navArrows[0];
+    const arrowGroup = svl.ui.streetview.navArrows;
     arrowGroup.setAttribute('transform', `rotate(${-heading})`);
     // The minimap fills in the crumb the user now faces: the one the forward arrow / up key would take them to.
     if (svl.forwardCrumbs) svl.forwardCrumbs.setFacing(heading);

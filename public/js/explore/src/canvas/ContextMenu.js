@@ -21,11 +21,13 @@ class ContextMenu {
   #headerIcon;
   #headerType;
   #tagHolder;
-  #tags;
+  #tags = [];
   #shareWidget = null;
 
   /**
-   * @param {Record<string, JQuery>} uiContextMenu - jQuery-wrapped context menu UI elements.
+   * @param {{holder: HTMLElement, severityMenu: HTMLElement, severityRadioHolder: HTMLElement,
+   *   radioButtons: HTMLInputElement[], textBox: HTMLInputElement, tagHolder: HTMLElement,
+   *   closeButton: HTMLElement}} uiContextMenu - The context menu's DOM elements.
    */
   constructor(uiContextMenu) {
     this.#menuWindow = uiContextMenu.holder;
@@ -33,32 +35,33 @@ class ContextMenu {
     this.#severityRadioHolder = uiContextMenu.severityRadioHolder;
     this.#severityRadios = uiContextMenu.radioButtons;
     this.#descriptionTextBox = uiContextMenu.textBox;
-    this.#headerIcon = this.#menuWindow.find('#context-menu-icon');
-    this.#headerType = this.#menuWindow.find('#context-menu-type');
+    this.#headerIcon = this.#menuWindow.querySelector('#context-menu-icon');
+    this.#headerType = this.#menuWindow.querySelector('#context-menu-type');
     this.#tagHolder = uiContextMenu.tagHolder;
-    this.#tags = uiContextMenu.tags;
     this.#initShareWidget();
 
     document.addEventListener('mousedown', (e) => this.#handleMouseDown(e));
-    this.#menuWindow.on('mousedown', (e) => this.#handleMenuWindowMouseDown(e));
-    this.#severityRadios.on('change', (e) => this.#handleSeverityChange(e));
-    this.#descriptionTextBox.on('change', (e) => this.#handleDescriptionTextBoxChange(e));
-    this.#descriptionTextBox.on('focus', () => this.#handleDescriptionTextBoxFocus());
-    this.#descriptionTextBox.on('blur', () => this.#handleDescriptionTextBoxBlur());
-    uiContextMenu.closeButton.on('click', () => this.#handleCloseButtonClick());
-    this.#menuWindow.find('#context-menu-done').on('click', () => this.#handleDoneButtonClick());
-    this.#menuWindow.find('#context-menu-delete').on('click', () => this.#handleDeleteButtonClick());
-    this.#tags.on('click', (e) => this.#handleTagClick(e));
+    this.#menuWindow.addEventListener('mousedown', (e) => this.#handleMenuWindowMouseDown(e));
+    for (const radio of this.#severityRadios) radio.addEventListener('change', (e) => this.#handleSeverityChange(e));
+    this.#descriptionTextBox.addEventListener('change', (e) => this.#handleDescriptionTextBoxChange(e));
+    this.#descriptionTextBox.addEventListener('focus', () => this.#handleDescriptionTextBoxFocus());
+    this.#descriptionTextBox.addEventListener('blur', () => this.#handleDescriptionTextBoxBlur());
+    uiContextMenu.closeButton.addEventListener('click', () => this.#handleCloseButtonClick());
+    this.#menuWindow.querySelector('#context-menu-done')
+      ?.addEventListener('click', () => this.#handleDoneButtonClick());
+    this.#menuWindow.querySelector('#context-menu-delete')
+      ?.addEventListener('click', () => this.#handleDeleteButtonClick());
   }
 
+  /**
+   * Selects a severity the way a click on its segment would, `change` event included.
+   * @param {number} value
+   */
   checkRadioButton(value) {
-    // Trigger `change` explicitly — `.prop('checked', true)` alone does not fire it.
-    this.#severityRadios
-      .filter(function () {
-        return parseInt(this.value, 10) === value;
-      })
-      .prop('checked', true)
-      .trigger('change', { lowLevelLogging: false });
+    const radio = this.#severityRadios.find((r) => parseInt(r.value, 10) === value);
+    if (!radio) return;
+    radio.checked = true;
+    radio.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   #getStatus(key) {
@@ -87,7 +90,7 @@ class ContextMenu {
    * @param {Event} e
    */
   #handleMouseDown(e) {
-    const clickedOut = !(this.#menuWindow[0].contains(e.target));
+    const clickedOut = !this.#menuWindow.contains(/** @type {Node} */ (e.target));
     if (this.isOpen()) {
       if (clickedOut) {
         svl.tracker.push('ContextMenu_CloseClickOut');
@@ -99,7 +102,7 @@ class ContextMenu {
   }
 
   #handleDescriptionTextBoxChange(e) {
-    const description = $(e.currentTarget).val();
+    const description = /** @type {HTMLInputElement} */ (e.currentTarget).value;
     svl.tracker.push('ContextMenu_TextBoxChange', { Description: description });
     if (this.#status.targetLabel) {
       this.#status.targetLabel.setProperty('description', description);
@@ -159,7 +162,7 @@ class ContextMenu {
   }
 
   #handleSeverityChange(e) {
-    const severity = parseInt($(e.currentTarget).val(), 10);
+    const severity = parseInt(/** @type {HTMLInputElement} */ (e.currentTarget).value, 10);
     const label = this.#status.targetLabel;
     svl.tracker.push('ContextMenu_RadioChange', { LabelType: label.getLabelType(), RadioValue: severity });
 
@@ -194,16 +197,16 @@ class ContextMenu {
    * severity level is currently selected (filled vs outline variant).
    */
   updateRadioButtonImages() {
-    if (!this.#severityRadioHolder[0]) return;
-    const checkedSev = Number(this.#severityRadios.filter(':checked').val());
+    if (!this.#severityRadioHolder) return;
+    const checkedSev = Number(this.#severityRadios.find((r) => r.checked)?.value);
     const labelType = this.#status.targetLabel ? this.#status.targetLabel.getLabelType() : null;
-    this.#severityRadioHolder[0].querySelectorAll('.severity-button').forEach((button) => {
+    this.#severityRadioHolder.querySelectorAll('.severity-button').forEach((button) => {
       const sev = Number(button.dataset.severity);
       const img = button.querySelector('.severity-button__icon');
       if (img) img.src = util.misc.getSmileyIconPath(sev, labelType, sev === checkedSev);
       // The chosen segment is washed and underlined in its own level's colour. The selected state is marked with
       // a class rather than left to CSS to infer from :has(:checked) -- the radio is visually hidden and driven
-      // through jQuery, and this keeps the styling keyed to the same value that picks the smiley above.
+      // from code, and this keeps the styling keyed to the same value that picks the smiley above.
       button.classList.toggle('severity-button--checked', sev === checkedSev);
       const colors = util.misc.getSeverityLevelColors(sev, labelType);
       if (colors) {
@@ -223,86 +226,86 @@ class ContextMenu {
     const infoKey = positive ? 'rate-quality-info' : 'rate-severity-info';
     const levelKeys = util.misc.getRatingLevelKeys(labelType);
 
-    const $header = $('#severity-header-text');
-    if ($header.length) $header.text(i18next.t(`common:${headerKey}`));
-    const $info = $('#severity-header-info');
+    const header = document.getElementById('severity-header-text');
+    if (header) header.textContent = i18next.t(`common:${headerKey}`);
+    const info = document.getElementById('severity-header-info');
     // The alt rides along because it is this icon's accessible name, and the markup's static one says "severity"
     // whichever dimension is on screen.
-    if ($info.length) {
-      const info = i18next.t(`common:${infoKey}`);
-      $info.attr({ 'data-ps-tooltip': info, 'alt': info });
+    if (info) {
+      const infoText = i18next.t(`common:${infoKey}`);
+      info.setAttribute('data-ps-tooltip', infoText);
+      info.setAttribute('alt', infoText);
     }
     for (let sev = 1; sev <= 3; sev++) {
-      $(`.severity-button[data-severity="${sev}"] .severity-button__label`)
-        .text(i18next.t(`common:${levelKeys[sev]}`));
+      const labels = document.querySelectorAll(`.severity-button[data-severity="${sev}"] .severity-button__label`);
+      for (const label of labels) label.textContent = i18next.t(`common:${levelKeys[sev]}`);
     }
+  }
+
+  /**
+   * The tag id a button stands for.
+   * @param {HTMLElement} button
+   * @returns {number}
+   */
+  static #tagIdOf(button) {
+    return parseInt(button.dataset.tagId, 10);
   }
 
   /**
    * Records tag ID when clicked and updates tag color.
-   * @param {JQuery.ClickEvent} e
+   * @param {MouseEvent} e
    */
   #handleTagClick(e) {
+    const button = /** @type {HTMLButtonElement} */ (e.currentTarget);
     let labelTags = this.#status.targetLabel.getProperty('tagIds');
 
-    // Use position of cursor to determine whether the click came from the mouse or from a keyboard shortcut.
-    const wasClickedByMouse = Object.hasOwn(e, 'originalEvent')
-      && e.originalEvent.clientX !== 0
-      && e.originalEvent.clientY !== 0;
+    // A shortcut key's click and Enter on a focused button have no cursor position, so both count as keyboard.
+    const wasClickedByMouse = e.isTrusted && e.clientX !== 0 && e.clientY !== 0;
 
-    $('body').off('click').on('click', 'button', (clickEvent) => {
-      if (clickEvent.target.name === 'tag') {
-        // Get the tag_id from the clicked tag's class name (e.g., "tag-id-9").
-        const tagClass = $(clickEvent.target).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0];
-        const currTagId = parseInt(tagClass.match(/\d+/)[0], 10);
-        const tag = this.labelTags.filter((t) => t.tag_id === currTagId)[0];
+    const tag = this.labelTags.find((t) => t.tag_id === ContextMenu.#tagIdOf(button));
 
-        // Adds or removes tag from the label's current list of tags.
-        if (!labelTags.includes(tag.tag_id)) {
-          // If the tag is mutually exclusive with another tag, automatically remove the other tag.
-          if (tag.mutually_exclusive_with) {
-            const mutuallyExclusiveTag = this.labelTags.filter((t) => t.tag === tag.mutually_exclusive_with)[0];
-            if (mutuallyExclusiveTag) {
-              labelTags = this.#autoRemoveAlternateTagAndUpdateUI(mutuallyExclusiveTag.tag_id, labelTags);
-            }
-          }
-
-          // Log the tag click.
-          labelTags.push(tag.tag_id);
-          if (wasClickedByMouse) {
-            svl.tracker.push('ContextMenu_TagAdded', { tagId: tag.tag_id, tagName: tag.tag });
-          } else {
-            svl.tracker.push('KeyboardShortcut_TagAdded', { tagId: tag.tag_id, tagName: tag.tag });
-          }
-        } else {
-          labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
-          if (wasClickedByMouse) {
-            svl.tracker.push('ContextMenu_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
-          } else {
-            svl.tracker.push('KeyboardShortcut_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
-          }
+    // Adds or removes tag from the label's current list of tags.
+    if (!labelTags.includes(tag.tag_id)) {
+      // If the tag is mutually exclusive with another tag, automatically remove the other tag.
+      if (tag.mutually_exclusive_with) {
+        const mutuallyExclusiveTag = this.labelTags.find((t) => t.tag === tag.mutually_exclusive_with);
+        if (mutuallyExclusiveTag) {
+          labelTags = this.#autoRemoveAlternateTagAndUpdateUI(mutuallyExclusiveTag.tag_id, labelTags);
         }
-        clickEvent.target.classList.toggle('tag-pill--active');
-        this.#status.targetLabel.setProperty('tagIds', labelTags);
-        clickEvent.target.blur();
-        this.#tagHolder.trigger('tagIds-updated'); // For events that depend on up-to-date tagIds.
       }
-    });
+
+      // Log the tag click.
+      labelTags.push(tag.tag_id);
+      if (wasClickedByMouse) {
+        svl.tracker.push('ContextMenu_TagAdded', { tagId: tag.tag_id, tagName: tag.tag });
+      } else {
+        svl.tracker.push('KeyboardShortcut_TagAdded', { tagId: tag.tag_id, tagName: tag.tag });
+      }
+    } else {
+      labelTags.splice(labelTags.indexOf(tag.tag_id), 1);
+      if (wasClickedByMouse) {
+        svl.tracker.push('ContextMenu_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
+      } else {
+        svl.tracker.push('KeyboardShortcut_TagRemoved', { tagId: tag.tag_id, tagName: tag.tag });
+      }
+    }
+    button.classList.toggle('tag-pill--active');
+    this.#status.targetLabel.setProperty('tagIds', labelTags);
+    button.blur();
+    // For events that depend on up-to-date tagIds.
+    this.#tagHolder.dispatchEvent(new CustomEvent('tagIds-updated'));
   }
 
   /**
    * Remove the alternate tag, update UI, and add the selected tag.
-   * @param {*} tagId - The id of the tag to be removed.
-   * @param {*} labelTags - List of tags that the current label has.
-   * @returns {*} The updated labelTags list.
+   * @param {number} tagId - The id of the tag to be removed.
+   * @param {number[]} labelTags - List of tags that the current label has.
+   * @returns {number[]} The updated labelTags list.
    */
   #autoRemoveAlternateTagAndUpdateUI(tagId, labelTags) {
-    this.#tags.each((index, tag) => {
-      const classWithTagId = tag.className.split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0];
-      if (classWithTagId !== undefined && parseInt(classWithTagId.match(/\d+/)[0], 10) === tagId) {
-        $(`.${classWithTagId}`).removeClass('tag-pill--active');
-      }
-    });
+    for (const tag of this.#tags) {
+      if (ContextMenu.#tagIdOf(tag) === tagId) tag.classList.remove('tag-pill--active');
+    }
 
     // Remove tag from list of tags and log the automated removal.
     this.labelTags.forEach((tag) => {
@@ -321,7 +324,9 @@ class ContextMenu {
   hide() {
     const wasOpen = this.isOpen();
     if (wasOpen) {
-      this.#descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
+      // Every close logs a blur row before the close row, focused or not.
+      if (document.activeElement === this.#descriptionTextBox) this.#descriptionTextBox.blur();
+      else this.#handleDescriptionTextBoxBlur();
       svl.tracker.push('ContextMenu_Close');
     }
 
@@ -329,7 +334,7 @@ class ContextMenu {
     // widget believing it is still open, with its document-level ESC and arrow-key handlers still armed.
     this.#shareWidget?.close();
 
-    this.#menuWindow.css('visibility', 'hidden');
+    this.#menuWindow.style.visibility = 'hidden';
     this.#setStatus('visibility', 'hidden');
 
     // Restore the target label's icon to full opacity (see Label.render). Only when the panel was actually open —
@@ -373,24 +378,20 @@ class ContextMenu {
 
   // Removes the disabled visual effects from the severity buttons on current context menu.
   #showRatingSeverityEnabled() {
-    this.#severityRadioHolder.removeClass('disabled');
+    this.#severityRadioHolder.classList.remove('disabled');
   }
 
   // Adds the disabled visual effects to the severity buttons on current context menu.
   #showRatingSeverityDisabled() {
-    this.#severityRadioHolder.addClass('disabled');
+    this.#severityRadioHolder.classList.add('disabled');
   }
 
   #showTaggingEnabled() {
-    $('body').find('button[name=tag]').each(function () {
-      $(this).removeClass('disabled');
-    });
+    for (const tag of this.#tags) tag.classList.remove('disabled');
   }
 
   #showTaggingDisabled() {
-    $('body').find('button[name=tag]').each(function () {
-      $(this).addClass('disabled');
-    });
+    for (const tag of this.#tags) tag.classList.add('disabled');
   }
 
   /**
@@ -417,57 +418,34 @@ class ContextMenu {
    */
   #setTagColor(label) {
     const labelTags = label.getProperty('tagIds');
-    $('body').find('button[name=tag]').each(function () {
-      const buttonText = $(this).text();
-      if (buttonText) {
-        const tagClass = $(this).attr('class').split(' ').filter((c) => c.search(/tag-id-\d+/) > -1)[0];
-        const tagId = parseInt(tagClass.match(/\d+/)[0], 10);
-
-        // Sets color based on whether the tag is now selected.
-        if (labelTags.includes(tagId)) {
-          $(this).addClass('tag-pill--active');
-        } else {
-          $(this).removeClass('tag-pill--active');
-        }
-      }
-    });
+    for (const tag of this.#tags) {
+      tag.classList.toggle('tag-pill--active', labelTags.includes(ContextMenu.#tagIdOf(tag)));
+    }
   }
 
   /**
-   * Sets the description and value of the tag based on the label type.
+   * Builds one tag button per tag of the label's type.
    * @param {Label} label - Current label being modified.
    */
   #setTags(label) {
-    const maxTags = 17;
+    this.#tags = [];
+    this.#tagHolder.replaceChildren();
     if (label) {
       const labelTags = this.labelTags;
       if (labelTags) {
-        let count = 0;
-
-        // Go through each label tag, modify each button to display tag.
         labelTags.forEach((tag) => {
           if (tag.label_type === label.getProperty('labelType')) {
-            const buttonIdx = count; // Save index in a separate var b/c tooltips are added asynchronously.
-
-            // Remove all leftover tags from last labeling.
-            // Warning to future devs: will remove any other classes you add to the tags.
-            this.#tagHolder.find(`button[id=${buttonIdx}]`)
-              .attr('class', 'context-menu-tag tag-pill tag-pill--interactive');
-
-            // Add tag id as a class so that finding the element is easier later.
-            this.#tagHolder.find(`button[id=${buttonIdx}]`).addClass(`tag-id-${tag.tag_id}`);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'context-menu-tag tag-pill tag-pill--interactive';
+            button.dataset.tagId = String(tag.tag_id);
 
             // Set tag texts to new underlined version as defined in the util label description map.
             const tagText = util.misc.getLabelDescriptions(tag.label_type).tagInfo[tag.tag].text;
-            this.#tagHolder.find(`button[id=${buttonIdx}]`)
-              .html(`<span class="tag-pill__label">${tagText}</span>`);
-
-            this.#tagHolder.find(`button[id=${buttonIdx}]`).css({
-              visibility: 'inherit', position: 'inherit',
-            });
-
-            // Remove old tooltip for that button.
-            this.#tagHolder.find(`button[id=${buttonIdx}]`).removeAttr('data-ps-tooltip');
+            button.innerHTML = `<span class="tag-pill__label">${tagText}</span>`;
+            button.addEventListener('click', (e) => this.#handleTagClick(e));
+            this.#tagHolder.append(button);
+            this.#tags.push(button);
 
             // Add tooltip with tag example if we have an example image to show.
             // If there's a server-specific image, try that first. Get default image as a backup.
@@ -513,23 +491,12 @@ class ContextMenu {
               });
               const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`;
 
-              this.#tagHolder.find(`button[id=${buttonIdx}]`)
-                .attr('data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`);
+              button.setAttribute(
+                'data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
+              );
             });
-
-            count += 1;
           }
         });
-
-        // If number of tags is less than the max number of tags, hide button.
-        for (let i = count; i < maxTags; i++) {
-          $('body').find(`button[id=${i}]`).css({
-            visibility: 'hidden',
-            position: 'absolute',
-            top: '0px',
-            left: '0px',
-          });
-        }
       }
     }
   }
@@ -548,8 +515,10 @@ class ContextMenu {
         const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
         const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`;
         // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
-        $(`.severity-button[data-severity="${sev}"]`).attr('data-ps-tooltip',
-          `${tooltipHeader}<br/><img class="context-menu-tooltip__img--severity" src="${img}"/><br/>${tooltipFooter}`);
+        const tooltipImage = `<img class="context-menu-tooltip__img--severity" src="${img}"/>`;
+        for (const button of document.querySelectorAll(`.severity-button[data-severity="${sev}"]`)) {
+          button.setAttribute('data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/>${tooltipFooter}`);
+        }
       });
     }
   }
@@ -559,7 +528,9 @@ class ContextMenu {
    */
   #removePrevSeverityTooltips() {
     for (let severity = 1; severity < 4; severity++) {
-      $(`.severity-button[data-severity="${severity}"]`).removeAttr('data-ps-tooltip');
+      for (const button of document.querySelectorAll(`.severity-button[data-severity="${severity}"]`)) {
+        button.removeAttribute('data-ps-tooltip');
+      }
     }
   }
 
@@ -569,8 +540,8 @@ class ContextMenu {
    */
   show(targetLabel) {
     this.#setStatus('targetLabel', null);
-    this.#severityRadios.prop('checked', false);
-    this.#descriptionTextBox.val(null);
+    for (const radio of this.#severityRadios) radio.checked = false;
+    this.#descriptionTextBox.value = '';
 
     const labelType = targetLabel.getLabelType();
     const labelCoord = targetLabel.getCanvasXY();
@@ -580,10 +551,12 @@ class ContextMenu {
 
       // Identify the label being edited, the way the collapsed card does. Without this the panel opens on its
       // first field and never says what it belongs to.
-      this.#headerIcon.attr('src', util.misc.getIconImagePaths(labelType).iconImagePath);
-      this.#headerType.text(i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', ''));
+      if (this.#headerIcon) this.#headerIcon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+      if (this.#headerType) {
+        this.#headerType.textContent = i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '');
+      }
       // The tutorial can forbid deleting the label it just had you place.
-      this.#menuWindow.toggleClass('context-menu--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
+      this.#menuWindow.classList.toggle('context-menu--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
 
       this.#setTags(targetLabel);
       this.#setTagColor(targetLabel);
@@ -592,20 +565,12 @@ class ContextMenu {
       }
 
       // Hide the severity menu for label types that don't have a severity rating.
-      if (util.misc.labelTypeHasSeverity(labelType)) {
-        this.#severityMenu.removeClass('hidden');
-      } else {
-        this.#severityMenu.addClass('hidden');
-      }
+      this.#severityMenu.classList.toggle('hidden', !util.misc.labelTypeHasSeverity(labelType));
       // Set the menu value if label has its value set.
       const severity = targetLabel.getProperty('severity');
       const description = targetLabel.getProperty('description');
       if (severity) {
-        this.#severityRadios.each(function (i) {
-          if (severity === i + 1) {
-            $(this).prop('checked', true);
-          }
-        });
+        for (const radio of this.#severityRadios) radio.checked = parseInt(radio.value, 10) === severity;
       }
 
       // Enable rating severity and tagging on tutorial labels if appropriate.
@@ -618,9 +583,7 @@ class ContextMenu {
 
       this.#setStatus('visibility', 'visible');
 
-      if (description) {
-        this.#descriptionTextBox.val(description);
-      }
+      if (description) this.#descriptionTextBox.value = description;
       const labelProps = this.#status.targetLabel.getProperties();
 
       // Don't push event on Occlusion labels; they don't open ContextMenus.
@@ -643,8 +606,8 @@ class ContextMenu {
     // targetLabel is only set for label types that get a menu at all (Occlusion doesn't).
     if (this.#getStatus('targetLabel')) {
       this.#pointShareAtLabel(this.#getStatus('targetLabel'));
-      util.anchorPanelToLabel(this.#menuWindow[0], labelCoord, svl.LABEL_ICON_RADIUS);
-      this.#menuWindow.css('visibility', 'visible');
+      util.anchorPanelToLabel(this.#menuWindow, labelCoord, svl.LABEL_ICON_RADIUS);
+      this.#menuWindow.style.visibility = 'visible';
 
       // Fade the target label's icon (see Label.render). Not every caller renders after opening the panel, and the
       // ones that do — the hover card's click handler, for one — render before it, so do it here.
@@ -684,7 +647,7 @@ class ContextMenu {
    */
   #pointShareAtLabel(label) {
     const shareable = !svl.isOnboarding() && !label.isDeleted();
-    this.#menuWindow.toggleClass('context-menu--no-share', !shareable);
+    this.#menuWindow.classList.toggle('context-menu--no-share', !shareable);
     if (!this.#shareWidget || !shareable) return;
 
     const id = label.getProperty('labelId');

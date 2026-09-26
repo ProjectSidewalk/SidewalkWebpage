@@ -123,7 +123,7 @@ class Main {
     svl.canvas = new Canvas(svl.ribbon);
     // The shared populator for the hover card's content; Label.#updateHoverCard re-points it per label (#4730).
     // Explore truncates the description because clicking the label reopens the full text in an editable field.
-    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard[0], { descriptionMaxLength: 90 });
+    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard, { descriptionMaxLength: 90 });
 
     // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
     svl.iconsPreloaded = Label.preloadIcons();
@@ -133,7 +133,7 @@ class Main {
     svl.taskContainer = new TaskContainer(svl.regionModel, svl, svl.tracker);
     svl.taskContainer._tasks.push(newTask);
     svl.taskContainer.setCurrentTask(newTask);
-    svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
+    svl.labelContainer = new LabelContainer(params.nextTemporaryLabelId);
 
     // Set map parameters and instantiate it.
     svl.compass = new Compass(svl.navigationService, svl.taskContainer);
@@ -254,8 +254,8 @@ class Main {
       },
     );
 
-    svl.panoDateNote = new PanoDateNote(svl.tracker, svl.ui.streetview.dateHolder[0],
-      svl.ui.streetview.datePill[0], svl.ui.streetview.date[0]);
+    svl.panoDateNote = new PanoDateNote(svl.tracker, svl.ui.streetview.dateHolder,
+      svl.ui.streetview.datePill, svl.ui.streetview.date);
     // The first pano and the first task both land before this line, so their own updates find no note to draw on and
     // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
     const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
@@ -277,19 +277,20 @@ class Main {
     );
     this.#loadData(svl.taskContainer, svl.missionModel, svl.regionModel, svl.contextMenu);
 
-    $('#navbar-retake-tutorial-btn').on('click', () => {
+    document.getElementById('navbar-retake-tutorial-btn')?.addEventListener('click', () => {
       window.location.replace('/explore?retakeTutorial=true');
     });
 
     // The auth dialog is absent when signed in; dim the tool UI while it's open (events from common/Modal.js).
     const signInModal = document.getElementById('sign-in-modal-container');
+    const toolUi = document.querySelectorAll('.tool-ui');
     signInModal?.addEventListener('ps:modal:hidden', () => {
       svl.popUpMessage.enableInteractions();
-      $('.tool-ui').css('opacity', 1);
+      toolUi.forEach((el) => el.style.opacity = '1');
     });
     signInModal?.addEventListener('ps:modal:show', () => {
       svl.popUpMessage.disableInteractions();
-      $('.tool-ui').css('opacity', 0.5);
+      toolUi.forEach((el) => el.style.opacity = '0.5');
     });
 
     // Clean up the URL in the address bar.
@@ -409,8 +410,6 @@ class Main {
   }
 
   #startTheMission(mission, region) {
-    svl.ui.minimap.holder.css('backgroundColor', '#e5e3df');
-
     // Popup the message explaining the goal of the current mission.
     if (svl.missionContainer.isTheFirstMission()) {
       region = svl.regionModel.currentRegion();
@@ -473,8 +472,8 @@ class Main {
       svl.panoManager.resetNavArrows();
 
       // Remove the loading cover page and make the tool visible.
-      $('#page-loading').css({ visibility: 'hidden' });
-      $('.tool-ui').removeClass('ps-invisible');
+      document.getElementById('page-loading').style.visibility = 'hidden';
+      document.querySelectorAll('.tool-ui').forEach((el) => el.classList.remove('ps-invisible'));
 
       // Check if the user has completed the onboarding tutorial.
       const mission = svl.missionContainer.getCurrentMission();
@@ -695,71 +694,75 @@ class Main {
   }
 
   /**
-   * Store jQuery DOM elements under svl.ui.
+   * Store DOM elements under svl.ui.
    * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace.
    */
   #initUI() {
+    const byId = (id) => document.getElementById(id);
     svl.ui = {};
 
     // Minimap DOMs.
-    svl.ui.minimap = {};
-    svl.ui.minimap.holder = $('#minimap-holder');
-    svl.ui.minimap.overlay = $('#minimap-overlay');
-    svl.ui.minimap.fogOfWar = $('#minimap-fog-of-war-canvas');
-    svl.ui.minimap.fov = $('#minimap-fov-canvas');
-    svl.ui.minimap.progressCircle = $('#minimap-progress-circle-canvas');
-    svl.ui.minimap.percentObserved = $('#minimap-percent-observed');
-    svl.ui.minimap.missionProgress = $('#minimap-mission-progress');
-    svl.ui.minimap.missionProgressFill = $('#minimap-mission-progress-fill');
-    svl.ui.minimap.missionProgressPercent = $('#minimap-mission-progress-percent');
-    svl.ui.minimap.missionProgressDistance = $('#minimap-mission-progress-distance');
-    svl.ui.minimap.coach = $('#minimap-coach');
-    svl.ui.minimap.coachDismiss = $('#minimap-coach-dismiss');
-    svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
-    svl.ui.minimap.legendCard = $('#minimap-legend-card');
-    svl.ui.minimap.legendClose = $('#minimap-legend-close');
-    svl.ui.minimap.legendEarlierLabels = $('#minimap-legend-earlier-labels');
-    svl.ui.minimap.routeOverview = $('#minimap-route-overview');
-    svl.ui.minimap.routeOverviewCanvas = $('#minimap-route-overview-canvas');
+    svl.ui.minimap = {
+      holder: byId('minimap-holder'),
+      overlay: byId('minimap-overlay'),
+      fogOfWar: byId('minimap-fog-of-war-canvas'),
+      fov: byId('minimap-fov-canvas'),
+      progressCircle: byId('minimap-progress-circle-canvas'),
+      percentObserved: byId('minimap-percent-observed'),
+      missionProgress: byId('minimap-mission-progress'),
+      missionProgressFill: byId('minimap-mission-progress-fill'),
+      missionProgressPercent: byId('minimap-mission-progress-percent'),
+      missionProgressDistance: byId('minimap-mission-progress-distance'),
+      coach: byId('minimap-coach'),
+      coachDismiss: byId('minimap-coach-dismiss'),
+      legendToggle: byId('minimap-legend-toggle'),
+      legendCard: byId('minimap-legend-card'),
+      legendClose: byId('minimap-legend-close'),
+      legendEarlierLabels: byId('minimap-legend-earlier-labels'),
+      routeOverview: byId('minimap-route-overview'),
+      routeOverviewCanvas: byId('minimap-route-overview-canvas'),
+    };
 
     // Street view area DOM elements.
-    svl.ui.streetview = {};
-    svl.ui.streetview.drawingLayer = $('div#label-drawing-layer');
-    svl.ui.streetview.pano = $('div#pano');
-    svl.ui.streetview.viewControlLayer = $('div#view-control-layer');
-    svl.ui.streetview.modeSwitchWalk = $('#mode-switch-button-walk');
-    svl.ui.streetview.navArrows = $('#arrow-group');
-    svl.ui.streetview.dateHolder = $('#svl-panorama-date-holder');
-    svl.ui.streetview.datePill = $('#svl-panorama-date-pill');
-    svl.ui.streetview.date = $('#svl-panorama-date');
+    svl.ui.streetview = {
+      drawingLayer: byId('label-drawing-layer'),
+      pano: byId('pano'),
+      viewControlLayer: byId('view-control-layer'),
+      modeSwitchWalk: byId('mode-switch-button-walk'),
+      navArrows: byId('arrow-group'),
+      dateHolder: byId('svl-panorama-date-holder'),
+      datePill: byId('svl-panorama-date-pill'),
+      date: byId('svl-panorama-date'),
+    };
 
     // Canvas for the labeling area.
-    svl.ui.canvas = {};
-    svl.ui.canvas.drawingLayer = $('#label-drawing-layer');
-    svl.ui.canvas.hoverCard = $('#label-hover-card');
-    svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
-    svl.ui.canvas.hoverCardEdit = $('#label-hover-card-edit');
-    svl.ui.canvas.hoverCardShare = $('#label-hover-card-share');
+    svl.ui.canvas = {
+      drawingLayer: byId('label-drawing-layer'),
+      hoverCard: byId('label-hover-card'),
+      hoverCardDelete: byId('label-hover-card-delete'),
+      hoverCardEdit: byId('label-hover-card-edit'),
+      hoverCardShare: byId('label-hover-card-share'),
+    };
 
     // Context menu.
-    svl.ui.contextMenu = {};
-    svl.ui.contextMenu.holder = $('#context-menu-holder');
-    svl.ui.contextMenu.severityMenu = $('#severity-menu');
-    svl.ui.contextMenu.severityRadioHolder = $('#severity-radio-holder');
-    svl.ui.contextMenu.radioButtons = $('input[name=\'label-severity\']');
-    svl.ui.contextMenu.tagSection = $('#context-menu-tag-section');
-    svl.ui.contextMenu.tagHolder = $('#context-menu-tag-holder');
-    svl.ui.contextMenu.tags = $('button[name=\'tag\']');
-    svl.ui.contextMenu.textBox = $('#context-menu-description-text-box');
-    svl.ui.contextMenu.closeButton = $('#context-menu-close-button');
+    svl.ui.contextMenu = {
+      holder: byId('context-menu-holder'),
+      severityMenu: byId('severity-menu'),
+      severityRadioHolder: byId('severity-radio-holder'),
+      radioButtons: Array.from(document.querySelectorAll('input[name=\'label-severity\']')),
+      tagSection: byId('context-menu-tag-section'),
+      tagHolder: byId('context-menu-tag-holder'),
+      textBox: byId('context-menu-description-text-box'),
+      closeButton: byId('context-menu-close-button'),
+    };
 
     // Tutorial.
-    svl.ui.onboarding = {};
-    svl.ui.onboarding.holder = $('#onboarding-holder');
-    svl.ui.onboarding.messageHolder = $('#onboarding-message-holder');
-    svl.ui.onboarding.background = $('#onboarding-background');
-    svl.ui.onboarding.foreground = $('#onboarding-foreground');
-    svl.ui.onboarding.canvas = $('#onboarding-canvas');
-    svl.ui.onboarding.handGestureHolder = $('#hand-gesture-holder');
+    svl.ui.onboarding = {
+      holder: byId('onboarding-holder'),
+      messageHolder: byId('onboarding-message-holder'),
+      background: byId('onboarding-background'),
+      canvas: byId('onboarding-canvas'),
+      handGestureHolder: byId('hand-gesture-holder'),
+    };
   }
 }

@@ -222,10 +222,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
         window.eval(`${FLAG_GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`);
         window.eval(`${NAVIGATION_SERVICE_SRC}; window.NavigationService = NavigationService;`);
 
-        const jqueryStub = () => ({ css: jest.fn() });
-        nav = new window.NavigationService({}, {
-            modeSwitchWalk: jqueryStub(), viewControlLayer: jqueryStub(), drawingLayer: jqueryStub(),
-        });
+        const el = () => document.createElement('div');
+        nav = new window.NavigationService({}, { modeSwitchWalk: el(), viewControlLayer: el(), drawingLayer: el() });
     });
 
     afterEach(() => {

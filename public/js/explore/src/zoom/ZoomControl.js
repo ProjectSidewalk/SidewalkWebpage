@@ -42,13 +42,14 @@ class ZoomControl {
     this.#canvas = canvas;
     this.#tracker = tracker;
     this.#uiZoomControl = {
-      zoomIn: $('#zoom-in-button'),
-      zoomOut: $('#zoom-out-button'),
+      zoomIn: document.getElementById('zoom-in-button'),
+      zoomOut: document.getElementById('zoom-out-button'),
     };
 
-    this.#uiZoomControl.zoomIn.on('click', () => this.#handleZoomInButtonClick());
-    this.#uiZoomControl.zoomOut.on('click', () => this.#handleZoomOutButtonClick());
-    svl.ui.streetview.viewControlLayer.on('wheel', (e) => this.#handleZoomWheel(e));
+    this.#uiZoomControl.zoomIn.addEventListener('click', () => this.#handleZoomInButtonClick());
+    this.#uiZoomControl.zoomOut.addEventListener('click', () => this.#handleZoomOutButtonClick());
+    // Not passive: the handler stops the page from scrolling under the pano.
+    svl.ui.streetview.viewControlLayer.addEventListener('wheel', (e) => this.#handleZoomWheel(e), { passive: false });
   }
 
   /**
@@ -72,7 +73,7 @@ class ZoomControl {
     this.stopBlinking();
     this.#zoomBlink.isBlinking = true;
     this.#blinkInterval = window.setInterval(() => {
-      this.#uiZoomControl.zoomIn.toggleClass('highlight-50');
+      this.#uiZoomControl.zoomIn.classList.toggle('highlight-50');
     }, 500);
   }
 
@@ -83,7 +84,7 @@ class ZoomControl {
     this.stopBlinking();
     this.#zoomBlink.isBlinking = true;
     this.#blinkInterval = window.setInterval(() => {
-      this.#uiZoomControl.zoomOut.toggleClass('highlight-50');
+      this.#uiZoomControl.zoomOut.classList.toggle('highlight-50');
     }, 500);
   }
 
@@ -94,9 +95,7 @@ class ZoomControl {
   disableZoomIn() {
     if (!this.#lock.disableZoomIn) {
       this.#status.disableZoomIn = true;
-      if (this.#uiZoomControl) {
-        this.#uiZoomControl.zoomIn.addClass('disabled');
-      }
+      this.#uiZoomControl.zoomIn.classList.add('disabled');
     }
     return this;
   }
@@ -108,9 +107,7 @@ class ZoomControl {
   disableZoomOut() {
     if (!this.#lock.disableZoomOut) {
       this.#status.disableZoomOut = true;
-      if (this.#uiZoomControl) {
-        this.#uiZoomControl.zoomOut.addClass('disabled');
-      }
+      this.#uiZoomControl.zoomOut.classList.add('disabled');
     }
     return this;
   }
@@ -122,9 +119,7 @@ class ZoomControl {
   enableZoomIn() {
     if (!this.#lock.disableZoomIn) {
       this.#status.disableZoomIn = false;
-      if (this.#uiZoomControl) {
-        this.#uiZoomControl.zoomIn.removeClass('disabled');
-      }
+      this.#uiZoomControl.zoomIn.classList.remove('disabled');
     }
     return this;
   }
@@ -136,9 +131,7 @@ class ZoomControl {
   enableZoomOut() {
     if (!this.#lock.disableZoomOut) {
       this.#status.disableZoomOut = false;
-      if (this.#uiZoomControl) {
-        this.#uiZoomControl.zoomOut.removeClass('disabled');
-      }
+      this.#uiZoomControl.zoomOut.classList.remove('disabled');
     }
     return this;
   }
@@ -216,7 +209,7 @@ class ZoomControl {
     if (!this.#status.disableZoomIn) {
       this.#setZoom(pov.zoom + 1);
       this.#canvas.clear().render();
-      $(document).trigger('ZoomIn');
+      document.dispatchEvent(new CustomEvent('ZoomIn'));
     }
   }
 
@@ -234,20 +227,20 @@ class ZoomControl {
     if (!this.#status.disableZoomOut) {
       this.#setZoom(pov.zoom - 1);
       this.#canvas.clear().render();
-      $(document).trigger('ZoomOut');
+      document.dispatchEvent(new CustomEvent('ZoomOut'));
     }
   }
 
   /**
    * Callback for the scroll wheel / trackpad over the pano.
-   * @param {JQuery.TriggeredEvent & {originalEvent: WheelEvent}} e - jQuery wheel event.
+   * @param {WheelEvent} e
    */
   #handleZoomWheel(e) {
     // Prevent the page from scrolling while zooming the pano.
     e.preventDefault();
 
     // Scrolling up (negative deltaY) zooms in; scrolling down zooms out.
-    const zoomDelta = -e.originalEvent.deltaY * ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
+    const zoomDelta = -e.deltaY * ZoomControl.#ZOOM_WHEEL_SENSITIVITY;
 
     // Honor the disable locks (e.g. onboarding) and skip no-op zooms at the min/max.
     if (zoomDelta > 0 && this.#status.disableZoomIn) return;
@@ -273,7 +266,7 @@ class ZoomControl {
       const pov = svl.panoViewer.getPov();
       this.#setZoom(pov.zoom + 1);
       this.#canvas.clear().render();
-      $(document).trigger('ZoomIn');
+      document.dispatchEvent(new CustomEvent('ZoomIn'));
       return this;
     } else {
       return false;
@@ -289,7 +282,7 @@ class ZoomControl {
       const pov = svl.panoViewer.getPov();
       this.#setZoom(pov.zoom - 1);
       this.#canvas.clear().render();
-      $(document).trigger('ZoomOut');
+      document.dispatchEvent(new CustomEvent('ZoomOut'));
       return this;
     } else {
       return false;
@@ -337,10 +330,8 @@ class ZoomControl {
   stopBlinking() {
     window.clearInterval(this.#blinkInterval);
     this.#zoomBlink.isBlinking = false;
-    if (this.#uiZoomControl) {
-      this.#uiZoomControl.zoomIn.removeClass('highlight-50');
-      this.#uiZoomControl.zoomOut.removeClass('highlight-50');
-    }
+    this.#uiZoomControl.zoomIn.classList.remove('highlight-50');
+    this.#uiZoomControl.zoomOut.classList.remove('highlight-50');
   }
 
   /**
@@ -382,13 +373,13 @@ class ZoomControl {
   updateOpacity() {
     const pov = svl.panoViewer.getPov();
 
-    if (pov && this.#uiZoomControl) {
+    if (pov) {
       const zoom = pov.zoom;
       // Disable the zoom-in button at max zoom and the zoom-out button at min zoom.
-      this.#uiZoomControl.zoomIn.toggleClass(
+      this.#uiZoomControl.zoomIn.classList.toggle(
         'disabled', zoom >= this.#properties.maxZoomLevel || this.#status.disableZoomIn,
       );
-      this.#uiZoomControl.zoomOut.toggleClass(
+      this.#uiZoomControl.zoomOut.classList.toggle(
         'disabled', zoom <= this.#properties.minZoomLevel || this.#status.disableZoomOut,
       );
     }
