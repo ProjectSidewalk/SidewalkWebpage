@@ -438,7 +438,7 @@ class ManagementPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   #maintResult(message, isError = false) {

@@ -153,11 +153,6 @@ These are the JVM libraries we talk to the database *through*; the database serv
   recency/proximity buckets are stored, the precise values discarded.
   [Releases](https://mvnrepository.com/artifact/com.drewnoakes/metadata-extractor) ·
   [Changelog](https://github.com/drewnoakes/metadata-extractor/releases)
-- **play-bootstrap: 1.6.1-P28-B3** — Twirl helpers for the sign-in/up views. **Note:** the `P28-B3` suffix means
-  "Play 2.8, Bootstrap 3"; 1.6.1 is the newest and there have been no releases since April 2020. It still works, only
-  a few pages use it (mostly auth), and we don't expect further updates — we'd rather move off Bootstrap entirely.
-  [Releases](https://mvnrepository.com/artifact/com.adrianhurt/play-bootstrap) ·
-  [Docs](https://playframework.github.io/play-bootstrap/)
 
 ### Build plugins & test (`project/plugins.sbt`, `.scalafmt.conf`, test deps)
 
@@ -199,9 +194,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **betterknown: 1.2.0** — [Download](https://unpkg.com/betterknown) ·
   [Versions](https://www.npmjs.com/package/betterknown?activeTab=versions) ·
   [Changelog](https://github.com/placemark/betterknown/releases)
-- **bootstrap: 3.3.5** — CSS only; its JS components are gone (tooltips and popovers are `psTooltip.js` and the
-  native `popover` attribute, modals are `<dialog>`). **note:** never upgrade it — the rest of #4394 removes the CSS
-  too, page by page.
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)
@@ -288,9 +280,8 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
   [Changelog](https://github.com/vega/vega-lite/releases)
 
-> **Bootstrap removal:** the Bootstrap entry above is the last leg of the move *off* jQuery and Bootstrap toward
-> native JS/CSS (#4394); jQuery is already gone, so never add it back. Prefer native alternatives in new code rather
-> than leaning further on Bootstrap. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+> **No jQuery, no Bootstrap:** both are gone (#4394) — the frontend is native JS and CSS on the `main.css` design
+> tokens, so never add either back. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## Python
 

@@ -329,7 +329,7 @@ class ApiAnalyticsPage {
       const legend = input.closest('.api-docs-control').querySelector('.api-docs-legend');
       input.addEventListener('change', () => {
         this.#showDocs[chart] = input.checked;
-        if (legend) legend.classList.toggle('hidden', !input.checked);
+        if (legend) legend.classList.toggle('ps-hidden', !input.checked);
         if (!this.#data) return;
         if (chart === 'endpoints') this.#renderEndpoints(this.#data);
         else if (chart === 'formats') this.#renderFormats(this.#data);
@@ -355,6 +355,6 @@ class ApiAnalyticsPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

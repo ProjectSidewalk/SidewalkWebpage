@@ -48,7 +48,7 @@
   </div>
 
   @* ps-invisible until loading completes (Main.js unhides), so the raw UI never flashes. *@
-  <div class="container tool-ui ps-invisible">
+  <div class="tool-ui ps-invisible">
     @components.progressBar(
       rootId = "mission-progress-bar-section",
       fillId = "mission-progress-bar-complete"
@@ -92,8 +92,8 @@
           <button type="button" id="no-button-2"class="validation-reason-button ps-button button--small"></button>
           <button type="button" id="no-button-3"class="validation-reason-button ps-button button--small"></button>
           <button type="button" id="no-button-4" class="validation-reason-button ps-button button--small"></button>
-          <div class="input-group input-group-sm validate-text-input">
-            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
+          <div class="validate-text-input">
+            <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
           </div>
         </div>
         <div id="no-submit-section">
@@ -107,8 +107,8 @@
           <button type="button" id="unsure-button-1"class="validation-reason-button ps-button button--small"></button>
           <button type="button" id="unsure-button-2"class="validation-reason-button ps-button button--small"></button>
           <button type="button" id="unsure-button-3"class="validation-reason-button ps-button button--small"></button>
-          <div class="input-group input-group-sm validate-text-input">
-            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
+          <div class="validate-text-input">
+            <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
           </div>
         </div>
         <div id="unsure-submit-section">
@@ -202,8 +202,8 @@
           </div>
         </div>
         <div class="mv-modal__actions">
-          <button type="button" class="button-ps btn-primary" id="modal-mission-complete-close-button-primary"></button>
-          <button type="button" class="button-ps btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
+          <button type="button" class="button-ps" id="modal-mission-complete-close-button-primary"></button>
+          <button type="button" class="button-ps" id="modal-mission-complete-close-button-secondary"></button>
         </div>
       </div>
     </div>

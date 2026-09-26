@@ -544,7 +544,7 @@ body {
 }
 
 /* Waiting on the next mission to load, which the primary button starts every mission-complete screen doing. */
-#modal-mission-complete-close-button-primary.btn-loading {
+#modal-mission-complete-close-button-primary:disabled {
   background: var(--color-neutral-200);
   color: var(--color-neutral-700);
   cursor: wait;
@@ -928,16 +928,14 @@ body {
   align-self: stretch;
 }
 
-/* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally
-  the order of inclusion should be flipped. */
 .validate-text-input input {
-  height: 44px !important;
-  padding: 4px 12px !important;
-  border-radius: 8px !important;
+  height: 44px;
+  padding: 4px 12px;
+  border-radius: 8px;
 
   /* Exactly 16px, not a token that might drift under it: iOS Safari zooms the page in on focus for anything
      smaller, which leaves the validator zoomed into a text field with the pano scrolled off. */
-  font-size: 16px !important;
+  font-size: 16px;
 }
 
 #no-submit-section, #unsure-submit-section {

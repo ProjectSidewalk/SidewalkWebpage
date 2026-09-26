@@ -321,7 +321,7 @@ body.filter-sidebar-resizing {
 }
 
 .filter-sidebar__item input:is([type="checkbox"], [type="radio"]):focus {
-  outline: none; /* Removing some default styling from Bootstrap; :focus-visible below restores a keyboard ring. */
+  outline: none; /* :focus-visible below restores a keyboard ring. */
 }
 
 /* The hidden input can't show its own ring, so the ring goes around the icon + name it controls. */

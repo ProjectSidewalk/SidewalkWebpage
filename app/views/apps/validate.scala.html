@@ -51,7 +51,7 @@
   </div>
 
   @* ps-invisible until the mission start tutorial overlay is ready to cover it. *@
-  <div class="container tool-ui ps-invisible">
+  <div class="tool-ui ps-invisible">
 
     @* These are templates and are not visible on the screen directly. *@
     @* JS clones them, adjusts the attributes and then appends to DOM. *@
@@ -134,7 +134,7 @@
       <div id="modal-mission-holder" class="ps-hidden">
         <div id="modal-mission-background" class="modal-background"></div>
         <div id="modal-mission-foreground" class="modal-foreground">
-          <h1 id="modal-mission-header" class="text-center"></h1>
+          <h1 id="modal-mission-header"></h1>
           <div id="modal-mission-instruction"></div>
           <button type="button" class="button-ps button--primary button--large" id="modal-mission-close-button">OK</button>
         </div>
@@ -145,29 +145,27 @@
           <h1 id="modal-mission-complete-title"></h1>
           <p><div id="modal-mission-complete-message"></div></p>
           <div id="modal-mission-complete-table">
-            <div class="col-sm-10">
-              <h3>@Messages("validate.mission.complete.category")</h3>
-              <table class="table">
-                <tr>
-                  <th>@Messages("yes.caps")</th>
-                  <td id="modal-mission-complete-agree-count" class="col-right text-right"></td>
-                </tr>
-                <tr>
-                  <th>@Messages("no.caps")</th>
-                  <td id="modal-mission-complete-disagree-count" class="col-right text-right"></td>
-                </tr>
-                <tr>
-                  <th>@Messages("unsure.caps")</th>
-                  <td id="modal-mission-complete-unsure-count" class="col-right text-right"></td>
-                </tr>
-                <tr id="your-overall-total">
-                  <th>@Messages("validate.mission.complete.your.overall.total")</th>
-                  <td id="modal-mission-complete-your-overall-total-count" class="col-right text-right"></td>
-                </tr>
-              </table>
-              <button type="button" class="btn btn-primary" id="modal-mission-complete-close-button-primary"></button>
-              <button type="button" class="btn btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
-            </div>
+            <h3>@Messages("validate.mission.complete.category")</h3>
+            <table class="modal-mission-complete-counts">
+              <tr>
+                <th>@Messages("yes.caps")</th>
+                <td id="modal-mission-complete-agree-count"></td>
+              </tr>
+              <tr>
+                <th>@Messages("no.caps")</th>
+                <td id="modal-mission-complete-disagree-count"></td>
+              </tr>
+              <tr>
+                <th>@Messages("unsure.caps")</th>
+                <td id="modal-mission-complete-unsure-count"></td>
+              </tr>
+              <tr id="your-overall-total">
+                <th>@Messages("validate.mission.complete.your.overall.total")</th>
+                <td id="modal-mission-complete-your-overall-total-count"></td>
+              </tr>
+            </table>
+            <button type="button" class="button-ps button--primary button--large" id="modal-mission-complete-close-button-primary"></button>
+            <button type="button" class="button-ps button--secondary button--large" id="modal-mission-complete-close-button-secondary"></button>
           </div>
         </div>
       </div>
@@ -226,8 +224,8 @@
           </div>
         </div>
         <div id="validate-optional-comment-section" class="validation-menu-section">
-          <div id="optional-comment-input" class="input-group input-group-sm validate-text-input">
-            <input type="text" class="form-control" placeholder="@Messages("validate.comment.placeholder")" id="add-optional-comment" size="36" aria-label=@Messages("validate.comment.placeholder")>
+          <div id="optional-comment-input" class="validate-text-input">
+            <input type="text" placeholder="@Messages("validate.comment.placeholder")" id="add-optional-comment" size="36" aria-label=@Messages("validate.comment.placeholder")>
           </div>
         </div>
         <div id="validate-why-no-section" class="validation-menu-section">
@@ -237,8 +235,8 @@
             <button type="button" id="no-button-2"class="validation-reason-button ps-button button--small"></button>
             <button type="button" id="no-button-3"class="validation-reason-button ps-button button--small"></button>
             <button type="button" id="no-button-4" class="validation-reason-button ps-button button--small"></button>
-            <div class="input-group input-group-sm validate-text-input">
-              <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
+            <div class="validate-text-input">
+              <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
             </div>
           </div>
         </div>
@@ -248,8 +246,8 @@
             <button type="button" id="unsure-button-1"class="validation-reason-button ps-button button--small"></button>
             <button type="button" id="unsure-button-2"class="validation-reason-button ps-button button--small"></button>
             <button type="button" id="unsure-button-3"class="validation-reason-button ps-button button--small"></button>
-            <div class="input-group input-group-sm validate-text-input">
-              <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
+            <div class="validate-text-input">
+              <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
             </div>
           </div>
         </div>

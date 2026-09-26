@@ -117,13 +117,10 @@ class ModalMissionComplete {
       n: totalLabels, interpolation: { escapeValue: true },
     });
 
-    // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
-    // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.
+    // Disabled until the next mission has arrived from the back end (Form.js calls nextMissionLoaded()).
     const ui = this.#uiModalMissionComplete;
-    ui.closeButtonPrimary.classList.remove('btn-primary');
-    ui.closeButtonPrimary.classList.add('btn-loading');
-    ui.closeButtonSecondary.classList.remove('btn-secondary');
-    ui.closeButtonSecondary.classList.add('btn-loading');
+    ui.closeButtonPrimary.disabled = true;
+    ui.closeButtonSecondary.disabled = true;
 
     ui.background.style.visibility = 'visible';
     ui.missionTitle.innerHTML = i18next.t('mission-complete.title');
@@ -181,11 +178,9 @@ class ModalMissionComplete {
   nextMissionLoaded() {
     // Re-enable the buttons. Handlers are assigned, not added, so a second load can't stack a second handler.
     const ui = this.#uiModalMissionComplete;
-    ui.closeButtonPrimary.classList.remove('btn-loading');
-    ui.closeButtonPrimary.classList.add('btn-primary');
+    ui.closeButtonPrimary.disabled = false;
     ui.closeButtonPrimary.onclick = () => this.#handleButtonClick('primary');
-    ui.closeButtonSecondary.classList.remove('btn-loading');
-    ui.closeButtonSecondary.classList.add('btn-secondary');
+    ui.closeButtonSecondary.disabled = false;
     ui.closeButtonSecondary.onclick = () => this.#handleButtonClick('secondary');
   }
 }

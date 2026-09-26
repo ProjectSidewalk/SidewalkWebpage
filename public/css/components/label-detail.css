@@ -7,7 +7,7 @@
  *   - Inline (Gallery's expanded view): the host adds `.label-detail--inline`, which drops the dialog-fixed
  *     sizing and lets the parent grid drive the dimensions. Paging-arrow rules also live in the inline section.
  *
- * Scoped under `.label-detail` so nothing here leaks into Bootstrap-3-styled pages elsewhere.
+ * Scoped under `.label-detail` so nothing here leaks into the pages that host the card.
  */
 
 /* Many of the card's elements carry their own display: flex/inline-flex, which would beat the UA stylesheet's
@@ -1754,9 +1754,8 @@ dialog.story-composer {
 dialog.story-composer::backdrop,
 dialog.story-lightbox::backdrop { background: rgb(0 0 0 / 45%); }
 
-/* Weight hierarchy (deliberate, and defended against Bootstrap 3's globals — `label { font-weight: bold }` and
-   normalize's `textarea/input { font: inherit }` would otherwise bolden option rows and typed text): title 600,
-   field labels 600, everything the user reads or types 400. */
+/* Weight hierarchy: title 600, field labels 600, everything the user reads or types 400. Set on the inputs too:
+   `font: inherit` would carry a bold label's weight into the text typed under it. */
 .story-composer__title {
   margin: 0 0 4px;
   font-family: var(--font-primary);

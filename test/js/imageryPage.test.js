@@ -613,7 +613,7 @@ describe('ImageryPage loading states', () => {
     await renderPage({ streets: [] });
     expect(text('imagery-status')).toContain('No routable streets in this city yet');
     expect(document.getElementById('imagery-status').classList.contains('error')).toBe(false);
-    expect(document.getElementById('imagery-status').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('imagery-status').classList.contains('ps-hidden')).toBe(false);
   });
 
   test('keeps the tables when no geometry matched, rather than handing Mapbox an empty bounds box', async () => {
@@ -625,7 +625,7 @@ describe('ImageryPage loading states', () => {
 
   test('hides the status line once the page has loaded', async () => {
     await renderPage();
-    expect(document.getElementById('imagery-status').classList.contains('hidden')).toBe(true);
+    expect(document.getElementById('imagery-status').classList.contains('ps-hidden')).toBe(true);
   });
 
   test('reports a failed street fetch instead of leaving the page on "Loading"', async () => {

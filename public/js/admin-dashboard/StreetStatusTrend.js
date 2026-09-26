@@ -478,6 +478,6 @@ class StreetStatusTrend {
     if (!el) return;
     el.textContent = message;
     el.classList.toggle('error', Boolean(isError));
-    el.classList.toggle('hidden', hide);
+    el.classList.toggle('ps-hidden', hide);
   }
 }

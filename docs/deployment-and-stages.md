@@ -463,8 +463,8 @@ fingerprints the wrong file. All necessary because neither half of a mistake rai
 mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
 ([`project/CssAssetUrls.scala`](../project/CssAssetUrls.scala)) rewrites its `url(...)` targets to the `<md5>-<name>`
 form at stage time, deriving the name from the file's bytes as sbt-digest does. Absolute stays absolute and relative
-stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along, which
-keeps Bootstrap's `...eot?#iefix` glyphicons working. **A new reference needs nothing registered**: unlike
+stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along.
+**A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
 file that exists, by relative path: a stylesheet Grunt bundles into `public/js/*/build/` has its relative `url()`s
 rewritten to `/assets/` paths first (`concat_css`'s `assetBaseUrl` in `Gruntfile.js`), which would double up an

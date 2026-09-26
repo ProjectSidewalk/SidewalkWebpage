@@ -54,15 +54,15 @@ class FeedbackModal {
     this.#tracker.push('ModalComment_ClickFeedback');
     this.#textarea.value = '';
     this.#setOkEnabled(false);
-    this.#holder.classList.remove('hidden');
+    this.#holder.classList.remove('ps-hidden');
     this.#background.style.visibility = 'visible';
     this.#svl.popUpMessage.disableInteractions();
   };
 
   /** Hides the feedback dialog and restores interaction with the tool. */
   hide = () => {
-    this.#holder.classList.add('hidden');
-    this.#background.style.visibility = 'hidden';
+    this.#holder.classList.add('ps-hidden');
+    this.#background.style.visibility = 'ps-hidden';
     this.#svl.popUpMessage.enableInteractions();
   };
 

@@ -41,7 +41,6 @@
 
 /* Bump only the top-3 medal emoji so they read clearly; plain rank numbers keep the table's font size. */
 .ud-lb-rank .ud-lb-medal {
-  /* px, not rem: Bootstrap sets a 10px root here, so a rem size silently renders at 62.5% of its intent. */
   font-size: 28px;
   line-height: 1;
 }
@@ -1249,8 +1248,7 @@
   margin: 0;
   font-family: var(--font-primary);
 
-  /* Sized in px, not rem: Bootstrap sets a 10px root here, so a rem clamp silently renders at 62.5% of its intent.
-     nowrap means an over-long value overflows its tile rather than breaking mid-number, so the floor is set low
+  /* nowrap means an over-long value overflows its tile rather than breaking mid-number, so the floor is set low
      enough for a five-digit distance to fit the ~108px each tile gets at 320px. */
   font-size: clamp(22px, 5vw, 30px);
   white-space: nowrap;

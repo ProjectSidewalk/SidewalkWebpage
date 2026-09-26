@@ -43,7 +43,6 @@
  * #labelmap-* ids so the admin Map tab (#admin-labelmap-*), which shares this file, stays boxed.
  */
 #labelmap-choropleth-container {
-  max-width: none; /* Override the Bootstrap .container max-width so the map spans the window. */
   width: 100%;
   flex: 1 1 auto; /* Fill the space #wrap leaves below the navbar and any test-server banner. */
   min-height: 0; /* Let the flex child shrink to fit instead of overflowing the column. */
@@ -100,13 +99,13 @@
 }
 
 .labelmap-loading__message {
-  font-size: 1rem;
+  font-size: 16px;
   font-weight: 600;
   margin: 0;
 }
 
 .labelmap-loading__elapsed {
-  font-size: 0.8rem;
+  font-size: 13px;
   color: #bbbbbb;
   margin: 6px 0 0;
 }
@@ -196,6 +195,7 @@
 
 /* Common legend components. */
 .legend {
+  display: flow-root; /* Contains the floated swatches and labels below. */
   height: inherit;
   width: 250px;
 }
@@ -245,9 +245,6 @@
 .legend .legend-swatch-10 { background: #B3D3E8; }
 .legend .legend-swatch-11 { background: #C6DBEF; }
 
-.clearfix {
-  width: 100%;
-}
 
 /* Project Sidewalk pin dropped on an address-search result on the public LabelMap (#4451). A circular badge carrying
    the wheelchair mark, on a tail that points at the exact coordinate. */

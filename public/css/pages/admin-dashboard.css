@@ -5,8 +5,7 @@
  * (page-shell.css, kpi.css, tables.css). This file only adds what those don't have: the "coming soon" nav treatment
  * and the Coverage page's map, legend, chart, and details panel. Type, color, and spacing come from
  * the design-system tokens in main.css — avoid hardcoding values that already exist as tokens. Type is set with the
- * composite --text-* tokens (never a bare rem: Bootstrap 3 makes 1rem = 10px here, so a rem size renders at 62.5%
- * of what it says).
+ * composite --text-* tokens.
  *
  * Coverage sequential color scale (--coverage-*: ColorBrewer "Blues", colorblind-safe). Keep these in sync with
  * CoverageColors.STOPS in coverage-map.js so the map, legend, and bar chart all agree.
@@ -731,7 +730,6 @@
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
 }
-.api-docs-legend.hidden { display: none; }
 
 /* Accessible switch: a visually-hidden checkbox drives a sliding track + knob. */
 .api-toggle {
@@ -742,8 +740,6 @@
   -webkit-user-select: none;
   user-select: none;
 
-  /* Reset the global Bootstrap `label` margin/weight so the switch centers in the flex row and the text isn't bold. */
-  margin: 0;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
 }
@@ -2889,7 +2885,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 
 .partners-form-label {
   font: var(--text-small-medium);
-  margin-bottom: 0; /* Bootstrap 3 gives every <label> a bottom margin. */
 }
 
 /* The logo picker is the one control on this page the browser draws itself: the field takes the .ps-input box like
@@ -2922,7 +2917,7 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin-top: var(--space-md);
 }
 
-/* .button-ps's display: inline-flex outranks the UA/Bootstrap [hidden] rule, so re-assert it. */
+/* .button-ps's display: inline-flex outranks the browser's [hidden] rule, so re-assert it. */
 .partners-cancel-edit[hidden] {
   display: none;
 }

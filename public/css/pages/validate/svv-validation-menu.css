@@ -155,21 +155,18 @@
   margin-top: calc(10px * var(--ui-scale));
 }
 
-/* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the
-  order of inclusion should be flipped. */
 .validate-text-input input, .ts-control {
-  display: flex !important;
-  width: 100% !important;
-  height: calc(36px * var(--ui-scale)) !important;
-  padding: calc(8px * var(--ui-scale)) calc(18px * var(--ui-scale)) !important;
-  align-items: center !important;
-  gap: calc(4px * var(--ui-scale)) !important;
-  flex-shrink: 0 !important;
-  border-radius: calc(6px * var(--ui-scale)) !important;
-  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-500) !important;
-  background: var(--color-neutral-white) !important;
-  font: var(--text-tiny-semibold) !important;
-
+  display: flex;
+  width: 100%;
+  height: calc(36px * var(--ui-scale));
+  padding: calc(8px * var(--ui-scale)) calc(18px * var(--ui-scale));
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+  flex-shrink: 0;
+  border-radius: calc(6px * var(--ui-scale));
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-500);
+  background: var(--color-neutral-white);
+  font: var(--text-tiny-semibold);
 }
 
 /* Tom Select sets its own right padding from this variable, overriding the padding above. */

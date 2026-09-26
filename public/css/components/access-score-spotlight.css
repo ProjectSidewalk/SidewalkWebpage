@@ -56,8 +56,8 @@
   gap: 32px;
 }
 
-/* One column is already plenty wide on a phone, and two 300px columns plus the gap stop fitting the Bootstrap
-   container around here (--breakpoint-sm is 768px). */
+/* One column is already plenty wide on a phone, and two 300px columns plus the gap stop fitting the page column
+   around here (--breakpoint-sm is 768px). */
 @media (width <= 768px) {
   .spotlight-cols {
     grid-template-columns: 1fr;

@@ -190,7 +190,7 @@
   overflow: visible;
 }
 
-#severity-menu.hidden {
+#severity-menu.ps-hidden {
   display: none;
   margin: 0;
   height: 0;

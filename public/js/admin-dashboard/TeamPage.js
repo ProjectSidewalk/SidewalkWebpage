@@ -343,7 +343,7 @@ class TeamPage {
     const status = document.getElementById('team-status');
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   /**
