@@ -5,8 +5,10 @@
   width: 100%;
 }
 
+/* Spans the window like the map pages, keeping only the page gutter. */
 #landing-choropleth-container {
   min-height: 1100px;
+  padding: 0 var(--space-md);
 }
 
 .choropleth-holder {
