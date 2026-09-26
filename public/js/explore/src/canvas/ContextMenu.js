@@ -565,7 +565,7 @@ class ContextMenu {
       }
 
       // Hide the severity menu for label types that don't have a severity rating.
-      this.#severityMenu.classList.toggle('hidden', !util.misc.labelTypeHasSeverity(labelType));
+      this.#severityMenu.classList.toggle('ps-hidden', !util.misc.labelTypeHasSeverity(labelType));
       // Set the menu value if label has its value set.
       const severity = targetLabel.getProperty('severity');
       const description = targetLabel.getProperty('description');

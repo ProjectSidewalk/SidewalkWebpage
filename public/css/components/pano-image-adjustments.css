@@ -73,7 +73,6 @@
 .pano-image-adjustments__label {
   font: var(--text-small-medium);
   color: var(--color-neutral-900);
-  margin: 0;
 }
 
 /* Tabular figures so the readout doesn't jitter as the digits change under the thumb. */

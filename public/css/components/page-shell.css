@@ -1,8 +1,7 @@
 /*
  * Page shell (#5030): the three-column sidebar / content / "On this page" TOC template that the API docs, the
- * admin dashboard, the user dashboard, and the labeling guide all build on, plus the page-level base styles (type,
- * links, code) those surfaces share. Everything is styled from the design-system tokens in main.css; the only custom
- * properties defined here are the shell's own layout dimensions.
+ * admin dashboard, the user dashboard, and the labeling guide all build on, plus the code styling those surfaces
+ * share. The only custom properties defined here are the shell's own layout dimensions.
  *
  * Link it right after main.css. An app's own stylesheet comes later and may extend the .page-* classes (the user
  * dashboard turns the sidebar into a chip row on phones). The narrow-viewport sidebar disclosure is
@@ -14,10 +13,6 @@
    ========================================================================== */
 
 body {
-  font: var(--text-body-regular);
-  color: var(--color-neutral-black);
-  background-color: var(--color-neutral-white);
-  margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: visible !important;
@@ -54,36 +49,13 @@ body {
 
 /* ---- Typography ---- */
 
+/* Pure black reads as heavy at heading sizes. */
 h1, h2, h3, h4, h5, h6 {
   color: var(--color-neutral-900);
-  margin-top: var(--space-xl);
-  margin-bottom: var(--space-md);
-  scroll-margin-top: 85px; /* Offset for the fixed navbar plus a little extra. */
 }
-
-h1 { font: var(--text-h1-bold); }
-h2 { font: var(--text-h2-bold); }
-h3 { font: var(--text-h3-bold); }
-h4 { font: var(--text-title-medium); }
-h5 { font: var(--text-subtitle-medium); }
 
 h6 {
-  font: var(--text-body-medium);
   color: var(--color-neutral-700);
-}
-
-p {
-  margin-top: 0;
-  margin-bottom: var(--space-md);
-}
-
-a {
-  color: var(--color-link-200);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
 }
 
 /* ---- Sections and headings ---- */
@@ -162,8 +134,7 @@ pre {
   white-space: pre;
 }
 
-/* Bootstrap's `code, kbd, pre, samp { font-family: Menlo, ... }` beats the family `pre` inherits down, so without
-   this re-inherit the block renders in Menlo rather than --font-mono. */
+/* The browser's `code { font-family: monospace }` beats what `pre` inherits, so the block would lose --font-mono. */
 pre > code {
   font-family: inherit;
   font-size: inherit;

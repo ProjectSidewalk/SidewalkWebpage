@@ -38,14 +38,14 @@ class AudioEffect {
   }
 
   #mute() {
-    this.#soundIcon.classList.add('hidden');
-    this.#muteIcon.classList.remove('hidden');
+    this.#soundIcon.classList.add('ps-hidden');
+    this.#muteIcon.classList.remove('ps-hidden');
     this.#storage.set('muted', true);
   }
 
   #unmute() {
-    this.#muteIcon.classList.add('hidden');
-    this.#soundIcon.classList.remove('hidden');
+    this.#muteIcon.classList.add('ps-hidden');
+    this.#soundIcon.classList.remove('ps-hidden');
     this.#storage.set('muted', false);
   }
 

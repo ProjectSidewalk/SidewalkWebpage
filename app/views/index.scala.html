@@ -56,10 +56,9 @@
       <a href="@newsRibbonLink" class="ps-news-ribbon">News on PS</a>
     }
 
-    <div class="container" id="banner">
-      <div class="row" id="bigtext">
-        <div class="col-sm-3"></div>
-        <div class="col-sm-6" id="bannertext">
+    <div id="banner">
+      <div id="bigtext">
+        <div id="bannertext">
           <h1 id="text" class="tagline">@Messages("landing.create.path")</h1>
           <br>
           <a id="landing-cta-button" class="button-ps button--primary button--large" href="@routes.ExploreController.explore()">
@@ -74,41 +73,40 @@
             <span class="header-text">@Html(Messages("landing.mapathon", currentCity.cityNameShort, mapathonLink.get))</span>
           }
         </div>
-        <div class="col-sm-3"></div>
       </div>
     </div>
   </div>
 
   <div id="content">
-    <div class="container home-content-container">
+    <div class="home-content-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="instruction-video-title">@Messages("landing.how.you.help")</h2>
-        <div class="row section-subtitle" id="instruction-video-subtitle">@Messages("landing.how.you.help.content", currentCity.cityNameShort)</div>
+        <h2 class="section-title" id="instruction-video-title">@Messages("landing.how.you.help")</h2>
+        <div class="section-subtitle" id="instruction-video-subtitle">@Messages("landing.how.you.help.content", currentCity.cityNameShort)</div>
       </div>
 
       <div class="instructional-video-container">
-        <div class="row" id="numbersrow">
-          <div class="col-sm-4">
+        <div id="numbersrow">
+          <div>
             <div id="firstnumbox" class="tab-word" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.explore")">
               <span class="stepnumber tab-word" id="number1">01</span><br>
               <span id="word1" class="stepword tab-word">@Messages("landing.how.you.help.explore")</span>
             </div>
           </div>
 
-          <div class="col-sm-4">
+          <div>
             <div id="secondnumbox" class="tab-word" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.find")">
               <span class="stepnumber tab-word" id="number2">02</span><br>
               <span id="word2" class="stepword tab-word">@Messages("landing.how.you.help.find")</span>
             </div>
           </div>
-          <div class="col-sm-4">
+          <div>
             <div id="thirdnumbox" class="tab-word" role="button" tabindex="0" aria-label="@Messages("landing.how.you.help.assess")">
               <span class="stepnumber tab-word" id="number3">03</span><br>
               <span id="word3" class="stepword tab-word">@Messages("landing.how.you.help.assess")</span>
             </div>
           </div>
         </div>
-        <div class="hidden-xs" id="greenbar"></div>
+        <div id="greenbar"></div>
         <div id="instructionvideo">
           <video id="vid1" width="800" playsinline autoplay muted loop poster='@assets.path("images/segment-1-1.jpg")' class="ps-hidden">
             <source src='@assets.path("videos/segment-1-1.mp4")' type="video/mp4">
@@ -126,29 +124,29 @@
       </div>
     </div>
 
-    <div class="container" id="landing-validation-container" hidden>
+    <div class="ps-container" id="landing-validation-container" hidden>
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="landing-validation-title">@Messages("landing.validate.title")</h2>
-        <div class="row section-subtitle" id="landing-validation-subtitle">@Messages("landing.validate.content", currentCity.cityNameShort)</div>
+        <h2 class="section-title" id="landing-validation-title">@Messages("landing.validate.title")</h2>
+        <div class="section-subtitle" id="landing-validation-subtitle">@Messages("landing.validate.content", currentCity.cityNameShort)</div>
       </div>
       <div id="landing-validation-grid" class="landing-validation-grid" aria-live="polite"></div>
     </div>
 
     @* Directly above the choropleth, so the neighborhood a hovered row lights up is visible without scrolling. *@
-    <div class="container" id="access-score-spotlight-container" hidden>
+    <div class="ps-container" id="access-score-spotlight-container" hidden>
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="access-score-spotlight-title">@Messages("landing.spotlight.title", currentCity.cityNameShort)</h2>
+        <h2 class="section-title" id="access-score-spotlight-title">@Messages("landing.spotlight.title", currentCity.cityNameShort)</h2>
         @* Filled by AccessScoreSpotlight.js: the wording depends on which unit is shown and on how much of the city
            has enough data to be ranked. *@
-        <div class="row section-subtitle spotlight-subtitle" id="access-score-spotlight-subtitle"></div>
+        <div class="section-subtitle spotlight-subtitle" id="access-score-spotlight-subtitle"></div>
       </div>
       <div class="spotlight"></div>
     </div>
 
-    <div id="landing-choropleth-container" class="container choropleth-container">
+    <div id="landing-choropleth-container" class="choropleth-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="choose-region-title">@Messages("landing.choropleth.title")</h2>
-        <div class="row section-subtitle" id="choose-region-subtitle">
+        <h2 class="section-title" id="choose-region-title">@Messages("landing.choropleth.title")</h2>
+        <div class="section-subtitle" id="choose-region-subtitle">
           <div id="exploredesc">@Html(Messages("landing.choropleth.content"))</div>
         </div>
       </div>
@@ -157,7 +155,7 @@
         <div id="landing-choropleth" class="choropleth"></div>
         <div id="landing-legend">
           <strong>@Messages("landing.choropleth.legend")</strong>
-          <nav class='legend clearfix'>
+          <nav class="legend">
             <div class="legend-scale">
               <span class="legend-swatch legend-swatch-1" aria-hidden="true"></span>
               <span class="legend-swatch legend-swatch-2" aria-hidden="true"></span>
@@ -204,8 +202,8 @@
         <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.validations")</span>
       </div>
       <div class="ps-skyline-overlay section-title-and-subtitle">
-        <h2 class="row section-title" id="skyline-title">@Messages("landing.stats.title")</h2>
-        <div class="row section-subtitle" id="skyline-subtitle">
+        <h2 class="section-title" id="skyline-title">@Messages("landing.stats.title")</h2>
+        <div class="section-subtitle" id="skyline-subtitle">
           <p id="conditional-text">Keep Mapping!</p>
         </div>
       </div>
@@ -228,10 +226,10 @@
       </script>
     </div>
 
-    <div class="container" id="machinelearning-container">
+    <div id="machinelearning-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="ml-title">@Messages("landing.ml.title")</h2>
-        <div class="row section-subtitle" id="ml-subtitle">
+        <h2 class="section-title" id="ml-title">@Messages("landing.ml.title")</h2>
+        <div class="section-subtitle" id="ml-subtitle">
           <div class="exploredesc">@Messages("landing.ml.content")</div>
         </div>
       </div>
@@ -250,10 +248,10 @@
       </div>
     </div>
 
-    <div class="container-fluid" id="deployment-map-container">
+    <div id="deployment-map-container">
       <div class="section-title-and-subtitle">
-        <h2 class="row section-title" id="deployment-map-title">@Messages("landing.deployment.map.title")</h2>
-        <div class="row section-subtitle" id="deployment-map-subtitle">
+        <h2 class="section-title" id="deployment-map-title">@Messages("landing.deployment.map.title")</h2>
+        <div class="section-subtitle" id="deployment-map-subtitle">
           <div class="exploredesc">@Messages("landing.deployment.map.subtitle")</div>
         </div>
       </div>

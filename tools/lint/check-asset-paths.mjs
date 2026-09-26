@@ -419,7 +419,7 @@ for (const file of cssFiles) {
         continue;
       }
 
-      // A query string or fragment is part of the URL but not of the filename; Bootstrap's glyphicons carry both.
+      // A query string or fragment is part of the URL but not of the filename (a font's `?#iefix` carries both).
       const cut = url.search(/[?#]/);
       const target = cssTarget(cut < 0 ? url : url.slice(0, cut), file);
       if (target === null || !existsSync(join(PUBLIC_DIR, target))) {

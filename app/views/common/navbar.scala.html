@@ -82,7 +82,7 @@
         </li>
 
         @* Tools: grouped into labeled sections so the menu stays scannable as tools are added. *@
-        <li class="dropdown navbar-lnk" id="navbar-tools-dropdown-list">
+        <li class="navbar-lnk" id="navbar-tools-dropdown-list">
           <button type="button" id="nav-tools-dropdown" class="navbar-button navbar-dropdown-toggle@if(toolsToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-tools-menu">
             @common.navbarLnkIcon("tool")@Messages("navbar.tools")<b class="caret" aria-hidden="true"></b>
           </button>
@@ -126,7 +126,7 @@
       @* Utility navigation: site (city) context + account + language. *@
       <ul class="navbar-nav navbar-nav--utility">
         @* City switcher: a searchable disclosure. Scales past the flat list that overflowed the viewport (#3892). *@
-        <li id="navbar-city-dropdown" class="dropdown navbar-lnk">
+        <li id="navbar-city-dropdown" class="navbar-lnk">
           <button type="button" id="nav-city-dropdown" class="navbar-button navbar-dropdown-toggle" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-city-panel">
             <img class="navbar-select-icon" src='@assets.path("images/icons/map-pin-feather.svg")' alt="" aria-hidden="true">@currentCityInfo.cityNameShort<b class="caret" aria-hidden="true"></b>
           </button>
@@ -164,7 +164,7 @@
 
         @* Highest quick-strip priority: signed-in or not is the one thing the collapsed bar should never hide, and
            it is the entry point to everything personal. *@
-        <li class="dropdown navbar-lnk" id="navbar-user-dropdown-list" data-nav-quick="1">
+        <li class="navbar-lnk" id="navbar-user-dropdown-list" data-nav-quick="1">
         @if(user.isDefined && user.get.role != Role.Anonymous) {
           <button type="button" id="nav-user-dropdown" class="navbar-button navbar-dropdown-toggle@if(userToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-user-menu" aria-label="User options for @user.get.username">
             <img class="navbar-select-icon" src='@assets.path("images/icons/user-feather.svg")' alt="" aria-hidden="true"><span class="navbar-user-name">@user.get.username</span><b class="caret" aria-hidden="true"></b>
@@ -224,7 +224,7 @@
         }
         </li>
 
-        <li class="dropdown navbar-lnk" id="language-dropdown">
+        <li class="navbar-lnk" id="language-dropdown">
           <button type="button" class="navbar-button navbar-dropdown-toggle" id="language-button" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-language-menu" aria-label="@Messages("navbar.lang.aria")">
             <img id="language-icon" src='@assets.path("images/icons/globe-feather.svg")' alt="@Messages("navbar.lang.icon.alt")">
             <span class="navbar-lang-label">@Messages(s"lang.name.${messages.lang.code}")</span><b class="caret" aria-hidden="true"></b>

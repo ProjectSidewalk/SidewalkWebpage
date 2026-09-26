@@ -256,7 +256,7 @@ class MissionStartTutorial {
     // Show the tab bar to allow selection of different labels in explore mission screens.
     // And set up other UI.
     if (this.#missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE) {
-      for (const tab of document.querySelectorAll('.explore-mission-start-tab.label')) {
+      for (const tab of document.querySelectorAll('.explore-mission-start-tab')) {
         const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[tab.dataset.labelType];
         tab.querySelector('.explore-mission-start-tab-text').innerHTML = i18next.t(lesson.nameKey);
         tab.classList.toggle('active', tab.dataset.labelType === this.#labelType);
@@ -443,7 +443,7 @@ class MissionStartTutorial {
     }, { signal });
 
     // Event handler to allow selecting between different label types
-    for (const tab of document.querySelectorAll('.explore-mission-start-tab.label')) {
+    for (const tab of document.querySelectorAll('.explore-mission-start-tab')) {
       tab.addEventListener('click', () => {
         // A tab switch only changes which label type is taught, so everything describing the mission has to survive it.
         new MissionStartTutorial('audit', tab.dataset.labelType, this.#data, svl, this.#language);

@@ -67,7 +67,6 @@
     <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")' defer></script>
     <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.6.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
-    <link href='@assets.path("vendor/bootstrap/css/bootstrap-3.3.5.min.css")' rel='stylesheet'>
 
     <script>
       (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
@@ -170,20 +169,19 @@
     }
     @if(!noFooter) {
     <footer>
-      <div class="container" id="footer-container">
-        <div class="row footer-links-row">
-          <div class="col-sm-4 footer-link">
+      <div id="footer-container">
+        <div class="footer-links-row">
+          <div class="footer-link">
             <span class="footer-header">PROJECT SIDEWALK</span><br>
-              <!-- Back to top<br>-->
             <a href='@routes.ApplicationController.about' id="sidewalk-about-link">@Messages("footer.about")</a> <br>
             <a href='@routes.ApplicationController.terms' id="sidewalk-terms-link" target="_blank">@Messages("footer.terms")</a> <br>
             <a href='@routes.ApplicationController.labelingGuide' id="sidewalk-labeling-link" target="_blank">@Messages("footer.guide")</a> <br>
           </div>
-          <div class="col-sm-4 footer-link">
+          <div class="footer-link">
             <span class="footer-header">@Messages("footer.developer")</span><br>
             <a href='@routes.ApiDocsController.index' id="developer-api-link">@Messages("footer.api")</a><br>
           </div>
-          <div class="col-sm-4 footer-link">
+          <div class="footer-link">
             <span class="footer-header">@Messages("footer.connect")</span><br>
             <a target="_blank" href="https://github.com/ProjectSidewalk/SidewalkWebpage" id="connect-github-link">@common.socialIcon("github")&nbsp;Github</a> <br>
             <a target="_blank" href="https://www.linkedin.com/company/project-sidewalk/" id="connect-linkedin-link">@common.socialIcon("linkedin")&nbsp;LinkedIn</a><br>
@@ -192,37 +190,25 @@
           </div>
         </div>
       </div>
-      <div class="container" id="info-footer">
-        <br>
+      <div id="info-footer">
         <p><span id="funding-title">@Messages("footer.funding")</span></p>
-        <div class="row footer-logos-row">
-          <div class="col-sm-1">
+        <div class="footer-logos-row">
+          <div class="footer-logo-nsf">
             <a href="https://www.nsf.gov/awardsearch/showAward?AWD_ID=1302338" id="nsf-link">
               <img loading="lazy" src="@assets.path("images/nsf.png")" alt="@Messages("footer.logo.nsf.alt")">
             </a>
-            <div class="col-sm-2" id="award-num">@Html(Messages("footer.award"))</div>
+            <div id="award-num">@Html(Messages("footer.award"))</div>
           </div>
-          <div class="col-sm-3">
-            <a href="http://www.google.com/" id="google-link"><img loading="lazy" src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
-          </div>
-          <div class="col-sm-3">
-            <a href="https://sloan.org/fellowships/" id="sloan-link">
-              <img loading="lazy" src="@assets.path("images/sloan_logo.png")" alt="@Messages("footer.logo.sloan.alt")">
-            </a>
-          </div>
-          <div class="col-sm-2">
-            <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
-              <img loading="lazy" src="@assets.path("images/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
-            </a>
-          </div>
-          <div class="col-sm-3">
-            <a href="https://create.uw.edu/" id="create-link">
-              <img loading="lazy" src="@assets.path("images/CREATE_logo.png")" alt="@Messages("footer.logo.create.alt")">
-            </a>
-          </div>
-        </div>
-        <div class="row footer-logos-row">
-          <div class="col-sm-8"></div>
+          <a href="http://www.google.com/" id="google-link"><img loading="lazy" src="@assets.path("images/google.png")" alt="@Messages("footer.logo.google.alt")"></a>
+          <a href="https://sloan.org/fellowships/" id="sloan-link">
+            <img loading="lazy" src="@assets.path("images/sloan_logo.png")" alt="@Messages("footer.logo.sloan.alt")">
+          </a>
+          <a href="https://www.washington.edu/research/research-centers/pacific-northwest-transportation-consortium-pactrans/" id="pactrans-link">
+            <img loading="lazy" src="@assets.path("images/pactrans_logo.png")" alt="@Messages("footer.logo.pactrans.alt")">
+          </a>
+          <a href="https://create.uw.edu/" id="create-link">
+            <img loading="lazy" src="@assets.path("images/CREATE_logo.png")" alt="@Messages("footer.logo.create.alt")">
+          </a>
         </div>
 
         @Html(Messages("footer.designed.operated"))<br>

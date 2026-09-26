@@ -136,6 +136,15 @@
   padding: calc(6px * var(--ui-scale)) calc(10px * var(--ui-scale));
 }
 
-#browser-warning-close {
-  cursor: pointer;
+.browser-warning-close {
+  display: inline-flex;
+  vertical-align: middle;
+  padding: 0;
+  border: none;
+  background: none;
+}
+
+.browser-warning-close img {
+  width: calc(16px * var(--ui-scale, 1));
+  height: calc(16px * var(--ui-scale, 1));
 }

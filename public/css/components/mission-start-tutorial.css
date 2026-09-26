@@ -316,7 +316,7 @@
   align-items: center;
 }
 
-.explore-mission-start-tab.label {
+.explore-mission-start-tab {
   border-radius: calc(4px * var(--ui-scale, 1)) calc(4px * var(--ui-scale, 1)) 0 0;
   height: 100%;
   width: 100%;
@@ -329,75 +329,76 @@
   text-align: left;
   border-bottom: calc(3px * var(--ui-scale, 1)) solid var(--color-neutral-200);
   padding: 0 calc(3px * var(--ui-scale, 1));
+  white-space: nowrap;
   filter: saturate(0);
   transition: all 0.25s;
 }
 
-.explore-mission-start-tab.label:hover, .explore-mission-start-tab.label.active {
+.explore-mission-start-tab:hover, .explore-mission-start-tab.active {
   filter: saturate(1);
 }
 
-.explore-mission-start-tab.label[data-label-type="CurbRamp"]:hover {
+.explore-mission-start-tab[data-label-type="CurbRamp"]:hover {
   background: rgb(from var(--color-label-curb-ramp) r g b / 15%);
 }
 
-.explore-mission-start-tab.label[data-label-type="NoCurbRamp"]:hover {
+.explore-mission-start-tab[data-label-type="NoCurbRamp"]:hover {
   background: rgb(from var(--color-label-no-curb-ramp) r g b / 15%);
 }
 
-.explore-mission-start-tab.label[data-label-type="Obstacle"]:hover {
+.explore-mission-start-tab[data-label-type="Obstacle"]:hover {
   background: rgb(from var(--color-label-obstacle) r g b / 15%);
 }
 
-.explore-mission-start-tab.label[data-label-type="SurfaceProblem"]:hover {
+.explore-mission-start-tab[data-label-type="SurfaceProblem"]:hover {
   background: rgb(from var(--color-label-surface-problem) r g b / 15%);
 }
 
-.explore-mission-start-tab.label[data-label-type="NoSidewalk"]:hover {
+.explore-mission-start-tab[data-label-type="NoSidewalk"]:hover {
   background: rgb(from var(--color-label-no-sidewalk) r g b / 15%);
 }
 
-.explore-mission-start-tab.label[data-label-type="Crosswalk"]:hover {
+.explore-mission-start-tab[data-label-type="Crosswalk"]:hover {
   background: rgb(from var(--color-label-crosswalk) r g b / 15%);
 }
 
-.explore-mission-start-tab.label[data-label-type="Signal"]:hover {
+.explore-mission-start-tab[data-label-type="Signal"]:hover {
   background: rgb(from var(--color-label-signal) r g b / 15%);
 }
 
 
 /* Selected tabs */
-.explore-mission-start-tab.label[data-label-type="CurbRamp"].active {
+.explore-mission-start-tab[data-label-type="CurbRamp"].active {
   background: rgb(from var(--color-label-curb-ramp) r g b / 15%);
   border-bottom-color: var(--color-label-curb-ramp);
 }
 
-.explore-mission-start-tab.label[data-label-type="NoCurbRamp"].active {
+.explore-mission-start-tab[data-label-type="NoCurbRamp"].active {
   background: rgb(from var(--color-label-no-curb-ramp) r g b / 15%);
   border-bottom-color: var(--color-label-no-curb-ramp);
 }
 
-.explore-mission-start-tab.label[data-label-type="Obstacle"].active {
+.explore-mission-start-tab[data-label-type="Obstacle"].active {
   background: rgb(from var(--color-label-obstacle) r g b / 15%);
   border-bottom-color: var(--color-label-obstacle);
 }
 
-.explore-mission-start-tab.label[data-label-type="SurfaceProblem"].active {
+.explore-mission-start-tab[data-label-type="SurfaceProblem"].active {
   background: rgb(from var(--color-label-surface-problem) r g b / 15%);
   border-bottom-color: var(--color-label-surface-problem);
 }
 
-.explore-mission-start-tab.label[data-label-type="NoSidewalk"].active {
+.explore-mission-start-tab[data-label-type="NoSidewalk"].active {
   background: rgb(from var(--color-label-no-sidewalk) r g b / 15%);
   border-bottom-color: var(--color-label-no-sidewalk);
 }
 
-.explore-mission-start-tab.label[data-label-type="Crosswalk"].active {
+.explore-mission-start-tab[data-label-type="Crosswalk"].active {
   background: rgb(from var(--color-label-crosswalk) r g b / 15%);
   border-bottom-color: var(--color-label-crosswalk);
 }
 
-.explore-mission-start-tab.label[data-label-type="Signal"].active {
+.explore-mission-start-tab[data-label-type="Signal"].active {
   background: rgb(from var(--color-label-signal) r g b / 15%);
   border-bottom-color: var(--color-label-signal);
 }

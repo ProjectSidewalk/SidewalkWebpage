@@ -56,15 +56,10 @@
   color: var(--color-asphalt-500);
 }
 
+/* h2 elements for SEO/a11y (#4237), styled as display text rather than headings. */
 .section-title {
-  font-size: 45px;
-  line-height: 40px;
-
-  /* Section titles are h2 elements for SEO/a11y (#4237); keep the original div look by neutralizing the
-     Bootstrap 3 h2 defaults (margin-top: 10px, font-weight: 500). */
-  margin-top: 0;
-  margin-bottom: 25px;
-  font-weight: normal;
+  font: 400 45px/40px var(--font-accent);
+  margin: 0 0 25px;
 }
 
 
@@ -119,10 +114,28 @@
   left: 60px;
 }
 
+/* The bar underlines all three steps in a row, which a phone (var(--breakpoint-sm)) can't fit. */
+@media (width <= 767px) {
+  #greenbar {
+    display: none;
+  }
+
+  #numbersrow {
+    flex-direction: column;
+    width: auto;
+  }
+}
+
 #numbersrow {
+  display: flex;
   cursor: pointer;
   width: 630px;
   margin: auto;
+}
+
+#numbersrow > div {
+  flex: 1 1 0;
+  padding: 0 15px;
 }
 
 .stepword {
@@ -188,7 +201,6 @@ video#bgvid {
   background-color: rgb(192 190 207 / 40%);
 }
 
-/* Full-width wrapper for the "how you help" content section (overrides the Bootstrap .container max-width). */
 .home-content-container {
   width: 100%;
   position: relative;
@@ -277,7 +289,8 @@ video#bgvid {
   margin-top: 135px;
 }
 
-.ps-skyline-overlay > .row {
+.ps-skyline-overlay > .section-title,
+.ps-skyline-overlay > .section-subtitle {
   background-color: var(--color-neutral-white);
   opacity: 0.9;
   padding: 5px;
@@ -478,6 +491,7 @@ p#conditional-text {
 #partners-container {
   position: relative;
   max-width: 900px;
+  margin: 0 auto;
   padding: var(--space-xxl) 0;
   text-align: center;
 }

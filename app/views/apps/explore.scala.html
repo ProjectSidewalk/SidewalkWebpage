@@ -108,7 +108,7 @@
     </div>
   </dialog>
 
-  <div class="container tool-ui ps-invisible">
+  <div class="tool-ui ps-invisible">
     <div id="area-completion-overlay-wrapper">
       <div class="overlay-text">
         <div id="area-completion-overlay">
@@ -131,7 +131,9 @@
     <div class="browser-warning-holder ps-invisible" id="unsupported-browser-alert">
       <div class="browser-warning-banner">
         <span id="browser-warning-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome, with some support for Firefox and Safari. Other browsers are not fully supported yet.&nbsp;</span>
-        <span id="browser-warning-close" class="glyphicon glyphicon-remove"></span>
+        <button type="button" id="browser-warning-close" class="browser-warning-close" aria-label="Close" data-i18n-aria-label="common:close">
+          <img src='@assets.path("images/icons/cross.svg")' alt="">
+        </button>
       </div>
     </div>
     <div id="svl-application-holder">
@@ -506,7 +508,7 @@
               </button>
               <button type="button" id="explore-control-sound" class="pano-overlay-button">
                 <img class="pano-overlay-button-icon" id="explore-control-sound-icon" src='@assets.path("images/icons/volume-on-feather.svg")' alt="">
-                <img class="pano-overlay-button-icon hidden" id="explore-control-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
+                <img class="pano-overlay-button-icon ps-hidden" id="explore-control-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
                 <span class="pano-overlay-button-label" data-i18n="audit:controls.sound">Sound</span>
               </button>
               <button type="button" id="explore-control-feedback" class="pano-overlay-button" title="Share your thoughts with us" data-i18n-title="audit:controls.feedback-tooltip">
@@ -667,7 +669,7 @@
       </div>
       <div id="page-overlay-holder">
       </div>
-      <div id="pop-up-message-holder" class="hidden">
+      <div id="pop-up-message-holder" class="ps-hidden">
         <div id="pop-up-message-background"></div>
         <div id="pop-up-message-foreground">
           <h2 id="pop-up-message-title">Title</h2>
@@ -676,7 +678,7 @@
           <div id="pop-up-message-button-holder"></div>
         </div>
       </div>
-      <div id="modal-comment-holder" class="hidden">
+      <div id="modal-comment-holder" class="ps-hidden">
         <div id="modal-comment-background"></div>
         <div id="modal-comment-box">
           <form id="comment-form">

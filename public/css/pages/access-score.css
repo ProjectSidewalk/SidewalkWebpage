@@ -9,7 +9,6 @@
 /* ---- Full-window map, mirroring the public LabelMap's rules in components/choropleth.css ---- */
 
 #acs-map-container {
-  max-width: none; /* Override the Bootstrap .container max-width so the map spans the window. */
   width: 100%;
   flex: 1 1 auto; /* Fill the space #wrap leaves below the navbar and any test-server banner. */
   min-height: 0;
@@ -265,7 +264,6 @@
 
 .acs-weight__label {
   flex: 1 1 auto;
-  margin: 0;
   font: var(--text-small-medium);
   color: var(--color-neutral-900);
   cursor: pointer;
@@ -627,9 +625,7 @@
   display: none;
 }
 
-/* The page's base label style is bold with a bottom margin; these labels sit beside their control as plain text. */
 .acs-field label {
-  margin: 0;
   font: var(--text-caption-regular);
 }
 

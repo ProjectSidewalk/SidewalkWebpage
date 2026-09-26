@@ -44,11 +44,15 @@ These apply across every language in the repo.
 - **Use the component primitives in `main.css` before writing a new one.** Buttons are `.button-ps` with a
   `.button--<variant>` and `.button--<size>` modifier; text inputs and textareas are `.ps-input`, `<select>`s are
   `.ps-select` (both take `--large` for a settings-style form); data tables are `.ps-table` (`--compact` for dense
-  admin data, `.num` on a numeric cell, `.ps-table-wrapper` for the horizontal scroller). A page-scoped class on top
-  for layout (width, margin, a sticky header, a row-highlight state) is fine; re-declaring the font, border, padding,
-  or hover/focus treatment is not — extend the primitive in `main.css` instead.
-- **Size in px, never `rem`.** Bootstrap 3 sets `html { font-size: 62.5% }`, so `1rem` is 10px everywhere and a
-  `0.875rem` "14px" renders at 8.75px. The `--text-*` tokens are px for this reason.
+  admin data, `.num` on a numeric cell, `.ps-table-wrapper` for the horizontal scroller); a centered page column is
+  `.ps-container`; hide with `.ps-hidden` / `.ps-invisible`, and `.sr-only` keeps text for screen readers only. A
+  page-scoped class on top for layout (width, margin, a sticky header, a row-highlight state) is fine; re-declaring
+  the font, border, padding, or hover/focus treatment is not — extend the primitive in `main.css` instead.
+- **Base element styles live at the top of `main.css`** (`box-sizing`, the body type, heading and paragraph
+  rhythm, links, form controls inheriting their font). There is no CSS framework underneath: an unstyled element
+  looks the way that block says, so add to it rather than re-declaring a default in a page stylesheet.
+- **Size in px, never `rem`.** The `--text-*` tokens are px, and so is every dimension around them; a lone `rem`
+  is the one size on the page that doesn't say what it renders at.
 - **Raleway (`--font-accent`) is display-only — and never for numbers.** Default to the primary font (Mulish); the
   accent font appears only in the tokens that already carry it (`--text-h1-bold`, `--text-h2-bold`,
   `--text-small-accent`). Raleway defaults to old-style (text) figures — digits vary in height and 3/4/5/7/9 descend
@@ -65,8 +69,7 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
 - **Write ES2022 for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals
   (`prefer-template`), object shorthand, and `===`/`!==` (`eqeqeq`). When you're editing a file that is *entirely*
   ES5, you may match its style for consistency — but prefer modernizing it. See the migration guidance in
-  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → `class` with `#private` fields; Bootstrap → native JS/CSS as
-  you touch that code).
+  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → `class` with `#private` fields).
 - **One declaration per statement** (`one-var: never`) — the opposite of the old comma-chained `var` style:
 
   ```js

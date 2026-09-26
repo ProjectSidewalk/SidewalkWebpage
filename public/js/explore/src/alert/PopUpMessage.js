@@ -160,7 +160,7 @@ class PopUpMessage {
   #show() {
     this.disableInteractions();
     this.#showBackground();
-    this.#ui.holder.classList.remove('hidden');
+    this.#ui.holder.classList.remove('ps-hidden');
     this.#ui.holder.classList.add('visible');
     this.#status.isVisible = true;
   }
@@ -170,7 +170,7 @@ class PopUpMessage {
    */
   #hide() {
     this.#ui.holder.classList.remove('visible');
-    this.#ui.holder.classList.add('hidden');
+    this.#ui.holder.classList.add('ps-hidden');
     if (!this.#status.signUp) {
       this.enableInteractions();
     }

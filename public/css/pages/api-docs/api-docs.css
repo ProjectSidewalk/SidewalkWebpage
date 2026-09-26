@@ -414,10 +414,8 @@ pre > code.language-csv {
   color: var(--color-neutral-900);
 }
 
-/* Bootstrap gives every label a bottom margin, which would lift this one off the select's centerline. */
 .map-toolbar label {
   font: var(--text-caption-semibold);
-  margin: 0;
 }
 
 /* A "nothing to show" notice floated at the top of a map frame, clear of its controls in the corners. */
