@@ -147,14 +147,10 @@
   <script>
     // Gets all translations before loading the map.
     window.appManager.ready(async function () {
-      const fetchJson = (url) => fetch(url).then((response) => {
-        if (!response.ok) throw new Error(`${url} responded ${response.status}`);
-        return response.json();
-      });
       // All three requests go out at once; the map only needs its params, and each layer draws when its data lands.
-      const loadRegions = fetchJson('/regions');
-      const loadStreets = fetchJson('/contribution/streets/all?filterLowQuality=true');
-      const mapParams = await fetchJson('/cityMapParams');
+      const loadRegions = util.fetchJson('/regions');
+      const loadStreets = util.fetchJson('/contribution/streets/all?filterLowQuality=true');
+      const mapParams = await util.fetchJson('/cityMapParams');
       const routeBuilder = new RouteBuilder('@commonData.mapboxApiKey', mapParams, @(!isAnon), @minutesPer100m);
       loadRegions.then((regionData) => routeBuilder.renderRegions(regionData))
         .catch((err) => console.error('Failed to load regions:', err));

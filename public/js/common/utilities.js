@@ -658,6 +658,18 @@ function onDomReady(fn) {
 
 util.onDomReady = onDomReady;
 
+/**
+ * Fetches a JSON endpoint, rejecting on a non-2xx status so a failed request doesn't surface as a parse error.
+ * @param {string|URL} url - The endpoint to fetch.
+ * @param {RequestInit} [init] - Extra fetch options; headers are merged over the JSON `Accept` header.
+ * @returns {Promise<any>} The parsed response body.
+ */
+util.fetchJson = async function (url, init = {}) {
+  const response = await fetch(url, { ...init, headers: { Accept: 'application/json', ...init.headers } });
+  if (!response.ok) throw new Error(`Request failed (${response.status}): ${url}`);
+  return response.json();
+};
+
 // Any of these means a human is present. pointermove is the earliest of them by a wide margin — a single mouse
 // twitch — which is the point: the gate has to clear long before the visitor could scroll to the deferred content.
 const INTERACTION_EVENTS = ['pointermove', 'pointerdown', 'scroll', 'keydown', 'touchstart', 'wheel'];

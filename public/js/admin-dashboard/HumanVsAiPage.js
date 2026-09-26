@@ -28,8 +28,8 @@ class HumanVsAiPage {
   async init() {
     try {
       const [stats, labelTypes] = await Promise.all([
-        this.#fetchJson(this.#statsUrl),
-        this.#fetchJson(this.#labelTypesUrl),
+        util.fetchJson(this.#statsUrl),
+        util.fetchJson(this.#labelTypesUrl),
       ]);
       this.#buildMeta(labelTypes);
 
@@ -50,12 +50,6 @@ class HumanVsAiPage {
       console.error('Humans vs AI page failed to load:', err);
       this.#setStatus('Could not load the comparison. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   /** Builds the canonical label-type lookup (display name, color, icon) from /v3/api/labelTypes. */

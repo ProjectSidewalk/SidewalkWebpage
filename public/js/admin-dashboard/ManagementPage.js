@@ -47,7 +47,7 @@ class ManagementPage {
 
   async init() {
     try {
-      const data = await AdminShell.fetchJson(this.#urls.userStatsUrl);
+      const data = await util.fetchJson(this.#urls.userStatsUrl);
       this.#users = (data && data.user_stats) || [];
       this.#teams = (data && data.teams) || [];
       this.#teamsByName = new Map(this.#teams.map((t) => [t.name, t]));

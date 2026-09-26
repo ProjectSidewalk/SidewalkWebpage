@@ -75,8 +75,8 @@ class ImageryPage {
 
     try {
       const [geojson, priority] = await Promise.all([
-        ImageryPage.#fetchJson(this.#streetsUrl),
-        ImageryPage.#fetchJson(this.#priorityUrl),
+        util.fetchJson(this.#streetsUrl),
+        util.fetchJson(this.#priorityUrl),
       ]);
       this.#streets = priority.streets || [];
 
@@ -113,12 +113,6 @@ class ImageryPage {
       console.error('Imagery page failed to load:', err);
       this.#setStatus('Could not load street priority data. Please try again.', true);
     }
-  }
-
-  static async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed: ${resp.status} (${url})`);
-    return resp.json();
   }
 
   /**

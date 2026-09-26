@@ -131,8 +131,8 @@ class AcrossCitiesPage {
     try {
       // Scorecards are required; the cities geo (for the map) is an enhancement, so it degrades gracefully.
       const [data, citiesGeo] = await Promise.all([
-        this.#fetchJson(this.#scorecardsUrl),
-        this.#citiesUrl ? this.#fetchJson(this.#citiesUrl).catch(() => null) : Promise.resolve(null),
+        util.fetchJson(this.#scorecardsUrl),
+        this.#citiesUrl ? util.fetchJson(this.#citiesUrl).catch(() => null) : Promise.resolve(null),
       ]);
       this.#cities = (data && data.cities) || [];
       this.#summary = (data && data.summary) || {};
@@ -174,12 +174,6 @@ class AcrossCitiesPage {
       this.#setText('ac-pulse', 'Could not load city data. Please try again.');
       this.#setText('ac-status', 'Could not load city data. Please try again.');
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   // --- Pulse ------------------------------------------------------------------------------------------------------
@@ -993,7 +987,7 @@ class AcrossCitiesPage {
   async #loadTraffic() {
     this.#setText('ac-traffic-status', 'Loading traffic…');
     try {
-      const data = await this.#fetchJson(this.#trafficUrl);
+      const data = await util.fetchJson(this.#trafficUrl);
       if (!data || data.available === false) {
         this.#setTrafficUnavailable();
         return;
@@ -1249,7 +1243,7 @@ class AcrossCitiesPage {
   async #loadFunnels() {
     this.#setText('ac-funnel-status', 'Loading funnels…');
     try {
-      const data = await this.#fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#funnelWindow)}`);
+      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#funnelWindow)}`);
       this.#funnels = (data && data.funnels) || {};
       this.#renderFunnels();
     } catch (err) {

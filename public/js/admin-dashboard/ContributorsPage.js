@@ -42,8 +42,8 @@ class ContributorsPage {
       // Aggregate charts come from the per-user stats; the two enriched leaderboards come from their own endpoint
       // (which ranks + breaks down server-side, scoped to the top rows).
       const [statsResp, boardsResp] = await Promise.all([
-        this.#fetchJson(this.#userStatsUrl),
-        this.#fetchJson(this.#leaderboardsUrl),
+        util.fetchJson(this.#userStatsUrl),
+        util.fetchJson(this.#leaderboardsUrl),
       ]);
       const users = (statsResp && statsResp.user_stats) || [];
       const labelers = users.filter((u) => (u.labels || 0) > 0);
@@ -62,12 +62,6 @@ class ContributorsPage {
       console.error('Contributors page failed to load:', err);
       this.#setStatus('Could not load contributor data. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   #renderKpis(labelers) {

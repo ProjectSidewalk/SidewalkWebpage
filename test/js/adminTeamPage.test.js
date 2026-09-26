@@ -8,6 +8,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadGlobalScript } = require('./loadGlobalScript');
+
+// The page fetches through util.fetchJson.
+loadGlobalScript('public/js/common/utilities.js');
 
 const src = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
 

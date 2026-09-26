@@ -46,7 +46,7 @@ class TeamPage {
    */
   async #load(message) {
     try {
-      const data = await AdminShell.fetchJson(`${this.#urls.overviewUrl}/${this.#teamId}`);
+      const data = await util.fetchJson(`${this.#urls.overviewUrl}/${this.#teamId}`);
       this.#members = (data && data.members) || [];
       this.#renderStats((data && data.totals) || {});
       this.#renderMembers();
@@ -227,7 +227,7 @@ class TeamPage {
     }
     try {
       const url = `${this.#urls.userSearchUrl}?query=${encodeURIComponent(query)}`;
-      const matches = await AdminShell.fetchJson(url);
+      const matches = await util.fetchJson(url);
       if (seq !== this.#searchSeq) return;
       this.#renderSearchResults(matches || []);
     } catch (err) {
