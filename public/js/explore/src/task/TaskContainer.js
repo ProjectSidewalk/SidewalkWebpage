@@ -119,10 +119,11 @@ class TaskContainer {
    * @param {Array<{street_edge_id: number, priority: number}>} updatedPriorities - Any streets with a new priority
    */
   updateTaskPriorities(updatedPriorities) {
-    // Loop through all updatedPriorities and update _tasks with the new priorities.
+    // The server reports every street of the region whose priority changed, which need not be one that is loaded
+    // here (a hidden street, say), so an unknown id is skipped rather than assumed present.
     updatedPriorities.forEach((newPriority) => {
-      const index = this._tasks.findIndex((s) => s.getStreetEdgeId() === newPriority.street_edge_id);
-      this._tasks[index].setProperty('priority', newPriority.priority);
+      const task = this._tasks.find((s) => s.getStreetEdgeId() === newPriority.street_edge_id);
+      task?.setProperty('priority', newPriority.priority);
     });
   }
 

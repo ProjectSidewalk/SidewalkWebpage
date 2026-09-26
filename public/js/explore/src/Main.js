@@ -427,7 +427,7 @@ class Main {
     svl.missionPanel.setMessage(mission);
     svl.minimap.updateMissionProgress(mission);
 
-    svl.labelContainer.fetchLabelsToResumeMission(region.getRegionId(), () => {
+    svl.labelContainer.fetchLabelsToResumeMission(region.getRegionId(), svl.userRouteId ?? null, () => {
       svl.canvas.setOnlyLabelsOnPanoAsVisible(svl.panoViewer.getPanoId());
       // Wait for the icon cache before this first paint (resolves immediately if already warm).
       svl.iconsPreloaded.then(() => {

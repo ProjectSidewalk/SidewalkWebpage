@@ -46,6 +46,8 @@ class RouteBuilderController @Inject() (
     "route_id"         -> saved.routeId,
     "name"             -> saved.name,
     "slug"             -> saved.slug,
+    "region_name"      -> saved.regionName,
+    "region_count"     -> saved.regionCount,
     "distance_meters"  -> saved.distanceMeters,
     "encoded_polyline" -> saved.encodedPolyline,
     "thumbnail_url"    -> saved.thumbnailUrl

@@ -12,7 +12,6 @@ class SaveModal {
   #descriptionInput;
   #nameError;
   #isSignedIn;
-  #getRegionId;
   #getStreetsPayload;
   #getSuggestedName;
   #getCamera;
@@ -25,7 +24,6 @@ class SaveModal {
   /**
    * @param {object} opts
    * @param {boolean} opts.isSignedIn - Whether the user is signed in (vs anonymous), from the server.
-   * @param {Function} opts.getRegionId - Returns the current route's region id.
    * @param {Function} opts.getStreetsPayload - Returns the ordered street list in the /saveRoute wire format.
    * @param {Function} opts.getSuggestedName - Returns a suggested route name (e.g. from the endpoint streets).
    * @param {Function} opts.getCamera - Returns the current map camera pose, for restoring the view post-sign-in.
@@ -35,7 +33,6 @@ class SaveModal {
    */
   constructor(opts) {
     this.#isSignedIn = opts.isSignedIn === true;
-    this.#getRegionId = opts.getRegionId;
     this.#getStreetsPayload = opts.getStreetsPayload;
     this.#getSuggestedName = opts.getSuggestedName;
     this.#getCamera = opts.getCamera;
@@ -66,7 +63,7 @@ class SaveModal {
 
   /**
    * Reads and clears the route stashed before a sign-in reload.
-   * @returns {?Record<string, any>} {regionId, name, description, streets, camera}; null if none is stashed.
+   * @returns {?Record<string, any>} {name, description, streets, camera}; null if none is stashed.
    */
   static consumePendingRoute() {
     try {
@@ -126,7 +123,6 @@ class SaveModal {
     this.#onSignIn();
     try {
       sessionStorage.setItem(SaveModal.PENDING_ROUTE_KEY, JSON.stringify({
-        regionId: this.#getRegionId(),
         name: this.#nameInput.value.trim(),
         description: this.#descriptionInput?.value.trim() ?? '',
         streets: this.#getStreetsPayload(),
@@ -166,7 +162,6 @@ class SaveModal {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        region_id: this.#getRegionId(),
         streets: this.#getStreetsPayload(),
         name,
         description,

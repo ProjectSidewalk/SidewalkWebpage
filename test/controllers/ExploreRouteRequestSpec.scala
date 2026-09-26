@@ -62,7 +62,7 @@ class ExploreRouteRequestSpec
   /** Reads one of the page's `mainParam.<name> = <json>;` bootstrap assignments, as the client does. */
   private def pageParam(html: String, name: String): Option[JsValue] = embeddedPageJson(html, s"mainParam.$name")
 
-  /** Saves a one-street route in a region the connected schema actually has, and returns its id. */
+  /** Saves a one-street route on a street the connected schema actually has, and returns its id. */
   private def saveRoute(session: Seq[Cookie]): Int = {
     val streets = route(
       app,
@@ -74,9 +74,8 @@ class ExploreRouteRequestSpec
       .headOption
       .getOrElse(cancel("No routable street in the connected schema; a route can't be built."))
     val body = Json.obj(
-      "region_id" -> (feature \ "properties" \ "region_id").as[Int],
-      "name"      -> s"Explore Route Param Spec ${java.util.UUID.randomUUID()}",
-      "streets"   -> Json.arr(
+      "name"    -> s"Explore Route Param Spec ${java.util.UUID.randomUUID()}",
+      "streets" -> Json.arr(
         Json.obj("street_id" -> (feature \ "properties" \ "street_edge_id").as[Int], "reverse" -> false)
       )
     )

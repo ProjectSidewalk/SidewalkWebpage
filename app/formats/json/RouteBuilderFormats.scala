@@ -7,7 +7,12 @@ import play.api.libs.json.{JsPath, Reads, Writes}
 import java.time.OffsetDateTime
 
 object RouteBuilderFormats {
-  case class NewRoute(regionId: Int, streets: Seq[NewRouteStreet], name: Option[String], description: Option[String])
+
+  /**
+   * A route to save. It carries no region: a route may run through several (#3488), and the one it is filed under —
+   * where it starts — is read off its first street by the server.
+   */
+  case class NewRoute(streets: Seq[NewRouteStreet], name: Option[String], description: Option[String])
   case class NewRouteStreet(streetId: Int, reverse: Boolean)
 
   /**
@@ -24,8 +29,7 @@ object RouteBuilderFormats {
   // A zero-street route can't be explored: its mission has no distance, so opening its share link 500s Explore.
   // It's also invisible in listings (they inner-join route_street), so its owner couldn't delete it either.
   implicit val newRouteReads: Reads[NewRoute] = (
-    (JsPath \ "region_id").read[Int] and
-      (JsPath \ "streets").read[Seq[NewRouteStreet]](Reads.minLength[Seq[NewRouteStreet]](1)) and
+    (JsPath \ "streets").read[Seq[NewRouteStreet]](Reads.minLength[Seq[NewRouteStreet]](1)) and
       (JsPath \ "name").readNullable[String] and
       (JsPath \ "description").readNullable[String]
   )(NewRoute.apply _)
@@ -40,6 +44,7 @@ object RouteBuilderFormats {
     (JsPath \ "route_id").write[Int] and
       (JsPath \ "region_id").write[Int] and
       (JsPath \ "region_name").write[String] and
+      (JsPath \ "region_count").write[Int] and
       (JsPath \ "name").write[String] and
       (JsPath \ "slug").write[String] and
       (JsPath \ "description").writeNullable[String] and

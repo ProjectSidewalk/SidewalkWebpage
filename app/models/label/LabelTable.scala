@@ -2401,27 +2401,47 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Gets every label the user has placed in a region, across all of their missions there.
+   * Gets every label the user has placed in a set of regions, across all of their missions there, so Explore can show
+   * them again instead of letting the user label the same thing twice.
+   *
+   * A label counts when either the mission it was placed in is filed under one of the regions, or the street it sits
+   * on belongs to one. The two differ whenever a walk leaves its mission's region: a route is filed under the region
+   * it starts in however far it runs (#3488), so going by the mission alone would hide a route's labels from a later
+   * visit to the neighborhood they are actually in, and going by the street alone would drop a label that sits just
+   * across a boundary from the mission it was placed in.
    *
    * Deliberately unscoped by mission or date: Explore loads these on every page load (not only on a resume) and uses
    * the whole set for the mission-complete "your labels" count and for the minimap, where the current pass and
    * earlier ones are told apart client-side by mission id and by `fromOutdatedImagery` (#4945). Narrowing the query
    * would silently change that count.
    *
-   * @param regionId Region ID to get labels from
-   * @param userId   User ID of user to find labels for
-   * @return         The user's labels in the region that have a lat/lng, with their audit task's freshness flag.
+   * @param regionIds Regions to get labels from.
+   * @param userId    User to find labels for.
+   * @return          The user's labels in those regions that have a lat/lng, with their audit task's freshness flag.
    */
-  def getLabelsFromUserInRegion(regionId: Int, userId: String): DBIO[Seq[ResumeLabelMetadata]] = {
+  def getLabelsFromUserInRegions(regionIds: Seq[Int], userId: String): DBIO[Seq[ResumeLabelMetadata]] = {
+    // Two index-driven branches under a UNION: a single join with an OR across mission and street region can't use an
+    // index on either side, so Postgres would scan the whole mission table on every Explore load.
+    val byMission = labels
+      .join(missions)
+      .on(_.missionId === _.missionId)
+      .filter { case (_, _mission) => _mission.userId === userId && (_mission.regionId inSet regionIds) }
+      .map(_._1.labelId)
+    val byStreet = labels
+      .join(streetEdgeRegions)
+      .on(_.streetEdgeId === _.streetEdgeId)
+      .filter { case (_label, _streetRegion) => _label.userId === userId && (_streetRegion.regionId inSet regionIds) }
+      .map(_._1.labelId)
+    val labelIds = byMission.union(byStreet)
+
     (for {
-      _mission <- missions
       // The base query's own audit_task join carries the outdated_imagery flag (#4945); a second join to audit_task
-      // would slow a query Explore runs on every page load (see labelsWithAuditTasksAndUserStats).
-      (_label, _auditTask, _) <- labelsWithAuditTasksAndUserStats if _mission.missionId === _label.missionId
+      // would slow a query Explore runs on every page load (see labelsWithAuditTasksAndUserStats). It also drops
+      // tutorial labels, which sit on the tutorial street and would otherwise count for that street's region.
+      (_label, _auditTask, _) <- labelsWithAuditTasksAndUserStats if _label.labelId in labelIds
       _labelPoint             <- labelPoints if _label.labelId === _labelPoint.labelId
       _panoData               <- panoData if _label.panoId === _panoData.panoId
-      if _mission.regionId === regionId && _mission.userId === userId
-      if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
+      if _label.userId === userId && _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
     } yield (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
       _panoData.cameraPitch, _panoData.width, _panoData.height, _auditTask.outdatedImagery)).result
       .map(_.map(ResumeLabelMetadata.tupled))

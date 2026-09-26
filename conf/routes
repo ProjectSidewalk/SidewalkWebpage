@@ -172,7 +172,7 @@ POST    /label/edit                                     controllers.LabelControl
 DELETE  /label/:labelId                                 controllers.LabelController.deleteLabel(labelId: Int, source: String)
 POST    /label/:labelId/restore                         controllers.LabelController.restoreLabel(labelId: Int)
 GET     /label/tags                                     controllers.LabelController.getLabelTags
-GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int)
+GET     /label/resumeMission                            controllers.LabelController.getLabelsToResumeMission(regionId: Int, userRouteId: Option[Int] ?= None)
 GET     /label/countInRegion                            controllers.LabelController.getRegionLabelCount(regionId: Int)
 POST    /label/labels                                   controllers.GalleryController.getLabels
 

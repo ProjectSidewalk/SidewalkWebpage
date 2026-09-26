@@ -8,6 +8,7 @@ import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
+import models.route.UserRouteTable
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
@@ -101,7 +102,7 @@ trait LabelService {
   ): Future[Map[LabelTypeEnum.Base, Seq[LabelMetadataUserDash]]]
   def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): Future[Boolean]
   def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean]
-  def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
+  def getLabelsToResume(regionId: Int, userRouteId: Option[Int], userId: String): Future[Seq[ResumeLabelMetadata]]
   def insertLabel(label: Label): DBIO[Int]
 }
 
@@ -211,6 +212,7 @@ class LabelServiceImpl @Inject() (
     tagTable: TagTable,
     labelValidationTable: LabelValidationTable,
     labelHistoryTable: LabelHistoryTable,
+    userRouteTable: UserRouteTable,
     missionService: MissionService,
     implicit val ec: ExecutionContext
 ) extends LabelService
@@ -878,8 +880,18 @@ class LabelServiceImpl @Inject() (
   def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean] =
     db.run(labelTable.recordMistakeNote(labelId, userId, comment))
 
-  def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]] =
-    db.run(labelTable.getLabelsFromUserInRegion(regionId, userId))
+  /**
+   * Gets the labels a user already placed where they are about to explore, for Explore to redraw.
+   *
+   * @param regionId    The region the Explore page is in.
+   * @param userRouteId The route walk the user is on, if any. Its route may leave that region (#3488), so its
+   *                    labels are gathered from every region it runs through.
+   */
+  def getLabelsToResume(regionId: Int, userRouteId: Option[Int], userId: String): Future[Seq[ResumeLabelMetadata]] =
+    db.run(for {
+      walkRegionIds: Seq[Int] <- userRouteId.map(userRouteTable.getRegionIds).getOrElse(DBIO.successful(Seq.empty[Int]))
+      labels                  <- labelTable.getLabelsFromUserInRegions((regionId +: walkRegionIds).distinct, userId)
+    } yield labels)
 
   /**
    * Insert a new label into the database. Also inserts an initial entry into the label_history table.

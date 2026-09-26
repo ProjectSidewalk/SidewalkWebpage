@@ -45,14 +45,14 @@ function stubLayout(toastWidth, refRect) {
  * @param {object} refRect - The reference's box.
  * @param {string} [minTop] - An inline `--toast-min-top` on the reference, as a page's layout code sets it.
  */
-function place(toastWidth, refRect, minTop) {
+function place(toastWidth, refRect, minTop, extra = {}) {
     stubLayout(toastWidth, refRect);
     const reference = document.createElement('div');
     if (minTop) reference.style.setProperty('--toast-min-top', minTop);
     document.body.appendChild(reference);
 
     // duration 0 disables the auto-dismiss timer, so nothing is left pending after the test.
-    Toast.show({ message: 'hi', reference, duration: 0 });
+    Toast.show({ message: 'hi', reference, duration: 0, ...extra });
 
     const el = document.querySelector('.ps-toast');
     return { left: parseFloat(el.style.left), top: parseFloat(el.style.top) };
@@ -89,6 +89,33 @@ describe('Toast placement', () => {
         const el = document.querySelector('.ps-toast');
         expect(parseFloat(el.style.top)).toBe(190);
         expect(parseFloat(el.style.left)).toBe(500);
+    });
+
+    it('sits at the caller\'s top offset instead of 10% down, still no higher than --toast-min-top', () => {
+        const rect = { left: 200, top: 100, width: 600, height: 400 };
+        expect(place(300, rect, undefined, { top: 16 }).top).toBe(116);
+        document.querySelector('.ps-toast').remove();
+        expect(place(300, rect, '150px', { top: 16 }).top).toBe(150);
+    });
+
+    it('follows its reference when that is re-laid out without a window resize', () => {
+        const observed = [];
+        const realResizeObserver = global.ResizeObserver;
+        global.ResizeObserver = class {
+            constructor(callback) { this.callback = callback; }
+            observe(el) { observed.push({ el, fire: () => this.callback([]) }); }
+            disconnect() { this.disconnected = true; }
+        };
+        try {
+            expect(place(300, { left: 200, top: 100, width: 600, height: 400 }).left).toBe(500);
+            expect(observed).toHaveLength(1);
+            // A panel opens beside the reference, narrowing it to the right half of the window.
+            stubLayout(300, { left: 500, top: 100, width: 500, height: 400 });
+            observed[0].fire();
+            expect(parseFloat(document.querySelector('.ps-toast').style.left)).toBe(750);
+        } finally {
+            global.ResizeObserver = realResizeObserver;
+        }
     });
 
     it('centers on the reference and sits 10% down it when there is room on both sides', () => {

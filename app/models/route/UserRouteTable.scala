@@ -2,6 +2,7 @@ package models.route
 
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskTable, NewTask}
+import models.street.StreetEdgeRegionTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
@@ -49,7 +50,26 @@ class UserRouteTable @Inject() (
   val routes              = TableQuery[RouteTableDef]
   val routeStreets        = TableQuery[RouteStreetTableDef]
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
+  val streetEdgeRegions   = TableQuery[StreetEdgeRegionTableDef]
   val activeRoutes        = userRoutes.filter(ur => !ur.completed && !ur.discarded)
+
+  /**
+   * The regions a route walk runs through: the distinct regions of its route's streets. A route isn't confined to
+   * the region it starts in (#3488), so anything a walk needs "for its neighborhood" needs it for all of these.
+   *
+   * @return Empty when the walk doesn't exist or its route has no streets.
+   */
+  def getRegionIds(userRouteId: Int): DBIO[Seq[Int]] = {
+    userRoutes
+      .filter(_.userRouteId === userRouteId)
+      .join(routeStreets)
+      .on(_.routeId === _.routeId)
+      .join(streetEdgeRegions)
+      .on { case ((_, routeStreet), streetRegion) => routeStreet.streetEdgeId === streetRegion.streetEdgeId }
+      .map { case (_, streetRegion) => streetRegion.regionId }
+      .distinct
+      .result
+  }
 
   /**
    * The user's in-progress route walk, if any — the walk that a bare /explore visit silently resumes.
