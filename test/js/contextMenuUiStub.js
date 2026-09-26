@@ -1,5 +1,5 @@
 /**
- * Test helper: the context menu's real markup, pared down to what ContextMenu wires up.
+ * Test helper: the context menu's markup, pared down to what ContextMenu wires up.
  * @returns {object} The `uiContextMenu` argument ContextMenu takes.
  */
 function makeContextMenuUi() {

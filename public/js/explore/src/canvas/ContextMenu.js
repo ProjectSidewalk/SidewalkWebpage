@@ -243,7 +243,7 @@ class ContextMenu {
   }
 
   /**
-   * The tag id a tag button currently stands for (#setTags assigns them).
+   * The tag id a button stands for.
    * @param {HTMLElement} button
    * @returns {number}
    */
@@ -259,7 +259,7 @@ class ContextMenu {
     const button = /** @type {HTMLButtonElement} */ (e.currentTarget);
     let labelTags = this.#status.targetLabel.getProperty('tagIds');
 
-    // A shortcut's synthetic click and Enter on a focused button both lack a cursor position, so both log as keyboard.
+    // A shortcut key's click and Enter on a focused button have no cursor position, so both count as keyboard.
     const wasClickedByMouse = e.isTrusted && e.clientX !== 0 && e.clientY !== 0;
 
     const tag = this.labelTags.find((t) => t.tag_id === ContextMenu.#tagIdOf(button));
@@ -324,7 +324,7 @@ class ContextMenu {
   hide() {
     const wasOpen = this.isOpen();
     if (wasOpen) {
-      // Every close logs a blur row ahead of the close row, whether or not the box had focus.
+      // Every close logs a blur row before the close row, focused or not.
       if (document.activeElement === this.#descriptionTextBox) this.#descriptionTextBox.blur();
       else this.#handleDescriptionTextBoxBlur();
       svl.tracker.push('ContextMenu_Close');

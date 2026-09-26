@@ -971,7 +971,7 @@ class Onboarding {
       this.#navigationService.moveToPano(nextPanoId, true).then(callback);
     };
 
-    // PanoManager's own arrow handler bows out during the tutorial, so this one runs the move.
+    // PanoManager's arrow handler steps aside during the tutorial, so this one moves.
     this.#navigationService.unlockDisableWalking().enableWalking().lockDisableWalking();
     svl.ui.streetview.navArrows.addEventListener('click', clickToNextPano);
     this.#compass.attachMessageClickHandler(clickToNextPano);

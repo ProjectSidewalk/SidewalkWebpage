@@ -694,7 +694,7 @@ class Main {
   }
 
   /**
-   * Store DOM elements under svl.ui; the two `contextMenu` collections are arrays.
+   * Store DOM elements under svl.ui.
    * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace.
    */
   #initUI() {

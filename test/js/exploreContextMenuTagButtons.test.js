@@ -1,6 +1,6 @@
 /**
- * The context menu builds its tag buttons from the label type's tags (public/js/explore/src/canvas/ContextMenu.js),
- * so a city with an unusually long tag list gets every tag, and each button is wired up like the rest.
+ * The context menu builds a button per tag of the label's type (public/js/explore/src/canvas/ContextMenu.js), so
+ * every tag shows however long a city's list is.
  */
 
 const fs = require('fs');

@@ -268,7 +268,7 @@ class PanoManager {
 
     // Adds event listeners to the navigation arrows.
     svl.ui.streetview.navArrows.addEventListener('click', (event) => {
-      // The tutorial's walk step puts its own click handler on the arrows and runs the move itself.
+      // The tutorial's walk step handles arrow clicks itself.
       if (svl.isOnboarding()) return;
       event.stopPropagation();
       // A highlighted forward arrow that still carries a pano-id is a real link (just recolored to mark the route),

@@ -127,7 +127,7 @@ class RibbonMenu {
         // A lingering hover card would sit above the drawing layer and swallow the label-placement click.
         if (svl.canvas) svl.canvas.showLabelHoverInfo(undefined);
 
-        // Change cursor before mouse is moved. Doesn't bubble, so the tracker's low-level logging never sees it.
+        // Change the cursor before the mouse moves. Doesn't bubble, so the tracker never logs it.
         if (svl.ui.canvas.drawingLayer) svl.ui.canvas.drawingLayer.dispatchEvent(new MouseEvent('mousemove'));
 
         // Loads the audio for placing a label. Safari requires audio to be loaded before each play.
@@ -337,7 +337,7 @@ class RibbonMenu {
   }
 
   /**
-   * The ribbon button for a label type and, if asked, its Other-menu entry; nothing when the button is missing.
+   * The ribbon button for a label type and, if asked, its entry in the Other menu.
    * @param {string} labelType
    * @param {string} [subLabelType]
    * @returns {HTMLElement[]}

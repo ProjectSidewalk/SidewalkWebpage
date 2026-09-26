@@ -124,7 +124,7 @@ class Compass {
     this.removeLabelBeforeJumpMessage();
   }
 
-  // Kept so the "label before you jump" message's click handler can be removed again.
+  // Held onto so the click handler can be removed again.
   #jumpMessageOnclick = null;
 
   #makeTheLabelBeforeJumpMessageBoxClickable() {
@@ -316,7 +316,7 @@ class Compass {
   }
 
   // Performs the action written in the compass message for the user (turning, moving ahead, jumping).
-  // Arrow field so the same function reference is added and removed by enable/disableCompassClick.
+  // An arrow field so enable/disableCompassClick add and remove the same function.
   #handleCompassClick = async () => {
     if (this.#checkEnRoute()) {
       svl.stuckAlert.compassOrStuckClicked();
