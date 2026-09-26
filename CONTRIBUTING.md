@@ -77,7 +77,7 @@ that's the single source of truth, and most rules are enforced for you by the li
 PR:
 
 - **New JavaScript targets ES2022** (`const`/`let`, arrow functions, `#private` fields, native `fetch`). We're
-  actively migrating *off* ES5 — don't add to it — and jQuery and Bootstrap are gone for good.
+  actively migrating *off* ES5 — don't add to it.
 - **Format Scala with scalafmt** before pushing (`make scalafmt-fix`, or format-on-save) — CI blocks the merge on it.
 - **Keep the frontend linters passing on what you change** before pushing. Run `make lint-fix` for the mechanical
   ESLint/Stylelint fixes, hand-fix the rest, then confirm the relevant linter is clean — `make eslint` (JS + translation

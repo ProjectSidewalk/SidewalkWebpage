@@ -70,8 +70,7 @@ file, and this table says which doc to read first:
 ## Conventions the linters can't check
 
 - **ES2022.** As you touch code, modernize it: constructor functions → `class` with `#private` fields (defer a
-  refactor that would ripple through many callers). jQuery and Bootstrap are gone (#4394); never add either back.
-  Build HTML with template literals, never `+` concatenation.
+  refactor that would ripple through many callers). Build HTML with template literals, never `+` concatenation.
 - **Comments say *why*, never what.** ScalaDoc (`@return`) / JSDoc (`@returns`, typed `@param`) on every class and
   non-trivial method, including private ones. Never describe what code *used to* do; git history has that, and a
   hook flags it. Templates: `docs/style-guide.md` → "Comments".

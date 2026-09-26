@@ -280,9 +280,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
   [Changelog](https://github.com/vega/vega-lite/releases)
 
-> **No jQuery, no Bootstrap:** both are gone (#4394) — the frontend is native JS and CSS on the `main.css` design
-> tokens, so never add either back. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
-
 ## Python
 
 Only the standalone utilities in [`scripts/`](../scripts) are Python; the app itself is Scala. Versions are pinned in

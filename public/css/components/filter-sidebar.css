@@ -320,10 +320,6 @@ body.filter-sidebar-resizing {
   clip-path: inset(50%);
 }
 
-.filter-sidebar__item input:is([type="checkbox"], [type="radio"]):focus {
-  outline: none; /* :focus-visible below restores a keyboard ring. */
-}
-
 /* The hidden input can't show its own ring, so the ring goes around the icon + name it controls. */
 .filter-sidebar__checkbox:focus-visible + .filter-sidebar__item-label {
   outline: 2px solid var(--color-asphalt-400);
