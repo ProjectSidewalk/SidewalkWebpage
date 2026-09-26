@@ -12,6 +12,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadGlobalScript } = require('./loadGlobalScript');
+
+// The page fetches through util.fetchJson.
+loadGlobalScript('public/js/common/utilities.js');
 
 const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 

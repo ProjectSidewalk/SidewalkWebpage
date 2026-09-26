@@ -1,8 +1,8 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
+import models.utils.{FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -85,7 +85,8 @@ class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_
   def medianNewestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("median_newest_capture")
   def nPanos: Rep[Int]                            = column[Int]("n_panos") // DB CHECK (356.sql): n_panos >= 0.
   def dataSource: Rep[StreetImagerySource.Value]  = column[StreetImagerySource.Value]("data_source")
-  def updatedAt: Rep[OffsetDateTime]              = column[OffsetDateTime]("updated_at")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
 
   def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt) <>
     ((StreetImagery.apply _).tupled, StreetImagery.unapply)
@@ -177,10 +178,8 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
              ST_Y(ST_LineInterpolatePoint(street_edge.geom, 0.8)) AS near_end_lat,
              ST_X(ST_LineInterpolatePoint(street_edge.geom, 0.8)) AS near_end_lng,
              street_edge.geom
-      FROM street_edge
+      FROM #${FilteredTables.streets()}
       LEFT JOIN street_imagery ON street_edge.street_edge_id = street_imagery.street_edge_id
-      WHERE street_edge.status = 'open'
-          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
       ORDER BY EXISTS (
                    SELECT FROM audit_task
                    WHERE audit_task.street_edge_id = street_edge.street_edge_id AND audit_task.completed = TRUE
@@ -224,7 +223,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
       FROM street_edge
       LEFT JOIN street_imagery ON street_edge.street_edge_id = street_imagery.street_edge_id
       WHERE street_edge.status = 'no_imagery'
-          AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+          AND #${FilteredTables.notTutorialStreet("street_edge.street_edge_id")}
       ORDER BY street_imagery.updated_at ASC NULLS FIRST,
                street_edge.street_edge_id
       LIMIT $limit;
@@ -440,7 +439,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
                    )
       ) AS nearest
       WHERE nearest.capture IS NOT NULL
-          AND nearest.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+          AND #${FilteredTables.notTutorialStreet("nearest.street_edge_id")}
       GROUP BY nearest.street_edge_id
       ON CONFLICT (street_edge_id) DO UPDATE
       SET oldest_capture = LEAST(street_imagery.oldest_capture, EXCLUDED.oldest_capture),

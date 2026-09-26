@@ -1,0 +1,13 @@
+// The Explore bundle's own code plus what the page also loads (common/ and ps-map), the global scope it runs in. See
+// tools/lint/check-js-types.mjs.
+{
+  "extends": "../../../jsconfig.json",
+  "compilerOptions": {"checkJs": true},
+  "include": [
+    "../../../public/js/explore/**/*.js",
+    "../../../public/js/common/**/*.js",
+    "../../../public/js/ps-map/*.js",
+    "*.d.ts"
+  ],
+  "exclude": ["../../../public/js/**/build/**"]
+}

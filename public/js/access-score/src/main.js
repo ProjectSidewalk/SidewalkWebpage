@@ -22,13 +22,6 @@ window.AccessScoreApp = (function () {
   const STREET_ZOOM = 15;
   const EMPTY_COLLECTION = { type: 'FeatureCollection', features: [] };
 
-  /** Fetches JSON, treating a non-2xx status as a failure so the overlay's error card shows. */
-  async function fetchJson(url) {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
-    return response.json();
-  }
-
   /**
    * Fetches one of the whole-city score feeds, waiting out a server that is not ready to answer yet (#5418) and
    * telling the overlay so the wait reads as progress rather than a hang.
@@ -104,7 +97,7 @@ window.AccessScoreApp = (function () {
     let map = null;
 
     const dataPromise = Promise.all([
-      fetchJson('/v3/api/accessScoreConfig'),
+      util.fetchJson('/v3/api/accessScoreConfig'),
       fetchScores(SCORE_ENDPOINT, overlay),
       // Without the crossings the page still works, every street just keeps its segment score — better than a
       // dead page for one feed's outage, and the console says which half is missing. The retry comes first: the two
@@ -113,8 +106,8 @@ window.AccessScoreApp = (function () {
         console.warn('AccessScore intersections failed to load; scores are segment-only', e);
         return EMPTY_COLLECTION;
       }),
-      fetchJson('/regions'),
-      fetchJson('/regions/completionRates'),
+      util.fetchJson('/regions'),
+      util.fetchJson('/regions/completionRates'),
     ]);
 
     // A basemap asked for in the URL is chosen before the map exists, so the first paint is already right.
@@ -127,7 +120,7 @@ window.AccessScoreApp = (function () {
      * @type {?{clear: () => boolean}}
      */
     let placeSearch = null;
-    const mapPromise = createPSMap($, {
+    const mapPromise = createPSMap({
       mapName: 'acs-map',
       mapStyle: dark ? MAP_STYLES.dark : MAP_STYLES.light,
       mapboxApiKey,
@@ -522,7 +515,7 @@ window.AccessScoreApp = (function () {
       };
 
       apply(model.state);
-      fetchJson(PLACES_ENDPOINT)
+      util.fetchJson(PLACES_ENDPOINT)
         .then(async (featureCollection) => {
           layer.setData(featureCollection);
           await layer.ready;
@@ -994,7 +987,7 @@ window.AccessScoreApp = (function () {
       slot.textContent = i18next.t('accessscore:profile-loading');
       try {
         const response = /** @type {AccessScoreProfileResponse} */ (
-          await fetchJson(`/v3/api/streetGrade?streetEdgeId=${streetId}`));
+          await util.fetchJson(`/v3/api/streetGrade?streetEdgeId=${streetId}`));
         if (popup !== forPopup) return;
         // The slot is a live region that has just said "loading", so every ending but a drawn chart is said in it
         // too: removing it would leave a screen-reader user waiting on a profile that is not coming.

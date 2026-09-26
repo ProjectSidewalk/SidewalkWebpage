@@ -4,7 +4,7 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Admin Management page (#4272): the operational console for deployment-wide, state-changing actions that the read-only lens pages don't carry. Full user directory with inline role + team assignment, team open/closed and visible/hidden toggles, and the maintenance jobs. Built in the redesign idiom (lightweight accessible tables, no DataTables/jQuery); all data + mutations go through existing /adminapi endpoints. Per-user actions (quality, infra3d, task flags) live on /admin/user/:username, linked from each row. *@
+@* Admin Management page (#4272): the operational console for deployment-wide, state-changing actions that the read-only lens pages don't carry. Full user directory with inline role + team assignment, team open/closed and visible/hidden toggles, and the maintenance jobs. Built in the redesign idiom (lightweight accessible tables); all data + mutations go through existing /adminapi endpoints. Per-user actions (quality, infra3d, task flags) live on /admin/user/:username, linked from each row. *@
 
 @content = {
   <div class="page-section" id="management-intro-section">
@@ -77,9 +77,16 @@
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Refresh places</b>
-          <span class="dq-sub">Fetches the city's schools, clinics, libraries, grocery stores, transit stops, parks, and community centers from OpenStreetMap for the AccessScore map. The nightly job does this weekly; this runs it now.</span>
+          <span class="dq-sub">Fetches the city's schools, clinics, libraries, grocery stores, transit stops, parks, community centers, and government offices from OpenStreetMap for the AccessScore map. The nightly job does this weekly; this runs it now.</span>
         </div>
         <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-refresh-places" data-confirm="Fetch the city's places from OpenStreetMap now? It can take a few minutes for a big city.">Run</button>
+      </div>
+      <div class="mgmt-action">
+        <div class="mgmt-action-text">
+          <b>Recount street gradient staleness</b>
+          <span class="dq-sub">Counts the streets with no grade yet and those whose geometry changed since they were sampled, for the Health panel. The nightly job does this; run it after importing grades (the grades themselves are sampled offline; see the <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/street-gradient.md">street gradient docs</a>).</span>
+        </div>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recount-gradient-staleness" data-confirm="Recount the street gradient staleness now? It takes a second.">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
@@ -108,7 +115,8 @@
         recalcValidationCountsUrl: '/adminapi/recalculateValidationCounts',
         generateCropsUrl: '/adminapi/generateCrops',
         rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence',
-        refreshPlacesUrl: '/adminapi/refreshPlaces'
+        refreshPlacesUrl: '/adminapi/refreshPlaces',
+        recountGradientStalenessUrl: '/adminapi/recountStreetGradientStaleness'
       }).init();
     });
   </script>

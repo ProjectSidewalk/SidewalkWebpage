@@ -45,9 +45,6 @@ describe('Tracker timed flush (issue #4429)', () => {
         jest.useFakeTimers();
         jest.setSystemTime(1_000_000);
 
-        // The constructor binds low-level window events through jQuery; a stub with a no-op .on() is enough.
-        global.$ = jest.fn(() => ({ on: jest.fn() }));
-
         // Minimal svv surface. compileSubmissionData mimics the production Form.js contract: it synchronously drains
         // the tracker (tracker.refresh()) before returning the payload snapshot.
         compiledPayload = { interactions: [] };
@@ -70,7 +67,6 @@ describe('Tracker timed flush (issue #4429)', () => {
         jest.useRealTimers();
         jest.restoreAllMocks();
         delete global.svv;
-        delete global.$;
     });
 
     test('the first push arms a deadline that flushes the compiled payload as an intermediate submit', () => {

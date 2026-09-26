@@ -3,7 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.IpAddress
+import models.utils.{FilteredTables, IpAddress}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -48,7 +48,8 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
   def issue: Rep[StreetEdgeIssueType.Value] = column[StreetEdgeIssueType.Value]("issue")
   def userId: Rep[String]                   = column[String]("user_id")
   def ipAddress: Rep[IpAddress]             = column[IpAddress]("ip_address")
-  def timestamp: Rep[OffsetDateTime]        = column[OffsetDateTime]("timestamp")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp) <> (
     (StreetEdgeIssue.apply _).tupled,
@@ -62,6 +63,24 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
 
 @ImplementedBy(classOf[StreetEdgeIssueTable])
 trait StreetEdgeIssueTableRepository {}
+
+object StreetEdgeIssueTable {
+
+  /**
+   * Whether a report is this user giving up on this street for missing imagery during a task that began at
+   * `taskStart`. The one definition the resume paths share; a report from before the task says nothing about it.
+   *
+   * @return True when the report is such a give-up.
+   */
+  def reportedNoImageryDuringTask(
+      issue: StreetEdgeIssueTableDef,
+      streetEdgeId: Rep[Int],
+      userId: Rep[String],
+      taskStart: Rep[OffsetDateTime]
+  ): Rep[Boolean] =
+    issue.streetEdgeId === streetEdgeId && issue.userId === userId &&
+      issue.issue === StreetEdgeIssueType.PanoNotAvailable && issue.timestamp >= taskStart
+}
 
 @Singleton
 class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
@@ -98,10 +117,7 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def reportedNoImagerySince(streetEdgeId: Int, userId: String, taskStart: OffsetDateTime): DBIO[Boolean] = {
     streetEdgeIssues
-      .filter(issue =>
-        issue.streetEdgeId === streetEdgeId && issue.userId === userId &&
-          issue.issue === StreetEdgeIssueType.PanoNotAvailable && issue.timestamp >= taskStart
-      )
+      .filter(StreetEdgeIssueTable.reportedNoImageryDuringTask(_, streetEdgeId.bind, userId.bind, taskStart.bind))
       .exists
       .result
   }
@@ -159,8 +175,8 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * a street only leaves the auditing pool once the checker confirms it — but a street several *different* people
    * independently found empty is the strongest evidence the app can offer without asking a provider, and it is
    * corroboration rather than volume that separates that from one labeler's bad session or a transient provider
-   * outage. Restricted to `open` streets in live regions, since a street already retired — or sitting in a
-   * region that was — needs no further evidence.
+   * outage. Restricted to `open`, non-tutorial streets in live regions, since a street already retired — or sitting
+   * in a region that was — needs no further evidence.
    *
    * Counts distinct `user_id`s, which is distinct *accounts* rather than distinct people: an anonymous sign-up gets
    * its own user row, so one person returning to a street across two sessions reaches the threshold. That is
@@ -182,12 +198,11 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
                  COUNT(*),
                  MAX(street_edge_issue.timestamp)
           FROM street_edge_issue
-          JOIN street_edge ON street_edge_issue.street_edge_id = street_edge.street_edge_id
+          JOIN #${FilteredTables.streets()} ON street_edge_issue.street_edge_id = street_edge.street_edge_id
           JOIN street_edge_region ON street_edge_issue.street_edge_id = street_edge_region.street_edge_id
           JOIN region ON street_edge_region.region_id = region.region_id
           WHERE street_edge_issue.issue = '#$NoImageryIssue'
               AND street_edge_issue.timestamp >= $since
-              AND street_edge.status = 'open'
               AND region.deleted = FALSE
           GROUP BY street_edge_issue.street_edge_id, region.region_id, region.name
           HAVING COUNT(DISTINCT street_edge_issue.user_id) >= $minReporters

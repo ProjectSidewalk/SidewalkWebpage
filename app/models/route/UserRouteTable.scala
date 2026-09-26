@@ -1,7 +1,7 @@
 package models.route
 
 import com.google.inject.ImplementedBy
-import models.audit.{AuditTaskTable, AuditTaskTableDef, NewTask}
+import models.audit.{AuditTaskTable, NewTask}
 import models.street.StreetEdgeRegionTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
@@ -24,8 +24,8 @@ class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "us
   def userRouteId: Rep[Int]   = column[Int]("user_route_id", O.PrimaryKey, O.AutoInc)
   def routeId: Rep[Int]       = column[Int]("route_id")
   def userId: Rep[String]     = column[String]("user_id")
-  def completed: Rep[Boolean] = column[Boolean]("completed")
-  def discarded: Rep[Boolean] = column[Boolean]("discarded")
+  def completed: Rep[Boolean] = column[Boolean]("completed", O.Default(false))
+  def discarded: Rep[Boolean] = column[Boolean]("discarded", O.Default(false))
   def paused: Rep[Boolean]    = column[Boolean]("paused", O.Default(false))
 
   def * =
@@ -51,8 +51,6 @@ class UserRouteTable @Inject() (
   val routeStreets        = TableQuery[RouteStreetTableDef]
   val auditTaskUserRoutes = TableQuery[AuditTaskUserRouteTableDef]
   val streetEdgeRegions   = TableQuery[StreetEdgeRegionTableDef]
-  val auditTasks          = TableQuery[AuditTaskTableDef]
-  val completedTasks      = auditTasks.filter(_.completed)
   val activeRoutes        = userRoutes.filter(ur => !ur.completed && !ur.discarded)
 
   /**
@@ -195,7 +193,7 @@ class UserRouteTable @Inject() (
   def updateCompleteness(userRouteId: Int): DBIO[Boolean] = {
     // Get the completed audit_tasks that are a part of this user_route.
     val userAudits = auditTaskUserRoutes
-      .join(completedTasks)
+      .join(auditTaskTable.completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
       .filter(_._1.userRouteId === userRouteId)
     val reportedStreets = auditTaskTable.streetsReportedNoImageryDuringRoute(userRouteId)

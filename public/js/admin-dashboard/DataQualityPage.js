@@ -34,9 +34,9 @@ class DataQualityPage {
   async init() {
     try {
       const [stats, tags, labelTypes, byDay, tagSeverity] = await Promise.all([
-        this.#fetchJson(this.#statsUrl), this.#fetchJson(this.#tagsUrl),
-        this.#fetchJson(this.#labelTypesUrl), this.#fetchJson(this.#byDayUrl),
-        this.#fetchJson(this.#tagSeverityUrl),
+        util.fetchJson(this.#statsUrl), util.fetchJson(this.#tagsUrl),
+        util.fetchJson(this.#labelTypesUrl), util.fetchJson(this.#byDayUrl),
+        util.fetchJson(this.#tagSeverityUrl),
       ]);
 
       this.#buildMeta(labelTypes);
@@ -56,12 +56,6 @@ class DataQualityPage {
       console.error('Data Quality page failed to load:', err);
       this.#setStatus('Could not load data quality metrics. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   /** Builds the canonical type order + color/icon/display lookup from /v3/api/labelTypes. */

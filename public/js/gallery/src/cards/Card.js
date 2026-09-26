@@ -2,6 +2,9 @@
  * A Card module.
  */
 class Card {
+  // Width:height of the card's photo box (.static-gallery-image fills a 3:2 container); crops are cover-fitted into it.
+  static CARD_IMAGE_ASPECT = 3 / 2;
+
   #params;
   #cropUrl;
   #cropMarker;
@@ -34,6 +37,8 @@ class Card {
     zoom: undefined,
     original_canvas_x: undefined,
     original_canvas_y: undefined,
+    original_canvas_width: undefined,
+    original_canvas_height: undefined,
     severity: undefined,
     description: undefined,
     street_edge_id: undefined,
@@ -104,6 +109,9 @@ class Card {
     properties.pov = { heading: param.heading, pitch: param.pitch, zoom: param.zoom };
     properties.original_canvas_x = param.canvas_x;
     properties.original_canvas_y = param.canvas_y;
+    // The frame the click was made in (#5085); the boxed 720x480 covers payloads that predate the columns.
+    properties.original_canvas_width = param.canvas_width ?? util.EXPLORE_CANVAS_WIDTH;
+    properties.original_canvas_height = param.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT;
     properties.val_counts = {
       Agree: param.agree_count,
       Disagree: param.disagree_count,
@@ -208,15 +216,7 @@ class Card {
     this.#positionMarker();
     markerWrapper.appendChild(labelIcon);
     if (properties.ai_generated) {
-      const aiIndicator = aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']);
-      markerWrapper.appendChild(aiIndicator);
-      $(aiIndicator)
-        .tooltip({
-          template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div>'
-            + '<div class="tooltip-inner"></div></div>',
-          container: 'body',
-        })
-        .tooltip('hide');
+      markerWrapper.appendChild(aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']));
     }
     imageHolder.appendChild(markerWrapper);
     imageHolder.appendChild(panoImage);
@@ -226,7 +226,7 @@ class Card {
     this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
-    this.validationMenu = new ValidationMenu(this, $(imageHolder));
+    this.validationMenu = new ValidationMenu(this, imageHolder);
   }
 
   /**
@@ -248,12 +248,24 @@ class Card {
   }
 
   /**
-   * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
-   * JavaScript Deepcopy:
-   * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+   * Return a deep copy of the properties object, so the caller can only modify properties from setProperty().
+   * @returns {Record<string, any>}
    */
   getProperties() {
-    return $.extend(true, {}, this.#properties);
+    return Card.#deepCopy(this.#properties);
+  }
+
+  /**
+   * Copies arrays and plain objects; moment dates are shared, since structuredClone can't copy them.
+   * @param {*} value
+   * @returns {*}
+   */
+  static #deepCopy(value) {
+    if (Array.isArray(value)) return value.map((item) => Card.#deepCopy(item));
+    if (value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, Card.#deepCopy(item)]));
+    }
+    return value;
   }
 
   /**
@@ -283,11 +295,15 @@ class Card {
   }
 
   /**
-   * @returns {{x: number, y: number}} Fractions of the image's width and height.
+   * @returns {{x: number, y: number}} Fractions of the card's 3:2 photo box, into which the image is cover-fitted.
    */
   #markerFraction() {
     return util.misc.labelMarkerFraction(this.#status.imageSource, this.#cropMarker,
-      this.#properties.original_canvas_x, this.#properties.original_canvas_y);
+      this.#properties.original_canvas_x, this.#properties.original_canvas_y, {
+        canvasWidth: this.#properties.original_canvas_width,
+        canvasHeight: this.#properties.original_canvas_height,
+        boxAspect: Card.CARD_IMAGE_ASPECT,
+      });
   }
 
   /** Custom properties rather than offsets, so the marker's centring on the point stays in CSS beside its size. */
@@ -392,7 +408,7 @@ class Card {
    * Renders the card.
    * TODO: should there be a safety check here to make sure pano is loaded?
    *
-   * @param {JQuery} cardContainer - UI element to render card in.
+   * @param {HTMLElement} cardContainer - UI element to render card in.
    */
   render(cardContainer) {
     // If the card had transparent background from the expanded view opening earlier, remove transparency on rerender.
@@ -440,6 +456,11 @@ class Card {
     this.#properties.deleted = deleted;
     this.#properties.can_restore = canRestore;
     this.#card.classList.toggle('gallery-card--deleted', deleted);
+  }
+
+  /** @param {Array<Record<string, any>|string>} comments - What the expanded view opens with. */
+  updateComments(comments) {
+    this.#properties.comments = comments;
   }
 
   /**

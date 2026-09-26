@@ -45,7 +45,8 @@ class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
   def maxspeed: Rep[Option[String]] = column[Option[String]]("maxspeed")
   def geom: Rep[Option[LineString]] = column[Option[LineString]]("geom")
   // CHECK (source IN ('batch', 'on_demand', 'history')) in the DB (no Slick DSL for CHECK constraints).
-  def source: Rep[String]                       = column[String]("source")
+  def source: Rep[String] = column[String]("source")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def updatedAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("updated_at")
   def missingSince: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("missing_since")
 

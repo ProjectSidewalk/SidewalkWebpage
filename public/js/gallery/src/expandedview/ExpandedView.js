@@ -7,24 +7,21 @@
  * Construct instances via the `static async create()` factory, which initializes LabelDetail before resolving.
  */
 class ExpandedView {
-  static #cardsPerPage = 9;
   static #unselectedCardClassName = 'expanded-view-background-card';
 
-  #uiModal;
   #root;
   #panoViewerType;
   #viewerAccessToken;
   #currUsername;
 
   /**
-   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {HTMLElement} root - The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    */
-  constructor(uiModal, panoViewerType, viewerAccessToken, currUsername) {
-    this.#uiModal = uiModal;
-    this.#root = uiModal[0]; // Unwrap jQuery to get the DOM element for LabelDetail.
+  constructor(root, panoViewerType, viewerAccessToken, currUsername) {
+    this.#root = root;
     this.#panoViewerType = panoViewerType;
     this.#viewerAccessToken = viewerAccessToken;
     this.#currUsername = currUsername;
@@ -32,14 +29,14 @@ class ExpandedView {
 
   /**
    * Creates an ExpandedView and initializes its LabelDetail controller.
-   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {HTMLElement} root - The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    * @returns {Promise<ExpandedView>}
    */
-  static async create(uiModal, panoViewerType, viewerAccessToken, currUsername) {
-    const expandedView = new ExpandedView(uiModal, panoViewerType, viewerAccessToken, currUsername);
+  static async create(root, panoViewerType, viewerAccessToken, currUsername) {
+    const expandedView = new ExpandedView(root, panoViewerType, viewerAccessToken, currUsername);
     await expandedView.#init();
     return expandedView;
   }
@@ -62,6 +59,7 @@ class ExpandedView {
       currUsername: this.#currUsername,
       onVote: this.#handleVote,
       onEdit: this.#handleEdit,
+      onComments: this.#handleComments,
       onDelete: this.#handleDelete,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
@@ -106,12 +104,18 @@ class ExpandedView {
     if (!this.initialUrlLabelId) return;
     const labelId = this.initialUrlLabelId;
     this.initialUrlLabelId = null; // One shot; later renders (paging, filters) shouldn't reopen it.
-    this.#uiModal.css('visibility', 'visible');
+    LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
+
+    // A review list (#5444) knows where the label sits, so open it by index: prev/next then walk the list from
+    // there and the position indicator has something to count. A ?labelId= naming a label outside the list still
+    // falls through to the by-id path below.
+    if (sg.cardContainer.isListMode() && sg.cardContainer.jumpToLabel(labelId)) return;
+
+    this.#root.style.visibility = 'visible';
     this.open = true;
     // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
     if (this.leftArrow) this.leftArrow.disabled = true;
-    LabelDetail.syncUrlLabelId(labelId); // refreshUI's close scrubbed the param; put it back for refresh/re-share.
     this.labelDetail.showLabel(labelId, 'GalleryExpanded')
       .catch(() => this.closeExpandedViewAndRemoveCardTransparency());
   }
@@ -139,6 +143,9 @@ class ExpandedView {
       zoom: p.zoom,
       canvas_x: p.original_canvas_x,
       canvas_y: p.original_canvas_y,
+      canvas_width: p.original_canvas_width,
+      canvas_height: p.original_canvas_height,
+      pano_source: p.pano_source,
       severity: p.severity,
       description: p.description,
       street_edge_id: p.street_edge_id,
@@ -185,13 +192,21 @@ class ExpandedView {
   };
 
   /**
+   * Syncs the small card's comments so reopening the label shows them. Looked up by id, like #handleDelete.
+   * @param {{label_id: number, comments: Array<Record<string, any>|string>}} meta - The label's metadata.
+   */
+  #handleComments = (meta) => {
+    sg.cardContainer.findCardByLabelId(meta.label_id)?.updateComments(meta.comments);
+  };
+
+  /**
    * Called by LabelDetail after a delete or restore (#3591); syncs the small card, incl. an admin delete's Disagree.
    * Looked up by id, since paging while the request was in flight may have moved refCard on to a neighbor.
    * @param {{label_id: number, deleted: boolean, can_restore: boolean, user_validation: ?string}} meta - The
    *     label's metadata as it now stands.
    */
   #handleDelete = (meta) => {
-    const card = sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id);
+    const card = sg.cardContainer.findCardByLabelId(meta.label_id);
     if (!card) return;
     card.setDeleted(!!meta.deleted, !!meta.can_restore);
     card.updateUserValidation(meta.user_validation ?? null);
@@ -219,7 +234,7 @@ class ExpandedView {
    * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
    */
   closeExpandedView() {
-    this.#uiModal.css('visibility', 'hidden');
+    this.#root.style.visibility = 'hidden';
     LabelDetail.syncUrlLabelId(null);
     // Clear the inline visibility set by PopupPanoManager.setPano() so the parent's visibility:hidden cascades.
     // Also set a data flag so that if a pano load is still in-flight, it won't reveal itself when it finishes.
@@ -285,14 +300,33 @@ class ExpandedView {
     }
 
     this.#openExpandedView();
+    this.#updatePosition(index);
 
     if (this.cardIndex === 0 && this.leftArrow) this.leftArrow.disabled = true;
 
     if (sg.cardContainer.isLastPage()) {
       const page = sg.cardContainer.getCurrentPage();
-      const lastCardIndex = (page - 1) * ExpandedView.#cardsPerPage + sg.cardContainer.getCurrentPageCards().length - 1;
+      const lastCardIndex
+        = (page - 1) * sg.cardContainer.getCardsPerPage() + sg.cardContainer.getCurrentPageCards().length - 1;
       if (this.cardIndex === lastCardIndex && this.rightArrow) this.rightArrow.disabled = true;
     }
+  }
+
+  /**
+   * Shows how far through a review list the current card is ("k of N"), or hides the indicator outside list mode.
+   *
+   * Only a `?labelIds=` list has an N: everywhere else the card set grows as the user pages, so a total would be
+   * whatever happened to be loaded rather than how much there is to review.
+   *
+   * @param {number} index - The current card's index in the list.
+   */
+  #updatePosition(index) {
+    const positionEl = this.#root.querySelector('.label-detail__position');
+    if (!positionEl) return;
+
+    const total = sg.cardContainer.isListMode() ? sg.cardContainer.getListSize() : 0;
+    positionEl.hidden = total === 0;
+    positionEl.textContent = total === 0 ? '' : i18next.t('gallery:list-position', { k: index + 1, n: total });
   }
 
   /**
@@ -309,13 +343,15 @@ class ExpandedView {
    */
   nextLabel(keyboardShortcut) {
     sg.tracker.push(`NextLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
+    // Page size is asked of the container on every use rather than copied into this class: it differs between the
+    // filtered grid and a review list (#5444), and a stale copy would page past or repeat a label at the boundary.
     const page = sg.cardContainer.getCurrentPage();
-    if (this.cardIndex < page * ExpandedView.#cardsPerPage - 1) {
+    if (this.cardIndex < page * sg.cardContainer.getCardsPerPage() - 1) {
       this.#updateExpandedViewCardByIndex(this.cardIndex + 1);
     } else {
       this.cardIndex += 1;
       this.pendingCardIndex = this.cardIndex;
-      sg.ui.cardContainer.nextPage.click();
+      sg.cardContainer.nextPage();
     }
   }
 
@@ -326,12 +362,12 @@ class ExpandedView {
   previousLabel(keyboardShortcut) {
     sg.tracker.push(`PrevLabel${keyboardShortcut ? 'KeyboardShortcut' : 'Click'}`);
     const page = sg.cardContainer.getCurrentPage();
-    if (this.cardIndex > (page - 1) * ExpandedView.#cardsPerPage) {
+    if (this.cardIndex > (page - 1) * sg.cardContainer.getCardsPerPage()) {
       this.#updateExpandedViewCardByIndex(this.cardIndex - 1);
     } else {
       this.cardIndex -= 1;
       this.pendingCardIndex = this.cardIndex;
-      sg.ui.cardContainer.prevPage.click();
+      sg.cardContainer.prevPage();
     }
   }
 
@@ -345,7 +381,7 @@ class ExpandedView {
     const page = sg.cardContainer.getCurrentPage();
     const totalCards = sg.cardContainer.getCurrentCards().getSize();
     galleryCard.scrollIntoView({
-      block: (index < page * ExpandedView.#cardsPerPage - 1 && index < totalCards - 1) ? 'center' : 'end',
+      block: (index < page * sg.cardContainer.getCardsPerPage() - 1 && index < totalCards - 1) ? 'center' : 'end',
       behavior: 'smooth',
     });
 
@@ -382,7 +418,7 @@ class ExpandedView {
     if (this.pendingCardIndex === undefined) return;
     const idx = this.pendingCardIndex;
     this.pendingCardIndex = undefined;
-    this.#uiModal.css('visibility', 'visible');
+    this.#root.style.visibility = 'visible';
     this.#updateExpandedViewCardByIndex(idx);
   }
 }

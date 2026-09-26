@@ -23,7 +23,7 @@ class ApiAnalyticsPage {
   async #load() {
     this.#setStatus('Loading API analytics…', false);
     try {
-      const data = await this.#fetchJson(`${this.#dataUrl}?days=${this.#days}`);
+      const data = await util.fetchJson(`${this.#dataUrl}?days=${this.#days}`);
       this.#data = data;
       this.#renderRangeCaptions(data);
       this.#renderKpis(data);
@@ -35,12 +35,6 @@ class ApiAnalyticsPage {
       console.error('API Analytics page failed to load:', err);
       this.#setStatus('Could not load API analytics. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   #renderKpis(d) {

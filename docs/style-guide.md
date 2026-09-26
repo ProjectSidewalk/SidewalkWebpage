@@ -65,8 +65,8 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
 - **Write ES2022 for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals
   (`prefer-template`), object shorthand, and `===`/`!==` (`eqeqeq`). When you're editing a file that is *entirely*
   ES5, you may match its style for consistency — but prefer modernizing it. See the migration guidance in
-  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → `class` with `#private` fields; jQuery → native `fetch`;
-  Bootstrap → native JS/CSS as you touch that code).
+  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → `class` with `#private` fields; Bootstrap → native JS/CSS as
+  you touch that code).
 - **One declaration per statement** (`one-var: never`) — the opposite of the old comma-chained `var` style:
 
   ```js
@@ -141,19 +141,19 @@ consistent with it.
   nested inside an app dir. Styles live in `public/css/`; media lives in `public/images/`, `public/audio/`, and
   `public/videos/`. App-private styles go to `css/pages/`, app-private images to `images/<app>/`.
 - **`public/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
-  `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one
-  page links, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar +
-  content + TOC template the API docs and both dashboards build on, `kpi.css`, `tables.css`, `label-detail.css`,
-  `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page (`about.css`,
-  `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several files
-  (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest, both
-  enforced by `make lint-css-layout` (`tools/check-css-layout.mjs`, a blocking CI step): every entry under `pages/`
-  is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the Grunt-bundled
-  tools its own bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the site-wide
-  layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
-  `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined
-  only in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use;
-  never `@import` (Play fingerprints per file, and an import adds a serial round trip).
+  `fonts.css` (tokens and `.ps-*` primitives, no layout knowledge). `css/components/` holds anything more than one page
+  links, one component per file with a `ps-` or component-named class prefix (`page-shell.css` — the sidebar + content +
+  TOC template the API docs, both dashboards, and the labeling guide build on, `kpi.css`, `tables.css`,
+  `label-detail.css`, `toast.css`, …). `css/pages/` holds everything page-specific: a single file for a single page
+  (`about.css`, `auth.css`, `admin-dashboard.css`, `user-dashboard.css`, …) and a subdir for a page family with several
+  files (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest,
+  both enforced by `make lint-css-layout` (`tools/lint/check-css-layout.mjs`, a blocking CI step): every entry under
+  `pages/` is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the
+  Grunt-bundled tools its own bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the
+  site-wide layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
+  `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined only
+  in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use; never `@import`
+  (Play fingerprints per file, and an import adds a serial round trip).
 - **Third-party code groups by library** under `public/vendor/<lib>/`, each folder self-contained (its JS + CSS +
   fonts + images together, upstream internal layout preserved so relative `url()` refs keep working). **Nothing under
   `vendor/` is ever edited or linted.** Vendored filenames carry their version (`pannellum-2.5.7.js`), which names
@@ -199,7 +199,7 @@ How to show one depends on where its color comes from:
 - **Color baked into the file: an `<img>`**, e.g.
   `<img src='@assets.path("images/icons/map-pin-feather.svg")' alt="">` (empty `alt` when the icon sits next to a
   text label). Feather/material SVGs carry a **fixed** stroke color (`#242424` for the standard dark icon), so another
-  color this way is a **separate file** with a color qualifier (`chevron-left-white-feather.svg`).
+  color this way is a **separate file** with a color qualifier (`chevron-right-white-feather.svg`).
 - **Color set in CSS: a mask.** When the color is a token or changes with state (hover, correct/incorrect,
   error/info), give an empty `<span>` the **`.ps-mask-icon`** primitive from `main.css`, then set its file with
   `mask-image` (plus the `-webkit-mask-image` copy), its size, and its `color`. One file then serves every color, as
@@ -294,7 +294,7 @@ Rules:
 
 Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one, including `#private` methods.
 The types are checked: `make lint-js-types` runs TypeScript over `public/js/`
-([`tools/check-js-types.mjs`](../tools/check-js-types.mjs)), so a type that doesn't match the code fails the build.
+([`tools/lint/check-js-types.mjs`](../tools/lint/check-js-types.mjs)), so a type that doesn't match the code fails the build.
 
 **Method / function:**
 
@@ -329,7 +329,7 @@ Rules:
 - Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
 - Always include `{Type}` in `@param` and `@returns`.
 - Separate a `@param` name from its description with ` - `, and start `@param` and `@returns` descriptions with a
-  capital letter unless it opens with a code identifier (`this`, `true`, `jQuery`).
+  capital letter unless it opens with a code identifier (`this`, `true`, `util`).
 - Write types TypeScript-style: `object` and `string` (not `Object`/`String`), `Record<string, number>` for a map,
   and an arrow signature like `(id: number) => void` (not Closure's `function(number)`, which TypeScript can't read)
   for a callback.
@@ -343,7 +343,7 @@ Rules:
 - When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
   (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
 - Every file in `public/js/` is type-checked. Globals that no file in `public/js/` declares (vendor libraries,
-  values a view sets on `window`) go in [`tools/js-types/globals.d.ts`](../tools/js-types/globals.d.ts).
+  values a view sets on `window`) go in [`tools/lint/js-types/globals.d.ts`](../tools/lint/js-types/globals.d.ts).
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.
 - Trivial one-line helpers may omit the header.

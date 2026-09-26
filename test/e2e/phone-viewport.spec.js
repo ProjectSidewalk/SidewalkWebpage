@@ -42,11 +42,12 @@ async function checkPhoneViewport(page, context, consoleErrors, p) {
 }
 
 // mapbox / makeabilityLab / loadingOverlay flags as in pages.spec.js. Pages that UA-redirect mobile visitors
-// are deliberately absent (see the header comment); /labelingGuide serves phones but is not yet responsive,
-// so it joins with its #4875 phase-2 conversion. Caveat: CI's seed is short content, so overflow driven by volume
+// are deliberately absent (see the header comment). Caveat: CI's seed is short content, so overflow driven by volume
 // or by an unusually long username or story title is still only exercised against a full local DB.
 const PAGES = [
   {path: '/mobileLanding'},
+  {path: '/labelingGuide'},
+  {path: '/labelingGuide/curbRamps'},
   {path: '/signIn'},
   {path: '/signUp'},
   {path: '/about', makeabilityLab: true, mapbox: true},

@@ -17,10 +17,10 @@ class PanoOverlay {
   constructor() {
     this.#viewControlLayer = svv.ui.viewer.controlLayer;
 
-    this.#viewControlLayer.bind('mousemove', this.#handlerViewControlLayerMouseMove);
-    this.#viewControlLayer.bind('mousedown', this.#handlerViewControlLayerMouseDown);
-    this.#viewControlLayer.bind('mouseup', this.#handlerViewControlLayerMouseUp);
-    this.#viewControlLayer.bind('mouseleave', this.#handlerViewControlLayerMouseLeave);
+    this.#viewControlLayer.addEventListener('mousemove', this.#handlerViewControlLayerMouseMove);
+    this.#viewControlLayer.addEventListener('mousedown', this.#handlerViewControlLayerMouseDown);
+    this.#viewControlLayer.addEventListener('mouseup', this.#handlerViewControlLayerMouseUp);
+    this.#viewControlLayer.addEventListener('mouseleave', this.#handlerViewControlLayerMouseLeave);
   }
 
   /**
@@ -39,7 +39,7 @@ class PanoOverlay {
 
   /**
    * A callback function that is fired with the mouse down event on the view control layer (when panning).
-   * @param {Event} e
+   * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseDown = (e) => {
     // The hide-label button lives inside the control layer, so its mousedown bubbles here. Bail before starting a pan
@@ -48,7 +48,7 @@ class PanoOverlay {
     if (/** @type {Element} */ (e.target).closest('#label-visibility-button-on-label')) return;
 
     this.#mouseStatus.isLeftDown = true;
-    this.#viewControlLayer.css('cursor', `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`);
+    this.#viewControlLayer.style.cursor = `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`;
 
     // Hide the label's hover info as soon as panning starts so it doesn't linger over the moving pano.
     if (svv.labelVisibilityControl) svv.labelVisibilityControl.hideLabelCard();
@@ -62,7 +62,7 @@ class PanoOverlay {
    * This is a callback function that is called with mouse up event on the view control layer (when panning).
    */
   #handlerViewControlLayerMouseUp = () => {
-    this.#viewControlLayer.css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`);
+    this.#viewControlLayer.style.cursor = `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`;
     this.#mouseStatus.isLeftDown = false;
   };
 
@@ -70,13 +70,13 @@ class PanoOverlay {
    * Handles mouse leaving control view.
    */
   #handlerViewControlLayerMouseLeave = () => {
-    this.#viewControlLayer.css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`);
+    this.#viewControlLayer.style.cursor = `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`;
     this.#mouseStatus.isLeftDown = false;
   };
 
   /**
    * Callback function that is fired when a user moves a mouse on the view control layer where you change the pov.
-   * @param {Event} e
+   * @param {MouseEvent} e
    */
   #handlerViewControlLayerMouseMove = (e) => {
     this.#mouseStatus.currX = mousePosition(e, e.currentTarget).x;

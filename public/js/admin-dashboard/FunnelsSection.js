@@ -102,7 +102,7 @@ class FunnelsSection {
   async #load() {
     this.#setText(this.#statusId, 'Loading funnels…');
     try {
-      const data = await this.#fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#window)}`);
+      const data = await util.fetchJson(`${this.#funnelsUrl}?window=${encodeURIComponent(this.#window)}`);
       this.#funnels = (data && data.funnels) || {};
       this.#computedAt = (data && data.computed_at) || null;
       this.#render();
@@ -180,12 +180,6 @@ class FunnelsSection {
         <p class="ac-note">${FunnelsSection.#esc(meta.desc)}</p>
         <div class="ac-funnel-panel">${legend}${stepRows}</div>
       </div>`;
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   #setText(id, text) {

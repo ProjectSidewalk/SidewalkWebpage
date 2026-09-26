@@ -33,10 +33,10 @@ class OverviewPage {
     try {
       // Only the summary is required; the trend/strip/colors are enhancements, so they degrade gracefully.
       const [summary, activity, recent, labelTypes] = await Promise.all([
-        this.#fetchJson(this.#summaryUrl),
-        this.#fetchJson(this.#activityByDayUrl).catch(() => ({ series: [] })),
-        this.#fetchJson(this.#recentActivityUrl).catch(() => ({ activity: [] })),
-        this.#fetchJson(this.#labelTypesUrl).catch(() => null),
+        util.fetchJson(this.#summaryUrl),
+        util.fetchJson(this.#activityByDayUrl).catch(() => ({ series: [] })),
+        util.fetchJson(this.#recentActivityUrl).catch(() => ({ activity: [] })),
+        util.fetchJson(this.#labelTypesUrl).catch(() => null),
       ]);
       this.#buildMeta(labelTypes);
       this.#renderCards(summary);
@@ -49,12 +49,6 @@ class OverviewPage {
       this.#setText('ov-pulse', 'Could not load the snapshot. Please try again.');
       this.#setText('ov-status', 'Could not load the snapshot. Please try again.');
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   /** Builds the label-type → canonical color and localized display-name lookups used by the pulse line. */

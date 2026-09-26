@@ -86,6 +86,9 @@ class Toast {
       .filter(Boolean).join(' ');
     el.setAttribute('role', 'status');
     el.setAttribute('aria-live', 'polite');
+    // Names what the toast floats over, so a page can style its own anchors' toasts and leave others alone
+    // (Explore makes pano toasts click-through while labeling, #5496).
+    if (opts.reference?.id) el.dataset.anchor = opts.reference.id;
 
     if (opts.icon) {
       const icon = document.createElement('img');
@@ -195,6 +198,14 @@ class Toast {
     this.#mount();
   }
 
+  /**
+   * Re-places every live toast against its reference. A toast follows window resizes on its own; a page that moves
+   * its reference without one (Explore's immersive toggle re-lays the tool out in place, #5085) calls this instead.
+   */
+  static repositionAll() {
+    for (const toast of Toast.#live.values()) toast.#position();
+  }
+
   /** @returns {Element|symbol} Queue key. Anchorless toasts share one, since they share one position. */
   #anchorKey() {
     return this.#reference || Toast.#ANCHORLESS;
@@ -247,7 +258,10 @@ class Toast {
   }
 
   /**
-   * Positions the toast horizontally centered over the reference element. Vertically it sits 10% down from the top.
+   * Positions the toast horizontally centered over the reference element. Vertically it sits 10% down from the top,
+   * or at the reference's inline `--toast-min-top` (a px length the page's layout code sets) when that is lower:
+   * Explore's immersive mode floats its label-type strip over the top of the pano, and a toast 10% down a full-window
+   * pano lands on it.
    *
    * The center is then pulled back inside the viewport if half the toast would hang past either edge. The toast is
    * fixed-positioned, so an overhang is not scrollable — whatever lands outside is simply unreachable — and a
@@ -267,7 +281,8 @@ class Toast {
     const center = Math.min(Math.max(rect.left + rect.width / 2, minCenter), Math.max(maxCenter, minCenter));
 
     this.#el.style.left = `${center}px`;
-    this.#el.style.top = `${rect.top + rect.height * VERTICAL_FRACTION}px`;
+    const minTop = parseFloat(this.#reference?.style?.getPropertyValue('--toast-min-top')) || 0;
+    this.#el.style.top = `${Math.max(rect.top + rect.height * VERTICAL_FRACTION, minTop)}px`;
   }
 
   /** Fades the toast out and removes it from the DOM. Safe to call more than once. */

@@ -66,6 +66,8 @@ object LabelFormats {
       "image_capture_date"                 -> m.imageCaptureDate,
       "pov"                                -> m.pov,
       "canvas_location"                    -> m.canvasXY,
+      "canvas_width"                       -> m.canvasWidth,
+      "canvas_height"                      -> m.canvasHeight,
       "audit_task_id"                      -> m.auditTaskId,
       "street_edge_id"                     -> m.streetEdgeId,
       "region_id"                          -> m.regionId,
@@ -111,6 +113,8 @@ object LabelFormats {
       "zoom"                -> labelMetadata.pov.zoom,
       "canvas_x"            -> labelMetadata.canvasXY.x,
       "canvas_y"            -> labelMetadata.canvasXY.y,
+      "canvas_width"        -> labelMetadata.canvasWidth,
+      "canvas_height"       -> labelMetadata.canvasHeight,
       "severity"            -> labelMetadata.severity,
       "description"         -> labelMetadata.description,
       "street_edge_id"      -> labelMetadata.streetEdgeId,
@@ -191,6 +195,9 @@ object LabelFormats {
       "zoom"               -> labelMetadata.pov.zoom,
       "canvas_x"           -> labelMetadata.canvasXY.x,
       "canvas_y"           -> labelMetadata.canvasXY.y,
+      "canvas_width"       -> labelMetadata.canvasWidth,
+      "canvas_height"      -> labelMetadata.canvasHeight,
+      "pano_source"        -> labelMetadata.panoSource.toString, // Decides the fov the click was projected with.
       "lat"                -> labelMetadata.location.map(_.lat),
       "lng"                -> labelMetadata.location.map(_.lng),
       "camera_lat"         -> labelMetadata.cameraLocation.map(_.lat),
@@ -269,6 +276,8 @@ object LabelFormats {
       "zoom"              -> label.pov.zoom,
       "canvas_x"          -> label.canvasX,
       "canvas_y"          -> label.canvasY,
+      "canvas_width"      -> label.canvasWidth,
+      "canvas_height"     -> label.canvasHeight,
       "label_type"        -> label.labelType.name,
       "time_validated"    -> label.timeValidated,
       "validator_comment" -> label.validatorComment,
@@ -374,12 +383,16 @@ object LabelFormats {
       "description"      -> label.labelData.description,
       "canvasX"          -> label.pointData.canvasX,
       "canvasY"          -> label.pointData.canvasY,
+      "canvasWidth"      -> label.pointData.canvasWidth,
+      "canvasHeight"     -> label.pointData.canvasHeight,
       "panoX"            -> label.pointData.panoX,
       "panoY"            -> label.pointData.panoY,
       "auditTaskId"      -> label.labelData.auditTaskId,
       "missionId"        -> label.labelData.missionId,
       "labelLat"         -> label.pointData.lat,
-      "labelLng"         -> label.pointData.lng
+      "labelLng"         -> label.pointData.lng,
+      // With missionId, what lets the minimap tell this pass's labels from an earlier era's (#4945).
+      "fromOutdatedImagery" -> label.fromOutdatedImagery
     )
   }
 

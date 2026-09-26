@@ -1,10 +1,25 @@
 /**
+ * Logs clicks on a link inside a map popup. The link is built fresh every time its popup opens, so the listener
+ * sits on the map's container (which is always there) and checks each click for the link.
+ * @param {mapboxgl.Map} map - The map whose popups hold the link.
+ * @param {string} selector - CSS selector matching the popup link.
+ * @param {(link: Element) => string} activityFor - Builds the webpage_activity string for the clicked link.
+ */
+function logPopupLinkClicks(map, selector, activityFor) {
+  const container = map.getContainer();
+  container.addEventListener('click', (event) => {
+    const link = /** @type {Element} */ (event.target).closest(selector);
+    if (link && container.contains(link)) window.logWebpageActivity(activityFor(link));
+  });
+}
+
+/**
  * Fetches a label feed, rejecting with an error that says what actually went wrong.
  *
  * The feed is streamed from the database under a chunked 200 (#3932), so the status and headers are committed
  * before the rows are read. A mid-flight failure therefore arrives as a *truncated body under a success status* —
- * `response.ok` cannot see it, and the JSON parse is what throws. jQuery surfaces that as a bare "parsererror"
- * indistinguishable from a malformed payload, which is why this reports the two cases separately.
+ * `response.ok` cannot see it, and the JSON parse is what throws. A plain JSON parse error would look identical to
+ * a malformed payload, which is why this reports the two cases separately.
  *
  * @param {string|URL} url - The label feed endpoint.
  * @param {object} [options]

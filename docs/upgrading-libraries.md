@@ -63,7 +63,7 @@ readonly_user -d sidewalk`).
   against prod's hand-built ones. Geometry output can genuinely differ across that GEOS gap, so a spatial result that
   reproduces in only one environment starts here. The same skew breaks dev's JIT — PostGIS bitcode built with LLVM 16
   against a runtime linked to LLVM 11, so an expensive spatial query segfaults the backend
-  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — hence `withJitOff` in `ConfigTable`.
+  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — hence `SqlFragments.withJitOff`.
 - **Dev's Postgres is what a fresh build gets:** the base image ships 16.4 and `db/Dockerfile` upgrades it, so an old
   container reports an older patch. The geospatial libraries are fixed by the base image and that upgrade never moves
   them. **Prod's PostGIS is half-upgraded** — library 3.4.6, SQL functions still 3.4.1, which is the `need upgrade`
@@ -199,12 +199,9 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **betterknown: 1.2.0** — [Download](https://unpkg.com/betterknown) ·
   [Versions](https://www.npmjs.com/package/betterknown?activeTab=versions) ·
   [Changelog](https://github.com/placemark/betterknown/releases)
-- **bootstrap: 3.3.5** — **note:** upgrading Bootstrap is a huge undertaking, deferred indefinitely — the goal is to
-  remove the dependency entirely (a slow, ongoing transition). (A separate copy of Bootstrap 3.1.1 ships inside the
-  `bootstrap-accessibility-plugin/` bundle below.)
-- **bootstrap-accessibility-plugin** (bundles Bootstrap 3.1.1 + jQuery 1.12.2) — accessibility patches for our
-  Bootstrap 3 UI; lives in `public/vendor/bootstrap-accessibility/` (with the bundled Bootstrap 3.1.1 JS and jQuery
-  1.12.2 split out into `public/vendor/bootstrap/` and `public/vendor/jquery/`). Tied to the Bootstrap-removal effort.
+- **bootstrap: 3.3.5** — CSS only; its JS components are gone (tooltips and popovers are `psTooltip.js` and the
+  native `popover` attribute, modals are `<dialog>`). **note:** never upgrade it — the rest of #4394 removes the CSS
+  too, page by page.
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)
@@ -274,14 +271,15 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/PrismJS/prism/releases)
 - **proj4js: 2.22.0** — [Download](https://cdnjs.com/libraries/proj4js) ·
   [Changelog](https://github.com/proj4js/proj4js/releases)
-- **selectize.js: 0.15.2** — **note:** unmaintained (last release 2022). The suggested successor is
-  [tom-select](https://github.com/orchidjs/tom-select), a maintained fork that drops jQuery — a good fit as we move
-  off jQuery. [Download](https://selectize.dev/docs/intro) · [Changelog](https://github.com/selectize/selectize.js/releases)
 - **three.js: 0.160.1** — **note:** only used to compute camera pitch/roll for Mapillary imagery. Mapillary bundles
   three.js but doesn't expose it on `window`. After 0.160.1 upstream stopped shipping a standalone `three.min.js`
   (bundler-only), so upgrading isn't worth it soon.
   [Download](https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js) ·
   [Changelog](https://github.com/mrdoob/three.js/releases)
+- **tom-select: 2.6.2** — the tag picker on Validate. We ship the `base` build, which has no plugins, plus the
+  unthemed `tom-select.min.css`; the picker's look comes from `svv-validation-menu.css`.
+  [Download (set version in URL)](https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/) ·
+  [Changelog](https://github.com/orchidjs/tom-select/releases)
 - **turf.js: 7.4.0** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.4.0/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
 - **vega: 5.33.1, vega-lite: 5.23.0, vega-embed: 6.29.0** — the coverage charts on the admin dashboard. We
@@ -289,11 +287,10 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   together. **Note:** each has a major out (6 / 6 / 7) that we haven't looked at.
   [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
   [Changelog](https://github.com/vega/vega-lite/releases)
-- **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
 
-> **jQuery / Bootstrap removal:** several entries above (Bootstrap, magnific-popup, selectize) are part of
-> a slow, deliberate transition *off* jQuery and Bootstrap toward native JS/CSS. Prefer native alternatives in new
-> code rather than leaning further on these. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+> **Bootstrap removal:** the Bootstrap entry above is the last leg of the move *off* jQuery and Bootstrap toward
+> native JS/CSS (#4394); jQuery is already gone, so never add it back. Prefer native alternatives in new code rather
+> than leaning further on Bootstrap. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## Python
 

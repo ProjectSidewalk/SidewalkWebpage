@@ -134,7 +134,20 @@
     "feedback": "Retroalimentación",
     "feedback-tooltip": "Comparte tus pensamientos con nosotros",
     "feedback-submitted": "Comentarios enviados",
-    "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!"
+    "feedback-title": "¿Alguna idea? ¿Encontraste algo confuso? ¿Has visto un error?<br>¡Envíanos tus comentarios!",
+    "immersive-enter": "Entrar en el modo inmersivo",
+    "immersive-exit": "Salir del modo inmersivo",
+    "immersive-exit-hint": "Modo inmersivo. Pulsa F para salir.",
+    "image": "Imagen",
+    "image-tooltip": "Ajusta las sombras, el brillo y el contraste de la imagen",
+    "image-adjustments": {
+      "title": "Ajustes de imagen",
+      "shadows": "Sombras",
+      "brightness": "Brillo",
+      "contrast": "Contraste",
+      "reset": "Restablecer valores",
+      "persist-note": "Estos ajustes se mantienen entre misiones de Explorar hasta que los restablezcas."
+    }
   },
   "right-ui": {
     "opens-new-tab": "(se abre en una pestaña nueva)",
@@ -160,10 +173,18 @@
     },
     "reaudit": {
       "title": "Esta calle tiene imágenes más recientes",
-      "message-you": "Mapeaste esta calle por última vez en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). ¡Veamos qué ha cambiado!",
-      "message-you-no-dates": "Ya mapeaste esta calle antes, pero las imágenes se han renovado desde entonces. ¡Veamos qué ha cambiado!",
-      "message-others": "Otro usuario mapeó esta calle en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). ¡Veamos qué ha cambiado!",
-      "message-others-no-dates": "Otro usuario ya mapeó esta calle antes, pero las imágenes se han renovado desde entonces. ¡Veamos qué ha cambiado!"
+      "message-you": "Evaluaste esta calle por última vez en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). Por favor, evalúa esta calle de nuevo para ayudarnos a analizar lo que ha cambiado.",
+      "message-you-no-dates": "Ya evaluaste esta calle antes, pero las imágenes se han renovado desde entonces. Por favor, evalúa esta calle de nuevo para ayudarnos a analizar lo que ha cambiado.",
+      "message-others": "Esta calle se evaluó por última vez en {{lastMapped}}, pero las imágenes se han renovado desde entonces (en {{newImagery}}). Por favor, evalúa esta calle de nuevo para ayudarnos a analizar lo que ha cambiado.",
+      "message-others-no-dates": "Esta calle ya se evaluó antes, pero las imágenes se han renovado desde entonces. Por favor, evalúa esta calle de nuevo para ayudarnos a analizar lo que ha cambiado."
+    },
+    "pano-date-note": {
+      "image-date": "Imagen: {{date}}",
+      "needs-reassessment": "Necesita reevaluación",
+      "already-assessed": "Ya evaluado",
+      "already-assessed-tip": "Evaluaste este lugar por última vez en {{assessedDate}}, y las imágenes ({{captureDate}}) no han cambiado desde esa evaluación. ¡Añade nuevas etiquetas si ves algo!",
+      "needs-reassessment-tip-you": "Evaluaste este lugar por última vez en {{assessedDate}}, pero las imágenes de aquí son más recientes ({{captureDate}}). Por favor, evalúalo de nuevo para ayudarnos a analizar lo que ha cambiado.",
+      "needs-reassessment-tip-others": "Un usuario evaluó este lugar por última vez en {{assessedDate}}, pero las imágenes de aquí son más recientes ({{captureDate}}). Por favor, evalúalo de nuevo para ayudarnos a analizar lo que ha cambiado."
     },
     "minimap": {
       "coach-dismiss": "Entendido",
@@ -184,11 +205,14 @@
       "forward-crumb-title": "Avanzar a la parada {{rank}}",
       "legend-other-links": "Otras direcciones",
       "legend-faced": "Relleno: adonde le lleva avanzar",
+      "legend-earlier-labels": "Mis etiquetas anteriores",
       "link-crumb-title": "Ir a esta panorámica",
       "legend-next-step": "Azul claro: siguiente paso (barra espaciadora)",
       "route-stop-title": "Parada {{rank}} de su ruta",
       "breadcrumb-title": "Visitado: clic para volver aquí",
       "label-marker-title": "Etiqueta {{labelType}}: clic para revisarla",
+      "label-marker-title-prior": "Etiqueta «{{labelType}}» de una misión anterior",
+      "label-marker-title-outdated": "Etiqueta antigua «{{labelType}}» en una calle con imágenes nuevas",
       "route-start-flag": "Inicio de la ruta",
       "route-finish-flag": "Final de la ruta",
       "mission-start-flag": "Donde empezó esta misión",

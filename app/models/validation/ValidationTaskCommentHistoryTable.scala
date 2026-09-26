@@ -1,6 +1,6 @@
 package models.validation
 
-import models.label.LabelTableDef
+import models.label.{LabelTableDef, LabelTypeEnum}
 import models.mission.MissionTableDef
 import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
@@ -45,6 +45,7 @@ case class ValidationTaskCommentHistory(
     validationTaskCommentId: Int,
     missionId: Int,
     labelId: Int,
+    labelType: LabelTypeEnum.Base,
     userId: String,
     ipAddress: IpAddress,
     panoId: String,
@@ -63,26 +64,27 @@ class ValidationTaskCommentHistoryTableDef(tag: Tag)
     extends Table[ValidationTaskCommentHistory](tag, "validation_task_comment_history") {
   def validationTaskCommentHistoryId: Rep[Int] =
     column[Int]("validation_task_comment_history_id", O.PrimaryKey, O.AutoInc)
-  def validationTaskCommentId: Rep[Int] = column[Int]("validation_task_comment_id")
-  def missionId: Rep[Int]               = column[Int]("mission_id")
-  def labelId: Rep[Int]                 = column[Int]("label_id")
-  def userId: Rep[String]               = column[String]("user_id")
-  def ipAddress: Rep[IpAddress]         = column[IpAddress]("ip_address")
-  def panoId: Rep[String]               = column[String]("pano_id")
-  def heading: Rep[Double]              = column[Double]("heading")
-  def pitch: Rep[Double]                = column[Double]("pitch")
-  def zoom: Rep[Double]                 = column[Double]("zoom")
-  def lat: Rep[Double]                  = column[Double]("lat")
-  def lng: Rep[Double]                  = column[Double]("lng")
-  def timestamp: Rep[OffsetDateTime]    = column[OffsetDateTime]("timestamp")
-  def comment: Rep[String]              = column[String]("comment")
+  def validationTaskCommentId: Rep[Int]  = column[Int]("validation_task_comment_id")
+  def missionId: Rep[Int]                = column[Int]("mission_id")
+  def labelId: Rep[Int]                  = column[Int]("label_id")
+  def labelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("label_type")
+  def userId: Rep[String]                = column[String]("user_id")
+  def ipAddress: Rep[IpAddress]          = column[IpAddress]("ip_address")
+  def panoId: Rep[String]                = column[String]("pano_id")
+  def heading: Rep[Double]               = column[Double]("heading")
+  def pitch: Rep[Double]                 = column[Double]("pitch")
+  def zoom: Rep[Double]                  = column[Double]("zoom")
+  def lat: Rep[Double]                   = column[Double]("lat")
+  def lng: Rep[Double]                   = column[Double]("lng")
+  def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")
+  def comment: Rep[String]               = column[String]("comment")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def supersededAt: Rep[OffsetDateTime]                  = column[OffsetDateTime]("superseded_at")
   def changeType: Rep[ValidationCommentChangeType.Value] =
     column[ValidationCommentChangeType.Value]("change_type")
 
-  def * = (validationTaskCommentHistoryId, validationTaskCommentId, missionId, labelId, userId, ipAddress, panoId,
-    heading, pitch, zoom, lat, lng, timestamp, comment, supersededAt, changeType) <> (
+  def * = (validationTaskCommentHistoryId, validationTaskCommentId, missionId, labelId, labelType, userId, ipAddress,
+    panoId, heading, pitch, zoom, lat, lng, timestamp, comment, supersededAt, changeType) <> (
     (ValidationTaskCommentHistory.apply _).tupled,
     ValidationTaskCommentHistory.unapply
   )

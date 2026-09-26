@@ -16,52 +16,53 @@
   },
   "validate-menu": {
     "remove-tag": "移除標籤：{{tag}}",
+    "tag-search-placeholder": "在此新增更多標籤",
+    "tag-search-no-results": "沒有符合的標籤",
     "disagree-reason": {
+      "common": {
+        "wrong-type": "標籤類型錯誤",
+        "wrong-type-tooltip": "這裡確實有東西，但應該用不同的標籤類型來標記"
+      },
       "curb-ramp": {
-        "no-button-1": "這是一條車道",
-        "no-button-2": "這是人行道到車道的過渡段。",
-        "no-button-2-tooltip": "人行道與道路車道之間的銜接方式不是路緣斜坡, 除非添加了專用坡道",
-        "no-button-3": "這應該是“缺少路緣坡道標籤”",
-        "no-button-3-tooltip": "有時，缺少的路緣坡道會被錯誤地標記為路緣坡道。"
+        "wrong-type-tooltip": "有時，缺少的路緣坡道會被錯誤地標記為路緣坡道。",
+        "no-button-2": "這是一條車道",
+        "no-button-3": "這是人行道到車道的過渡段。",
+        "no-button-3-tooltip": "人行道與道路車道之間的銜接方式不是路緣斜坡, 除非添加了專用坡道"
       },
       "no-curb-ramp": {
-        "no-button-1": "這是一條住宅人行道。",
-        "no-button-2": "這裡沒有人行道。",
-        "no-button-3": "這應該是路緣坡道標籤",
-        "no-button-3-tooltip": "有時，路緣坡道會被錯誤地標記為缺失坡道，這通常是因為缺少觸覺警告標誌。",
+        "wrong-type-tooltip": "有時，路緣坡道會被錯誤地標記為缺失坡道，這通常是因為缺少觸覺警告標誌。",
+        "no-button-2": "這是一條住宅人行道。",
+        "no-button-3": "這裡沒有人行道。",
         "no-button-4": "在這裡穿越並不安全。",
         "no-button-4-tooltip": "行人不應在此處穿越，因此這裡不需要路緣坡道。"
       },
       "obstacle": {
-        "no-button-1": "這裡不是人行道。",
-        "no-button-1-tooltip": "如果沒有人行道，或物體不在人行道的行人專用區域內（如下圖所示），則無需添加「障礙物」標籤。",
-        "no-button-2": "有足夠的空間避開這個物體",
-        "no-button-2-tooltip": "在非常寬闊的人行道上，很容易避開的物體不應被標記為障礙物。",
-        "no-button-3": "這應該是一個表面問題標籤",
-        "no-button-3-tooltip": "草屑和落葉等雜物應貼上「表面問題」標籤。"
+        "wrong-type-tooltip": "草屑和落葉等雜物應貼上「表面問題」標籤。",
+        "no-button-2": "這裡不是人行道。",
+        "no-button-2-tooltip": "如果沒有人行道，或物體不在人行道的行人專用區域內（如下圖所示），則無需添加「障礙物」標籤。",
+        "no-button-3": "有足夠的空間避開這個物體",
+        "no-button-3-tooltip": "在非常寬闊的人行道上，很容易避開的物體不應被標記為障礙物。"
       },
       "surface-problem": {
-        "no-button-1": "這應該是一個“禁止通行”的標誌。",
-        "no-button-1-tooltip": "碎石路或草地不屬於人行道，應標示「禁止通行」標誌。",
+        "wrong-type-tooltip": "碎石路或草地不屬於人行道，應標示「禁止通行」標誌。",
         "no-button-2": "這裡不是人行道。",
         "no-button-2-tooltip": "如果路面問題並非發生在人行道上，則不應標記為路面問題。",
         "no-button-3": "這些是普通的人行道地磚。"
       },
       "no-sidewalk": {
-        "no-button-1": "這裡有人行道。",
-        "no-button-2": "這是交通中央隔離帶。",
-        "no-button-3": "這應該用不同的標籤類型來標記。",
-        "no-button-3-tooltip": "路面問題或障礙物可能被錯誤地標記為「無人行道」。"
+        "wrong-type-tooltip": "路面問題或障礙物可能被錯誤地標記為「無人行道」。",
+        "no-button-2": "這裡有人行道。",
+        "no-button-3": "這是交通中央隔離帶。"
       },
       "crosswalk": {
-        "no-button-1": "這裡沒有明顯的斑馬線。",
-        "no-button-2": "這是車輛停車線。",
-        "no-button-3": "這是一個減速帶"
+        "no-button-2": "這裡沒有明顯的斑馬線。",
+        "no-button-3": "這是車輛停車線。",
+        "no-button-4": "這是一個減速帶"
       },
       "signal": {
-        "no-button-1": "這只是車輛的交通號誌。",
-        "no-button-2": "這是一個沒有燈光指示安全過馬路的標誌。",
-        "no-button-3": "這是一根沒有行人號誌或按鈕的電線桿"
+        "no-button-2": "這只是車輛的交通號誌。",
+        "no-button-3": "這是一個沒有燈光指示安全過馬路的標誌。",
+        "no-button-4": "這是一根沒有行人號誌或按鈕的電線桿"
       }
     },
     "unsure-reason": {

@@ -66,9 +66,10 @@ class StreetReauditSummarySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
   private def insertCountedUser(): DBIO[String] = for {
     userId <- insertUser()
     _      <- sqlu"INSERT INTO user_role (user_id, role) VALUES ($userId, 'Registered')"
-    _      <- sqlu"""INSERT INTO user_stat (user_id, meters_audited, high_quality, excluded, on_leaderboard,
-                                            public_profile)
-                     VALUES ($userId, 0, TRUE, FALSE, TRUE, TRUE)"""
+    _      <- sqlu"""UPDATE user_stat
+                     SET meters_audited = 0, high_quality = TRUE, excluded = FALSE, on_leaderboard = TRUE,
+                         public_profile = TRUE
+                     WHERE user_id = $userId"""
   } yield userId
 
   "getReauditSummaryDBIO" should {

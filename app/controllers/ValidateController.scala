@@ -386,8 +386,8 @@ class ValidateController @Inject() (
           newVal.tags,
           newVal.comment.map(c =>
             ValidationTaskComment(
-              0, c.missionId, c.labelId, user.userId, ipAddress, c.panoId, c.heading, c.pitch, c.zoom, c.lat, c.lng,
-              currTime, c.comment
+              0, c.missionId, c.labelId, labelTypeSeen(newVal), user.userId, ipAddress, c.panoId, c.heading, c.pitch,
+              c.zoom, c.lat, c.lng, currTime, c.comment
             )
           ),
           newVal.undone,
@@ -618,21 +618,27 @@ class ValidateController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: String                = request.identity.userId
-        val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(submission.labelType)
-        for {
-          mission <- missionService.resumeOrCreateNewValidateMission(
-            userId,
-            MissionType.LabelmapValidation,
-            labelType
-          )
-          commentId: Int <- validationService.replaceComment(
-            ValidationTaskComment(0, mission.get.missionId, submission.labelId, userId, request.ipAddress,
-              submission.panoId, submission.heading, submission.pitch, submission.zoom, submission.lat, submission.lng,
-              OffsetDateTime.now, submission.comment)
-          )
-        } yield {
-          Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
+        val userId: String = request.identity.userId
+        labelService.findLabel(submission.labelId).flatMap {
+          case None => Future.successful(NotFound(Json.obj("status" -> "Error", "message" -> "No such label")))
+          // A comment is filed under the label's type (#5510), so one written on a stale card would never show.
+          case Some(label) if label.labelType.name != submission.labelType =>
+            Future.successful(Conflict(Json.obj("status" -> "Conflict", "label_type" -> label.labelType.name)))
+          case Some(label) =>
+            for {
+              mission <- missionService.resumeOrCreateNewValidateMission(
+                userId,
+                MissionType.LabelmapValidation,
+                label.labelType
+              )
+              commentId: Int <- validationService.replaceComment(
+                ValidationTaskComment(0, mission.get.missionId, submission.labelId, label.labelType, userId,
+                  request.ipAddress, submission.panoId, submission.heading, submission.pitch, submission.zoom,
+                  submission.lat, submission.lng, OffsetDateTime.now, submission.comment)
+              )
+            } yield {
+              Ok(Json.obj("comment_id" -> commentId, "username" -> request.identity.username))
+            }
         }
       }
     )
@@ -642,15 +648,20 @@ class ValidateController @Inject() (
    * Deletes the signed-in user's own comment on a label, from the label card's Delete control (#5015).
    *
    * Keyed by label rather than by comment id: the card's comment payload carries no id, and a comment is unique per
-   * (label, user) anyway, so the identity of the row to delete is fully determined by the label and the session.
+   * (label, user, type) anyway, so the label, the type the card showed, and the session fully determine the row.
    * That also makes the delete inherently scoped to the caller's own comment — there is no id to forge.
    *
-   * @param labelId The label whose comment should be removed.
+   * @param labelId   The label whose comment should be removed.
+   * @param labelType The type the card showed, so a card behind a type change deletes the comment on screen.
    * @return `Ok` with the number deleted (0 if they had not commented), so a double-click is not an error.
    */
-  def deleteLabelMapComment(labelId: Int) = cc.securityService.SecuredAction { implicit request =>
-    validationService.deleteComment(labelId, request.identity.userId).map { deleted =>
-      Ok(Json.obj("deleted" -> deleted))
+  def deleteLabelMapComment(labelId: Int, labelType: String) = cc.securityService.SecuredAction { implicit request =>
+    LabelTypeEnum.byName.get(labelType) match {
+      case None     => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Unknown label type")))
+      case Some(lt) =>
+        validationService.deleteComment(labelId, request.identity.userId, lt).map { deleted =>
+          Ok(Json.obj("deleted" -> deleted))
+        }
     }
   }
 

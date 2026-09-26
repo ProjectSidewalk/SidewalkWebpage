@@ -134,7 +134,20 @@
     "feedback": "Feedback",
     "feedback-tooltip": "Share your thoughts with us",
     "feedback-submitted": "Feedback Submitted",
-    "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!"
+    "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!",
+    "immersive-enter": "Enter immersive mode",
+    "immersive-exit": "Exit immersive mode",
+    "immersive-exit-hint": "Immersive mode. Press F to exit.",
+    "image": "Image",
+    "image-tooltip": "Adjust shadows, brightness and contrast of the imagery",
+    "image-adjustments": {
+      "title": "Image adjustments",
+      "shadows": "Shadows",
+      "brightness": "Brightness",
+      "contrast": "Contrast",
+      "reset": "Reset to defaults",
+      "persist-note": "These settings persist across Explore missions until you reset them."
+    }
   },
   "right-ui": {
     "opens-new-tab": "(opens in a new tab)",
@@ -160,10 +173,18 @@
     },
     "reaudit": {
       "title": "This street has newer imagery",
-      "message-you": "You last mapped this street in {{lastMapped}} but the imagery has been refreshed since then (in {{newImagery}}). Let's see what's changed!",
-      "message-you-no-dates": "You mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!",
-      "message-others": "Another user mapped this street in {{lastMapped}} but the imagery has been refreshed since then (in {{newImagery}}). Let's see what's changed!",
-      "message-others-no-dates": "Another user mapped this street before, but the imagery has been refreshed since then. Let's see what's changed!"
+      "message-you": "You last assessed this street in {{lastMapped}}, but the imagery has been refreshed since then (in {{newImagery}}). Please assess this street again to help us analyze what has changed.",
+      "message-you-no-dates": "You assessed this street before, but the imagery has been refreshed since then. Please assess this street again to help us analyze what has changed.",
+      "message-others": "This street was last assessed in {{lastMapped}}, but the imagery has been refreshed since then (in {{newImagery}}). Please assess this street again to help us analyze what has changed.",
+      "message-others-no-dates": "This street was assessed before, but the imagery has been refreshed since then. Please assess this street again to help us analyze what has changed."
+    },
+    "pano-date-note": {
+      "image-date": "Image: {{date}}",
+      "needs-reassessment": "Needs re-assessment",
+      "already-assessed": "Already assessed",
+      "already-assessed-tip": "You last assessed this location in {{assessedDate}}, and the imagery ({{captureDate}}) has not changed since that assessment. Feel free to add new labels if you spot something!",
+      "needs-reassessment-tip-you": "You last assessed this location in {{assessedDate}}, but the imagery here is newer ({{captureDate}}). Please assess it again to help us analyze what has changed.",
+      "needs-reassessment-tip-others": "A user last assessed this location in {{assessedDate}}, but the imagery here is newer ({{captureDate}}). Please assess it again to help us analyze what has changed."
     },
     "minimap": {
       "coach-dismiss": "Got it",
@@ -184,11 +205,14 @@
       "forward-crumb-title": "Move ahead to stop {{rank}}",
       "legend-other-links": "Other directions",
       "legend-faced": "Filled: where forward takes you",
+      "legend-earlier-labels": "My earlier labels",
       "link-crumb-title": "Move to this pano",
       "legend-next-step": "Light blue: next step (spacebar)",
       "route-stop-title": "Stop {{rank}} on your route",
       "breadcrumb-title": "Visited: click to go back here",
       "label-marker-title": "{{labelType}} label: click to review it",
+      "label-marker-title-prior": "“{{labelType}}” label from an earlier mission",
+      "label-marker-title-outdated": "Old “{{labelType}}” label on a street with new imagery",
       "route-start-flag": "Route start",
       "route-finish-flag": "Route finish",
       "mission-start-flag": "Where this mission started",

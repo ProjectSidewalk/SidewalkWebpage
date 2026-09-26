@@ -1,0 +1,152 @@
+/* Immersive mode (#5085): the pano fills the browser window and the surviving controls float over it.
+   body.svl-immersive is toggled by controls/ImmersiveMode.js, which also sets html.chromeless (main.css) to hide the
+   navbar and the test-server banner. Everything here overrides the boxed layout's CSS variables on the same element,
+   so #svl-application-holder, #interaction-area-holder and every .window-streetview follow (see the derivations in
+   svl.css) without touching their own rules. The pano's size is CSS-driven here; --ui-scale, which JS still sets, only
+   sizes the controls floating over it. */
+body.svl-immersive .tool-ui {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  margin: 0;
+  --pano-width: 100vw;
+  --pano-height: 100dvh;
+  --app-width: 100vw;
+
+  /* The ribbon floats over the pano, so the pano starts at the very top: override the derived variable rather than
+     zeroing --ribbon-height, which the ribbon and the controls under it still read. */
+  --street-view-top: 0px;
+
+  /* The strip is the type circles (66px plus their 5px rings) with a name pill under each (about 20px plus a 3px
+     gap) and 4px above and below; the boxed 110px carried the group titles as well. applyToolScale reads this too,
+     so the fit follows. */
+  --ribbon-base-height: 100px;
+}
+
+/* The screen edge is the frame. */
+body.svl-immersive #pano {
+  border-radius: 0;
+}
+
+body.svl-immersive #pano-border-frame {
+  display: none;
+}
+
+/* The label-type ribbon floats over the top-centre of the pano as a strip of the type circles, each named by a
+   pill under it, straight on the imagery: mode switching is the core loop, so it stays always-on, and the minimal
+   version has no group titles, divider or surface. The selected type still reads from its circle's coloured ring
+   and fill, which RibbonMenu sets inline. */
+body.svl-immersive #ribbon-menu-holder {
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+
+  /* Top-aligned rather than centred in the band, with the discs' tops on the corner controls' 7px line: the icon's
+     box starts 2px down and its transparent 5px ring accounts for the rest. */
+  align-items: flex-start;
+  padding: calc(2px * var(--ui-scale)) calc(8px * var(--ui-scale)) 0;
+  z-index: 5;
+}
+
+body.svl-immersive #ribbon-menu-buttons {
+  gap: 0;
+}
+
+/* The circles sit straight on imagery, so each gets the overlay controls' stroke to keep an edge against a bright
+   sky or a pale wall. Inset, so it hugs the disc itself: the icon's box carries a 5px ring that is transparent until
+   RibbonMenu colours it for the selected type, and an outer shadow would float that far off the disc. */
+body.svl-immersive .label-type-icon {
+  box-shadow: inset 0 0 0 2px var(--color-neutral-600); /* 2px: the disc's own soft edge eats part of a 1px one. */
+}
+
+body.svl-immersive .ribbon-menu-title-holder,
+body.svl-immersive #label-type-divider-major {
+  display: none;
+}
+
+/* Each name is a translucent white pill with dark text and the overlay controls' stroke, since the boxed ribbon's
+   plain text relied on the page's white. One line, sized to its text, centred under the circle and out of the flow,
+   so a long name cannot push the circles apart; the shortcut letter keeps its underline from the markup. */
+body.svl-immersive .label-type-name {
+  position: absolute;
+  top: calc(69px * var(--ui-scale)); /* Into the icon's 5px bottom ring, which is transparent unless selected. */
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  padding: calc(3px * var(--ui-scale)) calc(5px * var(--ui-scale));
+  font-size: calc(7.5px * var(--ui-scale));
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--color-neutral-900);
+  background: rgb(from var(--color-neutral-white) r g b / 80%);
+  border-radius: calc(999px * var(--ui-scale));
+  box-shadow: 0 0 0 1px var(--color-neutral-600);
+}
+
+/* The boxed offset lines the Explore circle up under the titles the other circles have; there are none here. */
+body.svl-immersive #mode-switch-button-walk {
+  margin-top: 0;
+}
+
+/* Every circle gets the same slot, exactly its 76px box, so the strip is evenly spaced whatever the names' lengths
+   and the discs sit as close as their 5px rings allow; the bottom padding reserves the pill's row, since the pill is
+   out of the flow. */
+body.svl-immersive .label-type-button-holder {
+  width: calc(76px * var(--ui-scale));
+  padding-bottom: calc(16px * var(--ui-scale));
+}
+
+/* The Other circle's subcategory popover clears the pill under the circle. */
+body.svl-immersive #ribbon-menu-other-subcategory-holder {
+  top: calc(92px * var(--ui-scale));
+}
+
+/* The Stuck, speed, zoom and immersive controls keep the boxed layout's top corners (svl-canvas.css); the centred
+   strip leaves them free on any window wider than the strip plus the controls. Over imagery rather than the boxed
+   layout's asphalt frame, each gets a single light stroke so it reads on a bright or dark sky alike. */
+body.svl-immersive .pano-overlay-button,
+body.svl-immersive .ps-icon-button,
+body.svl-immersive .speed-limit-sign {
+  box-shadow: 0 0 0 1px var(--color-neutral-600);
+}
+
+/* The mission-start screen is sized to the page under the navbar, which immersive mode hides (html.chromeless), so it
+   has to cover the whole window on a page that loads straight into the mode. */
+body.svl-immersive .mission-start-tutorial-overlay {
+  height: 100%;
+}
+
+body.svl-immersive #alert-holder {
+  top: calc(var(--ribbon-height) + 8px * var(--ui-scale));
+}
+
+/* The sidebar shrinks to the minimap alone in the bottom-right: lifetime stats, badges, the mission header, the
+   custom-route exit link and the progress bars are between-bursts content and return on exit. --sidebar-width is
+   deliberately kept, so the minimap is the boxed sidebar's width and --minimap-base-size (svl-minimap.css) stays true
+   for ObservedArea's geometry. */
+body.svl-immersive .explore-sidebar__section:not(.explore-sidebar__section--map),
+body.svl-immersive #current-mission-header,
+body.svl-immersive .explore-sidebar__see-all--exit-route,
+body.svl-immersive #mission-guidance-status-box,
+body.svl-immersive .explore-sidebar__progress-groups {
+  display: none;
+}
+
+body.svl-immersive #explore-sidebar {
+  inset: auto calc(12px * var(--ui-scale)) calc(12px * var(--ui-scale)) auto;
+  height: auto;
+  z-index: 2;
+}
+
+/* In a height:auto column the minimap's flex: 1 1 auto; min-height: 0 would collapse it, so give it its square back. */
+body.svl-immersive #minimap-holder {
+  flex: 0 0 auto;
+  height: var(--sidebar-width);
+  box-shadow: var(--box-shadow-lg);
+}
+
+/* The route-guidance message shares the bottom-right corner with the card in the boxed layout, so step it left. */
+body.svl-immersive #compass-message-holder {
+  right: calc(var(--sidebar-width) + 36px * var(--ui-scale));
+}

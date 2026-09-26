@@ -1,6 +1,6 @@
 /**
  * Narrow-viewport sidebar disclosure, shared by the `.page-*` shell (components/page-shell.css: API docs, admin
- * dashboard, user dashboard) and the Gallery's filter column.
+ * dashboard, user dashboard, labeling guide) and the Gallery's filter column.
  *
  * Under their breakpoints these sidebars stop being columns and become an in-flow strip between the navbar and the
  * content, with their contents collapsed. The button that reopens them belongs *inside* that strip, so what it

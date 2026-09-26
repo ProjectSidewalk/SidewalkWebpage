@@ -11,7 +11,7 @@ GET     /labelMap                                       controllers.ApplicationC
 GET     /labelmap                                       controllers.ApplicationController.labelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None)
 GET     /accessScore                                    controllers.ApplicationController.accessScore
 GET     /accessscore                                    controllers.ApplicationController.accessScore
-GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "")
+GET     /gallery                                        controllers.GalleryController.gallery(labelType: String ?= "Assorted", regions: String ?= "", severities: String ?= "", tags: List[String] ?= List(), validationOptions: String ?= "correct,unvalidated", aiValidationOptions: String ?= "", neighborhoods: String ?= "", labelIds: String ?= "")
 GET     /labelingGuide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingguide                                  controllers.ApplicationController.labelingGuide
 GET     /labelingGuide/curbRamps                        controllers.ApplicationController.labelingGuideCurbRamps
@@ -118,6 +118,7 @@ GET     /adminapi/checkImagery                          controllers.AdminControl
 POST    /adminapi/generateCrops                         controllers.AdminController.generateCrops
 POST    /adminapi/rebuildSidewalkPresence               controllers.AdminController.rebuildSidewalkPresence
 POST    /adminapi/refreshPlaces                         controllers.AdminController.refreshPlaces
+POST    /adminapi/recountStreetGradientStaleness        controllers.AdminController.recountStreetGradientStaleness
 
 # Community-partner logos on the landing page (#4516). Global (all-cities) scope is Owner-only; the reorder routes
 # must precede the :partnerId ones so "order" isn't captured as an id.
@@ -128,6 +129,9 @@ PUT     /adminapi/partners/order                        controllers.PartnerContr
 PUT     /adminapi/globalPartners/order                  controllers.PartnerController.reorderGlobalPartners
 PUT     /adminapi/partners/:partnerId                   controllers.PartnerController.updatePartner(partnerId: Int)
 DELETE  /adminapi/partners/:partnerId                   controllers.PartnerController.deletePartner(partnerId: Int)
+# The "contact <city> directly" notice in the landing page's partners section (#5462), edited on the same admin page.
+GET     /adminapi/officialContact                       controllers.PartnerController.getOfficialContact
+PUT     /adminapi/officialContact                       controllers.PartnerController.updateOfficialContact
 GET     /adminapi/refreshOsmWayData                     controllers.AdminController.refreshOsmWayData()
 GET     /adminapi/recalculateStreetPriority             controllers.AdminController.recalculateStreetPriority
 POST    /adminapi/recalculateValidationCounts           controllers.AdminController.recalculateValidationCounts
@@ -159,7 +163,7 @@ POST    /validationTask/moreLabels                      controllers.ValidateCont
 POST    /galleryTask                                    controllers.GalleryController.post
 POST    /labelmap/validate                              controllers.ValidateController.postLabelMapValidation
 POST    /labelmap/comment                               controllers.ValidateController.postLabelMapComment
-DELETE  /labelmap/comment/:labelId                      controllers.ValidateController.deleteLabelMapComment(labelId: Int)
+DELETE  /labelmap/comment/:labelId                      controllers.ValidateController.deleteLabelMapComment(labelId: Int, labelType: String)
 
 # Labels
 GET     /labels/all                                     controllers.LabelController.getAllLabelsForLabelMap(regions: Option[String] ?= None, routes: Option[String] ?= None, aiValidationOptions: Option[String] ?= None, bbox: Option[String] ?= None)

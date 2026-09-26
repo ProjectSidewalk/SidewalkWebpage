@@ -117,7 +117,7 @@ class Minimap {
    * @param {string} trigger - What initiated the toggle (for interaction logging).
    */
   toggleOverview(trigger) {
-    if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
+    if (svl.ui.minimap.holder.classList.contains('minimap-tutorial')) return;
     if (this.#overviewMode) {
       this.exitOverview(trigger);
     } else {
@@ -131,7 +131,7 @@ class Minimap {
    * @param {number} delta - Number of zoom levels to add (positive zooms in, negative zooms out).
    */
   #changeZoom(delta) {
-    if (svl.ui.minimap.holder.hasClass('minimap-tutorial')) return;
+    if (svl.ui.minimap.holder.classList.contains('minimap-tutorial')) return;
     // Manual zooming while fitted means the user wants street level back; the exit already resets the zoom.
     if (this.#overviewMode) {
       this.exitOverview('zoom');
@@ -153,7 +153,7 @@ class Minimap {
     if (!bounds || this.#overviewMode) return;
     this.#overviewMode = true;
     this.#updateFitButtonLabel();
-    svl.ui.minimap.holder.addClass('minimap-overview');
+    svl.ui.minimap.holder.classList.add('minimap-overview');
     this.#map.setOptions({ minZoom: Minimap.#OVERVIEW_MIN_ZOOM });
     this.#map.fitBounds(bounds, 12);
   }
@@ -166,7 +166,7 @@ class Minimap {
     if (!this.#overviewMode) return;
     this.#overviewMode = false;
     this.#updateFitButtonLabel();
-    svl.ui.minimap.holder.removeClass('minimap-overview');
+    svl.ui.minimap.holder.classList.remove('minimap-overview');
     this.#map.setOptions({ minZoom: Minimap.#MIN_ZOOM });
     this.#map.setZoom(Minimap.#DEFAULT_ZOOM);
     this.#map.setCenter(svl.panoViewer.getPosition());
@@ -224,21 +224,20 @@ class Minimap {
     const totalMeters = mission.getDistance('meters');
     // Free-exploration missions (#4451) have no distance target; a "0/0" progress bar would be meaningless, so hide it.
     if (!totalMeters) {
-      svl.ui.minimap.missionProgress.css('display', 'none');
+      svl.ui.minimap.missionProgress.style.display = 'none';
       return;
     }
-    svl.ui.minimap.missionProgress.css('display', '');
+    svl.ui.minimap.missionProgress.style.display = '';
 
     const fraction = mission.getMissionCompletionRate();
     const doneMeters = Math.min(Math.max(mission.getProperty('distanceProgress') || 0, 0), totalMeters);
     const percent = Math.round(fraction * 100);
 
-    svl.ui.minimap.missionProgressFill.css('width', `${percent}%`);
-    svl.ui.minimap.missionProgressPercent.text(`${percent}%`);
-    svl.ui.minimap.missionProgressDistance.text(
-      i18next.t('common:distance-progress', { done: doneMeters, total: totalMeters }),
-    );
-    svl.ui.minimap.missionProgress.attr('aria-valuenow', percent);
+    svl.ui.minimap.missionProgressFill.style.width = `${percent}%`;
+    svl.ui.minimap.missionProgressPercent.textContent = `${percent}%`;
+    svl.ui.minimap.missionProgressDistance.textContent
+      = i18next.t('common:distance-progress', { done: doneMeters, total: totalMeters });
+    svl.ui.minimap.missionProgress.setAttribute('aria-valuenow', String(percent));
   }
 
   /**
@@ -249,17 +248,16 @@ class Minimap {
    * @param {Mission} [mission] - The newly started mission; if absent, the distance label is cleared.
    */
   resetMissionProgress(mission) {
-    svl.ui.minimap.missionProgressFill.css('width', '0%');
-    svl.ui.minimap.missionProgressPercent.text('0%');
-    svl.ui.minimap.missionProgress.attr('aria-valuenow', 0);
+    svl.ui.minimap.missionProgressFill.style.width = '0%';
+    svl.ui.minimap.missionProgressPercent.textContent = '0%';
+    svl.ui.minimap.missionProgress.setAttribute('aria-valuenow', '0');
     if (mission) {
       this.updateMissionFlags(mission);
       const totalMeters = mission.getDistance('meters');
-      svl.ui.minimap.missionProgressDistance.text(
-        i18next.t('common:distance-progress', { done: 0, total: totalMeters }),
-      );
+      svl.ui.minimap.missionProgressDistance.textContent
+        = i18next.t('common:distance-progress', { done: 0, total: totalMeters });
     } else {
-      svl.ui.minimap.missionProgressDistance.text('');
+      svl.ui.minimap.missionProgressDistance.textContent = '';
     }
   }
 
@@ -269,7 +267,7 @@ class Minimap {
   blinkMinimap() {
     this.stopBlinkingMinimap();
     this.#minimapPaneBlinkInterval = window.setInterval(() => {
-      svl.ui.minimap.overlay.toggleClass('highlight-50');
+      svl.ui.minimap.overlay.classList.toggle('highlight-50');
     }, 500);
   }
 
@@ -278,7 +276,7 @@ class Minimap {
    */
   stopBlinkingMinimap() {
     window.clearInterval(this.#minimapPaneBlinkInterval);
-    svl.ui.minimap.overlay.removeClass('highlight-50');
+    svl.ui.minimap.overlay.classList.remove('highlight-50');
   }
 
   /**

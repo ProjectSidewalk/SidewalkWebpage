@@ -13,7 +13,7 @@ class LabelVisibilityControl {
   #toggle;
 
   constructor() {
-    this.#card = $('#label-card');
+    this.#card = document.getElementById('label-card');
 
     // Two buttons, one action: the pill in the pano's top-left and the one in the label card's footer.
     this.#toggle = new LabelVisibilityToggle({
@@ -36,14 +36,14 @@ class LabelVisibilityControl {
     });
 
     // Keep the card up while the cursor is on it, so its Hide-label button can actually be clicked.
-    this.#card.on('mouseenter', () => this.cancelScheduledCardHide());
-    this.#card.on('mouseleave', () => this.scheduleHideLabelCard());
+    this.#card.addEventListener('mouseenter', () => this.cancelScheduledCardHide());
+    this.#card.addEventListener('mouseleave', () => this.scheduleHideLabelCard());
 
     // Same deal for keyboard focus (#4729): the card holds while focus is inside it, and the grace timer starts
     // when focus leaves. focusout also fires on moves between the card's own controls, so those are filtered.
-    this.#card.on('focusin', () => this.cancelScheduledCardHide());
-    this.#card.on('focusout', (e) => {
-      if (!this.#card[0].contains(e.relatedTarget)) this.scheduleHideLabelCard();
+    this.#card.addEventListener('focusin', () => this.cancelScheduledCardHide());
+    this.#card.addEventListener('focusout', (e) => {
+      if (!this.#card.contains(/** @type {Node} */ (e.relatedTarget))) this.scheduleHideLabelCard();
     });
   }
 
@@ -82,7 +82,7 @@ class LabelVisibilityControl {
     if (!this.#anchorCard()) return;
     if (!this.#cardVisible) svv.tracker.push(viaKeyboard ? 'KeyboardShortcut_ShowLabelCard' : 'MouseOver_Label');
     this.#cardVisible = true;
-    this.#card[0].style.visibility = 'visible';
+    this.#card.style.visibility = 'visible';
     this.#setMarkerExpanded(true);
   }
 
@@ -92,11 +92,11 @@ class LabelVisibilityControl {
    */
   hideLabelCard() {
     this.cancelScheduledCardHide();
-    // The share popover hangs off the card, so it goes too. Left open it would be invisible but still armed, and
-    // every later scheduleHideLabelCard would defer to it forever.
-    svv.labelCard?.closeSharePopover();
+    // The card's popovers hang off it, so they go too. Left open one would be invisible but still armed, and every
+    // later scheduleHideLabelCard would defer to it forever.
+    svv.labelCard?.closePopovers();
     this.#cardVisible = false;
-    this.#card[0].style.visibility = 'hidden';
+    this.#card.style.visibility = 'hidden';
     this.#setMarkerExpanded(false);
   }
 
@@ -106,10 +106,10 @@ class LabelVisibilityControl {
    * the pointer first left.
    */
   scheduleHideLabelCard() {
-    // An open share popover extends past the card, so the pointer leaving the card doesn't mean the user is done
-    // with it. Taking the card down here would take the popover with it, mid-choice — handleSharePopoverDismissed
-    // re-arms the hide once the popover closes.
-    if (this.#hideCardTimer !== null || svv.labelCard?.isSharePopoverOpen()) return;
+    // An open share popover or type dropdown extends past the card, so the pointer leaving the card doesn't mean the
+    // user is done with it. Taking the card down here would take the popover with it, mid-choice —
+    // handlePopoverDismissed re-arms the hide once the popover closes.
+    if (this.#hideCardTimer !== null || svv.labelCard?.isPopoverOpen()) return;
     this.#hideCardTimer = setTimeout(() => {
       this.#hideCardTimer = null;
       this.hideLabelCard();
@@ -117,16 +117,14 @@ class LabelVisibilityControl {
   }
 
   /**
-   * Re-arms the card's hide once the share popover that had been holding it open goes away.
-   *
-   * scheduleHideLabelCard is only ever reached from the card's own mouseleave, and while the popover was up it
-   * declined to schedule anything. The pointer left the card back then and no second mouseleave is coming, so
-   * without this the card would stay up until a pan, the H key, or the next label took it down. Copy link is the
-   * common way in: it leaves the popover open behind its "Copied!" state, so the pointer usually wanders off well
-   * before the popover closes. Skipped when the pointer is back on the card, where it is meant to stay.
+   * Re-arms the card's hide once a popover that had been holding it open goes away. The pointer left the card
+   * while the popover was up, and no second mouseleave is coming, so without this the card stays until a pan, the
+   * H key, or the next label. Left alone if the pointer or the keyboard is back in the card, or it is already gone.
    */
-  handleSharePopoverDismissed() {
-    if (!this.#card[0].matches(':hover')) this.scheduleHideLabelCard();
+  handlePopoverDismissed() {
+    if (!this.#cardVisible) return;
+    if (this.#card.matches(':hover') || this.#card.contains(document.activeElement)) return;
+    this.scheduleHideLabelCard();
   }
 
   /**
@@ -185,10 +183,10 @@ class LabelVisibilityControl {
    */
   #anchorCard() {
     const marker = document.getElementById('validate-pano-marker');
-    const layer = svv.ui.viewer.controlLayer[0];
+    const layer = svv.ui.viewer.controlLayer;
     if (!marker || !layer || marker.offsetLeft < -1000) return false;
 
-    const scale = parseFloat(getComputedStyle(this.#card[0]).getPropertyValue('--ui-scale')) || 1;
+    const scale = parseFloat(getComputedStyle(this.#card).getPropertyValue('--ui-scale')) || 1;
     const radius = marker.offsetWidth / 2;
     util.anchorPanelToLabel(
       this.#card,

@@ -4,17 +4,18 @@
  * @memberof svl
  */
 class LabelContainer {
-  #jquery;
+  // localStorage key for the minimap legend's "My earlier labels" toggle (#4945). Remembered across sessions because
+  // a mapper who hides earlier labels to declutter a re-audit wants them hidden on the next street too.
+  static EARLIER_LABELS_STORAGE_KEY = 'minimapShowEarlierLabels';
+
   #labelsToLog = {};
   #allLabels = {};
   #nextTempLabelId;
 
   /**
-   * @param {JQueryStatic} $ - jQuery object.
    * @param {number} nextTemporaryLabelId
    */
-  constructor($, nextTemporaryLabelId) {
-    this.#jquery = $;
+  constructor(nextTemporaryLabelId) {
     this.#nextTempLabelId = nextTemporaryLabelId;
   }
 
@@ -82,26 +83,40 @@ class LabelContainer {
    * @param {(result: object) => void} [callback]
    */
   fetchLabelsToResumeMission(regionId, userRouteId, callback) {
-    const query = userRouteId ? { regionId, userRouteId } : { regionId };
-    this.#jquery.getJSON('/label/resumeMission', query, (result) => {
+    const query = new URLSearchParams({ regionId: String(regionId) });
+    if (userRouteId) query.set('userRouteId', String(userRouteId));
+    fetch(`/label/resumeMission?${query}`).then((res) => res.json()).then((result) => {
       const labelArr = result.labels;
       for (let i = 0; i < labelArr.length; i++) {
         const originalCanvasXY = {
           x: labelArr[i].canvasX,
           y: labelArr[i].canvasY,
         };
+        // The frame the click was made in (#5085): the stored point is decoded through it, and re-encoded for the
+        // frame the tool is displaying now, which may be a different shape.
+        const originalCanvasFrame = {
+          width: labelArr[i].canvasWidth ?? util.EXPLORE_CANVAS_WIDTH,
+          height: labelArr[i].canvasHeight ?? util.EXPLORE_CANVAS_HEIGHT,
+        };
 
-        // Get the canvas coordinates for the label given the current POV.
+        // The imagery the click was made on decides the fov it was projected with, and an Explore page renders one
+        // imagery source, so the page's viewer is the label's source too.
+        const viewerType = svl.panoViewer.getViewerType();
         const povOfLabelIfCentered = util.pano.canvasCoordToCenteredPov(
           labelArr[i].originalPov, originalCanvasXY.x, originalCanvasXY.y,
-          util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
+          originalCanvasFrame.width, originalCanvasFrame.height,
+          util.pano.renderedHFov(
+            labelArr[i].originalPov.zoom, originalCanvasFrame.width / originalCanvasFrame.height, viewerType,
+          ),
         );
+        const currPov = svl.panoViewer.getPov();
         labelArr[i].currCanvasXY = util.pano.centeredPovToCanvasCoord(
-          povOfLabelIfCentered, svl.panoViewer.getPov(),
-          util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+          povOfLabelIfCentered, currPov,
+          svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height, svl.LABEL_ICON_RADIUS, svl.renderedHFov(currPov.zoom),
         );
 
         labelArr[i].originalCanvasXY = originalCanvasXY;
+        labelArr[i].originalCanvasFrame = originalCanvasFrame;
         labelArr[i].povOfLabelIfCentered = povOfLabelIfCentered;
         labelArr[i].panoXY = { x: labelArr[i].panoX, y: labelArr[i].panoY };
         const label = this.createLabel(labelArr[i], false);
@@ -110,12 +125,24 @@ class LabelContainer {
         label.setHoverInfoVisibility('hidden');
       }
 
+      // Honor the remembered legend toggle for the markers just created, and record how much of what came back is
+      // an earlier era -- the first measure of how often mappers land on a re-audit (#4945).
+      if (!LabelContainer.earlierLabelsShownPreference()) this.#applyEarlierLabelsShown(false);
+      svl.tracker.push('MinimapEarlierLabels_Loaded', this.countLabelsByMinimapEra());
+
       if (callback) callback(result);
     });
   }
 
   /**
    * Returns labels for the current pano ID.
+   *
+   * Labels are bucketed by exact pano id, and that is the whole reason a re-audit starts from a blank canvas: newer
+   * imagery is a new pano id, so labels placed on the old imagery never render on it. This is deliberate (#4945),
+   * not just a side effect. Reprojecting a label from one pano into another needs a depth we only estimate, and an
+   * independent second look is what the per-era comparison (#4792) wants. The minimap is where the earlier pass
+   * shows, as the dimmed markers. The corollary also holds on purpose: a pano whose id did not change still shows
+   * its old labels, which is exactly a resumed mission.
    */
   getCanvasLabels() {
     const panoId = svl.panoViewer.getPanoId();
@@ -166,6 +193,78 @@ class LabelContainer {
   }
 
   /**
+   * Whether the user wants earlier passes' labels shown on the minimap (#4945). Unset means shown: the toggle exists
+   * to declutter on request, not to hide history by default. Also shown if storage can't be read (blocked, or a stored
+   * value that isn't valid JSON): this runs ahead of the first canvas paint, which a storage error must not take out.
+   * @returns {boolean}
+   */
+  static earlierLabelsShownPreference() {
+    let stored;
+    try {
+      stored = svl.storage?.get(LabelContainer.EARLIER_LABELS_STORAGE_KEY);
+    } catch (e) {
+      console.warn('Could not read the minimap earlier-labels preference; showing them.', e);
+      return true;
+    }
+    return stored === null || stored === undefined ? true : Boolean(stored);
+  }
+
+  /**
+   * Live label counts by minimap era (see Label.minimapEra), for the tracker.
+   * @returns {{current: number, prior: number, outdated: number}}
+   */
+  countLabelsByMinimapEra() {
+    const counts = { current: 0, prior: 0, outdated: 0 };
+    this.getAllLabels().forEach((l) => {
+      if (!l.isDeleted()) counts[l.getMinimapEra()] += 1;
+    });
+    return counts;
+  }
+
+  /**
+   * Re-derives every label's minimap era, then re-applies the legend toggle to the result. Called when the current
+   * mission changes, so the mission just finished reads as the previous pass and a resumed mission's labels come back
+   * as current work, markers included.
+   */
+  refreshMinimapEras() {
+    this.getAllLabels().forEach((l) => l.refreshMinimapEra());
+    this.#applyEarlierLabelsShown(LabelContainer.earlierLabelsShownPreference());
+  }
+
+  /**
+   * The "My earlier labels" legend toggle: shows or hides the minimap markers of labels from earlier passes, logs the
+   * change, and remembers it so it survives reloads and the next street. The markers move first and the preference is
+   * saved second, so a storage failure (quota, blocked storage) costs only the memory of the choice, never the choice.
+   * @param {boolean} shown
+   */
+  setEarlierLabelsShown(shown) {
+    this.#applyEarlierLabelsShown(shown);
+    const counts = this.countLabelsByMinimapEra();
+    svl.tracker.push(shown ? 'Click_MinimapEarlierLabels_Show' : 'Click_MinimapEarlierLabels_Hide', {
+      prior: counts.prior, outdated: counts.outdated,
+    });
+    try {
+      svl.storage?.set(LabelContainer.EARLIER_LABELS_STORAGE_KEY, shown);
+    } catch (e) {
+      console.warn('Could not save the minimap earlier-labels preference.', e);
+    }
+  }
+
+  /**
+   * Puts each label's minimap marker in the state the toggle asks for: earlier eras ('prior', 'outdated') hidden when
+   * `shown` is false, everything else shown. Current markers are set too, not skipped, because a label whose era just
+   * went back to current (a resumed mission) may still be suppressed from when it was earlier. Keeps the legend
+   * checkbox in step, since this is also reached from the stored preference, not only from the checkbox.
+   * @param {boolean} shown
+   */
+  #applyEarlierLabelsShown(shown) {
+    this.getAllLabels().forEach((l) => {
+      l.setMinimapMarkerSuppressed(!shown && l.getMinimapEra() !== 'current');
+    });
+    if (svl.ui?.minimap?.legendEarlierLabels) svl.ui.minimap.legendEarlierLabels.checked = shown;
+  }
+
+  /**
    * Removes a passed label, updates the canvas, and updates label counts.
    */
   removeLabel(label) {
@@ -173,7 +272,7 @@ class LabelContainer {
       return false;
     }
     svl.tracker.push('RemoveLabel', { labelType: label.getProperty('labelType') });
-    if (svl.isOnboarding()) this.#jquery(document).trigger('RemoveLabel');
+    if (svl.isOnboarding()) document.dispatchEvent(new CustomEvent('RemoveLabel'));
     svl.overallStats.decrementLabelCount();
     label.remove();
     this.#addLabelToListObject(this.#labelsToLog, label);

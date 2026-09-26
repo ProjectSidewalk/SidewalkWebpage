@@ -1,6 +1,7 @@
 /**
  * Tests for the number-key shortcuts in Validate's KeyboardManager (public/js/validate/src/keyboard/
- * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871.
+ * KeyboardManager.js), covering the fourth Missing Curb Ramp disagree reason added for #4871, plus the Ctrl+Z undo
+ * that shares the manager's key handling.
  *
  * The reason buttons are one fixed set of elements reused across label types, and `defaultOption` is the flag saying
  * "this type offers this reason" — so the same keypress has to mean different things depending on the label on screen.
@@ -20,14 +21,15 @@ const MANAGER_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
 );
 
-/** A stand-in for one of the menu's jQuery-wrapped controls; `chosen` drives which verdict is selected. */
+/**
+ * A menu control with its click spied; `chosen` marks the verdict. A real element, since the manager compares the
+ * comment boxes against document.activeElement.
+ */
 function makeControl({ chosen = false } = {}) {
-    return {
-        on: () => {},
-        0: document.createElement('textarea'),
-        click: jest.fn(),
-        hasClass: (cls) => cls === 'chosen' && chosen,
-    };
+    const control = document.createElement('textarea');
+    control.classList.toggle('chosen', chosen);
+    control.click = jest.fn();
+    return control;
 }
 
 /**
@@ -60,17 +62,10 @@ describe('KeyboardManager number-key shortcuts', () => {
             yesButton: makeControl(),
             noButton: makeControl(),
             unsureButton: makeControl(),
-            wrongTypeButton: makeControl(),
         });
 
-        // Minimal jQuery stand-in over the real DOM: the manager only asks a selector for `hasClass` and `click`.
-        window.$ = (selector) => {
-            const el = document.querySelector(selector);
-            return {
-                hasClass: (cls) => !!el && el.classList.contains(cls),
-                click: () => { if (el) clicks.push(el.id); },
-            };
-        };
+        // The manager looks the reason buttons and severity radios up by id and clicks them natively.
+        document.addEventListener('click', (e) => clicks.push(/** @type {Element} */ (e.target).id));
 
         window.eval(`${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
         new window.KeyboardManager(validationMenuUi);
@@ -87,12 +82,15 @@ describe('KeyboardManager number-key shortcuts', () => {
         }
     });
 
-    /** Selects a verdict, as clicking Agree / Disagree / Unsure / Wrong type would. */
+    /**
+     * Selects a verdict, as clicking Agree / Disagree / Unsure would. 'wrongType' is Disagree with the "wrong label
+     * type" reason picked on Expert Validate, where the menu swaps the reasons for the type picker's section.
+     */
     function choose(verdict) {
         validationMenuUi.yesButton = makeControl({ chosen: verdict === 'yes' });
-        validationMenuUi.noButton = makeControl({ chosen: verdict === 'no' });
+        validationMenuUi.noButton = makeControl({ chosen: verdict === 'no' || verdict === 'wrongType' });
         validationMenuUi.unsureButton = makeControl({ chosen: verdict === 'unsure' });
-        validationMenuUi.wrongTypeButton = makeControl({ chosen: verdict === 'wrongType' });
+        window.svv.validationMenu = { inWrongTypeView: () => verdict === 'wrongType' };
     }
 
     describe('on a label type with a fourth disagree reason (Missing Curb Ramp)', () => {
@@ -151,7 +149,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         });
     });
 
-    describe('on the Wrong-type verdict (Expert Validate, #3671)', () => {
+    describe('on the "wrong label type" disagree (Expert Validate, #3671, #5409)', () => {
         /** The severity section as the menu leaves it: shown only once a rated type is picked. */
         function renderSeveritySection(shown) {
             document.body.innerHTML = `
@@ -182,13 +180,103 @@ describe('KeyboardManager number-key shortcuts', () => {
             expect(validationMenuUi.optionalCommentTextBox.click).not.toHaveBeenCalled();
         });
 
-        it('T presses the Wrong-type button, and C reaches the comment box', () => {
+        it('4 and 5 reach the comment box rather than severity buttons that do not exist', () => {
+            renderSeveritySection(true);
+
+            pressDigit(4);
+            pressDigit(5);
+
+            expect(clicks).toEqual([]);
+            expect(validationMenuUi.optionalCommentTextBox.click).toHaveBeenCalledTimes(2);
+        });
+
+        it('C reaches the optional comment box, not the hidden disagree reason box', () => {
             renderSeveritySection(false);
-            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyT', key: 't', bubbles: true }));
             window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', key: 'c', bubbles: true }));
 
-            expect(validationMenuUi.wrongTypeButton.click).toHaveBeenCalledTimes(1);
             expect(validationMenuUi.optionalCommentTextBox.click).toHaveBeenCalledTimes(1);
+            expect(validationMenuUi.disagreeReasonTextBox.click).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Enter', () => {
+        /** Presses Enter from whatever has focus. */
+        function pressEnter() {
+            window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Enter', key: 'Enter', bubbles: true, cancelable: true }));
+        }
+
+        beforeEach(() => {
+            document.body.innerHTML = '<input id="select-tag-ts-control" type="text"><input id="other" type="text">';
+            validationMenuUi.submitButton.click = jest.fn();
+        });
+
+        afterEach(() => {
+            document.body.innerHTML = ''; // A box left focused would mute the shortcuts in later tests.
+        });
+
+        it('submits from anywhere else, a comment box included', () => {
+            document.getElementById('other').focus();
+            pressEnter();
+
+            expect(validationMenuUi.submitButton.click).toHaveBeenCalled();
+        });
+
+        it('is the tag picker\'s own key while its box has focus, so it does not submit', () => {
+            document.getElementById('select-tag-ts-control').focus();
+            pressEnter();
+
+            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Ctrl+Z, the other way to press Back (#5409)', () => {
+        let undoButton;
+
+        /** Presses Ctrl+Z, or Cmd+Z when `mac` is set. */
+        function pressUndo({ mac = false } = {}) {
+            window.dispatchEvent(new KeyboardEvent('keydown', {
+                code: 'KeyZ', key: 'z', ctrlKey: !mac, metaKey: mac, bubbles: true, cancelable: true,
+            }));
+        }
+
+        beforeEach(() => {
+            undoButton = makeControl();
+            window.svv.ui = { undoValidation: { undoButton } };
+            window.svv.undoValidation = { canUndo: () => true };
+            window.svv.zoomControl = { zoomIn: jest.fn(), zoomOut: jest.fn() };
+        });
+
+        it('clicks Back', () => {
+            pressUndo();
+
+            expect(undoButton.click).toHaveBeenCalledTimes(1);
+        });
+
+        it('works as Cmd+Z, without the bare Z zoom riding along', () => {
+            pressUndo({ mac: true });
+
+            expect(undoButton.click).toHaveBeenCalledTimes(1);
+            expect(window.svv.zoomControl.zoomIn).not.toHaveBeenCalled();
+            expect(window.svv.zoomControl.zoomOut).not.toHaveBeenCalled();
+        });
+
+        it('does nothing while Back is disabled', () => {
+            window.svv.undoValidation.canUndo = () => false;
+
+            pressUndo();
+
+            expect(undoButton.click).not.toHaveBeenCalled();
+        });
+
+        it('leaves the comment box to the browser, where it undoes what was typed', () => {
+            const commentBox = validationMenuUi.optionalCommentTextBox;
+            document.body.appendChild(commentBox);
+            commentBox.focus();
+
+            pressUndo();
+
+            expect(undoButton.click).not.toHaveBeenCalled();
+            commentBox.remove();
         });
     });
 

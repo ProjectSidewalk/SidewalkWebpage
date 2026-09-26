@@ -135,8 +135,8 @@ class Form {
       environment: {
         browser: util.getBrowser(),
         browser_version: util.getBrowserVersion(),
-        browser_width: $(window).width(),
-        browser_height: $(window).height(),
+        browser_width: document.documentElement.clientWidth,
+        browser_height: document.documentElement.clientHeight,
         screen_width: screen.width,
         screen_height: screen.height,
         avail_width: screen.availWidth,              // total width - interface (taskbar)
@@ -181,6 +181,8 @@ class Form {
           pano_y: Math.round(prop.panoXY.y),
           canvas_x: prop.originalCanvasXY.x,
           canvas_y: prop.originalCanvasXY.y,
+          canvas_width: prop.originalCanvasFrame.width,
+          canvas_height: prop.originalCanvasFrame.height,
           heading: prop.originalPov.heading,
           pitch: prop.originalPov.pitch,
           zoom: prop.originalPov.zoom,

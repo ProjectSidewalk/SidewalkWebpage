@@ -23,7 +23,8 @@ import models.validation.{LabelValidationTable, ValidationCount, ValidationOptio
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
-import java.time.{LocalDate, OffsetDateTime}
+import java.time.temporal.ChronoUnit
+import java.time.{LocalDate, OffsetDateTime, ZoneId, ZonedDateTime}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -32,6 +33,29 @@ object TimeInterval extends Enumeration {
   val AllTime = Value("all_time")
   val Week    = Value("week")
   val Today   = Value("today")
+
+  /**
+   * When the interval starts: midnight Pacific for today, seven days ago for the week.
+   *
+   * @return The start, or None for all time.
+   */
+  def start(interval: TimeInterval): Option[OffsetDateTime] = interval match {
+    case Today => Some(ZonedDateTime.now(ZoneId.of("US/Pacific")).truncatedTo(ChronoUnit.DAYS).toOffsetDateTime)
+    case Week  => Some(OffsetDateTime.now().minusDays(7))
+    case _     => None
+  }
+
+  /**
+   * The same window as [[start]], as a raw-SQL condition on a timestamp column.
+   *
+   * @param column A timestamp column, written in code.
+   * @return A condition keeping rows in the interval; `TRUE` for all time.
+   */
+  def sqlFilter(interval: TimeInterval, column: String): String = interval match {
+    case Today => s"$column >= date_trunc('day', NOW() AT TIME ZONE 'US/Pacific') AT TIME ZONE 'US/Pacific'"
+    case Week  => s"$column >= NOW() - INTERVAL '7 days'"
+    case _     => "TRUE"
+  }
 }
 
 /** Source-split v3 API usage, assembled for the admin API Analytics page. */
@@ -103,7 +127,15 @@ case class RecentActivityItem(
  * The pano + point-of-view metadata needed to build a preview-image URL for one label (a saved crop or a Street View
  * Static thumbnail). Carried alongside a recent-activity item so the admin Activity feed can show a thumbnail.
  */
-case class LabelThumbnailMeta(panoId: String, panoSource: PanoSource, heading: Double, pitch: Double, zoom: Double)
+case class LabelThumbnailMeta(
+    panoId: String,
+    panoSource: PanoSource,
+    heading: Double,
+    pitch: Double,
+    zoom: Double,
+    canvasWidth: Int,
+    canvasHeight: Int
+)
 
 /**
  * A compact "who is this contributor" summary for annotating a recent-activity item: their role plus how much they've
@@ -527,8 +559,8 @@ class AdminServiceImpl @Inject() (
     if (labelIds.isEmpty) Future.successful(Map.empty)
     else
       db.run(labelTable.getPanoMetadataForLabels(labelIds)).map { rows =>
-        rows.map { case (id, panoId, source, heading, pitch, zoom) =>
-          id -> LabelThumbnailMeta(panoId, source, heading, pitch, zoom)
+        rows.map { case (id, panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight) =>
+          id -> LabelThumbnailMeta(panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight)
         }.toMap
       }
   }

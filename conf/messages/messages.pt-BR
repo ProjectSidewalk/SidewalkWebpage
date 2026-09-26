@@ -55,7 +55,6 @@ no.caps = Não
 no.caps.shortcut = <u>N</u>ão
 unsure.caps = Não tenho certeza
 unsure.caps.shortcut = Não tenho certeza (<u>u</u>)
-wrong.type.shortcut = <u>T</u>ipo errado
 thanks = Obrigado!
 username = Nome de usuário
 loading = Carregando...
@@ -288,7 +287,8 @@ landing.ml.gif.explain.alt = GIF explicando os resultados do crowdsourcing e do 
 landing.deployment.map.title = Explore outras cidades
 landing.deployment.map.subtitle = Clique em um círculo abaixo para explorar outras cidades do Project Sidewalk!
 landing.partners.title = Parceiros da comunidade em {0}
-landing.partners.tagline = Nosso trabalho em {0} é possível graças aos nossos incríveis parceiros da comunidade, incluindo:
+landing.partners.tagline = Nosso trabalho em {0} é possível graças aos nossos parceiros da comunidade, incluindo:
+landing.partners.official.contact = O Project Sidewalk é uma ferramenta de pesquisa. Para relatar um problema ou solicitar um reparo, entre em contato diretamente com {0}. Fique à vontade para incluir na sua solicitação links para <a href="/labelMap" data-partner-source="official-contact-labelmap">etiquetas</a> ou <a href="/stories" data-partner-source="official-contact-stories">histórias</a> do Project Sidewalk.
 landing.partners.logo.alt = Logotipo de {0}
 landing.partners.created.by = O Project Sidewalk foi criado com {0} por
 landing.partners.created.heart = amor
@@ -332,7 +332,7 @@ audit.ribbon.other.labels = OUTROS RÓTULOS DE ACESSIBILIDADE
 audit.ribbon.explore = <u>E</u>xplorar
 audit.ribbon.curb.ramp = Rampa de <u>c</u>alçada
 audit.ribbon.missing.ramp = Rampa de calçada ausente (<u>M</u>)
-audit.ribbon.obstacle = <u>O</u>bstáculo no caminho
+audit.ribbon.obstacle = <u>O</u>bstáculo
 audit.ribbon.surface.problem = Problema na <u>s</u>uperfície
 audit.ribbon.no.sidewalk = Sem calçada (<u>N</u>)
 audit.ribbon.crosswalk = Faixa de pedestres marcada (<u>W</u>)
@@ -557,6 +557,10 @@ gallery.all = Todos os tipos de rótulos
 gallery.labels.not.found = Nenhum resultado encontrado. <a href="/explore">Comece a explorar</a> para contribuir com mais dados!
 gallery.cards = Os rótulos são ordenadas aleatoriamente com base nos filtros selecionados
 gallery.clear.filters = Limpar filtros
+gallery.list.count = {0,choice,1#1 rótulo|1<{0} rótulos} nesta lista
+gallery.list.truncated = {0,choice,1#1 ID passou do limite de {1} e não pôde ser carregado.|1<{0} IDs passaram do limite de {1} e não puderam ser carregados.}
+gallery.list.error = Não foi possível carregar a lista. Recarregue a página para tentar de novo.
+gallery.list.browse.all = Ver todos os rótulos
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Bem-vindo ao RouteBuilder

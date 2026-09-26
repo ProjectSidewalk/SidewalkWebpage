@@ -557,7 +557,7 @@ class AboutPage {
     // they parse, so either one arriving first would throw.
     for (const src of [mapboxJs, mapboxLanguageJs, psMapJs]) await this.#loadScript(src);
 
-    await window.createPSMap(window.jQuery, {
+    await window.createPSMap({
       mapName: holder.id,
       mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
       mapboxApiKey,

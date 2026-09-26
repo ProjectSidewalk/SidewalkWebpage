@@ -15,14 +15,18 @@ class ModalMissionComplete {
     this.#language = language;
   }
 
-  #handleButtonClick = (event) => {
+  /**
+   * @param {'primary'|'secondary'} button - Which of the two close buttons was clicked.
+   */
+  #handleButtonClick = (button) => {
     // If they've done three missions and clicked the audit button, load the explore page.
-    if (event.data.button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
+    if (button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
       window.location.replace('/explore');
     } else {
-      // If there is a new validate mission available, we should show the mission screens.
+      // If there is a new validate mission available, show the mission screens. Desktop only: the phone's briefing is
+      // ModalMission's carousel, and this tutorial's markup isn't on that page.
       const newMission = svv.missionContainer.getCurrentMission();
-      if (newMission && newMission.getProperty('missionType') === 'validation') {
+      if (!util.isMobile() && newMission && newMission.getProperty('missionType') === 'validation') {
         new MissionStartTutorial(
           'validate', newMission.getProperty('labelType'),
           { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language,
@@ -42,41 +46,42 @@ class ModalMissionComplete {
    * Hides the mission complete menu.
    */
   hide() {
-    this.#uiModalMissionComplete.closeButtonPrimary.off('click');
-    this.#uiModalMissionComplete.closeButtonSecondary.off('click');
-    this.#uiModalMissionComplete.background.css('visibility', 'hidden');
-    this.#uiModalMissionComplete.holder.css('visibility', 'hidden');
-    this.#uiModalMissionComplete.foreground.css('visibility', 'hidden');
-    this.#uiModalMissionComplete.closeButtonPrimary.css('visibility', 'hidden');
-    this.#uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
+    const ui = this.#uiModalMissionComplete;
+    ui.closeButtonPrimary.onclick = null;
+    ui.closeButtonSecondary.onclick = null;
+    ui.background.style.visibility = 'hidden';
+    ui.holder.style.visibility = 'hidden';
+    ui.foreground.style.visibility = 'hidden';
+    ui.closeButtonPrimary.style.visibility = 'hidden';
+    ui.closeButtonSecondary.style.visibility = 'hidden';
   }
 
   /**
    * Says where this mission leaves the validator overall: the badge their all-time validation count has earned, if
    * they have earned one, and the count itself.
    *
-   * The badge and its wording are mobile's; the desktop screen has neither element, so those calls land on empty
-   * jQuery sets and it keeps the bare number its table column expects.
+   * The badge and its wording are mobile's; the desktop screen has no badge and keeps the bare number.
    *
    * @param {number} total - The validator's all-time validation count.
    */
   #showStanding(total) {
     const ui = this.#uiModalMissionComplete;
-    ui.yourOverallTotalCount.html(util.isMobile()
+    ui.yourOverallTotalCount.innerHTML = util.isMobile()
       ? i18next.t('mission-complete.all-time', { count: total, interpolation: { escapeValue: true } })
-      : total);
+      : String(total);
+    if (!ui.badgeIcon) return;
 
     const { badge, next, fraction, remaining } = BadgeAchievements.getProgress('validations', total);
-    ui.badgeIcon.toggleClass('ps-hidden', !badge);
-    ui.badgeName.text(badge ? `${badge.name} ${badge.roman}` : '');
-    if (badge) ui.badgeIcon.css('background-image', `url("${badge.iconSrc}")`);
+    ui.badgeIcon.classList.toggle('ps-hidden', !badge);
+    ui.badgeName.textContent = badge ? `${badge.name} ${badge.roman}` : '';
+    if (badge) ui.badgeIcon.style.backgroundImage = `url("${badge.iconSrc}")`;
 
     // What they're climbing toward, which is what makes the badge legible as a level rather than a decoration. It's
     // the same line for someone who has none yet: their first badge is simply the next one.
-    if (ui.badgeProgressFill.length) new ProgressBar(ui.badgeProgressFill[0]).setFraction(fraction);
-    ui.badgeNext.text(next
+    if (ui.badgeProgressFill) new ProgressBar(ui.badgeProgressFill).setFraction(fraction);
+    ui.badgeNext.textContent = next
       ? i18next.t('mission-complete.next-badge', { count: remaining, badge: `${next.name} ${next.roman}` })
-      : i18next.t('mission-complete.top-badge'));
+      : i18next.t('mission-complete.top-badge');
   }
 
   /**
@@ -114,44 +119,46 @@ class ModalMissionComplete {
 
     // Disable user from clicking the 'Validate next mission' button and set background to gray. When we have a new
     // mission from the back end, nextMissionLoaded() will be called from Form.js to re-enable the button.
-    this.#uiModalMissionComplete.closeButtonPrimary.removeClass('btn-primary');
-    this.#uiModalMissionComplete.closeButtonPrimary.addClass('btn-loading');
-    this.#uiModalMissionComplete.closeButtonSecondary.removeClass('btn-secondary');
-    this.#uiModalMissionComplete.closeButtonSecondary.addClass('btn-loading');
+    const ui = this.#uiModalMissionComplete;
+    ui.closeButtonPrimary.classList.remove('btn-primary');
+    ui.closeButtonPrimary.classList.add('btn-loading');
+    ui.closeButtonSecondary.classList.remove('btn-secondary');
+    ui.closeButtonSecondary.classList.add('btn-loading');
 
-    this.#uiModalMissionComplete.background.css('visibility', 'visible');
-    this.#uiModalMissionComplete.missionTitle.html(i18next.t('mission-complete.title'));
-    this.#uiModalMissionComplete.message.html(message);
+    ui.background.style.visibility = 'visible';
+    ui.missionTitle.innerHTML = i18next.t('mission-complete.title');
+    ui.message.innerHTML = message;
     // Mobile shows the mission's label type beside that sentence; the element is absent on desktop.
     const labelType = mission.getProperty('labelType');
-    this.#uiModalMissionComplete.labelIcon
-      .css('background-image', `url("${util.misc.getIconImagePaths(labelType).iconImagePath}")`);
-    this.#uiModalMissionComplete.agreeCount.html(mission.getProperty('agreeCount'));
-    this.#uiModalMissionComplete.disagreeCount.html(mission.getProperty('disagreeCount'));
-    this.#uiModalMissionComplete.unsureCount.html(mission.getProperty('unsureCount'));
+    if (ui.labelIcon) {
+      ui.labelIcon.style.backgroundImage = `url("${util.misc.getIconImagePaths(labelType).iconImagePath}")`;
+    }
+    ui.agreeCount.textContent = mission.getProperty('agreeCount');
+    ui.disagreeCount.textContent = mission.getProperty('disagreeCount');
+    ui.unsureCount.textContent = mission.getProperty('unsureCount');
     this.#showStanding(svv.statusField.getCompletedValidations());
 
-    this.#uiModalMissionComplete.holder.css('visibility', 'visible');
-    this.#uiModalMissionComplete.foreground.css('visibility', 'visible');
+    ui.holder.style.visibility = 'visible';
+    ui.foreground.style.visibility = 'visible';
     // Hiding this screen only makes it invisible, which preserves how far it was scrolled, and it is shown again at
     // the end of every mission — so without this the next one opens wherever the last one was left.
-    this.#uiModalMissionComplete.foreground.scrollTop(0);
+    ui.foreground.scrollTop = 0;
     ModalMissionComplete.#celebrate();
 
     // Set primary button text to Explore if they've completed 3 validation missions (and are on a laptop/desktop).
     if (svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
-      this.#uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.explore'));
-      this.#uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
-      this.#uiModalMissionComplete.closeButtonPrimary.css('width', '60%');
-      this.#uiModalMissionComplete.closeButtonSecondary.html(i18next.t('mission-complete.continue'));
-      this.#uiModalMissionComplete.closeButtonSecondary.css('visibility', 'visible');
-      this.#uiModalMissionComplete.closeButtonSecondary.css('width', '39%');
+      ui.closeButtonPrimary.innerHTML = i18next.t('mission-complete.explore');
+      ui.closeButtonPrimary.style.visibility = 'visible';
+      ui.closeButtonPrimary.style.width = '60%';
+      ui.closeButtonSecondary.innerHTML = i18next.t('mission-complete.continue');
+      ui.closeButtonSecondary.style.visibility = 'visible';
+      ui.closeButtonSecondary.style.width = '39%';
     } else {
-      this.#uiModalMissionComplete.closeButtonPrimary.html(i18next.t('mission-complete.validate-more'));
-      this.#uiModalMissionComplete.closeButtonPrimary.css('visibility', 'visible');
-      this.#uiModalMissionComplete.closeButtonPrimary.css('width', '100%');
+      ui.closeButtonPrimary.innerHTML = i18next.t('mission-complete.validate-more');
+      ui.closeButtonPrimary.style.visibility = 'visible';
+      ui.closeButtonPrimary.style.width = '100%';
 
-      this.#uiModalMissionComplete.closeButtonSecondary.css('visibility', 'hidden');
+      ui.closeButtonSecondary.style.visibility = 'hidden';
     }
 
     svv.tracker.push(
@@ -172,12 +179,13 @@ class ModalMissionComplete {
    * Re-enables the start next mission button; called once a new mission has loaded from the back end.
    */
   nextMissionLoaded() {
-    // Enable button clicks, reset the CSS for primary/secondary close buttons.
-    this.#uiModalMissionComplete.closeButtonPrimary.removeClass('btn-loading');
-    this.#uiModalMissionComplete.closeButtonPrimary.addClass('btn-primary');
-    this.#uiModalMissionComplete.closeButtonPrimary.on('click', { button: 'primary' }, this.#handleButtonClick);
-    this.#uiModalMissionComplete.closeButtonSecondary.removeClass('btn-loading');
-    this.#uiModalMissionComplete.closeButtonSecondary.addClass('btn-secondary');
-    this.#uiModalMissionComplete.closeButtonSecondary.on('click', { button: 'secondary' }, this.#handleButtonClick);
+    // Re-enable the buttons. Handlers are assigned, not added, so a second load can't stack a second handler.
+    const ui = this.#uiModalMissionComplete;
+    ui.closeButtonPrimary.classList.remove('btn-loading');
+    ui.closeButtonPrimary.classList.add('btn-primary');
+    ui.closeButtonPrimary.onclick = () => this.#handleButtonClick('primary');
+    ui.closeButtonSecondary.classList.remove('btn-loading');
+    ui.closeButtonSecondary.classList.add('btn-secondary');
+    ui.closeButtonSecondary.onclick = () => this.#handleButtonClick('secondary');
   }
 }

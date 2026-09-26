@@ -206,7 +206,7 @@
 
           // Create image element.
           const img = document.createElement('img');
-          // The family directory stays literal so tools/check-asset-paths.mjs can tell the digest manifest covers it.
+          // Kept literal so tools/lint/check-asset-paths.mjs can tell the digest manifest covers the directory.
           img.src = util.assetPath(`images/examples/tags/${tag.id}.png`);
           img.alt = `${tag.tag} tag image`;
           img.width = 150;

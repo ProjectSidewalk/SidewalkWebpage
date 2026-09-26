@@ -77,31 +77,23 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val FixtureUserId   = "zz-fixture-4533"
   private val FixtureUsername = "zz_fixture_4533"
 
-  private lazy val someStreetEdgeId: Option[Int] =
-    await(dbConfig.db.run(sql"SELECT street_edge_id FROM street_edge LIMIT 1".as[Int].headOption))
-
-  /**
-   * The reference row a synthetic mapper has to hang off, or a cancellation when this database lacks one.
-   *
-   * Read outside the fixture's transaction, and as options, so a schema thin enough to be missing one of them cancels
-   * these tests rather than erroring the suite — the CANCEL-on-thin-data posture the rest of the suite already takes,
-   * and what lets it run against a freshly-created city schema in CI.
-   */
-  private def fixtureRefs: Int = someStreetEdgeId.getOrElse(cancel("no street_edge rows in this database"))
-
   /**
    * Inserts a mapper whose only period activity is a label placed *now* — their mission ended 30 days ago and their
    * audit task is not completed, so neither the mission-count nor the distance aggregate has a qualifying weekly row —
-   * then runs the real leaderboard query in the same (rolled-back) transaction. Reference ids are looked up from the
-   * connected DB so the fixture is city-agnostic.
+   * then runs the real leaderboard query in the same (rolled-back) transaction. The label gets its own street, since
+   * CI's only street is the tutorial street.
    *
    * @param onLeaderboard Value for the user's `on_leaderboard` privacy flag.
    * @param timePeriod    "weekly" or "overall".
    * @return              The board, including the fixture user iff the query admits label-only mappers.
    */
   private def boardWithLabelOnlyUser(onLeaderboard: Boolean, timePeriod: String): Seq[LeaderboardStat] = {
-    val streetEdge = fixtureRefs
     runRolledBack(for {
+      streetEdge <- sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
+                           VALUES ((SELECT COALESCE(MAX(street_edge_id), 0) + 1 FROM street_edge),
+                                   ST_SetSRID(ST_MakeLine(ST_MakePoint(0, 0), ST_MakePoint(1, 0)), 4326),
+                                   0, 0, 1, 0, 'residential', 'open')
+                           RETURNING street_edge_id""".as[Int].head
       _ <- sqlu"""INSERT INTO sidewalk_user (user_id, username, email)
                   VALUES ($FixtureUserId, $FixtureUsername, 'zz_fixture_4533@example.com')"""
       _ <- sqlu"INSERT INTO user_role (user_id, role) VALUES ($FixtureUserId, 'Registered')"

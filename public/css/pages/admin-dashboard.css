@@ -2177,13 +2177,17 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 
 .ac-cell-ai { margin-top: 1px; }
 
-/* A cell whose hover card is also keyboard reachable: it takes focus, so it needs a focus ring (WCAG 2.4.7) and a
-   cursor that says there is more here than the number. */
-.ac-table td[data-ps-tooltip] { cursor: help; }
+/* The button inside a "Most active cities" cell that carries its hover card. It takes focus, so it needs a focus ring
+   (WCAG 2.4.7), and a click pins its card open (#5495), hence the pointer. Block, so the whole cell content is the
+   target rather than just the number. */
+.ac-cell-trigger {
+  display: block;
+  cursor: pointer;
+}
 
-.ac-table td[data-ps-tooltip]:focus-visible {
+.ac-cell-trigger:focus-visible {
   outline: 2px solid var(--color-link-200);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 
 /* Hover-card contents (#4931). The card itself is styled in main.css (.ps-tooltip); these are the rows inside it,
@@ -2234,6 +2238,34 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   opacity: 0.7;
   font-style: italic;
 }
+
+/* Where a person in a cross-city card did their work, right after their name (#5495). Muted so the name still leads. */
+.ac-tip-where { opacity: 0.75; }
+
+/* White on the card's dark fill, like the text around it; the underline alone says it is a link, and it goes solid
+   once the card is pinned and the link can actually be followed. */
+.ac-tip-link,
+.ac-tip-link:visited,
+.ac-tip-link:hover {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.ps-tooltip--pinned .ac-tip-link { text-decoration-style: solid; }
+
+.ac-tip-link:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 1px;
+}
+
+.ac-tip-hint {
+  margin-top: 6px;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.ps-tooltip--pinned .ac-tip-hint { display: none; }
 
 /* Marks a contributor line as pipeline output rather than a person. */
 .ac-tip-tag {
@@ -2893,6 +2925,21 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 /* .button-ps's display: inline-flex outranks the UA/Bootstrap [hidden] rule, so re-assert it. */
 .partners-cancel-edit[hidden] {
   display: none;
+}
+
+/* The sentence the landing page will show (#5462), set off from the form so it reads as output, not a label. */
+.official-contact-preview {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: var(--space-md) 0 0;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius-lg);
+}
+
+.official-contact-status {
+  font: var(--text-small-regular);
+  margin: var(--space-sm) 0 0;
 }
 
 .partners-form-error {

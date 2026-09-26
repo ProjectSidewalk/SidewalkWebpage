@@ -65,7 +65,7 @@ class ReauditTaskFlagSpec extends PlaySpec with GuiceOneAppPerSuite with RolledB
         "reaudit spec",
         s"reaudit-spec-$streetEdgeId",
         None,
-        public = false,
+        public = true,
         deleted = false,
         OffsetDateTime.now,
         0d,

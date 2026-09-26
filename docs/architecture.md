@@ -15,7 +15,7 @@ aggregated, scored, and served back out through a public API and a set of dashbo
 - **Backend** — Scala 2.13 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
 - **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenation only —
-  no transpilation/module system). Migrating off jQuery and Bootstrap.
+  no transpilation/module system). Migrating off Bootstrap.
 - **Dev/runtime** — everything runs in Docker.
 
 ## System at a glance
@@ -32,7 +32,7 @@ Play backend ── routes → Controller → Service → Table (DAO/Slick)
         ▼
 External imagery providers (Google Street View / Mapillary / Infra3d / Panoramax / Pannellum)
 
-Out-of-band Python utilities: scripts/label_clustering.py, scripts/check_streets_for_imagery.py
+Out-of-band Python utilities: scripts/label_clustering.py, tools/city/check_streets_for_imagery.py
 ```
 
 ## Backend
@@ -64,6 +64,15 @@ The backend follows a consistent layering: **routes → Controller → Service �
   (#3720). Per-city stats and privacy flags stay in each city's `user_stat`.
   The schema holds auth to one account per email, one login row per account, and one password per login row
   (#5317), and sign-in, reset, and change-password all reach the password through the account.
+- **Which rows count** — never re-type the "deleted / tutorial / excluded user / tutorial street" filters. Slick queries
+  start from the named sets (`LabelTable.labels` and its variants, `StreetEdgeTable.streets`, `countedAuditTasks`,
+  `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala`
+  (#5287), e.g. `FilteredTables.streets()`, or `notTutorialStreet` for a query that keeps streets of every status.
+- **Values in raw SQL** — a value from a request goes into a `sql"..."` fragment as `$value`, so Postgres gets it
+  separately from the query text; `#$` pastes text in and is only for SQL written in code. Optional filters are
+  lists of fragments, combined with `SqlFragments.allOf` or `join` (#2756). `SqlFragments` also holds the bbox tests,
+  enum lists (`enumList`), the check a schema name must pass before it's pasted in (`requireSafeIdentifiers`), and
+  per-transaction Postgres settings (`withLocalSetting`, `withJitOff`).
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
   `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
   in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the
@@ -98,9 +107,12 @@ Crops are the image the Gallery, the landing validation grid and label popups fa
 unavailable; they are written by the browser's `POST /saveImage` canvas snapshot at labeling time and by the job for
 every label that has none (AI submissions, failed uploads, any past city). The card surfaces (Gallery, landing grid,
 dashboard mistakes, the share preview) fall back one step further for a GSV label with no crop, to a Street View
-Static API still requested at 640×427 — Google's 640-px cap at the Explore canvas's aspect — so it is the labeling
-frame at a smaller scale and a marker at the label's canvas fraction still lands on the feature (#3095; asking for
-720×480 got a 640×480 still with extra sky and ground). Label popups never use the still: their chain is live pano →
+Static API still requested at 640×427 — Google's 640-px cap at the boxed Explore canvas's aspect — so it is the
+boxed labeling frame at a smaller scale and a marker at the label's canvas fraction still lands on the feature (#3095;
+asking for 720×480 got a 640×480 still with extra sky and ground). A label placed in immersive mode (#5085) has a frame
+of the window's aspect: its snapshot crop keeps that aspect (`ImageController.writeImageFile` normalizes the width
+only), and `util.misc.labelMarkerFraction` re-places its marker in the 3:2 still and in the 3:2 box every card
+cover-fits its image into. Label popups never use the still: their chain is live pano →
 self-hosted backup → crop → "imagery not available". The geometry — `CropSizingRule` (the
 swappable, versioned sizing rule) and `CropGeometry` (equirectangular mechanics) — is a port of panorama-tools'
 `CropRunner.py`, pinned to it by golden fixtures under `test/resources/crops/`. The two writers put the label in
@@ -175,12 +187,12 @@ background; the AccessScore tool retries on that header and says so under its sp
 
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
-transit, parks, community centers), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
-refreshes, with the containing region and the nearest open street within 250 m computed in SQL as it lands. It ticks
-nightly like every job but fetches only when the newest place is more than a week old, or the table is empty, which
-is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so the Health
-panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with `SwrCache`,
-cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
+transit, parks, community centers, government offices), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its
+`place_id` across refreshes, with the containing region and the nearest open street within 250 m computed in SQL as
+it lands. It ticks nightly like every job but fetches only when the newest place is more than a week old, or the table
+is empty, which is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so
+the Health panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with
+`SwrCache`, cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
 
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
@@ -198,8 +210,10 @@ into a temp table and touches only the rows that changed, and a spec (`Intersect
 `street_gradient` (399.sql, #5223; read through `StreetGradientTable`) is per-street too but is not one of these: its
 elevations come from rasters the database never sees, so there is no SQL derivation and no nightly rebuild. An offline
 script samples a bare-earth elevation model and a db script upserts the CSV, the way the imagery scan feeds
-`street_imagery`. Staleness is a `geom_md5` comparison the export script makes. See
-[`street-gradient.md`](street-gradient.md).
+`street_imagery`; new cities get it during onboarding. Staleness is a `geom_md5` comparison the export script makes,
+and the one nightly job in this area, `StreetGradientStalenessActor`, only counts it: the served streets with no row
+and those sampled on an older geometry, recorded so the Health panel says when a city needs a fill or a top-up
+(Admin > Management can recount on demand). See [`street-gradient.md`](street-gradient.md).
 
 A job that both the scheduler and an admin can trigger has exactly one definition of its counts — a `runDetails` on
 the job's result type, or next to the actor's `Name` when the result is a bare count — which both call sites pass to
@@ -290,9 +304,41 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
+  Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
+  browser window with the pano; the labeling frame it stores with every label, and why, is in
+  [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
+  The Image pill in the menu under Stuck (#3136, `common/PanoImageAdjustments.js` + `PanoImageAdjustmentsPopover.js`)
+  lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount — display-only, for the labeler's
+  eyes: the mount is a sibling of every overlay, and crops are cut from the provider's raw canvas, so neither the
+  label markers nor the stored imagery carry it. Shadows is a gamma curve (an SVG `feComponentTransfer` the model
+  injects on first use) rather than brightness, because the dark sidewalks people struggle with sit in otherwise
+  well-exposed scenes and a brightness multiplier clips the sky before it opens the shadows. Values persist in
+  localStorage and the same two classes are meant to mount on Validate.
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
-- **`gallery/`** — browsable, filterable gallery of labels.
+- **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
+  (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
+  rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four
+  columns on a desktop, which is why a list page holds 12 cards where the filtered grid holds 9;
+  `CardContainer.getCardsPerPage()` is the one place that knows, and `ExpandedView` reads it back rather than
+  keeping a copy). What the list has to say about itself sits in one left-aligned line above the grid
+  (`.gallery-list-bar`), flush with the first card: a "← Browse all labels" link back to the plain Gallery (a link,
+  not a button — it navigates), then the count as a pill ("20 labels in this list", or "18 of 20 labels in this
+  list" once some aren't available), then the unavailable-ids disclosure, the over-cap notice and any load error.
+  There is deliberately no heading and no review instructions there: the URL is a sharing link as much as a queue.
+  `GalleryFilter` is still constructed with `null` for the absent sidebar and reset, because it owns the address
+  bar (both `?labelIds=` and the `?labelId=` deep link) and the filter state `CardContainer` reads.
+  List mode also skips the quality gates the filtered query applies (contributor quality, the disagree ratio,
+  already-loaded ids), since the rater asked for these ids by name. `LabelService.getGalleryLabels` takes the
+  branch, `LabelTable.getGalleryLabelsByIdQuery` is the query, and both share the row projection with the filtered
+  query. Ids the city doesn't have, or whose imagery is gone with no crop to fall back on, come back in the card
+  query's `unavailableLabelIds` and are named on the page, so a short list never reads as a complete one. The list
+  is capped at `GalleryController.MaxLabelIds` (500) on both the page request and the card query, and a list that
+  hits the cap says on the page how many ids were dropped — a truncated review queue that looked complete would be
+  worse than a refused one. The request line for 500 seven-digit ids is ~4 KB, so `application.conf` raises
+  `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
+  runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
+  once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
 - **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
   `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
@@ -353,7 +399,11 @@ corresponding Twirl view:
   until it nears expiry), stamped into the page once, and renewed in place by `Infra3dViewer` through
   `GET /imageryAccessToken` five minutes before it expires, since the SDK has no refresh flow of its own. Failures
   inside a viewer that no return value carries reach the logs through `PanoViewer._fireDiagnostic`
-  (`docs/logged-events.md`).
+  (`docs/logged-events.md`). A GSV search by location is held to its radius on our side: Google's `radius` is only a
+  hint and has answered a 25 m query with a photosphere in another state (#5114), so `GsvViewer` treats a reply
+  beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
+  that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
+  `setLocation`.
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
@@ -366,7 +416,7 @@ than one page links (one component per file — the `page-shell.css` sidebar + c
 `tables.css`, `label-detail.css`, `toast.css`, …), and `css/pages/` for everything page-specific (a single file per
 page, or a subdir for a multi-file page family such as `pages/explore/` or `pages/api-docs/`). A page's stylesheet is
 linked only by that page, and a page's class prefix (`ud-`, `ac-`, `svl-`, …) is defined only in that page's
-stylesheet(s) — `tools/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
+stylesheet(s) — `tools/lint/check-css-layout.mjs` (`make lint-css-layout`) enforces both. Directories and CSS files are kebab-case; JS files use Airbnb casing (PascalCase for class files, camelCase
 otherwise). See [`style-guide.md`](style-guide.md) for the full layout and naming conventions.
 
 **Assets are named by logical path, never by URL** (#4893). A Twirl template asks for one with `assets.path("…")`,
@@ -378,7 +428,7 @@ resulting `{logical path → md5}` map onto every page as `window.assetDigests` 
 tool bundles resolve icon URLs in module-level constants at script-eval time. Frontend code then writes
 `util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
 varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
-`/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/check-asset-paths.mjs`
+`/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/lint/check-asset-paths.mjs`
 (`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
 `util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
 string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
@@ -388,9 +438,9 @@ tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom fac
 shadows, motion, and z-index layers — plus the component primitives `.button-ps`, `.ps-input`, `.ps-select`, and
 `.ps-table`. They mirror the "Design System Tokens" Figma; the rules for using them are in
 [`style-guide.md`](style-guide.md). One coupling worth knowing: **`css/components/page-shell.css` is the shell
-(`.page-*` classes) that the API docs, the admin dashboard, and the user dashboard all build on** for the sidebar +
-content + TOC layout and the base type, so a change there reaches all three; `css/pages/api-docs/api-docs.css` holds only
-the docs' own components (`.preview-*`, `.map-toolbar`, status messages).
+(`.page-*` classes) that the API docs, the admin dashboard, the user dashboard, and the labeling guide all build on**
+for the sidebar + content + TOC layout and the base type, so a change there reaches all four;
+`css/pages/api-docs/api-docs.css` holds only the docs' own components (`.preview-*`, `.map-toolbar`, status messages).
 
 **Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that
 decides which UI a request is served (mobile visitors get `/mobileLanding`, the mobile Validate page at `/mobile`,
@@ -424,19 +474,12 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English var
 For how these configs map to hosted **stages** (test / staging / prod), how a branch or tag deploys to each, and the
 production runtime shape, see [`docs/deployment-and-stages.md`](deployment-and-stages.md).
 
-## Python utilities
+## Scripts and tools
 
-Three standalone scripts under [`scripts/`](../scripts) (see [`scripts/README.md`](../scripts/README.md)):
-
-- `scripts/label_clustering.py` — clusters nearby labels (used by the clustering flow; see `ClusterService` /
-  `app/models/cluster/`). Run as `python3` — the app shells out to it, so it has to work on the deployed server's
-  system Python.
-- `scripts/check_streets_for_imagery.py` — checks streets for available street-view imagery. Run as `python3.13`,
-  the second interpreter the web image carries for offline tooling whose libraries have moved past 3.8.
-- `scripts/onboard_city.py` — builds a new city's street/region staging data from open sources (#4291), feeding
-  `db/scripts/fill-new-schema.sh`. Also `python3.13`. Run via `make build-city-data`; `make check-imagery` samples the
-  imagery, and `make onboard-city` (`tools/setup_new_city.py`) chains the rest of a new city's setup — see
-  [`docs/onboarding-a-city.md`](onboarding-a-city.md).
+A script lives where its caller is: [`scripts/`](../scripts/README.md) holds only what the running app shells out
+to (`label_clustering.py`, bundled into the staged package by `build.sbt`), [`tools/`](../tools/README.md) holds
+what a person or CI runs, sorted by caller (`lint/`, `dev/`, `city/`, `validation_queue/`, and the unmaintained
+`one-off/` and `experiments/`), and [`db/scripts/`](../db/scripts/README.md) holds what runs inside the DB container.
 
 `label_clustering.py` is invoked **in-band** (`ClusterService.runMultiUserClustering` shells out to it per region
 during admin-triggered `/runClustering` and the nightly `ClusteringActor` run), so the deployed app must be able to

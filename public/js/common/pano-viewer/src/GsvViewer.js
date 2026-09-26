@@ -17,6 +17,11 @@ class GsvViewer extends PanoViewer {
   // Direction of the next repaint() nudge, flipped on each call so that a pair of them nets out to no movement.
   #repaintSign = 1;
 
+  // Far panos already reported through the FarPanoRejected diagnostic. Google tends to answer every point near a bad
+  // spot with the same far pano, and the crumb sampler asks about dozens of such points, so one row per pano keeps
+  // the log a count of distinct far answers rather than of how often we happened to ask.
+  #farPanosReported = new Set();
+
   constructor() {
     super();
     this.streetViewService = undefined;
@@ -106,6 +111,9 @@ class GsvViewer extends PanoViewer {
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
+      // Let the keys through in a text field, where they move the cursor rather than the pano.
+      const t = e.target;
+      if (t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && t.type === 'text')) return;
       if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
         e.stopPropagation();
       }
@@ -268,10 +276,75 @@ class GsvViewer extends PanoViewer {
    */
   static #asImageryError(err, latLng) {
     if (err?.code !== 'ZERO_RESULTS') return err;
-    const radius = svl.STREETVIEW_MAX_DISTANCE;
+    const radius = GsvViewer.#searchRadiusM();
     return new NoImageryError(
       `No outdoor GSV imagery within ${radius}m of ${latLng.lat},${latLng.lng}.`, { cause: err },
     );
+  }
+
+  /**
+   * The radius, in meters, every location search asks Google for and every reply is held to. Explore's
+   * svl.STREETVIEW_MAX_DISTANCE is the one definition (the imagery scan mirrors it); it is read at call time because
+   * svl is assembled after this file loads, and only Explore searches GSV by location.
+   * @returns {number}
+   */
+  static #searchRadiusM() {
+    return svl.STREETVIEW_MAX_DISTANCE;
+  }
+
+  /**
+   * Whether a pano a location search returned lies within the radius that search asked for (#5114).
+   *
+   * Google treats `radius` as a hint, not a bound: a 25 m query in Seattle has come back with a user photosphere in
+   * Syracuse, NY, about 3,590 km away, and another with a pano 77 m off while a wider query at the same point found
+   * one at 46 m. Holding the reply to the radius is the only enforcement there is, and the reply already carries the
+   * position, so it costs no extra request.
+   *
+   * A point test, not the imagery scan's street-aware one (tools/city/check_streets_for_imagery.py), because a location
+   * search here has no street attached. Explore gets the street-aware behaviour anyway from how it samples: the walk
+   * (moveForward) and the start-of-street backups step along the street every NavigationService.DIST_INCREMENT
+   * (10 m), and a seed off the street falls back to its projection onto it first (PanoManager.backupPointsAlongStreet),
+   * so an on-street pano too far along from one sample point is within the radius of the next one. The forward crumbs
+   * step coarser on long streets, but never wider than ForwardCrumbs.maxSampleStepKm, which is chosen so the same
+   * holds for every pano they would draw. No slack is added at the edge for the same reason: a pano rejected at
+   * 25.1 m costs one more step, not a street.
+   *
+   * @param {{lat: number, lng: number}} searched - The point the search was made around.
+   * @param {{lat: number, lng: number}} found - The returned pano's position.
+   * @param {number} radiusM - The radius the search asked for, in meters.
+   * @returns {boolean} True when the pano is within `radiusM` of `searched` (the edge counts as within).
+   * @example
+   * GsvViewer.isWithinSearchRadius({ lat: 47.61968, lng: -122.31007 }, { lat: 43.09179, lng: -76.17201 }, 25); // false
+   */
+  static isWithinSearchRadius(searched, found, radiusM) {
+    return util.math.haversine(searched, found) <= radiusM;
+  }
+
+  /**
+   * Holds a location search's reply to the search radius, reporting each distinct far pano once through the
+   * `FarPanoRejected` diagnostic so the rate Google does this at can be read from the logs.
+   * @param {{lat: number, lng: number}} searched - The point the search was made around.
+   * @param {google.maps.StreetViewPanoramaData} data - The reply's data.
+   * @returns {boolean} True when the reply may be used as imagery at `searched`.
+   */
+  #acceptSearchReply(searched, data) {
+    const radiusM = GsvViewer.#searchRadiusM();
+    const found = { lat: data.location.latLng.lat(), lng: data.location.latLng.lng() };
+    if (GsvViewer.isWithinSearchRadius(searched, found, radiusM)) return true;
+
+    const panoId = data.location.pano;
+    if (!this.#farPanosReported.has(panoId)) {
+      this.#farPanosReported.add(panoId);
+      this._fireDiagnostic('FarPanoRejected', {
+        panoId,
+        distanceM: Math.round(util.math.haversine(searched, found)),
+        radiusM,
+        // Whether it is Google's own imagery or a user-contributed photosphere, which `source=outdoor` lets through and
+        // which the #5114 answer was; it sizes the photosphere question (#5463). The contributor's name stays out.
+        google: /google/i.test(data.copyright ?? ''),
+      });
+    }
+    return false;
   }
 
   /**
@@ -297,7 +370,7 @@ class GsvViewer extends PanoViewer {
     if (cached) return cached;
     const promise = google.maps.importLibrary('core').then(({ LatLng }) => this.streetViewService.getPanorama({
       location: new LatLng(latLng.lat, latLng.lng),
-      radius: svl.STREETVIEW_MAX_DISTANCE,
+      radius: GsvViewer.#searchRadiusM(),
       source: google.maps.StreetViewSource.OUTDOOR,
     }));
     promise.catch((err) => {
@@ -365,19 +438,35 @@ class GsvViewer extends PanoViewer {
       if (GsvViewer.#asImageryError(err, latLng) instanceof NoImageryError) return null;
       throw err;
     }
+    // A far pano is no pano here, the same null a ZERO_RESULTS gives, so a crumb is never drawn somewhere else.
+    if (!this.#acceptSearchReply(latLng, data)) return null;
     const panoId = data.location.pano;
     if ([...excludedPanos].some((pano) => pano.getPanoId() === panoId)) return null;
     return { panoId, lat: data.location.latLng.lat(), lng: data.location.latLng.lng() };
   };
 
+  /**
+   * See PanoViewer.setLocation(). A reply beyond the search radius rejects with the same NoImageryError a
+   * ZERO_RESULTS does (#5114), so every caller's existing no-imagery path (moveForward stepping on down the street,
+   * the next start-of-street backup, the street being given up on) handles it, and the user is never moved somewhere
+   * other than where they asked to go.
+   */
   setLocation = async (latLng, excludedPanos = new Set()) => {
     const { LatLng } = await google.maps.importLibrary('core');
     const gLatLng = new LatLng(latLng.lat, latLng.lng);
     this.prevPanoData = this.currPanoData;
     return this.streetViewService.getPanorama(
-      { location: gLatLng, radius: svl.STREETVIEW_MAX_DISTANCE, source: google.maps.StreetViewSource.OUTDOOR },
+      { location: gLatLng, radius: GsvViewer.#searchRadiusM(), source: google.maps.StreetViewSource.OUTDOOR },
     ).then(
-      (panoData) => this.#getPanoramaCallback(panoData, excludedPanos),
+      (panoData) => {
+        if (!this.#acceptSearchReply(latLng, panoData.data)) {
+          throw new NoImageryError(
+            `Nearest GSV pano ${panoData.data.location.pano} is beyond ${GsvViewer.#searchRadiusM()}m of `
+            + `${latLng.lat},${latLng.lng}.`,
+          );
+        }
+        return this.#getPanoramaCallback(panoData, excludedPanos);
+      },
       (err) => {
         throw GsvViewer.#asImageryError(err, latLng);
       },

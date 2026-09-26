@@ -59,6 +59,9 @@ class ValidateSubmissionSpec
   /** Pre-test state of every real label the suite validated, restored in `afterAll`. */
   private var labelBackup: Map[Int, LabelState] = Map.empty
 
+  /** Pre-test type of every label a test retypes, restored in `afterAll` in case the test dies before undoing it. */
+  private var labelTypeBackup: Map[Int, String] = Map.empty
+
   /** The dev-DB dumps omit the interaction logs, so their assertions are skipped where the table isn't there. */
   private lazy val interactionsLogged: Boolean = tableExists("validation_task_interaction")
 
@@ -137,7 +140,8 @@ class ValidateSubmissionSpec
       undone: Boolean = false,
       redone: Boolean = false,
       comment: Option[String] = None,
-      severity: Option[Option[Int]] = None
+      severity: Option[Option[Int]] = None,
+      newLabelType: Option[String] = None
   ): JsObject = {
     val now         = OffsetDateTime.now
     val commentJson = comment.map { text =>
@@ -171,7 +175,9 @@ class ValidateSubmissionSpec
       "source"            -> "Validate",
       "undone"            -> undone,
       "redone"            -> redone,
-      "viewer_type"       -> "Default"
+      "viewer_type"       -> "Default",
+      "label_type"        -> (label \ "label_type").as[String],
+      "new_label_type"    -> newLabelType
     )
   }
 
@@ -269,9 +275,28 @@ class ValidateSubmissionSpec
       FakeRequest(POST, "/labelmap/comment").withCookies(session: _*).withJsonBody(payload).withCSRFToken
     ).get
 
-  /** Deletes the session user's own comment on a label over HTTP, from the card's Delete control (#5015). */
-  private def deleteLabelMapComment(session: Seq[Cookie], labelId: Int) =
-    route(app, FakeRequest(DELETE, s"/labelmap/comment/$labelId").withCookies(session: _*).withCSRFToken).get
+  /**
+   * Deletes the session user's own comment on a label over HTTP, from the card's Delete control (#5015).
+   *
+   * @param labelType The type the card showed (#5510); the label's current type when not given.
+   */
+  private def deleteLabelMapComment(session: Seq[Cookie], labelId: Int, labelType: Option[String] = None) = {
+    val lt = labelType.getOrElse(currentLabelType(labelId))
+    route(
+      app,
+      FakeRequest(DELETE, s"/labelmap/comment/$labelId?labelType=$lt").withCookies(session: _*).withCSRFToken
+    ).get
+  }
+
+  private def currentLabelType(labelId: Int): String =
+    run(sql"SELECT label_type::text FROM label WHERE label_id = $labelId".as[String]).head
+
+  /** The user's live comments on the label as (text, label_type), by text. */
+  private def commentTypesOn(labelId: Int, userId: String): Seq[(String, String)] =
+    run(
+      sql"""SELECT comment, label_type::text FROM validation_task_comment
+            WHERE label_id = $labelId AND user_id = $userId ORDER BY comment""".as[(String, String)]
+    )
 
   /**
    * The user's validation of a label, if any.
@@ -362,6 +387,9 @@ class ValidateSubmissionSpec
           sqlu"DELETE FROM mission WHERE user_id = $uId"
         )
       )
+    }
+    labelTypeBackup.foreach { case (labelId, labelType) =>
+      val _ = run(sqlu"UPDATE label SET label_type = $labelType::label_type WHERE label_id = $labelId")
     }
     labelBackup.foreach { case (labelId, state) =>
       val _ = run(
@@ -839,6 +867,67 @@ class ValidateSubmissionSpec
       status(deleteLabelMapComment(mine, labelId)) mustBe OK
       commentsOn(labelId, b.userId) mustBe empty
       commentsOn(labelId, theirId) mustBe Seq("Theirs.")
+    }
+
+    "keep a comment per label type, show only the current type's, and refuse one on a stale type (#5510)" in {
+      val session     = freshAnonSession()
+      val b           = fetchValidateBootstrap(session)
+      val label       = b.labels.head
+      val labelId     = (label \ "label_id").as[Int]
+      val currentType = (label \ "label_type").as[String]
+      val otherType   = if (currentType == "Obstacle") "SurfaceProblem" else "Obstacle"
+      backupLabel(labelId)
+
+      // Stands in for a comment written before the label's type was changed.
+      status(postLabelMapComment(session, labelMapCommentJson(label, "About the old type."))) mustBe OK
+      val _ = run(sqlu"""UPDATE validation_task_comment SET label_type = $otherType::label_type
+                         WHERE label_id = $labelId AND user_id = ${b.userId}""")
+      status(postLabelMapComment(session, labelMapCommentJson(label, "About this type."))) mustBe OK
+      commentTypesOn(labelId, b.userId) mustBe Seq(
+        ("About the old type.", otherType),
+        ("About this type.", currentType)
+      )
+
+      val res = route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session: _*)).get
+      status(res) mustBe OK
+      val own = (contentAsJson(res) \ "comments").as[Seq[JsObject]].filter(c => (c \ "mine").as[Boolean])
+      own.map(c => (c \ "comment").as[String]) mustBe Seq("About this type.")
+
+      // A card showing a type the label no longer has is told so rather than filing a comment nobody would see.
+      val stale = labelMapCommentJson(label, "Written on a stale card.") ++ Json.obj("label_type" -> otherType)
+      status(postLabelMapComment(session, stale)) mustBe CONFLICT
+
+      // Delete takes the type the card showed, leaving the other type's comment for an undone type change.
+      status(deleteLabelMapComment(session, labelId)) mustBe OK
+      commentsOn(labelId, b.userId) mustBe Seq("About the old type.")
+    }
+
+    "take the new type's vote and comment with it when an admin's type change is redone (#5510)" in {
+      val session = freshAnonSession()
+      val b       = fetchValidateBootstrap(session)
+      grantAdmin(b.userId)
+      val label    = b.labels.head
+      val labelId  = (label \ "label_id").as[Int]
+      val origType = (label \ "label_type").as[String]
+      val newType  = if (origType == "Obstacle") "SurfaceProblem" else "Obstacle"
+      backupLabel(labelId)
+      labelTypeBackup += (labelId -> origType)
+
+      val changed =
+        validationJson(label, b.missionId, "Agree", comment = Some("It is really this."), newLabelType = Some(newType))
+      status(postValidationTask(session, taskSubmission(b, Seq(changed), Some(missionProgressJson(b, 1))))) mustBe OK
+      currentLabelType(labelId) mustBe newType
+      commentTypesOn(labelId, b.userId) mustBe Seq(("It is really this.", newType))
+
+      // The redo is filed on the type the validator saw, so it has to find the vote on the new type to replace it.
+      val redo = validationJson(label, b.missionId, "Disagree", redone = true)
+      status(postValidationTask(session, taskSubmission(b, Seq(redo), Some(missionProgressJson(b, 1))))) mustBe OK
+      currentLabelType(labelId) mustBe origType
+      run(sql"""SELECT label_type::text, validation_result::text FROM label_validation
+                WHERE label_id = $labelId AND user_id = ${b.userId}""".as[(String, String)]) mustBe
+        Seq((origType, "Disagree"))
+      commentsOn(labelId, b.userId) mustBe empty
+      commentVersionsOn(labelId, b.userId) mustBe Seq(("It is really this.", "validation_change"))
     }
   }
 }

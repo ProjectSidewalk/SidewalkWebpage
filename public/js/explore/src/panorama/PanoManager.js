@@ -44,23 +44,49 @@ class PanoManager {
   }
 
   /**
-   * Samples backup starting points along the street, used when the street's start has no usable imagery. Points are
-   * spaced at the same increment as moveForward()'s imagery search, ending with the street's endpoint, so the whole
-   * street is checked before we give up and report the street as having no imagery.
-   * @param {Task} task - The assigned Task, used for the street geometry
-   * @returns {Array<{lat: number, lng: number}>} Points along the street, ordered from start to end
+   * Backup starting points for when the seed has no usable imagery, nearest the seed first.
+   *
+   * The seed isn't always on the street. An address drop-in (#4451) passes the searched point, which can sit up to
+   * `exploreAddressMaxDistM` off it, and a label card's "Explore here" passes the label's own position. So the first
+   * backup is the seed's projection onto the street, and the rest of the street is then sampled outward from there.
+   * Otherwise a seed rejected for having no imagery within the radius, or a pano beyond it (#5114), would send the
+   * user to whichever end of the street the samples started from, however far that is from where they asked to go.
+   * Points are spaced at moveForward()'s increment and include the street's endpoint, so the whole street is checked
+   * before we give up and report it as having no imagery. With a seed at the street's start, the order is start to
+   * end.
+   *
+   * @param {turf.Feature<turf.LineString>} street - The street geometry, oriented start to end.
+   * @param {{lat: number, lng: number}} end - The street's end coordinate, sampled last among equals.
+   * @param {{lat: number, lng: number}} [seed] - Where the load was asked to start; omitted, the order is start to end.
+   * @returns {Array<{lat: number, lng: number}>} Points on the street, nearest the seed (along the street) first.
    */
-  static #backupPointsAlongStreet(task) {
-    const street = task.getFeature();
+  static backupPointsAlongStreet(street, end, seed) {
     const streetLength = turf.length(street); // km
-    const points = [];
+    const samples = [];
     for (let dist = NavigationService.DIST_INCREMENT; dist < streetLength; dist += NavigationService.DIST_INCREMENT) {
       const point = turf.along(street, dist);
-      points.push({ lat: point.geometry.coordinates[1], lng: point.geometry.coordinates[0] });
+      samples.push({ km: dist, latLng: { lat: point.geometry.coordinates[1], lng: point.geometry.coordinates[0] } });
     }
-    points.push(task.getEndCoordinate());
-    return points;
+    samples.push({ km: streetLength, latLng: end });
+    if (!seed) return samples.map((sample) => sample.latLng);
+
+    const seedPoint = turf.point([seed.lng, seed.lat]);
+    const projection = turf.nearestPointOnLine(street, seedPoint);
+    const seedKm = projection.properties.location;
+    // Array.prototype.sort is stable, so equidistant samples keep their start-to-end order.
+    const ordered = samples.sort((a, b) => Math.abs(a.km - seedKm) - Math.abs(b.km - seedKm));
+    // A seed already on the street was just tried at that very spot, so asking there again would be a wasted request.
+    if (turf.distance(seedPoint, projection, { units: 'meters' }) < PanoManager.#SAME_POINT_M) {
+      return ordered.map((sample) => sample.latLng);
+    }
+    // The projection leads; a grid point on top of it would only repeat that request.
+    const sameSpotKm = PanoManager.#SAME_POINT_M / 1000;
+    const [lng, lat] = projection.geometry.coordinates;
+    return [{ lat, lng }, ...ordered.filter((s) => Math.abs(s.km - seedKm) >= sameSpotKm).map((s) => s.latLng)];
   }
+
+  // Closer than this (m), the seed's projection onto the street is the seed itself, not a new place to look.
+  static #SAME_POINT_M = 1;
 
   // Set when a load gives up on its street, and read once by the load that follows. The reload destroys the alert
   // banner, so the explanation has to outlive it (#4918). Holds the given-up street's id because assignment picks at
@@ -178,7 +204,10 @@ class PanoManager {
     }
     if (Number.isFinite(params.startLat) && Number.isFinite(params.startLng)) {
       panoOptions.startLatLng = { lat: params.startLat, lng: params.startLng };
-      panoOptions.backupLatLngs = PanoManager.#backupPointsAlongStreet(errorParams.task);
+      const { task } = errorParams;
+      panoOptions.backupLatLngs = PanoManager.backupPointsAlongStreet(
+        task.getFeature(), task.getEndCoordinate(), panoOptions.startLatLng,
+      );
     }
 
     // Load the pano viewer.
@@ -238,7 +267,9 @@ class PanoManager {
     }
 
     // Adds event listeners to the navigation arrows.
-    svl.ui.streetview.navArrows.on('click', (event) => {
+    svl.ui.streetview.navArrows.addEventListener('click', (event) => {
+      // The tutorial's walk step handles arrow clicks itself.
+      if (svl.isOnboarding()) return;
       event.stopPropagation();
       // A highlighted forward arrow that still carries a pano-id is a real link (just recolored to mark the route),
       // so it navigates like any link. Only the synthesized route-forward arrow (no pano-id, drawn when the link
@@ -257,13 +288,13 @@ class PanoManager {
     // Hovering an arrow outlines the minimap crumb it leads to, so "this arrow" and "that dot" read as one thing
     // (#4682). The synthesized route-forward arrow has no pano id; it leads to the route walk's next stop. mouseover
     // and mouseout bubble, so one delegated pair covers the arrows resetNavArrows recreates on every move.
-    svl.ui.streetview.navArrows.on('mouseover', (event) => {
+    svl.ui.streetview.navArrows.addEventListener('mouseover', (event) => {
       if (!svl.forwardCrumbs) return;
       const targetPanoId = event.target.getAttribute('pano-id');
       if (targetPanoId) svl.forwardCrumbs.highlight(targetPanoId);
       else if (event.target.classList.contains('route-forward-arrow')) svl.forwardCrumbs.highlightNextStop();
     });
-    svl.ui.streetview.navArrows.on('mouseout', () => {
+    svl.ui.streetview.navArrows.addEventListener('mouseout', () => {
       if (svl.forwardCrumbs) svl.forwardCrumbs.clearHighlight();
     });
 
@@ -292,8 +323,12 @@ class PanoManager {
     // Store the returned pano metadata.
     svl.panoStore.addPanoMetadata(panoId, panoData);
 
-    // Add the capture date of the image to the bottom-right corner of the UI.
-    svl.ui.streetview.date.text(panoData.getProperty('captureDate').format('MMM YYYY'));
+    // Draw the bottom-left imagery note for this pano: its capture date, and how that sits against the street's last
+    // audit (#5413). Month-granular on the wire because that is all a capture date carries.
+    svl.panoDateNote?.update(
+      panoData.getProperty('captureDate').format('YYYY-MM-DD'),
+      svl.taskContainer?.getCurrentTask() ?? null,
+    );
 
     // Mark that we visited this pano so that we can tell if they've gotten stuck.
     svl.stuckAlert.panoVisited(panoId);
@@ -356,15 +391,15 @@ class PanoManager {
    * Moves the GSV pano's bottom links to the top layer so they are clickable.
    */
   #makePanoLinksClickable = () => {
-    const panoLinks = $('.gm-style-cc', this.panoCanvas);
+    const panoLinks = this.panoCanvas.querySelectorAll('.gm-style-cc');
     if (!this.status.panoLinksClickable && panoLinks.length > 3) {
       this.status.panoLinksClickable = true;
 
       // Remove the first child of each GSV link because it looks better.
-      panoLinks.each((i, el) => el.firstElementChild && el.firstElementChild.remove());
+      panoLinks.forEach((el) => el.firstElementChild && el.firstElementChild.remove());
 
       panoLinks[0].remove(); // Remove GSV keyboard shortcuts link.
-      const gsvLinksBar = $(panoLinks[1]).parent().parent()[0];
+      const gsvLinksBar = panoLinks[1].parentElement.parentElement;
       svl.ui.streetview.viewControlLayer.append(gsvLinksBar);
       this.#liftBottomLeftAboveLinks(gsvLinksBar);
     }
@@ -419,22 +454,22 @@ class PanoManager {
    * Moves the minimap's links to the top layer so they are clickable, removing the ones that duplicate the GSV links.
    */
   #makeMinimapLinksClickable = () => {
-    const minimapLinks = $('.gm-style-cc', '#minimap');
+    const minimapLinks = document.querySelectorAll('#minimap .gm-style-cc');
     if (!this.status.minimapLinksClickable && minimapLinks.length > 4) {
       this.status.minimapLinksClickable = true;
       minimapLinks[0].remove(); // Remove mini map keyboard shortcuts link.
       minimapLinks[1].remove(); // Remove mini map copyright text (duplicate of GSV).
       minimapLinks[3].remove(); // Remove mini map terms of use link (duplicate of GSV).
-      svl.ui.minimap.overlay.append($(minimapLinks[4]).parent().parent());
+      svl.ui.minimap.overlay.append(minimapLinks[4].parentElement.parentElement);
     }
   };
 
   hideNavArrows() {
-    $('#nav-arrows-container').hide();
+    document.getElementById('nav-arrows-container').style.display = 'none';
   }
 
   showNavArrows() {
-    if (!this.status.lockShowingNavArrows) $('#nav-arrows-container').show();
+    if (!this.status.lockShowingNavArrows) document.getElementById('nav-arrows-container').style.display = '';
   }
 
   /* Prevents showNavArrows() from showing the arrows. Used to keep arrows hidden in the tutorial. */
@@ -456,7 +491,7 @@ class PanoManager {
    * blue arrow is synthesized at the route heading and its click walks the route (moveForward) instead of a link.
    */
   resetNavArrows() {
-    const arrowGroup = svl.ui.streetview.navArrows[0];
+    const arrowGroup = svl.ui.streetview.navArrows;
 
     // Clear existing arrows.
     while (arrowGroup.firstChild) {
@@ -517,7 +552,7 @@ class PanoManager {
    */
   highlightArrowTo(panoId) {
     this.clearArrowHighlight();
-    const arrowGroup = svl.ui.streetview.navArrows[0];
+    const arrowGroup = svl.ui.streetview.navArrows;
     let arrow = arrowGroup.querySelector(`image[pano-id="${CSS.escape(panoId)}"]`);
     if (!arrow && svl.forwardCrumbs && svl.forwardCrumbs.isWalkNextStop(panoId)) {
       arrow = arrowGroup.querySelector('.route-forward-arrow');
@@ -527,7 +562,7 @@ class PanoManager {
 
   /** Clears any arrow highlight set by {@link highlightArrowTo}. */
   clearArrowHighlight() {
-    for (const arrow of svl.ui.streetview.navArrows[0].querySelectorAll('.arrow-hover')) {
+    for (const arrow of svl.ui.streetview.navArrows.querySelectorAll('.arrow-hover')) {
       arrow.classList.remove('arrow-hover');
     }
   }
@@ -591,7 +626,7 @@ class PanoManager {
       if (svl.missionController) svl.missionController.maybeAutoCompleteRoute();
     }
 
-    const arrowGroup = svl.ui.streetview.navArrows[0];
+    const arrowGroup = svl.ui.streetview.navArrows;
     arrowGroup.setAttribute('transform', `rotate(${-heading})`);
     // The minimap fills in the crumb the user now faces: the one the forward arrow / up key would take them to.
     if (svl.forwardCrumbs) svl.forwardCrumbs.setFacing(heading);

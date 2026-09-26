@@ -78,7 +78,6 @@ describe('a Gallery card\'s label marker', () => {
             show: () => { credit.attribution = 'shown'; },
             hide: () => { credit.attribution = 'hidden'; },
         });
-        window.$ = () => ({ tooltip: () => ({ tooltip: () => {} }) });
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });
 

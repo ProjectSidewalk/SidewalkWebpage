@@ -10,6 +10,7 @@
   border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
   border-radius: calc(12px * var(--ui-scale));
   overflow: hidden;
+  background-color: var(--color-map-land);
 }
 
 .minimap-pane {
@@ -380,6 +381,55 @@
   cursor: pointer;
 }
 
+/* Markers from an earlier mission in this region (#4945; Label.styleMinimapMarker) recede so this pass's markers, the
+   route, and the explored line read first. Faded but still fully saturated, so the icon's type color stays
+   recognizable; the marker is informational, not a control, so it has no contrast floor to meet, but 60% keeps it
+   clearly discernible on the basemap. Not clickable: styleMinimapMarker sets gmpClickable only for current markers,
+   since the click only returns to current-mission labels, so the default cursor matches. */
+.minimap-label-icon--prior {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Labels placed on imagery that has since been replaced: the previous era's record during a re-audit. Desaturated
+   as well as faded, so an old and a new marker on the same feature read as two eras rather than as a duplicate. */
+.minimap-label-icon--outdated {
+  opacity: 0.55;
+  filter: grayscale(0.7);
+  cursor: default;
+}
+
+/* The "My earlier labels" checkbox row in the key card. The sample marker is a static copy of the dimmed treatment. */
+.minimap-legend-row-toggle {
+  gap: calc(4px * var(--ui-scale));
+}
+
+.minimap-legend-sample-earlier-label {
+  flex: none;
+  width: calc(11px * var(--ui-scale, 1));
+  margin: 0 calc(8px * var(--ui-scale)) 0 calc(7px * var(--ui-scale));
+  cursor: default;
+}
+
+.minimap-legend-row-toggle input {
+  flex: none;
+  width: calc(12px * var(--ui-scale));
+  height: calc(12px * var(--ui-scale));
+  margin: 0;
+  cursor: pointer;
+}
+
+.minimap-legend-row-toggle input:focus-visible {
+  outline: calc(2px * var(--ui-scale)) solid var(--color-pine-700);
+  outline-offset: calc(1px * var(--ui-scale));
+}
+
+.minimap-legend-row-toggle label {
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
 /* Breadcrumb trail (ObservedArea): a small faded ring, in the peg's hue, at each visited pano; click to return there
    (#2561). The element itself is a larger transparent hit area so the tiny ring is comfortably clickable (WCAG 2.5.8);
    the visible ring is drawn by ::before, centered inside it. AdvancedMarkerElement anchors content bottom-center, so
@@ -616,7 +666,7 @@ gmp-advanced-marker:has(> .minimap-peg) {
   display: none;
 }
 
-/* The +/- buttons take their look from the shared .zoom-button styling, with some minor tweaks. */
+/* The +/- buttons take their look from the shared .ps-icon-button styling, with some minor tweaks. */
 #minimap-zoom-controls {
   position: absolute;
   inset: auto;
@@ -625,12 +675,12 @@ gmp-advanced-marker:has(> .minimap-peg) {
   z-index: 4;
 }
 
-#minimap-zoom-controls .zoom-button {
+#minimap-zoom-controls .ps-icon-button {
   width: calc(18px * var(--ui-scale, 1));
   height: calc(18px * var(--ui-scale, 1));
 }
 
-#minimap-zoom-controls .zoom-button-icon {
+#minimap-zoom-controls .ps-icon-button-icon {
   width: calc(14px * var(--ui-scale, 1));
   height: calc(14px * var(--ui-scale, 1));
 }

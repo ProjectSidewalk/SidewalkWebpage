@@ -50,6 +50,12 @@ Also covered, beyond the api-docs previews:
 - `community/*.js` → `communityListPage.test.js` — the /stories + /routes listing pages' client layer (#4688):
   search filtering (hidden attr, live count, no-results), sort orders and tie-breaks, localized dates, type-chip
   tinting, the read-more clamp toggle, view-label popup-vs-navigation routing, and the copy-share-link fallbacks.
+- `common/PanoImageAdjustments.js` → `panoImageAdjustments.test.js` and `common/PanoImageAdjustmentsPopover.js` →
+  `panoImageAdjustmentsPopover.test.js` — Explore's image adjustments (#3136). The model suite pins the filter
+  string's composition (gamma curve first, default terms omitted, an all-default state leaves no inline filter), the
+  Shadows→gamma mapping and the sRGB flag on the injected SVG curve, and storage validation field by field. The
+  popover suite pins the disclosure ARIA, sliders ranged from the model's SPECS, `input` applying while `change` is
+  what logs, Reset/active-dot state, the open/close hooks Explore uses to suspend its shortcuts, and light dismiss.
 - `common/pano-viewer/src/PanoInfoPopover.js` → `panoInfoViewLink.test.js` — the pano info popover's
   "view in \<provider\>" link (#4813). Validate and the label card swap the active viewer from label to label, so the
   popover resolves it on every open and offers the link only when that viewer both publishes a public site and is
@@ -64,7 +70,7 @@ Also covered, beyond the api-docs previews:
   `test/service/PanoDataServiceSpec.scala`, so the JS and Scala ports are pinned to one external oracle
   (`pov_replay.py`) rather than to each other.
 - `common/pano-viewer/src/panoUtilities.js` → `gsvFovContract.test.js` — the empirically measured GSV FOV-vs-aspect
-  contract (#5083). `tools/gsv-fov-probe/` measured what field of view Google's WebGL renderer holds fixed as the
+  contract (#5083). `test/js/gsv-fov-probe/` measured what field of view Google's WebGL renderer holds fixed as the
   container aspect changes; this pins the projection helpers' width-spanning assumption, the measured clamp window
   and its per-zoom binding aspects, and the analyzer's copy of `zoomToFov`, against the recorded fixture
   `fixtures/gsvFovMeasurements.json`. It pins *code* against frozen measurements — a renderer change on Google's
@@ -81,7 +87,7 @@ Also covered, beyond the api-docs previews:
 - `explore/src/navigation/ForwardCrumbs.js` → `forwardCrumbsWindowing.test.js` — the geometry behind the
   forward crumbs (#4669): where along a street the sampler looks, which found panos count as "ahead" and on this
   street, and how they split into the nearest clickable few and the faint rest (#2561). Real turf.
-- `tools/gsv-fov-probe/estimator.cjs` → `gsvFovProbeEstimator.test.js` — the probe's focal-length fitter against
+- `test/js/gsv-fov-probe/estimator.cjs` → `gsvFovProbeEstimator.test.js` — the probe's focal-length fitter against
   synthetic pinhole ground truth (#5083), gate 1 of that experiment's protocol: no live measurement is trusted until
   the estimator recovers a known focal length to better than 0.2%. This is the slowest suite in the tree (~40 s,
   nearly all of it in the synthetic renders); if it grows further, shrink the synthetic image rather than raising

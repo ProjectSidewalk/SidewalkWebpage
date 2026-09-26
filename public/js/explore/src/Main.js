@@ -28,14 +28,26 @@ class Main {
     svl.isExploreAddressMode = () => this.#params.mission.mission_type === 'exploreAddress';
     svl.regionId = params.regionId;
 
-    // Both are derived from --ui-scale and refreshed by applyExploreScale() below, which owns that variable. They
-    // start at their scale-1 values because the tool renders at scale 1 until that first call (#4838).
+    // All three are derived from the displayed pano's size and refreshed by applyExploreScale() below. They start at
+    // their scale-1, boxed values because the tool renders at scale 1 until that first call (#4838, #5085).
+    svl.CANVAS_FRAME = { width: util.EXPLORE_CANVAS_WIDTH, height: util.EXPLORE_CANVAS_HEIGHT };
     svl.LABEL_ICON_RADIUS = util.labelIconRadius(1);
     svl.LABEL_HIT_MARGIN = util.labelHitMargin(1);
+    /**
+     * The horizontal fov the pano viewer renders at a zoom for the current frame, which the projection has to be fed
+     * off 3:2 because GSV clamps its vertical field on wide viewports (#5083, #5085).
+     * @param {number} zoom - The viewer zoom.
+     * @returns {number} Degrees.
+     */
+    svl.renderedHFov = (zoom) => util.pano.renderedHFov(
+      zoom, svl.CANVAS_FRAME.width / svl.CANVAS_FRAME.height, svl.panoViewer.getViewerType(),
+    );
     svl.TUTORIAL_PANO_HEIGHT = 6656;
     svl.TUTORIAL_PANO_WIDTH = 13312;
     svl.TUTORIAL_PANO_SCALE_FACTOR = 3.25;
-    svl.STREETVIEW_MAX_DISTANCE = 25; // 25 meters.
+    // Pano search radius in meters. GsvViewer also rejects any reply farther than this, since Google's radius is only
+    // a hint (#5114); tools/city/check_streets_for_imagery.py and Task.ON_STREET_MAX_DISTANCE_M mirror it.
+    svl.STREETVIEW_MAX_DISTANCE = 25;
     svl.CLOSE_TO_ROUTE_THRESHOLD = 0.05; // 50 meters.
     svl.CONNECTED_TASK_THRESHOLD = 0.025; // 25 meters.
 
@@ -111,7 +123,7 @@ class Main {
     svl.canvas = new Canvas(svl.ribbon);
     // The shared populator for the hover card's content; Label.#updateHoverCard re-points it per label (#4730).
     // Explore truncates the description because clicking the label reopens the full text in an editable field.
-    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard[0], { descriptionMaxLength: 90 });
+    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard, { descriptionMaxLength: 90 });
 
     // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
     svl.iconsPreloaded = Label.preloadIcons();
@@ -121,7 +133,7 @@ class Main {
     svl.taskContainer = new TaskContainer(svl.regionModel, svl, svl.tracker);
     svl.taskContainer._tasks.push(newTask);
     svl.taskContainer.setCurrentTask(newTask);
-    svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
+    svl.labelContainer = new LabelContainer(params.nextTemporaryLabelId);
 
     // Set map parameters and instantiate it.
     svl.compass = new Compass(svl.navigationService, svl.taskContainer);
@@ -193,8 +205,38 @@ class Main {
     svl.feedbackModal = new FeedbackModal(svl, svl.tracker, svl.ribbon, svl.taskContainer);
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
+    // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
+    svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout?.());
 
-    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.dateHolder, () => svl.panoViewer,
+    // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
+    // they never carry it. svl.keyboard is built later, hence the lookups at call time. Suspending the shortcuts
+    // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano; the suspension is
+    // only undone if the panel was what suspended them, since a pop-up can disable the keyboard while it is open.
+    svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    let panelSuspendedKeyboard = false;
+    svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
+      document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
+        onOpen: () => {
+          svl.tracker.push('Click_ImageAdjustments_Open');
+          panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');
+          if (panelSuspendedKeyboard) svl.keyboard.disableKeyboard();
+        },
+        onClose: (via) => {
+          svl.tracker.push('Click_ImageAdjustments_Close', { via });
+          if (panelSuspendedKeyboard) svl.keyboard.enableKeyboard();
+          panelSuspendedKeyboard = false;
+        },
+        onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
+        onReset: () => svl.tracker.push('Click_ImageAdjustments_Reset'),
+      });
+    // The Image pill hides in the chevron's menu, so mirror its active state onto the chevron while the menu is closed.
+    svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault());
+    svl.imageAdjustments.onChange(() =>
+      svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault()));
+
+    // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
+    // capture date and the audit note is the one place it would read as belonging to neither (#5413).
+    svl.infoPopover = new PanoInfoPopover(svl.ui.streetview.datePill, () => svl.panoViewer,
       () => svl.panoViewer.getPosition(), () => svl.panoViewer.getPanoId(),
       () => svl.taskContainer.getCurrentTaskStreetEdgeId(),
       () => svl.regionModel.currentRegion().getRegionId(),
@@ -212,6 +254,16 @@ class Main {
       },
     );
 
+    svl.panoDateNote = new PanoDateNote(svl.tracker, svl.ui.streetview.dateHolder,
+      svl.ui.streetview.datePill, svl.ui.streetview.date);
+    // The first pano and the first task both land before this line, so their own updates find no note to draw on and
+    // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
+    const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
+    svl.panoDateNote.update(
+      initialCaptureDate ? initialCaptureDate.format('YYYY-MM-DD') : null,
+      svl.taskContainer.getCurrentTask(),
+    );
+
     // Speed limit
     svl.speedLimit = new SpeedLimit(() => svl.panoViewer, () => svl.panoViewer.getPosition(), svl.isOnboarding,
       params.countryId, { taskContainer: svl.taskContainer });
@@ -225,26 +277,20 @@ class Main {
     );
     this.#loadData(svl.taskContainer, svl.missionModel, svl.regionModel, svl.contextMenu);
 
-    $('#navbar-retake-tutorial-btn').on('click', () => {
+    document.getElementById('navbar-retake-tutorial-btn')?.addEventListener('click', () => {
       window.location.replace('/explore?retakeTutorial=true');
     });
 
     // The auth dialog is absent when signed in; dim the tool UI while it's open (events from common/Modal.js).
     const signInModal = document.getElementById('sign-in-modal-container');
+    const toolUi = document.querySelectorAll('.tool-ui');
     signInModal?.addEventListener('ps:modal:hidden', () => {
       svl.popUpMessage.enableInteractions();
-      $('.tool-ui').css('opacity', 1);
+      toolUi.forEach((el) => el.style.opacity = '1');
     });
     signInModal?.addEventListener('ps:modal:show', () => {
       svl.popUpMessage.disableInteractions();
-      $('.tool-ui').css('opacity', 0.5);
-    });
-
-    // Ribbon-button tooltip attributes are set in RibbonMenu (which owns those buttons); this just initializes them.
-    $('[data-toggle="tooltip"]').tooltip({
-      delay: { show: 500, hide: 100 },
-      html: true,
-      container: 'body',
+      toolUi.forEach((el) => el.style.opacity = '0.5');
     });
 
     // Clean up the URL in the address bar.
@@ -364,8 +410,6 @@ class Main {
   }
 
   #startTheMission(mission, region) {
-    svl.ui.minimap.holder.css('backgroundColor', '#e5e3df');
-
     // Popup the message explaining the goal of the current mission.
     if (svl.missionContainer.isTheFirstMission()) {
       region = svl.regionModel.currentRegion();
@@ -428,8 +472,8 @@ class Main {
       svl.panoManager.resetNavArrows();
 
       // Remove the loading cover page and make the tool visible.
-      $('#page-loading').css({ visibility: 'hidden' });
-      $('.tool-ui').removeClass('ps-invisible');
+      document.getElementById('page-loading').style.visibility = 'hidden';
+      document.querySelectorAll('.tool-ui').forEach((el) => el.classList.remove('ps-invisible'));
 
       // Check if the user has completed the onboarding tutorial.
       const mission = svl.missionContainer.getCurrentMission();
@@ -532,26 +576,50 @@ class Main {
 
       // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale).
       const applyExploreScale = () => {
-        const scale = util.applyToolScale(
-          ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
+        // Immersive mode (#5085) sizes the pano with CSS and floats the controls over it, so the scale fits only the
+        // pano-wide ribbon and its own height into the whole window, with no page margins to keep clear of.
+        const immersive = svl.immersiveMode?.isActive() ?? false;
+        util.applyToolScale(
+          immersive ? ['--pano-base-width'] : ['--pano-base-width', '--sidebar-base-gap', '--sidebar-base-width'],
           ['--ribbon-base-top', '--ribbon-base-height', '--pano-base-height'],
+          immersive ? { maxScale: 3, hMargin: 0, bottomReserve: 0 } : {},
         );
-        // The label icon and its click target are capped in screen px, so both depend on the scale just applied
-        // (#4838). Cached rather than computed per render: they're read once per label per canvas render, and per
-        // label on every mousemove, and each read would otherwise force a style recalculation.
-        svl.LABEL_ICON_RADIUS = util.labelIconRadius(scale);
-        svl.LABEL_HIT_MARGIN = util.labelHitMargin(scale);
+        // The logical frame follows the displayed pano's aspect (#5085), and the label icon and its click target are
+        // capped in screen px, so they depend on the pano's display scale (#4838), which is --ui-scale in the boxed
+        // tool but not in a fill-window one. Cached rather than computed per render: they're read once per label per
+        // canvas render, and per label on every mousemove, and each read would otherwise force a style recalculation.
+        const displayScale = util.exploreDisplayScale();
+        svl.CANVAS_FRAME = util.exploreCanvasFrame();
+        svl.LABEL_ICON_RADIUS = util.labelIconRadius(displayScale);
+        svl.LABEL_HIT_MARGIN = util.labelHitMargin(displayScale);
+        // Toasts float 10% down the pano, which in immersive mode is where the label-type strip is; keep them under it.
+        const pano = document.getElementById('pano');
+        const ribbon = document.getElementById('ribbon-menu-holder');
+        if (immersive && pano && ribbon) {
+          pano.style.setProperty('--toast-min-top', `${ribbon.getBoundingClientRect().bottom + 8 * displayScale}px`);
+        } else if (pano) {
+          pano.style.removeProperty('--toast-min-top');
+        }
       };
-      applyExploreScale();
-      // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
-      // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
-      // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
-      svl.panoViewer.resize();
-      svl.panoViewer.repaint();
-      // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
-      if (svl.canvas) svl.canvas.resize();
-      if (svl.onboarding) svl.onboarding.resize();
-      if (svl.observedArea) svl.observedArea.update();
+      /**
+       * Re-lays out the tool for its current box: rescale, then re-raster the canvases and tell the pano viewer its
+       * element changed size. Synchronous, so a layout switch (immersive mode, #5085) lands in one frame.
+       */
+      svl.relayout = () => {
+        applyExploreScale();
+        // A live toast is anchored to the pano's old box; nothing else tells it the box moved.
+        Toast.repositionAll();
+        // The pano was painted at scale 1 and its box has just changed size, which is exactly what can leave GSV
+        // black until the camera moves (#2468): tell the viewer its box moved, then have it force a frame. The
+        // workaround lives in the viewer (PanoViewer.repaint()) so only the provider that needs it does anything.
+        svl.panoViewer?.resize();
+        svl.panoViewer?.repaint();
+        // The canvas was rasterized at scale 1 during init; re-raster it at the chosen scale.
+        if (svl.canvas) svl.canvas.resize();
+        if (svl.onboarding) svl.onboarding.resize();
+        if (svl.observedArea) svl.observedArea.update();
+      };
+      svl.relayout();
       // Redraw fog of war after the rescale. Minimap does this async, so we have to listen on this event.
       if (svl.observedArea && svl.minimap) {
         google.maps.event.addListenerOnce(svl.minimap.getMap(), 'bounds_changed', () => svl.observedArea.update());
@@ -626,69 +694,75 @@ class Main {
   }
 
   /**
-   * Store jQuery DOM elements under svl.ui.
+   * Store DOM elements under svl.ui.
    * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace.
    */
   #initUI() {
+    const byId = (id) => document.getElementById(id);
     svl.ui = {};
 
     // Minimap DOMs.
-    svl.ui.minimap = {};
-    svl.ui.minimap.holder = $('#minimap-holder');
-    svl.ui.minimap.overlay = $('#minimap-overlay');
-    svl.ui.minimap.fogOfWar = $('#minimap-fog-of-war-canvas');
-    svl.ui.minimap.fov = $('#minimap-fov-canvas');
-    svl.ui.minimap.progressCircle = $('#minimap-progress-circle-canvas');
-    svl.ui.minimap.percentObserved = $('#minimap-percent-observed');
-    svl.ui.minimap.missionProgress = $('#minimap-mission-progress');
-    svl.ui.minimap.missionProgressFill = $('#minimap-mission-progress-fill');
-    svl.ui.minimap.missionProgressPercent = $('#minimap-mission-progress-percent');
-    svl.ui.minimap.missionProgressDistance = $('#minimap-mission-progress-distance');
-    svl.ui.minimap.coach = $('#minimap-coach');
-    svl.ui.minimap.coachDismiss = $('#minimap-coach-dismiss');
-    svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
-    svl.ui.minimap.legendCard = $('#minimap-legend-card');
-    svl.ui.minimap.legendClose = $('#minimap-legend-close');
-    svl.ui.minimap.routeOverview = $('#minimap-route-overview');
-    svl.ui.minimap.routeOverviewCanvas = $('#minimap-route-overview-canvas');
+    svl.ui.minimap = {
+      holder: byId('minimap-holder'),
+      overlay: byId('minimap-overlay'),
+      fogOfWar: byId('minimap-fog-of-war-canvas'),
+      fov: byId('minimap-fov-canvas'),
+      progressCircle: byId('minimap-progress-circle-canvas'),
+      percentObserved: byId('minimap-percent-observed'),
+      missionProgress: byId('minimap-mission-progress'),
+      missionProgressFill: byId('minimap-mission-progress-fill'),
+      missionProgressPercent: byId('minimap-mission-progress-percent'),
+      missionProgressDistance: byId('minimap-mission-progress-distance'),
+      coach: byId('minimap-coach'),
+      coachDismiss: byId('minimap-coach-dismiss'),
+      legendToggle: byId('minimap-legend-toggle'),
+      legendCard: byId('minimap-legend-card'),
+      legendClose: byId('minimap-legend-close'),
+      legendEarlierLabels: byId('minimap-legend-earlier-labels'),
+      routeOverview: byId('minimap-route-overview'),
+      routeOverviewCanvas: byId('minimap-route-overview-canvas'),
+    };
 
     // Street view area DOM elements.
-    svl.ui.streetview = {};
-    svl.ui.streetview.drawingLayer = $('div#label-drawing-layer');
-    svl.ui.streetview.pano = $('div#pano');
-    svl.ui.streetview.viewControlLayer = $('div#view-control-layer');
-    svl.ui.streetview.modeSwitchWalk = $('#mode-switch-button-walk');
-    svl.ui.streetview.navArrows = $('#arrow-group');
-    svl.ui.streetview.dateHolder = $('#svl-panorama-date-holder');
-    svl.ui.streetview.date = $('#svl-panorama-date');
+    svl.ui.streetview = {
+      drawingLayer: byId('label-drawing-layer'),
+      pano: byId('pano'),
+      viewControlLayer: byId('view-control-layer'),
+      modeSwitchWalk: byId('mode-switch-button-walk'),
+      navArrows: byId('arrow-group'),
+      dateHolder: byId('svl-panorama-date-holder'),
+      datePill: byId('svl-panorama-date-pill'),
+      date: byId('svl-panorama-date'),
+    };
 
     // Canvas for the labeling area.
-    svl.ui.canvas = {};
-    svl.ui.canvas.drawingLayer = $('#label-drawing-layer');
-    svl.ui.canvas.hoverCard = $('#label-hover-card');
-    svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
-    svl.ui.canvas.hoverCardEdit = $('#label-hover-card-edit');
-    svl.ui.canvas.hoverCardShare = $('#label-hover-card-share');
+    svl.ui.canvas = {
+      drawingLayer: byId('label-drawing-layer'),
+      hoverCard: byId('label-hover-card'),
+      hoverCardDelete: byId('label-hover-card-delete'),
+      hoverCardEdit: byId('label-hover-card-edit'),
+      hoverCardShare: byId('label-hover-card-share'),
+    };
 
     // Context menu.
-    svl.ui.contextMenu = {};
-    svl.ui.contextMenu.holder = $('#context-menu-holder');
-    svl.ui.contextMenu.severityMenu = $('#severity-menu');
-    svl.ui.contextMenu.severityRadioHolder = $('#severity-radio-holder');
-    svl.ui.contextMenu.radioButtons = $('input[name=\'label-severity\']');
-    svl.ui.contextMenu.tagSection = $('#context-menu-tag-section');
-    svl.ui.contextMenu.tagHolder = $('#context-menu-tag-holder');
-    svl.ui.contextMenu.tags = $('button[name=\'tag\']');
-    svl.ui.contextMenu.textBox = $('#context-menu-description-text-box');
-    svl.ui.contextMenu.closeButton = $('#context-menu-close-button');
+    svl.ui.contextMenu = {
+      holder: byId('context-menu-holder'),
+      severityMenu: byId('severity-menu'),
+      severityRadioHolder: byId('severity-radio-holder'),
+      radioButtons: Array.from(document.querySelectorAll('input[name=\'label-severity\']')),
+      tagSection: byId('context-menu-tag-section'),
+      tagHolder: byId('context-menu-tag-holder'),
+      textBox: byId('context-menu-description-text-box'),
+      closeButton: byId('context-menu-close-button'),
+    };
 
     // Tutorial.
-    svl.ui.onboarding = {};
-    svl.ui.onboarding.holder = $('#onboarding-holder');
-    svl.ui.onboarding.messageHolder = $('#onboarding-message-holder');
-    svl.ui.onboarding.background = $('#onboarding-background');
-    svl.ui.onboarding.foreground = $('#onboarding-foreground');
-    svl.ui.onboarding.canvas = $('#onboarding-canvas');
-    svl.ui.onboarding.handGestureHolder = $('#hand-gesture-holder');
+    svl.ui.onboarding = {
+      holder: byId('onboarding-holder'),
+      messageHolder: byId('onboarding-message-holder'),
+      background: byId('onboarding-background'),
+      canvas: byId('onboarding-canvas'),
+      handGestureHolder: byId('hand-gesture-holder'),
+    };
   }
 }

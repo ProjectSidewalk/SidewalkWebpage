@@ -358,7 +358,9 @@
   "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw.",
   "label-type-picker": {
     "current": "{{labelType}} (huidig type)",
-    "change": "wijzigen"
+    "change": "wijzigen",
+    "change-type": "Labeltype wijzigen",
+    "change-type-hint": "Tags die niet bij het nieuwe type passen worden verwijderd. Een beoordeling blijft alleen behouden tussen types die op dezelfde manier beoordeeld worden."
   },
   "access-score-spotlight": {
     "subtitle-regions": "De stoepen van elke wijk krijgen van ons <a href=\"{{href}}\">AccessScore</a>-algoritme een score van 0 tot 100 (100 is het best).",

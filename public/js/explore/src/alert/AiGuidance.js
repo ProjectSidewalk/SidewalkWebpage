@@ -67,8 +67,11 @@ class AiGuidance {
           });
 
           // Add the AI guidance just above the minimap, with full text on hover in case it's too long to fit.
-          $('#mission-guidance-status').text(response);
-          $('#mission-guidance-status').attr('data-full-text', response);
+          const status = document.getElementById('mission-guidance-status');
+          if (status) {
+            status.textContent = response;
+            status.setAttribute('data-full-text', response);
+          }
         })
         .catch((error) => {
           this.#tracker.push('PopUpShow_AiGuidance_Error', { error: error.message });

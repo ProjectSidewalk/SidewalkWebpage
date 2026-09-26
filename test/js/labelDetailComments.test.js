@@ -5,8 +5,9 @@
  * dispute, Agree invites an optional note — and a vote that moves takes its comment with it, because the server
  * deletes the comment on a cleared or changed vote and the list has to say so without a reload.
  *
- * A comment is also unique per (label, user): validation_task_comment_label_id_user_id_unique, added by evolution
- * 359 for #4942, which `ValidationService.replaceComment` enforces by deleting before inserting. So the card
+ * A comment is also unique per (label, user, type): validation_task_comment_label_id_user_id_label_type_key (409.sql,
+ * #5510), which `ValidationService.replaceComment` enforces by deleting before inserting. The card only ever sees the
+ * current type's comments, so to it there is one per (label, user). So the card
  * mirrors what a story of your own already does (`StorySection`): once yours exists the compose box closes and the
  * comment carries Edit/Delete instead, which is what keeps a second submission from silently destroying the first.
  * Cancel and Escape are the two ways out that keep the box from being a one-way door.
@@ -187,6 +188,8 @@ function meta(overrides = {}) {
         zoom: 2,
         canvas_x: 100,
         canvas_y: 200,
+        canvas_width: 720,
+        canvas_height: 480,
         street_edge_id: 7,
         region_id: 3,
         timestamp: '2026-08-01T12:00:00Z',
@@ -267,7 +270,7 @@ describe('the validator comment box (#5015)', () => {
                 isPositiveLabelType: () => false,
                 labelTypeHasSeverity: () => true,
             },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
+            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
@@ -285,13 +288,16 @@ describe('the validator comment box (#5015)', () => {
             activeViewerName: 'Default',
             panoViewer: {
                 currPanoData: null,
+                getViewerType: () => 'gsv',
                 getPanoId: () => 'pano-1',
                 getPosition: () => ({ lat: 47.61, lng: -122.33 }),
             },
             getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
             getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
-            // A jQuery object in the real card: indexable, and asked for its size when a vote is submitted.
-            svHolder: Object.assign([document.createElement('div')], { width: () => 720, height: () => 480 }),
+            // Measured when a vote is submitted; jsdom lays nothing out.
+            svHolder: Object.defineProperties(document.createElement('div'), {
+                clientWidth: { value: 720 }, clientHeight: { value: 480 },
+            }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
         window.PopupPanoManager = { create: async () => panoManager };
@@ -539,7 +545,7 @@ describe('the validator comment box (#5015)', () => {
             deleteBtn().click();
             await flush();
 
-            expect(window.fetch).toHaveBeenCalledWith('/labelmap/comment/42', { method: 'DELETE' });
+            expect(window.fetch).toHaveBeenCalledWith('/labelmap/comment/42?labelType=Obstacle', { method: 'DELETE' });
             expect(q('.label-detail__validator-comments').textContent).not.toContain('regrettable');
             // With nothing of theirs left, commenting is on offer again.
             expect(boxOpen()).toBe(true);
@@ -552,7 +558,7 @@ describe('the validator comment box (#5015)', () => {
             deleteBtn().click();
             await flush();
 
-            expect(window.fetch).not.toHaveBeenCalledWith('/labelmap/comment/42', { method: 'DELETE' });
+            expect(window.fetch).not.toHaveBeenCalledWith('/labelmap/comment/42?labelType=Obstacle', { method: 'DELETE' });
             expect(q('.label-detail__validator-comments').textContent).toContain('kept');
         });
 

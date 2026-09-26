@@ -1,0 +1,45 @@
+@*
+* Popover with the pano image adjustment sliders: shadows, brightness, contrast (#3136).
+*
+* Uses the HTML Popover API (popover="manual"). PanoImageAdjustmentsPopover.js finds this element by
+* id="pano-image-adjustments", sets each slider's range from PanoImageAdjustments.SPECS, wires the trigger, the close
+* and reset buttons, and positions it with JS. Include once per page that mounts the control (explore).
+*@
+@()(implicit assets: AssetsFinder)
+
+<div id="pano-image-adjustments" class="pano-image-adjustments" popover="manual" role="dialog"
+aria-labelledby="pano-image-adjustments-title" aria-describedby="pano-image-adjustments-note">
+  <header class="pano-image-adjustments__header">
+    <span id="pano-image-adjustments-title" class="pano-image-adjustments__title"
+    data-i18n="audit:controls.image-adjustments.title">Image adjustments</span>
+    <button type="button" class="pano-image-adjustments__close" data-action="close" aria-label="Close" title="Close"
+    data-i18n-aria-label="common:close" data-i18n-title="common:close">
+      <img src='@assets.path("images/icons/cross.svg")' alt="" aria-hidden="true">
+    </button>
+  </header>
+  @* Persistence is otherwise invisible: without this a filter set last week reads as "the imagery looks odd". *@
+  <p id="pano-image-adjustments-note" class="pano-image-adjustments__note"
+  data-i18n="audit:controls.image-adjustments.persist-note">These settings persist across Explore missions until you reset them.</p>
+  <div class="pano-image-adjustments__row">
+    <label class="pano-image-adjustments__label" for="pano-image-adjustments-shadows"
+    data-i18n="audit:controls.image-adjustments.shadows">Shadows</label>
+    <output class="pano-image-adjustments__value" for="pano-image-adjustments-shadows" data-adjust-value="shadows">0</output>
+    <input type="range" class="ps-range" id="pano-image-adjustments-shadows" data-adjust="shadows">
+  </div>
+  <div class="pano-image-adjustments__row">
+    <label class="pano-image-adjustments__label" for="pano-image-adjustments-brightness"
+    data-i18n="audit:controls.image-adjustments.brightness">Brightness</label>
+    <output class="pano-image-adjustments__value" for="pano-image-adjustments-brightness" data-adjust-value="brightness">100%</output>
+    <input type="range" class="ps-range" id="pano-image-adjustments-brightness" data-adjust="brightness">
+  </div>
+  <div class="pano-image-adjustments__row">
+    <label class="pano-image-adjustments__label" for="pano-image-adjustments-contrast"
+    data-i18n="audit:controls.image-adjustments.contrast">Contrast</label>
+    <output class="pano-image-adjustments__value" for="pano-image-adjustments-contrast" data-adjust-value="contrast">100%</output>
+    <input type="range" class="ps-range" id="pano-image-adjustments-contrast" data-adjust="contrast">
+  </div>
+  <footer class="pano-image-adjustments__footer">
+    <button type="button" class="button-ps button--secondary button--small" data-action="reset" disabled
+    data-i18n="audit:controls.image-adjustments.reset">Reset to defaults</button>
+  </footer>
+</div>

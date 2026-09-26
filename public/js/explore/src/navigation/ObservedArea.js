@@ -39,16 +39,16 @@ class ObservedArea {
   #progressCircleCtx;
 
   /**
-   * @param {Record<string, JQuery>} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   * @param {Record<string, HTMLElement>} uiMinimap - The svl.ui.minimap object holding the minimap's DOM elements.
    */
   constructor(uiMinimap) {
     this.#uiMinimap = uiMinimap;
-    this.#baseSize = parseFloat(getComputedStyle(uiMinimap.holder[0]).getPropertyValue('--minimap-base-size'));
-    this.#fogOfWarCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.fogOfWar[0]).getContext('2d');
-    this.#fovCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.fov[0]).getContext('2d');
-    this.#progressCircleCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.progressCircle[0]).getContext('2d');
+    this.#baseSize = parseFloat(getComputedStyle(uiMinimap.holder).getPropertyValue('--minimap-base-size'));
+    this.#fogOfWarCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.fogOfWar).getContext('2d');
+    this.#fovCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.fov).getContext('2d');
+    this.#progressCircleCtx = /** @type {HTMLCanvasElement} */ (uiMinimap.progressCircle).getContext('2d');
     this.#syncCanvasSize();
-    uiMinimap.coachDismiss.on('click', () => this.#dismissCoach('Click_MinimapCoach_GotIt'));
+    uiMinimap.coachDismiss.addEventListener('click', () => this.#dismissCoach('Click_MinimapCoach_GotIt'));
   }
 
   /**
@@ -57,8 +57,8 @@ class ObservedArea {
    */
   #syncCanvasSize() {
     const uiMinimap = this.#uiMinimap;
-    const displayedWidth = Math.round(uiMinimap.fogOfWar.width()) || this.#baseSize;
-    const displayedHeight = Math.round(uiMinimap.fogOfWar.height()) || this.#baseSize;
+    const displayedWidth = Math.round(uiMinimap.fogOfWar.clientWidth) || this.#baseSize;
+    const displayedHeight = Math.round(uiMinimap.fogOfWar.clientHeight) || this.#baseSize;
     // Bitmaps are sized in device pixels so the fog frontier, cone edge and ring stay crisp on HiDPI screens; every
     // draw call keeps working in CSS px through the transform set below.
     const dpr = window.devicePixelRatio || 1;
@@ -67,7 +67,7 @@ class ObservedArea {
       this.#height = displayedHeight;
       this.#dpr = dpr;
       this.#scaleFactor = this.#width / this.#baseSize;
-      for (const canvas of [uiMinimap.fogOfWar[0], uiMinimap.fov[0], uiMinimap.progressCircle[0]]) {
+      for (const canvas of [uiMinimap.fogOfWar, uiMinimap.fov, uiMinimap.progressCircle]) {
         canvas.width = Math.round(this.#width * dpr);
         canvas.height = Math.round(this.#height * dpr);
       }
@@ -141,7 +141,8 @@ class ObservedArea {
   #updateAngles() {
     const pov = svl.panoViewer.getPov();
     let heading = pov.heading;
-    const fov = util.pano.zoomToFov(pov.zoom);
+    // What the viewer actually rendered across the frame (#5083); the curve alone under-counts a wide window at zoom 3.
+    const fov = svl.renderedHFov(pov.zoom);
     if (this.#angle) {
       if (heading - this.#angle > 180) {
         heading -= 360;
@@ -350,7 +351,7 @@ class ObservedArea {
       return;
     }
     this.#coachVisible = true;
-    this.#uiMinimap.coach.removeClass('minimap-coach-hidden');
+    this.#uiMinimap.coach.classList.remove('minimap-coach-hidden');
     svl.tracker.push('MinimapCoach_Shown');
   }
 
@@ -362,7 +363,7 @@ class ObservedArea {
     if (!this.#coachVisible) return;
     this.#coachVisible = false;
     svl.storage.set('minimapCoachDismissed', true);
-    this.#uiMinimap.coach.addClass('minimap-coach-hidden');
+    this.#uiMinimap.coach.classList.add('minimap-coach-hidden');
     svl.tracker.push(logEvent);
   }
 
@@ -414,9 +415,8 @@ class ObservedArea {
       // Redraw the route-overview inset so its "you are here" wedge rotates in lockstep with the peg (#4639).
       if (svl.routeOverview) svl.routeOverview.render();
       // "100%" is one glyph wider than "NN%", so shrink the font a touch only at full to keep it inside the chip.
-      this.#uiMinimap.percentObserved
-        .text(`${Math.floor(100 * this.#fractionObserved)}%`)
-        .toggleClass('minimap-percent-full', this.#fractionObserved === 1);
+      this.#uiMinimap.percentObserved.textContent = `${Math.floor(100 * this.#fractionObserved)}%`;
+      this.#uiMinimap.percentObserved.classList.toggle('minimap-percent-full', this.#fractionObserved === 1);
       this.#maybeShowCoach();
       if (this.#fractionObserved === 1) {
         this.#dismissCoach('MinimapCoach_AutoDismissed');

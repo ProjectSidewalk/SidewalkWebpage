@@ -23,20 +23,24 @@ class ValidationMenu {
 
   /**
    * @param {Card} referenceCard - The Card this menu belongs to.
-   * @param {JQuery} gsvImage - The HTML element to append the validation menu to.
+   * @param {HTMLElement} gsvImage - The image holder to append the validation menu to.
    */
   constructor(referenceCard, gsvImage) {
     this.#refCard = referenceCard;
     this.#gsvImage = gsvImage;
 
+    const buttonHTML = (option) => `
+      <button class="validation-button gallery-card-${option}-button" aria-pressed="false">
+        ${i18next.t(`common:${option}`)}
+      </button>`;
     const cardOverlayHTML = `
-      <div id="gallery-validation-button-holder">
-        <button id="gallery-card-agree-button" class="validation-button">${i18next.t('common:agree')}</button>
-        <button id="gallery-card-disagree-button" class="validation-button">${i18next.t('common:disagree')}</button>
-        <button id="gallery-card-unsure-button" class="validation-button">${i18next.t('common:unsure')}</button>
+      <div class="gallery-validation-button-holder">
+        ${['agree', 'disagree', 'unsure'].map(buttonHTML).join('')}
       </div>`;
-    this.#overlay = $(cardOverlayHTML);
-    this.#galleryCard = gsvImage.parent();
+    const template = document.createElement('template');
+    template.innerHTML = cardOverlayHTML;
+    this.#overlay = template.content.firstElementChild;
+    this.#galleryCard = gsvImage.parentElement;
 
     this.#init();
   }
@@ -47,13 +51,13 @@ class ValidationMenu {
   #init() {
     const refCard = this.#refCard;
     this.#validationButtons = {
-      'validate-agree': this.#overlay.find('#gallery-card-agree-button'),
-      'validate-disagree': this.#overlay.find('#gallery-card-disagree-button'),
-      'validate-unsure': this.#overlay.find('#gallery-card-unsure-button'),
+      'validate-agree': this.#overlay.querySelector('.gallery-card-agree-button'),
+      'validate-disagree': this.#overlay.querySelector('.gallery-card-disagree-button'),
+      'validate-unsure': this.#overlay.querySelector('.gallery-card-unsure-button'),
     };
 
     // If the signed-in user had already validated this label before loading the page, style the card.
-    const userValidation = refCard ? refCard.getProperty('user_validation') : null;
+    const userValidation = refCard.getProperty('user_validation');
     if (userValidation) {
       this.showValidationOnCard(userValidation);
     }
@@ -61,19 +65,19 @@ class ValidationMenu {
     const readonly = !!refCard.getProperty('from_current_user');
     if (readonly) {
       const tip = i18next.t('labelmap:own-label-disabled');
-      this.#galleryCard.addClass('gallery-card--readonly');
+      this.#galleryCard.classList.add('gallery-card--readonly');
 
       // Disable validation buttons; skip attaching click handlers. The reason rides their holder rather than each
       // button, since a disabled button swallows the hover that would open a tooltip on it.
-      for (const button of Object.values(this.#validationButtons)) button.prop('disabled', true);
-      this.#overlay.attr('data-ps-tooltip', tip);
+      for (const button of Object.values(this.#validationButtons)) button.disabled = true;
+      this.#overlay.setAttribute('data-ps-tooltip', tip);
 
       // Same reason on the thumbs, in place of the vote text they'd otherwise carry.
       refCard.validationInfoDisplay.setLockReason(tip);
     } else {
       // Add onClick functions for the validation buttons.
       for (const [valKey, button] of Object.entries(this.#validationButtons)) {
-        button.click(this.validateOnClickOrKeyPress(valKey, false, false));
+        button.addEventListener('click', this.validateOnClickOrKeyPress(valKey, false, false));
       }
 
       this.#addValidationInfoOnClicks(refCard.validationInfoDisplay);
@@ -143,17 +147,17 @@ class ValidationMenu {
 
     // Remove the visual effects from the older validation.
     if (this.#currSelected && this.#currSelected !== validationClass) {
-      this.#validationButtons[this.#currSelected].attr('class', 'validation-button');
-      if (this.#galleryCard.hasClass(this.#currSelected)) {
-        this.#galleryCard.removeClass(this.#currSelected);
-      }
+      this.#validationButtons[this.#currSelected].classList.remove('is-selected');
+      this.#validationButtons[this.#currSelected].setAttribute('aria-pressed', 'false');
+      this.#galleryCard.classList.remove(this.#currSelected);
     }
     this.#currSelected = validationClass;
 
     // Add the visual effects from the new validation.
     if (validationClass) {
-      this.#galleryCard.addClass(validationClass);
-      this.#validationButtons[validationClass].attr('class', 'validation-button-selected');
+      this.#galleryCard.classList.add(validationClass);
+      this.#validationButtons[validationClass].classList.add('is-selected');
+      this.#validationButtons[validationClass].setAttribute('aria-pressed', 'true');
     }
 
     // Reset thumb icons to outline state so that they don't blend into the background after validation.
@@ -200,8 +204,8 @@ class ValidationMenu {
       validation_result: action,
       severity: refCard.getProperty('severity'),
       tags: refCard.getProperty('tags'),
-      canvas_height: Math.round(this.#gsvImage.height()),
-      canvas_width: Math.round(this.#gsvImage.width()),
+      canvas_height: this.#gsvImage.offsetHeight,
+      canvas_width: this.#gsvImage.offsetWidth,
       heading: refCard.getProperty('heading'),
       pitch: refCard.getProperty('pitch'),
       zoom: refCard.getProperty('zoom'),

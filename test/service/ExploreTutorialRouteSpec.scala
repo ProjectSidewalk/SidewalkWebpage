@@ -121,7 +121,7 @@ class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfte
           s"4816 spec route $n",
           s"spec-4816-route-$n",
           None,
-          public = false,
+          public = true,
           deleted = false,
           OffsetDateTime.now,
           0d,

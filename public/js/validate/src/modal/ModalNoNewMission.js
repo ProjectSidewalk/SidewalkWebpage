@@ -65,20 +65,22 @@ class ModalNoNewMission {
     if (svv.keyboard) {
       svv.keyboard.disableKeyboard();
     }
-    this.#uiModalMission.background.css('visibility', 'visible');
-    this.#uiModalMission.instruction.html(imageryUnavailable ? this.#imageryUnavailable : this.#noMissionsRemaining);
-    // This dead end can follow a mission briefing, which leaves two things behind on mobile: its "YOUR MISSION"
-    // eyebrow, and the shrunk-to-one-line sizing it put on the title. This message is a sentence and wants to wrap at
-    // the heading's own size. Both are mobile-only elements/behavior, so both are no-ops on desktop.
-    this.#uiModalMission.eyebrow.empty();
-    this.#uiModalMission.missionTitle.css({ 'white-space': '', 'font-size': '' });
-    this.#uiModalMission.missionTitle.html(imageryUnavailable
+    this.#uiModalMission.background.style.visibility = 'visible';
+    this.#uiModalMission.instruction.innerHTML = imageryUnavailable
+      ? this.#imageryUnavailable
+      : this.#noMissionsRemaining;
+    // A mobile briefing leaves its "YOUR MISSION" eyebrow and a shrunk title behind; this message is a sentence and
+    // wants the heading's own size. Both are no-ops on desktop.
+    this.#uiModalMission.eyebrow?.replaceChildren();
+    this.#uiModalMission.missionTitle.style.whiteSpace = '';
+    this.#uiModalMission.missionTitle.style.fontSize = '';
+    this.#uiModalMission.missionTitle.innerHTML = imageryUnavailable
       ? i18next.t('imagery-unavailable.title')
-      : i18next.t('mission-complete.no-new-mission-title'));
-    this.#uiModalMission.holder.css('visibility', 'visible');
-    this.#uiModalMission.foreground.css('visibility', 'visible');
+      : i18next.t('mission-complete.no-new-mission-title');
+    this.#uiModalMission.holder.style.visibility = 'visible';
+    this.#uiModalMission.foreground.style.visibility = 'visible';
     // A briefing the validator had scrolled can be what this replaces, and hiding it preserved the offset.
-    this.#uiModalMission.foreground.scrollTop(0);
+    this.#uiModalMission.foreground.scrollTop = 0;
 
     let buttonLabel;
     if (imageryUnavailable) {
@@ -88,17 +90,16 @@ class ModalNoNewMission {
     } else {
       buttonLabel = i18next.t('mission-complete.no-new-mission-button');
     }
-    this.#uiModalMission.closeButton.html(buttonLabel);
+    this.#uiModalMission.closeButton.innerHTML = buttonLabel;
 
     // Widen the button to fit more text. The mobile page's button is already full-width (mobile-validate.css).
     if (!util.isMobile()) {
-      this.#uiModalMission.closeButton.css('width', 'fit-content');
+      this.#uiModalMission.closeButton.style.width = 'fit-content';
     }
 
-    // Re-bind rather than add: the modal can be shown twice in a session with different actions on its one button.
-    this.#uiModalMission.closeButton.off('click')
-      .on('click', imageryUnavailable ? this.#handleRetryClick : this.#handleButtonClick);
-    this.#uiModalMission.holder.removeClass('ps-hidden');
+    // Assigned, not added: this can show twice with different actions, and ModalMission uses the same button.
+    this.#uiModalMission.closeButton.onclick = imageryUnavailable ? this.#handleRetryClick : this.#handleButtonClick;
+    this.#uiModalMission.holder.classList.remove('ps-hidden');
   }
 
   /**

@@ -9,14 +9,15 @@ class DesktopValidationMenu {
   #tagsAddedByUser = [];
   /** @type {LabelTypePicker|null} Expert Validate only (#3671). */
   #labelTypePicker = null;
+  #wrongTypeView = false;
 
   /**
-   * @param {Record<string, JQuery>} menuUI - Validation menu UI elements.
+   * @param {Record<string, HTMLElement>} menuUI - Validation menu UI elements.
    */
   constructor(menuUI) {
     this.#menuUI = menuUI;
-    this.#disagreeReasonButtons = menuUI.disagreeReasonOptions.children('.validation-reason-button');
-    this.#unsureReasonButtons = menuUI.unsureReasonOptions.children('.validation-reason-button');
+    this.#disagreeReasonButtons = DesktopValidationMenu.#reasonButtonsIn(menuUI.disagreeReasonOptions);
+    this.#unsureReasonButtons = DesktopValidationMenu.#reasonButtonsIn(menuUI.unsureReasonOptions);
 
     this.#init();
   }
@@ -24,74 +25,66 @@ class DesktopValidationMenu {
   #init() {
     const menuUI = this.#menuUI;
 
-    // Add onclick for each validation button.
-    menuUI.yesButton.click((e) => {
+    // Add onclick for each validation button. A shortcut clicks by script, so an untrusted click means a shortcut.
+    menuUI.yesButton.addEventListener('click', (e) => {
       // The menu is dimmed and pointer-blocked while the next label's pano loads, but a button that kept focus after
       // a click still answers Enter with a native click of its own, which no CSS stops (#5211).
       if (svv.labelContainer.dropInputWhileLoading('Agree')) return;
-      const action = e.isTrigger ? 'ValidationKeyboardShortcut_Agree' : 'ValidationButtonClick_Agree';
-      svv.tracker.push(action);
+      svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Agree' : 'ValidationKeyboardShortcut_Agree');
       this.#setYesView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
     });
-    menuUI.noButton.click((e) => {
+    menuUI.noButton.addEventListener('click', (e) => {
       if (svv.labelContainer.dropInputWhileLoading('Disagree')) return;
-      const action = e.isTrigger ? 'ValidationKeyboardShortcut_Disagree' : 'ValidationButtonClick_Disagree';
-      svv.tracker.push(action);
+      svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Disagree' : 'ValidationKeyboardShortcut_Disagree');
       this.#setNoView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Disagree');
     });
-    menuUI.unsureButton.click((e) => {
+    menuUI.unsureButton.addEventListener('click', (e) => {
       if (svv.labelContainer.dropInputWhileLoading('Unsure')) return;
-      const action = e.isTrigger ? 'ValidationKeyboardShortcut_Unsure' : 'ValidationButtonClick_Unsure';
-      svv.tracker.push(action);
+      svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Unsure' : 'ValidationKeyboardShortcut_Unsure');
       this.#setUnsureView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
-    });
-    // Stored as an Agree on the picked type, the only vote that can carry an edit.
-    menuUI.wrongTypeButton.click((e) => {
-      if (svv.labelContainer.dropInputWhileLoading('WrongType')) return;
-      const action = e.isTrigger ? 'ValidationKeyboardShortcut_WrongType' : 'ValidationButtonClick_WrongType';
-      svv.tracker.push(action);
-      this.#setWrongTypeView();
-      svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
     });
 
     // Tag and severity sections only available with Expert Validate.
     if (svv.adminVersion) {
-      this.#labelTypePicker = new LabelTypePicker(menuUI.labelTypePicker[0], {
+      this.#labelTypePicker = new LabelTypePicker(menuUI.labelTypePicker, {
         onPick: (labelType) => this.#setNewLabelType(labelType),
         // The full set of chips plus the editors would overflow the menu column, so only one shows at a time.
         onToggle: (expanded) => {
-          if (expanded) this.#showVerdict(menuUI.wrongTypeButton, ['labelTypeMenu']);
+          if (expanded) this.#showVerdict(menuUI.noButton, ['labelTypeMenu']);
           else this.#setWrongTypeView();
         },
       });
 
       // Add onclick for each severity button.
-      const $severityButtons = menuUI.severityMenu.find('.severity-button');
-      $severityButtons.click((e) => {
-        // Reachable mid-load by keyboard even though the menu is dimmed and pointer-blocked: each button is a label
-        // around a radio that is only visually hidden, so it still takes focus, and an arrow key roves the group
-        // natively. The viewers stopPropagation those keydowns but nothing preventDefaults them, so the roving still
-        // fires a click here — writing a severity onto the label that isn't on screen yet, where resetMenu hides the
-        // menu but leaves the value on the label, and it is submitted as a change nobody made (#5211).
-        if (svv.labelContainer.dropInputWhileLoading('Severity')) return;
-        const currLabel = svv.labelContainer.getCurrentLabel();
-        const oldSeverity = currLabel.getProperty('newSeverity');
-        const newSeverity = $(e.target).closest('.severity-button').data('severity');
-        const labelType = currLabel.getProperty('newLabelType');
-        if (oldSeverity !== newSeverity && util.misc.labelTypeHasSeverity(labelType)) {
-          svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
-          currLabel.setProperty('newSeverity', newSeverity);
-          this.#renderSeverity();
-        }
-      });
+      for (const severityButton of menuUI.severityMenu.querySelectorAll('.severity-button')) {
+        severityButton.addEventListener('click', () => {
+          // Reachable mid-load by keyboard even though the menu is dimmed and pointer-blocked: each button is a label
+          // around a radio that is only visually hidden, so it still takes focus, and an arrow key roves the group
+          // natively. The viewers stopPropagation those keydowns but nothing preventDefaults them, so the roving still
+          // fires a click here — writing a severity onto the label that isn't on screen yet, where resetMenu hides the
+          // menu but leaves the value on the label, and it is submitted as a change nobody made (#5211).
+          if (svv.labelContainer.dropInputWhileLoading('Severity')) return;
+          const currLabel = svv.labelContainer.getCurrentLabel();
+          const oldSeverity = currLabel.getProperty('newSeverity');
+          const newSeverity = Number(severityButton.dataset.severity);
+          const labelType = currLabel.getProperty('newLabelType');
+          if (oldSeverity !== newSeverity && util.misc.labelTypeHasSeverity(labelType)) {
+            svv.tracker.push(`Click=Severity_Old=${oldSeverity}_New=${newSeverity}`);
+            currLabel.setProperty('newSeverity', newSeverity);
+            this.#renderSeverity();
+            svv.labelCard?.render(currLabel);
+          }
+        });
+      }
 
-      // Initialize the selectize object for tags (this is the auto-completing tag picker).
-      this.#tagSelect = $('#select-tag').selectize({
+      // Capped at one item: a pick goes straight to the tag list through onItemAdd, then the box clears.
+      this.#tagSelect = new TomSelect('#select-tag', {
         maxItems: 1,
-        placeholder: 'Add more tags here',
+        placeholder: i18next.t('validate:validate-menu.tag-search-placeholder'),
+        refreshThrottle: 0, // Filter on every keystroke, so a quick Enter picks from the current list.
         labelField: 'tag_name',
         valueField: 'tag_name',
         searchField: 'tag_name',
@@ -109,16 +102,22 @@ class DesktopValidationMenu {
           this.#addTag(tagName, false);
         },
         render: {
-          option: (item, escape) => {
-            // Add an example image tooltip to the tag.
+          no_results: () => {
+            return `<div class="no-results">${i18next.t('validate:validate-menu.tag-search-no-results')}</div>`;
+          },
+          option: (item) => {
             const translatedTagName = i18next.t(`common:tag.${item.tag_name.replace(/:/g, '-')}`);
-            const $tagDiv = $(`<div class="option tag-pill tag-pill--interactive">${escape(translatedTagName)}</div>`);
+            const tagDiv = document.createElement('div');
+            tagDiv.className = 'tag-pill tag-pill--interactive';
+            tagDiv.textContent = translatedTagName;
             const tooltipText = `"${translatedTagName}" example`;
-            this.#addTooltip($tagDiv, tooltipText, util.assetPath(`images/examples/tags/${item.tag_id}.png`));
-            return $tagDiv[0];
+            this.#addTooltip(tagDiv, tooltipText, util.assetPath(`images/examples/tags/${item.tag_id}.png`));
+            return tagDiv;
           },
         },
       });
+      // Gives the box a name for screen readers, using the header above it.
+      this.#tagSelect.control_input.setAttribute('aria-labelledby', 'validate-tags-header');
     }
 
     // Add onclick for disagree and unsure reason buttons.
@@ -126,43 +125,32 @@ class DesktopValidationMenu {
     // would otherwise record the reason as chosen and the drop would be logged right after it, so the one
     // interaction the load guard exists to refuse is the one that reads in the logs as having landed (#5211).
     for (const reasonButton of this.#disagreeReasonButtons) {
-      reasonButton.onclick = (e) => {
+      reasonButton.addEventListener('click', (e) => {
         if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
-        if (e.isTrigger) {
-          svv.tracker.push(`KeyboardShortcut_DisagreeReason_Option=${$(reasonButton).attr('id')}`);
-        } else {
-          svv.tracker.push(`Click=DisagreeReason_Option=${$(reasonButton).attr('id')}`);
-        }
-        this.#setDisagreeReason($(reasonButton).attr('id'));
-      };
+        svv.tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}DisagreeReason_Option=${reasonButton.id}`);
+        this.#setDisagreeReason(reasonButton.id);
+      });
     }
     for (const reasonButton of this.#unsureReasonButtons) {
-      reasonButton.onclick = (e) => {
+      reasonButton.addEventListener('click', (e) => {
         if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
-        if (e.isTrigger) {
-          svv.tracker.push(`KeyboardShortcut_UnsureReason_Option=${$(reasonButton).attr('id')}`);
-        } else {
-          svv.tracker.push(`Click=UnsureReason_Option=${$(reasonButton).attr('id')}`);
-        }
-        this.#setUnsureReason($(reasonButton).attr('id'));
-      };
+        svv.tracker.push(`${e.isTrusted ? 'Click=' : 'KeyboardShortcut_'}UnsureReason_Option=${reasonButton.id}`);
+        this.#setUnsureReason(reasonButton.id);
+      });
     }
 
-    // Log clicks to the three text boxes.
-    menuUI.optionalCommentTextBox.click((e) => {
+    // Log clicks to the three text boxes. Focus is set by hand because a shortcut's scripted click doesn't move it.
+    menuUI.optionalCommentTextBox.addEventListener('click', (e) => {
       menuUI.optionalCommentTextBox.focus();
-      const action = e.isTrigger ? 'KeyboardShortcut=AgreeCommentTextbox' : 'Click=AgreeCommentTextbox';
-      svv.tracker.push(action);
+      svv.tracker.push(e.isTrusted ? 'Click=AgreeCommentTextbox' : 'KeyboardShortcut=AgreeCommentTextbox');
     });
-    menuUI.disagreeReasonTextBox.click((e) => {
+    menuUI.disagreeReasonTextBox.addEventListener('click', (e) => {
       menuUI.disagreeReasonTextBox.focus();
-      const action = e.isTrigger ? 'KeyboardShortcut=DisagreeReasonTextbox' : 'Click=DisagreeReasonTextbox';
-      svv.tracker.push(action);
+      svv.tracker.push(e.isTrusted ? 'Click=DisagreeReasonTextbox' : 'KeyboardShortcut=DisagreeReasonTextbox');
     });
-    menuUI.unsureReasonTextBox.click((e) => {
+    menuUI.unsureReasonTextBox.addEventListener('click', (e) => {
       menuUI.unsureReasonTextBox.focus();
-      const action = e.isTrigger ? 'KeyboardShortcut=UnsureReasonTextbox' : 'Click=UnsureReasonTextbox';
-      svv.tracker.push(action);
+      svv.tracker.push(e.isTrusted ? 'Click=UnsureReasonTextbox' : 'KeyboardShortcut=UnsureReasonTextbox');
     });
 
     // Add oninput for disagree and unsure other reason text boxes.
@@ -171,19 +159,19 @@ class DesktopValidationMenu {
     // are believed unreachable then — KeyboardManager goes inert while a reason box has focus, so a load cannot start
     // from there, and once one has the box is only reachable by pointer, which is blocked — but half a guard on a
     // handler is a trap for whoever changes it next (#5211).
-    menuUI.disagreeReasonTextBox.on('input', () => {
+    menuUI.disagreeReasonTextBox.addEventListener('input', () => {
       if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
-      if (menuUI.disagreeReasonTextBox.val() === '') {
-        menuUI.disagreeReasonTextBox.removeClass('chosen');
+      if (menuUI.disagreeReasonTextBox.value === '') {
+        menuUI.disagreeReasonTextBox.classList.remove('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
       } else {
         this.#setDisagreeReason('other');
       }
     });
-    menuUI.unsureReasonTextBox.on('input', () => {
+    menuUI.unsureReasonTextBox.addEventListener('input', () => {
       if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
-      if (menuUI.unsureReasonTextBox.val() === '') {
-        menuUI.unsureReasonTextBox.removeClass('chosen');
+      if (menuUI.unsureReasonTextBox.value === '') {
+        menuUI.unsureReasonTextBox.classList.remove('chosen');
         svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
       } else {
         this.#setUnsureReason('other');
@@ -191,10 +179,9 @@ class DesktopValidationMenu {
     });
 
     // Add onclick for submit button.
-    menuUI.submitButton.click((e) => {
-      if (!e.target.disabled) {
-        this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), e.isTrigger);
-      }
+    menuUI.submitButton.addEventListener('click', (e) => {
+      if (menuUI.submitButton.disabled) return;
+      this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), !e.isTrusted);
     });
   }
 
@@ -207,57 +194,71 @@ class DesktopValidationMenu {
     this.#renderReasonButtons(label);
 
     if (prevValResult === undefined) {
-      // This is a new label (not returning from an undo), so reset everything.
-      menuUI.yesButton.removeClass('chosen');
-      menuUI.noButton.removeClass('chosen');
-      menuUI.unsureButton.removeClass('chosen');
-      menuUI.wrongTypeButton.removeClass('chosen');
-      menuUI.labelTypeMenu.css('display', 'none');
-      menuUI.tagsMenu.css('display', 'none');
-      menuUI.severityMenu.css('display', 'none');
-      menuUI.optionalCommentSection.css('display', 'none');
-      menuUI.optionalCommentTextBox.val('');
-      menuUI.noMenu.css('display', 'none');
-      menuUI.unsureMenu.css('display', 'none');
-      this.#disagreeReasonButtons.removeClass('chosen');
-      this.#unsureReasonButtons.removeClass('chosen');
-      menuUI.disagreeReasonTextBox.removeClass('chosen');
-      menuUI.unsureReasonTextBox.removeClass('chosen');
-      menuUI.disagreeReasonTextBox.val('');
-      menuUI.unsureReasonTextBox.val('');
-      menuUI.submitButton.prop('disabled', true);
+      // This is a new label (not returning from an undo), so reset everything: no verdict chosen, no section showing.
+      this.#showVerdict(null, []);
+      menuUI.optionalCommentTextBox.value = '';
+      DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
+      DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
+      menuUI.disagreeReasonTextBox.classList.remove('chosen');
+      menuUI.unsureReasonTextBox.classList.remove('chosen');
+      menuUI.disagreeReasonTextBox.value = '';
+      menuUI.unsureReasonTextBox.value = '';
+      menuUI.submitButton.disabled = true;
     } else {
       // This is a validation that they are going back to, so update all the views to match what they had before.
-      menuUI.optionalCommentTextBox.val(label.getProperty('agreeComment'));
+      menuUI.optionalCommentTextBox.value = label.getProperty('agreeComment');
 
       const disagreeOption = label.getProperty('disagreeOption');
-      this.#disagreeReasonButtons.removeClass('chosen');
+      DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
       if (disagreeOption === 'other') {
-        menuUI.disagreeReasonTextBox.addClass('chosen');
-        menuUI.disagreeReasonTextBox.val(label.getProperty('disagreeReasonTextBox'));
+        menuUI.disagreeReasonTextBox.classList.add('chosen');
+        menuUI.disagreeReasonTextBox.value = label.getProperty('disagreeReasonTextBox');
       } else {
-        menuUI.disagreeReasonTextBox.removeClass('chosen');
-        menuUI.disagreeReasonTextBox.val('');
-        menuUI.disagreeReasonOptions.find(`#${disagreeOption}`).addClass('chosen');
+        menuUI.disagreeReasonTextBox.classList.remove('chosen');
+        menuUI.disagreeReasonTextBox.value = '';
+        this.#reasonButton(disagreeOption)?.classList.add('chosen');
       }
 
       const unsureOption = label.getProperty('unsureOption');
-      this.#unsureReasonButtons.removeClass('chosen');
+      DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
       if (unsureOption === 'other') {
-        menuUI.unsureReasonTextBox.addClass('chosen');
-        menuUI.unsureReasonTextBox.val(label.getProperty('unsureReasonTextBox'));
+        menuUI.unsureReasonTextBox.classList.add('chosen');
+        menuUI.unsureReasonTextBox.value = label.getProperty('unsureReasonTextBox');
       } else {
-        menuUI.unsureReasonTextBox.removeClass('chosen');
-        menuUI.unsureReasonTextBox.val('');
-        menuUI.unsureReasonOptions.find(`#${unsureOption}`).addClass('chosen');
+        menuUI.unsureReasonTextBox.classList.remove('chosen');
+        menuUI.unsureReasonTextBox.value = '';
+        this.#reasonButton(unsureOption)?.classList.add('chosen');
       }
 
-      // An Agree carrying a new type is the "Wrong type" verdict.
+      // An Agree carrying a new type is a "wrong label type" disagree.
       if (prevValResult === 'Agree' && this.#typeChanged(label)) this.#setWrongTypeView();
       else if (prevValResult === 'Agree') this.#setYesView();
       else if (prevValResult === 'Disagree') this.#setNoView();
       else if (prevValResult === 'Unsure') this.#setUnsureView();
     }
+  }
+
+  /**
+   * @param {HTMLElement} options - A reason menu's options holder.
+   * @returns {HTMLElement[]} Its reason buttons, in menu order.
+   */
+  static #reasonButtonsIn(options) {
+    return [...options.querySelectorAll(':scope > .validation-reason-button')];
+  }
+
+  /**
+   * @param {HTMLElement[]} buttons
+   */
+  static #clearChosen(buttons) {
+    for (const button of buttons) button.classList.remove('chosen');
+  }
+
+  /**
+   * @param {string|undefined} id - A reason button's id; undefined for a label with no reason picked.
+   * @returns {HTMLElement|null}
+   */
+  #reasonButton(id) {
+    return [...this.#disagreeReasonButtons, ...this.#unsureReasonButtons].find((b) => b.id === id) ?? null;
   }
 
   /**
@@ -270,27 +271,25 @@ class DesktopValidationMenu {
    */
   #renderReasonButtons(label) {
     const labelType = util.camelToKebab(label.getAuditProperty('labelType'));
-    for (const reasonButton of this.#disagreeReasonButtons.add(this.#unsureReasonButtons)) {
-      const $reasonButton = $(reasonButton);
-      const buttonInfo = svv.reasonButtonInfo[labelType][$reasonButton.attr('id')];
+    for (const reasonButton of [...this.#disagreeReasonButtons, ...this.#unsureReasonButtons]) {
+      const buttonInfo = svv.reasonButtonInfo[labelType][reasonButton.id];
       if (buttonInfo) {
-        $reasonButton.html(buttonInfo.buttonText);
+        reasonButton.innerHTML = buttonInfo.buttonText;
 
-        // Remove any old tooltip (from a previous label type) and add a new tooltip.
-        $reasonButton.tooltip('destroy');
+        reasonButton.removeAttribute('data-ps-tooltip');
         if (buttonInfo.tooltipImage) {
           util.getImage(buttonInfo.tooltipImage).then((img) => {
-            this.#addTooltip($reasonButton, buttonInfo.tooltipText, img);
+            this.#addTooltip(reasonButton, buttonInfo.tooltipText, img);
           });
         } else {
-          this.#addTooltip($reasonButton, buttonInfo.tooltipText);
+          this.#addTooltip(reasonButton, buttonInfo.tooltipText);
         }
 
-        $reasonButton.addClass('defaultOption');
-        $reasonButton.css('display', 'flex');
+        reasonButton.classList.add('defaultOption');
+        reasonButton.style.display = 'flex';
       } else {
-        $reasonButton.css('display', 'none');
-        $reasonButton.removeClass('defaultOption');
+        reasonButton.style.display = 'none';
+        reasonButton.classList.remove('defaultOption');
       }
     }
   }
@@ -300,18 +299,28 @@ class DesktopValidationMenu {
     return label.getProperty('newLabelType') !== label.getProperty('oldLabelType');
   }
 
+  /** @returns {boolean} Whether the menu is on the "wrong label type" disagree, where the type picker stands in
+   *     for the reasons (#5409). */
+  inWrongTypeView() {
+    return this.#wrongTypeView;
+  }
+
   /**
    * Every view routes through here so a section can't be left showing from the previous verdict.
-   * @param {JQuery} chosenButton
+   * @param {HTMLElement|null} chosenButton - The verdict button to mark chosen, or null for none.
    * @param {string[]} sections - Names of the `menuUI` sections to show; the rest are hidden.
    */
   #showVerdict(chosenButton, sections) {
     const menuUI = this.#menuUI;
-    for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton, menuUI.wrongTypeButton]) {
-      button.toggleClass('chosen', button === chosenButton);
+    this.#wrongTypeView = sections.includes('labelTypeMenu');
+    for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]) {
+      button.classList.toggle('chosen', button === chosenButton);
     }
     const all = ['labelTypeMenu', 'tagsMenu', 'severityMenu', 'optionalCommentSection', 'noMenu', 'unsureMenu'];
-    for (const name of all) menuUI[name].css('display', sections.includes(name) ? 'block' : 'none');
+    for (const name of all) {
+      // The type picker's section is only in Expert Validate's markup.
+      if (menuUI[name]) menuUI[name].style.display = sections.includes(name) ? 'block' : 'none';
+    }
   }
 
   /**
@@ -330,36 +339,52 @@ class DesktopValidationMenu {
   #setYesView() {
     this.#dropPickedType();
     this.#showVerdict(this.#menuUI.yesButton, [...this.#editSections(), 'optionalCommentSection']);
-    this.#menuUI.submitButton.prop('disabled', false);
+    this.#menuUI.submitButton.disabled = false;
   }
 
-  /** Puts the label back on its own type, for a verdict that isn't "Wrong type" and so can't carry a new one. */
+  /** Puts the label back on its own type, for a verdict that isn't "wrong label type" and so can't carry a new one. */
   #dropPickedType() {
     const currLabel = svv.labelContainer.getCurrentLabel();
     if (this.#typeChanged(currLabel)) this.#setNewLabelType(currLabel.getProperty('oldLabelType'), false);
   }
 
+  /**
+   * Puts back the type, rating and tags the labeler filed. Only an Agree saves an edit, so a Disagree or an Unsure
+   * must not leave one showing on the card as though Submit would keep it.
+   */
+  #dropPendingEdits() {
+    const currLabel = svv.labelContainer.getCurrentLabel();
+    const hadNewType = this.#typeChanged(currLabel);
+    currLabel.setNewLabelType(currLabel.getProperty('oldLabelType'));
+    this.#tagsAddedByUser = [];
+    if (hadNewType) svv.panoManager.styleMarkerForLabel(currLabel);
+    svv.labelCard?.render(currLabel);
+  }
+
   #setNoView() {
-    this.#dropPickedType();
+    this.#dropPendingEdits();
     this.#showVerdict(this.#menuUI.noButton, ['noMenu']);
-    this.#menuUI.submitButton.prop('disabled', false);
+    this.#menuUI.submitButton.disabled = false;
   }
 
   #setUnsureView() {
-    this.#dropPickedType();
+    this.#dropPendingEdits();
     this.#showVerdict(this.#menuUI.unsureButton, ['unsureMenu']);
-    this.#menuUI.submitButton.prop('disabled', false);
+    this.#menuUI.submitButton.disabled = false;
   }
 
-  /** The "Wrong type" verdict (#3671). Submit stays off until a type is picked; without one there is nothing to say. */
+  /**
+   * The "wrong label type" disagree (#3671, #5409): the reasons give way to the type picker, and then to the editors
+   * for the picked type. Submit stays off until a type is picked; without one there is nothing to say.
+   */
   #setWrongTypeView() {
     const currLabel = svv.labelContainer.getCurrentLabel();
     const picked = this.#typeChanged(currLabel) ? currLabel.getProperty('newLabelType') : null;
     this.#labelTypePicker.render({ current: currLabel.getProperty('oldLabelType'), selected: picked });
     this.#labelTypePicker.collapse(); // Keeps the editors below within the menu column; a no-op before a pick.
     const sections = picked ? [...this.#editSections(), 'optionalCommentSection'] : [];
-    this.#showVerdict(this.#menuUI.wrongTypeButton, ['labelTypeMenu', ...sections]);
-    this.#menuUI.submitButton.prop('disabled', picked === null);
+    this.#showVerdict(this.#menuUI.noButton, ['labelTypeMenu', ...sections]);
+    this.#menuUI.submitButton.disabled = picked === null;
   }
 
   /**
@@ -376,24 +401,43 @@ class DesktopValidationMenu {
     currLabel.setNewLabelType(labelType);
     this.#tagsAddedByUser = [];
     svv.panoManager.styleMarkerForLabel(currLabel);
+    svv.labelCard?.render(currLabel);
     if (redraw) this.#setWrongTypeView();
   }
 
   /**
-   * Adds a jquery tooltip to the given element with the given text and image (if given).
-   * @param {JQuery} $elem - Element to add the tooltip to, as jquery wrapped object.
+   * Switches to the "wrong label type" disagree. It is submitted as an Agree on the picked type, since only an
+   * admin's Agree can carry an edit.
+   */
+  #startWrongType() {
+    const currLabel = svv.labelContainer.getCurrentLabel();
+    DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
+    this.#menuUI.disagreeReasonTextBox.classList.remove('chosen');
+    currLabel.setProperty('disagreeOption', null);
+    this.#setWrongTypeView();
+    currLabel.setProperty('validationResult', 'Agree');
+  }
+
+  /**
+   * A type picked from the label card's dropdown (#5409): the same as the "wrong label type" reason plus a pick.
+   * @param {string} labelType
+   */
+  pickNewLabelType(labelType) {
+    if (svv.labelContainer.dropInputWhileLoading('LabelType')) return;
+    this.#startWrongType();
+    this.#setNewLabelType(labelType);
+  }
+
+  /**
+   * Adds a tooltip to the given element with the given text and image (if given).
+   * @param {Element} elem - Element to add the tooltip to.
    * @param {string} tooltipText - Text to display in the tooltip.
    * @param {string} [img] - Optional image to display in the tooltip.
    */
-  #addTooltip($elem, tooltipText, img) {
+  #addTooltip(elem, tooltipText, img) {
+    if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
     const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" class="validate-tooltip-img"/>` : tooltipText;
-    $elem.tooltip(({
-      placement: 'auto top', // Prefer above the element, but flip below when it doesn't fit in the viewport.
-      html: true,
-      container: 'body',
-      delay: { show: 500, hide: 10 },
-      title: tooltipHtml,
-    })).tooltip('show').tooltip('hide');
+    elem.setAttribute('data-ps-tooltip', tooltipHtml);
   }
 
   // TAG SECTION.
@@ -414,9 +458,10 @@ class DesktopValidationMenu {
     // New tag added, add to list and rerender.
     svv.tracker.push(`Click=TagAdd_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
     currLabel.getProperty('newTags').push(tagName);
-    this.#tagSelect[0].selectize.clear();
-    this.#tagSelect[0].selectize.removeOption(tagName);
+    this.#tagSelect.clear();
+    this.#tagSelect.removeOption(tagName);
     this.#renderTags();
+    svv.labelCard?.render(currLabel);
   }
 
   #removeTag(tagName, label, fromAiSuggestion = false) {
@@ -426,15 +471,7 @@ class DesktopValidationMenu {
     svv.tracker.push(`Click=TagRemove_Tag="${tagName}"_FromAiSuggestion=${fromAiSuggestion}`);
     label.setProperty('newTags', label.getProperty('newTags').filter((t) => t !== tagName));
     this.#renderTags();
-  }
-
-  #removeTagListener(e, label) {
-    const allTagOptions = structuredClone(svv.tagsByLabelType[label.getProperty('newLabelType')] ?? []);
-    const tagElem = $(e.target).parents('.current-tag');
-    tagElem.tooltip('destroy');
-    const tagIdToRemove = tagElem.data('tag-id');
-    const tagToRemove = allTagOptions.find((t) => t.tag_id === tagIdToRemove).tag_name;
-    this.#removeTag(tagToRemove, label, false);
+    svv.labelCard?.render(label);
   }
 
   #renderTags() {
@@ -443,49 +480,46 @@ class DesktopValidationMenu {
     let allTagOptions = structuredClone(svv.tagsByLabelType[label.getProperty('newLabelType')] ?? []);
     const allTagOptionsPermanent = structuredClone(allTagOptions);
 
-    menuUI.currentTags.empty();
+    menuUI.currentTags.replaceChildren();
     const currTags = label.getProperty('newTags');
-    // Clone the template tag element, remove the 'template' class, update the text, and add the removal onclick.
+    const tagTemplate = document.querySelector('.current-tag.template');
     for (const tag of currTags) {
-      if (!allTagOptions.some((t) => t.tag_name === tag)) {
+      const tagOption = allTagOptions.find((t) => t.tag_name === tag);
+      if (!tagOption) {
         continue; // Skip tags that are now being excluded on this server. Don't want to show them.
       }
 
-      // Clone the template tag element, remove the 'template' class, and add a tag-id data attribute.
-      const $tagDiv = $('.current-tag.template').clone().removeClass('template');
-      $tagDiv.data('tag-id', allTagOptions.find((t) => t.tag_name === tag).tag_id);
-
-      // Update the tag name.
+      const tagDiv = /** @type {HTMLElement} */ (tagTemplate.cloneNode(true));
+      tagDiv.classList.remove('template');
       const translatedTagName = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
-      $tagDiv.children('.tag-name').text(translatedTagName);
+      tagDiv.querySelector('.tag-name').textContent = translatedTagName;
 
+      const removeButton = tagDiv.querySelector('.remove-tag-x');
       const removeLabel = i18next.t('validate:validate-menu.remove-tag', { tag: translatedTagName });
-      $tagDiv.children('.remove-tag-x').attr('aria-label', removeLabel).click((e) => this.#removeTagListener(e, label));
+      removeButton.setAttribute('aria-label', removeLabel);
+      removeButton.addEventListener('click', () => {
+        tagDiv.removeAttribute('data-ps-tooltip'); // Or the tooltip outlives the pill it belonged to (#4071).
+        this.#removeTag(tag, label, false);
+      });
 
-      // Add an example image tooltip to the tag.
-      const tagId = allTagOptions.find((t) => t.tag_name === tag).tag_id;
       const tooltipText = `"${translatedTagName}" example`;
-      this.#addTooltip($tagDiv, tooltipText, util.assetPath(`images/examples/tags/${tagId}.png`));
+      this.#addTooltip(tagDiv, tooltipText, util.assetPath(`images/examples/tags/${tagOption.tag_id}.png`));
 
       // Add to current list of tags, and remove from options for new tags to add.
-      menuUI.currentTags.append($tagDiv);
+      menuUI.currentTags.append(tagDiv);
       allTagOptions = allTagOptions.filter((t) => t.tag_name !== tag);
     }
 
     // Show/hide elem for list of tags to hide extra spacing b/w elements when there are no tags to show.
-    if (currTags.length === 0) {
-      menuUI.currentTags.css('display', 'none');
-    } else {
-      menuUI.currentTags.css('display', 'flex');
-    }
+    menuUI.currentTags.style.display = currTags.length === 0 ? 'none' : 'flex';
 
     // Clear the possible tags to add and add all appropriate options.
-    this.#tagSelect[0].selectize.clearOptions();
-    this.#tagSelect[0].selectize.addOption(allTagOptions);
+    this.#tagSelect.clearOptions();
+    this.#tagSelect.addOption(allTagOptions);
 
     // AI SUGGESTION TAGS SECTION.
-    // Remove all AI suggested tags from the previous label.
-    $('.sidewalk-ai-suggested-tag:not(.template)').remove();
+    menuUI.aiSuggestionSection.querySelectorAll('.sidewalk-ai-suggested-tag:not(.template)')
+      .forEach((el) => el.remove());
 
     // Decide which tags AI is suggesting to add or remove. If null, AI suggestion disabled on this server. The AI
     // judged the original type, so its suggestions say nothing about a type the expert just picked.
@@ -508,7 +542,7 @@ class DesktopValidationMenu {
 
     // If there are AI suggestions, show the section and add the tag suggestions.
     if (aiAddTagOptions.length > 0 || aiRemoveTagOptions.length > 0) {
-      menuUI.aiSuggestionSection.show();
+      menuUI.aiSuggestionSection.style.display = '';
 
       // Log the AI suggestions.
       svv.tracker.push(`ShowingAiSuggestions`, {
@@ -516,29 +550,28 @@ class DesktopValidationMenu {
         remove: `"${aiRemoveTagOptions.map((t) => t.tag_name).join()}"`,
       });
 
-      // Loops through the AI-suggested tags and display them.
       const aiTagOptions = [
         ...aiAddTagOptions.map((t) => ({ ...t, action: 'add' })),
         ...aiRemoveTagOptions.map((t) => ({ ...t, action: 'remove' })),
       ];
       for (const tag of aiTagOptions) {
         // Clone the template tag element, and set all appropriate classes.
-        const template = menuUI.aiSuggestedTagTemplate.clone(true);
-        template.removeClass('template').addClass(tag.action === 'add' ? 'to-add' : 'to-remove');
+        const suggestion = /** @type {HTMLElement} */ (menuUI.aiSuggestedTagTemplate.cloneNode(true));
+        suggestion.classList.remove('template');
+        suggestion.classList.add(tag.action === 'add' ? 'to-add' : 'to-remove');
 
-        // Add the text to the tag.
         const translatedTagName = i18next.t(`common:tag.${tag.tag_name.replace(/:/g, '-')}`);
         const addRemoveTranslationKey = `expert-validate.${tag.action === 'add' ? 'add-tag' : 'remove-tag'}`;
-        template.text(i18next.t(addRemoveTranslationKey, { tag: translatedTagName }));
-        menuUI.aiSuggestedTagTemplate.parent().append(template);
+        suggestion.textContent = i18next.t(addRemoveTranslationKey, { tag: translatedTagName });
+        menuUI.aiSuggestedTagTemplate.parentElement.append(suggestion);
 
         // Show tooltip with example image for the tag.
         const tooltipText = `"${translatedTagName}" example`;
-        this.#addTooltip(template, tooltipText, util.assetPath(`images/examples/tags/${tag.tag_id}.png`));
+        this.#addTooltip(suggestion, tooltipText, util.assetPath(`images/examples/tags/${tag.tag_id}.png`));
 
         // Add onclick to the tag to add or remove it if the user clicks to accept the AI suggestion.
-        template.on('click', () => {
-          template.tooltip('destroy'); // Fix for the tooltip showing up on later labels, #4071.
+        suggestion.addEventListener('click', () => {
+          suggestion.removeAttribute('data-ps-tooltip'); // Fix for the tooltip showing up on later labels, #4071.
           if (tag.action === 'add') {
             this.#addTag(tag.tag_name, true);
           } else {
@@ -547,7 +580,7 @@ class DesktopValidationMenu {
         });
       }
     } else {
-      menuUI.aiSuggestionSection.hide();
+      menuUI.aiSuggestionSection.style.display = 'none';
     }
   }
 
@@ -567,13 +600,11 @@ class DesktopValidationMenu {
     if (headerEl) headerEl.textContent = i18next.t(`common:${headerKey}`);
 
     // Add example image tooltips to the severity buttons after removing old ones (in case label type changed).
-    for (const severityButton of menuUI.severityMenu.find('.severity-button')) {
-      const $button = $(severityButton);
+    for (const severityButton of menuUI.severityMenu.querySelectorAll('.severity-button')) {
       const sev = severityButton.dataset.severity;
       const tooltipText = i18next.t(`common:${tooltipKey}-${sev}`);
       const tooltipImage = util.assetPath(`images/examples/severity/${labelType}_Severity${sev}.png`);
-      $button.tooltip('destroy');
-      this.#addTooltip($button, tooltipText, tooltipImage);
+      this.#addTooltip(severityButton, tooltipText, tooltipImage);
 
       const labelSpan = severityButton.querySelector('.severity-button__label');
       if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[Number(sev)]}`);
@@ -615,27 +646,20 @@ class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     const currLabel = svv.labelContainer.getCurrentLabel();
     const reasonInfo = svv.reasonButtonInfo[util.camelToKebab(currLabel.getAuditProperty('labelType'))]?.[id];
-    // Where the type can actually be changed, a canned "should be a X label" reason is the same wish as the "Wrong
-    // type" verdict, so it jumps there instead of becoming a comment nobody acts on (#3671).
-    if (svv.adminVersion && reasonInfo && 'newLabelType' in reasonInfo) {
-      svv.tracker.push(`DisagreeReason_ToWrongType_Option=${id}`);
-      this.#disagreeReasonButtons.removeClass('chosen');
-      menuUI.disagreeReasonTextBox.removeClass('chosen');
-      currLabel.setProperty('disagreeOption', null);
-      this.#setWrongTypeView();
-      currLabel.setProperty('validationResult', 'Agree');
-      if (reasonInfo.newLabelType) this.#setNewLabelType(reasonInfo.newLabelType);
+    // Where the type can be changed, it opens the picker instead of becoming a comment nobody acts on (#5409).
+    if (svv.adminVersion && reasonInfo?.wrongType) {
+      this.#startWrongType();
       return;
     }
-    this.#disagreeReasonButtons.removeClass('chosen');
+    DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     if (id === 'other') {
-      menuUI.disagreeReasonTextBox.addClass('chosen');
+      menuUI.disagreeReasonTextBox.classList.add('chosen');
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
     } else {
-      menuUI.disagreeReasonTextBox.removeClass('chosen');
-      menuUI.disagreeReasonTextBox.val('');
+      menuUI.disagreeReasonTextBox.classList.remove('chosen');
+      menuUI.disagreeReasonTextBox.value = '';
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
-      menuUI.disagreeReasonOptions.find(`#${id}`).addClass('chosen');
+      this.#reasonButton(id)?.classList.add('chosen');
     }
   }
 
@@ -654,24 +678,24 @@ class DesktopValidationMenu {
   #setUnsureReason(id) {
     if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
-    this.#unsureReasonButtons.removeClass('chosen');
+    DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {
-      menuUI.unsureReasonTextBox.addClass('chosen');
+      menuUI.unsureReasonTextBox.classList.add('chosen');
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
     } else {
-      menuUI.unsureReasonTextBox.removeClass('chosen');
-      menuUI.unsureReasonTextBox.val('');
+      menuUI.unsureReasonTextBox.classList.remove('chosen');
+      menuUI.unsureReasonTextBox.value = '';
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', id);
-      menuUI.unsureReasonOptions.find(`#${id}`).addClass('chosen');
+      this.#reasonButton(id)?.classList.add('chosen');
     }
   }
 
   saveValidationState() {
     const menuUI = this.#menuUI;
     const currLabel = svv.labelContainer.getCurrentLabel();
-    currLabel.setProperty('agreeComment', menuUI.optionalCommentTextBox.val());
-    currLabel.setProperty('disagreeReasonTextBox', menuUI.disagreeReasonTextBox.val());
-    currLabel.setProperty('unsureReasonTextBox', menuUI.unsureReasonTextBox.val());
+    currLabel.setProperty('agreeComment', menuUI.optionalCommentTextBox.value);
+    currLabel.setProperty('disagreeReasonTextBox', menuUI.disagreeReasonTextBox.value);
+    currLabel.setProperty('unsureReasonTextBox', menuUI.unsureReasonTextBox.value);
   }
 
   /**
@@ -683,18 +707,11 @@ class DesktopValidationMenu {
     // Everything below writes to whatever getCurrentLabel() returns, which mid-load is already the next label (#5211).
     if (svv.labelContainer.dropInputWhileLoading(`Submit=${action}`)) return;
 
-    const menuUI = this.#menuUI;
     const actionStr = keyboardShortcut ? 'ValidationKeyboardShortcut_Submit_Validation=' : 'Click=Submit_Validation=';
     const timestamp = new Date();
     const currLabel = svv.labelContainer.getCurrentLabel();
     const typeNote = this.#typeChanged(currLabel) ? `_NewLabelType=${currLabel.getProperty('newLabelType')}` : '';
     svv.tracker.push(actionStr + action + typeNote);
-
-    // Resets CSS elements for all buttons to their default states.
-    menuUI.yesButton.removeClass('validate');
-    menuUI.noButton.removeClass('validate');
-    menuUI.unsureButton.removeClass('validate');
-    menuUI.wrongTypeButton.removeClass('validate');
 
     // Save anything they typed in either text box so that it's there again if they undo their validation.
     this.saveValidationState();
@@ -708,18 +725,14 @@ class DesktopValidationMenu {
       if (disagreeReason === 'other') {
         comment = currLabel.getProperty('disagreeReasonTextBox');
       } else if (disagreeReason) {
-        comment = menuUI.disagreeReasonOptions.find(`#${disagreeReason}`).html().replace('<br>', ' ');
-      } else {
-        comment = '';
+        comment = this.#reasonButton(disagreeReason).innerHTML.replace('<br>', ' ');
       }
     } else if (action === 'Unsure') {
       const unsureReason = currLabel.getProperty('unsureOption');
       if (unsureReason === 'other') {
         comment = currLabel.getProperty('unsureReasonTextBox');
       } else if (unsureReason) {
-        comment = menuUI.unsureReasonOptions.find(`#${unsureReason}`).html().replace('<br>', ' ');
-      } else {
-        comment = '';
+        comment = this.#reasonButton(unsureReason).innerHTML.replace('<br>', ' ');
       }
     }
     currLabel.setProperty('comment', comment);

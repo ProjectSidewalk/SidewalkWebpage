@@ -93,71 +93,6 @@ dialog.label-detail[open]::backdrop {
   color: var(--color-neutral-black);
 }
 
-/* The type's icon and name, as a span or as the picker button (#3671); the button inherits the heading's font. */
-.label-detail__type {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.label-detail__type-icon {
-  width: 22px;
-  height: 22px;
-  flex-shrink: 0;
-}
-
-.label-detail__type-button {
-  margin: -2px -6px;
-  padding: 2px 6px;
-  border: none;
-  border-radius: 6px;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-}
-
-.label-detail__type-button[aria-disabled="true"] {
-  cursor: default;
-}
-
-.label-detail__type-button:not([aria-disabled="true"]):hover {
-  background: rgb(0 0 0 / 6%);
-}
-
-.label-detail__type-button:focus-visible {
-  outline: 2px solid var(--color-link-100);
-  outline-offset: 2px;
-}
-
-.label-detail__type-chevron {
-  width: 16px;
-  height: 16px;
-  transition: transform 150ms ease;
-}
-
-.label-detail__type-button[aria-expanded="true"] .label-detail__type-chevron {
-  transform: rotate(180deg);
-}
-
-/* The type picker: a popover LabelDetail parks under the title, or an inline block where popovers don't exist. */
-.label-detail__type-picker {
-  margin: 0;
-  padding: 12px;
-  max-width: 400px;
-  border: 1px solid var(--color-neutral-300);
-  border-radius: var(--border-radius-lg);
-  background: var(--color-neutral-white);
-  box-shadow: var(--box-shadow-lg);
-}
-
-.label-detail__type-hint {
-  margin: 0 0 8px;
-  font: var(--text-caption-regular);
-  color: var(--color-neutral-700);
-}
-
 /* The Undo inside the status line after a type change (#3671). */
 .label-detail__edit-status-action {
   margin-left: 6px;
@@ -603,10 +538,10 @@ dialog.label-detail[open]::backdrop {
   font-weight: 500;
   font-size: 16px;
   cursor: pointer;
-  opacity: 0.8;
+  opacity: 0.78; /* Any lower and Disagree's text is too faint over dark imagery. */
   transition: opacity 120ms ease;
 }
-.label-detail__pano-overlay-button:hover { opacity: 0.95; }
+.label-detail__pano-overlay-button:hover { opacity: 0.9; }
 
 .label-detail__pano-overlay-button:focus-visible {
   outline: 2px solid var(--color-link-100);
@@ -620,20 +555,23 @@ dialog.label-detail[open]::backdrop {
 
 .label-detail__pano-overlay-button.is-selected { opacity: 1; }
 
-/* Hovering the option you already picked previews clearing it (#4653). It fades *past* the unselected 0.8 rather
-   than toward it, so the cue reads as "this turns off" — the overlay's counterpart to the column icons dropping
-   back to their outline variant on the same hover. Declared above the read-only block so that block still wins. */
-.label-detail__pano-overlay-button.is-selected:hover { opacity: 0.65; }
+/* Hovering your current vote previews clearing it (#4653), going most of the way toward what a click does. Declared
+   above the read-only block so that block still wins. */
+.label-detail__pano-overlay-button.is-selected:hover { opacity: 0.85; }
+
+/* Right after a vote, show its result until the mouse leaves, not a preview of undoing it (#5518). */
+.label-detail__pano-overlay-button.is-just-voted:hover { opacity: 0.78; }
+.label-detail__pano-overlay-button.is-selected.is-just-voted:hover { opacity: 1; }
 
 /* Read-only mode: validating/commenting is blocked (the viewer's own label, or no imagery is available for it).
    Elements remain visible but appear disabled. */
 .label-detail--readonly .label-detail__pano-overlay-button {
-  opacity: 0.8;
+  opacity: 0.78;
   background: #E2E2E2;
   cursor: default;
   color: rgb(0 0 0 / 40%);
 }
-.label-detail--readonly .label-detail__pano-overlay-button:hover { opacity: 0.8; }
+.label-detail--readonly .label-detail__pano-overlay-button:hover { opacity: 0.78; }
 .label-detail--readonly .label-detail__vote[disabled] { cursor: default; }
 
 .label-detail--readonly .label-detail__comment-input:disabled {
@@ -1358,6 +1296,25 @@ button.label-detail__meta-cell:focus-visible {
 }
 .label-detail__paging--prev { left: 10px; }
 .label-detail__paging--next { right: 10px; }
+
+/* "k of N" position in the Gallery's review-list mode (#5444). Unlike the arrows it is always visible: knowing how
+   far through a fixed review list you are is the point of the mode, and a hover-revealed counter would not say. */
+.label-detail__position {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+
+  /* The paging chips' band: above the GSV widget's own leaked layers, the validation ring (5) and the hover vote
+     bar (1), so the counter is never painted over by the imagery it sits on. */
+  z-index: 11;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: var(--border-radius-lg);
+  background: rgb(255 255 255 / 85%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 25%);
+  font: var(--text-caption-medium);
+  color: var(--color-asphalt-500);
+}
 
 /* ─── Touch and narrow viewports ──────────────────────────────────────── */
 

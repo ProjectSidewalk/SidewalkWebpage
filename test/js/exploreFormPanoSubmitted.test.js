@@ -59,6 +59,7 @@ function labelStub(panoId, tempLabelId) {
         tutorial: false,
         panoXY: { x: 100, y: 100 },
         originalCanvasXY: { x: 200, y: 200 },
+        originalCanvasFrame: { width: 720, height: 480 },
         originalPov: { heading: 90, pitch: 0, zoom: 1 },
         temporaryLabelId: tempLabelId,
         severity: null,
@@ -147,7 +148,6 @@ describe('Form pano submission staging', () => {
             math: { kmsToMeters: (km) => km * 1000 },
             pano: { TUTORIAL_PANO_IDS: new Set(['tutorial', 'afterWalkTutorial']) },
         };
-        window.$ = jest.fn(() => ({ width: () => 1920, height: () => 1080 }));
         window.i18next = { language: 'en' };
 
         panos = [panoStub('pano-A'), panoStub('pano-B')];
