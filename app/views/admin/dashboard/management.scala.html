@@ -4,7 +4,7 @@
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* Admin Management page (#4272): the operational console for deployment-wide, state-changing actions that the read-only lens pages don't carry. Full user directory with inline role + team assignment, team open/closed and visible/hidden toggles, and the maintenance jobs. Built in the redesign idiom (lightweight accessible tables, no DataTables/jQuery); all data + mutations go through existing /adminapi endpoints. Per-user actions (quality, infra3d, task flags) live on /admin/user/:username, linked from each row. *@
+@* Admin Management page (#4272): the operational console for deployment-wide, state-changing actions that the read-only lens pages don't carry. Full user directory with inline role + team assignment, team open/closed and visible/hidden toggles, and the maintenance jobs. Built in the redesign idiom (lightweight accessible tables); all data + mutations go through existing /adminapi endpoints. Per-user actions (quality, infra3d, task flags) live on /admin/user/:username, linked from each row. *@
 
 @content = {
   <div class="page-section" id="management-intro-section">

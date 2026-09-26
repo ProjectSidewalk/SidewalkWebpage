@@ -146,20 +146,19 @@
 
   <script>
     // Gets all translations before loading the map.
-    window.appManager.ready(function () {
-      let routeBuilder;
-      const loadMapParams = $.getJSON('/cityMapParams');
-      const loadPolygons = $.getJSON('/regions');
-      const loadStreets = $.getJSON('/contribution/streets/all?filterLowQuality=true');
-
-      const initMap = $.when(loadMapParams).done(function(mapParams) {
-        routeBuilder = new RouteBuilder('@commonData.mapboxApiKey', mapParams, @(!isAnon), @minutesPer100m);
+    window.appManager.ready(async function () {
+      const fetchJson = (url) => fetch(url).then((response) => {
+        if (!response.ok) throw new Error(`${url} responded ${response.status}`);
+        return response.json();
       });
-      $.when(initMap, loadPolygons).done(function(d0, regionData) {
-        routeBuilder.renderRegions(regionData[0]);
-      });
-      $.when(initMap, loadStreets).done(function(d0, streetData) {
-        routeBuilder.renderStreets(streetData[0]);
+      // All three requests go out at once; the map only needs its params, and each layer draws when its data lands.
+      const loadRegions = fetchJson('/regions');
+      const loadStreets = fetchJson('/contribution/streets/all?filterLowQuality=true');
+      const mapParams = await fetchJson('/cityMapParams');
+      const routeBuilder = new RouteBuilder('@commonData.mapboxApiKey', mapParams, @(!isAnon), @minutesPer100m);
+      loadRegions.then((regionData) => routeBuilder.renderRegions(regionData));
+      loadStreets.then((streetData) => {
+        routeBuilder.renderStreets(streetData);
         window.routeBuilder = routeBuilder;
       });
     });

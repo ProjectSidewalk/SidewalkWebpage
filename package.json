@@ -9,7 +9,6 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "@stylistic/stylelint-plugin": "^5.3.0",
     "@types/google.maps": "^3.66.2",
-    "@types/jquery": "^4.0.1",
     "eslint": "^10.10.0",
     "eslint-plugin-jsdoc": "^64.4.0",
     "globals": "^17.12.0",

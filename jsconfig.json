@@ -9,7 +9,7 @@
     "target": "es2022",
     "lib": ["es2022", "dom", "dom.iterable"],
     // Only the libraries we load from public/vendor/ that have type packages; the rest are declared in globals.d.ts.
-    "types": ["jquery", "google.maps"],
+    "types": ["google.maps"],
     // Strict mode (TypeScript 7's default) is a later ratchet: it roughly triples the error count.
     "strict": false,
     // Library checks stay on so a mistake in tools/lint/js-types/globals.d.ts is reported instead of becoming `any`.

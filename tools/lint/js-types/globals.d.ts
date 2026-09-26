@@ -98,13 +98,6 @@ declare namespace GeoJSON {
   type LineString = any;
 }
 
-declare namespace JQuery {
-  interface TriggeredEvent<TDelegateTarget = any, TData = any, TCurrentTarget = any, TTarget = any> {
-    // jQuery sets this on events fired from code with .trigger() or .click(), but its type package leaves it out.
-    isTrigger?: number;
-  }
-}
-
 // The Network Information API, which only Chromium browsers have, so TypeScript's DOM types leave it out.
 interface Navigator {
   connection?: { saveData?: boolean };
@@ -137,8 +130,6 @@ interface Window {
   choropleth?: mapboxgl.Map;
   // The deployment sites map, kept here so the resize handler can reach it.
   citiesMap?: mapboxgl.Map;
-  // Set by the jQuery script; @types/jquery only declares the bare `$` and `jQuery` globals.
-  jQuery: JQueryStatic;
   // Explore's rasterized label icons, by icon path. Set up by Label.js.
   labelIconCache: Record<string, HTMLCanvasElement>;
   // Stamped from LabelTypeEnum.pageStampJson.

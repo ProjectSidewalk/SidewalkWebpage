@@ -10,7 +10,7 @@
  * downloaded once and then filtered/sorted/paginated entirely client-side — small enough to keep every column sortable
  * without a per-page server round-trip, but paginated in the DOM so we never render thousands of rows at once.
  *
- * Built as an accessible HTML/CSS table (no DataTables/jQuery), consistent with the rest of the redesign. Mutations
+ * Built as an accessible HTML/CSS table, consistent with the rest of the redesign. Mutations
  * update local state optimistically-then-confirm: the request fires, and the row reverts with a message if it fails.
  */
 class ManagementPage {

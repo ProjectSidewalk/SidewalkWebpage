@@ -83,7 +83,7 @@ const entries = starts.map((match, i) => {
  * The vendor folder a doc entry describes, ignoring punctuation ('chart.js' → chart-js, 'infra3dapi' → infra3d).
  *
  * An exact name wins first, so 'i18next' takes its own folder rather than i18next-http-backend's; failing that the
- * longest contained folder name wins, which picks magnific-popup over jquery for an entry naming both. An entry whose
+ * longest contained folder name wins, so an entry naming two folders picks the more specific one. An entry whose
  * name lines up with no folder — its library ships inside another one's, or under a different name — says so by
  * naming that folder's path in its text.
  *

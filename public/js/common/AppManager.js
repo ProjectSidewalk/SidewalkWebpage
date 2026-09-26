@@ -99,19 +99,10 @@ class AppManager {
   }
 
   /**
-   * Set up CSRF token for all AJAX and fetch requests.
+   * Set up CSRF token for all fetch requests.
    * @private
    */
   _setupCSRF(csrfToken) {
-    // For the apps still on $.ajax; goes with the last of them (#4394).
-    if (window.jQuery) {
-      window.jQuery.ajaxSetup({
-        headers: {
-          'Csrf-Token': csrfToken,
-        },
-      });
-    }
-
     // Set up CSRF token for fetch requests by overwriting the fetch function. The token is only attached to
     // same-origin requests: Play's CSRF filter only checks requests to our own server, and a token signed by this
     // server is meaningless to anyone else. Attaching it to cross-origin requests (Mapbox, Mapillary, Infra3d,
