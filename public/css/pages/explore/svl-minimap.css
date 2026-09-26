@@ -10,6 +10,7 @@
   border: calc(1px * var(--ui-scale)) solid var(--color-neutral-400);
   border-radius: calc(12px * var(--ui-scale));
   overflow: hidden;
+  background-color: var(--color-map-land);
 }
 
 .minimap-pane {

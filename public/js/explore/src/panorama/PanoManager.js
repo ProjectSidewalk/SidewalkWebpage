@@ -268,9 +268,9 @@ class PanoManager {
 
     // Adds event listeners to the navigation arrows.
     svl.ui.streetview.navArrows.addEventListener('click', (event) => {
-      event.stopPropagation();
       // The tutorial's walk step puts its own click handler on the arrows and runs the move itself.
       if (svl.isOnboarding()) return;
+      event.stopPropagation();
       // A highlighted forward arrow that still carries a pano-id is a real link (just recolored to mark the route),
       // so it navigates like any link. Only the synthesized route-forward arrow (no pano-id, drawn when the link
       // graph offers nothing along the route) walks the compass's "straight" path via moveForward. (#4671)

@@ -13,9 +13,6 @@ class NavigationService {
   static DIST_INCREMENT = 0.01;
 
   #uiStreetview;
-  #properties = {
-    browser: 'unknown',
-  };
 
   #status = {
     disableWalking: false,
@@ -45,7 +42,6 @@ class NavigationService {
    */
   constructor(regionModel, uiStreetview) {
     this.#uiStreetview = uiStreetview;
-    this.#properties.browser = util.getBrowser();
   }
 
   /**
@@ -107,15 +103,6 @@ class NavigationService {
       this.#status.disableWalking = false;
     }
     return this;
-  }
-
-  /**
-   * Returns a value of a specified property.
-   * @param {string} prop - The property you want to get.
-   * @returns {*}
-   */
-  getProperty(prop) {
-    return (prop in this.#properties) ? this.#properties[prop] : false;
   }
 
   getStatus(key) {

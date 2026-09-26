@@ -197,6 +197,9 @@
   --color-place-marker: var(--color-asphalt-800);
   --color-place-marker-halo: var(--color-neutral-white);
 
+  /* Google's land-tile color, so a map holder matches the tiles before they load. */
+  --color-map-land: #E5E3DF;
+
   /* Font stacks. Mulish handles ~all type (body, UI, headings H3 and below); Raleway is reserved for top-level H1/H2
        and the Small-Accent style. Mulish doesn't ship CJK glyphs, so its stack ends with Traditional-Chinese system
        fonts (PingFang TC on macOS/iOS, Microsoft JhengHei on Windows; Linux/Android fall through via sans-serif). The

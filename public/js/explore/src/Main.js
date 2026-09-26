@@ -410,8 +410,6 @@ class Main {
   }
 
   #startTheMission(mission, region) {
-    svl.ui.minimap.holder.style.backgroundColor = '#e5e3df';
-
     // Popup the message explaining the goal of the current mission.
     if (svl.missionContainer.isTheFirstMission()) {
       region = svl.regionModel.currentRegion();
@@ -764,7 +762,6 @@ class Main {
       holder: byId('onboarding-holder'),
       messageHolder: byId('onboarding-message-holder'),
       background: byId('onboarding-background'),
-      foreground: byId('onboarding-foreground'),
       canvas: byId('onboarding-canvas'),
       handGestureHolder: byId('hand-gesture-holder'),
     };

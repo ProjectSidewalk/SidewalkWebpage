@@ -245,13 +245,29 @@ class ContextMenu {
   }
 
   /**
-   * The tag id a tag button currently stands for, read from its `tag-id-<n>` class (#setTags assigns them).
-   * @param {Element} button
+   * The tag id a tag button currently stands for (#setTags assigns them).
+   * @param {HTMLElement} button
    * @returns {number|undefined}
    */
   static #tagIdOf(button) {
-    const tagClass = Array.from(button.classList).find((c) => /^tag-id-\d+$/.test(c));
-    return tagClass ? parseInt(tagClass.match(/\d+/)[0], 10) : undefined;
+    return button.dataset.tagId ? parseInt(button.dataset.tagId, 10) : undefined;
+  }
+
+  /**
+   * The tag button at a position, made on the spot when a label type has more tags than the markup's buttons.
+   * @param {number} index
+   * @returns {HTMLButtonElement}
+   */
+  #tagButtonAt(index) {
+    if (!this.#tags[index]) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.name = 'tag';
+      button.addEventListener('click', (e) => this.#handleTagClick(e));
+      this.#tagHolder.append(button);
+      this.#tags.push(button);
+    }
+    return this.#tags[index];
   }
 
   /**
@@ -327,7 +343,9 @@ class ContextMenu {
   hide() {
     const wasOpen = this.isOpen();
     if (wasOpen) {
-      this.#descriptionTextBox.blur(); // Force the blur event before the ContextMenu close event.
+      // Every close logs a blur row ahead of the close row, whether or not the box had focus.
+      if (document.activeElement === this.#descriptionTextBox) this.#descriptionTextBox.blur();
+      else this.#handleDescriptionTextBoxBlur();
       svl.tracker.push('ContextMenu_Close');
     }
 
@@ -420,8 +438,7 @@ class ContextMenu {
   #setTagColor(label) {
     const labelTags = label.getProperty('tagIds');
     for (const tag of this.#tags) {
-      // Only the buttons #setTags filled in stand for a tag; the rest are hidden spares.
-      if (tag.textContent) tag.classList.toggle('tag-pill--active', labelTags.includes(ContextMenu.#tagIdOf(tag)));
+      tag.classList.toggle('tag-pill--active', labelTags.includes(ContextMenu.#tagIdOf(tag)));
     }
   }
 
@@ -430,7 +447,6 @@ class ContextMenu {
    * @param {Label} label - Current label being modified.
    */
   #setTags(label) {
-    const maxTags = 17;
     if (label) {
       const labelTags = this.labelTags;
       if (labelTags) {
@@ -439,14 +455,12 @@ class ContextMenu {
         // Go through each label tag, modify each button to display tag.
         labelTags.forEach((tag) => {
           if (tag.label_type === label.getProperty('labelType')) {
-            const button = this.#tagHolder.querySelector(`button[id="${count}"]`);
+            const button = this.#tagButtonAt(count);
 
             // Remove all leftover tags from last labeling.
             // Warning to future devs: will remove any other classes you add to the tags.
             button.className = 'context-menu-tag tag-pill tag-pill--interactive';
-
-            // Add tag id as a class so that finding the element is easier later.
-            button.classList.add(`tag-id-${tag.tag_id}`);
+            button.dataset.tagId = String(tag.tag_id);
 
             // Set tag texts to new underlined version as defined in the util label description map.
             const tagText = util.misc.getLabelDescriptions(tag.label_type).tagInfo[tag.tag].text;
@@ -510,12 +524,9 @@ class ContextMenu {
           }
         });
 
-        // If number of tags is less than the max number of tags, hide button.
-        for (let i = count; i < maxTags; i++) {
-          const spare = this.#tagHolder.querySelector(`button[id="${i}"]`);
-          if (spare) {
-            Object.assign(spare.style, { visibility: 'hidden', position: 'absolute', top: '0px', left: '0px' });
-          }
+        // Buttons this label type doesn't need are hidden, not removed, so the next label can reuse them.
+        for (const spare of this.#tags.slice(count)) {
+          Object.assign(spare.style, { visibility: 'hidden', position: 'absolute', top: '0px', left: '0px' });
         }
       }
     }

@@ -11,26 +11,24 @@ class HandAnimation {
   #closedHandReady = false;
   #imageObjOpenHand = new Image();
   #imageObjClosedHand = new Image();
-  #handGestureHolder;
 
   /**
    * @param {Record<string, HTMLElement>} uiOnboarding - Onboarding UI elements.
    */
   constructor(uiOnboarding) {
     this.#uiOnboarding = uiOnboarding;
-    this.#handGestureHolder = uiOnboarding.holder.querySelector('#hand-gesture-holder');
   }
 
   /**
    * Sets up the Kinetic stage and loads the open/closed hand images into it.
    */
   initializeHandAnimation() {
-    if (this.#handGestureHolder) {
+    if (this.#uiOnboarding.handGestureHolder) {
       this.hideGrabAndDragAnimation();
 
       if (!this.#stage) {
         this.#stage = new Kinetic.Stage({
-          container: this.#handGestureHolder,
+          container: this.#uiOnboarding.handGestureHolder,
           width: 720,
           height: 200,
         });

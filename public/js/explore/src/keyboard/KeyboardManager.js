@@ -234,7 +234,7 @@ class KeyboardManager {
           const tags = this.#contextMenu.labelTags.filter((tag) => tag.label_type === labelType);
           for (const tag of tags) {
             if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType).tagInfo[tag.tag].keyChar) {
-              document.querySelector(`.tag-id-${tag.tag_id}`)?.click();
+              document.querySelector(`[data-tag-id="${tag.tag_id}"]`)?.click();
             }
           }
         }

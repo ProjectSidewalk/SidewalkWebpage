@@ -18,35 +18,10 @@
 const fs = require('fs');
 const path = require('path');
 
+const { makeContextMenuUi } = require('./contextMenuUiStub');
 const CONTEXT_MENU_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/explore/src/canvas/ContextMenu.js'), 'utf8'
 );
-
-/**
- * The context menu's real markup, pared down to what ContextMenu wires up.
- * @returns {object} The `uiContextMenu` argument ContextMenu takes.
- */
-function makeContextMenuUi() {
-    const holder = document.createElement('div');
-    holder.innerHTML = `<img id="context-menu-icon"><span id="context-menu-type"></span>
-      <button id="context-menu-done"></button><button id="context-menu-delete"></button>`;
-    const radioButtons = [1, 2, 3].map((value) => {
-      const radio = document.createElement('input');
-      radio.type = 'radio';
-      radio.value = String(value);
-      return radio;
-    });
-    return {
-      holder,
-      severityMenu: document.createElement('div'),
-      severityRadioHolder: document.createElement('div'),
-      radioButtons,
-      textBox: document.createElement('input'),
-      tagHolder: document.createElement('div'),
-      tags: [],
-      closeButton: document.createElement('button'),
-    };
-}
 
 /** The label a menu opens for. Only the getters show()/hide() actually call are present. */
 function makeLabel({ labelType = 'CurbRamp' } = {}) {
@@ -94,6 +69,7 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
         window.svl = {
             canvas,
             tracker: { push: jest.fn() },
+            ribbon: { enableModeSwitch: jest.fn() }, keyboard: { setStatus: jest.fn() },
             isOnboarding: () => false,
             LABEL_ICON_RADIUS: 17,
             navigationService: { setStatus: jest.fn() },

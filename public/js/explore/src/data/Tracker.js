@@ -29,14 +29,13 @@ class Tracker {
   trackWindowEvents() {
     const prefix = 'LowLevelEvent_';
 
-    // Real pointer input only: a click fired from code (a shortcut pressing a tag button) has its own shortcut row.
     const mouseEvents = [
       'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove', 'click', 'contextmenu', 'dblclick',
     ];
     for (const type of mouseEvents) {
       document.addEventListener(type, (/** @type {MouseEvent} */ e) => {
-        if (!e.isTrusted) return;
-        this.push(prefix + e.type, { cursorX: e.pageX, cursorY: e.pageY });
+        // A keyboard shortcut's scripted click has no cursor; logging 0/0 would look like a real click in the corner.
+        this.push(prefix + e.type, { cursorX: e.isTrusted ? e.pageX : null, cursorY: e.isTrusted ? e.pageY : null });
       });
     }
 

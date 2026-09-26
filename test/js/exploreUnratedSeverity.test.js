@@ -8,37 +8,12 @@
 const fs = require('fs');
 const path = require('path');
 const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+const { makeContextMenuUi } = require('./contextMenuUiStub');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (file) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
 const CONTEXT_MENU_SRC = read('public/js/explore/src/canvas/ContextMenu.js');
 const KEYBOARD_MANAGER_SRC = read('public/js/explore/src/keyboard/KeyboardManager.js');
-
-/**
- * The context menu's real markup, pared down to what ContextMenu wires up.
- * @returns {object} The `uiContextMenu` argument ContextMenu takes.
- */
-function makeContextMenuUi() {
-  const holder = document.createElement('div');
-  holder.innerHTML = `<img id="context-menu-icon"><span id="context-menu-type"></span>
-    <button id="context-menu-done"></button><button id="context-menu-delete"></button>`;
-  const radioButtons = [1, 2, 3].map((value) => {
-    const radio = document.createElement('input');
-    radio.type = 'radio';
-    radio.value = String(value);
-    return radio;
-  });
-  return {
-    holder,
-    severityMenu: document.createElement('div'),
-    severityRadioHolder: document.createElement('div'),
-    radioButtons,
-    textBox: document.createElement('input'),
-    tagHolder: document.createElement('div'),
-    tags: [],
-    closeButton: document.createElement('button'),
-  };
-}
 
 /**
  * @param {string} labelType
@@ -78,7 +53,10 @@ describe('Explore severity shortcuts', () => {
     };
     installUtilitiesMisc();
     const canvas = { clear: () => canvas, render: () => canvas, getStatus: () => false };
-    window.svl = { canvas, tracker: { push: jest.fn() }, isOnboarding: () => false, LABEL_ICON_RADIUS: 17 };
+    window.svl = {
+      canvas, tracker: { push: jest.fn() }, ribbon: { enableModeSwitch: jest.fn() }, keyboard: { setStatus: jest.fn() },
+      isOnboarding: () => false, LABEL_ICON_RADIUS: 17,
+    };
 
     window.eval(`${CONTEXT_MENU_SRC}\n${KEYBOARD_MANAGER_SRC}\n`
       + 'window.ContextMenu = ContextMenu; window.KeyboardManager = KeyboardManager;');
