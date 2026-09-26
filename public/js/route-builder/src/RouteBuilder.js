@@ -106,9 +106,13 @@ class RouteBuilder {
   #directionsPanel;
   #routePopover;
 
+  // The on-map call-to-action for the pre-route stages, as a shared Toast held open for as long as its stage lasts.
+  #cta = null;
+  #ctaKey = null; // Message key of the stage the toast is showing (or was closed for), null once the route starts.
+  #ctaDismissed = new Set(); // Stage keys the user closed with the X, so returning to that stage doesn't re-raise it.
+
   // DOM elements.
   #panel;
-  #ctaEl;
   #deleteRouteModal;
   #streetDistanceEl;
   #routeTimeEl;
@@ -136,7 +140,6 @@ class RouteBuilder {
 
     // Get the DOM elements.
     this.#panel = document.getElementById('routebuilder-panel');
-    this.#ctaEl = document.getElementById('routebuilder-cta');
     this.#deleteRouteModal = document.getElementById('delete-route-modal-backdrop');
     this.#streetDistanceEl = document.getElementById('route-length-val');
     this.#routeTimeEl = document.getElementById('route-time-val');
@@ -434,20 +437,31 @@ class RouteBuilder {
   }
 
   /**
-   * Updates the on-map call-to-action for the pre-route stages: zoom in, then pick a start point. Once the
-   * route has started, guidance moves to the hint anchored at the newest flag (#showHint) and the pill hides.
+   * Keeps the on-map call-to-action in step with the pre-route stages: zoom in, then pick a start point. It is the
+   * shared Toast, so it looks and closes like every other notice, but held open rather than timed out: it describes
+   * what the next click does for as long as that stays true. A stage the user closed stays closed if they wander
+   * back to it (the X means "I know", not "not now"). Once the route has started, guidance moves to the hint
+   * anchored at the newest flag (#showHint) and the toast goes.
    */
   #updateCta() {
-    if (!this.#ctaEl) return;
-    if (!this.#routeStarted()) {
-      const key = this.#inOverview() ? 'cta-select-region' : 'cta-pick-start';
-      this.#ctaEl.innerHTML = `
-        <img src="${util.assetPath('images/icons/routebuilder/flag-start.svg')}" class="cta-flag" alt="">
-        <span>${i18next.t(key)}</span>`;
-      this.#ctaEl.hidden = false;
-    } else {
-      this.#ctaEl.hidden = true;
-    }
+    if (!this.#map) return;
+    let key = null;
+    if (!this.#routeStarted()) key = this.#inOverview() ? 'cta-select-region' : 'cta-pick-start';
+    if (key === this.#ctaKey) return;
+    this.#cta?.dismiss();
+    this.#cta = null;
+    this.#ctaKey = key;
+    if (key === null || this.#ctaDismissed.has(key)) return;
+    const stage = key === 'cta-select-region' ? 'SelectRegion' : 'PickStart';
+    this.#cta = Toast.show({
+      message: i18next.t(key),
+      reference: this.#map.getContainer(),
+      duration: 0,
+      onClose: () => {
+        this.#ctaDismissed.add(key);
+        window.logWebpageActivity(`RouteBuilder_Click=DismissCta_Stage=${stage}`);
+      },
+    });
   }
 
   /**

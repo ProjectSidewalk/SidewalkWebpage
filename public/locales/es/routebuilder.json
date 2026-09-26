@@ -1,5 +1,5 @@
 {
-  "cta-select-region": "Para empezar, acércate a donde quieras crear tu ruta: haz clic en un vecindario o busca una dirección.",
+  "cta-select-region": "Para empezar, haz clic en un vecindario o busca una dirección.",
   "cta-pick-start": "Haz clic en cualquier parte del mapa para colocar tu punto de inicio",
   "guide-select-region": "Haz clic para acercarte a {{region}}",
   "guide-pick-start": "Haz clic para empezar tu ruta",

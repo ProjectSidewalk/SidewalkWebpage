@@ -1,5 +1,5 @@
 {
-  "cta-select-region": "開始前，請將地圖放大到您想建立路線的地方：點擊社區，或搜尋地址。",
+  "cta-select-region": "開始前，請點擊一個社區或搜尋地址。",
   "cta-pick-start": "點擊地圖上的任意位置以放置起點",
   "guide-select-region": "點擊即可放大至{{region}}",
   "guide-pick-start": "點擊以開始您的路線",

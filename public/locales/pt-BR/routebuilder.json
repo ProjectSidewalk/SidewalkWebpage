@@ -1,5 +1,5 @@
 {
-  "cta-select-region": "Para começar, aproxime o mapa de onde você quer criar sua rota: clique em um bairro ou busque um endereço.",
+  "cta-select-region": "Para começar, clique em um bairro ou busque um endereço.",
   "cta-pick-start": "Clique em qualquer lugar do mapa para colocar seu ponto de partida",
   "guide-select-region": "Clique para aproximar o mapa de {{region}}",
   "guide-pick-start": "Clique para começar sua rota",
