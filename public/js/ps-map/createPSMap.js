@@ -53,7 +53,7 @@ function createPSMap(params) {
 
   // Create the map.
   let map;
-  const loadMapParams = fetchJson('/cityMapParams');
+  const loadMapParams = util.fetchJson('/cityMapParams');
   const mapLoaded = loadMapParams.then(createMap).then((newMap) => {
     map = newMap; // Assign the returned map to the map variable.
 
@@ -116,8 +116,8 @@ function createPSMap(params) {
     labelDataBounds = labelDataBounds ? labelDataBounds.extend(bounds) : bounds;
   };
   if (params.regionsURL && params.completionRatesURL) {
-    const loadRegions = fetchJson(params.regionsURL);
-    const loadCompletionRates = fetchJson(params.completionRatesURL);
+    const loadRegions = util.fetchJson(params.regionsURL);
+    const loadCompletionRates = util.fetchJson(params.completionRatesURL);
     renderRegions = Promise.all([mapLoaded, loadRegions, loadCompletionRates]).then((data) => {
       addRegionsToMap(map, data[1], data[2], params);
       extendLabelDataBounds(data[1]);
@@ -127,7 +127,7 @@ function createPSMap(params) {
   // Render deployment cities on the map if applicable.
   let renderCities;
   if (params.loadCities) {
-    const loadCities = fetchJson('/v3/api/cities?filetype=geojson');
+    const loadCities = util.fetchJson('/v3/api/cities?filetype=geojson');
     renderCities = Promise.all([mapLoaded, loadCities]).then((data) => {
       addCitiesToMap(map, data[1], params);
     });
@@ -136,7 +136,7 @@ function createPSMap(params) {
   // Render the streets on the map if applicable.
   let renderStreets;
   if (params.streetsURL) {
-    const loadStreets = fetchJson(params.streetsURL);
+    const loadStreets = util.fetchJson(params.streetsURL);
     renderStreets = Promise.all([mapLoaded, renderRegions, loadStreets]).then((data) => {
       extendLabelDataBounds(data[2]);
       return addStreetsToMap(map, data[2], params);

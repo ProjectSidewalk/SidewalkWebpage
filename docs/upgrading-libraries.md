@@ -276,9 +276,9 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   (bundler-only), so upgrading isn't worth it soon.
   [Download](https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js) ·
   [Changelog](https://github.com/mrdoob/three.js/releases)
-- **tom-select: 2.6.2** — the tag picker on Validate (the jQuery-free successor of selectize). We ship the `base`
-  build, which has no plugins, plus the unthemed `tom-select.min.css`; the picker's look comes from
-  `svv-validation-menu.css`. [Download (set version in URL)](https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/) ·
+- **tom-select: 2.6.2** — the tag picker on Validate. We ship the `base` build, which has no plugins, plus the
+  unthemed `tom-select.min.css`; the picker's look comes from `svv-validation-menu.css`.
+  [Download (set version in URL)](https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/) ·
   [Changelog](https://github.com/orchidjs/tom-select/releases)
 - **turf.js: 7.4.0** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.4.0/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
@@ -287,12 +287,10 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   together. **Note:** each has a major out (6 / 6 / 7) that we haven't looked at.
   [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
   [Changelog](https://github.com/vega/vega-lite/releases)
-- **jquery: 1.12.2** — **note:** never upgrade it; #4394 removes it outright, so a call site is replaced with native
-  DOM / `fetch` rather than kept on a newer jQuery.
 
-> **jQuery / Bootstrap removal:** the Bootstrap and jQuery entries above are part of a slow, deliberate transition
-> *off* jQuery and Bootstrap toward native JS/CSS (#4394). Prefer native alternatives in new code rather than leaning
-> further on these. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
+> **Bootstrap removal:** the Bootstrap entry above is the last leg of the move *off* jQuery and Bootstrap toward
+> native JS/CSS (#4394); jQuery is already gone, so never add it back. Prefer native alternatives in new code rather
+> than leaning further on Bootstrap. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## Python
 

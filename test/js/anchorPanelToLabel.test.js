@@ -6,9 +6,9 @@
  * the kind of thing that is painful to verify by eye in a browser and cheap to pin here — the flip, the clamps, and
  * the tail offset only misbehave at the edges, which is where a manual pass is least likely to look.
  *
- * The panel is a jQuery object in production. jsdom has no layout engine, so a real jQuery panel would measure
- * 0x0 and every assertion below would be about the wrong numbers; the tests pass a stub whose dimensions are stated
- * outright, which is what a geometry test wants anyway. The bounding elements are stubbed the same way.
+ * jsdom has no layout engine, so a real panel element would measure 0x0 and every assertion below would be about the
+ * wrong numbers; the tests pass a stub whose dimensions are stated outright, which is what a geometry test wants
+ * anyway. The bounding elements are stubbed the same way.
  */
 
 const fs = require('fs');

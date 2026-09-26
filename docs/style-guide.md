@@ -65,8 +65,8 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
 - **Write ES2022 for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals
   (`prefer-template`), object shorthand, and `===`/`!==` (`eqeqeq`). When you're editing a file that is *entirely*
   ES5, you may match its style for consistency — but prefer modernizing it. See the migration guidance in
-  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → `class` with `#private` fields; jQuery → native `fetch`;
-  Bootstrap → native JS/CSS as you touch that code).
+  [`CLAUDE.md`](../CLAUDE.md) (constructor-functions → `class` with `#private` fields; Bootstrap → native JS/CSS as
+  you touch that code).
 - **One declaration per statement** (`one-var: never`) — the opposite of the old comma-chained `var` style:
 
   ```js
@@ -329,7 +329,7 @@ Rules:
 - Use `@returns` (not `@return`) — that is the JSDoc standard (opposite of ScalaDoc).
 - Always include `{Type}` in `@param` and `@returns`.
 - Separate a `@param` name from its description with ` - `, and start `@param` and `@returns` descriptions with a
-  capital letter unless it opens with a code identifier (`this`, `true`, `jQuery`).
+  capital letter unless it opens with a code identifier (`this`, `true`, `util`).
 - Write types TypeScript-style: `object` and `string` (not `Object`/`String`), `Record<string, number>` for a map,
   and an arrow signature like `(id: number) => void` (not Closure's `function(number)`, which TypeScript can't read)
   for a callback.

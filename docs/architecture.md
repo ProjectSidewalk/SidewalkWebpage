@@ -15,7 +15,7 @@ aggregated, scored, and served back out through a public API and a set of dashbo
 - **Backend** — Scala 2.13 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
 - **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenation only —
-  no transpilation/module system). Migrating off jQuery and Bootstrap.
+  no transpilation/module system). Migrating off Bootstrap.
 - **Dev/runtime** — everything runs in Docker.
 
 ## System at a glance

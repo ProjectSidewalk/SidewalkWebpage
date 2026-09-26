@@ -2,43 +2,20 @@
  * ESLint rule: an `i18next.t()` call that interpolates values and lands in an HTML sink must say, at the call site,
  * whether i18next escapes those values (#5389).
  *
- * `AppManager._setupI18next` sets `interpolation.escapeValue: false`, because the overwhelming majority of these
- * strings reach a text node, an `aria-label` or a `confirm()`, where escaping prints `&#39;` at the reader. The price
- * of that default is that a value bound for `innerHTML` is not escaped for free, so a street name out of OSM or a
- * story a labeler typed would reach markup verbatim. This rule is what keeps that from happening silently: in a
- * markup-shaped position the choice has to be written down, either way.
+ * `AppManager._setupI18next` turns `interpolation.escapeValue` off site-wide, because nearly every translated string
+ * reaches a text node, an `aria-label` or a `confirm()`, where escaping would print `&#39;` at the reader. The cost
+ * is that a value bound for `innerHTML` (a street name from OSM, a story a labeler typed) is not escaped for free,
+ * so in a markup-shaped position the choice has to be written down, either way.
  *
- * **It is a tripwire, not a proof.** Measured against #5389's own audit — strip each `escapeValue: true` this
- * codebase carries and re-lint — it reproduces **19 of 45** decisions. The audit is the guarantee; this catches the
- * shapes a new call is most likely to take, and the blind spots below are why it cannot catch the rest.
+ * Markup-shaped, syntactically: an assignment to `.innerHTML` / `.outerHTML`; an argument to `.insertAdjacentHTML()`
+ * or a MapLibre popup's `.setHTML()`; `setAttribute('data-ps-tooltip', …)`, which `psTooltip.js` renders as HTML;
+ * or any of those reached through a template literal, a concatenation, a ternary, a pass-through string method, a
+ * joined array or `map`/`flatMap` callback, or a local variable.
  *
- * What counts as markup-shaped, syntactically:
- *   - the right-hand side of an assignment to `.innerHTML` / `.outerHTML`;
- *   - an argument to `.insertAdjacentHTML()`, `.setHTML()` (MapLibre popups), `.html()`, `.appendTo()`,
- *     `.prependTo()`, `.insertAfter()`, `.insertBefore()`, `.wrap()`, `.wrapInner()`, or to `$()` / `jQuery()`;
- *   - an argument to `.append()`, `.prepend()`, `.before()`, `.after()`, `.replaceWith()` **on a jQuery-shaped
- *     receiver only** — the native DOM methods of those names insert text, and so do `URLSearchParams.append` and
- *     `FormData.append`;
- *   - `setAttribute('data-ps-tooltip', …)` / `.attr('data-ps-tooltip', …)`, since `psTooltip.js` writes that
- *     attribute into the tooltip card's `innerHTML`;
- *   - any of the above reached through a template literal, a `+` concatenation, a ternary, a pass-through string
- *     method (`replace`, `slice`, `toUpperCase`, …), an array literal or a `map`/`flatMap` callback that is
- *     joined, or a local variable whose reads all live in the same function.
- *
- * What it deliberately does NOT catch, because a syntactic rule cannot follow it without guessing:
- *   - a string returned from an ordinary function whose caller builds the markup (`streetTitle()` in AccessScore's
- *     map) — this is why `access-score/src/main.js` contributes 0 of its 15 decisions;
- *   - a string stored on an object property or `this`, and rendered by something else later;
- *   - a string handed to a helper that inserts HTML itself (`showAlert()`, `PopUpMessage.notify()`);
- *   - a jQuery object reached by a name that does not look like one (`menuUI.template.parent().append(…)`);
- *   - an attribute that is markup only because of how it is initialized elsewhere — a `title` on a Bootstrap
- *     tooltip built with `html: true` (`RibbonMenu.js`), which no attribute name can distinguish from a plain one;
- *   - `i18next.t` behind an alias or a wrapper, `i18next?.t(…)`, or `el['innerHTML'] = …`.
- * Those flows were audited by hand once, in #5389; `docs/internationalization.md` carries the rule a reviewer
- * applies to a new one. Widening this rule to chase them would mean either cross-file type inference or an
- * allowlist of "HTML-ish" helper names, and an allowlist that drifts is worse than a documented boundary.
- *
- * @see docs/internationalization.md ("Interpolated values and HTML")
+ * It is a tripwire, not a proof. It follows syntax only, so a string returned from a function, parked on an object
+ * property, handed to a helper that inserts HTML (`showAlert()`), or produced by an alias of `i18next.t` goes
+ * unseen. Those flows are reviewed by hand (docs/internationalization.md, "Interpolated values and HTML"); widening
+ * the rule to guess at them would need cross-file inference or an allowlist that drifts.
  */
 
 'use strict';
@@ -57,18 +34,12 @@ const I18NEXT_OPTION_KEYS = new Set([
   'keySeparator', 'parseMissingKeyHandler',
 ]);
 
-/** Methods whose string argument is parsed as HTML whatever the receiver is. */
-const MARKUP_METHODS = new Set([
-  'html', 'insertAdjacentHTML', 'setHTML', 'appendTo', 'prependTo', 'insertAfter', 'insertBefore', 'wrap',
-  'wrapInner',
-]);
-
 /**
- * Methods that parse HTML on a jQuery object and insert *text* on a native one — `Element.append`, `before`,
- * `after`, `replaceWith`, and `URLSearchParams`/`FormData.append`, which are not markup at all. They only count
- * with a jQuery-shaped receiver: telling someone at a text sink to turn escaping on is the very bug #5389 fixed.
+ * Methods whose string argument is parsed as HTML. `Element.append`, `before`, `after` and `replaceWith` are not
+ * here on purpose: they insert text, and telling someone at a text sink to turn escaping on is the very bug #5389
+ * fixed.
  */
-const JQUERY_MARKUP_METHODS = new Set(['append', 'prepend', 'before', 'after', 'replaceWith']);
+const MARKUP_METHODS = new Set(['insertAdjacentHTML', 'setHTML']);
 
 /** Element properties whose assigned value is parsed as HTML. */
 const MARKUP_PROPERTIES = new Set(['innerHTML', 'outerHTML']);
@@ -127,33 +98,6 @@ function declaresEscapeValue(node) {
       return innerName === 'escapeValue';
     });
   });
-}
-
-/**
- * Whether an expression looks like a jQuery object rather than a DOM node.
- *
- * `$(…)` / `jQuery(…)`, a `$`-prefixed name (`$tagDiv`, `this.#$holder`), or a chain off either — the conventions
- * this codebase actually writes. A jQuery object reached some other way (`menuUI.template.parent()`) reads as
- * native here, so the rule stays quiet rather than reporting a sink it cannot identify.
- *
- * @param {object} node - The receiver of the method call.
- * @param {number} depth - Chain links walked so far.
- * @returns {boolean} True when the receiver is jQuery-shaped.
- */
-function isJQueryReceiver(node, depth = 0) {
-  if (!node || depth > 6) return false;
-  switch (node.type) {
-    case 'Identifier': case 'PrivateIdentifier':
-      return node.name.startsWith('$');
-    case 'CallExpression':
-      if (node.callee.type === 'Identifier') return node.callee.name === '$' || node.callee.name === 'jQuery';
-      return node.callee.type === 'MemberExpression' && isJQueryReceiver(node.callee.object, depth + 1);
-    case 'MemberExpression':
-      if (!node.computed && isJQueryReceiver(node.property, depth + 1)) return true;
-      return isJQueryReceiver(node.object, depth + 1);
-    default:
-      return false;
-  }
 }
 
 /**
@@ -245,15 +189,13 @@ module.exports = {
         case 'CallExpression': {
           if (parent.callee === node) return false;
           const callee = parent.callee;
-          if (callee.type === 'Identifier') return callee.name === '$' || callee.name === 'jQuery';
           if (callee.type !== 'MemberExpression' || callee.computed || callee.property.type !== 'Identifier') {
             return false;
           }
           const method = callee.property.name;
           if (MARKUP_METHODS.has(method)) return true;
-          if (JQUERY_MARKUP_METHODS.has(method)) return isJQueryReceiver(callee.object);
-          // `setAttribute('data-ps-tooltip', tip)` and jQuery's `.attr(…)` twin: markup only for those attributes.
-          if ((method === 'setAttribute' || method === 'attr') && parent.arguments[1] === node) {
+          // `setAttribute('data-ps-tooltip', tip)`: markup only for those attributes.
+          if (method === 'setAttribute' && parent.arguments[1] === node) {
             return isMarkupAttributeName(parent.arguments[0]);
           }
           // `parts.push(html)` keeps the value alive in `parts`, which is usually joined into markup next.

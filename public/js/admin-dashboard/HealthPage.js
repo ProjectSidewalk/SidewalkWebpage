@@ -37,16 +37,6 @@ class HealthPage {
   }
 
   /**
-   * @param {string} url
-   * @returns {Promise<Record<string, any>>} Parsed JSON body.
-   */
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed: ${resp.status}`);
-    return resp.json();
-  }
-
-  /**
    * Fetches the payload and repaints every panel; on failure marks the pulse without blanking prior data. Guards
    * against overlapping polls: if a fetch is already in flight (e.g. the endpoint is slow under load, or a
    * visibilitychange fires mid-poll), this returns immediately rather than stacking a second concurrent request onto
@@ -56,7 +46,7 @@ class HealthPage {
     if (this.#loading) return;
     this.#loading = true;
     try {
-      const data = await this.#fetchJson(this.#healthUrl);
+      const data = await util.fetchJson(this.#healthUrl);
       // Age is measured from the client clock at response receipt, not the server's generated_at timestamp, so
       // browser/server clock skew can't distort the "updated Ns ago" readout.
       this.#lastUpdatedMs = Date.now();

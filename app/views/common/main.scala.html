@@ -140,8 +140,6 @@
         window.appManager.init(csrfToken, i18nextParams, globals);
       });
     </script>
-    @* Loaded after the init script so every page's `$(fn)` runs after it. Goes with the last app on jQuery (#4394). *@
-    <script src='@assets.path("vendor/jquery/jquery-1.12.2.min.js")'></script>
       <!-- Banner is only visible if user is on local/test server-->
     @if(commonData.environmentType != "prod") {
       <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">

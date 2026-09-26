@@ -397,13 +397,6 @@ class AdminShell {
     return isNaN(t) ? 0 : t;
   }
 
-  /** @returns {Promise<any>} The endpoint's parsed JSON body. */
-  static async fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
-  }
-
   /**
    * Throws an Error carrying the server's message on a non-2xx response, so the caller can say why it didn't happen.
    *

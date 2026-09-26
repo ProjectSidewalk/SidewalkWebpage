@@ -65,9 +65,9 @@ class ActivityPage {
       // The contribution-time stats are a non-critical all-time summary, so a failure there shouldn't blank the
       // whole page — swallow it to null and leave its tiles as placeholders.
       const [seriesResp, recentResp, timeResp] = await Promise.all([
-        this.#fetchJson(this.#seriesUrl),
-        this.#fetchJson(this.#recentUrl),
-        this.#fetchJson(this.#contributionTimeUrl).catch((err) => {
+        util.fetchJson(this.#seriesUrl),
+        util.fetchJson(this.#recentUrl),
+        util.fetchJson(this.#contributionTimeUrl).catch((err) => {
           console.error('Activity page: contribution-time stats failed to load.', err);
           return null;
         }),
@@ -82,12 +82,6 @@ class ActivityPage {
       console.error('Activity page failed to load:', err);
       this.#setStatus('Could not load activity. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   /** Everything that depends on the range/bucket toggles — re-run on toggle without refetching. */
