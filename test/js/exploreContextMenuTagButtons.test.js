@@ -1,8 +1,6 @@
 /**
- * The context menu grows its tag buttons to fit the label type (public/js/explore/src/canvas/ContextMenu.js).
- *
- * The markup ships a fixed row of tag buttons, and some cities give Obstacle more tags than that. Each extra tag
- * gets a button of its own, wired up like the rest, instead of being dropped or crashing the menu open.
+ * The context menu builds its tag buttons from the label type's tags (public/js/explore/src/canvas/ContextMenu.js),
+ * so a city with an unusually long tag list gets every tag, and each button is wired up like the rest.
  */
 
 const fs = require('fs');
@@ -51,40 +49,33 @@ describe('ContextMenu tag buttons', () => {
 
         window.eval(`${CONTEXT_MENU_SRC}\nwindow.ContextMenu = ContextMenu;`);
         ui = makeContextMenuUi();
-        // The markup's row holds two buttons here; the label type below needs three.
-        for (let i = 0; i < 2; i++) {
-            const button = document.createElement('button');
-            ui.tagHolder.append(button);
-            ui.tags.push(button);
-        }
         menu = new window.ContextMenu(ui);
         window.svl.contextMenu = menu;
-        menu.labelTags = [1, 2, 3].map((id) => ({ tag_id: id, label_type: 'Obstacle', tag: 'trash/recycling can' }));
+        menu.labelTags = [
+            ...[1, 2, 3].map((id) => ({ tag_id: id, label_type: 'Obstacle', tag: 'trash/recycling can' })),
+            { tag_id: 4, label_type: 'CurbRamp', tag: 'narrow' },
+        ];
     });
 
     afterEach(() => menu.hide());
 
-    test('a label type with more tags than buttons gets a button per tag', () => {
+    test('a label gets one button per tag of its type, each toggling its tag', () => {
         menu.show(makeLabel('Obstacle'));
 
         const buttons = Array.from(ui.tagHolder.querySelectorAll('button'));
         expect(buttons.map((b) => b.dataset.tagId)).toEqual(['1', '2', '3']);
-        expect(buttons.every((b) => b.style.visibility === 'inherit')).toBe(true);
 
-        // The grown button toggles its tag like the originals do.
         buttons[2].click();
         expect(menu.getTargetLabel().getProperty('tagIds')).toEqual([3]);
         expect(buttons[2].classList.contains('tag-pill--active')).toBe(true);
     });
 
-    test('buttons a smaller label type does not need are hidden, not removed', () => {
+    test('opening a label of another type rebuilds the row for that type', () => {
         menu.show(makeLabel('Obstacle'));
         menu.hide();
-        menu.labelTags = menu.labelTags.slice(0, 1);
-        menu.show(makeLabel('Obstacle'));
+        menu.show(makeLabel('CurbRamp'));
 
         const buttons = Array.from(ui.tagHolder.querySelectorAll('button'));
-        expect(buttons).toHaveLength(3);
-        expect(buttons.map((b) => b.style.visibility)).toEqual(['inherit', 'hidden', 'hidden']);
+        expect(buttons.map((b) => b.dataset.tagId)).toEqual(['4']);
     });
 });

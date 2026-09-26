@@ -752,7 +752,6 @@ class Main {
       radioButtons: Array.from(document.querySelectorAll('input[name=\'label-severity\']')),
       tagSection: byId('context-menu-tag-section'),
       tagHolder: byId('context-menu-tag-holder'),
-      tags: Array.from(document.querySelectorAll('button[name=\'tag\']')),
       textBox: byId('context-menu-description-text-box'),
       closeButton: byId('context-menu-close-button'),
     };

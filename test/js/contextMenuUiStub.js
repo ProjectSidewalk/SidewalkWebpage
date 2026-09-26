@@ -19,7 +19,6 @@ function makeContextMenuUi() {
         radioButtons,
         textBox: document.createElement('input'),
         tagHolder: document.createElement('div'),
-        tags: [],
         closeButton: document.createElement('button'),
     };
 }

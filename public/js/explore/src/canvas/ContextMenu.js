@@ -21,13 +21,13 @@ class ContextMenu {
   #headerIcon;
   #headerType;
   #tagHolder;
-  #tags;
+  #tags = [];
   #shareWidget = null;
 
   /**
    * @param {{holder: HTMLElement, severityMenu: HTMLElement, severityRadioHolder: HTMLElement,
    *   radioButtons: HTMLInputElement[], textBox: HTMLInputElement, tagHolder: HTMLElement,
-   *   tags: HTMLButtonElement[], closeButton: HTMLElement}} uiContextMenu - The context menu's DOM elements.
+   *   closeButton: HTMLElement}} uiContextMenu - The context menu's DOM elements.
    */
   constructor(uiContextMenu) {
     this.#menuWindow = uiContextMenu.holder;
@@ -38,7 +38,6 @@ class ContextMenu {
     this.#headerIcon = this.#menuWindow.querySelector('#context-menu-icon');
     this.#headerType = this.#menuWindow.querySelector('#context-menu-type');
     this.#tagHolder = uiContextMenu.tagHolder;
-    this.#tags = uiContextMenu.tags;
     this.#initShareWidget();
 
     document.addEventListener('mousedown', (e) => this.#handleMouseDown(e));
@@ -52,7 +51,6 @@ class ContextMenu {
       ?.addEventListener('click', () => this.#handleDoneButtonClick());
     this.#menuWindow.querySelector('#context-menu-delete')
       ?.addEventListener('click', () => this.#handleDeleteButtonClick());
-    for (const tag of this.#tags) tag.addEventListener('click', (e) => this.#handleTagClick(e));
   }
 
   /**
@@ -254,23 +252,6 @@ class ContextMenu {
   }
 
   /**
-   * The tag button at a position, made on the spot when a label type has more tags than the markup's buttons.
-   * @param {number} index
-   * @returns {HTMLButtonElement}
-   */
-  #tagButtonAt(index) {
-    if (!this.#tags[index]) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.name = 'tag';
-      button.addEventListener('click', (e) => this.#handleTagClick(e));
-      this.#tagHolder.append(button);
-      this.#tags.push(button);
-    }
-    return this.#tags[index];
-  }
-
-  /**
    * Records tag ID when clicked and updates tag color.
    * @param {MouseEvent} e
    */
@@ -443,33 +424,28 @@ class ContextMenu {
   }
 
   /**
-   * Sets the description and value of the tag based on the label type.
+   * Builds one tag button per tag of the label's type.
    * @param {Label} label - Current label being modified.
    */
   #setTags(label) {
+    this.#tags = [];
+    this.#tagHolder.replaceChildren();
     if (label) {
       const labelTags = this.labelTags;
       if (labelTags) {
-        let count = 0;
-
-        // Go through each label tag, modify each button to display tag.
         labelTags.forEach((tag) => {
           if (tag.label_type === label.getProperty('labelType')) {
-            const button = this.#tagButtonAt(count);
-
-            // Remove all leftover tags from last labeling.
-            // Warning to future devs: will remove any other classes you add to the tags.
+            const button = document.createElement('button');
+            button.type = 'button';
             button.className = 'context-menu-tag tag-pill tag-pill--interactive';
             button.dataset.tagId = String(tag.tag_id);
 
             // Set tag texts to new underlined version as defined in the util label description map.
             const tagText = util.misc.getLabelDescriptions(tag.label_type).tagInfo[tag.tag].text;
             button.innerHTML = `<span class="tag-pill__label">${tagText}</span>`;
-            button.style.visibility = 'inherit';
-            button.style.position = 'inherit';
-
-            // Remove old tooltip for that button.
-            button.removeAttribute('data-ps-tooltip');
+            button.addEventListener('click', (e) => this.#handleTagClick(e));
+            this.#tagHolder.append(button);
+            this.#tags.push(button);
 
             // Add tooltip with tag example if we have an example image to show.
             // If there's a server-specific image, try that first. Get default image as a backup.
@@ -519,15 +495,8 @@ class ContextMenu {
                 'data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
               );
             });
-
-            count += 1;
           }
         });
-
-        // Buttons this label type doesn't need are hidden, not removed, so the next label can reuse them.
-        for (const spare of this.#tags.slice(count)) {
-          Object.assign(spare.style, { visibility: 'hidden', position: 'absolute', top: '0px', left: '0px' });
-        }
       }
     }
   }
