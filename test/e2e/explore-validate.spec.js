@@ -61,6 +61,25 @@ test('/validate renders the primary viewer when the pano is still served', async
   if (onMission) await expectPanoRendered(page, '/validate', 'gsv');
 });
 
+test('/validate opens and closes the image adjustments panel', async ({page, consoleErrors}) => {
+  const onMission = await loadValidate(page, '/validate');
+  // The no-mission path never builds the tool, so there is no panel to open.
+  test.skip(!onMission, 'no mission assigned, so the image adjustments panel is not wired');
+  const pill = page.locator('#validate-control-image');
+  const panel = page.locator('#pano-image-adjustments');
+  await expect(pill).toBeAttached();
+  // Opened through the popover rather than a click: the mission-start tutorial overlay covers the pill, and
+  // dismissing it is pano interaction this suite stays out of.
+  await page.evaluate(() => window.svv.imageAdjustmentsPopover.open());
+  await expect(panel).toBeVisible();
+  await expect(pill).toHaveAttribute('aria-expanded', 'true');
+  // open() focuses the first slider, so this Escape also crosses KeyboardManager's scope for the panel (#5501).
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await expect(pill).toHaveAttribute('aria-expanded', 'false');
+  expect(consoleErrors).toEqual([]);
+});
+
 /**
  * Loads `/validate` or `/mobile` and settles it.
  * @param {import('@playwright/test').Page} page The test's page.
