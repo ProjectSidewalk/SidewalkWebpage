@@ -283,13 +283,15 @@ class ContributorsPage {
   static #labelTypeBar(typeCounts) {
     const total = typeCounts.reduce((s, t) => s + (t.count || 0), 0);
     if (!total) return '<span class="dq-sub">—</span>';
-    const segs = typeCounts.map((t) => {
+    const tips = typeCounts.map((t) => {
       const pct = Math.round((t.count / total) * 100);
-      const title = `${t.label_type}: ${(t.count || 0).toLocaleString()} (${pct}%)`;
-      return `<span class="contrib-typeseg" style="width:${(t.count / total) * 100}%;`
-        + `background:${ContributorsPage.#typeColor(t.label_type)}" title="${ContributorsPage.#esc(title)}"></span>`;
-    }).join('');
-    return `<span class="contrib-typebar">${segs}</span>`;
+      return `${t.label_type}: ${(t.count || 0).toLocaleString()} (${pct}%)`;
+    });
+    const segs = typeCounts.map((t, i) => `<span class="contrib-typeseg"
+      style="width:${(t.count / total) * 100}%;background:${ContributorsPage.#typeColor(t.label_type)}"
+      data-ps-tooltip="${AdminShell.tooltipAttr(tips[i])}"></span>`).join('');
+    const summary = ContributorsPage.#esc(tips.join(', '));
+    return `<span class="contrib-typebar" role="img" aria-label="${summary}">${segs}</span>`;
   }
 
   /**
@@ -311,14 +313,13 @@ class ContributorsPage {
       byLevel.set(level, byLevel.get(level) + (s.count || 0));
     }
     const max = Math.max(1, ...byLevel.values());
-    const bars = [1, 2, 3].map((level) => {
+    const tips = [1, 2, 3].map((level) => {
       const count = byLevel.get(level);
-      const pct = Math.round((count / total) * 100);
-      const title = `Severity ${level}: ${count.toLocaleString()} (${pct}%)`;
-      return `<span class="contrib-sevbar" title="${ContributorsPage.#esc(title)}">`
-        + `<span style="height:${Math.round((count / max) * 100)}%"></span></span>`;
-    }).join('');
-    return `<span class="contrib-sevdist" aria-label="Severity distribution (1 to 3)">${bars}</span>`;
+      return `Severity ${level}: ${count.toLocaleString()} (${Math.round((count / total) * 100)}%)`;
+    });
+    const bars = [1, 2, 3].map((level, i) => `<span class="contrib-sevbar" data-ps-tooltip="${tips[i]}">
+      <span style="height:${Math.round((byLevel.get(level) / max) * 100)}%"></span></span>`).join('');
+    return `<span class="contrib-sevdist" role="img" aria-label="${tips.join(', ')}">${bars}</span>`;
   }
 
   /**
@@ -333,12 +334,14 @@ class ContributorsPage {
   static #verdictBar(agree, disagree, unsure) {
     const total = agree + disagree + unsure;
     if (!total) return '<span class="dq-sub">—</span>';
+    const tip = (value, label) => `${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`;
     const seg = (value, cls, label) => (value
-      ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%" `
-      + `title="${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)"></span>`
+      ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%"
+          data-ps-tooltip="${tip(value, label)}"></span>`
       : '');
+    const summary = [tip(agree, 'Agree'), tip(disagree, 'Disagree'), tip(unsure, 'Unsure')].join(', ');
     const bar = [
-      '<span class="contrib-verdictbar">',
+      `<span class="contrib-verdictbar" role="img" aria-label="${summary}">`,
       seg(agree, 'is-agree', 'Agree'),
       seg(disagree, 'is-disagree', 'Disagree'),
       seg(unsure, 'is-unsure', 'Unsure'),

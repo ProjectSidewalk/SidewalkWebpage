@@ -277,8 +277,10 @@ class DataQualityPage {
             const n = c[s] || 0;
             const share = c.total ? Math.round((n / c.total) * 100) : 0;
             const opacity = (0.1 + 0.9 * (n / rowMax)).toFixed(2); // row-normalized intensity
-            const title = `${tag} · severity ${s}: ${n.toLocaleString()} (${share}% of this tag)`;
-            return `<div class="dq-heat-cell" title="${DataQualityPage.#esc(title)}"
+            const tip = `${tag} · severity ${s}: ${n.toLocaleString()} (${share}% of this tag)`;
+            // No tab stop per cell: a tag grid runs to hundreds of them, and the label covers screen readers.
+            return `<div class="dq-heat-cell" role="img" aria-label="${DataQualityPage.#esc(tip)}"
+                            data-ps-tooltip="${AdminShell.tooltipAttr(tip)}"
                             style="background:${color};opacity:${opacity}"></div>`;
           }).join('');
           return [

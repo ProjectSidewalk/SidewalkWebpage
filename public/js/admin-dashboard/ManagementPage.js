@@ -123,9 +123,10 @@ class ManagementPage {
       const isSorted = c.key === this.#sort.key;
       const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
-      const title = c.help ? ` title="${ManagementPage.#esc(c.help)}"` : '';
-      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}"${title}>`
-        + `<button type="button" class="mgmt-sort" data-key="${c.key}">${ManagementPage.#esc(c.label)}`
+      // On the button, not the <th>: the button is what takes focus, so only it can carry the description.
+      const tip = c.help ? ` data-ps-tooltip="${ManagementPage.#esc(c.help)}"` : '';
+      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}">`
+        + `<button type="button" class="mgmt-sort" data-key="${c.key}"${tip}>${ManagementPage.#esc(c.label)}`
         + `<span class="mgmt-arrow">${arrow}</span></button></th>`;
     }).join('');
     const head = `<tr>${headCells}</tr>`;
@@ -477,9 +478,9 @@ class ManagementPage {
       ? '<span class="contrib-badge contrib-badge--high">High</span>'
       : '<span class="contrib-badge contrib-badge--low">Low</span>';
     const manual = u.highQualityManual !== null && u.highQualityManual !== undefined;
-    return manual
-      ? `${badge} <span class="mgmt-manual-tag" title="Quality set manually by an admin">manual</span>`
-      : badge;
+    if (!manual) return badge;
+    return `${badge} <span class="mgmt-manual-tag" tabindex="0"
+      data-ps-tooltip="Quality set manually by an admin">manual</span>`;
   }
 
   /** "92% of 120", or "—" when there's nothing validated to base the rate on. */
