@@ -1287,7 +1287,6 @@ button.label-detail__meta-cell:focus-visible {
   background: rgb(255 255 255 / 55%);
   color: var(--color-neutral-500);
   box-shadow: none;
-  cursor: not-allowed;
 }
 
 .label-detail__paging:focus-visible {

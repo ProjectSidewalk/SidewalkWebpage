@@ -431,13 +431,15 @@ class MissionStartTutorial {
       }
     };
 
-    document.querySelector('.previous-slide-button').addEventListener('click', () => {
+    document.querySelector('.previous-slide-button').addEventListener('click', (e) => {
+      if (/** @type {HTMLElement} */ (e.currentTarget).classList.contains('is-disabled')) return;
       this.#currentSlideIdx = Math.max(this.#currentSlideIdx - 1, 0);
       this.#renderSlide(this.#currentSlideIdx);
       this.#svvOrsvl.tracker.push('PreviousSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
     }, { signal });
 
-    document.querySelector('.next-slide-button').addEventListener('click', () => {
+    document.querySelector('.next-slide-button').addEventListener('click', (e) => {
+      if (/** @type {HTMLElement} */ (e.currentTarget).classList.contains('is-disabled')) return;
       this.#currentSlideIdx = Math.min(this.#currentSlideIdx + 1, this.#nSlides - 1);
       this.#renderSlide(this.#currentSlideIdx);
       this.#svvOrsvl.tracker.push('NextSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);

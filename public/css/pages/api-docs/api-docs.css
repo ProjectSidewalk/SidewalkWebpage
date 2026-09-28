@@ -221,7 +221,12 @@ pre > code.language-csv {
   text-align: center;
 }
 
-.download-btn:hover {
+/* Busy during a download: `aria-disabled` keeps keyboard focus on the button, so the styles have to say it's off. */
+.download-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+.download-btn:not([aria-disabled="true"]):hover {
   background-color: var(--color-neutral-100);
   border-color: var(--color-neutral-400);
   transform: translateY(-2px);

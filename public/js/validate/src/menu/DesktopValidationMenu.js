@@ -482,8 +482,7 @@ class DesktopValidationMenu {
 
     menuUI.currentTags.replaceChildren();
     const currTags = label.getProperty('newTags');
-    const tagTemplateEl = /** @type {HTMLTemplateElement} */ (document.getElementById('current-tag-template'));
-    const tagTemplate = tagTemplateEl.content.firstElementChild;
+    const tagTemplate = menuUI.currentTagTemplate.content.firstElementChild;
     for (const tag of currTags) {
       const tagOption = allTagOptions.find((t) => t.tag_name === tag);
       if (!tagOption) {
@@ -553,9 +552,9 @@ class DesktopValidationMenu {
         ...aiAddTagOptions.map((t) => ({ ...t, action: 'add' })),
         ...aiRemoveTagOptions.map((t) => ({ ...t, action: 'remove' })),
       ];
+      const suggestionTemplate = menuUI.aiSuggestedTagTemplate.content.firstElementChild;
       for (const tag of aiTagOptions) {
         // Clone the template tag element, and set all appropriate classes.
-        const suggestionTemplate = menuUI.aiSuggestedTagTemplate.content.firstElementChild;
         const suggestion = /** @type {HTMLElement} */ (suggestionTemplate.cloneNode(true));
         suggestion.classList.add(tag.action === 'add' ? 'to-add' : 'to-remove');
 

@@ -191,9 +191,9 @@ consistent with it.
   Because of those two exceptions, the htmlhint `id-class-value` rule is left **off** — its `dash` mode enforces strict
   kebab-case and can express neither BEM nor the backend-sourced values, so it can't be brought to zero. New markup
   should still default to kebab-case.
-- **State classes → `is-*`** (`is-active`, `is-open`, `is-chosen`, `is-highlighted`), toggled from JS and always
-  styled scoped to their component (`.navbar-item.is-open`). A bare word like `active` is a global name that an
-  unscoped rule or a vendor library can hit.
+- **State classes → `is-*`** (`is-active`, `is-open`, `is-chosen`, `is-highlighted`), toggled from JS and styled
+  scoped to their component (`.navbar-item.is-open`). A bare word like `active` is a global name that an unscoped
+  rule or a vendor library can hit. The one global state class is `.is-disabled` (below).
 - **Switched-off controls** get their "not allowed" cursor from one rule in `main.css`. A button or input takes the
   `disabled` attribute; a control that would strand a keyboard user by losing focus when it switches itself off (the
   pano zoom buttons) takes `aria-disabled="true"` and checks it in its click handler; anything else takes

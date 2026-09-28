@@ -105,6 +105,7 @@ class Main {
       mobilePopupNotch: byId('mobile-popup-notch'),
       currentTags: byId('current-tags-list'),
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
+      currentTagTemplate: byId('current-tag-template'),
       aiSuggestedTagTemplate: byId('sidewalk-ai-suggested-tag-template'),
     };
 

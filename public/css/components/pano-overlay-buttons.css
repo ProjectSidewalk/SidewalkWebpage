@@ -92,10 +92,6 @@
   background-color: var(--color-asphalt-400);
 }
 
-.pano-overlay-button:disabled {
-  opacity: 0.5;
-}
-
 /* The pills sit on imagery, so the ring is white rather than the page's blue; only keyboard focus draws it. */
 .pano-overlay-button:focus-visible {
   outline: 2px solid var(--color-neutral-white);

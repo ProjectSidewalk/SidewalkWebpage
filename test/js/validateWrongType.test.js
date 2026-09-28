@@ -566,6 +566,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       submitButton: byId('validate-submit-button'),
       currentTags: byId('current-tags-list'),
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
+      currentTagTemplate: document.getElementById('current-tag-template'),
       aiSuggestedTagTemplate: document.getElementById('sidewalk-ai-suggested-tag-template'),
     });
     menu.resetMenu(label);

@@ -378,10 +378,12 @@ class ZoomControl {
     if (pov) {
       const zoom = pov.zoom;
       // Disable the zoom-in button at max zoom and the zoom-out button at min zoom.
-      const zoomInOff = zoom >= this.#properties.maxZoomLevel || this.#status.disableZoomIn;
-      this.#uiZoomControl.zoomIn.setAttribute('aria-disabled', String(zoomInOff));
-      const zoomOutOff = zoom <= this.#properties.minZoomLevel || this.#status.disableZoomOut;
-      this.#uiZoomControl.zoomOut.setAttribute('aria-disabled', String(zoomOutOff));
+      // This runs on every canvas render, so only touch the DOM when a button actually changes state.
+      const zoomInOff = String(zoom >= this.#properties.maxZoomLevel || this.#status.disableZoomIn);
+      const zoomOutOff = String(zoom <= this.#properties.minZoomLevel || this.#status.disableZoomOut);
+      const { zoomIn, zoomOut } = this.#uiZoomControl;
+      if (zoomIn.getAttribute('aria-disabled') !== zoomInOff) zoomIn.setAttribute('aria-disabled', zoomInOff);
+      if (zoomOut.getAttribute('aria-disabled') !== zoomOutOff) zoomOut.setAttribute('aria-disabled', zoomOutOff);
     }
     return this;
   }

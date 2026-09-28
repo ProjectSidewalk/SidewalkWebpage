@@ -59,7 +59,7 @@
   margin: 0 auto;
 }
 
-/* The dead end's sentence. */
+/* Padding, not margin, so the gap can't collapse into the figure's own margin. */
 .modal-mission-dead-end-text {
   padding: calc(10px * var(--ui-scale, 1)) 0;
 }

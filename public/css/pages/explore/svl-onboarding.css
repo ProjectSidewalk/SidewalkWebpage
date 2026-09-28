@@ -95,7 +95,7 @@
 }
 
 /* Pulses the one context-menu section the tutorial has enabled (see Onboarding's RateSeverity/AddTag visits); the
-   sibling section is dimmed via .is-disabled, so together they say "this half, not that one". */
+   sibling section is switched off and dimmed, so together they say "this half, not that one". */
 .onboarding-attention {
   animation: onboarding-attention-pulse 1.6s ease-in-out infinite;
 }

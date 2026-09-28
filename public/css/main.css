@@ -606,6 +606,7 @@ button:disabled,
 }
 
 .button--secondary:disabled {
+  background-color: var(--color-neutral-white);
   color: var(--color-neutral-500);
   outline: 1px solid var(--color-neutral-500);
 }
@@ -656,12 +657,11 @@ textarea.ps-input {
 .ps-select:disabled {
   background-color: var(--color-neutral-100);
   color: var(--color-neutral-600);
-  cursor: default;
 }
 
-.ps-input:disabled,
-.ps-select:disabled {
-  cursor: not-allowed;
+/* A locked field can still be read and copied from, so only a switched-off one gets the "not allowed" cursor. */
+.ps-input:read-only:not([type="file"], :disabled) {
+  cursor: default;
 }
 
 /* Range slider. Themed through the vendor pseudo-elements (`accent-color` is outside the Baseline set the stylelint
