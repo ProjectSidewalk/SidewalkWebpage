@@ -232,9 +232,6 @@ class Main {
       svv.imageAdjustments = new PanoImageAdjustments([
         document.getElementById('svv-panorama'), document.getElementById('svv-panorama-pannellum'),
       ]);
-      if (!svv.imageAdjustments.isDefault()) {
-        svv.tracker.push('ImageAdjustments_Restored', svv.imageAdjustments.values());
-      }
       svv.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svv.imageAdjustments,
         document.getElementById('validate-control-image'), document.getElementById('pano-image-adjustments'), {
           onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
@@ -297,6 +294,11 @@ class Main {
     svv.modalMission = new ModalMission(svv.ui.modalMission);
     svv.missionContainer = new MissionContainer();
     svv.missionContainer.createAMission(param.mission, param.progress);
+    // Logged only now: the tracker stamps each row with the current mission, and without one this row, the only
+    // record of a filter carried in from an earlier visit, could not be tied to a validator. Desktop builds the model.
+    if (svv.imageAdjustments && !svv.imageAdjustments.isDefault()) {
+      svv.tracker.push('ImageAdjustments_Restored', svv.imageAdjustments.values());
+    }
 
     if (!util.isMobile()) {
       // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the
