@@ -369,14 +369,13 @@ describe('ImageryPage legend', () => {
       ],
       features: geojson([1, 2]),
     });
-    expect(text('imagery-priority-note')).toContain('tiers overlap');
+    expect(text('imagery-priority-note')).toContain('count a quarter');
     expect(text('imagery-priority-note')).toContain('some needs re-audit streets rank below some audited once ones');
   });
 
   test('does not claim a crossing when the tiers are cleanly ordered', async () => {
     await renderPage();
-    expect(text('imagery-priority-note')).not.toContain('tiers overlap');
-    expect(text('imagery-priority-note')).toContain('quarter weight');
+    expect(text('imagery-priority-note')).not.toContain('rank below');
   });
 
   test('reports the priority range without spreading one argument per street', async () => {
@@ -406,7 +405,7 @@ describe('ImageryPage legend', () => {
       features: geojson([1, 2]),
     });
     const note = text('imagery-priority-note');
-    expect(note).toContain('0 streets are in the re-audit tier but 1 carry the re-audit flag');
+    expect(note).toContain('0 streets are in the re-audit tier but 1 carry the flag');
   });
 });
 
@@ -455,7 +454,6 @@ describe('ImageryPage tables', () => {
     expect(text('imagery-street-note')).toContain('The top 50 of 80 routable streets by priority');
     // Explore picks at random among ties, so the list is a sample of the frontier rather than a running order.
     expect(text('imagery-street-note')).toContain('a sample, not a queue');
-    expect(text('imagery-street-note')).toContain('top-priority ties');
   });
 
   test('says how many regions the scroll box holds, and that search covers all of them', async () => {

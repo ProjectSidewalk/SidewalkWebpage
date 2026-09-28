@@ -192,7 +192,7 @@ class ImageryPage {
 
     const regionNote = document.getElementById('imagery-region-note');
     if (regionNote) {
-      regionNote.textContent = `${this.#regions.length.toLocaleString()} regions, highest mean priority first. `
+      regionNote.textContent = `${this.#regions.length.toLocaleString()} regions, highest mean priority first; `
         + 'Explore draws from the top five.';
     }
 
@@ -257,8 +257,7 @@ class ImageryPage {
     const note = document.getElementById('imagery-street-note');
     if (note) {
       note.textContent = `The top ${ranked.length.toLocaleString()} of ${pool.length.toLocaleString()} routable `
-        + 'streets by priority. This is a sample, not a queue: Explore picks a region first, then a random street '
-        + 'among its top-priority ties, and ties are common (every never-audited street is exactly 1.000).';
+        + 'streets by priority: a sample, not a queue, since Explore picks a region first.';
     }
   }
 
@@ -394,19 +393,16 @@ class ImageryPage {
           && stats[tier.key].min < stats[below.key].max;
       });
       const overlap = crossing
-        ? ` Low-quality audits count at a quarter weight, so tiers overlap: some `
-        + `${crossing.label.toLowerCase()} streets rank below some `
-        + `${StreetPriorityTiers.TIERS[StreetPriorityTiers.TIERS.indexOf(crossing) + 1].label.toLowerCase()} ones.`
-        : ' Low-quality audits count at a quarter weight, so streets in one tier can differ in priority.';
+        ? `; low-quality audits count a quarter, so some ${crossing.label.toLowerCase()} streets rank below some `
+        + `${StreetPriorityTiers.TIERS[StreetPriorityTiers.TIERS.indexOf(crossing) + 1].label.toLowerCase()} ones`
+        : '';
       const flagged = this.#streets.filter((street) => street.outdated).length;
       const tierGap = counts.reaudit === flagged
         ? ''
         : ` ${counts.reaudit.toLocaleString()} streets are in the re-audit tier but ${flagged.toLocaleString()} `
-          + 'carry the re-audit flag: the tier counts only audits weighted in the formula, the flag counts every '
-          + 'completed audit.';
+          + 'carry the flag, which counts every completed audit.';
       note.textContent = `Priority ranges from ${min.toFixed(3)} to ${max.toFixed(3)} across `
-        + `${this.#streets.length.toLocaleString()} routable streets.${overlap} Explore sorts by priority, not tier.`
-        + `${tierGap}`;
+        + `${this.#streets.length.toLocaleString()} routable streets${overlap}.${tierGap}`;
     }
   }
 
@@ -545,9 +541,8 @@ class ImageryPage {
     const note = document.getElementById('imagery-freshness-note');
     if (note) {
       note.textContent = `${behind.length.toLocaleString()} audited streets have imagery newer than their last `
-        + `audit. Not plotted: ${(measured.length - behind.length).toLocaleString()} still current and `
-        + `${unmeasured.toLocaleString()} not yet polled. The chart uses each street’s latest audit, but flags are `
-        + 'per audit, so a street missing here can still have an older audit flagged.';
+        + `audit; not plotted: ${(measured.length - behind.length).toLocaleString()} still current, `
+        + `${unmeasured.toLocaleString()} not yet polled.`;
     }
   }
 

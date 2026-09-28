@@ -95,8 +95,7 @@ class ImageryPipelinePanel {
     const nightly = Number.isFinite(batch) ? ` The rotation asks for ${AdminShell.num(batch)} a night.` : '';
 
     AdminShell.setText('imagery-no-imagery-note', selected === 0
-      ? `No retired street was re-checked for regained imagery in this window.${nightly} Nights before that `
-      + 'rotation existed count as zero.'
+      ? `No retired street was re-checked for regained imagery in this window.${nightly}`
       : `Regained-imagery re-checks in this window: ${AdminShell.num(polled)} of ${AdminShell.num(selected)}`
         + ` retired streets answered conclusively; ${AdminShell.num(candidates)} queued for review.${nightly}`);
   }
@@ -114,8 +113,8 @@ class ImageryPipelinePanel {
     }
     const dates = nights.map((night) => night.day).join(', ');
     AdminShell.setHtml('imagery-failure-note',
-      `${nights.length} of the last ${report.days} nights recorded a failed run (${AdminShell.esc(dates)}). `
-      + 'A failed night polls nothing, so its bars are empty.');
+      `${nights.length} of the last ${report.days} nights recorded a failed run, with empty bars `
+      + `(${AdminShell.esc(dates)}).`);
   }
 
   /**

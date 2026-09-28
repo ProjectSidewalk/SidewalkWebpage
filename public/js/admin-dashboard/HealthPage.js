@@ -325,8 +325,7 @@ class HealthPage {
         </div>`).join('');
     AdminShell.setHtml('health-panos', `<div class="ps-kpis">${html}</div>`);
     AdminShell.setHtml('health-panos-note',
-      'The nightly imagery check fills in backup status gradually, so a large "unchecked" count is normal and '
-      + 'these figures approximate what is on disk.');
+      'Backup status fills in nightly, so a large "unchecked" count is normal.');
   }
 
   // ---- Panel: nightly jobs ---------------------------------------------------------------------------------------

@@ -7,7 +7,7 @@
 @content = {
   <div class="page-section" id="contributors-intro-section">
     <h1 class="page-heading" id="contributors">Contributors <a href="#contributors" class="permalink">#</a></h1>
-    <p>Who produces this city's data, and how much can we trust it? Each contributor is flagged high- or low-quality from their labeling and validation behavior.</p>
+    <p>Who produces this city's data, and whether their work is flagged high- or low-quality.</p>
     <div class="ps-kpis" id="contrib-kpis">
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-contributors">—</span><span class="ps-kpi-label">Contributors (labelers)</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-high-quality">—</span><span class="ps-kpi-label">High-quality</span></div>
@@ -19,8 +19,8 @@
 
   <div class="page-section" id="funnel-section">
     <h2 class="page-heading" id="funnels">Engagement funnels <a href="#funnels" class="permalink">#</a></h2>
-    <p>Of the people who arrive, how many reach each step? The <strong>mapping</strong> funnel follows Explore onboarding (tutorial → first label → first mission); the <strong>contribution</strong> funnel asks whether they labeled or validated anything and finished a mission. Bars are scaled to visitors (100%); each step's percentage is its share of the step before.</p>
-    <p class="ac-note"><strong>Anonymous visitors are counted per browser</strong> (a new id each time cookies are cleared), so the top of each funnel counts sessions, not people, and conversion reads low. <strong>Mobile visitors can't map</strong>: they are redirected to a landing page, so mobile drops off early by design. “Took a step” means walking some distance in a non-tutorial mission.</p>
+    <p>How many visitors reach each step of the <strong>mapping</strong> funnel (tutorial → first label → first mission) and the <strong>contribution</strong> funnel (any labeling or validation → a finished mission); percentages are of the step before.</p>
+    <p class="ac-note">Conversion reads low because <strong>anonymous visitors are counted per browser</strong>, not per person, and <strong>mobile visitors can't map</strong>, so mobile drops off early by design.</p>
     <div class="ac-funnel-controls">
       <div class="ac-toggle" id="funnel-window" role="group" aria-label="Funnel time window">
         <button type="button" class="ac-toggle-btn active" data-window="30d">Last 30 days</button>
@@ -54,19 +54,19 @@
 
   <div class="page-section" id="top-labelers-section">
     <h2 class="page-heading" id="top-labelers">Top labelers <a href="#top-labelers" class="permalink">#</a></h2>
-    <p>Ranked by label count. Accuracy is the agreement rate on each labeler's validated labels, with the number validated in parentheses.</p>
+    <p>Accuracy is the agreement rate on each labeler's validated labels (number validated in parentheses).</p>
     <div id="contrib-top-labelers"></div>
   </div>
 
   <div class="page-section" id="top-validators-section">
     <h2 class="page-heading" id="top-validators">Top validators <a href="#top-validators" class="permalink">#</a></h2>
-    <p>Ranked by labels validated. Agreement is how often their vote matched the eventual consensus.</p>
+    <p>Agreement is how often their vote matched the eventual consensus.</p>
     <div id="contrib-top-validators"></div>
   </div>
 
   <div class="page-section" id="contributor-accuracy-section">
     <h2 class="page-heading" id="contributor-accuracy">Contributor accuracy <a href="#contributor-accuracy" class="permalink">#</a></h2>
-    <p>Contributors with validated labels, grouped by their labels' agreement rate.</p>
+    <p>Contributors grouped by the agreement rate on their validated labels.</p>
     <div class="dq-rows" id="contrib-accuracy"></div>
   </div>
 

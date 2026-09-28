@@ -7,8 +7,8 @@
 @content = {
   <div class="page-section" id="hva-intro-section">
     <h1 class="page-heading" id="humans-vs-ai">Humans vs AI <a href="#humans-vs-ai" class="permalink">#</a></h1>
-    <p>How does the AI compare to people in this city? The AI has three roles: it <b>places labels</b> (the auto-labeler), <b>validates</b> human labels, and <b>tags</b> labels. Each is compared with human work, never blended with it.</p>
-    <p class="hva-boundary">Agreement by validator type is on <a href="@routes.AdminDashboardController.quality">Data Quality</a>; per-person rankings are on <a href="@routes.AdminDashboardController.contributors">Contributors</a>.</p>
+    <p>How the AI compares with people at its three jobs: <b>placing labels</b>, <b>validating</b> human labels, and <b>tagging</b>.</p>
+    <p class="hva-boundary">Per-person rankings are on <a href="@routes.AdminDashboardController.contributors">Contributors</a>.</p>
     <div class="ps-kpis" id="hva-kpis">
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-ai-labels">—</span><span class="ps-kpi-label">AI-placed labels</span><span class="ps-kpi-note" id="kpi-ai-labels-note"></span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-ai-validations">—</span><span class="ps-kpi-label">AI validations</span><span class="ps-kpi-note" id="kpi-ai-validations-note"></span></div>
@@ -20,7 +20,7 @@
 
   <div class="page-section" id="hva-labeler-section">
     <h2 class="page-heading" id="ai-labeler">AI as a labeler <a href="#ai-labeler" class="permalink">#</a></h2>
-    <p>Volume, label types, severity, and whether the auto-labeler's labels hold up under validation.</p>
+    <p>Whether the auto-labeler's labels hold up next to people's.</p>
     <div class="hva-empty" id="hva-labeler-empty" hidden>No AI-placed labels in this city.</div>
     <div id="hva-labeler-body" hidden>
       <h3 class="page-heading" id="labeler-volume">Label volume by type <a href="#labeler-volume" class="permalink">#</a></h3>
@@ -28,7 +28,7 @@
       <div class="hva-grouped" id="hva-type-mix"></div>
 
       <h3 class="page-heading" id="labeler-correctness">How often labels are validated as correct <a href="#labeler-correctness" class="permalink">#</a></h3>
-      <p>Of validated labels, the share judged <b>correct</b>, human-placed vs AI-placed, per type. This is the best test of AI label quality. Each bar shows how many validated labels it rests on; types with too few are muted.</p>
+      <p>Share of validated labels judged <b>correct</b>, per type; types with too few validations are muted.</p>
       <div class="hva-grouped" id="hva-acceptance"></div>
 
       <h3 class="page-heading" id="labeler-severity">Severity ratings <a href="#labeler-severity" class="permalink">#</a></h3>
@@ -46,14 +46,14 @@
             <div class="hva-grouped" id="hva-val-volume"></div>
 
       <h3 class="page-heading" id="validator-verdicts">Verdict mix <a href="#validator-verdicts" class="permalink">#</a></h3>
-      <p>A very different AI mix, such as far more "unsure", is worth investigating.</p>
+      <p>A very different AI mix is worth investigating.</p>
       <div class="hva-verdicts" id="hva-verdicts"></div>
     </div>
   </div>
 
   <div class="page-section" id="hva-tagger-section">
     <h2 class="page-heading" id="ai-tagger">AI as a tagger <a href="#ai-tagger" class="permalink">#</a></h2>
-    <p>The AI tagger suggests tags for labels (e.g. <i>missing tactile warning</i>). People tag while labeling, so this compares tag mixes rather than head-to-head accuracy.</p>
+    <p>Tag mixes, not accuracy: people tag while labeling, so there is no head-to-head.</p>
     <div class="hva-empty" id="hva-tagger-empty" hidden>No AI tagger assessments in this city.</div>
     <div id="hva-tagger-body" hidden>
       <h3 class="page-heading" id="tagger-tags">Tags applied <a href="#tagger-tags" class="permalink">#</a></h3>

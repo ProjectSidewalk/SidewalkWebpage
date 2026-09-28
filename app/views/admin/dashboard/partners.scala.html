@@ -53,14 +53,14 @@
 @content = {
   <div class="page-section" id="partners-intro-section">
     <h1 class="page-heading" id="partners">Partners <a href="#partners" class="permalink">#</a></h1>
-    <p>Logos in the landing page's "Community Partners" section. Global logos show on every deployment, followed by this city's.</p>
-    <p>Upload the best PNG or JPEG you have, ideally a wide wordmark on a transparent background; the server re-encodes it. SVGs are converted to PNG before upload, so their text must be outlines, not live text. The name appears as the logo's hover tooltip and labels its clicks in the logs. Alt text defaults to "<em>name</em> logo".</p>
+    <p>Logos in the landing page's "Community Partners" section: global ones on every deployment, then this city's.</p>
+    <p>Upload the best PNG or JPEG you have, ideally a wide wordmark on transparency; an SVG's text must be outlines, not live text.</p>
     <div class="partners-status" id="partners-status" role="status" aria-live="polite">Loading partners…</div>
   </div>
 
   <div class="page-section" id="official-contact-section">
     <h2 class="page-heading" id="official-contact">Official contact notice <a href="#official-contact" class="permalink">#</a></h2>
-    <p>Optional. Tells residents on this city's landing page to report repairs to the city directly, because mapping here doesn't notify anyone. It appears under the city's partner logos and is on only while a URL is set. The sentence is translated, but the name appears exactly as typed in every language, so write it as it reads mid-sentence. For a URL with non-English letters, paste its punycode (xn--) form.</p>
+    <p>Optional note on this city's landing page telling residents to report repairs to the city, shown only while a URL is set.</p>
     <form class="official-contact-form" id="official-contact-form">
       <div class="partners-form-grid">
         <div class="partners-form-field">
@@ -88,14 +88,14 @@
 
   <div class="page-section" id="partners-city-section">
     <h2 class="page-heading" id="city-partners">City partners <a href="#city-partners" class="permalink">#</a></h2>
-    <p>Shown only on <strong>this city's</strong> landing page, after the global logos.</p>
+    <p>Only on <strong>this city's</strong> landing page.</p>
     <div id="partners-city-list" class="partners-list"></div>
     @addForm("city")
   </div>
 
   <div class="page-section" id="partners-global-section">
     <h2 class="page-heading" id="global-partners">Global partners <a href="#global-partners" class="permalink">#</a></h2>
-    <p>Shown on <strong>every</strong> deployment's landing page, before any city partners.</p>
+    <p>On <strong>every</strong> deployment's landing page.</p>
     @if(!isOwner) {
       <p class="partners-owner-note">Only Owners can edit the global list.</p>
     }

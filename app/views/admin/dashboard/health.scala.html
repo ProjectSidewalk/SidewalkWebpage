@@ -12,7 +12,7 @@
 @content = {
   <div class="page-section" id="health-intro-section">
     <h1 class="page-heading" id="health">Health <a href="#health" class="permalink">#</a></h1>
-    <p>Database problems the app log doesn't show, across all cities, refreshed automatically. Nightly jobs and pano downloads cover this city only.</p>
+    <p>Database problems the app log doesn't show, across all cities; nightly jobs and pano downloads cover this city only.</p>
     <div class="ac-pulse" id="health-pulse" role="status" aria-live="polite">Loading health…</div>
 
     <div class="ps-kpis" id="health-kpis">
@@ -29,50 +29,50 @@
 
   <div class="page-section" id="health-jobs-section">
     <h2 class="page-heading" id="nightly-jobs">Nightly jobs <a href="#nightly-jobs" class="permalink">#</a></h2>
-    <p>This city's overnight jobs and their last recorded runs. An overdue, failed, or never-run job has stopped feeding whatever depends on it. Times are Pacific, before this city's scheduling offset.</p>
+    <p>This city's overnight jobs and their last runs (Pacific time, before the city's scheduling offset); an overdue, failed, or never-run job needs a look.</p>
     <div id="health-jobs"></div>
     <p class="ac-note" id="health-jobs-note"></p>
   </div>
 
   <div class="page-section" id="health-locks-section">
     <h2 class="page-heading" id="blocking-locks">Blocking locks <a href="#blocking-locks" class="permalink">#</a></h2>
-    <p>Sessions blocking others from acquiring a lock, worst first. An idle session holding a strong lock (e.g. on <code>street_edge</code>) stalls every reader of that table.</p>
+    <p>Sessions blocking others from a lock, worst first.</p>
     <div id="health-locks"></div>
   </div>
 
   <div class="page-section" id="health-active-section">
     <h2 class="page-heading" id="long-queries">Long-running queries <a href="#long-queries" class="permalink">#</a></h2>
-    <p>Client queries running a long time, oldest first. A runaway query can saturate the database without blocking anyone, so it won't appear under locks.</p>
+    <p>Long-running queries, oldest first; one can saturate the database without blocking anyone.</p>
     <div id="health-active"></div>
   </div>
 
   <div class="page-section" id="health-idle-section">
     <h2 class="page-heading" id="idle-transactions">Idle transactions <a href="#idle-transactions" class="permalink">#</a></h2>
-    <p>Idle sessions holding an open transaction, oldest first. A transaction that never commits or rolls back holds its locks the whole time.</p>
+    <p>Idle sessions holding an open transaction (and its locks), oldest first.</p>
     <div id="health-idle"></div>
   </div>
 
   <div class="page-section" id="health-evolutions-section">
     <h2 class="page-heading" id="evolutions">Stuck evolutions <a href="#evolutions" class="permalink">#</a></h2>
-    <p>Play evolutions, in any city schema, that are mid-apply or recorded a problem. A failed evolution keeps that city's app from starting cleanly.</p>
+    <p>Evolutions in any city schema that are mid-apply or failed, which keeps that city's app from starting cleanly.</p>
     <div id="health-evolutions"></div>
   </div>
 
   <div class="page-section" id="health-bloat-section">
     <h2 class="page-heading" id="table-bloat">Table bloat &amp; autovacuum <a href="#table-bloat" class="permalink">#</a></h2>
-    <p>Dead-tuple bloat and last-vacuum age for the largest tables (<code>street_edge</code>, <code>label</code>, <code>audit_task_interaction</code>, <code>validation_task_interaction</code>) across cities. High bloat with an old last vacuum means autovacuum is falling behind, often because it can't get a lock.</p>
+    <p>Dead-tuple bloat and last-vacuum age for the largest tables across cities; high bloat with an old vacuum means autovacuum is falling behind.</p>
     <div id="health-bloat"></div>
   </div>
 
   <div class="page-section" id="health-connections-section">
     <h2 class="page-heading" id="connections">DB connections <a href="#connections" class="permalink">#</a></h2>
-    <p>Client connections by role and state. Each city's app connects as its own role with its own pool limit; a role near its limit is under pressure.</p>
+    <p>Connections by role (one per city app) and state; a role near its pool limit is under pressure.</p>
     <div id="health-connections"></div>
   </div>
 
   <div class="page-section" id="health-panos-section">
     <h2 class="page-heading" id="pano-downloads">Pano downloads <a href="#pano-downloads" class="permalink">#</a></h2>
-    <p>How many of this city's labeled panos have a local backup. A labeled pano whose source has expired and has no backup can no longer be shown.</p>
+    <p>How many of this city's labeled panos have a local backup, without which an expired pano can't be shown.</p>
     <div id="health-panos"></div>
     <p class="ac-note" id="health-panos-note"></p>
   </div>

@@ -110,8 +110,7 @@ class StreetStatusTrend {
     const rows = data.reopen_candidates || [];
 
     if (rows.length === 0) {
-      container.innerHTML = '<p class="trend-note">No retired street has regained imagery. '
-        + 'Each night the poll re-checks a small batch of no-imagery streets.</p>';
+      container.innerHTML = '<p class="trend-note">No retired street has regained imagery.</p>';
       return;
     }
 
@@ -346,16 +345,16 @@ class StreetStatusTrend {
     // count drains.
     const undated = data.panos_expired_undated || 0;
     if (undated > 0) {
-      notes.push(`${AdminShell.num(undated)} panos expired before logging began, so they appear in no week above; `
-        + 'if one regains imagery, it charts as a recovery with no matching loss.');
+      notes.push(`${AdminShell.num(undated)} panos expired before logging began, so if one `
+        + 'regains imagery it charts as a recovery with no matching loss.');
     }
 
     // Healed events carry the night the pass noticed, not the day the imagery moved, so charting one would put a
     // real crossing in the wrong week.
     const healed = data.panos_healed || 0;
     if (healed > 0) {
-      notes.push(`${AdminShell.num(healed)} pano${healed === 1 ? '' : 's'} changed without being logged; the nightly `
-        + 'reconciliation filled them in later. Their true date is unknown, so they are left out of the weeks above.');
+      notes.push(`${AdminShell.num(healed)} pano${healed === 1 ? '' : 's'} changed on an unknown date and are left `
+        + 'out of the weeks above.');
     }
 
     AdminShell.setText('trend-expiry-note', notes.join(' '));

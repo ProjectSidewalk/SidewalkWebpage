@@ -235,7 +235,7 @@ describe('the expiry note', () => {
     await render(payload({ panos_healed: 7 }));
     // Healed rows are left out of the bars; dropped silently, the chart understates the losses it knows about.
     expect(document.getElementById('trend-expiry-note').textContent)
-      .toMatch(/^7 panos changed without being logged/);
+      .toMatch(/^7 panos changed on an unknown date/);
   });
 
   test('reports both gaps together, undated first', async () => {
