@@ -1,5 +1,6 @@
 /**
- * Display-only image adjustments for a panorama mount: shadows, brightness and contrast (#3136).
+ * Display-only image adjustments for a panorama mount: shadows, brightness and contrast (#3136), used by Explore and
+ * desktop Validate (#5501).
  *
  * The adjustment is a CSS `filter` on the element the pano viewer renders into, so it works the same for every
  * imagery provider (GSV, Mapillary, Panoramax, Infra3d all draw into a canvas under that element) and touches nothing
@@ -19,10 +20,21 @@
  * by field (a corrupt or future-shaped value falls back to the default rather than breaking the page) and writes are
  * wrapped so a blocked storage (private mode) degrades to "not remembered".
  *
+ * A page can have more than one mount: Validate renders a label either into the live-GSV element or into a Pannellum
+ * sibling it swaps in when GSV has no imagery, so it passes both and the same filter sits on each. Whichever is
+ * visible then shows the adjusted view, with no hook needed on the swap.
+ *
+ * Settings are shared by every page through one localStorage key, so a view tuned on Explore carries to Validate.
+ *
  * Usage:
+ *   // Explore: one mount.
  *   const adjustments = new PanoImageAdjustments(document.getElementById('pano'));
  *   adjustments.set('shadows', 60);   // applies immediately and persists
  *   adjustments.reset();
+ *
+ *   // Validate: both viewers' mounts.
+ *   const byId = (id) => document.getElementById(id);
+ *   new PanoImageAdjustments([byId('svv-panorama'), byId('svv-panorama-pannellum')]);
  */
 class PanoImageAdjustments {
   /** localStorage key holding `{ v, shadows, brightness, contrast }`. */
@@ -53,8 +65,8 @@ class PanoImageAdjustments {
   /** Gamma exponent at Shadows = 100. Below ~0.4 the lift crushes what tonal separation the shadows had. */
   static #MIN_GAMMA_EXPONENT = 0.4;
 
-  /** @type {HTMLElement} The pano mount the filter is applied to. */
-  #target;
+  /** @type {HTMLElement[]} The pano mounts the filter is applied to; never empty. */
+  #targets;
 
   /** @type {Storage|null} Where settings persist; null when storage is unavailable. */
   #storage;
@@ -69,11 +81,13 @@ class PanoImageAdjustments {
   #gammaFuncs = [];
 
   /**
-   * @param {HTMLElement} target - The element the pano viewer renders into.
+   * @param {HTMLElement|HTMLElement[]} target - The element the pano viewer renders into, or every such element when
+   *   the page swaps between viewers. Falsy entries are dropped, so a mount that isn't on the page is simply skipped.
    * @param {Storage|null} [storage] - Defaults to `window.localStorage`; pass null to disable persistence.
    */
   constructor(target, storage = PanoImageAdjustments.#defaultStorage()) {
-    this.#target = target;
+    this.#targets = (Array.isArray(target) ? target : [target]).filter(Boolean);
+    if (!this.#targets.length) throw new Error('PanoImageAdjustments: no pano mount to apply the filter to');
     this.#storage = storage;
     this.#values = this.#load();
     this.#apply();
@@ -158,13 +172,13 @@ class PanoImageAdjustments {
     this.#listeners.push(fn);
   }
 
-  /** @returns {string} The `filter` currently on the target ('' when default). */
+  /** @returns {string} The `filter` currently on the targets ('' when default). */
   currentFilter() {
     return PanoImageAdjustments.filterString(this.#values);
   }
 
   /**
-   * Writes the filter onto the target and the gamma exponent into the SVG curve. The SVG is only created the first
+   * Writes the filter onto every target and the gamma exponent into the SVG curve. The SVG is only created the first
    * time Shadows leaves its default, so pages that never touch it never carry the extra element.
    */
   #apply() {
@@ -174,10 +188,12 @@ class PanoImageAdjustments {
       const exponent = String(PanoImageAdjustments.gammaExponent(this.#values.shadows));
       for (const fn of this.#gammaFuncs) fn.setAttribute('exponent', exponent);
     }
-    if (filter) {
-      this.#target.style.filter = filter;
-    } else {
-      this.#target.style.removeProperty('filter');
+    for (const target of this.#targets) {
+      if (filter) {
+        target.style.filter = filter;
+      } else {
+        target.style.removeProperty('filter');
+      }
     }
   }
 
@@ -188,7 +204,7 @@ class PanoImageAdjustments {
    */
   #ensureFilterSvg() {
     if (this.#gammaFuncs.length) return;
-    const doc = this.#target.ownerDocument;
+    const doc = this.#targets[0].ownerDocument;
     const NS = 'http://www.w3.org/2000/svg';
     /** @type {Element|null} */
     let filter = doc.getElementById(PanoImageAdjustments.FILTER_ID);
