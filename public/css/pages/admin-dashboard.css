@@ -35,27 +35,6 @@
   --hva-ai: #d55e00;
 }
 
-/* --- Left nav: disabled "coming soon" items ------------------------------------------------------------------ */
-.page-nav-item.disabled {
-  color: var(--color-neutral-600);
-  cursor: default;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.nav-soon-badge {
-  font: var(--text-tiny-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: var(--color-neutral-200);
-  color: var(--color-neutral-700);
-  border-radius: 10px;
-  padding: 1px 7px;
-  margin-left: var(--space-xs);
-}
-
 /* --- Deployment-info strip (shared by overview, across-cities, management, health) ---------------------------- */
 
 /* Slimmer sibling of .ov-pulse: quiet metadata about the running instance, not a KPI. Rendered by adminLayout

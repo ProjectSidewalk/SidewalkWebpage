@@ -485,8 +485,22 @@ button {
   cursor: pointer;
 }
 
-button:disabled {
-  cursor: default;
+/* Anything switched off shows the "not allowed" cursor. Buttons and inputs take the `disabled` attribute, a control
+   that has to keep keyboard focus takes `aria-disabled="true"`, and anything else takes `.is-disabled`. */
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* !important so the cursor beats the `cursor: pointer` of whatever component the element belongs to. */
+.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+/* The mouse passes through to the switched-off element itself, so its children neither react nor hide the cursor. */
+.is-disabled > * {
+  pointer-events: none;
 }
 
 /* Visually hidden, still read by screen readers. */
@@ -528,11 +542,6 @@ button:disabled {
 
 .button:hover {
   text-decoration: none;
-}
-
-.button:disabled {
-  cursor: not-allowed;
-  pointer-events: none;
 }
 
 .button--tiny {

@@ -194,6 +194,10 @@ consistent with it.
 - **State classes → `is-*`** (`is-active`, `is-open`, `is-chosen`, `is-highlighted`), toggled from JS and always
   styled scoped to their component (`.navbar-item.is-open`). A bare word like `active` is a global name that an
   unscoped rule or a vendor library can hit.
+- **Switched-off controls** get their "not allowed" cursor from one rule in `main.css`. A button or input takes the
+  `disabled` attribute; a control that would strand a keyboard user by losing focus when it switches itself off (the
+  pano zoom buttons) takes `aria-disabled="true"` and checks it in its click handler; anything else takes
+  `.is-disabled`.
 
 **Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
 (inlined SVGs are hard to find, reuse, and review — see #4058). Default to icons from the **feather** and **material**

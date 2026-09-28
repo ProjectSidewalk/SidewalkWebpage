@@ -95,7 +95,7 @@ class ZoomControl {
   disableZoomIn() {
     if (!this.#lock.disableZoomIn) {
       this.#status.disableZoomIn = true;
-      this.#uiZoomControl.zoomIn.classList.add('disabled');
+      this.#uiZoomControl.zoomIn.setAttribute('aria-disabled', 'true');
     }
     return this;
   }
@@ -107,7 +107,7 @@ class ZoomControl {
   disableZoomOut() {
     if (!this.#lock.disableZoomOut) {
       this.#status.disableZoomOut = true;
-      this.#uiZoomControl.zoomOut.classList.add('disabled');
+      this.#uiZoomControl.zoomOut.setAttribute('aria-disabled', 'true');
     }
     return this;
   }
@@ -119,7 +119,7 @@ class ZoomControl {
   enableZoomIn() {
     if (!this.#lock.disableZoomIn) {
       this.#status.disableZoomIn = false;
-      this.#uiZoomControl.zoomIn.classList.remove('disabled');
+      this.#uiZoomControl.zoomIn.setAttribute('aria-disabled', 'false');
     }
     return this;
   }
@@ -131,7 +131,7 @@ class ZoomControl {
   enableZoomOut() {
     if (!this.#lock.disableZoomOut) {
       this.#status.disableZoomOut = false;
-      this.#uiZoomControl.zoomOut.classList.remove('disabled');
+      this.#uiZoomControl.zoomOut.setAttribute('aria-disabled', 'false');
     }
     return this;
   }
@@ -198,6 +198,7 @@ class ZoomControl {
    * Callback for the zoom-in button. Increments the pano zoom level.
    */
   #handleZoomInButtonClick() {
+    if (this.#uiZoomControl.zoomIn.getAttribute('aria-disabled') === 'true') return;
     if (this.#tracker) this.#tracker.push('Click_ZoomIn');
 
     const pov = svl.panoViewer.getPov();
@@ -217,6 +218,7 @@ class ZoomControl {
    * Callback for the zoom-out button. Decrements the pano zoom level.
    */
   #handleZoomOutButtonClick() {
+    if (this.#uiZoomControl.zoomOut.getAttribute('aria-disabled') === 'true') return;
     if (this.#tracker) this.#tracker.push('Click_ZoomOut');
 
     const pov = svl.panoViewer.getPov();
@@ -376,12 +378,10 @@ class ZoomControl {
     if (pov) {
       const zoom = pov.zoom;
       // Disable the zoom-in button at max zoom and the zoom-out button at min zoom.
-      this.#uiZoomControl.zoomIn.classList.toggle(
-        'disabled', zoom >= this.#properties.maxZoomLevel || this.#status.disableZoomIn,
-      );
-      this.#uiZoomControl.zoomOut.classList.toggle(
-        'disabled', zoom <= this.#properties.minZoomLevel || this.#status.disableZoomOut,
-      );
+      const zoomInOff = zoom >= this.#properties.maxZoomLevel || this.#status.disableZoomIn;
+      this.#uiZoomControl.zoomIn.setAttribute('aria-disabled', String(zoomInOff));
+      const zoomOutOff = zoom <= this.#properties.minZoomLevel || this.#status.disableZoomOut;
+      this.#uiZoomControl.zoomOut.setAttribute('aria-disabled', String(zoomOutOff));
     }
     return this;
   }

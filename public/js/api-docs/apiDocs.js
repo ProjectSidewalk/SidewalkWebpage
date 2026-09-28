@@ -526,7 +526,6 @@ function setupDownloadButtons() {
   function setButtonsBusy(busy) {
     downloadButtons.forEach((btn) => {
       btn.setAttribute('aria-disabled', String(busy));
-      btn.classList.toggle('disabled', busy);
     });
   }
 

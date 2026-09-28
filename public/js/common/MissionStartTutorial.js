@@ -321,8 +321,8 @@ class MissionStartTutorial {
     mstSlide.classList.remove(...Object.values(MissionStartTutorial.#EXAMPLE_TYPES));
     mstSlideImage.src = '';
     labelTypeSubtitle.textContent = '';
-    prevButton.classList.remove('disabled');
-    nextButton.classList.remove('disabled');
+    prevButton.classList.remove('is-disabled');
+    nextButton.classList.remove('is-disabled');
     labelOnImage.style.display = 'none';
     mstDoneButton.classList.remove('focus');
 
@@ -371,7 +371,7 @@ class MissionStartTutorial {
 
     // Disable the previous/next buttons based on the current slide idx
     if (idx === 0) {
-      prevButton.classList.add('disabled');
+      prevButton.classList.add('is-disabled');
     } else if (idx === this.#nSlides - 1) {
       // We want users to explore other label types after they finish one in 'Explore Mission Screens'.
       // So we don't want to draw attention to the start button.
@@ -379,7 +379,7 @@ class MissionStartTutorial {
         mstDoneButton.classList.add('focus');
       }
 
-      nextButton.classList.add('disabled');
+      nextButton.classList.add('is-disabled');
     }
   }
 

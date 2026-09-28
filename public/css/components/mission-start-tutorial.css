@@ -1,8 +1,3 @@
-.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .noselect {
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-user-select: none; /* Safari */
@@ -64,7 +59,7 @@
   cursor: pointer;
 }
 
-.previous-slide-button:not(.disabled):hover, .next-slide-button:not(.disabled):hover {
+.previous-slide-button:not(.is-disabled):hover, .next-slide-button:not(.is-disabled):hover {
   color: var(--color-neutral-black);
 }
 

@@ -378,20 +378,22 @@ class ContextMenu {
 
   // Removes the disabled visual effects from the severity buttons on current context menu.
   #showRatingSeverityEnabled() {
-    this.#severityRadioHolder.classList.remove('disabled');
+    this.#severityRadioHolder.classList.remove('is-disabled');
+    for (const radio of this.#severityRadios) radio.disabled = false;
   }
 
   // Adds the disabled visual effects to the severity buttons on current context menu.
   #showRatingSeverityDisabled() {
-    this.#severityRadioHolder.classList.add('disabled');
+    this.#severityRadioHolder.classList.add('is-disabled');
+    for (const radio of this.#severityRadios) radio.disabled = true;
   }
 
   #showTaggingEnabled() {
-    for (const tag of this.#tags) tag.classList.remove('disabled');
+    for (const tag of this.#tags) tag.disabled = false;
   }
 
   #showTaggingDisabled() {
-    for (const tag of this.#tags) tag.classList.add('disabled');
+    for (const tag of this.#tags) tag.disabled = true;
   }
 
   /**

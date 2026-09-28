@@ -40,10 +40,11 @@
   border-bottom-right-radius: calc(7px * var(--ui-scale, 1));
 }
 
-.ps-icon-button.disabled {
+/* Greyed out at the zoom limit. `aria-disabled` rather than `disabled`, so a keyboard user zooming with the button
+   keeps their place when it switches off. */
+.ps-icon-button[aria-disabled="true"] {
   opacity: 0.7;
-  cursor: default;
-  pointer-events: none;
+  cursor: not-allowed;
 }
 
 .ps-icon-button-icon {
@@ -53,7 +54,7 @@
   transition: transform 0.1s ease;
 }
 
-.ps-icon-button:hover .ps-icon-button-icon {
+.ps-icon-button:not([aria-disabled="true"]):hover .ps-icon-button-icon {
   transform: scale(1.15);
 }
 
@@ -89,6 +90,10 @@
 
 .pano-overlay-button:hover {
   background-color: var(--color-asphalt-400);
+}
+
+.pano-overlay-button:disabled {
+  opacity: 0.5;
 }
 
 /* The pills sit on imagery, so the ring is white rather than the page's blue; only keyboard focus draws it. */
