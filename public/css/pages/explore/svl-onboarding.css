@@ -19,7 +19,7 @@
   position: relative;
   width: var(--pano-width);
   aspect-ratio: 720 / 200;
-  visibility: hidden;
+  overflow: hidden;
 }
 
 #hand-gesture-holder img {

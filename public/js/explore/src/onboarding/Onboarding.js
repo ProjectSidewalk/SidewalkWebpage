@@ -978,7 +978,7 @@ class Onboarding {
   #visitAdjustHeadingAngle(state, listener) {
     const svl = this.#svl;
     let $target;
-    this.#uiOnboarding.handGestureHolder.style.visibility = 'visible';
+    this.#uiOnboarding.handGestureHolder.classList.remove('ps-hidden');
 
     const callback = () => {
       const pov = svl.panoViewer.getPov();
@@ -986,7 +986,7 @@ class Onboarding {
       if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
         google.maps.event.removeListener($target);
         if (listener) google.maps.event.removeListener(listener);
-        this.#uiOnboarding.handGestureHolder.style.visibility = 'hidden';
+        this.#uiOnboarding.handGestureHolder.classList.add('ps-hidden');
         this.#transitionTo(state.transition);
       }
     };
