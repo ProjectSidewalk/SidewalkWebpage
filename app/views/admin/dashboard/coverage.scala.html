@@ -7,7 +7,7 @@
 @content = {
   <div class="page-section" id="coverage-intro-section">
     <h1 class="page-heading" id="coverage">Coverage <a href="#coverage" class="permalink">#</a></h1>
-    <p>How much of each neighborhood has been explored? Coverage is the share of a region's street distance that has been audited at least once, weighted by street length (not a simple street count). Use it to spot under-explored neighborhoods and to gauge how representative the data is across the city.</p>
+    <p>How much of each neighborhood has been explored? Coverage is the share of a region's street <em>length</em> audited at least once, not a count of streets.</p>
     <div class="ps-kpis" id="coverage-kpis">
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-city-coverage">—</span><span class="ps-kpi-label">City-wide coverage</span></div>
       <div class="ps-kpi"><span class="ps-kpi-value" id="kpi-regions">—</span><span class="ps-kpi-label">Regions</span></div>
@@ -19,14 +19,14 @@
 
   <div class="page-section" id="coverage-map-section">
     <h2 class="page-heading" id="coverage-map">Coverage map <a href="#coverage-map" class="permalink">#</a></h2>
-    <p>Each region is shaded by its audit coverage — darker means more complete. Hover for details; click a region to highlight its bar in the chart below.</p>
+    <p>Darker is more complete. Click a region to highlight it in the chart below.</p>
     <div id="coverage-choropleth" class="coverage-map" role="img" aria-label="Choropleth map of neighborhood audit coverage"></div>
     <div class="coverage-legend" id="coverage-legend"></div>
   </div>
 
   <div class="page-section" id="coverage-bars-section">
     <h2 class="page-heading" id="coverage-by-region">Coverage by region <a href="#coverage-by-region" class="permalink">#</a></h2>
-    <p>Hover to highlight the matching region(s) on the map above (and vice versa); click to pin. The views stay in sync. Large deployments default to the distribution view; switch any time.</p>
+    <p>Linked to the map: hover to highlight, click to pin. Cities with many regions open on the distribution view.</p>
     <div class="coverage-toggle" role="group" aria-label="Choose view">
       <span class="coverage-sort-label">View</span>
       <button type="button" class="coverage-toggle-btn" data-view="bars" aria-pressed="false">Per region</button>

@@ -81,11 +81,10 @@ class ManagementPage {
       { key: 'role', label: 'Role', align: 'left', sort: (u) => u.role || '' },
       { key: 'team', label: 'Team', align: 'left', sort: (u) => u.team || '' },
       { key: 'highQuality', label: 'Quality', align: 'left', sort: (u) => (u.highQuality ? 1 : 0),
-        help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it by hand.' },
+        help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it.' },
       { key: 'ownValidatedAgreedPct', label: 'Labeling accuracy', align: 'right',
         sort: (u) => u.ownValidatedAgreedPct || 0,
-        help: 'Share of this user’s own labels that other people agreed with when validating them '
-          + '(with how many were validated).' },
+        help: 'Share of this user’s validated labels that validators agreed with, and how many were validated.' },
       { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => AdminShell.ts(u.signUpTime) },
       { key: 'lastSignInTime', label: 'Last sign-in', align: 'right',
         sort: (u) => AdminShell.ts(u.lastSignInTime) },
@@ -403,15 +402,15 @@ class ManagementPage {
     run('mgmt-recalc-validation-counts', this.#urls.recalcValidationCountsUrl, 'POST',
       'recalculate validation counts');
     run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops',
-      'Started: generate crops. It runs in the background — the Health panel reports how it ended.');
+      'Started: generate crops. It runs in the background; the Health page reports the result.');
     run('mgmt-rebuild-sidewalk-presence', this.#urls.rebuildSidewalkPresenceUrl, 'POST',
       'rebuild sidewalk presence');
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
-      'Started: refresh places. It runs in the background — the Health panel reports how it ended.');
+      'Started: refresh places. It runs in the background; the Health page reports the result.');
     run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
       'recount street gradient staleness',
       (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
-        + `${AdminShell.num(counts.streets_stale)} sampled on an older geometry. The Health panel shows the same.`);
+        + `${AdminShell.num(counts.streets_stale)} sampled on an older geometry.`);
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 

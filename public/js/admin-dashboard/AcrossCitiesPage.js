@@ -64,9 +64,9 @@ class AcrossCitiesPage {
   /** Title + one-line description for each funnel, shown above its table/bars. Keyed by funnel type. */
   static #FUNNEL_META = {
     mapping:      { title: 'Mapping funnel',
-      desc: 'The Explore onboarding flow: tutorial, then walking, labeling, and completing an audit mission.' },
+      desc: 'Explore onboarding: tutorial, walking, labeling, then a finished mission.' },
     contribution: { title: 'Contribution funnel',
-      desc: 'The broad view: any contribution (labeling or validation) and finishing a mission.' },
+      desc: 'Any labeling or validation, then a finished mission.' },
   };
 
   /** Funnel display order on the page. The endpoint may include any subset of these. */
@@ -327,9 +327,9 @@ class AcrossCitiesPage {
     const anon = anonCount || 0;
     el.textContent = anon ? `+ ${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'}` : '';
     if (anon) {
-      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc('The contributor count is registered accounts. '
+      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc('Contributors are registered accounts. '
         + `${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'} also contributed ${period}; each is a `
-        + 'browser cookie rather than a known person, so they are counted separately.'));
+        + 'browser cookie, not a known person.'));
     } else {
       el.removeAttribute('data-ps-tooltip');
     }
@@ -348,7 +348,7 @@ class AcrossCitiesPage {
     const agents = agentCount || 0;
     el.textContent = agents ? `+ ${this.#num(agents)} AI ${agents === 1 ? 'account' : 'accounts'}` : '';
     if (agents) {
-      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc(`The contributor count is people. `
+      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc(`Contributors are people. `
         + `${this.#num(agents)} AI ${agents === 1 ? 'account was' : 'accounts were'} also active ${period}.`));
     } else {
       el.removeAttribute('data-ps-tooltip');
@@ -371,7 +371,7 @@ class AcrossCitiesPage {
       return {
         dir,
         short: current > 0 ? '▲ new' : '→',
-        long: current > 0 ? '▲ up from 0 the week before' : '→ no recent activity',
+        long: current > 0 ? '▲ up from 0' : '→ no recent activity',
         title,
       };
     }
@@ -603,7 +603,7 @@ class AcrossCitiesPage {
     items.sort((a, b) => (order[a.sev] - order[b.sev]));
 
     if (!items.length) {
-      el.innerHTML = '<p class="ov-attention-clear">All clear — no city needs attention right now. ✅</p>';
+      el.innerHTML = '<p class="ov-attention-clear">All clear: no city needs attention. ✅</p>';
       return;
     }
     el.innerHTML = items.map((it) => {
@@ -626,12 +626,12 @@ class AcrossCitiesPage {
       ? 'no recorded activity'
       : `quiet for ${c.days_since_activity} days`;
     if (c.lifecycle === 'low_traction') {
-      return `never took off — ${quiet}, ${this.#pct(c.coverage)} coverage, `
+      return `never took off: ${quiet}, ${this.#pct(c.coverage)} coverage, `
         + `${this.#num(c.active_contributors)} contributors`;
     }
     // Stalled: had a community, lost momentum before finishing.
-    return `stalled at ${this.#pct(c.coverage)} coverage — ${quiet} `
-      + `(${this.#num(c.active_contributors)} contributors)`;
+    return `stalled at ${this.#pct(c.coverage)} coverage, ${quiet}, `
+      + `${this.#num(c.active_contributors)} contributors`;
   }
 
   /** Human-readable explanation for one data-quality anomaly flag on one city, using the city's own numbers. */
@@ -1038,7 +1038,7 @@ class AcrossCitiesPage {
       const weeks = t.weekly_sessions || [];
       // The sparkline is aria-hidden and carries no numbers, so the cell has to state them.
       const trendTitle = weeks.length
-        ? `Weekly sessions, oldest to newest — latest ${this.#num(weeks[weeks.length - 1])}, `
+        ? `Weekly sessions: latest ${this.#num(weeks[weeks.length - 1])}, `
         + `peak ${this.#num(Math.max(...weeks))}`
         : 'No weekly sessions to plot.';
       const mobileTitle = `${this.#pct(t.mobile_share_28d)} in the last 28 days, `
@@ -1747,7 +1747,7 @@ class AcrossCitiesPage {
     const d = new Date(`${isoDate}T00:00:00`);
     if (isNaN(d.getTime())) return 'Covers this property\'s whole GA4 history.';
     const when = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-    return `GA4 data for this city begins ${when}; earlier traffic isn't included.`;
+    return `GA4 data starts ${when}; earlier traffic isn't counted.`;
   }
 
   static #esc(s) {

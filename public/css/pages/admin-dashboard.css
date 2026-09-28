@@ -57,6 +57,7 @@
 }
 
 /* --- Left nav: scope badge and per-link description ------------------------------------------------------------ */
+
 /* The description is neutral-700, not -600: -600 is under 4.5:1 on both the white rail and the blue-300 active row. */
 .admin-nav-item {
   padding-top: calc(6px * var(--ui-scale, 1));

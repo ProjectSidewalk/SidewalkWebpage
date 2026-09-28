@@ -148,13 +148,13 @@ class ApiAnalyticsPage {
       if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
       const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
       const agoText = ago === null || ago === undefined ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
-      return `The selected range is ${range}, and there's been no API activity in it — the last call was on `
-        + `${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. Try a longer range.`;
+      return `No API calls in ${range}. The last was on ${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. `
+        + 'Try a longer range.';
     }
     // total > 0 but a single bucket: all activity lands in one month (only reachable for the All time range), so
     // there's no second point to draw a line to yet.
     const unit = this.#days > 0 ? 'day' : 'month';
-    return `So far there's only a single ${unit} of API activity, so there's no trend to plot yet.`;
+    return `Only one ${unit} of API activity so far; no trend to plot yet.`;
   }
 
   /** Writes the active date range ("Date range: …") onto every chart so the selected window is always explicit. */

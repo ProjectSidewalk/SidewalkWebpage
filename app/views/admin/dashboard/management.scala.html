@@ -9,13 +9,13 @@
 @content = {
   <div class="page-section" id="management-intro-section">
     <h1 class="page-heading" id="management">Management <a href="#management" class="permalink">#</a></h1>
-    <p>Operational controls for this deployment: find and manage any contributor, set their role or team, open or hide teams, and run the maintenance jobs. These actions change live data — they take effect immediately. Per-user controls (manual quality, infra3D access, marking work by date) live on each contributor's <em>admin profile</em>, linked from their name below.</p>
+    <p>Set contributors' roles and teams, manage teams, and run maintenance jobs. Every change here applies to live data immediately.</p>
     <div class="coverage-status" id="mgmt-status" role="status" aria-live="polite">Loading…</div>
   </div>
 
   <div class="page-section" id="users-section">
     <h2 class="page-heading" id="users">Users <a href="#users" class="permalink">#</a></h2>
-    <p>Every contributing account on this deployment. Search by name or email, sort any column, and assign a role or team inline. Owner accounts can't be reassigned. Per-user quality, infra3D access, and marking work by date live on each contributor's admin profile — click a name to open it.</p>
+    <p>Every contributing account. Owner accounts can't be reassigned. Click a name for that user's admin profile, which holds manual quality, infra3D access, and marking work by date.</p>
     <div class="mgmt-toolbar">
       <label class="sr-only" for="mgmt-user-search">Search users by username or email</label>
       <input type="search" id="mgmt-user-search" class="ps-input mgmt-search"
@@ -31,69 +31,69 @@
 
   <div class="page-section" id="teams-section">
     <h2 class="page-heading" id="teams">Teams <a href="#teams" class="permalink">#</a></h2>
-    <p>Teams contributors can join. <b>Status</b> controls whether a team is open to new members; <b>visibility</b> controls whether it shows in public team lists. Toggle either inline, or click a team's name to open its own page, where its members and their contributions live.</p>
+    <p><b>Status</b> sets whether a team accepts new members; <b>visibility</b> sets whether it appears in public team lists. Click a team's name for its members and their contributions.</p>
     <div id="mgmt-teams"></div>
   </div>
 
   <div class="page-section" id="maintenance-section">
     <h2 class="page-heading" id="maintenance">Maintenance <a href="#maintenance" class="permalink">#</a></h2>
-    <p>Deployment-wide jobs. These can be expensive and affect what every user sees, so each asks for confirmation before running.</p>
+    <p>These jobs can be slow and change what every user sees; each asks for confirmation first.</p>
     <div class="mgmt-actions">
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Recalculate user stats</b>
-          <span class="dq-sub">Recomputes each contributor's labeling frequency and high-quality flag.</span>
+          <span class="dq-sub">Recomputes each contributor's labeling rate and high-quality flag.</span>
         </div>
         <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-stats" data-confirm="Recalculate user stats for all recent contributors?">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Recalculate street priority</b>
-          <span class="dq-sub">Recomputes audit priority for every street so under-audited streets resurface.</span>
+          <span class="dq-sub">Recomputes every street's audit priority so under-audited streets resurface.</span>
         </div>
         <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-priority" data-confirm="Recalculate street priority for all streets? This can take a while.">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Recalculate validation counts</b>
-          <span class="dq-sub">Recounts every label's agree, disagree, and unsure votes, skipping excluded users. Run "Recalculate user stats" and "Recalculate street priority" afterward.</span>
+          <span class="dq-sub">Recounts every label's agree, disagree, and unsure votes, skipping excluded users. Afterward, run "Recalculate user stats" and "Recalculate street priority".</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-validation-counts" data-confirm="Recount the validations on every label now?">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-validation-counts" data-confirm="Recount validations on every label?">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Generate crops</b>
-          <span class="dq-sub">Cuts the missing label crops from the self-hosted pano store, as the nightly job does.</span>
+          <span class="dq-sub">Cuts missing label crops from the self-hosted pano store. Runs nightly.</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-generate-crops" data-confirm="Generate the missing crops now? A first backfill can take an hour.">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-generate-crops" data-confirm="Generate missing crops? A first backfill can take an hour.">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Rebuild sidewalk presence</b>
-          <span class="dq-sub">Re-derives each street side's sidewalk verdict from today's labels, as the nightly job does.</span>
+          <span class="dq-sub">Re-derives each street side's sidewalk verdict from current labels. Runs nightly.</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-rebuild-sidewalk-presence" data-confirm="Rebuild sidewalk presence for every street now? It takes a few seconds.">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-rebuild-sidewalk-presence" data-confirm="Rebuild sidewalk presence for every street? Takes a few seconds.">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Refresh places</b>
-          <span class="dq-sub">Fetches the city's schools, clinics, libraries, grocery stores, transit stops, parks, community centers, and government offices from OpenStreetMap for the AccessScore map. The nightly job does this weekly; this runs it now.</span>
+          <span class="dq-sub">Fetches the city's destinations (schools, clinics, transit stops, parks, and more) from OpenStreetMap for the AccessScore map. Runs weekly.</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-refresh-places" data-confirm="Fetch the city's places from OpenStreetMap now? It can take a few minutes for a big city.">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-refresh-places" data-confirm="Fetch places from OpenStreetMap? A big city can take a few minutes.">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Recount street gradient staleness</b>
-          <span class="dq-sub">Counts the streets with no grade yet and those whose geometry changed since they were sampled, for the Health panel. The nightly job does this; run it after importing grades (the grades themselves are sampled offline; see the <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/street-gradient.md">street gradient docs</a>).</span>
+          <span class="dq-sub">Counts streets with no grade and streets whose geometry changed since sampling, for the Health page. Runs nightly; run it now after importing grades (sampled offline; see the <a href="https://github.com/ProjectSidewalk/SidewalkWebpage/blob/develop/docs/street-gradient.md">street gradient docs</a>).</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recount-gradient-staleness" data-confirm="Recount the street gradient staleness now? It takes a second.">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recount-gradient-staleness" data-confirm="Recount street gradient staleness?">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Clear server cache</b>
-          <span class="dq-sub">Clears Play's cached values; the next page loads rebuild them.</span>
+          <span class="dq-sub">Clears Play's cache; the next page loads rebuild it.</span>
         </div>
-        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-clear-cache" data-confirm="Clear the server cache now?">Run</button>
+        <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-clear-cache" data-confirm="Clear the server cache?">Run</button>
       </div>
     </div>
     <p class="mgmt-result dq-sub" id="mgmt-maint-result" role="status" aria-live="polite"></p>
