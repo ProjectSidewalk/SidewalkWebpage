@@ -659,6 +659,11 @@ textarea.ps-input {
   cursor: default;
 }
 
+.ps-input:disabled,
+.ps-select:disabled {
+  cursor: not-allowed;
+}
+
 /* Range slider. Themed through the vendor pseudo-elements (`accent-color` is outside the Baseline set the stylelint
    config allows): a hairline neutral track and a small neutral thumb that keeps a visible focus ring. Shared by the
    AccessScore weight sliders and the pano image adjustments. */

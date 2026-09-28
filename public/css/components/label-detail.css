@@ -160,7 +160,7 @@ dialog.label-detail[open]::backdrop {
 /* Inert (no imagery): greyed and no pointer, but still a hover and focus target so the tooltip can say why. */
 .label-detail__delete[aria-disabled="true"] {
   color: var(--color-neutral-400);
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .label-detail__delete:focus-visible {
@@ -999,7 +999,7 @@ button.label-detail__meta-cell:focus-visible {
 
 /* Comes after .is-active so an in-flight submit (still active-green) drops the pointer while it's locked out. */
 .label-detail__comment-submit:disabled {
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .label-detail__comment-submit:focus-visible {
@@ -1287,7 +1287,7 @@ button.label-detail__meta-cell:focus-visible {
   background: rgb(255 255 255 / 55%);
   color: var(--color-neutral-500);
   box-shadow: none;
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .label-detail__paging:focus-visible {
@@ -1695,7 +1695,7 @@ button.label-detail__meta-cell:focus-visible {
 
 .label-detail__comment-own-control:disabled {
   color: var(--color-neutral-700);
-  cursor: default;
+  cursor: not-allowed;
   text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
 }
 
@@ -1704,7 +1704,7 @@ button.label-detail__meta-cell:focus-visible {
    greyed and no longer offering a pointer, but still a focus target. */
 .label-detail__tags-edit[aria-disabled="true"] {
   color: var(--color-neutral-700);
-  cursor: default;
+  cursor: not-allowed;
   text-decoration: none; /* The underline is what makes it read as a live control; off means off. */
 }
 

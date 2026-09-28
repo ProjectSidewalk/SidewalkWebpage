@@ -127,7 +127,7 @@
 }
 
 .map-download-control__item:disabled {
-  cursor: default;
+  cursor: not-allowed;
   color: var(--color-neutral-500);
 }
 
