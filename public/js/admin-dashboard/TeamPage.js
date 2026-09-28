@@ -75,7 +75,7 @@ class TeamPage {
   // --- Members ------------------------------------------------------------------------------------------------------
 
   /**
-   * A column with no `sort` isn't sortable; `help` becomes a header tooltip.
+   * A column with no `sort` isn't sortable; `help` becomes its sort button's tooltip.
    *
    * @returns {Array<{key: string, label: string, align: string, sort?: Function, help?: string}>} The columns.
    */
@@ -119,14 +119,14 @@ class TeamPage {
     }
     const cols = this.#columns();
     const headCells = cols.map((c) => {
-      const title = c.help ? ` data-ps-tooltip="${AdminShell.esc(c.help)}"` : '';
-      // A sortable header's button takes focus; a plain one needs its own tab stop to reach its definition.
-      if (!c.sort) return `<th scope="col"${c.help ? ' tabindex="0"' : ''}${title}>${AdminShell.esc(c.label)}</th>`;
+      if (!c.sort) return `<th scope="col">${AdminShell.esc(c.label)}</th>`;
+      // On the button, not the <th>: the button is what takes focus, so only it can carry the description.
+      const tip = c.help ? ` data-ps-tooltip="${AdminShell.esc(c.help)}"` : '';
       const isSorted = c.key === this.#sort.key;
       const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
-      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}"${title}>`
-        + `<button type="button" class="mgmt-sort" data-key="${c.key}">${AdminShell.esc(c.label)}`
+      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}">`
+        + `<button type="button" class="mgmt-sort" data-key="${c.key}"${tip}>${AdminShell.esc(c.label)}`
         + `<span class="mgmt-arrow">${arrow}</span></button></th>`;
     }).join('');
 
@@ -390,7 +390,7 @@ class TeamPage {
       ? '<span class="contrib-badge contrib-badge--high">High</span>'
       : '<span class="contrib-badge contrib-badge--low">Low</span>';
     if (!member.excluded) return badge;
-    return `${badge} <span class="mgmt-manual-tag" `
-      + `tabindex="0" data-ps-tooltip="This user's work is excluded from the city's stats">excluded</span>`;
+    return `${badge} <span class="mgmt-manual-tag" tabindex="0"
+      data-ps-tooltip="This user's work is excluded from the city's stats">excluded</span>`;
   }
 }

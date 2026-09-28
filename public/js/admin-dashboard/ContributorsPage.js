@@ -287,11 +287,11 @@ class ContributorsPage {
       const pct = Math.round((t.count / total) * 100);
       return `${t.label_type}: ${(t.count || 0).toLocaleString()} (${pct}%)`;
     });
-    const segs = typeCounts.map((t, i) => `<span class="contrib-typeseg" style="width:${(t.count / total) * 100}%;`
-      + `background:${ContributorsPage.#typeColor(t.label_type)}" `
-      + `data-ps-tooltip="${ContributorsPage.#esc(ContributorsPage.#esc(tips[i]))}"></span>`).join('');
-    return `<span class="contrib-typebar" role="img" aria-label="${ContributorsPage.#esc(tips.join(', '))}">`
-      + `${segs}</span>`;
+    const segs = typeCounts.map((t, i) => `<span class="contrib-typeseg"
+      style="width:${(t.count / total) * 100}%;background:${ContributorsPage.#typeColor(t.label_type)}"
+      data-ps-tooltip="${AdminShell.tooltipAttr(tips[i])}"></span>`).join('');
+    const summary = ContributorsPage.#esc(tips.join(', '));
+    return `<span class="contrib-typebar" role="img" aria-label="${summary}">${segs}</span>`;
   }
 
   /**
@@ -317,8 +317,8 @@ class ContributorsPage {
       const count = byLevel.get(level);
       return `Severity ${level}: ${count.toLocaleString()} (${Math.round((count / total) * 100)}%)`;
     });
-    const bars = [1, 2, 3].map((level, i) => `<span class="contrib-sevbar" data-ps-tooltip="${tips[i]}">`
-      + `<span style="height:${Math.round((byLevel.get(level) / max) * 100)}%"></span></span>`).join('');
+    const bars = [1, 2, 3].map((level, i) => `<span class="contrib-sevbar" data-ps-tooltip="${tips[i]}">
+      <span style="height:${Math.round((byLevel.get(level) / max) * 100)}%"></span></span>`).join('');
     return `<span class="contrib-sevdist" role="img" aria-label="${tips.join(', ')}">${bars}</span>`;
   }
 
@@ -336,8 +336,8 @@ class ContributorsPage {
     if (!total) return '<span class="dq-sub">—</span>';
     const tip = (value, label) => `${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`;
     const seg = (value, cls, label) => (value
-      ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%" `
-      + `data-ps-tooltip="${tip(value, label)}"></span>`
+      ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%"
+          data-ps-tooltip="${tip(value, label)}"></span>`
       : '');
     const summary = [tip(agree, 'Agree'), tip(disagree, 'Disagree'), tip(unsure, 'Unsure')].join(', ');
     const bar = [

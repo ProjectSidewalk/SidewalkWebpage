@@ -160,9 +160,8 @@ class FunnelsSection {
         const tip = i === 0
           ? `${full}: ${this.#num(v)} visitors`
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
-        // A step missing from the label map falls back to its key, which comes from the data, so escape it twice.
         return `
-          <div class="ac-funnel-bar" data-ps-tooltip="${FunnelsSection.#esc(FunnelsSection.#esc(tip))}">
+          <div class="ac-funnel-bar" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}">
             <span class="ac-funnel-bar-fill"
               style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>
             <span class="ac-funnel-bar-val">${valText}</span>

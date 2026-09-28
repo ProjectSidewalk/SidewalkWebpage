@@ -1052,10 +1052,10 @@ class AcrossCitiesPage {
           + `${AcrossCitiesPage.#esc(meta.label)}</span></span>`;
       }
       const engagementTitle = `${this.#num(t.engaged_sessions_7d)} of ${this.#num(t.sessions_7d)} sessions engaged`;
-      const sinceTitle = AcrossCitiesPage.#gaSinceTitle(t.ga_since);
+      const sinceTip = AdminShell.tooltipAttr(AcrossCitiesPage.#gaSinceTip(t.ga_since));
       const weeks = t.weekly_sessions || [];
       // The sparkline is aria-hidden and carries no numbers, so the cell has to state them.
-      const trendTitle = weeks.length
+      const trendTip = weeks.length
         ? `Weekly sessions: latest ${this.#num(weeks[weeks.length - 1])}, `
         + `peak ${this.#num(Math.max(...weeks))}`
         : 'No weekly sessions to plot.';
@@ -1068,10 +1068,10 @@ class AcrossCitiesPage {
           ${this.#trafficCell(t.active_users_7d, t.active_users_prior_7d, 'visitors')}
           <td class="ac-num" title="${engagementTitle}">${this.#pct(t.engagement_rate_7d)}</td>
           <td class="ac-num" title="${mobileTitle}">${this.#pct(t.mobile_share_28d)}</td>
-          <td class="ac-num" tabindex="0" data-ps-tooltip="${sinceTitle}">${this.#num(t.sessions_all_time)}</td>
-          <td class="ac-num" tabindex="0" data-ps-tooltip="${sinceTitle}">${this.#num(t.visitors_all_time)}</td>
-          <td class="ac-num" tabindex="0" data-ps-tooltip="${sinceTitle}">${this.#pct(t.mobile_share_all_time)}</td>
-          <td class="ac-spark-cell" tabindex="0" data-ps-tooltip="${trendTitle}">${this.#sparkline(weeks)}</td>
+          <td class="ac-num" tabindex="0" data-ps-tooltip="${sinceTip}">${this.#num(t.sessions_all_time)}</td>
+          <td class="ac-num" data-ps-tooltip="${sinceTip}">${this.#num(t.visitors_all_time)}</td>
+          <td class="ac-num" data-ps-tooltip="${sinceTip}">${this.#pct(t.mobile_share_all_time)}</td>
+          <td class="ac-spark-cell" tabindex="0" data-ps-tooltip="${trendTip}">${this.#sparkline(weeks)}</td>
         </tr>`;
     }).join('');
     this.#markSortedHeader('ac-traffic-table');
@@ -1183,7 +1183,7 @@ class AcrossCitiesPage {
           const share = n / total;
           const tip = `${name}: ${this.#num(n)} (${this.#pct(share)})`;
           tips.push(tip);
-          return `<span class="ac-stack-seg" data-ps-tooltip="${AcrossCitiesPage.#esc(AcrossCitiesPage.#esc(tip))}"
+          return `<span class="ac-stack-seg" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}"
             style="width:${(share * 100).toFixed(2)}%;background:${this.#color(key)}"></span>`;
         }).join('');
       }
@@ -1390,9 +1390,10 @@ class AcrossCitiesPage {
       multi ? '<th class="ac-th-text">Group</th>' : '',
       ...steps.map((k) => {
         const l = labels[k] || { full: k, short: k };
-        // A step missing from the label map falls back to its key, which comes from the data, so escape it twice.
-        const tip = AcrossCitiesPage.#esc(AcrossCitiesPage.#esc(l.full));
-        return `<th tabindex="0" data-ps-tooltip="${tip}">${AcrossCitiesPage.#esc(l.short)}</th>`;
+        const short = AcrossCitiesPage.#esc(l.short);
+        // A card that only repeats the header would be a tab stop with nothing to say.
+        if (l.full === l.short) return `<th>${short}</th>`;
+        return `<th tabindex="0" data-ps-tooltip="${AdminShell.tooltipAttr(l.full)}">${short}</th>`;
       }),
       '<th tabindex="0" data-ps-tooltip="Final step as a share of visitors">Overall</th></tr>',
     ].join('');
@@ -1463,8 +1464,7 @@ class AcrossCitiesPage {
         const tip = i === 0
           ? `${full}: ${this.#num(v)} visitors`
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
-        // A step missing from the label map falls back to its key, which comes from the data, so escape it twice.
-        return `<div class="ac-funnel-bar" data-ps-tooltip="${AcrossCitiesPage.#esc(AcrossCitiesPage.#esc(tip))}">`
+        return `<div class="ac-funnel-bar" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}">`
           + `<span class="ac-funnel-bar-fill" `
           + `style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
           + `<span class="ac-funnel-bar-val">${valText}</span></div>`;
@@ -1836,7 +1836,7 @@ class AcrossCitiesPage {
    * @param {string} [isoDate] - The property's first day with data, as `YYYY-MM-DD`.
    * @returns {string} A sentence for the cell's tooltip.
    */
-  static #gaSinceTitle(isoDate) {
+  static #gaSinceTip(isoDate) {
     if (!isoDate) return 'Covers this property\'s whole GA4 history.';
     const d = new Date(`${isoDate}T00:00:00`);
     if (isNaN(d.getTime())) return 'Covers this property\'s whole GA4 history.';

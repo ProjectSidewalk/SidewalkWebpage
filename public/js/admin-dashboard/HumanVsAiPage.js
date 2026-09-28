@@ -217,10 +217,9 @@ class HumanVsAiPage {
       seg(disagree, 'is-disagree', 'Disagree'),
       seg(unsure, 'is-unsure', 'Unsure'),
     ].join('');
+    const summary = [tip(agree, 'Agree'), tip(disagree, 'Disagree'), tip(unsure, 'Unsure')].join(', ');
     const bar = total
-      ? `<span class="contrib-verdictbar" role="img" `
-      + `aria-label="${[tip(agree, 'Agree'), tip(disagree, 'Disagree'), tip(unsure, 'Unsure')].join(', ')}">`
-      + `${segsHtml}</span>`
+      ? `<span class="contrib-verdictbar" role="img" aria-label="${summary}">${segsHtml}</span>`
       : '<span class="dq-sub">—</span>';
     const pcts = total
       ? `<span class="contrib-verdictpct">${Math.round(agree / total * 100)}% /
