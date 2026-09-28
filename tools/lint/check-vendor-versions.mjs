@@ -24,7 +24,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const VENDOR_DIR = join(ROOT, 'public', 'vendor');
 const DOC = 'docs/upgrading-libraries.md';
 
-// A version in a filename ('turf-7.3.4.min.js', 'kinetic-v4.4.3.min.js'). The leading separator is what keeps this
+// A version in a filename ('turf-7.3.4.min.js'). The leading separator is what keeps this
 // from reading the '2' out of a '.min.js' or off the end of a library name.
 const VERSION_IN_FILENAME = /[-_.]v?(\d+(?:\.\d+)+)/g;
 

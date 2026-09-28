@@ -14,14 +14,75 @@
   visibility: hidden;
 }
 
+/* Hand positions are percentages of this box so the hint scales with the pano. */
 #hand-gesture-holder {
+  position: relative;
   width: var(--pano-width);
+  aspect-ratio: 720 / 200;
+  overflow: hidden;
 }
 
-#hand-gesture-holder .kineticjs-content,
-#hand-gesture-holder canvas {
-  width: 100% !important;
-  height: auto !important;
+#hand-gesture-holder img {
+  position: absolute;
+}
+
+#hand-open {
+  width: 15.3%;
+  left: 48.6%;
+  top: 15%;
+  opacity: 0;
+}
+
+#hand-closed {
+  width: 11.4%;
+  left: 55.6%;
+  top: 30%;
+}
+
+/* With reduced motion, the closed hand just sits still where the drag would start. */
+@media (prefers-reduced-motion: no-preference) {
+  #hand-open {
+    animation: hand-open-lift 2s linear infinite;
+  }
+
+  #hand-closed {
+    animation: hand-closed-drag 2s linear infinite;
+  }
+}
+
+@keyframes hand-open-lift {
+  0% {
+    top: 50%;
+    opacity: 1;
+  }
+
+  25%,
+  40% {
+    top: 15%;
+    opacity: 1;
+  }
+
+  40.1% {
+    opacity: 0;
+  }
+}
+
+@keyframes hand-closed-drag {
+  0%,
+  39.9% {
+    left: 55.6%;
+    opacity: 0;
+  }
+
+  40% {
+    left: 55.6%;
+    opacity: 1;
+  }
+
+  90%,
+  100% {
+    left: 76.4%;
+  }
 }
 
 #onboarding-message-holder {
