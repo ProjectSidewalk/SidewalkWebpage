@@ -206,6 +206,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
                 endTask: jest.fn(),
                 updateCurrentTask: stub(),
                 getNextTaskAfterJump: () => null,
+                setNextTaskAfterJump: jest.fn(),
                 // No planned walk unless a test sets one up; the replan-before-advance test does (#5526).
                 hasWalkPlan: jest.fn(() => false),
                 planWalk: jest.fn(() => true),
@@ -278,6 +279,22 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.taskContainer.planWalk).toHaveBeenCalledWith('giveUp', { exclude: dead });
             expect(svl.taskContainer.planWalk.mock.invocationCallOrder[0])
                 .toBeLessThan(svl.taskContainer.nextTask.mock.invocationCallOrder[0]);
+        });
+
+        it('holds the chosen street as an armed jump across the submission it awaits (#5526)', async () => {
+            // A priority refresh that lands during the awaited submission would otherwise replan under a street
+            // already chosen and prefetched; the armed target makes the replan wait for the landing.
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            svl.taskContainer.hasWalkPlan.mockReturnValue(true);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            expect(svl.taskContainer.setNextTaskAfterJump).toHaveBeenCalledWith(live);
+            expect(svl.taskContainer.setNextTaskAfterJump.mock.invocationCallOrder[0])
+                .toBeLessThan(svl.form.submitData.mock.invocationCallOrder[0]);
+            expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(live);
         });
 
         it('leaves a walk without a plan to the greedy choice', async () => {

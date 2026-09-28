@@ -113,10 +113,11 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   region's unwalked streets to `WalkPlanner` (`public/js/common/`), stamps each task with its planned position and
   direction, and `nextTask` follows that order through the same walk-order branch a route uses. It replans when a
   street is given up for lack of imagery, when another labeler changes the priority of a street still ahead, and
-  when the labeler switches to a street other than the plan's next. `WalkPlanLayer` previews the next few streets
-  and their jumps on the minimap. Client-side because the client already holds every street with its live priority,
-  so there is nothing to store or invalidate, and the planner is deterministic, so a reload replans the same walk.
-  If planning fails, the older greedy next-street rule takes over.
+  when the labeler switches to a street other than the plan's next; a replan asked for while a jump is armed waits
+  until the jump lands. `WalkPlanLayer` previews the next few streets and their jumps on the minimap. Client-side
+  because the client already holds every street with its live priority, so there is nothing to store or invalidate.
+  The planner is deterministic: the same streets, priorities and start street give the same plan, and a reload that
+  resumes the same street replans the same remaining walk. If planning fails, the greedy next-street rule takes over.
 
 ### Media storage
 

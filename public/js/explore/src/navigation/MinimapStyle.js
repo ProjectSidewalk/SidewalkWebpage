@@ -174,10 +174,13 @@ class MinimapStyle {
 
   /**
    * An upcoming jump in a neighborhood mission's planned walk (#5526): a straight connector from the end of one street
-   * to the start of the next, where the labeler will be moved rather than walk. Dots in the route-ahead blue, outlined
-   * in the chevrons' deep blue, over a thin white casing drawn by the line's own stroke — the route-ahead palette, so
-   * it reads as part of the path ahead, but dots rather than dashes and no chevrons, so it does not read as a street
-   * to walk. Just under the route casing, so where a connector meets a street the street wins.
+   * to where the labeler lands on the next, a stretch they will be moved across rather than walk. A thin dashed
+   * hairline in the chevrons' deep blue (the legend's "Jump to next street" row): no discs, since a filled disc on this
+   * map means a pano to step to, and too thin and plain to read as a street to walk.
+   *
+   * No white casing: the deep blue is dark enough to hold against the light raster basemap on its own, and a casing
+   * would thicken the hairline back into something that competes with the streets. Not clickable, since it does
+   * nothing when clicked. Just under the route casing, so where a connector meets a street the street wins.
    * @param {google.maps.LatLng[]} path - The connector's two ends.
    * @returns {google.maps.PolylineOptions}
    */
@@ -185,24 +188,21 @@ class MinimapStyle {
     return {
       path,
       geodesic: true,
-      strokeColor: '#ffffff',
-      strokeOpacity: 0.9,
-      strokeWeight: 4,
+      clickable: false,
+      // The line itself is invisible; the repeated dash symbol below draws it, since strokes can't dash.
+      strokeOpacity: 0,
       zIndex: 9,
       icons: [
         {
           icon: {
-            // A unit circle as an SVG path, like the other symbols here, so these options stay plain data.
-            path: 'M -1,0 A 1,1 0 1,0 1,0 A 1,1 0 1,0 -1,0 Z',
-            fillColor: MinimapStyle.remainingColor(),
-            fillOpacity: 1.0,
+            path: 'M 0,-1 0,1',
             strokeColor: MinimapStyle.chevronOutlineColor(),
             strokeOpacity: 1.0,
-            strokeWeight: 1,
-            scale: 2.5,
+            strokeWeight: 2,
+            scale: 2, // 4px dashes with 4px gaps: finer than the route-ahead's 5-on/7-off, which is a street to walk.
           },
           offset: '0',
-          repeat: '10px',
+          repeat: '8px',
         },
       ],
     };

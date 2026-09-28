@@ -5,18 +5,22 @@
  * A route shows every street ahead, but a planned walk covers the whole region, and drawing all of it as the route
  * ahead would bury the path the labeler is about to take under the rest of the neighborhood. So only the streets
  * within a horizon are drawn as the route ahead (Task.render draws a task marked planned-ahead that way), and each
- * upcoming jump is drawn as a dotted connector, so a jump is visible before it happens rather than announced after.
- * Everything beyond the horizon stays quiet grey context.
+ * place Explore will move the labeler rather than let them walk is drawn as a dashed connector, so a jump is visible
+ * before it happens rather than announced after. Everything beyond the horizon stays quiet grey context.
  */
 class WalkPlanLayer {
   // The preview reaches at least this far, so the last stretch of a mission still shows where the walk goes next.
   static #MIN_HORIZON_M = 250;
   // Fewer than two streets reads as the current street's continuation rather than as a path.
   static #MIN_STREETS = 2;
-  // Past this many streets the preview stops being "the next few" and starts filling the minimap, which at its usual
-  // zoom shows only a block or two in each direction anyway.
+  // Past this many streets the preview stops being "the next few". The minimap's default zoom 18 spans only about
+  // 100 m at Seattle's latitude, less than a block, so most of the preview is seen through the ⛶ overview, which
+  // frames the previewed streets (Minimap's street bounds).
   static #MAX_STREETS = 8;
+  // Holder class that reveals the legend's jump row: the row explains a mark only a planned walk draws.
+  static #PLAN_MODE_CLASS = 'minimap-plan-mode';
 
+  /** @type {TaskContainer} */
   #taskContainer;
   /** @type {Task[]} */
   #previewed = [];
@@ -35,7 +39,8 @@ class WalkPlanLayer {
    * #MIN_HORIZON_M), never fewer than #MIN_STREETS nor more than #MAX_STREETS.
    *
    * @param {number[]} lengthsM - Lengths of the planned streets ahead, in walk order.
-   * @param {number} remainingMissionM - Metres left in the current mission; 0 when unknown.
+   * @param {number} remainingMissionM - Metres left in the mission once the current street is finished; 0 when
+   *     unknown.
    * @returns {number} The number of streets from the front of `lengthsM` to preview.
    */
   static horizonCount(lengthsM, remainingMissionM) {
@@ -51,6 +56,18 @@ class WalkPlanLayer {
   }
 
   /**
+   * Redraws the preview whenever a new mission becomes current, since its horizon is measured against the mission's
+   * remaining distance. Goes through TaskContainer.refreshWalkPlanPreview, which keeps a render error out of the
+   * mission-loading code.
+   *
+   * @param {MissionContainer} missionContainer - Emits `MissionContainer:missionLoaded`.
+   * @returns {void}
+   */
+  watchMissions(missionContainer) {
+    missionContainer.on('MissionContainer:missionLoaded', () => this.#taskContainer.refreshWalkPlanPreview());
+  }
+
+  /**
    * Recomputes which streets are previewed and redraws them and the jump connectors. Cheap enough to run on every
    * street switch: it touches at most #MAX_STREETS streets plus the ones previewed before.
    *
@@ -59,7 +76,9 @@ class WalkPlanLayer {
   refresh() {
     const ahead = this.#taskContainer.getPlannedStepsAhead(WalkPlanLayer.#MAX_STREETS);
     const lengthsM = ahead.map(({ task }) => task.lineDistance({ units: 'meters' }));
-    const previewedSteps = ahead.slice(0, WalkPlanLayer.horizonCount(lengthsM, this.#remainingMissionM()));
+    // The current street's unwalked part is walked before any of these, so it comes out of what they must cover.
+    const afterCurrentM = Math.max(this.#remainingMissionM() - this.#currentRemainderM(), 0);
+    const previewedSteps = ahead.slice(0, WalkPlanLayer.horizonCount(lengthsM, afterCurrentM));
 
     const before = this.#previewed;
     this.#previewed = previewedSteps.map(({ task }) => task);
@@ -69,7 +88,15 @@ class WalkPlanLayer {
     // its chevrons have to follow.
     for (const task of new Set([...before, ...this.#previewed])) task.render();
 
-    this.#drawConnectors(previewedSteps);
+    this.#drawConnectors(this.#previewed);
+    svl.ui?.minimap?.holder?.classList.toggle(WalkPlanLayer.#PLAN_MODE_CLASS, this.#taskContainer.hasWalkPlan());
+  }
+
+  /**
+   * @returns {Task[]} The streets drawn as the path ahead, in walk order; the ⛶ overview frames them.
+   */
+  getPreviewedTasks() {
+    return [...this.#previewed];
   }
 
   /**
@@ -86,27 +113,46 @@ class WalkPlanLayer {
   }
 
   /**
-   * One connector per previewed jump, from the end of the street before it to the start of the jumped-to street.
-   * The street before is the previous previewed one, or the current street for the first: steps between them that
-   * were walked or given up on out of order no longer stand between the labeler and the jump.
+   * @returns {number} Metres of the current street not yet walked; 0 when there is no current street.
+   */
+  #currentRemainderM() {
+    const current = this.#taskContainer.getCurrentTask();
+    if (!current) return 0;
+    return Math.max(current.lineDistance({ units: 'meters' }) - current.getAuditedDistance({ units: 'meters' }), 0);
+  }
+
+  /**
+   * One connector for each previewed street Explore will jump to: from the end of the street before it to where the
+   * labeler lands on it, its start or, on a part-walked street, where they left it. The street before is the previous
+   * previewed one, or the current street for the first: a step between them that was walked or given up on out of
+   * order is skipped by nextTask, so it does not stand between the labeler and the jump.
    *
-   * @param {{task: Task, step: {jump: boolean}}[]} previewedSteps - The previewed streets with their plan steps.
+   * Drawn from geometry rather than the plan's own jump flag, with the rule NavigationService applies at the end of a
+   * street: a gap under svl.CONNECTED_TASK_THRESHOLD is switched seamlessly, so a connector there would promise a jump
+   * that never comes.
+   *
+   * @param {Task[]} previewed - The previewed streets, in walk order.
    * @returns {void}
    */
-  #drawConnectors(previewedSteps) {
+  #drawConnectors(previewed) {
     for (const connector of this.#connectors) connector.setMap(null);
     this.#connectors = [];
     if (svl.isExploreAddressMode?.()) return;
 
     let previous = this.#taskContainer.getCurrentTask();
-    for (const { task, step } of previewedSteps) {
-      if (step?.jump && previous) {
+    for (const task of previewed) {
+      if (previous) {
         const from = previous.getEndCoordinate();
-        const to = task.getStartCoordinate();
-        const path = [new google.maps.LatLng(from.lat, from.lng), new google.maps.LatLng(to.lat, to.lng)];
-        const connector = new google.maps.Polyline(MinimapStyle.plannedJump(path));
-        connector.setMap(svl.minimap.getMap());
-        this.#connectors.push(connector);
+        const to = task.isResumed()
+          ? task.getFurthestPointReached().geometry.coordinates
+          : [task.getStartCoordinate().lng, task.getStartCoordinate().lat];
+        const gapKm = turf.distance(turf.point([from.lng, from.lat]), turf.point(to), { units: 'kilometers' });
+        if (gapKm >= svl.CONNECTED_TASK_THRESHOLD) {
+          const path = [new google.maps.LatLng(from.lat, from.lng), new google.maps.LatLng(to[1], to[0])];
+          const connector = new google.maps.Polyline(MinimapStyle.plannedJump(path));
+          connector.setMap(svl.minimap.getMap());
+          this.#connectors.push(connector);
+        }
       }
       previous = task;
     }

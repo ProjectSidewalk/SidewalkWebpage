@@ -188,7 +188,8 @@ class Minimap {
 
   /**
    * Bounds framing "your route": on a designated route, every loaded street; on a region audit, the current
-   * mission's streets plus the one you're on (the region as a whole would zoom out far past the route — #4639).
+   * mission's streets plus the one you're on and the planned streets the minimap previews ahead (#5526) — the region
+   * as a whole would zoom out far past the route (#4639).
    * @returns {google.maps.LatLngBounds|null} Null if no street geometry is available yet.
    */
   #streetBounds() {
@@ -204,6 +205,10 @@ class Minimap {
       tasks = ((mission && mission.getRoute()) || []).slice();
       const current = svl.taskContainer.getCurrentTask();
       if (current && !tasks.includes(current)) tasks.push(current);
+      // At street zoom the preview is mostly off screen, so the overview is where the labeler sees the path ahead.
+      for (const task of svl.walkPlanLayer?.getPreviewedTasks() ?? []) {
+        if (!tasks.includes(task)) tasks.push(task);
+      }
     }
     const bounds = new google.maps.LatLngBounds();
     for (const task of tasks) {

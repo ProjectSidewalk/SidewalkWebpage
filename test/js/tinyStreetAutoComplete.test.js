@@ -1,11 +1,12 @@
 /**
  * A street too short to walk is completed on arrival when all of it is already in view (#3682).
  *
- * The end-of-street check runs only after a move, and on a short street Task.isAtEnd shrinks its radius to a fraction
- * of the length, so a labeler placed at the end of a street under the 25 m completion radius — on page load, or by a
- * seamless switch at a junction — could never finish it and was left pressing Stuck. The narrow rule under test: at
- * those two spawn points only, a street of at most 20 m whose every vertex is within the pano search radius is ended
- * through the normal end-of-street path, and a run of such streets is bounded.
+ * The scenario: a labeler is put on a street shorter than the 25 m completion radius without walking it — by the page
+ * load, a seamless switch at a junction, or a jump landing. The end-of-street check runs only after a move, and on a
+ * short street Task.isAtEnd shrinks its radius to a fraction of the length, so nothing else would finish it. The rule
+ * under test: at those arrival points only, a street under WalkPlanner.TINY_STREET_M whose every vertex is within the
+ * pano search radius goes through the normal end-of-street path (ended, or its jump prompt armed); a run of such
+ * streets is bounded; and a route, whose final street defers to the imagery-exhaustion path (#4640), is left alone.
  *
  * NavigationService is a top-level `class` declaration for the Grunt-concatenation world, so the source is eval'd
  * into the jsdom global scope. Real vendored turf: "in view" is a distance question on real geometry.
@@ -37,6 +38,9 @@ function makeTask(streetEdgeId, fromM, toM) {
         complete: false,
         getStreetEdgeId: () => streetEdgeId,
         getFeature: () => feature,
+        getStartCoordinate: () => ({ lng: east(fromM)[0], lat: east(fromM)[1] }),
+        getEndCoordinate: () => ({ lng: east(toM)[0], lat: east(toM)[1] }),
+        isResumed: () => false,
         lineDistance: ({ units }) => turf.length(feature, { units }),
         isComplete() {
             return this.complete;
@@ -77,7 +81,15 @@ describe('Tiny-street auto-completion at a spawn point (#3682)', () => {
                 clearPrefetchCache: jest.fn(),
                 prefetchLocation: jest.fn(),
             },
-            regionModel: { isRoute: false, isRouteOrRegionComplete: () => false, setComplete: jest.fn() },
+            regionModel: {
+                isRoute: false,
+                isRouteOrRegionComplete: () => false,
+                setComplete: jest.fn(),
+                currentRegion: () => 'the-region',
+            },
+            missionModel: { updateMissionProgress: jest.fn() },
+            panoManager: { showNavArrows: jest.fn(), setPovToRouteDirection: jest.fn() },
+            jumpAlert: { onClickJumpMessage: jest.fn() },
             missionController: { onRouteReadyToFinish: jest.fn() },
             taskContainer: {
                 tasksLoaded: () => true,
@@ -88,6 +100,7 @@ describe('Tiny-street auto-completion at a spawn point (#3682)', () => {
                 }),
                 setCurrentTask: jest.fn((task) => svl.taskContainer.getCurrentTask.mockReturnValue(task)),
                 setNextTaskAfterJump: jest.fn(),
+                getNextTaskAfterJump: jest.fn(() => null),
             },
         };
         window.svl = svl;
@@ -106,6 +119,17 @@ describe('Tiny-street auto-completion at a spawn point (#3682)', () => {
         expect(svl.taskContainer.endTask).toHaveBeenCalledWith(tiny);
         expect(mission.pushATaskToTheRoute).toHaveBeenCalledWith(tiny);
         expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(next);
+    });
+
+    it('reads what "tiny" means from WalkPlanner, so the planner and this check agree', () => {
+        window.WalkPlanner = { TINY_STREET_M: 10 };
+        try {
+            place(makeTask(1, 0, 15), makeTask(2, 15, 200));
+
+            expect(nav.completeTinyStreetAtSpawn()).toBe(false);
+        } finally {
+            delete window.WalkPlanner;
+        }
     });
 
     it('leaves a 40 m street alone even when all of it is in view', () => {
@@ -145,6 +169,9 @@ describe('Tiny-street auto-completion at a spawn point (#3682)', () => {
         ['before the region\'s streets have loaded', () => {
             svl.taskContainer.tasksLoaded = () => false;
         }],
+        ['on a route, whose final street waits for its imagery to run out (#4640)', () => {
+            svl.regionModel.isRoute = true;
+        }],
     ])('does nothing %s', (_name, arrange) => {
         place(makeTask(1, 0, 15), makeTask(2, 15, 200));
         arrange();
@@ -176,5 +203,63 @@ describe('Tiny-street auto-completion at a spawn point (#3682)', () => {
         expect(svl.compass.showLabelBeforeJumpMessage).toHaveBeenCalled();
         expect(nav.getLabelBeforeJumpState()).toBe(true);
         expect(svl.taskContainer.endTask).not.toHaveBeenCalled();
+        // Nothing is ended yet, and the log says so.
+        expect(autoCompletions()).toEqual([
+            ['TaskAutoComplete_TinyStreet', { streetEdgeId: 1, lengthM: 15, armedJump: true }],
+        ]);
+    });
+
+    it.each([
+        ['arms a jump to a planned street that starts a block away, though its far end is close', 200, 25, true],
+        ['switches seamlessly onto a planned street that starts where the tiny one ends', 20, 200, false],
+    ])('on a planned walk, %s (#5526)', (_name, nextFromM, nextToM, jumps) => {
+        // The plan fixed which end is the start, so only that end counts as a connection; isConnectedTo accepts
+        // either end and would say "connected" to both.
+        svl.taskContainer.hasWalkPlan = () => true;
+        const [tiny, next] = [makeTask(1, 0, 15), makeTask(2, nextFromM, nextToM)];
+        place(tiny, next);
+
+        nav.completeTinyStreetAtSpawn();
+
+        expect(nav.getLabelBeforeJumpState()).toBe(jumps);
+        expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledTimes(jumps ? 0 : 1);
+    });
+
+    it('logs each street of a run in the order they were finished', () => {
+        const run = [makeTask(1, 0, 4), makeTask(2, 4, 8), makeTask(3, 8, 200)];
+        place(...run);
+
+        nav.completeTinyStreetAtSpawn();
+
+        expect(autoCompletions().map(([, note]) => note.streetEdgeId)).toEqual([1, 2]);
+    });
+
+    it('finishes a tiny street a jump lands on, then faces the street that follows', async () => {
+        const [walked, tiny, next] = [makeTask(1, -900, -800), makeTask(2, 0, 15), makeTask(3, 15, 200)];
+        place(walked, tiny, next);
+        svl.compass.resetBeforeJump = jest.fn();
+        svl.taskContainer.getNextTaskAfterJump.mockReturnValue(tiny);
+        nav.moveForward = jest.fn(() => Promise.resolve('landed-pano'));
+
+        await nav.jumpToANewTask();
+
+        expect(svl.taskContainer.endTask).toHaveBeenCalledWith(tiny);
+        expect(svl.taskContainer.getCurrentTask()).toBe(next);
+        expect(svl.missionModel.updateMissionProgress).toHaveBeenCalled();
+        // Re-aimed after the switch, so the camera faces the street being walked rather than the tiny one.
+        expect(svl.panoManager.setPovToRouteDirection.mock.invocationCallOrder[0])
+            .toBeGreaterThan(svl.taskContainer.setCurrentTask.mock.invocationCallOrder.at(-1));
+    });
+
+    it('leaves the street alone when the jump\'s move did not land', async () => {
+        const [walked, tiny] = [makeTask(1, -900, -800), makeTask(2, 0, 15)];
+        place(walked, tiny);
+        svl.compass.resetBeforeJump = jest.fn();
+        svl.taskContainer.getNextTaskAfterJump.mockReturnValue(tiny);
+        nav.moveForward = jest.fn(() => Promise.resolve(null));
+
+        await nav.jumpToANewTask();
+
+        expect(autoCompletions()).toHaveLength(0);
     });
 });

@@ -4,8 +4,9 @@
  * The planner itself (`common/WalkPlanner.js`) has its own suite; here it is replaced by a fake that returns a
  * scripted plan, so what is pinned is the lifecycle around it: when a plan is built and when it is not, how its order
  * and directions land on the tasks, that `nextTask` follows it through the same walk-order rule a route uses and never
- * toggles a planned street's direction, when it is rebuilt, and that a missing or failing planner falls back to the
- * greedy rule rather than breaking the tool.
+ * toggles a planned street's direction, when it is rebuilt (and when that waits for an armed jump to land), that a
+ * failing minimap preview never escapes, and that a missing or failing planner falls back to the greedy rule rather
+ * than breaking the tool.
  *
  * Real Task, TaskContainer, vendored turf and `util.math`: direction is decided by distances along real geometry. Task
  * and TaskContainer are top-level `class` declarations for the Grunt-concatenation world, so the sources are eval'd
@@ -41,6 +42,10 @@ const STREETS = {
     3: [at(200), at(300)],
     4: [at(0, 500), at(100, 500)],
     5: [at(100, 500), at(200, 500)],
+    // Parallel to street 1's continuation, 20 m and 60 m north of its east end: close enough that a correction toward
+    // the finished street would turn them, by the 25 m connection radius and the 75 m nearby test respectively.
+    6: [at(100, 20), at(300, 20)],
+    7: [at(100, 60), at(300, 60)],
 };
 
 /** A /tasks feature for a street. The coordinates are copied: Task reverses them in place. */
@@ -71,6 +76,7 @@ const DEFAULT_STATS = {
 class FakeWalkPlanner {
     static instances = [];
     static script = null;
+    static DEFAULT_PRIORITY_TOLERANCE = 0.15;
 
     constructor(streets, options) {
         this.streets = streets;
@@ -102,20 +108,21 @@ describe('A neighborhood mission\'s planned walk', () => {
 
     /**
      * Loads the page's street and then the region's other streets, as Main and fetchTasks do.
-     * @param {object} [options] - `isRoute`, `exploreAddress`, `features` (the /tasks payload besides street 1).
+     * @param {object} [options] - `isRoute`, `exploreAddress`, `onboarding`, `features` (the /tasks payload besides
+     *     street 1).
      */
-    async function load({ isRoute = false, exploreAddress = false, features } = {}) {
+    async function load({ isRoute = false, exploreAddress = false, onboarding = false, features } = {}) {
         const mission = { getProperty: () => 1, pushATaskToTheRoute: jest.fn() };
         svl = {
             CONNECTED_TASK_THRESHOLD: 0.025,
             CLOSE_TO_ROUTE_THRESHOLD: 0.05,
             userRouteId: 3,
-            isOnboarding: () => false,
+            isOnboarding: () => onboarding,
             isExploreAddressMode: () => exploreAddress,
             regionModel: { isRoute, currentRegion: () => ({ getRegionId: () => 7 }) },
             missionContainer: { getCurrentMission: () => mission, getTasksMissionsOffset: () => null },
             panoViewer: { getPosition: () => position },
-            walkPlanLayer: { refresh: jest.fn() },
+            walkPlanLayer: { refresh: jest.fn(), getPreviewedTasks: jest.fn(() => []) },
         };
         window.svl = svl;
         tracker = { push: jest.fn(), setAuditTaskID: jest.fn() };
@@ -207,6 +214,30 @@ describe('A neighborhood mission\'s planned walk', () => {
             expect(FakeWalkPlanner.instances).toHaveLength(0);
             expect(container.hasWalkPlan()).toBe(false);
         });
+
+        it('nor in the tutorial, whose street is scripted', async () => {
+            await load({ onboarding: true });
+
+            expect(container.planWalk('load')).toBe(false);
+            expect(FakeWalkPlanner.instances).toHaveLength(0);
+            expect(container.hasWalkPlan()).toBe(false);
+        });
+
+        it('entering a part-walked street where the labeler left it, not at its start (#5370)', async () => {
+            const resumeAt = at(250);
+            await load({
+                features: [feature(2), feature(3, {
+                    audit_task_id: 55, completed: false, current_lng: resumeAt[0], current_lat: resumeAt[1],
+                })],
+            });
+
+            const planned = FakeWalkPlanner.instances[0].streets.find((street) => street.id === 3);
+            // Only the unwalked 50 m, in the street's own direction, which the planner may not turn.
+            expect(planned.coords[0][0]).toBeCloseTo(resumeAt[0], 6);
+            expect(planned.coords.at(-1)).toEqual(STREETS[3][1]);
+            expect(planned.lengthM).toBeCloseTo(50, 0);
+            expect(planned.fixedDirection).toBe(true);
+        });
     });
 
     describe('turns each street to the direction it is planned to be walked', () => {
@@ -288,16 +319,17 @@ describe('A neighborhood mission\'s planned walk', () => {
             expect(reverse).toHaveBeenCalledTimes(1);
         });
 
-        it('starting an off-plan street that touches the one just finished at their shared end', async () => {
-            // The labeler walked street 3 out of order; street 2 is next in the plan and meets 3 at 3's start. Once
-            // 3 is turned around to be walked west, its end is 2's east end, and 2 should start there.
-            FakeWalkPlanner.script = scriptSteps([1, 2, 3]);
-            await load({ features: [feature(2), feature(3)] });
-            task(1).complete();
-            task(3).reverseStreetDirection();
+        it.each([
+            ['20 m away, inside the connection radius', 6],
+            ['60 m away, inside the nearby test', 7],
+        ])('keeping a jump target the plan enters at its far end, with its near end %s', async (_name, id) => {
+            // The plan enters the street at its east end (the odd-degree rule can choose that); turning it toward the
+            // finished street's end would land the labeler where the minimap's connector does not point.
+            FakeWalkPlanner.script = scriptSteps([1, id], { [id]: { reverse: true, jump: true, jumpM: 200 } });
+            await load({ features: [feature(id)] });
 
-            expect(container.nextTask(task(3))).toBe(task(2));
-            expect(task(2).getStartCoordinate()).toEqual({ lat: STREETS[2][1][1], lng: STREETS[2][1][0] });
+            expect(container.nextTask(task(1))).toBe(task(id));
+            expect(task(id).getStartCoordinate()).toEqual({ lat: STREETS[id][1][1], lng: STREETS[id][1][0] });
         });
     });
 
@@ -323,6 +355,35 @@ describe('A neighborhood mission\'s planned walk', () => {
             expect(FakeWalkPlanner.instances).toHaveLength(2);
             expect(FakeWalkPlanner.instances[1].streets.find((street) => street.id === 4).priority).toBe(0.25);
             expect(container.getWalkPlan().reason).toBe('priority');
+        });
+
+        it('when a street the minimap previews changes priority, even within the top tier', async () => {
+            await load();
+            svl.walkPlanLayer.getPreviewedTasks.mockReturnValue([task(2), task(3)]);
+
+            container.updateTaskPriorities([{ street_edge_id: 2, priority: 0.45 }]);
+
+            expect(FakeWalkPlanner.instances).toHaveLength(2);
+        });
+
+        it('when a street rises into the top tier, previewed or not', async () => {
+            await load({ features: [feature(2), feature(3), feature(4), feature(5, { priority: 0.2 })] });
+
+            container.updateTaskPriorities([{ street_edge_id: 5, priority: 0.5 }]);
+
+            expect(FakeWalkPlanner.instances).toHaveLength(2);
+        });
+
+        it('but not for a change that leaves the preview and the top tier as they were', async () => {
+            // Another labeler's submission nudges an unpreviewed street that stays in the tier: replanning would only
+            // reshuffle the preview under this labeler.
+            await load();
+            svl.walkPlanLayer.getPreviewedTasks.mockReturnValue([task(2), task(3)]);
+
+            container.updateTaskPriorities([{ street_edge_id: 5, priority: 0.45 }]);
+
+            expect(FakeWalkPlanner.instances).toHaveLength(1);
+            expect(task(5).getStreetPriority()).toBe(0.45);
         });
 
         it('but not when the changed street is already walked, or its priority is unchanged', async () => {
@@ -361,6 +422,41 @@ describe('A neighborhood mission\'s planned walk', () => {
             expect(FakeWalkPlanner.instances).toHaveLength(1);
         });
 
+        it('only once an armed jump lands, and never turning its target in between', async () => {
+            FakeWalkPlanner.script = scriptSteps([1, 4, 5, 2, 3], { 4: { reverse: true, jump: true } });
+            await load();
+            container.setNextTaskAfterJump(task(4));
+            FakeWalkPlanner.script = null;
+
+            // A priority response arriving while the label-before-jump prompt is up.
+            container.updateTaskPriorities([{ street_edge_id: 2, priority: 0.25 }]);
+
+            expect(FakeWalkPlanner.instances).toHaveLength(1);
+            expect(task(4).getProperty('startPointReversed')).toBe(true);
+
+            task(1).complete();
+            container.setCurrentTask(task(4));
+
+            expect(FakeWalkPlanner.instances).toHaveLength(2);
+            expect(FakeWalkPlanner.instances[1].start).toEqual({ streetId: 4 });
+            expect(container.getWalkPlan().reason).toBe('priority');
+            expect(container.getNextTaskAfterJump()).toBeNull();
+        });
+
+        it('once, however many replans were asked for while the jump was armed', async () => {
+            FakeWalkPlanner.script = scriptSteps([1, 4, 5, 2, 3], { 4: { jump: true } });
+            await load();
+            container.setNextTaskAfterJump(task(4));
+
+            container.updateTaskPriorities([{ street_edge_id: 2, priority: 0.25 }]);
+            container.updateTaskPriorities([{ street_edge_id: 3, priority: 0.25 }]);
+            task(1).complete();
+            container.setCurrentTask(task(4));
+            container.setCurrentTask(task(4));
+
+            expect(FakeWalkPlanner.instances).toHaveLength(2);
+        });
+
         it('only by the time streets are loaded', async () => {
             window.eval(`${TASK_CONTAINER_SRC}\nwindow.TaskContainer = TaskContainer;`);
             const regionModel = { isRoute: false };
@@ -371,16 +467,35 @@ describe('A neighborhood mission\'s planned walk', () => {
         });
     });
 
+    describe('keeps a failing minimap preview to itself', () => {
+        it('so a priority refresh or a street switch carries on, plan intact', async () => {
+            await load();
+            svl.walkPlanLayer.refresh.mockImplementation(() => {
+                throw new Error('render failed');
+            });
+            jest.spyOn(console, 'error').mockImplementation(() => {});
+
+            // Both run inside the submission chain, whose own error handling reloads the page.
+            expect(() => container.updateTaskPriorities([{ street_edge_id: 4, priority: 0.25 }])).not.toThrow();
+            expect(() => container.setCurrentTask(task(2))).not.toThrow();
+            expect(container.hasWalkPlan()).toBe(true);
+            expect(console.error).toHaveBeenCalled();
+        });
+    });
+
     describe('falls back to the greedy rule rather than break the tool', () => {
         it('when the planner throws', async () => {
             FakeWalkPlanner.script = () => {
-                throw new Error('no such node');
+                throw new RangeError('no such node: 12, 13');
             };
             jest.spyOn(console, 'error').mockImplementation(() => {});
 
             await load();
 
-            expect(pushed('WalkPlan_Failed')).toEqual([['WalkPlan_Failed', { reason: 'load', error: 'no such node' }]]);
+            // The note is `key:value,` pairs, so the message loses the separators it would otherwise break.
+            expect(pushed('WalkPlan_Failed')).toEqual([['WalkPlan_Failed', {
+                reason: 'load', error: 'RangeError', message: 'no such node 12 13',
+            }]]);
             expect(container.hasWalkPlan()).toBe(false);
             expect(container.nextTask(task(1))).not.toBeNull();
         });

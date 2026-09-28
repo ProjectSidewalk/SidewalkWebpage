@@ -170,6 +170,8 @@ class Main {
 
     // Mission
     svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
+    // The walk preview's horizon is the mission's remaining distance, so a new mission redraws it (#5526).
+    svl.walkPlanLayer.watchMissions(svl.missionContainer);
     svl.missionController = new MissionController(svl.missionModel, svl.regionModel,
       svl.missionContainer, svl.tracker);
     svl.missionModel.createAMission(params.mission); // create current mission and set as current
@@ -411,7 +413,17 @@ class Main {
     svl.onboarding.start();
   }
 
-  #startTheMission(mission, region) {
+  /**
+   * Starts the mission the page loaded into: the first-mission instructions or AI guidance, the mission progress
+   * displays, the labels to resume, the minimap's streets, and the tiny-street check on the street the labeler is on.
+   *
+   * @param {Mission} mission - The current mission.
+   * @param {Region} region - The region being audited.
+   * @param {{missionStartScreen?: boolean}} [options] - `missionStartScreen` when the mission-start screen is up, so
+   *     anything that speaks to the labeler waits for it to close.
+   * @returns {void}
+   */
+  #startTheMission(mission, region, { missionStartScreen = false } = {}) {
     // Popup the message explaining the goal of the current mission.
     if (svl.missionContainer.isTheFirstMission()) {
       region = svl.regionModel.currentRegion();
@@ -438,15 +450,36 @@ class Main {
     });
 
     svl.taskContainer.renderAllTasks();
-    // A street too short to walk, already in full view, is finished on arrival rather than left for the labeler to
-    // press Stuck on (#3682). Not before this point: completing it moves the mission bar, whose offset is only set
-    // just before the mission starts.
-    if (svl.navigationService.completeTinyStreetAtSpawn()) svl.missionModel.updateMissionProgress(mission, region);
+    // Not before this point: completing a street moves the mission bar, whose offset is only set just before the
+    // mission starts. Behind the mission-start screen, it waits for the screen to close, or a jump prompt it arms
+    // would be raised before the labeler has seen anything.
+    if (missionStartScreen) {
+      document.addEventListener('ps:mission-start-tutorial:done', () => this.#finishTinyStreetAtSpawn(region),
+        { once: true });
+    } else {
+      this.#finishTinyStreetAtSpawn(region);
+    }
     const distance = svl.taskContainer.getCompletedTaskDistance();
     svl.overallStats.setRegionAuditedDistance(distance);
 
     // Prefetch Mapillary data on images along the street to improve load times for images along the street.
     svl.navigationService.prefetchAlongStreet(svl.taskContainer.getCurrentTask().getFeature());
+  }
+
+  /**
+   * A street too short to walk, already in full view, is finished on arrival rather than left for the labeler to
+   * press Stuck on (#3682); see NavigationService.completeTinyStreetAtSpawn.
+   *
+   * @param {Region} region - The region being audited, for the mission progress refresh.
+   * @returns {void}
+   */
+  #finishTinyStreetAtSpawn(region) {
+    const spawnTask = svl.taskContainer.getCurrentTask();
+    if (!svl.navigationService.completeTinyStreetAtSpawn()) return;
+    svl.missionModel.updateMissionProgress(svl.missionContainer.getCurrentMission(), region);
+    svl.overallStats.setRegionAuditedDistance(svl.taskContainer.getCompletedTaskDistance());
+    // A seamless switch puts the labeler on the next street without a move, so the camera still faces the tiny one.
+    if (svl.taskContainer.getCurrentTask() !== spawnTask) svl.panoManager.setPovToRouteDirection();
   }
 
   // This is a callback function that is executed after every loading process is done.
@@ -573,7 +606,8 @@ class Main {
           }, { once: true });
         }
 
-        this.#startTheMission(mission, currentRegion);
+        // Free exploration shows no mission-start screen; every other mission here does.
+        this.#startTheMission(mission, currentRegion, { missionStartScreen: !svl.isExploreAddressMode() });
       }
 
       // Update the observed area now that everything has loaded.

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Exports each dev city's open streets for the #5526 replay benchmark (see README.md), one JSON file per city:
-# data/<city>.json = [{id, regionId, coords, priority, lengthM}], sorted by id, the order the server returns tasks in.
+# data/<city>.json = [{id, regionId, coords, priority, lengthM}], sorted by id, which is approximately the
+# order the server returns tasks in (selectTasksInARegion has no ORDER BY, so ties in the replayed rule may differ).
 #
 # Read-only (readonly_user). The street set mirrors StreetEdgeTable.streets: status 'open', in a region that isn't
 # deleted, and never the tutorial street.

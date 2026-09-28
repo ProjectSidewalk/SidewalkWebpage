@@ -4,10 +4,12 @@
 //
 // Usage: node tools/experiments/5526-mission-walk-planner/replay.mjs [--seeds 5] [--city seattle] [--region 16]
 //                                                                    [--out results.md]
+//        node tools/experiments/5526-mission-walk-planner/replay.mjs --perf   (planning-time table, README)
 
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -21,9 +23,10 @@ const WalkPlanner = vm.runInThisContext(
 const CONNECTED_M = 25;
 const NEARBY_LINE_M = 75;
 const CONNECT_RADII_M = [5, 10, 25];
-// The yardstick for every policy: a step whose start is more than this from the previous end is a jump. It is the
-// planner's node tolerance, so the jump lower bound (computed on that node graph) is comparable.
-const JUMP_GAP_M = WalkPlanner.NODE_TOLERANCE_M;
+// Two yardsticks for every policy: a step whose start is more than this from the previous end is a jump. 25 m is
+// the headline because it is Explore's own CONNECTED_TASK_THRESHOLD, i.e. what a labeler experiences as a jump; 10 m
+// is the planner's node tolerance, the graph the jump lower bound is computed on.
+const YARDSTICKS_M = [CONNECTED_M, WalkPlanner.NODE_TOLERANCE_M];
 
 const args = parseArgs(process.argv.slice(2));
 const SEEDS = Number(args.seeds ?? 5);
@@ -46,7 +49,9 @@ const POLICIES = [
 function parseArgs(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i].startsWith('--')) out[argv[i].slice(2)] = argv[i + 1];
+    if (!argv[i].startsWith('--')) continue;
+    const value = argv[i + 1];
+    out[argv[i].slice(2)] = value === undefined || value.startsWith('--') ? true : value;
   }
   return out;
 }
@@ -105,7 +110,10 @@ class EndpointGrid {
     return `${x},${y}`;
   }
 
-  /** Street indices with an endpoint strictly within radiusM of p, ascending (= server order), deduplicated. */
+  /**
+   * Street indices with an endpoint strictly within radiusM of p, deduplicated, ascending: id order, which is only
+   * approximately the server's (`selectTasksInARegion` has no ORDER BY).
+   */
   near(p, radiusM, streets, keep) {
     const cx = Math.floor(p[0] / EndpointGrid.CELL);
     const cy = Math.floor(p[1] / EndpointGrid.CELL);
@@ -126,8 +134,8 @@ class EndpointGrid {
 const bucket = (p) => Math.min(Math.floor(p / 0.25), 3);
 
 /**
- * Today's TaskContainer.nextTask for a region walk, and its variants. The first street is the caller's (server
- * rule); every later pick follows the client rule, including its two orientation rules.
+ * The greedy fallback rule (TaskContainer.nextTask) for a region walk, and its variants. The first street is the
+ * caller's (server rule); every later pick follows the client rule, including its two orientation rules.
  */
 function runCurrent(region, startIndex, { filter, tol = 0, jump }) {
   const { streets, grid, byPriority } = region;
@@ -153,7 +161,7 @@ function runCurrent(region, startIndex, { filter, tol = 0, jump }) {
     const keep = filter === 'bucket'
       ? (i) => bucket(streets[i].priority) === bucket(bestP)
       : (i) => streets[i].priority >= bestP - tol - 1e-9;
-    // Array.sort is stable, so equal priorities stay in server (id) order, as in the real code.
+    // Array.sort is stable, so equal priorities stay in id order, approximately the server's order.
     connected = connected.filter(keep).sort((a, b) => streets[b].priority - streets[a].priority);
 
     let next;
@@ -212,29 +220,33 @@ function rawAuc(order, streets, totalM, totalMass) {
   return area;
 }
 
-/** Uniform metrics for any walk, so every policy is judged by one yardstick (README "Definitions"). */
+/**
+ * Uniform metrics for any walk, so every policy is judged by the same yardsticks (README "Definitions"). Jumps and
+ * dead ends are measured once per yardstick in YARDSTICKS_M; `byGap[g]` holds the numbers for YARDSTICKS_M[g].
+ */
 function measure(region, steps) {
   const { streets, grid, totalM, totalMass, aucMin, aucMax } = region;
   const walkedAt = new Int32Array(streets.length).fill(-1);
   steps.forEach((s, k) => { walkedAt[s.index] = k; });
   if (steps.length !== streets.length || walkedAt.some((k) => k < 0)) throw new Error('walk does not cover region');
-  const jumps = [];
-  let deadEnds = 0;
+  const byGap = YARDSTICKS_M.map(() => ({ jumps: [], deadEnds: 0 }));
   let prevEnd = null;
   steps.forEach((step, k) => {
     const s = streets[step.index];
     const start = step.reverse ? last(s) : first(s);
     const end = step.reverse ? first(s) : last(s);
-    if (prevEnd) {
-      const gap = dist(prevEnd, start);
-      if (gap > JUMP_GAP_M) jumps.push(gap);
-    }
-    if (k < steps.length - 1 && grid.near(end, JUMP_GAP_M, streets, (i) => walkedAt[i] > k).length === 0) deadEnds++;
+    const gap = prevEnd ? dist(prevEnd, start) : 0;
+    YARDSTICKS_M.forEach((yardstickM, g) => {
+      if (gap > yardstickM) byGap[g].jumps.push(gap);
+      if (k < steps.length - 1 && grid.near(end, yardstickM, streets, (i) => walkedAt[i] > k).length === 0) {
+        byGap[g].deadEnds++;
+      }
+    });
     prevEnd = end;
   });
   const auc = aucMax - aucMin < 1e-12 ? NaN
     : (rawAuc(steps.map((s) => s.index), streets, totalM, totalMass) - aucMin) / (aucMax - aucMin);
-  return { jumps, deadEnds, auc };
+  return { byGap, auc };
 }
 
 function median(values) {
@@ -266,6 +278,88 @@ function prepareRegion(streets) {
 
 const fmt = (x, d = 2) => (Number.isFinite(x) ? x.toFixed(d) : '–');
 
+/** Streets of an n×n lattice on the equator at 0.001° (~111 m), oriented east/north, as in the jest perf guard. */
+function latticeStreets(n) {
+  const P = (x, y) => [x * 0.001, y * 0.001];
+  const out = [];
+  for (let x = 0; x < n; x++) {
+    for (let y = 0; y < n; y++) {
+      if (x + 1 < n) out.push({ id: out.length + 1, coords: [P(x, y), P(x + 1, y)], priority: 1 });
+      if (y + 1 < n) out.push({ id: out.length + 1, coords: [P(x, y), P(x, y + 1)], priority: 1 });
+    }
+  }
+  return out;
+}
+
+/** A spine of `n` streets with a dead-end tooth on each side of every spine node, as in the jest perf guard. */
+function combStreets(n) {
+  const P = (x, y) => [x * 0.001, y * 0.001];
+  const out = [];
+  for (let x = 0; x < n; x++) {
+    for (const [a, b] of [[[x, 0], [x + 1, 0]], [[x, 0], [x, 1]], [[x, 0], [x, -1]]]) {
+      out.push({ id: out.length + 1, coords: [P(...a), P(...b)], priority: 1 });
+    }
+  }
+  return out;
+}
+
+/** The largest region of a city's export, as planner input. */
+function largestRegion(city) {
+  const byRegion = new Map();
+  for (const s of JSON.parse(fs.readFileSync(path.join(HERE, 'data', `${city}.json`), 'utf8'))) {
+    if (!byRegion.has(s.regionId)) byRegion.set(s.regionId, []);
+    byRegion.get(s.regionId).push({ id: s.id, coords: s.coords, priority: s.priority, lengthM: s.lengthM });
+  }
+  const [regionId, streets] = [...byRegion.entries()].sort((a, b) => b[1].length - a[1].length || a[0] - b[0])[0];
+  return { label: `${city} region ${regionId}`, streets: streets.sort((a, b) => a.id - b.id) };
+}
+
+const PERF_CASES = {
+  seattle: () => largestRegion('seattle'),
+  lattice: () => ({ label: '25×25 lattice', streets: latticeStreets(25) }),
+  comb: () => ({ label: 'comb, 600-street spine', streets: combStreets(600) }),
+  comb1000: () => ({ label: 'comb, 1,000-street spine', streets: combStreets(1000) }),
+};
+
+/**
+ * Times construct + plan for one case, in a process of its own so "cold" means a JIT that has never seen the
+ * planner, as on a page load. Prints one JSON line.
+ */
+function perfCase(name) {
+  const { label, streets } = PERF_CASES[name]();
+  const run = () => {
+    const t = performance.now();
+    const { stats } = new WalkPlanner(streets).plan({ streetId: streets[0].id });
+    return { ms: performance.now() - t, planMs: stats.ms };
+  };
+  const cold = run();
+  for (let r = 0; r < 5; r++) run();
+  const reps = 20;
+  const warm = Array.from({ length: reps }, run);
+  const mean = (f) => warm.reduce((t, r) => t + f(r), 0) / reps;
+  console.log(JSON.stringify({
+    label, streets: streets.length, coldMs: cold.ms, coldPlanMs: cold.planMs, warmMs: mean((r) => r.ms),
+    warmPlanMs: mean((r) => r.planMs),
+  }));
+}
+
+if (args['perf-case']) {
+  perfCase(args['perf-case']);
+  process.exit(0);
+}
+if (args.perf) {
+  console.log('| Case | streets | construct + plan, cold | warm | of which plan(), cold | warm |');
+  console.log('|---|---:|---:|---:|---:|---:|');
+  for (const name of Object.keys(PERF_CASES)) {
+    const self = fileURLToPath(import.meta.url);
+    const r = JSON.parse(execFileSync(process.execPath, [self, '--perf-case', name], { encoding: 'utf8' }).trim());
+    const ms = (x) => `${fmt(x, 1)} ms`;
+    console.log(`| ${r.label} | ${r.streets} | ${ms(r.coldMs)} | ${ms(r.warmMs)} | ${ms(r.coldPlanMs)} `
+      + `| ${ms(r.warmPlanMs)} |`);
+  }
+  process.exit(0);
+}
+
 const report = [];
 const t0 = Date.now();
 for (const city of CITIES) {
@@ -282,7 +376,8 @@ for (const city of CITIES) {
     byRegion.get(s.regionId).push(s);
   }
 
-  const perPolicy = new Map(POLICIES.map((p) => [p.name, { regions: [], jumpPool: [] }]));
+  const perPolicy = new Map(POLICIES.map((p) => [p.name, { regions: [], jumpPool: YARDSTICKS_M.map(() => []) }]));
+  let seedCount = 0;
   let cityKm = 0;
   let cityLb = 0;
   let largest = { n: 0, ms: 0 };
@@ -293,64 +388,83 @@ for (const city of CITIES) {
     cityLb += region.lowerBound;
     const bestP = streets[region.byPriority[0]].priority;
     const topTier = region.byPriority.filter((i) => streets[i].priority === bestP);
-    const starts = Array.from({ length: SEEDS }, (_, seed) => {
-      const rand = mulberry32(seed * 100003 + regionId);
-      return topTier[Math.floor(rand() * topTier.length)];
-    });
+    // Distinct starts: a partial Fisher-Yates shuffle, capped at the tier size, so a region with fewer
+    // max-priority streets than SEEDS gets each of them once instead of repeats.
+    const rand = mulberry32(regionId);
+    const pool = [...topTier];
+    const starts = [];
+    for (let k = 0; k < Math.min(SEEDS, pool.length); k++) {
+      const j = k + Math.floor(rand() * (pool.length - k));
+      [pool[k], pool[j]] = [pool[j], pool[k]];
+      starts.push(pool[k]);
+    }
+    seedCount += starts.length;
     if (streets.length > largest.n) {
-      const planner = new WalkPlanner(region.plannerInput);
-      planner.plan({ streetId: streets[starts[0]].id }); // Warm the JIT before timing.
       const reps = 10;
       const tp = performance.now();
-      for (let r = 0; r < reps; r++) planner.plan({ streetId: streets[starts[r % SEEDS]].id });
+      for (let r = 0; r < reps; r++) {
+        new WalkPlanner(region.plannerInput).plan({ streetId: streets[starts[r % starts.length]].id });
+      }
       largest = { n: streets.length, ms: (performance.now() - tp) / reps, regionId };
     }
     for (const policy of POLICIES) {
       const seedRows = starts.map((start) => measure(region, policy.run(region, start)));
       const agg = perPolicy.get(policy.name);
-      for (const row of seedRows) agg.jumpPool.push(...row.jumps);
       const mean = (f) => seedRows.reduce((t, r) => t + f(r), 0) / seedRows.length;
-      agg.regions.push({
-        km,
-        lb: region.lowerBound,
-        jumps: mean((r) => r.jumps.length),
-        jumpM: mean((r) => r.jumps.reduce((t, d) => t + d, 0)),
-        deadEnds: mean((r) => r.deadEnds),
-        auc: mean((r) => r.auc),
+      const row = { km, lb: region.lowerBound, auc: mean((r) => r.auc), byGap: [] };
+      YARDSTICKS_M.forEach((_, g) => {
+        for (const r of seedRows) agg.jumpPool[g].push(...r.byGap[g].jumps);
+        row.byGap.push({
+          jumps: mean((r) => r.byGap[g].jumps.length),
+          jumpM: mean((r) => r.byGap[g].jumps.reduce((t, d) => t + d, 0)),
+          deadEnds: mean((r) => r.byGap[g].deadEnds),
+        });
       });
+      agg.regions.push(row);
     }
   }
 
   const lines = [];
   lines.push(`### ${city}`, '');
   lines.push(`${byRegion.size} regions, ${all.filter((s) => !args.region || String(s.regionId) === String(args.region))
-    .length} streets, ${fmt(cityKm, 1)} km; jump lower bound ${cityLb} (${fmt(cityLb / cityKm)} per km). `
-    + `Largest region ${largest.regionId} (${largest.n} streets) plans in ${fmt(largest.ms, 1)} ms.`, '');
+    .length} streets, ${fmt(cityKm, 1)} km, ${seedCount} starts; jump lower bound ${cityLb} `
+    + `(${fmt(cityLb / cityKm)} per km). Largest region ${largest.regionId} (${largest.n} streets) constructs `
+    + `and plans in ${fmt(largest.ms, 1)} ms (warm).`, '');
+  const rowsFor = (g, withAuc) => POLICIES.map((policy) => {
+    const { regions, jumpPool } = perPolicy.get(policy.name);
+    const sum = (f) => regions.reduce((t, r) => t + f(r), 0);
+    const cells = [
+      policy.name,
+      fmt(sum((r) => r.byGap[g].jumps) / cityKm),
+      fmt(median(regions.map((r) => r.byGap[g].jumps / r.km))),
+      fmt(median(jumpPool[g]), 0),
+      fmt(sum((r) => r.byGap[g].jumpM) / cityKm, 0),
+      fmt(sum((r) => r.byGap[g].deadEnds) / cityKm),
+    ];
+    if (withAuc) {
+      const scored = regions.filter((r) => Number.isFinite(r.auc));
+      const aucW = scored.reduce((t, r) => t + r.auc * r.km, 0) / scored.reduce((t, r) => t + r.km, 0);
+      cells.push(fmt(aucW, 3), fmt(median(regions.map((r) => r.auc)), 3));
+    }
+    cells.push(fmt(sum((r) => r.byGap[g].jumps) / Math.max(1, sum((r) => r.lb))));
+    return `| ${cells.join(' | ')} |`;
+  });
+  lines.push(`**Jumps at ${YARDSTICKS_M[0]} m (headline: what a labeler experiences as a jump)**`, '');
   lines.push('| Policy | jumps/km | jumps/km (median region) | median jump m | jump m per km | dead ends/km '
     + '| priority-AUC | priority-AUC (median region) | jumps / lower bound |');
   lines.push('|---|---:|---:|---:|---:|---:|---:|---:|---:|');
-  for (const policy of POLICIES) {
-    const { regions, jumpPool } = perPolicy.get(policy.name);
-    const sum = (f) => regions.reduce((t, r) => t + f(r), 0);
-    const withAuc = regions.filter((r) => Number.isFinite(r.auc));
-    const aucW = withAuc.reduce((t, r) => t + r.auc * r.km, 0) / withAuc.reduce((t, r) => t + r.km, 0);
-    const cells = [
-      policy.name,
-      fmt(sum((r) => r.jumps) / cityKm),
-      fmt(median(regions.map((r) => r.jumps / r.km))),
-      fmt(median(jumpPool), 0),
-      fmt(sum((r) => r.jumpM) / cityKm, 0),
-      fmt(sum((r) => r.deadEnds) / cityKm),
-      fmt(aucW, 3),
-      fmt(median(regions.map((r) => r.auc)), 3),
-      fmt(sum((r) => r.jumps) / Math.max(1, sum((r) => r.lb))),
-    ];
-    lines.push(`| ${cells.join(' | ')} |`);
-  }
+  lines.push(...rowsFor(0, true), '');
+  lines.push(`**Jumps at ${YARDSTICKS_M[1]} m (the planner's node tolerance; priority-AUC does not depend on the `
+    + 'yardstick)**', '');
+  lines.push('| Policy | jumps/km | jumps/km (median region) | median jump m | jump m per km | dead ends/km '
+    + '| jumps / lower bound |');
+  lines.push('|---|---:|---:|---:|---:|---:|---:|');
+  lines.push(...rowsFor(1, false));
   lines.push('');
   console.log(lines.join('\n'));
   report.push(...lines);
 }
-report.push(`_${SEEDS} seeds per region; ${((Date.now() - t0) / 1000).toFixed(0)} s total._`, '');
+report.push(`_Up to ${SEEDS} distinct starts per region (fewer where the region has fewer max-priority streets); `
+  + `${((Date.now() - t0) / 1000).toFixed(0)} s total._`, '');
 console.log(report[report.length - 2]);
 if (!args.city && !args.region) fs.writeFileSync(OUT, `${report.join('\n')}`);
