@@ -6,10 +6,16 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.Identity
 
+import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
-case class SidewalkUser(userId: String, username: String, email: String)
+/**
+ * An account, of any role.
+ *
+ * @param createdAt When the account was made. None for an older account whose date hasn't been filled in (#5532).
+ */
+case class SidewalkUser(userId: String, username: String, email: String, createdAt: Option[OffsetDateTime])
 
 /**
  * The user behind a request, loaded on every request. Account-wide settings ride along so pages needn't query again.
@@ -32,7 +38,9 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
   def userId: Rep[String]   = column[String]("user_id", O.PrimaryKey)
   def username: Rep[String] = column[String]("username")
   def email: Rep[String]    = column[String]("email")
-  def *                     = (userId, username, email) <> (SidewalkUser.tupled, SidewalkUser.unapply)
+  // DEFAULT now() in the DB.
+  def createdAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("created_at")
+  def * = (userId, username, email, createdAt) <> (SidewalkUser.tupled, SidewalkUser.unapply)
 
   // CHECK (email = lower(email)) and CHECK (username NOT LIKE '%@%') in the DB.
   def usernameUnique = index("sidewalk_user_username_key", username, unique = true)

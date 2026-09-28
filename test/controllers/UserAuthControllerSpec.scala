@@ -218,6 +218,16 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
     }
   }
 
+  "A new account" should {
+    "record when it was created (#5532)" in {
+      val (userId, _, _) = signUpFreshUser()
+      runAccounts(
+        sql"""SELECT created_at > now() - interval '1 minute' FROM sidewalk_login.sidewalk_user
+              WHERE user_id = $userId""".as[Option[Boolean]]
+      ).head mustBe Some(true)
+    }
+  }
+
   "GET /signInMobile and /signUpMobile" should {
     "permanently redirect to the responsive auth pages, preserving the query string (#4884)" in {
       val signIn = route(app, FakeRequest(GET, "/signInMobile?url=%2Fmobile")).get
