@@ -37,12 +37,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   scala-steward:
-    # Scala Steward has no metadata action, so key off the semver labels it attaches to its PRs.
-    # If a Steward PR arrives unlabeled it simply won't auto-merge (falls back to the monthly manual sweep).
+    # The hosted Steward opens PRs from a fork, so it can't apply GitHub labels; it writes them into the PR body
+    # instead. Early-semver is the Scala convention: a 0.x minor counts as breaking.
     if: >-
-      github.actor == 'scala-steward' &&
-      (contains(github.event.pull_request.labels.*.name, 'semver-patch') ||
-       contains(github.event.pull_request.labels.*.name, 'semver-minor'))
+      github.event.pull_request.user.login == 'scala-steward' &&
+      (contains(github.event.pull_request.body, 'early-semver-patch') ||
+       contains(github.event.pull_request.body, 'early-semver-minor'))
     runs-on: ubuntu-latest
     steps:
       - name: Enable auto-merge for patch & minor
