@@ -2129,15 +2129,16 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 /* --- Across Cities: hero stat band + deployment map (#4329) ------------------------------------------------------ */
 .ac-hero { margin-top: var(--space-lg); }
 
+/* A grid, not a wrapping flex row: exact totals (1,712,345) wrap the row on narrower screens, and a wrapped flex
+   item would stretch to the full row width. The 150px floor fits a seven-digit count in the h3 value. */
 .ac-hero-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(150px * var(--ui-scale, 1)), 1fr));
   gap: var(--space-md);
   margin-bottom: var(--space-md);
 }
 
 .ac-hero-stat {
-  flex: 1 1 120px;
   border: 1px solid var(--color-neutral-200);
   border-radius: 8px;
   padding: var(--space-md);
