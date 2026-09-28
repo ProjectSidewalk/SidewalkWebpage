@@ -250,8 +250,8 @@ class PartnersPage {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = danger
-      ? 'button-ps button--secondary button--small partners-row-btn--danger'
-      : 'button-ps button--secondary button--small';
+      ? 'button button--secondary button--small partners-row-btn--danger'
+      : 'button button--secondary button--small';
     btn.textContent = text;
     btn.setAttribute('aria-label', label);
     btn.disabled = disabled;

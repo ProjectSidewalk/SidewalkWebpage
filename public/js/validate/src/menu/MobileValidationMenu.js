@@ -84,7 +84,7 @@ class MobileValidationMenu {
     menuUI.disagreeReasonTextBox.addEventListener('input', () => {
       if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       if (menuUI.disagreeReasonTextBox.value === '') {
-        menuUI.disagreeReasonTextBox.classList.remove('chosen');
+        menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
         svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
       } else {
         this.#setDisagreeReason('other');
@@ -93,7 +93,7 @@ class MobileValidationMenu {
     menuUI.unsureReasonTextBox.addEventListener('input', () => {
       if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
       if (menuUI.unsureReasonTextBox.value === '') {
-        menuUI.unsureReasonTextBox.classList.remove('chosen');
+        menuUI.unsureReasonTextBox.classList.remove('is-chosen');
         svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
       } else {
         this.#setUnsureReason('other');
@@ -136,16 +136,16 @@ class MobileValidationMenu {
 
     if (prevValResult === undefined) {
       // This is a new label (not returning from an undo), so reset everything.
-      menuUI.yesButton.classList.remove('chosen');
-      menuUI.noButton.classList.remove('chosen');
-      menuUI.unsureButton.classList.remove('chosen');
+      menuUI.yesButton.classList.remove('is-chosen');
+      menuUI.noButton.classList.remove('is-chosen');
+      menuUI.unsureButton.classList.remove('is-chosen');
       menuUI.noMenu.style.display = 'none';
       menuUI.unsureMenu.style.display = 'none';
       menuUI.mobilePopupNotch.classList.remove('mobile-popup-notch-no', 'mobile-popup-notch-unsure');
       MobileValidationMenu.#clearChosen(this.#disagreeReasonButtons);
       MobileValidationMenu.#clearChosen(this.#unsureReasonButtons);
-      menuUI.disagreeReasonTextBox.classList.remove('chosen');
-      menuUI.unsureReasonTextBox.classList.remove('chosen');
+      menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
+      menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
       menuUI.unsureReasonTextBox.value = '';
     } else {
@@ -153,23 +153,23 @@ class MobileValidationMenu {
       const disagreeOption = label.getProperty('disagreeOption');
       MobileValidationMenu.#clearChosen(this.#disagreeReasonButtons);
       if (disagreeOption === 'other') {
-        menuUI.disagreeReasonTextBox.classList.add('chosen');
+        menuUI.disagreeReasonTextBox.classList.add('is-chosen');
         menuUI.disagreeReasonTextBox.value = label.getProperty('disagreeReasonTextBox');
       } else {
-        menuUI.disagreeReasonTextBox.classList.remove('chosen');
+        menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
         menuUI.disagreeReasonTextBox.value = '';
-        this.#reasonButton(disagreeOption)?.classList.add('chosen');
+        this.#reasonButton(disagreeOption)?.classList.add('is-chosen');
       }
 
       const unsureOption = label.getProperty('unsureOption');
       MobileValidationMenu.#clearChosen(this.#unsureReasonButtons);
       if (unsureOption === 'other') {
-        menuUI.unsureReasonTextBox.classList.add('chosen');
+        menuUI.unsureReasonTextBox.classList.add('is-chosen');
         menuUI.unsureReasonTextBox.value = label.getProperty('unsureReasonTextBox');
       } else {
-        menuUI.unsureReasonTextBox.classList.remove('chosen');
+        menuUI.unsureReasonTextBox.classList.remove('is-chosen');
         menuUI.unsureReasonTextBox.value = '';
-        this.#reasonButton(unsureOption)?.classList.add('chosen');
+        this.#reasonButton(unsureOption)?.classList.add('is-chosen');
       }
 
       if (prevValResult === 'Agree') this.#setYesView();
@@ -190,7 +190,7 @@ class MobileValidationMenu {
    * @param {HTMLElement[]} buttons
    */
   static #clearChosen(buttons) {
-    for (const button of buttons) button.classList.remove('chosen');
+    for (const button of buttons) button.classList.remove('is-chosen');
   }
 
   /**
@@ -236,9 +236,9 @@ class MobileValidationMenu {
 
   #setYesView() {
     const menuUI = this.#menuUI;
-    menuUI.yesButton.classList.add('chosen');
-    menuUI.noButton.classList.remove('chosen');
-    menuUI.unsureButton.classList.remove('chosen');
+    menuUI.yesButton.classList.add('is-chosen');
+    menuUI.noButton.classList.remove('is-chosen');
+    menuUI.unsureButton.classList.remove('is-chosen');
 
     menuUI.noMenu.style.display = 'none';
     menuUI.unsureMenu.style.display = 'none';
@@ -247,9 +247,9 @@ class MobileValidationMenu {
 
   #setNoView() {
     const menuUI = this.#menuUI;
-    menuUI.yesButton.classList.remove('chosen');
-    menuUI.noButton.classList.add('chosen');
-    menuUI.unsureButton.classList.remove('chosen');
+    menuUI.yesButton.classList.remove('is-chosen');
+    menuUI.noButton.classList.add('is-chosen');
+    menuUI.unsureButton.classList.remove('is-chosen');
     menuUI.noMenu.style.display = 'flex';
     menuUI.unsureMenu.style.display = 'none';
     menuUI.mobilePopupNotch.classList.remove('mobile-popup-notch-unsure');
@@ -258,9 +258,9 @@ class MobileValidationMenu {
 
   #setUnsureView() {
     const menuUI = this.#menuUI;
-    menuUI.yesButton.classList.remove('chosen');
-    menuUI.noButton.classList.remove('chosen');
-    menuUI.unsureButton.classList.add('chosen');
+    menuUI.yesButton.classList.remove('is-chosen');
+    menuUI.noButton.classList.remove('is-chosen');
+    menuUI.unsureButton.classList.add('is-chosen');
     menuUI.noMenu.style.display = 'none';
     menuUI.unsureMenu.style.display = 'flex';
     menuUI.mobilePopupNotch.classList.remove('mobile-popup-notch-no');
@@ -295,13 +295,13 @@ class MobileValidationMenu {
     const menuUI = this.#menuUI;
     MobileValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     if (id === 'other') {
-      menuUI.disagreeReasonTextBox.classList.add('chosen');
+      menuUI.disagreeReasonTextBox.classList.add('is-chosen');
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
     } else {
-      menuUI.disagreeReasonTextBox.classList.remove('chosen');
+      menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
-      this.#reasonButton(id)?.classList.add('chosen');
+      this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
 
@@ -322,13 +322,13 @@ class MobileValidationMenu {
     const menuUI = this.#menuUI;
     MobileValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {
-      menuUI.unsureReasonTextBox.classList.add('chosen');
+      menuUI.unsureReasonTextBox.classList.add('is-chosen');
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
     } else {
-      menuUI.unsureReasonTextBox.classList.remove('chosen');
+      menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.unsureReasonTextBox.value = '';
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', id);
-      this.#reasonButton(id)?.classList.add('chosen');
+      this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
 

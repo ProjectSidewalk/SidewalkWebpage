@@ -780,16 +780,16 @@ body {
   border-color: var(--color-asphalt-200);
 }
 
-#validate-yes-button.chosen {
+#validate-yes-button.is-chosen {
   background: var(--color-pine-300);
 }
 
-#validate-no-button.chosen {
+#validate-no-button.is-chosen {
   background: var(--color-orange-300);
 }
 
 /* A shade paler than the desktop menu's chosen Unsure, matching the pale chosen Yes and No above. */
-#validate-unsure-button.chosen {
+#validate-unsure-button.is-chosen {
   background: var(--color-asphalt-100);
 }
 

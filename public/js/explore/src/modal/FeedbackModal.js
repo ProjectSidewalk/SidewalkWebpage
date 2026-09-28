@@ -97,7 +97,6 @@ class FeedbackModal {
    */
   #setOkEnabled(enabled) {
     this.#okButton.disabled = !enabled;
-    this.#okButton.classList.toggle('disabled', !enabled);
   }
 
   /**

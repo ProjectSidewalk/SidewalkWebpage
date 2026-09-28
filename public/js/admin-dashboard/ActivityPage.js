@@ -464,10 +464,10 @@ class ActivityPage {
     const buttons = document.querySelectorAll(selector);
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('active')) return;
+        if (btn.classList.contains('is-active')) return;
         buttons.forEach((b) => {
           const isTarget = b === btn;
-          b.classList.toggle('active', isTarget);
+          b.classList.toggle('is-active', isTarget);
           b.setAttribute('aria-pressed', String(isTarget));
         });
         updateState(btn);

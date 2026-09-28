@@ -15,7 +15,7 @@
 *@
 
 @navItem(page: String, href: Call, name: String, desc: String, allCities: Boolean) = {
-  <a href="@href" class="page-nav-item admin-nav-item @if(activePage == page){active}" @if(activePage == page){aria-current="page"}>
+  <a href="@href" class="page-nav-item admin-nav-item @if(activePage == page){is-active}" @if(activePage == page){aria-current="page"}>
     <span class="admin-nav-name"><span class="page-nav-label">@name</span>@if(allCities){ <span class="admin-nav-scope">All cities</span>}</span>
     <span class="admin-nav-desc">@desc</span>
   </a>

@@ -34,7 +34,7 @@
     @if(stories.isEmpty) {
       <div class="community-empty">
         <p>@Messages("stories.page.none")</p>
-        <a class="button-ps button--primary button--medium" href="/labelMap">@Messages("stories.page.none.cta")</a>
+        <a class="button button--primary button--medium" href="/labelMap">@Messages("stories.page.none.cta")</a>
       </div>
     } else {
       <div class="community-toolbar">
@@ -86,7 +86,7 @@
                   <img class="community-chip__icon" src="@assets.path(s.labelType.smallIconSvgPath)" alt="">
                   <span class="community-chip__text">@Messages(s.labelType.nameKey)</span>
                 </span>
-                <a class="button-ps button--primary button--small story-card__label-link" data-label-id="@s.labelId"
+                <a class="button button--primary button--small story-card__label-link" data-label-id="@s.labelId"
                    href="/labelMap?labelId=@s.labelId">
                   @Messages("stories.page.view.label")
                 </a>

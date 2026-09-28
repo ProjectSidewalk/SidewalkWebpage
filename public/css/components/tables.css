@@ -4,7 +4,7 @@
  *   .ps-table-scroll      horizontal scroller for a table wider than its column (the 13-column user directory).
  *   .ps-table-scroll-box  capped-height vertical scroller with a frame, for a long region or leaderboard table.
  *   .ps-table--sticky     the sortable data table: the header stays put while its box scrolls, every column after
- *                         the first is numeric and right-aligned, rows are click targets, and `.highlighted` marks
+ *                         the first is numeric and right-aligned, rows are click targets, and `.is-highlighted` marks
  *                         the row the map is focused on.
  */
 .ps-table-scroll { overflow-x: auto; }
@@ -38,7 +38,7 @@
 
 /* The orange is the high-contrast pick against the coverage map's Blues scale, which is where the highlight
    originates. */
-.ps-table--sticky tbody tr.highlighted {
+.ps-table--sticky tbody tr.is-highlighted {
   background: rgb(246 141 62 / 14%);
   box-shadow: inset 3px 0 0 var(--color-label-surface-problem);
 }

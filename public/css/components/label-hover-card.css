@@ -220,7 +220,7 @@
   color: var(--color-neutral-700);
 }
 
-/* Footer action buttons (design-system button-ps/button--tiny). */
+/* Footer action buttons (design-system button/button--tiny). */
 .label-hover-card__actions {
   display: flex;
   gap: calc(6px * var(--ui-scale));

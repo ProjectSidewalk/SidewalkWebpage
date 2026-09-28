@@ -156,7 +156,7 @@
    *@
   @* Outside the section, because a live region that was display:none at load isn't reliably watched — and this one
    has to announce the arrival of the very element it would otherwise sit inside. *@
-  <span id="ud-cities-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+  <span id="ud-cities-status" class="sr-only" role="status" aria-live="polite"></span>
   <div class="page-section" id="ud-cities-section" hidden
        data-stats-url="@if(adminView){/adminapi/users/@{user.userId}/crossCityStats}else{/userapi/crossCityStats}">
     <h2 class="page-heading" id="cities">@Messages("dashboard.cities.title") <a href="#cities" class="permalink">#</a></h2>
@@ -230,7 +230,7 @@
     <div class="ud-nudge" id="ud-routes-empty" @if(myRoutes.nonEmpty) {hidden}>
       @Messages("dashboard.routes.none") <a href="/routeBuilder">@Messages("dashboard.routes.build.one")</a>
     </div>
-    <span id="ud-routes-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+    <span id="ud-routes-status" class="sr-only" role="status" aria-live="polite"></span>
   </div>
 
   @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@

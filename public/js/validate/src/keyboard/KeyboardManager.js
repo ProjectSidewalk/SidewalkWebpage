@@ -67,15 +67,15 @@ class KeyboardManager {
    */
   #handleNumberKeyShortcut(n, e) {
     const validationMenuUi = this.#validationMenuUi;
-    if (validationMenuUi.yesButton.classList.contains('chosen')) {
+    if (validationMenuUi.yesButton.classList.contains('is-chosen')) {
       if (svv.adminVersion) this.#clickSeverity(n);
     } else if (this.#inWrongTypeView()) {
       // Severity only once its section is showing, or a rating typed before a type is picked rides along unseen.
       if (document.getElementById('validate-severity-section')?.style.display === 'block') this.#clickSeverity(n);
-    } else if (validationMenuUi.noButton.classList.contains('chosen')) {
+    } else if (validationMenuUi.noButton.classList.contains('is-chosen')) {
       const button = document.getElementById(`no-button-${n}`);
       KeyboardManager.#pickReason(button, validationMenuUi.disagreeReasonTextBox, e);
-    } else if (validationMenuUi.unsureButton.classList.contains('chosen')) {
+    } else if (validationMenuUi.unsureButton.classList.contains('is-chosen')) {
       const button = document.getElementById(`unsure-button-${n}`);
       KeyboardManager.#pickReason(button, validationMenuUi.unsureReasonTextBox, e);
     }
@@ -126,11 +126,11 @@ class KeyboardManager {
   #handleCommentBoxShortcut(e) {
     const validationMenuUi = this.#validationMenuUi;
     e.preventDefault();
-    if (validationMenuUi.yesButton.classList.contains('chosen') || this.#inWrongTypeView()) {
+    if (validationMenuUi.yesButton.classList.contains('is-chosen') || this.#inWrongTypeView()) {
       validationMenuUi.optionalCommentTextBox.click();
-    } else if (validationMenuUi.noButton.classList.contains('chosen')) {
+    } else if (validationMenuUi.noButton.classList.contains('is-chosen')) {
       validationMenuUi.disagreeReasonTextBox.click();
-    } else if (validationMenuUi.unsureButton.classList.contains('chosen')) {
+    } else if (validationMenuUi.unsureButton.classList.contains('is-chosen')) {
       validationMenuUi.unsureReasonTextBox.click();
     }
   }
@@ -251,7 +251,7 @@ class KeyboardManager {
           // The comment box is always the key one past the menu's last reason, so it moves from 4 to 5 on any label
           // type that offers a fourth reason, handled through #handleNumberKeyShortcut. Routed separately from 1-3 only
           // because of the Agree verdict, where it would reach for a severity button 4 or 5 that doesn't exist.
-          if (validationMenuUi.noButton.classList.contains('chosen') && !this.#inWrongTypeView()) {
+          if (validationMenuUi.noButton.classList.contains('is-chosen') && !this.#inWrongTypeView()) {
             this.#handleNumberKeyShortcut(KeyboardManager.#digitOf(e), e);
           } else {
             this.#handleCommentBoxShortcut(e);

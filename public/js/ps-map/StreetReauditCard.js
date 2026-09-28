@@ -186,7 +186,7 @@ class StreetReauditCard {
         ${newImagery ? `<dt>${i18next.t('labelmap:reaudit-card-new-imagery')}</dt><dd>${newImagery}</dd>` : ''}
       </dl>
       ${this.#labelsHtml(summary.label_counts)}
-      <a class="button-ps button--primary button--small street-reaudit__explore"
+      <a class="button button--primary button--small street-reaudit__explore"
          href="/explore?streetEdgeId=${summary.street_edge_id}">
         ${i18next.t('labelmap:reaudit-card-explore')}
       </a>`;

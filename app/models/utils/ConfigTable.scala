@@ -407,8 +407,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * the service layer and the rows are rendered as a comparison page. Rows are picked by the same [[FilteredTables]]
    * fragments as `getCityAggregateDataBySchema`, so a city's totals here reconcile with its single-city stats.
    *
-   * Composed from three queries on the same connection: the single-row core metrics, the per-label-type breakdown
-   * (reusing [[getLabelTypeStatsBySchema]]), and the weekly trend (`getCityWeeklyTrendBySchema`).
+   * Composed from the single-row core metrics, the per-label-type breakdown (reusing [[getLabelTypeStatsBySchema]]),
+   * the weekly trend (`getCityWeeklyTrendBySchema`), and the per-user output stats.
    *
    * AI is determined by the shared `sidewalk_login` role (`user_role.role = 'AI'`), not anything in the city schema — so
    * those joins are intentionally not schema-qualified, matching `getCityDailyLabelStatsBySchema`. `user_role` has one
@@ -590,11 +590,10 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     """.as[ScorecardCore].head
     }
 
-    // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats (same
-    // connection), then assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on
-    // a separate long-cached path (getCrossCityLabelingSpeed). Wrapped in withJitOff because coreQuery's km calc uses
-    // PostGIS (#4376).
-    SqlFragments.withJitOff(for {
+    // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats, then
+    // assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on a separate
+    // long-cached path (getCrossCityLabelingSpeed).
+    for {
       hasOutdatedImageryCol  <- upToDateFilterQuery
       hasLabelTypeEnum       <- schemaHasLabelTypeEnum(schema)
       hasValidationLabelType <- schemaHasValidationLabelType(schema)
@@ -646,7 +645,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         numValidators = nValidators,
         validationSecondsMedian = valSecMedian
       )
-    })
+    }
   }
 
   /**
@@ -944,8 +943,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   def getCityLabelingSpeedBySchema(schema: String): DBIO[(Double, Double)] = {
     implicit val getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
 
-    // Wrapped in withJitOff because the audited-km subquery uses PostGIS (#4376).
-    SqlFragments.withJitOff(sql"""
+    sql"""
       SELECT COALESCE(audit_time.hours, 0) AS hours,
              COALESCE(audited.km, 0)       AS km
       FROM (
@@ -964,7 +962,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
               ON street_edge.street_edge_id = audit_task.street_edge_id
       ) AS audited;
-    """.as[(Double, Double)].head)
+    """.as[(Double, Double)].head
   }
 
   /**

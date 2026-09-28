@@ -26,7 +26,7 @@
       <nav class="page-nav" aria-label="@Messages("navbar.howto")">
         <div class="page-nav-header">@Messages("navbar.howto")</div>
         @for((key, url, label) <- navItems) {
-          <a href="@url" class="page-nav-item @if(key == activePage){active}"
+          <a href="@url" class="page-nav-item @if(key == activePage){is-active}"
              aria-current="@if(key == activePage){page}else{false}">@label</a>
         }
       </nav>

@@ -51,7 +51,7 @@ function wireSidebarDisclosure(toggle, root, options = {}) {
 function buildSidebarDisclosure(sidebar) {
   // The active item names the current page; the first group header is the fallback on a page with no active item. An
   // item that also carries a description or badge marks its name with .page-nav-label, so the toggle reads just that.
-  const active = sidebar.querySelector('.page-nav-item.active');
+  const active = sidebar.querySelector('.page-nav-item.is-active');
   const heading = sidebar.querySelector('.page-nav-header');
   const label = (active?.querySelector('.page-nav-label') || active || heading)?.textContent.trim() || 'Menu';
 

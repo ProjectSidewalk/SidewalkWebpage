@@ -256,7 +256,7 @@
 }
 .coverage-sort-btn:hover { background: var(--color-neutral-100); }
 
-.coverage-sort-btn.active {
+.coverage-sort-btn.is-active {
   background: var(--color-asphalt-500);
   border-color: var(--color-asphalt-500);
   color: var(--color-neutral-white);
@@ -286,7 +286,7 @@
 }
 .coverage-toggle-btn:hover { background: var(--color-neutral-100); }
 
-.coverage-toggle-btn.active {
+.coverage-toggle-btn.is-active {
   background: var(--color-asphalt-500);
   border-color: var(--color-asphalt-500);
   color: var(--color-neutral-white);
@@ -1653,7 +1653,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 
 .mgmt-run:disabled {
   opacity: 0.6;
-  cursor: default;
 }
 
 .mgmt-result {
@@ -1700,7 +1699,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 
 .mgmt-page-btn:disabled {
   opacity: 0.45;
-  cursor: default;
 }
 
 .mgmt-page-btn:focus-visible {
@@ -2099,7 +2097,7 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 .ac-toggle-btn:hover { background: var(--color-neutral-100); }
 
-.ac-toggle-btn.active {
+.ac-toggle-btn.is-active {
   background: var(--color-asphalt-500);
   border-color: var(--color-asphalt-500);
   color: #ffffff;
@@ -2935,7 +2933,7 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin-top: var(--space-md);
 }
 
-/* .button-ps's display: inline-flex outranks the browser's [hidden] rule, so re-assert it. */
+/* .button's display: inline-flex outranks the browser's [hidden] rule, so re-assert it. */
 .partners-cancel-edit[hidden] {
   display: none;
 }

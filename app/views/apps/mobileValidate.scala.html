@@ -59,7 +59,7 @@
       <div id="view-control-layer"></div>
       @* Same read-only card as desktop Validate; a tap on the marker opens and closes it (LabelVisibilityControl). *@
       @components.labelCard(idPrefix = "label-card", noInfoKey = Some("validate:center-ui.no-info")) {
-        <button type="button" id="label-visibility-button-on-label" class="button-ps button--tiny label-hover-card__action-button" data-ps-tooltip-placement="bottom"></button>
+        <button type="button" id="label-visibility-button-on-label" class="button button--tiny label-hover-card__action-button" data-ps-tooltip-placement="bottom"></button>
       }
       <div id="label-visibility-control-holder" class="pano-overlay-button-group">
         <button type="button" id="label-visibility-control-button" class="pano-overlay-button"></button>
@@ -71,15 +71,15 @@
       @* The verdict buttons carry the same thumbs the mission-complete counts do. Plain labels, not the underlined
          `.shortcut` ones the desktop uses: there is no keyboard here to press the underlined letter on. *@
       <div id="validation-button-holder">
-        <button type="button" id="validate-no-button" class="validate-page-button button-ps button--small">
+        <button type="button" id="validate-no-button" class="validate-page-button button button--small">
           <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="validate-page-button__icon" alt="">
           @Messages("no.caps")
         </button>
-        <button type="button" id="validate-unsure-button" class="validate-page-button button-ps button--small">
+        <button type="button" id="validate-unsure-button" class="validate-page-button button button--small">
           <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="validate-page-button__icon" alt="">
           @Messages("unsure.caps")
         </button>
-        <button type="button" id="validate-yes-button" class="validate-page-button button-ps button--small">
+        <button type="button" id="validate-yes-button" class="validate-page-button button button--small">
           <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="validate-page-button__icon" alt="">
           @Messages("yes.caps")
         </button>
@@ -88,10 +88,10 @@
       <div id="validate-why-no-section" class="validation-menu-section">
         <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
         <div id="no-reason-options">
-          <button type="button" id="no-button-1"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="no-button-2"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="no-button-3"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="no-button-4" class="validation-reason-button ps-button button--small"></button>
+          <button type="button" id="no-button-1"class="validation-reason-button button button--small"></button>
+          <button type="button" id="no-button-2"class="validation-reason-button button button--small"></button>
+          <button type="button" id="no-button-3"class="validation-reason-button button button--small"></button>
+          <button type="button" id="no-button-4" class="validation-reason-button button button--small"></button>
           <div class="validate-text-input">
             <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
           </div>
@@ -104,9 +104,9 @@
       <div id="validate-why-unsure-section" class="validation-menu-section">
         <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
         <div id="unsure-reason-options">
-          <button type="button" id="unsure-button-1"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="unsure-button-2"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="unsure-button-3"class="validation-reason-button ps-button button--small"></button>
+          <button type="button" id="unsure-button-1"class="validation-reason-button button button--small"></button>
+          <button type="button" id="unsure-button-2"class="validation-reason-button button button--small"></button>
+          <button type="button" id="unsure-button-3"class="validation-reason-button button button--small"></button>
           <div class="validate-text-input">
             <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
           </div>
@@ -128,7 +128,7 @@
           @if(user.role != Role.Anonymous) {
             <span class="sign-in-up-button-mobile">@{user.username}</span>
           } else {
-            <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button-ps">@Messages("navbar.signin")</button>
+            <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button">@Messages("navbar.signin")</button>
           }
         </div>
         <div class="mv-modal__content">
@@ -140,7 +140,7 @@
           <div id="modal-mission-instruction"></div>
         </div>
         <div class="mv-modal__actions">
-          <button type="button" class="button-ps" id="modal-mission-close-button">@Messages("ok")</button>
+          <button type="button" class="button" id="modal-mission-close-button">@Messages("ok")</button>
         </div>
       </div>
     </div>
@@ -203,8 +203,8 @@
         </div>
         <div class="mv-modal__actions">
           <div class="modal-mission-complete-buttons">
-            <button type="button" class="button-ps" id="modal-mission-complete-close-button-primary"></button>
-            <button type="button" class="button-ps" id="modal-mission-complete-close-button-secondary"></button>
+            <button type="button" class="button" id="modal-mission-complete-close-button-primary"></button>
+            <button type="button" class="button" id="modal-mission-complete-close-button-secondary"></button>
           </div>
         </div>
       </div>

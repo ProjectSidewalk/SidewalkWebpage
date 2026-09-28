@@ -114,7 +114,7 @@ describe('initSidebarDisclosure', () => {
           <aside class="page-sidebar">
             <nav class="page-nav">
               <div class="page-nav-header">Overview</div>
-              <a class="page-nav-item${active ? ' active' : ''}" href="#">Raw Labels</a>
+              <a class="page-nav-item${active ? ' is-active' : ''}" href="#">Raw Labels</a>
             </nav>
           </aside>`;
         return document.querySelector('.page-sidebar');
@@ -144,7 +144,7 @@ describe('initSidebarDisclosure', () => {
           <aside class="page-sidebar">
             <nav class="page-nav">
               <div class="page-nav-header">Admin Dashboard</div>
-              <a class="page-nav-item active" href="#">
+              <a class="page-nav-item is-active" href="#">
                 <span><span class="page-nav-label">Across Cities</span> <span>All cities</span></span>
                 <span>Compare every city</span>
               </a>
