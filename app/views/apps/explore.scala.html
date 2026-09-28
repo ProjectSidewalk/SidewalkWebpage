@@ -223,7 +223,7 @@
                 <span class="explore-sidebar__stat-label">@Messages("labels")</span>
               </div>
             </div>
-            <div class="explore-sidebar__stat" id="explore-sidebar__stat-accuracy-holder">
+            <div class="explore-sidebar__stat" id="explore-sidebar__stat-accuracy-holder" tabindex="0">
               <img class="explore-sidebar__stat-icon" src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")">
               <div class="explore-sidebar__stat-text">
                 <span class="explore-sidebar__stat-value" id="explore-sidebar__stat-accuracy">–</span>
@@ -341,7 +341,7 @@
             <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
-            <div id="minimap-percent-observed" class="minimap-pane" data-ps-tooltip="How much of your surroundings you've looked around"
+            <div id="minimap-percent-observed" class="minimap-pane" tabindex="0" data-ps-tooltip="How much of your surroundings you've looked around"
                  data-i18n-tooltip="audit:right-ui.minimap.observed-tooltip"></div>
             @* Mission-progress bar: fill + percent + distance explored / mission target. Updated by Minimap.updateMissionProgress. *@
             <div id="minimap-mission-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
@@ -502,7 +502,7 @@
             </button>
             <div id="explore-control-menu">
               @* Opens the image adjustments popover (@common.panoImageAdjustments()); wired by PanoImageAdjustmentsPopover. *@
-              <button type="button" id="explore-control-image" class="pano-overlay-button" data-ps-tooltip="Adjust shadows, brightness and contrast" data-i18n-tooltip="audit:controls.image-tooltip">
+              <button type="button" id="explore-control-image" class="pano-overlay-button" data-ps-tooltip="Adjust shadows, brightness and contrast" data-i18n-tooltip="audit:controls.image-tooltip" data-ps-tooltip-placement="right">
                 <img class="pano-overlay-button-icon" src='@assets.path("images/icons/sliders-white-feather.svg")' alt="">
                 <span class="pano-overlay-button-label" data-i18n="audit:controls.image">Image</span>
               </button>
@@ -511,7 +511,7 @@
                 <img class="pano-overlay-button-icon ps-hidden" id="explore-control-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
                 <span class="pano-overlay-button-label" data-i18n="audit:controls.sound">Sound</span>
               </button>
-              <button type="button" id="explore-control-feedback" class="pano-overlay-button" data-ps-tooltip="Share your thoughts with us" data-i18n-tooltip="audit:controls.feedback-tooltip">
+              <button type="button" id="explore-control-feedback" class="pano-overlay-button" data-ps-tooltip="Share your thoughts with us" data-i18n-tooltip="audit:controls.feedback-tooltip" data-ps-tooltip-placement="right">
                 <img class="pano-overlay-button-icon" src='@assets.path("images/icons/comment-material.svg")' alt="">
                 <span class="pano-overlay-button-label" data-i18n="audit:controls.feedback">Feedback</span>
               </button>

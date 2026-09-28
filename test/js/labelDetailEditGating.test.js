@@ -517,9 +517,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             await resolveImagery(false);
 
             expect(tagsEdit().hidden).toBe(true);
-            for (const face of faces()) {
-                expect(face.getAttribute('data-ps-tooltip')).not.toBe('labelmap:no-imagery-edit-disabled');
-            }
+            for (const face of faces()) expect(face.getAttribute('data-ps-tooltip')).toMatch(/^common:severity: common:/);
         });
     });
 

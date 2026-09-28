@@ -134,7 +134,7 @@ class SavedRoutesPanel {
         ? `<img class="saved-route-thumb" src="${route.thumbnailUrl}" alt="" loading="lazy">`
         : '';
       const usage = typeof route.startedCount === 'number'
-        ? `<span class="saved-route-usage" data-ps-tooltip="${i18next.t('route-usage-tooltip')}">
+        ? `<span class="saved-route-usage" tabindex="0" data-ps-tooltip="${i18next.t('route-usage-tooltip')}">
              ${i18next.t('route-usage', {
                 started: route.startedCount, completed: route.completedCount, interpolation: { escapeValue: true },
               })}

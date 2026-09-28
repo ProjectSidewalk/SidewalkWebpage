@@ -200,7 +200,7 @@
       @for(r <- myRoutes) {
         <li class="ud-route-row" data-route-id="@r.routeId" data-slug="@r.slug">
           @if(r.thumbnailUrl.nonEmpty) {
-            <a class="ud-route-view" data-route-id="@r.routeId" href="/routeBuilder?preview=@r.routeId" data-ps-tooltip="@Messages("dashboard.routes.view.title")">
+            <a class="ud-route-view" data-route-id="@r.routeId" href="/routeBuilder?preview=@r.routeId" aria-label="@Messages("dashboard.routes.view.title")" data-ps-tooltip="@Messages("dashboard.routes.view.title")">
               <img class="ud-route-thumb" src="@r.thumbnailUrl" alt="" loading="lazy" width="180" height="90">
             </a>
           }
@@ -214,7 +214,7 @@
                  MyRoutes rewrites this to the local date, leaving the UTC rendering as the no-JS fallback. *@
               <time class="ud-route-date" datetime="@r.createdAt.toInstant.toString">@mediumDateLabel(r.createdAt)</time>
             </span>
-            <span class="ud-route-usage" data-ps-tooltip="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
+            <span class="ud-route-usage" tabindex="0" data-ps-tooltip="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
           </div>
           <div class="ud-route-actions">
             <a class="ud-btn-secondary ud-route-explore" data-route-id="@r.routeId" href="/explore?routeId=@r.routeId">@Messages("dashboard.routes.explore")</a>

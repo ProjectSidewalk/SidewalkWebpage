@@ -135,15 +135,24 @@
     place(card, trigger);
 
     card.classList.add('ps-tooltip--visible');
-    trigger.setAttribute('aria-describedby', 'ps-tooltip');
+    // A card that only repeats the trigger's accessible name (an icon button's "Zoom in") would be read out twice.
+    const name = (trigger.getAttribute('aria-label') ?? trigger.textContent).trim();
+    if (card.textContent.trim() !== name) trigger.setAttribute('aria-describedby', 'ps-tooltip');
+    else trigger.removeAttribute('aria-describedby');
     activeTrigger = trigger;
 
     // Re-run this whole placement if the text changes while the card is up: the new string is a different width, so
     // refreshing the copy alone would leave it centered and tailed for the old one. An attribute removed while the
-    // card is up takes the card down with it, so a caller retiring a tooltip has nothing else to do.
+    // card is up takes the card down with it, so a caller retiring a tooltip has nothing else to do; so does a trigger
+    // hiding itself (the minimap's Map key pill).
     if (textObserver === null) {
-      textObserver = new MutationObserver(() => {
+      textObserver = new MutationObserver((records) => {
         if (activeTrigger === null || !tooltip?.classList.contains('ps-tooltip--visible')) return;
+        if (activeTrigger.checkVisibility?.() === false) {
+          hide();
+          return;
+        }
+        if (!records.some((r) => r.attributeName === 'data-ps-tooltip')) return;
         // Re-rendering replaces the card's children, so a pinned card being read from the keyboard would lose the
         // focused link out from under the reader. Keep the old content until they leave it.
         if (pinned && tooltip.contains(document.activeElement)) return;
@@ -152,7 +161,8 @@
       });
     }
     textObserver.disconnect();
-    textObserver.observe(trigger, { attributes: true, attributeFilter: ['data-ps-tooltip'] });
+    const watched = ['data-ps-tooltip', 'class', 'hidden', 'style'];
+    textObserver.observe(trigger, { attributes: true, attributeFilter: watched });
     if (removalObserver === null) {
       removalObserver = new MutationObserver(() => {
         if (activeTrigger !== null && !activeTrigger.isConnected) hide();
