@@ -1,0 +1,321 @@
+/**
+ * Tests for WalkPlanner (public/js/common/WalkPlanner.js, #5526): the planner that orders a neighborhood's remaining
+ * streets into one walk up front.
+ *
+ * WalkPlanner is a top-level `class` written for the Grunt-concatenation world, so the source is evaled into the
+ * jsdom global scope. It is pure graph logic, so every test builds a small synthetic street network. Coordinates sit
+ * on the equator at 0.001° spacing, so one grid step is ~111 m in both directions and the node merge (10 m) never
+ * joins two distinct grid points.
+ */
+
+/* global WalkPlanner */
+
+const fs = require('fs');
+const path = require('path');
+
+const SRC = fs.readFileSync(path.resolve(__dirname, '..', '..', 'public/js/common/WalkPlanner.js'), 'utf8');
+window.eval(`${SRC}\nwindow.WalkPlanner = WalkPlanner;`);
+
+const STEP = 0.001;
+
+/** A grid point, in grid units, as [lng, lat]. */
+const P = (x, y) => [x * STEP, y * STEP];
+
+/** A planner street from grid points; priority 1 unless given. */
+function st(id, from, to, priority = 1, extra = {}) {
+  return { id, coords: [P(...from), P(...to)], priority, ...extra };
+}
+
+/** Every street once, and every non-jump step starting where the previous one ended. */
+function expectValidWalk(streets, steps) {
+  expect(steps.map((s) => s.id).sort((a, b) => a - b)).toEqual(streets.map((s) => s.id).sort((a, b) => a - b));
+  const byId = new Map(streets.map((s) => [s.id, s]));
+  let prevEnd = null;
+  steps.forEach((step, k) => {
+    const c = byId.get(step.id).coords;
+    const start = step.reverse ? c[c.length - 1] : c[0];
+    if (k === 0) {
+      expect(step.jump).toBe(false);
+    } else if (!step.jump) {
+      expect(WalkPlanner.distanceM(prevEnd, start)).toBeLessThanOrEqual(WalkPlanner.NODE_TOLERANCE_M);
+      expect(step.jumpM).toBe(0);
+    } else {
+      expect(step.jumpM).toBeCloseTo(WalkPlanner.distanceM(prevEnd, start), 6);
+    }
+    prevEnd = step.reverse ? c[0] : c[c.length - 1];
+  });
+}
+
+/** Streets of an n×n lattice of nodes, oriented at random from a seed, or all east/north for seed 0. */
+function lattice(n, seed = 0) {
+  let a = seed;
+  const rand = () => {
+    a = (a * 1103515245 + 12345) % 2147483648;
+    return a / 2147483648;
+  };
+  const streets = [];
+  let id = 1;
+  for (let x = 0; x < n; x++) {
+    for (let y = 0; y < n; y++) {
+      const flip = () => seed !== 0 && rand() < 0.5;
+      if (x + 1 < n) streets.push(flip() ? st(id++, [x + 1, y], [x, y]) : st(id++, [x, y], [x + 1, y]));
+      if (y + 1 < n) streets.push(flip() ? st(id++, [x, y + 1], [x, y]) : st(id++, [x, y], [x, y + 1]));
+    }
+  }
+  return streets;
+}
+
+const ids = (steps) => steps.map((s) => s.id);
+
+describe('WalkPlanner', () => {
+  it('plans a single street as one step', () => {
+    const streets = [st(7, [0, 0], [1, 0])];
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 7 });
+    expect(steps).toEqual([{ id: 7, reverse: false, jump: false, jumpM: 0 }]);
+    expect(stats).toMatchObject({ streets: 1, jumps: 0, jumpM: 0, medianJumpM: 0, deadEnds: 0, lowerBoundJumps: 0 });
+  });
+
+  it('returns an empty plan for no streets', () => {
+    const { steps, stats } = new WalkPlanner([]).plan({ from: P(0, 0) });
+    expect(steps).toEqual([]);
+    expect(stats).toMatchObject({ streets: 0, totalM: 0, jumps: 0, lowerBoundJumps: 0 });
+  });
+
+  it('walks a path of mixed orientations without a jump, reversing where the geometry says to', () => {
+    const streets = [st(1, [0, 0], [1, 0]), st(2, [2, 0], [1, 0]), st(3, [2, 0], [3, 0])];
+    const { steps } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expect(steps).toEqual([
+      { id: 1, reverse: false, jump: false, jumpM: 0 },
+      { id: 2, reverse: true, jump: false, jumpM: 0 },
+      { id: 3, reverse: false, jump: false, jumpM: 0 },
+    ]);
+  });
+
+  it('never reverses the start street, even when its other end leads on', () => {
+    const streets = [st(1, [1, 0], [0, 0]), st(2, [1, 0], [2, 0])];
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expect(steps[0]).toEqual({ id: 1, reverse: false, jump: false, jumpM: 0 });
+    expect(steps[1].jump).toBe(true);
+    expect(stats.jumps).toBe(1);
+  });
+
+  it('covers an Eulerian block (a square) in one trail', () => {
+    const streets = [st(1, [0, 0], [1, 0]), st(2, [1, 1], [1, 0]), st(3, [0, 1], [1, 1]), st(4, [0, 0], [0, 1])];
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expectValidWalk(streets, steps);
+    expect(stats.jumps).toBe(0);
+    expect(stats.lowerBoundJumps).toBe(0);
+  });
+
+  it('meets the lower bound on a 3×3 grid when started from an odd node', () => {
+    // Four odd nodes (the edge midpoints) make two trails necessary, so one jump.
+    const streets = lattice(3);
+    const planner = new WalkPlanner(streets);
+    const fromOdd = streets.find((s) => s.coords[0][0] === P(1, 0)[0] && s.coords[0][1] === 0
+      && s.coords[1][0] === P(2, 0)[0]);
+    const { steps, stats } = planner.plan({ streetId: fromOdd.id });
+    expectValidWalk(streets, steps);
+    expect(stats.lowerBoundJumps).toBe(1);
+    expect(stats.jumps).toBe(1);
+  });
+
+  it('needs at most one jump more than the bound on a 3×3 grid started at a corner', () => {
+    const streets = lattice(3);
+    const fromCorner = streets.find((s) => s.coords[0][0] === 0 && s.coords[0][1] === 0);
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: fromCorner.id });
+    expectValidWalk(streets, steps);
+    expect(stats.jumps).toBeLessThanOrEqual(stats.lowerBoundJumps + 1);
+  });
+
+  it('defers the dead-end teeth of a cul-de-sac comb and stays within one jump of the bound', () => {
+    // Spine (0,0)…(5,0), with a cul-de-sac tooth rising from each interior spine node.
+    const spine = [1, 2, 3, 4, 5].map((x) => st(x, [x - 1, 0], [x, 0]));
+    const teeth = [1, 2, 3, 4].map((x) => st(10 + x, [x, 0], [x, 1]));
+    const streets = [...teeth, ...spine];
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expectValidWalk(streets, steps);
+    expect(ids(steps).slice(0, 5)).toEqual([1, 2, 3, 4, 5]);
+    expect(stats.lowerBoundJumps).toBe(4);
+    expect(stats.jumps).toBeLessThanOrEqual(stats.lowerBoundJumps + 1);
+  });
+
+  it('does not take a bridge while a street that keeps the rest reachable exists (Fleury)', () => {
+    // A-B, then at B a bridge B-E (lower id) and a triangle B-C-D-B; E continues to F so onward degrees tie.
+    const streets = [
+      st(1, [0, 0], [1, 0]),
+      st(2, [1, 0], [2, 0]),
+      st(3, [2, 0], [3, 0]),
+      st(4, [1, 0], [1, 1]),
+      st(5, [1, 1], [0, 1]),
+      st(6, [0, 1], [1, 0]),
+    ];
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expect(ids(steps)).toEqual([1, 4, 5, 6, 2, 3]);
+    expect(stats.jumps).toBe(0);
+  });
+
+  it('jumps exactly once between two components, to the nearest end, which is an odd node', () => {
+    const a = [st(1, [0, 0], [1, 0]), st(2, [1, 0], [2, 0])];
+    const b = [st(3, [5, 0], [4, 0]), st(4, [5, 0], [6, 0])];
+    const streets = [...a, ...b];
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expectValidWalk(streets, steps);
+    expect(stats.jumps).toBe(1);
+    const jump = steps.find((s) => s.jump);
+    expect(jump).toEqual({ id: 3, reverse: true, jump: true, jumpM: expect.any(Number) });
+    expect(jump.jumpM).toBeCloseTo(WalkPlanner.distanceM(P(2, 0), P(4, 0)), 6);
+  });
+
+  it('prefers a farther odd node to a nearer even one by the odd-start penalty', () => {
+    // Component B is a square (even corners) with a pendant street from its far corner (5,1) to (5,3), so the only
+    // odd nodes are (5,1) and (5,3). Its near corner (3,0) is ~111 m from A's end; (5,1) is ~352 m.
+    const a = [st(1, [0, 0], [2, 0])];
+    const b = [
+      st(2, [3, 0], [5, 0]), st(3, [5, 0], [5, 1]), st(4, [5, 1], [3, 1]), st(5, [3, 1], [3, 0]), st(6, [5, 1], [5, 3]),
+    ];
+    const streets = [...a, ...b];
+    const withPenalty = new WalkPlanner(streets, { oddStartPenaltyM: 1000 }).plan({ streetId: 1 });
+    expect(withPenalty.steps[1]).toMatchObject({ id: 3, reverse: true, jump: true }); // Enters at odd (5,1).
+    expect(withPenalty.stats.jumps).toBe(1);
+    const noPenalty = new WalkPlanner(streets, { oddStartPenaltyM: 0 }).plan({ streetId: 1 });
+    expect(noPenalty.steps[1]).toMatchObject({ id: 2, reverse: false, jump: true });
+    expect(noPenalty.stats.jumps).toBe(2);
+  });
+
+  it('walks a tiny sliver as soon as it is adjacent, even below the priority tier', () => {
+    // An 8 m sliver merges into one node at B (it is shorter than the node tolerance), so it is a loop there.
+    const sliverEnd = [P(1, 0)[0] + 8 / 111195, 0];
+    const streets = [
+      st(1, [0, 0], [1, 0]),
+      { id: 2, coords: [P(1, 0), sliverEnd], priority: 0.1 },
+      { id: 3, coords: [sliverEnd, P(2, 0)], priority: 0.1 },
+      st(4, [1, 0], [1, 1]),
+    ];
+    const { steps } = new WalkPlanner(streets, { priorityTolerance: 0.2 }).plan({ streetId: 1 });
+    expectValidWalk(streets, steps);
+    expect(steps[1]).toMatchObject({ id: 2, jump: false });
+  });
+
+  it('never jumps to a sliver while a real street in the tier remains', () => {
+    // The 15 m sliver sits ~33 m from the end of street 1; the real street is ~111 m away.
+    const streets = [
+      st(1, [0, 0], [1, 0]),
+      { id: 2, coords: [P(1, 0.3), [P(1, 0.3)[0] + 15 / 111195, P(1, 0.3)[1]]], priority: 1 },
+      st(3, [2, 0], [3, 0]),
+    ];
+    const { steps } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expect(ids(steps)).toEqual([1, 3, 2]);
+    expect(steps.filter((s) => s.jump).map((s) => s.id)).toEqual([3, 2]);
+  });
+
+  it('walks a connected street within the priority tolerance and jumps past one outside it', () => {
+    const streets = [st(1, [0, 0], [1, 0], 1.0), st(2, [1, 0], [2, 0], 0.5), st(3, [0, 5], [1, 5], 1.0)];
+    const tolerant = new WalkPlanner(streets, { priorityTolerance: 0.5 }).plan({ streetId: 1 });
+    expect(tolerant.steps[1]).toEqual({ id: 2, reverse: false, jump: false, jumpM: 0 });
+    const strict = new WalkPlanner(streets, { priorityTolerance: 0.2 }).plan({ streetId: 1 });
+    expect(strict.steps[1]).toMatchObject({ id: 3, jump: true });
+    expect(ids(strict.steps)).toEqual([1, 3, 2]);
+  });
+
+  it('never reverses a fixedDirection street and enters it only at coords[0]', () => {
+    // Street 2 ends where street 1 ends, so continuing onto it would mean walking it backwards.
+    const streets = [st(1, [0, 0], [1, 0]), st(2, [1, 2], [1, 0], 1, { fixedDirection: true })];
+    const { steps } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expect(steps[1]).toEqual({ id: 2, reverse: false, jump: true, jumpM: expect.any(Number) });
+    expect(steps[1].jumpM).toBeCloseTo(WalkPlanner.distanceM(P(1, 0), P(1, 2)), 6);
+  });
+
+  it('walks a loop street as part of the trail through its node', () => {
+    const loop = { id: 2, coords: [P(1, 0), P(2, 0), P(2, 1), P(1, 1), P(1, 0)], priority: 1 };
+    const streets = [st(1, [0, 0], [1, 0]), loop, st(3, [1, 0], [1, -1])];
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expectValidWalk(streets, steps);
+    expect(ids(steps)).toEqual([1, 2, 3]);
+    expect(stats.jumps).toBe(0);
+    expect(stats.lowerBoundJumps).toBe(0);
+  });
+
+  it('starts from a free point at the nearest top-tier street, entering at its nearer end', () => {
+    const streets = [
+      st(1, [0, 1], [0, 3], 1), // ~111 m from the point, near end (0,1).
+      st(2, [5, 0], [6, 0], 1), // ~556 m.
+      st(3, [0, 0.2], [1, 0.2], 0.3), // Nearest of all, but out of tier.
+    ];
+    const { steps } = new WalkPlanner(streets, { priorityTolerance: 0.15 }).plan({ from: P(0, 0) });
+    expect(steps[0]).toEqual({ id: 1, reverse: false, jump: false, jumpM: 0 });
+    const reversed = new WalkPlanner([st(1, [0, 3], [0, 1])]).plan({ from: P(0, 0) });
+    expect(reversed.steps[0]).toMatchObject({ id: 1, reverse: true, jump: false });
+  });
+
+  it('falls back to the highest-priority street for an unknown streetId with no point', () => {
+    const streets = [st(1, [0, 0], [1, 0], 0.5), st(2, [3, 0], [4, 0], 0.9), st(3, [6, 0], [7, 0], 0.9)];
+    const { steps } = new WalkPlanner(streets).plan({ streetId: 999 });
+    expect(steps[0]).toEqual({ id: 2, reverse: false, jump: false, jumpM: 0 });
+  });
+
+  it('is deterministic, and independent of input order', () => {
+    const streets = lattice(6, 7);
+    const first = new WalkPlanner(streets).plan({ streetId: 10 }).steps;
+    expect(new WalkPlanner(streets).plan({ streetId: 10 }).steps).toEqual(first);
+    const shuffled = [...streets].sort((a, b) => ((a.id * 7919) % 97) - ((b.id * 7919) % 97));
+    expect(shuffled.map((s) => s.id)).not.toEqual(streets.map((s) => s.id));
+    expect(new WalkPlanner(shuffled).plan({ streetId: 10 }).steps).toEqual(first);
+  });
+
+  it('sets reverse flags that make every connected step start where the previous one ended', () => {
+    [2, 3, 5, 11].forEach((seed) => {
+      const streets = lattice(7, seed).map((s) => ({ ...s, priority: [1, 0.67, 0.5, 0.44][s.id % 4] }));
+      const { steps } = new WalkPlanner(streets).plan({ streetId: 1 });
+      expectValidWalk(streets, steps);
+    });
+  });
+
+  it('reports hand-checkable stats', () => {
+    // A path A-B-C, then a separate street D-E one step north of C: one jump of one step, one dead end at C.
+    const streets = [st(1, [0, 0], [1, 0]), st(2, [1, 0], [2, 0]), st(3, [2, 1], [3, 1])];
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 1 });
+    const oneStep = WalkPlanner.distanceM(P(0, 0), P(1, 0));
+    expect(ids(steps)).toEqual([1, 2, 3]);
+    expect(stats.streets).toBe(3);
+    expect(stats.totalM).toBeCloseTo(3 * oneStep, 6);
+    expect(stats.jumps).toBe(1);
+    expect(stats.jumpM).toBeCloseTo(WalkPlanner.distanceM(P(2, 0), P(2, 1)), 6);
+    expect(stats.medianJumpM).toBeCloseTo(stats.jumpM, 6);
+    expect(stats.deadEnds).toBe(1);
+    expect(stats.lowerBoundJumps).toBe(1);
+    expect(stats.ms).toBeGreaterThanOrEqual(0);
+  });
+
+  it('computes the jump lower bound from components and odd nodes', () => {
+    const square = (dx, id0) => [
+      st(id0, [dx, 0], [dx + 1, 0]), st(id0 + 1, [dx + 1, 0], [dx + 1, 1]),
+      st(id0 + 2, [dx + 1, 1], [dx, 1]), st(id0 + 3, [dx, 1], [dx, 0]),
+    ];
+    const star = [st(20, [10, 0], [11, 0]), st(21, [10, 0], [9, 0]), st(22, [10, 0], [10, 1])];
+    expect(WalkPlanner.lowerBoundJumps([])).toBe(0);
+    expect(WalkPlanner.lowerBoundJumps(square(0, 1))).toBe(0);
+    expect(WalkPlanner.lowerBoundJumps([...square(0, 1), ...square(3, 5)])).toBe(1);
+    expect(WalkPlanner.lowerBoundJumps(star)).toBe(1); // Four odd nodes: two trails.
+    // Direction and length don't enter the bound.
+    expect(WalkPlanner.lowerBoundJumps(star.map((s) => ({ ...s, fixedDirection: true })))).toBe(1);
+  });
+
+  it('merges endpoints within the node tolerance', () => {
+    const nearlyB = [P(1, 0)[0] + 5 / 111195, 0];
+    const streets = [st(1, [0, 0], [1, 0]), { id: 2, coords: [nearlyB, P(2, 0)], priority: 1 }];
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 1 });
+    expect(steps[1]).toEqual({ id: 2, reverse: false, jump: false, jumpM: 0 });
+    expect(stats.lowerBoundJumps).toBe(0);
+  });
+
+  it('plans a 1,200-street lattice in under 500 ms', () => {
+    const streets = lattice(25, 3);
+    expect(streets).toHaveLength(1200);
+    const t0 = performance.now();
+    const { steps, stats } = new WalkPlanner(streets).plan({ streetId: 1 });
+    const elapsed = performance.now() - t0;
+    expect(steps).toHaveLength(1200);
+    expect(stats.jumps).toBeLessThanOrEqual(stats.lowerBoundJumps + 2);
+    expect(elapsed).toBeLessThan(500);
+  });
+});
