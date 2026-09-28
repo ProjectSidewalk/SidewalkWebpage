@@ -252,7 +252,7 @@ class LabelDetail {
 
     // Static section-header tooltip; per-control tooltips are set as content renders.
     const tagsTitle = this.#q('.label-detail__col--tags .label-detail__col-title');
-    if (tagsTitle) tagsTitle.title = i18next.t('labelmap:tags-tooltip');
+    LabelDetail.#setTooltip(tagsTitle, i18next.t('labelmap:tags-tooltip'));
 
     // Re-fit the meta strip whenever the card's width changes (mobile, rotation, window resize). Toggling the
     // strip's own child visibility never changes the observed row's width, so this can't feed back on itself.
@@ -2000,8 +2000,8 @@ class LabelDetail {
       const selected = faceSev === Number(severity);
       face.classList.toggle('is-selected', selected);
       face.querySelector('.severity-button__icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
-      face.title = lockTip ? '' : `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
-      LabelDetail.#setTooltip(face, lockTip ?? '');
+      const levelTip = `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
+      LabelDetail.#setTooltip(face, lockTip ?? levelTip);
       const labelSpan = face.querySelector('.severity-button__label');
       if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[faceSev]}`);
 

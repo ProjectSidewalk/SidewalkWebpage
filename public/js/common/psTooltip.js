@@ -114,10 +114,10 @@
       return;
     }
     const card = ensureTooltip();
-    // A modal <dialog> paints in the top layer, above every z-index in the page's normal stacking order, so a card
-    // parked on <body> opens behind it. Follow the trigger into its dialog (the label detail popup) instead. The
-    // dialog sets no transform/filter, so the card stays fixed to the viewport and escapes the dialog's overflow.
-    const host = trigger.closest('dialog[open]') ?? document.body;
+    // A modal <dialog> or an open popover paints above every z-index on the page, so a card on <body> opens behind
+    // it; follow the trigger inside instead. Neither sets a transform/filter, so the card stays fixed to the viewport.
+    // A closed popover isn't rendered, so any [popover] match is an open one.
+    const host = trigger.closest('dialog[open], [popover]') ?? document.body;
     if (card.parentElement !== host) host.appendChild(card);
     // Rendered as HTML per the header contract, which is also why that contract requires callers to double-escape any
     // user-supplied text they interpolate: this is the second of the two levels being consumed.

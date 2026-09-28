@@ -340,6 +340,26 @@ describe('psTooltip images', () => {
     });
 });
 
+describe('psTooltip top layer', () => {
+    test.each([
+        ['an open dialog', () => Object.assign(document.createElement('dialog'), { open: true })],
+        ['a popover', () => {
+            const el = document.createElement('div');
+            el.setAttribute('popover', 'manual');
+            return el;
+        }],
+    ])('moves into %s holding the trigger, and back out for one that is not', (_, makeHost) => {
+        const host = makeHost();
+        document.body.appendChild(host);
+        const inside = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'inside');
+        host.appendChild(inside);
+        const outside = addTrigger({ left: 400, top: 500, width: 100, height: 30 }, 'outside');
+
+        expect(open(inside).parentElement).toBe(host);
+        expect(open(outside).parentElement).toBe(document.body);
+    });
+});
+
 describe('psTooltip pinning (#5495)', () => {
     /** A pinnable trigger, like the Across Cities day bars, whose card carries a link. */
     function addPinnable() {

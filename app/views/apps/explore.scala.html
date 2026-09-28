@@ -341,12 +341,12 @@
             <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
-            <div id="minimap-percent-observed" class="minimap-pane" title="How much of your surroundings you've looked around"
-                 data-i18n-title="audit:right-ui.minimap.observed-tooltip"></div>
+            <div id="minimap-percent-observed" class="minimap-pane" data-ps-tooltip="How much of your surroundings you've looked around"
+                 data-i18n-tooltip="audit:right-ui.minimap.observed-tooltip"></div>
             @* Mission-progress bar: fill + percent + distance explored / mission target. Updated by Minimap.updateMissionProgress. *@
             <div id="minimap-mission-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
                  aria-label="Mission progress" data-i18n-aria-label="audit:right-ui.minimap.mission-progress"
-                 title="Mission progress" data-i18n-title="audit:right-ui.minimap.mission-progress">
+                 data-ps-tooltip="Mission progress" data-i18n-tooltip="audit:right-ui.minimap.mission-progress">
               <div id="minimap-mission-progress-bar">
                 <div id="minimap-mission-progress-fill"></div>
               </div>
@@ -363,7 +363,7 @@
             @* Always-on mini legend (Explored / Route ahead); click to expand the full key card (MinimapLegend.js). *@
             <button id="minimap-legend-toggle" type="button" aria-expanded="false" aria-controls="minimap-legend-card"
                     aria-label="Map key" data-i18n-aria-label="audit:right-ui.minimap.legend-title"
-                    title="Map key" data-i18n-title="audit:right-ui.minimap.legend-title">
+                    data-ps-tooltip="Map key" data-i18n-tooltip="audit:right-ui.minimap.legend-title">
               <span class="minimap-legend-mini-item">
                 <svg class="minimap-legend-mini-icon" viewBox="0 0 22 8" aria-hidden="true">
                   <path class="minimap-legend-sample-audited" d="M2 4H20"></path>
@@ -452,17 +452,17 @@
               </div>
             </div>
             @* Whole-route overview inset — shown only on designated routes (RouteOverview toggles the holder class). *@
-            <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" title="Route overview: tap to see the whole route" data-i18n-title="audit:right-ui.minimap.route-overview">
+            <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" data-ps-tooltip="Route overview: tap to see the whole route" data-i18n-tooltip="audit:right-ui.minimap.route-overview">
               <canvas id="minimap-route-overview-canvas"></canvas>
             </button>
             <div id="minimap-zoom-controls" class="ps-icon-button-stack">
-              <button id="minimap-zoom-fit" class="ps-icon-button" type="button" aria-label="Show whole mission" data-i18n-aria-label="audit:right-ui.minimap.fit-mission" title="Show whole mission" data-i18n-title="audit:right-ui.minimap.fit-mission">
+              <button id="minimap-zoom-fit" class="ps-icon-button" type="button" aria-label="Show whole mission" data-i18n-aria-label="audit:right-ui.minimap.fit-mission" data-ps-tooltip="Show whole mission" data-i18n-tooltip="audit:right-ui.minimap.fit-mission" data-ps-tooltip-placement="left">
                 <img class="ps-icon-button-icon" src='@assets.path("images/icons/route-fit-white-material.svg")' alt="">
               </button>
-              <button id="minimap-zoom-in" class="ps-icon-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in" title="Zoom in" data-i18n-title="common:zoom-in">
+              <button id="minimap-zoom-in" class="ps-icon-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in" data-ps-tooltip="Zoom in" data-i18n-tooltip="common:zoom-in" data-ps-tooltip-placement="left">
                 <img class="ps-icon-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
               </button>
-              <button id="minimap-zoom-out" class="ps-icon-button" type="button" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out" title="Zoom out" data-i18n-title="common:zoom-out">
+              <button id="minimap-zoom-out" class="ps-icon-button" type="button" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out" data-ps-tooltip="Zoom out" data-i18n-tooltip="common:zoom-out" data-ps-tooltip-placement="left">
                 <img class="ps-icon-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
               </button>
             </div>
@@ -493,7 +493,7 @@
           </div>
           @* Stuck and the menu toggle at top-left of the pano; image / sound / feedback drop down under them. *@
           <div id="explore-control-buttons-holder" class="pano-overlay-button-group">
-            <button type="button" id="explore-control-stuck" class="pano-overlay-button" title="We'll try to move you back to your mission" data-i18n-title="audit:controls.stuck-tooltip">
+            <button type="button" id="explore-control-stuck" class="pano-overlay-button" data-ps-tooltip="We'll try to move you back to your mission" data-i18n-tooltip="audit:controls.stuck-tooltip">
               <img class="pano-overlay-button-icon" src='@assets.path("images/icons/stuck-white-noun.svg")' alt="">
               <span class="pano-overlay-button-label" data-i18n="audit:controls.stuck">Stuck</span>
             </button>
@@ -502,7 +502,7 @@
             </button>
             <div id="explore-control-menu">
               @* Opens the image adjustments popover (@common.panoImageAdjustments()); wired by PanoImageAdjustmentsPopover. *@
-              <button type="button" id="explore-control-image" class="pano-overlay-button" title="Adjust shadows, brightness and contrast" data-i18n-title="audit:controls.image-tooltip">
+              <button type="button" id="explore-control-image" class="pano-overlay-button" data-ps-tooltip="Adjust shadows, brightness and contrast" data-i18n-tooltip="audit:controls.image-tooltip">
                 <img class="pano-overlay-button-icon" src='@assets.path("images/icons/sliders-white-feather.svg")' alt="">
                 <span class="pano-overlay-button-label" data-i18n="audit:controls.image">Image</span>
               </button>
@@ -511,23 +511,23 @@
                 <img class="pano-overlay-button-icon ps-hidden" id="explore-control-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
                 <span class="pano-overlay-button-label" data-i18n="audit:controls.sound">Sound</span>
               </button>
-              <button type="button" id="explore-control-feedback" class="pano-overlay-button" title="Share your thoughts with us" data-i18n-title="audit:controls.feedback-tooltip">
+              <button type="button" id="explore-control-feedback" class="pano-overlay-button" data-ps-tooltip="Share your thoughts with us" data-i18n-tooltip="audit:controls.feedback-tooltip">
                 <img class="pano-overlay-button-icon" src='@assets.path("images/icons/comment-material.svg")' alt="">
                 <span class="pano-overlay-button-label" data-i18n="audit:controls.feedback">Feedback</span>
               </button>
             </div>
           </div>
           <div id="zoom-buttons-holder" class="ps-icon-button-stack">
-            <button type="button" id="zoom-in-button" class="ps-icon-button" title="@Messages("press.key", "Z")" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+            <button type="button" id="zoom-in-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.key", "Z")" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in" data-ps-tooltip-placement="left">
               <img class="ps-icon-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
             </button>
-            <button type="button" id="zoom-out-button" class="ps-icon-button" title="@Messages("press.keys", "Shift + Z")" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+            <button type="button" id="zoom-out-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.keys", "Shift + Z")" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out" data-ps-tooltip-placement="left">
               <img class="ps-icon-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
             </button>
           </div>
           @* Immersive mode toggle (#5085), its own holder so the zoom pair keeps its rounded bottom corner. *@
           <div id="immersive-toggle-holder" class="ps-icon-button-stack">
-            <button type="button" id="immersive-toggle-button" class="ps-icon-button" title="@Messages("press.key", "F")" aria-label="Fill the window" data-i18n-aria-label="audit:controls.immersive-enter">
+            <button type="button" id="immersive-toggle-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.key", "F")" aria-label="Fill the window" data-i18n-aria-label="audit:controls.immersive-enter" data-ps-tooltip-placement="left">
               <img id="immersive-toggle-icon" class="ps-icon-button-icon" src='@assets.path("images/icons/maximize-2-white-feather.svg")' alt="">
             </button>
           </div>

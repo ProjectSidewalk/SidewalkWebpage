@@ -76,7 +76,7 @@ describe('a Gallery card\'s location line', () => {
     it('promises on hover where the click leads', () => {
         renderCard();
 
-        expect(locationLine().title).toBe('labelmap:open-label-on-labelmap');
+        expect(locationLine().getAttribute('data-ps-tooltip')).toBe('labelmap:open-label-on-labelmap');
     });
 
     it('links out to this label on the LabelMap, and says so to a screen reader', () => {
