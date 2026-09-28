@@ -114,7 +114,7 @@ describe('initSidebarDisclosure', () => {
           <aside class="page-sidebar">
             <nav class="page-nav">
               <div class="page-nav-header">Overview</div>
-              <a class="page-nav-item${active ? ' active' : ''}" href="#">Raw Labels</a>
+              <a class="page-nav-item${active ? ' is-active' : ''}" href="#">Raw Labels</a>
             </nav>
           </aside>`;
         return document.querySelector('.page-sidebar');

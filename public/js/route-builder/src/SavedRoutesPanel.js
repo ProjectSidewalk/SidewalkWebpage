@@ -151,9 +151,9 @@ class SavedRoutesPanel {
           ${usage}
         </button>
         <div class="saved-route-actions">
-          <a class="button-ps button--primary button--tiny saved-route-explore" href="/explore?routeId=${route.routeId}"
+          <a class="button button--primary button--tiny saved-route-explore" href="/explore?routeId=${route.routeId}"
              data-route-id="${route.routeId}">${i18next.t('saved-explore')}</a>
-          <button type="button" class="button-ps button--secondary button--tiny saved-route-copy"
+          <button type="button" class="button button--secondary button--tiny saved-route-copy"
                   data-route-id="${route.routeId}">${i18next.t('recent-copy-link')}</button>
         </div>
       </li>`;

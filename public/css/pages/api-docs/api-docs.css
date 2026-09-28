@@ -221,7 +221,12 @@ pre > code.language-csv {
   text-align: center;
 }
 
-.download-btn:hover {
+/* Busy during a download: `aria-disabled` keeps keyboard focus on the button, so the styles have to say it's off. */
+.download-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+.download-btn:not([aria-disabled="true"]):hover {
   background-color: var(--color-neutral-100);
   border-color: var(--color-neutral-400);
   transform: translateY(-2px);
@@ -260,7 +265,7 @@ pre > code.language-csv {
   font-style: italic;
 }
 
-/* Sits at the citation's trailing edge; .button-ps is inline-flex, which auto margins can't push. */
+/* Sits at the citation's trailing edge; .button is inline-flex, which auto margins can't push. */
 .bibtex-btn {
   display: flex;
   width: fit-content;
@@ -480,21 +485,8 @@ pre > code.language-csv {
 }
 
 /* A popup's closing call-to-action would otherwise sit on the last paragraph's own 4px. */
-.map-popup .button-ps {
+.map-popup .button {
   margin-top: var(--space-xs);
-}
-
-/* The "(opens in a new tab)" cue for assistive tech, off-screen like the other hosts' visually-hidden text. */
-.map-popup__sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
 }
 
 /* Map Overlays - Chips and legends layered over a preview map, positioned by the map's own control corners. */
@@ -635,7 +627,7 @@ pre > code.language-csv {
     font: var(--text-tiny-semibold);
   }
 
-  .map-popup .button-ps {
+  .map-popup .button {
     padding: 3px 8px;
     font: var(--text-tiny-medium);
     margin-top: var(--space-xxs);

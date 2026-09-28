@@ -480,7 +480,7 @@ describe('ImageryPage brushing', () => {
     regionRows()[0].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
     const selected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(selected.sort()).toEqual([1, 2, 3]);
-    expect(regionRows()[0].classList.contains('highlighted')).toBe(true);
+    expect(regionRows()[0].classList.contains('is-highlighted')).toBe(true);
   });
 
   test('reverts a transient hover to the pinned region rather than to nothing', async () => {
@@ -494,7 +494,7 @@ describe('ImageryPage brushing', () => {
 
     const stillSelected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(stillSelected).toContain(4);
-    const highlighted = regionRows().filter((tr) => tr.classList.contains('highlighted'));
+    const highlighted = regionRows().filter((tr) => tr.classList.contains('is-highlighted'));
     expect(highlighted.map((tr) => tr.cells[0].textContent)).toEqual(['Downtown']);
   });
 

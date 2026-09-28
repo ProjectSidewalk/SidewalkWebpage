@@ -10,7 +10,7 @@ Full rules: `docs/style-guide.md` (tokens, primitives, file layout, naming) and 
 
 - **Style from the `main.css` `:root` tokens and primitives.** `font: var(--text-*)` (a complete shorthand; override
   one property after it rather than dropping to raw `font-*`), `--color-*`, `--space-*`, `--border-radius*`,
-  `--box-shadow*`, `--z-index-*`; `.button-ps`, `.ps-input`, `.ps-select`, `.ps-table`, `.ps-container`,
+  `--box-shadow*`, `--z-index-*`; `.button`, `.ps-input`, `.ps-select`, `.ps-table`, `.ps-container`,
   `.ps-hidden`, `.sr-only`. A hardcoded hex or a hand-assembled font stack is a bug. `--font-size-*` /
   `--color-text-*` names are dead aliases, not tokens.
 - **px, never rem.** **Raleway is display-only and never renders digits.** Breakpoints: write the px and name the

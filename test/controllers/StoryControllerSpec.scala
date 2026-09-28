@@ -237,7 +237,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
             val body = contentAsString(route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get)
             body must include("community-chip--type")
             body must include("data-type-color=\"#")
-            body must include("button-ps button--primary button--small story-card__label-link")
+            body must include("button button--primary button--small story-card__label-link")
             // Far under the 500 cap here, so the truncation note must not render.
             body must not include "community-cap-note"
             // A raw key leaking into the page means a messages file lost one — dotted keys never appear in copy.

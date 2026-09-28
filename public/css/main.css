@@ -485,8 +485,22 @@ button {
   cursor: pointer;
 }
 
-button:disabled {
-  cursor: default;
+/* Anything switched off shows the "not allowed" cursor. Buttons and inputs take the `disabled` attribute, a control
+   that has to keep keyboard focus takes `aria-disabled="true"`, and anything else takes `.is-disabled`. */
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* !important so the cursor beats the `cursor: pointer` of whatever component the element belongs to. */
+.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+/* The mouse passes through to the switched-off element itself, so its children neither react nor hide the cursor. */
+.is-disabled > * {
+  pointer-events: none;
 }
 
 /* Visually hidden, still read by screen readers. */
@@ -510,15 +524,12 @@ button:disabled {
   padding: 0 var(--space-md);
 }
 
-.spacer10 { height: 10px; }
-.spacer20 { height: 20px; }
 
 /*
  * Custom styles
  */
 
-/* TODO Rename to just "button" (#5528). */
-.button-ps {
+.button {
   border: none;
   display: inline-flex;
   align-items: center;
@@ -529,21 +540,8 @@ button:disabled {
   cursor: pointer;
 }
 
-.button-ps:hover {
+.button:hover {
   text-decoration: none;
-}
-
-.button-ps:disabled {
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* TODO This one is used in the navbar, which we aren't scaling with --ui-scale. Need to address this another way. */
-.button__static--tiny {
-  font-size: 12px;
-  font-style: var(--font-primary);
-  padding: 3px 10px;
-  border-radius: 8px;
 }
 
 .button--tiny {
@@ -608,6 +606,7 @@ button:disabled {
 }
 
 .button--secondary:disabled {
+  background-color: var(--color-neutral-white);
   color: var(--color-neutral-500);
   outline: 1px solid var(--color-neutral-500);
 }
@@ -658,6 +657,10 @@ textarea.ps-input {
 .ps-select:disabled {
   background-color: var(--color-neutral-100);
   color: var(--color-neutral-600);
+}
+
+/* A locked field can still be read and copied from, so only a switched-off one gets the "not allowed" cursor. */
+.ps-input:read-only:not([type="file"], :disabled) {
   cursor: default;
 }
 
@@ -837,7 +840,7 @@ textarea.ps-input {
   padding: 0 4.5%;
 }
 
-.navbar-lnk {
+.navbar-item {
   display: inline;
   margin-left: 8px;
   position: relative; /* Anchor each dropdown panel beneath its own trigger. */
@@ -851,7 +854,7 @@ textarea.ps-input {
   gap: 4px;
 }
 
-.navbar-toggle {
+.navbar-menu-toggle {
   display: none; /* Shown only at the mobile breakpoint below. */
   border: none;
   background: transparent;
@@ -861,7 +864,7 @@ textarea.ps-input {
   color: var(--color-asphalt-500);
 }
 
-.navbar-toggle-icon {
+.navbar-menu-toggle-icon {
   display: block;
   width: 24px;
   height: 24px;
@@ -880,7 +883,7 @@ textarea.ps-input {
   width: 16px;
 }
 
-.navbar-nav > li > .navbar-button {
+.navbar-list > li > .navbar-button {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -901,7 +904,7 @@ textarea.ps-input {
   transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.navbar-nav > li > .navbar-button#language-button {
+.navbar-list > li > .navbar-button#language-button {
   padding: 4px 12px;
 }
 
@@ -909,19 +912,19 @@ textarea.ps-input {
  * The bar splits into two semantic groups: left = text-link destinations, right = bordered-pill state selectors
  * (city / account / language). The styling backs that split so yellow is reserved for the active indicator and CTAs.
  */
-.navbar-nav > li > .navbar-button:hover {
+.navbar-list > li > .navbar-button:hover {
   color: var(--color-asphalt-700);
   background-color: var(--color-asphalt-100);
 }
 
 /* Active destination: weight + a gold underline (never color-only), paired with aria-current in the markup. */
-.navbar-nav--primary > li > .navbar-button.is-active {
+.navbar-list--primary > li > .navbar-button.is-active {
   position: relative;
   color: var(--color-asphalt-700);
   font-weight: 700;
 }
 
-.navbar-nav--primary > li > .navbar-button.is-active::after {
+.navbar-list--primary > li > .navbar-button.is-active::after {
   content: "";
   position: absolute;
   left: 10px;
@@ -933,7 +936,7 @@ textarea.ps-input {
 }
 
 /* Divider between the brand lockup and the primary destinations. */
-.navbar-nav--primary::before {
+.navbar-list--primary::before {
   content: "";
   align-self: center;
   width: 1px;
@@ -944,7 +947,7 @@ textarea.ps-input {
 
 /* Leading icon on a top-level destination. The inline bar keeps its destinations as plain text links, so this shows
    only in the stacked hamburger panel (see the breakpoint below). */
-.navbar-lnk-icon {
+.navbar-item-icon {
   display: none;
   width: 16px;
   height: 16px;
@@ -959,50 +962,50 @@ textarea.ps-input {
 }
 
 /* Right group: state selectors read as bordered pills, grouped tighter than the destinations. */
-.navbar-nav--utility {
+.navbar-list--utility {
   gap: 6px;
 }
 
-.navbar-nav--utility .navbar-lnk {
+.navbar-list--utility .navbar-item {
   margin-left: 0;
 }
 
-.navbar-nav--utility > li > .navbar-button {
+.navbar-list--utility > li > .navbar-button {
   border: 1px solid var(--color-neutral-300);
   border-radius: 99px;
   padding: 4px 12px;
 }
 
-.navbar-nav--utility > li > .navbar-button:hover {
+.navbar-list--utility > li > .navbar-button:hover {
   background-color: var(--color-asphalt-100);
   border-color: var(--color-neutral-400);
 }
 
 /* Active selector pill (a page from its menu is current): a filled brand-yellow pill clearly marks the section. */
-.navbar-nav--utility > li > .navbar-button.is-active {
+.navbar-list--utility > li > .navbar-button.is-active {
   background-color: var(--color-banana-300);
   border-color: var(--color-banana-300);
   color: var(--color-neutral-black);
   font-weight: 700;
 }
 
-.navbar-nav--utility > li > .navbar-button.is-active:hover {
+.navbar-list--utility > li > .navbar-button.is-active:hover {
   background-color: var(--color-banana-500);
   border-color: var(--color-banana-500);
 }
 
-.navbar-nav > li > .navbar-button:focus {
+.navbar-list > li > .navbar-button:focus {
   outline: none;
 }
 
-.navbar-nav > li > .navbar-button:focus-visible,
-.navbar-toggle:focus-visible,
+.navbar-list > li > .navbar-button:focus-visible,
+.navbar-menu-toggle:focus-visible,
 .nav-city-search:focus-visible {
   outline: 2px solid var(--color-banana-800);
   outline-offset: 2px;
 }
 
-.caret {
+.navbar-caret {
   display: inline-block;
   width: 0;
   height: 0;
@@ -1021,7 +1024,7 @@ textarea.ps-input {
 /* In the taller landing bar the row inherits the base .navbar-container centering, so brand + nav + divider sit
    vertically centered in the 50px bar. The divider is lengthened to suit the taller bar; the compact scrolled bar
    keeps the base 22px. */
-#header.header--tall .navbar-nav--primary::before {
+#header.header--tall .navbar-list--primary::before {
   height: 30px;
 }
 
@@ -1592,7 +1595,7 @@ kbd {
   }
 }
 
-.navbar-nav {
+.navbar-list {
   display: flex;
   align-items: center;
   list-style: none;
@@ -1604,13 +1607,13 @@ kbd {
   flex: none;
 }
 
-.navbar-nav > li {
+.navbar-list > li {
   flex: none;
 }
 
 /* Applied by Navbar.js to items dropped from the inline bar; each one stays reachable elsewhere (site footer, or
    the Tools menu for Label Map), and all of them return in the stacked hamburger panel. */
-.navbar-nav > li.is-shed {
+.navbar-list > li.is-shed {
   display: none;
 }
 
@@ -1628,12 +1631,12 @@ kbd {
   text-overflow: ellipsis;
 }
 
-/* Dropdown panels are hidden until Navbar.js adds .is-open to the wrapping .navbar-lnk. */
-.navbar-lnk > .dropdown-menu {
+/* Dropdown panels are hidden until Navbar.js adds .is-open to the wrapping .navbar-item. */
+.navbar-item > .navbar-menu {
   display: none;
 }
 
-.navbar-lnk.is-open > .dropdown-menu {
+.navbar-item.is-open > .navbar-menu {
   position: absolute;
   top: 100%;
   right: 0;
@@ -1652,11 +1655,11 @@ kbd {
   box-shadow: 0 6px 16px rgb(0 0 0 / 17.5%);
 }
 
-.dropdown-menu li {
+.navbar-menu li {
   list-style: none;
 }
 
-.dropdown-menu li > a {
+.navbar-menu li > a {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1668,47 +1671,47 @@ kbd {
 }
 
 /* Leading icon on a menu item; sized to the 13px item text, never shrinking as labels get long. */
-.dropdown-icon {
+.navbar-menu-icon {
   width: 16px;
   height: 16px;
   flex: none;
   opacity: 0.75;
 }
 
-.dropdown-menu li > a:hover .dropdown-icon,
-.dropdown-menu li > a:focus .dropdown-icon,
-.dropdown-menu li > a.is-active .dropdown-icon {
+.navbar-menu li > a:hover .navbar-menu-icon,
+.navbar-menu li > a:focus .navbar-menu-icon,
+.navbar-menu li > a.is-active .navbar-menu-icon {
   opacity: 1;
 }
 
 /* Rule setting Sign out apart from the destinations above it. */
-.dropdown-divider {
+.navbar-menu-divider {
   height: 1px;
   margin: 6px 0;
   background-color: var(--color-neutral-200);
 }
 
-.dropdown-menu li > a:hover,
-.dropdown-menu li > a:focus {
+.navbar-menu li > a:hover,
+.navbar-menu li > a:focus {
   background-color: #FCECBE;
   color: var(--color-asphalt-700);
   outline: none;
 }
 
-.dropdown-menu li > a:focus-visible {
+.navbar-menu li > a:focus-visible {
   outline: 2px solid var(--color-banana-800);
   outline-offset: -2px;
 }
 
 /* Active menu item (its page is current): weight + a gold rail, echoing the top-level underline. */
-.dropdown-menu li > a.is-active {
+.navbar-menu li > a.is-active {
   font-weight: 700;
   color: var(--color-asphalt-700);
   box-shadow: inset 3px 0 0 var(--color-banana-600);
 }
 
 /* Non-interactive section labels grouping a menu's items. */
-.dropdown-section {
+.navbar-menu-section {
   padding: 12px 16px 2px;
   font-size: 10px;
   font-weight: 700;
@@ -1718,7 +1721,7 @@ kbd {
   pointer-events: none;
 }
 
-.dropdown-section:first-child {
+.navbar-menu-section:first-child {
   padding-top: 2px;
 }
 
@@ -1727,7 +1730,7 @@ kbd {
   width: 260px;
 }
 
-.navbar-lnk.is-open > .dropdown-menu.nav-city-panel {
+.navbar-item.is-open > .navbar-menu.nav-city-panel {
   padding: 0;
   overflow: hidden;
 }
@@ -2104,18 +2107,18 @@ kbd {
      the row, and a shrunk child would always measure as fitting. */
   .navbar-logo,
   .navbar-quick,
-  .navbar-toggle {
+  .navbar-menu-toggle {
     flex: none;
   }
 
-  .navbar-toggle {
+  .navbar-menu-toggle {
     display: block;
     margin: 0;
     padding: 6px 10px;
   }
 
-  .navbar-toggle:hover,
-  .navbar-toggle:focus {
+  .navbar-menu-toggle:hover,
+  .navbar-menu-toggle:focus {
     background-color: #dddddd;
   }
 
@@ -2158,8 +2161,8 @@ kbd {
     overflow: hidden;
   }
 
-  /* Scoped to the panel: the quick strip is a .navbar-nav too, and it stays a horizontal row in the bar. */
-  #navbar .navbar-nav {
+  /* Scoped to the panel: the quick strip is a .navbar-list too, and it stays a horizontal row in the bar. */
+  #navbar .navbar-list {
     display: block;
     width: 100%;
     margin: 0;
@@ -2169,12 +2172,12 @@ kbd {
     border-radius: 0;
   }
 
-  .navbar-lnk {
+  .navbar-item {
     display: block;
     margin-left: 0;
   }
 
-  .navbar-nav > li > .navbar-button {
+  .navbar-list > li > .navbar-button {
     border-radius: 0;
     border: none;
     outline: none;
@@ -2193,21 +2196,21 @@ kbd {
   }
 
   /* Carries its own padding in the inline bar, at a higher specificity than the rule above. */
-  .navbar-nav > li > .navbar-button#language-button {
+  .navbar-list > li > .navbar-button#language-button {
     padding: 6px 16px;
   }
 
   /* Destination icons are the stacked menu's reason for existing: with them the panel reads as one icon column
      top to bottom, matching the selector pills that show theirs at every width. */
-  .navbar-lnk-icon {
+  .navbar-item-icon {
     display: block;
   }
 
-  .navbar-nav--primary::before {
+  .navbar-list--primary::before {
     display: none; /* No brand divider in the stacked menu. */
   }
 
-  .navbar-lnk.is-open > .dropdown-menu {
+  .navbar-item.is-open > .navbar-menu {
     position: relative;
     border: none;
     border-radius: 0;
@@ -2215,7 +2218,7 @@ kbd {
     box-shadow: none;
   }
 
-  .navbar-lnk.is-open > .dropdown-menu.nav-city-panel {
+  .navbar-item.is-open > .navbar-menu.nav-city-panel {
     width: 100%;
   }
 
@@ -2232,7 +2235,7 @@ kbd {
     list-style: none;
   }
 
-  .navbar-quick > .navbar-lnk {
+  .navbar-quick > .navbar-item {
     display: block;
     margin-left: 0;
   }
@@ -2242,7 +2245,7 @@ kbd {
    * "About" and "API" aren't among them. Labelling costs width, which is why Navbar.js measures — fewer items reach
    * the bar on a small phone, and the rest stay one tap away in the panel.
    */
-  .navbar-nav.navbar-quick > li > .navbar-button {
+  .navbar-list.navbar-quick > li > .navbar-button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2258,7 +2261,7 @@ kbd {
     white-space: nowrap;
   }
 
-  .navbar-quick .navbar-lnk-icon,
+  .navbar-quick .navbar-item-icon,
   .navbar-quick .navbar-select-icon {
     display: block;
     width: 18px;
@@ -2292,19 +2295,19 @@ kbd {
     border: 0;
   }
 
-  .navbar-quick .caret {
+  .navbar-quick .navbar-caret {
     display: none;
   }
 
   /* Current page: a filled pill, since the underline the inline bar uses has no room under a 20px icon. */
-  .navbar-nav.navbar-quick > li > .navbar-button.is-active {
+  .navbar-list.navbar-quick > li > .navbar-button.is-active {
     background-color: var(--color-banana-300);
     color: var(--color-neutral-black);
   }
 
   /* The panel's rules above flatten dropdowns into the stacked list; a strip dropdown is a real popover again,
      anchored to its icon and kept inside the viewport. */
-  .navbar-quick .navbar-lnk.is-open > .dropdown-menu {
+  .navbar-quick .navbar-item.is-open > .navbar-menu {
     position: absolute;
     width: max-content;
     max-width: min(320px, calc(100vw - 24px));
@@ -2312,11 +2315,6 @@ kbd {
     border-radius: 8px;
     box-shadow: 0 6px 16px rgb(0 0 0 / 17.5%);
   }
-}
-
-/* Common class used to hide template elements. */
-.template {
-  display: none !important;
 }
 
 .ai-icon-marker {

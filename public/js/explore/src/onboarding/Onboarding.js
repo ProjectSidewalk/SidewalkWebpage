@@ -1040,7 +1040,7 @@ class Onboarding {
       const okButtonText = state.okButtonText || 'Ok';
       this.#uiOnboarding.messageHolder.insertAdjacentHTML('beforeend',
         `<div class='onboarding-ok-button-holder'>
-          <button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>${okButtonText}</button>
+          <button id='onboarding-ok-button' class='button button--medium button--secondary'>${okButtonText}</button>
         </div>`);
     }
 

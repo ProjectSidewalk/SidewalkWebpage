@@ -669,7 +669,7 @@ class AcrossCitiesPage {
       toggle.querySelectorAll('.ac-toggle-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           this.#trendRange = btn.dataset.range;
-          toggle.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+          toggle.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
           this.#drawTrends();
         });
       });
@@ -1224,7 +1224,7 @@ class AcrossCitiesPage {
       win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (this.#funnelWindow === btn.dataset.window) return;
         this.#funnelWindow = btn.dataset.window;
-        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
         this.#loadFunnels();
       }));
     }
@@ -1233,7 +1233,7 @@ class AcrossCitiesPage {
       dim.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (this.#funnelDim === btn.dataset.dim) return;
         this.#funnelDim = btn.dataset.dim;
-        dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
         this.#renderFunnels();
       }));
     }

@@ -80,10 +80,10 @@ class PanoOverlayControls {
     this.#stuckEnabled = false;
   };
 
-  /* Visually disable the stuck and control-toggle buttons (used while onboarding takes over the UI). */
+  /* Disable the stuck and control-toggle buttons (used while onboarding takes over the UI). */
   disableButtons = () => {
-    this.#stuck.classList.add('disabled');
-    this.#controlButtonsToggle.classList.add('disabled');
+    this.#stuck.disabled = true;
+    this.#controlButtonsToggle.disabled = true;
   };
 
   /* Blink the stuck button. */

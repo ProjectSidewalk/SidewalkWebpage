@@ -17,10 +17,10 @@
 @adminSection(username: String) = {
   <div class="page-nav-header">@username</div>
   <a href="@routes.UserDashboardController.adminDashboard(username)"
-   class="page-nav-item @if(activePage == "dashboard"){active}"
+   class="page-nav-item @if(activePage == "dashboard"){is-active}"
    @if(activePage == "dashboard"){aria-current="page"}>Dashboard</a>
   <a href="@routes.UserDashboardController.manageUser(username)"
-   class="page-nav-item @if(activePage == "admin-user"){active}"
+   class="page-nav-item @if(activePage == "admin-user"){is-active}"
    @if(activePage == "admin-user"){aria-current="page"}>Manage user</a>
   <div class="page-nav-header">Admin dashboard</div>
   <a href="@routes.AdminDashboardController.management" class="page-nav-item">All users</a>
@@ -30,10 +30,10 @@
   @if(isSignedIn) {
     <div class="page-nav-header">@Messages("dashboard.nav.you")</div>
     <a href="@routes.UserDashboardController.dashboard"
-     class="page-nav-item @if(activePage == "dashboard"){active}"
+     class="page-nav-item @if(activePage == "dashboard"){is-active}"
      @if(activePage == "dashboard"){aria-current="page"}>@Messages("dashboard.nav.dashboard")</a>
     <a href="@routes.UserDashboardController.settings"
-     class="page-nav-item @if(activePage == "settings"){active}"
+     class="page-nav-item @if(activePage == "settings"){is-active}"
      @if(activePage == "settings"){aria-current="page"}>@Messages("dashboard.nav.settings")</a>
   }
 }
@@ -41,7 +41,7 @@
 @communitySection = {
   <div class="page-nav-header">@Messages("dashboard.nav.community")</div>
   <a href="@routes.UserDashboardController.leaderboard"
-   class="page-nav-item @if(activePage == "leaderboard"){active}"
+   class="page-nav-item @if(activePage == "leaderboard"){is-active}"
    @if(activePage == "leaderboard"){aria-current="page"}>@Messages("navbar.leaderboard")</a>
 }
 

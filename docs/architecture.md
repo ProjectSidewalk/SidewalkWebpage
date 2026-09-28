@@ -435,7 +435,7 @@ string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stage
 
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,
-shadows, motion, and z-index layers — plus the component primitives `.button-ps`, `.ps-input`, `.ps-select`, and
+shadows, motion, and z-index layers — plus the component primitives `.button`, `.ps-input`, `.ps-select`, and
 `.ps-table`. They mirror the "Design System Tokens" Figma; the rules for using them are in
 [`style-guide.md`](style-guide.md). One coupling worth knowing: **`css/components/page-shell.css` is the shell
 (`.page-*` classes) that the API docs, the admin dashboard, the user dashboard, and the labeling guide all build on**

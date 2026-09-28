@@ -175,7 +175,7 @@ class Toast {
       el.type = 'button';
       if (button.onClick) el.addEventListener('click', button.onClick);
     }
-    el.className = 'ps-toast__button button-ps button--primary button--small';
+    el.className = 'ps-toast__button button button--primary button--small';
     el.textContent = button.label;
     return el;
   }
