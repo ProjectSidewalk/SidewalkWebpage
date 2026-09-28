@@ -641,8 +641,7 @@ class UserStatTable @Inject() (
         "INNER JOIN (SELECT user_id, username FROM sidewalk_user) \"usernames\" ON label_counts.user_id = usernames.user_id"
       }
     }
-    SqlFragments.withJitOff(
-      sql"""
+    sql"""
       SELECT usernames.username,
              label_counts.label_count,
              COALESCE(mission_count, 0) AS mission_count,
@@ -698,9 +697,8 @@ class UserStatTable @Inject() (
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC, label_counts.label_count DESC;
     """
-        .as[(String, Int, Int, Double, Option[Double], Double)]
-        .map(_.map(LeaderboardStat.tupled))
-    )
+      .as[(String, Int, Int, Double, Option[Double], Double)]
+      .map(_.map(LeaderboardStat.tupled))
   }
 
   /**
@@ -713,8 +711,7 @@ class UserStatTable @Inject() (
    * Two deliberate departures from the per-city board, both to keep this cheap enough to run on a page load:
    *  - Distance sums the nightly-precomputed `user_stat.meters_audited` instead of recomputing geodesic street
    *    lengths per city. It is the same quantity by the same definition (see
-   *    `updateAuditedDistanceHelper`), just up to a day stale, and it keeps PostGIS out of a 50-way union — which also
-   *    sidesteps the JIT segfault that forces `withJitOff` on the per-city board (#4376/#4545).
+   *    `updateAuditedDistanceHelper`), just up to a day stale, and it keeps PostGIS out of a 50-way union.
    *  - Ranking is by raw label count, so the rows are in true rank order (the per-city board's composite score has a
    *    city-relative distance term that cannot be compared across cities).
    *
@@ -860,8 +857,7 @@ class UserStatTable @Inject() (
    *  - Counts mirror the single-city dashboard's own definitions rather than the global leaderboard's looser ones. The
    *    row for the city being viewed sits inches below the hero KPIs, so any divergence reads as a bug (#4699).
    *  - Distance reads the nightly `user_stat.meters_audited` — `MAX`, not `SUM`, because `user_stat.user_id` carries no
-   *    unique constraint and duplicate rows exist in the wild. It also keeps PostGIS out of a 51-way union, which is
-   *    what forces `withJitOff` elsewhere (#4376/#4545).
+   *    unique constraint and duplicate rows exist in the wild. It also keeps PostGIS out of a 51-way union.
    *  - Nothing here reads `excluded`, `on_leaderboard` or `public_profile`. This is a mapper looking at their own data,
    *    so no visibility flag applies — and a schema behind on evolutions may not have those columns at all, which
    *    would fail the entire union rather than one city.

@@ -63,9 +63,8 @@ readonly_user -d sidewalk`).
   against prod's hand-built ones. Geometry output can genuinely differ across that GEOS gap, so a spatial result that
   reproduces in only one environment starts here. The same skew breaks dev's JIT — PostGIS bitcode built with LLVM 16
   against a runtime linked to LLVM 11, so an expensive spatial query segfaults the backend
-  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — hence `SqlFragments.withJitOff`. Prod
-  has `jit = off` anyway; dev only does if someone set it in their own volume's `postgresql.conf`, since the repo
-  doesn't set it ([#4550](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4550)).
+  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — so `docker-compose.yml` starts the db
+  with `jit=off`, matching prod.
 - **Prod server settings dev lacks** (set by CSE IT in its `postgresql.conf` after
   [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)): `jit = off`,
   `idle_in_transaction_session_timeout = 2min`, and `log_lock_waits = on`.
