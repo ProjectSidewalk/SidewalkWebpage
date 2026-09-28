@@ -131,6 +131,8 @@ class Main {
     svl.navigationService = new NavigationService(svl.regionModel, svl.ui.streetview);
 
     svl.taskContainer = new TaskContainer(svl.regionModel, svl, svl.tracker);
+    // Before the tasks load: planning the walk, which happens as they arrive, refreshes this preview (#5526).
+    svl.walkPlanLayer = new WalkPlanLayer(svl.taskContainer);
     svl.taskContainer._tasks.push(newTask);
     svl.taskContainer.setCurrentTask(newTask);
     svl.labelContainer = new LabelContainer(params.nextTemporaryLabelId);
@@ -436,6 +438,10 @@ class Main {
     });
 
     svl.taskContainer.renderAllTasks();
+    // A street too short to walk, already in full view, is finished on arrival rather than left for the labeler to
+    // press Stuck on (#3682). Not before this point: completing it moves the mission bar, whose offset is only set
+    // just before the mission starts.
+    if (svl.navigationService.completeTinyStreetAtSpawn()) svl.missionModel.updateMissionProgress(mission, region);
     const distance = svl.taskContainer.getCompletedTaskDistance();
     svl.overallStats.setRegionAuditedDistance(distance);
 

@@ -39,6 +39,12 @@ class Task {
     progressClaimed: false,
   };
 
+  // This street's place in a neighborhood mission's planned walk (#5526), and whether the minimap is previewing it as
+  // one of the next streets. Kept off #properties because neither is the street's own data: both are rewritten on
+  // every replan, and nothing that serializes a task's properties should ever see them.
+  #plannedPosition = null;
+  #plannedAhead = false;
+
   #properties = {
     auditTaskId: null,
     streetEdgeId: null,
@@ -299,15 +305,52 @@ class Task {
   }
 
   /**
-   * This task's place in a route's walking order, for sorting route tasks.
+   * This task's place in the walking order: a neighborhood mission's planned walk (#5526) or a route's saved order.
    *
    * Position is the real ordering — an editable route can insert a street mid-route, so the serial routeStreetId
-   * only orders correctly for routes saved before editing existed.
+   * only orders correctly for routes saved before editing existed. A planned position comes first because it is only
+   * ever stamped on a region audit, where the route fields are null.
    *
-   * @returns {?number} null when the task isn't part of a route.
+   * @returns {?number} null when the task is neither in a planned walk nor part of a route.
    */
   getWalkOrder() {
-    return this.#properties.routeStreetPosition ?? this.#properties.routeStreetId;
+    return this.#plannedPosition ?? this.#properties.routeStreetPosition ?? this.#properties.routeStreetId;
+  }
+
+  /**
+   * Stamps this street's step in the neighborhood mission's planned walk, so the walk-order branch of
+   * TaskContainer.nextTask follows the plan the same way it follows a route (#5526).
+   *
+   * @param {?number} position - The step index in the plan, or null to take the street out of the plan.
+   * @returns {void}
+   */
+  setPlannedPosition(position) {
+    this.#plannedPosition = position;
+  }
+
+  /**
+   * @returns {?number} This street's step in the current planned walk, or null when it is not in one.
+   */
+  getPlannedPosition() {
+    return this.#plannedPosition;
+  }
+
+  /**
+   * Marks whether the minimap previews this street as one of the next few of the planned walk. WalkPlanLayer owns
+   * the choice; the task only remembers it so render() can draw the street as part of the path ahead.
+   *
+   * @param {boolean} plannedAhead - True to draw the street as the route ahead, false for quiet context.
+   * @returns {void}
+   */
+  setPlannedAhead(plannedAhead) {
+    this.#plannedAhead = plannedAhead;
+  }
+
+  /**
+   * @returns {boolean} Whether the minimap is previewing this street as part of the planned walk ahead.
+   */
+  isPlannedAhead() {
+    return this.#plannedAhead;
   }
 
   /**
@@ -562,11 +605,13 @@ class Task {
         this.#paths = [];
         if (walked.length > 1) this.#paths.push(new google.maps.Polyline(MinimapStyle.completedTask(walked)));
         if (remaining.length > 1) this.#paths.push(new google.maps.Polyline(MinimapStyle.otherTask(remaining)));
-      } else if (svl.regionModel.isRoute) {
+      } else if (svl.regionModel.isRoute || this.#plannedAhead) {
         // On a designated route every street ahead is part of the planned path, so paint it as the route-to-walk: a
         // dashed line with direction chevrons over a white casing — the same encoding as the current street's
         // remaining half (and RouteBuilder's own rendering) — so the whole route reads as a dotted, arrowed path when
-        // zoomed out. A free region audit has no planned path, so its non-current streets stay quiet context.
+        // zoomed out. A neighborhood mission's planned walk gets the same treatment only for the next few streets
+        // WalkPlanLayer previews (#5526): the rest of the region would bury the path ahead in chevrons, so it stays
+        // quiet context.
         this.#paths = [
           new google.maps.Polyline(MinimapStyle.routeCasing(gCoordinates)),
           new google.maps.Polyline(MinimapStyle.remainingRoute(gCoordinates)),

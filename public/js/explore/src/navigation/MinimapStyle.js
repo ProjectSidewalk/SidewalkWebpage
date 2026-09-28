@@ -173,6 +173,42 @@ class MinimapStyle {
   }
 
   /**
+   * An upcoming jump in a neighborhood mission's planned walk (#5526): a straight connector from the end of one street
+   * to the start of the next, where the labeler will be moved rather than walk. Dots in the route-ahead blue, outlined
+   * in the chevrons' deep blue, over a thin white casing drawn by the line's own stroke — the route-ahead palette, so
+   * it reads as part of the path ahead, but dots rather than dashes and no chevrons, so it does not read as a street
+   * to walk. Just under the route casing, so where a connector meets a street the street wins.
+   * @param {google.maps.LatLng[]} path - The connector's two ends.
+   * @returns {google.maps.PolylineOptions}
+   */
+  static plannedJump(path) {
+    return {
+      path,
+      geodesic: true,
+      strokeColor: '#ffffff',
+      strokeOpacity: 0.9,
+      strokeWeight: 4,
+      zIndex: 9,
+      icons: [
+        {
+          icon: {
+            // A unit circle as an SVG path, like the other symbols here, so these options stay plain data.
+            path: 'M -1,0 A 1,1 0 1,0 1,0 A 1,1 0 1,0 -1,0 Z',
+            fillColor: MinimapStyle.remainingColor(),
+            fillOpacity: 1.0,
+            strokeColor: MinimapStyle.chevronOutlineColor(),
+            strokeOpacity: 1.0,
+            strokeWeight: 1,
+            scale: 2.5,
+          },
+          offset: '0',
+          repeat: '10px',
+        },
+      ],
+    };
+  }
+
+  /**
    * A street the user has already completed (not the current one).
    * @param {google.maps.LatLng[]} path - The polyline path.
    * @returns {google.maps.PolylineOptions}

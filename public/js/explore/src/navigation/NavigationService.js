@@ -8,6 +8,14 @@ class NavigationService {
   // further to walk either way. Task.isAtEnd scales both down on short streets.
   static #NEAR_END_NO_IMAGERY_THRESHOLD = 50;
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
+  // A street at most this long is completed on arrival when all of it is in view (#3682). Below the 25 m completion
+  // radius a street is degenerate by construction (#4717): Task.isAtEnd caps its end threshold at a fraction of the
+  // length, and the end-of-street check only runs after a move, so a labeler who arrives already at its end can never
+  // finish it and is left pressing Stuck.
+  static #TINY_STREET_MAX_M = 20;
+  // A run of tiny streets that each lead into the next is completed one after another; this bounds the run, so a
+  // pathological cluster can never loop the page.
+  static #MAX_TINY_STREET_CHAIN = 5;
   // Distance between points on a street when searching it for imagery (km). Public so that PanoManager can sample
   // backup starting points at the same granularity as moveForward()'s search.
   static DIST_INCREMENT = 0.01;
@@ -34,6 +42,8 @@ class NavigationService {
   // Traversal the #stuckPanos set belongs to; see the reset in moveForward().
   #stuckPanosTraversalKey = null;
   #positionUpdateCallbacks = [];
+  // How many tiny-street auto-completions are on the stack right now; see #maybeCompleteTinyStreet.
+  #tinyStreetChainDepth = 0;
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
   /**
@@ -211,6 +221,9 @@ class NavigationService {
     // Get a new task and jump to the new task location. The task being left is deliberately not finished — finishing
     // it submits completed=true, and the regular submission path credits that as a full audit, which is exactly the
     // claim a no-imagery verdict cannot support (#4922).
+    // A planned walk is rebuilt around the dead street first (#5526): the plan's next street assumed the labeler would
+    // walk out of this one's far end, which they now never reach.
+    if (svl.taskContainer.hasWalkPlan()) svl.taskContainer.planWalk('giveUp', { exclude: currentTask });
     const newTask = svl.taskContainer.nextTask(currentTask);
 
     // Set once the labeler is actually being moved off, not when the street is reported: a run stopped by the advance
@@ -348,8 +361,54 @@ class NavigationService {
         svl.taskContainer.endTask(task);
         mission.pushATaskToTheRoute(task);
         svl.taskContainer.setCurrentTask(nextTask);
+        // The labeler arrives on the next street without moving, so the post-move end check won't see it.
+        this.#maybeCompleteTinyStreet(nextTask);
       }
     }
+  }
+
+  /**
+   * Completes the street the labeler starts on if it is too short to walk (#3682); for the page load, which puts the
+   * labeler on a street without a move. Returns whether it did, so the caller can refresh mission progress.
+   *
+   * @returns {boolean} True when the street was completed.
+   */
+  completeTinyStreetAtSpawn() {
+    return this.#maybeCompleteTinyStreet(svl.taskContainer.getCurrentTask());
+  }
+
+  /**
+   * Completes `task` through the normal end-of-street path when it is a tiny street the labeler can already see
+   * all of (#3682), so the plan picks the next street and a jump still gets its label-before-jump prompt.
+   *
+   * Seeing the whole street is the rule #isWholeStreetInView already credits when imagery runs out (#5474); this
+   * applies it at the two places the labeler lands on a street without a move, which is where no end-of-street
+   * check runs. Not in the tutorial or free exploration, which never finish streets, and not while a jump is armed,
+   * since the street being ended is then no longer the one being walked.
+   *
+   * @param {Task} task - The street the labeler has just been placed on.
+   * @returns {boolean} True when the street was completed.
+   */
+  #maybeCompleteTinyStreet(task) {
+    if (svl.isOnboarding() || svl.isExploreAddressMode() || this.getLabelBeforeJumpState()) return false;
+    if (!task || !svl.taskContainer.tasksLoaded() || task.isComplete() || task.wasGivenUpOnImagery()) return false;
+    if (this.#tinyStreetChainDepth >= NavigationService.#MAX_TINY_STREET_CHAIN) return false;
+    const lengthM = task.lineDistance({ units: 'meters' });
+    if (lengthM > NavigationService.#TINY_STREET_MAX_M || !this.#isWholeStreetInView(task)) return false;
+
+    svl.tracker.push('TaskAutoComplete_TinyStreet', {
+      streetEdgeId: task.getStreetEdgeId(),
+      lengthM: Math.round(lengthM * 10) / 10,
+    });
+    // Depth rather than a counter reset per spawn: each completion that lands on another tiny street recurses through
+    // #endTheCurrentTask back into here, so the stack depth is exactly the length of the run.
+    this.#tinyStreetChainDepth++;
+    try {
+      this.#endTheCurrentTask(task, svl.missionContainer.getCurrentMission());
+    } finally {
+      this.#tinyStreetChainDepth--;
+    }
+    return true;
   }
 
   /**
@@ -413,27 +472,7 @@ class NavigationService {
     svl.canvas.enableLabeling();
 
     if (!isOnboarding && 'taskContainer' in svl && svl.taskContainer.tasksLoaded()) {
-      // End of the task if the user is close enough to the end point, and we aren't in the tutorial.
-      // TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
-      // - that might be because the task was already ended before we moved them, for example...
-      // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
-      //      UI after a move... especially when #endTheCurrentTask() can result in another move...
-      const task = svl.taskContainer.getCurrentTask();
-      // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
-      if (!isOnboarding && !svl.isExploreAddressMode() && task
-        && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
-        // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
-        // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
-        // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
-        // really is the end, so preserve today's behavior there.
-        const finalRouteStreet = svl.regionModel.isRoute && !svl.taskContainer.nextTask(task);
-        const streetLen = task.lineDistance({ units: 'meters' });
-        const walkedMostOfStreet = streetLen > 0
-          && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
-        if (!finalRouteStreet || walkedMostOfStreet) {
-          this.#endTheCurrentTask(task, currentMission);
-        }
-      }
+      this.#endStreetIfAtEnd(newLatLng, currentMission);
       svl.taskContainer.updateCurrentTask();
     }
     svl.missionModel.updateMissionProgress(currentMission, region);
@@ -464,6 +503,37 @@ class NavigationService {
 
     // Enable moving again after a timeout.
     setTimeout(() => this.resetWalking(), NavigationService.#MOVE_DELAY);
+  }
+
+  /**
+   * Ends the current street if a move has brought the labeler to its end.
+   *
+   * TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
+   * - that might be because the task was already ended before we moved them, for example...
+   * TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
+   *      UI after a move... especially when #endTheCurrentTask() can result in another move...
+   *
+   * @param {{lat: number, lng: number}} newLatLng - Where the move landed.
+   * @param {Mission} currentMission - The mission the street is credited to.
+   * @returns {void}
+   */
+  #endStreetIfAtEnd(newLatLng, currentMission) {
+    const task = svl.taskContainer.getCurrentTask();
+    // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
+    if (svl.isExploreAddressMode() || !task || !task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
+      return;
+    }
+    // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
+    // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
+    // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
+    // really is the end, so preserve today's behavior there.
+    const finalRouteStreet = svl.regionModel.isRoute && !svl.taskContainer.nextTask(task);
+    const streetLen = task.lineDistance({ units: 'meters' });
+    const walkedMostOfStreet = streetLen > 0
+      && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
+    if (!finalRouteStreet || walkedMostOfStreet) {
+      this.#endTheCurrentTask(task, currentMission);
+    }
   }
 
   /**

@@ -206,6 +206,9 @@ describe('Explore, when the imagery search runs out along a street', () => {
                 endTask: jest.fn(),
                 updateCurrentTask: stub(),
                 getNextTaskAfterJump: () => null,
+                // No planned walk unless a test sets one up; the replan-before-advance test does (#5526).
+                hasWalkPlan: jest.fn(() => false),
+                planWalk: jest.fn(() => true),
             },
         };
 
@@ -259,6 +262,32 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
             expect(reportNoImagery).toHaveBeenCalledTimes(1);
             expect(reportNoImagery).toHaveBeenCalledWith(dead, 7);
+            expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(live);
+        });
+
+        it('rebuilds a planned walk around the dead street before choosing the next one (#5526)', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            svl.taskContainer.hasWalkPlan.mockReturnValue(true);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            // The plan's next street assumed the labeler would leave by this street's far end; the replan has to see
+            // the street as excluded, since it is only flagged as given up once the labeler has been moved.
+            expect(svl.taskContainer.planWalk).toHaveBeenCalledWith('giveUp', { exclude: dead });
+            expect(svl.taskContainer.planWalk.mock.invocationCallOrder[0])
+                .toBeLessThan(svl.taskContainer.nextTask.mock.invocationCallOrder[0]);
+        });
+
+        it('leaves a walk without a plan to the greedy choice', async () => {
+            const [dead, live] = [makeTask(101), makeTask(102)];
+            assignStreets(dead, live);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            expect(svl.taskContainer.planWalk).not.toHaveBeenCalled();
             expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(live);
         });
 

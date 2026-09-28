@@ -84,8 +84,8 @@ The backend follows a consistent layering: **routes → Controller → Service �
 
 Regions (neighborhoods) organize the work: a mission is filed under one, the dashboard and LabelMap filter by one,
 and `region_completion` reports progress per region. They are **not** a boundary the streets or a route have to stay
-inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission routes
-proposed in #5526, is walks that make sense on the ground: routes that end at intersections rather than at an
+inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission walks
+(#5526), is walks that make sense on the ground: routes that end at intersections rather than at an
 arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the tool can show where a walk is going.
 
 - **`street_edge_region` is an assignment, not geometry.** Every street belongs to exactly one region (UNIQUE on
@@ -109,6 +109,14 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   its street is: going by the mission alone would hide a route's labels from a later visit to the neighborhood they
   are actually in, and going by the street alone would drop a label placed just across a border from its mission's
   region. It is a UNION of two indexed branches on purpose; an OR across the two joins can't use either index.
+- **A neighborhood mission plans its walk on the client (#5526).** Once `/tasks` loads, `TaskContainer` hands the
+  region's unwalked streets to `WalkPlanner` (`public/js/common/`), stamps each task with its planned position and
+  direction, and `nextTask` follows that order through the same walk-order branch a route uses. It replans when a
+  street is given up for lack of imagery, when another labeler changes the priority of a street still ahead, and
+  when the labeler switches to a street other than the plan's next. `WalkPlanLayer` previews the next few streets
+  and their jumps on the minimap. Client-side because the client already holds every street with its live priority,
+  so there is nothing to store or invalidate, and the planner is deterministic, so a reload replans the same walk.
+  If planning fails, the older greedy next-street rule takes over.
 
 ### Media storage
 
