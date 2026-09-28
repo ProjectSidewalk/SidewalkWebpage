@@ -412,7 +412,7 @@ describe('the awaiting-confirmation queue', () => {
     await render(payload({ min_reporters: 4 }));
     // A local default would read correctly right up until the server's threshold changed, and then silently lie.
     expect(document.getElementById('trend-corroborated-intro').textContent)
-      .toMatch(/at least 4 different labelers/);
+      .toMatch(/at least 4 labelers/);
   });
 
   test('lists each street with a link to explore it', async () => {

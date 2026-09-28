@@ -21,7 +21,7 @@
 @content = {
   <div class="page-section" id="ac-intro-section">
     <h1 class="page-heading" id="across-cities">Across Cities <a href="#across-cities" class="permalink">#</a></h1>
-    <p>Every deployment compared; figures are cached for a few minutes.</p>
+    <p>Every city compared; figures can lag up to 2 hours.</p>
     <div class="ac-pulse" id="ac-pulse" role="status" aria-live="polite">Loading cities…</div>
 
     <div class="ac-hero">
@@ -77,7 +77,7 @@
         <div class="mini-chart" id="ac-chart-week-users"></div>
       </div>
     </div>
-    <p class="ac-note">Contributors counts registered people once across cities; anonymous work is in the label and validation bars, AI work isn't, and today's bar is still filling in.</p>
+    <p class="ac-note">The Contributors bar counts registered people once across cities; anonymous work is in the label and validation bars, AI work isn't, and today's is still filling in.</p>
 
     <h3 class="ac-chart-group-title" id="most-active-cities">Most active cities</h3>
     <p>The five busiest cities this week, with each change from the week before; Contributors are counted per city, so the column can sum past the tile above.</p>
@@ -104,7 +104,7 @@
   </div>
 
   <div class="page-section" id="ac-map-section">
-    <h2 class="page-heading" id="deployment-map">Deployment cities <a href="#deployment-map" class="permalink">#</a></h2>
+    <h2 class="page-heading" id="deployment-map">Cities <a href="#deployment-map" class="permalink">#</a></h2>
     <p>Circle area is label count and color is lifecycle status; click a city to open its site.</p>
     <div id="ac-cities-map" class="ac-map"></div>
     <div class="ac-map-legend" aria-label="Map legend">
@@ -264,8 +264,8 @@
 
   <div class="page-section" id="ac-funnel-section">
     <h2 class="page-heading" id="funnel">Engagement funnels <a href="#funnel" class="permalink">#</a></h2>
-    <p>Bars are a share of visitors; percentages, of the step before.</p>
-    <p class="ac-note">Anonymous visitors are counted per browser, so conversion reads low, and Explore is desktop-only, so mobile drops off early by design. “Took a step” means walking in a non-tutorial mission.</p>
+    <p>Bars and Overall are shares of visitors; other percentages, of the step before.</p>
+    <p class="ac-note">Anonymous visitors count per browser, so conversion reads low; Explore is desktop-only, so mobile drops off early; and “Took a step” means walking in a non-tutorial mission.</p>
     <div class="ac-funnel-controls">
       <div class="ac-toggle" id="ac-funnel-window" role="group" aria-label="Funnel time window">
         <button type="button" class="ac-toggle-btn is-active" data-window="30d">Last 30 days</button>

@@ -27,9 +27,8 @@
     <p>Every street Explore can route to, by priority tier; click a segment to pin its region.</p>
     <div id="imagery-priority-map" class="coverage-map"
     role="img" aria-label="Map of street segments colored by re-audit priority tier"></div>
-    <p>The tiers are ranges of a single priority number; higher is served sooner:</p>
-    <p class="imagery-formula"><code>priority = 1 / (1 + current audits + ½ if any audit is on replaced imagery + ¼ per low-quality audit)</code></p>
-    <p>Tiers, top to bottom: no counted audit, none on current imagery, one, several.</p>
+    <p>Tiers group streets by audit count (none, only on replaced imagery, one current, two or more); higher priority is served sooner:</p>
+    <p class="imagery-formula"><code>priority = 1 / (1 + current audits + ½ if any audit is on replaced imagery + ¼ per low-quality audit), or 1 with no high-quality audit</code></p>
     <div id="imagery-legend"></div>
     <p class="ac-note" id="imagery-priority-note"></p>
   </div>

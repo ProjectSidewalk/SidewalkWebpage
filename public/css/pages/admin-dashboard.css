@@ -2107,12 +2107,12 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-hero { margin-top: var(--space-lg); }
 
 /* A grid, not a wrapping flex row: exact totals (1,712,345) wrap the row on narrower screens, and a wrapped flex
-   item would stretch to the full row width. A grid track can't grow to fit its content, so the 180px floor is sized
-   to the widest unbreakable value (an eight-digit total, or a top-city name like "Christchurch"), and tile text
-   wraps rather than spilling into the next tile. */
+   item would stretch to the full row width. A grid track can't grow to fit its content, so the 200px floor leaves
+   room for the widest unbroken value (an eight-digit total, or a top-city name like "Christchurch"), and other tile
+   text wraps rather than spilling into the next tile. */
 .ac-hero-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-md);
   margin-bottom: var(--space-md);
 }

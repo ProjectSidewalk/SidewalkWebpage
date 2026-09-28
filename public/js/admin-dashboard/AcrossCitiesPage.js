@@ -1260,7 +1260,10 @@ class AcrossCitiesPage {
       return;
     }
     if (!withStories.length) {
-      summary.textContent = `No stories in any of ${cities(known.length)} yet.${unknownNote}`;
+      const noneYet = known.length === 1
+        ? 'The one city counted has no stories yet.'
+        : `None of the ${cities(known.length)} counted has stories yet.`;
+      summary.textContent = `${noneYet}${unknownNote}`;
       return;
     }
     const none = known.length - withStories.length;
@@ -1292,7 +1295,7 @@ class AcrossCitiesPage {
   /**
    * The city's own Stories admin page, where Hide and Delete work; null when the city has no URL.
    *
-   * @param {{url?: string}} c - One city's scorecard row.
+   * @param {{url?: string}} c - One city's entry in the stories list.
    * @returns {string|null} Absolute URL of that city's Stories page, or null without a city URL.
    */
   #storiesHref(c) {

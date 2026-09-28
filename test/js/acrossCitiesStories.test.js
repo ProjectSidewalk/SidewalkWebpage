@@ -105,7 +105,7 @@ describe('Across Cities — stories', () => {
   it('says there are no stories only about the cities it could count', async () => {
     await render([entry('alpha', counts(0, null)), entry('bravo', null)]);
 
-    expect(summary()).toBe('No stories in any of 1 city yet. Counts unavailable for 1 city.');
+    expect(summary()).toBe('The one city counted has no stories yet. Counts unavailable for 1 city.');
     expect(document.getElementById('ac-stories-wrap').hidden).toBe(true);
   });
 

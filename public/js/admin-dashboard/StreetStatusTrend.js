@@ -366,9 +366,8 @@ class StreetStatusTrend {
     // The threshold is the server's (StreetLifecycleService.MinCorroboratingReporters) and always travels with the
     // payload, so it is read rather than mirrored — a local default would silently disagree the day it changed.
     AdminShell.setText('trend-corroborated-intro', `
-      Open streets that at least ${AdminShell.num(data.min_reporters)} different labelers reported as having no
-      imagery. Reports alone never retire a street; these stay in the pool until the offline imagery checker
-      confirms them, so run it on these first.`);
+      Open streets at least ${AdminShell.num(data.min_reporters)} labelers reported as imageless; they stay open
+      until the offline checker confirms them, so run it on these first.`);
 
     if (rows.length === 0) {
       AdminShell.setHtml('trend-corroborated', `

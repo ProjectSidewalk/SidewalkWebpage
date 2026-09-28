@@ -24,7 +24,7 @@
 <div class="page-sidebar">
   <nav class="page-nav" aria-label="Admin dashboard sections">
     <div class="page-nav-header">Admin Dashboard</div>
-    <p class="admin-nav-scope-note">Pages cover <b>@cityName</b>; <span class="admin-nav-scope">All cities</span> pages span every deployment</p>
+    <p class="admin-nav-scope-note">Pages cover <b>@cityName</b>; <span class="admin-nav-scope">All cities</span> pages span every city</p>
     @navItem("overview", routes.AdminDashboardController.overview, "Overview", "Alerts and trends", false)
     @if(isOwner) {
       @navItem("across-cities", routes.AdminDashboardController.acrossCities, "Across Cities", "Compare every city", true)
@@ -34,7 +34,7 @@
     @navItem("management", routes.AdminDashboardController.management, "Management", "Roles (all cities), teams, jobs", false)
     @navItem("partners", routes.AdminDashboardController.partners, "Partners", "Landing-page logos, city and global", false)
     @if(isOwner) {
-      @navItem("health", routes.AdminDashboardController.health, "Health", "Database health; this city's jobs", true)
+      @navItem("health", routes.AdminDashboardController.health, "Health", "All-city database; this city's jobs, panos", true)
     }
 
     <div class="page-nav-header">Data</div>

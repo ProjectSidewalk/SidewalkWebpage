@@ -617,7 +617,7 @@ object ConfigService {
       // java.net.URI finds no host in a non-ASCII domain, so name the fix where an admin who hit it will look.
       Left(
         "The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us." +
-          (if (cleanUrl.exists(_ > 127))
+          (if (Try(new java.net.URI(cleanUrl).getRawAuthority).toOption.flatMap(Option(_)).exists(_.exists(_ > 127)))
              " For a domain with accented or non-Latin letters, paste its punycode (xn--) form."
            else "")
       )

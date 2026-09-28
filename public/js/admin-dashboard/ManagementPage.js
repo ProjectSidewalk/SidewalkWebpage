@@ -314,7 +314,7 @@ class ManagementPage {
   #renderTeams() {
     const el = document.getElementById('mgmt-teams');
     if (!this.#teams.length) {
-      el.innerHTML = '<p class="dq-empty">No teams on this deployment.</p>';
+      el.innerHTML = '<p class="dq-empty">No teams in this city.</p>';
       return;
     }
     const head = `<tr>
