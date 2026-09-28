@@ -6,7 +6,14 @@ import models.label.LabelTypeEnum
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.{CityScorecard, ContributorKind, ContributorWindowActivity, DailyContributorActivity, WeeklyPoint}
+import service.{
+  CityScorecard,
+  CityStoryStats,
+  ContributorKind,
+  ContributorWindowActivity,
+  DailyContributorActivity,
+  WeeklyPoint
+}
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
@@ -958,6 +965,38 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
               ON street_edge.street_edge_id = audit_task.street_edge_id
       ) AS audited;
     """.as[(Double, Double)].head)
+  }
+
+  /**
+   * A city's story counts for the Across Cities Stories section (#5543). Every story counts, hidden ones included,
+   * because moderation needs to see all of them.
+   *
+   * @param schema The database schema to query.
+   * @return       DBIO yielding the city's [[CityStoryStats]]; all zeros and no `newest` when it has no stories.
+   */
+  def getCityStoryStatsBySchema(schema: String): DBIO[CityStoryStats] = {
+    implicit val getResult: GetResult[CityStoryStats] = GetResult(r =>
+      CityStoryStats(
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextTimestampOption().map(_.toInstant.atOffset(ZoneOffset.UTC))
+      )
+    )
+    sql"""
+      SELECT COUNT(*),
+             COUNT(*) FILTER (WHERE NOT story.visible),
+             COUNT(*) FILTER (WHERE EXISTS (
+                 SELECT 1 FROM "#$schema".story_media
+                 WHERE story_media.story_id = story.story_id AND story_media.media_type = 'photo'
+             )),
+             COUNT(*) FILTER (WHERE story.created_at >= NOW() - INTERVAL '7 days'),
+             COUNT(*) FILTER (WHERE story.created_at >= NOW() - INTERVAL '30 days'),
+             MAX(story.created_at)
+      FROM "#$schema".story;
+    """.as[CityStoryStats].head
   }
 
   def getTutorialStreetId: DBIO[Int] = {

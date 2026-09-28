@@ -21,7 +21,7 @@
 @content = {
   <div class="page-section" id="ac-intro-section">
     <h1 class="page-heading" id="across-cities">Across Cities <a href="#across-cities" class="permalink">#</a></h1>
-    <p>How every deployment compares on coverage, activity, and data quality, and which ones need a look. Figures come from every city database and are cached for a few minutes, so they can lag live activity.</p>
+    <p>Every deployment compared; figures are cached for a few minutes.</p>
     <div class="ac-pulse" id="ac-pulse" role="status" aria-live="polite">Loading cities…</div>
 
     <div class="ac-hero">
@@ -43,7 +43,7 @@
 
   <div class="page-section" id="ac-now-section">
     <h2 class="page-heading" id="today-this-week">Today &amp; this week <a href="#today-this-week" class="permalink">#</a></h2>
-    <p>Today so far, and the last 7 days against the 7 before. Counts are what <em>people</em> did. AI accounts get their own line, since one pipeline account can out-produce every contributor. Contributor tiles count registered people once, even if they worked in several cities; anonymous sessions are listed separately.</p>
+    <p>People's work today and over the last 7 days against the 7 before, with AI accounts and anonymous sessions counted separately.</p>
 
     <h3 class="ac-chart-group-title" id="today-so-far">Today (so far)</h3>
     <div class="ac-hero-row">
@@ -77,10 +77,10 @@
         <div class="mini-chart" id="ac-chart-week-users"></div>
       </div>
     </div>
-    <p class="ac-note">“Contributors” counts registered people who labeled or validated that day, once each across cities. Anonymous sessions (one per browser cookie, not per person) and AI accounts are left out of that bar, though their work is in the label and validation bars. The last bar is today, still filling in. Hover or tab to a bar for that day's breakdown by city and person; click or press Enter to pin it and follow the links to admin pages.</p>
+    <p class="ac-note">Registered contributors count once across cities; anonymous sessions and AI accounts are in the label and validation bars but not the Contributors bar, and today's bar is still filling in.</p>
 
     <h3 class="ac-chart-group-title" id="most-active-cities">Most active cities</h3>
-    <p>The five busiest cities of the past 7 days, with each count's change from the 7 days before. Sorting on a column shows the top five by that column; sorting by City keeps the busiest five in name order. Cities with no activity this week are left out. Hover or tab to a count for both weeks' numbers and the people behind them. Contributors are counted per city, so this column can sum to more than the tile above.</p>
+    <p>The five busiest cities this week, with each change from the week before; Contributors are counted per city, so the column can sum past the tile above.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table" id="ac-top-table">
         <thead>
@@ -105,7 +105,7 @@
 
   <div class="page-section" id="ac-map-section">
     <h2 class="page-heading" id="deployment-map">Deployment cities <a href="#deployment-map" class="permalink">#</a></h2>
-    <p>Circle area is proportional to label count; color is lifecycle status. Hover a city for its stats; click to open its site.</p>
+    <p>Circle area is label count and color is lifecycle status; click a city to open its site.</p>
     <div id="ac-cities-map" class="ac-map"></div>
     <div class="ac-map-legend" aria-label="Map legend">
       <span class="ac-legend-item"><span class="ac-legend-dot ac-legend-dot--active"></span>Active</span>
@@ -122,13 +122,13 @@
 
   <div class="page-section" id="ac-attention-section">
     <h2 class="page-heading" id="needs-attention">Needs attention <a href="#needs-attention" class="permalink">#</a></h2>
-    <p>Cities flagged by automatic checks. Each links to that city's site.</p>
+    <p>Cities flagged by automatic checks.</p>
     <div class="ov-attention" id="ac-attention"></div>
   </div>
 
   <div class="page-section" id="ac-traffic-section">
     <h2 class="page-heading" id="traffic">Google Analytics <a href="#traffic" class="permalink">#</a></h2>
-    <p>Website traffic per city, including visitors who never contribute, which our database can't see. Recent columns cover the last 7 days (mobile share: 28). All-time columns start when each city's GA4 property was created, not at launch; hover a figure for that date. A city is flagged when its last 7 days fall far outside its own 8-week baseline, up or down. Refreshed hourly from this stage's GA properties, so test and localhost read the <code>-test</code> sites.</p>
+    <p>Google Analytics traffic per city, flagged when the last 7 days fall far outside that city's 8-week baseline. Test and localhost read the <code>-test</code> sites.</p>
     <div class="ac-table-wrap" id="ac-traffic-wrap">
       <table class="ps-table ps-table--compact ac-table" id="ac-traffic-table">
         <thead>
@@ -179,7 +179,7 @@
         <div class="mini-chart" id="ac-chart-users"></div>
       </div>
     </div>
-    <p class="ac-note">“Active users” counts people who labeled or validated that week, per city and then summed, so someone active in two cities counts twice.</p>
+    <p class="ac-note">“Active users” are counted per city and summed, so someone active in two cities counts twice.</p>
 
     <h3 class="ac-chart-group-title" id="cumulative-totals">Cumulative totals (all time)</h3>
     <div class="ac-charts">
@@ -196,12 +196,12 @@
         <div class="mini-chart" id="ac-chart-cum-users"></div>
       </div>
     </div>
-    <p class="ac-note">“Users” counts each person once per city, in the week of their first label or validation. Someone who contributes in two cities counts twice.</p>
+    <p class="ac-note">“Users” are counted once per city, in the week of their first contribution.</p>
   </div>
 
   <div class="page-section" id="ac-scorecard-section">
     <h2 class="page-heading" id="scorecard">Scorecard <a href="#scorecard" class="permalink">#</a></h2>
-    <p>One row per city. Click a column header to sort, or a city to open its site.</p>
+    <p>One row per city; click a city to open its site.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table" id="ac-table">
         <thead>
@@ -244,7 +244,7 @@
 
   <div class="page-section" id="ac-activity-section">
     <h2 class="page-heading" id="activity">Activity <a href="#activity" class="permalink">#</a></h2>
-    <p>Volume over the last 7 and 30 days, last activity, and a 12-week trend per city. The 7d / 30d columns sort on the 7-day count.</p>
+    <p>Volume over the last 7 and 30 days, last activity, and a 12-week trend per city.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table" id="ac-activity-table">
         <thead>
@@ -264,8 +264,8 @@
 
   <div class="page-section" id="ac-funnel-section">
     <h2 class="page-heading" id="funnel">Engagement funnels <a href="#funnel" class="permalink">#</a></h2>
-    <p>How many visitors reach each step, per city. The <strong>mapping</strong> funnel follows Explore onboarding (tutorial, first label, first mission); the <strong>contribution</strong> funnel asks whether they labeled or validated anything and finished a mission. Bars are scaled to visitors (100%); each step's percentage is its share of the step before.</p>
-    <p class="ac-note"><strong>Anonymous visitors are counted per browser</strong> (a new id whenever cookies are cleared), so the top of each funnel counts sessions, not people, and overall conversion reads low. <strong>Explore is desktop-only</strong>: mobile visitors are redirected to a landing page, so mobile drops off early by design. “Took a step” means walking some distance in a non-tutorial mission.</p>
+    <p>How many visitors reach each step, as a share of the step before.</p>
+    <p class="ac-note">Anonymous visitors are counted per browser, so conversion reads low, and Explore is desktop-only, so mobile drops off early by design. “Took a step” means walking in a non-tutorial mission.</p>
     <div class="ac-funnel-controls">
       <div class="ac-toggle" id="ac-funnel-window" role="group" aria-label="Funnel time window">
         <button type="button" class="ac-toggle-btn active" data-window="30d">Last 30 days</button>
@@ -284,7 +284,7 @@
 
   <div class="page-section" id="ac-effort-section">
     <h2 class="page-heading" id="effort">Contributors &amp; effort <a href="#effort" class="permalink">#</a></h2>
-    <p>Output and speed per contributor. Output is shown as <strong>median</strong> and <strong>p90</strong> (90th percentile) because a few power users skew the mean.</p>
+    <p>Output per contributor as <strong>median</strong> and <strong>p90</strong>, since a few power users skew the mean.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table">
         <thead>
@@ -301,7 +301,7 @@
         <tbody id="ac-effort-tbody"></tbody>
       </table>
     </div>
-    <p class="ac-note"><span class="ac-fn">†</span> <strong>Time to label 100&nbsp;m</strong> is active auditing time per 100&nbsp;m of street, excluding idle gaps over 5&nbsp;minutes. It is recomputed daily and blank where a city's interaction data is unavailable. <strong>Time to validate 10</strong> is the median time per validation ×10.</p>
+    <p class="ac-note"><span class="ac-fn">†</span> <strong>Time to label 100&nbsp;m</strong> is active auditing time excluding idle gaps over 5&nbsp;minutes, recomputed daily; <strong>time to validate 10</strong> is the median validation time ×10.</p>
   </div>
 
   <div class="page-section" id="ac-patterns-section">
@@ -313,7 +313,7 @@
 
   <div class="page-section" id="ac-quality-section">
     <h2 class="page-heading" id="quality">Data quality <a href="#quality" class="permalink">#</a></h2>
-    <p>How much of each city's data is validated, how often validators agree, and how much came from AI or from users later flagged low-quality.</p>
+    <p>Share validated, validator agreement, and how much came from AI or from low-quality users.</p>
     <div class="ac-table-wrap">
       <table class="ps-table ps-table--compact ac-table">
         <thead>
@@ -332,7 +332,29 @@
         <tbody id="ac-quality-tbody"></tbody>
       </table>
     </div>
-    <p class="ac-note"><span class="ac-fn">†</span> <strong>% w/ severity</strong> and <strong>% w/ tags</strong> count only labels whose type <em>can</em> have them, so a city can reach 100%. Severity excludes @unratedProse; tags exclude types with no tags defined for the city (e.g. Occlusion). <strong>Agreement</strong> and the High-disagreement flag count only <strong>human</strong> validators; AI verdicts are in <strong>AI validations</strong>.</p>
+    <p class="ac-note"><span class="ac-fn">†</span> <strong>% w/ severity</strong> and <strong>% w/ tags</strong> count only labels whose type can have them (severity excludes @unratedProse), and <strong>Agreement</strong> counts only human validators.</p>
+  </div>
+
+  <div class="page-section" id="ac-stories-section">
+    <h2 class="page-heading" id="stories">Stories <a href="#stories" class="permalink">#</a></h2>
+    <p>Stories per city, each linked to that city's Stories page for moderation.</p>
+    <p class="ac-pulse" id="ac-stories-summary" role="status" aria-live="polite">Loading stories…</p>
+    <div class="ac-table-wrap" id="ac-stories-wrap" hidden>
+      <table class="ps-table ps-table--compact ac-table">
+        <thead>
+          <tr>
+            <th class="ac-th-text">City</th>
+            <th>Stories</th>
+            <th>Hidden</th>
+            <th>With photo</th>
+            <th>Last 7 days</th>
+            <th>Last 30 days</th>
+            <th class="ac-th-text">Newest</th>
+          </tr>
+        </thead>
+        <tbody id="ac-stories-tbody"></tbody>
+      </table>
+    </div>
   </div>
 
   <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
@@ -346,6 +368,7 @@
         citiesUrl: '/v3/api/cities',
         funnelsUrl: '/adminapi/cityFunnels',
         trafficUrl: '/adminapi/cityTraffic',
+        storiesPath: '@routes.AdminDashboardController.stories.url',
         mapboxToken: '@commonData.mapboxApiKey'
       }).init();
     });

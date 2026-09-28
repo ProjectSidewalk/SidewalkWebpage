@@ -110,6 +110,8 @@ class AcrossCitiesPage {
   #trafficLoaded = false;    // Sorting is wired before the fetch lands, so renders can arrive before the data does.
   #trafficFailedCityIds = []; // Cities the server tried and couldn't reach, as opposed to ones with no GA property.
 
+  #storiesPath; // Path of the per-city Stories admin page, appended to each city's URL.
+
   #funnelsUrl;
   #funnels = {};         // { mapping: {steps, cities}, contribution: {steps, cities} } for the current window.
   #funnelWindow = '30d'; // '30d' | '90d' | 'all'.
@@ -117,7 +119,7 @@ class AcrossCitiesPage {
 
   /**
    * @param {{scorecardsUrl: string, citiesUrl?: string, mapboxToken?: string, funnelsUrl?: string,
-   *   trafficUrl?: string}} opts
+   *   trafficUrl?: string, storiesPath?: string}} opts
    */
   constructor(opts) {
     this.#scorecardsUrl = opts.scorecardsUrl;
@@ -125,6 +127,7 @@ class AcrossCitiesPage {
     this.#mapboxToken = opts.mapboxToken;
     this.#funnelsUrl = opts.funnelsUrl;
     this.#trafficUrl = opts.trafficUrl;
+    this.#storiesPath = opts.storiesPath || null;
   }
 
   async init() {
@@ -158,6 +161,7 @@ class AcrossCitiesPage {
       this.#renderEffort();
       this.#renderPatterns();
       this.#renderQuality();
+      this.#renderStories();
       // Funnel data comes from its own endpoint and is refetched on window change, so load it separately; its
       // internal error handling keeps a funnel failure from blanking the rest of the page.
       if (this.#funnelsUrl) {
@@ -592,6 +596,12 @@ class AcrossCitiesPage {
         const meta = AcrossCitiesPage.#ANOMALY[flag] || { label: flag, sev: 'info' };
         items.push({ sev: meta.sev, city: c, label: meta.label, reason: this.#anomalyReason(flag, c) });
       }
+      // Stories are public on submit, so a new one is worth a moderator's look on that city's own Stories page.
+      const newStories = c.stories ? c.stories.last_7d : 0;
+      if (newStories > 0) {
+        items.push({ sev: 'info', city: c, label: 'Review stories', href: this.#storiesHref(c),
+          reason: `${this.#num(newStories)} new ${newStories === 1 ? 'story' : 'stories'} in the last 7 days` });
+      }
       // Traffic anomalies ride the traffic payload, so they join the panel on its (later) load, not the first render.
       const trafficFlag = c.traffic && c.traffic.anomaly;
       if (trafficFlag) {
@@ -608,10 +618,11 @@ class AcrossCitiesPage {
     }
     el.innerHTML = items.map((it) => {
       const name = AcrossCitiesPage.#esc(it.city.city_name || it.city.city_id);
-      const href = it.city.url ? AcrossCitiesPage.#esc(it.city.url) : '#';
+      const rawHref = it.href || it.city.url;
+      const href = rawHref ? AcrossCitiesPage.#esc(rawHref) : '#';
       return [
         `<a class="ov-attention-item ov-attention--${it.sev === 'bad' ? 'warn' : it.sev}" href="${href}"`,
-        it.city.url ? ' target="_blank" rel="noopener">' : '>',
+        rawHref ? ' target="_blank" rel="noopener">' : '>',
         '<span class="ov-attention-dot" aria-hidden="true"></span>',
         `<span class="ov-attention-text"><strong>${name}</strong> — ${AcrossCitiesPage.#esc(it.reason)}</span>`,
         `<span class="ov-attention-go">${AcrossCitiesPage.#esc(it.label)} →</span>`,
@@ -1213,6 +1224,69 @@ class AcrossCitiesPage {
           <td class="ac-num" title="${lowQTitle}"> ${this.#pct(lowQShare)}</td>
         </tr>`;
     }).join('');
+  }
+
+  // --- Stories section (#5543) -----------------------------------------------------------------------------------
+
+  /**
+   * Fills the Stories section: a one-line cross-city summary, then one row per city that has any stories, newest
+   * first. Cities with none are summarized rather than listed, since most deployments have none. A city whose count
+   * failed is reported as unknown so it is never mistaken for zero.
+   */
+  #renderStories() {
+    const summary = document.getElementById('ac-stories-summary');
+    const tbody = document.getElementById('ac-stories-tbody');
+    if (!summary || !tbody) return;
+
+    const known = this.#cities.filter((c) => c.stories);
+    const unknown = this.#cities.length - known.length;
+    const withStories = known.filter((c) => c.stories.total > 0)
+      .sort((a, b) => String(b.stories.newest || '').localeCompare(String(a.stories.newest || '')));
+    const total = withStories.reduce((sum, c) => sum + c.stories.total, 0);
+    const unknownCities = `${this.#num(unknown)} ${unknown === 1 ? 'city' : 'cities'}`;
+    const unknownNote = unknown > 0 ? ` Counts unavailable for ${unknownCities}.` : '';
+
+    if (!withStories.length) {
+      summary.innerHTML = `No stories in any of ${this.#num(known.length)} cities yet.${unknownNote}`;
+      document.getElementById('ac-stories-wrap').hidden = true;
+      return;
+    }
+    const cityWord = withStories.length === 1 ? 'city' : 'cities';
+    summary.innerHTML = `<strong>${this.#num(total)}</strong> ${total === 1 ? 'story' : 'stories'} in `
+      + `<strong>${this.#num(withStories.length)}</strong> ${cityWord}; `
+      + `${this.#num(known.length - withStories.length)} have none.${unknownNote}`;
+    tbody.innerHTML = withStories.map((c) => {
+      const st = c.stories;
+      const name = AcrossCitiesPage.#esc(c.city_name || c.city_id);
+      const href = this.#storiesHref(c);
+      const link = `<a href="${AcrossCitiesPage.#esc(href)}" target="_blank" rel="noopener">${name}</a>`;
+      const cityCell = href ? link : name;
+      const newestDate = new Date(st.newest)
+        .toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      const newest = st.newest ? AcrossCitiesPage.#esc(newestDate) : '—';
+      return `
+        <tr>
+          <td class="ac-td-city">${cityCell}</td>
+          <td class="ac-num">${this.#num(st.total)}</td>
+          <td class="ac-num">${this.#num(st.hidden)}</td>
+          <td class="ac-num">${this.#num(st.with_photo)}</td>
+          <td class="ac-num">${this.#num(st.last_7d)}</td>
+          <td class="ac-num">${this.#num(st.last_30d)}</td>
+          <td>${newest}</td>
+        </tr>`;
+    }).join('');
+    document.getElementById('ac-stories-wrap').hidden = false;
+  }
+
+  /**
+   * The city's own Stories admin page, where Hide and Delete work; null when the city has no URL.
+   *
+   * @param {{url?: string}} c - One city's scorecard row.
+   * @returns {string|null} Absolute URL of that city's Stories page.
+   */
+  #storiesHref(c) {
+    if (!c.url || !this.#storiesPath) return null;
+    return `${c.url.replace(/\/$/, '')}${this.#storiesPath}`;
   }
 
   // --- Engagement funnel (#288) -----------------------------------------------------------------------------------

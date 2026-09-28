@@ -507,6 +507,28 @@ case class CityScorecard(
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
 
 /**
+ * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
+ *
+ * Counts every story, whoever wrote it: this feeds moderation, which has to see what excluded users post too. Story
+ * text is deliberately absent; it is moderated only on the city's own server, so the page links there instead.
+ *
+ * @param total      Every story row, visible or hidden.
+ * @param hidden     Stories an admin has quarantined (`visible = FALSE`).
+ * @param withPhoto  Stories with at least one attached photo.
+ * @param last7d     Stories submitted in the trailing 7 days.
+ * @param last30d    Stories submitted in the trailing 30 days.
+ * @param newest     When the most recent story was submitted; None when the city has none.
+ */
+case class CityStoryStats(
+    total: Int,
+    hidden: Int,
+    withPhoto: Int,
+    last7d: Int,
+    last30d: Int,
+    newest: Option[OffsetDateTime]
+)
+
+/**
  * One demographic slice of a city's engagement funnel: the eight monotonic step counts for that slice (#288).
  *
  * @param steps Distinct users reaching each step, index 0 = step 1 (see [[ConfigService.FunnelDefs]]), non-increasing.
@@ -590,7 +612,11 @@ object ConfigService {
     else if (cleanUrl.length > OfficialContactMaxUrlLength)
       Left(s"The URL can be at most $OfficialContactMaxUrlLength characters.")
     else if (!urlIsHttps)
-      Left("The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us.")
+      // java.net.URI finds no host in a non-ASCII domain, so name the fix here, where an admin who hit it will look.
+      Left(
+        "The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us. " +
+          "For a non-English domain, paste its punycode (xn--) form."
+      )
     else Right(Some(OfficialContact(cleanName, "https" + cleanUrl.drop("https".length))))
   }
 
@@ -1022,6 +1048,16 @@ trait ConfigService {
    * @return A Future of cityId → seconds per 100 m (lower is faster).
    */
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
+
+  /**
+   * Returns each city's story counts (#5543), so an Owner can see which deployments have stories to moderate.
+   *
+   * Cached like the scorecards. A city whose query fails (e.g. a schema not yet at the evolution that added `story`)
+   * is omitted, which the page shows as unknown rather than as zero.
+   *
+   * @return A Future of cityId → that city's story counts.
+   */
+  def getCrossCityStoryStats(): Future[Map[String, CityStoryStats]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -1630,6 +1666,27 @@ class ConfigServiceImpl @Inject() (
       availableCityIds().flatMap { availableCities =>
         val perCityFutures: Seq[Future[Option[(String, Double)]]] = availableCities.map { cityId =>
           labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _))
+        }
+        Future.sequence(perCityFutures).map(_.flatten.toMap)
+      }
+    }
+  }
+
+  def getCrossCityStoryStats(): Future[Map[String, CityStoryStats]] = {
+    swrCache.staleWhileRevalidate[Map[String, CityStoryStats]](
+      "getCrossCityStoryStats",
+      ConfigService.CrossCityFreshFor,
+      ConfigService.CrossCityMaxAge
+    ) {
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures: Seq[Future[Option[(String, CityStoryStats)]]] = availableCities.map { cityId =>
+          val schema = getCitySchema(cityId)
+          db.run(configTable.getCityStoryStatsBySchema(schema))
+            .map(stats => Some(cityId -> stats))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to count stories for city $cityId (schema $schema): ${e.getMessage}")
+              None
+            }
         }
         Future.sequence(perCityFutures).map(_.flatten.toMap)
       }

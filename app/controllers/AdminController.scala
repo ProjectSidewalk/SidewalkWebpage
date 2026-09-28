@@ -686,6 +686,7 @@ class AdminController @Inject() (
     val dailyF         = configService.getCrossCityDailyTrend(7)
     val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
+    val storyStatsF    = configService.getCrossCityStoryStats()
 
     for {
       withFlags     <- scorecardsF
@@ -693,6 +694,7 @@ class AdminController @Inject() (
       dailyTrend    <- dailyF
       windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
+      storyStats    <- storyStatsF
     } yield {
       val now        = OffsetDateTime.now()
       val scorecards = withFlags.map(_.scorecard)
@@ -786,6 +788,17 @@ class AdminController @Inject() (
           "seconds_to_validate_10"      -> (sc.validationSecondsMedian * 10),
           // Labeling speed (seconds of active auditing per 100 m) from the daily-cached heavy path; None if no data.
           "seconds_per_100m" -> labelingSpeed.get(sc.cityId),
+          // Story counts (#5543); null when the city's count failed, which the page shows as unknown, not zero.
+          "stories" -> storyStats.get(sc.cityId).map { st =>
+            Json.obj(
+              "total"      -> st.total,
+              "hidden"     -> st.hidden,
+              "with_photo" -> st.withPhoto,
+              "last_7d"    -> st.last7d,
+              "last_30d"   -> st.last30d,
+              "newest"     -> st.newest
+            )
+          },
           // Lifecycle/health state: active | wrapped_up | stalled | low_traction (#4329).
           "lifecycle" -> ConfigService.lifecycle(sc, now),
           "anomalies" -> anomalies
