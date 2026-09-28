@@ -63,8 +63,9 @@ test('/validate renders the primary viewer when the pano is still served', async
 
 test('/validate opens and closes the image adjustments panel', async ({page, consoleErrors}) => {
   const onMission = await loadValidate(page, '/validate');
-  // The no-mission path never builds the tool, so there is no panel to open.
-  test.skip(!onMission, 'no mission assigned, so the image adjustments panel is not wired');
+  // False covers both no-mission outcomes: no mission was assigned, so the tool was never built, or one was but none
+  // of its labels had imagery (#4810) and only the modal shows. Neither leaves a label to adjust.
+  test.skip(!onMission, 'Validate settled on the no-mission modal, so there is no label to adjust');
   const pill = page.locator('#validate-control-image');
   const panel = page.locator('#pano-image-adjustments');
   await expect(pill).toBeAttached();
