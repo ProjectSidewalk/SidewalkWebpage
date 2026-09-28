@@ -171,14 +171,14 @@ class StreetPriorityTable {
     const tbody = document.getElementById(this.#tableId)?.querySelector('tbody');
     if (!tbody) return;
     tbody.querySelectorAll('tr[data-row-id]').forEach((tr) => {
-      tr.classList.toggle('highlighted', set.has(Number(tr.dataset.rowId)));
+      tr.classList.toggle('is-highlighted', set.has(Number(tr.dataset.rowId)));
     });
   }
 
   /** Clears all row highlights. */
   clearHighlight() {
     const tbody = document.getElementById(this.#tableId)?.querySelector('tbody');
-    tbody?.querySelectorAll('tr.highlighted').forEach((tr) => tr.classList.remove('highlighted'));
+    tbody?.querySelectorAll('tr.is-highlighted').forEach((tr) => tr.classList.remove('is-highlighted'));
   }
 
   /**

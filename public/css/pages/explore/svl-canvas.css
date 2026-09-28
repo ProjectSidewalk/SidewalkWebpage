@@ -90,6 +90,12 @@
   pointer-events: auto;
 }
 
+/* Faded while the tutorial has them switched off. */
+#explore-control-stuck:disabled,
+#explore-control-buttons-toggle:disabled {
+  opacity: 0.5;
+}
+
 #explore-control-buttons-toggle[aria-expanded="true"] + #explore-control-menu {
   display: flex;
 }

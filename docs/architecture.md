@@ -72,7 +72,7 @@ The backend follows a consistent layering: **routes → Controller → Service �
   separately from the query text; `#$` pastes text in and is only for SQL written in code. Optional filters are
   lists of fragments, combined with `SqlFragments.allOf` or `join` (#2756). `SqlFragments` also holds the bbox tests,
   enum lists (`enumList`), the check a schema name must pass before it's pasted in (`requireSafeIdentifiers`), and
-  per-transaction Postgres settings (`withLocalSetting`, `withJitOff`).
+  per-transaction Postgres settings (`withLocalSetting`).
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
   `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
   in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the
@@ -435,7 +435,7 @@ string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stage
 
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,
-shadows, motion, and z-index layers — plus the component primitives `.button-ps`, `.ps-input`, `.ps-select`, and
+shadows, motion, and z-index layers — plus the component primitives `.button`, `.ps-input`, `.ps-select`, and
 `.ps-table`. They mirror the "Design System Tokens" Figma; the rules for using them are in
 [`style-guide.md`](style-guide.md). One coupling worth knowing: **`css/components/page-shell.css` is the shell
 (`.page-*` classes) that the API docs, the admin dashboard, the user dashboard, and the labeling guide all build on**

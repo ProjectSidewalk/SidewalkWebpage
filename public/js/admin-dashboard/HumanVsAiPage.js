@@ -108,8 +108,8 @@ class HumanVsAiPage {
     const el = document.getElementById('hva-summary');
     if (!el) return;
     el.textContent = roles.length
-      ? `On this deployment, the AI ${this.#joinList(roles)}.`
-      : 'This deployment has no AI activity yet — every comparison below is human-only.';
+      ? `Here, the AI ${this.#joinList(roles)}.`
+      : 'No AI activity in this city yet, so everything below is human-only.';
   }
 
   // --- Labeler lens. ---
@@ -146,7 +146,7 @@ class HumanVsAiPage {
     const types = this.#unionTypes(human, ai).filter((t) => validatedCount(human, t) > 0 || validatedCount(ai, t) > 0);
     const el = document.getElementById('hva-acceptance');
     if (!types.length) {
-      el.innerHTML = '<p class="hva-note">No labels have been validated here yet, so there’s nothing to compare.</p>';
+      el.innerHTML = '<p class="hva-note">No validated labels yet.</p>';
       return;
     }
     const rows = types.map((t) => ({
@@ -180,7 +180,7 @@ class HumanVsAiPage {
     const any = rows.some((r) => r.human.value || r.ai.value);
     document.getElementById('hva-severity').innerHTML = any
       ? this.#pairedBars(rows, { format: 'count' })
-      : '<p class="hva-note">Neither humans nor the AI have rated severity on their labels here.</p>';
+      : '<p class="hva-note">No severity ratings yet.</p>';
   }
 
   // --- Validator lens. ---

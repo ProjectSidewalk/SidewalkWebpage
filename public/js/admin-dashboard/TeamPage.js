@@ -88,12 +88,11 @@ class TeamPage {
       { key: 'distance_meters', label: 'Distance explored', align: 'right', sort: (m) => m.distance_meters || 0 },
       { key: 'accuracy', label: 'Labeling accuracy', align: 'right',
         sort: (m) => (m.labels_validated ? m.labels_agreed / m.labels_validated : -1),
-        help: 'Share of this member’s own labels that other people agreed with when validating them '
-          + '(with how many were judged).' },
+        help: 'Share of this member’s validated labels that validators agreed with, and how many were judged.' },
       { key: 'last_active', label: 'Last active', align: 'right', sort: (m) => AdminShell.ts(m.last_active),
         help: 'The later of their last label and their last validation.' },
       { key: 'high_quality', label: 'Quality', align: 'left', sort: (m) => (m.high_quality ? 1 : 0),
-        help: 'The user’s quality flag. An excluded user’s work is left out of this city’s stats.' },
+        help: 'The user’s quality flag. Excluded users’ work is left out of this city’s stats.' },
       // Unsortable: it holds buttons, and a header click would throw away the chosen order for no ordering.
       { key: 'actions', label: 'Remove', align: 'left' },
     ];
@@ -185,8 +184,8 @@ class TeamPage {
    */
   async #removeMember(userId, username) {
     const confirmed = await ConfirmDialog.confirm({
-      message: `Remove ${username} from this team? Their labels and validations are kept, but they stop counting `
-        + 'toward the team.',
+      message: `Remove ${username} from this team? Their labels and validations are kept but stop counting toward `
+        + 'the team.',
       confirmText: 'Remove',
       cancelText: 'Cancel',
     });
@@ -286,7 +285,7 @@ class TeamPage {
   async #addMember(userId, username, currentTeam) {
     if (currentTeam) {
       const confirmed = await ConfirmDialog.confirm({
-        message: `${username} is on ${currentTeam}. Adding them here moves them off that team.`,
+        message: `${username} is on ${currentTeam}. Adding them here removes them from that team.`,
         confirmText: 'Move them',
         cancelText: 'Cancel',
       });

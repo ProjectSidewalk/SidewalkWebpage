@@ -30,9 +30,9 @@ class FunnelsSection {
   /** Title + one-line description for each funnel, shown above its bars. Keyed by funnel type. */
   static #FUNNEL_META = {
     mapping:      { title: 'Mapping funnel',
-      desc: 'The Explore onboarding flow: tutorial, then walking, labeling, and completing an audit mission.' },
+      desc: 'Explore onboarding: tutorial, walking, labeling, then a completed mission.' },
     contribution: { title: 'Contribution funnel',
-      desc: 'The broad view: any contribution (labeling or validation) and finishing a mission.' },
+      desc: 'Any labeling or validation, then a completed mission.' },
   };
 
   /** Funnel display order on the page. The endpoint may include any subset of these. */
@@ -83,7 +83,7 @@ class FunnelsSection {
       win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (this.#window === btn.dataset.window) return;
         this.#window = btn.dataset.window;
-        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
         this.#load();
       }));
     }
@@ -92,7 +92,7 @@ class FunnelsSection {
       dim.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (this.#dim === btn.dataset.dim) return;
         this.#dim = btn.dataset.dim;
-        dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
         this.#render();
       }));
     }
@@ -121,7 +121,7 @@ class FunnelsSection {
     if (!types.length) {
       host.innerHTML = '';
       // No funnel_stat rows yet: the nightly job hasn't run for this deployment, or it was never triggered.
-      this.#setText(this.#statusId, 'No funnel data yet — an admin can recompute it via /adminapi/updateFunnelStats.');
+      this.#setText(this.#statusId, 'No funnel data yet. Recompute it at /adminapi/updateFunnelStats.');
       return;
     }
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');

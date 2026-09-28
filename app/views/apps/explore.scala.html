@@ -103,7 +103,7 @@
           </li>
         }
         </ol>
-        <button type="submit" class="button-ps button--primary button--small survey-dialog__submit">@Messages("submit")</button>
+        <button type="submit" class="button button--primary button--small survey-dialog__submit">@Messages("submit")</button>
       </form>
     </div>
   </dialog>
@@ -240,7 +240,7 @@
           </div>
           <a id="explore-sidebar__leaderboard-cta" class="explore-sidebar__see-all" href="/leaderboard" target="_blank" rel="noopener">
             <span data-i18n="audit:right-ui.stats.leaderboard-cta">See the community leaderboard</span>
-            <span class="explore-sidebar__sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
+            <span class="sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
             <svg class="explore-sidebar__see-all-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
@@ -276,7 +276,7 @@
           </div>
           <a id="explore-sidebar__dashboard-cta" class="explore-sidebar__see-all" href="/dashboard#achievements" target="_blank" rel="noopener">
             <span data-i18n="audit:right-ui.badges.dashboard-cta">Check out your dashboard</span>
-            <span class="explore-sidebar__sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
+            <span class="sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
             <svg class="explore-sidebar__see-all-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
@@ -562,7 +562,7 @@
              buttons. Populated by LabelCardView and positioned by Label.js; clicking anywhere on the card opens the
              label's context menu — the Edit button is the visible affordance for that same action (Canvas.js). *@
           @components.labelCard(idPrefix = "label-hover-card", showNotRated = true) {
-            <button type="button" id="label-hover-card-delete" class="button-ps button--tiny label-hover-card__action-button label-hover-card__delete-button">
+            <button type="button" id="label-hover-card-delete" class="button button--tiny label-hover-card__action-button label-hover-card__delete-button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -571,7 +571,7 @@
               </svg>
               <span data-i18n="audit:center-ui.hover-card.delete">Delete</span>
             </button>
-            <button type="button" id="label-hover-card-edit" class="button-ps button--tiny button--primary label-hover-card__action-button label-hover-card__edit-button">
+            <button type="button" id="label-hover-card-edit" class="button button--tiny button--primary label-hover-card__action-button label-hover-card__edit-button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
               </svg>
@@ -648,14 +648,14 @@
                which is exactly when a misplaced one needs undoing. Done replaces the description field's inline OK
                -- both ran the same path, so the inline one was a second control for what the footer already names. *@
             <div class="context-menu__actions">
-              <button type="button" id="context-menu-delete" class="button-ps button--tiny context-menu__action context-menu__delete">
+              <button type="button" id="context-menu-delete" class="button button--tiny context-menu__action context-menu__delete">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
                 <span data-i18n="common:delete">Delete</span>
               </button>
-              <button type="button" id="context-menu-done" class="button-ps button--tiny button--primary context-menu__action">
+              <button type="button" id="context-menu-done" class="button button--tiny button--primary context-menu__action">
                 <span data-i18n="common:done">Done</span>
               </button>
             </div>
@@ -687,8 +687,8 @@
               <textarea id="modal-comment-textarea" placeholder=""></textarea>
             </div>
             <div class="modal-comment-buttons">
-              <button type="button" id="modal-comment-cancel-button"class="button-ps button--secondary button--medium">@Messages("cancel")</button>
-              <button type="button" id="modal-comment-ok-button"class="button-ps button--primary button--medium">@Messages("ok")</button>
+              <button type="button" id="modal-comment-cancel-button"class="button button--secondary button--medium">@Messages("cancel")</button>
+              <button type="button" id="modal-comment-ok-button"class="button button--primary button--medium">@Messages("ok")</button>
             </div>
           </form>
         </div>
@@ -759,8 +759,8 @@
           </div>
 
           <div class="mission-complete__buttons">
-            <button type="button" class="button-ps button--medium button--secondary" id="modal-mission-complete-close-button-secondary"></button>
-            <button type="button" class="button-ps button--medium button--primary" id="modal-mission-complete-close-button-primary"></button>
+            <button type="button" class="button button--medium button--secondary" id="modal-mission-complete-close-button-secondary"></button>
+            <button type="button" class="button button--medium button--primary" id="modal-mission-complete-close-button-primary"></button>
           </div>
         </div>
       </div>
@@ -840,7 +840,7 @@
                omitted (leaving just the tagline) until/unless that fetch resolves. *@
             <p class="tutorial-intro__step-description" id="tutorial-intro-impact-desc"></p>
           </div>
-          <button type="button" id="tutorial-intro-next-btn" class="button-ps button--primary button--medium tutorial-intro__next"></button>
+          <button type="button" id="tutorial-intro-next-btn" class="button button--primary button--medium tutorial-intro__next"></button>
         </div>
       </div>
       <div class="tutorial-intro__links">
@@ -886,8 +886,8 @@
         <p>@Messages("audit.tutorial.complete.2")</p>
       </div>
       <div class="tutorial-complete__buttons">
-        <a href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener" class="button-ps button--secondary button--medium">@Messages("audit.tutorial.complete.learn-more")</a>
-        <button type="button" id="onboarding-ok-button" class="button-ps button--primary button--medium">@Messages("audit.tutorial.complete.start-contributing")</button>
+        <a href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener" class="button button--secondary button--medium">@Messages("audit.tutorial.complete.learn-more")</a>
+        <button type="button" id="onboarding-ok-button" class="button button--primary button--medium">@Messages("audit.tutorial.complete.start-contributing")</button>
       </div>
     </div>
   </template>

@@ -124,7 +124,7 @@ class AdminShell {
         for (let i = 0; i < this.#headings.length; i++) {
           if (this.#headings[i].offsetTop <= scrollPos) activeIndex = i;
         }
-        this.#tocLinks.forEach((link, i) => link.classList.toggle('active', i === activeIndex));
+        this.#tocLinks.forEach((link, i) => link.classList.toggle('is-active', i === activeIndex));
         ticking = false;
       });
     };

@@ -177,7 +177,7 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must include(name)
       // Card scaffolding (#4688): design-system buttons, the label-map link, the copy control; no truncation
       // note this far under the 500 cap, and no raw i18n key leaking (dotted keys never appear in real copy).
-      body must include("button-ps button--primary button--small route-card__explore")
+      body must include("button button--primary button--small route-card__explore")
       body must include(s"/labelMap?routes=$routeId")
       body must include("route-card__copy")
       body must not include "community-cap-note"

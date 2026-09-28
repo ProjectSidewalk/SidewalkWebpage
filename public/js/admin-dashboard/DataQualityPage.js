@@ -195,7 +195,7 @@ class DataQualityPage {
 
     const container = document.getElementById('dq-validation');
     if (rows.length === 0) {
-      container.innerHTML = '<p class="dq-empty">No validations recorded for this validator group.</p>';
+      container.innerHTML = '<p class="dq-empty">No validations from this validator group.</p>';
       return;
     }
     container.innerHTML = rows.map((r) => {
@@ -334,7 +334,7 @@ class DataQualityPage {
 
     const el = document.getElementById('dq-trend');
     if (dataMonths.length < 2) {
-      el.innerHTML = '<p class="dq-empty">Not enough validation history to chart a trend yet.</p>';
+      el.innerHTML = '<p class="dq-empty">Not enough validation history to chart yet.</p>';
       return;
     }
     // Span the axis from the first month with data through the *current* month, so the right edge always reads as
@@ -363,8 +363,8 @@ class DataQualityPage {
     const pct = (v) => `${Math.round(v * 100)}%`;
     const first = DataQualityPage.#monthLabel(dataMonths[0]);
     const last = DataQualityPage.#monthLabel(dataMonths[dataMonths.length - 1]);
-    const caption = `<p class="dq-trend-caption">Validation data spans <strong>${first}</strong> to `
-      + `<strong>${last}</strong>; the axis runs to the current month.</p>`;
+    const caption = `<p class="dq-trend-caption">Data runs <strong>${first}</strong> to `
+      + `<strong>${last}</strong>; the axis extends to this month.</p>`;
     el.innerHTML = `<div class="mini-host"></div>${caption}`;
     MiniLineChart.renderInto(el.querySelector('.mini-host'), months, series, {
       yMax: 1, tickFormat: pct, valueFormat: pct, ariaLabel: 'Validation agreement over time by validator',
@@ -402,10 +402,10 @@ class DataQualityPage {
     const buttons = document.querySelectorAll('.dq-validator-btn');
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('active')) return;
+        if (btn.classList.contains('is-active')) return;
         buttons.forEach((b) => {
           const isTarget = b === btn;
-          b.classList.toggle('active', isTarget);
+          b.classList.toggle('is-active', isTarget);
           b.setAttribute('aria-pressed', String(isTarget));
         });
         this.#renderValidation(btn.dataset.validator);

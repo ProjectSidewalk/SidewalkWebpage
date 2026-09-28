@@ -90,20 +90,6 @@ object SqlFragments {
     (sqlu"SET LOCAL #$name = #$value" >> action).transactionally
 
   /**
-   * Runs `action` with Postgres's JIT compiler off, as a workaround for #4376 until JIT is disabled in the DB config.
-   *
-   * The projectsidewalk/db image ships a broken JIT (PostGIS bitcode built with LLVM 16, runtime llvmjit linked against
-   * LLVM 11). A query expensive enough to JIT-inline PostGIS functions such as ST_Length crashes its backend, which
-   * drops the connection (SQLSTATE 08006) and forces Postgres into crash recovery: a site-wide 502 (#4545).
-   *
-   * @return The same action, run in a transaction with JIT off.
-   */
-  def withJitOff[R, S <: NoStream, E <: Effect](
-      action: DBIOAction[R, S, E]
-  ): DBIOAction[R, S, E with Effect.Transactional] =
-    withLocalSetting("jit", "off")(action)
-
-  /**
    * A list of values for an enum column, written `= ANY(${SqlFragments.enumList(values)}::label_type[])`.
    *
    * A plain `Seq[String]` reaches Postgres as a text list, and converting that to an enum list hides the values from

@@ -40,6 +40,13 @@ class OfficialContactValidationSpec extends PlaySpec {
         .foreach(bad => withClue(bad)(validate("x", bad).isLeft mustBe true))
     }
 
+    "name the punycode fix only for a URL with non-ASCII letters, which is the case that needs it" in {
+      validate("x", "https://ville.québec/contact").left.toOption.get must include("punycode")
+      validate("x", "http://example.org").left.toOption.get must not include "punycode"
+      // Non-ASCII only in the path: the failure is the http scheme, so punycode would be the wrong advice.
+      validate("x", "http://example.org/café").left.toOption.get must not include "punycode"
+    }
+
     "reject values over the length caps" in {
       validate("x" * (ConfigService.OfficialContactMaxNameLength + 1), url).isLeft mustBe true
       validate("x", "https://example.org/" + "a" * ConfigService.OfficialContactMaxUrlLength).isLeft mustBe true

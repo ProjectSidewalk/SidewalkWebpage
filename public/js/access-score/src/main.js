@@ -857,7 +857,7 @@ window.AccessScoreApp = (function () {
       const lat = lngLat.lat.toFixed(5);
       const lng = lngLat.lng.toFixed(5);
       return `<div class="acs-popup__links">
-        <a href="/explore?lat=${lat}&lng=${lng}" class="button-ps button--small button--primary"
+        <a href="/explore?lat=${lat}&lng=${lng}" class="button button--small button--primary"
            data-acs-hop="ExploreHere">${i18next.t('accessscore:explore-here')}</a>
       </div>`;
     }

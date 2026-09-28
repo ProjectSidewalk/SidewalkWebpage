@@ -533,7 +533,7 @@ falls back to its own backoff and still converges, just more slowly. Two checks:
   app also canonicalizes the host. A fast success on the *followed* request points at the proxy layer; a hang or error
   points at the app/DB.
 - **If the request dies inside the database** (e.g. a PostGIS/JIT segfault,
-  [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)), the app only sees a dropped connection — the
+  [#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)), the app only sees a dropped connection — the
   real crash (`server process … was terminated by signal 11`) is written to the **Postgres server log**, not the
   application log. That log lives on the database host under the standard PostgreSQL data-directory layout; ask a running
   server for its exact location with `psql -c 'SHOW log_directory;'` (relative to `SHOW data_directory;`) rather than

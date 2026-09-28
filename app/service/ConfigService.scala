@@ -507,6 +507,30 @@ case class CityScorecard(
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
 
 /**
+ * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
+ *
+ * Counts every story, whoever wrote it: this feeds moderation, which has to see what excluded users post too. Story
+ * text is deliberately absent; it is moderated only on the city's own server, so the page links there instead.
+ *
+ * @param total      Every story row, visible or hidden.
+ * @param hidden     Stories an admin has quarantined (`visible = FALSE`).
+ * @param withPhoto  Stories with at least one attached photo.
+ * @param last7d     Stories submitted in the trailing 7 days.
+ * @param visible7d  Those still visible: the ones a moderator has not already hidden, and so still worth a look.
+ * @param last30d    Stories submitted in the trailing 30 days.
+ * @param newest     When the most recent story was submitted; None when the city has none.
+ */
+case class CityStoryStats(
+    total: Int,
+    hidden: Int,
+    withPhoto: Int,
+    last7d: Int,
+    visible7d: Int,
+    last30d: Int,
+    newest: Option[OffsetDateTime]
+)
+
+/**
  * One demographic slice of a city's engagement funnel: the eight monotonic step counts for that slice (#288).
  *
  * @param steps Distinct users reaching each step, index 0 = step 1 (see [[ConfigService.FunnelDefs]]), non-increasing.
@@ -590,7 +614,13 @@ object ConfigService {
     else if (cleanUrl.length > OfficialContactMaxUrlLength)
       Left(s"The URL can be at most $OfficialContactMaxUrlLength characters.")
     else if (!urlIsHttps)
-      Left("The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us.")
+      // java.net.URI finds no host in a non-ASCII domain, so name the fix where an admin who hit it will look.
+      Left(
+        "The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us." +
+          (if (Try(new java.net.URI(cleanUrl).getRawAuthority).toOption.flatMap(Option(_)).exists(_.exists(_ > 127)))
+             " For a domain with accented or non-Latin letters, paste its punycode (xn--) form."
+           else "")
+      )
     else Right(Some(OfficialContact(cleanName, "https" + cleanUrl.drop("https".length))))
   }
 
@@ -1022,6 +1052,17 @@ trait ConfigService {
    * @return A Future of cityId → seconds per 100 m (lower is faster).
    */
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
+
+  /**
+   * Returns each city's story counts (#5543), so an Owner can see which deployments have stories to moderate.
+   *
+   * Cached like the scorecards, and fetched independently of them, so a city whose heavy scorecard query fails still
+   * reports its stories. Every available city gets an entry: None when its count failed (e.g. a schema not yet at the
+   * evolution that added `story`), which the page shows as unavailable rather than as zero.
+   *
+   * @return A Future of cityId → that city's story counts, or None where the count failed.
+   */
+  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -1632,6 +1673,27 @@ class ConfigServiceImpl @Inject() (
           labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _))
         }
         Future.sequence(perCityFutures).map(_.flatten.toMap)
+      }
+    }
+  }
+
+  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]] = {
+    swrCache.staleWhileRevalidate[Map[String, Option[CityStoryStats]]](
+      "getCrossCityStoryStats",
+      ConfigService.CrossCityFreshFor,
+      ConfigService.CrossCityMaxAge
+    ) {
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures: Seq[Future[(String, Option[CityStoryStats])]] = availableCities.map { cityId =>
+          val schema = getCitySchema(cityId)
+          db.run(configTable.getCityStoryStatsBySchema(schema))
+            .map(stats => cityId -> Option(stats))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to count stories for city $cityId (schema $schema): ${e.getMessage}")
+              cityId -> None
+            }
+        }
+        Future.sequence(perCityFutures).map(_.toMap)
       }
     }
   }
