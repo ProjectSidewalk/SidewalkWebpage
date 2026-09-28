@@ -182,7 +182,7 @@ class Minimap {
     if (!fitButton) return;
     const key = this.#overviewMode ? 'audit:right-ui.minimap.fit-street' : 'audit:right-ui.minimap.fit-mission';
     const label = i18next.t(key);
-    fitButton.title = label;
+    fitButton.setAttribute('data-ps-tooltip', label);
     fitButton.setAttribute('aria-label', label);
   }
 

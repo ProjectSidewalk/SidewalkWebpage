@@ -132,7 +132,7 @@ class MistakeGallery {
       const openButton = document.createElement('button');
       openButton.type = 'button';
       openButton.className = 'ud-card-open';
-      openButton.title = i18next.t('dashboard:mistake-cards.open-title');
+      openButton.setAttribute('data-ps-tooltip', i18next.t('dashboard:mistake-cards.open-title'));
       openButton.setAttribute('aria-label', i18next.t('dashboard:mistake-cards.open-title'));
       openButton.addEventListener('click', () => this.#openPopup(m));
       const hint = document.createElement('span');
@@ -431,7 +431,7 @@ class MistakeGallery {
     b.type = 'button';
     b.className = `ud-chip ${cls}`;
     b.textContent = label;
-    b.title = title;
+    b.setAttribute('data-ps-tooltip', title);
     return b;
   }
 

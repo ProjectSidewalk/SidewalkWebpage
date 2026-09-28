@@ -726,7 +726,7 @@ function initPermalinkClipboard() {
     permalink.setAttribute('tabindex', '0');
     permalink.setAttribute('role', 'button');
     permalink.setAttribute('aria-label', 'Copy link to this section');
-    permalink.setAttribute('title', 'Click to copy link');
+    permalink.setAttribute('data-ps-tooltip', 'Click to copy link');
 
     // Add click event listener.
     permalink.addEventListener('click', function (e) {

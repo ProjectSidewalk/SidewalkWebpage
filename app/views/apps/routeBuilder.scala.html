@@ -58,17 +58,17 @@
         </div>
         <div id="creating-route-buttons" class="flex-div-row">
           <button type="button" id="save-button" class="button button--primary button--medium" disabled>@Messages("routebuilder.save")</button>
-          <button type="button" id="preview-button" class="button button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.preview")" title="@Messages("routebuilder.preview")">
+          <button type="button" id="preview-button" class="button button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.preview")" data-ps-tooltip="@Messages("routebuilder.preview")">
             <img src="@assets.path("images/icons/play-feather.svg")" class="button-icon-img" alt="">
           </button>
-          <button type="button" id="undo-button" class="button button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.undo")" title="@Messages("routebuilder.undo")">
+          <button type="button" id="undo-button" class="button button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.undo")" data-ps-tooltip="@Messages("routebuilder.undo")">
             <img src="@assets.path("images/icons/undo-material.svg")" class="button-icon-img" alt="">
           </button>
-          <button type="button" id="cancel-button" class="button button--secondary button--medium button--icon-only" aria-label="@Messages("routebuilder.delete.route")" title="@Messages("routebuilder.delete.route")">
+          <button type="button" id="cancel-button" class="button button--secondary button--medium button--icon-only" aria-label="@Messages("routebuilder.delete.route")" data-ps-tooltip="@Messages("routebuilder.delete.route")">
             <img src="@assets.path("images/icons/trash-2-feather.svg")" class="button-icon-img" alt="">
           </button>
         </div>
-        <button type="button" id="new-route-button" class="button button--secondary button--medium" title="@Messages("routebuilder.new.route.tooltip")">@Messages("routebuilder.new.route")</button>
+        <button type="button" id="new-route-button" class="button button--secondary button--medium" data-ps-tooltip="@Messages("routebuilder.new.route.tooltip")">@Messages("routebuilder.new.route")</button>
       </div>
       <div id="saved-routes-panel" class="routebuilder-panel__saved" hidden>
         <span id="saved-routes-title" class="routebuilder-h2">@Messages("routebuilder.saved.routes")</span>

@@ -252,7 +252,7 @@ class LabelDetail {
 
     // Static section-header tooltip; per-control tooltips are set as content renders.
     const tagsTitle = this.#q('.label-detail__col--tags .label-detail__col-title');
-    if (tagsTitle) tagsTitle.title = i18next.t('labelmap:tags-tooltip');
+    LabelDetail.#setTooltip(tagsTitle, i18next.t('labelmap:tags-tooltip'));
 
     // Re-fit the meta strip whenever the card's width changes (mobile, rotation, window resize). Toggling the
     // strip's own child visibility never changes the observed row's width, so this can't feed back on itself.
@@ -1994,16 +1994,17 @@ class LabelDetail {
     // A face that can't be clicked because the imagery didn't load explains that instead of naming its own level:
     // "Severity: Low" reads like an offer, and the lock is the more useful thing to say (#5047).
     const lockTip = this.#editLockReason();
+    const scaleName = i18next.t(`common:${titleKey}`);
 
     els.severity.querySelectorAll('.severity-button').forEach((face) => {
       const faceSev = Number(face.dataset.severity);
       const selected = faceSev === Number(severity);
       face.classList.toggle('is-selected', selected);
       face.querySelector('.severity-button__icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
-      face.title = lockTip ? '' : `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
-      LabelDetail.#setTooltip(face, lockTip ?? '');
+      const levelName = i18next.t(`common:${levelKeys[faceSev]}`);
+      LabelDetail.#setTooltip(face, lockTip ?? `${scaleName}: ${levelName}`);
       const labelSpan = face.querySelector('.severity-button__label');
-      if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[faceSev]}`);
+      if (labelSpan) labelSpan.textContent = levelName;
 
       // Editable faces are a focusable pick-one control (#2575); read-only ones stay out of the tab order.
       face.classList.toggle('severity-button--static', !editable);

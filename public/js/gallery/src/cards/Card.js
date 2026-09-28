@@ -158,7 +158,7 @@ class Card {
       const location = document.createElement('a');
       location.className = 'card-location';
       location.href = `/labelMap?labelId=${properties.label_id}`;
-      location.title = i18next.t('labelmap:open-label-on-labelmap');
+      location.setAttribute('data-ps-tooltip', i18next.t('labelmap:open-label-on-labelmap'));
       // The visible text is the region, so the accessible name leads with it (WCAG 2.5.3) and the promise
       // the sighted user gets on hover follows.
       location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
