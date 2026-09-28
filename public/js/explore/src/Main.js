@@ -13,7 +13,6 @@ class Main {
   #loadingMissionsCompleted = false;
   #loadLabelTags = false;
 
-  #onboardingHandAnimation = null;
   #onboardingStates = null;
 
   /**
@@ -396,15 +395,14 @@ class Main {
     // hide any alerts
     svl.alertController.hideAlert();
 
-    if (!this.#onboardingHandAnimation) {
-      this.#onboardingHandAnimation = new HandAnimation(svl.ui.onboarding);
+    if (!this.#onboardingStates) {
       this.#onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.panoManager);
     }
 
     if (!('onboarding' in svl && svl.onboarding)) {
-      svl.onboarding = new Onboarding(svl, svl.compass, this.#onboardingHandAnimation, svl.navigationService,
-        svl.missionContainer, svl.panoOverlayControls, this.#onboardingStates, svl.ribbon, svl.tracker, svl.canvas,
-        svl.ui.canvas, svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
+      svl.onboarding = new Onboarding(svl, svl.compass, svl.navigationService, svl.missionContainer,
+        svl.panoOverlayControls, this.#onboardingStates, svl.ribbon, svl.tracker, svl.canvas, svl.ui.canvas,
+        svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
     }
     svl.onboarding.start();
   }

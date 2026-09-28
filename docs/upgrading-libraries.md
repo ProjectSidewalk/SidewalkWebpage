@@ -227,8 +227,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   bump grep the new file for each name.
   [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.12.1/infra3dapi.js) ·
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
-- **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
-  [no longer maintained](https://github.com/ericdrowell/KineticJS). Could bump to 5.1.0 and leave it.
 - **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a
   symbol layer that shares a source with feature-state paint (Route Builder's region labels, AccessScore's) crashes
   the map with `Cannot read properties of undefined (reading 'paint')` once that state changes

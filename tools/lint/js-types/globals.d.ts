@@ -51,7 +51,6 @@ declare const FloatingUIDOM: any;
 declare const i18next: any;
 declare const i18nextHttpBackend: any;
 declare const infra3dapi: any;
-declare const Kinetic: any;
 declare const mapboxgl: any;
 declare namespace mapboxgl {
   type GeoJSONSource = any;

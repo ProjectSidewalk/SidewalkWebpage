@@ -5,7 +5,6 @@
 class Onboarding {
   #svl;
   #compass;
-  #handAnimation;
   #navigationService;
   #missionContainer;
   #panoOverlayControls;
@@ -36,7 +35,6 @@ class Onboarding {
   /**
    * @param {Record<string, any>} svl
    * @param {Compass} compass
-   * @param {HandAnimation} handAnimation
    * @param {NavigationService} navigationService
    * @param {MissionContainer} missionContainer
    * @param {PanoOverlayControls} panoOverlayControls
@@ -49,11 +47,10 @@ class Onboarding {
    * @param {Record<string, HTMLElement>} uiOnboarding
    * @param {ZoomControl} zoomControl
    */
-  constructor(svl, compass, handAnimation, navigationService, missionContainer, panoOverlayControls, onboardingStates,
+  constructor(svl, compass, navigationService, missionContainer, panoOverlayControls, onboardingStates,
     ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, zoomControl) {
     this.#svl = svl;
     this.#compass = compass;
-    this.#handAnimation = handAnimation;
     this.#navigationService = navigationService;
     this.#missionContainer = missionContainer;
     this.#panoOverlayControls = panoOverlayControls;
@@ -120,7 +117,6 @@ class Onboarding {
     this.#contextMenu.disableTagging();
 
     this.#visit(this.#getState('initialize'));
-    this.#handAnimation.initializeHandAnimation();
   }
 
   /**
@@ -982,7 +978,7 @@ class Onboarding {
   #visitAdjustHeadingAngle(state, listener) {
     const svl = this.#svl;
     let $target;
-    const interval = this.#handAnimation.showGrabAndDragAnimation({ direction: 'left-to-right' });
+    this.#uiOnboarding.handGestureHolder.style.visibility = 'visible';
 
     const callback = () => {
       const pov = svl.panoViewer.getPov();
@@ -990,7 +986,7 @@ class Onboarding {
       if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
         google.maps.event.removeListener($target);
         if (listener) google.maps.event.removeListener(listener);
-        this.#handAnimation.hideGrabAndDragAnimation(interval);
+        this.#uiOnboarding.handGestureHolder.style.visibility = 'hidden';
         this.#transitionTo(state.transition);
       }
     };
