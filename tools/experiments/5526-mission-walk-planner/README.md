@@ -6,7 +6,7 @@ Explore picks each neighborhood street greedily after the last one (`TaskContain
 variants, over every region of the three dev-DB cities, so the planner's defaults rest on numbers rather than
 intuition.
 
-Ran at commit `29e816448` (to be updated by the lead to the review-fix commit), on base `2fbcd5a36`,
+Ran at commit `5bd345d7d` (the review-fix commit; the planner it measures is the one this branch ships), on base `2fbcd5a36`,
 in Node 24 inside the web container, on the dev DB as of 2026-09-27.
 
 ## Running it
