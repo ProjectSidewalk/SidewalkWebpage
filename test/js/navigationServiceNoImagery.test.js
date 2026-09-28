@@ -20,6 +20,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { installDateHelpers } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
@@ -217,6 +218,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
             math: { toRadians: (degrees) => (degrees * Math.PI) / 180 },
             misc: { reportNoImagery },
         };
+        installDateHelpers();
 
         window.eval(`${NO_IMAGERY_ERROR_SRC}; window.NoImageryError = NoImageryError;`);
         window.eval(`${FLAG_GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`);
@@ -710,7 +712,6 @@ describe('Explore, when the imagery search runs out along a street', () => {
                     StreetViewSource: { OUTDOOR: 'outdoor' },
                 },
             };
-            window.moment = (value) => value;
             window.PanoData = class {
                 constructor(params) {
                     this.params = params;

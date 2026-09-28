@@ -39,7 +39,6 @@ beforeAll(() => {
   installUtilitiesMisc();
   // i18next echoes its key so assertions can name the key they expect rather than an English string.
   window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-  window.moment = (v) => v;
   loadClass('public/js/common/LabelTypePicker.js', 'LabelTypePicker', 'LabelTypeDropdown');
   loadClass('public/js/validate/src/label/Label.js', 'Label');
   loadClass('public/js/validate/src/label/LabelContainer.js', 'LabelContainer');

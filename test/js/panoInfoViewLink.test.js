@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
 
 const POPOVER_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src/PanoInfoPopover.js'), 'utf8'
@@ -88,7 +88,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
             () => labelPanoId ?? activeViewer.panoId,
             () => 100,  // streetEdgeId
             () => 200,  // regionId
-            () => ({ format: () => 'Jan 2020' }),  // panoDate
+            () => new Date(2020, 0),  // panoDate
             () => '123 Main St',                   // panoAddress
             () => activeViewer.getPov(),
             true,           // whiteIcon
@@ -124,6 +124,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
         // Translations render as their raw keys so assertions stay locale-independent.
         window.i18next = { t: (key) => key };
         window.util = { assetPath: assetPathStub }; // The info button's icon URL.
+        installDateHelpers();
         window.cityName = 'Washington';
         clipboardText = null;
         Object.defineProperty(navigator, 'clipboard', {

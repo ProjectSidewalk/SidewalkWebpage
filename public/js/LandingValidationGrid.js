@@ -181,7 +181,7 @@ class LandingValidationGrid {
     // for every engaged visitor rather than only the ones who scroll two-thirds down the page.
     const freeToWarm = entry.cropUrl && !util.saveDataEnabled();
     img.loading = freeToWarm && index < LandingValidationGrid.#visibleCardCount() ? 'eager' : 'lazy';
-    img.alt = i18next.t(`common:${typeKebab}`);
+    img.alt = i18next.t(`common:${typeKebab}`).replaceAll('&shy;', '');
     // Set once the overlays are on the card, below; the error handler fires on a later event, so it exists by then.
     let creditImage = null;
     img.addEventListener('error', () => {
@@ -279,7 +279,8 @@ class LandingValidationGrid {
 
     const widget = new ShareWidget(trigger, { host: wrap });
     // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-    const shareText = i18next.t('common:share.text', { labelType: i18next.t(`common:${typeKebab}`) });
+    const typeName = i18next.t(`common:${typeKebab}`).replaceAll('&shy;', '');
+    const shareText = i18next.t('common:share.text', { labelType: typeName });
     widget.setTarget({
       url: `${window.location.origin}/label/${label.label_id}`,
       title: shareText,

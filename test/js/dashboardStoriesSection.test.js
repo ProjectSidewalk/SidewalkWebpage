@@ -9,7 +9,7 @@
  * label card's own delete path), which also repairs the focus the re-render drops.
  *
  * StoriesSection is a page-global `class` that reaches for globals, so the source is eval'd into jsdom with its
- * collaborators (fetch, i18next, moment, StoryComposer, ConfirmDialog) stubbed.
+ * collaborators (fetch, i18next, StoryComposer, ConfirmDialog) stubbed.
  */
 
 const fs = require('fs');
@@ -65,7 +65,6 @@ describe('the dashboard\'s "Your stories" list', () => {
     beforeAll(() => {
         window.i18next = { t: (key) => key };
         window.util = { assetPath: assetPathStub }; // The delete confirmation's icon URL.
-        window.moment = () => ({ format: () => 'Jul 1, 2026' });
         window.camelToKebab = (s) => s.toLowerCase();
         // Records what the section asks of the shared composer; behavior itself is StoryComposer's own contract.
         window.StoryComposer = class {
@@ -101,6 +100,15 @@ describe('the dashboard\'s "Your stories" list', () => {
         expect(document.querySelector('.ud-story-edit').getAttribute('aria-label')).toBe('labelmap:story.edit-aria');
         expect(document.querySelector('.ud-story-delete').getAttribute('aria-label'))
             .toBe('labelmap:story.delete-aria');
+    });
+
+    it('names the label type without the soft-hyphen entity German translations carry', async () => {
+        const t = window.i18next.t;
+        window.i18next.t = (key) => (key === 'common:surfaceproblem' ? 'Oberflächen&shy;problem' : t(key));
+        await renderSection();
+        window.i18next.t = t;
+
+        expect(document.querySelector(`a[href="/label/501"]`).textContent).toBe('Oberflächenproblem');
     });
 
     it('fills the thumbnail from the photo, else the backend\'s label preview, else a placeholder', async () => {

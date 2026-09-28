@@ -1280,8 +1280,7 @@ class AcrossCitiesPage {
       const link = href && `<a href="${AcrossCitiesPage.#esc(href)}" target="_blank" rel="noopener">${name}</a>`;
       const cityCell = link || name;
       // total > 0 guarantees a newest date.
-      const dateOpts = /** @type {Intl.DateTimeFormatOptions} */ ({ year: 'numeric', month: 'short', day: 'numeric' });
-      const newest = new Date(st.newest).toLocaleDateString(undefined, dateOpts);
+      const newest = new Date(st.newest).toLocaleDateString(undefined, util.SHORT_DATE);
       return `
         <tr>
           <td class="ac-td-city">${cityCell}</td>
@@ -1838,9 +1837,9 @@ class AcrossCitiesPage {
    */
   static #gaSinceTip(isoDate) {
     if (!isoDate) return 'Covers this property\'s whole GA4 history.';
-    const d = new Date(`${isoDate}T00:00:00`);
+    const d = util.parseDate(isoDate);
     if (isNaN(d.getTime())) return 'Covers this property\'s whole GA4 history.';
-    const when = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    const when = d.toLocaleDateString(undefined, util.SHORT_DATE);
     return `GA4 data starts ${when}; earlier traffic isn't counted.`;
   }
 
@@ -1851,28 +1850,28 @@ class AcrossCitiesPage {
 
   /** "Jun 9"-style short date from an ISO date string. */
   static #shortDate(iso) {
-    const d = new Date(`${iso}T00:00:00`);
+    const d = util.parseDate(iso);
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   /** "Jun '19"-style month + year from an ISO date string, for multi-year x-axes. */
   static #shortDateYear(iso) {
-    const d = new Date(`${iso}T00:00:00`);
+    const d = util.parseDate(iso);
     if (isNaN(d.getTime())) return iso;
     return `${d.toLocaleDateString(undefined, { month: 'short' })} '${String(d.getFullYear()).slice(-2)}`;
   }
 
   /** "Thu, Jun 9"-style weekday + date from an ISO date string, for hover cards that have room to be unambiguous. */
   static #longDate(iso) {
-    const d = new Date(`${iso}T00:00:00`);
+    const d = util.parseDate(iso);
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   /** "Thu"-style short weekday from an ISO date string. */
   static #weekday(iso) {
-    const d = new Date(`${iso}T00:00:00`);
+    const d = util.parseDate(iso);
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { weekday: 'short' });
   }

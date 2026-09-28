@@ -518,7 +518,7 @@ class Infra3dViewer extends PanoViewer {
     const panoDataParams = {
       panoId: node.frame.id,
       source: this.getViewerType(),
-      captureDate: moment(node.frame.timestamp),
+      captureDate: new Date(node.frame.timestamp),
       width: 4 * node.frame.framedatameta.imagewidth, // width/height are for only one side of the cube map
       height: 2 * node.frame.framedatameta.imageheight,
       tileWidth: node.frame.framedatameta.tilesize,

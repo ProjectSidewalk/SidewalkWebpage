@@ -172,7 +172,7 @@ class ModalMissionComplete {
       dot.style.borderColor = colors[labelType].strokeStyle;
 
       const name = document.createElement('span');
-      name.textContent = i18next.t(`common:${util.camelToKebab(labelType)}`);
+      name.textContent = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '');
 
       item.appendChild(dot);
       item.appendChild(name);

@@ -342,7 +342,7 @@ class DataQualityPage {
     // Span the axis from the first month with data through the *current* month, so the right edge always reads as
     // "now" and any gap since the last contribution is visible rather than the chart silently ending early. Months
     // with no validations render as line gaps (null), not zeros.
-    const months = DataQualityPage.#enumerateMonths(dataMonths[0], DataQualityPage.#currentMonth());
+    const months = DataQualityPage.#enumerateMonths(dataMonths[0], util.localIsoDate(new Date()).slice(0, 7));
     const agreementSeries = (name, key, agreeKey, disagreeKey) => {
       const values = months.map((m) => {
         const a = byMonth.get(m);
@@ -373,12 +373,6 @@ class DataQualityPage {
     });
   }
 
-  /** Current month as a `YYYY-MM` key (local time). */
-  static #currentMonth() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-  }
-
   /** All `YYYY-MM` month keys from `start` through `end`, inclusive. */
   static #enumerateMonths(start, end) {
     const [ey, em] = end.split('-').map(Number);
@@ -396,8 +390,7 @@ class DataQualityPage {
 
   /** Short month label, e.g. "Sep 2023", from a `YYYY-MM` key. */
   static #monthLabel(ym) {
-    const [y, m] = ym.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    return util.parseDate(ym).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
   }
 
   #wireValidatorToggle() {

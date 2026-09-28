@@ -75,6 +75,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
     global.util = {};
+    global.i18next = {language: 'en'};
     (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8')); // real throttle, the same one production wires up
     util.isMobile = () => false;
 
@@ -89,7 +90,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
       ui: {viewer: {date: {text: jest.fn()}}},
     };
 
-    panoData = {getPanoId: () => 'pano1', getProperty: () => ({format: () => 'Jun 2026'})};
+    panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     primaryListeners = {};
     pannellumListeners = {};
     primaryViewer = makeFakeViewer(primaryListeners);
@@ -112,6 +113,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     jest.useRealTimers();
     document.body.innerHTML = '';
     delete global.util;
+    delete global.i18next;
     delete global.createPanoViewerLogo;
     delete global.createPanoAttribution;
     delete global.GsvViewer;

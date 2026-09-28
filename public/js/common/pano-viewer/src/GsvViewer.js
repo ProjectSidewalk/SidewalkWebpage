@@ -173,7 +173,7 @@ class GsvViewer extends PanoViewer {
       if (prevPanoDate) {
         history.push({
           panoId: prevPano.pano,
-          captureDate: moment(prevPanoDate),
+          captureDate: prevPanoDate,
         });
       } else {
         console.error('Could not find date in pano history object:', prevPano);
@@ -184,7 +184,7 @@ class GsvViewer extends PanoViewer {
     const panoDataParams = {
       panoId: newPanoData.data.location.pano,
       source: this.getViewerType(),
-      captureDate: moment(newPanoData.data.imageDate),
+      captureDate: util.parseDate(newPanoData.data.imageDate),
       width: newPanoData.data.tiles.worldSize.width,
       height: newPanoData.data.tiles.worldSize.height,
       tileWidth: newPanoData.data.tiles.tileSize.width,
