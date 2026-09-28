@@ -516,6 +516,7 @@ case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[Strin
  * @param hidden     Stories an admin has quarantined (`visible = FALSE`).
  * @param withPhoto  Stories with at least one attached photo.
  * @param last7d     Stories submitted in the trailing 7 days.
+ * @param visible7d  Those still visible: the ones a moderator has not already hidden, and so still worth a look.
  * @param last30d    Stories submitted in the trailing 30 days.
  * @param newest     When the most recent story was submitted; None when the city has none.
  */
@@ -524,6 +525,7 @@ case class CityStoryStats(
     hidden: Int,
     withPhoto: Int,
     last7d: Int,
+    visible7d: Int,
     last30d: Int,
     newest: Option[OffsetDateTime]
 )
@@ -612,10 +614,12 @@ object ConfigService {
     else if (cleanUrl.length > OfficialContactMaxUrlLength)
       Left(s"The URL can be at most $OfficialContactMaxUrlLength characters.")
     else if (!urlIsHttps)
-      // java.net.URI finds no host in a non-ASCII domain, so name the fix here, where an admin who hit it will look.
+      // java.net.URI finds no host in a non-ASCII domain, so name the fix where an admin who hit it will look.
       Left(
-        "The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us. " +
-          "For a non-English domain, paste its punycode (xn--) form."
+        "The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us." +
+          (if (cleanUrl.exists(_ > 127))
+             " For a domain with accented or non-Latin letters, paste its punycode (xn--) form."
+           else "")
       )
     else Right(Some(OfficialContact(cleanName, "https" + cleanUrl.drop("https".length))))
   }
@@ -1052,12 +1056,13 @@ trait ConfigService {
   /**
    * Returns each city's story counts (#5543), so an Owner can see which deployments have stories to moderate.
    *
-   * Cached like the scorecards. A city whose query fails (e.g. a schema not yet at the evolution that added `story`)
-   * is omitted, which the page shows as unknown rather than as zero.
+   * Cached like the scorecards, and fetched independently of them, so a city whose heavy scorecard query fails still
+   * reports its stories. Every available city gets an entry: None when its count failed (e.g. a schema not yet at the
+   * evolution that added `story`), which the page shows as unavailable rather than as zero.
    *
-   * @return A Future of cityId → that city's story counts.
+   * @return A Future of cityId → that city's story counts, or None where the count failed.
    */
-  def getCrossCityStoryStats(): Future[Map[String, CityStoryStats]]
+  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -1672,23 +1677,23 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityStoryStats(): Future[Map[String, CityStoryStats]] = {
-    swrCache.staleWhileRevalidate[Map[String, CityStoryStats]](
+  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]] = {
+    swrCache.staleWhileRevalidate[Map[String, Option[CityStoryStats]]](
       "getCrossCityStoryStats",
       ConfigService.CrossCityFreshFor,
       ConfigService.CrossCityMaxAge
     ) {
       availableCityIds().flatMap { availableCities =>
-        val perCityFutures: Seq[Future[Option[(String, CityStoryStats)]]] = availableCities.map { cityId =>
+        val perCityFutures: Seq[Future[(String, Option[CityStoryStats])]] = availableCities.map { cityId =>
           val schema = getCitySchema(cityId)
           db.run(configTable.getCityStoryStatsBySchema(schema))
-            .map(stats => Some(cityId -> stats))
+            .map(stats => cityId -> Option(stats))
             .recover { case e: Exception =>
               logger.warn(s"Failed to count stories for city $cityId (schema $schema): ${e.getMessage}")
-              None
+              cityId -> None
             }
         }
-        Future.sequence(perCityFutures).map(_.flatten.toMap)
+        Future.sequence(perCityFutures).map(_.toMap)
       }
     }
   }

@@ -43,7 +43,7 @@
 
   <div class="page-section" id="ac-now-section">
     <h2 class="page-heading" id="today-this-week">Today &amp; this week <a href="#today-this-week" class="permalink">#</a></h2>
-    <p>People's work today and over the last 7 days against the 7 before, with AI accounts and anonymous sessions counted separately.</p>
+    <p>People's work today and over the last 7 days against the 7 before; AI is shown separately.</p>
 
     <h3 class="ac-chart-group-title" id="today-so-far">Today (so far)</h3>
     <div class="ac-hero-row">
@@ -77,7 +77,7 @@
         <div class="mini-chart" id="ac-chart-week-users"></div>
       </div>
     </div>
-    <p class="ac-note">Registered contributors count once across cities; anonymous sessions and AI accounts are in the label and validation bars but not the Contributors bar, and today's bar is still filling in.</p>
+    <p class="ac-note">Contributors counts registered people once across cities; anonymous work is in the label and validation bars, AI work isn't, and today's bar is still filling in.</p>
 
     <h3 class="ac-chart-group-title" id="most-active-cities">Most active cities</h3>
     <p>The five busiest cities this week, with each change from the week before; Contributors are counted per city, so the column can sum past the tile above.</p>
@@ -264,7 +264,7 @@
 
   <div class="page-section" id="ac-funnel-section">
     <h2 class="page-heading" id="funnel">Engagement funnels <a href="#funnel" class="permalink">#</a></h2>
-    <p>How many visitors reach each step, as a share of the step before.</p>
+    <p>Bars are a share of visitors; percentages, of the step before.</p>
     <p class="ac-note">Anonymous visitors are counted per browser, so conversion reads low, and Explore is desktop-only, so mobile drops off early by design. “Took a step” means walking in a non-tutorial mission.</p>
     <div class="ac-funnel-controls">
       <div class="ac-toggle" id="ac-funnel-window" role="group" aria-label="Funnel time window">
@@ -338,18 +338,18 @@
   <div class="page-section" id="ac-stories-section">
     <h2 class="page-heading" id="stories">Stories <a href="#stories" class="permalink">#</a></h2>
     <p>Stories per city, each linked to that city's Stories page for moderation.</p>
-    <p class="ac-pulse" id="ac-stories-summary" role="status" aria-live="polite">Loading stories…</p>
+    <p class="ac-pulse" id="ac-stories-summary">Loading stories…</p>
     <div class="ac-table-wrap" id="ac-stories-wrap" hidden>
-      <table class="ps-table ps-table--compact ac-table">
+      <table class="ps-table ps-table--compact ac-table" aria-label="Stories per city">
         <thead>
           <tr>
-            <th class="ac-th-text">City</th>
-            <th>Stories</th>
-            <th>Hidden</th>
-            <th>With photo</th>
-            <th>Last 7 days</th>
-            <th>Last 30 days</th>
-            <th class="ac-th-text">Newest</th>
+            <th class="ac-th-text" scope="col">City</th>
+            <th scope="col">Stories</th>
+            <th scope="col">Hidden</th>
+            <th scope="col">With photo</th>
+            <th scope="col">Last 7 days</th>
+            <th scope="col">Last 30 days</th>
+            <th class="ac-th-text" scope="col">Newest</th>
           </tr>
         </thead>
         <tbody id="ac-stories-tbody"></tbody>

@@ -402,11 +402,11 @@ class ManagementPage {
     run('mgmt-recalc-validation-counts', this.#urls.recalcValidationCountsUrl, 'POST',
       'recalculate validation counts');
     run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops',
-      'Started: generate crops. It runs in the background; the Health page reports the result.');
+      'Started: generate crops. It runs in the background; Health (Owners) reports the result.');
     run('mgmt-rebuild-sidewalk-presence', this.#urls.rebuildSidewalkPresenceUrl, 'POST',
       'rebuild sidewalk presence');
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
-      'Started: refresh places. It runs in the background; the Health page reports the result.');
+      'Started: refresh places. It runs in the background; Health (Owners) reports the result.');
     run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
       'recount street gradient staleness',
       (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `

@@ -111,6 +111,7 @@ class AcrossCitiesPage {
   #trafficFailedCityIds = []; // Cities the server tried and couldn't reach, as opposed to ones with no GA property.
 
   #storiesPath; // Path of the per-city Stories admin page, appended to each city's URL.
+  #stories = []; // One entry per city: {city_id, city_name, url, counts}; counts is null where the count failed.
 
   #funnelsUrl;
   #funnels = {};         // { mapping: {steps, cities}, contribution: {steps, cities} } for the current window.
@@ -138,6 +139,7 @@ class AcrossCitiesPage {
         this.#citiesUrl ? util.fetchJson(this.#citiesUrl).catch(() => null) : Promise.resolve(null),
       ]);
       this.#cities = (data && data.cities) || [];
+      this.#stories = (data && data.stories) || [];
       this.#summary = (data && data.summary) || {};
       this.#allTimeTrend = (data && data.over_time_all_time) || [];
       this.#dailyTrend = (data && data.over_time_daily) || [];
@@ -177,6 +179,7 @@ class AcrossCitiesPage {
       console.error('Across Cities page failed to load:', err);
       this.#setText('ac-pulse', 'Could not load city data. Please try again.');
       this.#setText('ac-status', 'Could not load city data. Please try again.');
+      this.#setText('ac-stories-summary', 'Could not load story counts.');
     }
   }
 
@@ -577,9 +580,10 @@ class AcrossCitiesPage {
   // --- Needs attention --------------------------------------------------------------------------------------------
 
   /**
-   * Builds the attention panel: cities whose lifecycle warrants attention (stalled / low traction) plus any
-   * data-quality anomaly (high disagreement). "Wrapped up" cities are deliberately NOT flagged — they succeeded.
-   * Shows an "all clear" note when nothing needs attention.
+   * Builds the attention panel: cities whose lifecycle warrants attention (stalled / low traction), any data-quality
+   * or traffic anomaly, and cities with visible stories from the last 7 days. "Wrapped up" cities are deliberately NOT
+   * flagged — they succeeded. An item links to the city's site unless it carries its own `href` (stories link to that
+   * city's Stories page). Shows an "all clear" note when nothing needs attention.
    */
   #renderAttention() {
     const el = document.getElementById('ac-attention');
@@ -596,17 +600,20 @@ class AcrossCitiesPage {
         const meta = AcrossCitiesPage.#ANOMALY[flag] || { label: flag, sev: 'info' };
         items.push({ sev: meta.sev, city: c, label: meta.label, reason: this.#anomalyReason(flag, c) });
       }
-      // Stories are public on submit, so a new one is worth a moderator's look on that city's own Stories page.
-      const newStories = c.stories ? c.stories.last_7d : 0;
-      if (newStories > 0) {
-        items.push({ sev: 'info', city: c, label: 'Review stories', href: this.#storiesHref(c),
-          reason: `${this.#num(newStories)} new ${newStories === 1 ? 'story' : 'stories'} in the last 7 days` });
-      }
       // Traffic anomalies ride the traffic payload, so they join the panel on its (later) load, not the first render.
       const trafficFlag = c.traffic && c.traffic.anomaly;
       if (trafficFlag) {
         const meta = AcrossCitiesPage.#ANOMALY[trafficFlag] || { label: trafficFlag, sev: 'info' };
         items.push({ sev: meta.sev, city: c, label: meta.label, reason: this.#trafficAnomalyReason(c) });
+      }
+    }
+    // Stories are public on submit, so a new visible one is worth a look on that city's own Stories page; hiding a
+    // story there clears the item. Read from the stories list, which still has cities whose scorecard failed.
+    for (const entry of this.#stories) {
+      const fresh = entry.counts ? entry.counts.visible_7d : 0;
+      if (fresh > 0) {
+        items.push({ sev: 'info', city: entry, label: 'Review stories', href: this.#storiesHref(entry),
+          reason: `${this.#num(fresh)} new ${fresh === 1 ? 'story' : 'stories'} in the last 7 days` });
       }
     }
     const order = { bad: 0, warn: 1, info: 2 };
@@ -1231,39 +1238,44 @@ class AcrossCitiesPage {
   /**
    * Fills the Stories section: a one-line cross-city summary, then one row per city that has any stories, newest
    * first. Cities with none are summarized rather than listed, since most deployments have none. A city whose count
-   * failed is reported as unknown so it is never mistaken for zero.
+   * failed is reported as unavailable, and if every count failed the summary says so, so a failure never reads as zero.
    */
   #renderStories() {
     const summary = document.getElementById('ac-stories-summary');
     const tbody = document.getElementById('ac-stories-tbody');
-    if (!summary || !tbody) return;
+    const wrap = document.getElementById('ac-stories-wrap');
+    if (!summary || !tbody || !wrap) return;
 
-    const known = this.#cities.filter((c) => c.stories);
-    const unknown = this.#cities.length - known.length;
-    const withStories = known.filter((c) => c.stories.total > 0)
-      .sort((a, b) => String(b.stories.newest || '').localeCompare(String(a.stories.newest || '')));
-    const total = withStories.reduce((sum, c) => sum + c.stories.total, 0);
-    const unknownCities = `${this.#num(unknown)} ${unknown === 1 ? 'city' : 'cities'}`;
-    const unknownNote = unknown > 0 ? ` Counts unavailable for ${unknownCities}.` : '';
+    const known = this.#stories.filter((e) => e.counts);
+    const unknown = this.#stories.length - known.length;
+    const withStories = known.filter((e) => e.counts.total > 0)
+      .sort((a, b) => Date.parse(b.counts.newest) - Date.parse(a.counts.newest));
+    const total = withStories.reduce((sum, e) => sum + e.counts.total, 0);
+    const cities = (n) => `${this.#num(n)} ${n === 1 ? 'city' : 'cities'}`;
+    const unknownNote = unknown > 0 ? ` Counts unavailable for ${cities(unknown)}.` : '';
+    wrap.hidden = withStories.length === 0;
 
-    if (!withStories.length) {
-      summary.innerHTML = `No stories in any of ${this.#num(known.length)} cities yet.${unknownNote}`;
-      document.getElementById('ac-stories-wrap').hidden = true;
+    if (!known.length) {
+      summary.textContent = unknown > 0 ? `Story counts unavailable for ${cities(unknown)}.` : 'No cities to count.';
       return;
     }
-    const cityWord = withStories.length === 1 ? 'city' : 'cities';
+    if (!withStories.length) {
+      summary.textContent = `No stories in any of ${cities(known.length)} yet.${unknownNote}`;
+      return;
+    }
+    const none = known.length - withStories.length;
+    const noneNote = none > 0 ? `; ${cities(none)} ${none === 1 ? 'has' : 'have'} none` : '';
     summary.innerHTML = `<strong>${this.#num(total)}</strong> ${total === 1 ? 'story' : 'stories'} in `
-      + `<strong>${this.#num(withStories.length)}</strong> ${cityWord}; `
-      + `${this.#num(known.length - withStories.length)} have none.${unknownNote}`;
-    tbody.innerHTML = withStories.map((c) => {
-      const st = c.stories;
-      const name = AcrossCitiesPage.#esc(c.city_name || c.city_id);
-      const href = this.#storiesHref(c);
-      const link = `<a href="${AcrossCitiesPage.#esc(href)}" target="_blank" rel="noopener">${name}</a>`;
-      const cityCell = href ? link : name;
-      const newestDate = new Date(st.newest)
-        .toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-      const newest = st.newest ? AcrossCitiesPage.#esc(newestDate) : '—';
+      + `<strong>${cities(withStories.length)}</strong>${noneNote}.${unknownNote}`;
+    tbody.innerHTML = withStories.map((e) => {
+      const st = e.counts;
+      const name = AcrossCitiesPage.#esc(e.city_name || e.city_id);
+      const href = this.#storiesHref(e);
+      const link = href && `<a href="${AcrossCitiesPage.#esc(href)}" target="_blank" rel="noopener">${name}</a>`;
+      const cityCell = link || name;
+      // total > 0 guarantees a newest date.
+      const dateOpts = /** @type {Intl.DateTimeFormatOptions} */ ({ year: 'numeric', month: 'short', day: 'numeric' });
+      const newest = new Date(st.newest).toLocaleDateString(undefined, dateOpts);
       return `
         <tr>
           <td class="ac-td-city">${cityCell}</td>
@@ -1272,17 +1284,16 @@ class AcrossCitiesPage {
           <td class="ac-num">${this.#num(st.with_photo)}</td>
           <td class="ac-num">${this.#num(st.last_7d)}</td>
           <td class="ac-num">${this.#num(st.last_30d)}</td>
-          <td>${newest}</td>
+          <td>${AcrossCitiesPage.#esc(newest)}</td>
         </tr>`;
     }).join('');
-    document.getElementById('ac-stories-wrap').hidden = false;
   }
 
   /**
    * The city's own Stories admin page, where Hide and Delete work; null when the city has no URL.
    *
    * @param {{url?: string}} c - One city's scorecard row.
-   * @returns {string|null} Absolute URL of that city's Stories page.
+   * @returns {string|null} Absolute URL of that city's Stories page, or null without a city URL.
    */
   #storiesHref(c) {
     if (!c.url || !this.#storiesPath) return null;

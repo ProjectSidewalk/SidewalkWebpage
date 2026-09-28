@@ -6,7 +6,10 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import slick.jdbc.GetResult
 import util.RolledBackDb
+
+import java.time.{OffsetDateTime, ZoneOffset}
 
 /**
  * DB-backed tests for ConfigTable.getCityStoryStatsBySchema, the per-city counts behind the Across Cities Stories
@@ -64,34 +67,50 @@ class ConfigTableStoryStatsSpec extends PlaySpec with GuiceOneAppPerSuite with R
     } yield (userId, labelIds)
   }
 
-  /** Inserts one story on `labelId`, `daysAgo` days old, returning its id. */
-  private def seedStory(labelId: Int, userId: String, daysAgo: Int, visible: Boolean): DBIO[Int] =
+  /** Inserts one story on `labelId`, `hoursAgo` hours old, returning its id and creation time. */
+  private def seedStory(labelId: Int, userId: String, hoursAgo: Int, visible: Boolean): DBIO[(Int, OffsetDateTime)] = {
+    implicit val getResult: GetResult[(Int, OffsetDateTime)] =
+      GetResult(r => (r.nextInt(), r.nextTimestamp().toInstant.atOffset(ZoneOffset.UTC)))
     sql"""INSERT INTO story (story_id, label_id, user_id, story_text, visible, created_at)
           VALUES ((SELECT COALESCE(MAX(story_id), 0) + 1 FROM story), $labelId, $userId, 'ci story', $visible,
-                  now() - ($daysAgo * INTERVAL '1 day'))
-          RETURNING story_id""".as[Int].head
+                  now() - ($hoursAgo * INTERVAL '1 hour'))
+          RETURNING story_id, created_at""".as[(Int, OffsetDateTime)].head
+  }
+
+  /** Attaches one media row of `mediaType` to a story. */
+  private def seedMedia(storyId: Int, mediaType: String): DBIO[Int] =
+    sqlu"""INSERT INTO story_media (story_media_id, story_id, media_type, mime_type)
+           VALUES ((SELECT COALESCE(MAX(story_media_id), 0) + 1 FROM story_media), $storyId, $mediaType,
+                   'application/octet-stream')"""
 
   "getCityStoryStatsBySchema" should {
-    "count every story, hidden ones included, and split them by age and photo" in {
-      val (before, after) = runRolledBack(for {
-        schema       <- currentSchema
-        before       <- configTable.getCityStoryStatsBySchema(schema)
-        seeded       <- seedLabels(3)
-        newWithPhoto <- seedStory(seeded._2(0), seeded._1, daysAgo = 1, visible = true)
-        _            <- seedStory(seeded._2(1), seeded._1, daysAgo = 10, visible = false)
-        _            <- seedStory(seeded._2(2), seeded._1, daysAgo = 60, visible = true)
-        _            <- sqlu"""INSERT INTO story_media (story_media_id, story_id, media_type, mime_type)
-                    VALUES ((SELECT COALESCE(MAX(story_media_id), 0) + 1 FROM story_media), $newWithPhoto,
-                            'photo', 'image/jpeg')"""
+    "count every story, hidden ones included, and split them by age, visibility, and photo" in {
+      val (before, after, newestSeeded) = runRolledBack(for {
+        schema <- currentSchema
+        before <- configTable.getCityStoryStatsBySchema(schema)
+        seeded <- seedLabels(5)
+        // Two photo rows on one story: a JOIN would count it twice, which is why the query uses EXISTS.
+        twoPhotos <- seedStory(seeded._2(0), seeded._1, hoursAgo = 1, visible = true)
+        _         <- seedMedia(twoPhotos._1, "photo")
+        _         <- seedMedia(twoPhotos._1, "photo")
+        // Audio only: media, but not a photo.
+        audioOnly <- seedStory(seeded._2(1), seeded._1, hoursAgo = 2, visible = true)
+        _         <- seedMedia(audioOnly._1, "audio")
+        // Hidden and new: in the last 7 days, but not among the visible ones a moderator still needs to see.
+        _     <- seedStory(seeded._2(2), seeded._1, hoursAgo = 3, visible = false)
+        _     <- seedStory(seeded._2(3), seeded._1, hoursAgo = 24 * 10, visible = true)
+        _     <- seedStory(seeded._2(4), seeded._1, hoursAgo = 24 * 60, visible = false)
         after <- configTable.getCityStoryStatsBySchema(schema)
-      } yield (before, after))
+      } yield (before, after, twoPhotos._2))
 
-      after.total mustBe before.total + 3
-      after.hidden mustBe before.hidden + 1
+      after.total mustBe before.total + 5
+      after.hidden mustBe before.hidden + 2
       after.withPhoto mustBe before.withPhoto + 1
-      after.last7d mustBe before.last7d + 1
-      after.last30d mustBe before.last30d + 2
-      after.newest mustBe defined
+      after.last7d mustBe before.last7d + 3
+      after.visible7d mustBe before.visible7d + 2
+      after.last30d mustBe before.last30d + 4
+      // The newest seeded story is an hour old, so it is the city's newest unless the DB already held a later one.
+      after.newest mustBe Some(Seq(Some(newestSeeded), before.newest).flatten.maxBy(_.toInstant))
     }
 
     "report no newest date and zero counts for a city with no stories" in {
@@ -102,7 +121,7 @@ class ConfigTableStoryStatsSpec extends PlaySpec with GuiceOneAppPerSuite with R
         stats  <- configTable.getCityStoryStatsBySchema(schema)
       } yield stats)
 
-      stats mustBe service.CityStoryStats(0, 0, 0, 0, 0, None)
+      stats mustBe service.CityStoryStats(0, 0, 0, 0, 0, 0, None)
     }
   }
 }

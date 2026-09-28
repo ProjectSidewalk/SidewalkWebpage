@@ -788,17 +788,6 @@ class AdminController @Inject() (
           "seconds_to_validate_10"      -> (sc.validationSecondsMedian * 10),
           // Labeling speed (seconds of active auditing per 100 m) from the daily-cached heavy path; None if no data.
           "seconds_per_100m" -> labelingSpeed.get(sc.cityId),
-          // Story counts (#5543); null when the city's count failed, which the page shows as unknown, not zero.
-          "stories" -> storyStats.get(sc.cityId).map { st =>
-            Json.obj(
-              "total"      -> st.total,
-              "hidden"     -> st.hidden,
-              "with_photo" -> st.withPhoto,
-              "last_7d"    -> st.last7d,
-              "last_30d"   -> st.last30d,
-              "newest"     -> st.newest
-            )
-          },
           // Lifecycle/health state: active | wrapped_up | stalled | low_traction (#4329).
           "lifecycle" -> ConfigService.lifecycle(sc, now),
           "anomalies" -> anomalies
@@ -879,9 +868,32 @@ class AdminController @Inject() (
       val sumDisagree       = scorecards.map(_.validationsDisagree).sum
       val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
 
+      // Story counts per city (#5543), kept apart from `cities` so a city whose scorecard failed still reports its
+      // stories; `counts` is null where the count itself failed, which the page shows as unavailable, not zero.
+      val stories = JsArray(storyStats.toSeq.sortBy(_._1).map { case (cityId, stats) =>
+        val info = cityInfoById.get(cityId)
+        Json.obj(
+          "city_id"   -> cityId,
+          "city_name" -> info.map(_.cityNameShort),
+          "url"       -> info.map(_.URL),
+          "counts"    -> stats.map { st =>
+            Json.obj(
+              "total"      -> st.total,
+              "hidden"     -> st.hidden,
+              "with_photo" -> st.withPhoto,
+              "last_7d"    -> st.last7d,
+              "visible_7d" -> st.visible7d,
+              "last_30d"   -> st.last30d,
+              "newest"     -> st.newest
+            )
+          }
+        )
+      })
+
       Ok(
         Json.obj(
           "cities"             -> cities,
+          "stories"            -> stories,
           "over_time_all_time" -> overTimeAllTime,
           "over_time_daily"    -> overTimeDaily,
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles

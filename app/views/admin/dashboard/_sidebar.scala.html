@@ -3,10 +3,12 @@
 @*
 * Left navigation for the redesigned admin dashboard. Mirrors the API-docs sidebar markup/classes so the two share a look.
 *
-* Every page covers the current city unless its link carries the "All cities" badge; the scope line under the header
-* says so, and names the city, because the deployment strip above the h1 is easy to miss when choosing a page. Each
-* link also carries a short description: fifteen pages is too many to tell apart by name alone. The name sits in its
-* own span so sidebarDisclosure.js can label the mobile toggle with it and not with the description.
+* Pages cover the current city, and the "All cities" badge marks the ones that span every deployment; the scope line
+* under the header names the city, because the deployment strip above the h1 is easy to miss when choosing a page. Scope
+* that doesn't follow the page (roles are shared by every city; Health's job panels are this city's) is named in the
+* link's description. Every link carries a description, since fifteen pages are too many to tell apart by name
+* alone. The name sits in its own span so sidebarDisclosure.js can label the mobile toggle with it and not with the
+* description.
 *
 * The Owner-only pages (Across Cities #4329, Health) are linked only when `isOwner` is true — a per-city Administrator
 * would only get a 403, so we don't surface a link they can't use.
@@ -14,7 +16,7 @@
 
 @navItem(page: String, href: Call, name: String, desc: String, allCities: Boolean) = {
   <a href="@href" class="page-nav-item admin-nav-item @if(activePage == page){active}" @if(activePage == page){aria-current="page"}>
-    <span class="admin-nav-name"><span class="page-nav-label">@name</span>@if(allCities){<span class="admin-nav-scope">All cities</span>}</span>
+    <span class="admin-nav-name"><span class="page-nav-label">@name</span>@if(allCities){ <span class="admin-nav-scope">All cities</span>}</span>
     <span class="admin-nav-desc">@desc</span>
   </a>
 }
@@ -22,17 +24,17 @@
 <div class="page-sidebar">
   <nav class="page-nav" aria-label="Admin dashboard sections">
     <div class="page-nav-header">Admin Dashboard</div>
-    <p class="admin-nav-scope-note">Pages cover <b>@cityName</b> unless marked <span class="admin-nav-scope">All cities</span></p>
+    <p class="admin-nav-scope-note">Pages cover <b>@cityName</b>; <span class="admin-nav-scope">All cities</span> pages span every deployment</p>
     @navItem("overview", routes.AdminDashboardController.overview, "Overview", "Alerts and trends", false)
     @if(isOwner) {
-      @navItem("across-cities", routes.AdminDashboardController.acrossCities, "Across Cities", "Compare every deployment", true)
+      @navItem("across-cities", routes.AdminDashboardController.acrossCities, "Across Cities", "Compare every city", true)
     }
 
     <div class="page-nav-header">Manage</div>
-    @navItem("management", routes.AdminDashboardController.management, "Management", "Users, roles, teams, jobs", false)
+    @navItem("management", routes.AdminDashboardController.management, "Management", "Roles (all cities), teams, jobs", false)
     @navItem("partners", routes.AdminDashboardController.partners, "Partners", "Landing-page logos, city and global", false)
     @if(isOwner) {
-      @navItem("health", routes.AdminDashboardController.health, "Health", "Database and app health", true)
+      @navItem("health", routes.AdminDashboardController.health, "Health", "Database health; this city's jobs", true)
     }
 
     <div class="page-nav-header">Data</div>

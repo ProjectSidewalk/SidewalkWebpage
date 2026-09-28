@@ -37,19 +37,19 @@
 
   <div class="page-section" id="maintenance-section">
     <h2 class="page-heading" id="maintenance">Maintenance <a href="#maintenance" class="permalink">#</a></h2>
-    <p>Slow jobs that change what every user sees.</p>
+    <p>City-wide jobs; each asks to confirm.</p>
     <div class="mgmt-actions">
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Recalculate user stats</b>
-          <span class="dq-sub">Recomputes each contributor's labeling rate and high-quality flag.</span>
+          <span class="dq-sub">Recomputes each contributor's labeling rate and high-quality flag (also nightly).</span>
         </div>
         <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-stats" data-confirm="Recalculate user stats for all recent contributors?">Run</button>
       </div>
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Recalculate street priority</b>
-          <span class="dq-sub">Recomputes every street's audit priority so under-audited streets resurface.</span>
+          <span class="dq-sub">Recomputes every street's audit priority so under-audited streets resurface (also nightly).</span>
         </div>
         <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-recalc-priority" data-confirm="Recalculate street priority for all streets? This can take a while.">Run</button>
       </div>
@@ -91,7 +91,7 @@
       <div class="mgmt-action">
         <div class="mgmt-action-text">
           <b>Clear server cache</b>
-          <span class="dq-sub">Clears the server cache.</span>
+          <span class="dq-sub">Next page loads rebuild it.</span>
         </div>
         <button type="button" class="coverage-sort-btn mgmt-run" id="mgmt-clear-cache" data-confirm="Clear the server cache?">Run</button>
       </div>

@@ -393,7 +393,7 @@ describe('ImageryPage legend', () => {
 
   test('explains the two re-audit counts only when they actually differ', async () => {
     await renderPage();
-    expect(text('imagery-priority-note')).not.toContain('carry the re-audit flag');
+    expect(text('imagery-priority-note')).not.toContain('carry the flag');
 
     // A street whose only audits are low-quality carries the flag but sits in the unaudited tier: the tier counts
     // only audits with weight in the priority formula, the flag counts every completed audit.
@@ -456,7 +456,7 @@ describe('ImageryPage tables', () => {
     expect(text('imagery-street-note')).toContain('a sample, not a queue');
   });
 
-  test('says how many regions the scroll box holds, and that search covers all of them', async () => {
+  test('says how many regions the scroll box holds', async () => {
     await renderPage();
     const note = text('imagery-region-note');
     expect(note).toContain('2 regions');

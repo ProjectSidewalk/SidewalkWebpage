@@ -319,7 +319,7 @@ class ImageryPage {
     const poll = (this.#report?.jobs || []).find((job) => job.job_name === this.#report?.poll_job);
     if (!poll || poll.last_status === 'never_run') {
       AdminShell.setText('kpi-last-poll', 'never');
-      AdminShell.setText('kpi-last-poll-note', 'no recorded run on this deployment');
+      AdminShell.setText('kpi-last-poll-note', 'no recorded run in this city');
       return;
     }
     const polled = poll.last_details?.streets_polled;
@@ -504,7 +504,7 @@ class ImageryPage {
                   (batchSize || 0).toLocaleString()})`
                 : 'no street polled in this window; the rotation is stalled')}
             ${row('Oldest imagery record', oldest ? oldest.slice(0, 10) : '—',
-              'the street longest since a check')}
+              'the street checked longest ago')}
           </tbody>
         </table>
       </div>`;

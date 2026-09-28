@@ -982,6 +982,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         r.nextInt(),
         r.nextInt(),
         r.nextInt(),
+        r.nextInt(),
         r.nextTimestampOption().map(_.toInstant.atOffset(ZoneOffset.UTC))
       )
     )
@@ -993,6 +994,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                  WHERE story_media.story_id = story.story_id AND story_media.media_type = 'photo'
              )),
              COUNT(*) FILTER (WHERE story.created_at >= NOW() - INTERVAL '7 days'),
+             COUNT(*) FILTER (WHERE story.created_at >= NOW() - INTERVAL '7 days' AND story.visible),
              COUNT(*) FILTER (WHERE story.created_at >= NOW() - INTERVAL '30 days'),
              MAX(story.created_at)
       FROM "#$schema".story;

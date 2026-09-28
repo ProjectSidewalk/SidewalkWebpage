@@ -39,7 +39,7 @@
 
   <div class="page-section" id="street-status-trend-section">
     <h2 class="page-heading" id="recently-changed">Recently changed <a href="#recently-changed" class="permalink">#</a></h2>
-    <p>Only <code>db/scripts</code> and the Reopen button below change a street's status, so a spike is a script run.</p>
+    <p>Only <code>db/scripts</code> and the Reopen button below change a street's status, so a spike in the first chart is a script run.</p>
     <div class="trend-controls">
       <label for="trend-range">Window</label>
       @* Windows come from StreetLifecycleService so the offered set and the server's default can't drift apart. *@
@@ -60,14 +60,14 @@
     <div class="mini-host" id="trend-reports-chart"></div>
 
     <h3 class="trend-chart-heading">Panoramas losing and regaining imagery</h3>
-    <p class="trend-note">Losses later weeks hand back were a provider hiccup; the rest is imagery really gone.</p>
+    <p class="trend-note">Losses that later weeks hand back were a provider hiccup; the rest is really gone.</p>
     <p class="trend-note" id="trend-expiry-note"></p>
     <div class="mini-host" id="trend-expiry-chart"></div>
   </div>
 
   <div class="page-section" id="street-status-queue-section">
     <h2 class="page-heading" id="regained-imagery">Regained imagery <a href="#regained-imagery" class="permalink">#</a></h2>
-    <p>Retired streets where the nightly poll has since found panoramas; <strong>Reopen</strong> returns one to the pool at full priority (lowering its region's completion), <strong>Dismiss</strong> hides it until the poll finds newer imagery.</p>
+    <p>Retired streets where the nightly poll has since found panoramas; <strong>Reopen</strong> returns one to the pool at full priority (lowering its region's completion), <strong>Dismiss</strong> hides it until a poll finds more or newer panoramas.</p>
     <div id="trend-reopen-candidates"></div>
 
     <h2 class="page-heading" id="awaiting-confirmation">Awaiting confirmation <a href="#awaiting-confirmation" class="permalink">#</a></h2>
@@ -75,7 +75,7 @@
     <div id="trend-corroborated"></div>
 
     <h3 class="trend-chart-heading">Reports by region</h3>
-    <p class="trend-note">The regions most likely to lose streets next.</p>
+    <p class="trend-note">All reports, corroborated or not: the regions likeliest to lose streets next.</p>
     <div id="trend-regions"></div>
   </div>
 
