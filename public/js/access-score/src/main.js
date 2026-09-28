@@ -680,7 +680,7 @@ window.AccessScoreApp = (function () {
         el.textContent = i18next.t('accessscore:updated-never');
         return;
       }
-      const date = new Intl.DateTimeFormat(i18next.language, { dateStyle: 'medium' }).format(new Date(iso));
+      const date = new Date(iso).toLocaleDateString(i18next.language, util.SHORT_DATE);
       el.textContent = i18next.t('accessscore:updated-at', { date });
     }
 
