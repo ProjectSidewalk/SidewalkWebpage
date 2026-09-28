@@ -1,20 +1,26 @@
 /**
  * The Image adjustments panel: a pill button that opens a popover of sliders bound to a {@link PanoImageAdjustments}
- * model (#3136).
+ * model (#3136), on Explore and desktop Validate (#5501).
  *
  * The markup lives in app/views/common/panoImageAdjustments.scala.html (id="pano-image-adjustments") so its text
  * goes through i18n; this class only wires it. Slider ranges come from the model's SPECS rather than the markup, so
  * there is one place that knows what "100" means. The popover uses the native Popover API like PanoInfoPopover,
  * positioned by JS beside the button, and falls back to the `hidden` attribute where the API is missing.
  *
- * Page-specific concerns — what to log, and suspending the page's keyboard shortcuts so Arrow keys nudge a slider
- * instead of panning the pano — are injected as callbacks, which keeps the class mountable on any page with a pano.
+ * Page-specific concerns — what to log, and keeping the page's keyboard shortcuts off the sliders so Arrow keys
+ * nudge a slider instead of panning the pano — are injected as callbacks, which keeps the class mountable on any
+ * page with a pano. A page whose shortcut handler can scope the panel itself needs no keyboard hooks at all.
  *
- * Usage (Explore):
+ * Usage (Explore suspends its shortcuts while the panel is open):
  *   new PanoImageAdjustmentsPopover(svl.imageAdjustments, button, popoverEl, {
  *     onOpen: () => svl.keyboard.disableKeyboard(),
  *     onClose: (via) => svl.keyboard.enableKeyboard(),
  *     onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
+ *   });
+ *
+ * Usage (Validate's KeyboardManager treats the panel as its own scope, so only logging is injected):
+ *   new PanoImageAdjustmentsPopover(svv.imageAdjustments, button, popoverEl, {
+ *     onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
  *   });
  */
 class PanoImageAdjustmentsPopover {

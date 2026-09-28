@@ -51,11 +51,16 @@ Also covered, beyond the api-docs previews:
   search filtering (hidden attr, live count, no-results), sort orders and tie-breaks, localized dates, type-chip
   tinting, the read-more clamp toggle, view-label popup-vs-navigation routing, and the copy-share-link fallbacks.
 - `common/PanoImageAdjustments.js` → `panoImageAdjustments.test.js` and `common/PanoImageAdjustmentsPopover.js` →
-  `panoImageAdjustmentsPopover.test.js` — Explore's image adjustments (#3136). The model suite pins the filter
-  string's composition (gamma curve first, default terms omitted, an all-default state leaves no inline filter), the
-  Shadows→gamma mapping and the sRGB flag on the injected SVG curve, and storage validation field by field. The
-  popover suite pins the disclosure ARIA, sliders ranged from the model's SPECS, `input` applying while `change` is
-  what logs, Reset/active-dot state, the open/close hooks Explore uses to suspend its shortcuts, and light dismiss.
+  `panoImageAdjustmentsPopover.test.js` — the image adjustments on Explore (#3136) and Validate (#5501). The model
+  suite pins the filter string's composition (gamma curve first, default terms omitted, an all-default state leaves
+  no inline filter), the Shadows→gamma mapping and the sRGB flag on the injected SVG curve, storage validation field
+  by field, and the multi-mount form Validate uses (the filter on every mount, one shared SVG curve). The popover
+  suite pins the disclosure ARIA, sliders ranged from the model's SPECS, `input` applying while `change` is what
+  logs, Reset/active-dot state, the open/close hooks Explore uses to suspend its shortcuts, and light dismiss.
+- `validate/src/keyboard/KeyboardManager.js` → `validateImageAdjustmentsKeyboard.test.js` — Validate's keyboard
+  scope for the image adjustments panel (#5501). Keys on a slider, and any key while the panel is open, reach no
+  shortcut and leave Escape to the panel; Enter/Space on a top-left pill (Hide label, Image) activate it rather than
+  submitting, while letter shortcuts still fire from a pill a mouse click left focused.
 - `common/pano-viewer/src/PanoInfoPopover.js` → `panoInfoViewLink.test.js` — the pano info popover's
   "view in \<provider\>" link (#4813). Validate and the label card swap the active viewer from label to label, so the
   popover resolves it on every open and offers the link only when that viewer both publishes a public site and is

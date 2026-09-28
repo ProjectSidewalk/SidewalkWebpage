@@ -313,9 +313,15 @@ corresponding Twirl view:
   label markers nor the stored imagery carry it. Shadows is a gamma curve (an SVG `feComponentTransfer` the model
   injects on first use) rather than brightness, because the dark sidewalks people struggle with sit in otherwise
   well-exposed scenes and a brightness multiplier clips the sky before it opens the shadows. Values persist in
-  localStorage and the same two classes are meant to mount on Validate.
+  localStorage, shared with Validate, which mounts the same two classes (below).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
+  Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill beside the hide-label toggle.
+  The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
+  swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
+  the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
+  that the modals and the loading lock also set, and the partial sits outside `#svv-application-holder` so the busy
+  state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
   (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
   rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four
