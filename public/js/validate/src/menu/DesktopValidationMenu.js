@@ -162,7 +162,7 @@ class DesktopValidationMenu {
     menuUI.disagreeReasonTextBox.addEventListener('input', () => {
       if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       if (menuUI.disagreeReasonTextBox.value === '') {
-        menuUI.disagreeReasonTextBox.classList.remove('chosen');
+        menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
         svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
       } else {
         this.#setDisagreeReason('other');
@@ -171,7 +171,7 @@ class DesktopValidationMenu {
     menuUI.unsureReasonTextBox.addEventListener('input', () => {
       if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
       if (menuUI.unsureReasonTextBox.value === '') {
-        menuUI.unsureReasonTextBox.classList.remove('chosen');
+        menuUI.unsureReasonTextBox.classList.remove('is-chosen');
         svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
       } else {
         this.#setUnsureReason('other');
@@ -199,8 +199,8 @@ class DesktopValidationMenu {
       menuUI.optionalCommentTextBox.value = '';
       DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
       DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
-      menuUI.disagreeReasonTextBox.classList.remove('chosen');
-      menuUI.unsureReasonTextBox.classList.remove('chosen');
+      menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
+      menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
       menuUI.unsureReasonTextBox.value = '';
       menuUI.submitButton.disabled = true;
@@ -211,23 +211,23 @@ class DesktopValidationMenu {
       const disagreeOption = label.getProperty('disagreeOption');
       DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
       if (disagreeOption === 'other') {
-        menuUI.disagreeReasonTextBox.classList.add('chosen');
+        menuUI.disagreeReasonTextBox.classList.add('is-chosen');
         menuUI.disagreeReasonTextBox.value = label.getProperty('disagreeReasonTextBox');
       } else {
-        menuUI.disagreeReasonTextBox.classList.remove('chosen');
+        menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
         menuUI.disagreeReasonTextBox.value = '';
-        this.#reasonButton(disagreeOption)?.classList.add('chosen');
+        this.#reasonButton(disagreeOption)?.classList.add('is-chosen');
       }
 
       const unsureOption = label.getProperty('unsureOption');
       DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
       if (unsureOption === 'other') {
-        menuUI.unsureReasonTextBox.classList.add('chosen');
+        menuUI.unsureReasonTextBox.classList.add('is-chosen');
         menuUI.unsureReasonTextBox.value = label.getProperty('unsureReasonTextBox');
       } else {
-        menuUI.unsureReasonTextBox.classList.remove('chosen');
+        menuUI.unsureReasonTextBox.classList.remove('is-chosen');
         menuUI.unsureReasonTextBox.value = '';
-        this.#reasonButton(unsureOption)?.classList.add('chosen');
+        this.#reasonButton(unsureOption)?.classList.add('is-chosen');
       }
 
       // An Agree carrying a new type is a "wrong label type" disagree.
@@ -250,7 +250,7 @@ class DesktopValidationMenu {
    * @param {HTMLElement[]} buttons
    */
   static #clearChosen(buttons) {
-    for (const button of buttons) button.classList.remove('chosen');
+    for (const button of buttons) button.classList.remove('is-chosen');
   }
 
   /**
@@ -314,7 +314,7 @@ class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     this.#wrongTypeView = sections.includes('labelTypeMenu');
     for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]) {
-      button.classList.toggle('chosen', button === chosenButton);
+      button.classList.toggle('is-chosen', button === chosenButton);
     }
     const all = ['labelTypeMenu', 'tagsMenu', 'severityMenu', 'optionalCommentSection', 'noMenu', 'unsureMenu'];
     for (const name of all) {
@@ -412,7 +412,7 @@ class DesktopValidationMenu {
   #startWrongType() {
     const currLabel = svv.labelContainer.getCurrentLabel();
     DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
-    this.#menuUI.disagreeReasonTextBox.classList.remove('chosen');
+    this.#menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
     currLabel.setProperty('disagreeOption', null);
     this.#setWrongTypeView();
     currLabel.setProperty('validationResult', 'Agree');
@@ -652,13 +652,13 @@ class DesktopValidationMenu {
     }
     DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     if (id === 'other') {
-      menuUI.disagreeReasonTextBox.classList.add('chosen');
+      menuUI.disagreeReasonTextBox.classList.add('is-chosen');
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
     } else {
-      menuUI.disagreeReasonTextBox.classList.remove('chosen');
+      menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
-      this.#reasonButton(id)?.classList.add('chosen');
+      this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
 
@@ -679,13 +679,13 @@ class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {
-      menuUI.unsureReasonTextBox.classList.add('chosen');
+      menuUI.unsureReasonTextBox.classList.add('is-chosen');
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
     } else {
-      menuUI.unsureReasonTextBox.classList.remove('chosen');
+      menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.unsureReasonTextBox.value = '';
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', id);
-      this.#reasonButton(id)?.classList.add('chosen');
+      this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
 

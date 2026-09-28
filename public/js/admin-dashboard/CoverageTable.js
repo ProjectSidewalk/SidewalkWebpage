@@ -141,13 +141,13 @@ class CoverageTable {
     const set = new Set(ids.map(Number));
     const tbody = document.getElementById(this.#tableId).querySelector('tbody');
     tbody.querySelectorAll('tr[data-region-id]').forEach((tr) => {
-      tr.classList.toggle('highlighted', set.has(Number(tr.dataset.regionId)));
+      tr.classList.toggle('is-highlighted', set.has(Number(tr.dataset.regionId)));
     });
   }
 
   /** Clears all row highlights. */
   clearHighlight() {
     const tbody = document.getElementById(this.#tableId).querySelector('tbody');
-    tbody.querySelectorAll('tr.highlighted').forEach((tr) => tr.classList.remove('highlighted'));
+    tbody.querySelectorAll('tr.is-highlighted').forEach((tr) => tr.classList.remove('is-highlighted'));
   }
 }

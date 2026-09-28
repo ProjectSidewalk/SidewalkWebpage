@@ -602,7 +602,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     document.getElementById('validate-no-button').click();
     document.getElementById('no-button-1').click();
 
-    expect(document.getElementById('validate-no-button').classList.contains('chosen')).toBe(true);
+    expect(document.getElementById('validate-no-button').classList.contains('is-chosen')).toBe(true);
     expect(shown('validate-label-type-section')).toBe(true);
     expect(shown('validate-why-no-section')).toBe(false);
     expect(label.getProperty('validationResult')).toBe('Agree');
@@ -615,7 +615,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
     expect(label.getProperty('newLabelType')).toBe('SurfaceProblem');
     expect(label.getProperty('validationResult')).toBe('Agree');
-    expect(document.getElementById('validate-no-button').classList.contains('chosen')).toBe(true);
+    expect(document.getElementById('validate-no-button').classList.contains('is-chosen')).toBe(true);
     expect(shown('validate-tags-section')).toBe(true);
     expect(submitDisabled()).toBe(false);
     expect(window.svv.panoManager.styleMarkerForLabel).toHaveBeenCalledWith(label);

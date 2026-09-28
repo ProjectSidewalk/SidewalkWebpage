@@ -609,14 +609,14 @@ class AccessScoreSpotlight {
    * Lights (or clears) the row and the map feature it stands for. The map never moves: a fly on every hover is
    * nauseating in a list of ten, and the point is to show where a name is, not to go there.
    *
-   * @param {HTMLElement} item - The row element, which takes the shared `.highlighted` style.
+   * @param {HTMLElement} item - The row element, which takes the shared `.is-highlighted` style.
    * @param {SpotlightRow} row - The hovered or focused row's data.
    * @param {boolean} on - Whether to light it or clear it.
    */
   #highlight(item, row, on) {
     this.#clearHighlight();
     if (!on) return;
-    item.classList.add('highlighted');
+    item.classList.add('is-highlighted');
 
     // A street row lights its neighborhood: the choropleth draws no streets, so that is the nearest true answer.
     const feature = this.#crossCity
@@ -635,8 +635,8 @@ class AccessScoreSpotlight {
 
   /** Clears whatever map feature this module last lit, and the row highlight that went with it. */
   #clearHighlight() {
-    this.#root.querySelectorAll('.spotlight-row.highlighted')
-      .forEach((row) => row.classList.remove('highlighted'));
+    this.#root.querySelectorAll('.spotlight-row.is-highlighted')
+      .forEach((row) => row.classList.remove('is-highlighted'));
     if (this.#litFeature) {
       this.#setFeatureState(this.#litFeature, false);
       this.#litFeature = null;

@@ -1808,7 +1808,7 @@
     color: var(--color-neutral-900);
   }
 
-  .page-container .page-sidebar .page-nav-item.active {
+  .page-container .page-sidebar .page-nav-item.is-active {
     background: var(--color-pine-600);
     border-color: var(--color-pine-600);
     color: var(--color-neutral-white);

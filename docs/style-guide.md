@@ -191,6 +191,9 @@ consistent with it.
   Because of those two exceptions, the htmlhint `id-class-value` rule is left **off** — its `dash` mode enforces strict
   kebab-case and can express neither BEM nor the backend-sourced values, so it can't be brought to zero. New markup
   should still default to kebab-case.
+- **State classes → `is-*`** (`is-active`, `is-open`, `is-chosen`, `is-highlighted`), toggled from JS and always
+  styled scoped to their component (`.navbar-item.is-open`). A bare word like `active` is a global name that an
+  unscoped rule or a vendor library can hit.
 
 **Icons.** SVG icons live as **their own files** in `public/images/icons/` — **never inlined** in Twirl templates
 (inlined SVGs are hard to find, reuse, and review — see #4058). Default to icons from the **feather** and **material**

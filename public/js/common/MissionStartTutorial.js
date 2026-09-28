@@ -260,7 +260,7 @@ class MissionStartTutorial {
       for (const tab of document.querySelectorAll('.explore-mission-start-tab')) {
         const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[tab.dataset.labelType];
         tab.querySelector('.explore-mission-start-tab-text').innerHTML = i18next.t(lesson.nameKey);
-        tab.classList.toggle('active', tab.dataset.labelType === this.#labelType);
+        tab.classList.toggle('is-active', tab.dataset.labelType === this.#labelType);
       }
       document.querySelector('.explore-mission-start-tab-bar').classList.remove('ps-hidden');
     }

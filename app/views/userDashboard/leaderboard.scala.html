@@ -131,7 +131,7 @@
 
 @statRow(rank: Int, stat: LeaderboardStat, linkUser: Boolean) = {
   @defining(linkUser && isSignedIn && user.exists(_.username == stat.username)) { you =>
-    <tr @if(you){class="highlighted"}>
+    <tr @if(you){class="is-highlighted"}>
       <td class="ud-lb-rank">@rankCell(rank)</td>
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
         @if(linkUser){<a href="@routes.UserDashboardController.publicProfile(stat.username)" class="ud-lb-user">@stat.username</a>}else{@stat.username}
@@ -159,7 +159,7 @@
 *@
 @globalRow(rank: Int, entry: GlobalLeaderboardEntry) = {
   @defining(isSignedIn && user.exists(_.username == entry.username)) { you =>
-    <tr @if(you){class="highlighted"}>
+    <tr @if(you){class="is-highlighted"}>
       <td class="ud-lb-rank">@rankCell(rank)</td>
       <td>@if(you){<strong>@Messages("dashboard.you")</strong>}else{
         @if(entry.profileLinked){

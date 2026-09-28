@@ -206,7 +206,7 @@ pre > code {
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
-.page-nav-item:hover, .page-nav-item.active {
+.page-nav-item:hover, .page-nav-item.is-active {
   background-color: var(--color-blue-300);
   color: var(--color-neutral-900);
   text-decoration: none;
@@ -239,7 +239,7 @@ pre > code {
   padding-left: calc(var(--space-xl) + 20px);
 }
 
-.page-nav-subitem.active {
+.page-nav-subitem.is-active {
   color: var(--color-link-200);
   background-color: var(--color-blue-300);
   font: var(--text-caption-medium);
@@ -379,7 +379,7 @@ pre > code {
   padding-left: 4px;
 }
 
-.page-toc a.active {
+.page-toc a.is-active {
   color: var(--color-link-200);
   font: var(--text-caption-medium);
   border-left-color: var(--color-link-200);

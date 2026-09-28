@@ -9,30 +9,30 @@
 <div class="page-sidebar">
   <nav class="page-nav" aria-label="Admin dashboard sections">
     <div class="page-nav-header">Admin Dashboard</div>
-    <a href="@routes.AdminDashboardController.overview" class="page-nav-item @if(activePage == "overview"){active}" @if(activePage == "overview"){aria-current="page"}>Overview</a>
+    <a href="@routes.AdminDashboardController.overview" class="page-nav-item @if(activePage == "overview"){is-active}" @if(activePage == "overview"){aria-current="page"}>Overview</a>
     @if(isOwner) {
-      <a href="@routes.AdminDashboardController.acrossCities" class="page-nav-item @if(activePage == "across-cities"){active}" @if(activePage == "across-cities"){aria-current="page"}>Across Cities</a>
+      <a href="@routes.AdminDashboardController.acrossCities" class="page-nav-item @if(activePage == "across-cities"){is-active}" @if(activePage == "across-cities"){aria-current="page"}>Across Cities</a>
     }
 
     <div class="page-nav-header">Manage</div>
-    <a href="@routes.AdminDashboardController.management" class="page-nav-item @if(activePage == "management"){active}" @if(activePage == "management"){aria-current="page"}>Management</a>
-    <a href="@routes.AdminDashboardController.partners" class="page-nav-item @if(activePage == "partners"){active}" @if(activePage == "partners"){aria-current="page"}>Partners</a>
+    <a href="@routes.AdminDashboardController.management" class="page-nav-item @if(activePage == "management"){is-active}" @if(activePage == "management"){aria-current="page"}>Management</a>
+    <a href="@routes.AdminDashboardController.partners" class="page-nav-item @if(activePage == "partners"){is-active}" @if(activePage == "partners"){aria-current="page"}>Partners</a>
     @if(isOwner) {
-      <a href="@routes.AdminDashboardController.health" class="page-nav-item @if(activePage == "health"){active}" @if(activePage == "health"){aria-current="page"}>Health</a>
+      <a href="@routes.AdminDashboardController.health" class="page-nav-item @if(activePage == "health"){is-active}" @if(activePage == "health"){aria-current="page"}>Health</a>
     }
 
     <div class="page-nav-header">Data</div>
-    <a href="@routes.AdminDashboardController.coverage" class="page-nav-item @if(activePage == "coverage"){active}" @if(activePage == "coverage"){aria-current="page"}>Coverage</a>
-    <a href="@routes.AdminDashboardController.streetStatus" class="page-nav-item @if(activePage == "street-status"){active}" @if(activePage == "street-status"){aria-current="page"}>Street Status</a>
-    <a href="@routes.AdminDashboardController.imagery" class="page-nav-item @if(activePage == "imagery"){active}" @if(activePage == "imagery"){aria-current="page"}>Imagery</a>
-    <a href="@routes.AdminDashboardController.labelMap" class="page-nav-item @if(activePage == "label-map"){active}" @if(activePage == "label-map"){aria-current="page"}>Label Map</a>
-    <a href="@routes.AdminDashboardController.quality" class="page-nav-item @if(activePage == "quality"){active}" @if(activePage == "quality"){aria-current="page"}>Data Quality</a>
+    <a href="@routes.AdminDashboardController.coverage" class="page-nav-item @if(activePage == "coverage"){is-active}" @if(activePage == "coverage"){aria-current="page"}>Coverage</a>
+    <a href="@routes.AdminDashboardController.streetStatus" class="page-nav-item @if(activePage == "street-status"){is-active}" @if(activePage == "street-status"){aria-current="page"}>Street Status</a>
+    <a href="@routes.AdminDashboardController.imagery" class="page-nav-item @if(activePage == "imagery"){is-active}" @if(activePage == "imagery"){aria-current="page"}>Imagery</a>
+    <a href="@routes.AdminDashboardController.labelMap" class="page-nav-item @if(activePage == "label-map"){is-active}" @if(activePage == "label-map"){aria-current="page"}>Label Map</a>
+    <a href="@routes.AdminDashboardController.quality" class="page-nav-item @if(activePage == "quality"){is-active}" @if(activePage == "quality"){aria-current="page"}>Data Quality</a>
 
     <div class="page-nav-header">People &amp; Usage</div>
-    <a href="@routes.AdminDashboardController.contributors" class="page-nav-item @if(activePage == "contributors"){active}" @if(activePage == "contributors"){aria-current="page"}>Contributors</a>
-    <a href="@routes.AdminDashboardController.activity" class="page-nav-item @if(activePage == "activity"){active}" @if(activePage == "activity"){aria-current="page"}>Activity</a>
-    <a href="@routes.AdminDashboardController.stories" class="page-nav-item @if(activePage == "stories"){active}" @if(activePage == "stories"){aria-current="page"}>Stories</a>
-    <a href="@routes.AdminDashboardController.humansVsAi" class="page-nav-item @if(activePage == "humans-vs-ai"){active}" @if(activePage == "humans-vs-ai"){aria-current="page"}>Humans vs AI</a>
-    <a href="@routes.AdminDashboardController.apiAnalytics" class="page-nav-item @if(activePage == "api-analytics"){active}" @if(activePage == "api-analytics"){aria-current="page"}>API Analytics</a>
+    <a href="@routes.AdminDashboardController.contributors" class="page-nav-item @if(activePage == "contributors"){is-active}" @if(activePage == "contributors"){aria-current="page"}>Contributors</a>
+    <a href="@routes.AdminDashboardController.activity" class="page-nav-item @if(activePage == "activity"){is-active}" @if(activePage == "activity"){aria-current="page"}>Activity</a>
+    <a href="@routes.AdminDashboardController.stories" class="page-nav-item @if(activePage == "stories"){is-active}" @if(activePage == "stories"){aria-current="page"}>Stories</a>
+    <a href="@routes.AdminDashboardController.humansVsAi" class="page-nav-item @if(activePage == "humans-vs-ai"){is-active}" @if(activePage == "humans-vs-ai"){aria-current="page"}>Humans vs AI</a>
+    <a href="@routes.AdminDashboardController.apiAnalytics" class="page-nav-item @if(activePage == "api-analytics"){is-active}" @if(activePage == "api-analytics"){aria-current="page"}>API Analytics</a>
   </nav>
 </div>
