@@ -381,7 +381,7 @@ describe('LabelDetail edit gating (#5047)', () => {
     });
 
     describe('with imagery, a viewer who may edit gets live controls', () => {
-        test('the faces and the Tags control are live, with no lock tooltip', async () => {
+        test('the faces and the Tags control are live, the faces naming their level rather than a lock', async () => {
             await showLabel();
             await resolveImagery(true);
 
@@ -392,7 +392,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             for (const face of faces()) {
                 expect(face.hasAttribute('aria-disabled')).toBe(false);
                 expect(face.hasAttribute('tabindex')).toBe(false);
-                expect(face.hasAttribute('data-ps-tooltip')).toBe(false);
+                expect(face.getAttribute('data-ps-tooltip')).toMatch(/^common:severity: common:/);
                 expect(face.classList.contains('severity-button--static')).toBe(false);
             }
         });
@@ -444,8 +444,6 @@ describe('LabelDetail edit gating (#5047)', () => {
                 expect(face.getAttribute('aria-disabled')).toBe('true');
                 expect(face.hasAttribute('tabindex')).toBe(false);
                 expect(face.getAttribute('data-ps-tooltip')).toBe('labelmap:no-imagery-edit-disabled');
-                // The lock is the more useful thing to say than the face's own level, which reads like an offer.
-                expect(face.title).toBe('');
             }
         });
 
@@ -508,18 +506,18 @@ describe('LabelDetail edit gating (#5047)', () => {
                 expect(face.getAttribute('aria-disabled')).toBe('true');
                 // Out of the tab order, unlike the no-imagery case: there is no reason to go and hear.
                 expect(face.getAttribute('tabindex')).toBe('-1');
-                expect(face.hasAttribute('data-ps-tooltip')).toBe(false);
+                expect(face.getAttribute('data-ps-tooltip')).toMatch(/^common:severity: common:/);
                 expect(face.classList.contains('severity-button--static')).toBe(true);
             }
         });
 
-        test('no imagery adds no tooltip for them either', async () => {
+        test('no imagery adds no lock tooltip for them either', async () => {
             // Severity and tags were never controls for this viewer, so naming a lock on them would be noise.
             await showLabel({ can_edit: false });
             await resolveImagery(false);
 
             expect(tagsEdit().hidden).toBe(true);
-            for (const face of faces()) expect(face.hasAttribute('data-ps-tooltip')).toBe(false);
+            for (const face of faces()) expect(face.getAttribute('data-ps-tooltip')).toMatch(/^common:severity: common:/);
         });
     });
 

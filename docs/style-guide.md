@@ -48,6 +48,9 @@ These apply across every language in the repo.
   `.ps-container`; hide with `.ps-hidden` / `.ps-invisible`, and `.sr-only` keeps text for screen readers only. A
   page-scoped class on top for layout (width, margin, a sticky header, a row-highlight state) is fine; re-declaring
   the font, border, padding, or hover/focus treatment is not — extend the primitive in `main.css` instead.
+- **Hint text goes in `data-ps-tooltip`, not `title`** (`data-i18n-tooltip="ns:key"` when translated; see
+  `psTooltip.js`). Keep `title` only as a plain-text fallback: the full text of an ellipsized value, the exact date
+  behind a relative one, a plain permalink anchor, or a form field's pattern message.
 - **Base element styles live at the top of `main.css`** (`box-sizing`, the body type, heading and paragraph
   rhythm, links, form controls inheriting their font). There is no CSS framework underneath: an unstyled element
   looks the way that block says, so add to it rather than re-declaring a default in a page stylesheet.

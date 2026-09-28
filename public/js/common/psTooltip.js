@@ -114,10 +114,10 @@
       return;
     }
     const card = ensureTooltip();
-    // A modal <dialog> paints in the top layer, above every z-index in the page's normal stacking order, so a card
-    // parked on <body> opens behind it. Follow the trigger into its dialog (the label detail popup) instead. The
-    // dialog sets no transform/filter, so the card stays fixed to the viewport and escapes the dialog's overflow.
-    const host = trigger.closest('dialog[open]') ?? document.body;
+    // A modal <dialog> or an open popover paints above every z-index on the page, so a card on <body> opens behind
+    // it; follow the trigger inside instead. Neither sets a transform/filter, so the card stays fixed to the viewport.
+    // A closed popover isn't rendered, so any [popover] match is an open one.
+    const host = trigger.closest('dialog[open], [popover]') ?? document.body;
     if (card.parentElement !== host) host.appendChild(card);
     // Rendered as HTML per the header contract, which is also why that contract requires callers to double-escape any
     // user-supplied text they interpolate: this is the second of the two levels being consumed.
@@ -135,15 +135,24 @@
     place(card, trigger);
 
     card.classList.add('ps-tooltip--visible');
-    trigger.setAttribute('aria-describedby', 'ps-tooltip');
+    // A card that only repeats the trigger's accessible name (an icon button's "Zoom in") would be read out twice.
+    const name = (trigger.getAttribute('aria-label') ?? trigger.textContent).trim();
+    if (card.textContent.trim() !== name) trigger.setAttribute('aria-describedby', 'ps-tooltip');
+    else trigger.removeAttribute('aria-describedby');
     activeTrigger = trigger;
 
     // Re-run this whole placement if the text changes while the card is up: the new string is a different width, so
     // refreshing the copy alone would leave it centered and tailed for the old one. An attribute removed while the
-    // card is up takes the card down with it, so a caller retiring a tooltip has nothing else to do.
+    // card is up takes the card down with it, so a caller retiring a tooltip has nothing else to do; so does a trigger
+    // hiding itself (the minimap's Map key pill).
     if (textObserver === null) {
-      textObserver = new MutationObserver(() => {
+      textObserver = new MutationObserver((records) => {
         if (activeTrigger === null || !tooltip?.classList.contains('ps-tooltip--visible')) return;
+        if (activeTrigger.checkVisibility?.() === false) {
+          hide();
+          return;
+        }
+        if (!records.some((r) => r.attributeName === 'data-ps-tooltip')) return;
         // Re-rendering replaces the card's children, so a pinned card being read from the keyboard would lose the
         // focused link out from under the reader. Keep the old content until they leave it.
         if (pinned && tooltip.contains(document.activeElement)) return;
@@ -152,7 +161,8 @@
       });
     }
     textObserver.disconnect();
-    textObserver.observe(trigger, { attributes: true, attributeFilter: ['data-ps-tooltip'] });
+    const watched = ['data-ps-tooltip', 'class', 'hidden', 'style'];
+    textObserver.observe(trigger, { attributes: true, attributeFilter: watched });
     if (removalObserver === null) {
       removalObserver = new MutationObserver(() => {
         if (activeTrigger !== null && !activeTrigger.isConnected) hide();
