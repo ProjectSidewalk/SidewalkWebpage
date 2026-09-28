@@ -319,7 +319,7 @@ class HealthPage {
         title: 'Source imagery expired and no local backup exists, so these labels can’t be shown.' },
     ];
     const html = cards.map((c) => `
-        <div class="ps-kpi" title="${AdminShell.esc(c.title)}">
+        <div class="ps-kpi" tabindex="0" data-ps-tooltip="${AdminShell.esc(c.title)}">
           <span class="ps-kpi-value">${c.value}</span>
           <span class="ps-kpi-label">${c.label}</span>
         </div>`).join('');

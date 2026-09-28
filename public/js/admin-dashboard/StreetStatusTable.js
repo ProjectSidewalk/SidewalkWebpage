@@ -90,7 +90,7 @@ class StreetStatusTable {
       .map((c) => {
         const pct = ((r[c.key] / total) * 100).toFixed(2);
         const title = `${c.label}: ${(r[c.key] || 0).toLocaleString()}`;
-        return `<span style="width:${pct}%;background:${c.color}" title="${title}"></span>`;
+        return `<span style="width:${pct}%;background:${c.color}" data-ps-tooltip="${title}"></span>`;
       }).join('');
     return `<div class="street-status-bar" aria-hidden="true">${segments}</div>`;
   }

@@ -225,8 +225,8 @@ describe('Across Cities — traffic section', () => {
     expect(cells[6].textContent.trim()).toBe('17,690');
     expect(cells[7].textContent.trim()).toBe('12%');
     // The window isn't the city's lifetime, so the cell has to date itself.
-    expect(cells[5].getAttribute('title')).toContain('2021');
-    expect(cells[5].getAttribute('title')).toContain("earlier traffic isn't counted");
+    expect(cells[5].getAttribute('data-ps-tooltip')).toContain('2021');
+    expect(cells[5].getAttribute('data-ps-tooltip')).toContain("earlier traffic isn't counted");
   });
 
   it('sorts by an all-time column independently of the recent ones', async () => {
@@ -248,7 +248,7 @@ describe('Across Cities — traffic section', () => {
       available: true,
       traffic_by_city: { alpha: makeTraffic({ ga_since: null }) },
     });
-    const title = document.querySelector('#ac-traffic-tbody tr').cells[5].getAttribute('title');
+    const title = document.querySelector('#ac-traffic-tbody tr').cells[5].getAttribute('data-ps-tooltip');
     expect(title).toBe("Covers this property's whole GA4 history.");
   });
 

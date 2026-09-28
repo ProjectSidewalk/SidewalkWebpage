@@ -207,9 +207,10 @@ class HumanVsAiPage {
     const disagree = g.disagree || 0;
     const unsure = g.unsure || 0;
     const total = agree + disagree + unsure;
+    const tip = (value, label) => `${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`;
     const seg = (value, cls, label) => (value
       ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%"
-          title="${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)"></span>`
+          data-ps-tooltip="${tip(value, label)}"></span>`
       : '');
     const segsHtml = [
       seg(agree, 'is-agree', 'Agree'),
@@ -217,7 +218,9 @@ class HumanVsAiPage {
       seg(unsure, 'is-unsure', 'Unsure'),
     ].join('');
     const bar = total
-      ? `<span class="contrib-verdictbar">${segsHtml}</span>`
+      ? `<span class="contrib-verdictbar" role="img" `
+      + `aria-label="${[tip(agree, 'Agree'), tip(disagree, 'Disagree'), tip(unsure, 'Unsure')].join(', ')}">`
+      + `${segsHtml}</span>`
       : '<span class="dq-sub">—</span>';
     const pcts = total
       ? `<span class="contrib-verdictpct">${Math.round(agree / total * 100)}% /

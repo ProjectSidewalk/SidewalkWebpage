@@ -119,8 +119,9 @@ class TeamPage {
     }
     const cols = this.#columns();
     const headCells = cols.map((c) => {
-      const title = c.help ? ` title="${AdminShell.esc(c.help)}"` : '';
-      if (!c.sort) return `<th scope="col"${title}>${AdminShell.esc(c.label)}</th>`;
+      const title = c.help ? ` data-ps-tooltip="${AdminShell.esc(c.help)}"` : '';
+      // A sortable header's button takes focus; a plain one needs its own tab stop to reach its definition.
+      if (!c.sort) return `<th scope="col"${c.help ? ' tabindex="0"' : ''}${title}>${AdminShell.esc(c.label)}</th>`;
       const isSorted = c.key === this.#sort.key;
       const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
@@ -390,6 +391,6 @@ class TeamPage {
       : '<span class="contrib-badge contrib-badge--low">Low</span>';
     if (!member.excluded) return badge;
     return `${badge} <span class="mgmt-manual-tag" `
-      + `title="This user's work is excluded from the city's stats">excluded</span>`;
+      + `tabindex="0" data-ps-tooltip="This user's work is excluded from the city's stats">excluded</span>`;
   }
 }
