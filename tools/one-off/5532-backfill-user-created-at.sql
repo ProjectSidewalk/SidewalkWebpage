@@ -4,14 +4,15 @@
 -- Each account gets its earliest timestamp in ANY city, from webpage_activity, mission, audit_task or
 -- label_validation. On prod (2026-09-28) that covers all but 1,843 of 6.2M accounts, and those own nothing beyond the
 -- rows every visitor gets (checked across every table that points at sidewalk_user):
---   * The anonymous ones (1,841) are DELETED. If one turns out to own anything else, a foreign key stops the delete
---     and the script ends before changing a thing.
+--   * The anonymous ones (1,841) are DELETED. Right before that, any that has shown up in those four tables since
+--     the script started is taken off the list. If one owns anything else, a foreign key stops the delete and the
+--     script ends before changing a thing. 2,000 of them took ~70 s on the dev database.
 --   * The rest (2 registered) are kept, since someone made those on purpose. They get the date of the closest
 --     account made before them (by user_role.user_role_id) that has one. Accounts brought in later in bulk break that
 --     order, so treat those dates as approximate.
 --
 -- It looks across every city schema by itself, so run it ONCE, not per city: -m -c "seattle" through
--- sidewalk-server-tools/run-query-in-every-city.sh.
+-- sidewalk-server-tools/run-query-in-every-city.sh, which sets the search_path (nothing here relies on it).
 --
 -- DRY RUN BY DEFAULT: prints one summary row and writes nothing. Pass -v apply=1 to write. The runner passes no such
 -- variable, so send it a copy with `\set apply 1` in place of `\set apply 0` below.
@@ -20,6 +21,7 @@
 -- simply be run again. Dry run ~1 min, apply ~34 min on the dev database, nearly all of it spent re-filing every
 -- changed row in the table's indexes. That was with the two indexes 410 drops still in place.
 -- =====================================================================
+\set QUIET on
 \if :{?apply}
 \else
   \set apply 0
@@ -79,30 +81,52 @@ WITH ordered AS (
          COUNT(first_seen.first_at) OVER (ORDER BY user_role.user_role_id DESC) AS known_after
   FROM sidewalk_login.user_role
   LEFT JOIN first_seen ON first_seen.user_id = user_role.user_id
-), with_neighbors AS (
-  SELECT user_id, first_at,
-         MAX(first_at) OVER (PARTITION BY known_before) AS closest_before,
-         MAX(first_at) OVER (PARTITION BY known_after) AS closest_after
+), neighbor AS (
+  SELECT user_id,
+         COALESCE(MAX(first_at) OVER (PARTITION BY known_before),
+                  MAX(first_at) OVER (PARTITION BY known_after)) AS estimated_at
   FROM ordered
 )
+-- Starts from the accounts, not the roles, so one with no role still gets its own first visit.
 SELECT sidewalk_user.user_id,
-       COALESCE(with_neighbors.first_at, with_neighbors.closest_before, with_neighbors.closest_after) AS created_at,
-       CASE WHEN with_neighbors.first_at IS NOT NULL THEN 'own timestamp' ELSE 'neighbor' END AS source,
-       -- Batches follow the order rows sit on disk, so each one writes to one stretch of the table.
-       (ROW_NUMBER() OVER (ORDER BY sidewalk_user.ctid) - 1) / 50000 AS batch
+       COALESCE(first_seen.first_at, neighbor.estimated_at) AS created_at,
+       CASE WHEN first_seen.first_at IS NOT NULL THEN 'own timestamp' ELSE 'neighbor' END AS source,
+       -- Estimates go first: they need evolution 410's date to still be findable if the run is cut short. After
+       -- that, batches follow the order rows sit on disk, so each one writes to one stretch of the table.
+       (ROW_NUMBER() OVER (ORDER BY first_seen.first_at IS NOT NULL, sidewalk_user.ctid) - 1) / 50000 AS batch
 FROM sidewalk_login.sidewalk_user
-INNER JOIN with_neighbors ON with_neighbors.user_id = sidewalk_user.user_id
+LEFT JOIN first_seen ON first_seen.user_id = sidewalk_user.user_id
+LEFT JOIN neighbor ON neighbor.user_id = sidewalk_user.user_id
 LEFT JOIN evolution_stamp ON TRUE
-WHERE COALESCE(with_neighbors.first_at, with_neighbors.closest_before, with_neighbors.closest_after)
-        < sidewalk_user.created_at
+WHERE COALESCE(first_seen.first_at, neighbor.estimated_at) < sidewalk_user.created_at
   -- An estimate is only for an account that still has the evolution's date.
-  AND (with_neighbors.first_at IS NOT NULL OR sidewalk_user.created_at = evolution_stamp.stamped_at)
+  AND (first_seen.first_at IS NOT NULL OR sidewalk_user.created_at = evolution_stamp.stamped_at)
   AND NOT EXISTS (SELECT 1 FROM to_delete WHERE to_delete.user_id = sidewalk_user.user_id);
 CREATE INDEX ON new_date (batch);
 ANALYZE new_date;
 
 \if :apply
   BEGIN;
+
+  -- The list above is minutes old by now, so anyone on it who has been active since comes off it.
+  DO $$
+  DECLARE
+    city_schema TEXT;
+  BEGIN
+    FOR city_schema IN
+      SELECT table_schema FROM information_schema.tables
+      WHERE table_name = 'webpage_activity' AND table_schema LIKE 'sidewalk\_%'
+    LOOP
+      EXECUTE format(
+        'DELETE FROM to_delete
+         WHERE EXISTS (SELECT 1 FROM %1$I.webpage_activity WHERE webpage_activity.user_id = to_delete.user_id)
+            OR EXISTS (SELECT 1 FROM %1$I.mission WHERE mission.user_id = to_delete.user_id)
+            OR EXISTS (SELECT 1 FROM %1$I.audit_task WHERE audit_task.user_id = to_delete.user_id)
+            OR EXISTS (SELECT 1 FROM %1$I.label_validation WHERE label_validation.user_id = to_delete.user_id)',
+        city_schema);
+    END LOOP;
+  END $$;
+
   DELETE FROM sidewalk_login.user_password_info
   WHERE login_info_id IN (
     SELECT user_login_info.login_info_id FROM sidewalk_login.user_login_info
@@ -142,14 +166,15 @@ ANALYZE new_date;
       UPDATE sidewalk_login.sidewalk_user
       SET created_at = new_date.created_at
       FROM new_date
-      WHERE new_date.batch = current_batch AND sidewalk_user.user_id = new_date.user_id;
+      WHERE new_date.batch = current_batch AND sidewalk_user.user_id = new_date.user_id
+        AND sidewalk_user.created_at > new_date.created_at;
       COMMIT;
       RAISE NOTICE 'batch % of % done', current_batch + 1, last_batch + 1;
     END LOOP;
   END $$;
 \endif
 
--- still_on_evolution_date should be 0 after applying: anything left has no user_role row to find a neighbor by.
+-- still_on_evolution_date should be 0 after applying: anything left has no timestamp and no user_role row.
 SELECT :'city' AS run_from_city,
        :apply::int = 1 AS applied,
        (SELECT COUNT(*) FROM sidewalk_login.sidewalk_user) AS accounts,
