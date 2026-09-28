@@ -102,6 +102,15 @@ describe('the dashboard\'s "Your stories" list', () => {
             .toBe('labelmap:story.delete-aria');
     });
 
+    it('names the label type without the soft-hyphen entity German translations carry', async () => {
+        const t = window.i18next.t;
+        window.i18next.t = (key) => (key === 'common:surfaceproblem' ? 'Oberflächen&shy;problem' : t(key));
+        await renderSection();
+        window.i18next.t = t;
+
+        expect(document.querySelector(`a[href="/label/501"]`).textContent).toBe('Oberflächenproblem');
+    });
+
     it('fills the thumbnail from the photo, else the backend\'s label preview, else a placeholder', async () => {
         stories = [
             story({ story_id: 11, media: { url: '/storyMedia/7', alt_text: 'wet leaves' } }),

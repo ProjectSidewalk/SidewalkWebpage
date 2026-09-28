@@ -885,7 +885,7 @@ class LabelDetail {
 
     this.#typeDropdown?.setOpen(false);
     this.#renderTitle(meta.label_type);
-    const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`);
+    const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`).replaceAll('&shy;', '');
 
     // Cross-surface hop to the LabelMap, which opens this label's popup and pulses its map location.
     if (this.#showLabelMapLink && els.labelMapLink) {
