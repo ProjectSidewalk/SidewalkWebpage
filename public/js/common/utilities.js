@@ -500,16 +500,18 @@ util.parseDate = function (value) {
 };
 
 /**
- * "3 days ago" in the largest whole unit, since `Intl.RelativeTimeFormat` won't pick one. Rounds down, so it never
- * says "60 minutes ago", and never says "yesterday", which names a calendar day rather than a span of time.
+ * "3 days ago" in the largest whole unit, since `Intl.RelativeTimeFormat` won't pick one, or "now" under a minute.
+ * Rounds down, so it never says "60 minutes ago", and never says "yesterday", which names a calendar day rather than
+ * a span of time.
  * @param {Date} date - A past date.
  * @returns {string}
  */
 util.timeAgo = function (date) {
   const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return new Intl.RelativeTimeFormat(i18next.language, { numeric: 'auto' }).format(0, 'second');
   /** @type {Array<[Intl.RelativeTimeFormatUnit, number]>} Each unit and its average length in seconds. */
-  const units = [['year', 31557600], ['month', 2629800], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
-  const [unit, size] = units.find(([, length]) => seconds >= length) ?? units.at(-1);
+  const units = [['year', 31557600], ['month', 2629800], ['day', 86400], ['hour', 3600], ['minute', 60]];
+  const [unit, size] = units.find(([, length]) => seconds >= length);
   return new Intl.RelativeTimeFormat(i18next.language).format(-Math.floor(seconds / size), unit);
 };
 

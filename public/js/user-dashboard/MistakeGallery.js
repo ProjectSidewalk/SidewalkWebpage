@@ -443,6 +443,6 @@ class MistakeGallery {
    */
   static #typeName(type) {
     const key = String(type).replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-    return i18next.t(`common:${key}`);
+    return i18next.t(`common:${key}`).replaceAll('&shy;', '');
   }
 }

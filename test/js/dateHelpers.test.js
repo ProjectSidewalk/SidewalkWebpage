@@ -62,9 +62,9 @@ describe('util.timeAgo', () => {
         expect(ago(800 * DAY)).toBe('2 years ago');
     });
 
-    test('counts seconds under a minute, and treats a slightly future time as just now', () => {
-        expect(ago(10 * 1000)).toBe('10 seconds ago');
-        expect(util.timeAgo(new Date(Date.now() + 5000))).toBe('0 seconds ago');
+    test('says "now" under a minute, including a slightly future time', () => {
+        expect(ago(10 * 1000)).toBe('now');
+        expect(util.timeAgo(new Date(Date.now() + 5000))).toBe('now');
     });
 
     test('follows the page language', () => {
