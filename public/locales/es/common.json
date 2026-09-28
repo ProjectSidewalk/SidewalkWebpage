@@ -216,6 +216,7 @@
   },
   "image-adjustments": {
     "button": "Imagen",
+    "active-sr": "(ajustada)",
     "tooltip": "Ajusta las sombras, el brillo y el contraste de la imagen",
     "title": "Ajustes de imagen",
     "shadows": "Sombras",

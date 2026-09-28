@@ -45,6 +45,13 @@ class PanoImageAdjustmentsPopover {
   /** @type {HTMLButtonElement|null} */
   #resetButton;
 
+  /**
+   * Visually hidden text inside the trigger that says a filter is in force. The active dot is a pseudo-element, which
+   * assistive tech never announces, so without this a screen reader user has no way to learn the imagery is altered.
+   * @type {HTMLSpanElement|null}
+   */
+  #activeText = null;
+
   /** @type {{onOpen: Function, onClose: Function, onChange: Function, onReset: Function}} */
   #hooks;
 
@@ -88,6 +95,13 @@ class PanoImageAdjustmentsPopover {
     this.#button.setAttribute('aria-expanded', 'false');
     this.#button.setAttribute('aria-controls', this.#popover.id);
     this.#button.setAttribute('aria-haspopup', 'dialog');
+    this.#activeText = this.#button.querySelector('.pano-image-adjustments-active-text');
+    if (!this.#activeText) {
+      this.#activeText = document.createElement('span');
+      this.#activeText.className = 'sr-only pano-image-adjustments-active-text';
+      this.#activeText.hidden = true;
+      this.#button.appendChild(this.#activeText);
+    }
     // Without the Popover API the panel is an ordinary off-screen element, which Tab and screen readers would still
     // reach; `hidden` keeps it out of both until opened.
     if (typeof this.#popover.showPopover !== 'function') this.#popover.setAttribute('hidden', '');
@@ -138,9 +152,13 @@ class PanoImageAdjustmentsPopover {
     this.#render();
   }
 
-  /** @returns {boolean} */
+  /**
+   * Optional-chained because KeyboardManager asks on every keydown, and a page missing the trigger still constructs
+   * this object (the constructor logs and returns early); throwing there would kill every shortcut.
+   * @returns {boolean}
+   */
   isOpen() {
-    return this.#button.getAttribute('aria-expanded') === 'true';
+    return this.#button?.getAttribute('aria-expanded') === 'true';
   }
 
   /** Opens the panel below the trigger and moves focus to the first slider. */
@@ -148,7 +166,10 @@ class PanoImageAdjustmentsPopover {
     if (this.isOpen()) return;
     this.#button.setAttribute('aria-expanded', 'true');
     if (typeof this.#popover.showPopover === 'function') {
-      this.#popover.showPopover();
+      // Naming the trigger as the source puts the popover right after it in sequential focus order, so Tab or
+      // Shift+Tab out of the panel lands beside the pill instead of wherever the partial sits in the page. Browsers
+      // that predate the options dictionary ignore it.
+      this.#popover.showPopover({ source: this.#button });
     } else {
       this.#popover.removeAttribute('hidden');
     }
@@ -205,6 +226,14 @@ class PanoImageAdjustmentsPopover {
     }
     if (this.#resetButton) this.#resetButton.disabled = atDefault;
     this.#button.classList.toggle(PanoImageAdjustmentsPopover.ACTIVE_CLASS, !atDefault);
+    if (this.#activeText) {
+      // Read at render time rather than once at construction, so the text follows i18next however late it is ready.
+      // The leading space keeps the pill's accessible name from running "Image" and this text together.
+      if (!atDefault && typeof i18next !== 'undefined') {
+        this.#activeText.textContent = ` ${i18next.t('common:image-adjustments.active-sr')}`;
+      }
+      this.#activeText.hidden = atDefault;
+    }
   }
 
   /**

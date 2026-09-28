@@ -216,6 +216,7 @@
   },
   "image-adjustments": {
     "button": "Image",
+    "active-sr": "(ajustée)",
     "tooltip": "Ajustez les ombres, la luminosité et le contraste de l'image",
     "title": "Réglages de l'image",
     "shadows": "Ombres",

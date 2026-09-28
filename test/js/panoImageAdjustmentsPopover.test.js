@@ -1,11 +1,12 @@
 /**
  * Tests for PanoImageAdjustmentsPopover (public/js/common/PanoImageAdjustmentsPopover.js), the slider panel behind
- * Explore's Image pill (#3136).
+ * the Image pill on Explore (#3136) and desktop Validate (#5501).
  *
  * Pins the contract the page relies on: the trigger's ARIA state, sliders taking their range from the model's SPECS
  * rather than the markup, `input` applying and `change` (release) being the one that logs, the Reset button's
  * enabled state and the trigger's active dot tracking "anything off default", the open/close hooks that Explore uses
- * to suspend its keyboard shortcuts, and light dismiss via Escape and outside clicks. jsdom implements neither the
+ * to suspend its keyboard shortcuts, light dismiss via Escape and outside clicks, the trigger named as the popover's
+ * source (focus order), and the screen-reader text that stands in for the active dot. jsdom implements neither the
  * Popover API nor `:popover-open`, so the test stands up showPopover/hidePopover the way panoInfoViewLink.test.js does.
  */
 
@@ -106,6 +107,16 @@ describe('setup', () => {
         expect(err).toHaveBeenCalled();
         err.mockRestore();
     });
+
+    test('reports closed rather than throwing when the trigger is missing (KeyboardManager asks on every key)', () => {
+        document.body.innerHTML = MARKUP;
+        const err = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
+        const p = document.getElementById('pano-image-adjustments');
+        const panel = new window.PanoImageAdjustmentsPopover(m, null, p);
+        expect(panel.isOpen()).toBe(false);
+        err.mockRestore();
+    });
 });
 
 describe('open and close', () => {
@@ -124,6 +135,14 @@ describe('open and close', () => {
         expect(hooks.onClose).toHaveBeenCalledTimes(1);
         expect(hooks.onClose).toHaveBeenCalledWith('toggle');
         expect(document.activeElement).toBe(button);
+    });
+
+    test('names the trigger as the popover\'s source, so focus order runs from the pill into the panel', () => {
+        mount();
+        button.click();
+        expect(popover.showPopover).toHaveBeenCalledWith({ source: button });
+        // Left open, this instance's document listeners would close it on the next test's clicks and flip `shown`.
+        button.click();
     });
 
     test('a click on the trigger\'s own icon counts as the trigger, not as outside', () => {
@@ -295,5 +314,42 @@ describe('sliders', () => {
         model.set('brightness', 75);
         expect(slider('brightness').value).toBe('75');
         expect(output('brightness').textContent).toBe('75%');
+    });
+});
+
+describe('screen-reader active state', () => {
+    const activeText = () => button.querySelectorAll('.sr-only');
+
+    beforeEach(() => {
+        window.i18next = { t: jest.fn((k) => `t(${k})`) };
+    });
+
+    afterEach(() => {
+        delete window.i18next;
+    });
+
+    test('adds one hidden sr-only span to the trigger at defaults', () => {
+        mount();
+        expect(activeText()).toHaveLength(1);
+        expect(activeText()[0].hidden).toBe(true);
+    });
+
+    test('announces the translated active text while a filter is in force, and hides it again on reset', () => {
+        mount();
+        model.set('contrast', 120);
+        expect(activeText()[0].hidden).toBe(false);
+        expect(activeText()[0].textContent).toBe(' t(common:image-adjustments.active-sr)');
+        expect(window.i18next.t).toHaveBeenCalledWith('common:image-adjustments.active-sr');
+        model.reset();
+        expect(activeText()[0].hidden).toBe(true);
+    });
+
+    test('reuses a span already in the trigger instead of adding a second', () => {
+        document.body.innerHTML = MARKUP;
+        const b = document.getElementById('explore-control-image');
+        b.insertAdjacentHTML('beforeend', '<span class="sr-only pano-image-adjustments-active-text" hidden></span>');
+        const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
+        new window.PanoImageAdjustmentsPopover(m, b, document.getElementById('pano-image-adjustments'));
+        expect(b.querySelectorAll('.sr-only')).toHaveLength(1);
     });
 });

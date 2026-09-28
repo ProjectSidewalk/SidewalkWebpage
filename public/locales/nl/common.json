@@ -216,6 +216,7 @@
   },
   "image-adjustments": {
     "button": "Beeld",
+    "active-sr": "(aangepast)",
     "tooltip": "Pas schaduwen, helderheid en contrast van de beelden aan",
     "title": "Beeldinstellingen",
     "shadows": "Schaduwen",

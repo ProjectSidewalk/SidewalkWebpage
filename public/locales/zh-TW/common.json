@@ -214,6 +214,7 @@
   },
   "image-adjustments": {
     "button": "影像",
+    "active-sr": "（已調整）",
     "tooltip": "調整影像的陰影、亮度與對比",
     "title": "影像調整",
     "shadows": "陰影",

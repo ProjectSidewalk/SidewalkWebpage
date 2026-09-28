@@ -216,6 +216,7 @@
   },
   "image-adjustments": {
     "button": "Bild",
+    "active-sr": "(angepasst)",
     "tooltip": "Schatten, Helligkeit und Kontrast der Bilder anpassen",
     "title": "Bildanpassungen",
     "shadows": "Schatten",
