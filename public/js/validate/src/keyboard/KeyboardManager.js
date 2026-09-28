@@ -143,6 +143,24 @@ class KeyboardManager {
   #documentKeyDown = (e) => {
     const validationMenuUi = this.#validationMenuUi;
 
+    // The image adjustments panel is a keyboard scope of its own (#5501): a key on a focused slider nudges it rather
+    // than firing a shortcut, and the panel's own document-level listener takes Escape. An open panel counts wherever
+    // the key came from, since a click on the panel's whitespace leaves focus on the body. Checked before the card's
+    // scope so an open panel takes Escape even with the card showing. Scoped here rather than with disableKeyboard():
+    // that flag is one boolean shared with the modals and the loading state, and re-enabling it on close could release
+    // a lock the panel never took.
+    const imagePanel = document.getElementById('pano-image-adjustments');
+    const target = /** @type {Element} */ (e.target);
+    if (imagePanel?.contains(target) || svv.imageAdjustmentsPopover?.isOpen()) return;
+
+    // Enter or Space on a focused pill in the pano's top-left group (Hide label, Image) activates that button instead
+    // of submitting the validation below. Only the activation keys: a mouse click leaves focus on the pill, and the
+    // letter shortcuts have to keep working after one.
+    if (target.closest?.('#label-visibility-control-holder')
+      && ['Enter', 'NumpadEnter', 'Space'].includes(e.code)) {
+      return;
+    }
+
     // The marker and its card are their own keyboard scope (#4729): none of the shortcuts below may fire from
     // inside, Enter especially, which would submit from a button that means "open". An open popover counts as being
     // in the card wherever the key came from, since Safari and Firefox on macOS don't focus a clicked button.

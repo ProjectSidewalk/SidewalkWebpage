@@ -36,11 +36,15 @@
   <link rel="stylesheet" href='@assets.path("js/validate/build/validate.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
+  <link rel="stylesheet" href='@assets.path("css/components/pano-image-adjustments.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/tag-pills.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/label-type-picker.css")'>
 
   @common.missionStartTutorial()
   @common.panoInfoPopover()
+  @* Outside #svv-application-holder on purpose: the busy state sets pointer-events: none on that holder, which the
+     panel would inherit even in the top layer, freezing its sliders on every label load. *@
+  @common.panoImageAdjustments()
 
   <div id="page-loading">
     <div id="loading-animation">
@@ -119,6 +123,11 @@
            LabelVisibilityControl, which keeps it in step with the toggle in the label card's footer. *@
         <div id="label-visibility-control-holder" class="pano-overlay-button-group">
           <button type="button" id="label-visibility-control-button" class="pano-overlay-button"></button>
+          @* Opens the image adjustments popover (@common.panoImageAdjustments()); wired by PanoImageAdjustmentsPopover. *@
+          <button type="button" id="validate-control-image" class="pano-overlay-button" data-ps-tooltip="Adjust shadows, brightness and contrast of the imagery" data-i18n-tooltip="common:image-adjustments.tooltip">
+            <img class="pano-overlay-button-icon" src='@assets.path("images/icons/sliders-white-feather.svg")' alt="">
+            <span class="pano-overlay-button-label" data-i18n="common:image-adjustments.button">Image</span>
+          </button>
         </div>
         <div id="svv-panorama-date-holder">
           <span id="svv-panorama-date"></span>

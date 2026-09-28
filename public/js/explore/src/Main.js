@@ -212,6 +212,11 @@ class Main {
     // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano; the suspension is
     // only undone if the panel was what suspended them, since a pop-up can disable the keyboard while it is open.
     svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    // Settings carried in from an earlier visit (or from Validate) change what the labeler sees before they touch the
+    // panel, so the load records them; ImageAdjustments_Change only covers edits made on this page.
+    if (!svl.imageAdjustments.isDefault()) {
+      svl.tracker.push('ImageAdjustments_Restored', svl.imageAdjustments.values());
+    }
     let panelSuspendedKeyboard = false;
     svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
       document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {

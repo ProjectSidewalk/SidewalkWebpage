@@ -224,6 +224,25 @@ class Main {
         { labelContainer: svv.labelContainer },
       );
       svv.zoomControl = new ZoomControl();
+
+      // Shadows/brightness/contrast as a display-only filter (#5501), the same model and panel Explore uses. Both
+      // viewer mounts get it, since PanoManager swaps a label onto the Pannellum sibling when GSV has no imagery, and
+      // by now #init has created that sibling. No keyboard hooks: KeyboardManager treats the panel as its own scope.
+      // Desktop only because mobile has neither the pill nor the panel, and the popover logs an error without them.
+      svv.imageAdjustments = new PanoImageAdjustments([
+        document.getElementById('svv-panorama'), document.getElementById('svv-panorama-pannellum'),
+      ]);
+      if (!svv.imageAdjustments.isDefault()) {
+        svv.tracker.push('ImageAdjustments_Restored', svv.imageAdjustments.values());
+      }
+      svv.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svv.imageAdjustments,
+        document.getElementById('validate-control-image'), document.getElementById('pano-image-adjustments'), {
+          onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
+          onClose: (via) => svv.tracker.push('Click_ImageAdjustments_Close', { via }),
+          onChange: (values) => svv.tracker.push('ImageAdjustments_Change', values),
+          onReset: () => svv.tracker.push('Click_ImageAdjustments_Reset'),
+        });
+
       new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
     }
 
