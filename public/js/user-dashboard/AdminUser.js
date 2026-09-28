@@ -60,7 +60,8 @@ class AdminUser {
 
     document.querySelectorAll('time.ud-admin-ts').forEach((el) => {
       const at = new Date(el.getAttribute('datetime'));
-      if (!Number.isNaN(at.getTime())) el.textContent = moment(at).format('lll');
+      if (Number.isNaN(at.getTime())) return;
+      el.textContent = at.toLocaleString(i18next.language, { ...util.SHORT_DATE, hour: 'numeric', minute: '2-digit' });
     });
 
     this.#loadHours();

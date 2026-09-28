@@ -21,7 +21,7 @@ class PanoInfoPopover {
   #streetEdgeId;
   /** @type {() => number} */
   #regionId;
-  /** @type {() => moment.Moment} */
+  /** @type {() => Date} */
   #panoDate;
   /** @type {() => string|null} */
   #panoAddress;
@@ -37,7 +37,7 @@ class PanoInfoPopover {
   #viewPanoLogging;
   /** @type {() => number|undefined} Optional — returns the Label ID. */
   #labelId;
-  /** @type {(() => moment.Moment)|undefined} Optional — returns the label's timestamp. */
+  /** @type {(() => Date)|undefined} Optional — returns the label's timestamp. */
   #labelDate;
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
   #watchedViewers = new Set();
@@ -49,7 +49,7 @@ class PanoInfoPopover {
    * @param {() => string} panoId - Returns the current panorama/image ID
    * @param {() => number} streetEdgeId - Returns the current Street Edge ID
    * @param {() => number} regionId - Returns the current Region ID
-   * @param {() => moment.Moment} panoDate - Returns the current pano's capture date
+   * @param {() => Date} panoDate - Returns the current pano's capture date
    * @param {() => string|null} panoAddress - Returns the current pano's address string, or null
    * @param {() => {heading: number, pitch: number}} pov - Returns the current heading and pitch
    * @param {boolean} whiteIcon - True for the white icon variant, false for blue
@@ -57,7 +57,7 @@ class PanoInfoPopover {
    * @param {() => void} clipboardLogging - Called when the clipboard button is clicked
    * @param {() => void} viewPanoLogging - Called when the view-in-pano link is clicked
    * @param {() => number|undefined} [labelId] - Optional — returns the Label ID
-   * @param {() => moment.Moment} [labelDate] - Optional — returns the label's timestamp
+   * @param {() => Date} [labelDate] - Optional — returns the label's timestamp
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
     infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
@@ -191,11 +191,15 @@ class PanoInfoPopover {
     const currPanoId = this.#panoId ? this.#panoId() : null;
     const currStreetEdgeId = this.#streetEdgeId ? this.#streetEdgeId() : null;
     const currRegionId = this.#regionId ? this.#regionId() : null;
-    const currPanoDate = this.#panoDate ? this.#panoDate().format('MMM YYYY') : null;
+    const currPanoDate = this.#panoDate
+      ? this.#panoDate().toLocaleDateString(i18next.language, { month: 'short', year: 'numeric' })
+      : null;
     const currPanoAddress = this.#panoAddress ? this.#panoAddress() : null;
     const currPov = this.#pov ? this.#pov() : { heading: 0, pitch: 0 };
     const currLabelId = this.#labelId ? this.#labelId() : null;
-    const currLabelDate = this.#labelDate ? this.#labelDate().format('LL, LT') : null;
+    const currLabelDate = this.#labelDate
+      ? this.#labelDate().toLocaleString(i18next.language, { dateStyle: 'long', timeStyle: 'short' })
+      : null;
 
     /**
      * Sets the text content of a value span identified by [data-field].

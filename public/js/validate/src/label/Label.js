@@ -86,8 +86,10 @@ class Label {
       if ('canvas_height' in params) this.setAuditProperty('canvasHeight', params.canvas_height);
       if ('pano_source' in params) this.setAuditProperty('panoSource', params.pano_source);
       if ('pano_id' in params) this.setAuditProperty('panoId', params.pano_id);
-      if ('image_capture_date' in params) this.setAuditProperty('imageCaptureDate', moment(params.image_capture_date));
-      if ('label_timestamp' in params) this.setAuditProperty('labelTimestamp', moment(params.label_timestamp));
+      if ('image_capture_date' in params) {
+        this.setAuditProperty('imageCaptureDate', util.parseDate(params.image_capture_date));
+      }
+      if ('label_timestamp' in params) this.setAuditProperty('labelTimestamp', new Date(params.label_timestamp));
       if ('heading' in params) this.setAuditProperty('heading', params.heading);
       if ('label_id' in params) this.setAuditProperty('labelId', params.label_id);
       if ('label_type' in params) {

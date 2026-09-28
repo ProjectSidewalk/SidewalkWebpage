@@ -8,11 +8,12 @@
  * is rendered in UTC by the server and rewritten to the reader's timezone here.
  *
  * OutdatedStreets is a page-global `class` that reaches for globals, so the source is eval'd into jsdom with its
- * collaborators (moment, logWebpageActivity, the map) stubbed.
+ * collaborators (i18next, logWebpageActivity, the map) stubbed.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { installDateHelpers } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SECTION_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/user-dashboard/OutdatedStreets.js'), 'utf8');
@@ -94,7 +95,8 @@ describe('the dashboard\'s needs-re-audit list', () => {
     }
 
     beforeAll(() => {
-        window.moment = (date) => ({ format: () => `local:${date.toISOString()}` });
+        window.i18next = { language: 'en' };
+        installDateHelpers();
         window.eval(`${SECTION_SRC}\nwindow.OutdatedStreets = OutdatedStreets;`);
     });
 
@@ -263,8 +265,8 @@ describe('the dashboard\'s needs-re-audit list', () => {
         it('rewrites the server\'s UTC date into the reader\'s timezone', async () => {
             await init(3);
 
-            expect(document.querySelector('.ud-reaudit-date').textContent)
-                .toBe(`local:${new Date('2026-01-02T03:04:05Z').toISOString()}`);
+            // 03:04 UTC on Jan 2 is still Jan 1 in Los Angeles, where jest.config.js pins the clock.
+            expect(document.querySelector('.ud-reaudit-date').textContent).toBe('Jan 1, 2026');
         });
 
         it('leaves the server\'s rendering alone when the timestamp is unparseable', async () => {

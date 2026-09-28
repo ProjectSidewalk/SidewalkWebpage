@@ -480,6 +480,48 @@ util.monthYear = function (iso, { short = false } = {}) {
     .toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
 };
 
+/** Short date ("Mar 5, 2026"), spelled out because `dateStyle: 'medium'` is all digits in German. */
+util.SHORT_DATE = Object.freeze({ day: 'numeric', month: 'short', year: 'numeric' });
+
+/**
+ * Like `new Date()`, but reads a bare `2024-10` or `2024-10-01` as local midnight rather than UTC midnight, which is
+ * still the previous month anywhere west of London.
+ * @param {string|number|Date} value - A month, date, or timestamp string, epoch milliseconds, or a `Date`.
+ * @returns {Date} The date, which is invalid (`NaN` time) if the value couldn't be read.
+ */
+util.parseDate = function (value) {
+  const calendar = typeof value === 'string' ? /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(value) : null;
+  if (calendar === null) return new Date(value);
+  return new Date(Number(calendar[1]), Number(calendar[2]) - 1, Number(calendar[3] ?? 1));
+};
+
+/**
+ * "3 days ago", "yesterday", etc. in the largest whole unit, since `Intl.RelativeTimeFormat` won't pick one.
+ * @param {Date} date - A past date.
+ * @returns {string}
+ */
+util.timeAgo = function (date) {
+  const seconds = (date.getTime() - Date.now()) / 1000;
+  /** @type {Array<[Intl.RelativeTimeFormatUnit, number]>} Each unit and its length in seconds. */
+  const units = [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]];
+  const phrase = new Intl.RelativeTimeFormat(i18next.language, { numeric: 'auto' });
+  for (const [unit, size] of units) {
+    if (Math.abs(seconds) >= size) return phrase.format(Math.round(seconds / size), unit);
+  }
+  return phrase.format(0, 'second');
+};
+
+/**
+ * The reader's local calendar day as `YYYY-MM-DD` ('' if invalid); `toISOString()` would give the UTC day.
+ * @param {Date} date
+ * @returns {string}
+ */
+util.localIsoDate = function (date) {
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
 /**
  * Where a mouse event landed, in whole pixels from the element's top-left corner.
  * @param {MouseEvent} e

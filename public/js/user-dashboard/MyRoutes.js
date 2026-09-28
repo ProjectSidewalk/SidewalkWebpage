@@ -28,7 +28,8 @@ class MyRoutes {
   #localizeDates() {
     this.#list.querySelectorAll('.ud-route-date').forEach((el) => {
       const savedAt = new Date(el.dateTime);
-      if (!Number.isNaN(savedAt.getTime())) el.textContent = moment(savedAt).format('ll');
+      if (Number.isNaN(savedAt.getTime())) return;
+      el.textContent = savedAt.toLocaleDateString(i18next.language, util.SHORT_DATE);
     });
   }
 

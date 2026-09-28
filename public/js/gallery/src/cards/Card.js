@@ -99,9 +99,8 @@ class Card {
     const panoImage = this.#panoImage;
 
     for (const attrName in param) {
-      // Add all the properties. Format the timestamps using the moment library.
       if (attrName === 'label_timestamp' || attrName === 'image_capture_date') {
-        properties[attrName] = moment(param[attrName]);
+        properties[attrName] = util.parseDate(param[attrName]);
       } else if (Object.hasOwn(param, attrName) && Object.hasOwn(properties, attrName)) {
         properties[attrName] = param[attrName];
       }
@@ -256,7 +255,7 @@ class Card {
   }
 
   /**
-   * Copies arrays and plain objects; moment dates are shared, since structuredClone can't copy them.
+   * Copies arrays and plain objects; Dates and other class instances are shared rather than copied.
    * @param {*} value
    * @returns {*}
    */

@@ -183,7 +183,7 @@ class MapillaryViewer extends PanoViewer {
     const panoDataParams = {
       panoId: this.currImage.id,
       source: this.getViewerType(),
-      captureDate: moment(this.currImage.capturedAt),
+      captureDate: new Date(this.currImage.capturedAt),
       width: this.currImage.width,
       height: this.currImage.height,
       tileWidth: this.currImage.width,
@@ -323,7 +323,7 @@ class MapillaryViewer extends PanoViewer {
   #buildExclusionSets = (excludedPanos) => {
     return {
       excludedPanoIds: new Set([...excludedPanos].map((p) => p.getPanoId())),
-      excludedTimestamps: new Set([...excludedPanos].map((p) => p.getProperty('captureDate').valueOf())),
+      excludedTimestamps: new Set([...excludedPanos].map((p) => p.getProperty('captureDate').getTime())),
     };
   };
 

@@ -543,7 +543,6 @@
 
     /**
      * Format a datetime string.
-     * TODO This should be using the moment.js library.
      * @param {string} dateTimeStr - Datetime string
      * @returns {string} Formatted datetime
      */

@@ -61,7 +61,8 @@ class CommunityListPage {
   #localizeDates() {
     this.#listEl.querySelectorAll('.community-date').forEach((el) => {
       const dt = new Date(el.dateTime);
-      if (!Number.isNaN(dt.getTime())) el.textContent = moment(dt).format('ll');
+      if (Number.isNaN(dt.getTime())) return;
+      el.textContent = dt.toLocaleDateString(document.documentElement.lang, util.SHORT_DATE);
     });
   }
 

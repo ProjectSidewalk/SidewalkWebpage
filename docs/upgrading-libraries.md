@@ -245,12 +245,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **mapillary: 4.1.2** — Mapillary imagery provider.
   [Downloads](https://mapillary.github.io/mapillary-js/docs/intro/try/#using-a-cdn) ·
   [Changelog](https://github.com/mapillary/mapillary-js/releases)
-- **moment.js: 2.31.0** — vendored alongside one locale file per supported language. Only `en` and `en-US` need none,
-  since moment has US English built in; other English variants do have their own file (`en-NZ` formats dates
-  differently). **Adding a language means adding its locale file too**, or its dates silently render in English;
-  `common/main.scala.html` picks the file by lowercased language code. [Download](https://momentjs.com/) ·
-  [Locale files](https://github.com/moment/moment/tree/develop/locale) ·
-  [Changelog](https://github.com/moment/moment/blob/develop/CHANGELOG.md)
 - **pannellum: 2.5.7** — Pannellum panorama viewer. [Download](https://pannellum.org/download/) ·
   [Changelog](https://github.com/mpetroff/pannellum/blob/2.5.7/changelog.md)
 - **panzoom: 9.4.4** — zoom/pan for static images in LabelMap/Gallery.

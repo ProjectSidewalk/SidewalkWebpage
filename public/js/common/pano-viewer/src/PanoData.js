@@ -16,7 +16,7 @@ class PanoData {
    * @param {number} params.height - Height of the image in pixels
    * @param {number} [params.tileWidth] - Width of the tiles that make up the image in pixels
    * @param {number} [params.tileHeight] - Height of the tiles that make up the image in pixels
-   * @param {moment.Moment} params.captureDate - Time the picture was taken, only using up to month/year granularity
+   * @param {Date} params.captureDate - Time the picture was taken, only using up to month/year granularity
    * @param {string} [params.address] - Optional address for the current location
    * @param {string} [params.copyright] - Optional associated copyright info for the image
    * @param {string} [params.license] - Optional licence identifier the provider records per image (Panoramax only)
@@ -24,7 +24,7 @@ class PanoData {
    *     params.linkedPanos - Nearby panos linked to with nav arrows. lat/lng are the destination's camera position
    *     when the provider had it in hand without a move; absent otherwise (PanoViewer.getLinkedPanoPositions fills
    *     them in).
-   * @param {Array<{panoId: string, captureDate: moment.Moment}>} params.history - Past panos at this location
+   * @param {Array<{panoId: string, captureDate: Date}>} params.history - Past panos at this location
    * @param {boolean} [params.submitted=false] - Whether we've sent this data to the server; false unless in tutorial
    */
   constructor(params) {
@@ -57,7 +57,7 @@ class PanoData {
     });
 
     // Validate date.
-    if (!(params.captureDate instanceof moment)) {
+    if (!(params.captureDate instanceof Date)) {
       throw new Error('captureDate must be a Date object');
     }
 

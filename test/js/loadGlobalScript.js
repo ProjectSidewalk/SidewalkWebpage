@@ -66,4 +66,15 @@ function installUtilitiesMisc() {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js'), 'utf8'));
 }
 
-module.exports = { loadGlobalScript, REPO_ROOT, assetPathStub, installUtilitiesMisc, stampLabelTypes };
+/** Copies the real date helpers from utilities.js onto `window.util`, leaving the suite's own stubs alone. */
+function installDateHelpers() {
+    const stubbed = window.util;
+    window.util = {};
+    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilities.js'), 'utf8'));
+    const { SHORT_DATE, yearMonth, monthYear, parseDate, localIsoDate, timeAgo } = window.util;
+    window.util = Object.assign(stubbed || {}, { SHORT_DATE, yearMonth, monthYear, parseDate, localIsoDate, timeAgo });
+}
+
+module.exports = {
+    loadGlobalScript, REPO_ROOT, assetPathStub, installUtilitiesMisc, installDateHelpers, stampLabelTypes,
+};

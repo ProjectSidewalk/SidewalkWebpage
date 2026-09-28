@@ -42,6 +42,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
 
         // Real throttle implementation — the unit under integration here.
         global.util = {};
+        global.i18next = { language: 'en' };
         (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
 
         // Globals PanoManager's init path reads.
@@ -58,7 +59,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
 
         const panoData = {
             getPanoId: () => 'pano1',
-            getProperty: () => ({ format: () => 'Jun 2026' })
+            getProperty: () => new Date(2026, 5)
         };
         listeners = {};
         const fakeViewer = {
@@ -77,6 +78,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         jest.useRealTimers();
         document.body.innerHTML = '';
         delete global.util;
+        delete global.i18next;
         delete global.createPanoViewerLogo;
         delete global.createPanoAttribution;
         delete global.GsvViewer;

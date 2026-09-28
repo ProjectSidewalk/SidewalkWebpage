@@ -332,7 +332,7 @@ class LabelDetail {
       () => this.#currentLabelMeta && this.#currentLabelMeta.pano_id,
       () => this.#currentLabelMeta && this.#currentLabelMeta.street_edge_id,
       () => this.#currentLabelMeta && this.#currentLabelMeta.region_id,
-      () => this.#currentLabelMeta && moment(new Date(this.#currentLabelMeta.image_capture_date)),
+      () => this.#currentLabelMeta && util.parseDate(this.#currentLabelMeta.image_capture_date),
       () => panoViewer()?.currPanoData?.getProperty('address') ?? null,
       () => this.#currentLabelMeta && {
         heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom,
@@ -939,15 +939,15 @@ class LabelDetail {
     // Description text; #updateCommentRow shows or hides the section based on whether the labeler wrote one.
     els.description.textContent = meta.description ?? '';
 
-    // Dates. Short month names ('ll' / 'MMM', locale-aware) keep the meta chips on one line (#4572). The clock
-    // time lives in its own span so #fitMetaRow can drop it first when the row gets cramped.
-    const labeled = moment(new Date(meta.timestamp));
-    els.timestamp.textContent = labeled.format('ll');
+    // Dates. Short month names keep the meta chips on one line (#4572). The clock time lives in its own span so
+    // #fitMetaRow can drop it first when the row gets cramped.
+    const labeled = new Date(meta.timestamp);
+    els.timestamp.textContent = labeled.toLocaleDateString(i18next.language, util.SHORT_DATE);
     const timePart = document.createElement('span');
     timePart.className = 'label-detail__timestamp-time';
-    timePart.textContent = `, ${labeled.format('LT')}`;
+    timePart.textContent = `, ${labeled.toLocaleTimeString(i18next.language, { timeStyle: 'short' })}`;
     els.timestamp.appendChild(timePart);
-    els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMM YYYY');
+    els.imageDate.textContent = util.monthYear(meta.image_capture_date, { short: true }) ?? '';
 
     // Address (#4489): seed from the stored pano address; the setPano() callback above upgrades to the live
     // imagery's value once it loads, which covers panos whose address hasn't been captured server-side yet.
@@ -2510,8 +2510,9 @@ class LabelDetail {
       const whenPill = () => {
         const when = document.createElement('span');
         when.className = 'label-detail__comment-when';
-        when.textContent = moment(timeCreated).fromNow();
-        when.title = moment(timeCreated).format('ll, LT');
+        when.textContent = util.timeAgo(new Date(timeCreated));
+        when.title = new Date(timeCreated)
+          .toLocaleString(i18next.language, { ...util.SHORT_DATE, hour: 'numeric', minute: '2-digit' });
         return when;
       };
 

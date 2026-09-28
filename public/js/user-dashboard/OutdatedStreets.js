@@ -92,7 +92,8 @@ class OutdatedStreets {
   #localizeDates() {
     this.#list.querySelectorAll('.ud-reaudit-date').forEach((el) => {
       const auditedAt = new Date(el.dateTime);
-      if (!Number.isNaN(auditedAt.getTime())) el.textContent = moment(auditedAt).format('ll');
+      if (Number.isNaN(auditedAt.getTime())) return;
+      el.textContent = auditedAt.toLocaleDateString(i18next.language, util.SHORT_DATE);
     });
   }
 

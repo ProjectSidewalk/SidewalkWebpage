@@ -45,7 +45,6 @@ describe('a Gallery card\'s location line', () => {
 
     beforeAll(() => {
         window.i18next = { t: (key) => key, language: 'en' };
-        window.moment = (value) => value;
         window.util = {
             assetPath: assetPathStub,
             camelToKebab: (s) => s.toLowerCase(),

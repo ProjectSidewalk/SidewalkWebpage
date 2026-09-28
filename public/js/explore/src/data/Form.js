@@ -63,7 +63,7 @@ class Form {
     return {
       pano_id: props.panoId,
       source: props.source,
-      capture_date: props.captureDate.format('YYYY-MM'),
+      capture_date: util.localIsoDate(props.captureDate).slice(0, 7),
       width: props.width,
       height: props.height,
       tile_width: props.tileWidth,
@@ -83,7 +83,7 @@ class Form {
       address: props.address || null,
       history: props.history.map((prevPano) => ({
         pano_id: prevPano.panoId,
-        date: prevPano.captureDate.format('YYYY-MM'),
+        date: util.localIsoDate(prevPano.captureDate).slice(0, 7),
       })),
     };
   }

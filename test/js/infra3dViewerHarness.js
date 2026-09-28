@@ -37,7 +37,6 @@ function loadInfra3dViewer() {
       getProperty(key) { return this.params[key]; }
     }
     const proj4 = () => [0, 0];
-    const moment = (timestamp) => timestamp;
     ${source('NoImageryError.js')}
     ${source('PanoViewer.js')}
     ${source('Infra3dViewer.js')}

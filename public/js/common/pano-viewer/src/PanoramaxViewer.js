@@ -525,9 +525,9 @@ class PanoramaxViewer extends PanoViewer {
     return {
       panoId: item.id,
       source: this.getViewerType(),
-      // parseZone keeps the capture's own offset: `datetime` is normalised to UTC, so a plain moment() would render
-      // it in the reader's timezone and an evening capture would show a different day in Paris than in Seattle.
-      captureDate: moment.parseZone(props.datetimetz || props.datetime),
+      // Keeps the day on the capture's own calendar: `datetime` is in UTC, so an evening capture read as an instant
+      // would show a different day in Paris than in Seattle.
+      captureDate: util.parseDate((props.datetimetz || props.datetime).slice(0, 10)),
       width,
       height: dims?.[1] || Math.round(width / 2),
       tileWidth: matrix.tileWidth,
