@@ -163,7 +163,7 @@ class AuthenticationServiceImpl @Inject() (
       pwInfo: PasswordInfo
   ): Future[SidewalkUserWithRole] = {
     val dbActions = for {
-      _                 <- sidewalkUserTable.insert(SidewalkUser(user.userId, user.username, user.email))
+      _ <- sidewalkUserTable.insert(SidewalkUser(user.userId, user.username, user.email, OffsetDateTime.now))
       loginInfoId: Long <- loginInfoTable.insert(DBLoginInfo(0, providerId, user.email))
       _                 <- userLoginInfoTable.insert(UserLoginInfo(0, user.userId, loginInfoId))
       _ <- userPasswordInfoTable.insert(UserPasswordInfo(0, pwInfo.hasher, pwInfo.password, pwInfo.salt, loginInfoId))
