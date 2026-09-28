@@ -153,13 +153,12 @@ class KeyboardManager {
     const target = /** @type {Element} */ (e.target);
     if (imagePanel?.contains(target) || svv.imageAdjustmentsPopover?.isOpen()) return;
 
-    // Enter or Space on a focused pill in the pano's top-left group (Hide label, Image) activates that button instead
-    // of submitting the validation below. Only the activation keys: a mouse click leaves focus on the pill, and the
-    // letter shortcuts have to keep working after one.
-    if (target.closest?.('#label-visibility-control-holder')
-      && ['Enter', 'NumpadEnter', 'Space'].includes(e.code)) {
-      return;
-    }
+    // Space on a focused pill in the pano's top-left group (Hide label, Image) is left to the browser, which activates
+    // the button on keyup; that is the keyboard route to opening the panel. Enter is deliberately not exempt: on
+    // Validate it submits from any focused button, and closing the panel puts focus back on the Image pill, so an
+    // exempt Enter would reopen the panel for a validator pressing Enter to submit. The letter shortcuts stay live too,
+    // since a mouse click leaves focus on the pill.
+    if (e.code === 'Space' && target.closest?.('#label-visibility-control-holder')) return;
 
     // The marker and its card are their own keyboard scope (#4729): none of the shortcuts below may fire from
     // inside, Enter especially, which would submit from a button that means "open". An open popover counts as being

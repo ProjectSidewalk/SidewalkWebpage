@@ -5,10 +5,15 @@
  * The manager listens on window with capture and treats most keys as global shortcuts, Enter submitting the current
  * validation from anywhere. The image adjustments panel is an exception: while focus is inside it, or while it is
  * open at all, keys belong to the sliders and to the panel's own Escape handler, and no shortcut may fire. The pills
- * in the pano's top-left group (Hide label, Image) are a narrower exception: Enter and Space activate the focused
- * pill rather than submitting, while the letter shortcuts keep working, since a mouse click leaves focus on the pill.
- * These tests pin both boundaries: a regression inside submits or re-labels from a slider, and one outside breaks
- * the shortcuts a validator uses right after clicking a pill.
+ * in the pano's top-left group (Hide label, Image) are a narrower exception: only Space is left to the browser, which
+ * activates the focused pill. Enter still submits from a pill, as from any focused button on Validate, because closing
+ * the panel puts focus back on the Image pill and a validator's next Enter means "submit". The letter shortcuts keep
+ * working too, since a mouse click leaves focus on the pill. These tests pin both boundaries: a regression inside
+ * submits or re-labels from a slider, and one outside breaks the shortcuts a validator uses right after a pill.
+ *
+ * One case loads the real PanoImageAdjustmentsPopover, to show that Escape from a slider gets through
+ * KeyboardManager's window-capture listener to the panel's own handler and actually closes it. jsdom has no Popover
+ * API, so the popover runs on its `hidden` fallback there.
  *
  * Loaded the same way as validateLabelCardKeyboard.test.js: the class is a plain top-level declaration, so the
  * source is eval'd with an explicit export, and one instance serves the whole file because the constructor registers
@@ -18,9 +23,10 @@
 const fs = require('fs');
 const path = require('path');
 
-const MANAGER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
-);
+const ROOT = path.resolve(__dirname, '..', '..');
+const MANAGER_SRC = fs.readFileSync(path.join(ROOT, 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8');
+const MODEL_SRC = fs.readFileSync(path.join(ROOT, 'public/js/common/PanoImageAdjustments.js'), 'utf8');
+const POPOVER_SRC = fs.readFileSync(path.join(ROOT, 'public/js/common/PanoImageAdjustmentsPopover.js'), 'utf8');
 
 /** A stand-in for one of the menu's controls, with its click spied. */
 function makeControl() {
@@ -29,9 +35,12 @@ function makeControl() {
     return control;
 }
 
-/** Dispatches a keydown with the given code on a target, returning the event for defaultPrevented checks. */
-function key(code, target) {
-    const ev = new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true });
+/**
+ * Dispatches a keydown on a target, returning the event for defaultPrevented checks. `key` matters only to the real
+ * popover, which reads `e.key`; KeyboardManager reads `e.code`.
+ */
+function key(code, target, keyName = code) {
+    const ev = new KeyboardEvent('keydown', { code, key: keyName, bubbles: true, cancelable: true });
     target.dispatchEvent(ev);
     return ev;
 }
@@ -51,8 +60,11 @@ describe('KeyboardManager image adjustments scope', () => {
             noButton: makeControl(),
             unsureButton: makeControl(),
         });
+        // Registered first, as on the page, so its window-capture listener sees every key before the popover's.
         window.eval(`${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
         new window.KeyboardManager(validationMenuUi);
+        (0, eval)(`${MODEL_SRC}\nwindow.PanoImageAdjustments = PanoImageAdjustments;`);
+        (0, eval)(`${POPOVER_SRC}\nwindow.PanoImageAdjustmentsPopover = PanoImageAdjustmentsPopover;`);
     });
 
     beforeEach(() => {
@@ -88,24 +100,27 @@ describe('KeyboardManager image adjustments scope', () => {
     const slider = () => document.getElementById('pano-image-adjustments-shadows');
 
     describe('the top-left pills', () => {
-        it('Enter on the Image pill is left to the button instead of submitting the validation', () => {
+        it('Space on the Image pill is left to the browser to activate the button', () => {
+            const ev = key('Space', pill());
+
+            expect(ev.defaultPrevented).toBe(false);
+            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+        });
+
+        it('Space on the hide-label toggle is left to the browser too', () => {
+            const ev = key('Space', hideLabelToggle());
+
+            expect(ev.defaultPrevented).toBe(false);
+            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+        });
+
+        it('Enter on the focused Image pill submits, as from any other focused button', () => {
+            pill().focus();
             const ev = key('Enter', pill());
 
-            expect(ev.defaultPrevented).toBe(false);
-            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
-        });
-
-        it('Enter on the hide-label toggle is left to the button instead of submitting the validation', () => {
-            const ev = key('Enter', hideLabelToggle());
-
-            expect(ev.defaultPrevented).toBe(false);
-            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
-        });
-
-        it('Space on a pill does not reach the shortcuts', () => {
-            key('Space', pill());
-
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            expect(ev.defaultPrevented).toBe(true);
+            expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
         });
 
         it('letter shortcuts still fire from a pill a mouse click left focused', () => {
@@ -178,6 +193,26 @@ describe('KeyboardManager image adjustments scope', () => {
             key('KeyY', document.body);
 
             expect(validationMenuUi.yesButton.click).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    // Last in the file: the real popover's document listeners outlive the markup, so nothing runs after it.
+    describe('with the real popover', () => {
+        it('Escape from a slider closes the panel and returns focus to the pill', () => {
+            const model = new window.PanoImageAdjustments(document.createElement('div'), null);
+            const popover = new window.PanoImageAdjustmentsPopover(model, pill(),
+                document.getElementById('pano-image-adjustments'));
+            window.svv.imageAdjustmentsPopover = popover;
+            popover.open();
+            expect(popover.isOpen()).toBe(true);
+            expect(document.activeElement).toBe(slider());
+
+            key('Escape', slider(), 'Escape');
+
+            expect(popover.isOpen()).toBe(false);
+            expect(document.getElementById('pano-image-adjustments').hidden).toBe(true);
+            expect(document.activeElement).toBe(pill());
+            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
         });
     });
 });

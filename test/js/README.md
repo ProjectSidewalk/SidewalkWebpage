@@ -56,11 +56,14 @@ Also covered, beyond the api-docs previews:
   no inline filter), the Shadows→gamma mapping and the sRGB flag on the injected SVG curve, storage validation field
   by field, and the multi-mount form Validate uses (the filter on every mount, one shared SVG curve). The popover
   suite pins the disclosure ARIA, sliders ranged from the model's SPECS, `input` applying while `change` is what
-  logs, Reset/active-dot state, the open/close hooks Explore uses to suspend its shortcuts, and light dismiss.
+  logs, Reset/active-dot state and the screen-reader text standing in for the dot, the trigger passed as the
+  popover's `source` (focus order), `isOpen()` staying safe without a trigger, the open/close hooks Explore uses to
+  suspend its shortcuts, and light dismiss.
 - `validate/src/keyboard/KeyboardManager.js` → `validateImageAdjustmentsKeyboard.test.js` — Validate's keyboard
   scope for the image adjustments panel (#5501). Keys on a slider, and any key while the panel is open, reach no
-  shortcut and leave Escape to the panel; Enter/Space on a top-left pill (Hide label, Image) activate it rather than
-  submitting, while letter shortcuts still fire from a pill a mouse click left focused.
+  shortcut and leave Escape to the panel, which one case proves with the real popover (Escape closes it and focus
+  returns to the pill). On a top-left pill (Hide label, Image) only Space is left to the browser: Enter still
+  submits, as from any focused button, and letter shortcuts still fire from a pill a mouse click left focused.
 - `common/pano-viewer/src/PanoInfoPopover.js` → `panoInfoViewLink.test.js` — the pano info popover's
   "view in \<provider\>" link (#4813). Validate and the label card swap the active viewer from label to label, so the
   popover resolves it on every open and offers the link only when that viewer both publishes a public site and is
