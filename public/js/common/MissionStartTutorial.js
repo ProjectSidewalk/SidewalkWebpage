@@ -233,13 +233,14 @@ class MissionStartTutorial {
     const renderLocationIndicators = () => {
       // We should clear existing indicators before rendering.
       // Explore mission screens allow re-rendering of the slides for different labels.
-      for (const el of document.querySelectorAll('.mst-carousel-location-indicator:not(.template)')) el.remove();
+      for (const el of document.querySelectorAll('.mst-carousel-location-indicator')) el.remove();
 
       const indicatorArea = document.querySelector('.mst-carousel-location-indicator-area');
-      const template = document.querySelector('.mst-carousel-location-indicator.template');
+      const templateEl = /** @type {HTMLTemplateElement} */ (
+        document.getElementById('mst-carousel-location-indicator-template'));
+      const template = templateEl.content.firstElementChild;
       for (let i = 0; i < this.#nSlides; i++) {
         const indicator = /** @type {HTMLElement} */ (template.cloneNode(true));
-        indicator.classList.remove('template');
         indicator.dataset.idx = String(i);
         indicatorArea.append(indicator);
       }

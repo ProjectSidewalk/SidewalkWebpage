@@ -512,10 +512,10 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       <button id="validate-no-button"></button>
       <button id="validate-unsure-button"></button>
       <div id="validate-label-type-section"><div id="label-type-picker"></div></div>
-      <div class="current-tag template"><div class="tag-name"></div><button class="remove-tag-x"></button></div>
+      <template id="current-tag-template"><div class="current-tag"><div class="tag-name"></div><button class="remove-tag-x"></button></div></template>
       <div id="validate-tags-section">
         <div id="current-tags-list"></div>
-        <div id="sidewalk-ai-suggestions-block"><div class="sidewalk-ai-suggested-tag template"></div></div>
+        <div id="sidewalk-ai-suggestions-block"><template id="sidewalk-ai-suggested-tag-template"><div class="sidewalk-ai-suggested-tag"></div></template></div>
         <select id="select-tag"></select>
       </div>
       <div id="validate-severity-section"><div id="validate-severity-header"></div>
@@ -566,7 +566,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       submitButton: byId('validate-submit-button'),
       currentTags: byId('current-tags-list'),
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
-      aiSuggestedTagTemplate: document.querySelector('.sidewalk-ai-suggested-tag.template'),
+      aiSuggestedTagTemplate: document.getElementById('sidewalk-ai-suggested-tag-template'),
     });
     menu.resetMenu(label);
   });
@@ -581,7 +581,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     document.getElementById('validate-yes-button').click();
 
     expect(label.getProperty('validationResult')).toBe('Agree');
-    expect(document.querySelectorAll('.sidewalk-ai-suggested-tag:not(.template)')).toHaveLength(2);
+    expect(document.querySelectorAll('.sidewalk-ai-suggested-tag')).toHaveLength(2);
     expect(submitDisabled()).toBe(false);
   });
 

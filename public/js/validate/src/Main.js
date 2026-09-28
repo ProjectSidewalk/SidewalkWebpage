@@ -105,7 +105,7 @@ class Main {
       mobilePopupNotch: byId('mobile-popup-notch'),
       currentTags: byId('current-tags-list'),
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
-      aiSuggestedTagTemplate: document.querySelector('.sidewalk-ai-suggested-tag.template'),
+      aiSuggestedTagTemplate: byId('sidewalk-ai-suggested-tag-template'),
     };
 
     svv.ui.undoValidation = { undoButton: byId('validate-undo-button') };

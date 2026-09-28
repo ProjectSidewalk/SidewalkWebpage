@@ -53,12 +53,13 @@
   @* ps-invisible until the mission start tutorial overlay is ready to cover it. *@
   <div class="tool-ui ps-invisible">
 
-    @* These are templates and are not visible on the screen directly. *@
-    @* JS clones them, adjusts the attributes and then appends to DOM. *@
-    <div class="current-tag tag-pill tag-pill--interactive tag-pill--active template">
-      <div class="tag-name tag-pill__label"></div>
-      <button type="button" class="remove-tag-x"><span class="remove-tag-x__icon ps-mask-icon" aria-hidden="true"></span></button>
-    </div>
+    @* JS clones these templates, adjusts the attributes and then appends to DOM. *@
+    <template id="current-tag-template">
+      <div class="current-tag tag-pill tag-pill--interactive tag-pill--active">
+        <div class="tag-name tag-pill__label"></div>
+        <button type="button" class="remove-tag-x"><span class="remove-tag-x__icon ps-mask-icon" aria-hidden="true"></span></button>
+      </div>
+    </template>
     <template id="admin-info-template">
       <div id="admin-info-content">
         <h1>Admin Info</h1>
@@ -195,7 +196,7 @@
               @Messages("validate.suggestions")
             </div>
             <div class="sidewalk-ai-suggestions-list-holder">
-              <div class="sidewalk-ai-suggested-tag tag-pill template"></div>
+              <template id="sidewalk-ai-suggested-tag-template"><div class="sidewalk-ai-suggested-tag tag-pill"></div></template>
             </div>
           </div>
           <select id="select-tag" multiple aria-hidden="true"></select>

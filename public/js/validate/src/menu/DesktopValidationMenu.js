@@ -482,7 +482,8 @@ class DesktopValidationMenu {
 
     menuUI.currentTags.replaceChildren();
     const currTags = label.getProperty('newTags');
-    const tagTemplate = document.querySelector('.current-tag.template');
+    const tagTemplateEl = /** @type {HTMLTemplateElement} */ (document.getElementById('current-tag-template'));
+    const tagTemplate = tagTemplateEl.content.firstElementChild;
     for (const tag of currTags) {
       const tagOption = allTagOptions.find((t) => t.tag_name === tag);
       if (!tagOption) {
@@ -490,7 +491,6 @@ class DesktopValidationMenu {
       }
 
       const tagDiv = /** @type {HTMLElement} */ (tagTemplate.cloneNode(true));
-      tagDiv.classList.remove('template');
       const translatedTagName = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
       tagDiv.querySelector('.tag-name').textContent = translatedTagName;
 
@@ -518,8 +518,7 @@ class DesktopValidationMenu {
     this.#tagSelect.addOption(allTagOptions);
 
     // AI SUGGESTION TAGS SECTION.
-    menuUI.aiSuggestionSection.querySelectorAll('.sidewalk-ai-suggested-tag:not(.template)')
-      .forEach((el) => el.remove());
+    menuUI.aiSuggestionSection.querySelectorAll('.sidewalk-ai-suggested-tag').forEach((el) => el.remove());
 
     // Decide which tags AI is suggesting to add or remove. If null, AI suggestion disabled on this server. The AI
     // judged the original type, so its suggestions say nothing about a type the expert just picked.
@@ -556,8 +555,8 @@ class DesktopValidationMenu {
       ];
       for (const tag of aiTagOptions) {
         // Clone the template tag element, and set all appropriate classes.
-        const suggestion = /** @type {HTMLElement} */ (menuUI.aiSuggestedTagTemplate.cloneNode(true));
-        suggestion.classList.remove('template');
+        const suggestionTemplate = menuUI.aiSuggestedTagTemplate.content.firstElementChild;
+        const suggestion = /** @type {HTMLElement} */ (suggestionTemplate.cloneNode(true));
         suggestion.classList.add(tag.action === 'add' ? 'to-add' : 'to-remove');
 
         const translatedTagName = i18next.t(`common:tag.${tag.tag_name.replace(/:/g, '-')}`);

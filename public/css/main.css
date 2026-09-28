@@ -2303,11 +2303,6 @@ kbd {
   }
 }
 
-/* Common class used to hide template elements. */
-.template {
-  display: none !important;
-}
-
 .ai-icon-marker {
   position: absolute;
   width: calc(14px * var(--ui-scale, 1));
