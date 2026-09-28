@@ -103,7 +103,7 @@ class ActivityPage {
     if (!el) return;
     const top = this.#recent && this.#recent[0];
     if (!top && !this.#series.length) {
-      el.innerHTML = 'No activity has been recorded for this deployment yet.';
+      el.innerHTML = 'No activity yet.';
       return;
     }
     let html;
@@ -486,8 +486,8 @@ class ActivityPage {
   /** Message shown when the window has fewer than two buckets, so there's no line to draw. */
   #tooSparseMsg() {
     return this.#series && this.#series.length
-      ? 'Not enough activity in this range to plot a trend. Try a longer range.'
-      : 'No activity has been recorded yet.';
+      ? 'Too little activity in this range to plot. Try a longer range.'
+      : 'No activity yet.';
   }
 
   static #startOfToday() {

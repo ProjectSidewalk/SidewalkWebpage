@@ -138,6 +138,27 @@ describe('initSidebarDisclosure', () => {
         expect(toggle.getAttribute('aria-expanded')).toBe('true');
     });
 
+    it('labels the button with just the page name when the item also carries a badge and description', () => {
+        const {init} = load();
+        document.body.innerHTML = `
+          <aside class="page-sidebar">
+            <nav class="page-nav">
+              <div class="page-nav-header">Admin Dashboard</div>
+              <a class="page-nav-item is-active" href="#">
+                <span><span class="page-nav-label">Across Cities</span> <span>All cities</span></span>
+                <span>Compare every city</span>
+              </a>
+            </nav>
+          </aside>`;
+        const sidebar = document.querySelector('.page-sidebar');
+
+        init();
+
+        const toggle = sidebar.querySelector('.page-sidebar-toggle');
+        expect(toggle.querySelector('.page-sidebar-toggle-label').textContent).toBe('Across Cities');
+        expect(toggle.getAttribute('aria-label')).toBe('Across Cities — section navigation');
+    });
+
     it('falls back to the first group header when no item is active', () => {
         const {init} = load();
         const sidebar = buildShell({active: false});

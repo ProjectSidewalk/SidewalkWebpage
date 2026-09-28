@@ -226,7 +226,7 @@ describe('Across Cities — traffic section', () => {
     expect(cells[7].textContent.trim()).toBe('12%');
     // The window isn't the city's lifetime, so the cell has to date itself.
     expect(cells[5].getAttribute('title')).toContain('2021');
-    expect(cells[5].getAttribute('title')).toContain("earlier traffic isn't included");
+    expect(cells[5].getAttribute('title')).toContain("earlier traffic isn't counted");
   });
 
   it('sorts by an all-time column independently of the recent ones', async () => {

@@ -95,10 +95,9 @@ class ImageryPipelinePanel {
     const nightly = Number.isFinite(batch) ? ` The rotation asks for ${AdminShell.num(batch)} a night.` : '';
 
     AdminShell.setText('imagery-no-imagery-note', selected === 0
-      ? `No retired street was re-checked for regained imagery in this window.${nightly} Nights recorded before that`
-      + ' rotation existed count as zero here.'
-      : `Regained-imagery re-checks over the same window: ${AdminShell.num(polled)} of ${AdminShell.num(selected)}`
-        + ` retired streets answered conclusively, queueing ${AdminShell.num(candidates)} for review.${nightly}`);
+      ? `No retired street was re-checked for regained imagery in this window.${nightly}`
+      : `Regained-imagery re-checks in this window: ${AdminShell.num(polled)} of ${AdminShell.num(selected)}`
+        + ` retired streets answered conclusively; ${AdminShell.num(candidates)} queued for review.${nightly}`);
   }
 
   /**
@@ -114,8 +113,8 @@ class ImageryPipelinePanel {
     }
     const dates = nights.map((night) => night.day).join(', ');
     AdminShell.setHtml('imagery-failure-note',
-      `${nights.length} of the last ${report.days} nights recorded a failed run (${AdminShell.esc(dates)}). `
-      + 'A failed night polls nothing, so its bars below are empty.');
+      `${nights.length} of the last ${report.days} nights recorded a failed run, with empty bars `
+      + `(${AdminShell.esc(dates)}).`);
   }
 
   /**
@@ -142,8 +141,8 @@ class ImageryPipelinePanel {
       message = `The poll is running but not polling: ${reason}`;
     } else if (poll.overdue) {
       tone = 'bad';
-      message = `The poll has not succeeded on schedule in over ${report.overdue_after_hours} hours — `
-        + 'until it does, no new street can be flagged for a re-audit.';
+      message = `The poll has not succeeded on schedule in over ${report.overdue_after_hours} hours; `
+        + 'no new street can be flagged for a re-audit until it does.';
     } else if (poll.last_status === 'failed') {
       tone = 'warn';
       message = `The most recent poll failed: ${poll.last_error || 'see the server log'}`;
@@ -151,12 +150,12 @@ class ImageryPipelinePanel {
       // The poll can be healthy while the sync that turns its dates into flags is not, and the symptom is the same
       // from the outside: nothing new gets flagged.
       tone = 'warn';
-      message = 'The poll is running, but the flag sync that turns its capture dates into re-audits is not — '
+      message = 'The poll is running, but the flag sync that turns capture dates into re-audits is not: '
         + `${sync.last_error || 'it has not succeeded on schedule'}.`;
     } else if (recentPolled === 0) {
       tone = 'warn';
-      message = `The poll has run but refreshed no streets in the last ${report.days} days — every street it `
-        + 'selected answered inconclusively.';
+      message = `The poll has run but refreshed no streets in the last ${report.days} days; every street it `
+        + 'selected was inconclusive.';
     } else {
       const flagged = (report.run_days || []).reduce((sum, day) => sum + (day.audits_flagged || 0), 0);
       message = `Polled ${recentPolled.toLocaleString()} streets in the last ${report.days} days and flagged `
@@ -174,7 +173,7 @@ class ImageryPipelinePanel {
     if (jobs.length === 0) {
       AdminShell.setHtml('imagery-jobs',
         '<p class="coverage-status error"><span class="ac-badge ac-badge--bad">!</span> '
-        + 'Could not read the job history — this panel is blind, not clear.</p>');
+        + 'Could not read the job history. This panel is blind, not clear.</p>');
       return;
     }
     const rows = jobs.map((job) => `

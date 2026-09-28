@@ -686,6 +686,7 @@ class AdminController @Inject() (
     val dailyF         = configService.getCrossCityDailyTrend(7)
     val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
+    val storyStatsF    = configService.getCrossCityStoryStats()
 
     for {
       withFlags     <- scorecardsF
@@ -693,6 +694,7 @@ class AdminController @Inject() (
       dailyTrend    <- dailyF
       windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
+      storyStats    <- storyStatsF
     } yield {
       val now        = OffsetDateTime.now()
       val scorecards = withFlags.map(_.scorecard)
@@ -866,9 +868,32 @@ class AdminController @Inject() (
       val sumDisagree       = scorecards.map(_.validationsDisagree).sum
       val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
 
+      // Story counts per city (#5543), kept apart from `cities` so a city whose scorecard failed still reports its
+      // stories; `counts` is null where the count itself failed, which the page shows as unavailable, not zero.
+      val stories = JsArray(storyStats.toSeq.sortBy(_._1).map { case (cityId, stats) =>
+        val info = cityInfoById.get(cityId)
+        Json.obj(
+          "city_id"   -> cityId,
+          "city_name" -> info.map(_.cityNameShort),
+          "url"       -> info.map(_.URL),
+          "counts"    -> stats.map { st =>
+            Json.obj(
+              "total"      -> st.total,
+              "hidden"     -> st.hidden,
+              "with_photo" -> st.withPhoto,
+              "last_7d"    -> st.last7d,
+              "visible_7d" -> st.visible7d,
+              "last_30d"   -> st.last30d,
+              "newest"     -> st.newest
+            )
+          }
+        )
+      })
+
       Ok(
         Json.obj(
           "cities"             -> cities,
+          "stories"            -> stories,
           "over_time_all_time" -> overTimeAllTime,
           "over_time_daily"    -> overTimeDaily,
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles

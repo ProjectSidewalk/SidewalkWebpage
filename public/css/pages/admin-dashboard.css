@@ -2,8 +2,8 @@
  * Styles for the redesigned admin dashboard (#4272).
  *
  * The three-column shell (sidebar / content / TOC), the KPI tiles, and the table add-ons come from components/
- * (page-shell.css, kpi.css, tables.css). This file only adds what those don't have: the "coming soon" nav treatment
- * and the Coverage page's map, legend, chart, and details panel. Type, color, and spacing come from
+ * (page-shell.css, kpi.css, tables.css). This file only adds what those don't have: the nav's scope badges and
+ * descriptions and the Coverage page's map, legend, chart, and details panel. Type, color, and spacing come from
  * the design-system tokens in main.css — avoid hardcoding values that already exist as tokens. Type is set with the
  * composite --text-* tokens.
  *
@@ -33,6 +33,41 @@
   /* Humans vs AI series colors: Okabe-Ito blue + vermillion (colorblind-safe, distinct in hue AND luminance). */
   --hva-human: #0072b2;
   --hva-ai: #d55e00;
+}
+
+/* --- Left nav: scope badge and per-link description ------------------------------------------------------------ */
+
+/* The description is neutral-700, not -600: -600 is under 4.5:1 on the blue-100 rail and the blue-300 active row. */
+.admin-nav-item {
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.admin-nav-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.admin-nav-desc {
+  display: block;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.admin-nav-scope {
+  font: var(--text-tiny-semibold);
+  white-space: nowrap;
+  background: var(--color-blue-400);
+  color: var(--color-neutral-900);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.admin-nav-scope-note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: 0 var(--space-md) var(--space-sm);
 }
 
 /* --- Deployment-info strip (shared by overview, across-cities, management, health) ---------------------------- */
@@ -2071,15 +2106,20 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 /* --- Across Cities: hero stat band + deployment map (#4329) ------------------------------------------------------ */
 .ac-hero { margin-top: var(--space-lg); }
 
+/* A grid, not a wrapping flex row: exact totals (1,712,345) wrap the row on narrower screens, and a wrapped flex
+   item would stretch to the full row width. A grid track can't grow to fit its content, so the 200px floor leaves
+   room for the widest unbroken value (an eight-digit total, or a top-city name like "Christchurch"), and other tile
+   text wraps rather than spilling into the next tile. */
 .ac-hero-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-md);
   margin-bottom: var(--space-md);
 }
 
 .ac-hero-stat {
-  flex: 1 1 120px;
+  min-width: 0;
+  overflow-wrap: break-word;
   border: 1px solid var(--color-neutral-200);
   border-radius: 8px;
   padding: var(--space-md);
@@ -2132,7 +2172,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   display: block;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
-  white-space: nowrap;
 }
 
 .ac-hero-ai {
@@ -2144,7 +2183,11 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-hero-ai:empty,
 .ac-cell-ai:empty { display: none; }
 
-.ac-cell-ai { margin-top: 1px; }
+/* Table cells keep their chip on one line; a hero tile's grid track is fixed, so its line has to be free to wrap. */
+.ac-cell-ai {
+  margin-top: 1px;
+  white-space: nowrap;
+}
 
 /* The button inside a "Most active cities" cell that carries its hover card. It takes focus, so it needs a focus ring
    (WCAG 2.4.7), and a click pins its card open (#5495), hence the pointer. Block, so the whole cell content is the
