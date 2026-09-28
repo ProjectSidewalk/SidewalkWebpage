@@ -510,15 +510,12 @@ button:disabled {
   padding: 0 var(--space-md);
 }
 
-.spacer10 { height: 10px; }
-.spacer20 { height: 20px; }
 
 /*
  * Custom styles
  */
 
-/* TODO Rename to just "button" (#5528). */
-.button-ps {
+.button {
   border: none;
   display: inline-flex;
   align-items: center;
@@ -529,21 +526,13 @@ button:disabled {
   cursor: pointer;
 }
 
-.button-ps:hover {
+.button:hover {
   text-decoration: none;
 }
 
-.button-ps:disabled {
+.button:disabled {
   cursor: not-allowed;
   pointer-events: none;
-}
-
-/* TODO This one is used in the navbar, which we aren't scaling with --ui-scale. Need to address this another way. */
-.button__static--tiny {
-  font-size: 12px;
-  font-style: var(--font-primary);
-  padding: 3px 10px;
-  border-radius: 8px;
 }
 
 .button--tiny {

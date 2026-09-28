@@ -136,7 +136,7 @@ function buildCard() {
               <label class="sr-only" for="label-detail-comment-input">Why?</label>
               <input type="text" id="label-detail-comment-input" class="label-detail__comment-input">
               <button type="button" class="label-detail__comment-submit" data-action="submit-comment">Comment</button>
-              <button type="button" class="button-ps button--small button--secondary label-detail__comment-cancel" data-action="cancel-comment-edit" hidden>Cancel</button>
+              <button type="button" class="button button--small button--secondary label-detail__comment-cancel" data-action="cancel-comment-edit" hidden>Cancel</button>
             </div>
             <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden></span>
             <div class="label-detail__validator-comments"></div>

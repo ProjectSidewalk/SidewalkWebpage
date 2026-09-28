@@ -583,7 +583,7 @@ class AccessScoreSpotlight {
     const wrap = document.createElement('div');
     wrap.className = 'spotlight-cta';
     const link = document.createElement('a');
-    link.className = 'button-ps button--secondary button--small';
+    link.className = 'button button--secondary button--small';
     link.href = `/accessScore?unit=${this.#unit}`;
     link.textContent = i18next.t(`common:access-score-spotlight.cta-${this.#unit}`);
     link.addEventListener('click', () => {

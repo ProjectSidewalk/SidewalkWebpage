@@ -49,10 +49,6 @@
   transition: background 0s;
 }
 
-#onboarding-message-holder .button {
-  width: 100%;
-}
-
 /* Inline replica of a rating segment (.severity-button, svl-context-menu.css) for tutorial messages that ask for a
    specific rating; mirrors the segment's smiley icon, type, and enclosure so it reads as "this button". */
 .onboarding-rating-chip {

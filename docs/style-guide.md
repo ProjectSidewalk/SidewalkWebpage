@@ -41,7 +41,7 @@ These apply across every language in the repo.
   line-height (or another single aspect) doesn't suit, keep the token and override that one property on the next
   line instead of hand-assembling the font. Long-form reading text takes `--text-prose-regular` (body size, looser
   leading); code blocks take `--text-code-regular`.
-- **Use the component primitives in `main.css` before writing a new one.** Buttons are `.button-ps` with a
+- **Use the component primitives in `main.css` before writing a new one.** Buttons are `.button` with a
   `.button--<variant>` and `.button--<size>` modifier; text inputs and textareas are `.ps-input`, `<select>`s are
   `.ps-select` (both take `--large` for a settings-style form); data tables are `.ps-table` (`--compact` for dense
   admin data, `.num` on a numeric cell, `.ps-table-wrapper` for the horizontal scroller); a centered page column is

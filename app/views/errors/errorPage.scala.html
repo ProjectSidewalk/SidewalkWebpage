@@ -41,9 +41,9 @@
         }
         <div class="error-actions">
           @action.map { cta =>
-            <a class="button-ps button--primary button--medium" href="@cta.href">@cta.label</a>
+            <a class="button button--primary button--medium" href="@cta.href">@cta.label</a>
           }
-          <a class="button-ps @if(action.isDefined){button--secondary}else{button--primary} button--medium error-home" href="@routes.ApplicationController.index">@Messages("error.home")</a>
+          <a class="button @if(action.isDefined){button--secondary}else{button--primary} button--medium error-home" href="@routes.ApplicationController.index">@Messages("error.home")</a>
         </div>
       </div>
     </main>

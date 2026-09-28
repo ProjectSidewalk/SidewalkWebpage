@@ -59,6 +59,11 @@
   margin: 0 auto;
 }
 
+/* The dead end's sentence. */
+.modal-mission-dead-end-text {
+  padding: calc(10px * var(--ui-scale, 1)) 0;
+}
+
 #modal-mission-background {
   position: absolute;
   left: 0;

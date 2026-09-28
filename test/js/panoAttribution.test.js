@@ -65,7 +65,7 @@ describe('createPanoAttribution', () => {
 
     const link = el().querySelector('a');
     // The cue lives inside the link so it is part of the link's accessible name, and is visually hidden by class.
-    const cue = link.querySelector('.pano-attribution__new-tab');
+    const cue = link.querySelector('.sr-only');
     expect(cue).not.toBeNull();
     expect(cue.textContent.trim()).toBe(NEW_TAB_CUE);
     expect(link.textContent).toBe(`CC BY-SA 4.0 ${NEW_TAB_CUE}`);

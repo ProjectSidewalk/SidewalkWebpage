@@ -148,7 +148,7 @@ class CrossCityStats {
     holder.innerHTML = `
       <div class="ps-table-scroll-box ud-cities-table-wrap">
       <table class="ps-table ps-table--sticky ud-cities-table">
-        <caption class="ud-sr-only">${CrossCityStats.#tEsc('dashboard:cities.table-caption')}</caption>
+        <caption class="sr-only">${CrossCityStats.#tEsc('dashboard:cities.table-caption')}</caption>
         <thead>
           <tr>
             <th scope="col">${CrossCityStats.#tEsc('dashboard:cities.col-city')}</th>

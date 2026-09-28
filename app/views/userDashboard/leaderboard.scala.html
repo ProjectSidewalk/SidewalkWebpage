@@ -63,7 +63,7 @@
 * @@Html that renders it has nothing to escape.
 *@
 @bigCountMarkup(n: Int) = @{
-  if (n >= 1000000) s"""<span aria-hidden="true">${fmtBig(n)}</span><span class="ud-sr-only">${fmtCount(n)}</span>"""
+  if (n >= 1000000) s"""<span aria-hidden="true">${fmtBig(n)}</span><span class="sr-only">${fmtCount(n)}</span>"""
   else fmtCount(n)
 }
 
@@ -123,7 +123,7 @@
 @* Top-3 rows show a medal; a visually-hidden rank number keeps the cell meaningful to screen readers. *@
 @rankCell(rank: Int) = {
   @if(rank <= 3) {
-    <span class="ud-lb-medal" aria-hidden="true">@{Seq("🥇", "🥈", "🥉")(rank - 1)}</span><span class="ud-sr-only">@rank</span>
+    <span class="ud-lb-medal" aria-hidden="true">@{Seq("🥇", "🥈", "🥉")(rank - 1)}</span><span class="sr-only">@rank</span>
   } else {
     @rank
   }
@@ -149,7 +149,7 @@
   @cityId.flatMap(id => commonData.allCityInfo.find(_.cityId == id)).map { city =>
     <a href="@city.URL" class="ud-lb-city">@city.cityNameShort</a>
   }.getOrElse {
-    <span aria-hidden="true">&mdash;</span><span class="ud-sr-only">@Messages("not.applicable.abbr")</span>
+    <span aria-hidden="true">&mdash;</span><span class="sr-only">@Messages("not.applicable.abbr")</span>
   }
 }
 
@@ -181,7 +181,7 @@
   <div class="ud-podium-spot ud-podium-@place">
     <div class="ud-podium-name"><a href="@routes.UserDashboardController.publicProfile(stat.username)" class="ud-lb-user">@stat.username</a></div>
     <div class="ud-podium-score">@Messages("leaderboard.podium.labels", fmtCount(stat.labelCount))</div>
-    <div class="ud-podium-block"><span aria-hidden="true">@medal</span><span class="ud-sr-only">@Messages(s"dashboard.rank.place.${Seq("one", "two", "three")(place - 1)}")</span></div>
+    <div class="ud-podium-block"><span aria-hidden="true">@medal</span><span class="sr-only">@Messages(s"dashboard.rank.place.${Seq("one", "two", "three")(place - 1)}")</span></div>
   </div>
 }
 
