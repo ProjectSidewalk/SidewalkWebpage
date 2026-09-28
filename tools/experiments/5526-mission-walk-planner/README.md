@@ -39,7 +39,7 @@ policy walks **every** street in the region from that start, as a fresh user who
 | `current` | A faithful port of `TaskContainer.nextTask`: connected candidates within 5 m, else 10 m, else 25 m of the finished street's end (either endpoint of the candidate); kept only if their priority quartile `min(floor(p / 0.25), 3)` equals the best remaining street's; the highest priority among them wins (ties in id order), else it jumps to the best remaining street. Orientation as in the real code: connected, or within 75 m of the finished end, starts at the nearer endpoint; otherwise the street is reversed when its default end has no unwalked endpoint within 25 m (a toggle, ported as is). |
 | `current+nearest` | The same, but a jump goes to the *nearest* street among those with the maximum priority (the [#4717](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4717) Phase 2 idea). |
 | `tolerant tol=t` | The same as `current`, with the quartile filter replaced by `priority ≥ best − t`. |
-| `planner tol=t pen=m` | `WalkPlanner` with `priorityTolerance = t` and `oddStartPenaltyM = m`, started on the drawn street. |
+| `planner tol=t pen=m` | `WalkPlanner` with `priorityTolerance = t` and `oddStartPenaltyM = m`, started on the drawn street. The tiny-street length is read from `conf/application.conf` (`walk-planner.tiny-street-m`), so the replay measures the threshold that ships. |
 
 ## Definitions
 
@@ -109,7 +109,8 @@ not been checked against these.
 
 ## Reading the numbers
 
-**The choice: `DEFAULT_PRIORITY_TOLERANCE = 0.15`, `ODD_START_PENALTY_M = 300`, unchanged by the 25 m re-run.** The
+**The choice: `walk-planner.priority-tolerance = 0.15` (application.conf), `ODD_START_PENALTY_M = 300`, unchanged by
+the 25 m re-run.** The
 selection rule was "fewest 25 m jumps per km whose km-weighted priority-AUC is no more than 0.03 below `current` in
 any city". 0.15 is the widest tolerance that passes; 0.2 fails in Seattle (0.889 against a floor of 0.909) and
 Teaneck (0.878 against 0.931). The rule picks the same tolerance at the 10 m yardstick.

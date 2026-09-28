@@ -46,15 +46,17 @@
  * and only jumps when none is. Fleury's rule (never take a bridge of the remaining graph while another street will
  * do) keeps a trail from stranding the rest of its component, and a jump lands on an odd-degree node when it can,
  * because a component with k odd nodes needs at least k/2 trails and starting anywhere else wastes one.
- * Streets under TINY_STREET_M (border-cut remnants, slivers; #4717, #3488) are eligible regardless of priority, so a
+ * Streets under `tinyStreetM` (border-cut remnants, slivers; #4717, #3488) are eligible regardless of priority, so a
  * tiny street rides along with the street it continues instead of becoming a standalone jump target later; it still
  * yields to Fleury, so a tiny dead-end spur waits until the trail would end there anyway. A tiny street is a jump
  * target only once its tier holds no other street.
  *
  * Priority is a gate on continuing, not a weight: a connected street is eligible only when its priority is within
  * `priorityTolerance` of the best remaining priority, so an out-of-tier street forces a jump rather than merely
- * ranking last; a jump goes to the nearest street in that tier. The defaults were chosen by the replay benchmark in
- * `tools/experiments/5526-mission-walk-planner/README.md`.
+ * ranking last; a jump goes to the nearest street in that tier. Both thresholds are domain values, so the planner has
+ * no defaults for them: Explore passes the backend's (`walk-planner.*` in application.conf, via the page's
+ * `mainParam.walkPlanner`), and the benchmark and tests name their own. The shipped values were chosen by the replay
+ * benchmark in `tools/experiments/5526-mission-walk-planner/README.md`.
  *
  * Pure and deterministic: no DOM, no map, no turf, its own haversine. The input is sorted by id, every tie falls to
  * the lower street id, and the graph and every end choice are built from each street's canonical endpoint order
@@ -68,26 +70,12 @@
  * ~6 / ~24 ms, and a 1,800-street comb of dead-end teeth, the worst shape found, ~41 / ~67 ms.
  *
  * @example
- * const planner = new WalkPlanner(streets);
+ * const planner = new WalkPlanner(streets, { priorityTolerance: 0.15, tinyStreetM: 20 });
  * const { steps, stats } = planner.plan({ streetId: currentTask.getStreetEdgeId() });
  */
 class WalkPlanner {
   /** Endpoints within this many metres are one node (the same value as RouteGraph.NODE_TOLERANCE_M). */
   static NODE_TOLERANCE_M = 10;
-  /**
-   * A street is tiny when `lengthM < TINY_STREET_M` (strictly less). A tiny street is eligible to continue onto at
-   * any priority and is walked as soon as it is adjacent. Explore's tiny-street auto-complete reads this constant
-   * with the same comparison, so the two can't drift apart.
-   */
-  static TINY_STREET_M = 20;
-  /**
-   * A connected street is eligible if its priority is within this of the best remaining priority. The unit is the
-   * server's reciprocal-normalized priority (`StreetEdgePriorityTable`: `priority = 1 / (1 + goodAudits + …)`), so a
-   * change to that formula silently re-tunes this tolerance. 0.15 is the widest tolerance whose km-weighted
-   * priority-AUC stayed within 0.03 of the greedy fallback rule's in every dev city; wider ones cut jumps further but
-   * walk low-priority streets early (tools/experiments/5526-mission-walk-planner/README.md).
-   */
-  static DEFAULT_PRIORITY_TOLERANCE = 0.15;
   /**
    * Metres a jump pays for landing on an even-degree node, where starting a trail usually wastes one. 300 m cut
    * jumps 6–11% against no penalty across the dev cities; 1,000 m bought under 1% more and lengthened jumps (same
@@ -113,8 +101,17 @@ class WalkPlanner {
   #byPriority;
   /** @type {number} */
   #lowerBound;
-  /** @type {number} */
+  /**
+   * @type {number} A connected street is eligible if its priority is within this of the best remaining priority. The
+   *   unit is the server's reciprocal-normalized priority (`StreetEdgePriorityTable`: `priority = 1 / (1 + goodAudits
+   *   + …)`), so a change to that formula silently re-tunes the tolerance.
+   */
   #priorityTolerance;
+  /**
+   * @type {number} A street is tiny when `lengthM < tinyStreetM` (strictly less). Explore's tiny-street auto-complete
+   * reads the same setting with the same comparison, so the two can't drift apart.
+   */
+  #tinyStreetM;
   /** @type {number} */
   #oddStartPenaltyM;
   /** @type {Uint32Array} Per node, the stamp of the last bridge search that reached it (reused across searches). */
@@ -128,12 +125,20 @@ class WalkPlanner {
 
   /**
    * @param {PlannerStreet[]} streets - The streets still to be walked (already filtered: not complete, not given up).
-   * @param {{priorityTolerance?: number, oddStartPenaltyM?: number}} [options] - The penalty is exposed for the
-   *   benchmark's sweep; callers normally leave both at their defaults.
+   * @param {{priorityTolerance: number, tinyStreetM: number, oddStartPenaltyM?: number}} options - The two thresholds
+   *   are required (see the class doc); the penalty is a planner heuristic, exposed for the benchmark's sweep, and
+   *   normally left at its default.
+   * @throws {TypeError} When either threshold is missing or not a finite number, so a page that failed to hand them
+   *   over falls back to the greedy rule (TaskContainer.planWalk) instead of planning with a silent default.
    */
-  constructor(streets, options = {}) {
-    this.#priorityTolerance = options.priorityTolerance ?? WalkPlanner.DEFAULT_PRIORITY_TOLERANCE;
-    this.#oddStartPenaltyM = options.oddStartPenaltyM ?? WalkPlanner.ODD_START_PENALTY_M;
+  constructor(streets, options) {
+    const { priorityTolerance, tinyStreetM, oddStartPenaltyM } = options ?? {};
+    if (!Number.isFinite(priorityTolerance) || !Number.isFinite(tinyStreetM)) {
+      throw new TypeError('WalkPlanner needs finite priorityTolerance and tinyStreetM settings');
+    }
+    this.#priorityTolerance = priorityTolerance;
+    this.#tinyStreetM = tinyStreetM;
+    this.#oddStartPenaltyM = oddStartPenaltyM ?? WalkPlanner.ODD_START_PENALTY_M;
 
     this.#streets = WalkPlanner.#usableStreets(streets).map((s) => ({
       id: s.id,
@@ -317,13 +322,13 @@ class WalkPlanner {
   }
 
   /**
-   * Whether a street is tiny (see TINY_STREET_M for the boundary).
+   * Whether a street is tiny (see #tinyStreetM for the boundary).
    *
    * @param {number} index - The street.
-   * @returns {boolean} True when it is strictly shorter than TINY_STREET_M.
+   * @returns {boolean} True when it is strictly shorter than the tiny-street threshold.
    */
   #isTiny(index) {
-    return this.#streets[index].lengthM < WalkPlanner.TINY_STREET_M;
+    return this.#streets[index].lengthM < this.#tinyStreetM;
   }
 
   /**

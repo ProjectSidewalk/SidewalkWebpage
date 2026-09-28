@@ -71,6 +71,8 @@ describe('Tiny-street auto-completion at a spawn point (#3682)', () => {
         svl = {
             STREETVIEW_MAX_DISTANCE: 25,
             CONNECTED_TASK_THRESHOLD: 0.025,
+            // The backend's threshold (walk-planner.tiny-street-m), shared with the planner.
+            walkPlannerSettings: { priorityTolerance: 0.15, tinyStreetM: 20 },
             isOnboarding: () => false,
             isExploreAddressMode: () => false,
             tracker: { push: jest.fn() },
@@ -121,15 +123,19 @@ describe('Tiny-street auto-completion at a spawn point (#3682)', () => {
         expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(next);
     });
 
-    it('reads what "tiny" means from WalkPlanner, so the planner and this check agree', () => {
-        window.WalkPlanner = { TINY_STREET_M: 10 };
-        try {
-            place(makeTask(1, 0, 15), makeTask(2, 15, 200));
+    it('reads what "tiny" means from the backend\'s setting, so the planner and this check agree', () => {
+        svl.walkPlannerSettings.tinyStreetM = 10;
+        place(makeTask(1, 0, 15), makeTask(2, 15, 200));
 
-            expect(nav.completeTinyStreetAtSpawn()).toBe(false);
-        } finally {
-            delete window.WalkPlanner;
-        }
+        expect(nav.completeTinyStreetAtSpawn()).toBe(false);
+    });
+
+    it('completes nothing when the page carries no setting, rather than guessing a threshold', () => {
+        delete svl.walkPlannerSettings;
+        place(makeTask(1, 0, 15), makeTask(2, 15, 200));
+
+        expect(nav.completeTinyStreetAtSpawn()).toBe(false);
+        expect(autoCompletions()).toEqual([]);
     });
 
     it('leaves a 40 m street alone even when all of it is in view', () => {

@@ -152,9 +152,10 @@ class TaskContainer {
    * each street's direction onto its task (#5526).
    *
    * Planned on the client because the client already holds every street in the region with its live priority, so no
-   * endpoint or storage is needed, and a replan after a give-up or a priority change costs milliseconds. The planner
-   * breaks every tie by street id, so the same streets, priorities and start street give the same plan; a reload that
-   * resumes the same street replans the same remaining walk.
+   * endpoint or storage is needed, and a replan after a give-up or a priority change costs milliseconds. The
+   * thresholds it plans with are the backend's (svl.walkPlannerSettings, from walk-planner.* in application.conf),
+   * not literals here. The planner breaks every tie by street id, so the same streets, priorities and start street
+   * give the same plan; a reload that resumes the same street replans the same remaining walk.
    *
    * While a jump is armed the replan is only recorded, and runs once the jump lands (#deferredReplanReason).
    *
@@ -196,7 +197,8 @@ class TaskContainer {
           fixedDirection: task.isResumed(),
         };
       });
-      const plan = new WalkPlanner(streets).plan(startsOnCurrent
+      const { priorityTolerance, tinyStreetM } = this.#svl.walkPlannerSettings ?? {};
+      const plan = new WalkPlanner(streets, { priorityTolerance, tinyStreetM }).plan(startsOnCurrent
         ? { streetId: current.getStreetEdgeId() }
         : { from: this.#currentPositionLngLat() });
       this.#applyWalkPlan(plan, toPlan, reason);
@@ -206,6 +208,7 @@ class TaskContainer {
       const { stats } = plan;
       this.#tracker.push('WalkPlan_Created', {
         reason,
+        tolerance: priorityTolerance,
         streets: stats.streets,
         jumps: stats.jumps,
         plannedM: Math.round(stats.totalM),
@@ -379,9 +382,10 @@ class TaskContainer {
   }
 
   /**
-   * The unwalked streets the planner treats as the top tier: priority within WalkPlanner.DEFAULT_PRIORITY_TOLERANCE of
-   * the best one left. A street entering or leaving it changes which streets the walk may take before a jump, so a
-   * change to this set is one a replan has to see.
+   * The unwalked streets the planner treats as the top tier: priority within the configured tolerance
+   * (svl.walkPlannerSettings.priorityTolerance, the same value the plan was built with) of the best one left. A street
+   * entering or leaving it changes which streets the walk may take before a jump, so a change to this set is one a
+   * replan has to see.
    *
    * @returns {Set<Task>} Empty when nothing is left to walk.
    */
@@ -389,7 +393,7 @@ class TaskContainer {
     const unwalked = this.getUnwalkedTasks();
     if (unwalked.length === 0) return new Set();
     const best = Math.max(...unwalked.map((task) => task.getStreetPriority()));
-    const cutoff = best - WalkPlanner.DEFAULT_PRIORITY_TOLERANCE;
+    const cutoff = best - (this.#svl.walkPlannerSettings?.priorityTolerance ?? 0);
     return new Set(unwalked.filter((task) => task.getStreetPriority() >= cutoff));
   }
 

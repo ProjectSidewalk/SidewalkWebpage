@@ -19,6 +19,10 @@ const WalkPlanner = vm.runInThisContext(
   `${fs.readFileSync(path.join(ROOT, 'public/js/common/WalkPlanner.js'), 'utf8')}\nWalkPlanner;`
 );
 
+// The planner's thresholds are owned by application.conf (walk-planner.*), so the tiny-street length is read from
+// there rather than repeated here; the priority tolerance is what the sweep varies, with the shipped value marked.
+const TINY_STREET_M = readConf('walk-planner.tiny-street-m');
+const SHIPPED_TOLERANCE = readConf('walk-planner.priority-tolerance');
 // Explore's own thresholds (Main.js): connected within 25 m, "near the route" within 1.5 × 50 m.
 const CONNECTED_M = 25;
 const NEARBY_LINE_M = 75;
@@ -42,9 +46,22 @@ const POLICIES = [
   })),
   ...[0.05, 0.1, 0.15, 0.2, 0.25, 0.5, 1.0].flatMap((tol) => [0, 300, 1000].map((pen) => ({
     name: `planner tol=${tol} pen=${pen}`,
-    run: (r, s) => runPlanner(r, s, { priorityTolerance: tol, oddStartPenaltyM: pen }),
+    run: (r, s) => runPlanner(r, s, { priorityTolerance: tol, tinyStreetM: TINY_STREET_M, oddStartPenaltyM: pen }),
   }))),
 ];
+
+/**
+ * The literal value of a `key = <number>` line in conf/application.conf (the first one; the env-var override line
+ * that follows it is `${?VAR}`, not a number).
+ * @param {string} key - A dotted config key.
+ * @returns {number} The value.
+ */
+function readConf(key) {
+  const conf = fs.readFileSync(path.join(ROOT, 'conf/application.conf'), 'utf8');
+  const match = conf.match(new RegExp(`^${key.replace(/\./g, '\\.')}\\s*=\\s*([0-9.]+)\\s*$`, 'm'));
+  if (!match) throw new Error(`${key} not found in conf/application.conf`);
+  return Number(match[1]);
+}
 
 function parseArgs(argv) {
   const out = {};
@@ -329,7 +346,8 @@ function perfCase(name) {
   const { label, streets } = PERF_CASES[name]();
   const run = () => {
     const t = performance.now();
-    const { stats } = new WalkPlanner(streets).plan({ streetId: streets[0].id });
+    const { stats } = new WalkPlanner(streets, { priorityTolerance: SHIPPED_TOLERANCE, tinyStreetM: TINY_STREET_M })
+      .plan({ streetId: streets[0].id });
     return { ms: performance.now() - t, planMs: stats.ms };
   };
   const cold = run();
@@ -403,7 +421,8 @@ for (const city of CITIES) {
       const reps = 10;
       const tp = performance.now();
       for (let r = 0; r < reps; r++) {
-        new WalkPlanner(region.plannerInput).plan({ streetId: streets[starts[r % starts.length]].id });
+        new WalkPlanner(region.plannerInput, { priorityTolerance: SHIPPED_TOLERANCE, tinyStreetM: TINY_STREET_M })
+          .plan({ streetId: streets[starts[r % starts.length]].id });
       }
       largest = { n: streets.length, ms: (performance.now() - tp) / reps, regionId };
     }

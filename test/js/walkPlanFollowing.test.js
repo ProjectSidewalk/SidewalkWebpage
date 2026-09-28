@@ -76,7 +76,6 @@ const DEFAULT_STATS = {
 class FakeWalkPlanner {
     static instances = [];
     static script = null;
-    static DEFAULT_PRIORITY_TOLERANCE = 0.15;
 
     constructor(streets, options) {
         this.streets = streets;
@@ -123,6 +122,8 @@ describe('A neighborhood mission\'s planned walk', () => {
             missionContainer: { getCurrentMission: () => mission, getTasksMissionsOffset: () => null },
             panoViewer: { getPosition: () => position },
             walkPlanLayer: { refresh: jest.fn(), getPreviewedTasks: jest.fn(() => []) },
+            // The backend's thresholds (walk-planner.* in application.conf), as Main copies them from the page.
+            walkPlannerSettings: { priorityTolerance: 0.15, tinyStreetM: 20 },
         };
         window.svl = svl;
         tracker = { push: jest.fn(), setAuditTaskID: jest.fn() };
@@ -157,6 +158,15 @@ describe('A neighborhood mission\'s planned walk', () => {
     });
 
     describe('is built once the region\'s streets load', () => {
+        it('plans with the backend\'s thresholds, not literals of its own', async () => {
+            await load();
+
+            expect(FakeWalkPlanner.instances[0].options).toEqual({ priorityTolerance: 0.15, tinyStreetM: 20 });
+            expect(tracker.push).toHaveBeenCalledWith('WalkPlan_Created', expect.objectContaining({
+                reason: 'load', tolerance: 0.15,
+            }));
+        });
+
         it('from the current street, over every street still to walk', async () => {
             await load({ features: [feature(2), feature(3, { completed: true }), feature(4)] });
 
@@ -190,7 +200,7 @@ describe('A neighborhood mission\'s planned walk', () => {
             await load();
 
             expect(pushed('WalkPlan_Created')).toEqual([['WalkPlan_Created', {
-                reason: 'load', streets: 5, jumps: 1, plannedM: 500, lowerBoundJumps: 1, ms: 1,
+                reason: 'load', tolerance: 0.15, streets: 5, jumps: 1, plannedM: 500, lowerBoundJumps: 1, ms: 1,
             }]]);
         });
 

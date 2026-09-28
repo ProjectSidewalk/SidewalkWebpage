@@ -71,6 +71,9 @@ class Main {
     svl.makeCrops = params.makeCrops;
     // Lat/lng estimator constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
     svl.latLngEstimation = params.latLngEstimation;
+    // The walk planner's thresholds (#5526): backend-owned (walk-planner.* in application.conf), read by
+    // TaskContainer.planWalk and NavigationService's tiny-street auto-complete.
+    svl.walkPlannerSettings = params.walkPlanner;
 
     svl.mapboxApiKey = params.mapboxApiKey;
     svl.storage = new TemporaryStorage(JSON);

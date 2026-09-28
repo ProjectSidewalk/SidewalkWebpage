@@ -10,9 +10,8 @@ class NavigationService {
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
   // Below the 25 m completion radius a street is degenerate by construction (#4717): Task.isAtEnd caps its end
   // threshold at a fraction of the length, and the end-of-street check only runs after a move, so a labeler who
-  // arrives already at its end can never finish it and is left pressing Stuck (#3682). WalkPlanner's TINY_STREET_M is
-  // the one definition of "tiny"; this copy only covers a bundle the planner failed to load into.
-  static #TINY_STREET_M_FALLBACK = 20;
+  // arrives already at its end can never finish it and is left pressing Stuck (#3682). What counts as "tiny" is the
+  // backend's walk-planner.tiny-street-m (svl.walkPlannerSettings), shared with the planner; see #tinyStreetM.
   // A run of tiny streets that each lead into the next is completed one after another; this bounds the run, so a
   // pathological cluster can never loop the page.
   static #MAX_TINY_STREET_CHAIN = 5;
@@ -427,12 +426,14 @@ class NavigationService {
   }
 
   /**
-   * The length under which a street is too short to walk: WalkPlanner's, so the planner and this check agree on which
-   * streets are tiny and on the boundary.
+   * The length under which a street is too short to walk: the backend's setting, the same one the planner runs with,
+   * so the two agree on which streets are tiny and on the boundary (strictly shorter). A page that did not receive
+   * the setting completes nothing, rather than guessing a threshold here.
    * @returns {number} Metres.
    */
   static #tinyStreetM() {
-    return typeof WalkPlanner === 'undefined' ? NavigationService.#TINY_STREET_M_FALLBACK : WalkPlanner.TINY_STREET_M;
+    const tinyStreetM = svl.walkPlannerSettings?.tinyStreetM;
+    return Number.isFinite(tinyStreetM) ? tinyStreetM : 0;
   }
 
   /**
