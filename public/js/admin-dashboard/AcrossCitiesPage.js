@@ -198,11 +198,11 @@ class AcrossCitiesPage {
     this.#setText('hero-cities', this.#num(s.num_cities));
     this.#setText('hero-countries', this.#num(s.num_countries));
     this.#setText('hero-languages', this.#num(s.num_languages));
-    this.#setText('hero-users', this.#compact(s.total_users));
+    this.#setText('hero-users', this.#num(s.total_users));
     this.#setText('hero-distance', `${this.#num(Math.round(s.total_km || 0))} km`);
-    this.#setText('hero-labels', this.#compact(s.total_labels));
-    this.#setText('hero-validations', this.#compact(s.total_validations));
-    this.#setText('hero-datapoints', this.#compact(s.total_datapoints));
+    this.#setText('hero-labels', this.#num(s.total_labels));
+    this.#setText('hero-validations', this.#num(s.total_validations));
+    this.#setText('hero-datapoints', this.#num(s.total_datapoints));
     this.#setText('hero-agreement', s.global_agreement ? this.#pct(s.global_agreement) : '—');
   }
 

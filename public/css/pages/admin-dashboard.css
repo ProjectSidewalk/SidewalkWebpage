@@ -56,6 +56,40 @@
   margin-left: var(--space-xs);
 }
 
+/* --- Left nav: scope badge and per-link description ------------------------------------------------------------ */
+/* The description is neutral-700, not -600: -600 is under 4.5:1 on both the white rail and the blue-300 active row. */
+.admin-nav-item {
+  padding-top: calc(6px * var(--ui-scale, 1));
+  padding-bottom: calc(6px * var(--ui-scale, 1));
+}
+
+.admin-nav-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.admin-nav-desc {
+  display: block;
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+}
+
+.admin-nav-scope {
+  font: var(--text-tiny-semibold);
+  white-space: nowrap;
+  background: var(--color-blue-400);
+  color: var(--color-neutral-900);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.admin-nav-scope-note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: 0 var(--space-md) var(--space-sm);
+}
+
 /* --- Deployment-info strip (shared by overview, across-cities, management, health) ---------------------------- */
 
 /* Slimmer sibling of .ov-pulse: quiet metadata about the running instance, not a KPI. Rendered by adminLayout
