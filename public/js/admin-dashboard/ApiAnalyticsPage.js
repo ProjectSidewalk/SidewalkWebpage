@@ -119,19 +119,13 @@ class ApiAnalyticsPage {
       return keys;
     }
     const windowStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
-    const [sy, sm, sd] = [ApiAnalyticsPage.#isoDay(windowStart), firstDataKey].sort()[0].split('-').map(Number);
     const keys = [];
-    let cur = new Date(sy, sm - 1, sd);
+    let cur = util.parseDate([util.localIsoDate(windowStart), firstDataKey].sort()[0]);
     while (cur <= today) {
-      keys.push(ApiAnalyticsPage.#isoDay(cur));
+      keys.push(util.localIsoDate(cur));
       cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
     }
     return keys;
-  }
-
-  /** ISO `YYYY-MM-DD` for a local Date (no UTC conversion, so no day-shift). */
-  static #isoDay(dt) {
-    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
   }
 
   /**
@@ -194,33 +188,29 @@ class ApiAnalyticsPage {
     return `${startStr} – ${end.toLocaleDateString(undefined, withYear)}`;
   }
 
-  /** Formats an ISO `YYYY-MM-DD` date as a localized long date, parsing parts locally to avoid a UTC day-shift. */
+  /** Formats an ISO `YYYY-MM-DD` date as a localized long date. */
   static #fmtDate(iso) {
-    const [y, m, day] = String(iso).split('-').map(Number);
-    if (!y || !m || !day) return String(iso);
-    return new Date(y, m - 1, day).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const date = util.parseDate(iso);
+    return isNaN(date.getTime()) ? String(iso) : date.toLocaleDateString(undefined, { dateStyle: 'long' });
   }
 
   /** Whole days between an ISO `YYYY-MM-DD` date and today (local midnight to local midnight); null if unparseable. */
   static #daysAgo(iso) {
-    const [y, m, day] = String(iso).split('-').map(Number);
-    if (!y || !m || !day) return null;
-    const then = new Date(y, m - 1, day);
+    const then = util.parseDate(iso);
+    if (isNaN(then.getTime())) return null;
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     return Math.max(0, Math.round((today.getTime() - then.getTime()) / 86400000));
   }
 
-  /** Short day label, e.g. "Jun 1", from an ISO `YYYY-MM-DD` (parsed locally to avoid a UTC day-shift). */
+  /** Short day label, e.g. "Jun 1", from an ISO `YYYY-MM-DD`. */
   static #dayLabel(iso) {
-    const [y, m, day] = iso.split('-').map(Number);
-    return new Date(y, m - 1, day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return util.parseDate(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   /** Short month label, e.g. "Jun 2026", from a `YYYY-MM` bucket key. */
   static #monthLabel(ym) {
-    const [y, m] = ym.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    return util.parseDate(ym).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
   }
 
   /**

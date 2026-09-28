@@ -125,7 +125,7 @@ class Form {
           history: panoData.history.map((prevPano) => {
             return {
               pano_id: prevPano.panoId,
-              date: prevPano.captureDate.format('YYYY-MM'),
+              date: util.localIsoDate(prevPano.captureDate).slice(0, 7),
             };
           }),
         };

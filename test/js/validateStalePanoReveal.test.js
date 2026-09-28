@@ -115,6 +115,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     global.util = {};
     (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
     util.isMobile = () => false;
+    global.i18next = { language: 'en' };
 
     logo = { showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() };
     attribution = { show: jest.fn(), hide: jest.fn() };
@@ -128,7 +129,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
       ui: { viewer: { date: { text: jest.fn() } } },
     };
 
-    panoData = { getPanoId: () => 'pano1', getProperty: () => ({ format: () => 'Jun 2026' }) };
+    panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5) };
     primaryViewer = makeFakeViewer();
     pannellumViewer = makeFakeViewer();
     pannellumViewer.currPanoData = panoData;
@@ -151,6 +152,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
   afterEach(() => {
     document.body.innerHTML = '';
     delete global.util;
+    delete global.i18next;
     delete global.createPanoViewerLogo;
     delete global.createPanoAttribution;
     delete global.GsvViewer;

@@ -208,7 +208,7 @@ class FunnelsSection {
   #formatDate(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(undefined, util.SHORT_DATE);
   }
 
   static #esc(s) {

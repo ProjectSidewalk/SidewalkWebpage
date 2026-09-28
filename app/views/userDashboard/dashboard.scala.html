@@ -91,7 +91,8 @@
     .withLocale(messages.lang.toLocale))
 }
 
-@* Capture dates are month-granular in practice, so a full date would over-claim precision. *@
+@* Capture dates are month-granular in practice, so a full date would over-claim precision. Java can't word a
+   month and year the way each language does (zh-TW is 2026年3月), so OutdatedStreets rewrites this with Intl. *@
 @imageryMonthLabel(d: java.time.LocalDate) = @{
   d.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", messages.lang.toLocale))
 }
@@ -413,7 +414,8 @@
                 <span class="ud-reaudit-meta">
                   @streetLengthLabel(street.distanceMeters)
                   @for(captured <- street.newImageryDate) {
-                    · @Messages("dashboard.reaudit.imagery", imageryMonthLabel(captured))
+                    · @Html(Messages("dashboard.reaudit.imagery",
+                      s"""<time class="ud-reaudit-imagery-date" datetime="${captured.toString.take(7)}">${imageryMonthLabel(captured)}</time>"""))
                   }
                 </span>
                 @for(audited <- street.lastAuditedAt) {

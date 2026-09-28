@@ -71,13 +71,6 @@ function makeFakePannellum() {
 async function makeViewer() {
     const { state, lib } = makeFakePannellum();
     window.pannellum = lib;
-    // PanoData wraps captureDate in moment() and validates it with `instanceof moment`, so the stub has to hand
-    // back something on its own prototype chain. Nothing here reads the formatted value.
-    window.moment = function moment(v) {
-        const m = Object.create(window.moment.prototype);
-        m.format = () => String(v);
-        return m;
-    };
     window.eval(`
         class GsvViewer {}
         class MapillaryViewer {}

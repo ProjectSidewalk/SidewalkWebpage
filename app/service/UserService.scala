@@ -18,7 +18,7 @@ import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, Messages}
 
-import java.time.format.DateTimeFormatter
+import java.time.format.{DateTimeFormatter, FormatStyle}
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import java.util.Locale
 import javax.inject._
@@ -423,7 +423,7 @@ object UserService {
     val daysFromSunday                 = today.getDayOfWeek.getValue % 7 // Mon=1..Sat=6, Sun=0
     val currentWeekSunday              = today.minusDays(daysFromSunday.toLong)
     val startSunday                    = currentWeekSunday.minusWeeks((HeatmapWeeks - 1).toLong)
-    val fmt                            = DateTimeFormatter.ofPattern("EEE, MMM d", locale)
+    val fmt                            = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale)
     val cells: Seq[Option[StreakCell]] = for {
       w <- 0 until HeatmapWeeks
       d <- 0 until 7
@@ -1053,7 +1053,7 @@ class UserServiceImpl @Inject() (
     val weeklyF         = db.run(trophyTable.getWeeklyPodiums(userId, 6))
     val freeExploreF    = db.run(trophyTable.getFreeExplorationTrophyFlags(userId))
     val medals          = Map(1 -> "🥇", 2 -> "🥈", 3 -> "🥉")
-    val weekOfFmt       = DateTimeFormatter.ofPattern("MMM d, yyyy", messages.lang.toLocale)
+    val weekOfFmt       = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(messages.lang.toLocale)
     for {
       cityPioneer                            <- cityPioneerF
       regionPioneers                         <- regionPioneersF

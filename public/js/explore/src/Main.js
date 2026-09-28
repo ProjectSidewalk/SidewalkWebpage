@@ -259,7 +259,7 @@ class Main {
     // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
     const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
     svl.panoDateNote.update(
-      initialCaptureDate ? initialCaptureDate.format('YYYY-MM-DD') : null,
+      initialCaptureDate ? util.localIsoDate(initialCaptureDate) : null,
       svl.taskContainer.getCurrentTask(),
     );
 
