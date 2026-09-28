@@ -64,7 +64,7 @@ async function renderPanel(sources, overrides = {}) {
       sources.splice(sources.findIndex((s) => s.source_value === username), 1);
     }
     return Promise.resolve(reply(method === 'GET' ? { provider: 'mapillary', sources: [...sources] }
-      : { status: 'success' }));
+      : { status: 'success', added: 1 }));
   });
   await new MapillarySourcesPanel({ sourcesUrl: '/adminapi/mapillarySources' }).init();
   return requests;
@@ -114,6 +114,11 @@ test('lists the creators, who added each, and links their Mapillary profile', as
   const link = document.querySelector('tr[data-username="profjfray"] a');
   expect(link.href).toBe('https://www.mapillary.com/app/user/profjfray');
   expect(link.rel).toContain('noopener');
+  // When it was added reads as a date and time, keeping the exact instant for assistive tech and copy-paste.
+  const added = document.querySelector('tr[data-username="profjfray"] time');
+  expect(added.getAttribute('datetime')).toBe('2026-09-18T17:00:00Z');
+  expect(added.textContent).toBe(globalThis.AdminShell.dateTime('2026-09-18T17:00:00Z'));
+  expect(added.textContent).toMatch(/2026/);
   // A source the onboarding tooling seeded has no admin behind it, and says so rather than showing a blank.
   expect(document.querySelector('tr[data-username="seeded"]').textContent).toContain('onboarding tooling');
 });
@@ -139,6 +144,30 @@ test('adding posts the trimmed username, reloads, and clears the field', async (
   expect(status()).toBe('Restricted to imagery from 1 creator.');
   expect(document.getElementById('imagery-sources-username').value).toBe('');
   expect(error().hidden).toBe(true);
+});
+
+test('re-adding a listed creator warns without asking the server', async () => {
+  const requests = await renderPanel([source('profjfray')]);
+  await add(' profjfray ');
+  expect(requests.some((r) => r.method === 'POST')).toBe(false);
+  expect(error().hidden).toBe(false);
+  expect(error().textContent).toBe('"profjfray" is already an allowed creator, so nothing changed.');
+  expect(document.getElementById('imagery-sources-username').value).toBe(' profjfray ');
+  expect(listedCreators()).toEqual(['profjfray']);
+});
+
+test('warns when the server reports the creator was already listed, e.g. added meanwhile in another tab', async () => {
+  const sources = [];
+  await renderPanel(sources, {
+    POST: () => {
+      sources.push(source('profjfray', 'alice'));
+      return reply({ status: 'success', username: 'profjfray', added: 0 });
+    },
+  });
+  await add('profjfray');
+  expect(error().textContent).toBe('"profjfray" is already an allowed creator, so nothing changed.');
+  expect(listedCreators()).toEqual(['profjfray']);
+  expect(document.querySelector('button[type="submit"]').disabled).toBe(false);
 });
 
 test('a blank username is not sent', async () => {

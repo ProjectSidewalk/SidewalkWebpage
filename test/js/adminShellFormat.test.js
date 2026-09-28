@@ -124,6 +124,22 @@ describe('AdminShell.relativeTime', () => {
   });
 });
 
+describe('AdminShell.dateTime', () => {
+  test('renders date and time, not epoch millis or an ISO string', () => {
+    const text = AdminShell.dateTime('2026-09-22T22:39:11Z');
+    const expected = new Date('2026-09-22T22:39:11Z')
+      .toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    expect(text).toBe(expected);
+    expect(text).not.toMatch(/^\d+$|T\d\d:/);
+  });
+
+  test('renders an absent or unparseable timestamp as an em dash', () => {
+    expect(AdminShell.dateTime(null)).toBe('—');
+    expect(AdminShell.dateTime(undefined)).toBe('—');
+    expect(AdminShell.dateTime('not a date')).toBe('—');
+  });
+});
+
 describe('AdminShell.tableHtml', () => {
   test('marks text columns for left alignment and leaves numeric ones to sit over their .ac-num cells', () => {
     const html = AdminShell.tableHtml(['Job', ['Duration', true]], '<tr><td>x</td><td>y</td></tr>');

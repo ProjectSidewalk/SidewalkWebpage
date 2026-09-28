@@ -90,7 +90,7 @@ class MapillarySourcesPanel {
         <tr data-username="${username}">
           <td><a href="${profileUrl}" target="_blank" rel="noopener noreferrer">${username}</a></td>
           <td>${AdminShell.esc(source.added_by ?? 'onboarding tooling')}</td>
-          <td>${AdminShell.ts(source.added_at)}</td>
+          <td><time datetime="${AdminShell.esc(source.added_at)}">${AdminShell.dateTime(source.added_at)}</time></td>
           <td><button type="button" class="reopen-queue-btn" data-action="remove"
             aria-label="Remove ${username} from the allowed creators">Remove</button></td>
         </tr>`;
@@ -100,7 +100,8 @@ class MapillarySourcesPanel {
 
   /**
    * Adds the typed username. The server verifies it against Mapillary first, so a typo is refused with a reason
-   * instead of silently restricting the deployment to nothing.
+   * instead of silently restricting the deployment to nothing. Re-adding a listed creator changes nothing, and says
+   * so: a silent no-op reads as a successful add, leaving the admin unsure whether they typed the name they meant.
    *
    * @returns {Promise<void>}
    */
@@ -108,6 +109,11 @@ class MapillarySourcesPanel {
     const username = this.#input.value.trim();
     if (!username) return;
     this.#setError('');
+    // Caught here to spare a Mapillary round trip; the server's `added: 0` below still covers a list gone stale.
+    if (this.#isListed(username)) {
+      this.#warnAlreadyListed(username);
+      return;
+    }
     const submit = this.#form.querySelector('button[type="submit"]');
     submit.disabled = true;
     try {
@@ -117,7 +123,9 @@ class MapillarySourcesPanel {
         body: JSON.stringify({ username }),
       });
       if (!response.ok) throw new Error(await MapillarySourcesPanel.#errorMessage(response));
-      this.#input.value = '';
+      const { added } = await response.json();
+      if (added === 0) this.#warnAlreadyListed(username);
+      else this.#input.value = '';
       await this.#load();
     } catch (e) {
       console.error('Imagery sources: add failed.', e);
@@ -162,6 +170,23 @@ class MapillarySourcesPanel {
       this.#setError(`Could not remove "${username}": ${e.message}`);
       button.disabled = false;
     }
+  }
+
+  /**
+   * @param {string} username - A trimmed username.
+   * @returns {boolean} Whether the rendered list already holds it, compared exactly as the server's uniqueness does.
+   */
+  #isListed(username) {
+    return [...this.#list.querySelectorAll('tr[data-username]')].some((row) => row.dataset.username === username);
+  }
+
+  /**
+   * Says a creator is already listed, keeping what was typed so a near-miss of the intended name can be corrected.
+   *
+   * @param {string} username - The trimmed username that was already listed.
+   */
+  #warnAlreadyListed(username) {
+    this.#setError(`"${username}" is already an allowed creator, so nothing changed.`);
   }
 
   /**
