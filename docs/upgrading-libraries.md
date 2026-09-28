@@ -66,8 +66,8 @@ readonly_user -d sidewalk`).
   ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — so `docker-compose.yml` starts the db
   with `jit=off`, matching prod.
 - **Prod server settings dev lacks** (set by CSE IT in its `postgresql.conf` after
-  [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)): `jit = off`,
-  `idle_in_transaction_session_timeout = 2min`, and `log_lock_waits = on`.
+  [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)):
+  `idle_in_transaction_session_timeout = 2min` and `log_lock_waits = on`.
 - **Prod's `psql` on the PATH is 13.23**, older than the 16.14 server. A 13 `pg_dump` refuses a 16 server, so
   check `pg_dump --version` before dumping there.
 - **Dev's Postgres is what a fresh build gets:** the base image ships 16.4 and `db/Dockerfile` upgrades it, so an old

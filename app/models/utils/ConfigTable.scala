@@ -400,8 +400,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * the service layer and the rows are rendered as a comparison page. Rows are picked by the same [[FilteredTables]]
    * fragments as `getCityAggregateDataBySchema`, so a city's totals here reconcile with its single-city stats.
    *
-   * Composed from three queries on the same connection: the single-row core metrics, the per-label-type breakdown
-   * (reusing [[getLabelTypeStatsBySchema]]), and the weekly trend (`getCityWeeklyTrendBySchema`).
+   * Composed from the single-row core metrics, the per-label-type breakdown (reusing [[getLabelTypeStatsBySchema]]),
+   * the weekly trend (`getCityWeeklyTrendBySchema`), and the per-user output stats.
    *
    * AI is determined by the shared `sidewalk_login` role (`user_role.role = 'AI'`), not anything in the city schema — so
    * those joins are intentionally not schema-qualified, matching `getCityDailyLabelStatsBySchema`. `user_role` has one
@@ -583,9 +583,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     """.as[ScorecardCore].head
     }
 
-    // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats (same
-    // connection), then assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on
-    // a separate long-cached path (getCrossCityLabelingSpeed).
+    // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats, then
+    // assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on a separate
+    // long-cached path (getCrossCityLabelingSpeed).
     for {
       hasOutdatedImageryCol  <- upToDateFilterQuery
       hasLabelTypeEnum       <- schemaHasLabelTypeEnum(schema)
