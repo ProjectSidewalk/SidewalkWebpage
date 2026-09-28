@@ -40,8 +40,10 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 - **The `16-3.5` image line is a dead end.** apt.postgresql.org's bullseye pool stops at PostGIS 3.5.2, and
   docker-postgis publishes no `16-3.6` tag (3.6 images start at Postgres 17) or bookworm variant for 16 — so newer
   geospatial libraries in dev means moving the Postgres major *and* the base OS together, not a version bump.
-- **Java 17** is two LTS lines behind but patched through 2027, so it's a planned migration rather than an exposure;
-  prod's JVM version has never been collected (#4398 captured its OS and DB stack only). Dependabot deliberately
+- **Java 17 in dev and CI, Java 21 on prod** (reported by the maintainer, 2026-09-28). Upstream patches 17 through
+  2027, but the `17-jdk-focal` image stopped being rebuilt in Apr 2025, so a fresh build's JDK is frozen at 17.0.15. No
+  focal-based Temurin 21 image exists, so matching prod's Java means leaving focal
+  ([#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)). Dependabot deliberately
   ignores major `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
 
 ### Database server
