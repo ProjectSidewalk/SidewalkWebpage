@@ -214,6 +214,16 @@
   "pano-attribution": {
     "opens-new-tab": "(wird in einem neuen Tab geöffnet)"
   },
+  "image-adjustments": {
+    "button": "Bild",
+    "tooltip": "Schatten, Helligkeit und Kontrast der Bilder anpassen",
+    "title": "Bildanpassungen",
+    "shadows": "Schatten",
+    "brightness": "Helligkeit",
+    "contrast": "Kontrast",
+    "reset": "Auf Standard zurücksetzen",
+    "persist-note": "Diese Einstellungen bleiben in Erkunden und Validieren erhalten, bis Sie sie zurücksetzen."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "RICHTIGES BEISPIEL",
     "label-type-subtitle": "Wieso ist das falsch?",

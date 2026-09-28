@@ -214,6 +214,16 @@
   "pano-attribution": {
     "opens-new-tab": "(opens in a new tab)"
   },
+  "image-adjustments": {
+    "button": "Image",
+    "tooltip": "Adjust shadows, brightness and contrast of the imagery",
+    "title": "Image adjustments",
+    "shadows": "Shadows",
+    "brightness": "Brightness",
+    "contrast": "Contrast",
+    "reset": "Reset to defaults",
+    "persist-note": "These settings persist across Explore and Validate until you reset them."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "CORRECT EXAMPLE",
     "label-type-subtitle": "Why is this wrong?",

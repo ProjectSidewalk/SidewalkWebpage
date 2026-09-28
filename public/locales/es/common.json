@@ -214,6 +214,16 @@
   "pano-attribution": {
     "opens-new-tab": "(se abre en una pestaña nueva)"
   },
+  "image-adjustments": {
+    "button": "Imagen",
+    "tooltip": "Ajusta las sombras, el brillo y el contraste de la imagen",
+    "title": "Ajustes de imagen",
+    "shadows": "Sombras",
+    "brightness": "Brillo",
+    "contrast": "Contraste",
+    "reset": "Restablecer valores",
+    "persist-note": "Estos ajustes se mantienen en Explorar y Validar hasta que los restablezcas."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "EJEMPLO CORRECTO",
     "label-type-subtitle": "¿Por qué está mal?",

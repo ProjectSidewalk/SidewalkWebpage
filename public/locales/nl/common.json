@@ -214,6 +214,16 @@
   "pano-attribution": {
     "opens-new-tab": "(opent in een nieuw tabblad)"
   },
+  "image-adjustments": {
+    "button": "Beeld",
+    "tooltip": "Pas schaduwen, helderheid en contrast van de beelden aan",
+    "title": "Beeldinstellingen",
+    "shadows": "Schaduwen",
+    "brightness": "Helderheid",
+    "contrast": "Contrast",
+    "reset": "Standaardwaarden herstellen",
+    "persist-note": "Deze instellingen blijven behouden in Ontdekken en Bevestigen totdat u ze herstelt."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "JUISTE VOORBEELD",
     "label-type-subtitle": "Waarom is dit verkeerd?",
