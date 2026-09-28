@@ -123,8 +123,8 @@ describe('PanoInfoPopover view-in-pano link', () => {
 
         // Translations render as their raw keys so assertions stay locale-independent.
         window.i18next = { t: (key) => key };
-        window.util = { assetPath: assetPathStub };
-        installDateHelpers(); // The info button's icon URL.
+        window.util = { assetPath: assetPathStub }; // The info button's icon URL.
+        installDateHelpers();
         window.cityName = 'Washington';
         clipboardText = null;
         Object.defineProperty(navigator, 'clipboard', {

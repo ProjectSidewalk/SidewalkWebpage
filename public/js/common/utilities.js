@@ -482,33 +482,35 @@ util.monthYear = function (iso, { short = false } = {}) {
 
 /** Short date ("Mar 5, 2026"), spelled out because `dateStyle: 'medium'` is all digits in German. */
 util.SHORT_DATE = Object.freeze({ day: 'numeric', month: 'short', year: 'numeric' });
+util.SHORT_DATE_TIME = Object.freeze({ ...util.SHORT_DATE, hour: 'numeric', minute: '2-digit' });
 
 /**
- * Like `new Date()`, but reads a bare `2024-10` or `2024-10-01` as local midnight rather than UTC midnight, which is
- * still the previous month anywhere west of London.
+ * Like `new Date()`, but reads a bare `2024`, `2024-10` or `2024-10-01` as local midnight rather than UTC midnight,
+ * which is still the previous month anywhere west of London.
  * @param {string|number|Date} value - A month, date, or timestamp string, epoch milliseconds, or a `Date`.
  * @returns {Date} The date, which is invalid (`NaN` time) if the value couldn't be read.
  */
 util.parseDate = function (value) {
-  const calendar = typeof value === 'string' ? /^(\d{4})-(\d{2})(?:-(\d{2}))?$/.exec(value) : null;
+  const calendar = typeof value === 'string' ? /^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/.exec(value) : null;
   if (calendar === null) return new Date(value);
-  return new Date(Number(calendar[1]), Number(calendar[2]) - 1, Number(calendar[3] ?? 1));
+  const [year, month, day] = [Number(calendar[1]), Number(calendar[2] ?? 1), Number(calendar[3] ?? 1)];
+  const date = new Date(year, month - 1, day);
+  // `Date` rolls 2024-13 over into January 2025, so reject anything that didn't land where it was asked to.
+  return date.getMonth() === month - 1 && date.getDate() === day ? date : new Date(NaN);
 };
 
 /**
- * "3 days ago", "yesterday", etc. in the largest whole unit, since `Intl.RelativeTimeFormat` won't pick one.
+ * "3 days ago" in the largest whole unit, since `Intl.RelativeTimeFormat` won't pick one. Rounds down, so it never
+ * says "60 minutes ago", and never says "yesterday", which names a calendar day rather than a span of time.
  * @param {Date} date - A past date.
  * @returns {string}
  */
 util.timeAgo = function (date) {
-  const seconds = (date.getTime() - Date.now()) / 1000;
-  /** @type {Array<[Intl.RelativeTimeFormatUnit, number]>} Each unit and its length in seconds. */
-  const units = [['year', 31536000], ['month', 2592000], ['day', 86400], ['hour', 3600], ['minute', 60]];
-  const phrase = new Intl.RelativeTimeFormat(i18next.language, { numeric: 'auto' });
-  for (const [unit, size] of units) {
-    if (Math.abs(seconds) >= size) return phrase.format(Math.round(seconds / size), unit);
-  }
-  return phrase.format(0, 'second');
+  const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000);
+  /** @type {Array<[Intl.RelativeTimeFormatUnit, number]>} Each unit and its average length in seconds. */
+  const units = [['year', 31557600], ['month', 2629800], ['day', 86400], ['hour', 3600], ['minute', 60], ['second', 1]];
+  const [unit, size] = units.find(([, length]) => seconds >= length) ?? units.at(-1);
+  return new Intl.RelativeTimeFormat(i18next.language).format(-Math.floor(seconds / size), unit);
 };
 
 /**

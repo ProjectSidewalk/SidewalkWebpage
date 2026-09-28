@@ -191,14 +191,16 @@ class PanoInfoPopover {
     const currPanoId = this.#panoId ? this.#panoId() : null;
     const currStreetEdgeId = this.#streetEdgeId ? this.#streetEdgeId() : null;
     const currRegionId = this.#regionId ? this.#regionId() : null;
-    const currPanoDate = this.#panoDate
-      ? this.#panoDate().toLocaleDateString(i18next.language, { month: 'short', year: 'numeric' })
+    const panoDate = this.#panoDate?.();
+    const currPanoDate = panoDate && !Number.isNaN(panoDate.getTime())
+      ? panoDate.toLocaleDateString(i18next.language, { month: 'short', year: 'numeric' })
       : null;
     const currPanoAddress = this.#panoAddress ? this.#panoAddress() : null;
     const currPov = this.#pov ? this.#pov() : { heading: 0, pitch: 0 };
     const currLabelId = this.#labelId ? this.#labelId() : null;
-    const currLabelDate = this.#labelDate
-      ? this.#labelDate().toLocaleString(i18next.language, { dateStyle: 'long', timeStyle: 'short' })
+    const labelDate = this.#labelDate?.();
+    const currLabelDate = labelDate && !Number.isNaN(labelDate.getTime())
+      ? labelDate.toLocaleString(i18next.language, { dateStyle: 'long', timeStyle: 'short' })
       : null;
 
     /**

@@ -17,6 +17,15 @@ describe('util.parseDate', () => {
         expect(util.parseDate('2024-10-05')).toEqual(new Date(2024, 9, 5));
     });
 
+    test('reads a bare year as local midnight on Jan 1', () => {
+        expect(util.parseDate('2024')).toEqual(new Date(2024, 0, 1));
+    });
+
+    test('gives an invalid date for a month or day that does not exist', () => {
+        expect(Number.isNaN(util.parseDate('2024-13').getTime())).toBe(true);
+        expect(Number.isNaN(util.parseDate('2024-02-30').getTime())).toBe(true);
+    });
+
     test('reads full timestamps and epoch milliseconds the way new Date does', () => {
         expect(util.parseDate('2024-11-01T03:00:00Z').getTime()).toBe(Date.UTC(2024, 10, 1, 3));
         expect(util.parseDate(1700000000000).getTime()).toBe(1700000000000);
@@ -43,16 +52,19 @@ describe('util.timeAgo', () => {
     const MINUTE = 60 * 1000;
     const DAY = 24 * 60 * MINUTE;
 
-    test('uses the largest whole unit', () => {
+    test('uses the largest whole unit, rounded down', () => {
         expect(ago(5 * MINUTE)).toBe('5 minutes ago');
+        expect(ago(59.9 * MINUTE)).toBe('59 minutes ago');
+        expect(ago(33 * 60 * MINUTE)).toBe('1 day ago');
         expect(ago(3 * DAY)).toBe('3 days ago');
-        expect(ago(90 * DAY)).toBe('3 months ago');
+        expect(ago(90 * DAY)).toBe('2 months ago');
+        expect(ago(364 * DAY)).toBe('11 months ago');
         expect(ago(800 * DAY)).toBe('2 years ago');
     });
 
-    test('says "yesterday" and "now" rather than "1 day ago" and "0 seconds ago"', () => {
-        expect(ago(DAY)).toBe('yesterday');
-        expect(ago(10 * 1000)).toBe('now');
+    test('counts seconds under a minute, and treats a slightly future time as just now', () => {
+        expect(ago(10 * 1000)).toBe('10 seconds ago');
+        expect(util.timeAgo(new Date(Date.now() + 5000))).toBe('0 seconds ago');
     });
 
     test('follows the page language', () => {

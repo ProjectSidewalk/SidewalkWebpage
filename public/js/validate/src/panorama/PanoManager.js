@@ -180,8 +180,10 @@ class PanoManager {
 
     if (!util.isMobile()) {
       // Add the capture date of the image to the bottom-right corner of the UI.
-      svv.ui.viewer.date.textContent = panoData.getProperty('captureDate')
-        .toLocaleDateString(i18next.language, { month: 'short', year: 'numeric' });
+      const captureDate = panoData.getProperty('captureDate');
+      svv.ui.viewer.date.textContent = Number.isNaN(captureDate.getTime())
+        ? ''
+        : captureDate.toLocaleDateString(i18next.language, { month: 'short', year: 'numeric' });
     }
 
     return panoData;

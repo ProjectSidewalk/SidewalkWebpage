@@ -44,6 +44,7 @@ describe('a Gallery card\'s location line', () => {
     }
 
     beforeAll(() => {
+        window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
         window.i18next = { t: (key) => key, language: 'en' };
         window.util = {
             assetPath: assetPathStub,
@@ -111,5 +112,14 @@ describe('a Gallery card\'s location line', () => {
         const name = locationLine().querySelector('.card-location__name');
         expect(name.querySelector('img')).toBeNull();
         expect(name.textContent).toBe('<img src=x onerror="alert(1)">Park');
+    });
+
+    describe('its properties', () => {
+        it('hands its dates on exactly as the server sent them, even ones that are not dates (#5549)', () => {
+            const card = renderCard({ image_capture_date: 'Invalid date', label_timestamp: '2024-10-01T03:00:00Z' });
+
+            expect(card.getProperties()).toMatchObject(
+                { image_capture_date: 'Invalid date', label_timestamp: '2024-10-01T03:00:00Z' });
+        });
     });
 });

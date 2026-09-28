@@ -66,13 +66,21 @@ function installUtilitiesMisc() {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js'), 'utf8'));
 }
 
-/** Copies the real date helpers from utilities.js onto `window.util`, leaving the suite's own stubs alone. */
+/**
+ * Copies the real date helpers from utilities.js onto `window.util`, leaving the suite's own stubs alone.
+ *
+ * The file runs inside a function with stand-in `window` and `document`, so its top-level functions (camelToKebab
+ * and friends) and listeners stay out of the page the suite built.
+ */
 function installDateHelpers() {
-    const stubbed = window.util;
-    window.util = {};
-    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilities.js'), 'utf8'));
-    const { SHORT_DATE, yearMonth, monthYear, parseDate, localIsoDate, timeAgo } = window.util;
-    window.util = Object.assign(stubbed || {}, { SHORT_DATE, yearMonth, monthYear, parseDate, localIsoDate, timeAgo });
+    const scratch = {};
+    const scratchWindow = { util: scratch, navigator: window.navigator, addEventListener: () => {} };
+    const scratchDocument = { readyState: 'complete', addEventListener: () => {} };
+    const src = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilities.js'), 'utf8');
+    new Function('window', 'document', 'util', src)(scratchWindow, scratchDocument, scratch);
+    const { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo } = scratch;
+    window.util = Object.assign(window.util || {},
+        { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo });
 }
 
 module.exports = {

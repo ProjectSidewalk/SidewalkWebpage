@@ -2511,8 +2511,7 @@ class LabelDetail {
         const when = document.createElement('span');
         when.className = 'label-detail__comment-when';
         when.textContent = util.timeAgo(new Date(timeCreated));
-        when.title = new Date(timeCreated)
-          .toLocaleString(i18next.language, { ...util.SHORT_DATE, hour: 'numeric', minute: '2-digit' });
+        when.title = new Date(timeCreated).toLocaleString(i18next.language, util.SHORT_DATE_TIME);
         return when;
       };
 

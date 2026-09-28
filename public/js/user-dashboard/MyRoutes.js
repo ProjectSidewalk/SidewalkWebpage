@@ -26,10 +26,11 @@ class MyRoutes {
    * west of Greenwich — so a route saved at 6 PM Tuesday in Seattle reads as Wednesday.
    */
   #localizeDates() {
+    const shortDate = new Intl.DateTimeFormat(i18next.language, util.SHORT_DATE);
     this.#list.querySelectorAll('.ud-route-date').forEach((el) => {
       const savedAt = new Date(el.dateTime);
       if (Number.isNaN(savedAt.getTime())) return;
-      el.textContent = savedAt.toLocaleDateString(i18next.language, util.SHORT_DATE);
+      el.textContent = shortDate.format(savedAt);
     });
   }
 

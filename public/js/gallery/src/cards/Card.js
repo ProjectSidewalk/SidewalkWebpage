@@ -99,11 +99,7 @@ class Card {
     const panoImage = this.#panoImage;
 
     for (const attrName in param) {
-      if (attrName === 'label_timestamp' || attrName === 'image_capture_date') {
-        properties[attrName] = util.parseDate(param[attrName]);
-      } else if (Object.hasOwn(param, attrName) && Object.hasOwn(properties, attrName)) {
-        properties[attrName] = param[attrName];
-      }
+      if (Object.hasOwn(param, attrName) && Object.hasOwn(properties, attrName)) properties[attrName] = param[attrName];
     }
     properties.pov = { heading: param.heading, pitch: param.pitch, zoom: param.zoom };
     properties.original_canvas_x = param.canvas_x;
@@ -251,20 +247,7 @@ class Card {
    * @returns {Record<string, any>}
    */
   getProperties() {
-    return Card.#deepCopy(this.#properties);
-  }
-
-  /**
-   * Copies arrays and plain objects; Dates and other class instances are shared rather than copied.
-   * @param {*} value
-   * @returns {*}
-   */
-  static #deepCopy(value) {
-    if (Array.isArray(value)) return value.map((item) => Card.#deepCopy(item));
-    if (value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
-      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, Card.#deepCopy(item)]));
-    }
-    return value;
+    return structuredClone(this.#properties);
   }
 
   /**

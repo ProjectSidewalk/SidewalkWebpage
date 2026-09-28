@@ -90,10 +90,11 @@ class OutdatedStreets {
    * west of Greenwich.
    */
   #localizeDates() {
+    const shortDate = new Intl.DateTimeFormat(i18next.language, util.SHORT_DATE);
     this.#list.querySelectorAll('.ud-reaudit-date').forEach((el) => {
       const auditedAt = new Date(el.dateTime);
       if (Number.isNaN(auditedAt.getTime())) return;
-      el.textContent = auditedAt.toLocaleDateString(i18next.language, util.SHORT_DATE);
+      el.textContent = shortDate.format(auditedAt);
     });
   }
 
