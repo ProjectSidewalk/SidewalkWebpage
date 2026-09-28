@@ -13,9 +13,9 @@ import scala.concurrent.{ExecutionContext, Future}
 /**
  * An account, of any role.
  *
- * @param createdAt When the account was made. None for an older account whose date hasn't been filled in (#5532).
+ * @param createdAt When the person first reached the site, which for most is before they registered (#5532).
  */
-case class SidewalkUser(userId: String, username: String, email: String, createdAt: Option[OffsetDateTime])
+case class SidewalkUser(userId: String, username: String, email: String, createdAt: OffsetDateTime)
 
 /**
  * The user behind a request, loaded on every request. Account-wide settings ride along so pages needn't query again.
@@ -39,7 +39,7 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
   def username: Rep[String] = column[String]("username")
   def email: Rep[String]    = column[String]("email")
   // DEFAULT now() in the DB.
-  def createdAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("created_at")
+  def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
   def * = (userId, username, email, createdAt) <> (SidewalkUser.tupled, SidewalkUser.unapply)
 
   // CHECK (email = lower(email)) and CHECK (username NOT LIKE '%@%') in the DB.

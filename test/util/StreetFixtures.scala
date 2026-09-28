@@ -41,7 +41,7 @@ trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
   protected def insertUser(): DBIO[String] = {
     val userId = UUID.randomUUID.toString
     for {
-      _ <- sidewalkUsersForFixtures += SidewalkUser(userId, s"spec-$userId", s"spec-$userId@example.com", Some(now))
+      _ <- sidewalkUsersForFixtures += SidewalkUser(userId, s"spec-$userId", s"spec-$userId@example.com", now)
       _ <- sqlu"""INSERT INTO user_stat (user_stat_id, user_id)
                   VALUES ((SELECT COALESCE(MAX(user_stat_id), 0) + 1 FROM user_stat), $userId)"""
     } yield userId

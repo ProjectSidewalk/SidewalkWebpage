@@ -223,8 +223,8 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       val (userId, _, _) = signUpFreshUser()
       runAccounts(
         sql"""SELECT created_at > now() - interval '1 minute' FROM sidewalk_login.sidewalk_user
-              WHERE user_id = $userId""".as[Option[Boolean]]
-      ).head mustBe Some(true)
+              WHERE user_id = $userId""".as[Boolean]
+      ).head mustBe true
     }
   }
 
