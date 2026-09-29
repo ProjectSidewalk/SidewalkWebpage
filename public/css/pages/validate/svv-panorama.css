@@ -261,14 +261,6 @@
   display: none;
   flex-direction: row;
   align-items: stretch;
-  gap: calc(3px * var(--ui-scale, 1));
-
-  /* Only the buttons take clicks, so the space beside a short button still reaches the pano. */
-  pointer-events: none;
-}
-
-#validate-control-menu > .pano-overlay-button {
-  pointer-events: auto;
 }
 
 #validate-control-buttons-toggle[aria-expanded="true"] + #validate-control-menu {
