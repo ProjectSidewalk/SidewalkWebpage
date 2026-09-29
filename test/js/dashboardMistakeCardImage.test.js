@@ -73,15 +73,6 @@ describe('the dashboard mistake card\'s image', () => {
             Promise.resolve({ ok: true, json: () => Promise.resolve({ Obstacle: mistakes }) }));
     });
 
-    it('titles the card without the soft-hyphen entity German translations carry', async () => {
-        const t = window.i18next.t;
-        window.i18next.t = (key) => (key === 'common:obstacle' ? 'Hindernis&shy;objekt' : t(key));
-        await renderGallery();
-        window.i18next.t = t;
-
-        expect(document.querySelector('.ud-card-title').textContent).toBe('Hindernisobjekt');
-    });
-
     it('prefers the saved crop over the Street View Static API image', async () => {
         await renderGallery();
 

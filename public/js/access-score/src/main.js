@@ -657,12 +657,13 @@ window.AccessScoreApp = (function () {
       const term = street?.audited ? street.terms[type] : null;
       // The term is this type's whole contribution to the street, not this one cluster's, so the wording says
       // "on this street" rather than pinning the number to the dot under the pointer.
+      const typeName = util.misc.labelTypeName(type);
       const effect = term
         ? `<div class="acs-tooltip__meta">${i18next.t('accessscore:cluster-effect', {
-          type: util.misc.labelTypeName(type), value: signed(term.term), interpolation: { escapeValue: true } })}</div>`
+          type: typeName, value: signed(term.term), interpolation: { escapeValue: true } })}</div>`
         : '';
       return `<strong><span class="acs-popup__swatch" style="background-color: ${
-        util.misc.getLabelColors(type)};"></span>${util.misc.labelTypeName(type)}</strong>
+        util.misc.getLabelColors(type)};"></span>${typeName}</strong>
         <div class="acs-tooltip__meta">${meta}</div>
         ${effect}
         <div class="acs-tooltip__hint">${i18next.t('accessscore:cluster-open')}</div>`;

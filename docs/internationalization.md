@@ -106,11 +106,11 @@ need neither. And if the rule fires on something that is really a text sink, the
 a comment, never `true`: turning escaping on at a text sink is the bug #5389 fixed.
 
 Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
-and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is — the label-type
-names use that, because the German ones carry a `&shy;`.
+and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is.
 
-In JS, read a label type's name with `util.misc.labelTypeName(type)`, which drops that `&shy;` for plain text
-(`{ softHyphens: true }` keeps it as a real soft hyphen). `data-i18n` text gets the soft hyphen automatically.
+To mark where a long word may break, write a soft hyphen as `\u00AD` in the JSON, never the `&shy;` entity: most
+of our JS writes translations as plain text, where the entity prints literally (`make lint-locales` rejects it). In
+JS, read a label type's name with `util.misc.labelTypeName(type)`.
 
 ### Dates
 

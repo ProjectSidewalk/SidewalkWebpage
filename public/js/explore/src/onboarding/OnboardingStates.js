@@ -182,8 +182,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       },
-      // The message box takes HTML, and the type name is a translation of ours — the German ones carry a `&shy;`,
-      // which has to reach the box as an entity — so escaping stays off for it here and at the eight siblings below.
+      // The message box takes HTML, but the type name is a translation of ours, so it needs no escaping here or at the
+      // eight siblings below.
       message: { message: i18next.t('tutorial.common.re-label', { label_type: i18next.t('common:curb-ramp') }) },
       panoId,
       annotations: [

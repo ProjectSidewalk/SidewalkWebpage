@@ -1955,7 +1955,7 @@ class LabelDetail {
       this.#typeDropdown.setType(labelType);
       return;
     }
-    const name = util.misc.labelTypeName(labelType, { softHyphens: true });
+    const name = util.misc.labelTypeName(labelType);
     for (const el of this.#els.title?.querySelectorAll('.label-type-trigger__name') ?? []) el.textContent = name;
   }
 
