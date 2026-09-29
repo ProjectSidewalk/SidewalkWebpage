@@ -109,6 +109,9 @@ Two things escaping never touches: the **translation string itself** (markup ins
 and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is — the label-type
 names use that, because the German ones carry a `&shy;`.
 
+In JS, read a label type's name with `util.misc.labelTypeName(type)`, which drops that `&shy;` for plain text
+(`{ softHyphens: true }` keeps it as a real soft hyphen). `data-i18n` text gets the soft hyphen automatically.
+
 ### Dates
 
 Dates are formatted by the browser's built-in `Intl`, e.g. `date.toLocaleDateString(i18next.language, util.SHORT_DATE)`,

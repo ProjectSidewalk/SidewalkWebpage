@@ -66,6 +66,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     util.isMobile = () => false;
     util.uiScale = () => 1;
     util.camelToKebab = (str) => str.toLowerCase();
+    util.misc = { ...util.misc, labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`) };
     // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant here.
     jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
     util.pano = {

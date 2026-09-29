@@ -40,22 +40,34 @@ window.localizeSubtree = function (root) {
 };
 
 /**
+ * A translation with its `&shy;` break points made safe for plain text. Some translations (the German label types)
+ * carry the entity so long words can wrap, but these setters write text, where it would print literally. Element text
+ * keeps them as real soft hyphens; attributes aren't laid out as wrapping text, so they drop them.
+ * @param {string} key - The i18next key.
+ * @param {boolean} keepBreaks - Swap each entity for a soft-hyphen character rather than dropping it.
+ * @returns {string}
+ */
+function translatedText(key, keepBreaks) {
+  return i18next.t(key).replaceAll('&shy;', keepBreaks ? '\u00AD' : '');
+}
+
+/**
  * Apply any data-i18n* attributes on a single element.
  * @param {Element} el
  */
 window.localizeElement = function (el) {
   const textKey = el.getAttribute('data-i18n');
-  if (textKey) el.textContent = i18next.t(textKey);
+  if (textKey) el.textContent = translatedText(textKey, true);
 
   const placeholderKey = el.getAttribute('data-i18n-placeholder');
-  if (placeholderKey) el.setAttribute('placeholder', i18next.t(placeholderKey));
+  if (placeholderKey) el.setAttribute('placeholder', translatedText(placeholderKey, false));
 
   const ariaLabelKey = el.getAttribute('data-i18n-aria-label');
-  if (ariaLabelKey) el.setAttribute('aria-label', i18next.t(ariaLabelKey));
+  if (ariaLabelKey) el.setAttribute('aria-label', translatedText(ariaLabelKey, false));
 
   const tooltipKey = el.getAttribute('data-i18n-tooltip');
-  if (tooltipKey) el.setAttribute('data-ps-tooltip', i18next.t(tooltipKey));
+  if (tooltipKey) el.setAttribute('data-ps-tooltip', translatedText(tooltipKey, false));
 
   const altKey = el.getAttribute('data-i18n-alt');
-  if (altKey) el.setAttribute('alt', i18next.t(altKey));
+  if (altKey) el.setAttribute('alt', translatedText(altKey, false));
 };

@@ -107,6 +107,7 @@ describe('Label minimap eras (#4945)', () => {
             EXPLORE_CANVAS_HEIGHT: 480,
             camelToKebab: (s) => s.replace(/([A-Z])/g, (m, c, i) => (i ? '-' : '') + c.toLowerCase()),
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
                 getIconImagePaths: (t) => ({ iconImagePath: `/icons/${t}_small.svg` }),
                 labelTypeHasSeverity: () => false,
             },

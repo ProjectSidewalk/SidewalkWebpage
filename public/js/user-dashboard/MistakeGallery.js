@@ -166,7 +166,7 @@ class MistakeGallery {
 
     const title = document.createElement('span');
     title.className = 'ud-card-title';
-    title.textContent = MistakeGallery.#typeName(type);
+    title.textContent = util.misc.labelTypeName(type);
     body.appendChild(title);
 
     const valNote = document.createElement('span');
@@ -433,16 +433,5 @@ class MistakeGallery {
     b.textContent = label;
     b.setAttribute('data-ps-tooltip', title);
     return b;
-  }
-
-  /**
-   * The localized display name for a label type, via the shared common-namespace keys ("NoCurbRamp" ->
-   * t('common:no-curb-ramp')).
-   * @param {string} type - LabelTypeEnum name.
-   * @returns {string}
-   */
-  static #typeName(type) {
-    const key = String(type).replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-    return i18next.t(`common:${key}`).replaceAll('&shy;', '');
   }
 }

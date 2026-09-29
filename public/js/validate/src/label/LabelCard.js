@@ -133,7 +133,7 @@ class LabelCard {
     // that's what the link opens.
     if (this.#shareWidget) {
       const sharedType = label.getAuditProperty('labelType');
-      const typeName = i18next.t(`common:${util.camelToKebab(sharedType)}`).replace('&shy;', '');
+      const typeName = util.misc.labelTypeName(sharedType);
       const shareText = i18next.t('common:share.text', { labelType: typeName });
       this.#shareWidget.setTarget({
         url: `${window.location.origin}/label/${label.getAuditProperty('labelId')}`,

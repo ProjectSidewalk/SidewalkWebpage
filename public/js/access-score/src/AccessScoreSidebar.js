@@ -167,7 +167,7 @@ class AccessScoreSidebar {
     const weights = root.querySelector('#acs-weights');
     weights.innerHTML = this.#config.scored_types.map((type) => {
       const problem = this.#config.type_weights[type].base_weight < 0;
-      const name = AccessScoreChart.typeName(type);
+      const name = util.misc.labelTypeName(type);
       const role = i18next.t(problem ? 'accessscore:row-hurts' : 'accessscore:row-helps');
       const roleTitle = i18next.t(problem ? 'accessscore:weight-problem' : 'accessscore:weight-feature');
       return `

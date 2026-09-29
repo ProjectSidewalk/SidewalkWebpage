@@ -885,7 +885,7 @@ class LabelDetail {
 
     this.#typeDropdown?.setOpen(false);
     this.#renderTitle(meta.label_type);
-    const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`).replaceAll('&shy;', '');
+    const labelTypeName = util.misc.labelTypeName(meta.label_type);
 
     // Cross-surface hop to the LabelMap, which opens this label's popup and pulses its map location.
     if (this.#showLabelMapLink && els.labelMapLink) {
@@ -1955,7 +1955,7 @@ class LabelDetail {
       this.#typeDropdown.setType(labelType);
       return;
     }
-    const name = i18next.t(`common:${camelToKebab(labelType)}`).replaceAll('&shy;', '\u00AD');
+    const name = util.misc.labelTypeName(labelType, { softHyphens: true });
     for (const el of this.#els.title?.querySelectorAll('.label-type-trigger__name') ?? []) el.textContent = name;
   }
 
@@ -2300,7 +2300,7 @@ class LabelDetail {
         return;
       }
       if (typeChange && !change.undo) {
-        const name = i18next.t(`common:${camelToKebab(meta.label_type)}`).replace('&shy;', '');
+        const name = util.misc.labelTypeName(meta.label_type);
         this.#showEditStatus(i18next.t('labelmap:edit-type-changed', { labelType: name }), {
           columns: ['type'],
           action: {

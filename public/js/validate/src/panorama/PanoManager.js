@@ -299,7 +299,7 @@ class PanoManager {
     // localized the same way the card's header is.
     marker.setAttribute(
       'aria-label',
-      i18next.t(`common:${util.camelToKebab(label.getProperty('newLabelType'))}`).replace('&shy;', ''),
+      util.misc.labelTypeName(label.getProperty('newLabelType')),
     );
   }
 

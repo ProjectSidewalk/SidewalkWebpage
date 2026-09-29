@@ -44,6 +44,22 @@ function UtilitiesMisc(JSON) {
     return category ? imagePaths[category] : imagePaths;
   }
 
+  /**
+   * A label type's translated name, ready to use as plain text.
+   *
+   * Some translations (the German ones) mark where a long word may break with a `&shy;` entity, which would print
+   * as literal text anywhere but innerHTML. By default the break points are dropped; `softHyphens` swaps them for real
+   * soft-hyphen characters instead, for the few spots where the name sits in a narrow box and should wrap.
+   *
+   * @param {string} labelType - A label type name, e.g. 'SurfaceProblem'.
+   * @param {object} [opts]
+   * @param {boolean} [opts.softHyphens=false] - Keep the break points as soft-hyphen characters.
+   * @returns {string}
+   */
+  function labelTypeName(labelType, { softHyphens = false } = {}) {
+    return i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', softHyphens ? '­' : '');
+  }
+
   // TODO either explain why the translations aren't found programmatically, or make it programmatic.
   function getLabelDescriptions(category) {
     const descriptions = {
@@ -774,6 +790,7 @@ function UtilitiesMisc(JSON) {
 
   self.labelMarkerFraction = labelMarkerFraction;
   self.getIconImagePaths = getIconImagePaths;
+  self.labelTypeName = labelTypeName;
   self.getLabelDescriptions = getLabelDescriptions;
   self.isPositiveLabelType = isPositiveLabelType;
   self.labelTypeHasSeverity = labelTypeHasSeverity;

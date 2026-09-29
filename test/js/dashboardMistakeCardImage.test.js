@@ -58,6 +58,7 @@ describe('the dashboard mistake card\'s image', () => {
             assetPath: assetPathStub,
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
+            camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
         };
         installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
         // The imagery-credit overlays; dashboardMistakeCardAttribution.test.js checks them for real.
