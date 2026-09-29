@@ -38,7 +38,6 @@ libraryDependencies ++= Seq(
   "org.playframework.silhouette" %% "play-silhouette-crypto-jca"      % "10.0.4",
   "org.playframework.silhouette" %% "play-silhouette-persistence"     % "10.0.4",
   "net.codingwell" %% "scala-guice" % "6.0.0", // This on top of play-guice, I think to simplify SilhouetteModule.scala.
-  "com.iheart"     %% "ficus"       % "1.5.2",
 
   // Slick and Postgres stuff.
   "org.postgresql"     % "postgresql"            % "42.7.13",

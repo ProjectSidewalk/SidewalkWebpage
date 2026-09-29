@@ -117,15 +117,6 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
   migrates (watch the [Play changelog](https://www.playframework.com/changelog)).
   [Releases](https://mvnrepository.com/artifact/net.codingwell/scala-guice) ·
   [Changelog](https://github.com/codingwell/scala-guice/blob/develop/CHANGELOG.md)
-- **ficus: 1.5.2** — typed config reading. Its reader generator (`ArbitraryTypeReader`) only exists on Scala 2, so
-  the Silhouette settings readers in `SilhouetteModule` are written by hand.
-  [Releases](https://mvnrepository.com/artifact/com.iheart/ficus)
-
-### Database (Slick + Postgres + PostGIS)
-
-These are the JVM libraries we talk to the database *through*; the database server's own versions are under
-[Database server](#database-server) above.
-
 - **postgresql (JDBC driver): 42.7.13** — the `org.postgresql` driver in `build.sbt`.
   [Releases](https://mvnrepository.com/artifact/org.postgresql/postgresql) · [Changelog](https://jdbc.postgresql.org/)
 - **play-slick / play-slick-evolutions: 6.2.0**.

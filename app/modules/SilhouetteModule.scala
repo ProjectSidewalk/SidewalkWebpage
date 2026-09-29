@@ -2,15 +2,12 @@ package modules
 
 import com.google.inject.name.Named
 import com.google.inject.{AbstractModule, Provides}
-import com.typesafe.config.Config
 import models.auth.{
   CustomSecuredErrorHandler,
   CustomUnsecuredErrorHandler,
   DefaultEnv,
   RevocableCookieAuthenticatorService
 }
-import net.ceedubs.ficus.Ficus._
-import net.ceedubs.ficus.readers.ValueReader
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Configuration
 import play.api.libs.ws.WSClient
@@ -38,42 +35,6 @@ import scala.concurrent.duration.FiniteDuration
  * https://github.com/mohiva/play-silhouette-seed/blob/master/app/modules/SilhouetteModule.scala
  */
 class SilhouetteModule extends AbstractModule with ScalaModule {
-
-  /** Reads sameSite: None if not set (keep the 'Lax' default), Some(None) if null (no restriction), else the value. */
-  private def readSameSite(config: Config, path: String): Option[Option[Cookie.SameSite]] = {
-    if (!config.hasPathOrNull(path)) None
-    else if (config.getIsNull(path)) Some(None)
-    else Some(Cookie.SameSite.parse(config.getString(path)))
-  }
-
-  // Written by hand because ficus can only generate readers on Scala 2. A setting left out keeps Silhouette's default.
-  implicit val crypterSettingsReader: ValueReader[JcaCrypterSettings] =
-    (config: Config, path: String) => JcaCrypterSettings(config.getConfig(path).as[String]("key"))
-
-  implicit val signerSettingsReader: ValueReader[JcaSignerSettings] = (config: Config, path: String) => {
-    val c        = config.getConfig(path)
-    val defaults = JcaSignerSettings(c.as[String]("key"))
-    defaults.copy(pepper = c.getAs[String]("pepper").getOrElse(defaults.pepper))
-  }
-
-  implicit val cookieAuthenticatorSettingsReader: ValueReader[CookieAuthenticatorSettings] =
-    (config: Config, path: String) => {
-      val c        = config.getConfig(path)
-      val defaults = CookieAuthenticatorSettings()
-      CookieAuthenticatorSettings(
-        cookieName = c.getAs[String]("cookieName").getOrElse(defaults.cookieName),
-        cookiePath = c.getAs[String]("cookiePath").getOrElse(defaults.cookiePath),
-        cookieDomain = c.getAs[String]("cookieDomain").orElse(defaults.cookieDomain),
-        secureCookie = c.getAs[Boolean]("secureCookie").getOrElse(defaults.secureCookie),
-        httpOnlyCookie = c.getAs[Boolean]("httpOnlyCookie").getOrElse(defaults.httpOnlyCookie),
-        sameSite = readSameSite(c, "sameSite").getOrElse(defaults.sameSite),
-        useFingerprinting = c.getAs[Boolean]("useFingerprinting").getOrElse(defaults.useFingerprinting),
-        cookieMaxAge = c.getAs[FiniteDuration]("cookieMaxAge").orElse(defaults.cookieMaxAge),
-        authenticatorIdleTimeout =
-          c.getAs[FiniteDuration]("authenticatorIdleTimeout").orElse(defaults.authenticatorIdleTimeout),
-        authenticatorExpiry = c.getAs[FiniteDuration]("authenticatorExpiry").getOrElse(defaults.authenticatorExpiry)
-      )
-    }
 
   /**
    * Configures the module.
@@ -124,8 +85,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides @Named("authenticator-crypter")
   def provideAuthenticatorCrypter(configuration: Configuration): Crypter = {
-    val config = configuration.underlying.as[JcaCrypterSettings]("silhouette.authenticator.crypter")
-    new JcaCrypter(config)
+    new JcaCrypter(JcaCrypterSettings(configuration.get[String]("silhouette.authenticator.crypter.key")))
   }
 
   /**
@@ -151,10 +111,25 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       clock: Clock,
       authenticationService: AuthenticationService
   ): AuthenticatorService[CookieAuthenticator] = {
-    val config = configuration.underlying.as[CookieAuthenticatorSettings]("silhouette.authenticator")
+    // Every setting is required, so a misspelled key stops the app at startup rather than falling back to a default.
+    val c        = configuration.get[Configuration]("silhouette.authenticator")
+    val sameSite = c.get[Option[String]]("sameSite").map { name =>
+      Cookie.SameSite.parse(name).getOrElse(throw c.reportError("sameSite", s"Unknown sameSite value: $name"))
+    }
+    val config = CookieAuthenticatorSettings(
+      cookieName = c.get[String]("cookieName"),
+      cookiePath = c.get[String]("cookiePath"),
+      cookieDomain = c.get[Option[String]]("cookieDomain"),
+      secureCookie = c.get[Boolean]("secureCookie"),
+      httpOnlyCookie = c.get[Boolean]("httpOnlyCookie"),
+      sameSite = sameSite,
+      useFingerprinting = c.get[Boolean]("useFingerprinting"),
+      cookieMaxAge = None, // A session cookie, unless the user ticks "remember me" (see UserController).
+      authenticatorIdleTimeout = Some(c.get[FiniteDuration]("authenticatorIdleTimeout")),
+      authenticatorExpiry = c.get[FiniteDuration]("authenticatorExpiry")
+    )
     // RevocableCookieAuthenticatorService works out when a cookie was issued from this one lifetime.
-    val rememberMeExpiry =
-      configuration.underlying.as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry")
+    val rememberMeExpiry = c.get[FiniteDuration]("rememberMe.authenticatorExpiry")
     require(
       rememberMeExpiry == config.authenticatorExpiry,
       "silhouette.authenticator.authenticatorExpiry and rememberMe.authenticatorExpiry must be equal"
@@ -171,8 +146,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides @Named("authenticator-signer")
   def provideAuthenticatorSigner(configuration: Configuration): Signer = {
-    val config = configuration.underlying.as[JcaSignerSettings]("silhouette.authenticator.signer")
-    new JcaSigner(config)
+    new JcaSigner(JcaSignerSettings(configuration.get[String]("silhouette.authenticator.signer.key")))
   }
 
   /**
