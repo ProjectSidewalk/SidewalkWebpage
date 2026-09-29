@@ -6,12 +6,12 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SlickEquality}
 
 import java.time.OffsetDateTime
 
 /** Checks that IP addresses save to and load from a real inet column (webpage_activity). */
-class IpAddressColumnSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSuite {
+class IpAddressColumnSpec extends PlaySpec with SlickEquality with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

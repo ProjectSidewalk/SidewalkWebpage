@@ -524,7 +524,7 @@ object LabelTable {
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.tupled(t._6), t._7, t._8, t._9, t._10,
+        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.apply.tupled(t._6), t._7, t._8, t._9, t._10,
           LabelTypeEnum.byName(t._11), t._12, t._13)
     }
 
@@ -667,7 +667,7 @@ object LabelTable {
         imageCaptureDate = t._6,
         timestamp = t._7,
         location = LatLng(t._8._1.get, t._8._2.get),
-        pov = POV.tupled(t._9),
+        pov = POV.apply.tupled(t._9),
         canvasXY = LocationXY(t._10._1, t._10._2),
         canvasWidth = t._10._3,
         canvasHeight = t._10._4,
@@ -1506,7 +1506,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         servable
           .joinLeft(aiData)
           .on(_.labelId === _._1.labelId)
-          .map { case (_lb, _ai) => (_lb, _ai.map(_._2).flatten.map(_.validationResult)) }
+          .map { case (_lb, _ai) => (_lb, _ai.flatMap(_._2).map(_.validationResult)) }
           .filter { case (l, aiv) => ValidationQueuePolicy.triage(l, aiv) }
           .groupBy(_._1.labelType)
           .map { case (labType, group) => (labType, group.length) }
@@ -1566,7 +1566,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(aiData)
       .on(_._1.labelId === _._1.labelId)
       .map { case ((_lb, side, isAiLabeler), _ai) =>
-        (_lb, side, isAiLabeler, _ai.map(_._2).flatten.map(_.validationResult))
+        (_lb, side, isAiLabeler, _ai.flatMap(_._2).map(_.validationResult))
       }
       .groupBy { case (_lb, side, _, _) => (_lb.streetEdgeId, side) }
       .map { case ((streetEdgeId, side), group) =>
@@ -1715,7 +1715,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(aiData)
       .on { case ((l, _, _, _, _, _, _, _), (laa, _)) => laa.labelId === l.labelId && aiAssessmentIsCurrent(l, laa) }
       .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _ai) =>
-        (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.map(_._2).flatten)
+        (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.flatMap(_._2))
       }
 
     // The queue filter sits after the AI join because the triage predicate reads the AI's vote.
@@ -1813,7 +1813,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           .map(x => (x._1._1, x._1._2, x._2.map(y => (y._3, y._4))))
           .toSeq
           .map(y => (y._1, y._2, y._3.collect { case (Some(a), Some(b)) => (a, b) }))
-          .map(AdminValidationData.tupled)
+          .map(AdminValidationData.apply.tupled)
       }
   }
 
@@ -1946,7 +1946,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.map(_.labelId))
       .map { case ((lb, lp, pd, labelType, regionId, isAiUser), aiv) =>
-        (lb, lp, pd, labelType, regionId, isAiUser, aiv.flatten)
+        (lb, lp, pd, labelType, regionId, isAiUser, aiv.flatMap(v => v))
       }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
@@ -2148,7 +2148,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.map(_.labelId))
       .map { case ((l, lp, highQuality, labelType, expired, hasBackup, isAiUser), aiv) =>
-        (l, lp, highQuality, labelType, expired, hasBackup, isAiUser, aiv.flatten)
+        (l, lp, highQuality, labelType, expired, hasBackup, isAiUser, aiv.flatMap(v => v))
       }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
@@ -2248,7 +2248,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .groupBy(l => (l._1, l._2))
       .map { case ((labelType, tag), group) => (labelType, tag, group.length) }
       .result
-      .map(_.map(TagCount.tupled))
+      .map(_.map(TagCount.apply.tupled))
   }
 
   /**
@@ -2424,7 +2424,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
     } yield (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
       _panoData.cameraPitch, _panoData.width, _panoData.height, _auditTask.outdatedImagery)).result
-      .map(_.map(ResumeLabelMetadata.tupled))
+      .map(_.map(ResumeLabelMetadata.apply.tupled))
   }
 
   /**

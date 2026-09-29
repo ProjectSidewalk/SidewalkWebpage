@@ -18,7 +18,7 @@ import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.StreetService
-import util.{AnonSession, RoleSession, RolledBackDb, StubService}
+import util.{AnonSession, RoleSession, RolledBackDb, SlickEquality, StubService}
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Future
@@ -32,6 +32,7 @@ import scala.concurrent.Future
  */
 class AdminExcludeUserSpec
     extends PlaySpec
+    with SlickEquality
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession
@@ -130,7 +131,8 @@ class AdminExcludeUserSpec
         )
       }
       val suiteRuns = jobRunTable.backgroundJobRuns
-        .filter(r => r.jobName === RecalculateStreetPriorityActor.Name && r.backgroundJobRunId > runIdFloor)
+        .filter(r => r.jobName === RecalculateStreetPriorityActor.Name)
+        .filter(r => r.backgroundJobRunId > runIdFloor)
       // The recalculations aren't awaited by the save, so one may still be closing its row.
       eventually(run(suiteRuns.filter(_.finishedAt.isEmpty).length.result) mustBe 0)
       val _ = run(suiteRuns.delete)

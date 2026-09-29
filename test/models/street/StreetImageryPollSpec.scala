@@ -10,7 +10,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.jdbc.GetResult
-import util.RolledBackDb
+import util.{RolledBackDb, SlickEquality}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -21,7 +21,7 @@ import java.time.{LocalDate, OffsetDateTime}
  * Mutating cases run inside rolled-back transactions, leaving the connected DB untouched; requires Postgres+PostGIS
  * like the other DB-backed specs. Actors are disabled.
  */
-class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class StreetImageryPollSpec extends PlaySpec with SlickEquality with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

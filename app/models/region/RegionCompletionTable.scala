@@ -59,7 +59,7 @@ class RegionCompletionTable @Inject() (
       if (_r.regionId inSetBind regionIds) || regionIds.isEmpty
     } yield (_r.regionId, _r.name, _rc.totalDistance, _rc.auditedDistance)
 
-    namedRegionCompletions.result.map(_.map(x => NamedRegionCompletion.tupled(x)))
+    namedRegionCompletions.result.map(_.map(x => NamedRegionCompletion.apply.tupled(x)))
   }
 
   /**
@@ -108,7 +108,7 @@ class RegionCompletionTable @Inject() (
       // error, while there is a single (very short) street segment left to be audited. That case shouldn't happen, but
       // we are just being safe, and setting audited_distance to be less than total_distance.
       rCQuery = regionCompletions.filter(_.regionId === regionId)
-      rowsUpdated: Int <- rCQuery.result.head.flatMap { rC: RegionCompletion =>
+      rowsUpdated: Int <- rCQuery.result.head.flatMap { (rC: RegionCompletion) =>
         if (!regionIncomplete) {
           rCQuery.map(_.auditedDistance).update(rC.totalDistance)
         } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {

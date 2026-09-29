@@ -15,6 +15,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import _root_.util.SlickEquality
 
 import java.time.OffsetDateTime
 
@@ -38,6 +39,7 @@ import java.time.OffsetDateTime
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
 class ValidateSubmissionSpec
     extends PlaySpec
+    with SlickEquality
     with BeforeAndAfterAll
     with Eventually
     with SubmissionSpecHelpers

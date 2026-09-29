@@ -35,18 +35,18 @@ object LabelFormats {
       (__ \ "deleted_by").writeNullable[String] and
       (__ \ "deleted_at").writeNullable[OffsetDateTime] and
       (__ \ "deleted_source").writeNullable[UiSource]
-  )(unlift(Label.unapply))
+  )((o: Label) => Tuple.fromProductTyped(o))
 
   implicit val POVWrites: Writes[POV] = (
     (__ \ "heading").write[Double] and
       (__ \ "pitch").write[Double] and
       (__ \ "zoom").write[Double]
-  )(unlift(POV.unapply))
+  )((o: POV) => Tuple.fromProductTyped(o))
 
   implicit val locationXYWrites: Writes[LocationXY] = (
     (__ \ "x").write[Int] and
       (__ \ "y").write[Int]
-  )(unlift(LocationXY.unapply))
+  )((o: LocationXY) => Tuple.fromProductTyped(o))
 
   implicit val labelTypeReads: Reads[LabelTypeEnum.Base] = Reads {
     case JsString(value) =>
@@ -294,7 +294,7 @@ object LabelFormats {
       (__ \ "label_type").write[LabelTypeEnum.Base] and
       (__ \ "tag_name").write[String] and
       (__ \ "mutually_exclusive_with").writeNullable[String]
-  )(unlift(Tag.unapply))
+  )((o: Tag) => Tuple.fromProductTyped(o))
 
   /**
    * Serializes a PanoViewerMetadata to the JSON shape the frontend expects under the "pano_data" key.

@@ -21,7 +21,6 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.jdk.CollectionConverters._
-import scala.reflect.ClassTag
 
 /**
  * A [[SwrCache]] whose cold path never resolves in time, so every full-city AccessScore read is a miss the compute
@@ -32,7 +31,7 @@ import scala.reflect.ClassTag
 class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(implicit ec: ExecutionContext)
     extends SwrCache(cacheApi, actorSystem) {
 
-  override def staleWhileRevalidateWithin[T: ClassTag](
+  override def staleWhileRevalidateWithin[T](
       key: String,
       freshFor: FiniteDuration,
       maxAge: FiniteDuration,

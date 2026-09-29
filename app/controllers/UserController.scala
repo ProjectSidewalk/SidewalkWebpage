@@ -11,6 +11,7 @@ import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
+import play.api.mvc.{AnyContent, Request}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Authenticator.Implicits._
 import play.silhouette.api._
@@ -126,7 +127,7 @@ class UserController @Inject() (
    *
    * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signInMobile() = Action { request =>
+  def signInMobile() = Action { (request: Request[AnyContent]) =>
     Redirect(routes.UserController.signIn().url, request.queryString, MOVED_PERMANENTLY)
   }
 
@@ -147,7 +148,7 @@ class UserController @Inject() (
    *
    * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signUpMobile() = Action { request =>
+  def signUpMobile() = Action { (request: Request[AnyContent]) =>
     Redirect(routes.UserController.signUp().url, request.queryString, MOVED_PERMANENTLY)
   }
 

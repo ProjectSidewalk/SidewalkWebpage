@@ -507,7 +507,7 @@ class LabelValidationTable @Inject() (
    * @return A database action that, when executed, will return a sequence of ValidationResultTypeForApi objects.
    */
   def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
-    getValidationCountsByValidatorRole.map { results: Seq[(Boolean, ValidationOption.Value, Int)] =>
+    getValidationCountsByValidatorRole.map { (results: Seq[(Boolean, ValidationOption.Value, Int)]) =>
       // Create a ValidationResultTypeForApi object for each validation result type.
       ValidationOption.values.toSeq
         .map { valResult =>

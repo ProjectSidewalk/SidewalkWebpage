@@ -44,7 +44,7 @@ import service.{
   StreetGradientStaleness,
   StreetService
 }
-import util.{AnonSession, RoleSession, RolledBackDb, StubService}
+import util.{AnonSession, RoleSession, RolledBackDb, SlickEquality, StubService}
 
 import scala.concurrent.Future
 
@@ -66,6 +66,7 @@ import scala.concurrent.Future
  */
 class AdminJobTriggerSpec
     extends PlaySpec
+    with SlickEquality
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession
@@ -188,7 +189,8 @@ class AdminJobTriggerSpec
   private def runsSince(idFloor: Int, jobName: String): Seq[BackgroundJobRun] =
     run(
       jobRunTable.backgroundJobRuns
-        .filter(row => row.jobName === jobName && row.backgroundJobRunId > idFloor)
+        .filter(row => row.jobName === jobName)
+        .filter(row => row.backgroundJobRunId > idFloor)
         .result
     )
 

@@ -6,7 +6,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SlickEquality}
 
 /**
  * DB-backed tests pinning the upToDateOnly coverage queries behind the admin Overview's re-audit numbers (#4384):
@@ -18,7 +18,7 @@ import util.RolledBackDb
  * cases cancel gracefully when the connected DB lacks the rows they need. Scheduling actors are disabled so nightly
  * jobs can't race the tests.
  */
-class UpToDateCoverageSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class UpToDateCoverageSpec extends PlaySpec with SlickEquality with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -49,7 +49,8 @@ class UpToDateCoverageSpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
             beforeDistE  <- streetEdgeTable.auditedStreetDistance()
             // Flag every completed audit on the street, so no up-to-date audit remains to keep it covered.
             _ <- auditTasks
-              .filter(t => t.streetEdgeId === streetId && t.completed)
+              .filter(t => t.streetEdgeId === streetId)
+              .filter(t => t.completed)
               .map(_.outdatedImagery)
               .update(true)
             afterCountU <- streetEdgeTable.countDistinctAuditedStreets(upToDateOnly = true)

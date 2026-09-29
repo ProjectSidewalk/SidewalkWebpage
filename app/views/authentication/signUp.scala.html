@@ -30,7 +30,7 @@
             <p>@Messages(msgKey)</p>
           </div>
         }
-        @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+        @form(action = routes.UserController.signUpPost(), args = Symbol("id") -> "sign-up-form", Symbol("class") -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @CSRF.formField
           @if(signUpForm.hasGlobalErrors) {
             <div class="au-summary" role="alert">

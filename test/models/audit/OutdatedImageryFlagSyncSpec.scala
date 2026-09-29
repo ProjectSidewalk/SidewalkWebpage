@@ -9,7 +9,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SlickEquality}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -23,7 +23,7 @@ import java.time.{LocalDate, OffsetDateTime}
  * as in dev/CI); cases cancel gracefully when the connected DB lacks the rows they need (a user, a street).
  * Scheduling actors are disabled so the real nightly sync can't race the tests.
  */
-class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class OutdatedImageryFlagSyncSpec extends PlaySpec with SlickEquality with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

@@ -22,6 +22,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.silhouette.api.util.PasswordInfo
 import service.AuthenticationService
 import slick.dbio.DBIO
+import util.SlickEquality
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
@@ -42,7 +43,11 @@ import scala.concurrent.duration._
  *
  * Every row created here is removed in afterAll — the dev DB is shared, so residue would pollute other work.
  */
-class RouteTaskQuerySpec extends PlaySpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
+class RouteTaskQuerySpec
+    extends PlaySpec
+    with SlickEquality
+    with org.scalatest.BeforeAndAfterAll
+    with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -133,7 +138,7 @@ class RouteTaskQuerySpec extends PlaySpec with org.scalatest.BeforeAndAfterAll w
       run(auditTasks.filter(_.auditTaskId inSet auditTaskIds).delete)
       run(userRoutes.filter(_.userRouteId === userRouteId).delete)
       run(routeStreets.filter(_.routeId === routeId).delete)
-      run(routes.filter(_.routeId === routeId).delete)
+      val _ = run(routes.filter(_.routeId === routeId).delete)
     }
     super.afterAll()
   }

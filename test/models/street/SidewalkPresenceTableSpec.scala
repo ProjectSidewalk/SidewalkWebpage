@@ -7,7 +7,7 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SlickEquality, StreetFixtures}
 
 import scala.io.Source
 
@@ -25,6 +25,7 @@ import scala.io.Source
  */
 class SidewalkPresenceTableSpec
     extends PlaySpec
+    with SlickEquality
     with GuiceOneAppPerSuite
     with RolledBackDb
     with StreetFixtures

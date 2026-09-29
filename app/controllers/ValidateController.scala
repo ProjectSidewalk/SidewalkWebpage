@@ -464,7 +464,7 @@ class ValidateController @Inject() (
       val timeSpent: Double = data.validations.map { l =>
         Math.min(ChronoUnit.MILLIS.between(l.startTimestamp, l.endTimestamp), 60000)
       }.sum / 1000d
-      configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
+      val _ = configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
     }
 
     response
@@ -601,7 +601,7 @@ class ValidateController @Inject() (
                 newVal.newLabelType.isDefined && newVal.validationResult == ValidationOption.Agree && !newVal.undone &&
                 isAdmin(request.identity)
               ) {
-                aiService.reassessAfterTypeChange(newVal.labelId)
+                val _ = aiService.reassessAfterTypeChange(newVal.labelId)
               }
               Ok(Json.obj("status" -> "Success"))
             }

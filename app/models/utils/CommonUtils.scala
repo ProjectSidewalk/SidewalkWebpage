@@ -7,6 +7,10 @@ object CommonUtils {
   // NOTE: if adding values here, also update the ui_source PostgreSQL enum (add via ALTER TYPE).
   object UiSource extends Enumeration {
     type UiSource = Value
+
+    // On Scala 3, Play can't find its built-in JSON writer for these values by itself.
+    implicit val writes: play.api.libs.json.Writes[Value] = v => play.api.libs.json.JsString(v.toString)
+
     val Explore                         = Value("Explore")
     val Validate                        = Value("Validate")
     val ExpertValidate                  = Value("ExpertValidate")

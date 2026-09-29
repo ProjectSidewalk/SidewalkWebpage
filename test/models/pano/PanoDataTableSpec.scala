@@ -10,6 +10,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import service.PanoDataService.{LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
 import slick.dbio.DBIO
 import slick.jdbc.TransactionIsolation
+import util.SlickEquality
 
 import java.time.OffsetDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -27,7 +28,7 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI). The
  * eager scheduling actors are disabled so they don't fire background work during the test.
  */
-class PanoDataTableSpec extends PlaySpec with GuiceOneAppPerSuite {
+class PanoDataTableSpec extends PlaySpec with SlickEquality with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

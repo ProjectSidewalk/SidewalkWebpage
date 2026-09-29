@@ -15,6 +15,8 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.http.ContentTypes
 import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables._
+import play.api.libs.ws.WSBodyReadables._
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
   infra3dTokenNeedsRemint,
@@ -772,7 +774,9 @@ class PanoDataServiceImpl @Inject() (
               .map(_ => Some(false))
           case other =>
             // Inconclusive (rate limit, 5xx, unexpected body). Don't assume the picture is gone.
-            logger.info(s"Panoramax existence check inconclusive ($other) for $panoId: ${response.body.take(200)}")
+            logger.info(
+              s"Panoramax existence check inconclusive ($other) for $panoId: ${response.body[String].take(200)}"
+            )
             Future.successful(None)
         }
       }

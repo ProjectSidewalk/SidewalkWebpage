@@ -84,19 +84,19 @@ object AdminFormats {
       (__ \ "time_interval").write[TimeInterval] and
       (__ \ "task_completed_only").write[Boolean] and
       (__ \ "high_quality_only").write[Boolean]
-  )(unlift(UserCount.unapply))
+  )((o: UserCount) => Tuple.fromProductTyped(o))
 
   implicit val contributionTimeStatWrites: Writes[ContributionTimeStat] = (
     (__ \ "time").write[Option[Double]] and
       (__ \ "stat").write[String] and
       (__ \ "time_interval").write[TimeInterval]
-  )(unlift(ContributionTimeStat.unapply))
+  )((o: ContributionTimeStat) => Tuple.fromProductTyped(o))
 
   implicit val labelCountWrites: Writes[LabelCount] = (
     (__ \ "count").write[Int] and
       (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String]
-  )(unlift(LabelCount.unapply))
+  )((o: LabelCount) => Tuple.fromProductTyped(o))
 
   implicit val validationCountWrites: Writes[ValidationCount] = (
     (__ \ "count").write[Int] and
@@ -105,7 +105,7 @@ object AdminFormats {
       // None represents the "All" results subtotal.
       (__ \ "result").write[String].contramap[Option[ValidationOption.Value]](_.map(_.toString).getOrElse("All")) and
       (__ \ "validator").write[String]
-  )(unlift(ValidationCount.unapply))
+  )((o: ValidationCount) => Tuple.fromProductTyped(o))
 
   implicit val genericCommentWrites: Writes[GenericComment] = (
     (__ \ "comment_type").write[String] and
@@ -117,7 +117,7 @@ object AdminFormats {
       (__ \ "pitch").write[Double] and
       (__ \ "zoom").write[Double] and
       (__ \ "label_id").write[Option[Int]]
-  )(unlift(GenericComment.unapply))
+  )((o: GenericComment) => Tuple.fromProductTyped(o))
 
   def auditedStreetWithTimestampToGeoJSON(street: AuditedStreetWithTimestamp): JsObject = {
     Json.obj(

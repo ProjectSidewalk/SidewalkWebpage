@@ -330,7 +330,7 @@ class AdminDashboardController @Inject() (
   def dismissReopenCandidate(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     streetLifecycleService.dismissReopenCandidate(streetEdgeId).map { dismissed =>
       if (dismissed > 0) {
-        cc.loggingService.insert(
+        val _ = cc.loggingService.insert(
           request.identity.userId,
           request.ipAddress,
           s"DismissReopenCandidate_Street=$streetEdgeId"

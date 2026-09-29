@@ -88,7 +88,7 @@ class AuditTaskCommentTable @Inject() (
       (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
       if c.userId === userId
     } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.panoId, c.heading,
-      c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).result.map(_.map(AuditTaskComment.tupled))
+      c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).result.map(_.map(AuditTaskComment.apply.tupled))
   }
 
   def insert(comment: AuditTaskComment): DBIO[Int] = {
@@ -114,6 +114,6 @@ class AuditTaskCommentTable @Inject() (
     ))
       .take(n)
       .result
-      .map(_.map(GenericComment.tupled(_)))
+      .map(_.map(GenericComment.apply.tupled(_)))
   }
 }

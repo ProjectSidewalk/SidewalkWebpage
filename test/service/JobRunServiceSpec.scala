@@ -12,6 +12,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import slick.dbio.DBIO
+import util.SlickEquality
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
@@ -26,7 +27,12 @@ import scala.concurrent.{Await, Future}
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so no real job writes rows mid-test.
  */
-class JobRunServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite with OptionValues {
+class JobRunServiceSpec
+    extends PlaySpec
+    with SlickEquality
+    with BeforeAndAfterAll
+    with GuiceOneAppPerSuite
+    with OptionValues {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

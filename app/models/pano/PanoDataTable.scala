@@ -58,6 +58,10 @@ case class PanoData(
 // NOTE need to update pano_source enum in postgres as well if changing this Enumeration.
 object PanoSource extends Enumeration {
   type PanoSource = Value
+
+  // On Scala 3, Play can't find its built-in JSON writer for these values by itself.
+  implicit val writes: play.api.libs.json.Writes[Value] = v => play.api.libs.json.JsString(v.toString)
+
   val Gsv       = Value("gsv")
   val Mapillary = Value("mapillary")
   val Infra3d   = Value("infra3d")
@@ -105,7 +109,7 @@ object PanoDataSlim {
       (__ \ "camera_pitch").writeNullable[Double] and
       (__ \ "camera_roll").writeNullable[Double] and
       (__ \ "source").write[PanoSource.Value]
-  )(unlift(PanoDataSlim.unapply))
+  )((o: PanoDataSlim) => Tuple.fromProductTyped(o))
 }
 
 class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {

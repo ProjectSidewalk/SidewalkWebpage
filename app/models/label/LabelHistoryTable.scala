@@ -43,10 +43,10 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
   def * = (
     labelHistoryId, labelId, labelType, severity, tags, editedBy, editTime, source, labelEditId
   ) <> (
-    { t: (Int, Int, LabelTypeEnum.Base, Option[Int], List[String], String, OffsetDateTime, UiSource, Option[Int]) =>
+    { (t: (Int, Int, LabelTypeEnum.Base, Option[Int], List[String], String, OffsetDateTime, UiSource, Option[Int])) =>
       LabelHistory(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9)
     },
-    { lh: LabelHistory =>
+    { (lh: LabelHistory) =>
       Some(
         (lh.labelHistoryId, lh.labelId, lh.labelType, lh.severity, lh.tags.toList, lh.editedBy, lh.editTime, lh.source,
           lh.labelEditId)

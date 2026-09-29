@@ -11,6 +11,7 @@ import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables._
 import play.api.{Configuration, Logger}
 import play.twirl.api.Html
 import slick.dbio.DBIO

@@ -12,6 +12,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, Json}
 import slick.dbio.DBIO
+import util.SlickEquality
 
 import java.time.OffsetDateTime
 import scala.concurrent.duration._
@@ -35,7 +36,7 @@ import scala.concurrent.{Await, Future}
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so a real run can't land mid-test.
  */
-class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class NightlyJobStatusSpec extends PlaySpec with SlickEquality with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -68,9 +69,8 @@ class NightlyJobStatusSpec extends PlaySpec with BeforeAndAfterAll with GuiceOne
   /** How many runs this job has inside the window the panel counts over, that this suite did not seed. */
   private def foreignRunsInWindow: Int = run(
     jobRunTable.backgroundJobRuns
-      .filter(row =>
-        row.jobName === jobName && row.startedAt >= OffsetDateTime.now.minusDays(HealthService.JobWindowDays.toLong)
-      )
+      .filter(row => row.jobName === jobName)
+      .filter(row => row.startedAt >= OffsetDateTime.now.minusDays(HealthService.JobWindowDays.toLong))
       .length
       .result
   )

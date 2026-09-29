@@ -75,7 +75,7 @@ class SidewalkPresenceServiceImpl @Inject() (
       // Future.delegate so a synchronous throw while building the action still releases the guard.
       Future
         .delegate {
-          db.run(sidewalkPresenceTable.rebuild.transactionally).map { counts: SidewalkPresenceRebuildCounts =>
+          db.run(sidewalkPresenceTable.rebuild.transactionally).map { (counts: SidewalkPresenceRebuildCounts) =>
             SidewalkPresenceRebuildResult(counts.total, counts.inserted, counts.updated, counts.deleted)
           }
         }

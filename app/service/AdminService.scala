@@ -30,6 +30,10 @@ import scala.concurrent.{ExecutionContext, Future}
 
 object TimeInterval extends Enumeration {
   type TimeInterval = Value
+
+  // On Scala 3, Play can't find its built-in JSON writer for these values by itself.
+  implicit val writes: play.api.libs.json.Writes[Value] = v => play.api.libs.json.JsString(v.toString)
+
   val AllTime = Value("all_time")
   val Week    = Value("week")
   val Today   = Value("today")

@@ -10,7 +10,6 @@ import models.auth.{
   RevocableCookieAuthenticatorService
 }
 import net.ceedubs.ficus.Ficus._
-import net.ceedubs.ficus.readers.ArbitraryTypeReader._
 import net.ceedubs.ficus.readers.ValueReader
 import net.codingwell.scalaguice.ScalaModule
 import play.api.Configuration
@@ -40,23 +39,40 @@ import scala.concurrent.duration.FiniteDuration
  */
 class SilhouetteModule extends AbstractModule with ScalaModule {
 
-  /**
-   * A very nested optional reader, to support these cases:
-   * Not set, set None, will use default ('Lax')
-   * Set to null, set Some(None), will use 'No Restriction'
-   * Set to a string value try to match, Some(Option(string))
-   */
-  implicit val sameSiteReader: ValueReader[Option[Option[Cookie.SameSite]]] =
+  /** Reads sameSite: None if not set (keep the 'Lax' default), Some(None) if null (no restriction), else the value. */
+  private def readSameSite(config: Config, path: String): Option[Option[Cookie.SameSite]] = {
+    if (!config.hasPathOrNull(path)) None
+    else if (config.getIsNull(path)) Some(None)
+    else Some(Cookie.SameSite.parse(config.getString(path)))
+  }
+
+  // Written by hand because ficus can only generate readers on Scala 2. A setting left out keeps Silhouette's default.
+  implicit val crypterSettingsReader: ValueReader[JcaCrypterSettings] =
+    (config: Config, path: String) => JcaCrypterSettings(config.getConfig(path).as[String]("key"))
+
+  implicit val signerSettingsReader: ValueReader[JcaSignerSettings] = (config: Config, path: String) => {
+    val c        = config.getConfig(path)
+    val defaults = JcaSignerSettings(c.as[String]("key"))
+    defaults.copy(pepper = c.getAs[String]("pepper").getOrElse(defaults.pepper))
+  }
+
+  implicit val cookieAuthenticatorSettingsReader: ValueReader[CookieAuthenticatorSettings] =
     (config: Config, path: String) => {
-      if (config.hasPathOrNull(path)) {
-        if (config.getIsNull(path))
-          Some(None)
-        else {
-          Some(Cookie.SameSite.parse(config.getString(path)))
-        }
-      } else {
-        None
-      }
+      val c        = config.getConfig(path)
+      val defaults = CookieAuthenticatorSettings()
+      CookieAuthenticatorSettings(
+        cookieName = c.getAs[String]("cookieName").getOrElse(defaults.cookieName),
+        cookiePath = c.getAs[String]("cookiePath").getOrElse(defaults.cookiePath),
+        cookieDomain = c.getAs[String]("cookieDomain").orElse(defaults.cookieDomain),
+        secureCookie = c.getAs[Boolean]("secureCookie").getOrElse(defaults.secureCookie),
+        httpOnlyCookie = c.getAs[Boolean]("httpOnlyCookie").getOrElse(defaults.httpOnlyCookie),
+        sameSite = readSameSite(c, "sameSite").getOrElse(defaults.sameSite),
+        useFingerprinting = c.getAs[Boolean]("useFingerprinting").getOrElse(defaults.useFingerprinting),
+        cookieMaxAge = c.getAs[FiniteDuration]("cookieMaxAge").orElse(defaults.cookieMaxAge),
+        authenticatorIdleTimeout =
+          c.getAs[FiniteDuration]("authenticatorIdleTimeout").orElse(defaults.authenticatorIdleTimeout),
+        authenticatorExpiry = c.getAs[FiniteDuration]("authenticatorExpiry").getOrElse(defaults.authenticatorExpiry)
+      )
     }
 
   /**

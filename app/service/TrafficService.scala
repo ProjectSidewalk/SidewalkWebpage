@@ -3,7 +3,9 @@ package service
 import com.google.inject.ImplementedBy
 import play.api.cache.AsyncCacheApi
 import play.api.libs.json._
+import play.api.libs.ws.WSBodyReadables._
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables._
 import play.api.{Configuration, Logger}
 
 import java.nio.charset.StandardCharsets
@@ -360,7 +362,10 @@ class TrafficServiceImpl @Inject() (
         )
         .map { response =>
           if (response.status == 200) (response.json \ "access_token").as[String]
-          else throw new RuntimeException(s"GA token request failed (${response.status}): ${response.body.take(300)}")
+          else
+            throw new RuntimeException(
+              s"GA token request failed (${response.status}): ${response.body[String].take(300)}"
+            )
         }
     }
 
@@ -423,7 +428,7 @@ class TrafficServiceImpl @Inject() (
       .post(body)
       .map { response =>
         if (response.status != 200)
-          throw new RuntimeException(s"batchRunReports failed (${response.status}): ${response.body.take(300)}")
+          throw new RuntimeException(s"batchRunReports failed (${response.status}): ${response.body[String].take(300)}")
         val reports                 = (response.json \ "reports").asOpt[Seq[JsValue]].getOrElse(Seq.empty)
         def report(i: Int): JsValue = reports.lift(i).getOrElse(JsNull)
 

@@ -6,7 +6,7 @@ name := """sidewalk-webpage"""
 
 version := "11.16.0"
 
-scalaVersion := "2.13.18"
+scalaVersion := "3.3.8"
 
 // An idle server sits on ~1GB, and the default keeps one alive per worktree for a week.
 Global / serverIdleTimeout := Some(scala.concurrent.duration.Duration(1, "hour"))
@@ -237,19 +237,22 @@ coverageFailOnMinimum    := true
 coverageExcludedPackages := """controllers\.javascript\..*"""
 
 scalacOptions ++= Seq(
-  "-deprecation", // Emit warning and location for usages of deprecated APIs.
-  "-feature",     // Emit warning and location for usages of features that should be imported explicitly.
-  "-unchecked",   // Enable additional warnings where generated code depends on assumptions.
+  // Play's sbt plugin already passes -deprecation and -unchecked, and Scala 3 rejects a flag that's set twice.
+  "-feature", // Emit warning and location for usages of features that should be imported explicitly.
 
-  // Fail the compilation if there are any warnings. But suppress the warnings/errors in Twirl templates (.scala.html)
-  // and silence unused import warnings in the routes file. But are bugged and bugged and incorrectly throw errors.
-  "-Xfatal-warnings", "-Wconf:src=views/.*:s", "-Wconf:cat=unused-imports&src=.*routes.*:s", "-Xlint", // Enable recommended additional warnings.
+  // Fail the compilation if there are any warnings, except in generated code: Twirl templates (.scala.html) and the
+  // routes file, whose warnings we can't fix.
+  "-Werror", "-Wconf:src=views/.*:s", "-Wconf:src=.*routes.*:s",
+  "-Wunused:imports",   // Warn if an import is unused.
   "-Wunused:explicits", // Warn if an explicit parameter is unused.
   "-Wunused:implicits", // Warn if an implicit parameter is unused.
-  "-Wdead-code",        // Warn when dead code is identified.
-  "-Wvalue-discard",    // Warn when non-Unit expression results are unused.
-  "-Wnumeric-widen"     // Warn when numerics are widened.
+  "-Wunused:privates",  // Warn if a private member is unused.
+  "-Wunused:locals",    // Warn if a local definition is unused.
+  "-Wvalue-discard"     // Warn when non-Unit expression results are unused.
 )
+
+// A test often ends on `if (hasData) result mustBe expected`, which the value-discard check would flag.
+Test / scalacOptions += "-Wconf:msg=discarded non-Unit value of type org.scalatest.Assertion:s"
 
 javacOptions ++= Seq("-source", "17", "-target", "17")
 // Heap for the forked test JVM, which is all this ever reached — prod's comes from the deploy tooling (#4564).

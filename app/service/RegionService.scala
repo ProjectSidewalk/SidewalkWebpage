@@ -96,7 +96,7 @@ class RegionServiceImpl @Inject() (
 
           for {
             regions     <- includingEmptyRegionsQuery.result
-            insertCount <- (regionCompletions ++= regions.map(RegionCompletion.tupled)).map(_.getOrElse(0))
+            insertCount <- (regionCompletions ++= regions.map(RegionCompletion.apply.tupled)).map(_.getOrElse(0))
           } yield insertCount
         } else {
           DBIO.successful(0) // If the table is already initialized, 0 rows inserted.

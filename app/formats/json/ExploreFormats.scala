@@ -167,7 +167,7 @@ object ExploreFormats {
       (__ \ "start_offset_m").writeNullable[Double] and
       (__ \ "outdated_imagery").write[Boolean] and
       (__ \ "outdated_imagery_at").writeNullable[OffsetDateTime]
-  )(unlift(AuditTask.unapply))
+  )((o: AuditTask) => Tuple.fromProductTyped(o))
 
   implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
     (__ \ "audit_task_interaction_id").write[Long] and
@@ -183,7 +183,7 @@ object ExploreFormats {
       (__ \ "note").writeNullable[String] and
       (__ \ "temporary_label_id").writeNullable[Int] and
       (__ \ "timestamp").write[OffsetDateTime]
-  )(unlift(AuditTaskInteraction.unapply))
+  )((o: AuditTaskInteraction) => Tuple.fromProductTyped(o))
 
   implicit val newTaskWrites: Writes[NewTask] = (task: NewTask) => {
     Json.obj(
@@ -226,7 +226,7 @@ object ExploreFormats {
   implicit val updatedStreetsWrites: Writes[UpdatedStreets] = (
     (__ \ "last_priority_update_time").write[OffsetDateTime] and
       (__ \ "updated_street_priorities").write[Seq[StreetEdgePriority]]
-  )(unlift(UpdatedStreets.unapply))
+  )((o: UpdatedStreets) => Tuple.fromProductTyped(o))
 
   implicit val pointReads: Reads[Point] = (
     (JsPath \ "lat").read[Double] and

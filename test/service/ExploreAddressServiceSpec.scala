@@ -26,7 +26,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.silhouette.api.util.PasswordInfo
 import slick.dbio.DBIO
-import util.RolledBackDb
+import util.{RolledBackDb, SlickEquality}
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
@@ -59,6 +59,7 @@ import scala.concurrent.duration._
 // app, rather than after the app (and its DB pool) has already been stopped.
 class ExploreAddressServiceSpec
     extends PlaySpec
+    with SlickEquality
     with org.scalatest.BeforeAndAfterAll
     with RolledBackDb
     with GuiceOneAppPerSuite {

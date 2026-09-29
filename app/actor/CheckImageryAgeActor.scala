@@ -2,7 +2,7 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import service.{ConfigService, ImageryFreshnessService, JobRunService}
 
@@ -52,7 +52,7 @@ class CheckImageryAgeActor @Inject() (
           24.hours,
           self,
           CheckImageryAgeActor.Tick
-        )(context.dispatcher)
+        )(context.dispatcher, ActorRef.noSender)
       )
       logger.info("CheckImageryAgeActor created")
     }

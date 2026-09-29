@@ -2,7 +2,7 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import service.{ConfigService, CropService, JobRunService}
 
@@ -46,7 +46,7 @@ class CropGenerationActor @Inject() (cropService: CropService, jobRunService: Jo
           24.hours,
           self,
           CropGenerationActor.Tick
-        )(context.dispatcher)
+        )(context.dispatcher, ActorRef.noSender)
       )
       logger.info("CropGenerationActor created")
     }

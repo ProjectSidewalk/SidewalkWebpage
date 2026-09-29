@@ -11,6 +11,7 @@ import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import util.SlickEquality
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -41,7 +42,7 @@ import scala.concurrent.duration._
  * DATABASE_PASSWORD, as in dev/CI); cancels gracefully if the connected DB has no clusterable labels. Scheduling actors
  * are disabled so the background clustering actor can't race the tests.
  */
-class ClusteringServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ClusteringServiceSpec extends PlaySpec with SlickEquality with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
