@@ -6,7 +6,8 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
-import models.label.{LabelDeletion, LabelTypeEnum}
+import models.api.ApiModelUtils
+import models.label.{LabelDeletion, LabelType}
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -298,21 +299,21 @@ class AdminController @Inject() (
                         s"Click_module=AdminSaveUserSettings_User=$userId"
                       )
                       if (roleChanged) {
-                        cc.loggingService.insert(
+                        val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
                           s"UpdateRole_User=${userId}_Old=${user.role}_New=${s.role}"
                         )
                       }
                       if (qualityChanged) {
-                        cc.loggingService.insert(
+                        val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
                           s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
                         )
                       }
                       if (excludedChanged) {
-                        cc.loggingService.insert(
+                        val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
                           s"UpdateUserExcluded_User=${userId}_New=${s.excluded}"
@@ -359,7 +360,7 @@ class AdminController @Inject() (
       .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime))(
         UserStatActor.runDetails
       )
-      .map { usersUpdated: Int => Ok(s"User stats updated for $usersUpdated users!") }
+      .map { (usersUpdated: Int) => Ok(s"User stats updated for $usersUpdated users!") }
   }
 
   /**
@@ -387,7 +388,7 @@ class AdminController @Inject() (
       submission => {
         userService
           .updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
-          .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
+          .map { (tasksUpdated: Int) => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
       }
     )
   }
@@ -405,7 +406,7 @@ class AdminController @Inject() (
           case Some(user) =>
             userService
               .updateTaskFlagsBeforeDate(userId, submission.date, submission.flag, submission.state)
-              .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
+              .map { (tasksUpdated: Int) => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
           case _ => Future.failed(new IdentityNotFoundException("Username not found."))
         }
       }
@@ -467,10 +468,10 @@ class AdminController @Inject() (
    * @return A signed image URL, or None for items without a previewable label (e.g. comments).
    */
   private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
-    (item.labelId, item.labelType) match {
-      case (Some(id), Some(labelType)) if LabelTypeEnum.labelTypeNames.contains(labelType) =>
+    (item.labelId, item.labelType.flatMap(LabelType.byName.get)) match {
+      case (Some(id), Some(labelType)) =>
         panoDataService
-          .cropUrl(id, LabelTypeEnum.byName(labelType))
+          .cropUrl(id, labelType)
           .orElse(metaById.get(id).flatMap { m =>
             panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
               m.canvasHeight)
@@ -704,9 +705,7 @@ class AdminController @Inject() (
         // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
         val byLabelType = JsObject(
           sc.byLabelType.toSeq
-            .sortBy { case (labelType, _) =>
-              LabelTypeEnum.orderedNames.indexOf(labelType)
-            }
+            .sorted(ApiModelUtils.labelTypeOrdering)
             .map { case (labelType, s) =>
               labelType -> Json.obj(
                 "labels"    -> s.labels,

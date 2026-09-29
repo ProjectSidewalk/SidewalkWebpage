@@ -13,7 +13,7 @@ class UserLoginInfoTableDef(tag: Tag) extends Table[UserLoginInfo](tag, "user_lo
   def userLoginInfoId: Rep[Int] = column[Int]("user_login_info_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]       = column[String]("user_id")
   def loginInfoId: Rep[Long]    = column[Long]("login_info_id")
-  def * = (userLoginInfoId, userId, loginInfoId) <> (UserLoginInfo.tupled, UserLoginInfo.unapply)
+  def * = (userLoginInfoId, userId, loginInfoId) <> (UserLoginInfo.apply.tupled, UserLoginInfo.unapply)
 
   def user      = foreignKey("user_login_info_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def loginInfo =

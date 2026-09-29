@@ -30,7 +30,6 @@ function loadInfra3dViewer() {
             getPanoId() { return this.params.panoId; }
         }
         const proj4 = () => [0, 0];
-        const moment = (timestamp) => timestamp;
         const util = { math: { toDegrees: (radians) => radians } };
         ${NO_IMAGERY_ERROR_SRC}
         ${VIEWER_SRC}

@@ -3,10 +3,10 @@ package models.cluster
 import com.google.inject.ImplementedBy
 import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
 import models.intersection.IntersectionTableDef
-import models.label.LabelTypeEnum
+import models.label.LabelType
+import models.pano.PanoDataTable
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
-import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -28,7 +28,7 @@ import javax.inject.{Inject, Singleton}
 case class Cluster(
     clusterId: Int,
     clusteringSessionId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     streetEdgeId: Int,
     geom: Point,
     severity: Option[Int],
@@ -58,13 +58,13 @@ case class ClusterScoreRow(
 )
 
 class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluster") {
-  def clusterId: Rep[Int]                = column[Int]("cluster_id", O.PrimaryKey, O.AutoInc)
-  def clusteringSessionId: Rep[Int]      = column[Int]("clustering_session_id")
-  def labelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("label_type")
-  def streetEdgeId: Rep[Int]             = column[Int]("street_edge_id")
-  def geom: Rep[Point]                   = column[Point]("geom")
-  def severity: Rep[Option[Int]]         = column[Option[Int]]("severity")
-  def intersectionId: Rep[Option[Int]]   = column[Option[Int]]("intersection_id")
+  def clusterId: Rep[Int]              = column[Int]("cluster_id", O.PrimaryKey, O.AutoInc)
+  def clusteringSessionId: Rep[Int]    = column[Int]("clustering_session_id")
+  def labelType: Rep[LabelType]        = column[LabelType]("label_type")
+  def streetEdgeId: Rep[Int]           = column[Int]("street_edge_id")
+  def geom: Rep[Point]                 = column[Point]("geom")
+  def severity: Rep[Option[Int]]       = column[Option[Int]]("severity")
+  def intersectionId: Rep[Option[Int]] = column[Option[Int]]("intersection_id")
 
   def * = (clusterId, clusteringSessionId, labelType, streetEdgeId, geom, severity, intersectionId) <> (
     (Cluster.apply _).tupled,
@@ -325,20 +325,22 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |) tag_counts ON cluster.cluster_id = tag_counts.cluster_id
         |GROUP BY cluster.cluster_id""".stripMargin
 
-    // Compute the average image capture date per cluster by first averaging per pano, then averaging those.
+    // Compute the average image capture date per cluster by first averaging per pano, then averaging those. Panos
+    // with no usable capture date are left out, so a cluster with none gets a null average.
+    val captureDate          = PanoDataTable.captureDateSql("pano_data.capture_date")
     val avgImageCaptureDates =
-      """SELECT capture_dates.cluster_id AS cluster_id,
-        |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date
-        |FROM (
-        |    SELECT cluster.cluster_id,
-        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))) AS capture_date
-        |    FROM cluster
-        |    INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
-        |    INNER JOIN label ON cluster_label.label_id = label.label_id
-        |    INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
-        |    GROUP BY cluster.cluster_id, pano_data.pano_id
-        |) capture_dates
-        |GROUP BY capture_dates.cluster_id""".stripMargin
+      s"""SELECT capture_dates.cluster_id AS cluster_id,
+         |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date
+         |FROM (
+         |    SELECT cluster.cluster_id,
+         |           TO_TIMESTAMP(AVG(EXTRACT(epoch from $captureDate))) AS capture_date
+         |    FROM cluster
+         |    INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
+         |    INNER JOIN label ON cluster_label.label_id = label.label_id
+         |    INNER JOIN pano_data ON label.pano_id = pano_data.pano_id
+         |    GROUP BY cluster.cluster_id, pano_data.pano_id
+         |) capture_dates
+         |GROUP BY capture_dates.cluster_id""".stripMargin
 
     // Base query for label clusters.
     val baseQuery: SQLActionBuilder = sql"""

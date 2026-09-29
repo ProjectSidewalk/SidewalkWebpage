@@ -5,7 +5,6 @@ import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -14,6 +13,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import _root_.util.SidewalkSpec
 
 import java.time.OffsetDateTime
 
@@ -35,7 +35,7 @@ import java.time.OffsetDateTime
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
 class ExploreSubmissionSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with Eventually
     with SubmissionSpecHelpers
@@ -363,6 +363,16 @@ class ExploreSubmissionSpec
       val resp    = postTask(session, Json.obj("mission" -> "bogus"))
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "status").as[String] mustBe "Error"
+    }
+
+    "400 a label whose type isn't one we know, and write nothing" in {
+      val session  = freshAnonSession()
+      val b        = fetchExploreBootstrap(session)
+      val tempId   = 777009
+      val badLabel = labelJson(tempId, b, b.missionType == "auditOnboarding") + ("label_type" -> JsString("NotAType"))
+
+      status(postTask(session, submission(b, labels = Seq(badLabel)))) mustBe BAD_REQUEST
+      labelRows(b.userId, tempId) mustBe empty
     }
 
     "write audit_task, label, and label_point rows and echo the temp-to-permanent label id mapping" in {

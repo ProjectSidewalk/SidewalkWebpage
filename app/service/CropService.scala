@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import models.label.{CropMarker, CropSource, LabelCrop, LabelCropTable, LabelPointTable, LabelTable, LabelTypeEnum}
+import models.label.{CropMarker, CropSource, LabelCrop, LabelCropTable, LabelPointTable, LabelTable, LabelType}
 import models.pano.PanoDataTable
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ImageUtils, MyPostgresProfile}
@@ -36,7 +36,7 @@ object CropService {
    */
   case class CropCandidate(
       labelId: Int,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       panoId: String,
       panoX: Int,
       panoY: Int,
@@ -54,7 +54,7 @@ object CropService {
    */
   case class ProvenanceCandidate(
       labelId: Int,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       timeCreated: OffsetDateTime,
       panoId: String,
       panoX: Int,
@@ -360,8 +360,8 @@ class CropServiceImpl @Inject() (
   private val CropFileName = """crop_(\d+)\.png""".r
 
   /** The labels that already have a crop, by listing each type's directory once rather than stat-ing per label. */
-  private def existingCropIds(): Map[LabelTypeEnum.Base, Set[Int]] = {
-    LabelTypeEnum.values.iterator.map { labelType =>
+  private def existingCropIds(): Map[LabelType, Set[Int]] = {
+    LabelType.ordered.iterator.map { labelType =>
       val dir = new File(cropsDir, labelType.name)
       val ids =
         if (!dir.isDirectory) Set.empty[Int]
@@ -374,7 +374,7 @@ class CropServiceImpl @Inject() (
   }
 
   /** Every live label without a crop, streamed from the whole label table and filtered as rows arrive. */
-  private def cropCandidates(existing: Map[LabelTypeEnum.Base, Set[Int]]): Future[Seq[CropCandidate]] = {
+  private def cropCandidates(existing: Map[LabelType, Set[Int]]): Future[Seq[CropCandidate]] = {
     Source
       .fromPublisher(
         db.stream(labelTable.getCropCandidates.transactionally.withStatementParameters(fetchSize = 1000))
@@ -390,7 +390,7 @@ class CropServiceImpl @Inject() (
    * Records the provenance of every crop on disk with no `label_crop` row (#2660), a batch at a time: the first run
    * over a large city visits every crop it has, so nothing here holds the whole store in memory.
    */
-  private def reconcileProvenance(existing: Map[LabelTypeEnum.Base, Set[Int]], counts: Counts): Future[Unit] = {
+  private def reconcileProvenance(existing: Map[LabelType, Set[Int]], counts: Counts): Future[Unit] = {
     Source
       .fromPublisher(
         db.stream(labelTable.getLabelsWithoutCropProvenance.transactionally.withStatementParameters(fetchSize = 1000))

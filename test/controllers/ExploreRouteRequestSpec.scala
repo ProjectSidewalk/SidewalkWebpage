@@ -4,7 +4,6 @@ import controllers.helper.SubmissionSpecHelpers
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatest.{Assertion, BeforeAndAfterAll}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -13,6 +12,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 /**
  * In-JVM functional tests for how /explore answers a ?routeId= it can't resolve (#5156).
@@ -31,7 +31,7 @@ import play.api.test.Helpers._
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
 class ExploreRouteRequestSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with SubmissionSpecHelpers
     with GuiceOneAppPerSuite {

@@ -11,6 +11,7 @@ class HealthPage {
   #thresholds = null;
   #loading = false;
   #lastUpdatedMs = null;
+  #panosHtml = null; // Last pano markup drawn, so a poll with nothing new leaves the focusable cards alone.
 
   /**
    * @param {object} opts
@@ -300,7 +301,10 @@ class HealthPage {
   // ---- Panel: pano downloads -------------------------------------------------------------------------------------
 
   #renderPanos(p) {
-    if (!p) return this.#renderEmpty('health-panos', 'Pano backup stats are unavailable.');
+    if (!p) {
+      this.#panosHtml = null;
+      return this.#renderEmpty('health-panos', 'Pano backup stats are unavailable.');
+    }
     // Every count is a share of labeled panos, so show its percentage alongside the raw number.
     const share = (n) => (p.labeled_panos > 0 ? Math.round((n / p.labeled_panos) * 100) : 0);
     const atRiskValue = p.at_risk > 0
@@ -319,11 +323,13 @@ class HealthPage {
         title: 'Source imagery expired and no local backup exists, so these labels can’t be shown.' },
     ];
     const html = cards.map((c) => `
-        <div class="ps-kpi" title="${AdminShell.esc(c.title)}">
+        <div class="ps-kpi" tabindex="0" data-ps-tooltip="${AdminShell.esc(c.title)}">
           <span class="ps-kpi-value">${c.value}</span>
           <span class="ps-kpi-label">${c.label}</span>
         </div>`).join('');
-    AdminShell.setHtml('health-panos', `<div class="ps-kpis">${html}</div>`);
+    // Redrawing would destroy a card that has keyboard focus and drop the reader back to the top of the page.
+    if (html !== this.#panosHtml) AdminShell.setHtml('health-panos', `<div class="ps-kpis">${html}</div>`);
+    this.#panosHtml = html;
     AdminShell.setHtml('health-panos-note',
       'Backup status fills in nightly, so a large "unchecked" count is normal.');
   }

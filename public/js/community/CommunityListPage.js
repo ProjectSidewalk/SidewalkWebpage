@@ -59,9 +59,11 @@ class CommunityListPage {
 
   /** Rewrites each card's server-rendered UTC date into the reader's own timezone/locale. */
   #localizeDates() {
+    const shortDate = new Intl.DateTimeFormat(document.documentElement.lang, util.SHORT_DATE);
     this.#listEl.querySelectorAll('.community-date').forEach((el) => {
       const dt = new Date(el.dateTime);
-      if (!Number.isNaN(dt.getTime())) el.textContent = moment(dt).format('ll');
+      if (Number.isNaN(dt.getTime())) return;
+      el.textContent = shortDate.format(dt);
     });
   }
 

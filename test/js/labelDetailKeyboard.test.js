@@ -32,7 +32,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
 
 const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
 const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
@@ -298,7 +298,6 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
         post = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({}) }));
 
         window.i18next = { t: (key) => key };
-        window.moment = () => ({ format: () => '', fromNow: () => 'a while ago' });
         window.logWebpageActivity = jest.fn();
         window.buildBackupImageData = () => null;
         window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
@@ -309,6 +308,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             isMobile: () => false,
             lazyIdentityFetch: post,
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.camelToKebab(type)}`),
                 getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
                 getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
                 isPositiveLabelType: () => false,
@@ -317,6 +317,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
+        installDateHelpers();
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
         window.LabelVisibilityToggle = class { constructor() {} };
         window.PanoInfoPopover = class { constructor() {} };

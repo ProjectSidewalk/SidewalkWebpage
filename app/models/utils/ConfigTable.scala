@@ -2,7 +2,7 @@ package models.utils
 
 import com.google.inject.ImplementedBy
 import models.api.{AggregateStats, LabelTypeStats}
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -82,11 +82,11 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
     excludedTags
   ).shaped <> (
     { case (openStatus, mapathonEventLink, cityMapParams, tutorialStreetEdgeID, offsetHours, makeCrops, excludedTags) =>
-      Config(openStatus, mapathonEventLink, MapParams.tupled.apply(cityMapParams), tutorialStreetEdgeID, offsetHours,
-        makeCrops, excludedTags)
+      Config(openStatus, mapathonEventLink, MapParams.apply.tupled.apply(cityMapParams), tutorialStreetEdgeID,
+        offsetHours, makeCrops, excludedTags)
     },
-    { c: Config =>
-      def f1(i: MapParams) = MapParams.unapply(i).get
+    { (c: Config) =>
+      def f1(i: MapParams) = Tuple.fromProductTyped(i)
       Some(
         (c.openStatus, c.mapathonEventLink, f1(c.cityMapParams), c.tutorialStreetEdgeID, c.offsetHours, c.makeCrops,
           c.excludedTags)
@@ -134,7 +134,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       .as[(Double, Double, Double, Double, Double, Double, Double)]
       .map { rows =>
         // Extract the first row from the result set (if any).
-        rows.headOption.map { row => MapParams.tupled(row) }.getOrElse {
+        rows.headOption.map { row => MapParams.apply.tupled(row) }.getOrElse {
           // Throw an exception if no results were found.
           throw new NoSuchElementException(s"No map parameters found in schema: $schema")
         }
@@ -155,7 +155,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     if (schemasOnLabelTypeEnum.contains(schema)) DBIO.successful(true)
     else
       sql"""SELECT to_regclass('"#$schema".label_type') IS NULL""".as[Boolean].head.map { hasEnum =>
-        if (hasEnum) schemasOnLabelTypeEnum.add(schema)
+        if (hasEnum) { val _ = schemasOnLabelTypeEnum.add(schema) }
         hasEnum
       }
 
@@ -175,7 +175,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     if (schemasWithValidationLabelType.contains(schema)) DBIO.successful(true)
     else
       columnExists(schema, "label_validation", "label_type").map { hasColumn =>
-        if (hasColumn) schemasWithValidationLabelType.add(schema)
+        if (hasColumn) { val _ = schemasWithValidationLabelType.add(schema) }
         hasColumn
       }
 
@@ -506,9 +506,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
-                 -- Denominator for "% with severity": only types that CAN take a rating, per LabelTypeEnum.
+                 -- Denominator for "% with severity": only types that CAN take a rating, per LabelType.
                  COUNT(DISTINCT label.label_id) FILTER (
-                     WHERE #${labelTypeSql.labelIsOneOf(LabelTypeEnum.ratedTypeNames)}
+                     WHERE #${labelTypeSql.labelIsOneOf(LabelType.ratedTypeNames)}
                  ) AS severity_eligible,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE cardinality(label.tags) > 0) AS with_tags,
                  -- Denominator for "% with tags": only types that CAN take tags, i.e. types that have any tag defined

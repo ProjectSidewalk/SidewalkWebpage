@@ -49,11 +49,9 @@ class AdminShell {
     document.querySelectorAll('.deploy-strip time[datetime]').forEach((el) => {
       const date = new Date(el.getAttribute('datetime'));
       if (Number.isNaN(date.getTime())) return;
-      /** @type {Intl.DateTimeFormatOptions} */
-      const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
       el.textContent = el.dataset.format === 'date'
-        ? date.toLocaleDateString(undefined, { ...dateOpts, timeZone: 'UTC' })
-        : date.toLocaleString(undefined, { ...dateOpts, hour: 'numeric', minute: '2-digit' });
+        ? date.toLocaleDateString(undefined, { ...util.SHORT_DATE, timeZone: 'UTC' })
+        : date.toLocaleString(undefined, util.SHORT_DATE_TIME);
     });
   }
 
@@ -248,6 +246,17 @@ class AdminShell {
     return String(value)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  /**
+   * Escapes plain text for a `data-ps-tooltip` attribute. psTooltip renders the attribute as HTML, so text escaped only
+   * once would come back out as live markup; see psTooltip.js for why it takes two levels.
+   *
+   * @param {*} value - Plain text, possibly from the data; null and undefined render as the empty string.
+   * @returns {string} The value escaped twice.
+   */
+  static tooltipAttr(value) {
+    return AdminShell.esc(AdminShell.esc(value));
   }
 
   /**

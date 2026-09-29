@@ -1,13 +1,12 @@
 @import controllers.helper.ControllerUtils
-@import models.label.LabelTypeEnum
+@import models.label.LabelType
 @import models.pano.ImageryAttribution
 @import models.utils.PanoScoring
-@import play.api.Configuration
 @import play.api.libs.json.Json
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
 @(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
-)(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
 @currentCity = @{commonData.currentCity}
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@
@@ -20,18 +19,6 @@
    the landing page and lose their navbar padding. MobileDetectionSpec pins this. *@
 @bodyClass = @{if (request.path == "/" || request.path == "/home") "no-navbar-offset" else ""}
 @unitWords = @{ControllerUtils.distanceUnitWords}
-
-@* The one moment locale this request needs. Locale files register lowercase names ('zh-tw', 'pt-br') matching their
-   filenames, and moment lowercases the code it's given, so a language code maps straight to a filename (#4486).
-   Derived from play.i18n.langs rather than a second list of languages: a hardcoded copy that drifts fails the way
-   de/pt-BR did — silently, in English — whereas a missing file here is a 404 someone will notice. *@
-@momentLocaleFile = @{
-  val langCode = messages.lang.code.toLowerCase
-  // moment has US English built in, so those two need no file; every other supported language has one vendored.
-  val builtIntoMoment = Set("en", "en-us")
-  val supported       = config.get[Seq[String]]("play.i18n.langs").map(_.toLowerCase)
-  Option.when(!builtIntoMoment(langCode) && supported.contains(langCode))(s"vendor/moment/$langCode.js")
-}
 
 <!DOCTYPE html>
 @* data-mobile-device is the server's mobile verdict (ControllerUtils.isMobile, the single mobile definition) for
@@ -64,8 +51,8 @@
     @extraHead
     @* Deferred: i18next is only touched from AppManager's DOM-ready callback, which runs after deferred scripts
        execute, so these don't need to block HTML parsing. *@
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")' defer></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.6.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next/i18next-26.4.2.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-4.0.2.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
 
     <script>
@@ -103,11 +90,11 @@
        the live viewer name the same licence the same way. PanoramaxViewer shows an identifier it can't find here
        verbatim, so a page that never stamps this (jsdom, the error pages) degrades rather than breaks. *@
     <script>window.panoramaxLicenses = @Html(ImageryAttribution.panoramaxLicensesJson);</script>
-    @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelTypeEnum
+    @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelType
        owns it; utilitiesSidewalk.js builds every label-type lookup from this rather than keeping a parallel set of
        literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
        that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
-    <script>window.labelTypes = @Html(LabelTypeEnum.pageStampJson);</script>
+    <script>window.labelTypes = @Html(LabelType.pageStampJson);</script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
@@ -121,6 +108,8 @@
         const csrfToken = "@CSRF.getToken.map(_.value)";
         const i18nextParams = {
           language: "@messages.lang.code",
+          supportedLanguages: @Html(Json.stringify(Json.toJson(commonData.supportedLanguages))),
+          localeFiles: @commonData.localeFilesJson,
           defaultNS: "@defaultI18nNamespace",
           namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
           countryId: "@currentCity.countryId",
@@ -257,14 +246,5 @@
         });
       });
     </script>
-
-    @* 37KB gz of parser-blocking script, and nothing reads `moment` at parse time — updateTimestamps defers its work
-       to DOM-ready. timestampLocalization.js stays blocking so the call below still resolves (#4486). *@
-    <script src='@assets.path("vendor/moment/moment-2.31.0.js")' defer></script>
-    @momentLocaleFile.map { localeFile =>
-      <script src='@assets.path(localeFile)' defer></script>
-    }
-    <script src='@assets.path("js/common/timestampLocalization.js")'></script>
-    <script>updateTimestamps("@messages.lang.code");</script>
   </body>
 </html>

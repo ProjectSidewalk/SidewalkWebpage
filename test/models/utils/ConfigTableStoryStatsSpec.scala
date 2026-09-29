@@ -1,13 +1,12 @@
 package models.utils
 
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
 import slick.jdbc.GetResult
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
@@ -19,7 +18,7 @@ import java.time.{OffsetDateTime, ZoneOffset}
  * seed adds. Deltas against a "before" read keep it meaningful on a dev DB that already holds stories, and the
  * rolled-back transaction leaves that DB exactly as found.
  */
-class ConfigTableStoryStatsSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class ConfigTableStoryStatsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

@@ -1,11 +1,10 @@
 package models.label
 
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Pins what the dashboard's "recent mistakes" query hands back, which two things conspire to get wrong.
@@ -17,7 +16,7 @@ import util.RolledBackDb
  *
  * Runs the real query against the connected database, so the illegal form fails here rather than in production.
  */
-class MistakeCardQuerySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class MistakeCardQuerySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -25,7 +24,7 @@ class MistakeCardQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
   private lazy val labelTable = app.injector.instanceOf[LabelTable]
 
   /** The user with the most incorrectly-validated labels of this type, so the ordering check has rows to work on. */
-  private def busiestUser(labelType: LabelTypeEnum.Base): Option[String] =
+  private def busiestUser(labelType: LabelType): Option[String] =
     run(
       sql"""SELECT label.user_id
             FROM label
@@ -40,11 +39,11 @@ class MistakeCardQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
 
   "getValidatedLabelsForUserQuery" should {
     "be a query Postgres accepts" in {
-      run(labelTable.getValidatedLabelsForUserQuery("no-such-user", LabelTypeEnum.Obstacle).take(5).result) mustBe empty
+      run(labelTable.getValidatedLabelsForUserQuery("no-such-user", LabelType.Obstacle).take(5).result) mustBe empty
     }
 
     "hand back the newest validations first, not the lowest label ids" in {
-      LabelTypeEnum.primaryValidateLabelTypes.foreach { labelType =>
+      LabelType.primaryValidateLabelTypes.foreach { labelType =>
         busiestUser(labelType).foreach { userId =>
           val rows       = run(labelTable.getValidatedLabelsForUserQuery(userId, labelType).take(25).result)
           val timestamps = rows.map(_._12)
@@ -56,7 +55,7 @@ class MistakeCardQuerySpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
     }
 
     "give each label exactly one row" in {
-      LabelTypeEnum.primaryValidateLabelTypes.foreach { labelType =>
+      LabelType.primaryValidateLabelTypes.foreach { labelType =>
         busiestUser(labelType).foreach { userId =>
           val labelIds = run(labelTable.getValidatedLabelsForUserQuery(userId, labelType).take(25).result).map(_._1)
           labelIds.distinct mustBe labelIds

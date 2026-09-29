@@ -12,7 +12,7 @@ move through panoramic street imagery and label accessibility features and probl
 aggregated, scored, and served back out through a public API and a set of dashboards.
 
 **Stack:**
-- **Backend** — Scala 2.13 + Play Framework 3.0 (Java 17).
+- **Backend** — Scala 3.3 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
 - **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenation only —
   no transpilation/module system), with no framework: native DOM and CSS on the `main.css` design tokens.
@@ -310,15 +310,23 @@ corresponding Twirl view:
   Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
   browser window with the pano; the labeling frame it stores with every label, and why, is in
   [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
-  The Image pill in the menu under Stuck (#3136, `common/PanoImageAdjustments.js` + `PanoImageAdjustmentsPopover.js`)
-  lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount — display-only, for the labeler's
-  eyes: the mount is a sibling of every overlay, and crops are cut from the provider's raw canvas, so neither the
-  label markers nor the stored imagery carry it. Shadows is a gamma curve (an SVG `feComponentTransfer` the model
-  injects on first use) rather than brightness, because the dark sidewalks people struggle with sit in otherwise
-  well-exposed scenes and a brightness multiplier clips the sky before it opens the shadows. Values persist in
-  localStorage and the same two classes are meant to mount on Validate.
+  The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
+  `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
+  display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's
+  raw canvas, so neither the label markers nor the stored imagery carry it. Its panel opens below the pill, clear of
+  the pills continuing the row, and to its right in full screen, where the pills form a column. Shadows is a gamma
+  curve (an SVG `feComponentTransfer` the model injects on first use) rather than brightness, because the dark
+  sidewalks people struggle with sit in otherwise well-exposed scenes and a brightness multiplier clips the sky before
+  it opens the shadows. Values persist in localStorage, shared with Validate, which mounts the same two classes (below).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
+  Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
+  hide-label toggle (`validate/src/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
+  The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
+  swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
+  the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
+  that the modals and the loading lock also set, and the partial sits outside `#svv-application-holder` so the busy
+  state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
   (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
   rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four
@@ -504,9 +512,9 @@ canonical color table and icon locations.
 
 Each type carries two independent domain facts, both published by that endpoint:
 
-- **access impact** (`LabelTypeEnum.AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
+- **access impact** (`AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
   that helps), or `neutral` (Occlusion and Other). This drives framing and copy.
-- **rating scale** (`LabelTypeEnum.RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
+- **rating scale** (`RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
   (1 is low, 3 is high), or `unrated` for a type whose labels never carry a 1–3 rating. Anything that *reads* a
   label's severity branches on this.
 

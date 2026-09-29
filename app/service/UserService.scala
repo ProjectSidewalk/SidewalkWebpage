@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskComment, AuditTaskInteractionTable, AuditTaskTable, OutdatedStreetForUser}
-import models.label.{LabelLocation, LabelTable, LabelTypeEnum}
+import models.label.{LabelLocation, LabelTable, LabelType}
 import models.mission.MissionTable
 import models.region.Region
 import models.street.StreetEdge
@@ -18,7 +18,7 @@ import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, Messages}
 
-import java.time.format.DateTimeFormatter
+import java.time.format.{DateTimeFormatter, FormatStyle}
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import java.util.Locale
 import javax.inject._
@@ -111,7 +111,7 @@ case class TeamOverview(team: Team, members: Seq[TeamMemberStats], totals: TeamT
 /**
  * A user's accuracy for one label type, for the dashboard's learning section.
  *
- * @param labelType   LabelTypeEnum name (e.g. "NoCurbRamp").
+ * @param labelType   LabelType name (e.g. "NoCurbRamp").
  * @param cssKey      Kebab-case key for the `--color-label-*` token (e.g. "no-curb-ramp").
  * @param displayName Human-readable name (e.g. "No Curb Ramp").
  * @param pct         Accuracy percent (correct / validated), 0–100.
@@ -339,8 +339,7 @@ object UserService {
   }
 
   /** Label types shown in the per-type accuracy bars (the ones with canonical `--color-label-*` colors), in order. */
-  private val PrimaryLabelTypes: Seq[String] =
-    LabelTypeEnum.ordered.filter(LabelTypeEnum.primaryLabelTypes.contains).map(_.name)
+  private val PrimaryLabelTypes: Seq[String] = LabelType.primaryLabelTypeNames
 
   /**
    * Minimum validated labels of a type before it's eligible to be flagged as the user's "weakest" (avoids flagging a
@@ -423,7 +422,7 @@ object UserService {
     val daysFromSunday                 = today.getDayOfWeek.getValue % 7 // Mon=1..Sat=6, Sun=0
     val currentWeekSunday              = today.minusDays(daysFromSunday.toLong)
     val startSunday                    = currentWeekSunday.minusWeeks((HeatmapWeeks - 1).toLong)
-    val fmt                            = DateTimeFormatter.ofPattern("EEE, MMM d", locale)
+    val fmt                            = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(locale)
     val cells: Seq[Option[StreakCell]] = for {
       w <- 0 until HeatmapWeeks
       d <- 0 until 7
@@ -1053,7 +1052,7 @@ class UserServiceImpl @Inject() (
     val weeklyF         = db.run(trophyTable.getWeeklyPodiums(userId, 6))
     val freeExploreF    = db.run(trophyTable.getFreeExplorationTrophyFlags(userId))
     val medals          = Map(1 -> "🥇", 2 -> "🥈", 3 -> "🥉")
-    val weekOfFmt       = DateTimeFormatter.ofPattern("MMM d, yyyy", messages.lang.toLocale)
+    val weekOfFmt       = DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(messages.lang.toLocale)
     for {
       cityPioneer                            <- cityPioneerF
       regionPioneers                         <- regionPioneersF

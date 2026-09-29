@@ -507,6 +507,23 @@ describe('psTooltip pinning (#5495)', () => {
         expect(card().style.top).toBe(`${200 - CARD_HEIGHT - TRIGGER_GAP}px`);
     });
 
+    test('a card opened by keyboard focus follows its trigger through the scroll that brings it into view', () => {
+        const trigger = addTrigger({ left: 100, top: 900, width: 100, height: 30 }, 'Focused');
+        trigger.focus();
+        trigger._rect = { left: 100, top: 300, width: 100, height: 30 };
+        window.dispatchEvent(new Event('scroll'));
+
+        expect(isVisible()).toBe(true);
+        expect(card().style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    });
+
+    test('a card whose trigger doesn\'t hold focus still closes on scroll', () => {
+        open(addTrigger({ left: 100, top: 300, width: 100, height: 30 }, 'Hovered'));
+        window.dispatchEvent(new Event('scroll'));
+
+        expect(isVisible()).toBe(false);
+    });
+
     test('a click no pointer made (a screen reader\'s Enter) moves focus into the card like a keyboard pin', () => {
         const trigger = addPinnable();
         trigger.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));

@@ -66,10 +66,6 @@ declare const MapboxLanguage: any;
 declare const MapboxSearchBox: any;
 // GraphDataProvider is spelled out because a class extending an `any` base gets a constructor that takes nothing.
 declare const mapillary: { GraphDataProvider: new (options?: object) => any; [name: string]: any };
-declare const moment: any;
-declare namespace moment {
-  type Moment = any;
-}
 declare const pannellum: any;
 declare namespace pannellum {
   type Viewer = any;
@@ -131,7 +127,7 @@ interface Window {
   citiesMap?: mapboxgl.Map;
   // Explore's rasterized label icons, by icon path. Set up by Label.js.
   labelIconCache: Record<string, HTMLCanvasElement>;
-  // Stamped from LabelTypeEnum.pageStampJson.
+  // Stamped from LabelType.pageStampJson.
   labelTypes: Array<{
     name: string;
     color: string;

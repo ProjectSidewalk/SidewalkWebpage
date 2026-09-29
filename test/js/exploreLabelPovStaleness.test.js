@@ -19,7 +19,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, installDateHelpers } = require('./loadGlobalScript');
 
 const FORM_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/explore/src/data/Form.js'), 'utf8'
@@ -37,7 +37,7 @@ const WIDE_FRAME = { width: 720, height: 405 };
 const PANO = {
     panoId: 'pano-A',
     source: 'gsv',
-    captureDate: { format: () => '2024-06' },
+    captureDate: new Date(2024, 5),
     width: 8192,
     height: 4096,
     tileWidth: 512,
@@ -190,6 +190,7 @@ describe('Explore label POV staleness (#4842 regression)', () => {
             getOperatingSystem: () => 'linux',
             math: { kmsToMeters: (km) => km * 1000 },
         });
+        installDateHelpers();
         window.AsyncLock = class { async acquire(key, fn) { return fn(); } };
         viewerPov = { heading: 128.7, pitch: -12.3, zoom: 2 };
         window.svl = {

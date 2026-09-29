@@ -183,7 +183,10 @@ class PanoManager {
 
     if (!util.isMobile()) {
       // Add the capture date of the image to the bottom-right corner of the UI.
-      svv.ui.viewer.date.textContent = panoData.getProperty('captureDate').format('MMM YYYY');
+      const captureDate = panoData.getProperty('captureDate');
+      svv.ui.viewer.date.textContent = Number.isNaN(captureDate.getTime())
+        ? ''
+        : captureDate.toLocaleDateString(i18next.language, { month: 'short', year: 'numeric' });
     }
 
     return panoData;
@@ -299,7 +302,7 @@ class PanoManager {
     // localized the same way the card's header is.
     marker.setAttribute(
       'aria-label',
-      i18next.t(`common:${util.camelToKebab(label.getProperty('newLabelType'))}`).replace('&shy;', ''),
+      util.misc.labelTypeName(label.getProperty('newLabelType')),
     );
   }
 

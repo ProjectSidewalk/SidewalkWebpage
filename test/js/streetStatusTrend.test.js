@@ -18,6 +18,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { installDateHelpers } = require('./loadGlobalScript');
+
 const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
 /** Loads the section's dependencies into global scope and returns the StreetStatusTrend class. */
@@ -31,6 +33,7 @@ function loadPage() {
   );
 }
 
+installDateHelpers();
 const StreetStatusTrend = loadPage();
 
 const MARKUP = `

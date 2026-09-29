@@ -3,7 +3,7 @@ package controllers.api
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, StreamingApiType}
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.utils.{LatLngBBox, MapParams}
 import org.apache.pekko.stream.scaladsl.{Source, StreamConverters}
 import play.api.Logger
@@ -114,9 +114,9 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * @param labelType The optional label type name.
    * @return `Right(None)` if absent, `Right(Some(labelType))` if valid, or `Left(ApiError)` for an unknown name.
    */
-  protected def parseLabelTypeParam(labelType: Option[String]): Either[ApiError, Option[LabelTypeEnum.Base]] =
-    parseAllowlistedList(labelType, LabelTypeEnum.labelTypeNames, "labelType")
-      .map(_.flatMap(_.headOption).flatMap(LabelTypeEnum.byName.get))
+  protected def parseLabelTypeParam(labelType: Option[String]): Either[ApiError, Option[LabelType]] =
+    parseAllowlistedList(labelType, LabelType.labelTypeNames, "labelType")
+      .map(_.flatMap(_.headOption).flatMap(LabelType.byName.get))
 
   /** Renders an `ApiError` as an RFC 7807 `application/problem+json` response with the error's HTTP status. */
   protected def badRequest(error: ApiError): Result = ApiError.toResult(error)

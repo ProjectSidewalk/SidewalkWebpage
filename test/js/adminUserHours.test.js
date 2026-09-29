@@ -13,6 +13,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { installDateHelpers } = require('./loadGlobalScript');
 
 const ADMIN_USER_SRC = fs.readFileSync(
   path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/AdminUser.js'), 'utf8');
@@ -20,6 +21,8 @@ const ADMIN_USER_SRC = fs.readFileSync(
 let AdminUser;
 
 beforeAll(() => {
+  window.i18next = { language: 'en' };
+  installDateHelpers();
   AdminUser = (0, eval)(`${ADMIN_USER_SRC}\nAdminUser;`);
 });
 

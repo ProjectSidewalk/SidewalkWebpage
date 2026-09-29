@@ -2,21 +2,20 @@ package controllers
 
 import models.user.Role
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.{AnonSession, RoleSession}
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 /**
  * Functional tests for Expert Validate's `teams` filter (#5342), as a query parameter and in `validate_params`.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class ValidateTeamParamsSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class ValidateTeamParamsSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

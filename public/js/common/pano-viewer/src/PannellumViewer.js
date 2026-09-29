@@ -400,9 +400,7 @@ class PannellumViewer extends PanoViewer {
     return new PanoData({
       panoId,
       source: this.getViewerType(),
-      captureDate: metadata.captureDate instanceof moment
-        ? metadata.captureDate
-        : moment(metadata.captureDate || Date.now()),
+      captureDate: util.parseDate(metadata.captureDate || Date.now()),
       width: metadata.width,
       height: metadata.height,
       tileWidth: metadata.tileWidth || metadata.width,

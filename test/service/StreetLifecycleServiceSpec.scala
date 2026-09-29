@@ -4,13 +4,13 @@ import models.street.{StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetEdge
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
@@ -27,7 +27,7 @@ import scala.concurrent.duration._
  * Seeds its own transitions against a real street and removes them afterwards. Requires a Postgres+PostGIS database
  * (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors are disabled.
  */
-class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

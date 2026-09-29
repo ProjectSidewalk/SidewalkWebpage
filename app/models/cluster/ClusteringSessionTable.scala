@@ -149,7 +149,7 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
   }
 
   def getLabelsToClusterInRegion(regionId: Int): DBIO[Seq[LabelToCluster]] = {
-    labelsForApiQuery.filter(_._1 === regionId).result.map(_.map(LabelToCluster.tupled))
+    labelsForApiQuery.filter(_._1 === regionId).result.map(_.map(LabelToCluster.apply.tupled))
   }
 
   def deleteClusteringSessions(regionIds: Seq[Int]): DBIO[Int] = {

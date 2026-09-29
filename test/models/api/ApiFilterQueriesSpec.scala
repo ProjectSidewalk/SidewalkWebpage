@@ -10,11 +10,10 @@ import models.user.UserStatTable
 import models.validation.LabelValidationTable
 import models.utils.{LatLngBBox, SpatialQueryType}
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -26,7 +25,7 @@ import java.time.{LocalDate, OffsetDateTime}
  * query runs; compiling can't catch it. On a database with no matching rows (CI's) the row checks pass trivially, but
  * each query still has to run.
  */
-class ApiFilterQueriesSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class ApiFilterQueriesSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

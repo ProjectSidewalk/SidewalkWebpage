@@ -5,7 +5,6 @@ import models.utils.{ImageUtils, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -13,6 +12,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, Configuration, Environment}
 import service.CropService.CropRunResult
+import util.SidewalkSpec
 
 import java.awt.image.BufferedImage
 import java.io.File
@@ -36,7 +36,7 @@ import scala.util.{Failure, Try}
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
-class CropServiceSpec extends PlaySpec with BeforeAndAfterAll with OptionValues with GuiceOneAppPerSuite {
+class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionValues with GuiceOneAppPerSuite {
 
   private val prefix    = "CropServiceSpec-4865-"
   private val mediaRoot = Files.createTempDirectory("crop-service-spec").toFile

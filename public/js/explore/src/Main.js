@@ -212,9 +212,17 @@ class Main {
     // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano; the suspension is
     // only undone if the panel was what suspended them, since a pop-up can disable the keyboard while it is open.
     svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    // Settings carried in from an earlier visit (or from Validate) change what the labeler sees before they touch the
+    // panel, so the load records them; ImageAdjustments_Change only covers edits made on this page.
+    if (!svl.imageAdjustments.isDefault()) {
+      svl.tracker.push('ImageAdjustments_Restored', svl.imageAdjustments.values());
+    }
     let panelSuspendedKeyboard = false;
     svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
       document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
+        // The pills form a row, so opening to the right would cover Sound and Feedback; full screen stacks them in a
+        // column, where the right is clear and below would cover them instead.
+        placement: () => (document.body.classList.contains(ImmersiveMode.BODY_CLASS) ? 'right' : 'below'),
         onOpen: () => {
           svl.tracker.push('Click_ImageAdjustments_Open');
           panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');
@@ -259,7 +267,7 @@ class Main {
     // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
     const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
     svl.panoDateNote.update(
-      initialCaptureDate ? initialCaptureDate.format('YYYY-MM-DD') : null,
+      initialCaptureDate ? util.localIsoDate(initialCaptureDate) : null,
       svl.taskContainer.getCurrentTask(),
     );
 

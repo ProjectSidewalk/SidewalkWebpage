@@ -555,7 +555,7 @@ class ContextMenu {
       // first field and never says what it belongs to.
       if (this.#headerIcon) this.#headerIcon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
       if (this.#headerType) {
-        this.#headerType.textContent = i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '');
+        this.#headerType.textContent = util.misc.labelTypeName(labelType);
       }
       // The tutorial can forbid deleting the label it just had you place.
       this.#menuWindow.classList.toggle('context-menu--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
@@ -653,7 +653,7 @@ class ContextMenu {
     if (!this.#shareWidget || !shareable) return;
 
     const id = label.getProperty('labelId');
-    const labelTypeName = i18next.t(`common:${util.camelToKebab(label.getLabelType())}`).replace('&shy;', '');
+    const labelTypeName = util.misc.labelTypeName(label.getLabelType());
     const text = i18next.t('common:share.text', { labelType: labelTypeName });
     this.#shareWidget.setTarget({
       url: Number.isInteger(id) ? `${window.location.origin}/label/${id}` : '',

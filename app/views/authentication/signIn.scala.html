@@ -34,7 +34,7 @@
             <p>@msg</p>
           </div>
         }
-        @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+        @form(action = routes.UserController.authenticate(), args = Symbol("id") -> "sign-in-form", Symbol("class") -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @CSRF.formField
           <input type="hidden" name="returnUrl" value="@buildUrlFromQueryString(request.queryString)">
           <div class="au-field">

@@ -1,14 +1,4 @@
 function defineValidateConstants() {
-  svv.labelTypeNames = {
-    CurbRamp: i18next.t('common:curb-ramp'),
-    NoCurbRamp: i18next.t('common:no-curb-ramp'),
-    Obstacle: i18next.t('common:obstacle'),
-    SurfaceProblem: i18next.t('common:surface-problem'),
-    NoSidewalk: i18next.t('common:no-sidewalk'),
-    Crosswalk: i18next.t('common:crosswalk'),
-    Signal: i18next.t('common:signal'),
-  };
-
   /**
    * Every type's first disagree reason. On Expert Validate it opens the label type picker instead of being saved as
    * a comment (#5409). A fresh object per type, since the tooltip gets its key number appended below.

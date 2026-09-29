@@ -6,6 +6,7 @@
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
         reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions lint-js-types \
+        lint-spec-base \
         scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
@@ -143,7 +144,7 @@ lint:
 	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
 	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
-			lint-vendor-versions lint-js-types lint-evolutions; do \
+			lint-vendor-versions lint-js-types lint-spec-base lint-evolutions; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -402,6 +403,12 @@ lint-js-types:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-js-types.mjs"
 	@echo "Finished checking JS types";
 
+# Every backend spec extends util.SidewalkSpec rather than PlaySpec (#3936). Also a blocking CI step.
+lint-spec-base:
+	@echo "Checking spec base classes...";
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-spec-base.mjs"
+	@echo "Finished checking spec base classes";
+
 # The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.
 #
 # Scala formatting (.scalafmt.conf). `scalafmt` checks (the blocking CI gate); `scalafmt-fix` reformats in place.
@@ -423,7 +430,7 @@ test-scala:
 # keeping compiled classes so the next `make compile` is still incremental.
 clean-dist:
 	@echo "Removing packaged build output from $(host-dir)..."
-	@docker exec $(web-container) bash -lc "cd $(container-dir) && rm -rf target/scala-2.13/*.jar target/universal/stage target/universal/*.zip"
+	@docker exec $(web-container) bash -lc "cd $(container-dir) && rm -rf target/scala-*/*.jar target/universal/stage target/universal/*.zip"
 	@echo "Done. target/ is now $$(du -sh $(host-dir)/target 2>/dev/null | cut -f1)."
 
 # The JS/CSS/HTML linters run in the web container, where their node_modules live (no host-side npm install).

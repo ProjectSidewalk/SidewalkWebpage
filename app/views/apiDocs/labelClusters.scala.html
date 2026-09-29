@@ -350,8 +350,8 @@
             <!-- Temporal Information -->
           <tr>
             <td><code>properties.avg_image_capture_date</code></td>
-            <td><code>string</code></td>
-            <td>Average date when the imagery was captured for the labels in this cluster, in ISO 8601 format.</td>
+            <td><code>string | null</code></td>
+            <td>Average date when the imagery was captured for the labels in this cluster, in ISO 8601 format, or null if none of that imagery has a known capture date.</td>
           </tr>
           <tr>
             <td><code>properties.avg_label_date</code></td>

@@ -346,7 +346,7 @@ and for local dev — and degrade gracefully to "unknown" elsewhere (e.g. CI's s
 the build.
 
 Because the build is identical in spirit to local dev, **a change that fails to compile or bundle locally will fail
-the deploy.** The backend is built with `-Xfatal-warnings`, so warnings block the build too. See
+the deploy.** The backend is built with `-Werror`, so warnings block the build too. See
 [`docs/testing-and-ci.md`](testing-and-ci.md) and [`docs/dev-environment.md`](dev-environment.md).
 
 ### Directories that must survive a deploy

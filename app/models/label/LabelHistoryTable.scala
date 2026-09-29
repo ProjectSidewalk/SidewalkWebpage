@@ -17,7 +17,7 @@ import javax.inject.{Inject, Singleton}
 case class LabelHistory(
     labelHistoryId: Int,
     labelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     severity: Option[Int],
     tags: Seq[String],
     editedBy: String,
@@ -27,9 +27,9 @@ case class LabelHistory(
 )
 
 class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](tag, "label_history") {
-  def labelHistoryId: Rep[Int]           = column[Int]("label_history_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                  = column[Int]("label_id")
-  def labelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("label_type")
+  def labelHistoryId: Rep[Int]  = column[Int]("label_history_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]         = column[Int]("label_id")
+  def labelType: Rep[LabelType] = column[LabelType]("label_type")
   // CHECK: NULL or 1-3, and NULL when the type is unrated (label_history_unrated_no_severity_check).
   def severity: Rep[Option[Int]] = column[Option[Int]]("severity")
   def tags: Rep[List[String]]    = column[List[String]]("tags", O.Default(List()))
@@ -43,10 +43,10 @@ class LabelHistoryTableDef(tag: slick.lifted.Tag) extends Table[LabelHistory](ta
   def * = (
     labelHistoryId, labelId, labelType, severity, tags, editedBy, editTime, source, labelEditId
   ) <> (
-    { t: (Int, Int, LabelTypeEnum.Base, Option[Int], List[String], String, OffsetDateTime, UiSource, Option[Int]) =>
+    { (t: (Int, Int, LabelType, Option[Int], List[String], String, OffsetDateTime, UiSource, Option[Int])) =>
       LabelHistory(t._1, t._2, t._3, t._4, t._5, t._6, t._7, t._8, t._9)
     },
-    { lh: LabelHistory =>
+    { (lh: LabelHistory) =>
       Some(
         (lh.labelHistoryId, lh.labelId, lh.labelType, lh.severity, lh.tags.toList, lh.editedBy, lh.editTime, lh.source,
           lh.labelEditId)
@@ -86,7 +86,7 @@ class LabelHistoryTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   /** Moves the row recording an edit's outcome along with the edit, when a later change is folded into it. */
   def updateStateForEdit(
       labelEditId: Int,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       severity: Option[Int],
       tags: List[String],
       editTime: OffsetDateTime

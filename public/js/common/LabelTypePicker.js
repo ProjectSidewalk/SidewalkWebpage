@@ -82,7 +82,7 @@ class LabelTypePicker {
     chip.setAttribute('role', 'radio');
     chip.style.setProperty('--label-color', util.misc.getLabelColors(labelType));
 
-    const name = i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '');
+    const name = util.misc.labelTypeName(labelType);
     const isCurrent = labelType === this.#currentType;
     chip.innerHTML = `
       <img class="label-type-picker__icon" src="${util.misc.getIconImagePaths(labelType).iconImagePath}" alt="">
@@ -256,11 +256,11 @@ class LabelTypeDropdown {
 
   /** @param {string} labelType - The type to draw into both the plain title and the button. */
   setType(labelType) {
-    const name = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '­');
+    const name = util.misc.labelTypeName(labelType);
     for (const el of this.#names) el.textContent = name;
     for (const el of this.#icons) el.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     // The name first, then what pressing does (WCAG 2.5.3), minus the soft hyphen a screen reader reads as a break.
-    const spoken = name.replaceAll('­', '');
+    const spoken = name.replaceAll('\u00AD', '');
     this.#button.setAttribute('aria-label', `${spoken}: ${i18next.t('common:label-type-picker.change-type')}`);
   }
 

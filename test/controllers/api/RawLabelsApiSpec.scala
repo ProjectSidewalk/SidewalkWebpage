@@ -1,14 +1,13 @@
 package controllers.api
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
 import models.utils.MyPostgresProfile.api._
 import play.api.test.FakeRequest
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Locks the response contract of GET /v3/api/rawLabels: GeoJSON FeatureCollection by default, a snake_case CSV header
@@ -22,7 +21,7 @@ import util.RolledBackDb
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class RawLabelsApiSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

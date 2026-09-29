@@ -179,7 +179,7 @@ consistent with it.
 - **CSS files → kebab-case**, always (`labeling-guide.css`, `user-dashboard.css`, `filter-sidebar.css`).
 - **JS files → Airbnb "filename matches what it defines":** **PascalCase** for a file that defines a
   class/constructor (`AppManager.js`, `LabelPopup.js`, `GsvViewer.js`), **camelCase** for a function/utility/entry
-  file (`main.js`, `aggregateStats.js`, `timestampLocalization.js`). Kebab-case is **not** used for JS files.
+  file (`main.js`, `aggregateStats.js`, `labelMapLocationSearch.js`). Kebab-case is **not** used for JS files.
 - **HTML `id`/`class` values → kebab-case** (`page-loading`, `severity-button`, `nav-user-menu`), with two deliberate
   exceptions:
   - **BEM** element/modifier syntax is allowed — `__` for elements, `--` for modifiers

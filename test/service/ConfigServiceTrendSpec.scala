@@ -1,9 +1,9 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import util.SidewalkSpec
 
 import java.time.{LocalDate, ZoneId}
 import scala.concurrent.Await
@@ -23,7 +23,7 @@ import scala.concurrent.duration.DurationInt
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class ConfigServiceTrendSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

@@ -1,12 +1,11 @@
 package models.intersection
 
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import service.AccessScoreCalculator
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import scala.io.Source
 
@@ -18,7 +17,7 @@ import scala.io.Source
  * assertions on them cannot be disturbed by whatever the schema already holds. The rebuild still processes the whole
  * table, which is what the evolution-parity case relies on.
  */
-class IntersectionTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
+class IntersectionTableSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

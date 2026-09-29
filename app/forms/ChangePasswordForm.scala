@@ -11,7 +11,7 @@ object ChangePasswordForm {
       "currentPassword"    -> nonEmptyText,
       "newPassword"        -> PasswordPolicy.newPassword,
       "newPasswordConfirm" -> nonEmptyText
-    )(Data.apply)(Data.unapply)
+    )(Data.apply)((d: Data) => Some(Tuple.fromProductTyped(d)))
       .verifying("authenticate.error.password.mismatch", fields => fields.newPassword == fields.newPasswordConfirm)
       .verifying("dashboard.settings.password.error.same", fields => fields.newPassword != fields.currentPassword)
   )

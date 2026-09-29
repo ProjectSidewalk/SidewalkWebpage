@@ -51,6 +51,17 @@ describe('AdminShell.esc', () => {
   });
 });
 
+describe('AdminShell.tooltipAttr', () => {
+  test('survives both the attribute parse and psTooltip\'s innerHTML as plain text', () => {
+    const host = document.createElement('div');
+    host.innerHTML = `<span data-ps-tooltip="${AdminShell.tooltipAttr('<img src=x onerror="bad()"> & co')}"></span>`;
+    const card = document.createElement('div');
+    card.innerHTML = host.firstChild.getAttribute('data-ps-tooltip');
+    expect(card.querySelector('img')).toBeNull();
+    expect(card.textContent).toBe('<img src=x onerror="bad()"> & co');
+  });
+});
+
 describe('AdminShell.num', () => {
   test('groups thousands', () => {
     expect(AdminShell.num(1234567)).toBe('1,234,567');

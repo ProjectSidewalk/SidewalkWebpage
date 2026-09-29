@@ -1052,10 +1052,10 @@ class AcrossCitiesPage {
           + `${AcrossCitiesPage.#esc(meta.label)}</span></span>`;
       }
       const engagementTitle = `${this.#num(t.engaged_sessions_7d)} of ${this.#num(t.sessions_7d)} sessions engaged`;
-      const sinceTitle = AcrossCitiesPage.#gaSinceTitle(t.ga_since);
+      const sinceTip = AdminShell.tooltipAttr(AcrossCitiesPage.#gaSinceTip(t.ga_since));
       const weeks = t.weekly_sessions || [];
       // The sparkline is aria-hidden and carries no numbers, so the cell has to state them.
-      const trendTitle = weeks.length
+      const trendTip = weeks.length
         ? `Weekly sessions: latest ${this.#num(weeks[weeks.length - 1])}, `
         + `peak ${this.#num(Math.max(...weeks))}`
         : 'No weekly sessions to plot.';
@@ -1068,10 +1068,10 @@ class AcrossCitiesPage {
           ${this.#trafficCell(t.active_users_7d, t.active_users_prior_7d, 'visitors')}
           <td class="ac-num" title="${engagementTitle}">${this.#pct(t.engagement_rate_7d)}</td>
           <td class="ac-num" title="${mobileTitle}">${this.#pct(t.mobile_share_28d)}</td>
-          <td class="ac-num" title="${sinceTitle}">${this.#num(t.sessions_all_time)}</td>
-          <td class="ac-num" title="${sinceTitle}">${this.#num(t.visitors_all_time)}</td>
-          <td class="ac-num" title="${sinceTitle}">${this.#pct(t.mobile_share_all_time)}</td>
-          <td class="ac-spark-cell" title="${trendTitle}">${this.#sparkline(weeks)}</td>
+          <td class="ac-num" tabindex="0" data-ps-tooltip="${sinceTip}">${this.#num(t.sessions_all_time)}</td>
+          <td class="ac-num" data-ps-tooltip="${sinceTip}">${this.#num(t.visitors_all_time)}</td>
+          <td class="ac-num" data-ps-tooltip="${sinceTip}">${this.#pct(t.mobile_share_all_time)}</td>
+          <td class="ac-spark-cell" tabindex="0" data-ps-tooltip="${trendTip}">${this.#sparkline(weeks)}</td>
         </tr>`;
     }).join('');
     this.#markSortedHeader('ac-traffic-table');
@@ -1170,6 +1170,7 @@ class AcrossCitiesPage {
 
     const rows = this.#cities.slice().sort((a, b) => (b.total_labels || 0) - (a.total_labels || 0));
     host.innerHTML = rows.map((c) => {
+      const tips = [];
       const total = present.reduce((sum, [key]) =>
         sum + ((c.by_label_type && c.by_label_type[key] && c.by_label_type[key].labels) || 0), 0);
       let segments;
@@ -1181,7 +1182,8 @@ class AcrossCitiesPage {
           if (n === 0) return '';
           const share = n / total;
           const tip = `${name}: ${this.#num(n)} (${this.#pct(share)})`;
-          return `<span class="ac-stack-seg" title="${AcrossCitiesPage.#esc(tip)}"
+          tips.push(tip);
+          return `<span class="ac-stack-seg" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}"
             style="width:${(share * 100).toFixed(2)}%;background:${this.#color(key)}"></span>`;
         }).join('');
       }
@@ -1190,7 +1192,8 @@ class AcrossCitiesPage {
           <div class="ac-pattern-city">
             ${this.#cityLink(c)} <span class="ac-muted">${this.#compact(c.total_labels)}</span>
           </div>
-          <div class="ac-stack">${segments}</div>
+          <div class="ac-stack" role="img" aria-label="${AcrossCitiesPage.#esc(tips.join(', ') || 'No labels')}">
+            ${segments}</div>
         </div>`;
     }).join('');
   }
@@ -1277,8 +1280,7 @@ class AcrossCitiesPage {
       const link = href && `<a href="${AcrossCitiesPage.#esc(href)}" target="_blank" rel="noopener">${name}</a>`;
       const cityCell = link || name;
       // total > 0 guarantees a newest date.
-      const dateOpts = /** @type {Intl.DateTimeFormatOptions} */ ({ year: 'numeric', month: 'short', day: 'numeric' });
-      const newest = new Date(st.newest).toLocaleDateString(undefined, dateOpts);
+      const newest = new Date(st.newest).toLocaleDateString(undefined, util.SHORT_DATE);
       return `
         <tr>
           <td class="ac-td-city">${cityCell}</td>
@@ -1387,9 +1389,12 @@ class AcrossCitiesPage {
       multi ? '<th class="ac-th-text">Group</th>' : '',
       ...steps.map((k) => {
         const l = labels[k] || { full: k, short: k };
-        return `<th title="${AcrossCitiesPage.#esc(l.full)}">${AcrossCitiesPage.#esc(l.short)}</th>`;
+        const short = AcrossCitiesPage.#esc(l.short);
+        // A card that only repeats the header would be a tab stop with nothing to say.
+        if (l.full === l.short) return `<th>${short}</th>`;
+        return `<th tabindex="0" data-ps-tooltip="${AdminShell.tooltipAttr(l.full)}">${short}</th>`;
       }),
-      '<th title="Final step as a share of visitors">Overall</th></tr>',
+      '<th tabindex="0" data-ps-tooltip="Final step as a share of visitors">Overall</th></tr>',
     ].join('');
 
     const rows = [];
@@ -1455,10 +1460,10 @@ class AcrossCitiesPage {
         const width = base > 0 ? (v / base) * 100 : 0;
         const conv = d ? d.step_conversion[i] : 0;
         const valText = i === 0 ? this.#compact(v) : `${this.#compact(v)} · ${this.#pct(conv)}`;
-        const title = i === 0
-          ? `${AcrossCitiesPage.#esc(full)}: ${this.#num(v)} visitors`
-          : `${AcrossCitiesPage.#esc(full)}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
-        return `<div class="ac-funnel-bar" title="${title}">`
+        const tip = i === 0
+          ? `${full}: ${this.#num(v)} visitors`
+          : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
+        return `<div class="ac-funnel-bar" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}">`
           + `<span class="ac-funnel-bar-fill" `
           + `style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
           + `<span class="ac-funnel-bar-val">${valText}</span></div>`;
@@ -1748,7 +1753,7 @@ class AcrossCitiesPage {
 
   #coverageBar(coverage) {
     const pct = Math.round((coverage || 0) * 100);
-    return `<div class="ac-bar" title="${pct}% audited">`
+    return `<div class="ac-bar" data-ps-tooltip="${pct}% audited">`
       + `<span class="ac-bar-fill" style="width:${pct}%"></span>`
       + `<span class="ac-bar-label">${pct}%</span></div>`;
   }
@@ -1828,13 +1833,13 @@ class AcrossCitiesPage {
    * what window they actually cover.
    *
    * @param {string} [isoDate] - The property's first day with data, as `YYYY-MM-DD`.
-   * @returns {string} A sentence for the `title` attribute.
+   * @returns {string} A sentence for the cell's tooltip.
    */
-  static #gaSinceTitle(isoDate) {
+  static #gaSinceTip(isoDate) {
     if (!isoDate) return 'Covers this property\'s whole GA4 history.';
-    const d = new Date(`${isoDate}T00:00:00`);
+    const d = util.parseDate(isoDate);
     if (isNaN(d.getTime())) return 'Covers this property\'s whole GA4 history.';
-    const when = d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    const when = d.toLocaleDateString(undefined, util.SHORT_DATE);
     return `GA4 data starts ${when}; earlier traffic isn't counted.`;
   }
 
@@ -1845,28 +1850,28 @@ class AcrossCitiesPage {
 
   /** "Jun 9"-style short date from an ISO date string. */
   static #shortDate(iso) {
-    const d = new Date(`${iso}T00:00:00`);
+    const d = util.parseDate(iso);
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   /** "Jun '19"-style month + year from an ISO date string, for multi-year x-axes. */
   static #shortDateYear(iso) {
-    const d = new Date(`${iso}T00:00:00`);
+    const d = util.parseDate(iso);
     if (isNaN(d.getTime())) return iso;
     return `${d.toLocaleDateString(undefined, { month: 'short' })} '${String(d.getFullYear()).slice(-2)}`;
   }
 
   /** "Thu, Jun 9"-style weekday + date from an ISO date string, for hover cards that have room to be unambiguous. */
   static #longDate(iso) {
-    const d = new Date(`${iso}T00:00:00`);
+    const d = util.parseDate(iso);
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   }
 
   /** "Thu"-style short weekday from an ISO date string. */
   static #weekday(iso) {
-    const d = new Date(`${iso}T00:00:00`);
+    const d = util.parseDate(iso);
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { weekday: 'short' });
   }
