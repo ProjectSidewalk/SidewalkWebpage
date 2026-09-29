@@ -214,7 +214,9 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
   [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.8.0) ·
   [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.8.0)
-- **i18next: 26.4.2** — frontend translations.
+- **i18next: 26.4.2** — frontend translations. **Note:** `test/js/i18nextLocales.test.js` runs this file and
+  i18next-http-backend over our real locale files in every language, so `make test-js args=i18nextLocales` is the
+  check after a bump of either.
   [Download](https://unpkg.com/i18next/dist/umd/i18next.min.js) ·
   [Changelog](https://github.com/i18next/i18next/blob/master/CHANGELOG.md)
 - **i18next-http-backend: 4.0.2** — loads translation files (`i18nextHttpBackend-4.0.2.min.js`).

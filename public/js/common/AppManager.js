@@ -149,6 +149,7 @@ class AppManager {
    *
    * @param {object} params - Properties that determine which translations should be loaded.
    * @param {string} params.language - The language to use for translations, e.g., "en", "en-US", "es", etc.
+   * @param {Array<string>} params.supportedLanguages - Every language the site offers, e.g., ["en", "pt-BR"]
    * @param {string} params.defaultNS - The default namespace to use if no specific ns is provided, e.g., "common"
    * @param {Array<string>} params.namespaces - An array of namespaces to load, e.g., ["common", "explore"]
    * @param {string} params.countryId - The server's country ID to determine if we load country-specific overrides
@@ -175,11 +176,11 @@ class AppManager {
         loadPath: '/assets/locales/{{lng}}/{{ns}}.json',
       },
       fallbackLng: 'en',
+      // Stops i18next asking for languages we don't have: for pt-BR it would otherwise also try plain "pt".
+      supportedLngs: params.supportedLanguages,
       ns: namespaces,
       defaultNS: params.defaultNS,
       lng: params.language,
-      partialBundledLanguages: true,
-      debug: false,
       interpolation: {
         // Every string may write {{unitName}}, {{unitAbbr}}, … and get this reader's units with no argument at the
         // call site, so there is nothing a caller can forget and no metric/imperial pair of keys to keep in sync.
