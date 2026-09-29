@@ -146,5 +146,4 @@ class AdminUserViewSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       adminPage must include("""id="au-hours-note" hidden>""")
     }
   }
-
 }
