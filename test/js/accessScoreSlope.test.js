@@ -48,7 +48,6 @@ describe('slope in the AccessScore scoring controls', () => {
         // Echoes the key with any interpolated values, so a test can see what was handed to a string.
         window.i18next = {
             language: 'en',
-            exists: () => false,
             t: (key, values = {}) => [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
         };
         window.util = { escapeHTML: (text) => String(text) };

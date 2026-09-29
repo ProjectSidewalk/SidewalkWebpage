@@ -190,8 +190,7 @@ class AccessScoreSidebar {
     const categories = this.#config.place_categories ?? [];
     const placeRows = root.querySelector('#acs-place-categories');
     placeRows.innerHTML = categories.map((category) => {
-      const key = `accessscore:place-${category}`;
-      const name = i18next.exists(key) ? i18next.t(key) : category;
+      const name = i18next.t(`accessscore:place-${category}`, { defaultValue: category });
       const icon = util.assetPath(`images/icons/${AccessScorePlacesLayer.presentation(category).icon}`);
       // "Only" is the shared filter sidebar's exclusive select; its visible text gets the row's name for a screen
       // reader, since the button swaps in for the count on hover and focus and reads as a bare "Only" otherwise.

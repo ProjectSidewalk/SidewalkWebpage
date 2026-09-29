@@ -581,8 +581,7 @@ window.AccessScoreApp = (function () {
 
     /** A category's translated name, or its id for one the locale does not know yet. */
     function placeCategoryName(category) {
-      const key = `accessscore:place-${category}`;
-      return i18next.exists(key) ? i18next.t(key) : category;
+      return i18next.t(`accessscore:place-${category}`, { defaultValue: category });
     }
 
     /**
