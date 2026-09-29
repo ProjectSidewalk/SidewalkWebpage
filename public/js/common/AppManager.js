@@ -174,10 +174,8 @@ class AppManager {
         // i18next asks for every namespace in every language, but most country overrides exist only in English, so
         // skip the files that aren't there (an empty path loads nothing) rather than request a 404 (#5570). The ones
         // that are go through util.assetPath, so a deploy never pairs new JS with stale cached translations (#5336).
-        loadPath: ([lng], [ns]) => {
-          const path = `locales/${lng}/${ns}.json`;
-          return localeFiles.has(path) ? util.assetPath(path) : '';
-        },
+        loadPath: ([lng], [ns]) =>
+          (localeFiles.has(`locales/${lng}/${ns}.json`) ? util.assetPath(`locales/${lng}/${ns}.json`) : ''),
       },
       fallbackLng: 'en',
       // Stops i18next asking for languages we don't have: for pt-BR it would otherwise also try plain "pt".
