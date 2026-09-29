@@ -214,8 +214,8 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
   [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.8.0) ·
   [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.8.0)
-- **i18next: 24.2.3** — **note:** v24 dropped the old JSON plural format and made the browser's `Intl` mandatory;
-  neither touches us (our locale files already use `_one`/`_other`/`_zero`).
+- **i18next: 25.10.10** — **note:** 25.8+ prints a sponsor notice to the console on every page load unless
+  `AppManager` passes `showSupportNotice: false`.
   [Download](https://unpkg.com/i18next/dist/umd/i18next.min.js) ·
   [Changelog](https://github.com/i18next/i18next/blob/master/CHANGELOG.md)
 - **i18next-http-backend: 3.0.6** — loads translation files (`i18nextHttpBackend-3.0.6.min.js`).

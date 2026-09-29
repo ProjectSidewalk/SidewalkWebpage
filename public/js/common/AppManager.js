@@ -181,6 +181,8 @@ class AppManager {
       lng: params.language,
       partialBundledLanguages: true,
       debug: false,
+      // Without this, i18next prints an ad for its sponsor to the console on every page load.
+      showSupportNotice: false,
       interpolation: {
         // Every string may write {{unitName}}, {{unitAbbr}}, … and get this reader's units with no argument at the
         // call site, so there is nothing a caller can forget and no metric/imperial pair of keys to keep in sync.
