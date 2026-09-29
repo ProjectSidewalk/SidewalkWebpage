@@ -86,9 +86,8 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
 
 ### Core toolchain
 
-- **Scala: 3.3.8** — the 3.3 LTS line, which is what Play 3.0 and our other libraries are built against; stay on
-  LTS releases rather than the faster-moving "Next" line. Edit `scalaVersion` in `build.sbt`, and the two
-  `target/scala-<version>/` coverage paths in `.github/workflows/ci.yml`, which carry the full version.
+- **Scala: 3.3.8** — the 3.3 LTS line. Edit `scalaVersion` in `build.sbt` and the two `target/scala-<version>/`
+  paths in `.github/workflows/ci.yml`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
 - **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
   `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump
@@ -117,6 +116,12 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
   migrates (watch the [Play changelog](https://www.playframework.com/changelog)).
   [Releases](https://mvnrepository.com/artifact/net.codingwell/scala-guice) ·
   [Changelog](https://github.com/codingwell/scala-guice/blob/develop/CHANGELOG.md)
+
+### Database (Slick + Postgres + PostGIS)
+
+These are the JVM libraries we talk to the database *through*; the database server's own versions are under
+[Database server](#database-server) above.
+
 - **postgresql (JDBC driver): 42.7.13** — the `org.postgresql` driver in `build.sbt`.
   [Releases](https://mvnrepository.com/artifact/org.postgresql/postgresql) · [Changelog](https://jdbc.postgresql.org/)
 - **play-slick / play-slick-evolutions: 6.2.0**.

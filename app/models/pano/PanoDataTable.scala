@@ -59,7 +59,6 @@ case class PanoData(
 object PanoSource extends Enumeration {
   type PanoSource = Value
 
-  // On Scala 3, Play can't find its built-in JSON writer for these values by itself.
   implicit val writes: play.api.libs.json.Writes[Value] = v => play.api.libs.json.JsString(v.toString)
 
   val Gsv       = Value("gsv")
