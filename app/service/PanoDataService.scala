@@ -561,13 +561,12 @@ class PanoDataServiceImpl @Inject() (
     environment: Environment,
     cacheApi: AsyncCacheApi,
     ws: WSClient,
-    implicit val ec: ExecutionContext,
     panoDataTable: PanoDataTable,
     panoHistoryTable: PanoHistoryTable,
     panoImageryChangeTable: PanoImageryChangeTable,
     streetEdgeTable: models.street.StreetEdgeTable,
     signingService: ImageSigningService
-)(implicit mat: Materializer)
+)(using ec: ExecutionContext, mat: Materializer)
     extends PanoDataService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

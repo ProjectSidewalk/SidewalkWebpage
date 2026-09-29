@@ -51,16 +51,16 @@ class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionVal
       )
       .build()
 
-  private lazy val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
-  implicit private lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  private lazy val dbConfig          = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
+  private given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
   // Play's test helpers need a real materializer to read a streamed (sendFile) body.
-  implicit private lazy val mat: Materializer = app.materializer
-  private lazy val cropService                = app.injector.instanceOf[CropService]
-  private lazy val panoDataService            = app.injector.instanceOf[PanoDataService]
-  private lazy val panoDataTable              = app.injector.instanceOf[models.pano.PanoDataTable]
-  private lazy val labelCropTable             = app.injector.instanceOf[LabelCropTable]
-  private lazy val shareImageCache            = app.injector.instanceOf[ShareImageCache]
-  private lazy val signingService             = app.injector.instanceOf[ImageSigningService]
+  private given mat: Materializer  = app.materializer
+  private lazy val cropService     = app.injector.instanceOf[CropService]
+  private lazy val panoDataService = app.injector.instanceOf[PanoDataService]
+  private lazy val panoDataTable   = app.injector.instanceOf[models.pano.PanoDataTable]
+  private lazy val labelCropTable  = app.injector.instanceOf[LabelCropTable]
+  private lazy val shareImageCache = app.injector.instanceOf[ShareImageCache]
+  private lazy val signingService  = app.injector.instanceOf[ImageSigningService]
 
   private def runDb[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 60.seconds)
 

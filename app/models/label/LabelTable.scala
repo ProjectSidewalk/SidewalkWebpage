@@ -16,14 +16,14 @@ import models.api.{
   ValidatorType
 }
 import models.audit.AuditTaskTableDef
-import models.label.LabelTable._
+import models.label.LabelTable.{given, _}
 import models.mission.MissionTableDef
 import models.pano.PanoSource.PanoSource
 import models.pano.{PanoData, PanoDataTable, PanoDataTableDef, PanoSource, PanoViewerMetadata}
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user._
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.utils.CommonUtils.UiSource
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.{ConfigTableDef, Contributors, FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
@@ -652,8 +652,7 @@ object LabelTable {
     sql"(".concat(SqlFragments.join(scopedConditions :+ otherTypesCondition, " OR ")).concat(sql")")
   }
 
-  // Define an implicit conversion from the tuple representation to the case class.
-  implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
+  given labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
         LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.apply.tupled(t._6), t._7, t._8, t._9, t._10,
@@ -686,8 +685,7 @@ object LabelTable {
     }
   }
 
-  // Define an implicit conversion from the tuple representation to the case class.
-  implicit val labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
+  given labelValidationMetadataConverter: TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] =
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
         labelId = t._1,
@@ -728,7 +726,7 @@ object LabelTable {
   /**
    * Implicit converter from SQL results to LabelDataForApi objects.
    */
-  implicit val labelDataConverter: GetResult[LabelDataForApi] = GetResult[LabelDataForApi] { r =>
+  given labelDataConverter: GetResult[LabelDataForApi] = GetResult[LabelDataForApi] { r =>
     LabelDataForApi(
       labelId = r.nextInt(),
       userId = r.nextString(),
@@ -736,7 +734,7 @@ object LabelTable {
       panoSource = PanoSource.withName(r.nextString()),
       labelType = r.nextString(),
       severity = r.nextIntOption(),
-      tags = r.nextArray[String]().toList,
+      tags = r.nextStringArray().toList,
       description = r.nextStringOption(),
       timeCreated = {
         val timestamp = r.nextTimestamp()
@@ -787,7 +785,7 @@ trait LabelTableRepository {}
 
 @Singleton
 class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider, streetEdgeTable: StreetEdgeTable)(
-    implicit ec: ExecutionContext
+    using ec: ExecutionContext
 ) extends LabelTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -905,7 +903,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     .filterNot { case (_l, _us) => _l.deleted || _us.excluded }
     .map(_._1)
 
-  implicit def labelMetadataConverter: GetResult[LabelMetadata] = GetResult[LabelMetadata] { r =>
+  given labelMetadataConverter: GetResult[LabelMetadata] = GetResult[LabelMetadata] { r =>
     LabelMetadata(
       r.nextInt(),
       r.nextString(),
@@ -927,7 +925,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextStringOption().map(ValidationOption.withName), // userValidation
       r.nextStringOption().map(ValidationOption.withName), // aiValidation
       Map("agree" -> r.nextInt(), "disagree" -> r.nextInt(), "unsure" -> r.nextInt()),
-      r.nextArray[String]().toList,
+      r.nextStringArray().toList,
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
@@ -961,7 +959,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     )
   }
 
-  implicit val projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats] { r =>
+  given projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats] { r =>
     // Read the leading scalar columns into locals (rather than inline constructor args) so we can derive
     // kmExploredSingleUser. Reads must stay in SELECT order; GetResult is positional. km_explored_no_overlap counts
     // streets with ≥1 completed audit and km_explored_multiple_users counts streets with ≥2 distinct auditors, so
@@ -3084,7 +3082,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       endDate.map(d => sql"label.time_created < ($d::date + INTERVAL '1 day')")
     ).flatten
 
-    implicit val getResult: GetResult[(LocalDate, String, Int, Int)] =
+    given getResult: GetResult[(LocalDate, String, Int, Int)] =
       GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
 
     sql"""

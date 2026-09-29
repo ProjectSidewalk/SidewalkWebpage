@@ -51,7 +51,7 @@ class AccessScoreApiController @Inject() (
     accessScoreService: AccessScoreService,
     accessScoreSpotlightService: AccessScoreSpotlightService,
     apiService: ApiService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   /**

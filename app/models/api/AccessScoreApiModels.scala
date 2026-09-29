@@ -14,7 +14,7 @@ import models.label.LabelType
 import models.place.PlaceCategory
 import models.street.StreetGradientStats
 import models.utils.LatLngBBox
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.{LineString, MultiPolygon, Point}
 import play.api.libs.json.{JsObject, Json, Writes}
 import service.{AccessScoreCalculator, AccessScoreSpotlight}
@@ -202,7 +202,7 @@ object StreetAccessScoreForApi extends ApiFields[StreetAccessScoreForApi] {
     field("end_point")(s => s"${s.geometry.getEndPoint.getX},${s.geometry.getEndPoint.getY}")
   )
 
-  implicit val writes: Writes[StreetAccessScoreForApi] = (s: StreetAccessScoreForApi) => s.toJson
+  given writes: Writes[StreetAccessScoreForApi] = (s: StreetAccessScoreForApi) => s.toJson
 }
 
 /**
@@ -275,7 +275,7 @@ object IntersectionAccessScoreForApi extends ApiFields[IntersectionAccessScoreFo
     field("lng")(_.geometry.getX)
   )
 
-  implicit val writes: Writes[IntersectionAccessScoreForApi] = (i: IntersectionAccessScoreForApi) => i.toJson
+  given writes: Writes[IntersectionAccessScoreForApi] = (i: IntersectionAccessScoreForApi) => i.toJson
 }
 
 /**
@@ -340,7 +340,7 @@ object RegionAccessScoreForApi extends ApiFields[RegionAccessScoreForApi] {
     field("center_point")(r => s"${r.geometry.getCentroid.getX},${r.geometry.getCentroid.getY}")
   )
 
-  implicit val writes: Writes[RegionAccessScoreForApi] = (r: RegionAccessScoreForApi) => r.toJson
+  given writes: Writes[RegionAccessScoreForApi] = (r: RegionAccessScoreForApi) => r.toJson
 }
 
 /**
@@ -541,7 +541,7 @@ object AccessScoreConfigForApi {
     )
   }
 
-  implicit val writes: Writes[AccessScoreConfigForApi] = (c: AccessScoreConfigForApi) => c.toJson
+  given writes: Writes[AccessScoreConfigForApi] = (c: AccessScoreConfigForApi) => c.toJson
 }
 
 /**

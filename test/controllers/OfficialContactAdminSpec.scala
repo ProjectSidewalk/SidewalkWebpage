@@ -36,7 +36,7 @@ class OfficialContactAdminSpec extends SidewalkSpec with RoleSession with GuiceO
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val configService = app.injector.instanceOf[ConfigService]
 

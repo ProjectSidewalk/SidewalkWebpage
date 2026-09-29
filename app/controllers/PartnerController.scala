@@ -5,7 +5,6 @@ import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.partner.{PartnerLogoUpload, PartnerMetadata, PartnerRejection}
 import models.user.{Role, SidewalkUserWithRole}
 import models.utils.OfficialContact
-import play.api.Configuration
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{AnyContent, Result}
 import play.silhouette.api.actions.SecuredRequest
@@ -24,11 +23,10 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class PartnerController @Inject() (
     cc: CustomControllerComponents,
-    implicit val config: Configuration,
     configService: ConfigService,
-    partnerService: PartnerService,
-    implicit val ec: ExecutionContext
-) extends CustomBaseController(cc) {
+    partnerService: PartnerService
+)(using ec: ExecutionContext)
+    extends CustomBaseController(cc) {
 
   // Wire cap plus 1 MiB of multipart-framing headroom, so a valid max-size logo isn't cut off by its own boundaries.
   private val bodyCap: Long = partnerService.logoUploadMaxBytes + (1L << 20)
@@ -159,9 +157,7 @@ class PartnerController @Inject() (
     Json.obj("name" -> contact.map(_.name), "url" -> contact.map(_.url))
 
   /** Shared body of the two create actions; `cityId` is the scope the route already authorized. */
-  private def create(
-      cityId: Option[String]
-  )(implicit request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
+  private def create(cityId: Option[String])(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     request.body.asMultipartFormData match {
       case None       => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> "Expected a form")))
       case Some(body) =>
@@ -188,9 +184,7 @@ class PartnerController @Inject() (
   }
 
   /** Shared body of the two reorder actions; `cityId` is the scope the route already authorized. */
-  private def reorder(
-      cityId: Option[String]
-  )(implicit request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
+  private def reorder(cityId: Option[String])(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     request.body.asJson.flatMap(json => (json \ "partner_ids").asOpt[Seq[Int]]) match {
       case None      => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> "Expected partner_ids")))
       case Some(ids) =>

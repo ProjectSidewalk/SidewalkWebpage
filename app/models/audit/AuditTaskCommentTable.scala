@@ -6,7 +6,7 @@ import models.street.StreetEdgeTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.IpAddress
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -74,9 +74,9 @@ trait AuditTaskCommentTableRepository {}
 
 @Singleton
 class AuditTaskCommentTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends AuditTaskCommentTableRepository
+    protected val dbConfigProvider: DatabaseConfigProvider
+)(using ec: ExecutionContext)
+    extends AuditTaskCommentTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val auditTaskComments = TableQuery[AuditTaskCommentTableDef]

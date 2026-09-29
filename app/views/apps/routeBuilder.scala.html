@@ -2,7 +2,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: service.CommonPageData, user: Option[models.user.SidewalkUserWithRole], minutesPer100m: Double
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 @* A cookie-less visitor (None) gets the same treatment as an anonymous account. *@

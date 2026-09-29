@@ -22,7 +22,7 @@ class CustomSecuredErrorHandler @Inject() (val messagesApi: MessagesApi) extends
    * @param request The request header.
    * @return The result to send to the client.
    */
-  override def onNotAuthenticated(implicit request: RequestHeader): Future[Result] = {
+  override def onNotAuthenticated(using request: RequestHeader): Future[Result] = {
     Future.successful(anonSignupRedirect(request))
   }
 
@@ -35,7 +35,7 @@ class CustomSecuredErrorHandler @Inject() (val messagesApi: MessagesApi) extends
    * @param request The request header.
    * @return The result to send to the client.
    */
-  override def onNotAuthorized(implicit request: RequestHeader): Future[Result] = {
+  override def onNotAuthorized(using request: RequestHeader): Future[Result] = {
     logger.error(
       "Using the onNotAuthorized method in CustomSecuredErrorHandler. Should only be using CustomSecurityService. Route: " + request.path
     )

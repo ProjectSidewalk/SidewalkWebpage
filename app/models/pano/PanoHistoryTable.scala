@@ -6,7 +6,6 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
 case class PanoHistory(panoId: String, captureDate: String, locationCurrPanoId: String)
 
@@ -27,8 +26,7 @@ trait PanoHistoryTableRepository {}
 
 @Singleton
 class PanoHistoryTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
+    protected val dbConfigProvider: DatabaseConfigProvider
 ) extends PanoHistoryTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

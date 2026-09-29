@@ -7,7 +7,7 @@ import models.user.{Role, SidewalkUserWithRole, UserStatTable}
 import models.utils.CommonUtils.UiSource
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.{Duration, OffsetDateTime}
@@ -77,9 +77,9 @@ class LabelEditServiceImpl @Inject() (
     userStatTable: UserStatTable,
     clusterLabelTable: ClusterLabelTable,
     panoDataService: PanoDataService,
-    shareImageCache: ShareImageCache,
-    implicit val ec: ExecutionContext
-) extends LabelEditService
+    shareImageCache: ShareImageCache
+)(using ec: ExecutionContext)
+    extends LabelEditService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**

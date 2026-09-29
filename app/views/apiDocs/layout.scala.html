@@ -1,4 +1,4 @@
-@(activePage: String)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
+@(activePage: String)(content: Html)(using request: RequestHeader, assets: AssetsFinder)
 
 <link rel="stylesheet" href="@assets.path("css/components/page-shell.css")">
 <link rel="stylesheet" href="@assets.path("css/components/progress-bar.css")">

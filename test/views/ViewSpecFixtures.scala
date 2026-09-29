@@ -14,7 +14,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 
 /**
- * The scaffolding a view spec needs to render a template outside a request: a booted app, the implicits every
+ * The scaffolding a view spec needs to render a template outside a request: a booted app, the givens every
  * template's parameter list asks for, and a signed-in user to render as.
  *
  * The request carries a CSRF token because several of these pages hold a form, and `CSRF.formField` throws without
@@ -25,10 +25,10 @@ trait ViewSpecFixtures extends GuiceOneAppPerSuite { self: org.scalatest.TestSui
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit protected val request: RequestHeader = CSRFTokenHelper.addCSRFToken(FakeRequest())
-  implicit protected val messages: Messages     = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("en")))
-  implicit protected val assets: AssetsFinder   = app.injector.instanceOf[AssetsFinder]
-  implicit protected val config: Configuration  = app.injector.instanceOf[Configuration]
+  protected given request: RequestHeader = CSRFTokenHelper.addCSRFToken(FakeRequest())
+  protected given messages: Messages     = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("en")))
+  protected given assets: AssetsFinder   = app.injector.instanceOf[AssetsFinder]
+  protected given config: Configuration  = app.injector.instanceOf[Configuration]
 
   protected val commonData: CommonPageData =
     Await.result(app.injector.instanceOf[ConfigService].getCommonPageData(Lang("en")), 60.seconds)

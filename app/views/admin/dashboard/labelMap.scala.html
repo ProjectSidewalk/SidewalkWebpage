@@ -4,7 +4,7 @@
 @import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, tags: Seq[Tag] = Seq.empty
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Admin Label Map page (#4272): the redesign's home for the legacy "Map" tab — an interactive per-label point map for spatially exploring and inspecting labels. Reuses the shared PSMap component, the common map sidebar (filters), and the label-detail popup, exactly as the legacy admin map did, but wrapped in the dashboard shell. Loads all labels from /adminapi/labels/all. A label-ID search box jumps straight to any label's popup (replaces the legacy "Label Search" tab and gives /admin/label/:labelId discoverability). *@
 

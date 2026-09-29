@@ -15,7 +15,7 @@
  * @param stories    The city's visible stories, newest first, capped at StoryController.ListingMax.
  *@
 @(commonData: CommonPageData, user: SidewalkUserWithRole, stories: Seq[StoryForListing]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @dateLabel(dt: java.time.OffsetDateTime) = @{
   dt.format(java.time.format.DateTimeFormatter.ofLocalizedDate(java.time.format.FormatStyle.MEDIUM)

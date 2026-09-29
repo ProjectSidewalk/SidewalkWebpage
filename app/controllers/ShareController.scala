@@ -59,10 +59,10 @@ class ShareController @Inject() (
     authenticationService: AuthenticationService,
     shareImageCache: ShareImageCache,
     storyService: StoryService
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   // The preview image is the same 3:2 shape as a stored crop (2x for retina), which suits summary_large_image cards.
   private val SHARE_IMAGE_WIDTH  = 1440
@@ -117,7 +117,7 @@ class ShareController @Inject() (
    * @return `Ok` with the page, or `NotFound` if no such label exists.
    */
   private def renderLabelPage(labelId: Int, user: SidewalkUserWithRole, viewerId: Option[String], isAdmin: Boolean)(
-      implicit request: RequestHeader
+      using request: RequestHeader
   ): Future[Result] = {
     val storyIdOpt: Option[Int] =
       request.getQueryString("storyId").flatMap(s => Try(s.trim.toInt).toOption).filter(_ > 0)
@@ -185,7 +185,7 @@ class ShareController @Inject() (
    * Builds the localized share title. Problems ("I found an accessibility issue...") and everything else (positive
    * features like curb ramps, neutral types like occlusions — "Look what I found...") take opposite framings.
    */
-  private def shareTitle(meta: LabelMetadata)(implicit messages: Messages): String = {
+  private def shareTitle(meta: LabelMetadata)(using messages: Messages): String = {
     val isProblem   = meta.labelType.accessImpact == AccessImpact.Problem
     val key: String = if (isProblem) "share.meta.title.issue" else "share.meta.title.feature"
     Messages(key, Messages(meta.labelType.nameKey))
@@ -201,7 +201,7 @@ class ShareController @Inject() (
       commonData: service.CommonPageData,
       meta: LabelMetadata,
       linkedStory: Option[StoryForView]
-  )(implicit messages: Messages): Html = {
+  )(using messages: Messages): Html = {
     val base: String    = commonData.prodUrl.stripSuffix("/")
     val pageUrl: String =
       s"$base/label/${meta.labelId}" + linkedStory.map(s => s"?storyId=${s.storyId}").getOrElse("")

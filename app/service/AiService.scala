@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.label._
 import models.user.SidewalkUserTable
 import models.utils.CommonUtils.{UiSource, ViewerType}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils._
 import models.validation.{LabelValidation, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -85,7 +85,7 @@ class AiServiceImpl @Inject() (
     missionTable: models.mission.MissionTable,
     userStatTable: models.user.UserStatTable,
     panoDataService: PanoDataService
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends AiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger                         = Logger(this.getClass)

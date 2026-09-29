@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.{AggregateStats, LabelTypeStats}
 import models.label.LabelType
 import models.street.StreetEdgeTableDef
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.{
   CityScorecard,
@@ -104,7 +104,7 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
 trait ConfigTableRepository {}
 
 @Singleton
-class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends ConfigTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -421,7 +421,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   def getCityScorecardBySchema(schema: String): DBIO[CityScorecard] = {
     // The nullable last-activity timestamp can be NULL on an empty schema, so it is read as an Option and normalized to
     // UTC (we only need the instant, for "days since last activity").
-    implicit val getResult: GetResult[ScorecardCore] = GetResult { r =>
+    given getResult: GetResult[ScorecardCore] = GetResult { r =>
       ScorecardCore(
         totalStreets = r.nextInt(),
         auditedStreets = r.nextInt(),
@@ -660,7 +660,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *               is 0 whenever `weeks` is bounded (see the inline note).
    */
   def getCityWeeklyTrendBySchema(schema: String, weeks: Option[Int]): DBIO[Seq[WeeklyPoint]] = {
-    implicit val getResult: GetResult[WeeklyPoint] =
+    given getResult: GetResult[WeeklyPoint] =
       GetResult(r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
 
     // weeks is an Int (safe to interpolate); None drops the lower bound to return the city's full history.
@@ -775,7 +775,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       DBIO yielding one row per (day, person), ascending by day.
    */
   def getCityDailyActivityByUserBySchema(schema: String, days: Int): DBIO[Seq[DailyContributorActivity]] = {
-    implicit val getResult: GetResult[DailyContributorActivity] =
+    given getResult: GetResult[DailyContributorActivity] =
       GetResult(r =>
         DailyContributorActivity(
           LocalDate.parse(r.nextString()), r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()),
@@ -832,7 +832,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       DBIO yielding one row per person with activity in either window, busiest first.
    */
   def getCityWindowActivityByUserBySchema(schema: String): DBIO[Seq[ContributorWindowActivity]] = {
-    implicit val getResult: GetResult[ContributorWindowActivity] =
+    given getResult: GetResult[ContributorWindowActivity] =
       GetResult(r =>
         ContributorWindowActivity(
           r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()), r.nextInt(), r.nextInt(),
@@ -882,7 +882,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *               zeros when a population is empty.
    */
   def getCityContributorOutputBySchema(schema: String): DBIO[(Double, Double, Int, Double, Double, Int, Double)] = {
-    implicit val getResult: GetResult[(Double, Double, Int, Double, Double, Int, Double)] =
+    given getResult: GetResult[(Double, Double, Int, Double, Double, Int, Double)] =
       GetResult(r =>
         (r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble())
       )
@@ -941,7 +941,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       (activeAuditHours, auditedKmWithOverlap); hours is 0 when there is no interaction data.
    */
   def getCityLabelingSpeedBySchema(schema: String): DBIO[(Double, Double)] = {
-    implicit val getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
+    given getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
 
     sql"""
       SELECT COALESCE(audit_time.hours, 0) AS hours,
@@ -973,7 +973,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       DBIO yielding the city's [[CityStoryStats]]; all zeros and no `newest` when it has no stories.
    */
   def getCityStoryStatsBySchema(schema: String): DBIO[CityStoryStats] = {
-    implicit val getResult: GetResult[CityStoryStats] = GetResult(r =>
+    given getResult: GetResult[CityStoryStats] = GetResult(r =>
       CityStoryStats(
         r.nextInt(),
         r.nextInt(),
@@ -1064,7 +1064,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
     val contributors = Contributors(filterLowQuality)
 
-    implicit val getResult: GetResult[(LocalDate, String, Int, Int)] =
+    given getResult: GetResult[(LocalDate, String, Int, Int)] =
       GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
 
     schemaHasLabelTypeEnum(schema).flatMap { hasLabelTypeEnum =>
@@ -1103,7 +1103,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
     val contributors = Contributors(filterLowQuality)
 
-    implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
+    given getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
       GetResult(r =>
         (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
           r.nextInt(), r.nextInt())

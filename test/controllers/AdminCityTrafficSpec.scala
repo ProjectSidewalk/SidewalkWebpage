@@ -26,7 +26,7 @@ class AdminCityTrafficSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .configure("ga-service-account-key" -> "DUMMY_GA_SERVICE_ACCOUNT_KEY")
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /adminapi/cityTraffic" should {
     "redirect unauthenticated users to the sign-in page (not 404)" in {

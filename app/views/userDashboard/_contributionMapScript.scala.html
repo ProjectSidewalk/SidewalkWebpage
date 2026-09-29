@@ -1,4 +1,4 @@
-@(mapId: String, mapboxApiKey: String, streetsURL: String, labelsURL: String, wireLabelPopup: Boolean = false)(implicit assets: AssetsFinder)
+@(mapId: String, mapboxApiKey: String, streetsURL: String, labelsURL: String, wireLabelPopup: Boolean = false)(using assets: AssetsFinder)
 
 @*
 * Loads the shared PSMap choropleth (audited streets + label points) into an existing holder `#@mapId`, wiring it to

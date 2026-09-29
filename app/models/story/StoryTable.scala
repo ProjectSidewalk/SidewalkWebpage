@@ -7,7 +7,7 @@ import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -89,10 +89,8 @@ trait StoryTableRepository {}
  * `story_media` rows cascade in the DB, so callers fetch media rows first when they need to remove files from disk.
  */
 @Singleton
-class StoryTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends StoryTableRepository
+class StoryTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
+    extends StoryTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val stories           = TableQuery[StoryTableDef]

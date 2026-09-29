@@ -4,7 +4,7 @@ import com.google.inject.{Injector => GuiceInjector, Key, TypeLiteral}
 import models.auth.DefaultEnv
 import models.user.Role
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -47,7 +47,7 @@ class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .disable[modules.ActorModule]
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val router = app.injector.instanceOf[Router]
 
@@ -138,8 +138,8 @@ class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
    * email, which is why the login info's provider key is the address itself.
    */
   private def sessionCookieFor(email: String): Cookie = {
-    implicit val ec: ExecutionContext         = app.actorSystem.dispatcher
-    implicit val requestHeader: RequestHeader = FakeRequest() // Required by init; no state is read from it.
+    given ec: ExecutionContext         = app.actorSystem.dispatcher
+    given requestHeader: RequestHeader = FakeRequest() // Required by init; no state is read from it.
 
     // Resolved through Guice's TypeLiteral rather than injector.instanceOf: the latter takes a ClassTag, so the
     // DefaultEnv parameter erases and Guice looks for a raw Silhouette binding that does not exist.

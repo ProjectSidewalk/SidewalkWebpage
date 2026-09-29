@@ -18,7 +18,7 @@ object CheckImageExpiryActor {
 }
 
 @Singleton
-class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService, jobRunService: JobRunService)(implicit
+class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

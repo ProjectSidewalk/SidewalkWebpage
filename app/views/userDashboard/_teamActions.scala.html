@@ -1,5 +1,5 @@
 @import models.user.Team
-@(currTeam: Option[Team], userId: String, createIsPrimary: Boolean, readOnly: Boolean = false)(implicit messages: Messages)
+@(currTeam: Option[Team], userId: String, createIsPrimary: Boolean, readOnly: Boolean = false)(using messages: Messages)
 
 @*
 * The "Create a team" / "Leave team" button pair, shared by the dashboard's team card and the Settings team section

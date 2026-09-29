@@ -60,9 +60,9 @@ class ValidationServiceImpl @Inject() (
     labelPointTable: LabelPointTable,
     labelEditService: LabelEditService,
     missionService: MissionService,
-    userStatTable: UserStatTable,
-    implicit val ec: ExecutionContext
-) extends ValidationService
+    userStatTable: UserStatTable
+)(using ec: ExecutionContext)
+    extends ValidationService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validationLabels = TableQuery[LabelValidationTableDef]

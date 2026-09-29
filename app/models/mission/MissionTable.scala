@@ -8,7 +8,7 @@ import models.region.RegionTableDef
 import models.route.UserRouteTableDef
 import models.user.{SidewalkUserTable, SidewalkUserTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -90,7 +90,7 @@ object MissionTable {
 trait MissionTableRepository {}
 
 @Singleton
-class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends MissionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)

@@ -2,7 +2,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @layout(commonData, title, user, "introduction") {
   <!--Informed by the Project Sidewalk: Labeling Codebook CHI2018: https://docs.google.com/document/d/1rTw7Q0A542lIy-OmDyqq8BgIsIPd624PBCazoGqOt7Y/edit?ts=5a4ac269#-->

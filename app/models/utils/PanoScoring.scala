@@ -56,10 +56,10 @@ case class PanoScoringParams(
 object PanoScoring {
   private val ResourcePath: String = "/pano-scoring.json"
 
-  implicit private val providerReads: Reads[PanoScoringProvider]   = Json.reads[PanoScoringProvider]
-  implicit private val paramsReads: Reads[PanoScoringParams]       = Json.reads[PanoScoringParams]
-  implicit private val providerWrites: Writes[PanoScoringProvider] = Json.writes[PanoScoringProvider]
-  implicit private val paramsWrites: Writes[PanoScoringParams]     = Json.writes[PanoScoringParams]
+  private given providerReads: Reads[PanoScoringProvider]   = Json.reads[PanoScoringProvider]
+  private given paramsReads: Reads[PanoScoringParams]       = Json.reads[PanoScoringParams]
+  private given providerWrites: Writes[PanoScoringProvider] = Json.writes[PanoScoringProvider]
+  private given paramsWrites: Writes[PanoScoringParams]     = Json.writes[PanoScoringParams]
 
   /** The parsed scoring parameters. Throws if the resource is missing or does not match the expected shape. */
   lazy val params: PanoScoringParams = {

@@ -3,7 +3,7 @@ package controllers
 import actor.ClusteringActor
 import controllers.base._
 import controllers.helper.ControllerUtils.internalKeyValid
-import formats.json.ClusterFormats._
+import formats.json.ClusterFormats.{given, _}
 import models.auth.{DefaultEnv, WithAdmin}
 import models.utils.JobRunTrigger
 import org.apache.pekko.stream.scaladsl.Source
@@ -27,10 +27,10 @@ class ClusterController @Inject() (
     clusterService: ClusterService,
     apiService: service.ApiService,
     jobRunService: JobRunService
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.

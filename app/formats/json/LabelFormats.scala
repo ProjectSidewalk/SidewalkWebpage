@@ -10,9 +10,9 @@ import play.api.libs.json._
 import java.time.OffsetDateTime
 
 object LabelFormats {
-  implicit val uiSourceWrites: Writes[UiSource] = Writes(s => JsString(s.toString))
+  given uiSourceWrites: Writes[UiSource] = Writes(s => JsString(s.toString))
 
-  implicit val labelWrites: Writes[Label] = (
+  given labelWrites: Writes[Label] = (
     (__ \ "label_id").write[Int] and
       (__ \ "audit_task_id").write[Int] and
       (__ \ "mission_id").write[Int] and
@@ -36,18 +36,18 @@ object LabelFormats {
       (__ \ "deleted_source").writeNullable[UiSource]
   )((o: Label) => Tuple.fromProductTyped(o))
 
-  implicit val POVWrites: Writes[POV] = (
+  given POVWrites: Writes[POV] = (
     (__ \ "heading").write[Double] and
       (__ \ "pitch").write[Double] and
       (__ \ "zoom").write[Double]
   )((o: POV) => Tuple.fromProductTyped(o))
 
-  implicit val locationXYWrites: Writes[LocationXY] = (
+  given locationXYWrites: Writes[LocationXY] = (
     (__ \ "x").write[Int] and
       (__ \ "y").write[Int]
   )((o: LocationXY) => Tuple.fromProductTyped(o))
 
-  implicit val labelMetadataWrites: Writes[LabelMetadata] = Writes { m =>
+  given labelMetadataWrites: Writes[LabelMetadata] = Writes { m =>
     Json.obj(
       "label_id"                           -> m.labelId,
       "pano_id"                            -> m.panoId,
@@ -278,7 +278,7 @@ object LabelFormats {
     )
   }
 
-  implicit val tagWrites: Writes[Tag] = (
+  given tagWrites: Writes[Tag] = (
     (__ \ "tag_id").write[Int] and
       (__ \ "label_type").write[LabelType] and
       (__ \ "tag_name").write[String] and

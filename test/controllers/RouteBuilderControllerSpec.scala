@@ -31,13 +31,13 @@ class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
   private lazy val messagesApi: MessagesApi = app.injector.instanceOf[MessagesApi]
   // The requests below send no Accept-Language, so Play serves English.
-  implicit private val lang: Lang = Lang("en")
+  private given lang: Lang = Lang("en")
 
   /** Creates a throwaway UUID-tagged registered user and returns its session cookies (incl. the authenticator). */
   private def signUpFreshUser(): Seq[Cookie] = {

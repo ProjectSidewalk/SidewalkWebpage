@@ -1,7 +1,7 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json}
 import slick.jdbc.GetResult
@@ -98,7 +98,7 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val backgroundJobRuns = TableQuery[BackgroundJobRunTableDef]
 
-  implicit private val getBackgroundJobRun: GetResult[BackgroundJobRun] = GetResult { r =>
+  private given getBackgroundJobRun: GetResult[BackgroundJobRun] = GetResult { r =>
     BackgroundJobRun(
       r.nextInt(),
       r.nextString(),
@@ -111,10 +111,10 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
     )
   }
 
-  implicit private val getJobSuccess: GetResult[(String, OffsetDateTime)] =
+  private given getJobSuccess: GetResult[(String, OffsetDateTime)] =
     GetResult(r => (r.nextString(), r.nextOffsetDateTime()))
 
-  implicit private val getOutcomeCount: GetResult[(String, JobRunStatus.Value, Boolean, Int)] =
+  private given getOutcomeCount: GetResult[(String, JobRunStatus.Value, Boolean, Int)] =
     GetResult(r => (r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt()))
 
   /**

@@ -2,7 +2,7 @@ package service
 
 import models.street.{StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetEdgeStatusChangeTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application

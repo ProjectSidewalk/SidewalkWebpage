@@ -2,7 +2,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole], activePage: String)(content: Html
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @navItems = @{
   Seq(

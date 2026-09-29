@@ -2,7 +2,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Overview landing page for the redesigned admin dashboard (#4272). Deliberately built last: it introduces no new analysis, it's the at-a-glance snapshot that routes into the six detailed pages. A "needs attention" panel of deep-linked action items, one KPI card per lens (with a week-over-week trend + sparkline), and a live recent-activity strip. Driven by /adminapi/overviewSummary (headline numbers + attention counts), /adminapi/activityByDay (trends + sparklines), and /adminapi/recentActivity (the strip). *@
 

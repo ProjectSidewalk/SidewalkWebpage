@@ -4,7 +4,7 @@
 package models.api
 
 import models.utils.LatLngBBox
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.Point
 import play.api.libs.json.{JsObject, Json, Writes}
 
@@ -81,7 +81,7 @@ object PlaceForApi extends ApiFields[PlaceForApi] {
     field("lng")(_.geometry.getX)
   )
 
-  implicit val placeWrites: Writes[PlaceForApi] = (place: PlaceForApi) => place.toJson
+  given placeWrites: Writes[PlaceForApi] = (place: PlaceForApi) => place.toJson
 }
 
 /**

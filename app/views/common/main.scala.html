@@ -6,7 +6,7 @@
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
 @(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
-)(content: Html)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder)
+)(content: Html)(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
 @currentCity = @{commonData.currentCity}
 @* Pages that render the map full-window (no footer, #wrap becomes a fixed-height flex column). *@

@@ -22,7 +22,7 @@ class StatsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /v3/api/aggregateStats" should {
     "return 200 JSON with snake_case top-level keys (not camelCase)" in {

@@ -76,9 +76,9 @@ class StoryServiceImpl @Inject() (
     labelService: LabelService,
     panoDataService: PanoDataService,
     signingService: ImageSigningService,
-    cpuEc: CpuIntensiveExecutionContext,
-    implicit val ec: ExecutionContext
-) extends StoryService
+    cpuEc: CpuIntensiveExecutionContext
+)(using ec: ExecutionContext)
+    extends StoryService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
 

@@ -189,7 +189,7 @@ class HealthServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     healthTable: HealthTable,
     backgroundJobRunTable: BackgroundJobRunTable
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends HealthService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -408,16 +408,16 @@ object HealthService {
    */
   val JobAbandonedAfterHours: Long = 12
 
-  implicit private val jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-  implicit val blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
-  implicit val idleTxnSessionWrites: Writes[IdleTxnSession]     = Json.writes[IdleTxnSession]
-  implicit val activeQueryWrites: Writes[ActiveQuery]           = Json.writes[ActiveQuery]
-  implicit val stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
-  implicit val tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
-  implicit val connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
-  implicit val panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
-  implicit val nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
-  implicit val healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]
-  implicit val dbHealthDataWrites: Writes[DbHealthData]         = Json.writes[DbHealthData]
+  given blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
+  given idleTxnSessionWrites: Writes[IdleTxnSession]     = Json.writes[IdleTxnSession]
+  given activeQueryWrites: Writes[ActiveQuery]           = Json.writes[ActiveQuery]
+  given stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
+  given tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
+  given connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
+  given panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
+  given nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
+  given healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]
+  given dbHealthDataWrites: Writes[DbHealthData]         = Json.writes[DbHealthData]
 }

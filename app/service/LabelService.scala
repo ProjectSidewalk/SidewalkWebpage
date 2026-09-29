@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.ValidateFormats.ValidationMissionProgress
-import models.label.LabelTable._
+import models.label.LabelTable.{given, _}
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
@@ -211,9 +211,9 @@ class LabelServiceImpl @Inject() (
     tagTable: TagTable,
     labelValidationTable: LabelValidationTable,
     labelHistoryTable: LabelHistoryTable,
-    missionService: MissionService,
-    implicit val ec: ExecutionContext
-) extends LabelService
+    missionService: MissionService
+)(using ec: ExecutionContext)
+    extends LabelService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
@@ -511,7 +511,7 @@ class LabelServiceImpl @Inject() (
       randomize: Boolean,
       useCrops: Boolean,
       remaining: Int
-  )(implicit tupleConverter: TupleConverter[Row, A]): Future[Seq[A]] = {
+  )(using tupleConverter: TupleConverter[Row, A]): Future[Seq[A]] = {
     findValidLabelsForType(
       queryFor,
       randomize,
@@ -546,7 +546,7 @@ class LabelServiceImpl @Inject() (
       offset: Int,
       accumulator: Seq[A],
       selectFromBatch: (Seq[A], Seq[A]) => Seq[A]
-  )(implicit tupleConverter: TupleConverter[Row, A]): Future[Seq[A]] = {
+  )(using tupleConverter: TupleConverter[Row, A]): Future[Seq[A]] = {
     if (remaining <= 0) {
       Future.successful(accumulator)
     } else {

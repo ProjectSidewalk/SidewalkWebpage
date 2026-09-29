@@ -31,14 +31,14 @@ import scala.util.Try
 class LabelController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
-    implicit val ec: ExecutionContext,
     labelService: LabelService,
     labelEditService: LabelEditService,
     validationService: ValidationService,
     aiService: AiService,
     panoDataService: PanoDataService,
     cropService: CropService
-) extends CustomBaseController(cc) {
+)(using ec: ExecutionContext)
+    extends CustomBaseController(cc) {
 
   private val logger = Logger(this.getClass)
 

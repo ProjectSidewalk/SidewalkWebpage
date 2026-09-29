@@ -154,14 +154,14 @@ trait StreetAccessScoreTableRepository {
  * `city-params`, never from a request.
  */
 @Singleton
-class StreetAccessScoreTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class StreetAccessScoreTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends StreetAccessScoreTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val streetAccessScores = TableQuery[StreetAccessScoreTableDef]
 
-  implicit private val rowResult: GetResult[StreetSpotlightRowForApi] = GetResult { r =>
+  private given rowResult: GetResult[StreetSpotlightRowForApi] = GetResult { r =>
     StreetSpotlightRowForApi(
       osmWayId = r.nextLong(), streetEdgeId = r.nextInt(), regionId = r.nextInt(), regionName = r.nextString(),
       name = r.nextStringOption(), score = r.nextDoubleOption(), lengthM = r.nextDouble(), clusterCount = r.nextInt(),

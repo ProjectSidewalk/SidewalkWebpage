@@ -1,6 +1,6 @@
 @(activePage: String, isSignedIn: Boolean = true, adminSubject: Option[String] = None,
     adminLinkFor: Option[String] = None
-)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder, messages: Messages)
+)(content: Html)(using request: RequestHeader, assets: AssetsFinder, messages: Messages)
 
 @*
 * Shared shell for the redesigned User Dashboard + Leaderboard. Built on the shared page shell and components

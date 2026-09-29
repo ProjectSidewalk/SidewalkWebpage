@@ -30,7 +30,7 @@ class RevocableCookieAuthenticatorService(
     idGenerator: IDGenerator,
     clock: Clock,
     authenticationService: AuthenticationService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CookieAuthenticatorService(settings, None, signer, cookieHeaderEncoding, authenticatorEncoder,
       fingerprintGenerator, idGenerator, clock) {
 
@@ -39,7 +39,7 @@ class RevocableCookieAuthenticatorService(
    *
    * @return The request's authenticator, or None if it has no readable cookie.
    */
-  override def retrieve[B](implicit request: ExtractableRequest[B]): Future[Option[CookieAuthenticator]] = {
+  override def retrieve[B](using request: ExtractableRequest[B]): Future[Option[CookieAuthenticator]] = {
     super.retrieve.flatMap {
       case Some(authenticator) if authenticator.isValid =>
         authenticationService.sessionsRevokedAt(authenticator.loginInfo.providerKey).map {
@@ -70,7 +70,7 @@ class RevocableCookieAuthenticatorService(
    *
    * @return The new cookie.
    */
-  override def renew(authenticator: CookieAuthenticator)(implicit request: RequestHeader): Future[Cookie] = {
+  override def renew(authenticator: CookieAuthenticator)(using request: RequestHeader): Future[Cookie] = {
     create(authenticator.loginInfo)
       .map(_.copy(cookieMaxAge = authenticator.cookieMaxAge))
       .flatMap(init)

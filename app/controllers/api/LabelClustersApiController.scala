@@ -38,7 +38,7 @@ class LabelClustersApiController @Inject() (
     apiService: ApiService,
     configService: ConfigService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext, mat: Materializer)
+)(using ec: ExecutionContext, mat: Materializer)
     extends BaseApiController(cc) {
   private val logger = Logger(this.getClass)
 

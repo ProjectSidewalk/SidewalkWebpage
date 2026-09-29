@@ -22,7 +22,7 @@ class MetadataApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /v3/api/labelTypes" should {
     "use a snake_case envelope key and snake_case item fields" in {

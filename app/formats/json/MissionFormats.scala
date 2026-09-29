@@ -8,7 +8,7 @@ import play.api.libs.json._
 import java.time.OffsetDateTime
 
 object MissionFormats {
-  implicit val missionWrites: Writes[Mission] = (
+  given missionWrites: Writes[Mission] = (
     (__ \ "mission_id").write[Int] and
       (__ \ "mission_type").write[String].contramap[MissionType.Value](_.toString) and
       (__ \ "user_id").write[String] and

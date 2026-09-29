@@ -3,7 +3,7 @@ package models.label
 import com.google.inject.ImplementedBy
 import models.label.CropSource.CropSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{Json, Writes}
 
@@ -33,7 +33,7 @@ object CropSource extends Enumeration {
 case class CropMarker(x: Double, y: Double, width: Option[Int] = None, height: Option[Int] = None)
 
 object CropMarker {
-  implicit val writes: Writes[CropMarker] = Json.writes[CropMarker]
+  given writes: Writes[CropMarker] = Json.writes[CropMarker]
 }
 
 /**
@@ -81,7 +81,7 @@ class LabelCropTableDef(tag: slick.lifted.Tag) extends Table[LabelCrop](tag, "la
 trait LabelCropTableRepository {}
 
 @Singleton
-class LabelCropTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class LabelCropTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends LabelCropTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

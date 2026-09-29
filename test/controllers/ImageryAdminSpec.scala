@@ -1,7 +1,7 @@
 package controllers
 
 import models.user.Role
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -43,7 +43,7 @@ class ImageryAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val dbConfig    = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]

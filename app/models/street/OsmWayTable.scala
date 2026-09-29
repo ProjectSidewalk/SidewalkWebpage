@@ -64,7 +64,7 @@ trait OsmWayTableRepository {}
 class OsmWayTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     streetEdgeTable: StreetEdgeTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends OsmWayTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

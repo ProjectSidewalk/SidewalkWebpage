@@ -42,7 +42,7 @@ object OsmWayRefreshActor {
  * most nights are a fast no-op; a new city's ways are backfilled on the first tick after its streets are imported.
  */
 @Singleton
-class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService: JobRunService)(implicit
+class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

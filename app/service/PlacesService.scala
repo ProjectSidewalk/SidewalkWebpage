@@ -5,7 +5,7 @@ import models.api.{PlaceFiltersForApi, PlaceForApi}
 import models.place.{FetchedPlace, PlaceCategory, PlaceTable}
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.pattern.after
 import org.apache.pekko.stream.Materializer
@@ -108,7 +108,7 @@ class PlacesServiceImpl @Inject() (
     apiService: ApiService,
     placeTable: PlaceTable,
     config: Configuration
-)(implicit ec: ExecutionContext, mat: Materializer)
+)(using ec: ExecutionContext, mat: Materializer)
     extends PlacesService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   import PlacesService._

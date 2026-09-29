@@ -8,7 +8,7 @@ import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.IpAddress
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -71,9 +71,9 @@ trait ValidationTaskCommentTableRepository {}
 
 @Singleton
 class ValidationTaskCommentTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends ValidationTaskCommentTableRepository
+    protected val dbConfigProvider: DatabaseConfigProvider
+)(using ec: ExecutionContext)
+    extends ValidationTaskCommentTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]

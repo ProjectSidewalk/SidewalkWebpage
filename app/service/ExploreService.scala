@@ -190,9 +190,9 @@ class ExploreServiceImpl @Inject() (
     webpageActivityTable: WebpageActivityTable,
     surveyQuestionTable: SurveyQuestionTable,
     userSurveyOptionSubmissionTable: UserSurveyOptionSubmissionTable,
-    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable,
-    implicit val ec: ExecutionContext
-) extends ExploreService
+    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable
+)(using ec: ExecutionContext)
+    extends ExploreService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)

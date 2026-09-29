@@ -5,7 +5,7 @@
 *
 * All ids that used to live inside the popup partial have been converted to BEM classes (`.label-detail__*`). The JS controller scopes its queries to the host root element so that multiple instances on different pages cannot collide with each other or with arbitrary `id="tags"`/`id="severity"` style elsewhere on the host page.
 *@
-@(admin: Boolean = false, withPaging: Boolean = false)(implicit assets: AssetsFinder)
+@(admin: Boolean = false, withPaging: Boolean = false)(using assets: AssetsFinder)
 
 <header class="label-detail__header">
   <div class="label-detail__title-wrap">

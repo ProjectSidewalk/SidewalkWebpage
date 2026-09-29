@@ -5,7 +5,7 @@ import models.mission.MissionTableDef
 import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.IpAddress
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 
 import java.time.OffsetDateTime
 

@@ -18,7 +18,7 @@ case class LabelSevStats(
 )
 
 object LabelSevStats {
-  implicit val labelSevStatsWrites: Writes[LabelSevStats] = (
+  given labelSevStatsWrites: Writes[LabelSevStats] = (
     (__ \ "count").write[Int] and
       (__ \ "count_with_severity").write[Option[Int]] and
       (__ \ "severity_mean").write[Option[Double]] and
@@ -29,7 +29,7 @@ object LabelSevStats {
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Double], nWithValidation: Int)
 
 object LabelAccuracy {
-  implicit val labelAccuracyWrites: Writes[LabelAccuracy] = (
+  given labelAccuracyWrites: Writes[LabelAccuracy] = (
     (__ \ "validated").write[Int] and
       (__ \ "agreed").write[Int] and
       (__ \ "disagreed").write[Int] and
@@ -56,7 +56,7 @@ object AiConcurrence {
     if (i < 0) Int.MaxValue else i
   }
 
-  implicit val aiConcurrenceWrites: Writes[AiConcurrence] = (
+  given aiConcurrenceWrites: Writes[AiConcurrence] = (
     (__ \ "ai_yes_maj_vote_concurs").write[Int] and
       (__ \ "ai_yes_maj_vote_differs").write[Int] and
       (__ \ "ai_no_maj_vote_differs").write[Int] and

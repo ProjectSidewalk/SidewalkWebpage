@@ -16,7 +16,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class ConfigController @Inject() (
     cc: CustomControllerComponents,
     configService: service.ConfigService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 

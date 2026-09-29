@@ -12,7 +12,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
  * or a fake fetch.
  */
 class OsmWayServiceSpec extends SidewalkSpec {
-  implicit private val ec: ExecutionContext = ExecutionContext.global
+  private given ec: ExecutionContext = ExecutionContext.global
 
   /** Builds an OSM API multi-fetch response element for a live way. */
   private def wayWithTags(id: Long, tags: JsObject): JsObject = {

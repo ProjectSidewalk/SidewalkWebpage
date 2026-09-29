@@ -22,7 +22,7 @@ class LandingValidationGridRoutesSpec extends SidewalkSpec with GuiceOneAppPerSu
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "The validation grid's endpoints" should {
     Seq("/label/labels", "/labelmap/validate").foreach { path =>

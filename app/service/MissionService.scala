@@ -63,9 +63,9 @@ class MissionServiceImpl @Inject() (
     missionTable: MissionTable,
     auditTaskTable: AuditTaskTable,
     routeTable: RouteTable,
-    userAccountStateTable: UserAccountStateTable,
-    implicit val ec: ExecutionContext
-) extends MissionService
+    userAccountStateTable: UserAccountStateTable
+)(using ec: ExecutionContext)
+    extends MissionService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)

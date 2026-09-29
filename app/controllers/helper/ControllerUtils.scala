@@ -41,7 +41,7 @@ object ControllerUtils {
    * @param request The request whose User-Agent header is inspected.
    * @return        True if that header is present and matches a mobile token; false if it is absent or matches none.
    */
-  def isMobile(implicit request: RequestHeader): Boolean = {
+  def isMobile(using request: RequestHeader): Boolean = {
     request.headers
       .get("User-Agent")
       .exists(agent => {
@@ -75,7 +75,7 @@ object ControllerUtils {
    * @param messages The request's messages, supplying the language default when there is no saved choice.
    * @return         Either `MeasurementSystem.Metric` or `MeasurementSystem.Imperial` — never a language's own wording.
    */
-  def measurementSystem(implicit request: RequestHeader, messages: Messages): MeasurementSystem.Value = {
+  def measurementSystem(using request: RequestHeader, messages: Messages): MeasurementSystem.Value = {
     requestUser(request).flatMap(_.measurementSystem).getOrElse {
       MeasurementSystem.fromString(messages("measurement.system")).getOrElse(MeasurementSystem.Imperial)
     }
@@ -87,7 +87,7 @@ object ControllerUtils {
    * The one way anything — controller, template, or (via the `<html>` stamp `main.scala.html` writes) client code —
    * should ask, so a user's unit override can't be honored on some pages and ignored on others.
    */
-  def isMetric(implicit request: RequestHeader, messages: Messages): Boolean = {
+  def isMetric(using request: RequestHeader, messages: Messages): Boolean = {
     measurementSystem == MeasurementSystem.Metric
   }
 
@@ -106,7 +106,7 @@ object ControllerUtils {
   case class DistanceUnitWords(abbr: String, abbrSmall: String, name: String, nameSingular: String)
 
   /** The distance-unit words for this request, in its measurement system and language. */
-  def distanceUnitWords(implicit request: RequestHeader, messages: Messages): DistanceUnitWords = {
+  def distanceUnitWords(using request: RequestHeader, messages: Messages): DistanceUnitWords = {
     val system = measurementSystem
     DistanceUnitWords(
       abbr = messages(s"unit.distance.abbr.$system"),
@@ -289,7 +289,7 @@ object ControllerUtils {
    * Form binding errors as the JSON `AuthModal.js`'s `renderAuthErrors` draws: `{"errors": {field -> message}}`, with
    * form-level errors (like a password mismatch) under `_summary`.
    */
-  def formErrorsJson(formWithErrors: Form[_])(implicit messages: Messages): JsObject = {
+  def formErrorsJson(formWithErrors: Form[_])(using messages: Messages): JsObject = {
     val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
       (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args: _*))
     }

@@ -35,7 +35,7 @@ class UserCurrentRegionTableDef(tag: Tag) extends Table[UserCurrentRegion](tag, 
 trait UserCurrentRegionTableRepository {}
 
 @Singleton
-class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends UserCurrentRegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

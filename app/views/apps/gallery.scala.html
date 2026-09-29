@@ -8,7 +8,7 @@
 @(commonData: service.CommonPageData, title: String, user: Option[models.user.SidewalkUserWithRole], labelTypes: Seq[String],
   allTags: Seq[Tag], regionIds: Seq[Int], regionNames: Map[Int, String], severities: Seq[String], tags: List[String],
   valOptions: Seq[String], aiValOptions: Seq[String], labelIds: Seq[Int], idsOverCap: Int
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "gallery", "labelmap"),

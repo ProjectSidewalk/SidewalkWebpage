@@ -2,7 +2,7 @@
 @import models.user.{SidewalkUserWithRole, Team}
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, team: Team
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* One team's admin page (#5381): who is on a team, how much they've done, whether their work holds up, and the controls to change the roster. Reached from each row of the Management page's Teams table. The header is server-rendered from the team the controller resolved, so a 404 never reaches this page; everything below fills from /adminapi/team/:teamId. Teams are per city (#5303), so this is one city's view. *@
 

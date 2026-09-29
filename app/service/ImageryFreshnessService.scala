@@ -211,12 +211,12 @@ class ImageryFreshnessServiceImpl @Inject() (
     panoDataService: PanoDataService,
     streetImageryTable: StreetImageryTable,
     streetReopenCandidateTable: StreetReopenCandidateTable,
-    auditTaskTable: AuditTaskTable,
-    implicit val ec: ExecutionContext
-) extends ImageryFreshnessService
+    auditTaskTable: AuditTaskTable
+)(using ec: ExecutionContext)
+    extends ImageryFreshnessService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   import ImageryFreshnessService._
-  import models.utils.MyPostgresProfile.api._
+  import models.utils.MyPostgresProfile.api.given
 
   private val logger = Logger(this.getClass)
 

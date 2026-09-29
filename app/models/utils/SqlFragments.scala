@@ -1,6 +1,6 @@
 package models.utils
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import slick.dbio.{DBIOAction, Effect, NoStream}
 import slick.jdbc.{SQLActionBuilder, SetParameter}
 
@@ -105,7 +105,7 @@ object SqlFragments {
 
   object EnumList {
     // Quotes every element so a comma or quote in a value stays inside it.
-    implicit val setEnumList: SetParameter[EnumList] = SetParameter { (list, pp) =>
+    given setEnumList: SetParameter[EnumList] = SetParameter { (list, pp) =>
       val elements = list.values.map(v => "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
       pp.setObject(elements.mkString("{", ",", "}"), Types.OTHER)
     }

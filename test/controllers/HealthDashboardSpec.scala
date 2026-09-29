@@ -22,7 +22,7 @@ class HealthDashboardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /admin/health" should {
     "redirect unauthenticated users to the sign-in page (not 404)" in {

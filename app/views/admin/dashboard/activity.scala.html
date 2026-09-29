@@ -3,7 +3,7 @@
 @import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
   <div class="page-section" id="activity-intro-section">

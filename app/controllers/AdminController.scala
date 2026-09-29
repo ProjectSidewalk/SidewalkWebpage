@@ -2,9 +2,9 @@ package controllers
 
 import actor._
 import controllers.base._
-import formats.json.AdminFormats._
+import formats.json.AdminFormats.{given, _}
 import formats.json.LabelFormats._
-import formats.json.UserFormats._
+import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.api.ApiModelUtils
 import models.label.{LabelDeletion, LabelType}
@@ -49,11 +49,11 @@ class AdminController @Inject() (
     sidewalkPresenceService: SidewalkPresenceService,
     placesService: PlacesService,
     actorSystem: ActorSystem
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Get a list of all labels for the admin page, as a GeoJSON FeatureCollection of points.

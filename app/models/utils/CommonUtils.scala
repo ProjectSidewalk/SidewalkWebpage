@@ -8,7 +8,7 @@ object CommonUtils {
   object UiSource extends Enumeration {
     type UiSource = Value
 
-    implicit val writes: play.api.libs.json.Writes[Value] = play.api.libs.json.Writes.enumNameWrites[UiSource.type]
+    given writes: play.api.libs.json.Writes[Value] = play.api.libs.json.Writes.enumNameWrites[UiSource.type]
 
     val Explore                         = Value("Explore")
     val Validate                        = Value("Validate")

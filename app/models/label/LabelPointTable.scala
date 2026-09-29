@@ -2,7 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -89,7 +89,7 @@ object LabelPointTable {
 trait LabelPointTableRepository {}
 
 @Singleton
-class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends LabelPointTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

@@ -27,7 +27,7 @@ class RegionApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .disable[modules.ActorModule]
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val tinyBbox = "bbox=0,0,0.001,0.001"
 

@@ -28,7 +28,7 @@ class SessionlessPagesSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /** The Silhouette authenticator cookie name ("test-authenticator" here); setting it means a session was minted. */
   private lazy val authCookieName: String = app.configuration.get[String]("silhouette.authenticator.cookieName")

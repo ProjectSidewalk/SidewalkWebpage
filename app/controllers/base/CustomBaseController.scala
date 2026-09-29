@@ -64,7 +64,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    *                     leaving the page mid-load is routine.
    * @return             The same source, with logging attached.
    */
-  protected def logStreamFailures(source: Source[String, _], label: String, warnOnCutOff: Boolean = true)(implicit
+  protected def logStreamFailures(source: Source[String, _], label: String, warnOnCutOff: Boolean = true)(using
       ec: ExecutionContext
   ): Source[String, _] = {
     val startedAt  = System.nanoTime()
@@ -121,7 +121,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * @param features A source of GeoJSON Feature objects, e.g. a streamed db query mapped through a serializer.
    * @param label    A short identifier (e.g. the endpoint path) included in the log line if the stream fails.
    */
-  protected def streamGeoJson(features: Source[JsObject, _], label: String)(implicit ec: ExecutionContext): Result = {
+  protected def streamGeoJson(features: Source[JsObject, _], label: String)(using ec: ExecutionContext): Result = {
     val jsonSource: Source[String, _] =
       geoJsonFeatureCollection(logStreamFailures(features.map(_.toString), label, warnOnCutOff = false))
     Ok.chunked(jsonSource).as(ContentTypes.JSON)
@@ -132,7 +132,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    *
    * @param path The path that matched nothing, echoed back on the page.
    */
-  protected def notFoundPage(path: String)(implicit messages: Messages, assets: AssetsFinder): Result = {
+  protected def notFoundPage(path: String)(using messages: Messages, assets: AssetsFinder): Result = {
     NotFound(
       views.html.errors.errorPage(
         NOT_FOUND,

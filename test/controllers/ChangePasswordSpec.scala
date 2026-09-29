@@ -35,7 +35,7 @@ class ChangePasswordSpec extends SidewalkSpec with SignedUpAccounts with GuiceOn
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val XHR          = "X-Requested-With" -> "XMLHttpRequest"
   private val NewPassword  = "NewPass22"

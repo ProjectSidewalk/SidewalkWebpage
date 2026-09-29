@@ -30,7 +30,7 @@ class ValidateTriageParamsSpec extends SidewalkSpec with RoleSession with GuiceO
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /** The Twirl views embed `param.validateParams` as a JS object literal, so the flag is read back as text. */
   private def embeddedTriage(body: String): Option[Boolean] =

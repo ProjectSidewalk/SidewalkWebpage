@@ -28,9 +28,9 @@ class RegionServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     regionTable: RegionTable,
     regionCompletionTable: RegionCompletionTable,
-    streetEdgeTable: StreetEdgeTable,
-    implicit val ec: ExecutionContext
-) extends RegionService
+    streetEdgeTable: StreetEdgeTable
+)(using ec: ExecutionContext)
+    extends RegionService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val regionCompletions    = regionCompletionTable.regionCompletions
   val streetEdgeRegion     = TableQuery[StreetEdgeRegionTableDef]

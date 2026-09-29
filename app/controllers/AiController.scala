@@ -23,7 +23,7 @@ class AiController @Inject() (
     configService: service.ConfigService,
     exploreService: service.ExploreService,
     panoDataService: service.PanoDataService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 

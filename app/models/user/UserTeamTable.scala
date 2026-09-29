@@ -2,7 +2,7 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -26,10 +26,8 @@ class UserTeamTableDef(tag: slick.lifted.Tag) extends Table[UserTeam](tag, "user
 trait UserTeamTableRepository {}
 
 @Singleton
-class UserTeamTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends UserTeamTableRepository
+class UserTeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
+    extends UserTeamTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userTeams     = TableQuery[UserTeamTableDef]

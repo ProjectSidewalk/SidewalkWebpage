@@ -36,7 +36,7 @@ class PublicApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventuall
 
   // File-streamed responses (e.g. CSV via Ok.sendFile) need a real Materializer to consume; the test default is
   // NoMaterializer, which only works for strict bodies like JSON.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /v3/api/overallStats" should {
     "return 200 JSON with the documented top-level structure" in {

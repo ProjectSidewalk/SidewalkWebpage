@@ -14,13 +14,13 @@ object ClusterFormats {
       clusters: Seq[ClusterSubmission]
   )
 
-  implicit val clusteredLabelSubmissionReads: Reads[ClusteredLabelSubmission] = (
+  given clusteredLabelSubmissionReads: Reads[ClusteredLabelSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "cluster").read[Int]
   )(ClusteredLabelSubmission.apply _)
 
-  implicit val clusterSubmissionReads: Reads[ClusterSubmission] = (
+  given clusterSubmissionReads: Reads[ClusterSubmission] = (
     (JsPath \ "label_type").read[String] and
       (JsPath \ "cluster").read[Int] and
       (JsPath \ "lat").read[Double] and
@@ -28,13 +28,13 @@ object ClusterFormats {
       (JsPath \ "severity").readNullable[Int]
   )(ClusterSubmission.apply _)
 
-  implicit val clusteringSubmissionReads: Reads[ClusteringSubmission] = (
+  given clusteringSubmissionReads: Reads[ClusteringSubmission] = (
     (JsPath \ "thresholds").read[Seq[ClusteringThreshold]] and
       (JsPath \ "labels").read[Seq[ClusteredLabelSubmission]] and
       (JsPath \ "clusters").read[Seq[ClusterSubmission]]
   )(ClusteringSubmission.apply _)
 
-  implicit val labelToClusterWrites: Writes[LabelToCluster] = (
+  given labelToClusterWrites: Writes[LabelToCluster] = (
     (JsPath \ "region_id").write[Int] and
       (JsPath \ "user_id").write[String] and
       (JsPath \ "pano_id").write[String] and

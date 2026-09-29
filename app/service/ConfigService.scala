@@ -5,7 +5,7 @@ import com.typesafe.config.ConfigException
 import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils._
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -1258,7 +1258,7 @@ class ConfigServiceImpl @Inject() (
     panoDataService: PanoDataService,
     swrCache: SwrCache,
     assetManifestService: AssetManifestService
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends ConfigService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)

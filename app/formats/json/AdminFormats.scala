@@ -4,7 +4,7 @@ import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericCo
 import models.label.LabelCount
 import formats.json.UserFormats.roleWrites
 import models.user.UserCount
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.validation.{ValidationCount, ValidationOption}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -39,19 +39,19 @@ object AdminFormats {
       infra3dAccess: Option[Boolean]
   )
 
-  implicit val userRoleSubmissionReads: Reads[UserRoleSubmission] = (
+  given userRoleSubmissionReads: Reads[UserRoleSubmission] = (
     (JsPath \ "user_id").read[String] and
       (JsPath \ "role_id").read[String]
   )(UserRoleSubmission.apply _)
 
-  implicit val taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
+  given taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "date").read[OffsetDateTime] and
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]
   )(TaskFlagsByDateSubmission.apply _)
 
-  implicit val adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] = (
+  given adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String].map(_.trim) and
       (JsPath \ "role").read[String] and
@@ -64,13 +64,13 @@ object AdminFormats {
       (JsPath \ "infra3dAccess").readNullable[Boolean]
   )(AdminUserSettingsSubmission.apply _)
 
-  implicit val taskFlagSubmissionReads: Reads[TaskFlagSubmission] = (
+  given taskFlagSubmissionReads: Reads[TaskFlagSubmission] = (
     (JsPath \ "auditTaskId").read[Int] and
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]
   )(TaskFlagSubmission.apply _)
 
-  implicit val userCountWrites: Writes[UserCount] = (
+  given userCountWrites: Writes[UserCount] = (
     (__ \ "count").write[Int] and
       (__ \ "tool_used").write[String] and
       (__ \ "role").write[String] and
@@ -79,19 +79,19 @@ object AdminFormats {
       (__ \ "high_quality_only").write[Boolean]
   )((o: UserCount) => Tuple.fromProductTyped(o))
 
-  implicit val contributionTimeStatWrites: Writes[ContributionTimeStat] = (
+  given contributionTimeStatWrites: Writes[ContributionTimeStat] = (
     (__ \ "time").write[Option[Double]] and
       (__ \ "stat").write[String] and
       (__ \ "time_interval").write[TimeInterval]
   )((o: ContributionTimeStat) => Tuple.fromProductTyped(o))
 
-  implicit val labelCountWrites: Writes[LabelCount] = (
+  given labelCountWrites: Writes[LabelCount] = (
     (__ \ "count").write[Int] and
       (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String]
   )((o: LabelCount) => Tuple.fromProductTyped(o))
 
-  implicit val validationCountWrites: Writes[ValidationCount] = (
+  given validationCountWrites: Writes[ValidationCount] = (
     (__ \ "count").write[Int] and
       (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String] and
@@ -100,7 +100,7 @@ object AdminFormats {
       (__ \ "validator").write[String]
   )((o: ValidationCount) => Tuple.fromProductTyped(o))
 
-  implicit val genericCommentWrites: Writes[GenericComment] = (
+  given genericCommentWrites: Writes[GenericComment] = (
     (__ \ "comment_type").write[String] and
       (__ \ "username").write[String] and
       (__ \ "pano_id").write[String] and

@@ -3,7 +3,7 @@ package models.survey
 import com.google.inject.ImplementedBy
 import models.user.Role
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -50,7 +50,7 @@ class SurveyQuestionTableDef(tag: Tag) extends Table[SurveyQuestion](tag, "surve
 trait SurveyQuestionTableRepository {}
 
 @Singleton
-class SurveyQuestionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class SurveyQuestionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends SurveyQuestionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

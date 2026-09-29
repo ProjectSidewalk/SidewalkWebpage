@@ -24,7 +24,7 @@ class AuthTokenTableDef(tag: Tag) extends Table[AuthToken](tag, "auth_tokens") {
 trait AuthTokenTableRepository {}
 
 @Singleton
-class AuthTokenTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class AuthTokenTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends AuthTokenTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

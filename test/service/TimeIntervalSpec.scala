@@ -3,7 +3,7 @@ package service
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable}
 import models.label.LabelTable
 import models.user.UserStatTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.validation.LabelValidationTable
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application

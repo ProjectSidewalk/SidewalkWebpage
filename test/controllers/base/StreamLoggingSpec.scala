@@ -27,8 +27,8 @@ class StreamLoggingSpec extends SidewalkSpec with GuiceOneAppPerSuite with Event
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer    = app.materializer
-  implicit lazy val ec: ExecutionContext = app.actorSystem.dispatcher
+  given mat: Materializer    = app.materializer
+  given ec: ExecutionContext = app.actorSystem.dispatcher
 
   /** The smallest controller that can call the protected helper. */
   private class Probe extends CustomBaseController(app.injector.instanceOf[CustomControllerComponents]) {

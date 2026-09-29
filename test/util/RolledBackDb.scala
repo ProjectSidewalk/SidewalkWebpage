@@ -25,7 +25,7 @@ trait RolledBackDb { this: GuiceOneAppPerSuite =>
   /** How long to wait on a single action. Generous, since these boot the app and hit PostGIS. */
   protected def dbTimeout: FiniteDuration = 120.seconds
 
-  implicit protected lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  protected given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
 
   // Kept as a stable val with `.db.run` called inline; binding `.db` to its own val would infer a path-dependent
   // existential type that needs -language:existentials.

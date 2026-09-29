@@ -16,7 +16,7 @@ import scala.concurrent.{Await, ExecutionContext, Future, Promise}
  */
 class InBatchesSpec extends SidewalkSpec {
 
-  implicit private val ec: ExecutionContext = ExecutionContext.global
+  private given ec: ExecutionContext = ExecutionContext.global
 
   "inBatches" should {
     "never run more than a batch at once, which is the whole point of not fanning out to 52 connections" in {

@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.street.{SidewalkPresenceRebuildCounts, SidewalkPresenceTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
 
@@ -57,7 +57,7 @@ trait SidewalkPresenceService {
 class SidewalkPresenceServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     sidewalkPresenceTable: SidewalkPresenceTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends SidewalkPresenceService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

@@ -39,7 +39,7 @@ object FunnelStatActor {
  * @param adminService Recompute entry point ([[AdminService.updateFunnelStatTable]]).
  */
 @Singleton
-class FunnelStatActor @Inject() (adminService: AdminService, jobRunService: JobRunService)(implicit
+class FunnelStatActor @Inject() (adminService: AdminService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

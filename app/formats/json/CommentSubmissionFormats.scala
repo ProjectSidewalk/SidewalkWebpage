@@ -41,7 +41,7 @@ object CommentSubmissionFormats {
       lng: Double
   )
 
-  implicit val commentSubmissionReads: Reads[CommentSubmission] = (
+  given commentSubmissionReads: Reads[CommentSubmission] = (
     (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "street_edge_id").read[Int] and
@@ -54,7 +54,7 @@ object CommentSubmissionFormats {
       (JsPath \ "lng").read[Double]
   )(CommentSubmission.apply _)
 
-  implicit val validationCommentSubmissionReads: Reads[ValidationCommentSubmission] = (
+  given validationCommentSubmissionReads: Reads[ValidationCommentSubmission] = (
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "label_id").read[Int] and
       (JsPath \ "comment").read[String] and
@@ -66,7 +66,7 @@ object CommentSubmissionFormats {
       (JsPath \ "lng").read[Double]
   )(ValidationCommentSubmission.apply _)
 
-  implicit val labelMapValidationCommentSubmissionReads: Reads[LabelMapValidationCommentSubmission] = (
+  given labelMapValidationCommentSubmissionReads: Reads[LabelMapValidationCommentSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "comment").read[String] and
