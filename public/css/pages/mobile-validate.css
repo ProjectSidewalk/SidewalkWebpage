@@ -605,6 +605,7 @@ body {
   background-color: var(--color-asphalt-500);
   font: var(--text-body-bold);
   color: var(--color-neutral-white);
+  text-transform: uppercase;
 }
 
 #view-control-layer {

@@ -149,6 +149,7 @@ class Main {
     }
     svv.ui.status = {
       upperMenuTitle: byId('mission-title'),
+      upperMenuIcon: byId('mission-title-icon'),
       zoomInButton: byId('zoom-in-button'),
       zoomOutButton: byId('zoom-out-button'),
       admin: {

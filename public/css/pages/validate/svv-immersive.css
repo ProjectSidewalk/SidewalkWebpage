@@ -42,25 +42,50 @@ body.svv-immersive #pano-border-frame {
   display: none;
 }
 
-/* The mission title ("VALIDATE 10 CURB RAMP LABELS") is cut: the dock's question names the type, and one pill at the
-   top is all the mode can afford there. */
-body.svv-immersive #mission-title {
-  display: none;
-}
-
-/* The progress bar becomes the one pill at the top-centre, the place the corner controls never reach and sky in
-   nearly every pano; the count is worth its pixels, since a validator paces a mission by it. */
-body.svv-immersive #mission-progress-bar-section {
+/* The title, its type icon and the progress bar share one pill at the top-centre: the place the corner controls never
+   reach and sky in nearly every pano. The count is worth its pixels, since a validator paces a mission by it. */
+body.svv-immersive #mission-status {
+  position: absolute;
   top: calc(8px * var(--ui-scale));
   left: 50%;
   transform: translateX(-50%);
-  width: calc(240px * var(--ui-scale));
-  padding: calc(5px * var(--ui-scale)) calc(12px * var(--ui-scale));
-  --ps-progress-bar-height: calc(5px * var(--ui-scale));
+  display: flex;
+  align-items: center;
   gap: calc(8px * var(--ui-scale));
+  max-width: calc(100vw - 260px * var(--ui-scale)); /* Clears the corner controls on a narrow window. */
+  padding: calc(5px * var(--ui-scale)) calc(14px * var(--ui-scale)) calc(5px * var(--ui-scale))
+    calc(8px * var(--ui-scale));
+  color: var(--color-neutral-white);
   background: var(--svv-scrim);
   border-radius: calc(999px * var(--ui-scale));
   z-index: 4;
+}
+
+body.svv-immersive .mission-title-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: calc(22px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
+}
+
+/* Sentence case, not the boxed page's letter-spaced capitals: over imagery it is a caption, not a banner. */
+body.svv-immersive #mission-title {
+  position: static;
+  width: auto;
+  overflow: hidden;
+  font: var(--text-small-bold);
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+body.svv-immersive #mission-progress-bar-section {
+  position: static;
+  flex: 0 0 auto;
+  width: calc(100px * var(--ui-scale));
+  --ps-progress-bar-height: calc(5px * var(--ui-scale));
+  gap: calc(8px * var(--ui-scale));
 }
 
 body.svv-immersive #mission-progress-bar-section .ps-progress-bar__track {
@@ -69,7 +94,6 @@ body.svv-immersive #mission-progress-bar-section .ps-progress-bar__track {
 
 body.svv-immersive #mission-progress-bar-text {
   padding-bottom: 0;
-  color: var(--color-neutral-white);
   white-space: nowrap;
 }
 
@@ -96,6 +120,7 @@ body.svv-immersive #validation-menu-holder {
 
 /* The dock is sized to its content, so the boxed column's push-to-bottom has nothing to push against. */
 body.svv-immersive #validate-submit-section {
+  align-items: center;
   margin-top: 0;
 }
 
@@ -121,16 +146,52 @@ body.svv-immersive .validate-page-button__icon {
   height: calc(16px * var(--ui-scale));
 }
 
-/* Back reads as "go back" with its arrow. */
-body.svv-immersive #validate-undo-button {
-  gap: calc(2px * var(--ui-scale));
-  padding-left: calc(6px * var(--ui-scale));
+/* A chosen verdict's fill is the thumb's own colour, so the thumb goes dark rather than vanish into it. */
+body.svv-immersive .validate-page-button.is-chosen .validate-page-button__icon {
+  filter: brightness(0);
+  opacity: 0.85;
 }
 
+/* Back and Submit move between labels rather than answer this one, so neither may look like a fourth verdict. */
+body.svv-immersive #validate-undo-button {
+  gap: calc(2px * var(--ui-scale));
+  padding: calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale)) calc(2px * var(--ui-scale)) 0;
+  color: var(--color-neutral-white);
+  background: none;
+  outline: none;
+  font: var(--text-small-regular);
+}
+
+body.svv-immersive #validate-undo-button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+body.svv-immersive #validate-undo-button:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
+/* The boxed disabled grey is set for a white fill; on the scrim it needs the white itself, faded. */
+body.svv-immersive #validate-undo-button:disabled {
+  color: rgb(from var(--color-neutral-white) r g b / 45%);
+}
+
+body.svv-immersive #validate-submit-button {
+  display: none;
+  min-width: calc(140px * var(--ui-scale));
+}
+
+body.svv-immersive #validation-menu-holder.has-verdict #validate-submit-button {
+  display: inline-block;
+}
+
+/* A mask, not an <img>, so the arrow takes the text colour and fades out with it when Back is disabled. */
 body.svv-immersive .validate-undo-button__icon {
   display: inline-block;
   width: calc(18px * var(--ui-scale));
   height: calc(18px * var(--ui-scale));
+  -webkit-mask-image: url("../../../images/icons/chevron-left-feather.svg");
+  mask-image: url("../../../images/icons/chevron-left-feather.svg");
 }
 
 /* The close control in the dock's top-right corner, once a verdict has opened it: an X takes the answer back so the
@@ -202,8 +263,36 @@ body.svv-immersive #modal-mission-complete-foreground {
   height: calc(var(--pano-base-height) * var(--ui-scale));
 }
 
-/* The boxed backdrop overshoots its holder to cover the page margins; the holder is now the window. */
+/* The boxed backdrop overshoots its holder to cover the page margins; the holder is now the window. It also has to
+   cover the pill, the corner controls and the dock, which float above an unstacked backdrop (z-index 3 and 4). */
 body.svv-immersive .modal-background {
   left: 0;
+  width: 100%;
+  z-index: 5;
+}
+
+/* The pano's footprint is nearly the whole window here, far too big for a few counts, so this is sized to content. */
+body.svv-immersive #modal-mission-complete-foreground {
+  width: min(calc(440px * var(--ui-scale)), calc(100vw - 32px));
+  height: auto;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: calc(28px * var(--ui-scale)) calc(32px * var(--ui-scale));
+  border: none;
+  border-radius: calc(12px * var(--ui-scale));
+  box-shadow: var(--box-shadow-lg);
+}
+
+body.svv-immersive #modal-mission-complete-title {
+  margin-top: 0;
+}
+
+body.svv-immersive #modal-mission-complete-table {
+  height: auto;
+  padding-left: 0;
+  margin-top: calc(20px * var(--ui-scale));
+}
+
+body.svv-immersive .modal-mission-complete-counts {
   width: 100%;
 }

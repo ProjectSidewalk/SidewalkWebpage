@@ -88,12 +88,16 @@
     </template>
 
     <div id="svv-application-holder">
-      <div id="mission-title"></div>
-      @components.progressBar(
-        rootId = "mission-progress-bar-section",
-        fillId = "mission-progress-bar-complete",
-        labelId = "mission-progress-bar-text"
-      )
+      @* A layout-free wrapper in the boxed page (svv-upper-row.css); immersive mode makes it the one pill at the top. *@
+      <div id="mission-status">
+        <img id="mission-title-icon" class="mission-title-icon" alt="">
+        <div id="mission-title"></div>
+        @components.progressBar(
+          rootId = "mission-progress-bar-section",
+          fillId = "mission-progress-bar-complete",
+          labelId = "mission-progress-bar-text"
+        )
+      </div>
       <div id="admin-info-section">
         <button type="button" id="admin-info-button" class="button button--secondary button--small" popovertarget="admin-info-popover">Admin info</button>
         @* Filled from #admin-info-template by AdminInfo.js, which also parks it under the button. *@
@@ -295,7 +299,7 @@
         </div>
         <div id="validate-submit-section" class="validation-menu-section button-section">
           <button type="button" id="validate-undo-button"class="button button--secondary button--small">
-            <img src='@assets.path("images/icons/chevron-left-feather.svg")' class="validate-undo-button__icon" alt="">
+            <span class="ps-mask-icon validate-undo-button__icon" aria-hidden="true"></span>
             <span>@Html(Messages("back.shortcut"))</span>
           </button>
           <button type="button" id="validate-submit-button"class="button button--primary button--small">@Html(Messages("submit.shortcut"))</button>
