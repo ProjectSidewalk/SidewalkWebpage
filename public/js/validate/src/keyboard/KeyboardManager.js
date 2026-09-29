@@ -178,6 +178,10 @@ class KeyboardManager {
     // letter shortcuts stay live throughout, since a mouse click leaves focus on the control.
     if (e.code === 'Space' && target.closest?.('#label-visibility-control-holder')) return;
     if ((e.code === 'Enter' || e.code === 'NumpadEnter') && KeyboardManager.#isKeyboardFocusedChevron(target)) return;
+    // The dock's X and the immersive toggle mean "take the answer back" and "change the layout": Enter on either has to
+    // activate it, as it does every other button of that kind, not submit the answer the X was pressed to undo.
+    if ((e.code === 'Enter' || e.code === 'NumpadEnter')
+      && target.closest?.('#validate-verdict-clear, #immersive-toggle-button')) return;
 
     // The marker and its card are their own keyboard scope (#4729): none of the shortcuts below may fire from
     // inside, Enter especially, which would submit from a button that means "open". An open popover counts as being
@@ -205,6 +209,18 @@ class KeyboardManager {
 
     // When the user is typing in a comment box, disable keyboard shortcuts that validate a label.
     this.#checkIfTextAreaSelected();
+
+    // Immersive mode on/off (#5560), the same key as Explore's. An f typed into a comment box or the tag picker is
+    // text, and F with a modifier belongs to the browser. The physical key, like Z for zoom, so the toggle sits where
+    // the hint's "F" is on a QWERTY layout. Not gated on #disableKeyboard: the layout may change under a modal.
+    const editing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+      || /** @type {?HTMLElement} */ (document.activeElement)?.isContentEditable;
+    if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !editing
+      && svv.immersiveMode) {
+      // Keydown repeats while the key is held, and each repeat would flip the layout again.
+      if (!e.repeat) svv.immersiveMode.toggle('KeyboardShortcut');
+      return;
+    }
 
     // Handle the various keyboard shortcuts.
     // Enter submits the validation even from a comment box. The tag picker is the exception: there it adds the

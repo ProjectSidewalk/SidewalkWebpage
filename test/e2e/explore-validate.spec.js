@@ -87,6 +87,22 @@ test('/validate opens the chevron menu and the image adjustments panel', async (
   expect(consoleErrors).toEqual([]);
 });
 
+test('/validate enters and leaves immersive mode on F', async ({page, consoleErrors}) => {
+  const onMission = await loadValidate(page, '/validate');
+  test.skip(!onMission, 'Validate settled on the no-mission modal, so the tool was never built');
+  // The mission-start tutorial overlay covers the toggle, so the key is the route that stays out of pano
+  // interaction; it lands on the body, where KeyboardManager listens (#5560).
+  await expect(page.locator('#immersive-toggle-holder')).toBeAttached();
+  await page.keyboard.press('f');
+  await expect(page.locator('body')).toHaveClass(/svv-immersive/);
+  await expect(page.locator('html')).toHaveClass(/chromeless/);
+  await expect(page.locator('#immersive-toggle-button')).toHaveAttribute('aria-label', 'Exit immersive mode');
+  await page.keyboard.press('f');
+  await expect(page.locator('body')).not.toHaveClass(/svv-immersive/);
+  await expect(page.locator('html')).not.toHaveClass(/chromeless/);
+  expect(consoleErrors).toEqual([]);
+});
+
 /**
  * Loads `/validate` or `/mobile` and settles it.
  * @param {import('@playwright/test').Page} page The test's page.

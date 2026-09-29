@@ -15,7 +15,7 @@
  *
  * Usage (Explore suspends its shortcuts while the panel is open):
  *   new PanoImageAdjustmentsPopover(svl.imageAdjustments, button, popoverEl, {
- *     placement: () => (document.body.classList.contains(ImmersiveMode.BODY_CLASS) ? 'right' : 'below'),
+ *     placement: () => (svl.immersiveMode.isActive() ? 'right' : 'below'),
  *     onOpen: () => svl.keyboard.disableKeyboard(),
  *     onClose: (via) => svl.keyboard.enableKeyboard(),
  *     onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
