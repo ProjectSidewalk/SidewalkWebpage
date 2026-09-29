@@ -1,11 +1,10 @@
 package models.street
 
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 
@@ -22,7 +21,7 @@ import java.time.OffsetDateTime
  * deliberately rolled-back transaction, so the shared dev DB is left untouched. Requires a Postgres+PostGIS database
  * (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); scheduling actors are disabled.
  */
-class NoImageryReportsSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class NoImageryReportsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

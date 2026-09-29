@@ -3,7 +3,6 @@ package controllers
 import models.user.Role
 import models.utils.OfficialContact
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -13,7 +12,7 @@ import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.ConfigService
-import util.{AnonSession, RoleSession}
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -28,7 +27,7 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class OfficialContactAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class OfficialContactAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

@@ -1,7 +1,7 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.{Configuration, Logger}
 import models.utils.JobRunTrigger
 import play.api.libs.json.Json
@@ -43,7 +43,7 @@ class GetAiValidationsActor @Inject() (aiService: AiService, jobRunService: JobR
           24.hours,
           self,
           GetAiValidationsActor.Tick
-        )(context.dispatcher)
+        )(context.dispatcher, ActorRef.noSender)
       )
       logger.info("GetAiValidationsActor created")
     }

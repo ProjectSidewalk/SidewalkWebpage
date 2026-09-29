@@ -5,17 +5,16 @@ import models.audit.AuditTaskTable
 import models.label.LabelTable
 import models.street.StreetEdgeTable
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
  * The shared "what counts" SQL (#5287, #5485) keeps exactly what its Slick twin keeps. Seeded cases are rolled back,
  * and are skipped on a database with no labels to borrow ids from (CI's).
  */
-class FilteredTablesSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
+class FilteredTablesSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

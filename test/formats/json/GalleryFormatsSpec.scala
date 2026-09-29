@@ -3,14 +3,14 @@ package formats.json
 import formats.json.GalleryFormats._
 import formats.json.ValidateFormats.uiSourceReads
 import models.utils.CommonUtils.UiSource
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsBoolean, JsError, JsString, JsSuccess, Json}
+import util.SidewalkSpec
 
 /**
  * Pure JSON-contract tests for the Gallery label-request reads and the UiSource wire format, covering the pieces the
  * landing-page validation grid (#1638) depends on: the optional `sort` field and the `LandingPage` source value.
  */
-class GalleryFormatsSpec extends PlaySpec {
+class GalleryFormatsSpec extends SidewalkSpec {
 
   // The two required fields; everything else in GalleryLabelsRequest is optional.
   private val baseRequest = Json.obj("n" -> 14, "loaded_labels" -> Json.arr())

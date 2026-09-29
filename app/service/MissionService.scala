@@ -459,7 +459,7 @@ class MissionServiceImpl @Inject() (
 
     missionTable
       .getMission(missionId)
-      .flatMap { mission: Option[Mission] =>
+      .flatMap { (mission: Option[Mission]) =>
         val missionType: Option[MissionType.Value] = mission.map(_.missionType)
         if (missionType.contains(MissionType.AuditOnboarding)) {
           if (missionProgress.completed) {

@@ -32,7 +32,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
 
   // Adds a ipAddress method to RequestHeader for easy access to the client's IP address.
   // See: https://github.com/ProjectSidewalk/SidewalkWebpage/issues/465
-  implicit class RequestHeaderExtensions(request: RequestHeader) {
+  extension (request: RequestHeader) {
 
     /**
      * The client IP as resolved by Play's forwarded-header processing (`play.http.forwarded.*` in application.conf):

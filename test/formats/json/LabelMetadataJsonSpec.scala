@@ -1,10 +1,10 @@
 package formats.json
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import service.LabelService
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -17,7 +17,7 @@ import scala.concurrent.duration._
  * Boots the full application against the real Slick/PostGIS DB (like the controller specs) so the metadata query is
  * exercised end to end; cancels (not fails) when the connected DB has no suitable labels.
  */
-class LabelMetadataJsonSpec extends PlaySpec with GuiceOneAppPerSuite {
+class LabelMetadataJsonSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

@@ -10,6 +10,7 @@ import models.validation.{LabelValidation, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables._
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 

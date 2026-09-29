@@ -1,8 +1,8 @@
 package service
 
 import com.typesafe.config.ConfigFactory
-import org.scalatestplus.play.PlaySpec
 import play.api.Configuration
+import util.SidewalkSpec
 
 import scala.concurrent.duration.DurationInt
 
@@ -10,7 +10,7 @@ import scala.concurrent.duration.DurationInt
  * Unit tests for RateLimiter's fixed-window counting. No application/DB boot required; the clock is driven manually so
  * window expiry is deterministic.
  */
-class RateLimiterSpec extends PlaySpec {
+class RateLimiterSpec extends SidewalkSpec {
 
   /** A RateLimiter whose clock is a mutable field, so tests can advance time across window boundaries. */
   private class TestRateLimiter(config: Configuration) extends RateLimiter(config) {

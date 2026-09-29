@@ -6,7 +6,6 @@ import models.audit.{AuditTask, AuditTaskTableDef}
 import models.region.RegionTableDef
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
-import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{ConfigTableDef, FilteredTables, LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray

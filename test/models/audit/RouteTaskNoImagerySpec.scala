@@ -2,11 +2,10 @@ package models.audit
 
 import models.route.UserRouteTable
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * DB-backed tests for the `reported_no_imagery` flag that `selectTasksInRoute` hands the Explore client (#5008).
@@ -23,7 +22,7 @@ import util.RolledBackDb
  * without exercising anything. All of it runs inside a deliberately rolled-back transaction. Requires a
  * Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class RouteTaskNoImagerySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class RouteTaskNoImagerySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

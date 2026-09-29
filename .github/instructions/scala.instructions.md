@@ -19,5 +19,5 @@ applyTo: "app/**/*.scala, conf/routes, test/**/*.scala"
 - **ScalaDoc:** `/** */` on every class/trait/object and non-trivial method
   (including private). Use `@return` (not `@returns`); don't repeat the type in
   `@param`. Flag comments that narrate a change rather than state current behavior.
-- **`-Xfatal-warnings` is on:** flag unused imports/params, dead code, and discarded
-  non-Unit results — they fail the build.
+- **`-Werror` is on:** flag unused imports/params and discarded non-Unit results —
+  they fail the build.

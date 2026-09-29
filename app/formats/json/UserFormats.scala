@@ -44,7 +44,8 @@ object UserFormats {
   implicit val roleWrites: Writes[Role.Value] = Writes(role => JsString(role.toString))
 
   implicit val measurementSystemReads: Reads[MeasurementSystem.Value]   = Reads.enumNameReads(MeasurementSystem)
-  implicit val measurementSystemWrites: Writes[MeasurementSystem.Value] = Writes.enumNameWrites
+  implicit val measurementSystemWrites: Writes[MeasurementSystem.Value] =
+    Writes.enumNameWrites[MeasurementSystem.type]
 
   implicit val sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and
@@ -64,7 +65,7 @@ object UserFormats {
       (JsPath \ "community_service").write[Boolean] and
       (JsPath \ "infra3d_access").write[Boolean] and
       (JsPath \ "measurement_system").writeNullable[MeasurementSystem.Value]
-  )(unlift(SidewalkUserWithRole.unapply))
+  )((o: SidewalkUserWithRole) => Tuple.fromProductTyped(o))
 
   implicit val userStatsWrites: Writes[UserStatsForAdminPage] = (
     (__ \ "userId").write[String] and
@@ -82,7 +83,7 @@ object UserFormats {
       (__ \ "othersValidatedAgreedPct").write[Double] and
       (__ \ "highQuality").write[Boolean] and
       (__ \ "highQualityManual").writeNullable[Boolean]
-  )(unlift(UserStatsForAdminPage.unapply))
+  )((o: UserStatsForAdminPage) => Tuple.fromProductTyped(o))
 
   implicit val teamWrites: Writes[Team] = (
     (JsPath \ "teamId").write[Int] and
@@ -90,7 +91,7 @@ object UserFormats {
       (JsPath \ "description").write[String] and
       (JsPath \ "open").write[Boolean] and
       (JsPath \ "visible").write[Boolean]
-  )(unlift(Team.unapply))
+  )((o: Team) => Tuple.fromProductTyped(o))
 
   /**
    * The admin team page's payload (`/adminapi/team/:teamId`, #5381), snake_case throughout. Accuracy travels as raw
@@ -109,7 +110,7 @@ object UserFormats {
       (__ \ "last_active").writeNullable[OffsetDateTime] and
       (__ \ "high_quality").write[Boolean] and
       (__ \ "excluded").write[Boolean]
-  )(unlift(TeamMemberStats.unapply))
+  )((o: TeamMemberStats) => Tuple.fromProductTyped(o))
 
   implicit val teamTotalsWrites: Writes[TeamTotals] = (
     (__ \ "members").write[Int] and
@@ -118,7 +119,7 @@ object UserFormats {
       (__ \ "distance_meters").write[Double] and
       (__ \ "labels_validated").write[Int] and
       (__ \ "labels_agreed").write[Int]
-  )(unlift(TeamTotals.unapply))
+  )((o: TeamTotals) => Tuple.fromProductTyped(o))
 
   implicit val teamOverviewWrites: Writes[TeamOverview] = Writes { overview =>
     Json.obj(
@@ -140,14 +141,14 @@ object UserFormats {
       (__ \ "email").write[String] and
       (__ \ "role").write[Role.Value] and
       (__ \ "team").writeNullable[String]
-  )(unlift(UserSearchResult.unapply))
+  )((o: UserSearchResult) => Tuple.fromProductTyped(o))
 
   implicit val cityHoursWrites: Writes[CityHours] = (
     (JsPath \ "city_id").write[String] and
       (JsPath \ "city_name").write[String] and
       (JsPath \ "hours").write[Double] and
       (JsPath \ "is_current_city").write[Boolean]
-  )(unlift(CityHours.unapply))
+  )((o: CityHours) => Tuple.fromProductTyped(o))
 
   /**
    * The hours the Manage user page fills its KPI and breakdown from (`/adminapi/users/:userId/crossCityHours`, #4986).

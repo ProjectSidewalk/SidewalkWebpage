@@ -2,7 +2,6 @@ package controllers
 
 import models.label.LabelMetadata
 import models.user.Role
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -10,7 +9,7 @@ import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.LabelService
-import util.{AnonSession, RoleSession}
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -25,7 +24,7 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class AdminLabelPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class AdminLabelPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

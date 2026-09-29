@@ -23,7 +23,7 @@
           </div>
           <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
         </div>
-        @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+        @form(action = routes.UserController.authenticate(), args = Symbol("id") -> "sign-in-form", Symbol("class") -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @htmlCSRF.formField
           <input type="hidden" name="returnUrl" value="@request.uri">
           <div class="au-field">
@@ -56,7 +56,7 @@
           </div>
           <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
         </div>
-        @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+        @form(action = routes.UserController.signUpPost(), args = Symbol("id") -> "sign-up-form", Symbol("class") -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @htmlCSRF.formField
           <input type="hidden" name="returnUrl" value="@request.uri">
           <div class="au-field">

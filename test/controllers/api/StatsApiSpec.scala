@@ -2,13 +2,13 @@ package controllers.api
 
 import models.label.LabelTypeEnum
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 /**
  * In-JVM functional tests for the stats endpoints' output contract. Boots the real app (no auth needed — these are
@@ -17,7 +17,7 @@ import play.api.test.Helpers._
  * Locks the v3 naming convention (#3871): all JSON output field names are snake_case. `aggregateStats` was the lone
  * endpoint emitting camelCase keys (built to match the frontend aggregator); this guards the normalization.
  */
-class StatsApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class StatsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

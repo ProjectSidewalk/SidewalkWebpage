@@ -7,10 +7,10 @@ import forms._
 import models.auth.DefaultEnv
 import models.user.{Role, SidewalkUserWithRole, UserUtm}
 import models.utils.{IpAddress, ProfanityGuard}
-import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
+import play.api.mvc.{AnyContent, Request}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Authenticator.Implicits._
 import play.silhouette.api._
@@ -126,7 +126,7 @@ class UserController @Inject() (
    *
    * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signInMobile() = Action { request =>
+  def signInMobile() = Action { (request: Request[AnyContent]) =>
     Redirect(routes.UserController.signIn().url, request.queryString, MOVED_PERMANENTLY)
   }
 
@@ -147,7 +147,7 @@ class UserController @Inject() (
    *
    * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signUpMobile() = Action { request =>
+  def signUpMobile() = Action { (request: Request[AnyContent]) =>
     Redirect(routes.UserController.signUp().url, request.queryString, MOVED_PERMANENTLY)
   }
 
@@ -310,20 +310,17 @@ class UserController @Inject() (
                           // Correct credentials: refund the account's budget so a run of typos doesn't follow the
                           // user into their next session.
                           rateLimiter.clear(idKey)
-                          val c = config.underlying
+                          val rememberMe = config.get[Configuration]("silhouette.authenticator.rememberMe")
                           silhouette.env.authenticatorService
                             .create(loginInfo)
                             .map {
                               case authenticator if data.rememberMe =>
                                 // Set up the remember me cookie.
                                 authenticator.copy(
-                                  expirationDateTime = clock.now + c
-                                    .as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry"),
-                                  idleTimeout = c.getAs[FiniteDuration](
-                                    "silhouette.authenticator.rememberMe.authenticatorIdleTimeout"
-                                  ),
-                                  cookieMaxAge =
-                                    c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge")
+                                  expirationDateTime =
+                                    clock.now + rememberMe.get[FiniteDuration]("authenticatorExpiry"),
+                                  idleTimeout = Some(rememberMe.get[FiniteDuration]("authenticatorIdleTimeout")),
+                                  cookieMaxAge = Some(rememberMe.get[FiniteDuration]("cookieMaxAge"))
                                 )
                               case authenticator => authenticator
                             }

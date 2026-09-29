@@ -3,7 +3,6 @@ package controllers.api
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -11,6 +10,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsNull, JsObject}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -25,7 +25,7 @@ import scala.concurrent.duration._
  * Boots the real application (real Slick/PostGIS) and exercises the routes end to end. The endpoint is
  * `UserAwareAction` (no auth needed); the eager scheduling actors are disabled so they don't fire background work.
  */
-class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class PlacesApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

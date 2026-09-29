@@ -43,5 +43,5 @@ object ClusterFormats {
       (JsPath \ "lat").write[Double] and
       (JsPath \ "lng").write[Double] and
       (JsPath \ "severity").write[Option[Int]]
-  )(unlift(LabelToCluster.unapply))
+  )((o: LabelToCluster) => Tuple.fromProductTyped(o))
 }

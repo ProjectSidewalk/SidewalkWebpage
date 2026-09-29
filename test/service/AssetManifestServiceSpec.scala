@@ -1,10 +1,10 @@
 package service
 
 import models.utils.AssetInventory
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import util.SidewalkSpec
 
 /**
  * The asset-digest manifest behind `util.assetPath` (#4893): the pure digest extraction, and the inventory the build
@@ -18,7 +18,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
  * The app-booting half requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env,
  * as in dev/CI).
  */
-class AssetManifestServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class AssetManifestServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

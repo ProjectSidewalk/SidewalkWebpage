@@ -22,11 +22,13 @@ import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.{ValidationCommentChangeType, ValidationOption}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
-import play.api.libs.functional.syntax.{toFunctionalBuilderOps, unlift}
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import slick.ast.TypedType
 import slick.jdbc.JdbcType
 import slick.lifted.ExtensionMethods
+
+import scala.language.implicitConversions
 
 trait MyPostgresProfile
     extends ExPostgresProfile
@@ -44,7 +46,7 @@ trait MyPostgresProfile
   override protected def computeCapabilities: Set[slick.basic.Capability] =
     super.computeCapabilities + slick.jdbc.JdbcCapabilities.insertOrUpdate
 
-  override val api = MyAPI
+  override val api: MyAPI.type = MyAPI
 
   object MyAPI
       extends ExtPostgresAPI
@@ -83,7 +85,7 @@ trait MyPostgresProfile
      * PostGIS's actual `double precision` returns. For any new function we want to add, just copy from
      * PgPostGISExtensions.scala and change from Float to Double.
      */
-    implicit class GeometryDoubleMeasurements[G1 <: Geometry, P1](val c: Rep[P1]) extends ExtensionMethods[G1, P1] {
+    class GeometryDoubleMeasurements[G1 <: Geometry, P1](val c: Rep[P1]) extends ExtensionMethods[G1, P1] {
       implicit protected def b1Type: TypedType[G1] = implicitly[TypedType[Geometry]].asInstanceOf[TypedType[G1]]
 
       def lengthD[R](implicit om: o#to[Double, R]): Rep[R] = om.column(GeomLibrary.Length, n)
@@ -114,6 +116,13 @@ trait MyPostgresProfile
       def azimuthD[P2, R](geom: Rep[P2])(implicit om: o#to[Double, R]): Rep[R] =
         om.column(GeomLibrary.Azimuth, n, geom.toNode)
     }
+
+    // One conversion for a plain geometry column and one for a nullable one, so the geometry type is always known.
+    implicit def geometryDoubleMeasurements[G1 <: Geometry](c: Rep[G1]): GeometryDoubleMeasurements[G1, G1] =
+      new GeometryDoubleMeasurements[G1, G1](c)
+    implicit def geometryOptionDoubleMeasurements[G1 <: Geometry](
+        c: Rep[Option[G1]]
+    ): GeometryDoubleMeasurements[G1, Option[G1]] = new GeometryDoubleMeasurements[G1, Option[G1]](c)
 
     // New mapper for Seq[ExcludedTag] stored as JSONB.
     implicit val excludedTagListMapper: DriverJdbcType[Seq[ExcludedTag]] =
@@ -323,7 +332,7 @@ object ExcludedTag {
     val writes: Writes[ExcludedTag] = (
       (__ \ "label_type").write[String] and
         (__ \ "tag").write[String]
-    )(unlift(ExcludedTag.unapply))
+    )((o: ExcludedTag) => Tuple.fromProductTyped(o))
 
     Format(reads, writes)
   }
@@ -342,7 +351,7 @@ object AiTagConfidence {
     val writes: Writes[AiTagConfidence] = (
       (__ \ "tag").write[String] and
         (__ \ "confidence").write[Double]
-    )(unlift(AiTagConfidence.unapply))
+    )((o: AiTagConfidence) => Tuple.fromProductTyped(o))
 
     Format(reads, writes)
   }
@@ -361,7 +370,7 @@ object ClusteringThreshold {
     val writes: Writes[ClusteringThreshold] = (
       (__ \ "label_type").write[String] and
         (__ \ "threshold").write[Double]
-    )(unlift(ClusteringThreshold.unapply))
+    )((o: ClusteringThreshold) => Tuple.fromProductTyped(o))
 
     Format(reads, writes)
   }

@@ -2,7 +2,7 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import service.{ConfigService, JobRunService, PanoDataService}
 
@@ -41,7 +41,7 @@ class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService, jobRunS
           24.hours,
           self,
           CheckImageExpiryActor.Tick
-        )(context.dispatcher)
+        )(context.dispatcher, ActorRef.noSender)
       )
       logger.info("CheckImageExpiryActor created")
     }

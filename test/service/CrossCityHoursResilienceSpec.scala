@@ -1,7 +1,6 @@
 package service
 
 import models.utils.{ConfigTable, FunnelStatTable, VersionTable}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.DatabaseConfigProvider
@@ -9,6 +8,7 @@ import play.api.i18n.{Lang, MessagesApi}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
 import play.api.{Application, Configuration}
+import util.SidewalkSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.DurationInt
@@ -22,7 +22,7 @@ import scala.concurrent.{Await, Future}
  * produces an unreadable schema. Here the scope is supplied directly, so the failures are reachable on purpose while
  * the per-city queries still run against the real database.
  */
-class CrossCityHoursResilienceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class CrossCityHoursResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

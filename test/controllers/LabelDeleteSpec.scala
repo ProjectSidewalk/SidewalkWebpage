@@ -5,7 +5,6 @@ import models.label.LabelTable
 import models.user.UserStatTable
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -14,7 +13,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import _root_.util.SignedUpAccounts
+import _root_.util.{SidewalkSpec, SignedUpAccounts}
 
 import java.time.OffsetDateTime
 
@@ -24,7 +23,7 @@ import java.time.OffsetDateTime
  * suite's fresh user for the duration and put back in `afterAll`. Cancels when the connected schema has no label.
  */
 class LabelDeleteSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with SubmissionSpecHelpers
     with SignedUpAccounts

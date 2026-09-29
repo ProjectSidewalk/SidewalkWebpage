@@ -249,7 +249,7 @@ class LabelServiceImpl @Inject() (
   }
 
   def findConflictingTags(tags: Set[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]] = {
-    selectTagsByLabelTypeDbio(labelType).map { allTags: Seq[models.label.Tag] =>
+    selectTagsByLabelTypeDbio(labelType).map { (allTags: Seq[models.label.Tag]) =>
       allTags.filter(tag => tags.contains(tag.tag) && tag.mutuallyExclusiveWith.exists(tags.contains)).map(_.tag)
     }
   }
@@ -385,13 +385,8 @@ class LabelServiceImpl @Inject() (
       val nPerType: Int = math.max(1, n / typesToSpread.size)
       Future
         .sequence(typesToSpread.map { labelType =>
-          // The type arguments are spelled out because nothing else in the call pins the label type down.
-          findValidLabelsForType[
-            LabelValidationMetadata,
-            LabelValidationMetadataTupleRep,
-            LabelValidationMetadataTuple
-          ](
-            _ =>
+          findValidLabelsForType(
+            (_: Seq[LabelValidationMetadata]) =>
               labelTable.getGalleryLabelsQuery(
                 viewer,
                 labelType,
@@ -480,6 +475,7 @@ class LabelServiceImpl @Inject() (
               randomize,
               useCrops = false,
               n - found.size,
+              offset = 0,
               accumulator = found,
               selectFromBatch = selectFromBatch
             )
@@ -509,6 +505,24 @@ class LabelServiceImpl @Inject() (
     }
   }
 
+  /** Starts a fresh walk that keeps every label of each batch; see the full version below. */
+  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Row](
+      queryFor: Seq[A] => Query[TupleRep, Row, Seq],
+      randomize: Boolean,
+      useCrops: Boolean,
+      remaining: Int
+  )(implicit tupleConverter: TupleConverter[Row, A]): Future[Seq[A]] = {
+    findValidLabelsForType(
+      queryFor,
+      randomize,
+      useCrops,
+      remaining,
+      offset = 0,
+      accumulator = Seq.empty[A],
+      selectFromBatch = (batch: Seq[A], _: Seq[A]) => batch
+    )
+  }
+
   /**
    * Query labels from the db in batches until we have enough labels that have imagery available. Works recursively.
    * @param queryFor Builds the query for a batch from the labels the walk holds so far, so a query that can exclude
@@ -524,15 +538,15 @@ class LabelServiceImpl @Inject() (
    *                        it drops cost no provider lookups.
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
-  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
-      queryFor: Seq[A] => Query[TupleRep, Tuple, Seq],
+  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Row](
+      queryFor: Seq[A] => Query[TupleRep, Row, Seq],
       randomize: Boolean,
       useCrops: Boolean,
       remaining: Int,
-      offset: Int = 0,
-      accumulator: Seq[A] = Seq.empty,
-      selectFromBatch: (Seq[A], Seq[A]) => Seq[A] = (batch: Seq[A], _: Seq[A]) => batch
-  )(implicit tupleConverter: TupleConverter[Tuple, A]): Future[Seq[A]] = {
+      offset: Int,
+      accumulator: Seq[A],
+      selectFromBatch: (Seq[A], Seq[A]) => Seq[A]
+  )(implicit tupleConverter: TupleConverter[Row, A]): Future[Seq[A]] = {
     if (remaining <= 0) {
       Future.successful(accumulator)
     } else {
@@ -861,8 +875,8 @@ class LabelServiceImpl @Inject() (
     // Get labels for each type in parallel.
     Future
       .sequence(labelTypes.map { labelType =>
-        findValidLabelsForType[LabelMetadataUserDash, LabelMetadataUserDashTupleRep, LabelMetadataUserDashTuple](
-          _ => labelTable.getValidatedLabelsForUserQuery(userId, labelType),
+        findValidLabelsForType(
+          (_: Seq[LabelMetadataUserDash]) => labelTable.getValidatedLabelsForUserQuery(userId, labelType),
           randomize = false,
           useCrops = true,
           nPerType

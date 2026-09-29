@@ -1,6 +1,6 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.time.LocalDate
 
@@ -14,7 +14,7 @@ import java.time.LocalDate
  * hold — a dev or CI database with no AI-role accounts would pass every AI assertion without exercising one. No DB, no
  * app boot.
  */
-class ActivityBreakdownSpec extends PlaySpec {
+class ActivityBreakdownSpec extends SidewalkSpec {
 
   private val day = LocalDate.of(2026, 8, 12)
 

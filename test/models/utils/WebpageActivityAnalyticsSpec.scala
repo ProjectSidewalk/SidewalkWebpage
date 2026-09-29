@@ -1,10 +1,9 @@
 package models.utils
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Integration tests for the v3 API analytics query methods on WebpageActivityTable.
@@ -16,7 +15,7 @@ import util.RolledBackDb
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class WebpageActivityAnalyticsSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSuite {
+class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

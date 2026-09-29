@@ -1,7 +1,7 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import models.utils.JobRunTrigger
 import play.api.libs.json.{JsObject, Json}
@@ -62,7 +62,7 @@ class FunnelStatActor @Inject() (adminService: AdminService, jobRunService: JobR
           24.hours,
           self,
           FunnelStatActor.Tick
-        )(context.dispatcher)
+        )(context.dispatcher, ActorRef.noSender)
       )
       logger.info("FunnelStatActor created")
     }

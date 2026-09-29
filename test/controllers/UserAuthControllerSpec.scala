@@ -1,14 +1,13 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.SignedUpAccounts
+import util.{SidewalkSpec, SignedUpAccounts}
 import models.utils.MyPostgresProfile.api._
 
 import java.time.OffsetDateTime
@@ -25,7 +24,7 @@ import java.util.UUID
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOneAppPerSuite {
+class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

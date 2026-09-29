@@ -2,13 +2,12 @@ package controllers
 
 import models.user.{MeasurementSystem, UserSettingsTableDef}
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.{AnonSession, RoleSession, RolledBackDb}
+import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec}
 
 /**
  * The single-measurement-system contract (#4404): `ControllerUtils.measurementSystem` is the one units verdict, and
@@ -23,7 +22,7 @@ import util.{AnonSession, RoleSession, RolledBackDb}
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
 class MeasurementSystemSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession

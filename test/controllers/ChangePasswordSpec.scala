@@ -1,7 +1,6 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -11,7 +10,7 @@ import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.AuthenticationService
-import util.SignedUpAccounts
+import util.{SidewalkSpec, SignedUpAccounts}
 
 import scala.concurrent.Future
 
@@ -22,7 +21,7 @@ import scala.concurrent.Future
  * Only the change-password limit is on, turned down to three so the lockout is quick to reach. The sign-up and sign-in
  * limits would otherwise trip, since every request here comes from 127.0.0.1.
  */
-class ChangePasswordSpec extends PlaySpec with SignedUpAccounts with GuiceOneAppPerSuite {
+class ChangePasswordSpec extends SidewalkSpec with SignedUpAccounts with GuiceOneAppPerSuite {
 
   private val MaxAttempts = 3
 

@@ -2,13 +2,13 @@ package controllers.api
 
 import models.label.LabelTypeEnum
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 /**
  * In-JVM functional tests for the metadata endpoints' output contract (labelTypes, labelTags, streetTypes, cities).
@@ -17,7 +17,7 @@ import play.api.test.Helpers._
  * snake_case. These endpoints previously emitted camelCase envelope keys (`labelTypes`) and item fields (`iconUrl`,
  * `cityId`, ...) via Play's default `Json.format` macro; the normalization is guarded here.
  */
-class MetadataApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class MetadataApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

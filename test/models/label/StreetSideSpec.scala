@@ -4,13 +4,13 @@ import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.basic.DatabaseConfig
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -36,13 +36,13 @@ import scala.concurrent.duration.DurationInt
  * the floor tests sit a millimetre either side of 1 m, which a constant good to only a few parts per thousand cannot
  * resolve.
  */
-class StreetSideSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
+class StreetSideSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val labelPointTable = app.injector.instanceOf[LabelPointTable]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
+  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 

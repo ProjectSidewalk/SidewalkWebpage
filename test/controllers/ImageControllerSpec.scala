@@ -1,7 +1,6 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -11,7 +10,7 @@ import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.{PanoDataService, ShareImageCache}
-import util.AnonSession
+import util.{AnonSession, SidewalkSpec}
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayOutputStream, File}
@@ -33,7 +32,7 @@ import javax.imageio.ImageIO
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class ImageControllerSpec extends PlaySpec with AnonSession with GuiceOneAppPerSuite {
+class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

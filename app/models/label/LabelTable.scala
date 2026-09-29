@@ -39,7 +39,6 @@ import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.GeometryFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
@@ -390,6 +389,173 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def panoData = foreignKey("label_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
 }
 
+// Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
+type LabelMetadataUserDashTuple = (
+    Int,
+    String,
+    PanoSource,
+    Option[String],
+    Option[String],
+    (Double, Double, Double),
+    Int,
+    Int,
+    Int,
+    Int,
+    String,
+    OffsetDateTime,
+    Option[String]
+)
+type LabelMetadataUserDashTupleRep = (
+    Rep[Int],                                // labelId
+    Rep[String],                             // panoId
+    Rep[PanoSource],                         // panoSource
+    Rep[Option[String]],                     // copyright
+    Rep[Option[String]],                     // license
+    (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
+    Rep[Int],                                // canvasX
+    Rep[Int],                                // canvasY
+    Rep[Int],                                // canvasWidth
+    Rep[Int],                                // canvasHeight
+    Rep[String],                             // labelType
+    Rep[OffsetDateTime],                     // timeValidated
+    Rep[Option[String]]                      // validatorComment
+)
+
+// Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
+// dropped when converting to the case class) because the route-filtering branch in getLabelsForLabelMap needs it.
+type LabelForLabelMapTuple = (
+    Int,                            // 1.  labelId
+    Int,                            // 2.  streetEdgeId
+    Int,                            // 3.  auditTaskId
+    String,                         // 4.  labelType
+    Option[Double],                 // 5.  lat
+    Option[Double],                 // 6.  lng
+    Option[Boolean],                // 7.  correct
+    Boolean,                        // 8.  hasValidations
+    Boolean,                        // 9.  hasAdminValidation
+    Option[ValidationOption.Value], // 10. aiValidation
+    Boolean,                        // 11. expired
+    Boolean,                        // 12. hasBackup
+    Boolean,                        // 13. highQualityUser
+    Option[Int],                    // 14. severity
+    List[String],                   // 15. tags
+    Boolean                         // 16. aiGenerated
+)
+
+// Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
+type LabelValidationMetadataTuple = (
+    Int,                                  // 1.  labelId
+    String,                               // 2.  labelType
+    String,                               // 3.  panoId
+    PanoSource,                           // 4.  panoSource
+    Boolean,                              // 5.  expired
+    String,                               // 6.  imageCaptureDate
+    OffsetDateTime,                       // 7.  timestamp
+    (Option[Double], Option[Double]),     // 8.  location (lat, lng)
+    (Double, Double, Double),             // 9.  pov (heading, pitch, zoom)
+    (Int, Int, Int, Int),                 // 10. canvasXY (x, y) and its frame (width, height)
+    Option[Int],                          // 11. severity
+    Option[String],                       // 12. description
+    (Int, Int, Option[StreetSide.Value]), // 13. (streetEdgeId, regionId, streetSide)
+    (Int, Int, Int, Option[Boolean], Option[ValidationOption.Value], Option[ValidationOption.Value]), // 14. validationInfo
+    List[String],                     // 15. tags
+    (Option[Double], Option[Double]), // 16. cameraLocation (lat, lng)
+    Option[List[String]],             // 17. aiTags
+    Option[List[String]],             // 18. aiTagsNotPresent
+    Boolean,                          // 19. aiGenerated
+    Option[String],                   // 20. comments (JSON-aggregated)
+    Boolean,                          // 21. fromCurrentUser
+    (
+        Option[Int],
+        Option[Int],
+        Option[Int],
+        Option[Int],
+        Option[Double],
+        Option[Double],
+        Option[Double],
+        Option[String],
+        Option[String],
+        Option[String]
+    ) // 22. pano dims, camera, attribution & address
+)
+type LabelValidationMetadataTupleRep = (
+    Rep[Int],                                            // 1.  labelId
+    Rep[String],                                         // 2.  labelType
+    Rep[String],                                         // 3.  panoId
+    Rep[PanoSource],                                     // 4.  panoSource
+    Rep[Boolean],                                        // 5.  expired
+    Rep[String],                                         // 6.  imageCaptureDate
+    Rep[OffsetDateTime],                                 // 7.  timestamp
+    (Rep[Option[Double]], Rep[Option[Double]]),          // 8.  location (lat, lng)
+    (Rep[Double], Rep[Double], Rep[Double]),             // 9.  pov (heading, pitch, zoom)
+    (Rep[Int], Rep[Int], Rep[Int], Rep[Int]),            // 10. canvasXY (x, y) and its frame (width, height)
+    Rep[Option[Int]],                                    // 11. severity
+    Rep[Option[String]],                                 // 12. description
+    (Rep[Int], Rep[Int], Rep[Option[StreetSide.Value]]), // 13. (streetEdgeId, regionId, streetSide)
+    (
+        Rep[Int],
+        Rep[Int],
+        Rep[Int],
+        Rep[Option[Boolean]],
+        Rep[Option[ValidationOption.Value]],
+        Rep[Option[ValidationOption.Value]]
+    ),                                          // 14. validationInfo
+    Rep[List[String]],                          // 15. tags
+    (Rep[Option[Double]], Rep[Option[Double]]), // 16. cameraLocation (lat, lng)
+    Rep[Option[List[String]]],                  // 17. aiTags
+    Rep[Option[List[String]]],                  // 18. aiTagsNotPresent
+    Rep[Boolean],                               // 19. aiGenerated
+    Rep[Option[String]],                        // 20. comments (JSON-aggregated)
+    Rep[Boolean],                               // 21. fromCurrentUser
+    (                                           // 22. pano dims, camera, attribution & address
+        Rep[Option[Int]],                       // 1. width
+        Rep[Option[Int]],                       // 2. height
+        Rep[Option[Int]],                       // 3. tileWidth
+        Rep[Option[Int]],                       // 4. tileHeight
+        Rep[Option[Double]],                    // 5. cameraHeading
+        Rep[Option[Double]],                    // 6. cameraPitch
+        Rep[Option[Double]],                    // 7. cameraRoll
+        Rep[Option[String]],                    // 8. copyright
+        Rep[Option[String]],                    // 9. license
+        Rep[Option[String]]                     // 10. address
+    )
+)
+
+// One row of getCropCandidates: label id and type, pano id, the label's pano_x/pano_y, and the pano's recorded
+// width/height. Mapped to service.CropService.CropCandidate by the crop job.
+type CropCandidateTuple = (Int, LabelTypeEnum.Base, String, Int, Int, Option[Int], Option[Int])
+
+/**
+ * (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, panoWidth,
+ * panoHeight, aiGenerated).
+ */
+type CropProvenanceTuple =
+  (Int, LabelTypeEnum.Base, OffsetDateTime, String, Int, Int, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
+
+// Type alias for the tuple representation of LabelCVMetadata.
+type LabelCVMetadataTuple = (
+    Int,           // labelId
+    String,        // panoId
+    String,        // labelType
+    Int,           // agreeCount
+    Int,           // disagreeCount
+    Int,           // unsureCount
+    Option[Int],   // panoWidth
+    Option[Int],   // panoHeight
+    Int,           // panoX
+    Int,           // panoY
+    Int,           // canvasWidth
+    Int,           // canvasHeight
+    Int,           // canvasX
+    Int,           // canvasY
+    Double,        // zoom
+    Double,        // heading
+    Double,        // pitch
+    Double,        // cameraHeading
+    Double,        // cameraPitch
+    Option[Double] // cameraRoll
+)
+
 /**
  * Companion object with constants and types that are shared throughout codebase.
  */
@@ -408,8 +574,8 @@ object LabelTable {
       (label.deletedSource.map(_ =!= UiSource.Explore).getOrElse(false) && !label.correct.getOrElse(true))
 
   // Define a type class for converting tuples to instances of a case class.
-  trait TupleConverter[Tuple, A] {
-    def fromTuple(tuple: Tuple): A
+  trait TupleConverter[Row, A] {
+    def fromTuple(tuple: Row): A
   }
 
   // Ordered list of (columnPrefix, labelTypeName) groups used by the validation-stats portion of
@@ -487,147 +653,13 @@ object LabelTable {
     sql"(".concat(SqlFragments.join(scopedConditions :+ otherTypesCondition, " OR ")).concat(sql")")
   }
 
-  // Type aliases for the tuple representation of LabelMetadataUserDash and queries for them.
-  // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
-  type LabelMetadataUserDashTuple = (
-      Int,
-      String,
-      PanoSource,
-      Option[String],
-      Option[String],
-      (Double, Double, Double),
-      Int,
-      Int,
-      Int,
-      Int,
-      String,
-      OffsetDateTime,
-      Option[String]
-  )
-  type LabelMetadataUserDashTupleRep = (
-      Rep[Int],                                // labelId
-      Rep[String],                             // panoId
-      Rep[PanoSource],                         // panoSource
-      Rep[Option[String]],                     // copyright
-      Rep[Option[String]],                     // license
-      (Rep[Double], Rep[Double], Rep[Double]), // pov (heading, pitch, zoom)
-      Rep[Int],                                // canvasX
-      Rep[Int],                                // canvasY
-      Rep[Int],                                // canvasWidth
-      Rep[Int],                                // canvasHeight
-      Rep[String],                             // labelType
-      Rep[OffsetDateTime],                     // timeValidated
-      Rep[Option[String]]                      // validatorComment
-  )
-
   // Define an implicit conversion from the tuple representation to the case class.
   implicit val labelMetadataUserDashConverter: TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] =
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
-        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.tupled(t._6), t._7, t._8, t._9, t._10,
+        LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.apply.tupled(t._6), t._7, t._8, t._9, t._10,
           LabelTypeEnum.byName(t._11), t._12, t._13)
     }
-
-  // Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
-  // dropped when converting to the case class) because the route-filtering branch in getLabelsForLabelMap needs it.
-  type LabelForLabelMapTuple = (
-      Int,                            // 1.  labelId
-      Int,                            // 2.  streetEdgeId
-      Int,                            // 3.  auditTaskId
-      String,                         // 4.  labelType
-      Option[Double],                 // 5.  lat
-      Option[Double],                 // 6.  lng
-      Option[Boolean],                // 7.  correct
-      Boolean,                        // 8.  hasValidations
-      Boolean,                        // 9.  hasAdminValidation
-      Option[ValidationOption.Value], // 10. aiValidation
-      Boolean,                        // 11. expired
-      Boolean,                        // 12. hasBackup
-      Boolean,                        // 13. highQualityUser
-      Option[Int],                    // 14. severity
-      List[String],                   // 15. tags
-      Boolean                         // 16. aiGenerated
-  )
-
-  // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
-  // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
-  type LabelValidationMetadataTuple = (
-      Int,                                  // 1.  labelId
-      String,                               // 2.  labelType
-      String,                               // 3.  panoId
-      PanoSource,                           // 4.  panoSource
-      Boolean,                              // 5.  expired
-      String,                               // 6.  imageCaptureDate
-      OffsetDateTime,                       // 7.  timestamp
-      (Option[Double], Option[Double]),     // 8.  location (lat, lng)
-      (Double, Double, Double),             // 9.  pov (heading, pitch, zoom)
-      (Int, Int, Int, Int),                 // 10. canvasXY (x, y) and its frame (width, height)
-      Option[Int],                          // 11. severity
-      Option[String],                       // 12. description
-      (Int, Int, Option[StreetSide.Value]), // 13. (streetEdgeId, regionId, streetSide)
-      (Int, Int, Int, Option[Boolean], Option[ValidationOption.Value], Option[ValidationOption.Value]), // 14. validationInfo
-      List[String],                     // 15. tags
-      (Option[Double], Option[Double]), // 16. cameraLocation (lat, lng)
-      Option[List[String]],             // 17. aiTags
-      Option[List[String]],             // 18. aiTagsNotPresent
-      Boolean,                          // 19. aiGenerated
-      Option[String],                   // 20. comments (JSON-aggregated)
-      Boolean,                          // 21. fromCurrentUser
-      (
-          Option[Int],
-          Option[Int],
-          Option[Int],
-          Option[Int],
-          Option[Double],
-          Option[Double],
-          Option[Double],
-          Option[String],
-          Option[String],
-          Option[String]
-      ) // 22. pano dims, camera, attribution & address
-  )
-  type LabelValidationMetadataTupleRep = (
-      Rep[Int],                                            // 1.  labelId
-      Rep[String],                                         // 2.  labelType
-      Rep[String],                                         // 3.  panoId
-      Rep[PanoSource],                                     // 4.  panoSource
-      Rep[Boolean],                                        // 5.  expired
-      Rep[String],                                         // 6.  imageCaptureDate
-      Rep[OffsetDateTime],                                 // 7.  timestamp
-      (Rep[Option[Double]], Rep[Option[Double]]),          // 8.  location (lat, lng)
-      (Rep[Double], Rep[Double], Rep[Double]),             // 9.  pov (heading, pitch, zoom)
-      (Rep[Int], Rep[Int], Rep[Int], Rep[Int]),            // 10. canvasXY (x, y) and its frame (width, height)
-      Rep[Option[Int]],                                    // 11. severity
-      Rep[Option[String]],                                 // 12. description
-      (Rep[Int], Rep[Int], Rep[Option[StreetSide.Value]]), // 13. (streetEdgeId, regionId, streetSide)
-      (
-          Rep[Int],
-          Rep[Int],
-          Rep[Int],
-          Rep[Option[Boolean]],
-          Rep[Option[ValidationOption.Value]],
-          Rep[Option[ValidationOption.Value]]
-      ),                                          // 14. validationInfo
-      Rep[List[String]],                          // 15. tags
-      (Rep[Option[Double]], Rep[Option[Double]]), // 16. cameraLocation (lat, lng)
-      Rep[Option[List[String]]],                  // 17. aiTags
-      Rep[Option[List[String]]],                  // 18. aiTagsNotPresent
-      Rep[Boolean],                               // 19. aiGenerated
-      Rep[Option[String]],                        // 20. comments (JSON-aggregated)
-      Rep[Boolean],                               // 21. fromCurrentUser
-      (                                           // 22. pano dims, camera, attribution & address
-          Rep[Option[Int]],                       // 1. width
-          Rep[Option[Int]],                       // 2. height
-          Rep[Option[Int]],                       // 3. tileWidth
-          Rep[Option[Int]],                       // 4. tileHeight
-          Rep[Option[Double]],                    // 5. cameraHeading
-          Rep[Option[Double]],                    // 6. cameraPitch
-          Rep[Option[Double]],                    // 7. cameraRoll
-          Rep[Option[String]],                    // 8. copyright
-          Rep[Option[String]],                    // 9. license
-          Rep[Option[String]]                     // 10. address
-      )
-  )
 
   /**
    * Parses the JSON built by the comment aggregations (the label_comments_agg view and the matching inline SQL in
@@ -667,7 +699,7 @@ object LabelTable {
         imageCaptureDate = t._6,
         timestamp = t._7,
         location = LatLng(t._8._1.get, t._8._2.get),
-        pov = POV.tupled(t._9),
+        pov = POV.apply.tupled(t._9),
         canvasXY = LocationXY(t._10._1, t._10._2),
         canvasWidth = t._10._3,
         canvasHeight = t._10._4,
@@ -693,42 +725,6 @@ object LabelTable {
         )
       )
     }
-
-  // One row of getCropCandidates: label id and type, pano id, the label's pano_x/pano_y, and the pano's recorded
-  // width/height. Mapped to service.CropService.CropCandidate by the crop job.
-  type CropCandidateTuple = (Int, LabelTypeEnum.Base, String, Int, Int, Option[Int], Option[Int])
-
-  /**
-   * (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, panoWidth,
-   * panoHeight, aiGenerated).
-   */
-  type CropProvenanceTuple =
-    (Int, LabelTypeEnum.Base, OffsetDateTime, String, Int, Int, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
-
-  // Type alias for the tuple representation of LabelCVMetadata.
-  // TODO in Scala 3 I think that we can make these top-level like we do for the case class version.
-  type LabelCVMetadataTuple = (
-      Int,           // labelId
-      String,        // panoId
-      String,        // labelType
-      Int,           // agreeCount
-      Int,           // disagreeCount
-      Int,           // unsureCount
-      Option[Int],   // panoWidth
-      Option[Int],   // panoHeight
-      Int,           // panoX
-      Int,           // panoY
-      Int,           // canvasWidth
-      Int,           // canvasHeight
-      Int,           // canvasX
-      Int,           // canvasY
-      Double,        // zoom
-      Double,        // heading
-      Double,        // pitch
-      Double,        // cameraHeading
-      Double,        // cameraPitch
-      Option[Double] // cameraRoll
-  )
 
   /**
    * Implicit converter from SQL results to LabelDataForApi objects.
@@ -1506,7 +1502,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         servable
           .joinLeft(aiData)
           .on(_.labelId === _._1.labelId)
-          .map { case (_lb, _ai) => (_lb, _ai.map(_._2).flatten.map(_.validationResult)) }
+          .map { case (_lb, _ai) => (_lb, _ai.flatMap(_._2).map(_.validationResult)) }
           .filter { case (l, aiv) => ValidationQueuePolicy.triage(l, aiv) }
           .groupBy(_._1.labelType)
           .map { case (labType, group) => (labType, group.length) }
@@ -1566,7 +1562,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(aiData)
       .on(_._1.labelId === _._1.labelId)
       .map { case ((_lb, side, isAiLabeler), _ai) =>
-        (_lb, side, isAiLabeler, _ai.map(_._2).flatten.map(_.validationResult))
+        (_lb, side, isAiLabeler, _ai.flatMap(_._2).map(_.validationResult))
       }
       .groupBy { case (_lb, side, _, _) => (_lb.streetEdgeId, side) }
       .map { case ((streetEdgeId, side), group) =>
@@ -1715,7 +1711,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(aiData)
       .on { case ((l, _, _, _, _, _, _, _), (laa, _)) => laa.labelId === l.labelId && aiAssessmentIsCurrent(l, laa) }
       .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _ai) =>
-        (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.map(_._2).flatten)
+        (_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser, _ai.map(_._1), _ai.flatMap(_._2))
       }
 
     // The queue filter sits after the AI join because the triage predicate reads the AI's vote.
@@ -1813,7 +1809,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           .map(x => (x._1._1, x._1._2, x._2.map(y => (y._3, y._4))))
           .toSeq
           .map(y => (y._1, y._2, y._3.collect { case (Some(a), Some(b)) => (a, b) }))
-          .map(AdminValidationData.tupled)
+          .map(AdminValidationData.apply.tupled)
       }
   }
 
@@ -1946,7 +1942,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.map(_.labelId))
       .map { case ((lb, lp, pd, labelType, regionId, isAiUser), aiv) =>
-        (lb, lp, pd, labelType, regionId, isAiUser, aiv.flatten)
+        (lb, lp, pd, labelType, regionId, isAiUser, aiv.flatMap(v => v))
       }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
@@ -2148,7 +2144,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .joinLeft(aiValidations)
       .on(_._1.labelId === _.map(_.labelId))
       .map { case ((l, lp, highQuality, labelType, expired, hasBackup, isAiUser), aiv) =>
-        (l, lp, highQuality, labelType, expired, hasBackup, isAiUser, aiv.flatten)
+        (l, lp, highQuality, labelType, expired, hasBackup, isAiUser, aiv.flatMap(v => v))
       }
 
     // Filter labels based on how the AI validated them. If no filters provided, do no filtering here.
@@ -2248,7 +2244,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .groupBy(l => (l._1, l._2))
       .map { case ((labelType, tag), group) => (labelType, tag, group.length) }
       .result
-      .map(_.map(TagCount.tupled))
+      .map(_.map(TagCount.apply.tupled))
   }
 
   /**
@@ -2424,7 +2420,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _labelPoint.lat.isDefined && _labelPoint.lng.isDefined
     } yield (_label, _label.labelTypeName, _labelPoint, _panoData.lat, _panoData.lng, _panoData.cameraHeading,
       _panoData.cameraPitch, _panoData.width, _panoData.height, _auditTask.outdatedImagery)).result
-      .map(_.map(ResumeLabelMetadata.tupled))
+      .map(_.map(ResumeLabelMetadata.apply.tupled))
   }
 
   /**

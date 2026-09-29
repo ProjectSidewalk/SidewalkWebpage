@@ -298,21 +298,21 @@ class AdminController @Inject() (
                         s"Click_module=AdminSaveUserSettings_User=$userId"
                       )
                       if (roleChanged) {
-                        cc.loggingService.insert(
+                        val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
                           s"UpdateRole_User=${userId}_Old=${user.role}_New=${s.role}"
                         )
                       }
                       if (qualityChanged) {
-                        cc.loggingService.insert(
+                        val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
                           s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
                         )
                       }
                       if (excludedChanged) {
-                        cc.loggingService.insert(
+                        val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
                           s"UpdateUserExcluded_User=${userId}_New=${s.excluded}"
@@ -359,7 +359,7 @@ class AdminController @Inject() (
       .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime))(
         UserStatActor.runDetails
       )
-      .map { usersUpdated: Int => Ok(s"User stats updated for $usersUpdated users!") }
+      .map { (usersUpdated: Int) => Ok(s"User stats updated for $usersUpdated users!") }
   }
 
   /**
@@ -387,7 +387,7 @@ class AdminController @Inject() (
       submission => {
         userService
           .updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
-          .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
+          .map { (tasksUpdated: Int) => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
       }
     )
   }
@@ -405,7 +405,7 @@ class AdminController @Inject() (
           case Some(user) =>
             userService
               .updateTaskFlagsBeforeDate(userId, submission.date, submission.flag, submission.state)
-              .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
+              .map { (tasksUpdated: Int) => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
           case _ => Future.failed(new IdentityNotFoundException("Username not found."))
         }
       }

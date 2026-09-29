@@ -50,5 +50,5 @@ object RouteBuilderFormats {
       (JsPath \ "completed_count").write[Int] and
       (JsPath \ "encoded_polyline").write[String] and
       (JsPath \ "thumbnail_url").write[String]
-  )(unlift(RouteWithStats.unapply))
+  )((o: RouteWithStats) => Tuple.fromProductTyped(o))
 }

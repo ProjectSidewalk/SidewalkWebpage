@@ -2,18 +2,17 @@ package models.label
 
 import models.user.UserStatTable
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Pins the validation recount behind excluding a user (#3956), which must agree with the live counting in
  * `ValidationService`. Votes are inserted straight into label_validation, skipping live counting, so every count the
  * assertions read came from the recount. Runs in a rolled-back transaction; cancels without enough data.
  */
-class ValidationRecountSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class ValidationRecountSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -137,7 +136,7 @@ class ValidationRecountSpec extends PlaySpec with GuiceOneAppPerSuite with Rolle
         _                 <- userStatTable.updateAccuracyForLabelersValidatedBy(v1)
         storedValidated   <- sql"SELECT own_labels_validated FROM user_stat WHERE user_id = $labeler".as[Int].head
         expectedValidated <-
-          labelTable.labelsForAccuracy.filter(l => l.userId === labeler && l.correct.isDefined).length.result
+          labelTable.labelsForAccuracy.filter(l => l.userId === labeler).filter(l => l.correct.isDefined).length.result
 
         // A user none of whose labels v1 voted on; flipping their flag shows whether the update reached them.
         bystander <- sql"""SELECT user_id FROM user_stat
