@@ -3,7 +3,6 @@ package service
 import com.google.inject.ImplementedBy
 import formats.json.PanoFormats.PanoHistorySubmission
 import models.label.{LabelPointTable, LabelType, POV}
-import models.pano.PanoSource.PanoSource
 import models.pano._
 import models.street.StreetEdge
 import models.utils.{CommonUtils, MyPostgresProfile}

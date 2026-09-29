@@ -18,7 +18,7 @@ class LabelTypeDbSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledB
 
   "LabelType.ordered" should {
     "list exactly the Postgres label_type enum's labels, in its declaration order" in {
-      run(sql"SELECT unnest(enum_range(NULL::label_type))::text".as[String]) mustBe LabelType.orderedNames
+      run(sql"SELECT unnest(enum_range(NULL::label_type))::text".as[String]) mustBe LabelType.names
     }
   }
 

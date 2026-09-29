@@ -200,7 +200,7 @@ class ImageController @Inject() (
     if (!refererAllowed(request)) {
       Future.successful(Forbidden("Request origin not allowed."))
     } else {
-      LabelType.byName.get(labelType).map(panoDataService.cropUrl(labelId, _)) match {
+      LabelType.withNameOption(labelType).map(panoDataService.cropUrl(labelId, _)) match {
         case None            => Future.successful(BadRequest(invalidLabelTypeMessage(labelType)))
         case Some(None)      => Future.successful(NotFound(s"No crop image found for label: $labelId"))
         case Some(Some(url)) =>
@@ -210,7 +210,7 @@ class ImageController @Inject() (
   }
 
   private def invalidLabelTypeMessage(labelType: String): String =
-    s"Invalid label type provided: $labelType. Valid label types are: ${LabelType.orderedNames.mkString(", ")}."
+    s"Invalid label type provided: $labelType. Valid label types are: ${LabelType.names.mkString(", ")}."
 
   /**
    * Serves a previously-saved crop image for a label.

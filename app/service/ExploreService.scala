@@ -6,7 +6,6 @@ import models.audit._
 import models.label.{Tag, _}
 import models.utils.CommonUtils.UiSource
 import models.mission.{Mission, MissionTable, MissionType}
-import models.pano.PanoSource.PanoSource
 import models.pano._
 import models.region.{Region, RegionCompletionTable, RegionTable}
 import models.route._
@@ -962,7 +961,7 @@ class ExploreServiceImpl @Inject() (
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)
       .flatMap { (auditTaskId: Int) =>
-        missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType.Value]) =>
+        missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
           // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
           // client; a free-exploration drop-in has no such client signal, so the server derives it from how far the
           // user walked (#4451). Deriving it also means a forged completed=true can't mark a drop-in street audited.

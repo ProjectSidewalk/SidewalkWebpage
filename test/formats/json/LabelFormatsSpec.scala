@@ -63,10 +63,10 @@ class LabelFormatsSpec extends SidewalkSpec {
       (feature \ "geometry" \ "coordinates").as[Seq[Double]] mustBe Seq(-122.3321, 47.6062)
     }
 
-    // The sidebar filter reads ai_validation as a string; the raw Enumeration value would serialize as its numeric id.
+    // The sidebar filter reads ai_validation as a string, spelled the way the database spells it.
     "render ai_validation as its name" in {
       (propertiesOf(labelForLabelMapToGeoJson(label, admin = false)) \ "ai_validation").as[String] mustBe
-        ValidationOption.Agree.toString
+        ValidationOption.Agree.name
     }
 
     // MapSidebarFilter distinguishes "no AI validation" from "not validated correct", so the key must survive as null

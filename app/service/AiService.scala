@@ -182,7 +182,7 @@ class AiServiceImpl @Inject() (
             val labelPoint = labelData.labelPoint
 
             // If confidence is below the threshold, submit an Unsure validation instead.
-            val aiValResult: ValidationOption.Value =
+            val aiValResult: ValidationOption =
               if (aiResults.validationAccuracy >= AI_VALIDATION_MIN_ACCURACY) aiResults.validationResult
               else ValidationOption.Unsure
 

@@ -106,7 +106,7 @@ class ValidationTaskCommentTable @Inject() (
       labelId: Int,
       userId: String,
       labelType: LabelType,
-      changeType: ValidationCommentChangeType.Value
+      changeType: ValidationCommentChangeType
   ): DBIO[Int] = {
     sqlu"""WITH superseded AS (
              DELETE FROM validation_task_comment
@@ -117,7 +117,7 @@ class ValidationTaskCommentTable @Inject() (
                                                         user_id, ip_address, pano_id, heading, pitch, zoom, lat, lng,
                                                         timestamp, comment, change_type)
            SELECT validation_task_comment_id, mission_id, label_id, label_type, user_id, ip_address, pano_id, heading,
-                  pitch, zoom, lat, lng, timestamp, comment, ${changeType.toString}::validation_comment_change_type
+                  pitch, zoom, lat, lng, timestamp, comment, $changeType
            FROM superseded"""
   }
 

@@ -54,7 +54,7 @@ trait ClusterService {
   def runClustering(
       statusRef: Option[AtomicReference[String]] = None,
       allRegions: Boolean = false,
-      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
+      trigger: JobRunTrigger = JobRunTrigger.Scheduled
   ): Future[ClusteringResults]
 }
 
@@ -78,7 +78,7 @@ class ClusterServiceImpl @Inject() (
   def runClustering(
       statusRef: Option[AtomicReference[String]],
       allRegions: Boolean,
-      trigger: JobRunTrigger.Value
+      trigger: JobRunTrigger
   ): Future[ClusteringResults] = {
     for {
       // The intersections must be current before any region's clusters are attributed to them (#5095). A rebuild

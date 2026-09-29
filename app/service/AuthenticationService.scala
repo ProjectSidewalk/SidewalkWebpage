@@ -49,7 +49,7 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
   def removeToken(id: String): Future[Int]
   def cleanAuthTokens: Future[Int]
   def setInfra3dAccess(userId: String, newAccess: Boolean): Future[Int]
-  def updateRole(userId: String, newRole: Role.Value): Future[Int]
+  def updateRole(userId: String, newRole: Role): Future[Int]
 }
 
 @Singleton
@@ -364,8 +364,7 @@ class AuthenticationServiceImpl @Inject() (
 
   def cleanAuthTokens: Future[Int] = db.run(authTokenTable.removeExpired(OffsetDateTime.now))
 
-  def updateRole(userId: String, newRole: Role.Value): Future[Int] =
-    db.run(userRoleTable.updateRole(userId, newRole))
+  def updateRole(userId: String, newRole: Role): Future[Int] = db.run(userRoleTable.updateRole(userId, newRole))
 
   def setInfra3dAccess(userId: String, newAccess: Boolean): Future[Int] =
     db.run(userRoleTable.updateInfra3dAccess(userId, newAccess))

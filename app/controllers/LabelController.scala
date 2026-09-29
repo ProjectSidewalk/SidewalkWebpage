@@ -25,7 +25,6 @@ import service.{
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
 
 @Singleton
 class LabelController @Inject() (
@@ -150,7 +149,7 @@ class LabelController @Inject() (
    * since an Explore delete is the one kind that leaves the labeler's accuracy.
    */
   def deleteLabel(labelId: Int, source: String) = cc.securityService.SecuredAction { implicit request =>
-    Try(UiSource.withName(source)).toOption.filter(_ != UiSource.Explore) match {
+    UiSource.withNameOption(source).filter(_ != UiSource.Explore) match {
       case None => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> s"Invalid source: $source")))
       case Some(uiSource) =>
         validationService

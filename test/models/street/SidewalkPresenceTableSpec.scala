@@ -77,7 +77,7 @@ class SidewalkPresenceTableSpec
     } yield labelId.get
   }
 
-  private def facesOf(streetEdgeId: Int): DBIO[Map[StreetSide.Value, SidewalkPresence]] =
+  private def facesOf(streetEdgeId: Int): DBIO[Map[StreetSide, SidewalkPresence]] =
     table.sidewalkPresence.filter(_.streetEdgeId === streetEdgeId).result.map(_.map(f => f.streetSide -> f).toMap)
 
   /** The data statements (the `WITH … INSERT` derivation) of one half of evolution 388, comments stripped. */

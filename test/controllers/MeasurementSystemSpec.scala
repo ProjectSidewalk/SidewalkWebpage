@@ -44,13 +44,13 @@ class MeasurementSystemSpec
    * @param saved    The account's saved units, or None for no saved choice.
    * @return         The /leaderboard page body.
    */
-  private def pageOf(langCode: String, saved: Option[MeasurementSystem.Value] = None): String = {
+  private def pageOf(langCode: String, saved: Option[MeasurementSystem] = None): String = {
     val session = freshAnonSession()
     val userId  = userIdOf(session)
     sessionUserIds += userId
     saved.foreach { system =>
       val _ = run(sqlu"""INSERT INTO sidewalk_login.user_settings (user_id, measurement_system)
-                         VALUES ($userId, ${system.toString}::sidewalk_login.measurement_system)""")
+                         VALUES ($userId, $system)""")
     }
     val request = FakeRequest(GET, "/leaderboard").withHeaders("Accept-Language" -> langCode).withCookies(session: _*)
     val resp    = route(app, request).get

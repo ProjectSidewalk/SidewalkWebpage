@@ -4,9 +4,9 @@ import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
 import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile.api.given
 import models.utils._
+import models.utils.{NamedEnum, NamedEnumCompanion}
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
@@ -114,8 +114,7 @@ case class CommonPageData(
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
 
   /** Whether search engines may index this deployment (#5120); see [[models.utils.SeoUtils.isIndexable]]. */
-  def isIndexable: Boolean =
-    SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.toString)
+  def isIndexable: Boolean = SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.name)
 }
 
 /**
@@ -160,11 +159,13 @@ case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, acti
  * String values match the labels [[models.utils.ConfigTable]]'s `account_kinds` CTE emits, which is how a row is
  * parsed back into this type.
  */
-object ContributorKind extends Enumeration {
-  val Registered: ContributorKind.Value = Value("registered")
-  val Anonymous: ContributorKind.Value  = Value("anonymous")
-  val Ai: ContributorKind.Value         = Value("ai")
+enum ContributorKind(val name: String) extends NamedEnum {
+  case Registered extends ContributorKind("registered")
+  case Anonymous  extends ContributorKind("anonymous")
+  case Ai         extends ContributorKind("ai")
 }
+
+object ContributorKind extends NamedEnumCompanion[ContributorKind]
 
 /**
  * One person's contribution to one city on one day, the grain the "this week" bar charts are built from (#4931).
@@ -180,7 +181,7 @@ case class DailyContributorActivity(
     day: LocalDate,
     userId: String,
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels: Int,
     validations: Int
 )
@@ -199,7 +200,7 @@ case class DailyContributorActivity(
 case class ContributorWindowActivity(
     userId: String,
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels7d: Int,
     labelsPrior7d: Int,
     validations7d: Int,
@@ -275,7 +276,7 @@ case class CityDayTotals(cityId: String, labels: Int, validations: Int, contribu
  */
 case class DailyContributor(
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels: Int,
     validations: Int,
     cities: Seq[ContributorCityDay] = Seq.empty
@@ -756,8 +757,7 @@ object ConfigService {
       }
       .sortBy { case (userId, c) => (-(c.labels + c.validations), userId) }
       .map(_._2)
-    def activeOfKind(kind: ContributorKind.Value): Int =
-      merged.count(c => c.kind == kind && c.labels + c.validations > 0)
+    def activeOfKind(kind: ContributorKind): Int = merged.count(c => c.kind == kind && c.labels + c.validations > 0)
     // Anonymous contributors are counted (as sessions, on the point) but not listed: their usernames are generated
     // cookie ids, so naming them fills the card with hex and implies a person behind each one.
     val named = merged.filter(_.kind != ContributorKind.Anonymous)

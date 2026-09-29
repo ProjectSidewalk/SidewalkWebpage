@@ -3,7 +3,7 @@ package models.validation
 import com.google.inject.ImplementedBy
 import models.mission.MissionTableDef
 import models.pano.PanoDataTableDef
-import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}

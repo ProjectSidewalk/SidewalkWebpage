@@ -32,13 +32,13 @@ trait MissionService {
   def resumeOrCreateNewExploreAddressMission(userId: String): DBIO[Mission]
   def resumeOrCreateNewValidateMission(
       userId: String,
-      missionType: MissionType.Value,
+      missionType: MissionType,
       labelType: LabelType
   ): Future[Option[Mission]]
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
-      missionType: MissionType.Value,
+      missionType: MissionType,
       labelsProgress: Int,
       labelType: Option[LabelType]
   ): Future[Option[Mission]]
@@ -311,7 +311,7 @@ class MissionServiceImpl @Inject() (
    */
   def resumeOrCreateNewValidateMission(
       userId: String,
-      missionType: MissionType.Value,
+      missionType: MissionType,
       labelType: LabelType
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("getValidationMission")
@@ -329,7 +329,7 @@ class MissionServiceImpl @Inject() (
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
-      missionType: MissionType.Value,
+      missionType: MissionType,
       labelsProgress: Int,
       labelType: Option[LabelType]
   ): Future[Option[Mission]] = {
@@ -373,7 +373,7 @@ class MissionServiceImpl @Inject() (
       actions: Seq[String],
       userId: String,
       missionId: Option[Int],
-      missionType: Option[MissionType.Value],
+      missionType: Option[MissionType],
       labelsProgress: Option[Int],
       labelType: Option[LabelType]
   ): Future[Option[Mission]] = {
@@ -460,7 +460,7 @@ class MissionServiceImpl @Inject() (
     missionTable
       .getMission(missionId)
       .flatMap { (mission: Option[Mission]) =>
-        val missionType: Option[MissionType.Value] = mission.map(_.missionType)
+        val missionType: Option[MissionType] = mission.map(_.missionType)
         if (missionType.contains(MissionType.AuditOnboarding)) {
           if (missionProgress.completed) {
             // Recorded before the next mission is picked, since picking it is what checks whether the tutorial is done.

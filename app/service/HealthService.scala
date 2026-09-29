@@ -363,7 +363,7 @@ class HealthServiceImpl @Inject() (
       case None                                            => "never_run"
       case Some(run) if run.status == JobRunStatus.Running =>
         if (hoursSinceStart.exists(_ > HealthService.JobAbandonedAfterHours)) "abandoned" else "running"
-      case Some(run) => run.status.toString
+      case Some(run) => run.status.name
     }
   }
 

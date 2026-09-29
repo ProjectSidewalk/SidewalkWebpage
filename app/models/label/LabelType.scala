@@ -1,6 +1,7 @@
 package models.label
 
-import play.api.libs.json.{JsError, JsString, JsSuccess, Json, Reads, Writes}
+import models.utils.{NamedEnum, NamedEnumCompanion, PgEnumCompanion}
+import play.api.libs.json.Json
 
 /**
  * What a label type says about accessibility: how we frame it in copy, not how its rating reads. Anything writing
@@ -9,7 +10,7 @@ import play.api.libs.json.{JsError, JsString, JsSuccess, Json, Reads, Writes}
  *
  * @param name The value published to clients (the API's `access_impact`, and our own JSON payloads)
  */
-enum AccessImpact(val name: String) {
+enum AccessImpact(val name: String) extends NamedEnum {
 
   /** The thing labeled is a barrier: finding one is bad news. */
   case Problem extends AccessImpact("problem")
@@ -21,13 +22,15 @@ enum AccessImpact(val name: String) {
   case Neutral extends AccessImpact("neutral")
 }
 
+object AccessImpact extends NamedEnumCompanion[AccessImpact]
+
 /**
  * Which 1-3 rating a label of this type carries, if any. Independent of [[AccessImpact]] in both directions — Other
  * is Neutral but rated, NoSidewalk is a Problem but unrated — so it can't be derived from it.
  *
  * @param name The value published to clients (the API's `rating_scale`, and our own JSON payloads)
  */
-enum RatingScale(val name: String) {
+enum RatingScale(val name: String) extends NamedEnum {
 
   /** Rated good (1) to bad (3): how well the thing labeled does its job. */
   case Quality extends RatingScale("quality")
@@ -38,6 +41,8 @@ enum RatingScale(val name: String) {
   /** Carries no rating, so asking for its severity is a question with no answer. */
   case Unrated extends RatingScale("unrated")
 }
+
+object RatingScale extends NamedEnumCompanion[RatingScale]
 
 /**
  * Every label type with its properties, backing the `label_type` Postgres enum type.
@@ -59,7 +64,7 @@ enum LabelType(
     val color: String,
     val accessImpact: AccessImpact,
     val ratingScale: RatingScale
-) {
+) extends NamedEnum {
   // TODO These colors should probably match the colors in our Design System Tokens in main.css.
   case CurbRamp   extends LabelType("curb.ramp.description", "#90C31F", AccessImpact.Feature, RatingScale.Quality)
   case NoCurbRamp extends LabelType("missing.ramp.description", "#E679B6", AccessImpact.Problem, RatingScale.Severity)
@@ -92,7 +97,7 @@ enum LabelType(
   def tinyIconUrl: String  = LabelType.assetUrlPrefix + tinyIconPath
 }
 
-object LabelType {
+object LabelType extends PgEnumCompanion[LabelType]("label_type") {
   // Icon directory as a logical path under public/ — the one form assets.path (Twirl), util.assetPath (JS) and
   // environment.getFile (server-side compositing) all take. A rendered "/assets/..." URL would suit only one of the
   // three, leaving the others to rebuild the convention by hand.
@@ -103,14 +108,10 @@ object LabelType {
   private inline val assetUrlPrefix = "/assets/"
 
   // Every label type in canonical order. A Seq because `values` hands out a fresh array on every call.
-  val ordered: Seq[LabelType]   = values.toSeq
-  val orderedNames: Seq[String] = ordered.map(_.name)
+  val ordered: Seq[LabelType] = values.toSeq
 
   // Names of every label type, for allowlisting a caller-supplied label type.
-  val labelTypeNames: Set[String] = orderedNames.toSet
-
-  // Finds a label type by name when the name might not be one; `valueOf` is the version that throws.
-  val byName: Map[String, LabelType] = ordered.map(lt => lt.name -> lt).toMap
+  val labelTypeNames: Set[String] = names.toSet
 
   // Types whose labels carry a 1-3 rating. The denominator for any "% rated" stat, in SQL as well as on the page.
   val ratedTypeNames: Seq[String] = ordered.filter(_.ratingScale != RatingScale.Unrated).map(_.name)
@@ -132,17 +133,6 @@ object LabelType {
 
   // The types the Sidewalk AI API can validate.
   val aiLabelTypes: Set[LabelType] = Set(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk)
-
-  given Writes[LabelType] = Writes(lt => JsString(lt.name))
-
-  given Reads[LabelType] = Reads {
-    case JsString(value) =>
-      byName.get(value) match {
-        case Some(labelType) => JsSuccess(labelType)
-        case None => JsError(s"Invalid LabelType name: $value. Valid types are: ${orderedNames.mkString(", ")}.")
-      }
-    case _ => JsError(s"Expected a label type name. Valid types are: ${orderedNames.mkString(", ")}.")
-  }
 
   /**
    * The label-type table as `main.scala.html` stamps it onto every page (`window.labelTypes`), in canonical order.

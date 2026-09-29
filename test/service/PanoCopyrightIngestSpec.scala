@@ -43,7 +43,7 @@ class PanoCopyrightIngestSpec extends SidewalkSpec with BeforeAndAfterAll with G
   private val panoIds = Seq("test-5360-mapillary", "test-5360-panoramax", "test-5360-gsv")
 
   /** A pano block as the AI labeler sends it, with the copyright it composes. */
-  private def submission(panoId: String, source: PanoSource.Value, copyright: String): AiLabelsSubmission =
+  private def submission(panoId: String, source: PanoSource, copyright: String): AiLabelsSubmission =
     AiLabelsSubmission(
       labelType = models.label.LabelType.CurbRamp,
       modelId = "test",

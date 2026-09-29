@@ -210,11 +210,11 @@ class StreetGradientTableSpec
     ).toSet
 
     "match StreetGradientQuality exactly" in {
-      labelsOf("street_gradient_quality") mustBe StreetGradientQuality.values.map(_.toString)
+      labelsOf("street_gradient_quality") mustBe StreetGradientQuality.names.toSet
     }
 
     "match StreetGradientConfidence exactly" in {
-      labelsOf("street_gradient_confidence") mustBe StreetGradientConfidence.values.map(_.toString)
+      labelsOf("street_gradient_confidence") mustBe StreetGradientConfidence.names.toSet
     }
   }
 }

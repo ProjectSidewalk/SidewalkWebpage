@@ -7,7 +7,7 @@ package models.api
 
 import models.label.LabelType
 import models.label.LocationXY
-import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.UiSource
 import models.validation.ValidationOption
 import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, OFormat}
 
@@ -26,7 +26,7 @@ import java.time.OffsetDateTime
 case class ValidationFiltersForApi(
     labelId: Option[Int] = None,
     userId: Option[String] = None,
-    validationResult: Option[ValidationOption.Value] = None,
+    validationResult: Option[ValidationOption] = None,
     labelType: Option[LabelType] = None,
     validationTimestamp: Option[OffsetDateTime] = None,
     source: Option[UiSource] = None
@@ -68,7 +68,7 @@ case class ValidationDataForApi(
     labelId: Int,
     labelType: String,
     validatedLabelType: String,
-    validationResult: ValidationOption.Value,
+    validationResult: ValidationOption,
     userId: String,
     validatorType: String,
     missionId: Int,

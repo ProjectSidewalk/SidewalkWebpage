@@ -64,8 +64,6 @@ object StreetStatusTrend {
   private given localDateWrites: Writes[LocalDate]           = Writes(date => JsString(date.toString))
   private given offsetDateTimeWrites: Writes[OffsetDateTime] = Writes(time => JsString(time.toString))
 
-  private given statusWrites: Writes[StreetEdgeStatus.Value] = Writes(status => JsString(status.toString))
-
   private given statusChangeWeekWrites: Writes[StatusChangeWeek]        = Json.writes[StatusChangeWeek]
   private given reportWeekWrites: Writes[NoImageryReportWeek]           = Json.writes[NoImageryReportWeek]
   private given imageryWeekWrites: Writes[PanoImageryWeek]              = Json.writes[PanoImageryWeek]

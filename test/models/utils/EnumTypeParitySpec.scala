@@ -41,29 +41,29 @@ class EnumTypeParitySpec extends SidewalkSpec with GuiceOneAppPerSuite with Roll
 
   "the Postgres enum types behind the transition logs" should {
     "match JobRunStatus exactly" in {
-      labelsOf("job_run_status") mustBe JobRunStatus.values.map(_.toString)
+      labelsOf("job_run_status") mustBe JobRunStatus.names.toSet
     }
 
     "match JobRunTrigger exactly" in {
-      labelsOf("job_run_trigger") mustBe JobRunTrigger.values.map(_.toString)
+      labelsOf("job_run_trigger") mustBe JobRunTrigger.names.toSet
     }
 
     "match StreetEdgeStatusChangeSource exactly" in {
       // This one also has a third side: the `db/scripts` shell writers each emit one of these labels. A source they
       // emit that Postgres doesn't know fails their INSERT loudly, which is why the enum is an enum (#4103).
-      labelsOf("street_edge_status_change_source") mustBe StreetEdgeStatusChangeSource.values.map(_.toString)
+      labelsOf("street_edge_status_change_source") mustBe StreetEdgeStatusChangeSource.names.toSet
     }
 
     "match PanoImageryChangeSource exactly" in {
       // The writers cast a Scala-supplied string to this type inside raw SQL, so a drift here fails the pano upsert
       // itself — the path every labeler's viewer takes — rather than only a read.
-      labelsOf("pano_imagery_change_source") mustBe PanoImageryChangeSource.values.map(_.toString)
+      labelsOf("pano_imagery_change_source") mustBe PanoImageryChangeSource.names.toSet
     }
 
     "match ValidationCommentChangeType exactly" in {
       // Cast from a Scala-supplied string in raw SQL like the one above, on a path where drift costs the comment
       // text itself: the archiving insert is what the delete of the live row hangs off (#5076).
-      labelsOf("validation_comment_change_type") mustBe ValidationCommentChangeType.values.map(_.toString)
+      labelsOf("validation_comment_change_type") mustBe ValidationCommentChangeType.names.toSet
     }
   }
 }

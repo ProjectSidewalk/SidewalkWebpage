@@ -137,8 +137,7 @@ class StreetsApiController @Inject() (
     val parsedWayTypes = parseCommaSeparated(wayType)
     val parsedStatuses = parseCommaSeparated(status).map(_.map(_.toLowerCase))
     // Allowlisted rather than merely parsed: the tokens are spliced into raw SQL as enum literals.
-    val parsedPresence =
-      parseAllowlistedList(presence, SidewalkPresenceStatus.values.map(_.toString).toSet, "presence")
+    val parsedPresence = parseAllowlistedList(presence, SidewalkPresenceStatus.names.toSet, "presence")
 
     val firstError: Option[ApiError] = Seq(
       validateBBoxParam(bbox, parsedBbox),
@@ -195,9 +194,9 @@ class StreetsApiController @Inject() (
    */
   private def validateWayTypes(parsedWayTypes: Option[Seq[String]]): Option[ApiError] =
     parsedWayTypes.flatMap { wayTypes =>
-      val invalid = wayTypes.filter(WayType.fromString(_).isEmpty)
+      val invalid = wayTypes.filter(WayType.withNameOption(_).isEmpty)
       if (invalid.nonEmpty) {
-        val valid = WayType.values.map(_.toString).mkString(", ")
+        val valid = WayType.names.mkString(", ")
         Some(
           ApiError.invalidParameter(
             s"Invalid wayType value(s): ${invalid.mkString(", ")}. Valid values: $valid.",
@@ -216,9 +215,9 @@ class StreetsApiController @Inject() (
    */
   private def validateStreetStatuses(parsedStatuses: Option[Seq[String]]): Option[ApiError] =
     parsedStatuses.flatMap { statuses =>
-      val invalid = statuses.filter(StreetEdgeStatus.fromString(_).isEmpty)
+      val invalid = statuses.filter(StreetEdgeStatus.withNameOption(_).isEmpty)
       if (invalid.nonEmpty) {
-        val valid = StreetEdgeStatus.values.map(_.toString).mkString(", ")
+        val valid = StreetEdgeStatus.names.mkString(", ")
         Some(
           ApiError.invalidParameter(
             s"Invalid status value(s): ${invalid.mkString(", ")}. Valid values: $valid.",

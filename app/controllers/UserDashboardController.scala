@@ -213,11 +213,11 @@ class UserDashboardController @Inject() (
         val usernameEdit = s.username.filter(_ != user.username)
         // An absent field means "this caller isn't touching it" (the /welcome privacy toggles post only their two
         // flags), which has to stay distinct from an explicit "auto", or those saves would wipe the user's choice.
-        val unitsEdit: Option[Option[MeasurementSystem.Value]] = s.measurementSystem
+        val unitsEdit: Option[Option[MeasurementSystem]] = s.measurementSystem
           .filter(choice =>
-            choice == MeasurementSystem.FollowLanguage || MeasurementSystem.fromString(choice).isDefined
+            choice == MeasurementSystem.FollowLanguage || MeasurementSystem.withNameOption(choice).isDefined
           )
-          .map(MeasurementSystem.fromString)
+          .map(MeasurementSystem.withNameOption)
           .filter(_ != user.measurementSystem)
         val serviceEdit: Option[Boolean] = s.communityService.filter(_ != user.communityService)
 

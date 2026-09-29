@@ -49,11 +49,11 @@ class ConfigController @Inject() (
       logger.debug(request.toString) // Keeps the implicit from reading as unused.
       configService.getImageryAccessToken.map { access =>
         if (access.source != PanoSource.Infra3d) {
-          NotFound(Json.obj("error" -> s"${access.source} uses a static key; nothing to renew"))
+          NotFound(Json.obj("error" -> s"${access.source.name} uses a static key; nothing to renew"))
         } else {
           Ok(
             Json.obj(
-              "source"     -> access.source.toString,
+              "source"     -> access.source.name,
               "token"      -> access.token,
               "expires_at" -> access.expiresAt.map(_.toString)
             )

@@ -1,7 +1,6 @@
 package formats.json
 
 import formats.json.GalleryFormats._
-import formats.json.ValidateFormats.uiSourceReads
 import models.utils.CommonUtils.UiSource
 import play.api.libs.json.{JsBoolean, JsError, JsString, JsSuccess, Json}
 import util.SidewalkSpec
@@ -41,11 +40,11 @@ class GalleryFormatsSpec extends SidewalkSpec {
 
   "uiSourceReads" should {
     "accept the landing-page validation grid's source" in {
-      JsString("LandingPage").validate[UiSource.UiSource] mustBe JsSuccess(UiSource.LandingPage)
+      JsString("LandingPage").validate[UiSource] mustBe JsSuccess(UiSource.LandingPage)
     }
 
     "reject an unknown source" in {
-      JsString("NotARealSource").validate[UiSource.UiSource] mustBe a[JsError]
+      JsString("NotARealSource").validate[UiSource] mustBe a[JsError]
     }
   }
 }

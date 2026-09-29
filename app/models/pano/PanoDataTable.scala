@@ -2,9 +2,9 @@ package models.pano
 
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
-import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{__, JsValue, Json, Writes}
@@ -55,32 +55,31 @@ case class PanoData(
     sourceMetadata: Option[JsValue]
 )
 
-// NOTE need to update pano_source enum in postgres as well if changing this Enumeration.
-object PanoSource extends Enumeration {
-  type PanoSource = Value
-
-  given writes: play.api.libs.json.Writes[Value] = play.api.libs.json.Writes.enumNameWrites[PanoSource.type]
-
-  val Gsv       = Value("gsv")
-  val Mapillary = Value("mapillary")
-  val Infra3d   = Value("infra3d")
-  val Panoramax = Value("panoramax")
+// NOTE need to update pano_source enum in postgres as well if changing this enum.
+enum PanoSource(val name: String) extends NamedEnum {
+  case Gsv       extends PanoSource("gsv")
+  case Mapillary extends PanoSource("mapillary")
+  case Infra3d   extends PanoSource("infra3d")
+  case Panoramax extends PanoSource("panoramax")
 
   /**
    * The tutorial's locally-served panos, whose imagery is app assets. They carry rows so that every label has one
    * (#4587), and this value is what keeps them out of the scraper's work list and every provider call (#4773).
    */
-  val Tutorial = Value("tutorial")
+  case Tutorial extends PanoSource("tutorial")
+}
+
+object PanoSource extends PgEnumCompanion[PanoSource]("pano_source") {
 
   /**
    * Sources whose imagery `PanoDataService.panoExists` can actually verify against a provider API.
    */
-  val providerCheckedSources: Set[Value] = Set(Gsv, Mapillary, Panoramax)
+  val providerCheckedSources: Set[PanoSource] = Set(Gsv, Mapillary, Panoramax)
 
   /**
    * Sources a client may name in a submission. `Tutorial` is server-owned.
    */
-  val clientSubmittableSources: Set[Value] = Set(Gsv, Mapillary, Infra3d, Panoramax)
+  val clientSubmittableSources: Set[PanoSource] = Set(Gsv, Mapillary, Infra3d, Panoramax)
 }
 
 case class PanoDataSlim(
@@ -107,7 +106,7 @@ object PanoDataSlim {
       (__ \ "camera_heading").writeNullable[Double] and
       (__ \ "camera_pitch").writeNullable[Double] and
       (__ \ "camera_roll").writeNullable[Double] and
-      (__ \ "source").write[PanoSource.Value]
+      (__ \ "source").write[PanoSource]
   )((o: PanoDataSlim) => Tuple.fromProductTyped(o))
 }
 
@@ -261,13 +260,13 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       hasBackup: Option[Boolean],
       lastChecked: OffsetDateTime
   ): DBIO[Int] = {
-    val source = PanoImageryChangeSource.ProviderCheck.toString
+    val source = PanoImageryChangeSource.ProviderCheck
     if (expired) {
       sqlu"""WITH edge AS (
                SELECT pano_id FROM pano_data WHERE pano_id = $panoId AND NOT expired
              ), logged AS (
                INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
-               SELECT pano_id, TRUE, $lastChecked, $source::pano_imagery_change_source FROM edge
+               SELECT pano_id, TRUE, $lastChecked, $source FROM edge
              )
              UPDATE pano_data
              SET expired = TRUE,
@@ -280,7 +279,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
                SELECT pano_id FROM pano_data WHERE pano_id = $panoId AND expired
              ), logged AS (
                INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
-               SELECT pano_id, FALSE, $lastChecked, $source::pano_imagery_change_source FROM edge
+               SELECT pano_id, FALSE, $lastChecked, $source FROM edge
              )
              UPDATE pano_data
              SET expired = FALSE,
@@ -402,13 +401,13 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * @return Number of rows inserted/updated (always 1).
    */
   def upsert(data: PanoData): DBIO[Int] = {
-    val source = PanoImageryChangeSource.PanoView.toString
+    val source = PanoImageryChangeSource.PanoView
     sqlu"""
       WITH edge AS (
         SELECT pano_id FROM pano_data WHERE pano_id = ${data.panoId} AND expired
       ), logged AS (
         INSERT INTO pano_imagery_change (pano_id, expired, changed_at, source)
-        SELECT pano_id, FALSE, ${data.lastViewed}, $source::pano_imagery_change_source FROM edge
+        SELECT pano_id, FALSE, ${data.lastViewed}, $source FROM edge
       )
       INSERT INTO pano_data (pano_id, width, height, tile_width, tile_height, capture_date, copyright, license, lat,
                              lng, camera_heading, camera_pitch, camera_roll, expired, last_viewed, pano_history_saved,
@@ -416,7 +415,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       VALUES (${data.panoId}, ${data.width}, ${data.height}, ${data.tileWidth}, ${data.tileHeight},
               ${data.captureDate}, ${data.copyright}, ${data.license}, ${data.lat}, ${data.lng}, ${data.cameraHeading},
               ${data.cameraPitch}, ${data.cameraRoll}, ${data.expired}, ${data.lastViewed}, ${data.panoHistorySaved},
-              ${data.lastChecked}, ${data.source.toString}::pano_source, ${data.hasBackup}, ${data.address},
+              ${data.lastChecked}, ${data.source}, ${data.hasBackup}, ${data.address},
               ${data.sourceMetadata.map(m => Json.stringify(m))}::jsonb)
       ON CONFLICT (pano_id) DO UPDATE SET
         lat = COALESCE(EXCLUDED.lat, pano_data.lat),

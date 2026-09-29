@@ -224,10 +224,8 @@ class LabelApiController @Inject() (
    * @param raw The optional validationStatus query parameter (comma-separated public tokens).
    * @return `Right(None)` if absent, `Right(Some(statuses))` if every token is valid, or `Left(ApiError)` otherwise.
    */
-  private def parseValidationStatuses(
-      raw: Option[String]
-  ): Either[ApiError, Option[Set[RawLabelValidationStatus.Value]]] =
-    parseAllowlistedList(raw, RawLabelValidationStatus.values.map(_.toString), "validationStatus")
+  private def parseValidationStatuses(raw: Option[String]): Either[ApiError, Option[Set[RawLabelValidationStatus]]] =
+    parseAllowlistedList(raw, RawLabelValidationStatus.names.toSet, "validationStatus")
       .map(_.map(_.map(RawLabelValidationStatus.withName).toSet))
 
   /**

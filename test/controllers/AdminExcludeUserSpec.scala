@@ -73,7 +73,7 @@ class AdminExcludeUserSpec
   private val runIdFloor: Int =
     run(jobRunTable.backgroundJobRuns.map(_.backgroundJobRunId).max.result).getOrElse(0)
 
-  private def targetUser(role: Role.Value): String = {
+  private def targetUser(role: Role): String = {
     val userId = userIdOf(sessionAs(role))
     touchedUserIds += userId
     userId

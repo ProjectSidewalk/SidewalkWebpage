@@ -43,7 +43,7 @@ case class NewTask(
     geom: LineString,
     currentLng: Double,
     currentLat: Double,
-    wayType: WayType.Value,      // OSM road type (residential, trunk, etc.).
+    wayType: WayType,            // OSM road type (residential, trunk, etc.).
     startPointReversed: Boolean, // Notes if we start at x1,y1 instead of x2,y2.
     taskStart: OffsetDateTime,
     completedByAnyUser: Boolean, // Notes if any user has audited this street.
@@ -65,7 +65,7 @@ case class AuditedStreetWithTimestamp(
     streetEdgeId: Int,
     auditTaskId: Int,
     userId: String,
-    role: Role.Value,
+    role: Role,
     highQuality: Boolean,
     taskStart: OffsetDateTime,
     taskEnd: OffsetDateTime,
@@ -83,7 +83,7 @@ case class StreetEdgeWithAuditStatus(
     streetEdgeId: Int,
     geom: LineString,
     regionId: Int,
-    wayType: WayType.Value,
+    wayType: WayType,
     audited: Boolean,
     outdated: Boolean
 )

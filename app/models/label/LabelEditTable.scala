@@ -3,7 +3,7 @@ package models.label
 import com.google.inject.ImplementedBy
 import models.api.{LabelEditDataForApi, LabelEditFiltersForApi}
 import models.user.SidewalkUserTableDef
-import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.{given, _}
 import models.validation.LabelValidationTableDef

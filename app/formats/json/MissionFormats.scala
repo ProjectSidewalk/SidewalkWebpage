@@ -10,7 +10,7 @@ import java.time.OffsetDateTime
 object MissionFormats {
   given missionWrites: Writes[Mission] = (
     (__ \ "mission_id").write[Int] and
-      (__ \ "mission_type").write[String].contramap[MissionType.Value](_.toString) and
+      (__ \ "mission_type").write[String].contramap[MissionType](_.name) and
       (__ \ "user_id").write[String] and
       (__ \ "mission_start").write[OffsetDateTime] and
       (__ \ "mission_end").write[OffsetDateTime] and

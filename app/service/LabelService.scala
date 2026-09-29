@@ -7,7 +7,6 @@ import models.label.LabelTable.{given, _}
 import models.label.{Tag, _}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile.api._
@@ -155,10 +154,10 @@ object LabelServiceImpl {
    * @param side           Which side of it, None when unsided.
    * @param unsidedLabelId The label itself, set only when it is unsided.
    */
-  private[service] case class FaceKey(streetEdgeId: Int, side: Option[StreetSide.Value], unsidedLabelId: Option[Int])
+  private[service] case class FaceKey(streetEdgeId: Int, side: Option[StreetSide], unsidedLabelId: Option[Int])
 
   private[service] object FaceKey {
-    def of(streetEdgeId: Int, side: Option[StreetSide.Value], labelId: Int): FaceKey =
+    def of(streetEdgeId: Int, side: Option[StreetSide], labelId: Int): FaceKey =
       FaceKey(streetEdgeId, side, if (side.isEmpty) Some(labelId) else None)
 
     def of(label: LabelValidationMetadata): FaceKey = of(label.streetEdgeId, label.streetSide, label.labelId)

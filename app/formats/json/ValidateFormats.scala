@@ -4,15 +4,12 @@ import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
 import formats.json.PanoFormats._
 import models.label.LabelType
-import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.CommonUtils.ViewerType.ViewerType
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsError, JsPath, JsSuccess, JsonValidationError, Reads}
+import play.api.libs.json.{JsPath, JsonValidationError, Reads}
 
 import java.time.OffsetDateTime
-import scala.util.{Failure, Success, Try}
 
 object ValidateFormats {
   case class EnvironmentSubmission(
@@ -52,7 +49,7 @@ object ValidateFormats {
       missionId: Int,
       labelType: Option[LabelType],
       newLabelType: Option[LabelType],
-      validationResult: ValidationOption.Value,
+      validationResult: ValidationOption,
       severity: Option[Int],
       tags: List[String],
       comment: Option[ValidationCommentSubmission],
@@ -113,7 +110,7 @@ object ValidateFormats {
       labelId: Int,
       labelType: LabelType,
       newLabelType: Option[LabelType],
-      validationResult: ValidationOption.Value,
+      validationResult: ValidationOption,
       severity: Option[Int],
       tags: List[String],
       canvasX: Option[Int],
@@ -144,39 +141,6 @@ object ValidateFormats {
       tags: List[String],
       source: UiSource
   )
-
-  given uiSourceReads: Reads[UiSource.Value] = Reads { json =>
-    json.validate[String].flatMap { uiSource =>
-      Try(UiSource.withName(uiSource)) match {
-        case Success(source) => JsSuccess(source)
-        case Failure(_)      =>
-          JsError(s"Invalid ui_source: $uiSource. Valid types are: ${UiSource.values.mkString(", ")}.")
-      }
-    }
-  }
-
-  given viewerTypeReads: Reads[ViewerType.Value] = Reads { json =>
-    json.validate[String].flatMap { viewerType =>
-      Try(ViewerType.withName(viewerType)) match {
-        case Success(vt) => JsSuccess(vt)
-        case Failure(_)  =>
-          JsError(s"Invalid viewer_type: $viewerType. Valid types are: ${ViewerType.values.mkString(", ")}.")
-      }
-    }
-  }
-
-  given validationOptionReads: Reads[ValidationOption.Value] = Reads { json =>
-    json.validate[String].flatMap { validationResult =>
-      ValidationOption.fromString(validationResult) match {
-        case Some(result) => JsSuccess(result)
-        case None         =>
-          JsError(
-            s"Invalid validation_result: $validationResult. Valid values are: " +
-              s"${ValidationOption.values.mkString(", ")}."
-          )
-      }
-    }
-  }
 
   given environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "mission_id").readNullable[Int] and
@@ -211,7 +175,7 @@ object ValidateFormats {
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "label_type").readNullable[LabelType] and
       (JsPath \ "new_label_type").readNullable[LabelType] and
-      (JsPath \ "validation_result").read[ValidationOption.Value] and
+      (JsPath \ "validation_result").read[ValidationOption] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
       (JsPath \ "comment").readNullable[ValidationCommentSubmission] and
@@ -224,10 +188,10 @@ object ValidateFormats {
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[UiSource.Value] and
+      (JsPath \ "source").read[UiSource] and
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean] and
-      (JsPath \ "viewer_type").read[ViewerType.Value]
+      (JsPath \ "viewer_type").read[ViewerType]
   )(LabelValidationSubmission.apply _)
 
   given validationMissionReads: Reads[ValidationMissionProgress] = (
@@ -265,7 +229,7 @@ object ValidateFormats {
       (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
       (JsPath \ "validate_params").read[ValidateParams] and
       (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
-      (JsPath \ "source").read[UiSource.Value] and
+      (JsPath \ "source").read[UiSource] and
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(ValidationTaskSubmission.apply _)
 
@@ -273,7 +237,7 @@ object ValidateFormats {
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "new_label_type").readNullable[LabelType] and
-      (JsPath \ "validation_result").read[ValidationOption.Value] and
+      (JsPath \ "validation_result").read[ValidationOption] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
       (JsPath \ "canvas_x").readNullable[Int] and
@@ -285,10 +249,10 @@ object ValidateFormats {
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[UiSource.Value] and
+      (JsPath \ "source").read[UiSource] and
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean] and
-      (JsPath \ "viewer_type").read[ViewerType.Value]
+      (JsPath \ "viewer_type").read[ViewerType]
   )(LabelMapValidationSubmission.apply _)
 
   given labelEditSubmissionReads: Reads[LabelEditSubmission] = (
@@ -297,7 +261,7 @@ object ValidateFormats {
       (JsPath \ "new_label_type").readNullable[LabelType] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
-      (JsPath \ "source").read[UiSource.Value]
+      (JsPath \ "source").read[UiSource]
   )(LabelEditSubmission.apply _)
 
   given moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
