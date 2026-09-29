@@ -206,6 +206,17 @@ class KeyboardManager {
     // When the user is typing in a comment box, disable keyboard shortcuts that validate a label.
     this.#checkIfTextAreaSelected();
 
+    // Immersive mode on/off (#5560), the same key as Explore's. An f typed into a comment box or the tag picker is
+    // text, and F with a modifier belongs to the browser. The physical key, like Z for zoom, so the toggle sits where
+    // the hint's "F" is on a QWERTY layout. Not gated on #disableKeyboard: the layout may change under a modal.
+    const editing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+      || /** @type {?HTMLElement} */ (document.activeElement)?.isContentEditable;
+    if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !editing
+      && svv.immersiveMode) {
+      svv.immersiveMode.toggle('KeyboardShortcut');
+      return;
+    }
+
     // Handle the various keyboard shortcuts.
     // Enter submits the validation even from a comment box. The tag picker is the exception: there it adds the
     // highlighted tag, and submitting would move on to the next label before the tag is added.

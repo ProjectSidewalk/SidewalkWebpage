@@ -183,6 +183,21 @@
   right: calc(7px * var(--ui-scale));
 }
 
+/* The immersive-mode toggle (#5560) sits under the zoom stack (7 + 22 + 2 + 22 = 53px tall, plus a 6px gap), in the
+   corner users already scan for view controls, as on Explore. */
+#immersive-toggle-holder {
+  position: absolute;
+  z-index: 3;
+  top: calc(59px * var(--ui-scale));
+  right: calc(7px * var(--ui-scale));
+}
+
+/* The arrows reach their icon's corners, so a smaller icon keeps them off the button's edge. */
+#immersive-toggle-icon {
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+}
+
 #svv-panorama-date-holder {
   display: flex;
   justify-content: flex-start;
@@ -255,8 +270,8 @@
   left: calc(7px * var(--ui-scale));
 }
 
-/* Continues the pill row to the right, as Explore's menu does; Validate has no full-screen layout, so no downward
-   variant (#5501). */
+/* Continues the pill row to the right, as Explore's menu does. Immersive mode (svv-immersive.css) keeps the row: its
+   top-centre holds only the mission chip, so nothing sits to the right of this corner for the row to slide under. */
 #validate-control-menu {
   display: none;
   flex-direction: row;

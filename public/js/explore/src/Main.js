@@ -205,7 +205,19 @@ class Main {
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
     // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
-    svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout?.());
+    svl.immersiveMode = new ImmersiveMode({
+      tracker: svl.tracker,
+      bodyClass: 'svl-immersive',
+      relayout: () => svl.relayout?.(),
+      isDisabled: () => svl.isOnboarding(),
+      // The hover card and context menu are anchored against the frame that is about to change shape.
+      beforeToggle: () => {
+        if (svl.contextMenu.isOpen()) svl.contextMenu.hide();
+        svl.canvas.showLabelHoverInfo(undefined);
+      },
+      frame: () => svl.CANVAS_FRAME,
+      hintReference: () => document.getElementById('pano'),
+    });
 
     // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
     // they never carry it. svl.keyboard is built later, hence the lookups at call time. Suspending the shortcuts
@@ -222,7 +234,7 @@ class Main {
       document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
         // The pills form a row, so opening to the right would cover Sound and Feedback; full screen stacks them in a
         // column, where the right is clear and below would cover them instead.
-        placement: () => (document.body.classList.contains(ImmersiveMode.BODY_CLASS) ? 'right' : 'below'),
+        placement: () => (svl.immersiveMode.isActive() ? 'right' : 'below'),
         onOpen: () => {
           svl.tracker.push('Click_ImageAdjustments_Open');
           panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');

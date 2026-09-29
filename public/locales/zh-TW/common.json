@@ -400,5 +400,8 @@
     "region-sub-pending": "街道總長 {{length}} · 已探索 {{percent}}%",
     "street-in-city": "{{region}}，{{city}}",
     "unnamed": "未命名街道"
-  }
+  },
+  "immersive-enter": "進入沉浸模式",
+  "immersive-exit": "離開沉浸模式",
+  "immersive-exit-hint": "沉浸模式。按 F 離開。"
 }

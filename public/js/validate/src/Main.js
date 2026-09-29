@@ -192,6 +192,23 @@ class Main {
     svv.statusField = new StatusField(param.completedValidations);
     svv.tracker = new Tracker();
 
+    // Immersive mode (#5560): built before the pano viewer so a mode restored from the tab's last page load has its
+    // classes on the body when the viewer measures its container. Desktop only: the phone is already full-bleed.
+    // Expert Validate keeps the boxed layout for now (the view omits the toggle there too): its edit sections have
+    // no immersive placement yet, so the mode is off limits rather than half-designed.
+    if (!util.isMobile()) {
+      svv.immersiveMode = new ImmersiveMode({
+        tracker: svv.tracker,
+        bodyClass: 'svv-immersive',
+        relayout: () => Main.relayout(),
+        isDisabled: () => svv.adminVersion,
+        // The label card is anchored against the marker, which the relayout moves; it reopens on the next hover.
+        beforeToggle: () => svv.labelVisibilityControl?.hideLabelCard(),
+        frame: () => ({ width: svv.canvasWidth(), height: svv.canvasHeight() }),
+        hintReference: () => document.getElementById('svv-panorama-holder'),
+      });
+    }
+
     BadgeAchievements.seedCounts();
     svv.labelCard = new LabelCard();
 
@@ -389,13 +406,29 @@ class Main {
    * @returns {void}
    */
   static applyValidateScale() {
+    // Immersive mode (#5560) sizes the pano with CSS and floats the controls over it, so the scale fits only the
+    // pano's own footprint into the whole window, with no page margins to keep clear of, as Explore's does.
+    const immersive = svv.immersiveMode?.isActive() ?? false;
     const scale = util.applyToolScale(
-      ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
+      immersive ? ['--pano-base-width'] : ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
       ['--header-base-height', '--pano-base-height'],
+      immersive ? { maxScale: 3, hMargin: 0, bottomReserve: 0 } : {},
     );
     svv.panoManager.setMarkerScale(scale);
     svv.panoViewer.resize();
     svv.panoViewer.repaint();
+  }
+
+  /**
+   * Re-lays out the desktop tool for its current box, for a layout switch rather than a window resize: the rescale
+   * and the viewer's resize and repaint, plus the toasts, which are anchored to the pano's old box and are told of a
+   * window resize but not of the tool moving under them (Toast.repositionAll). Synchronous, so the immersive toggle
+   * (#5560) lands in one frame.
+   * @returns {void}
+   */
+  static relayout() {
+    Main.applyValidateScale();
+    Toast.repositionAll();
   }
 
   /**

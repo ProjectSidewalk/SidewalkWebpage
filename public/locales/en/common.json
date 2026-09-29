@@ -402,5 +402,8 @@
     "region-sub-pending": "{{length}} of streets · {{percent}}% explored",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Unnamed street"
-  }
+  },
+  "immersive-enter": "Enter immersive mode",
+  "immersive-exit": "Exit immersive mode",
+  "immersive-exit-hint": "Immersive mode. Press F to exit."
 }

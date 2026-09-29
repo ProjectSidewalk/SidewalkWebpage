@@ -147,6 +147,15 @@
             <img class="ps-icon-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
           </button>
         </div>
+        @* Immersive mode toggle (#5560), under the zoom stack as on Explore, in its own holder so the zoom pair keeps
+           its rounded bottom corner. Not on Expert Validate: its edit sections have no immersive placement yet. *@
+        @if(!validateParams.adminVersion) {
+          <div id="immersive-toggle-holder" class="ps-icon-button-stack">
+            <button type="button" id="immersive-toggle-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.key", "F")" aria-label="Enter immersive mode" data-i18n-aria-label="common:immersive-enter" data-ps-tooltip-placement="left">
+              <img id="immersive-toggle-icon" class="ps-icon-button-icon" src='@assets.path("images/icons/maximize-2-white-feather.svg")' alt="">
+            </button>
+          </div>
+        }
       </div>
       <div id="modal-mission-holder" class="ps-hidden">
         <div id="modal-mission-background" class="modal-background"></div>

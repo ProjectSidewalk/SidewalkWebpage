@@ -134,10 +134,7 @@
     "feedback": "Feedback",
     "feedback-tooltip": "Share your thoughts with us",
     "feedback-submitted": "Feedback Submitted",
-    "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!",
-    "immersive-enter": "Enter immersive mode",
-    "immersive-exit": "Exit immersive mode",
-    "immersive-exit-hint": "Immersive mode. Press F to exit."
+    "feedback-title": "Any thoughts? Found something confusing? Spotted a bug?<br>Send us comments!"
   },
   "right-ui": {
     "opens-new-tab": "(opens in a new tab)",
