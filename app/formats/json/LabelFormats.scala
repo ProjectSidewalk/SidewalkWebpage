@@ -10,8 +10,7 @@ import play.api.libs.json._
 import java.time.OffsetDateTime
 
 object LabelFormats {
-  implicit val labelTypeEnumWrites: Writes[LabelTypeEnum.Base] = Writes(lt => JsString(lt.name))
-  implicit val uiSourceWrites: Writes[UiSource]                = Writes(s => JsString(s.toString))
+  implicit val uiSourceWrites: Writes[UiSource] = Writes(s => JsString(s.toString))
 
   implicit val labelWrites: Writes[Label] = (
     (__ \ "label_id").write[Int] and
@@ -19,7 +18,7 @@ object LabelFormats {
       (__ \ "mission_id").write[Int] and
       (__ \ "user_id").write[String] and
       (__ \ "pano_id").write[String] and
-      (__ \ "label_type").write[LabelTypeEnum.Base] and
+      (__ \ "label_type").write[LabelType] and
       (__ \ "deleted").write[Boolean] and
       (__ \ "temporary_label_id").write[Int] and
       (__ \ "time_created").write[OffsetDateTime] and
@@ -35,28 +34,18 @@ object LabelFormats {
       (__ \ "deleted_by").writeNullable[String] and
       (__ \ "deleted_at").writeNullable[OffsetDateTime] and
       (__ \ "deleted_source").writeNullable[UiSource]
-  )(unlift(Label.unapply))
+  )((o: Label) => Tuple.fromProductTyped(o))
 
   implicit val POVWrites: Writes[POV] = (
     (__ \ "heading").write[Double] and
       (__ \ "pitch").write[Double] and
       (__ \ "zoom").write[Double]
-  )(unlift(POV.unapply))
+  )((o: POV) => Tuple.fromProductTyped(o))
 
   implicit val locationXYWrites: Writes[LocationXY] = (
     (__ \ "x").write[Int] and
       (__ \ "y").write[Int]
-  )(unlift(LocationXY.unapply))
-
-  implicit val labelTypeReads: Reads[LabelTypeEnum.Base] = Reads {
-    case JsString(value) =>
-      LabelTypeEnum.byName.get(value) match {
-        case Some(labelType) => JsSuccess(labelType)
-        case None            =>
-          JsError(s"Invalid LabelType name: $value. Valid types are: ${LabelTypeEnum.orderedNames.mkString(", ")}.")
-      }
-    case _ => JsError(s"Expected a label type name. Valid types are: ${LabelTypeEnum.orderedNames.mkString(", ")}.")
-  }
+  )((o: LocationXY) => Tuple.fromProductTyped(o))
 
   implicit val labelMetadataWrites: Writes[LabelMetadata] = Writes { m =>
     Json.obj(
@@ -291,10 +280,10 @@ object LabelFormats {
 
   implicit val tagWrites: Writes[Tag] = (
     (__ \ "tag_id").write[Int] and
-      (__ \ "label_type").write[LabelTypeEnum.Base] and
+      (__ \ "label_type").write[LabelType] and
       (__ \ "tag_name").write[String] and
       (__ \ "mutually_exclusive_with").writeNullable[String]
-  )(unlift(Tag.unapply))
+  )((o: Tag) => Tuple.fromProductTyped(o))
 
   /**
    * Serializes a PanoViewerMetadata to the JSON shape the frontend expects under the "pano_data" key.

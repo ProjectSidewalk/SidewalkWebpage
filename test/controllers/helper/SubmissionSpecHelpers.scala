@@ -1,13 +1,12 @@
 package controllers.helper
 
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.{AnonSession, RolledBackDb}
+import util.{AnonSession, RolledBackDb, SidewalkSpec}
 
 import scala.concurrent.duration._
 import scala.util.Try
@@ -19,7 +18,7 @@ import scala.util.Try
  * adds what is specific to these specs: reading the JSON that the tool pages embed in their inline bootstrap script,
  * and probing for tables the dev-DB dumps may not carry.
  */
-trait SubmissionSpecHelpers extends RolledBackDb with AnonSession { this: PlaySpec with GuiceOneAppPerSuite =>
+trait SubmissionSpecHelpers extends RolledBackDb with AnonSession { this: SidewalkSpec with GuiceOneAppPerSuite =>
 
   /** Arrange/assert queries only, never the endpoint under test; 30s is plenty for those. */
   override protected def dbTimeout: FiniteDuration = 30.seconds

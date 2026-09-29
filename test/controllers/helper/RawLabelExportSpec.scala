@@ -20,11 +20,11 @@ import org.geotools.feature.FeatureTypes
 import org.geotools.geopkg.GeoPkgDataStoreFactory
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
+import util.SidewalkSpec
 
 import java.nio.file.{Files, Path}
 import java.sql.DriverManager
@@ -47,7 +47,7 @@ import scala.util.Using
  * the shapefile's text survives outside Latin-1 (#5276), and that GeoPackage columns are named, ordered, and filled
  * from the same field list as the JSON and CSV (#5273).
  */
-class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
+class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -164,6 +164,9 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
       (names, features)
     } finally store.dispose()
 
+  /** Reads a feature's attribute as a plain value, so it can be compared against a number or a true/false. */
+  private def attr(feature: SimpleFeature, name: String): Any = feature.getAttribute(name)
+
   /** Reads a shapefile the way GIS tools do, taking its text encoding from the `.cpg`. */
   private def openShapefile(shp: Path): DataStore = new ShapefileDataStoreFactory().createDataStore(shp.toUri.toURL)
 
@@ -224,7 +227,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(8).getAttribute("panoUrl").toString must include("map_action=pano")
 
         features(8).getAttribute("streetSide") mustBe "left"
-        features(8).getAttribute("ctrOffsetM") mustBe 4.25
+        attr(features(8), "ctrOffsetM") mustBe 4.25
         features(9).getAttribute("streetSide") mustBe null
         features(9).getAttribute("ctrOffsetM") mustBe null
       }
@@ -309,7 +312,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         features(8).getAttribute("pano_url").toString must include("map_action=pano")
 
         features(8).getAttribute("street_side") mustBe "left"
-        features(8).getAttribute("centerline_offset_m") mustBe 4.25
+        attr(features(8), "centerline_offset_m") mustBe 4.25
         features(9).getAttribute("street_side") mustBe null
         features(9).getAttribute("centerline_offset_m") mustBe null
       }
@@ -323,7 +326,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
 
         names mustBe "the_geom" +: LabelDataForApi.fields.map(_.geoPackageName)
         features(8).getAttribute("image_capture_date") mustBe "2012-08"
-        features(8).getAttribute("zoom") mustBe 2.0
+        attr(features(8), "zoom") mustBe 2.0
         features(8).getAttribute("osm_way_id") mustBe "11584845"
         features(8).getAttribute("tags") mustBe "[]" // An array is stored as its JSON text.
       }
@@ -406,7 +409,7 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
 
         val (labelNames, rawLabels) = readBack(openGeoPackage(gpkg), "label_id", Some("raw_labels"))
         labelNames mustBe "the_geom" +: RawLabelInClusterDataForApi.InCluster.fields.map(_.geoPackageName)
-        rawLabels(3).getAttribute("label_cluster_id") mustBe 2
+        attr(rawLabels(3), "label_cluster_id") mustBe 2
       }
     }
   }
@@ -456,20 +459,20 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
           "severity_counts_CurbRamp_null",
           "tag_adjustments_CurbRamp"
         )
-        features(951).getAttribute("cluster_counts_CurbRamp") mustBe 2
-        features(951).getAttribute("sub_scores_CurbRamp") mustBe 1.5
-        features(951).getAttribute("severity_counts_CurbRamp_1") mustBe 2
-        features(951).getAttribute("severity_counts_CurbRamp_null") mustBe 0 // Sparse entries are filled with zero.
+        attr(features(951), "cluster_counts_CurbRamp") mustBe 2
+        attr(features(951), "sub_scores_CurbRamp") mustBe 1.5
+        attr(features(951), "severity_counts_CurbRamp_1") mustBe 2
+        attr(features(951), "severity_counts_CurbRamp_null") mustBe 0 // Sparse entries are filled with zero.
         features(951).getAttribute("end_intersection_id") mustBe null
         features(951).getAttribute("street_name") mustBe "Cedar Lane"
         // The slope fields (#5223) come off the same field list, as REAL and TEXT columns.
-        features(951).getAttribute("mean_grade") mustBe 0.06
-        features(951).getAttribute("net_grade") mustBe -0.04
-        features(951).getAttribute("total_descent_meters") mustBe 5.5
-        features(951).getAttribute("meters_over_8pct") mustBe 10.0
+        attr(features(951), "mean_grade") mustBe 0.06
+        attr(features(951), "net_grade") mustBe -0.04
+        attr(features(951), "total_descent_meters") mustBe 5.5
+        attr(features(951), "meters_over_8pct") mustBe 10.0
         features(951).getAttribute("grade_quality") mustBe "measured"
         features(951).getAttribute("dem_source") mustBe "usgs-3dep-10m"
-        features(951).getAttribute("grade_term") mustBe -0.25
+        attr(features(951), "grade_term") mustBe -0.25
         declaredSrsId(gpkg, "access_score_streets") mustBe 4326
       }
       // The shapefile has its own hand-written columns, so the name is checked there too.
@@ -487,17 +490,17 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
           "sIntScore", "eIntScore", "auditCount", "lengthM", "labelCount", "meanGrade", "maxGrade", "netGrade",
           "climbM", "descentM", "mOver5pct", "mOver8pct", "gradeConf", "gradeQual", "demSource", "gradeTerm"
         )
-        features(951).getAttribute("meanGrade") mustBe 0.06
-        features(951).getAttribute("maxGrade") mustBe 0.09
-        features(951).getAttribute("netGrade") mustBe -0.04
-        features(951).getAttribute("climbM") mustBe 1.5
-        features(951).getAttribute("descentM") mustBe 5.5
-        features(951).getAttribute("mOver5pct") mustBe 40.0
-        features(951).getAttribute("mOver8pct") mustBe 10.0
+        attr(features(951), "meanGrade") mustBe 0.06
+        attr(features(951), "maxGrade") mustBe 0.09
+        attr(features(951), "netGrade") mustBe -0.04
+        attr(features(951), "climbM") mustBe 1.5
+        attr(features(951), "descentM") mustBe 5.5
+        attr(features(951), "mOver5pct") mustBe 40.0
+        attr(features(951), "mOver8pct") mustBe 10.0
         features(951).getAttribute("gradeConf") mustBe "high"
         features(951).getAttribute("gradeQual") mustBe "measured"
         features(951).getAttribute("demSource") mustBe "usgs-3dep-10m"
-        features(951).getAttribute("gradeTerm") mustBe -0.25
+        attr(features(951), "gradeTerm") mustBe -0.25
       }
     }
   }
@@ -529,11 +532,11 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         val (names, features) = readBack(openGeoPackage(gpkg), "intersection_id")
 
         names mustBe "the_geom" +: IntersectionAccessScoreForApi.fields.map(_.geoPackageName)
-        features(7).getAttribute("cluster_counts_CurbRamp") mustBe 1
-        features(7).getAttribute("severity_counts_CurbRamp_null") mustBe 1
-        features(7).getAttribute("severity_counts_CurbRamp_1") mustBe 0
+        attr(features(7), "cluster_counts_CurbRamp") mustBe 1
+        attr(features(7), "severity_counts_CurbRamp_null") mustBe 1
+        attr(features(7), "severity_counts_CurbRamp_1") mustBe 0
         features(7).getAttribute("street_edge_ids") mustBe "[951,952]"
-        features(7).getAttribute("grade_separated") mustBe false
+        attr(features(7), "grade_separated") mustBe false
         declaredSrsId(gpkg, "access_score_intersections") mustBe 4326
       }
     }
@@ -565,8 +568,8 @@ class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionVa
         val (names, features) = readBack(openGeoPackage(gpkg), "region_id")
 
         names mustBe "the_geom" +: RegionAccessScoreForApi.fields.map(_.geoPackageName)
-        features(1).getAttribute("avg_cluster_counts_CurbRamp") mustBe 1.5
-        features(1).getAttribute("avg_cluster_counts_NoCurbRamp") mustBe 0.0
+        attr(features(1), "avg_cluster_counts_CurbRamp") mustBe 1.5
+        attr(features(1), "avg_cluster_counts_NoCurbRamp") mustBe 0.0
         features(1).getAttribute("score") mustBe null
         declaredSrsId(gpkg, "access_score_regions") mustBe 4326
       }

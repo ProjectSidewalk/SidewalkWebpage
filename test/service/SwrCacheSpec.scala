@@ -1,9 +1,9 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import util.SidewalkSpec
 
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
@@ -20,7 +20,7 @@ import scala.concurrent.{Await, Future, Promise}
  * the suite shares one. The computes are `Promise`s the tests complete by hand, so "still running" and "finished" are
  * states the test controls rather than timing it hopes for.
  */
-class SwrCacheSpec extends PlaySpec with GuiceOneAppPerSuite {
+class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

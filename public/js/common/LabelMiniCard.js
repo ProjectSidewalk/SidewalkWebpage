@@ -108,7 +108,7 @@ class LabelMiniCard {
     const label = this.#label;
     const type = label.label_type;
     const esc = LabelMiniCard.esc;
-    const typeName = i18next.t(`common:${util.camelToKebab(type)}`).replace('&shy;', '');
+    const typeName = util.misc.labelTypeName(type);
     const rating = this.#ratingWord();
     const name = [typeName, rating].filter(Boolean).join(', ');
     const src = label.crop_url || label.backup_image_url;

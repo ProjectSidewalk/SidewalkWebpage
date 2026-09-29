@@ -15,7 +15,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
 
 const SECTION_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/StoriesSection.js'), 'utf8'
@@ -64,8 +64,11 @@ describe('the dashboard\'s "Your stories" list', () => {
 
     beforeAll(() => {
         window.i18next = { t: (key) => key };
-        window.util = { assetPath: assetPathStub }; // The delete confirmation's icon URL.
-        window.camelToKebab = (s) => s.toLowerCase();
+        window.util = {
+            assetPath: assetPathStub, // The delete confirmation's icon URL.
+            camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+        };
+        installUtilitiesMisc();
         // Records what the section asks of the shared composer; behavior itself is StoryComposer's own contract.
         window.StoryComposer = class {
             constructor(dialog, opts) {
@@ -100,15 +103,6 @@ describe('the dashboard\'s "Your stories" list', () => {
         expect(document.querySelector('.ud-story-edit').getAttribute('aria-label')).toBe('labelmap:story.edit-aria');
         expect(document.querySelector('.ud-story-delete').getAttribute('aria-label'))
             .toBe('labelmap:story.delete-aria');
-    });
-
-    it('names the label type without the soft-hyphen entity German translations carry', async () => {
-        const t = window.i18next.t;
-        window.i18next.t = (key) => (key === 'common:surfaceproblem' ? 'Oberflächen&shy;problem' : t(key));
-        await renderSection();
-        window.i18next.t = t;
-
-        expect(document.querySelector(`a[href="/label/501"]`).textContent).toBe('Oberflächenproblem');
     });
 
     it('fills the thumbnail from the photo, else the backend\'s label preview, else a placeholder', async () => {

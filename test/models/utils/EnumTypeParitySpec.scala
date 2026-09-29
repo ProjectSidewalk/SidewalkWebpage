@@ -4,11 +4,10 @@ import models.pano.PanoImageryChangeSource
 import models.street.StreetEdgeStatusChangeSource
 import models.validation.ValidationCommentChangeType
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Checks that the Scala enums behind the transition logs still match the Postgres enum types they back.
@@ -23,7 +22,7 @@ import util.RolledBackDb
  *
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class EnumTypeParitySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class EnumTypeParitySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

@@ -3,7 +3,7 @@ package models.user
 import com.google.inject.ImplementedBy
 import models.api.UserStatForApi
 import models.audit.AuditTaskTable
-import models.label.{LabelTable, LabelTypeEnum}
+import models.label.{LabelTable, LabelType}
 import models.mission.{MissionTableDef, MissionType}
 import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
@@ -13,7 +13,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{__, Writes}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 import slick.jdbc.{GetResult, SQLActionBuilder}
 
 import java.time.OffsetDateTime
@@ -43,7 +42,7 @@ object LabelTypeStat {
       (__ \ "validated_correct").write[Int] and
       (__ \ "validated_incorrect").write[Int] and
       (__ \ "not_validated").write[Int]
-  )(unlift(LabelTypeStat.unapply))
+  )((o: LabelTypeStat) => Tuple.fromProductTyped(o))
 }
 case class UserStatsForAdminPage(
     userId: String,
@@ -254,9 +253,7 @@ class UserStatTable @Inject() (
       r.nextInt(),
       r.nextInt(),
       // Read by position, so this must follow the column order getStatsForApiWithFilters writes.
-      LabelTypeEnum.ordered.map { lt =>
-        lt.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
-      }.toMap
+      LabelType.ordered.map { lt => lt.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()) }.toMap
     )
   )
 
@@ -320,7 +317,7 @@ class UserStatTable @Inject() (
     auditTaskTable
       .metersAuditedByUser(_.in(usersToUpdate))
       .result
-      .flatMap { auditedDists: Seq[(String, Double)] =>
+      .flatMap { (auditedDists: Seq[(String, Double)]) =>
         val updateActions = auditedDists.map { case (userId, auditedDist) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.metersAudited
           updateQuery.update(auditedDist)
@@ -373,7 +370,7 @@ class UserStatTable @Inject() (
         (_userId, newLabelsPerMeter)
       }
       .result
-      .flatMap { labelFreqs: Seq[(String, Option[Double])] =>
+      .flatMap { (labelFreqs: Seq[(String, Option[Double])]) =>
         // Update the labels_per_meter column in the user_stat table.
         val updateActions = labelFreqs.map { case (userId, labelingFreq) =>
           val updateQuery = for { _userStat <- userStats if _userStat.userId === userId } yield _userStat.labelsPerMeter
@@ -435,7 +432,7 @@ class UserStatTable @Inject() (
       )
       .concat(scoped("user_stat.user_id"))
       .as[(String, Int, Option[Double])]
-      .flatMap { usersToUpdate: Seq[(String, Int, Option[Double])] =>
+      .flatMap { (usersToUpdate: Seq[(String, Int, Option[Double])]) =>
         // Update the own_labels_validated and accuracy columns in the user_stat table.
         val updateActions = usersToUpdate.map { case (userId, validatedCount, accuracy) =>
           val updateQuery =
@@ -698,7 +695,7 @@ class UserStatTable @Inject() (
       ORDER BY score DESC, label_counts.label_count DESC;
     """
       .as[(String, Int, Int, Double, Option[Double], Double)]
-      .map(_.map(LeaderboardStat.tupled))
+      .map(_.map(LeaderboardStat.apply.tupled))
   }
 
   /**
@@ -831,7 +828,7 @@ class UserStatTable @Inject() (
         ORDER BY top_n.label_count DESC, top_n.user_id;
       """
         .as[(String, String, Int, Int, Double, Option[Double], String)]
-        .map(_.map(GlobalLeaderboardStat.tupled))
+        .map(_.map(GlobalLeaderboardStat.apply.tupled))
     }
   }
 
@@ -906,7 +903,7 @@ class UserStatTable @Inject() (
         ORDER BY labels DESC, city_schema;
       """
           .as[(String, Int, Int, Int, Option[Double], Option[OffsetDateTime])]
-          .map(_.map(CrossCityUserStat.tupled))
+          .map(_.map(CrossCityUserStat.apply.tupled))
 
       // Bounded because this fires on every dashboard load, holds one of the app's 25 pooled connections for its whole
       // run, and is the one query here whose plan can't be predicted from dev: the arm count is however many cities are
@@ -1035,7 +1032,7 @@ class UserStatTable @Inject() (
 
     // TODO Only returning non-anonymous users temporarily:
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-    otherUsers.result.map(_.map(SidewalkUserWithRole.tupled))
+    otherUsers.result.map(_.map(SidewalkUserWithRole.apply.tupled))
   }
 
   /**
@@ -1120,7 +1117,7 @@ class UserStatTable @Inject() (
       minAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
 
     // Four counts per label type, in the order userStatApiConverter reads them.
-    val labelTypeStatCols: Seq[(String, String)] = LabelTypeEnum.ordered.flatMap { lt =>
+    val labelTypeStatCols: Seq[(String, String)] = LabelType.ordered.flatMap { lt =>
       val col    = lt.name.toLowerCase
       val isType = s"label_type = '${lt.name}'"
       Seq(

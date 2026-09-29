@@ -17,7 +17,7 @@ import scala.util.{Failure, Success, Try}
  * That matters because several of these queries (e.g. the imagery-freshness set-pass) operate on whole tables rather
  * than just a spec's synthetic rows.
  *
- * Mix into a `PlaySpec with GuiceOneAppPerSuite`. Specs are expected to disable `modules.ActorModule` in their
+ * Mix into a `SidewalkSpec with GuiceOneAppPerSuite`. Specs are expected to disable `modules.ActorModule` in their
  * `fakeApplication()` so the real nightly jobs can't race the assertions.
  */
 trait RolledBackDb { this: GuiceOneAppPerSuite =>

@@ -1,6 +1,6 @@
 package service
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.street.StreetGradientStats
 
 /**
@@ -80,23 +80,23 @@ object AccessScoreCalculator {
 
   // --- TUNABLE: base weight + scoring mode per scored label type. Types absent here are excluded from scoring. ---
   val typeWeights: Map[String, TypeWeight] = Map(
-    LabelTypeEnum.CurbRamp.name   -> TypeWeight(+0.75, PositiveQuality),
-    LabelTypeEnum.Crosswalk.name  -> TypeWeight(+0.75, PositiveQuality),
-    LabelTypeEnum.Signal.name     -> TypeWeight(+0.50, PresenceOnly),
-    LabelTypeEnum.NoCurbRamp.name -> TypeWeight(-1.00, NegativeSeverity),
+    LabelType.CurbRamp.name   -> TypeWeight(+0.75, PositiveQuality),
+    LabelType.Crosswalk.name  -> TypeWeight(+0.75, PositiveQuality),
+    LabelType.Signal.name     -> TypeWeight(+0.50, PresenceOnly),
+    LabelType.NoCurbRamp.name -> TypeWeight(-1.00, NegativeSeverity),
     // Along-length problems are counted per 100 m of street (#5095): three obstacles on a 300 m street are the
     // same density as one on a 100 m street, and score the same.
-    LabelTypeEnum.Obstacle.name       -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
-    LabelTypeEnum.SurfaceProblem.name -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
+    LabelType.Obstacle.name       -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
+    LabelType.SurfaceProblem.name -> TypeWeight(-1.00, NegativeSeverity, lengthNormalized = true),
     // A whole street without a sidewalk sits at sigmoid(-2) ≈ 0.12 before its tags and other features (#5093).
-    LabelTypeEnum.NoSidewalk.name -> TypeWeight(-2.00, StreetCondition)
+    LabelType.NoSidewalk.name -> TypeWeight(-2.00, StreetCondition)
   )
 
   /** Names of the label types that contribute to the score. Single source of truth for the DB query's type filter. */
   val scoredTypeNames: Set[String] = typeWeights.keySet
 
   /** Scored types in the canonical label type order so CSV/shapefile columns never drift from the header. */
-  val orderedScoredTypes: Seq[String] = LabelTypeEnum.orderedNames.filter(scoredTypeNames.contains)
+  val orderedScoredTypes: Seq[String] = LabelType.orderedNames.filter(scoredTypeNames.contains)
 
   /** Each scored type's signed base weight, the form [[subScoresFromCounts]] takes so a caller can substitute its own. */
   val baseWeights: Map[String, Double] = typeWeights.map { case (t, tw) => t -> tw.baseWeight }
@@ -108,10 +108,10 @@ object AccessScoreCalculator {
 
   /** The scored types that are corner features, pooled on the intersection they sit at rather than on a street. */
   val intersectionTypeNames: Set[String] = Set(
-    LabelTypeEnum.CurbRamp.name,
-    LabelTypeEnum.NoCurbRamp.name,
-    LabelTypeEnum.Crosswalk.name,
-    LabelTypeEnum.Signal.name
+    LabelType.CurbRamp.name,
+    LabelType.NoCurbRamp.name,
+    LabelType.Crosswalk.name,
+    LabelType.Signal.name
   )
 
   /** The scored types that describe a stretch of street: everything scored that isn't an intersection type. */
@@ -187,34 +187,34 @@ object AccessScoreCalculator {
   // --- TUNABLE: additive weight adjustments for impactful tags. (labelType, tag) -> delta; unlisted tags contribute 0.
   // Sign is absolute (added directly to the type's contribution), independent of the base weight's sign. ---
   val tagAdjustments: Map[(String, String), Double] = Map(
-    (LabelTypeEnum.Signal.name, "hard to reach buttons")       -> -0.25,
-    (LabelTypeEnum.Signal.name, "button waist height")         -> +0.15,
-    (LabelTypeEnum.Signal.name, "APS")                         -> +0.25,
-    (LabelTypeEnum.CurbRamp.name, "steep")                     -> -0.25,
-    (LabelTypeEnum.CurbRamp.name, "narrow")                    -> -0.25,
-    (LabelTypeEnum.CurbRamp.name, "missing tactile warning")   -> -0.25,
-    (LabelTypeEnum.CurbRamp.name, "points into traffic")       -> -0.25,
-    (LabelTypeEnum.Crosswalk.name, "level with sidewalk")      -> +0.25,
-    (LabelTypeEnum.Crosswalk.name, "paint fading")             -> -0.25,
-    (LabelTypeEnum.Crosswalk.name, "no pedestrian priority")   -> -0.25,
-    (LabelTypeEnum.NoCurbRamp.name, "no alternate route")      -> -0.50,
-    (LabelTypeEnum.NoCurbRamp.name, "alternate route present") -> +0.25,
+    (LabelType.Signal.name, "hard to reach buttons")       -> -0.25,
+    (LabelType.Signal.name, "button waist height")         -> +0.15,
+    (LabelType.Signal.name, "APS")                         -> +0.25,
+    (LabelType.CurbRamp.name, "steep")                     -> -0.25,
+    (LabelType.CurbRamp.name, "narrow")                    -> -0.25,
+    (LabelType.CurbRamp.name, "missing tactile warning")   -> -0.25,
+    (LabelType.CurbRamp.name, "points into traffic")       -> -0.25,
+    (LabelType.Crosswalk.name, "level with sidewalk")      -> +0.25,
+    (LabelType.Crosswalk.name, "paint fading")             -> -0.25,
+    (LabelType.Crosswalk.name, "no pedestrian priority")   -> -0.25,
+    (LabelType.NoCurbRamp.name, "no alternate route")      -> -0.50,
+    (LabelType.NoCurbRamp.name, "alternate route present") -> +0.25,
     // NoSidewalk tags are pooled per street (#5093). "street has no sidewalks" and "street has a sidewalk" (the other
     // side has one) are mutually exclusive, so at most one is active unless the street's labels split exactly in half.
     // "ends abruptly" aggravates: a pedestrian on the sidewalk is stranded in the roadway where it stops.
-    (LabelTypeEnum.NoSidewalk.name, "ends abruptly")               -> -1.00,
-    (LabelTypeEnum.NoSidewalk.name, "street has no sidewalks")     -> -1.00,
-    (LabelTypeEnum.NoSidewalk.name, "street has a sidewalk")       -> +1.00,
-    (LabelTypeEnum.NoSidewalk.name, "gravel/dirt road")            -> -0.25,
-    (LabelTypeEnum.NoSidewalk.name, "shared pedestrian/car space") -> +0.25,
-    (LabelTypeEnum.NoSidewalk.name, "covered walkway")             -> +0.50,
-    (LabelTypeEnum.NoSidewalk.name, "pedestrian lane marking")     -> +0.50
+    (LabelType.NoSidewalk.name, "ends abruptly")               -> -1.00,
+    (LabelType.NoSidewalk.name, "street has no sidewalks")     -> -1.00,
+    (LabelType.NoSidewalk.name, "street has a sidewalk")       -> +1.00,
+    (LabelType.NoSidewalk.name, "gravel/dirt road")            -> -0.25,
+    (LabelType.NoSidewalk.name, "shared pedestrian/car space") -> +0.25,
+    (LabelType.NoSidewalk.name, "covered walkway")             -> +0.50,
+    (LabelType.NoSidewalk.name, "pedestrian lane marking")     -> +0.50
   )
 
   // --- TUNABLE: StreetCondition tags that describe a point on the street rather than the whole stretch. A pooled
   // majority would only ever notice them on short streets (a sidewalk ends in one place, and labelers tag that one
   // pin), so they are active when any single cluster carries them at the active threshold (#5093). ---
-  val streetConditionPointTags: Set[(String, String)] = Set((LabelTypeEnum.NoSidewalk.name, "ends abruptly"))
+  val streetConditionPointTags: Set[(String, String)] = Set((LabelType.NoSidewalk.name, "ends abruptly"))
 
   // --- TUNABLE: a tag counts toward scoring when it appears on at least this fraction of the labels it is judged over
   // (a cluster's members, or a street's pooled members for a StreetCondition type). ---
@@ -237,7 +237,7 @@ object AccessScoreCalculator {
       // Features weigh half again as much; problems are unchanged.
       "infrastructure" -> default.map { case (t, w) => t -> (if (problems.contains(t)) w else w * 1.5) },
       // The one problem a curb-ramp program can fix, doubled, with the ramps themselves credited more too.
-      "missing_ramps" -> (default ++ Map(LabelTypeEnum.NoCurbRamp.name -> 2.0, LabelTypeEnum.CurbRamp.name -> 1.0))
+      "missing_ramps" -> (default ++ Map(LabelType.NoCurbRamp.name -> 2.0, LabelType.CurbRamp.name -> 1.0))
     )
   }
 

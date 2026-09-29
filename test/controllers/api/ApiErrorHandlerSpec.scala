@@ -2,12 +2,12 @@ package controllers.api
 
 import modules.CustomErrorHandler
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, Mode}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 /**
  * Verifies that framework-level errors (unknown route, malformed typed param, unhandled exception) on the public
@@ -17,7 +17,7 @@ import play.api.test.Helpers._
  * These exercise the error handler directly: Play's `route()` test helper returns `None` for an unmatched path
  * (it never invokes the error handler), so an unknown-route 404 can't be asserted through `route()`.
  */
-class ApiErrorHandlerSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ApiErrorHandlerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

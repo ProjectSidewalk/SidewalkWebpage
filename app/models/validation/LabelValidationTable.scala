@@ -2,7 +2,7 @@ package models.validation
 
 import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi, ValidatorType}
-import models.label.LabelTypeEnum.labelTypeNames
+import models.label.LabelType.labelTypeNames
 import models.label._
 import models.mission.MissionTableDef
 import models.user._
@@ -12,7 +12,6 @@ import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragmen
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime}
@@ -29,7 +28,7 @@ import scala.concurrent.ExecutionContext
 case class LabelValidation(
     labelValidationId: Int,
     labelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     validationResult: ValidationOption.Value,
     userId: String,
     missionId: Int,
@@ -66,7 +65,7 @@ case class ValidationCount(
 class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidation](tag, "label_validation") {
   def labelValidationId: Rep[Int]                   = column[Int]("label_validation_id", O.AutoInc)
   def labelId: Rep[Int]                             = column[Int]("label_id")
-  def labelType: Rep[LabelTypeEnum.Base]            = column[LabelTypeEnum.Base]("label_type")
+  def labelType: Rep[LabelType]                     = column[LabelType]("label_type")
   def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
   def userId: Rep[String]                           = column[String]("user_id")
   def missionId: Rep[Int]                           = column[Int]("mission_id")
@@ -161,7 +160,7 @@ class LabelValidationTable @Inject() (
   }
 
   /** The user's vote on the label as the given type, the one a new vote on that type replaces. */
-  def getValidation(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): DBIO[Option[LabelValidation]] = {
+  def getValidation(labelId: Int, userId: String, labelType: LabelType): DBIO[Option[LabelValidation]] = {
     validations
       .filter(x => x.labelId === labelId && x.userId === userId && x.labelType === labelType)
       .result
@@ -507,7 +506,7 @@ class LabelValidationTable @Inject() (
    * @return A database action that, when executed, will return a sequence of ValidationResultTypeForApi objects.
    */
   def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
-    getValidationCountsByValidatorRole.map { results: Seq[(Boolean, ValidationOption.Value, Int)] =>
+    getValidationCountsByValidatorRole.map { (results: Seq[(Boolean, ValidationOption.Value, Int)]) =>
       // Create a ValidationResultTypeForApi object for each validation result type.
       ValidationOption.values.toSeq
         .map { valResult =>

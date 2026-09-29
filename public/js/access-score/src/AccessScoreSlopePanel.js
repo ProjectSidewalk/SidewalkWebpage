@@ -103,8 +103,7 @@ class AccessScoreSlopePanel {
     const e = this.#els;
     e.weight.max = String(this.#config.grade_scoring.weight_range.max);
     e.statistic.innerHTML = this.#config.grade_scoring.statistics.map((id) => {
-      const key = `accessscore:slope-statistic-${id.replaceAll('_', '-')}`;
-      const name = i18next.exists(key) ? i18next.t(key) : id;
+      const name = i18next.t(`accessscore:slope-statistic-${id.replaceAll('_', '-')}`, { defaultValue: id });
       return `<option value="${util.escapeHTML(id)}">${util.escapeHTML(name)}</option>`;
     }).join('');
     const { min, max } = this.#config.grade_scoring.threshold_range;

@@ -2,7 +2,7 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import service.{ConfigService, ImageryFreshnessService, JobRunService, RegionService, StreetService}
@@ -71,7 +71,7 @@ class RecalculateStreetPriorityActor @Inject() (
           24.hours,
           self,
           RecalculateStreetPriorityActor.Tick
-        )(context.dispatcher)
+        )(context.dispatcher, ActorRef.noSender)
       )
       logger.info("RecalculateStreetPriorityActor created")
     }

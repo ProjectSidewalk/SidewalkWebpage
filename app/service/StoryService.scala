@@ -4,8 +4,8 @@ import com.drew.imaging.ImageMetadataReader
 import com.drew.metadata.exif.{ExifSubIFDDirectory, GpsDirectory}
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import models.label.LabelTypeEnum.AccessImpact
-import models.label.{LabelTypeEnum, LatLng}
+import models.label.AccessImpact
+import models.label.{LabelType, LatLng}
 import models.story._
 import models.utils.MyPostgresProfile.api._
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
@@ -357,7 +357,7 @@ class StoryServiceImpl @Inject() (
    * @param labelTypesById The label type of each label needing a preview, keyed by label id.
    * @return               Preview URL per label id; labels with no saved crop and no usable pano are absent.
    */
-  private def labelPreviewUrls(labelTypesById: Map[Int, LabelTypeEnum.Base]): Future[Map[Int, String]] = {
+  private def labelPreviewUrls(labelTypesById: Map[Int, LabelType]): Future[Map[Int, String]] = {
     if (labelTypesById.isEmpty) Future.successful(Map.empty)
     else
       db.run(labelTable.getPanoMetadataForLabels(labelTypesById.keys.toSeq)).map { metas =>

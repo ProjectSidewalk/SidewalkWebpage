@@ -28,11 +28,15 @@ import java.time.{LocalDate, OffsetDateTime, ZoneId, ZonedDateTime}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
-object TimeInterval extends Enumeration {
-  type TimeInterval = Value
-  val AllTime = Value("all_time")
-  val Week    = Value("week")
-  val Today   = Value("today")
+/** A window of time that the admin page reports stats over. `name` is how it is written in JSON. */
+enum TimeInterval(val name: String) {
+  case AllTime extends TimeInterval("all_time")
+  case Week    extends TimeInterval("week")
+  case Today   extends TimeInterval("today")
+}
+
+object TimeInterval {
+  implicit val writes: play.api.libs.json.Writes[TimeInterval] = v => play.api.libs.json.JsString(v.name)
 
   /**
    * When the interval starts: midnight Pacific for today, seven days ago for the week.
@@ -40,9 +44,9 @@ object TimeInterval extends Enumeration {
    * @return The start, or None for all time.
    */
   def start(interval: TimeInterval): Option[OffsetDateTime] = interval match {
-    case Today => Some(ZonedDateTime.now(ZoneId.of("US/Pacific")).truncatedTo(ChronoUnit.DAYS).toOffsetDateTime)
-    case Week  => Some(OffsetDateTime.now().minusDays(7))
-    case _     => None
+    case Today   => Some(ZonedDateTime.now(ZoneId.of("US/Pacific")).truncatedTo(ChronoUnit.DAYS).toOffsetDateTime)
+    case Week    => Some(OffsetDateTime.now().minusDays(7))
+    case AllTime => None
   }
 
   /**
@@ -52,9 +56,9 @@ object TimeInterval extends Enumeration {
    * @return A condition keeping rows in the interval; `TRUE` for all time.
    */
   def sqlFilter(interval: TimeInterval, column: String): String = interval match {
-    case Today => s"$column >= date_trunc('day', NOW() AT TIME ZONE 'US/Pacific') AT TIME ZONE 'US/Pacific'"
-    case Week  => s"$column >= NOW() - INTERVAL '7 days'"
-    case _     => "TRUE"
+    case Today   => s"$column >= date_trunc('day', NOW() AT TIME ZONE 'US/Pacific') AT TIME ZONE 'US/Pacific'"
+    case Week    => s"$column >= NOW() - INTERVAL '7 days'"
+    case AllTime => "TRUE"
   }
 }
 

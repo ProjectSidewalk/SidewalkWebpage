@@ -1,12 +1,12 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 /**
  * The AccessScore Spotlight is actually mounted on the two pages it belongs to (#5215).
@@ -19,7 +19,7 @@ import play.api.test.Helpers._
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class AccessScoreSpotlightPageSpec extends PlaySpec with GuiceOneAppPerSuite {
+class AccessScoreSpotlightPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

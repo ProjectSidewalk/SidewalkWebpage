@@ -12,7 +12,7 @@ move through panoramic street imagery and label accessibility features and probl
 aggregated, scored, and served back out through a public API and a set of dashboards.
 
 **Stack:**
-- **Backend** — Scala 2.13 + Play Framework 3.0 (Java 17).
+- **Backend** — Scala 3.3 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
 - **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenation only —
   no transpilation/module system), with no framework: native DOM and CSS on the `main.css` design tokens.
@@ -512,9 +512,9 @@ canonical color table and icon locations.
 
 Each type carries two independent domain facts, both published by that endpoint:
 
-- **access impact** (`LabelTypeEnum.AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
+- **access impact** (`AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
   that helps), or `neutral` (Occlusion and Other). This drives framing and copy.
-- **rating scale** (`LabelTypeEnum.RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
+- **rating scale** (`RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
   (1 is low, 3 is high), or `unrated` for a type whose labels never carry a 1–3 rating. Anything that *reads* a
   label's severity branches on this.
 

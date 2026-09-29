@@ -44,7 +44,7 @@ case class ExplorePageData(
 case class NewLabelData(
     labelId: Int,
     temporaryLabelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     panoSource: PanoSource,
     tutorial: Boolean,
     timeCreated: OffsetDateTime
@@ -439,7 +439,7 @@ class ExploreServiceImpl @Inject() (
               WHERE street_edge.street_edge_id = $streetEdgeId"""
           .as[Double]
           .headOption
-          .flatMap { startOffsetM: Option[Double] =>
+          .flatMap { (startOffsetM: Option[Double]) =>
             auditTaskTable.insert(
               AuditTask(0, None, userId, streetEdgeId, OffsetDateTime.now, OffsetDateTime.now, completed = false, lat,
                 lng, startPointReversed = false, Some(missionId), None, lowQuality = false, incomplete = false,
@@ -618,7 +618,7 @@ class ExploreServiceImpl @Inject() (
               WHERE street_edge.street_edge_id = $streetEdgeId"""
           .as[(Double, Option[Double])]
           .headOption
-          .map { row: Option[(Double, Option[Double])] =>
+          .map { (row: Option[(Double, Option[Double])]) =>
             row.exists { case (len, startOffsetM) =>
               len > 0d && walkedM - startOffsetM.getOrElse(0d) >= len * ExploreService.streetWalkedThreshold
             }
@@ -703,7 +703,7 @@ class ExploreServiceImpl @Inject() (
           missionId = missionId,
           userId = userId,
           panoId = label.panoId,
-          labelType = LabelTypeEnum.withName(label.labelType),
+          labelType = label.labelType,
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
           timeCreated = timeCreated,
@@ -731,8 +731,7 @@ class ExploreServiceImpl @Inject() (
       )
       _ <- labelPointTable.computeCenterlineOffset(newLabelPointId, calculatedStreetEdgeId)
     } yield {
-      NewLabelData(newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource,
-        label.tutorial, timeCreated)
+      NewLabelData(newLabelId, label.temporaryLabelId, label.labelType, label.panoSource, label.tutorial, timeCreated)
     }
   }
 
@@ -822,7 +821,7 @@ class ExploreServiceImpl @Inject() (
   def savePanoInfo(panos: Seq[PanoSubmission]): Future[Boolean] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
     // asTry so one pano's failure can't abort the rest of the batch; failures are logged below.
-    val panoSubmissionActions = panos.map { pano: PanoSubmission => savePanoAction(pano, currTime).asTry }
+    val panoSubmissionActions = panos.map { (pano: PanoSubmission) => savePanoAction(pano, currTime).asTry }
 
     db.run(DBIO.sequence(panoSubmissionActions))
       .map { results =>
@@ -962,8 +961,8 @@ class ExploreServiceImpl @Inject() (
 
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)
-      .flatMap { auditTaskId: Int =>
-        missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
+      .flatMap { (auditTaskId: Int) =>
+        missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType.Value]) =>
           // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
           // client; a free-exploration drop-in has no such client signal, so the server derives it from how far the
           // user walked (#4451). Deriving it also means a forged completed=true can't mark a drop-in street audited.
@@ -979,7 +978,7 @@ class ExploreServiceImpl @Inject() (
             case Some(MissionType.Audit) if data.auditTask.completed.getOrElse(false) => completeTaskAction
             case Some(MissionType.ExploreAddress)                                     =>
               streetWalkedFarEnough(auditTaskId, streetEdgeId, data.auditTask.auditedDistanceM).flatMap {
-                farEnough: Boolean => if (farEnough) completeTaskAction else DBIO.successful(0)
+                (farEnough: Boolean) => if (farEnough) completeTaskAction else DBIO.successful(0)
               }
             case _ => DBIO.successful(0)
           }
@@ -1003,13 +1002,12 @@ class ExploreServiceImpl @Inject() (
 
           // Insert any labels.
           val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
-            data.labels.map { label: LabelSubmission =>
-              val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(label.labelType)
+            data.labels.map { (label: LabelSubmission) =>
               labelTable.find(label.temporaryLabelId, userId).flatMap {
                 case Some(existingLabel) =>
                   // If there is already a label with this temp id but a mismatched label type, the user probably has the
                   // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
-                  if (existingLabel.labelType != labelType) {
+                  if (existingLabel.labelType != label.labelType) {
                     refreshPage = true
                     DBIO.successful(None)
                   } else {

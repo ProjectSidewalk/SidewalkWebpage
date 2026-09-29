@@ -2,9 +2,8 @@ package formats.json
 
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
-import formats.json.LabelFormats.labelTypeReads
 import formats.json.PanoFormats._
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.CommonUtils.ViewerType.ViewerType
 import models.utils.CommonUtils.{UiSource, ViewerType}
@@ -51,8 +50,8 @@ object ValidateFormats {
   case class LabelValidationSubmission(
       labelId: Int,
       missionId: Int,
-      labelType: Option[LabelTypeEnum.Base],
-      newLabelType: Option[LabelTypeEnum.Base],
+      labelType: Option[LabelType],
+      newLabelType: Option[LabelType],
       validationResult: ValidationOption.Value,
       severity: Option[Int],
       tags: List[String],
@@ -81,7 +80,7 @@ object ValidateFormats {
    * @param validateParams   The page's filters, so replacements match the rest of the mission.
    */
   case class MoreLabelsRequest(
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       labelsNeeded: Int,
       excludedLabelIds: Seq[Int],
       validateParams: ValidateParams
@@ -92,7 +91,7 @@ object ValidateFormats {
       missionType: String,
       labelsProgress: Int,
       labelsTotal: Int,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       completed: Boolean
   )
   case class ValidationTaskSubmission(
@@ -112,8 +111,8 @@ object ValidateFormats {
    */
   case class LabelMapValidationSubmission(
       labelId: Int,
-      labelType: LabelTypeEnum.Base,
-      newLabelType: Option[LabelTypeEnum.Base],
+      labelType: LabelType,
+      newLabelType: Option[LabelType],
       validationResult: ValidationOption.Value,
       severity: Option[Int],
       tags: List[String],
@@ -139,8 +138,8 @@ object ValidateFormats {
    */
   case class LabelEditSubmission(
       labelId: Int,
-      labelType: Option[LabelTypeEnum.Base],
-      newLabelType: Option[LabelTypeEnum.Base],
+      labelType: Option[LabelType],
+      newLabelType: Option[LabelType],
       severity: Option[Int],
       tags: List[String],
       source: UiSource
@@ -210,8 +209,8 @@ object ValidateFormats {
   implicit val labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "label_type").readNullable[LabelTypeEnum.Base] and
-      (JsPath \ "new_label_type").readNullable[LabelTypeEnum.Base] and
+      (JsPath \ "label_type").readNullable[LabelType] and
+      (JsPath \ "new_label_type").readNullable[LabelType] and
       (JsPath \ "validation_result").read[ValidationOption.Value] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
@@ -236,7 +235,7 @@ object ValidateFormats {
       (JsPath \ "mission_type").read[String] and
       (JsPath \ "labels_progress").read[Int] and
       (JsPath \ "labels_total").read[Int] and
-      (JsPath \ "label_type").read[LabelTypeEnum.Base] and
+      (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "completed").read[Boolean]
   )(ValidationMissionProgress.apply _)
 
@@ -244,7 +243,7 @@ object ValidateFormats {
   // `admin_version` too, but as an exception, which would answer a malformed body with a 500 instead of this 400.
   implicit val adminValidateParamsReads: Reads[ValidateParams] = (
     (JsPath \ "admin_version").read[Boolean] and
-      (JsPath \ "label_type").readNullable[LabelTypeEnum.Base] and
+      (JsPath \ "label_type").readNullable[LabelType] and
       (JsPath \ "user_ids").readNullable[Seq[String]] and
       (JsPath \ "region_ids").readNullable[Seq[Int]] and
       (JsPath \ "unvalidated_only").read[Boolean] and
@@ -272,8 +271,8 @@ object ValidateFormats {
 
   implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
-      (JsPath \ "label_type").read[LabelTypeEnum.Base] and
-      (JsPath \ "new_label_type").readNullable[LabelTypeEnum.Base] and
+      (JsPath \ "label_type").read[LabelType] and
+      (JsPath \ "new_label_type").readNullable[LabelType] and
       (JsPath \ "validation_result").read[ValidationOption.Value] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
@@ -294,15 +293,15 @@ object ValidateFormats {
 
   implicit val labelEditSubmissionReads: Reads[LabelEditSubmission] = (
     (JsPath \ "label_id").read[Int] and
-      (JsPath \ "label_type").readNullable[LabelTypeEnum.Base] and
-      (JsPath \ "new_label_type").readNullable[LabelTypeEnum.Base] and
+      (JsPath \ "label_type").readNullable[LabelType] and
+      (JsPath \ "new_label_type").readNullable[LabelType] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
       (JsPath \ "source").read[UiSource.Value]
   )(LabelEditSubmission.apply _)
 
   implicit val moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
-    (JsPath \ "label_type").read[LabelTypeEnum.Base] and
+    (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "labels_needed").read[Int] and
       (JsPath \ "excluded_label_ids").read[Seq[Int]] and
       (JsPath \ "validate_params").read[ValidateParams]

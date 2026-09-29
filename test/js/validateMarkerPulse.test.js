@@ -84,6 +84,10 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         util.isMobile = () => false;
         util.uiScale = () => 1;
         util.camelToKebab = (str) => str.toLowerCase();
+        util.misc = {
+            ...util.misc,
+            labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
+        };
         // jsdom has no WebGL, so PanoMarker falls back to the 2d projection; where the marker lands is irrelevant
         // here, only what classes/properties it carries. Returning null directly (jsdom's effective behavior)
         // keeps the fallback deterministic without jsdom's "not implemented" console noise.

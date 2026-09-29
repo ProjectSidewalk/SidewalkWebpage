@@ -167,7 +167,7 @@ class AccessScoreSidebar {
     const weights = root.querySelector('#acs-weights');
     weights.innerHTML = this.#config.scored_types.map((type) => {
       const problem = this.#config.type_weights[type].base_weight < 0;
-      const name = AccessScoreChart.typeName(type);
+      const name = util.misc.labelTypeName(type);
       const role = i18next.t(problem ? 'accessscore:row-hurts' : 'accessscore:row-helps');
       const roleTitle = i18next.t(problem ? 'accessscore:weight-problem' : 'accessscore:weight-feature');
       return `
@@ -190,8 +190,7 @@ class AccessScoreSidebar {
     const categories = this.#config.place_categories ?? [];
     const placeRows = root.querySelector('#acs-place-categories');
     placeRows.innerHTML = categories.map((category) => {
-      const key = `accessscore:place-${category}`;
-      const name = i18next.exists(key) ? i18next.t(key) : category;
+      const name = i18next.t(`accessscore:place-${category}`, { defaultValue: category });
       const icon = util.assetPath(`images/icons/${AccessScorePlacesLayer.presentation(category).icon}`);
       // "Only" is the shared filter sidebar's exclusive select; its visible text gets the row's name for a screen
       // reader, since the button swaps in for the count on hover and focus and reads as a bare "Only" otherwise.

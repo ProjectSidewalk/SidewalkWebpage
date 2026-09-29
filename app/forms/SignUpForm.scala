@@ -22,7 +22,7 @@ object SignUpForm {
       "password"        -> PasswordPolicy.newPassword,
       "passwordConfirm" -> nonEmptyText,
       "terms"           -> boolean.verifying("authenticate.error.terms.required", value => value)
-    )(SignUpData.apply)(SignUpData.unapply).verifying(
+    )(SignUpData.apply)((d: SignUpData) => Some(Tuple.fromProductTyped(d))).verifying(
       "authenticate.error.password.mismatch",
       fields => fields.password == fields.passwordConfirm
     )

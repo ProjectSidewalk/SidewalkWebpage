@@ -37,10 +37,9 @@ class CustomErrorHandler @Inject() (
    */
   private def isApiRequest(request: RequestHeader): Boolean = request.path.startsWith("/v3/api/")
 
-  /** City-specific files the frontend requests in case they exist, then falls back to the generic one (#5366). */
+  /** City-specific tag images the frontend requests in case they exist, then falls back to the generic one (#5366). */
   private def isOptionalCityAsset(path: String): Boolean =
-    (path.startsWith("/assets/locales/") && (path.endsWith("-india.json") || path.endsWith("-zurich.json"))) ||
-      path.startsWith("/assets/images/examples/tags/india/") ||
+    path.startsWith("/assets/images/examples/tags/india/") ||
       path.startsWith("/assets/images/examples/tags/zurich/")
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
@@ -55,7 +54,7 @@ class CustomErrorHandler @Inject() (
 
     if (!shouldSkipLogging) {
       logger.warn(s"Client error occurred: ${request.uri} - $statusCode - $message")
-      logUserInfo(request)
+      val _ = logUserInfo(request)
     }
     // API requests get the same RFC 7807 problem+json envelope the controllers use, so framework-level errors
     // (unknown route, malformed typed route param, etc.) are consistent with handler-level errors (#3931).

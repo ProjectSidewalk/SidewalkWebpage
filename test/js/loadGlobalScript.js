@@ -32,6 +32,20 @@ function loadGlobalScript(relativePath) {
 }
 
 /**
+ * Evaluates a vendored library into the page, the way its <script> tag would.
+ *
+ * Found by folder rather than by filename, which carries the version and would go stale on the next bump.
+ *
+ * @param {string} folder - The library's folder under public/vendor/, e.g. "i18next".
+ */
+function loadVendored(folder) {
+    const dir = path.join(REPO_ROOT, 'public/vendor', folder);
+    const bundle = fs.readdirSync(dir).find((name) => name.endsWith('.js'));
+    if (!bundle) throw new Error(`no bundle in ${dir}`);
+    window.eval(fs.readFileSync(path.join(dir, bundle), 'utf8'));
+}
+
+/**
  * Stands in for `util.assetPath` in suites that assemble their own minimal `util` instead of loading utilities.js.
  *
  * Returns the unstamped result — plain `/assets/<logical path>` — which is what any page without a
@@ -45,7 +59,7 @@ const assetPathStub = (logicalPath) => `/assets/${logicalPath}`;
 /**
  * Stamps `window.labelTypes` the way main.scala.html does, so `util.misc` has a label-type table to build from.
  *
- * The fixture is a committed copy of what LabelTypeEnum serializes, and LabelTypeEnumSpec fails if the two diverge —
+ * The fixture is a committed copy of what LabelType serializes, and LabelTypeSpec fails if the two diverge —
  * so this can't quietly become the stale duplicate that sourcing the table from the backend was meant to remove.
  */
 function stampLabelTypes() {
@@ -84,5 +98,5 @@ function installDateHelpers() {
 }
 
 module.exports = {
-    loadGlobalScript, REPO_ROOT, assetPathStub, installUtilitiesMisc, installDateHelpers, stampLabelTypes,
+    loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub, installUtilitiesMisc, installDateHelpers, stampLabelTypes,
 };

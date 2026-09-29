@@ -277,7 +277,7 @@ object SidewalkPresenceTable {
    * `validated_no_sidewalk_count`, the top confidence tier the API exposes. `correct` is the strict majority of the
    * Agree/Disagree votes on the label ([[service.ValidationService.updateValidationCounts]]: self-votes and excluded
    * users' votes never count), so one vote on an otherwise unvalidated label decides it. The tier is human-only
-   * because [[models.label.LabelTypeEnum.aiLabelTypes]] leaves NoSidewalk out of AI validation; AI votes reach
+   * because [[models.label.LabelType.aiLabelTypes]] leaves NoSidewalk out of AI validation; AI votes reach
    * `correct` like any other, so adding it there would silently make this an AI-confirmed tier.
    *
    * Labels *and* audits from `user_stat.excluded` contributors are dropped, the population [[models.label.LabelTable.labels]]

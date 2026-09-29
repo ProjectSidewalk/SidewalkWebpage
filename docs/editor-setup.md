@@ -11,7 +11,7 @@ while compilation and the dev server happen in the web container via `npm start`
 
 ## A note on the JDK
 
-The project targets **Java 17** (`build.sbt` sets `-source/-target 17`) and **Scala 2.13**. The app compiles inside
+The project targets **Java 17** (`build.sbt` sets `-source/-target 17`) and **Scala 3.3**. The app compiles inside
 the Docker container, which already has the right JDK, so you don't strictly need a local JDK to run Project Sidewalk.
 You *do* want one installed locally for your editor's language tooling (indexing, navigation, inline errors) to work.
 Install a **Java 17** JDK (e.g. [Temurin 17](https://adoptium.net/temurin/releases/?version=17), or

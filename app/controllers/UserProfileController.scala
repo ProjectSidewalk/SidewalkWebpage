@@ -7,7 +7,7 @@ import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats._
 import models.auth._
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.user.Role
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.ProfanityGuard
@@ -201,7 +201,7 @@ class UserProfileController @Inject() (
       logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
       authenticationService.findByUserId(userId).flatMap {
         case Some(user) =>
-          val labelTypes: Set[LabelTypeEnum.Base] = LabelTypeEnum.primaryValidateLabelTypes
+          val labelTypes: Set[LabelType] = LabelType.primaryValidateLabelTypes
           labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).flatMap { validations =>
             val labelIds: Seq[Int] = labelTypes.toSeq.flatMap(validations(_).map(_.labelId))
             cropService.cropMarkers(labelIds).map { markers =>

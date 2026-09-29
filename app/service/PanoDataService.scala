@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.PanoFormats.PanoHistorySubmission
-import models.label.{LabelPointTable, LabelTypeEnum, POV}
+import models.label.{LabelPointTable, LabelType, POV}
 import models.pano.PanoSource.PanoSource
 import models.pano._
 import models.street.StreetEdge
@@ -15,6 +15,8 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.http.ContentTypes
 import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables._
+import play.api.libs.ws.WSBodyReadables._
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
   infra3dTokenNeedsRemint,
@@ -545,9 +547,9 @@ trait PanoDataService {
   def markHasBackup(panoId: String): Future[Int]
   def getCropDirectory: String
   def cropFile(labelId: Int, labelType: String): File
-  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
-  def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
-  def moveCrop(labelId: Int, from: LabelTypeEnum.Base, to: LabelTypeEnum.Base): Boolean
+  def cropExists(labelId: Int, labelType: LabelType): Boolean
+  def cropUrl(labelId: Int, labelType: LabelType): Option[String]
+  def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean
   def localBackupImageFile(panoId: String): Option[File]
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
 }
@@ -772,7 +774,9 @@ class PanoDataServiceImpl @Inject() (
               .map(_ => Some(false))
           case other =>
             // Inconclusive (rate limit, 5xx, unexpected body). Don't assume the picture is gone.
-            logger.info(s"Panoramax existence check inconclusive ($other) for $panoId: ${response.body.take(200)}")
+            logger.info(
+              s"Panoramax existence check inconclusive ($other) for $panoId: ${response.body[String].take(200)}"
+            )
             Future.successful(None)
         }
       }
@@ -988,11 +992,11 @@ class PanoDataServiceImpl @Inject() (
     new File(new File(cropsDir, labelType), s"crop_$labelId.png")
 
   /** Checks whether a crop image file exists for the given label. */
-  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean =
+  def cropExists(labelId: Int, labelType: LabelType): Boolean =
     cropFile(labelId, labelType.name).exists()
 
   /** Returns a signed crop image URL if a crop file exists for the given label, or None otherwise. */
-  def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String] =
+  def cropUrl(labelId: Int, labelType: LabelType): Option[String] =
     if (cropExists(labelId, labelType)) Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId"))
     else None
 
@@ -1002,7 +1006,7 @@ class PanoDataServiceImpl @Inject() (
    * fresh crop under the new type on its next run either way.
    * @return Whether a file was moved.
    */
-  def moveCrop(labelId: Int, from: LabelTypeEnum.Base, to: LabelTypeEnum.Base): Boolean = {
+  def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean = {
     val source = cropFile(labelId, from.name)
     val target = cropFile(labelId, to.name)
     if (from == to || !source.isFile) false

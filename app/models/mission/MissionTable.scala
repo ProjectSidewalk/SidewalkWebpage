@@ -3,7 +3,7 @@ package models.mission
 import com.google.inject.ImplementedBy
 import models.mission.MissionTable.{labelmapValidationMissionLength, normalValidationMissionLength}
 import models.audit.AuditTaskTableDef
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.region.RegionTableDef
 import models.route.UserRouteTableDef
 import models.user.{SidewalkUserTable, SidewalkUserTableDef}
@@ -30,7 +30,7 @@ case class Mission(
     regionId: Option[Int],
     labelsValidated: Option[Int],
     labelsProgress: Option[Int],
-    labelType: Option[LabelTypeEnum.Base],
+    labelType: Option[LabelType],
     skipped: Boolean,
     currentAuditTaskId: Option[Int],
     userRouteId: Option[Int]
@@ -41,20 +41,20 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
   def missionType: Rep[MissionType.Value] = column[MissionType.Value]("mission_type")
   def userId: Rep[String]                 = column[String]("user_id")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
-  def missionStart: Rep[OffsetDateTime]          = column[OffsetDateTime]("mission_start")
-  def missionEnd: Rep[OffsetDateTime]            = column[OffsetDateTime]("mission_end")
-  def completed: Rep[Boolean]                    = column[Boolean]("completed", O.Default(false))
-  def pay: Rep[Double]                           = column[Double]("pay", O.Default(0.0))
-  def paid: Rep[Boolean]                         = column[Boolean]("paid", O.Default(false))
-  def distanceMeters: Rep[Option[Double]]        = column[Option[Double]]("distance_meters")
-  def distanceProgress: Rep[Option[Double]]      = column[Option[Double]]("distance_progress")
-  def regionId: Rep[Option[Int]]                 = column[Option[Int]]("region_id")
-  def labelsValidated: Rep[Option[Int]]          = column[Option[Int]]("labels_validated")
-  def labelsProgress: Rep[Option[Int]]           = column[Option[Int]]("labels_progress")
-  def labelType: Rep[Option[LabelTypeEnum.Base]] = column[Option[LabelTypeEnum.Base]]("label_type")
-  def skipped: Rep[Boolean]                      = column[Boolean]("skipped", O.Default(false))
-  def currentAuditTaskId: Rep[Option[Int]]       = column[Option[Int]]("current_audit_task_id")
-  def userRouteId: Rep[Option[Int]]              = column[Option[Int]]("user_route_id")
+  def missionStart: Rep[OffsetDateTime]     = column[OffsetDateTime]("mission_start")
+  def missionEnd: Rep[OffsetDateTime]       = column[OffsetDateTime]("mission_end")
+  def completed: Rep[Boolean]               = column[Boolean]("completed", O.Default(false))
+  def pay: Rep[Double]                      = column[Double]("pay", O.Default(0.0))
+  def paid: Rep[Boolean]                    = column[Boolean]("paid", O.Default(false))
+  def distanceMeters: Rep[Option[Double]]   = column[Option[Double]]("distance_meters")
+  def distanceProgress: Rep[Option[Double]] = column[Option[Double]]("distance_progress")
+  def regionId: Rep[Option[Int]]            = column[Option[Int]]("region_id")
+  def labelsValidated: Rep[Option[Int]]     = column[Option[Int]]("labels_validated")
+  def labelsProgress: Rep[Option[Int]]      = column[Option[Int]]("labels_progress")
+  def labelType: Rep[Option[LabelType]]     = column[Option[LabelType]]("label_type")
+  def skipped: Rep[Boolean]                 = column[Boolean]("skipped", O.Default(false))
+  def currentAuditTaskId: Rep[Option[Int]]  = column[Option[Int]]("current_audit_task_id")
+  def userRouteId: Rep[Option[Int]]         = column[Option[Int]]("user_route_id")
 
   def * =
     (missionId, missionType, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress,
@@ -177,7 +177,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * @param labelType the label type for which to get the AI validation mission ID
    * @return DBIO[Int] - the mission ID for the AI validation mission of the given label type
    */
-  def getAiValidateMissionId(labelType: LabelTypeEnum.Base): DBIO[Int] = {
+  def getAiValidateMissionId(labelType: LabelType): DBIO[Int] = {
     missions
       .filter(m => m.labelType === labelType && m.missionType === MissionType.AiValidation)
       .map(_.missionId)
@@ -192,12 +192,12 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * carries 281 as applied without them, and getAiValidateMissionId is `.head`, so the first AI validation would
    * throw. The rows are 281's: one label to validate, no progress, never completed.
    *
-   * @return The label types whose mission was inserted, in [[LabelTypeEnum.ordered]] order; empty when none was.
+   * @return The label types whose mission was inserted, in [[LabelType.ordered]] order; empty when none was.
    */
-  def insertMissingAiValidationMissions(): DBIO[Seq[LabelTypeEnum.Base]] = {
+  def insertMissingAiValidationMissions(): DBIO[Seq[LabelType]] = {
     val now: OffsetDateTime = OffsetDateTime.now
     DBIO
-      .sequence(LabelTypeEnum.ordered.map { labelType =>
+      .sequence(LabelType.ordered.map { labelType =>
         missions
           .filter(m =>
             m.userId === SidewalkUserTable.aiUserId && m.missionType === MissionType.AiValidation
@@ -218,7 +218,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
 
   def getCurrentValidationMission(
       userId: String,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       missionType: MissionType.Value
   ): DBIO[Option[Mission]] = {
     missions
@@ -328,7 +328,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def createNextValidationMission(
       userId: String,
       labelsToValidate: Int,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       missionType: MissionType.Value
   ): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
@@ -414,7 +414,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       .filter(_.missionId === missionId)
       .map(_.distanceMeters)
       .result
-      .flatMap { missionList: Seq[Option[Double]] =>
+      .flatMap { (missionList: Seq[Option[Double]]) =>
         missionList.head match {
           case Some(missionDistance) =>
             val missionToUpdate = for {

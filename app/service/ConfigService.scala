@@ -11,6 +11,7 @@ import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables._
 import play.api.{Configuration, Logger}
 import play.twirl.api.Html
 import slick.dbio.DBIO
@@ -102,7 +103,11 @@ case class CommonPageData(
     volunteerSupervisor: String,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
-    assetDigestsJson: Html
+    assetDigestsJson: Html,
+    // Every translation file under public/locales/, so i18next only asks for ones that exist (#5570).
+    localeFilesJson: Html,
+    // Every language the site offers (play.i18n.langs), so i18next only asks for translation files that exist.
+    supportedLanguages: Seq[String]
 ) {
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
@@ -428,7 +433,7 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
- * @param labelsSeverityEligible  Labels whose type CAN take a rating (LabelTypeEnum.ratedTypeNames) — the correct
+ * @param labelsSeverityEligible  Labels whose type CAN take a rating (LabelType.ratedTypeNames) — the correct
  *                                denominator for "% with severity".
  * @param labelsWithTags          Subset of totalLabels that have at least one tag applied.
  * @param labelsTagEligible       Labels whose type CAN take tags (types present in this deployment's tag table) — the
@@ -2322,16 +2327,17 @@ class ConfigServiceImpl @Inject() (
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
       prodUrl: String           = config.get[String](s"city-params.landing-page-url.prod.$cityId")
       imageryAccess: ImageryAccessToken <- getImageryAccessToken
-      gMapsApiKey: String         = config.get[String]("google-maps-api-key")
-      mapboxApiKey: String        = config.get[String]("mapbox-api-key")
-      allCityInfo: Seq[CityInfo]  = getAllCityInfo(lang)
-      volunteerEmail: String      = config.get[String]("volunteer-email-address")
-      volunteerSupervisor: String = config.get[String]("volunteer-supervisor-name")
+      gMapsApiKey: String             = config.get[String]("google-maps-api-key")
+      mapboxApiKey: String            = config.get[String]("mapbox-api-key")
+      allCityInfo: Seq[CityInfo]      = getAllCityInfo(lang)
+      volunteerEmail: String          = config.get[String]("volunteer-email-address")
+      volunteerSupervisor: String     = config.get[String]("volunteer-supervisor-name")
+      supportedLanguages: Seq[String] = config.get[Seq[String]]("play.i18n.langs")
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
         gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
         BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
-        assetManifestService.assetDigestsJson)
+        assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson, supportedLanguages)
     }
   }
 }

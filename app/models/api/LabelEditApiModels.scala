@@ -4,7 +4,7 @@
  */
 package models.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.utils.CommonUtils.UiSource.UiSource
 import play.api.libs.json.JsObject
 
@@ -23,7 +23,7 @@ import java.time.OffsetDateTime
 case class LabelEditFiltersForApi(
     labelId: Option[Int] = None,
     userId: Option[String] = None,
-    labelType: Option[LabelTypeEnum.Base] = None,
+    labelType: Option[LabelType] = None,
     editTimestamp: Option[OffsetDateTime] = None,
     source: Option[UiSource] = None,
     withValidation: Option[Boolean] = None

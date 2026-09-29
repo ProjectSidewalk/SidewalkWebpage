@@ -1,5 +1,5 @@
 @import controllers.helper.ControllerUtils
-@import models.label.LabelTypeEnum
+@import models.label.LabelType
 @import models.pano.ImageryAttribution
 @import models.utils.PanoScoring
 @import play.api.libs.json.Json
@@ -51,8 +51,8 @@
     @extraHead
     @* Deferred: i18next is only touched from AppManager's DOM-ready callback, which runs after deferred scripts
        execute, so these don't need to block HTML parsing. *@
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")' defer></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.6.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next/i18next-26.4.2.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-4.0.2.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
 
     <script>
@@ -90,11 +90,11 @@
        the live viewer name the same licence the same way. PanoramaxViewer shows an identifier it can't find here
        verbatim, so a page that never stamps this (jsdom, the error pages) degrades rather than breaks. *@
     <script>window.panoramaxLicenses = @Html(ImageryAttribution.panoramaxLicensesJson);</script>
-    @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelTypeEnum
+    @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelType
        owns it; utilitiesSidewalk.js builds every label-type lookup from this rather than keeping a parallel set of
        literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
        that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
-    <script>window.labelTypes = @Html(LabelTypeEnum.pageStampJson);</script>
+    <script>window.labelTypes = @Html(LabelType.pageStampJson);</script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
@@ -108,6 +108,8 @@
         const csrfToken = "@CSRF.getToken.map(_.value)";
         const i18nextParams = {
           language: "@messages.lang.code",
+          supportedLanguages: @Html(Json.stringify(Json.toJson(commonData.supportedLanguages))),
+          localeFiles: @commonData.localeFilesJson,
           defaultNS: "@defaultI18nNamespace",
           namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
           countryId: "@currentCity.countryId",

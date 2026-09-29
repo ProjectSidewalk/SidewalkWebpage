@@ -3,12 +3,11 @@ package models.place
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import scala.io.Source
 
@@ -21,7 +20,12 @@ import scala.io.Source
  * The seeded world is [[util.StreetFixtures]]'s: a region that is the unit square and a street along its bottom edge,
  * both at the equator, so a place a fraction of a degree in sits in the region and a known distance from the street.
  */
-class PlaceTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures with OptionValues {
+class PlaceTableSpec
+    extends SidewalkSpec
+    with GuiceOneAppPerSuite
+    with RolledBackDb
+    with StreetFixtures
+    with OptionValues {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

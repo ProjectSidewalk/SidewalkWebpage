@@ -6,7 +6,6 @@ import models.user.Role
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.mvc.Cookie
@@ -25,11 +24,11 @@ import scala.concurrent.duration._
  * route and promoted with a DB write, mirroring how a throwaway admin is made for QA; the promotion is undone in
  * `afterAll` so no standing admin is left in a shared development database. The account is identified by resolving
  * the session's own authenticator, so concurrently running suites minting their own sessions can't be confused for
- * it. Mix into a `PlaySpec` **before** `GuiceOneAppPerSuite` (`PlaySpec with RoleSession with GuiceOneAppPerSuite
+ * it. Mix into a `SidewalkSpec` **before** `GuiceOneAppPerSuite` (`SidewalkSpec with RoleSession with GuiceOneAppPerSuite
  * with AnonSession`): the demotion in `afterAll` needs the app's DB pool, and a trait mixed in later would run its
  * `afterAll` outside the app's lifetime.
  */
-trait RoleSession extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPerSuite with AnonSession =>
+trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec with GuiceOneAppPerSuite with AnonSession =>
 
   private lazy val roleSessionDbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 

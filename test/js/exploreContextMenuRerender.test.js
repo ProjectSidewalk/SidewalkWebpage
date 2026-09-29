@@ -49,6 +49,7 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
             camelToKebab: (s) => s,
             anchorPanelToLabel: jest.fn(),
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
                 getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
                 // False everywhere, which is what switches off the severity menu, its smiley images, and its
                 // tooltips — none of which this file is about.

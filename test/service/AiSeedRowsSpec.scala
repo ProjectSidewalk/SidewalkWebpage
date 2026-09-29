@@ -1,13 +1,12 @@
 package service
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.user.SidewalkUserTable
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * The SidewalkAI seed-row self-heal (#5349): a schema that never ran 281.sql as an evolution gets the AI's user_stat
@@ -17,7 +16,7 @@ import util.RolledBackDb
  * references user_stat), and the missions are moved to another mission_type instead of deleted, since label_validation
  * rows (CI's seed has one) reference them.
  */
-class AiSeedRowsSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class AiSeedRowsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -51,10 +50,10 @@ class AiSeedRowsSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
         missions <- aiMissions
       } yield (first, second, statRow, missions))
 
-      first mustBe AiSeedRows(statRowInserted = true, LabelTypeEnum.ordered)
+      first mustBe AiSeedRows(statRowInserted = true, LabelType.ordered)
       second mustBe AiSeedRows(statRowInserted = false, Seq.empty)
       statRow mustBe Seq((true, Some(true), false))
-      missions.map(_._1) mustBe LabelTypeEnum.orderedNames
+      missions.map(_._1) mustBe LabelType.orderedNames
       missions.map(m => (m._2, m._3, m._4)).distinct mustBe Seq((Some(1), Some(0), false))
     }
 
@@ -66,9 +65,9 @@ class AiSeedRowsSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
         labelTypes <- aiMissions.map(_.map(_._1))
       } yield (healed, labelTypes))
 
-      healed mustBe AiSeedRows(statRowInserted = false, Seq(LabelTypeEnum.Signal, LabelTypeEnum.Occlusion))
+      healed mustBe AiSeedRows(statRowInserted = false, Seq(LabelType.Signal, LabelType.Occlusion))
       // Distinct: CI's seed adds a second CurbRamp mission for the AI, which the heal rightly leaves alone.
-      labelTypes.distinct.sorted mustBe LabelTypeEnum.orderedNames.sorted
+      labelTypes.distinct.sorted mustBe LabelType.orderedNames.sorted
     }
   }
 }

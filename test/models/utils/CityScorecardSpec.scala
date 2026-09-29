@@ -1,7 +1,6 @@
 package models.utils
 
-import models.label.LabelTypeEnum
-import org.scalatestplus.play.PlaySpec
+import models.label.LabelType
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -9,6 +8,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import models.utils.MyPostgresProfile.api._
 import models.api.AggregateStats
 import service.CityScorecard
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -25,7 +25,7 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
+class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -78,7 +78,7 @@ class CityScorecardSpec extends PlaySpec with GuiceOneAppPerSuite {
     }
     "report every label type in the scorecard's per-type breakdown, zero counts included" in {
       // The per-type query LEFT JOINs labels onto the full type list so a type with no labels still gets a row.
-      run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelTypeEnum.labelTypeNames
+      run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelType.labelTypeNames
     }
     "execute getCityWeeklyTrendBySchema (all-time and windowed)" in {
       run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[_]]

@@ -12,7 +12,6 @@ import models.utils.{ConfigTableDef, FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 
 import java.time.{LocalDate, OffsetDateTime}
 import javax.inject._
@@ -404,7 +403,7 @@ class AuditTaskTable @Inject() (
       streetsWithAuditedStatus
     }
 
-    db.run(streetsWithAuditedStatusFiltered.result).map(s => s.map(StreetEdgeWithAuditStatus.tupled))
+    db.run(streetsWithAuditedStatusFiltered.result).map(s => s.map(StreetEdgeWithAuditStatus.apply.tupled))
   }
 
   /**
@@ -418,7 +417,7 @@ class AuditTaskTable @Inject() (
       _ur <- userRoleTable if _ut.userId === _ur.userId
     } yield (_se.streetEdgeId, _at.auditTaskId, _ut.userId, _ur.role, _ut.highQuality, _at.taskStart, _at.taskEnd,
       _se.geom)
-    auditedStreets.result.map(_.map(AuditedStreetWithTimestamp.tupled))
+    auditedStreets.result.map(_.map(AuditedStreetWithTimestamp.apply.tupled))
   }
 
   /**
@@ -528,7 +527,7 @@ class AuditTaskTable @Inject() (
       .sortBy { case (streetEdgeId, _, _, _, _, lastAudited) => (lastAudited.asc.nullsLast, streetEdgeId.asc) }
       .take(limit)
       .result
-      .map(_.map(OutdatedStreetForUser.tupled))
+      .map(_.map(OutdatedStreetForUser.apply.tupled))
   }
 
   /**
@@ -611,7 +610,7 @@ class AuditTaskTable @Inject() (
       false,             // completed
       None: Option[Int], // auditTaskId is None for a new task.
       Some(missionId).asColumnOf[Option[Int]],
-      None: Option[Point], // currentMissionStart is None for a new task.
+      LiteralColumn[Option[Point]](None), // currentMissionStart is None for a new task.
       routeStreetId,
       routeStreetPosition,
       sms._2,  // maxSpeed
@@ -622,7 +621,7 @@ class AuditTaskTable @Inject() (
       scau._6  // newImageryDate
     )
 
-    edges.result.head.map(NewTask.tupled)
+    edges.result.head.map(NewTask.apply.tupled)
   }
 
   /**
@@ -647,19 +646,19 @@ class AuditTaskTable @Inject() (
           false,             // completed is always false for a new task.
           None: Option[Int], // auditTaskId is None for a new task.
           missionId.asColumnOf[Option[Int]],
-          None: Option[Point],          // currentMissionStart is None for a new task.
-          None: Option[Int],            // routeStreetId is None for the tutorial task.
-          None: Option[Int],            // routeStreetPosition is None for the tutorial task.
-          None: Option[String],         // maxSpeed isn't shown during the tutorial.
-          false,                        // reportedNoImagery is route-scoped; see NewTask.
-          false,                        // needsReaudit: the tutorial street is never a re-audit.
-          false,                        // mappedByThisUser: no notice to phrase, so nothing to attribute.
-          None: Option[OffsetDateTime], // lastMappedAt
-          None: Option[LocalDate]       // newImageryDate
+          LiteralColumn[Option[Point]](None), // currentMissionStart is None for a new task.
+          None: Option[Int],                  // routeStreetId is None for the tutorial task.
+          None: Option[Int],                  // routeStreetPosition is None for the tutorial task.
+          None: Option[String],               // maxSpeed isn't shown during the tutorial.
+          false,                              // reportedNoImagery is route-scoped; see NewTask.
+          false,                              // needsReaudit: the tutorial street is never a re-audit.
+          false,                              // mappedByThisUser: no notice to phrase, so nothing to attribute.
+          None: Option[OffsetDateTime],       // lastMappedAt
+          None: Option[LocalDate]             // newImageryDate
         )
       }
       .result
-      .map(t => NewTask.tupled(t.head))
+      .map(t => NewTask.apply.tupled(t.head))
   }
 
   /**
@@ -693,15 +692,15 @@ class AuditTaskTable @Inject() (
       false,             // completed is false for a new task.
       None: Option[Int], // auditTaskId is None for a new task.
       Some(missionId).asColumnOf[Option[Int]],
-      None: Option[Point], // currentMissionStart is None for a new task.
-      None: Option[Int],   // routeStreetId
-      None: Option[Int],   // routeStreetPosition
-      sms._2,              // maxSpeed
-      false,               // reportedNoImagery is route-scoped; see NewTask.
-      sc._3,               // needsReaudit
-      sc._4,               // mappedByThisUser
-      sc._5,               // lastMappedAt
-      sc._6                // newImageryDate
+      LiteralColumn[Option[Point]](None), // currentMissionStart is None for a new task.
+      None: Option[Int],                  // routeStreetId
+      None: Option[Int],                  // routeStreetPosition
+      sms._2,                             // maxSpeed
+      false,                              // reportedNoImagery is route-scoped; see NewTask.
+      sc._3,                              // needsReaudit
+      sc._4,                              // mappedByThisUser
+      sc._5,                              // lastMappedAt
+      sc._6                               // newImageryDate
     )
 
     // Get the priority of the highest priority task.
@@ -715,7 +714,7 @@ class AuditTaskTable @Inject() (
               // page-load resume path's behaviour too: the caller moves mission.current_audit_task_id onto the
               // resumed task, and the next submission's updateTaskProgress rewrites the task's mission.
               case Some(taskId) => selectTaskFromTaskId(taskId, userId)
-              case None         => DBIO.successful(Some(NewTask.tupled(freshTask)))
+              case None         => DBIO.successful(Some(NewTask.apply.tupled(freshTask)))
             }
           case None => DBIO.successful(None)
         }
@@ -755,7 +754,7 @@ class AuditTaskTable @Inject() (
       sc._3, sc._4, sc._5, sc._6          // needsReaudit, mappedByThisUser, lastMappedAt, newImageryDate
     )
 
-    newTask.result.headOption.map(_.map(NewTask.tupled))
+    newTask.result.headOption.map(_.map(NewTask.apply.tupled))
   }
 
   /**
@@ -821,7 +820,7 @@ class AuditTaskTable @Inject() (
       scau._6                                              // newImageryDate
     )
 
-    tasks.result.map(_.map(NewTask.tupled(_)))
+    tasks.result.map(_.map(NewTask.apply.tupled(_)))
   }
 
   /**
@@ -1055,7 +1054,7 @@ class AuditTaskTable @Inject() (
       _scau._6                              // newImageryDate
     )
 
-    tasks.result.map(_.map(NewTask.tupled(_)))
+    tasks.result.map(_.map(NewTask.apply.tupled(_)))
   }
 
   /**

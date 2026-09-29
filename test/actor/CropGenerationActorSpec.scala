@@ -5,11 +5,10 @@ import org.apache.pekko.actor.{ActorRef, ActorSystem, Props}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.JsObject
 import service.CropService.CropRunResult
 import service.{ConfigService, CropService, JobRunService}
-import util.StubService
+import util.{SidewalkSpec, StubService}
 
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
@@ -24,7 +23,7 @@ import scala.jdk.CollectionConverters._
  *
  * A bare actor system with stubbed collaborators; no application, no database.
  */
-class CropGenerationActorSpec extends PlaySpec with BeforeAndAfterAll with Eventually {
+class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with Eventually {
 
   private val system                        = ActorSystem("CropGenerationActorSpec")
   implicit private val ec: ExecutionContext = system.dispatcher

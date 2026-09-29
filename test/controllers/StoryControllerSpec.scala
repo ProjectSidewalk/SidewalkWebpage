@@ -1,11 +1,10 @@
 package controllers
 
-import models.label.{LabelTableDef, LabelTypeEnum}
+import models.label.{LabelTableDef, LabelType}
 import models.pano.{PanoDataTableDef, PanoSource}
 import models.story.Story
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -16,7 +15,7 @@ import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.{LabelService, StoryService}
-import util.{AnonSession, RolledBackDb}
+import util.{AnonSession, RolledBackDb, SidewalkSpec}
 
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
@@ -34,7 +33,7 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession with GuiceOneAppPerSuite {
+class StoryControllerSpec extends SidewalkSpec with RolledBackDb with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -56,7 +55,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
   private val maxTextLength: Int       = app.configuration.get[Int]("stories.max-text-length")
   private val maxAltTextLength: Int    = app.configuration.get[Int]("stories.max-alt-text-length")
   private val maxPerDay: Int           = app.configuration.get[Int]("stories.max-per-user-per-day")
-  private val impactNames: Set[String] = LabelTypeEnum.values.map(_.accessImpact.name)
+  private val impactNames: Set[String] = LabelType.ordered.map(_.accessImpact.name).toSet
 
   private lazy val labelIds: Seq[Int] =
     Await.result(labelService.getRecentLabelMetadata(50), 60.seconds).map(_.labelId).distinct
@@ -673,7 +672,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
  * person — a shared NAT can trip this for someone who published nothing, so its error key differs from the per-user
  * cap's — and must say how long is left in the IP's window, in the body and on the standard Retry-After header.
  */
-class StoryControllerIpLimitSpec extends PlaySpec with AnonSession with GuiceOneAppPerSuite {
+class StoryControllerIpLimitSpec extends SidewalkSpec with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

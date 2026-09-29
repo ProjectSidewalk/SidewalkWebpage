@@ -390,9 +390,9 @@ class StreetEdgePriorityTable @Inject() (
       allAuditCounts.result.map(_.map { case (streetEdgeId, freshGood, outdatedGood, bad) =>
         if (freshGood > 0 || outdatedGood > 0) {
           val outdatedHalf = if (outdatedGood > 0) 0.5 else 0.0
-          StreetEdgePriorityParameter.tupled((streetEdgeId, freshGood + outdatedHalf + 0.25 * bad))
+          StreetEdgePriorityParameter.apply.tupled((streetEdgeId, freshGood + outdatedHalf + 0.25 * bad))
         } else {
-          StreetEdgePriorityParameter.tupled((streetEdgeId, 0.0))
+          StreetEdgePriorityParameter.apply.tupled((streetEdgeId, 0.0))
         }
       })
 

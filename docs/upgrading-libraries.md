@@ -7,7 +7,7 @@ a glance whether something has a newer release available, or has gone end-of-lif
 
 **Keep the versions here in sync with the code, and keep this the only _doc_ that carries full versions.** Other docs
 ([`CLAUDE.md`](../CLAUDE.md), [`docs/architecture.md`](architecture.md), the README) mention only stable *major*
-versions (Scala 2.13, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
+versions (Scala 3.3, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
 recorded once. When you upgrade something, bump its version number below in the same change.
 
 > Many entries carry a **note** explaining *why* we're pinned where we are (a known incompatibility, an abandoned
@@ -86,9 +86,7 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
 
 ### Core toolchain
 
-- **Scala: 2.13.18** — we're staying on 2.13 for now; the move to Scala 3 is a major lift tracked in
-  [#3936](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3936) (unclear if all our libraries support it
-  yet). Edit `scalaVersion` in `build.sbt`.
+- **Scala: 3.3.8** — the 3.3 LTS line. Edit `scalaVersion` in `build.sbt`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
 - **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
   `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump
@@ -117,8 +115,6 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
   migrates (watch the [Play changelog](https://www.playframework.com/changelog)).
   [Releases](https://mvnrepository.com/artifact/net.codingwell/scala-guice) ·
   [Changelog](https://github.com/codingwell/scala-guice/blob/develop/CHANGELOG.md)
-- **ficus: 1.5.2** — typed config reading.
-  [Releases](https://mvnrepository.com/artifact/com.iheart/ficus)
 
 ### Database (Slick + Postgres + PostGIS)
 
@@ -214,11 +210,12 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
   [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.8.0) ·
   [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.8.0)
-- **i18next: 23.16.8** — **note:** v24+ has breaking changes we haven't worked through (the changelog links a
-  migration guide); take minor bumps meanwhile.
+- **i18next: 26.4.2** — frontend translations. **Note:** `test/js/i18nextLocales.test.js` runs this file and
+  i18next-http-backend over our real locale files in every language, so `make test-js args=i18nextLocales` is the
+  check after a bump of either.
   [Download](https://unpkg.com/i18next/dist/umd/i18next.min.js) ·
   [Changelog](https://github.com/i18next/i18next/blob/master/CHANGELOG.md)
-- **i18next-http-backend: 3.0.6** — loads translation files (`i18nextHttpBackend-3.0.6.min.js`).
+- **i18next-http-backend: 4.0.2** — loads translation files (`i18nextHttpBackend-4.0.2.min.js`).
   [Project + downloads](https://github.com/i18next/i18next-http-backend) ·
   [Changelog](https://github.com/i18next/i18next-http-backend/blob/master/CHANGELOG.md)
 - **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` reaches past the documented API into

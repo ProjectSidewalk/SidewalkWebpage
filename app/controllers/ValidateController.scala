@@ -14,7 +14,7 @@ import formats.json.ValidateFormats.{
   ValidationTaskSubmission
 }
 import models.auth.WithAdmin
-import models.label.{LabelTypeEnum, Tag}
+import models.label.{LabelType, Tag}
 import models.mission.MissionType
 import models.user._
 import models.utils.IpAddress
@@ -220,8 +220,8 @@ class ValidateController @Inject() (
       teams: Option[String]
   ): Future[(ValidateParams, Result)] = {
     // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
-    val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map(LabelTypeEnum.byName.get)
-    val userIdsList: Option[Seq[Future[Option[String]]]]    = users.map(
+    val parsedLabelType: Option[Option[LabelType]]       = labelType.map(LabelType.byName.get)
+    val userIdsList: Option[Seq[Future[Option[String]]]] = users.map(
       _.split(',')
         .map(_.trim)
         .map { userStr =>
@@ -274,7 +274,7 @@ class ValidateController @Inject() (
       if (parsedLabelType.isDefined && parsedLabelType.get.isEmpty) {
         (
           ValidateParams(adminVersion),
-          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypeNames.mkString(", ")}.")
+          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelType.primaryLabelTypeNames.mkString(", ")}.")
         )
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (
@@ -364,7 +364,7 @@ class ValidateController @Inject() (
     val currTime: OffsetDateTime = data.timestamp
 
     // The type each vote was cast on: what the tool showed, or the mission's type for a client that doesn't say.
-    def labelTypeSeen(newVal: LabelValidationSubmission): LabelTypeEnum.Base =
+    def labelTypeSeen(newVal: LabelValidationSubmission): LabelType =
       newVal.labelType.orElse(data.missionProgress.map(_.labelType)).get
     if (data.validations.exists(_.labelType.isEmpty) && data.missionProgress.isEmpty) {
       return Future.successful(
@@ -464,7 +464,7 @@ class ValidateController @Inject() (
       val timeSpent: Double = data.validations.map { l =>
         Math.min(ChronoUnit.MILLIS.between(l.startTimestamp, l.endTimestamp), 60000)
       }.sum / 1000d
-      configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
+      val _ = configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
     }
 
     response
@@ -601,7 +601,7 @@ class ValidateController @Inject() (
                 newVal.newLabelType.isDefined && newVal.validationResult == ValidationOption.Agree && !newVal.undone &&
                 isAdmin(request.identity)
               ) {
-                aiService.reassessAfterTypeChange(newVal.labelId)
+                val _ = aiService.reassessAfterTypeChange(newVal.labelId)
               }
               Ok(Json.obj("status" -> "Success"))
             }
@@ -656,7 +656,7 @@ class ValidateController @Inject() (
    * @return `Ok` with the number deleted (0 if they had not commented), so a double-click is not an error.
    */
   def deleteLabelMapComment(labelId: Int, labelType: String) = cc.securityService.SecuredAction { implicit request =>
-    LabelTypeEnum.byName.get(labelType) match {
+    LabelType.byName.get(labelType) match {
       case None     => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Unknown label type")))
       case Some(lt) =>
         validationService.deleteComment(labelId, request.identity.userId, lt).map { deleted =>

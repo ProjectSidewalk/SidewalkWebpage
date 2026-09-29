@@ -517,7 +517,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             zipOut.putNextEntry(new ZipEntry(file.getName))
             Files.copy(file.toPath, zipOut)
             zipOut.closeEntry()
-            file.delete()
+            val _ = file.delete()
           }
         }
       }

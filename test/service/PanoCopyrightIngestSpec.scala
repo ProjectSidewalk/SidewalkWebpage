@@ -5,12 +5,12 @@ import models.pano.{PanoDataTable, PanoSource}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -28,7 +28,7 @@ import scala.concurrent.duration._
  * Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so no background sweep touches the row mid-test.
  */
-class PanoCopyrightIngestSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class PanoCopyrightIngestSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -45,7 +45,7 @@ class PanoCopyrightIngestSpec extends PlaySpec with BeforeAndAfterAll with Guice
   /** A pano block as the AI labeler sends it, with the copyright it composes. */
   private def submission(panoId: String, source: PanoSource.Value, copyright: String): AiLabelsSubmission =
     AiLabelsSubmission(
-      labelType = "CurbRamp",
+      labelType = models.label.LabelType.CurbRamp,
       modelId = "test",
       modelTrainingDate = "01-01-2026",
       apiVersion = "test",

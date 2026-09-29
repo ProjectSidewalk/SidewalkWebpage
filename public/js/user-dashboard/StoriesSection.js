@@ -123,7 +123,7 @@ class StoriesSection {
 
     const meta = document.createElement('div');
     meta.className = 'ud-story-meta';
-    const typeName = i18next.t(`common:${camelToKebab(story.label_type)}`).replaceAll('&shy;', '');
+    const typeName = util.misc.labelTypeName(story.label_type);
     const postedDate = new Date(story.created_at).toLocaleDateString(i18next.language, util.SHORT_DATE);
     const labelLink = document.createElement('a');
     labelLink.href = `/label/${encodeURIComponent(story.label_id)}`;
@@ -151,7 +151,7 @@ class StoriesSection {
       // Every row's visible label is just "Edit"/"Delete", so the accessible name says which story (WCAG 2.4.6).
       edit.setAttribute('aria-label', i18next.t('labelmap:story.edit-aria', { labelType: typeName, date: postedDate }));
       edit.addEventListener('click', () => {
-        // Problem-vs-feature phrasing comes from the payload's LabelTypeEnum-sourced flag, never derived here.
+        // Problem-vs-feature phrasing comes from the payload's LabelType-sourced flag, never derived here.
         this.#composer.setCopyVariant(story.access_impact);
         this.#composer.openForEdit(story, this.#maxTextLength);
       });

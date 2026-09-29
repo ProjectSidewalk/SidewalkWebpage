@@ -1,14 +1,14 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.SignedUpAccounts
+import util.{SidewalkSpec, SignedUpAccounts}
+import models.auth.RememberMeSettings
 import models.utils.MyPostgresProfile.api._
 
 import java.time.OffsetDateTime
@@ -25,7 +25,7 @@ import java.util.UUID
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOneAppPerSuite {
+class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -39,6 +39,9 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
   implicit lazy val mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
+
+  private def authCookie(result: scala.concurrent.Future[play.api.mvc.Result]): Option[play.api.mvc.Cookie] =
+    cookies(result).find(_.name.toLowerCase.contains("authenticator"))
 
   /** A username/email pair that can't collide with existing data, so the happy path is repeatable. */
   private def freshCreds(): (String, String, String) = {
@@ -203,7 +206,9 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       ).get
       status(signIn) mustBe OK
       (contentAsJson(signIn) \ "redirect").asOpt[String] mustBe defined
-      cookies(signIn).exists(_.name.toLowerCase.contains("authenticator")) mustBe true
+      authCookie(signIn).flatMap(_.maxAge) mustBe Some(
+        app.injector.instanceOf[RememberMeSettings].cookieMaxAge.toSeconds
+      )
 
       // 4. The same account also signs in by username, not just email — the controller resolves it (#4375).
       val signInByUsername = route(
@@ -215,7 +220,8 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       ).get
       status(signInByUsername) mustBe OK
       (contentAsJson(signInByUsername) \ "redirect").asOpt[String] mustBe defined
-      cookies(signInByUsername).exists(_.name.toLowerCase.contains("authenticator")) mustBe true
+      // Without "remember me" the cookie has no Max-Age, so the browser drops it on close.
+      authCookie(signInByUsername).map(_.maxAge) mustBe Some(None)
     }
   }
 

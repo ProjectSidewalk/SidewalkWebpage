@@ -54,7 +54,12 @@ describe('the dashboard mistake card\'s imagery credit', () => {
     window.i18next = { t: (key) => key };
     // The logo measures itself to report how wide it is. jsdom lays nothing out, so there's nothing to measure.
     window.ResizeObserver = class { observe() {} disconnect() {} };
-    window.util = { assetPath: assetPathStub, EXPLORE_CANVAS_WIDTH: 720, EXPLORE_CANVAS_HEIGHT: 480 };
+    window.util = {
+      assetPath: assetPathStub,
+      EXPLORE_CANVAS_WIDTH: 720,
+      EXPLORE_CANVAS_HEIGHT: 480,
+      camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+    };
     installUtilitiesMisc();
     window.eval(`${LOGO_SRC}\nwindow.createPanoViewerLogo = createPanoViewerLogo;`);
     window.eval(`${ATTRIBUTION_SRC}\nwindow.createPanoAttribution = createPanoAttribution;`);

@@ -1,13 +1,13 @@
 package service
 
 import models.utils.OfficialContact
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 /**
  * Unit tests for [[ConfigService.validateOfficialContact]] (#5462). The URL lands in an href on the public landing
  * page, so the rules that keep a bad value out of it are pinned here without an app or a database.
  */
-class OfficialContactValidationSpec extends PlaySpec {
+class OfficialContactValidationSpec extends SidewalkSpec {
   import ConfigService.{validateOfficialContact => validate}
 
   private val url = "https://www.burnaby.ca/our-city/contact-us"

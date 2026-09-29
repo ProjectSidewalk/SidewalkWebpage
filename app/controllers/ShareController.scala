@@ -2,8 +2,8 @@ package controllers
 
 import controllers.base._
 import models.auth.{DefaultEnv, WithAdmin}
-import models.label.LabelTypeEnum.AccessImpact
-import models.label.{CropMarker, LabelMetadata, LabelTypeEnum}
+import models.label.AccessImpact
+import models.label.{CropMarker, LabelMetadata, LabelType}
 import models.pano.PanoSource.PanoSource
 import models.story.StoryForView
 import models.user.SidewalkUserWithRole
@@ -372,7 +372,7 @@ class ShareController @Inject() (
    */
   private[controllers] def compositeMarker(
       base: BufferedImage,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       marker: CropMarker
   ): BufferedImage = {
     // RGB (not ARGB): the canvas is fully covered by the base photo, and ImageIO's JPEG writer rejects alpha.

@@ -3,7 +3,6 @@ package util
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.mvc.Cookie
@@ -20,7 +19,7 @@ import scala.concurrent.duration._
  * transaction. Mix in before `GuiceOneAppPerSuite`, because the cleanup needs the app's DB pool. A spec's own
  * `afterAll` runs first, so it can delete any other rows it wrote for these users.
  */
-trait SignedUpAccounts extends BeforeAndAfterAll { this: PlaySpec with GuiceOneAppPerSuite =>
+trait SignedUpAccounts extends BeforeAndAfterAll { this: SidewalkSpec with GuiceOneAppPerSuite =>
 
   /** The password every account here is created with; it meets `PasswordPolicy`. */
   protected val signUpPassword: String = "TestPass1"
