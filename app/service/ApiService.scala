@@ -20,8 +20,7 @@ import models.street.{
 import models.user.UserStatTable
 import models.utils.BackgroundJobRunTable
 import models.utils.MyPostgresProfile.api._
-import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{ClusteringThreshold, LatLngBBox, MyPostgresProfile, SqlFragments}
+import models.utils.{ClusteringThreshold, LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import models.validation.LabelValidationTable
 import org.apache.pekko.stream.scaladsl.Source
 import org.geotools.geometry.jts.JTSFactoryFinder

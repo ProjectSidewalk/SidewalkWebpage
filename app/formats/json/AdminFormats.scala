@@ -8,7 +8,7 @@ import models.utils.MyPostgresProfile.api._
 import models.validation.{ValidationCount, ValidationOption}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import service.TimeInterval.TimeInterval
+import service.TimeInterval
 
 import java.time.OffsetDateTime
 
@@ -70,10 +70,10 @@ object AdminFormats {
       (JsPath \ "state").read[Boolean]
   )(TaskFlagSubmission.apply _)
 
-  // Fixes the default writes now working when the keys are an Enumeration.
+  // Play has no built-in writer for a map whose keys are an enum, so this writes the keys by name.
   implicit def timeIntervalMapWrites[A](implicit writesA: Writes[A]): Writes[Map[TimeInterval, A]] =
     (map: Map[TimeInterval, A]) => {
-      val stringMap = map.map { case (interval, value) => (interval.toString, value) }
+      val stringMap = map.map { case (interval, value) => (interval.name, value) }
       Json.toJson(stringMap)(Writes.map[A](writesA))
     }
 

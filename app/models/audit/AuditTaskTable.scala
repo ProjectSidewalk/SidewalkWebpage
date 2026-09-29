@@ -12,7 +12,6 @@ import models.utils.{ConfigTableDef, FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 
 import java.time.{LocalDate, OffsetDateTime}
 import javax.inject._

@@ -7,7 +7,6 @@ import models.cluster.ClusterScoreRow
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, StreetEnd}
 import models.region.Region
 import models.street.{StreetEdgeInfo, StreetGradientConfidence, StreetGradientQuality, StreetGradientStats}
-import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Sink

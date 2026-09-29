@@ -6,7 +6,6 @@ import models.intersection.IntersectionTableDef
 import models.label.LabelTypeEnum
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
-import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}

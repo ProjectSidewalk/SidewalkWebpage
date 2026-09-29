@@ -28,15 +28,15 @@ import java.time.{LocalDate, OffsetDateTime, ZoneId, ZonedDateTime}
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
 
-object TimeInterval extends Enumeration {
-  type TimeInterval = Value
+/** A window of time that the admin page reports stats over. `name` is how it is written in JSON. */
+enum TimeInterval(val name: String) {
+  case AllTime extends TimeInterval("all_time")
+  case Week    extends TimeInterval("week")
+  case Today   extends TimeInterval("today")
+}
 
-  // On Scala 3, Play can't find its built-in JSON writer for these values by itself.
-  implicit val writes: play.api.libs.json.Writes[Value] = v => play.api.libs.json.JsString(v.toString)
-
-  val AllTime = Value("all_time")
-  val Week    = Value("week")
-  val Today   = Value("today")
+object TimeInterval {
+  implicit val writes: play.api.libs.json.Writes[TimeInterval] = v => play.api.libs.json.JsString(v.name)
 
   /**
    * When the interval starts: midnight Pacific for today, seven days ago for the week.

@@ -12,7 +12,6 @@ import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragmen
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime}
