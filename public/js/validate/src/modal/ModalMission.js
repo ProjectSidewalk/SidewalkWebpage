@@ -189,11 +189,10 @@ class ModalMission {
    */
   setMissionMessage(mission) {
     const labelType = mission.getProperty('labelType');
-    // The screen renders its title as HTML. The type name is written `{{- labelType}}` in every locale, since the
-    // German names carry a soft hyphen, so escaping applies to the count alone.
+    // The screen renders its title as HTML, so the count is escaped; the type name is written `{{- labelType}}`.
     const title = i18next.t('validate:mission-start-tutorial.mst-instruction-2', {
       nLabels: mission.getProperty('labelsValidated'),
-      labelType: svv.labelTypeNames[labelType],
+      labelType: util.misc.labelTypeName(labelType),
       interpolation: { escapeValue: true },
     });
     // Desktop reaches here too — MissionContainer starts every mission the same way — but shows this screen only to

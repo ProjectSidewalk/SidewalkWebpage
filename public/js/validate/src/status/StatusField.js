@@ -63,13 +63,12 @@ class StatusField {
     const missionLength = svv.missionContainer
       ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated')
       : svv.missionLength;
-    // The title bar takes HTML. The type name is written `{{- labelType}}`, so its soft hyphen survives both the
-    // escaping below and the uppercasing — which is what the entity is put back together after.
+    // The title bar takes HTML, so the count is escaped; the type name is written `{{- labelType}}`.
     const newMissionTitle = i18next.t('mission-start-tutorial.mst-instruction-2', {
       nLabels: missionLength,
-      labelType: i18next.t(`common:${util.camelToKebab(labelType)}`),
+      labelType: util.misc.labelTypeName(labelType),
       interpolation: { escapeValue: true },
-    }).toUpperCase().replace(/&SHY;/g, '&shy;');
+    }).toUpperCase();
     this.#statusUI.upperMenuTitle.innerHTML = newMissionTitle;
     // The menu header is desktop's; the phone has no menu column.
     if (svv.ui.validationMenu.header) {

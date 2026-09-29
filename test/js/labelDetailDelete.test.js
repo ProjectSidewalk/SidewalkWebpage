@@ -193,6 +193,7 @@ describe('deleting a label from the card (#3591)', () => {
       isMobile: () => false,
       lazyIdentityFetch: request,
       misc: {
+        labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
         VALID_LABEL_TYPES: ['Obstacle'],
         getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
         getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,

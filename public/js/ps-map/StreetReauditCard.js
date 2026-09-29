@@ -212,7 +212,7 @@ class StreetReauditCard {
       <tr>
         <td class="street-reaudit__type">
           <img src="${util.misc.getIconImagePaths(labelType).iconImagePath}" alt="" width="18" height="18">
-          ${i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '')}
+          ${util.misc.labelTypeName(labelType)}
         </td>
         <td class="street-reaudit__count">${count.toLocaleString(i18next.language)}</td>
       </tr>`).join('');
