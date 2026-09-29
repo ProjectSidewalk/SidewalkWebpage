@@ -4,12 +4,14 @@
  *
  * The manager listens on window with capture and treats most keys as global shortcuts, Enter submitting the current
  * validation from anywhere. The image adjustments panel is an exception: while focus is inside it, or while it is
- * open at all, keys belong to the sliders and to the panel's own Escape handler, and no shortcut may fire. The pills
- * in the pano's top-left group (Hide label, the chevron and the Image pill in its menu) are a narrower exception: only Space is left to the browser, which
- * activates the focused pill. Enter still submits from a pill, as from any focused button on Validate, because closing
- * the panel puts focus back on the Image pill and a validator's next Enter means "submit". The letter shortcuts keep
- * working too, since a mouse click leaves focus on the pill. These tests pin both boundaries: a regression inside
- * submits or re-labels from a slider, and one outside breaks the shortcuts a validator uses right after a pill.
+ * open at all, keys belong to the sliders and to the panel's own Escape handler, and no shortcut may fire. The
+ * controls in the pano's top-left group (Hide label, the chevron and the Image pill in its menu) are a narrower
+ * exception: Space is left to the browser, which activates the focused control. Enter still submits from the two
+ * pills, as from any focused button on Validate, because closing the panel puts focus back on the Image pill and a
+ * validator's next Enter means "submit". The chevron, which nothing ever focuses for the validator, takes Enter as
+ * well. The letter shortcuts keep working throughout, since a mouse click leaves focus on the control. These tests
+ * pin both boundaries: a regression inside submits or re-labels from a slider, and one outside breaks the shortcuts
+ * a validator uses right after clicking a pill.
  *
  * One case loads the real PanoImageAdjustmentsPopover, to show that Escape from a slider gets through
  * KeyboardManager's window-capture listener to the panel's own handler and actually closes it. jsdom has no Popover
@@ -127,15 +129,25 @@ describe('KeyboardManager image adjustments scope', () => {
             expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
         });
 
-        it('Space on the chevron is left to the browser, Enter on it submits', () => {
-            const space = key('Space', chevron());
+        it('Space on the chevron is left to the browser', () => {
+            const ev = key('Space', chevron());
 
-            expect(space.defaultPrevented).toBe(false);
+            expect(ev.defaultPrevented).toBe(false);
             expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+        });
 
-            const enter = key('Enter', chevron());
+        it.each(['Enter', 'NumpadEnter'])('%s on the chevron opens the menu and does not submit', (code) => {
+            const ev = key(code, chevron());
 
-            expect(enter.defaultPrevented).toBe(true);
+            expect(ev.defaultPrevented).toBe(false);
+            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+        });
+
+        it('Enter on the hide-label toggle submits, as from any other focused button', () => {
+            const ev = key('Enter', hideLabelToggle());
+
+            expect(ev.defaultPrevented).toBe(true);
             expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
         });
 
