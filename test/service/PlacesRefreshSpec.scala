@@ -35,8 +35,8 @@ class PlacesRefreshSpec extends SidewalkSpec with GuiceOneAppPerSuite with Optio
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
-  implicit lazy val mat: Materializer    = app.materializer
+  given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
+  given mat: Materializer    = app.materializer
 
   private lazy val dbConfig   = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private lazy val placeTable = app.injector.instanceOf[PlaceTable]

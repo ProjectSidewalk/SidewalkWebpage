@@ -7,7 +7,7 @@ import models.region.RegionTableDef
 import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteTableDef}
 import models.street._
 import models.user.{Role, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.utils.{ConfigTableDef, FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -158,7 +158,7 @@ class AuditTaskTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     streetEdgeTable: StreetEdgeTable,
     osmWayTable: OsmWayTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends AuditTaskTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

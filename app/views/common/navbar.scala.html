@@ -5,7 +5,7 @@
 @* renderAuthDialog: a page whose body carries the full-page auth forms (signIn/signUp views, whatever path they
    render from) passes false so the dialog's identical form ids aren't duplicated (see authDialog.scala.html). *@
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, renderAuthDialog: Boolean = true
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.isPublic || (currentCityInfo.countryId == "taiwan" && c.countryId == "taiwan"))}

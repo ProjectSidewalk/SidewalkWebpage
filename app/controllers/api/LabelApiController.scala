@@ -39,7 +39,7 @@ class LabelApiController @Inject() (
     panoDataService: service.PanoDataService,
     labelService: LabelService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   /**

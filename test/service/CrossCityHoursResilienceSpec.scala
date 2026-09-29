@@ -75,9 +75,8 @@ class CrossCityHoursResilienceSpec extends SidewalkSpec with GuiceOneAppPerSuite
     app.injector.instanceOf[models.user.UserUtmTable],
     app.injector.instanceOf[models.user.UserSettingsTable],
     new ScopedConfigService(scope),
-    app.injector.instanceOf[AsyncCacheApi],
-    global
-  )
+    app.injector.instanceOf[AsyncCacheApi]
+  )(using global)
 
   "getCrossCityHours" should {
     "fall back to this city's own total when the scope can't be determined at all" in {

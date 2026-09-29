@@ -5,7 +5,7 @@
 @import controllers.helper.ControllerUtils.buildUrlFromQueryString
 @(signUpForm: Form[forms.SignUpForm.SignUpData], commonData: CommonPageData, user: Option[SidewalkUserWithRole],
   url: String = "/"
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Full-page sign-up: the no-JS fallback and the target of a direct /signUp visit. Same auth card, fields, and live
    checklist as the navbar dialog; AuthModal.js progressively enhances it but a plain POST still works. *@

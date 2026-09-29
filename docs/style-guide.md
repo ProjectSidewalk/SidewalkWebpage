@@ -235,6 +235,11 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
 - **Declare value types where it aids clarity** — prefer `val x: Int = 5` over `val x = 5`. Use discretion when the
   type is long/uninformative (often the case with Slick types) or when an explicit annotation would push a line past
   120 chars or hurt readability.
+- **Write `given`, `using`, and `extension`, not `implicit`** — `given` for a value the compiler supplies (a JSON
+  format, a Slick mapper), `using` for a parameter that receives one, `extension` for methods added to a type. A
+  wildcard import doesn't bring in `given`s, so a file that relies on another object's says so: `import X.given`, or
+  `import X.{given, _}` when it uses the object's other names too. The one `implicit` left is Play's
+  `implicit request =>` on an action block, which has no shorter Scala 3 spelling.
 - **Use Slick for database access**, not raw SQL, wherever possible — you get compile-time type checking. When you
   must write SQL, **avoid table aliases**.
 - **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
@@ -291,7 +296,7 @@ methods: private methods are read by the next developer, not just public API con
  *
  * Longer description if construction semantics, lifecycle, or thread-safety matter.
  *
- * @param cc  Description of constructor param (omit implicit/DI-only params).
+ * @param cc  Description of constructor param (omit `using`/DI-only params).
  */
 ```
 
@@ -300,7 +305,7 @@ Rules:
 - Use `@return` (not `@returns`) — that is the ScalaDoc standard.
 - Align `@param` descriptions when there are multiple, consistent with Play/Slick/Scala stdlib style.
 - Omit `@throws` unless the exception is part of the intentional public contract.
-- Do not document implicit params that are pure DI plumbing.
+- Do not document `using` params that are pure DI plumbing.
 - Trivial one-line helpers (simple delegators, obvious getters) may omit the header.
 
 ### JavaScript (JSDoc)

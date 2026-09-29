@@ -9,7 +9,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import util.{SidewalkSpec, SignedUpAccounts}
 import models.auth.RememberMeSettings
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -36,7 +36,7 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
       .configure("rate-limit.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 

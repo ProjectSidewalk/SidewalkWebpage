@@ -25,7 +25,7 @@ class CustomErrorHandler @Inject() (
     router: Provider[Router],
     authenticatorService: AuthenticatorService[CookieAuthenticator],
     messagesApi: MessagesApi
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends DefaultHttpErrorHandler(env, config, sourceMapper, router) {
 
   private val logger = Logger(this.getClass)
@@ -68,7 +68,7 @@ class CustomErrorHandler @Inject() (
     } else {
       statusCode match {
         case NOT_FOUND =>
-          implicit val messages: Messages = messagesApi.preferred(request)
+          given messages: Messages = messagesApi.preferred(request)
           Future.successful(
             NotFound(
               views.html.errors.errorPage(
@@ -108,7 +108,7 @@ class CustomErrorHandler @Inject() (
    * @return          A 500 response rendering the shared error page.
    */
   override protected def onProdServerError(request: RequestHeader, exception: UsefulException): Future[Result] = {
-    implicit val messages: Messages = messagesApi.preferred(request)
+    given messages: Messages = messagesApi.preferred(request)
     Future.successful(
       InternalServerError(
         views.html.errors.errorPage(

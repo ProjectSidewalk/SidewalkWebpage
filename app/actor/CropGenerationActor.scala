@@ -23,7 +23,7 @@ object CropGenerationActor {
  * fetches after this job's slot is picked up the following night.
  */
 @Singleton
-class CropGenerationActor @Inject() (cropService: CropService, jobRunService: JobRunService)(implicit
+class CropGenerationActor @Inject() (cropService: CropService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

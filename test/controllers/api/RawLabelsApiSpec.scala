@@ -5,7 +5,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.Helpers._
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import play.api.test.FakeRequest
 import util.{RolledBackDb, SidewalkSpec}
 
@@ -30,7 +30,7 @@ class RawLabelsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Rolled
 
   // File-streamed responses (chunked GeoJSON/CSV) need a real Materializer to consume; the test default is
   // NoMaterializer, which only works for strict bodies like JSON.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   // A tiny near-empty bbox keeps the streamed body cheap regardless of how much data the connected DB holds.
   private val tinyBbox = "bbox=0,0,0.001,0.001"

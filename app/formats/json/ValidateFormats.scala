@@ -145,7 +145,7 @@ object ValidateFormats {
       source: UiSource
   )
 
-  implicit val uiSourceReads: Reads[UiSource.Value] = Reads { json =>
+  given uiSourceReads: Reads[UiSource.Value] = Reads { json =>
     json.validate[String].flatMap { uiSource =>
       Try(UiSource.withName(uiSource)) match {
         case Success(source) => JsSuccess(source)
@@ -155,7 +155,7 @@ object ValidateFormats {
     }
   }
 
-  implicit val viewerTypeReads: Reads[ViewerType.Value] = Reads { json =>
+  given viewerTypeReads: Reads[ViewerType.Value] = Reads { json =>
     json.validate[String].flatMap { viewerType =>
       Try(ViewerType.withName(viewerType)) match {
         case Success(vt) => JsSuccess(vt)
@@ -165,7 +165,7 @@ object ValidateFormats {
     }
   }
 
-  implicit val validationOptionReads: Reads[ValidationOption.Value] = Reads { json =>
+  given validationOptionReads: Reads[ValidationOption.Value] = Reads { json =>
     json.validate[String].flatMap { validationResult =>
       ValidationOption.fromString(validationResult) match {
         case Some(result) => JsSuccess(result)
@@ -178,7 +178,7 @@ object ValidateFormats {
     }
   }
 
-  implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
+  given environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "mission_id").readNullable[Int] and
       (JsPath \ "browser").readNullable[String] and
       (JsPath \ "browser_version").readNullable[String] and
@@ -193,7 +193,7 @@ object ValidateFormats {
       (JsPath \ "css_zoom").read[Int]
   )(EnvironmentSubmission.apply _)
 
-  implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
+  given interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
       (JsPath \ "mission_id").readNullable[Int] and
       (JsPath \ "pano_id").readNullable[String] and
@@ -206,7 +206,7 @@ object ValidateFormats {
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(InteractionSubmission.apply _)
 
-  implicit val labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
+  given labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "label_type").readNullable[LabelType] and
@@ -230,7 +230,7 @@ object ValidateFormats {
       (JsPath \ "viewer_type").read[ViewerType.Value]
   )(LabelValidationSubmission.apply _)
 
-  implicit val validationMissionReads: Reads[ValidationMissionProgress] = (
+  given validationMissionReads: Reads[ValidationMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "mission_type").read[String] and
       (JsPath \ "labels_progress").read[Int] and
@@ -241,7 +241,7 @@ object ValidateFormats {
 
   // The admin-only fields are checked before `ValidateParams` is built: its constructor rejects them without
   // `admin_version` too, but as an exception, which would answer a malformed body with a 500 instead of this 400.
-  implicit val adminValidateParamsReads: Reads[ValidateParams] = (
+  given adminValidateParamsReads: Reads[ValidateParams] = (
     (JsPath \ "admin_version").read[Boolean] and
       (JsPath \ "label_type").readNullable[LabelType] and
       (JsPath \ "user_ids").readNullable[Seq[String]] and
@@ -258,7 +258,7 @@ object ValidateFormats {
       ValidateParams(adminVersion, labelType, userIds, regionIds, unvalidatedOnly, triage, teamIds)
   }
 
-  implicit val validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
+  given validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
     (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
       (JsPath \ "environment").read[EnvironmentSubmission] and
       (JsPath \ "validations").read[Seq[LabelValidationSubmission]] and
@@ -269,7 +269,7 @@ object ValidateFormats {
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(ValidationTaskSubmission.apply _)
 
-  implicit val labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
+  given labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "new_label_type").readNullable[LabelType] and
@@ -291,7 +291,7 @@ object ValidateFormats {
       (JsPath \ "viewer_type").read[ViewerType.Value]
   )(LabelMapValidationSubmission.apply _)
 
-  implicit val labelEditSubmissionReads: Reads[LabelEditSubmission] = (
+  given labelEditSubmissionReads: Reads[LabelEditSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").readNullable[LabelType] and
       (JsPath \ "new_label_type").readNullable[LabelType] and
@@ -300,7 +300,7 @@ object ValidateFormats {
       (JsPath \ "source").read[UiSource.Value]
   )(LabelEditSubmission.apply _)
 
-  implicit val moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
+  given moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
     (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "labels_needed").read[Int] and
       (JsPath \ "excluded_label_ids").read[Seq[Int]] and

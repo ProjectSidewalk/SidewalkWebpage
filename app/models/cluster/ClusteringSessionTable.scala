@@ -5,7 +5,7 @@ import models.label.{LabelPointTableDef, LabelTable, LabelTableDef}
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.utils.{ClusteringThreshold, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -94,7 +94,7 @@ trait ClusteringSessionTableRepository {
 
 @Singleton
 class ClusteringSessionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider, labelTable: LabelTable)(
-    implicit ec: ExecutionContext
+    using ec: ExecutionContext
 ) extends ClusteringSessionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val clusteringSessions = TableQuery[ClusteringSessionTableDef]

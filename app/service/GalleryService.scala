@@ -23,9 +23,9 @@ trait GalleryService {
 class GalleryServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     galleryTaskInteractionTable: GalleryTaskInteractionTable,
-    galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable,
-    implicit val ec: ExecutionContext
-) extends GalleryService
+    galleryTaskEnvironmentTable: GalleryTaskEnvironmentTable
+)(using ec: ExecutionContext)
+    extends GalleryService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**

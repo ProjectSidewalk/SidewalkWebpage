@@ -48,7 +48,7 @@ class RecalculateStreetPriorityActor @Inject() (
     regionService: RegionService,
     imageryFreshnessService: ImageryFreshnessService,
     jobRunService: JobRunService
-)(implicit
+)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

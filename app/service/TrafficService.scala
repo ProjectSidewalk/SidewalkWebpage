@@ -65,7 +65,7 @@ object CityTraffic {
 
   // Hand-written rather than JsonNaming.SnakeCase: the macro renders `sessions7d`, not the page convention's
   // `sessions_7d` — it only breaks words before uppercase letters, never before digits.
-  implicit val cityTrafficWrites: Writes[CityTraffic] = (t: CityTraffic) =>
+  given cityTrafficWrites: Writes[CityTraffic] = (t: CityTraffic) =>
     Json.obj(
       "city_id"               -> t.cityId,
       "sessions_7d"           -> t.sessions7d,
@@ -275,7 +275,7 @@ class TrafficServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     swrCache: SwrCache,
     ws: WSClient
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends TrafficService {
   import TrafficService._
 

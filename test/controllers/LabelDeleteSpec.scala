@@ -3,7 +3,7 @@ package controllers
 import controllers.helper.SubmissionSpecHelpers
 import models.label.LabelTable
 import models.user.UserStatTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application

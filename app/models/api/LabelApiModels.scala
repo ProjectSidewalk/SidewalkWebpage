@@ -373,7 +373,7 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
   /**
    * Implicit JSON writer for LabelData that uses the toJson method.
    */
-  implicit val labelDataWrites: Writes[LabelDataForApi] = (label: LabelDataForApi) => label.toJson
+  given labelDataWrites: Writes[LabelDataForApi] = (label: LabelDataForApi) => label.toJson
 }
 
 /**
@@ -457,5 +457,5 @@ object LabelCVMetadata extends ApiFields[LabelCVMetadata] {
     field("camera_roll")(_.cameraRoll)
   )
 
-  implicit val writes: Writes[LabelCVMetadata] = (metadata: LabelCVMetadata) => toJson(metadata)
+  given writes: Writes[LabelCVMetadata] = (metadata: LabelCVMetadata) => toJson(metadata)
 }

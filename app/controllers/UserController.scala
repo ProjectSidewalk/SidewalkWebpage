@@ -36,15 +36,15 @@ class UserController @Inject() (
     rememberMeSettings: RememberMeSettings,
     mailerClient: MailerClient,
     rateLimiter: service.RateLimiter
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * True when the auth dialog submitted via fetch and wants JSON back instead of a redirect/page.
    */
-  private def wantsJson(implicit request: play.api.mvc.RequestHeader): Boolean =
+  private def wantsJson(using request: play.api.mvc.RequestHeader): Boolean =
     request.headers.get("X-Requested-With").contains("XMLHttpRequest")
 
   /**
@@ -60,7 +60,7 @@ class UserController @Inject() (
    * @param redirect Where the no-JS fallback should bounce to when throttled.
    * @return `Some(result)` if throttled, `None` if the attempt is allowed.
    */
-  private def rateLimited(name: String, keys: Seq[String], redirect: String)(implicit
+  private def rateLimited(name: String, keys: Seq[String], redirect: String)(using
       request: play.api.mvc.RequestHeader
   ): Option[play.api.mvc.Result] = {
     val limit       = rateLimiter.limit(name)
@@ -80,7 +80,7 @@ class UserController @Inject() (
    * @param redirect Where the no-JS fallback should bounce to when throttled.
    * @return `Some(result)` if already over budget, `None` if there is room.
    */
-  private def failureThrottled(name: String, key: String, redirect: String)(implicit
+  private def failureThrottled(name: String, key: String, redirect: String)(using
       request: play.api.mvc.RequestHeader
   ): Option[play.api.mvc.Result] = {
     val limit = rateLimiter.limit(name)
@@ -95,7 +95,7 @@ class UserController @Inject() (
    * @param limit       The limit they tripped; its window is the fallback when a key has no live window.
    * @param redirect    Where the no-JS fallback should bounce to.
    */
-  private def throttledResponse(blockedKeys: Seq[String], limit: service.RateLimiter.Limit, redirect: String)(implicit
+  private def throttledResponse(blockedKeys: Seq[String], limit: service.RateLimiter.Limit, redirect: String)(using
       request: play.api.mvc.RequestHeader
   ): play.api.mvc.Result = {
     // Quote the longest wait among the tripped scopes, from when its window actually clears (#4740).
@@ -536,7 +536,7 @@ class UserController @Inject() (
   }
 
   /** Creates an anon user with a randomly generated username/password, signs them in, and redirects to `url`. */
-  private def signUpAnonUser(url: String, qString: Map[String, Seq[String]])(implicit
+  private def signUpAnonUser(url: String, qString: Map[String, Seq[String]])(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     val randomPassword: String = Random.alphanumeric take 16 mkString ""
@@ -613,7 +613,7 @@ class UserController @Inject() (
   }
 
   /** Emails password reset instructions to `email` if it belongs to an account, responding identically either way. */
-  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: IpAddress)(implicit
+  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: IpAddress)(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     val result = Redirect(routes.UserController.forgotPassword)
@@ -672,7 +672,7 @@ class UserController @Inject() (
   }
 
   /** Validates the reset `token` and updates the account's password from the submitted form. */
-  private def resetPasswordWithToken(token: String)(implicit
+  private def resetPasswordWithToken(token: String)(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     authenticationService.validateToken(token).flatMap {

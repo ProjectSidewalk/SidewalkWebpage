@@ -3,7 +3,7 @@ package controllers
 import actor.RecalculateStreetPriorityActor
 import models.user.Role
 import models.utils.BackgroundJobRunTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.stream.Materializer
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -56,9 +56,9 @@ class AdminExcludeUserSpec
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
-  implicit override val patienceConfig: PatienceConfig =
+  override given patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(10, Seconds), interval = Span(100, Millis))
 
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]

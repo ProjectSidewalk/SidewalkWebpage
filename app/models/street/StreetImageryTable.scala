@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.pano.PanoDataTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.utils.{FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -165,7 +165,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * @param limit Maximum number of streets to return.
    */
   def streetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
-    implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+    given getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
       val id     = r.nextInt()
       val points = Seq.fill(3)((r.nextDouble(), r.nextDouble())) // Each ST_LineInterpolatePoint pair is (lat, lng).
       StreetToPoll(id, points, r.nextGeometry[LineString]())
@@ -207,7 +207,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * @param limit Maximum number of streets to return.
    */
   def noImageryStreetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
-    implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+    given getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
       val id     = r.nextInt()
       val points = Seq.fill(3)((r.nextDouble(), r.nextDouble())) // Each ST_LineInterpolatePoint pair is (lat, lng).
       StreetToPoll(id, points, r.nextGeometry[LineString]())
@@ -368,7 +368,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
   def attributedImagery(streetEdgeId: Int, panos: Seq[PolledPano]): DBIO[AttributedImagery] = {
     if (panos.isEmpty) DBIO.successful(AttributedImagery(0, None))
     else {
-      implicit val getAttributedImagery: GetResult[AttributedImagery] =
+      given getAttributedImagery: GetResult[AttributedImagery] =
         GetResult(r => AttributedImagery(r.nextInt(), r.nextDateOption().map(_.toLocalDate)))
       sql"""
         #${observedAndKeptCte(streetEdgeId, panos)}

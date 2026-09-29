@@ -1,5 +1,5 @@
 @(activePage: String, isSignedIn: Boolean = true, adminSubject: Option[String] = None,
-    adminLinkFor: Option[String] = None)(implicit messages: Messages)
+    adminLinkFor: Option[String] = None)(using messages: Messages)
 
 @*
 * Left navigation for the redesigned User Dashboard surface. Mirrors the API-docs/admin sidebar markup/classes so the

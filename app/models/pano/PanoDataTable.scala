@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
 import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{__, JsValue, Json, Writes}
@@ -59,7 +59,7 @@ case class PanoData(
 object PanoSource extends Enumeration {
   type PanoSource = Value
 
-  implicit val writes: play.api.libs.json.Writes[Value] = play.api.libs.json.Writes.enumNameWrites[PanoSource.type]
+  given writes: play.api.libs.json.Writes[Value] = play.api.libs.json.Writes.enumNameWrites[PanoSource.type]
 
   val Gsv       = Value("gsv")
   val Mapillary = Value("mapillary")
@@ -97,7 +97,7 @@ case class PanoDataSlim(
 )
 
 object PanoDataSlim {
-  implicit val panoDataSlimWrites: Writes[PanoDataSlim] = (
+  given panoDataSlimWrites: Writes[PanoDataSlim] = (
     (__ \ "pano_id").write[String] and
       (__ \ "has_labels").write[Boolean] and
       (__ \ "width").writeNullable[Int] and
@@ -170,7 +170,7 @@ object PanoDataTable {
 }
 
 @Singleton
-class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends PanoDataTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

@@ -103,14 +103,14 @@ trait RegionAccessScoreTableRepository {
  * in; it comes from `city-params`, never from a request.
  */
 @Singleton
-class RegionAccessScoreTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class RegionAccessScoreTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends RegionAccessScoreTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val regionAccessScores = TableQuery[RegionAccessScoreTableDef]
 
-  implicit private val rowResult: GetResult[RegionSpotlightRowForApi] = GetResult { r =>
+  private given rowResult: GetResult[RegionSpotlightRowForApi] = GetResult { r =>
     RegionSpotlightRowForApi(
       regionId = r.nextInt(), name = r.nextString(), score = r.nextDoubleOption(), completionRate = r.nextDouble(),
       auditedDistanceM = r.nextDouble(), totalDistanceM = r.nextDouble(), clusterCount = r.nextInt()

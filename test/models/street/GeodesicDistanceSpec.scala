@@ -53,7 +53,7 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
   private val userStatTable   = app.injector.instanceOf[UserStatTable]

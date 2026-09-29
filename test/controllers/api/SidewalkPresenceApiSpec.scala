@@ -31,7 +31,7 @@ class SidewalkPresenceApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   // File-streamed responses (chunked GeoJSON/CSV) need a real Materializer to consume; the test default is
   // NoMaterializer, which only works for strict bodies like JSON.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   // A tiny near-empty bbox keeps the streamed body cheap regardless of how much data the connected DB holds.
   private val tinyBbox = "bbox=0,0,0.001,0.001"

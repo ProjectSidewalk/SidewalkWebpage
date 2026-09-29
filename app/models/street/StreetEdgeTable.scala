@@ -5,7 +5,7 @@ import models.api.{StreetDataForApi, StreetFiltersForApi}
 import models.audit.{AuditTask, AuditTaskTableDef}
 import models.region.RegionTableDef
 import models.user.UserStatTableDef
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.utils.{ConfigTableDef, FilteredTables, LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray
@@ -74,12 +74,12 @@ trait StreetEdgeTableRepository {}
 
 @Singleton
 class StreetEdgeTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends StreetEdgeTableRepository
+    protected val dbConfigProvider: DatabaseConfigProvider
+)(using ec: ExecutionContext)
+    extends StreetEdgeTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  implicit val streetEdgeInfoConverter: GetResult[StreetEdgeInfo] = GetResult[StreetEdgeInfo](r => {
+  given streetEdgeInfoConverter: GetResult[StreetEdgeInfo] = GetResult[StreetEdgeInfo](r => {
     StreetEdgeInfo(
       StreetEdge(
         r.nextInt(),
@@ -350,8 +350,8 @@ class StreetEdgeTable @Inject() (
       WHERE """)
       .concat(SqlFragments.allOf(countFilters))
 
-    // Use the plainSQL function with GetResult implicit for StreetDataForApi.
-    implicit val getStreetDataForApi: GetResult[StreetDataForApi] = GetResult { r =>
+    // Use the plainSQL function with given GetResult for StreetDataForApi.
+    given getStreetDataForApi: GetResult[StreetDataForApi] = GetResult { r =>
       StreetDataForApi(
         streetEdgeId = r.nextInt(),
         osmWayId = r.nextLong(),

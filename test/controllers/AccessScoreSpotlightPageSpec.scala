@@ -26,7 +26,7 @@ class AccessScoreSpotlightPageSpec extends SidewalkSpec with GuiceOneAppPerSuite
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /** Renders a page for a cookie-less visitor, the way the landing page is usually first seen. */
   private def render(path: String): String = {

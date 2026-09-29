@@ -26,7 +26,7 @@ object StreetGradientStalenessActor {
 class StreetGradientStalenessActor @Inject() (
     streetService: StreetService,
     jobRunService: JobRunService
-)(implicit
+)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

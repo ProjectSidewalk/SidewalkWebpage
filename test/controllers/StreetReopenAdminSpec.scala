@@ -2,7 +2,7 @@ package controllers
 
 import models.user.Role
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -40,7 +40,7 @@ class StreetReopenAdminSpec extends SidewalkSpec with RoleSession with GuiceOneA
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 

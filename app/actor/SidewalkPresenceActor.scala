@@ -29,7 +29,7 @@ object SidewalkPresenceActor {
 class SidewalkPresenceActor @Inject() (
     sidewalkPresenceService: SidewalkPresenceService,
     jobRunService: JobRunService
-)(implicit
+)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

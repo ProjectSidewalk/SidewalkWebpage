@@ -35,7 +35,7 @@ trait RegionTableRepository {}
 class RegionTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     streetEdgeRegionTable: StreetEdgeRegionTable
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends RegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -244,7 +244,7 @@ class RegionTable @Inject() (
       #${limit.map(n => s"LIMIT $n").getOrElse("")}
     """)
 
-    implicit val getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>
+    given getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>
       RegionDataForApi(
         regionId = r.nextInt(),
         name = r.nextString(),

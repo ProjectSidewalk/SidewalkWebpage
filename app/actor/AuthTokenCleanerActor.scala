@@ -22,7 +22,7 @@ object AuthTokenCleanerActor {
 class AuthTokenCleanerActor @Inject() (
     authenticationService: service.AuthenticationService,
     jobRunService: JobRunService
-)(implicit
+)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

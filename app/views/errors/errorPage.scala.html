@@ -6,7 +6,7 @@
  * supplied by the raising controller rather than by the handler.
  *@
 @import views.ErrorPageAction
-@(statusCode: Int, heading: String, message: String, requestedPath: Option[String] = None, errorId: Option[String] = None, action: Option[ErrorPageAction] = None)(implicit messages: Messages, assets: AssetsFinder)
+@(statusCode: Int, heading: String, message: String, requestedPath: Option[String] = None, errorId: Option[String] = None, action: Option[ErrorPageAction] = None)(using messages: Messages, assets: AssetsFinder)
 
 @* GitHub is a static URL, so the report path keeps the page dependency-free. *@
 @reportLink = @{

@@ -2,7 +2,7 @@ package models.pano
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -87,7 +87,7 @@ class PanoImageryChangeTable @Inject() (protected val dbConfigProvider: Database
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val imageryChanges = TableQuery[PanoImageryChangeTableDef]
 
-  implicit private val getPanoImageryWeek: GetResult[PanoImageryWeek] =
+  private given getPanoImageryWeek: GetResult[PanoImageryWeek] =
     GetResult(r => PanoImageryWeek(r.nextDate().toLocalDate, r.nextInt(), r.nextInt()))
 
   /**

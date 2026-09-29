@@ -1,7 +1,7 @@
 @import models.partner.PartnerMetadata
 @import models.utils.{OfficialContact, SlugUtils}
 @(partners: Seq[PartnerMetadata], officialContact: Option[OfficialContact], cityName: String
-)(implicit messages: Messages, assets: AssetsFinder)
+)(using messages: Messages, assets: AssetsFinder)
 
 @*
 * The landing page's partners section (#4516), in two halves: the admin-managed "Community Partners in <city>" logos

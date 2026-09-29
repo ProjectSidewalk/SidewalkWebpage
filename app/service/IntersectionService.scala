@@ -60,7 +60,7 @@ trait IntersectionService {
 class IntersectionServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     intersectionTable: IntersectionTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends IntersectionService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

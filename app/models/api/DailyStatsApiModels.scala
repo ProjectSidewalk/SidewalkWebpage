@@ -56,7 +56,7 @@ object DailyStatRecord extends ApiFields[DailyStatRecord] {
     field("ai_validations_unsure")(_.aiValidationsUnsure)
   )
 
-  implicit val writes: OWrites[DailyStatRecord] = (record: DailyStatRecord) => toJson(record)
+  given writes: OWrites[DailyStatRecord] = (record: DailyStatRecord) => toJson(record)
 
   /**
    * Merges label-stat and validation-stat rows (each keyed by date + label_type) into one unified

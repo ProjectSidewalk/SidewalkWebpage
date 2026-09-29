@@ -29,7 +29,7 @@ object CheckImageryAgeActor {
 class CheckImageryAgeActor @Inject() (
     imageryFreshnessService: ImageryFreshnessService,
     jobRunService: JobRunService
-)(implicit
+)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

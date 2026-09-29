@@ -63,9 +63,9 @@ class PartnerServiceImpl @Inject() (
     configService: ConfigService,
     cacheApi: AsyncCacheApi,
     partnerTable: PartnerTable,
-    cpuEc: CpuIntensiveExecutionContext,
-    implicit val ec: ExecutionContext
-) extends PartnerService
+    cpuEc: CpuIntensiveExecutionContext
+)(using ec: ExecutionContext)
+    extends PartnerService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   import PartnerServiceImpl._
 

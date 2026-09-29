@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.{FilteredTables, IpAddress}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -88,13 +88,13 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTableDef]
 
-  implicit private val getIssueWeek: GetResult[NoImageryReportWeek] =
+  private given getIssueWeek: GetResult[NoImageryReportWeek] =
     GetResult(r => NoImageryReportWeek(r.nextDate().toLocalDate, r.nextInt(), r.nextInt()))
 
-  implicit private val getIssueRegion: GetResult[NoImageryReportRegion] =
+  private given getIssueRegion: GetResult[NoImageryReportRegion] =
     GetResult(r => NoImageryReportRegion(r.nextInt(), r.nextString(), r.nextInt(), r.nextInt()))
 
-  implicit private val getCorroboratedStreet: GetResult[CorroboratedNoImageryStreet] = GetResult { r =>
+  private given getCorroboratedStreet: GetResult[CorroboratedNoImageryStreet] = GetResult { r =>
     CorroboratedNoImageryStreet(r.nextInt(), r.nextInt(), r.nextString(), r.nextInt(), r.nextInt(),
       r.nextOffsetDateTime())
   }

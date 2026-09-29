@@ -33,7 +33,7 @@ trait RegionCompletionTableRepository {}
 class RegionCompletionTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     streetEdgeTable: StreetEdgeTable
-)(implicit
+)(using
     ec: ExecutionContext
 ) extends RegionCompletionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

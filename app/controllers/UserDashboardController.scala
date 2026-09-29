@@ -30,7 +30,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class UserDashboardController @Inject() (
     cc: CustomControllerComponents,
     val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService,
     userService: UserService,
     adminService: AdminService,
@@ -39,9 +38,9 @@ class UserDashboardController @Inject() (
     authenticationService: service.AuthenticationService,
     rateLimiter: service.RateLimiter,
     silhouette: Silhouette[DefaultEnv]
-)(implicit ec: ExecutionContext)
+)(using assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   // The dashboard's needs-re-audit list reveals five rows at a time; it fetches three pages' worth up front so
   // "show more" is a reveal rather than a round trip, and defers the rest to the map, which draws all of them (#4896).
@@ -97,7 +96,7 @@ class UserDashboardController @Inject() (
   /** Resolves a username for the admin pages, rendering the branded 404 when it matches no account. */
   private def withUser(username: String)(
       render: SidewalkUserWithRole => Future[Result]
-  )(implicit request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
+  )(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     authenticationService.findByUsername(username).flatMap {
       case Some(subject) => render(subject)
       case None          => Future.successful(notFoundPage(request.path))
@@ -107,7 +106,7 @@ class UserDashboardController @Inject() (
   /**
    * Assembles and renders the dashboard for `user`, viewed by `request.identity` (the same person unless `adminView`).
    */
-  private def renderDashboard(user: SidewalkUserWithRole, adminView: Boolean)(implicit
+  private def renderDashboard(user: SidewalkUserWithRole, adminView: Boolean)(using
       request: SecuredRequest[DefaultEnv, AnyContent]
   ): Future[Result] = {
     val isMetric = ControllerUtils.isMetric

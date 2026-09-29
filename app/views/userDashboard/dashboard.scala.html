@@ -11,7 +11,7 @@
     profileData: UserProfileData, isMetric: Boolean, tags: Seq[Tag], standing: Option[UserStanding],
     streak: StreakStats, accuracyByType: Seq[AccuracyByType], trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats],
     reauditStreets: Seq[OutdatedStreetForUser], reauditTotal: Int, reauditPageSize: Int
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * The signed-in user's dashboard. `user` is whose dashboard this is and `viewer` who is looking at it — the same

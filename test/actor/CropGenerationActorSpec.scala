@@ -25,8 +25,8 @@ import scala.jdk.CollectionConverters._
  */
 class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with Eventually {
 
-  private val system                        = ActorSystem("CropGenerationActorSpec")
-  implicit private val ec: ExecutionContext = system.dispatcher
+  private val system                 = ActorSystem("CropGenerationActorSpec")
+  private given ec: ExecutionContext = system.dispatcher
 
   private val result = CropRunResult(1, 2, 3, 4, 5, 6, 7, 12, 13, 14, 11)
 
@@ -59,7 +59,7 @@ class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with E
       jobRuns: RecordingJobRunService
   ): ActorRef = {
     // The schedule is never armed, so the only ticks are the ones a test sends.
-    implicit val configService: ConfigService =
+    given configService: ConfigService =
       StubService.answering[ConfigService](Map("getOffsetHours" -> Future.never))
     val cropService = StubService.answeringWith[CropService](
       Map(
@@ -70,7 +70,7 @@ class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with E
     system.actorOf(Props(new CropGenerationActor(cropService, jobRuns)))
   }
 
-  implicit override val patienceConfig: PatienceConfig =
+  override given patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(10, Seconds), interval = Span(50, Millis))
 
   "CropGenerationActor" should {

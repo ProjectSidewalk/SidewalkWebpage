@@ -1,6 +1,6 @@
 @import models.user.{Role, SidewalkUserWithRole}
 @import service.CommonPageData
-@(activePage: String, commonData: CommonPageData, user: SidewalkUserWithRole)(content: Html)(implicit request: RequestHeader, assets: AssetsFinder)
+@(activePage: String, commonData: CommonPageData, user: SidewalkUserWithRole)(content: Html)(using request: RequestHeader, assets: AssetsFinder)
 
 @* Shared shell for the redesigned admin dashboard (#4272): left nav + main content + right "On this page" TOC. Built on the shared page shell and components (components/page-shell.css, kpi.css, tables.css) — the same ones the API docs and the user dashboard link, so the three surfaces look identical; admin-dashboard.css adds only what is admin-only (maps, charts). The right TOC is populated client-side from the page's h2/h3 headings by admin-shell.js. Every page opens with the deployment-info strip so there's never a question of which instance/version you're looking at.
 *

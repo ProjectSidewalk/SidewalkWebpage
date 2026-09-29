@@ -16,7 +16,7 @@ import models.route.{
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.{ConfigTableDef, MyPostgresProfile}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider

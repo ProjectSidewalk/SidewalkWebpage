@@ -7,7 +7,7 @@
 *
 * @param idPrefix Unique-per-page prefix for this instance's dialog id and input ids.
 *@
-@(idPrefix: String = "story-composer")(implicit assets: AssetsFinder)
+@(idPrefix: String = "story-composer")(using assets: AssetsFinder)
 
 <dialog class="story-composer" id="@idPrefix">
   @* Same discard guard as Cancel (StoryComposer wires both through #requestClose). *@

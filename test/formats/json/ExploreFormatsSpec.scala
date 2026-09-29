@@ -1,6 +1,6 @@
 package formats.json
 
-import formats.json.ExploreFormats._
+import formats.json.ExploreFormats.{given, _}
 import models.audit.AuditTask
 import models.label.{LabelPointTable, LabelType}
 import org.scalatest.funsuite.AnyFunSuite

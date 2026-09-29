@@ -26,9 +26,9 @@ import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import slick.ast.TypedType
 import slick.jdbc.JdbcType
-import slick.lifted.ExtensionMethods
+import slick.lifted.{ExtensionMethods, OptionMapperDSL}
 
-import scala.language.implicitConversions
+import scala.annotation.targetName
 
 trait MyPostgresProfile
     extends ExPostgresProfile
@@ -63,22 +63,20 @@ trait MyPostgresProfile
     val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
 
     // Postgres won't save plain text into an inet column, so the value is sent untyped and Postgres reads it as an IP.
-    implicit val ipAddressMapper: JdbcType[IpAddress] = new GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
+    given ipAddressMapper: JdbcType[IpAddress] = new GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
 
     // Shared, because slick-pg looks an array's element type up by `tag.repr`: left to materialize itself, each
     // `nextArray[T]()` rebuilds the tag and re-renders that string per row, ~0.3 µs inside the `GetResult`.
-    implicit val stringElementTag: izumi.reflect.Tag[String] = ArrayElementTags.string
-    implicit val intElementTag: izumi.reflect.Tag[Int]       = ArrayElementTags.int
+    given stringElementTag: izumi.reflect.Tag[String] = ArrayElementTags.string
+    given intElementTag: izumi.reflect.Tag[Int]       = ArrayElementTags.int
 
-    // Adds implicit conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
+    // Adds conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
     private val mapper = new ObjectMapper()
     mapper.registerModule(new JtsModule())
-    implicit val geometryWrites: Writes[Geometry] = Writes[Geometry] { geom =>
-      Json.parse(mapper.writeValueAsString(geom))
-    }
-    implicit val multiPolygonWrites: Writes[MultiPolygon] = geometryWrites.contramap(identity)
-    implicit val lineStringWrites: Writes[LineString]     = geometryWrites.contramap(identity)
-    implicit val pointWrites: Writes[Point]               = geometryWrites.contramap(identity)
+    given geometryWrites: Writes[Geometry] = Writes[Geometry] { geom => Json.parse(mapper.writeValueAsString(geom)) }
+    given multiPolygonWrites: Writes[MultiPolygon] = geometryWrites.contramap(identity)
+    given lineStringWrites: Writes[LineString]     = geometryWrites.contramap(identity)
+    given pointWrites: Writes[Point]               = geometryWrites.contramap(identity)
 
     /**
      * Extension methods that correct slick-pg's spatial measurement return types from Float to Double, matching
@@ -86,9 +84,9 @@ trait MyPostgresProfile
      * PgPostGISExtensions.scala and change from Float to Double.
      */
     class GeometryDoubleMeasurements[G1 <: Geometry, P1](val c: Rep[P1]) extends ExtensionMethods[G1, P1] {
-      implicit protected def b1Type: TypedType[G1] = implicitly[TypedType[Geometry]].asInstanceOf[TypedType[G1]]
+      protected given b1Type: TypedType[G1] = summon[TypedType[Geometry]].asInstanceOf[TypedType[G1]]
 
-      def lengthD[R](implicit om: o#to[Double, R]): Rep[R] = om.column(GeomLibrary.Length, n)
+      def lengthD[R](using om: o#to[Double, R]): Rep[R] = om.column(GeomLibrary.Length, n)
 
       /**
        * Geodesic length in meters of a 4326 geometry, measured on the WGS84 spheroid via a `::geography` cast.
@@ -110,22 +108,40 @@ trait MyPostgresProfile
         }
         .apply(c)
 
-      def distanceSphereD[P2, R](geom: Rep[P2])(implicit om: o#to[Double, R]): Rep[R] =
+      def distanceSphereD[P2, R](geom: Rep[P2])(using om: o#to[Double, R]): Rep[R] =
         om.column(GeomLibrary.DistanceSphere, n, geom.toNode)
 
-      def azimuthD[P2, R](geom: Rep[P2])(implicit om: o#to[Double, R]): Rep[R] =
+      def azimuthD[P2, R](geom: Rep[P2])(using om: o#to[Double, R]): Rep[R] =
         om.column(GeomLibrary.Azimuth, n, geom.toNode)
     }
 
-    // One conversion for a plain geometry column and one for a nullable one, so the geometry type is always known.
-    implicit def geometryDoubleMeasurements[G1 <: Geometry](c: Rep[G1]): GeometryDoubleMeasurements[G1, G1] =
-      new GeometryDoubleMeasurements[G1, G1](c)
-    implicit def geometryOptionDoubleMeasurements[G1 <: Geometry](
-        c: Rep[Option[G1]]
-    ): GeometryDoubleMeasurements[G1, Option[G1]] = new GeometryDoubleMeasurements[G1, Option[G1]](c)
+    // One set for a plain geometry column and one for a nullable one, so the geometry type is always known. Both
+    // look the same to the JVM, so the nullable set is compiled under its own names.
+    extension [G1 <: Geometry](c: Rep[G1]) {
+      def lengthD[R](using om: OptionMapperDSL.arg[G1, G1]#to[Double, R]): Rep[R] =
+        new GeometryDoubleMeasurements[G1, G1](c).lengthD
+      def lengthGeodesic: Rep[Double] = new GeometryDoubleMeasurements[G1, G1](c).lengthGeodesic
+      def distanceSphereD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, G1]#to[Double, R]): Rep[R] =
+        new GeometryDoubleMeasurements[G1, G1](c).distanceSphereD(geom)
+      def azimuthD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, G1]#to[Double, R]): Rep[R] =
+        new GeometryDoubleMeasurements[G1, G1](c).azimuthD(geom)
+    }
+    extension [G1 <: Geometry](c: Rep[Option[G1]]) {
+      @targetName("lengthDNullable")
+      def lengthD[R](using om: OptionMapperDSL.arg[G1, Option[G1]]#to[Double, R]): Rep[R] =
+        new GeometryDoubleMeasurements[G1, Option[G1]](c).lengthD
+      @targetName("lengthGeodesicNullable")
+      def lengthGeodesic: Rep[Double] = new GeometryDoubleMeasurements[G1, Option[G1]](c).lengthGeodesic
+      @targetName("distanceSphereDNullable")
+      def distanceSphereD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, Option[G1]]#to[Double, R]): Rep[R] =
+        new GeometryDoubleMeasurements[G1, Option[G1]](c).distanceSphereD(geom)
+      @targetName("azimuthDNullable")
+      def azimuthD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, Option[G1]]#to[Double, R]): Rep[R] =
+        new GeometryDoubleMeasurements[G1, Option[G1]](c).azimuthD(geom)
+    }
 
     // New mapper for Seq[ExcludedTag] stored as JSONB.
-    implicit val excludedTagListMapper: DriverJdbcType[Seq[ExcludedTag]] =
+    given excludedTagListMapper: DriverJdbcType[Seq[ExcludedTag]] =
       new GenericJdbcType[Seq[ExcludedTag]](
         pgjson,
         s => if (s == null) List.empty[ExcludedTag] else Json.parse(s).as[Seq[ExcludedTag]],
@@ -133,7 +149,7 @@ trait MyPostgresProfile
       )
 
     // New mapper for Seq[AiTagConfidence] stored as JSONB.
-    implicit val aiTagConfidenceSeqMapper: DriverJdbcType[Seq[AiTagConfidence]] =
+    given aiTagConfidenceSeqMapper: DriverJdbcType[Seq[AiTagConfidence]] =
       new GenericJdbcType[Seq[AiTagConfidence]](
         pgjson,
         s => if (s == null) List.empty[AiTagConfidence] else Json.parse(s).as[Seq[AiTagConfidence]],
@@ -141,7 +157,7 @@ trait MyPostgresProfile
       )
 
     // New mapper for Seq[ClusteringThreshold] stored as JSONB.
-    implicit val clusteringThresholdSeqMapper: DriverJdbcType[Seq[ClusteringThreshold]] =
+    given clusteringThresholdSeqMapper: DriverJdbcType[Seq[ClusteringThreshold]] =
       new GenericJdbcType[Seq[ClusteringThreshold]](
         pgjson,
         s => if (s == null) List.empty[ClusteringThreshold] else Json.parse(s).as[Seq[ClusteringThreshold]],
@@ -149,11 +165,11 @@ trait MyPostgresProfile
       )
 
     // Mapper for pano_source enum type.
-    implicit val panoSourceMapper: BaseColumnType[PanoSource.Value] =
+    given panoSourceMapper: BaseColumnType[PanoSource.Value] =
       createEnumJdbcType[PanoSource.Value]("pano_source", _.toString, PanoSource.withName, quoteName = false)
 
     // Mapper for pano_imagery_change_source enum type.
-    implicit val panoImageryChangeSourceMapper: BaseColumnType[PanoImageryChangeSource.Value] =
+    given panoImageryChangeSourceMapper: BaseColumnType[PanoImageryChangeSource.Value] =
       createEnumJdbcType[PanoImageryChangeSource.Value](
         "pano_imagery_change_source",
         _.toString,
@@ -161,23 +177,23 @@ trait MyPostgresProfile
         quoteName = false
       )
 
-    implicit val cropSourceMapper: BaseColumnType[CropSource.Value] =
+    given cropSourceMapper: BaseColumnType[CropSource.Value] =
       createEnumJdbcType[CropSource.Value]("crop_source", _.toString, CropSource.withName, quoteName = false)
 
     // Mapper for ui_source enum type.
-    implicit val uiSourceMapper: BaseColumnType[UiSource.Value] =
+    given uiSourceMapper: BaseColumnType[UiSource.Value] =
       createEnumJdbcType[UiSource.Value]("ui_source", _.toString, UiSource.withName, quoteName = false)
 
     // Mapper for ai_image_source enum type.
-    implicit val aiImageSourceMapper: BaseColumnType[AiImageSource.Value] =
+    given aiImageSourceMapper: BaseColumnType[AiImageSource.Value] =
       createEnumJdbcType[AiImageSource.Value]("ai_image_source", _.toString, AiImageSource.withName, quoteName = false)
 
     // Mapper for viewer_type enum type.
-    implicit val viewerTypeMapper: BaseColumnType[ViewerType.Value] =
+    given viewerTypeMapper: BaseColumnType[ViewerType.Value] =
       createEnumJdbcType[ViewerType.Value]("viewer_type", _.toString, ViewerType.withName, quoteName = false)
 
     // Mapper for validation_option enum type.
-    implicit val validationOptionMapper: BaseColumnType[ValidationOption.Value] =
+    given validationOptionMapper: BaseColumnType[ValidationOption.Value] =
       createEnumJdbcType[ValidationOption.Value](
         "validation_option",
         _.toString,
@@ -186,7 +202,7 @@ trait MyPostgresProfile
       )
 
     // Mapper for validation_comment_change_type enum type.
-    implicit val validationCommentChangeTypeMapper: BaseColumnType[ValidationCommentChangeType.Value] =
+    given validationCommentChangeTypeMapper: BaseColumnType[ValidationCommentChangeType.Value] =
       createEnumJdbcType[ValidationCommentChangeType.Value](
         "validation_comment_change_type",
         _.toString,
@@ -195,7 +211,7 @@ trait MyPostgresProfile
       )
 
     // Mapper for street_edge_status enum type.
-    implicit val streetEdgeStatusMapper: BaseColumnType[StreetEdgeStatus.Value] =
+    given streetEdgeStatusMapper: BaseColumnType[StreetEdgeStatus.Value] =
       createEnumJdbcType[StreetEdgeStatus.Value](
         "street_edge_status",
         _.toString,
@@ -204,7 +220,7 @@ trait MyPostgresProfile
       )
 
     // Mapper for street_edge_status_change_source enum type.
-    implicit val streetEdgeStatusChangeSourceMapper: BaseColumnType[StreetEdgeStatusChangeSource.Value] =
+    given streetEdgeStatusChangeSourceMapper: BaseColumnType[StreetEdgeStatusChangeSource.Value] =
       createEnumJdbcType[StreetEdgeStatusChangeSource.Value](
         "street_edge_status_change_source",
         _.toString,
@@ -213,23 +229,23 @@ trait MyPostgresProfile
       )
 
     // Mapper for job_run_status enum type.
-    implicit val jobRunStatusMapper: BaseColumnType[JobRunStatus.Value] =
+    given jobRunStatusMapper: BaseColumnType[JobRunStatus.Value] =
       createEnumJdbcType[JobRunStatus.Value]("job_run_status", _.toString, JobRunStatus.withName, quoteName = false)
 
     // Mapper for job_run_trigger enum type.
-    implicit val jobRunTriggerMapper: BaseColumnType[JobRunTrigger.Value] =
+    given jobRunTriggerMapper: BaseColumnType[JobRunTrigger.Value] =
       createEnumJdbcType[JobRunTrigger.Value]("job_run_trigger", _.toString, JobRunTrigger.withName, quoteName = false)
 
     // Mapper for mission_type enum type.
-    implicit val missionTypeMapper: BaseColumnType[MissionType.Value] =
+    given missionTypeMapper: BaseColumnType[MissionType.Value] =
       createEnumJdbcType[MissionType.Value]("mission_type", _.toString, MissionType.withName, quoteName = false)
 
     // Mapper for way_type enum type.
-    implicit val wayTypeMapper: BaseColumnType[WayType.Value] =
+    given wayTypeMapper: BaseColumnType[WayType.Value] =
       createEnumJdbcType[WayType.Value]("way_type", _.toString, WayType.withName, quoteName = false)
 
     // Mapper for computation_method enum type.
-    implicit val computationMethodMapper: BaseColumnType[ComputationMethod.Value] =
+    given computationMethodMapper: BaseColumnType[ComputationMethod.Value] =
       createEnumJdbcType[ComputationMethod.Value](
         "computation_method",
         _.toString,
@@ -238,11 +254,11 @@ trait MyPostgresProfile
       )
 
     // Mapper for street_side enum type.
-    implicit val streetSideMapper: BaseColumnType[StreetSide.Value] =
+    given streetSideMapper: BaseColumnType[StreetSide.Value] =
       createEnumJdbcType[StreetSide.Value]("street_side", _.toString, StreetSide.withName, quoteName = false)
 
     // Mapper for sidewalk_presence_status enum type.
-    implicit val sidewalkPresenceStatusMapper: BaseColumnType[SidewalkPresenceStatus.Value] =
+    given sidewalkPresenceStatusMapper: BaseColumnType[SidewalkPresenceStatus.Value] =
       createEnumJdbcType[SidewalkPresenceStatus.Value](
         "sidewalk_presence_status",
         _.toString,
@@ -251,7 +267,7 @@ trait MyPostgresProfile
       )
 
     // Mapper for sidewalk_presence_basis enum type.
-    implicit val sidewalkPresenceBasisMapper: BaseColumnType[SidewalkPresenceBasis.Value] =
+    given sidewalkPresenceBasisMapper: BaseColumnType[SidewalkPresenceBasis.Value] =
       createEnumJdbcType[SidewalkPresenceBasis.Value](
         "sidewalk_presence_basis",
         _.toString,
@@ -260,7 +276,7 @@ trait MyPostgresProfile
       )
 
     // Mapper for street_gradient_quality enum type.
-    implicit val streetGradientQualityMapper: BaseColumnType[StreetGradientQuality.Value] =
+    given streetGradientQualityMapper: BaseColumnType[StreetGradientQuality.Value] =
       createEnumJdbcType[StreetGradientQuality.Value](
         "street_gradient_quality",
         _.toString,
@@ -269,7 +285,7 @@ trait MyPostgresProfile
       )
 
     // Mapper for street_gradient_confidence enum type.
-    implicit val streetGradientConfidenceMapper: BaseColumnType[StreetGradientConfidence.Value] =
+    given streetGradientConfidenceMapper: BaseColumnType[StreetGradientConfidence.Value] =
       createEnumJdbcType[StreetGradientConfidence.Value](
         "street_gradient_confidence",
         _.toString,
@@ -278,7 +294,7 @@ trait MyPostgresProfile
       )
 
     // Mapper for street_edge_issue_type enum type.
-    implicit val streetEdgeIssueTypeMapper: BaseColumnType[StreetEdgeIssueType.Value] =
+    given streetEdgeIssueTypeMapper: BaseColumnType[StreetEdgeIssueType.Value] =
       createEnumJdbcType[StreetEdgeIssueType.Value](
         "street_edge_issue_type",
         _.toString,
@@ -287,7 +303,7 @@ trait MyPostgresProfile
       )
 
     // Mapper for street_imagery_source enum type.
-    implicit val streetImagerySourceMapper: BaseColumnType[StreetImagerySource.Value] =
+    given streetImagerySourceMapper: BaseColumnType[StreetImagerySource.Value] =
       createEnumJdbcType[StreetImagerySource.Value](
         "street_imagery_source",
         _.toString,
@@ -295,15 +311,15 @@ trait MyPostgresProfile
         quoteName = false
       )
 
-    implicit val labelTypeMapper: BaseColumnType[LabelType] =
+    given labelTypeMapper: BaseColumnType[LabelType] =
       createEnumJdbcType[LabelType]("label_type", _.name, LabelType.valueOf, quoteName = false)
 
     // Mapper for the role enum type, which lives in the shared sidewalk_login schema rather than the city's.
-    implicit val roleMapper: BaseColumnType[Role.Value] =
+    given roleMapper: BaseColumnType[Role.Value] =
       createEnumJdbcType[Role.Value]("role", _.toString, Role.withName, quoteName = false)
 
     // Mapper for the measurement_system enum type, which also lives in the shared sidewalk_login schema.
-    implicit val measurementSystemMapper: BaseColumnType[MeasurementSystem.Value] =
+    given measurementSystemMapper: BaseColumnType[MeasurementSystem.Value] =
       createEnumJdbcType[MeasurementSystem.Value](
         "measurement_system",
         _.toString,
@@ -322,7 +338,7 @@ case class IpAddress(value: String) {
 // Would like to use a composite type in the future once there is more support in Slick for them.
 case class ExcludedTag(labelType: String, tag: String)
 object ExcludedTag {
-  implicit val excludedTagFormat: Format[ExcludedTag] = {
+  given excludedTagFormat: Format[ExcludedTag] = {
     val reads: Reads[ExcludedTag] = (
       (__ \ "label_type").read[String] and
         (__ \ "tag").read[String]
@@ -341,7 +357,7 @@ object ExcludedTag {
 // Would like to use a composite type in the future once there is more support in Slick for them.
 case class AiTagConfidence(tag: String, confidence: Double)
 object AiTagConfidence {
-  implicit val aiTagConfidenceFormat: Format[AiTagConfidence] = {
+  given aiTagConfidenceFormat: Format[AiTagConfidence] = {
     val reads: Reads[AiTagConfidence] = (
       (__ \ "tag").read[String] and
         (__ \ "confidence").read[Double]
@@ -360,7 +376,7 @@ object AiTagConfidence {
 // Would like to use a composite type in the future once there is more support in Slick for them.
 case class ClusteringThreshold(labelType: String, threshold: Double)
 object ClusteringThreshold {
-  implicit val clusteringThresholdFormat: Format[ClusteringThreshold] = {
+  given clusteringThresholdFormat: Format[ClusteringThreshold] = {
     val reads: Reads[ClusteringThreshold] = (
       (__ \ "label_type").read[String] and
         (__ \ "threshold").read[Double]
@@ -377,7 +393,7 @@ object ClusteringThreshold {
 
 object MyPostgresProfile extends MyPostgresProfile
 
-/** Out here because beside the implicits that expose them, each tag resolves to itself and initializes to null. */
+/** Out here because beside the givens that expose them, each tag resolves to itself and initializes to null. */
 private[utils] object ArrayElementTags {
   val string: izumi.reflect.Tag[String] = izumi.reflect.Tag[String]
   val int: izumi.reflect.Tag[Int]       = izumi.reflect.Tag[Int]

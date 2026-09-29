@@ -66,7 +66,7 @@ object ApiFields {
    * Declares a field, taking its JSON value from the record through the type's existing `Writes`, and its GeoPackage
    * column type from the value's Scala type.
    */
-  def field[T, V](name: String)(get: T => V)(implicit writes: Writes[V], column: GeoColumnFor[V]): ApiField[T] =
+  def field[T, V](name: String)(get: T => V)(using writes: Writes[V], column: GeoColumnFor[V]): ApiField[T] =
     ApiField(name, record => writes.writes(get(record)), column.column)
 
   /** A position in a field list's JSON shape: a value to read, or an object with its own shape. */
@@ -160,19 +160,19 @@ object GeoColumn {
 final case class GeoColumnFor[V](column: GeoColumn)
 
 object GeoColumnFor {
-  implicit val int: GeoColumnFor[Int]         = GeoColumnFor(GeoColumn.IntegerColumn)
-  implicit val double: GeoColumnFor[Double]   = GeoColumnFor(GeoColumn.RealColumn)
-  implicit val boolean: GeoColumnFor[Boolean] = GeoColumnFor(GeoColumn.BooleanColumn)
-  implicit val string: GeoColumnFor[String]   = GeoColumnFor(GeoColumn.TextColumn)
+  given int: GeoColumnFor[Int]         = GeoColumnFor(GeoColumn.IntegerColumn)
+  given double: GeoColumnFor[Double]   = GeoColumnFor(GeoColumn.RealColumn)
+  given boolean: GeoColumnFor[Boolean] = GeoColumnFor(GeoColumn.BooleanColumn)
+  given string: GeoColumnFor[String]   = GeoColumnFor(GeoColumn.TextColumn)
 
   /** Text, since GeoTools maps a Long to SQL BIGINT, which isn't one of GeoPackage's column types. */
-  implicit val long: GeoColumnFor[Long] = GeoColumnFor(GeoColumn.TextColumn)
+  given long: GeoColumnFor[Long] = GeoColumnFor(GeoColumn.TextColumn)
 
-  implicit def temporal[D <: Temporal]: GeoColumnFor[D]           = GeoColumnFor(GeoColumn.TextColumn)
-  implicit def enumValue[E <: Enumeration#Value]: GeoColumnFor[E] = GeoColumnFor(GeoColumn.TextColumn)
-  implicit def collection[C <: Iterable[_]]: GeoColumnFor[C]      = GeoColumnFor(GeoColumn.TextColumn)
-  implicit def json[J <: JsValue]: GeoColumnFor[J]                = GeoColumnFor(GeoColumn.TextColumn)
+  given temporal[D <: Temporal]: GeoColumnFor[D]           = GeoColumnFor(GeoColumn.TextColumn)
+  given enumValue[E <: Enumeration#Value]: GeoColumnFor[E] = GeoColumnFor(GeoColumn.TextColumn)
+  given collection[C <: Iterable[_]]: GeoColumnFor[C]      = GeoColumnFor(GeoColumn.TextColumn)
+  given json[J <: JsValue]: GeoColumnFor[J]                = GeoColumnFor(GeoColumn.TextColumn)
 
   /** An optional value uses the column of the value inside it; None is stored as null. */
-  implicit def option[V](implicit inner: GeoColumnFor[V]): GeoColumnFor[Option[V]] = GeoColumnFor(inner.column)
+  given option[V](using inner: GeoColumnFor[V]): GeoColumnFor[Option[V]] = GeoColumnFor(inner.column)
 }

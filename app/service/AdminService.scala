@@ -36,7 +36,7 @@ enum TimeInterval(val name: String) {
 }
 
 object TimeInterval {
-  implicit val writes: play.api.libs.json.Writes[TimeInterval] = v => play.api.libs.json.JsString(v.name)
+  given writes: play.api.libs.json.Writes[TimeInterval] = v => play.api.libs.json.JsString(v.name)
 
   /**
    * When the interval starts: midnight Pacific for today, seven days ago for the week.
@@ -365,9 +365,9 @@ class AdminServiceImpl @Inject() (
     webpageActivityTable: WebpageActivityTable,
     teamTable: TeamTable,
     funnelStatTable: FunnelStatTable,
-    configService: ConfigService,
-    implicit val ec: ExecutionContext
-) extends AdminService
+    configService: ConfigService
+)(using ec: ExecutionContext)
+    extends AdminService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   // Trailing window for the Overview page's API-usage KPI; matches the API Analytics page's default range.

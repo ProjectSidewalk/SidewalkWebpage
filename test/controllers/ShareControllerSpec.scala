@@ -43,11 +43,11 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   // The image endpoint streams a file (sendFile), which needs a real Materializer to consume; the test default is
   // NoMaterializer, which only works for strict bodies.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val labelService: LabelService = app.injector.instanceOf[LabelService]
   private val messagesApi: MessagesApi   = app.injector.instanceOf[MessagesApi]
-  implicit private val lang: Lang        = Lang("en") // Requests below send no Accept-Language, so Play serves English.
+  private given lang: Lang               = Lang("en") // Requests below send no Accept-Language, so Play serves English.
 
   /**
    * Recent labels from the connected test DB, providing real ids to exercise. Sourcing ids from the app keeps the

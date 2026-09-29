@@ -597,9 +597,9 @@ class UserServiceImpl @Inject() (
     userUtmTable: UserUtmTable,
     userSettingsTable: UserSettingsTable,
     configService: ConfigService,
-    cacheApi: AsyncCacheApi,
-    implicit val ec: ExecutionContext
-) extends UserService
+    cacheApi: AsyncCacheApi
+)(using ec: ExecutionContext)
+    extends UserService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)

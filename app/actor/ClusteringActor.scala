@@ -18,7 +18,7 @@ object ClusteringActor {
 }
 
 @Singleton
-class ClusteringActor @Inject() (clusterService: ClusterService, jobRunService: JobRunService)(implicit
+class ClusteringActor @Inject() (clusterService: ClusterService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

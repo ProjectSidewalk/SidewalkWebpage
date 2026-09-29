@@ -3,8 +3,8 @@ package controllers
 import controllers.base._
 import controllers.helper.ControllerUtils.{isAdmin, isMobile}
 import formats.json.CommentSubmissionFormats._
-import formats.json.ExploreFormats._
-import formats.json.MissionFormats._
+import formats.json.ExploreFormats.{given, _}
+import formats.json.MissionFormats.given
 import models.audit._
 import models.auth.DefaultEnv
 import models.label.LabelType
@@ -36,11 +36,11 @@ class ExploreController @Inject() (
     rateLimiter: service.RateLimiter,
     missionService: service.MissionService,
     aiService: service.AiService
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Returns an explore page.
@@ -63,7 +63,7 @@ class ExploreController @Inject() (
     val user: SidewalkUserWithRole = request.identity
 
     // Labeling isn't supported on phones/tablets, so send mobile users to the mobile landing page instead.
-    if (isMobile(request)) {
+    if (isMobile(using request)) {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_RedirectMobileLanding")
       Future.successful(Redirect("/mobileLanding"))
     } else {

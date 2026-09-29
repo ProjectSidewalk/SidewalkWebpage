@@ -9,7 +9,7 @@ import models.street.{SidewalkPresenceTable, StreetEdgeTable}
 import models.user.UserStatTable
 import models.validation.LabelValidationTable
 import models.utils.{LatLngBBox, SpatialQueryType}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder

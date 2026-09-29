@@ -6,7 +6,6 @@ import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
 case class PanoLink(panoId: String, targetPanoId: String, yawDeg: Double, description: Option[String])
 
@@ -27,8 +26,7 @@ trait PanoLinkTableRepository {}
 
 @Singleton
 class PanoLinkTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
+    protected val dbConfigProvider: DatabaseConfigProvider
 ) extends PanoLinkTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

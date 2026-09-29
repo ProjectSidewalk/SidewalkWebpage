@@ -19,7 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * `Future`, never awaiting one — a `compute` that blocks before returning would stall every other service's cache.
  */
 @Singleton
-class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(implicit val ec: ExecutionContext) {
+class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(using val ec: ExecutionContext) {
   private val logger = Logger(this.getClass)
 
   /** A cached value plus when it was computed, so stale data can be served while a refresh runs (#4600). */

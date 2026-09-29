@@ -87,7 +87,7 @@ class PartnerTableDef(tag: Tag) extends Table[Partner](tag, "partner") {
  * while a city-id'd row renders only on that city's. `display_order` is a dense 0..n-1 sequence within each scope.
  */
 @Singleton
-class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val partners = TableQuery[PartnerTableDef]

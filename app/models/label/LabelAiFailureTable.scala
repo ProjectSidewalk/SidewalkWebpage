@@ -29,7 +29,7 @@ class LabelAiFailureTableDef(tag: Tag) extends Table[LabelAiFailure](tag, "label
 trait LabelAiFailureTableRepository {}
 
 @Singleton
-class LabelAiFailureTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class LabelAiFailureTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     val ec: ExecutionContext
 ) extends LabelAiFailureTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

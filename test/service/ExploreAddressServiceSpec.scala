@@ -1,7 +1,7 @@
 package service
 
 import formats.json.ExploreFormats._
-import formats.json.MissionFormats._
+import formats.json.MissionFormats.given
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.label.{LabelHistoryTableDef, LabelPointTableDef, LabelTableDef, LabelType}
 import models.mission.{Mission, MissionTableDef, MissionType}

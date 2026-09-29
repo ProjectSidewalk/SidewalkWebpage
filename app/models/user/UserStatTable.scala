@@ -7,7 +7,7 @@ import models.label.{LabelTable, LabelType}
 import models.mission.{MissionTableDef, MissionType}
 import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.functional.syntax._
@@ -35,9 +35,9 @@ case class UserStat(
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
 object LabelTypeStat {
-  // snake_case JSON output per the v3 API convention (#3871). Lives in the companion so it is in implicit
+  // snake_case JSON output per the v3 API convention (#3871). Lives in the companion so it is in given
   // scope wherever a LabelTypeStat is serialized (e.g. UserStatForApi).
-  implicit val writes: Writes[LabelTypeStat] = (
+  given writes: Writes[LabelTypeStat] = (
     (__ \ "labels").write[Int] and
       (__ \ "validated_correct").write[Int] and
       (__ \ "validated_incorrect").write[Int] and
@@ -220,7 +220,7 @@ class UserStatTable @Inject() (
     sidewalkUserTable: SidewalkUserTable,
     labelTable: LabelTable,
     auditTaskTable: AuditTaskTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends UserStatTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -233,7 +233,7 @@ class UserStatTable @Inject() (
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
-  implicit val userStatApiConverter: GetResult[UserStatForApi] = GetResult[UserStatForApi](r =>
+  given userStatApiConverter: GetResult[UserStatForApi] = GetResult[UserStatForApi](r =>
     UserStatForApi(
       r.nextString(),
       r.nextInt(),

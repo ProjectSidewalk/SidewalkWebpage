@@ -7,7 +7,7 @@
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole, profileName: String, isMetric: Boolean,
     profile: Option[PublicProfile], tags: Seq[Tag]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * Public version of a mapper's dashboard, reached by clicking a name on the leaderboard. Viewable by anyone, including

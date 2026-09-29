@@ -18,7 +18,7 @@ class StatsApiController @Inject() (
     val silhouette: Silhouette[models.auth.DefaultEnv],
     apiService: ApiService,
     configService: ConfigService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   private val logger = Logger(this.getClass)

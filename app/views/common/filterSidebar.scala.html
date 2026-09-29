@@ -29,7 +29,7 @@
   checkedValidations: Seq[String] = Seq("correct", "unsure", "unvalidated"),
   checkedSeverities: Seq[String] = Seq("0", "1", "2", "3"),
   activeTags: Seq[String] = Seq.empty
-)(implicit messages: Messages, assets: AssetsFinder)
+)(using messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(_.labelType.name)}
 

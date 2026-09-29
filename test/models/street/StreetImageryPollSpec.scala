@@ -49,7 +49,7 @@ class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
 
   /** [[seedIsolatedStreet]] with the status and position exposed, so several fixture streets can coexist. */
   private def seedStreet(status: String, latOffset: Double): DBIO[StreetToPoll] = {
-    implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+    given getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
       val id     = r.nextInt()
       val points = Seq.fill(3)((r.nextDouble(), r.nextDouble()))
       StreetToPoll(id, points, r.nextGeometry[LineString]())

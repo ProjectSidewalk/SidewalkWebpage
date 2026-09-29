@@ -37,16 +37,15 @@ class GalleryController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
     val config: Configuration,
-    implicit val ec: ExecutionContext,
     configService: ConfigService,
     labelService: LabelService,
     panoDataService: PanoDataService,
     cropService: CropService,
     galleryService: GalleryService,
     regionService: RegionService
-)(implicit assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   /**
    * Returns the Gallery page.

@@ -2,7 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.label.AiImageSource.AiImageSource
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.utils.{AiTagConfidence, MyPostgresProfile}
 import models.validation.{LabelValidationTableDef, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -78,7 +78,7 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
 trait LabelAiAssessmentTableRepository {}
 
 @Singleton
-class LabelAiAssessmentTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class LabelAiAssessmentTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     val ec: ExecutionContext
 ) extends LabelAiAssessmentTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

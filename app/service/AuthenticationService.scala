@@ -55,7 +55,6 @@ trait AuthenticationService extends IdentityService[SidewalkUserWithRole] {
 @Singleton
 class AuthenticationServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext,
     passwordHasher: PasswordHasher,
     cacheApi: AsyncCacheApi,
     sidewalkUserTable: SidewalkUserTable,
@@ -67,7 +66,8 @@ class AuthenticationServiceImpl @Inject() (
     userAccountStateTable: UserAccountStateTable,
     authTokenTable: AuthTokenTable,
     configService: ConfigService
-) extends AuthenticationService
+)(using ec: ExecutionContext)
+    extends AuthenticationService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api._
 

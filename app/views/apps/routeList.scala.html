@@ -14,7 +14,7 @@
  * @param cityRoutes The city's routes, newest first, capped at RouteBuilderController.ListingMax.
  *@
 @(commonData: CommonPageData, user: SidewalkUserWithRole, cityRoutes: Seq[RouteWithStats]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @isMetric = @{ControllerUtils.isMetric}
 @* Named once because every route in the table uses it. Twirl compiles this to a def, so it is not memoized. *@

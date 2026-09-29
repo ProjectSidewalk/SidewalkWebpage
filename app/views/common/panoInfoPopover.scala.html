@@ -8,7 +8,7 @@
 * Include once per page that uses PanoInfoPopover (explore, validate, labelMap, gallery, sharedLabel). Optional rows
 * (label-id, label-date) start hidden; PanoInfoPopover.js unhides them at construction time.
 *@
-@()(implicit assets: AssetsFinder)
+@()(using assets: AssetsFinder)
 
 <div id="pano-info-popover" class="pano-info-popover audit-selectable" popover="manual">
   <header class="pano-info-popover__header">

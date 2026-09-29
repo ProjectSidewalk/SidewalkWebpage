@@ -82,9 +82,9 @@ class StreetServiceImpl @Inject() (
     streetImageryTable: StreetImageryTable,
     streetGradientTable: StreetGradientTable,
     auditTaskTable: AuditTaskTable,
-    labelTable: LabelTable,
-    implicit val ec: ExecutionContext
-) extends StreetService
+    labelTable: LabelTable
+)(using ec: ExecutionContext)
+    extends StreetService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   def getStreetCountDBIO: DBIO[Int] = configService.cachedDBIO[Int]("streetCount")(streetEdgeTable.streetCount)

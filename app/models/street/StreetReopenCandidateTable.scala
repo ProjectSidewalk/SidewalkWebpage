@@ -80,7 +80,7 @@ class StreetReopenCandidateTable @Inject() (protected val dbConfigProvider: Data
 
   val reopenCandidates = TableQuery[StreetReopenCandidateTableDef]
 
-  implicit private val getCandidateForReview: GetResult[ReopenCandidateForReview] = GetResult { r =>
+  private given getCandidateForReview: GetResult[ReopenCandidateForReview] = GetResult { r =>
     ReopenCandidateForReview(
       r.nextInt(),
       r.nextInt(),

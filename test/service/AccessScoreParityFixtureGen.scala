@@ -38,7 +38,7 @@ object AccessScoreParityFixtureGen {
   )
 
   /** Dense per-type object in the API's type order, defaulting to `default`. */
-  private def perType[T](values: Map[String, T], default: T)(implicit w: play.api.libs.json.Writes[T]): JsObject =
+  private def perType[T](values: Map[String, T], default: T)(using w: play.api.libs.json.Writes[T]): JsObject =
     JsObject(AccessScoreCalculator.orderedScoredTypes.map(t => t -> Json.toJson(values.getOrElse(t, default))))
 
   /** Dense per-type-per-bucket object in the API's order, defaulting to 0. */

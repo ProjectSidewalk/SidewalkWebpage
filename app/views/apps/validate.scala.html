@@ -7,7 +7,7 @@
 @import formats.json.LabelFormats.tagWrites
 @import views.ViewHelpers.jsonForScript
 @(commonData: CommonPageData, url: String, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, validatePageData: ValidatePageData
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 

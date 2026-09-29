@@ -29,7 +29,7 @@ object PlacesRefreshActor {
 class PlacesRefreshActor @Inject() (
     placesService: PlacesService,
     jobRunService: JobRunService
-)(implicit
+)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

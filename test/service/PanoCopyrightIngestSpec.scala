@@ -3,7 +3,7 @@ package service
 import formats.json.ExploreFormats.{AiLabelsSubmission, PanoSubmission}
 import models.pano.{PanoDataTable, PanoSource}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application

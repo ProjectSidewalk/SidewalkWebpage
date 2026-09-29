@@ -3,7 +3,7 @@ package service
 import forms.UsernamePolicy
 import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStatTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.ProfanityGuard
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider

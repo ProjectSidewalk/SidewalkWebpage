@@ -6,7 +6,7 @@
 @import views.html.helper.CSRF
 @(commonData: CommonPageData, user: SidewalkUserWithRole, openTeams: Seq[Team], currTeam: Option[Team],
     onLeaderboard: Boolean, publicProfile: Boolean, unitsChoice: String, privateByDefault: Boolean
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * User Dashboard — Settings page. Editable username (#4373), read-only email, a measurement-units choice (#4404),

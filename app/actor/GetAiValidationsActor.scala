@@ -19,7 +19,7 @@ object GetAiValidationsActor {
 }
 
 @Singleton
-class GetAiValidationsActor @Inject() (aiService: AiService, jobRunService: JobRunService)(implicit
+class GetAiValidationsActor @Inject() (aiService: AiService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService,
     val config: Configuration
