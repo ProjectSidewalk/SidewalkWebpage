@@ -377,16 +377,22 @@ class DesktopValidationMenu {
    * what was entered for this label goes. Reachable from the dock's close control in immersive mode.
    */
   clearVerdict() {
+    // Mid-load the current label is already the incoming one, so a Space on the still-focused X would wipe it (#5211).
+    if (svv.labelContainer.dropInputWhileLoading('ClearVerdict')) return;
     const menuUI = this.#menuUI;
     const label = svv.labelContainer.getCurrentLabel();
     const verdict = label.getProperty('validationResult');
     if (verdict === undefined) return;
     svv.tracker.push('Click_ClearVerdict', { verdict });
     this.#dropPendingEdits();
-    for (const name of ['validationResult', 'disagreeOption', 'unsureOption', 'agreeComment',
-      'disagreeReasonTextBox', 'unsureReasonTextBox']) {
-      label.setProperty(name, undefined);
-    }
+    for (const name of ['validationResult', 'disagreeOption', 'unsureOption']) label.setProperty(name, undefined);
+    // The text fields start out empty strings (Label.js), not undefined.
+    for (const name of ['agreeComment', 'disagreeReasonTextBox', 'unsureReasonTextBox']) label.setProperty(name, '');
+    // The X hides itself with the verdict, which would drop keyboard focus to the page; the answer it undid is where
+    // the validator picks up again.
+    const chosenButton = [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]
+      .find((button) => button.classList.contains('is-chosen'));
+    const refocus = document.activeElement === menuUI.verdictClearButton;
     this.#showVerdict(null, []);
     menuUI.optionalCommentTextBox.value = '';
     DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
@@ -396,6 +402,7 @@ class DesktopValidationMenu {
     menuUI.disagreeReasonTextBox.value = '';
     menuUI.unsureReasonTextBox.value = '';
     menuUI.submitButton.disabled = true;
+    if (refocus) (chosenButton ?? menuUI.yesButton).focus();
   }
 
   #setUnsureView() {

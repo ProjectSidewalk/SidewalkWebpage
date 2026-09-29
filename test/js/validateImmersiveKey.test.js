@@ -48,6 +48,7 @@ describe('Validate F shortcut for immersive mode', () => {
             tracker: { push: jest.fn() },
         };
         validationMenuUi.yesButton.click.mockClear();
+        validationMenuUi.submitButton.click.mockClear();
     });
 
     /** Presses F on the element, as a physical KeyF, with the given modifier state. */
@@ -80,6 +81,33 @@ describe('Validate F shortcut for immersive mode', () => {
         pressF(document.body, { shiftKey: true });
         pressF(document.body, { altKey: true });
         expect(window.svv.immersiveMode.toggle).not.toHaveBeenCalled();
+    });
+
+    it('toggles once for a held F, not on every key repeat', () => {
+        pressF(document.body);
+        pressF(document.body, { repeat: true });
+        pressF(document.body, { repeat: true });
+        expect(window.svv.immersiveMode.toggle).toHaveBeenCalledTimes(1);
+    });
+
+    // Enter submits from any other focused button. On these two it has to reach the button itself: submitting from the
+    // X would send the very answer it was pressed to take back.
+    it.each(['validate-verdict-clear', 'immersive-toggle-button'])('leaves Enter on #%s to the button', (id) => {
+        document.body.insertAdjacentHTML('beforeend', `<button id="${id}"><span class="icon"></span></button>`);
+        const button = document.getElementById(id);
+        button.focus();
+        const enter = new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true });
+        button.querySelector('.icon').dispatchEvent(enter);
+        expect(enter.defaultPrevented).toBe(false);
+        expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+    });
+
+    it('still submits on Enter from any other button', () => {
+        document.body.insertAdjacentHTML('beforeend', '<button id="other"></button>');
+        const button = document.getElementById('other');
+        button.focus();
+        button.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true }));
+        expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
     });
 
     it('does nothing on a page without the mode, such as Expert Validate', () => {

@@ -178,6 +178,10 @@ class KeyboardManager {
     // letter shortcuts stay live throughout, since a mouse click leaves focus on the control.
     if (e.code === 'Space' && target.closest?.('#label-visibility-control-holder')) return;
     if ((e.code === 'Enter' || e.code === 'NumpadEnter') && KeyboardManager.#isKeyboardFocusedChevron(target)) return;
+    // The dock's X and the immersive toggle mean "take the answer back" and "change the layout": Enter on either has to
+    // activate it, as it does every other button of that kind, not submit the answer the X was pressed to undo.
+    if ((e.code === 'Enter' || e.code === 'NumpadEnter')
+      && target.closest?.('#validate-verdict-clear, #immersive-toggle-button')) return;
 
     // The marker and its card are their own keyboard scope (#4729): none of the shortcuts below may fire from
     // inside, Enter especially, which would submit from a button that means "open". An open popover counts as being
@@ -213,7 +217,8 @@ class KeyboardManager {
       || /** @type {?HTMLElement} */ (document.activeElement)?.isContentEditable;
     if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !editing
       && svv.immersiveMode) {
-      svv.immersiveMode.toggle('KeyboardShortcut');
+      // Keydown repeats while the key is held, and each repeat would flip the layout again.
+      if (!e.repeat) svv.immersiveMode.toggle('KeyboardShortcut');
       return;
     }
 
