@@ -4,7 +4,6 @@ import models.user.Role
 import models.utils.MyPostgresProfile.api._
 import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -16,7 +15,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.ImageryFreshnessReportService
 import slick.dbio.DBIO
-import util.{AnonSession, RoleSession}
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, OffsetDateTime}
@@ -35,7 +34,7 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
  * scheduling actors are disabled so nightly jobs can't race the tests.
  */
-class ImageryAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class ImageryAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

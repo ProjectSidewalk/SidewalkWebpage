@@ -3,7 +3,6 @@ package controllers
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -12,7 +11,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.silhouette.api.util.PasswordInfo
 import service.AuthenticationService
-import util.{AnonSession, RolledBackDb, StreetFixtures}
+import util.{AnonSession, RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import scala.concurrent.{Await, Future}
 
@@ -34,7 +33,7 @@ import scala.concurrent.{Await, Future}
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
 class UserStreetsFreshnessSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with org.scalatest.BeforeAndAfterAll
     with GuiceOneAppPerSuite
     with RolledBackDb

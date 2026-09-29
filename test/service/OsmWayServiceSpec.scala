@@ -1,7 +1,7 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, JsValue, Json}
+import util.SidewalkSpec
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -11,7 +11,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
  * application, DB, or network required — the functions under test live on the companion object and take parsed JSON
  * or a fake fetch.
  */
-class OsmWayServiceSpec extends PlaySpec {
+class OsmWayServiceSpec extends SidewalkSpec {
   implicit private val ec: ExecutionContext = ExecutionContext.global
 
   /** Builds an OSM API multi-fetch response element for a live way. */

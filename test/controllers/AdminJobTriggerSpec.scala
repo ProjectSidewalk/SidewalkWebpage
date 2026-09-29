@@ -16,7 +16,6 @@ import models.user.Role
 import models.utils.MyPostgresProfile.api._
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
@@ -44,7 +43,7 @@ import service.{
   StreetGradientStaleness,
   StreetService
 }
-import util.{AnonSession, RoleSession, RolledBackDb, SlickEquality, StubService}
+import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec, StubService}
 
 import scala.concurrent.Future
 
@@ -65,8 +64,7 @@ import scala.concurrent.Future
  * scheduling actors are disabled so a nightly run can't be mistaken for a triggered one.
  */
 class AdminJobTriggerSpec
-    extends PlaySpec
-    with SlickEquality
+    extends SidewalkSpec
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession

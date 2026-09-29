@@ -6,7 +6,6 @@ import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.DatabaseConfigProvider
@@ -17,6 +16,7 @@ import play.api.mvc.Results
 import play.api.routing.sird._
 import play.api.{Application, Configuration}
 import play.core.server.Server
+import util.SidewalkSpec
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration._
@@ -30,7 +30,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the
  * scheduling actors are disabled.
  */
-class PlacesRefreshSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
+class PlacesRefreshSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

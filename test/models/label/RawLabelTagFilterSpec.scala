@@ -2,11 +2,10 @@ package models.label
 
 import models.api.TagFilterForApi
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Which labels the `/v3/api/rawLabels` `tags` filter keeps, checked by running the clause over made-up label rows.
@@ -18,7 +17,7 @@ import util.RolledBackDb
  * The rule under test: an entry scoped to a label type narrows only that type, and types nobody scoped come back
  * unnarrowed — mirroring the sidebar, where tag pills chosen under `CurbRamp` say nothing about `Obstacle`.
  */
-class RawLabelTagFilterSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class RawLabelTagFilterSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

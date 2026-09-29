@@ -14,7 +14,6 @@ import models.route.{
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -22,7 +21,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.silhouette.api.util.PasswordInfo
 import service.AuthenticationService
 import slick.dbio.DBIO
-import util.SlickEquality
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
@@ -43,11 +42,7 @@ import scala.concurrent.duration._
  *
  * Every row created here is removed in afterAll — the dev DB is shared, so residue would pollute other work.
  */
-class RouteTaskQuerySpec
-    extends PlaySpec
-    with SlickEquality
-    with org.scalatest.BeforeAndAfterAll
-    with GuiceOneAppPerSuite {
+class RouteTaskQuerySpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

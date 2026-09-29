@@ -2,14 +2,13 @@ package controllers.api
 
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsNull, JsObject}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
  * The 200s of GET /v3/api/streetGrade (#5223), which `AccessScoreApiSpec` cannot reach: CI's schema holds
@@ -22,7 +21,7 @@ import util.{RolledBackDb, StreetFixtures}
  * `BeforeAndAfterAll` is mixed in before `GuiceOneAppPerSuite` so that `afterAll` runs while the app is still up.
  */
 class StreetGradeApiSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with GuiceOneAppPerSuite
     with RolledBackDb

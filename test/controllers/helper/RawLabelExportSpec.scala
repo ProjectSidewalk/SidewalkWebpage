@@ -20,11 +20,11 @@ import org.geotools.feature.FeatureTypes
 import org.geotools.geopkg.GeoPkgDataStoreFactory
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
+import util.SidewalkSpec
 
 import java.nio.file.{Files, Path}
 import java.sql.DriverManager
@@ -47,7 +47,7 @@ import scala.util.Using
  * the shapefile's text survives outside Latin-1 (#5276), and that GeoPackage columns are named, ordered, and filled
  * from the same field list as the JSON and CSV (#5273).
  */
-class RawLabelExportSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
+class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

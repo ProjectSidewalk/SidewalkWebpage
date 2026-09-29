@@ -1,8 +1,8 @@
 package models.api
 
 import models.street._
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsNull, JsObject}
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 
@@ -13,7 +13,7 @@ import java.time.OffsetDateTime
  * spacing, that a street with no profile says `null` and not an empty list, and that an elevation model nobody has
  * registered is still credited by name.
  */
-class StreetGradientApiModelsSpec extends PlaySpec {
+class StreetGradientApiModelsSpec extends SidewalkSpec {
 
   private def stats(quality: StreetGradientQuality.Value, measured: Boolean, demSource: String = "usgs-3dep-10m") =
     StreetGradientStats(

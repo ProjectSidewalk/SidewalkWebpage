@@ -5,7 +5,6 @@ import models.utils.IpAddress
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.cache.AsyncCacheApi
@@ -14,6 +13,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.{LoggingService, SwrCache}
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -49,7 +49,7 @@ class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)
  * hold regardless of how fast the connected database is. The activity log is captured in memory rather than read
  * back from the table, since the routes are `UserAwareAction` and an anonymous request has no user row to key on.
  */
-class AccessScoreColdCacheApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class AccessScoreColdCacheApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   /** Every activity string the app tried to log, in order. */
   private val logged = new ConcurrentLinkedQueue[String]()

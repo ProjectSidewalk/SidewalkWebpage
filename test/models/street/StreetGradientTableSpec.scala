@@ -2,11 +2,10 @@ package models.street
 
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
  * Reads `street_gradient` rows back through the Slick model (#5223).
@@ -18,7 +17,7 @@ import util.{RolledBackDb, StreetFixtures}
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
 class StreetGradientTableSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with GuiceOneAppPerSuite
     with RolledBackDb
     with StreetFixtures

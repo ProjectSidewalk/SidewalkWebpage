@@ -2,12 +2,12 @@ package models.street
 
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -23,7 +23,7 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI). The
  * eager scheduling actors are disabled so they don't fire background work during the test.
  */
-class StreetImageryTableSpec extends PlaySpec with GuiceOneAppPerSuite {
+class StreetImageryTableSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

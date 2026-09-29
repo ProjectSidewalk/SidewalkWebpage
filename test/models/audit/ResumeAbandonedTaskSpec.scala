@@ -1,10 +1,9 @@
 package models.audit
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
  * DB-backed tests pinning what happens when the next-street chooser lands on a street the labeler left part-walked
@@ -21,7 +20,7 @@ import util.{RolledBackDb, StreetFixtures}
  * schema. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  * Scheduling actors are disabled so nightly jobs can't race the tests.
  */
-class ResumeAbandonedTaskSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
+class ResumeAbandonedTaskSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

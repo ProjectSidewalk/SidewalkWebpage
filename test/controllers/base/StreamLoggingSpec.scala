@@ -8,11 +8,11 @@ import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.scalatest.Assertion
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.slf4j.LoggerFactory
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import util.SidewalkSpec
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
@@ -22,7 +22,7 @@ import scala.jdk.CollectionConverters._
  * Pins what a streamed response logs when it ends early: to Pekko a client that stops reading looks like a normal
  * finish, so telling the two apart is deliberate work (#4161).
  */
-class StreamLoggingSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
+class StreamLoggingSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventually {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

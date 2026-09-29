@@ -4,13 +4,13 @@ import controllers.api.BaseApiController
 import org.apache.pekko.stream.Materializer
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.Helpers._
 import play.api.test.FakeRequest
+import util.SidewalkSpec
 
 import java.nio.file.Files
 import java.time.Instant
@@ -27,7 +27,7 @@ import scala.util.Using
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class PublicApiSpec extends PlaySpec with GuiceOneAppPerSuite with Eventually {
+class PublicApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventually {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

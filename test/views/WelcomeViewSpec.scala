@@ -1,6 +1,6 @@
 package views
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 /**
  * Renders the post-signup welcome page directly.
@@ -8,7 +8,7 @@ import org.scalatestplus.play.PlaySpec
  * The page is only reachable right after a real registration, so the privacy panel added for #4375 — which is the
  * whole point of putting the choice in front of a brand-new user — has no route spec that can reach it.
  */
-class WelcomeViewSpec extends PlaySpec with ViewSpecFixtures {
+class WelcomeViewSpec extends SidewalkSpec with ViewSpecFixtures {
 
   private def render(
       onLeaderboard: Boolean = true,

@@ -2,7 +2,6 @@ package models.pano
 
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -10,7 +9,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import service.PanoDataService.{LiveImageryTtlDays, MaxUnexpiredPanosPerSweep}
 import slick.dbio.DBIO
 import slick.jdbc.TransactionIsolation
-import util.SlickEquality
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,7 +27,7 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI). The
  * eager scheduling actors are disabled so they don't fire background work during the test.
  */
-class PanoDataTableSpec extends PlaySpec with SlickEquality with GuiceOneAppPerSuite {
+class PanoDataTableSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

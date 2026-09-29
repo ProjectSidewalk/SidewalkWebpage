@@ -1,12 +1,12 @@
 package service
 
 import models.utils.{HealthTable, MyPostgresProfile}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
@@ -29,7 +29,7 @@ import scala.concurrent.{Await, Future}
  * Read-only. Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  * Scheduling actors are disabled so background actors can't contend for the pool during the run.
  */
-class HealthServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class HealthServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

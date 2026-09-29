@@ -1,11 +1,11 @@
 package controllers
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 /**
  * Five api-docs preview scripts call `window.createApiTableWrapper` from their render callbacks, and the only thing
@@ -16,7 +16,7 @@ import play.api.test.Helpers._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class ApiDocsPreviewWiringSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ApiDocsPreviewWiringSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

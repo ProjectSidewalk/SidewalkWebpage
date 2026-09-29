@@ -3,7 +3,6 @@ package controllers
 import controllers.helper.{ExploreBootstrap, SubmissionSpecHelpers}
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -12,6 +11,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import _root_.util.SidewalkSpec
 
 import java.time.OffsetDateTime
 
@@ -36,7 +36,7 @@ import java.time.OffsetDateTime
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
 class ExploreNoImageryRateLimitSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with SubmissionSpecHelpers
     with GuiceOneAppPerSuite {

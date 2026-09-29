@@ -149,6 +149,12 @@ jobs:
         if: always()
         run: node tools/lint/check-js-types.mjs
 
+      # Blocking: every backend spec extends util.SidewalkSpec, never PlaySpec (#3936). It lives in this job because
+      # it needs only node. Run locally with `make lint-spec-base`.
+      - name: Spec base class (blocking)
+        if: always()
+        run: node tools/lint/check-spec-base.mjs
+
       # Blocking: the jsdom unit suite (test/js/). Thin *coverage* is why there's no `coverageThreshold`
       # (jest.config.js says why); it is not a reason to let a suite that does exist go red.
       - name: Jest unit tests (blocking)

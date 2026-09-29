@@ -3,11 +3,10 @@ package models.audit
 import models.street.StreetEdgePriorityTable
 import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, SlickEquality}
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 
@@ -23,7 +22,7 @@ import java.time.OffsetDateTime
  * cases cancel gracefully when the connected DB lacks the rows they need. Scheduling actors are disabled so nightly
  * jobs can't race the tests.
  */
-class OutdatedImageryRoutingSpec extends PlaySpec with SlickEquality with GuiceOneAppPerSuite with RolledBackDb {
+class OutdatedImageryRoutingSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

@@ -2,18 +2,17 @@ package models.label
 
 import models.user.UserStatTable
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, SlickEquality}
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Pins the validation recount behind excluding a user (#3956), which must agree with the live counting in
  * `ValidationService`. Votes are inserted straight into label_validation, skipping live counting, so every count the
  * assertions read came from the recount. Runs in a rolled-back transaction; cancels without enough data.
  */
-class ValidationRecountSpec extends PlaySpec with SlickEquality with GuiceOneAppPerSuite with RolledBackDb {
+class ValidationRecountSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

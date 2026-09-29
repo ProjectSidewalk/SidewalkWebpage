@@ -1,10 +1,10 @@
 package models.pano
 
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsNull, JsObject, Json}
+import util.SidewalkSpec
 
 /** The attribution owed for imagery Project Sidewalk shows a copy of (#4865). Pure. */
-class ImageryAttributionSpec extends PlaySpec {
+class ImageryAttributionSpec extends SidewalkSpec {
 
   "ImageryAttribution.line" should {
     "credit a Mapillary contributor with the provider and the CC BY-SA licence" in {

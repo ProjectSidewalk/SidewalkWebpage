@@ -3,7 +3,6 @@ package service
 import models.audit.AuditTaskTable
 import models.pano.PanoSource
 import models.street.{StreetImageryTable, StreetReopenCandidateTable}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -12,6 +11,7 @@ import play.api.libs.ws.WSClient
 import play.api.{Application, Configuration}
 import service.ImageryFreshnessService.{MissingImageryCredentialException, PollResult}
 import service.PanoDataService.ImageryCheckResult
+import util.SidewalkSpec
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}
@@ -26,7 +26,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
  * Requires a Postgres database (the app boots to supply the service's collaborators); the poll itself makes no
  * provider calls in these cases, since it fails or short-circuits before reaching one.
  */
-class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

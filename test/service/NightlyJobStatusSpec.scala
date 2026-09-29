@@ -4,7 +4,6 @@ import actor.ScheduledJobs
 import models.utils.MyPostgresProfile.api._
 import models.utils.{BackgroundJobRunTable, JobRunStatus, JobRunTrigger, MyPostgresProfile}
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.cache.AsyncCacheApi
@@ -12,7 +11,7 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, Json}
 import slick.dbio.DBIO
-import util.SlickEquality
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.duration._
@@ -36,7 +35,7 @@ import scala.concurrent.{Await, Future}
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so a real run can't land mid-test.
  */
-class NightlyJobStatusSpec extends PlaySpec with SlickEquality with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class NightlyJobStatusSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

@@ -7,7 +7,6 @@ import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
@@ -18,7 +17,7 @@ import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.StreetService
-import util.{AnonSession, RoleSession, RolledBackDb, SlickEquality, StubService}
+import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec, StubService}
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Future
@@ -31,8 +30,7 @@ import scala.concurrent.Future
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
 class AdminExcludeUserSpec
-    extends PlaySpec
-    with SlickEquality
+    extends SidewalkSpec
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession

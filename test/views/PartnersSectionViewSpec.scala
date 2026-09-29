@@ -2,7 +2,7 @@ package views
 
 import models.partner.PartnerMetadata
 import models.utils.OfficialContact
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 
@@ -10,7 +10,7 @@ import java.time.OffsetDateTime
  * Renders the landing page's partners partial directly, so where the official-contact notice lands (#5462) is pinned
  * for both shapes of city: whether a city has partner logos depends on shared DB rows a route spec can't control.
  */
-class PartnersSectionViewSpec extends PlaySpec with ViewSpecFixtures {
+class PartnersSectionViewSpec extends SidewalkSpec with ViewSpecFixtures {
 
   private val contact = OfficialContact("the City of Burnaby", "https://www.burnaby.ca/our-city/contact-us")
 

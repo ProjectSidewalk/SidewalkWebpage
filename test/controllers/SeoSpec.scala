@@ -8,7 +8,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.{AnonSession, UserAgents}
+import util.{AnonSession, SidewalkSpec, UserAgents}
 
 /**
  * Shared helpers for the SEO surface specs below (issue #4237): an anon session (some pages, e.g. /mobile, are still
@@ -44,7 +44,7 @@ trait SeoSpecHelpers extends AnonSession { this: PlaySpec with GuiceOneAppPerSui
  * everything and every page carries a noindex meta and no canonical (a canonical pointing at prod would conflict
  * with the noindex signal). Requires the Postgres+PostGIS test DB, like the other functional specs.
  */
-class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
+class SeoSpec extends SidewalkSpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()
@@ -90,7 +90,7 @@ class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
  * sitemap; pages carry canonical + description + Open Graph/Twitter tags and no noindex; the landing page has an h1,
  * JSON-LD, and a viewport meta inside the real head. Requires the Postgres+PostGIS test DB.
  */
-class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
+class SeoProdSpec extends SidewalkSpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
   private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
 
@@ -239,7 +239,7 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
  * configured city with its pano source overridden, rather than hard-coding an Infra3D city id, so the spec doesn't
  * depend on which city this environment runs.
  */
-class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
+class SeoSignInWalledSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
 
@@ -281,7 +281,7 @@ class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
  * launched publicly. These assertions are the whole of what keeps them out of the search index. Overrides the
  * configured city's status rather than hard-coding a private city id, so the spec runs on any city.
  */
-class SeoPrivateCitySpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
+class SeoPrivateCitySpec extends SidewalkSpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
   private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
 

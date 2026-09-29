@@ -1,7 +1,7 @@
 package service
 
 import com.typesafe.config.{Config, ConfigFactory}
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import scala.jdk.CollectionConverters._
 
@@ -16,7 +16,7 @@ import scala.jdk.CollectionConverters._
  *
  * Pure config parsing — no app boot and no database.
  */
-class CityFlagConfigSpec extends PlaySpec {
+class CityFlagConfigSpec extends SidewalkSpec {
 
   /** The `city-params` blocks read through `cityFlag`, i.e. the ones where an unlisted city is legal. */
   private val optionalFlagBlocks =

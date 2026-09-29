@@ -2,11 +2,10 @@ package service
 
 import models.label.{LabelTable, LabelTypeEnum}
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, SlickEquality}
+import util.{RolledBackDb, SidewalkSpec}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -19,7 +18,7 @@ import scala.concurrent.duration._
  * Read-only: requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  * Scheduling actors are disabled so background actors can't do work during the run.
  */
-class LabelServiceSpec extends PlaySpec with SlickEquality with RolledBackDb with GuiceOneAppPerSuite {
+class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

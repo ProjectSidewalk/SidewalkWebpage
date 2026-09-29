@@ -3,11 +3,10 @@ package models.street
 import models.label.StreetSide
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, SlickEquality, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import scala.io.Source
 
@@ -24,8 +23,7 @@ import scala.io.Source
  * Every seeded mapper counts unless the case calls `excludeUser`.
  */
 class SidewalkPresenceTableSpec
-    extends PlaySpec
-    with SlickEquality
+    extends SidewalkSpec
     with GuiceOneAppPerSuite
     with RolledBackDb
     with StreetFixtures

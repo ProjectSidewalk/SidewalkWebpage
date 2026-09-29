@@ -1,9 +1,9 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
@@ -17,7 +17,7 @@ import scala.concurrent.duration.DurationInt
  * contains: an unknown mapper must resolve to "not found" (never leak), and the trophy queries must run and return an
  * empty result rather than throwing. Requires Postgres+PostGIS (DATABASE_URL / _USER / _PASSWORD, as in dev/CI).
  */
-class PublicProfileServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
+class PublicProfileServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

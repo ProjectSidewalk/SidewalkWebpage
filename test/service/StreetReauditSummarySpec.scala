@@ -1,11 +1,10 @@
 package service
 
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -21,7 +20,7 @@ import java.time.{LocalDate, OffsetDateTime}
  * would not work here: nothing in a fresh dev dump is flagged as needing a re-audit, and CI's schema holds a single
  * street and no audits at all (see [[util.StreetFixtures]]).
  */
-class StreetReauditSummarySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
+class StreetReauditSummarySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

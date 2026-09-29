@@ -3,7 +3,6 @@ package controllers
 import controllers.helper.SubmissionSpecHelpers
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -12,7 +11,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import _root_.util.SignedUpAccounts
+import _root_.util.{SidewalkSpec, SignedUpAccounts}
 
 /**
  * Functional tests for `POST /label/edit` (#2575) and the `can_edit` flag `GET /label/id/:id` hands the popup:
@@ -21,7 +20,7 @@ import _root_.util.SignedUpAccounts
  * suite's rows. Cancels when the connected schema has no label with a severity (the empty CI city).
  */
 class LabelEditSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with SubmissionSpecHelpers
     with SignedUpAccounts

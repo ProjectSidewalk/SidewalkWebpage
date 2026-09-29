@@ -12,11 +12,10 @@ import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile.api._
 import models.validation.ValidationLabelFilter
 import models.validation.ValidationQueuePolicy.ValidationQueue
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.util.UUID
 import scala.concurrent.Await
@@ -39,7 +38,7 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI). Scheduling
  * actors are disabled so background jobs can't write while a test is measuring.
  */
-class ValidationQueueSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSuite {
+class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
