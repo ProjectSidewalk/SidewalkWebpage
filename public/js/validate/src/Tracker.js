@@ -46,7 +46,10 @@ class Tracker {
    * @param {object} notes
    */
   #createAction(action, notes) {
-    const panoViewer = svv.panoManager && svv.panoViewer ? svv.panoViewer : null;
+    // The viewer alone, not the manager: PanoManager.create assigns svv.panoViewer while it is still running, and
+    // svv.panoManager only once it returns, so a push from inside init (the first label's pano going to Pannellum)
+    // has a viewer to ask about the pano before the manager exists.
+    const panoViewer = svv.panoViewer ? svv.panoViewer : null;
     // Both are null until the viewer's first pano has loaded, and the first push can land before then: when the
     // first label's pano is expired, the primary viewer never loads one and Pannellum takes over mid-init.
     const position = (panoViewer && panoViewer.getPosition()) || { lat: null, lng: null };

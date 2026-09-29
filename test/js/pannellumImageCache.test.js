@@ -86,6 +86,7 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
         jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
         global.util = {
             isMobile: () => false,
+            parseDate: (value) => new Date(value),
             pano: { zoomToFov: (zoom) => 126.5 - zoom * 36.75, fovToZoom: (fov) => (126.5 - fov) / 36.75 },
         };
         global.PanoViewer = class PanoViewer {

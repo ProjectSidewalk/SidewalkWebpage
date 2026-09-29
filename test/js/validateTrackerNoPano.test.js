@@ -50,6 +50,20 @@ describe('Tracker before the first pano loads', () => {
         });
     });
 
+    test('reads the viewer before PanoManager.create has returned, when svv.panoManager is still unset', () => {
+        global.svv = {
+            panoViewer: {
+                getPosition: () => ({ lat: 40.9, lng: -74.0 }),
+                getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
+                getPanoId: () => 'pano-first',
+            },
+            missionContainer: null,
+            form: {},
+        };
+        const [action] = new Tracker().push('Viewer_Pannellum').getActions();
+        expect(action.pano_id).toBe('pano-first');
+    });
+
     test('reports the position and pov once a viewer has them', () => {
         global.svv = {
             panoManager: {},

@@ -58,7 +58,9 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
       ui: { viewer: { date: { textContent: '' } } },
     };
 
-    panoData = { getPanoId: () => 'pano1', getProperty: () => ({ format: () => 'Jun 2026' }) };
+    // A Date, as PanoData carries since #5549 replaced moment: the desktop callback formats it for the date badge.
+    panoData = { getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5, 1) };
+    global.i18next = { language: 'en' };
     const fakeViewer = () => ({
       setPano: jest.fn(() => Promise.resolve(panoData)),
       addListener: jest.fn(),
@@ -81,8 +83,8 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
 
   afterEach(() => {
     document.body.innerHTML = '';
-    for (const name of ['util', 'createPanoViewerLogo', 'createPanoAttribution', 'GsvViewer', 'MapillaryViewer',
-      'svv', 'PannellumViewer']) {
+    for (const name of ['util', 'i18next', 'createPanoViewerLogo', 'createPanoAttribution', 'GsvViewer',
+      'MapillaryViewer', 'svv', 'PannellumViewer']) {
       delete global[name];
     }
   });
