@@ -26,6 +26,7 @@ class ImmersiveMode {
   static CHROMELESS_CLASS = 'chromeless';
 
   #active = false;
+  #restored = false;
   #tracker;
   #relayout;
   #bodyClass;
@@ -54,8 +55,10 @@ class ImmersiveMode {
    *   toggle events' notes; omitted from them when not given.
    * @param {() => ?HTMLElement} [opts.hintReference] - The element the exit hint floats over; the viewport when not
    *   given.
+   * @param {boolean} [opts.deferRestoreLog] - Leave ImmersiveMode_Restored to a later logRestored() call, for a tool
+   *   whose tracker can't attribute a row yet at construction (Validate, before its mission exists).
    */
-  constructor({ tracker, bodyClass, relayout, isDisabled, beforeToggle, frame, hintReference }) {
+  constructor({ tracker, bodyClass, relayout, isDisabled, beforeToggle, frame, hintReference, deferRestoreLog }) {
     this.#tracker = tracker;
     this.#bodyClass = bodyClass;
     this.#relayout = relayout;
@@ -87,8 +90,18 @@ class ImmersiveMode {
       this.#active = true;
       this.#applyClasses();
       this.#renderButton();
-      this.#tracker.push('ImmersiveMode_Restored', { innerWidth: window.innerWidth, innerHeight: window.innerHeight });
+      this.#restored = true;
+      if (!deferRestoreLog) this.logRestored();
     }
+  }
+
+  /**
+   * Logs that this page load came back into immersive mode, if it did. A no-op otherwise, so a tool that deferred the
+   * event can call it unconditionally.
+   */
+  logRestored() {
+    if (!this.#restored) return;
+    this.#tracker.push('ImmersiveMode_Restored', { innerWidth: window.innerWidth, innerHeight: window.innerHeight });
   }
 
   /**

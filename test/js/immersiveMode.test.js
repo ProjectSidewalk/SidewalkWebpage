@@ -27,8 +27,9 @@ describe('ImmersiveMode', () => {
     let onboarding;
 
     /** Builds the module against a fresh page, wired the way Explore's Main.js wires it. */
-    function build() {
+    function build(extra = {}) {
         return new ImmersiveMode({
+            ...extra,
             tracker,
             bodyClass: 'svl-immersive',
             relayout,
@@ -169,6 +170,33 @@ describe('ImmersiveMode', () => {
         }));
 
         // Leaving the mode forgets it, so the next load is boxed.
+        restored.toggle('Click');
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+        expect(build().isActive()).toBe(false);
+    });
+
+    // Validate's tracker can only attribute a row once the mission exists, which is after the mode is built.
+    it('holds the restore event for a deferring tool until logRestored() asks for it', () => {
+        build().toggle('Click');
+        tracker.push.mockClear();
+        const restored = build({ deferRestoreLog: true });
+        expect(restored.isActive()).toBe(true);
+        expect(tracker.push).not.toHaveBeenCalled();
+
+        restored.logRestored();
+        expect(tracker.push).toHaveBeenCalledTimes(1);
+        expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored', expect.anything());
+
+        // A load that did not come back into the mode has nothing to report.
+        restored.toggle('Click');
+        tracker.push.mockClear();
+        build({ deferRestoreLog: true }).logRestored();
+        expect(tracker.push).not.toHaveBeenCalled();
+    });
+
+    it('forgets the mode once left, even for a deferring tool', () => {
+        const restored = build({ deferRestoreLog: true });
+        restored.toggle('Click');
         restored.toggle('Click');
         expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
         expect(build().isActive()).toBe(false);

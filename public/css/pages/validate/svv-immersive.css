@@ -218,9 +218,11 @@ body.svv-immersive #validate-verdict-clear {
 }
 
 /* The default rings are drawn for a white page: Submit's banana ring and the browser's blue both fall under 3:1 on the
-   scrim, so the dock's own controls get Back's white one. */
+   scrim, and the verdict buttons have none at all (svv-validation-menu.css), so the dock's controls get Back's. */
 body.svv-immersive #validate-verdict-clear:focus-visible,
-body.svv-immersive #validate-submit-button:focus-visible {
+body.svv-immersive #validate-submit-button:focus-visible,
+body.svv-immersive .validate-page-button:focus-visible,
+body.svv-immersive .validation-reason-button:focus-visible {
   outline: 2px solid var(--color-neutral-white);
   outline-offset: 2px;
 }

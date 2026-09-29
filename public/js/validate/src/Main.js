@@ -209,6 +209,7 @@ class Main {
         beforeToggle: () => svv.labelVisibilityControl?.hideLabelCard(),
         frame: () => ({ width: svv.canvasWidth(), height: svv.canvasHeight() }),
         hintReference: () => document.getElementById('svv-panorama-holder'),
+        deferRestoreLog: true, // Logged once the mission exists, like ImageAdjustments_Restored below.
       });
     }
 
@@ -327,6 +328,7 @@ class Main {
     if (svv.imageAdjustments && !svv.imageAdjustments.isDefault()) {
       svv.tracker.push('ImageAdjustments_Restored', svv.imageAdjustments.values());
     }
+    svv.immersiveMode?.logRestored();
 
     if (!util.isMobile()) {
       // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the
