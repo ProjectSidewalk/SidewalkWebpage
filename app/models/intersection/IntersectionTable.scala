@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.region.RegionTableDef
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api._
 import models.utils.{FilteredTables, LatLngBBox, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -166,7 +166,7 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
       degree = r.nextInt(),
       gradeSeparated = r.nextBoolean(),
       regionId = r.nextIntOption(),
-      streetEdgeIds = r.nextArray[Int](),
+      streetEdgeIds = r.nextIntArray(),
       auditCount = r.nextInt()
     )
   }

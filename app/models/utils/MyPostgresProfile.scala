@@ -25,7 +25,7 @@ import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import slick.ast.TypedType
-import slick.jdbc.JdbcType
+import slick.jdbc.{JdbcType, PositionedResult}
 import slick.lifted.{ExtensionMethods, OptionMapperDSL}
 
 import scala.annotation.targetName
@@ -65,10 +65,16 @@ trait MyPostgresProfile
     // Postgres won't save plain text into an inet column, so the value is sent untyped and Postgres reads it as an IP.
     given ipAddressMapper: JdbcType[IpAddress] = new GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
 
-    // Shared, because slick-pg looks an array's element type up by `tag.repr`: left to materialize itself, each
+    // Built once and shared, because slick-pg looks an array's element type up by `tag.repr`: a bare
     // `nextArray[T]()` rebuilds the tag and re-renders that string per row, ~0.3 µs inside the `GetResult`.
-    given stringElementTag: izumi.reflect.Tag[String] = ArrayElementTags.string
-    given intElementTag: izumi.reflect.Tag[Int]       = ArrayElementTags.int
+    private val stringElementTag: izumi.reflect.Tag[String] = izumi.reflect.Tag[String]
+    private val intElementTag: izumi.reflect.Tag[Int]       = izumi.reflect.Tag[Int]
+
+    /** Array readers for a raw query's row. Use these rather than `nextArray[T]()`, which is slower per row. */
+    extension (r: PositionedResult) {
+      def nextStringArray(): Seq[String] = r.nextArray[String]()(using stringElementTag)
+      def nextIntArray(): Seq[Int]       = r.nextArray[Int]()(using intElementTag)
+    }
 
     // Adds conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
     private val mapper = new ObjectMapper()
@@ -392,9 +398,3 @@ object ClusteringThreshold {
 }
 
 object MyPostgresProfile extends MyPostgresProfile
-
-/** Out here because beside the givens that expose them, each tag resolves to itself and initializes to null. */
-private[utils] object ArrayElementTags {
-  val string: izumi.reflect.Tag[String] = izumi.reflect.Tag[String]
-  val int: izumi.reflect.Tag[Int]       = izumi.reflect.Tag[Int]
-}

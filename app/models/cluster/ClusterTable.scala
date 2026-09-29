@@ -150,8 +150,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     val unsureCount    = r.nextInt()
     val clusterSize    = r.nextInt()
 
-    val labelIds = r.nextArray[Int]()
-    val userIds  = r.nextArray[String]()
+    val labelIds = r.nextIntArray()
+    val userIds  = r.nextStringArray()
 
     val avgLatitude  = r.nextDouble()
     val avgLongitude = r.nextDouble()
