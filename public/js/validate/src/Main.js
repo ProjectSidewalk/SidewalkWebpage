@@ -204,6 +204,7 @@ class Main {
     const firstLabel = param.labelList[0];
     svv.panoManager = await PanoManager.create(
       svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
+      firstLabel.expired === true,
     );
     svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type);
 
@@ -278,6 +279,14 @@ class Main {
     svv.modalMission = new ModalMission(svv.ui.modalMission);
     svv.missionContainer = new MissionContainer();
     svv.missionContainer.createAMission(param.mission, param.progress);
+
+    // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
+    // memory (#5561), which from in here is otherwise indistinguishable from a reload. Logged once the mission
+    // exists so the row carries this mission's id alongside the one that was cut short.
+    svv.missionLiveMarker = new MissionLiveMarker(window.sessionStorage);
+    const unexpectedUnload = svv.missionLiveMarker.takeUnexpectedUnload();
+    if (unexpectedUnload) svv.tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
+    svv.missionLiveMarker.markLive(param.mission.mission_id);
 
     if (!util.isMobile()) {
       // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the

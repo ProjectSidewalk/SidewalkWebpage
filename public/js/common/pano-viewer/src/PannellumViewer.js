@@ -43,14 +43,38 @@ const deviceMaxPanoWidth = () => {
 };
 
 /**
+ * The widest panorama a phone is handed, whatever its GPU advertises (#5561).
+ *
+ * `deviceMaxPanoWidth` answers "can it be textured", and on an iPhone that answer is 32768: the GPU advertises 16384,
+ * so the native 16384 x 8192 file is served untouched. What the answer leaves out is everything else the load costs.
+ * The decoded bitmap is ~512 MB of RGBA, on top of the two 8192-square textures Pannellum cuts it into (another
+ * ~512 MB), and on a phone that is the per-process ceiling: iOS kills the tab and reloads it, mid-mission. Nothing in
+ * the page sees that happen (no `error`, no `webglcontextlost`), so the #5256 ladder below, which only steps down on
+ * a failure it is told about, can never rescue it. 8192 is the largest `PanoDisplayCopyService.AllowedWidths` member,
+ * cuts the peak to about a quarter, and is already ~2x a phone's device pixels at zoom 1; only max zoom reads a
+ * little softer than the native file would.
+ */
+const MOBILE_MAX_PANO_WIDTH = 8192;
+
+/**
+ * The cap that applies on this device: the GPU's, lowered to MOBILE_MAX_PANO_WIDTH on a phone.
+ * @returns {?number} Maximum panorama width in pixels, or null when nothing bounds it.
+ */
+const effectiveMaxPanoWidth = () => {
+  const gpuCap = deviceMaxPanoWidth();
+  if (!util.isMobile()) return gpuCap;
+  return gpuCap ? Math.min(gpuCap, MOBILE_MAX_PANO_WIDTH) : MOBILE_MAX_PANO_WIDTH;
+};
+
+/**
  * The URL to hand Pannellum for a panorama, asking the server for a smaller copy only when this device can't texture
- * the stored one (#5256). Every device that can render it as stored gets it untouched.
+ * the stored one (#5256), or is a phone that shouldn't hold it (#5561). Every other device gets it untouched.
  *
  * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
  * @returns {string} The image URL, with `maxWidth` appended when a copy is needed.
  */
 const panoramaUrlFor = (metadata) => {
-  const cap = deviceMaxPanoWidth();
+  const cap = effectiveMaxPanoWidth();
   if (!cap || !metadata.width || metadata.width <= cap) return metadata.imageUrl;
   return panoUrlWithMaxWidth(metadata.imageUrl, cap);
 };
@@ -83,7 +107,7 @@ const PANO_MIN_FALLBACK_WIDTH = 2048;
  */
 const panoramaUrlCandidates = (metadata) => {
   const urls = [panoramaUrlFor(metadata)];
-  const cap = deviceMaxPanoWidth();
+  const cap = effectiveMaxPanoWidth();
   const start = Math.min(cap || Infinity, metadata.width || Infinity);
   // With neither a cap nor a width there is nothing to step down from, and a guess would ask for a width the
   // allowlist would only snap back up.

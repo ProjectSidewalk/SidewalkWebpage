@@ -13,6 +13,9 @@ class Tracker {
   // interactions, and the pagehide handler covers actual exits.
   static #FLUSH_INTERVAL_MS = 60000;
   static #MAX_BUFFERED_ACTIONS = 200;
+  // How long after a verdict its flush waits for the next one (flushSoon). Long enough to fold a quick run of taps
+  // into one POST, short enough that a page killed between labels has already sent the verdict before it.
+  static #VERDICT_FLUSH_DELAY_MS = 1000;
 
   constructor() {
     this.#trackWindowEvents();
@@ -106,7 +109,24 @@ class Tracker {
   }
 
   /**
-   * Flushes buffered interactions mid-mission, off the timer armed by push().
+   * Pulls the pending flush forward so what is buffered now reaches the server within about a second (#5561).
+   *
+   * The 60 s deadline bounds what an unexpected end to the page loses, but on a phone the end iOS hands out is a
+   * memory kill that fires no `pagehide`, and a minute of validating is most of a mission. A verdict is worth more
+   * than the interactions around it, so `Label.validate()` calls this after recording one: the mission then loses
+   * at most the label on screen. The delay coalesces a burst of taps into one POST rather than one each; a later
+   * call resets it, so the flush lands `delayMs` after the last verdict of the burst. refresh() cancels it on any
+   * other drain, the same as the deadline it replaces.
+   *
+   * @param {number} [delayMs] - How long to wait for more before flushing.
+   */
+  flushSoon(delayMs = Tracker.#VERDICT_FLUSH_DELAY_MS) {
+    window.clearTimeout(this.#flushTimeout);
+    this.#flushTimeout = window.setTimeout(() => this.#flush(), delayMs);
+  }
+
+  /**
+   * Flushes buffered interactions mid-mission, off the timer armed by push() or flushSoon().
    *
    * Every drain path funnels through refresh(), which cancels the pending timer, so this only fires when the buffer
    * holds unflushed interactions.

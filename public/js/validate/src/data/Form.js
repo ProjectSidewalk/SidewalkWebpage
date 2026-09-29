@@ -17,17 +17,33 @@ class Form {
     this.#dataStoreUrl = url;
 
     // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
-    // unload signal; `keepalive` lets the POST outlive the page while still routing through AppManager's fetch
-    // wrapper, which attaches the `Csrf-Token` header Play's CSRF filter requires (#3935).
-    window.addEventListener('pagehide', () => {
-      svv.tracker.push('Unload');
-      const data = this.compileSubmissionData(false);
-      fetch(this.#dataStoreUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify(data),
-        keepalive: true,
-      });
+    // unload signal (#3935).
+    window.addEventListener('pagehide', () => this.#flushOnExit('Unload'));
+    // And when it is merely hidden (#5561): the phone locked, another app in front, the tab switcher. On iOS that is
+    // the state a tab is killed from when memory runs short, and a killed page fires no pagehide, so whatever is
+    // buffered as it goes hidden is what a kill would lose. Nothing is sent twice: the buffer this drains is the one
+    // the pagehide handler would otherwise have found.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this.#flushOnExit('PageHidden');
+    });
+  }
+
+  /**
+   * Sends everything buffered in a POST that outlives the page.
+   *
+   * `keepalive` is what lets it, while still routing through AppManager's fetch wrapper, which attaches the
+   * `Csrf-Token` header Play's CSRF filter requires (#3935).
+   *
+   * @param {string} reason - The interaction recorded alongside, naming what prompted the flush.
+   */
+  #flushOnExit(reason) {
+    svv.tracker.push(reason);
+    const data = this.compileSubmissionData(false);
+    fetch(this.#dataStoreUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(data),
+      keepalive: true,
     });
   }
 

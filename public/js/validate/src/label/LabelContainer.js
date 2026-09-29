@@ -255,6 +255,7 @@ class LabelContainer {
       this.#currLabel.setProperty('startTimestamp', new Date());
       const panoData = await svv.panoManager.setPanorama(
         this.#currLabel.getAuditProperty('panoId'), this.#currLabel.getAuditProperty('backupImage'),
+        { expired: this.#currLabel.getAuditProperty('expired') === true },
       );
       if (panoData) return;
 
