@@ -220,6 +220,9 @@ class Main {
     let panelSuspendedKeyboard = false;
     svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
       document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
+        // The pills form a row, so opening to the right would cover Sound and Feedback; full screen stacks them in a
+        // column, where the right is clear and below would cover them instead.
+        placement: () => (document.body.classList.contains(ImmersiveMode.BODY_CLASS) ? 'right' : 'below'),
         onOpen: () => {
           svl.tracker.push('Click_ImageAdjustments_Open');
           panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');

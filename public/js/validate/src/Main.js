@@ -234,6 +234,8 @@ class Main {
       ]);
       svv.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svv.imageAdjustments,
         document.getElementById('validate-control-image'), document.getElementById('pano-image-adjustments'), {
+          // Below, so the hide-label toggle and chevron in the row stay visible beside the open panel.
+          placement: 'below',
           onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
           onClose: (via) => svv.tracker.push('Click_ImageAdjustments_Close', { via }),
           onChange: (values) => svv.tracker.push('ImageAdjustments_Change', values),

@@ -54,7 +54,7 @@ let hooks;
 let shown;
 
 /** Builds the panel over fresh markup, with Popover API stubs that record their state in `shown`. */
-function mount() {
+function mount(extraHooks = {}) {
     document.body.innerHTML = MARKUP;
     button = document.getElementById('explore-control-image');
     popover = document.getElementById('pano-image-adjustments');
@@ -63,7 +63,7 @@ function mount() {
     popover.showPopover = jest.fn(() => { shown = true; });
     popover.hidePopover = jest.fn(() => { shown = false; });
     model = new window.PanoImageAdjustments(pano, memoryStorage());
-    hooks = { onOpen: jest.fn(), onClose: jest.fn(), onChange: jest.fn(), onReset: jest.fn() };
+    hooks = { onOpen: jest.fn(), onClose: jest.fn(), onChange: jest.fn(), onReset: jest.fn(), ...extraHooks };
     return new window.PanoImageAdjustmentsPopover(model, button, popover, hooks);
 }
 
@@ -191,6 +191,19 @@ describe('open and close', () => {
         shadows.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: button }));
         expect(shown).toBe(true);
         shadows.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: pano }));
+        expect(shown).toBe(false);
+        expect(hooks.onClose).toHaveBeenCalledWith('focusout');
+    });
+
+    test('Shift+Tab out from the trigger closes it, since the trigger is the popover\'s source', () => {
+        mount();
+        button.click();
+        button.focus();
+        button.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: slider('contrast') }));
+        expect(shown).toBe(true);
+        button.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: null }));
+        expect(shown).toBe(true);
+        button.dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: pano }));
         expect(shown).toBe(false);
         expect(hooks.onClose).toHaveBeenCalledWith('focusout');
     });
@@ -351,5 +364,56 @@ describe('screen-reader active state', () => {
         const m = new window.PanoImageAdjustments(document.getElementById('pano'), memoryStorage());
         new window.PanoImageAdjustmentsPopover(m, b, document.getElementById('pano-image-adjustments'));
         expect(b.querySelectorAll('.sr-only')).toHaveLength(1);
+    });
+});
+
+describe('placement', () => {
+    // jsdom lays nothing out, so the trigger and panel report fixed boxes; the window is jsdom's 1024 x 768.
+    const POP = { width: 200, height: 150 };
+
+    /** Mounts with the given hooks and a trigger box at (left, top), 80 x 30. */
+    function mountAt(left, top, extraHooks) {
+        const panel = mount(extraHooks);
+        button.getBoundingClientRect = () => ({ left, top, right: left + 80, bottom: top + 30, width: 80, height: 30 });
+        popover.getBoundingClientRect = () => ({ left: 0, top: 0, right: POP.width, bottom: POP.height, ...POP });
+        return panel;
+    }
+
+    /** Opens the panel and returns where it was placed, closing it again so no listener outlives the test. */
+    function placed() {
+        button.click();
+        const at = { left: popover.style.left, top: popover.style.top };
+        button.click();
+        return at;
+    }
+
+    test('defaults to the right of the trigger, top-aligned', () => {
+        mountAt(100, 50);
+        expect(placed()).toEqual({ left: '186px', top: '50px' });
+    });
+
+    test('below puts it under the trigger, left-aligned', () => {
+        mountAt(100, 50, { placement: 'below' });
+        expect(placed()).toEqual({ left: '100px', top: '86px' });
+    });
+
+    test('below falls back to the right when there is no room under the trigger, clamped to the viewport', () => {
+        mountAt(100, 700, { placement: 'below' });
+        expect(placed()).toEqual({ left: '186px', top: '610px' });
+    });
+
+    test('right falls back to below when there is no room beside the trigger', () => {
+        mountAt(900, 50, { placement: 'right' });
+        expect(placed()).toEqual({ left: '816px', top: '86px' });
+    });
+
+    test('a placement function is asked on every open, so a layout change is followed', () => {
+        let side = 'below';
+        const placement = jest.fn(() => side);
+        mountAt(100, 50, { placement });
+        expect(placed()).toEqual({ left: '100px', top: '86px' });
+        side = 'right';
+        expect(placed()).toEqual({ left: '186px', top: '50px' });
+        expect(placement).toHaveBeenCalledTimes(2);
     });
 });
