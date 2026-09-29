@@ -214,10 +214,10 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
   [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.8.0) ·
   [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.8.0)
-- **i18next: 26.4.2**
+- **i18next: 26.4.2** — frontend translations.
   [Download](https://unpkg.com/i18next/dist/umd/i18next.min.js) ·
   [Changelog](https://github.com/i18next/i18next/blob/master/CHANGELOG.md)
-- **i18next-http-backend: 3.0.6** — loads translation files (`i18nextHttpBackend-3.0.6.min.js`).
+- **i18next-http-backend: 4.0.2** — loads translation files (`i18nextHttpBackend-4.0.2.min.js`).
   [Project + downloads](https://github.com/i18next/i18next-http-backend) ·
   [Changelog](https://github.com/i18next/i18next-http-backend/blob/master/CHANGELOG.md)
 - **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` reaches past the documented API into

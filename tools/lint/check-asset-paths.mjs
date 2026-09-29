@@ -57,7 +57,7 @@ const ALLOWED = [
   {
     file: 'public/js/common/AppManager.js',
     url: '/assets/locales/{{lng}}/{{ns}}.json',
-    reason: 'an i18next-http-backend loadPath template the library interpolates and multi-loads itself',
+    reason: 'an i18next-http-backend loadPath template the library interpolates itself',
   },
 ];
 
