@@ -1,6 +1,7 @@
 package models.street
 
 import com.google.inject.ImplementedBy
+import models.pano.PanoDataTable
 import models.utils.MyPostgresProfile.api._
 import models.utils.{FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.LineString
@@ -409,14 +410,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
           SELECT DISTINCT ON (pano_data.pano_id)
                  street_edge.street_edge_id AS street_edge_id,
                  pano_data.pano_id          AS pano_id,
-                 CASE
-                     WHEN pano_data.capture_date ~ '^[0-9]{4}$$'
-                         THEN to_date(pano_data.capture_date, 'YYYY')
-                     WHEN pano_data.capture_date ~ '^[0-9]{4}-[0-9]{2}$$'
-                         THEN to_date(pano_data.capture_date, 'YYYY-MM')
-                     WHEN pano_data.capture_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$$'
-                         THEN to_date(pano_data.capture_date, 'YYYY-MM-DD')
-                 END AS capture
+                 #${PanoDataTable.captureDateSql("pano_data.capture_date")} AS capture
           FROM pano_data
           -- Geometry-space ST_DWithin runs first so the street_edge GiST index prunes candidates (0.001 deg is
           -- comfortably wider than 15 m at any real-city latitude); the geography-space check applies the exact

@@ -154,4 +154,38 @@ class PanoDataTableSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       run(panoDataTable.getPanoIdsToCheckExpiration(0, expired = false)) mustBe empty
     }
   }
+
+  "PanoDataTable.captureDateSql" should {
+    // Runs the SQL on one raw capture_date value, returning the date it reads (as text) or None.
+    def parse(raw: String): Option[String] =
+      run(
+        sql"SELECT (#${PanoDataTable.captureDateSql("v")})::text FROM (SELECT $raw::text AS v) t"
+          .as[Option[String]]
+          .head
+      )
+
+    "read year, month, and day precision, filling missing parts with the 1st" in {
+      parse("2014") mustBe Some("2014-01-01")
+      parse("2014-05") mustBe Some("2014-05-01")
+      parse("2014-5") mustBe Some("2014-05-01")
+      parse("2014-05-17") mustBe Some("2014-05-17")
+    }
+
+    "treat blank and junk values as unknown instead of failing the query" in {
+      parse("") mustBe None
+      parse("Invalid date") mustBe None
+      parse("2014-13") mustBe None
+      parse("2014-00") mustBe None
+      parse("2014-05junk") mustBe None
+    }
+
+    "treat years from before street-level imagery as unknown" in {
+      parse("1970-01") mustBe None
+      parse("0000-01") mustBe None
+    }
+
+    "roll an impossible day forward rather than failing the query" in {
+      parse("2014-02-31") mustBe Some("2014-03-03")
+    }
+  }
 }
