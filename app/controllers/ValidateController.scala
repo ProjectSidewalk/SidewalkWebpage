@@ -74,7 +74,7 @@ class ValidateController @Inject() (
    */
   def validate(regions: Option[String], unvalidatedOnly: Option[Boolean], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      if (isMobile(using request)) {
+      if (isMobile) {
         // mobileValidate takes the same query params, so forward them along with the redirect.
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
         Future.successful(Redirect("/mobile", request.queryString))
@@ -127,7 +127,7 @@ class ValidateController @Inject() (
       teams: Option[String]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      if (isMobile(using request)) {
+      if (isMobile) {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ExpertValidate_RedirectMobile")
         Future.successful(Redirect("/mobile"))
       } else {
@@ -182,7 +182,7 @@ class ValidateController @Inject() (
             validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
             commonPageData   <- configService.getCommonPageData(request2Messages.lang)
           } yield {
-            if (!isMobile(using request)) {
+            if (!isMobile) {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
               Redirect("/")
             } else {

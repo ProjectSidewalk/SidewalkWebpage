@@ -35,7 +35,7 @@ case class UserStat(
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
 object LabelTypeStat {
-  // snake_case JSON output per the v3 API convention (#3871). Lives in the companion so it is in given
+  // snake_case JSON output per the v3 API convention (#3871). Lives in the companion so it is in implicit
   // scope wherever a LabelTypeStat is serialized (e.g. UserStatForApi).
   given writes: Writes[LabelTypeStat] = (
     (__ \ "labels").write[Int] and

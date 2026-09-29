@@ -237,8 +237,9 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
   120 chars or hurt readability.
 - **Write `given`, `using`, and `extension`, not `implicit`** — `given` for a value the compiler supplies (a JSON
   format, a Slick mapper), `using` for a parameter that receives one, `extension` for methods added to a type. A
-  wildcard import doesn't bring in `given`s, so a file that relies on another object's says so: `import X.given`, or
-  `import X.{given, _}` when it uses the object's other names too. The one `implicit` left is Play's
+  `given` defined beside the type it serves (in the type's companion, or the object the type is declared in) is found
+  with no import. Any other needs one, and a wildcard doesn't bring it in: `import X.given`, or `import X.{given, _}`
+  when the file uses the object's other names too. The one `implicit` left is Play's
   `implicit request =>` on an action block, which has no shorter Scala 3 spelling.
 - **Use Slick for database access**, not raw SQL, wherever possible — you get compile-time type checking. When you
   must write SQL, **avoid table aliases**.

@@ -63,7 +63,7 @@ class ExploreController @Inject() (
     val user: SidewalkUserWithRole = request.identity
 
     // Labeling isn't supported on phones/tablets, so send mobile users to the mobile landing page instead.
-    if (isMobile(using request)) {
+    if (isMobile) {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_RedirectMobileLanding")
       Future.successful(Redirect("/mobileLanding"))
     } else {

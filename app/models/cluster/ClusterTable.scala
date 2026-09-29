@@ -130,7 +130,6 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   private given panoSourceReads: Reads[models.pano.PanoSource.Value] = formats.json.PanoFormats.panoSourceReads
   private given rawLabelReads: Reads[RawLabelInClusterDataForApi]    = Json.reads[RawLabelInClusterDataForApi]
 
-  // Create a given converter for LabelClusterForApi
   given labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
     val labelClusterId = r.nextInt()
     val labelType      = r.nextString()

@@ -24,9 +24,8 @@ import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
-import slick.ast.TypedType
 import slick.jdbc.{JdbcType, PositionedResult}
-import slick.lifted.{ExtensionMethods, OptionMapperDSL}
+import slick.lifted.OptionMapperDSL
 
 import scala.annotation.targetName
 
@@ -85,14 +84,10 @@ trait MyPostgresProfile
     given pointWrites: Writes[Point]               = geometryWrites.contramap(identity)
 
     /**
-     * Extension methods that correct slick-pg's spatial measurement return types from Float to Double, matching
-     * PostGIS's actual `double precision` returns. For any new function we want to add, just copy from
-     * PgPostGISExtensions.scala and change from Float to Double.
+     * Spatial measurements that return Double, matching PostGIS's `double precision`, where slick-pg's return Float.
+     * To add one, copy it from PgPostGISExtensions.scala and change Float to Double.
      */
-    class GeometryDoubleMeasurements[G1 <: Geometry, P1](val c: Rep[P1]) extends ExtensionMethods[G1, P1] {
-      protected given b1Type: TypedType[G1] = summon[TypedType[Geometry]].asInstanceOf[TypedType[G1]]
-
-      def lengthD[R](using om: o#to[Double, R]): Rep[R] = om.column(GeomLibrary.Length, n)
+    extension [G1 <: Geometry](c: Rep[G1]) {
 
       /**
        * Geodesic length in meters of a 4326 geometry, measured on the WGS84 spheroid via a `::geography` cast.
@@ -102,11 +97,10 @@ trait MyPostgresProfile
        * transverse Mercator distortion away from the zone's central meridian reaches +51% (Auckland through the
        * UTM zone 18N that all cities were once measured in).
        *
-       * Unlike `lengthD`, this does not Option-lift: it is only for non-nullable geometry columns (NULL would fail
-       * result conversion outside an aggregate).
+       * Only for non-nullable geometry columns: NULL would fail result conversion outside an aggregate.
        */
       def lengthGeodesic: Rep[Double] = SimpleExpression
-        .unary[P1, Double] { (geomNode, queryBuilder) =>
+        .unary[G1, Double] { (geomNode, queryBuilder) =>
           queryBuilder.sqlBuilder += "ST_Length(("
           queryBuilder.expr(geomNode)
           queryBuilder.sqlBuilder += ")::geography)"
@@ -114,36 +108,19 @@ trait MyPostgresProfile
         }
         .apply(c)
 
-      def distanceSphereD[P2, R](geom: Rep[P2])(using om: o#to[Double, R]): Rep[R] =
-        om.column(GeomLibrary.DistanceSphere, n, geom.toNode)
-
-      def azimuthD[P2, R](geom: Rep[P2])(using om: o#to[Double, R]): Rep[R] =
-        om.column(GeomLibrary.Azimuth, n, geom.toNode)
-    }
-
-    // One set for a plain geometry column and one for a nullable one, so the geometry type is always known. Both
-    // look the same to the JVM, so the nullable set is compiled under its own names.
-    extension [G1 <: Geometry](c: Rep[G1]) {
-      def lengthD[R](using om: OptionMapperDSL.arg[G1, G1]#to[Double, R]): Rep[R] =
-        new GeometryDoubleMeasurements[G1, G1](c).lengthD
-      def lengthGeodesic: Rep[Double] = new GeometryDoubleMeasurements[G1, G1](c).lengthGeodesic
       def distanceSphereD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, G1]#to[Double, R]): Rep[R] =
-        new GeometryDoubleMeasurements[G1, G1](c).distanceSphereD(geom)
+        om.column(GeomLibrary.DistanceSphere, c.toNode, geom.toNode)
+
       def azimuthD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, G1]#to[Double, R]): Rep[R] =
-        new GeometryDoubleMeasurements[G1, G1](c).azimuthD(geom)
+        om.column(GeomLibrary.Azimuth, c.toNode, geom.toNode)
     }
+
+    /** The same for a nullable geometry column, where the result is nullable too. */
     extension [G1 <: Geometry](c: Rep[Option[G1]]) {
-      @targetName("lengthDNullable")
-      def lengthD[R](using om: OptionMapperDSL.arg[G1, Option[G1]]#to[Double, R]): Rep[R] =
-        new GeometryDoubleMeasurements[G1, Option[G1]](c).lengthD
-      @targetName("lengthGeodesicNullable")
-      def lengthGeodesic: Rep[Double] = new GeometryDoubleMeasurements[G1, Option[G1]](c).lengthGeodesic
+      // Named apart because the JVM can't tell a nullable column from a plain one.
       @targetName("distanceSphereDNullable")
       def distanceSphereD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, Option[G1]]#to[Double, R]): Rep[R] =
-        new GeometryDoubleMeasurements[G1, Option[G1]](c).distanceSphereD(geom)
-      @targetName("azimuthDNullable")
-      def azimuthD[P2, R](geom: Rep[P2])(using om: OptionMapperDSL.arg[G1, Option[G1]]#to[Double, R]): Rep[R] =
-        new GeometryDoubleMeasurements[G1, Option[G1]](c).azimuthD(geom)
+        om.column(GeomLibrary.DistanceSphere, c.toNode, geom.toNode)
     }
 
     // New mapper for Seq[ExcludedTag] stored as JSONB.

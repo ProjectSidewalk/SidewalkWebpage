@@ -36,7 +36,7 @@ class ApplicationController @Inject() (
     val user: Option[SidewalkUserWithRole] = request.identity
     val timestamp: OffsetDateTime          = OffsetDateTime.now
     val ipAddress: IpAddress               = request.ipAddress
-    val isMobile: Boolean                  = ControllerUtils.isMobile(using request)
+    val isMobile: Boolean                  = ControllerUtils.isMobile
     val qString: Map[String, String]       = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
     val referrer: Option[String] = qString.get("referrer") match {
@@ -283,7 +283,7 @@ class ApplicationController @Inject() (
    * a control drawer on one side and a four-panel band below has no phone layout.
    */
   def accessScore = cc.securityService.UserAwareAction { implicit request =>
-    if (ControllerUtils.isMobile(using request)) {
+    if (ControllerUtils.isMobile) {
       cc.loggingService.insert(
         request.identity.map(_.userId),
         request.ipAddress,
@@ -308,7 +308,7 @@ class ApplicationController @Inject() (
    * Returns a page with instructions for users who want to receive community service hours.
    */
   def serviceHoursInstructions = cc.securityService.SecuredAction { implicit request =>
-    val isMobile: Boolean = ControllerUtils.isMobile(using request)
+    val isMobile: Boolean = ControllerUtils.isMobile
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ServiceHourInstructions")
       Ok(views.html.serviceHoursInstructions(commonData, request.identity, isMobile))
@@ -320,7 +320,7 @@ class ApplicationController @Inject() (
    */
   def timeCheck = cc.securityService.SecuredAction(WithSignedIn()) {
     implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
-      val isMobile: Boolean = ControllerUtils.isMobile(using request)
+      val isMobile: Boolean = ControllerUtils.isMobile
       // Not cached, and started together: volunteers reload this page while logging service hours, so a stale total
       // would be worse than a slow one (#4526).
       val cityHoursF: Future[service.CrossCityHours] =
@@ -335,7 +335,7 @@ class ApplicationController @Inject() (
   }
 
   def routeBuilder = cc.securityService.UserAwareAction { implicit request =>
-    if (ControllerUtils.isMobile(using request)) {
+    if (ControllerUtils.isMobile) {
       cc.loggingService.insert(
         request.identity.map(_.userId),
         request.ipAddress,
