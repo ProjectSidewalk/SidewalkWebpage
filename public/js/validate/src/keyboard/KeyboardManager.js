@@ -105,6 +105,24 @@ class KeyboardManager {
     return Number(e.code.at(-1));
   }
 
+  /**
+   * Whether Enter should open the pano's chevron menu rather than submit. Only when the chevron was reached by
+   * keyboard: a validator who Tabbed there means "open the menu", while one who clicked it and then pressed Enter
+   * means "submit", as from any other button a click left focused (Chrome, Edge, and Firefox outside macOS focus a
+   * clicked button). `:focus-visible` tells the two apart, since a mouse click leaves it false. A browser that
+   * rejects the selector falls through to submit, the page-wide default.
+   * @param {Element} target - The keydown's target.
+   * @returns {boolean}
+   */
+  static #isKeyboardFocusedChevron(target) {
+    if (target?.id !== 'validate-control-buttons-toggle') return false;
+    try {
+      return target.matches(':focus-visible');
+    } catch {
+      return false;
+    }
+  }
+
   /** @returns {boolean} Whether the menu is on the "wrong label type" disagree (#5409). */
   #inWrongTypeView() {
     return svv.validationMenu?.inWrongTypeView() === true;
@@ -142,6 +160,24 @@ class KeyboardManager {
    */
   #documentKeyDown = (e) => {
     const validationMenuUi = this.#validationMenuUi;
+
+    // The image adjustments panel is a keyboard scope of its own (#5501): a key on a focused slider nudges it rather
+    // than firing a shortcut, and the panel's own document-level listener takes Escape. An open panel counts wherever
+    // the key came from, since a click on the panel's whitespace leaves focus on the body. Checked before the card's
+    // scope so an open panel takes Escape even with the card showing. Scoped here rather than with disableKeyboard():
+    // that flag is one boolean shared with the modals and the loading state, and re-enabling it on close could release
+    // a lock the panel never took.
+    const imagePanel = document.getElementById('pano-image-adjustments');
+    const target = /** @type {Element} */ (e.target);
+    if (imagePanel?.contains(target) || svv.imageAdjustmentsPopover?.isOpen()) return;
+
+    // Space on a focused control in the pano's top-left group (Hide label, the chevron, the Image pill in its menu) is
+    // left to the browser, which activates the button on keyup; that is the keyboard route to opening the panel. Enter
+    // is not exempt on the pills: on Validate it submits from any focused button, and closing the panel puts focus back
+    // on the Image pill, so an exempt Enter there would reopen the panel for a validator pressing Enter to submit. The
+    // letter shortcuts stay live throughout, since a mouse click leaves focus on the control.
+    if (e.code === 'Space' && target.closest?.('#label-visibility-control-holder')) return;
+    if ((e.code === 'Enter' || e.code === 'NumpadEnter') && KeyboardManager.#isKeyboardFocusedChevron(target)) return;
 
     // The marker and its card are their own keyboard scope (#4729): none of the shortcuts below may fire from
     // inside, Enter especially, which would submit from a button that means "open". An open popover counts as being

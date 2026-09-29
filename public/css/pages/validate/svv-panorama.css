@@ -255,6 +255,22 @@
   left: calc(7px * var(--ui-scale));
 }
 
+/* Continues the pill row to the right, as Explore's menu does; Validate has no full-screen layout, so no downward
+   variant (#5501). */
+#validate-control-menu {
+  display: none;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+#validate-control-buttons-toggle[aria-expanded="true"] + #validate-control-menu {
+  display: flex;
+}
+
+#validate-control-buttons-toggle[aria-expanded="true"] .pano-overlay-button-icon {
+  transform: rotate(180deg);
+}
+
 /* A notch smaller than the shared base size (main.css) for the label card's tiny footer button. */
 .label-hover-card__action-button .hide-label-button-icon {
   width: calc(12px * var(--ui-scale));
