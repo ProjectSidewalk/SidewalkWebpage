@@ -2813,8 +2813,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  to_timestamp(AVG(EXTRACT(EPOCH FROM time_created))) AS avg_label_timestamp,
                  AVG(
                      CASE
-                         WHEN pano_data.capture_date IS NOT NULL AND pano_data.capture_date <> ''
-                         THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))
+                         WHEN pano_data.capture_date ~ '^[0-9]{4}-[0-9]{2}'
+                         THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))
                      END
                  ) AS avg_age_when_labeled,
                  -- STDDEV operates on seconds, then `* INTERVAL '1 second'` yields an interval so the spread is read as
@@ -2823,8 +2823,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
                  STDDEV(
                      EXTRACT(EPOCH FROM (
                          CASE
-                             WHEN pano_data.capture_date IS NOT NULL AND pano_data.capture_date <> ''
-                             THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))
+                             WHEN pano_data.capture_date ~ '^[0-9]{4}-[0-9]{2}'
+                             THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))
                          END
                      ))
                  ) * INTERVAL '1 second' AS stddev_age_when_labeled,

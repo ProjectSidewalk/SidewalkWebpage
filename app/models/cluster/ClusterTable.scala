@@ -324,13 +324,16 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
         |) tag_counts ON cluster.cluster_id = tag_counts.cluster_id
         |GROUP BY cluster.cluster_id""".stripMargin
 
-    // Compute the average image capture date per cluster by first averaging per pano, then averaging those.
+    // Compute the average image capture date per cluster by first averaging per pano, then averaging those. Capture
+    // dates that aren't YYYY-MM (blank, or junk like 'Invalid date') count as unknown and are left out of the average.
     val avgImageCaptureDates =
       """SELECT capture_dates.cluster_id AS cluster_id,
         |       TO_TIMESTAMP(AVG(EXTRACT(epoch from capture_dates.capture_date))) AS avg_capture_date
         |FROM (
         |    SELECT cluster.cluster_id,
-        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(pano_data.capture_date, 'YYYY-MM')))) AS capture_date
+        |           TO_TIMESTAMP(AVG(EXTRACT(epoch from TO_DATE(
+        |               CASE WHEN pano_data.capture_date ~ '^[0-9]{4}-[0-9]{2}' THEN pano_data.capture_date END, 'YYYY-MM'
+        |           )))) AS capture_date
         |    FROM cluster
         |    INNER JOIN cluster_label ON cluster.cluster_id = cluster_label.cluster_id
         |    INNER JOIN label ON cluster_label.label_id = label.label_id
