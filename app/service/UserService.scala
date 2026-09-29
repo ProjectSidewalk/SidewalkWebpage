@@ -339,8 +339,7 @@ object UserService {
   }
 
   /** Label types shown in the per-type accuracy bars (the ones with canonical `--color-label-*` colors), in order. */
-  private val PrimaryLabelTypes: Seq[String] =
-    LabelType.primaryLabelTypeNames
+  private val PrimaryLabelTypes: Seq[String] = LabelType.primaryLabelTypeNames
 
   /**
    * Minimum validated labels of a type before it's eligible to be flagged as the user's "weakest" (avoids flagging a

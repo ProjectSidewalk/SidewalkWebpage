@@ -387,8 +387,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val nearTop = CropMarker(0.62, 0.15)
       val still   = solidBase(PanoDataService.StaticStillWidth, PanoDataService.StaticStillHeight, bg)
       val onStill = markerCenter(controller.compositeMarker(still, LabelType.Crosswalk, nearTop), bg)
-      val onCrop  =
-        markerCenter(controller.compositeMarker(solidBase(1440, 960, bg), LabelType.Crosswalk, nearTop), bg)
+      val onCrop  = markerCenter(controller.compositeMarker(solidBase(1440, 960, bg), LabelType.Crosswalk, nearTop), bg)
       onStill._1 must be(onCrop._1 +- 3)
       onStill._2 must be(onCrop._2 +- 3)
       onCrop._2 must be(144 +- 3)

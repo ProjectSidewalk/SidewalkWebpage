@@ -116,12 +116,7 @@ class LabelEditTable @Inject() (
       .update((labelType, severity, tags, editTime))
 
   /** Rebases an edit onto a different starting state, after the edit before it was unwound. */
-  def updateOldState(
-      labelEditId: Int,
-      labelType: LabelType,
-      severity: Option[Int],
-      tags: List[String]
-  ): DBIO[Int] =
+  def updateOldState(labelEditId: Int, labelType: LabelType, severity: Option[Int], tags: List[String]): DBIO[Int] =
     labelEdits
       .filter(_.labelEditId === labelEditId)
       .map(e => (e.oldLabelType, e.oldSeverity, e.oldTags))

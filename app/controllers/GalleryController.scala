@@ -151,8 +151,7 @@ class GalleryController @Inject() (
       submission => {
         val n: Int = submission.n
         // An empty set of types means "every type", which is what the landing grid and the Gallery's default ask for.
-        val labelTypes: Set[LabelType] =
-          submission.labelTypes.getOrElse(Seq()).flatMap(LabelType.byName.get).toSet
+        val labelTypes: Set[LabelType]   = submission.labelTypes.getOrElse(Seq()).flatMap(LabelType.byName.get).toSet
         val loadedLabels: Set[Int]       = submission.loadedLabels.toSet
         val valOptions: Set[String]      = submission.validationOptions.getOrElse(Seq()).toSet
         val regionIds: Set[Int]          = submission.regionIds.getOrElse(Seq()).toSet

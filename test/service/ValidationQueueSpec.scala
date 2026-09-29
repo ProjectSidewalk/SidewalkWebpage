@@ -504,8 +504,7 @@ class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
         labelTable
           .getAvailableValidationsLabelsByType(requester, viewer, unvalidatedOnly = false, queues, None, NoFilter)
           .map(
-            _.find(_.labelType == LabelType.CurbRamp)
-              .getOrElse(LabelTypeValidationsLeft(LabelType.CurbRamp, 0, 0, 0))
+            _.find(_.labelType == LabelType.CurbRamp).getOrElse(LabelTypeValidationsLeft(LabelType.CurbRamp, 0, 0, 0))
           )
 
       val (before, after, crowd) = runRolledBack(for {
