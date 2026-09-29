@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils
 @import controllers.helper.ControllerUtils.distanceUnitWords
 @import service.{CommonPageData, PublicProfile, UserProfileData}
 @import models.user.{Role, SidewalkUserWithRole}
@@ -181,5 +182,6 @@
 @* labelmap: the reused label-detail popup's strings; dashboard: DashboardBadges.js's client-side strings. *@
 @common.main(commonData, s"$profileName — Project Sidewalk", i18Namespaces = Seq("common", "labelmap", "dashboard")) {
   @common.navbar(commonData, Some(user))
-  @userDashboard.layout("", isSignedIn = user.role != Role.Anonymous)(body)
+  @userDashboard.layout("", isSignedIn = user.role != Role.Anonymous,
+    adminLinkFor = profile.map(_.username).filter(_ => ControllerUtils.isAdmin(user)))(body)
 }
