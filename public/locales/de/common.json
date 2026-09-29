@@ -402,5 +402,8 @@
     "region-sub-pending": "{{length}} Straßen · {{percent}}% erkundet",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Straße ohne Namen"
-  }
+  },
+  "immersive-enter": "Immersiven Modus starten",
+  "immersive-exit": "Immersiven Modus beenden",
+  "immersive-exit-hint": "Immersiver Modus. Drücken Sie F, um ihn zu beenden."
 }

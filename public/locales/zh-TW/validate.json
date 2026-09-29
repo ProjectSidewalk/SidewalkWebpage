@@ -16,6 +16,7 @@
   },
   "validate-menu": {
     "remove-tag": "移除標籤：{{tag}}",
+    "clear-verdict": "清除答案",
     "tag-search-placeholder": "在此新增更多標籤",
     "tag-search-no-results": "沒有符合的標籤",
     "disagree-reason": {

@@ -63,13 +63,17 @@ class StatusField {
     const missionLength = svv.missionContainer
       ? svv.missionContainer.getCurrentMission().getProperty('labelsValidated')
       : svv.missionLength;
-    // The title bar takes HTML, so the count is escaped; the type name is written `{{- labelType}}`.
+    // The title bar takes HTML, so the count is escaped; the type name is written `{{- labelType}}`. The case is left
+    // alone: the boxed and mobile titles uppercase it in CSS, immersive mode's pill does not.
     const newMissionTitle = i18next.t('mission-start-tutorial.mst-instruction-2', {
       nLabels: missionLength,
       labelType: util.misc.labelTypeName(labelType),
       interpolation: { escapeValue: true },
-    }).toUpperCase();
+    });
     this.#statusUI.upperMenuTitle.innerHTML = newMissionTitle;
+    if (this.#statusUI.upperMenuIcon) {
+      this.#statusUI.upperMenuIcon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
+    }
     // The menu header is desktop's; the phone has no menu column.
     if (svv.ui.validationMenu.header) {
       svv.ui.validationMenu.header.innerHTML = i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`);
