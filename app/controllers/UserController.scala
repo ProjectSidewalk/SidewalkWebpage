@@ -4,7 +4,7 @@ import controllers.base._
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
 import forms._
-import models.auth.DefaultEnv
+import models.auth.{DefaultEnv, RememberMeSettings}
 import models.user.{Role, SidewalkUserWithRole, UserUtm}
 import models.utils.{IpAddress, ProfanityGuard}
 import play.api.i18n.Messages
@@ -12,17 +12,15 @@ import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
 import play.api.mvc.{AnyContent, Request}
 import play.api.{Configuration, Logger}
-import play.silhouette.api.Authenticator.Implicits._
 import play.silhouette.api._
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.silhouette.api.exceptions.ProviderException
-import play.silhouette.api.util.{Clock, PasswordHasher}
+import play.silhouette.api.util.PasswordHasher
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import play.silhouette.impl.providers.CredentialsProvider
 
 import java.util.UUID
 import javax.inject._
-import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -35,7 +33,7 @@ class UserController @Inject() (
     authenticationService: service.AuthenticationService,
     userService: service.UserService,
     passwordHasher: PasswordHasher,
-    clock: Clock,
+    rememberMeSettings: RememberMeSettings,
     mailerClient: MailerClient,
     rateLimiter: service.RateLimiter
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
@@ -310,19 +308,12 @@ class UserController @Inject() (
                           // Correct credentials: refund the account's budget so a run of typos doesn't follow the
                           // user into their next session.
                           rateLimiter.clear(idKey)
-                          val rememberMe = config.get[Configuration]("silhouette.authenticator.rememberMe")
                           silhouette.env.authenticatorService
                             .create(loginInfo)
-                            .map {
-                              case authenticator if data.rememberMe =>
-                                // Set up the remember me cookie.
-                                authenticator.copy(
-                                  expirationDateTime =
-                                    clock.now + rememberMe.get[FiniteDuration]("authenticatorExpiry"),
-                                  idleTimeout = Some(rememberMe.get[FiniteDuration]("authenticatorIdleTimeout")),
-                                  cookieMaxAge = Some(rememberMe.get[FiniteDuration]("cookieMaxAge"))
-                                )
-                              case authenticator => authenticator
+                            .map { authenticator =>
+                              if (data.rememberMe)
+                                authenticator.copy(cookieMaxAge = Some(rememberMeSettings.cookieMaxAge))
+                              else authenticator
                             }
                             .flatMap { authenticator =>
                               // Log successful sign in attempt.

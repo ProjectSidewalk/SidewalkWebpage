@@ -6,6 +6,7 @@ import models.auth.{
   CustomSecuredErrorHandler,
   CustomUnsecuredErrorHandler,
   DefaultEnv,
+  RememberMeSettings,
   RevocableCookieAuthenticatorService
 }
 import net.codingwell.scalaguice.ScalaModule
@@ -51,6 +52,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     bind[EventBus].toInstance(EventBus())
     bind[Clock].toInstance(Clock())
     bind[DelegableAuthInfoDAO[PasswordInfo]].toInstance(new InMemoryAuthInfoDAO[PasswordInfo])
+    bind[RememberMeSettings].asEagerSingleton()
   }
 
   /**
@@ -128,12 +130,6 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       cookieMaxAge = None, // A session cookie, unless the user ticks "remember me" (see UserController).
       authenticatorIdleTimeout = Some(c.get[FiniteDuration]("authenticatorIdleTimeout")),
       authenticatorExpiry = c.get[FiniteDuration]("authenticatorExpiry")
-    )
-    // RevocableCookieAuthenticatorService works out when a cookie was issued from this one lifetime.
-    val rememberMeExpiry = c.get[FiniteDuration]("rememberMe.authenticatorExpiry")
-    require(
-      rememberMeExpiry == config.authenticatorExpiry,
-      "silhouette.authenticator.authenticatorExpiry and rememberMe.authenticatorExpiry must be equal"
     )
     val encoder = new CrypterAuthenticatorEncoder(crypter)
     new RevocableCookieAuthenticatorService(config, signer, cookieHeaderEncoding, encoder, fingerprintGenerator,
