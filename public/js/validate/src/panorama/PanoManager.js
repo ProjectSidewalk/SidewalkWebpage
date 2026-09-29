@@ -488,6 +488,7 @@ class PanoManager {
           startHeading: neutralPov.heading,
           startPitch: neutralPov.pitch,
           startZoom: neutralPov.zoom,
+          imageCache: svv.panoImageCache ?? null,
         });
       }
     } catch (err) {
@@ -495,6 +496,11 @@ class PanoManager {
       // up rather than a canvas the caller believes is hidden. setPanorama decides what happens next.
       if (!wasShowing) this.#hidePannellumCanvas();
       throw err;
+    }
+
+    // Whether the image was already on the device (#5562): the measure of the prefetch, and of the wait it saved.
+    if (typeof this.#pannellumViewer.lastLoadPrefetched === 'boolean') {
+      svv.tracker.push('PanoPrefetch', { hit: this.#pannellumViewer.lastLoadPrefetched });
     }
 
     this.#watchViewerPov(this.#pannellumViewer);

@@ -196,6 +196,8 @@ class Main {
     svv.labelCard = new LabelCard();
 
     svv.panoStore = new PanoStore();
+    // Backup panos fetched ahead of the label that needs them (#5562); the Pannellum fallback loads from it first.
+    svv.panoImageCache = new PanoImageCache();
 
     // Built before the first label renders because that render can need it: if none of the mission's labels have
     // usable imagery, LabelContainer drops all of them and shows this modal instead of an empty pano (#4810).

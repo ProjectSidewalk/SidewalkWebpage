@@ -143,6 +143,16 @@ class PannellumViewer extends PanoViewer {
   #lastPitch = NaN;
   #lastHfov = NaN;
 
+  /** @type {?PanoImageCache} Where a pano's bytes may already be waiting, when the page prefetches (#5562). */
+  #imageCache = null;
+
+  /**
+   * Whether the last load's first attempt came out of the image cache rather than the network. Null until a load
+   * has run with a cache attached, so a page without one reads as "not applicable" rather than as a miss.
+   * @type {?boolean}
+   */
+  lastLoadPrefetched = null;
+
   constructor() {
     super();
     this.canvasClass = 'pannellum-canvas';
@@ -159,11 +169,13 @@ class PannellumViewer extends PanoViewer {
    * @param {number} [panoOptions.startPitch=0] - Initial pitch in degrees.
    * @param {number} [panoOptions.startZoom=1] - Initial zoom level (1, 2, or 3).
    * @param {boolean} [panoOptions.zoomControl=true] - Whether mouse-wheel zoom is enabled.
+   * @param {PanoImageCache} [panoOptions.imageCache] - Prefetched pano bytes to load from before the network (#5562).
    * @returns {Promise<void>}
    */
   async initialize(canvasElem, panoOptions = {}) {
     const metadata = panoOptions.panoMetadata;
     if (!metadata) throw new Error('PannellumViewer requires panoOptions.panoMetadata');
+    this.#imageCache = panoOptions.imageCache ?? null;
 
     const panoId = panoOptions.startPanoId || metadata.panoId;
     if (!panoId) throw new Error('PannellumViewer requires startPanoId or panoMetadata.panoId');
@@ -208,37 +220,41 @@ class PannellumViewer extends PanoViewer {
       },
     };
 
-    const candidates = panoramaUrlCandidates(metadata);
-    for (let attempt = 0; attempt < candidates.length; attempt++) {
-      pannellumConfig.scenes[panoId].panorama = candidates[attempt];
-      try {
-        await new Promise((resolve, reject) => {
-          this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
-          const onLoad = () => {
-            this.#viewer.off('load', onLoad);
-            this.#viewer.off('error', onError);
-            resolve(undefined);
-          };
-          const onError = (err) => {
-            this.#viewer.off('load', onLoad);
-            this.#viewer.off('error', onError);
-            reject(new Error(err || 'Pannellum failed to load image'));
-          };
-          this.#viewer.on('load', onLoad);
-          this.#viewer.on('error', onError);
-        });
-        break;
-      } catch (e) {
-        // The viewer holds a WebGL context and a half-built scene either way, so it goes before the next attempt.
+    const { urls: candidates, cacheKey } = this.#attemptUrls(metadata);
+    try {
+      for (let attempt = 0; attempt < candidates.length; attempt++) {
+        pannellumConfig.scenes[panoId].panorama = candidates[attempt];
         try {
-          this.#viewer?.destroy();
-        } catch {
-          // Already torn down by the failure itself; nothing left to release.
+          await new Promise((resolve, reject) => {
+            this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
+            const onLoad = () => {
+              this.#viewer.off('load', onLoad);
+              this.#viewer.off('error', onError);
+              resolve(undefined);
+            };
+            const onError = (err) => {
+              this.#viewer.off('load', onLoad);
+              this.#viewer.off('error', onError);
+              reject(new Error(err || 'Pannellum failed to load image'));
+            };
+            this.#viewer.on('load', onLoad);
+            this.#viewer.on('error', onError);
+          });
+          break;
+        } catch (e) {
+          // The viewer holds a WebGL context and a half-built scene either way, so it goes before the next attempt.
+          try {
+            this.#viewer?.destroy();
+          } catch {
+            // Already torn down by the failure itself; nothing left to release.
+          }
+          this.#viewer = null;
+          if (attempt === candidates.length - 1) throw e;
+          console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
         }
-        this.#viewer = null;
-        if (attempt === candidates.length - 1) throw e;
-        console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
       }
+    } finally {
+      this.#imageCache?.release(cacheKey);
     }
 
     // Tag the rendered canvas so the screenshot helper (Canvas.js) can find it via getCanvasClass().
@@ -294,8 +310,8 @@ class PannellumViewer extends PanoViewer {
     // Pause the rAF POV-tracking loop for the duration of the transition to avoid emitting pov_changed events
     // with values that mix the old scene's calibration with the new scene's yaw/pitch.
     this.#loading = true;
+    const { urls: candidates, cacheKey } = this.#attemptUrls(metadata);
     try {
-      const candidates = panoramaUrlCandidates(metadata);
       for (let attempt = 0; attempt < candidates.length; attempt++) {
         this.#viewer.addScene(panoId, {
           type: 'equirectangular',
@@ -335,6 +351,7 @@ class PannellumViewer extends PanoViewer {
       }
     } finally {
       this.#loading = false;
+      this.#imageCache?.release(cacheKey);
     }
 
     // Update instance calibration only after the new scene is fully loaded so getPov()/setPov() are consistent.
@@ -349,6 +366,25 @@ class PannellumViewer extends PanoViewer {
     for (const listener of this.panoChangedListeners) await listener();
     return this.currPanoData;
   };
+
+  /**
+   * The URLs to try for a pano, with a prefetched copy standing in for the first (#5562).
+   *
+   * Rung 0 of the ladder is the URL the page's image cache was asked to fetch, so it is the key looked up here and
+   * the one released once the load has settled. The later rungs stay network URLs on purpose: a held copy that
+   * fails is the same bytes failing to decode or texture, so the next attempt should be a smaller copy, not the
+   * download that produced them.
+   *
+   * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
+   * @returns {{urls: string[], cacheKey: string}} The attempts in order, and the key to release afterwards.
+   */
+  #attemptUrls(metadata) {
+    const candidates = panoramaUrlCandidates(metadata);
+    const cacheKey = candidates[0];
+    const held = this.#imageCache?.resolve(cacheKey);
+    if (this.#imageCache) this.lastLoadPrefetched = held !== undefined;
+    return { urls: held ? [held, ...candidates.slice(1)] : candidates, cacheKey };
+  }
 
   /**
    * Builds a PanoData object from a metadata blob supplied by the caller.

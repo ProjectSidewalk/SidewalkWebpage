@@ -8,6 +8,10 @@ class LabelContainer {
   // luck — imagery is broadly unavailable (a provider outage or quota). Stop asking and tell the user (#4810).
   static #MAX_TOP_UP_ROUNDS = 2;
 
+  // How many labels ahead to fetch backup imagery for (#5562). Two covers a verdict cast the moment the current label
+  // appears and the one after it, and caps what a validator who quits mid-mission downloaded for nothing at two panos.
+  static #PREFETCH_AHEAD = 2;
+
   // These are all set in resetLabelList.
   #labels;  // All labels in the mission.
   #currLabelIndex;
@@ -194,6 +198,8 @@ class LabelContainer {
       // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
       // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
       svv.labelVisibilityControl?.unhideLabel();
+      // Now that this label's imagery is on screen and the connection is idle, start on the next ones' (#5562).
+      this.#prefetchUpcomingPanos();
     } catch (error) {
       // The only trace a render failure leaves. It used to announce itself by stranding the lock, which turned every
       // later tap and keypress into a ValidateInputDropped_Loading — unusable for the validator, but at least loud.
@@ -210,6 +216,24 @@ class LabelContainer {
       // a throw included — leaving #loading set would drop every tap and keypress for the rest of the session.
       if (this.#loading) this.#setUiBusy(false);
     }
+  }
+
+  /**
+   * Starts downloading the backup panos of the labels coming up, so that by the time each is the current label its
+   * image is already on the device (#5562).
+   *
+   * Only labels whose pano is known to have expired are worth it: those go straight to the Pannellum fallback
+   * (#5561), the one viewer that loads from a URL this page controls. A live label loads through the provider's own
+   * viewer, which nothing here can warm, and its backup would be bytes nobody looks at. Fire and forget: a prefetch
+   * that fails only means that load pays full price, which is what it would have done anyway.
+   */
+  #prefetchUpcomingPanos() {
+    if (!svv.panoImageCache) return;
+    const from = this.#currLabelIndex + 1;
+    const backups = this.#labels.slice(from, from + LabelContainer.#PREFETCH_AHEAD)
+      .filter((label) => label.getAuditProperty('expired') === true && label.getAuditProperty('backupImage'))
+      .map((label) => label.getAuditProperty('backupImage'));
+    svv.panoImageCache.prefetchBackups(backups);
   }
 
   /**

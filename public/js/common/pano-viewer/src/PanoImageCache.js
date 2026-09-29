@@ -1,0 +1,140 @@
+/**
+ * Holds panorama image bytes fetched ahead of the viewer asking for them (#5562).
+ *
+ * The Pannellum fallback loads a self-hosted equirect from a URL, and until it does the validator waits: on a phone
+ * over cellular that is seconds of dead time between a tap and the next pano, on every label whose provider imagery
+ * has expired. Validate knows which labels are coming, so it can have the next ones' images downloading while the
+ * current one is being judged. This is where they wait.
+ *
+ * Bytes, not pixels: an entry is a `Blob` of the compressed file behind an object URL, a few megabytes each, never a
+ * decoded bitmap, which at 8192 wide is 128 MB and on a phone the very thing #5561 was about. Decoding still happens
+ * at load time; what the cache removes is the network.
+ *
+ * Entries are keyed by the exact network URL the viewer would otherwise request, so the two agree without either
+ * knowing how the other builds it: `prefetchBackups` derives it from the pano's metadata the same way the viewer
+ * does, and the viewer asks `resolve()` with the URL it was about to fetch. Pannellum takes a `blob:` URL where it
+ * takes any other (its loader XHRs the URL to a Blob either way), so no change to the vendored viewer is needed.
+ *
+ * Usage:
+ *
+ *     const cache = new PanoImageCache();
+ *     cache.prefetchBackups([nextLabel.backupImage]);           // fire and forget
+ *     ...
+ *     const url = cache.resolve(networkUrl) ?? networkUrl;      // in the viewer, at load time
+ *     cache.release(networkUrl);                                // once the load has settled
+ */
+class PanoImageCache {
+  /**
+   * How many panos to hold at once. The one on screen is released as it loads, so this only ever holds the ones
+   * coming up; the cap is a guard against a caller prefetching further ahead than a validator will get.
+   */
+  static MAX_ENTRIES = 3;
+
+  /** @type {Map<string, string>} Network URL to object URL, in insertion order, so the oldest is first. */
+  #entries = new Map();
+
+  /** @type {Map<string, Promise<boolean>>} Network URL to the download in flight for it. */
+  #inFlight = new Map();
+
+  /**
+   * Whether this connection wants imagery fetched that the user hasn't asked to see yet.
+   *
+   * A prefetch is only a waste when the validator quits before reaching the label, so on an ordinary connection it
+   * is worth it. Data Saver is the user saying otherwise; browsers that don't expose it get the default.
+   *
+   * @returns {boolean} False under Data Saver.
+   */
+  static prefetchAllowed() {
+    return navigator.connection?.saveData !== true;
+  }
+
+  /**
+   * Downloads a pano into the cache, unless it is already there or on its way.
+   *
+   * Never throws: a failed prefetch only means the load pays full price when it comes, which is what would have
+   * happened anyway, so there is nothing for a caller to do about it.
+   *
+   * @param {string} url - The network URL the viewer would request.
+   * @returns {Promise<boolean>} True once the bytes are held; false when the download failed or was skipped.
+   */
+  prefetch(url) {
+    if (!url) return Promise.resolve(false);
+    if (this.#entries.has(url)) return Promise.resolve(true);
+    if (this.#inFlight.has(url)) return this.#inFlight.get(url);
+    if (!PanoImageCache.prefetchAllowed()) return Promise.resolve(false);
+
+    const download = (async () => {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) return false;
+        const blob = await response.blob();
+        this.#store(url, URL.createObjectURL(blob));
+        return true;
+      } catch {
+        return false;
+      } finally {
+        this.#inFlight.delete(url);
+      }
+    })();
+    this.#inFlight.set(url, download);
+    return download;
+  }
+
+  /**
+   * Prefetches the backup panos for the given labels' metadata, at the width this device would load them at.
+   *
+   * @param {Array<Record<string, any>>} backupImages - `backupImage` metadata objects, as `buildBackupImageData`
+   *     builds them and `PannellumViewer` loads them.
+   */
+  prefetchBackups(backupImages) {
+    for (const backupImage of backupImages) {
+      this.prefetch(panoramaUrlFor(backupImage));
+    }
+  }
+
+  /**
+   * Whether the bytes for a URL are held right now (not merely on their way).
+   * @param {string} url - The network URL.
+   * @returns {boolean}
+   */
+  has(url) {
+    return this.#entries.has(url);
+  }
+
+  /**
+   * The local stand-in for a network URL, if its bytes are held.
+   * @param {string} url - The network URL the viewer is about to request.
+   * @returns {string|undefined} A `blob:` URL to load instead, or undefined to load from the network.
+   */
+  resolve(url) {
+    return this.#entries.get(url);
+  }
+
+  /**
+   * Drops a held pano and frees its bytes. Safe to call for a URL that was never held.
+   * @param {string} url - The network URL.
+   */
+  release(url) {
+    const objectUrl = this.#entries.get(url);
+    if (objectUrl === undefined) return;
+    URL.revokeObjectURL(objectUrl);
+    this.#entries.delete(url);
+  }
+
+  /** Drops everything held. */
+  clear() {
+    for (const url of [...this.#entries.keys()]) this.release(url);
+  }
+
+  /**
+   * Records a download, evicting the oldest entries past the cap.
+   * @param {string} url - The network URL.
+   * @param {string} objectUrl - The object URL holding its bytes.
+   */
+  #store(url, objectUrl) {
+    this.#entries.set(url, objectUrl);
+    while (this.#entries.size > PanoImageCache.MAX_ENTRIES) {
+      this.release(this.#entries.keys().next().value);
+    }
+  }
+}

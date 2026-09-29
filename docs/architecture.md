@@ -130,7 +130,10 @@ that in place of the native file without the viewer being able to tell, because 
 viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads an equirect as two halves, so
 its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide pano — the widest GSV
 produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService` cuts a copy at that
-width on demand, caching it under the crop store (#5256).
+width on demand, caching it under the crop store (#5256). A phone asks for 8192 whatever its GPU says, because the
+native file's decode and textures are more memory than iOS lets a tab have, and it answers by killing the tab (#5561).
+Validate also fetches the backups of the next expired labels into `PanoImageCache` while the current one is judged,
+and Pannellum loads the held `blob:` URL in place of the network one (#5562).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
