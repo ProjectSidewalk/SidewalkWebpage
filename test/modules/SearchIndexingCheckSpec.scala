@@ -2,8 +2,8 @@ package modules
 
 import com.typesafe.config.ConfigFactory
 import modules.SearchIndexingCheck.{invalidStatuses, verdict}
-import org.scalatestplus.play.PlaySpec
 import play.api.Configuration
+import util.SidewalkSpec
 
 /**
  * The config contract behind search indexing (#5120): once the vhost `X-Robots-Tag` header is gone,
@@ -12,7 +12,7 @@ import play.api.Configuration
  *
  * Pure logic — no app boot and no database.
  */
-class SearchIndexingCheckSpec extends PlaySpec {
+class SearchIndexingCheckSpec extends SidewalkSpec {
 
   /** A minimal cityparams shape carrying the three keys the indexing predicate reads. */
   private def configFor(statuses: (String, String)*)(current: String, envType: String = "prod"): Configuration =
@@ -149,7 +149,7 @@ class SearchIndexingCheckSpec extends PlaySpec {
  * That the check is wired into boot. The logic above is worthless if `StartupChecksModule` never constructs it, and
  * nothing would notice: the check's only output is a log line.
  */
-class SearchIndexingCheckWiringSpec extends PlaySpec with org.scalatestplus.play.guice.GuiceOneAppPerSuite {
+class SearchIndexingCheckWiringSpec extends SidewalkSpec with org.scalatestplus.play.guice.GuiceOneAppPerSuite {
 
   override def fakeApplication(): play.api.Application =
     new play.api.inject.guice.GuiceApplicationBuilder().disable[modules.ActorModule].build()

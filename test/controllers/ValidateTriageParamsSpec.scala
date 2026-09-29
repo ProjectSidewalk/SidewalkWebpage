@@ -2,7 +2,6 @@ package controllers
 
 import models.user.Role
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -10,7 +9,7 @@ import play.api.libs.json.{JsObject, JsValue}
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.{AnonSession, RoleSession}
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 /**
  * Functional tests for the `triage` flag that decides which queue a Validate page draws from (#4715).
@@ -22,7 +21,7 @@ import util.{AnonSession, RoleSession}
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class ValidateTriageParamsSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class ValidateTriageParamsSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

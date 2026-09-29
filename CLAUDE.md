@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sidewalk accessibility. Scala 2.13 +
+Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sidewalk accessibility. Scala 3.3 +
 Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend that Grunt concatenates (no
 transpile, no minify, no module system), all run in Docker. Request flow is routes → Controller → Service → Table
 (DAO). Architecture tour: `docs/architecture.md`. Setup, daily commands, troubleshooting: `docs/dev-environment.md`.
@@ -56,11 +56,12 @@ file, and this table says which doc to read first:
 
 ## Before a change is done
 
-- **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check: `make compile`. `-Xfatal-warnings` is on, so
+- **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check: `make compile`. `-Werror` is on, so
   a success is warning-clean. It can't run in a checkout whose app is up (`~ run` holds sbt); it says so and stops.
 - **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, vendor versions,
-  JS types, evolutions lint; all blocking CI gates), or scope it with `make eslint dir=…` / `make stylelint dir=…`.
-  `make lint-fix` handles the mechanical fixes. The tree is lint-clean, so any finding is from your change.
+  JS types, spec base class, evolutions lint; all blocking CI gates), or scope it with `make eslint dir=…` /
+  `make stylelint dir=…`. `make lint-fix` handles the mechanical fixes. The tree is lint-clean, so any finding is
+  from your change.
 - **Tests:** `make test-scala` (needs the db container; `only=<Spec>` scopes it), `make test-js` (jsdom unit suite),
   `make test-e2e` against a running app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
 - **From a worktree,** every `make` target above checks that worktree, not the main checkout (`make lint` names the

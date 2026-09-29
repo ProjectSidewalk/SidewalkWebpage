@@ -1,13 +1,13 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 /**
  * Route-wiring smoke test for the dashboard/leaderboard/settings/profile pages and the public-profile map endpoints.
@@ -17,7 +17,7 @@ import play.api.test.Helpers._
  * no-cookie contract. Cheap insurance against a routes regression; the auth'd behavior is covered by the service
  * specs. Also pins the pre-cutover /preview URLs to their permanent redirects (#4474).
  */
-class UserDashboardRoutesSpec extends PlaySpec with GuiceOneAppPerSuite {
+class UserDashboardRoutesSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

@@ -158,7 +158,7 @@ class ExploreController @Inject() (
               request.ipAddress, data.panoId, data.heading, data.pitch, data.zoom, data.lat, data.lng,
               OffsetDateTime.now, data.comment)
           )
-          .map { commentId: Int => Ok(Json.obj("comment_id" -> commentId)) }
+          .map { (commentId: Int) => Ok(Json.obj("comment_id" -> commentId)) }
       }
     )
   }
@@ -344,7 +344,7 @@ class ExploreController @Inject() (
                       returnData.newLabels.map(_.labelId).min,
                       returnData.newLabels.map(_.timeCreated).max
                     )
-                    .flatMap { timeSpent: Double =>
+                    .flatMap { (timeSpent: Double) =>
                       configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
                     }
                     .failed

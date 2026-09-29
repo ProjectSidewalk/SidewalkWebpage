@@ -1,11 +1,10 @@
 package models.label
 
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Pins what the dashboard's "recent mistakes" query hands back, which two things conspire to get wrong.
@@ -17,7 +16,7 @@ import util.RolledBackDb
  *
  * Runs the real query against the connected database, so the illegal form fails here rather than in production.
  */
-class MistakeCardQuerySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class MistakeCardQuerySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

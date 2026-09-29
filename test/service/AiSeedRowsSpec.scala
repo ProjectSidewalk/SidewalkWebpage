@@ -3,11 +3,10 @@ package service
 import models.label.LabelTypeEnum
 import models.user.SidewalkUserTable
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * The SidewalkAI seed-row self-heal (#5349): a schema that never ran 281.sql as an evolution gets the AI's user_stat
@@ -17,7 +16,7 @@ import util.RolledBackDb
  * references user_stat), and the missions are moved to another mission_type instead of deleted, since label_validation
  * rows (CI's seed has one) reference them.
  */
-class AiSeedRowsSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class AiSeedRowsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

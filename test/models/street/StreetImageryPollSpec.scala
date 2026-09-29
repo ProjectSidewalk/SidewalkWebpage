@@ -5,12 +5,11 @@ import models.user.UserStatTableDef
 import models.utils.ConfigTableDef
 import models.utils.MyPostgresProfile.api._
 import org.locationtech.jts.geom.LineString
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.jdbc.GetResult
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -21,7 +20,7 @@ import java.time.{LocalDate, OffsetDateTime}
  * Mutating cases run inside rolled-back transactions, leaving the connected DB untouched; requires Postgres+PostGIS
  * like the other DB-backed specs. Actors are disabled.
  */
-class StreetImageryPollSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

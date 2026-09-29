@@ -55,7 +55,7 @@ class CustomErrorHandler @Inject() (
 
     if (!shouldSkipLogging) {
       logger.warn(s"Client error occurred: ${request.uri} - $statusCode - $message")
-      logUserInfo(request)
+      val _ = logUserInfo(request)
     }
     // API requests get the same RFC 7807 problem+json envelope the controllers use, so framework-level errors
     // (unknown route, malformed typed route param, etc.) are consistent with handler-level errors (#3931).

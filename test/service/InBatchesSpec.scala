@@ -1,6 +1,6 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{CountDownLatch, TimeUnit}
@@ -14,7 +14,7 @@ import scala.concurrent.{Await, ExecutionContext, Future, Promise}
  * (Planning#8). Whether the batching actually caps what is in flight is observable with a counter, so it is checked
  * here rather than inferred from a page that happens to load.
  */
-class InBatchesSpec extends PlaySpec {
+class InBatchesSpec extends SidewalkSpec {
 
   implicit private val ec: ExecutionContext = ExecutionContext.global
 

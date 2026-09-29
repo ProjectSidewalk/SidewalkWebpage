@@ -414,7 +414,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       .filter(_.missionId === missionId)
       .map(_.distanceMeters)
       .result
-      .flatMap { missionList: Seq[Option[Double]] =>
+      .flatMap { (missionList: Seq[Option[Double]]) =>
         missionList.head match {
           case Some(missionDistance) =>
             val missionToUpdate = for {

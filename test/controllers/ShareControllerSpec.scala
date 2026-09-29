@@ -4,7 +4,6 @@ import models.label.LabelTypeEnum.AccessImpact
 import models.label.{CropMarker, LabelMetadata, LabelTypeEnum}
 import models.story.Story
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.i18n.{Lang, MessagesApi}
@@ -13,6 +12,7 @@ import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.{AuthenticationService, LabelService, PanoDataService, ShareImageCache, StoryService}
+import util.SidewalkSpec
 
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
@@ -34,7 +34,7 @@ import scala.concurrent.duration._
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  * Valid-label tests source ids from the connected DB and cancel (not fail) when no suitable label exists.
  */
-class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

@@ -7,6 +7,9 @@ object CommonUtils {
   // NOTE: if adding values here, also update the ui_source PostgreSQL enum (add via ALTER TYPE).
   object UiSource extends Enumeration {
     type UiSource = Value
+
+    implicit val writes: play.api.libs.json.Writes[Value] = play.api.libs.json.Writes.enumNameWrites[UiSource.type]
+
     val Explore                         = Value("Explore")
     val Validate                        = Value("Validate")
     val ExpertValidate                  = Value("ExpertValidate")

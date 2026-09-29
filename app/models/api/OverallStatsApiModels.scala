@@ -23,7 +23,7 @@ object LabelSevStats {
       (__ \ "count_with_severity").write[Option[Int]] and
       (__ \ "severity_mean").write[Option[Double]] and
       (__ \ "severity_stddev").write[Option[Double]]
-  )(unlift(LabelSevStats.unapply))
+  )((o: LabelSevStats) => Tuple.fromProductTyped(o))
 }
 
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Double], nWithValidation: Int)
@@ -35,7 +35,7 @@ object LabelAccuracy {
       (__ \ "disagreed").write[Int] and
       (__ \ "accuracy").write[Option[Double]] and
       (__ \ "has_a_validation").write[Int]
-  )(unlift(LabelAccuracy.unapply))
+  )((o: LabelAccuracy) => Tuple.fromProductTyped(o))
 }
 
 case class AiConcurrence(
@@ -61,7 +61,7 @@ object AiConcurrence {
       (__ \ "ai_yes_maj_vote_differs").write[Int] and
       (__ \ "ai_no_maj_vote_differs").write[Int] and
       (__ \ "ai_no_maj_vote_concurs").write[Int]
-  )(unlift(AiConcurrence.unapply))
+  )((o: AiConcurrence) => Tuple.fromProductTyped(o))
 }
 
 /**

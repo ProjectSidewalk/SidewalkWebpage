@@ -7,7 +7,6 @@ import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -20,6 +19,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.silhouette.api.{LoginInfo, Silhouette}
 import play.silhouette.impl.providers.CredentialsProvider
+import _root_.util.SidewalkSpec
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration._
@@ -40,7 +40,7 @@ import scala.util.matching.Regex
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class RouteAuthPostureSpec extends PlaySpec with GuiceOneAppPerSuite {
+class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder()

@@ -48,7 +48,7 @@ class StatsApiController @Inject() (
         highQualityOnly = highQualityOnly.getOrElse(false),
         minAccuracy = minAccuracy
       )
-      .map { filteredStats: Seq[UserStatForApi] =>
+      .map { (filteredStats: Seq[UserStatForApi]) =>
         val baseFileName: String = timestampedFilename("userStats")
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -72,7 +72,7 @@ class StatsApiController @Inject() (
    */
   def getOverallSidewalkStats(filterLowQuality: Boolean, filetype: Option[String]) = silhouette.UserAwareAction.async {
     implicit request =>
-      apiService.getOverallStats(filterLowQuality).map { stats: ProjectSidewalkStats =>
+      apiService.getOverallStats(filterLowQuality).map { (stats: ProjectSidewalkStats) =>
         val baseFileName: String = timestampedFilename("projectSidewalkStats")
         cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 

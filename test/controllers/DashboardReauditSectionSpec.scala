@@ -4,7 +4,6 @@ import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -12,7 +11,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import java.util.UUID
 
@@ -33,7 +32,7 @@ import java.util.UUID
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
 class DashboardReauditSectionSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with org.scalatest.BeforeAndAfterAll
     with GuiceOneAppPerSuite
     with RolledBackDb

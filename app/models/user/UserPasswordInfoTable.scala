@@ -24,7 +24,10 @@ class UserPasswordInfoTableDef(tag: Tag) extends Table[UserPasswordInfo](tag, "u
   def salt: Rep[Option[String]]    = column[Option[String]]("salt")
   def loginInfoId: Rep[Long]       = column[Long]("login_info_id")
   def *                            =
-    (userPasswordInfoId, hasher, password, salt, loginInfoId) <> (UserPasswordInfo.tupled, UserPasswordInfo.unapply)
+    (userPasswordInfoId, hasher, password, salt, loginInfoId) <> (
+      UserPasswordInfo.apply.tupled,
+      UserPasswordInfo.unapply
+    )
 
   def loginInfo =
     foreignKey("user_password_info_login_info_id_fkey", loginInfoId, TableQuery[LoginInfoTableDef])(_.loginInfoId)

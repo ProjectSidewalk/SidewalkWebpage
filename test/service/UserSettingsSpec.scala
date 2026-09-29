@@ -3,12 +3,12 @@ package service
 import models.user.{MeasurementSystem, Role, SidewalkUserWithRole, UserSettingsTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.silhouette.api.util.PasswordInfo
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -21,7 +21,7 @@ import scala.concurrent.duration._
  */
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
-class UserSettingsSpec extends PlaySpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
+class UserSettingsSpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

@@ -1,8 +1,8 @@
 package models.label
 
 import models.label.LabelTypeEnum.{AccessImpact, RatingScale}
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsObject, Json}
+import util.SidewalkSpec
 
 import java.io.File
 
@@ -13,7 +13,7 @@ import java.io.File
  * interpretation (positive access features and problems read severity in opposite directions), `nameKey` must track
  * `descriptionKey`, and the icon files must exist on disk because share-image compositing loads them by convention.
  */
-class LabelTypeEnumSpec extends PlaySpec {
+class LabelTypeEnumSpec extends SidewalkSpec {
 
   "accessImpact" should {
     "put every label type in the right bucket" in {

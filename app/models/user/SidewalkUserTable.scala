@@ -40,7 +40,7 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
   def email: Rep[String]    = column[String]("email")
   // DEFAULT now() in the DB.
   def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
-  def * = (userId, username, email, createdAt) <> (SidewalkUser.tupled, SidewalkUser.unapply)
+  def * = (userId, username, email, createdAt) <> (SidewalkUser.apply.tupled, SidewalkUser.unapply)
 
   // CHECK (email = lower(email)) and CHECK (username NOT LIKE '%@%') in the DB.
   def usernameUnique = index("sidewalk_user_username_key", username, unique = true)
@@ -94,7 +94,7 @@ class SidewalkUserTable @Inject() (
   val humanUsers = sidewalkUserToRoleJoin.filter(_._2.role =!= Role.Ai).map(_._1)
 
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]] = {
-    db.run(sidewalkUserWithRole.filter(_._1 === userId).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
+    db.run(sidewalkUserWithRole.filter(_._1 === userId).result.headOption).map(_.map(SidewalkUserWithRole.apply.tupled))
   }
 
   /**
@@ -159,13 +159,14 @@ class SidewalkUserTable @Inject() (
   }
 
   def findByUsername(username: String): Future[Option[SidewalkUserWithRole]] = {
-    db.run(sidewalkUserWithRole.filter(_._2 === username).result.headOption).map(_.map(SidewalkUserWithRole.tupled))
+    db.run(sidewalkUserWithRole.filter(_._2 === username).result.headOption)
+      .map(_.map(SidewalkUserWithRole.apply.tupled))
   }
 
   // Emails are stored lower-cased (the schema checks it), so lookups and writes lower-case here, not in every caller.
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]] = {
     db.run(sidewalkUserWithRole.filter(_._3 === email.toLowerCase).result.headOption)
-      .map(_.map(SidewalkUserWithRole.tupled))
+      .map(_.map(SidewalkUserWithRole.apply.tupled))
   }
 
   /**

@@ -74,7 +74,7 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
    * @return regionId
    */
   def insertOrUpdate(userId: String, regionId: Int): DBIO[Int] = {
-    update(userId, regionId).flatMap { rowsUpdated: Int =>
+    update(userId, regionId).flatMap { (rowsUpdated: Int) =>
       if (rowsUpdated == 0)
         (userCurrRegions returning userCurrRegions.map(_.regionId)) += UserCurrentRegion(0, userId, regionId)
       else DBIO.successful(regionId)

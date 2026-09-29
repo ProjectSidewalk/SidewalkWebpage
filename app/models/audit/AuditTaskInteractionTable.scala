@@ -6,7 +6,6 @@ import models.utils.{MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}

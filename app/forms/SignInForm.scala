@@ -18,7 +18,7 @@ object SignInForm {
       "email"      -> nonEmptyText,
       "password"   -> nonEmptyText,
       "rememberMe" -> boolean
-    )(SignInData.apply)(SignInData.unapply)
+    )(SignInData.apply)((d: SignInData) => Some(Tuple.fromProductTyped(d)))
   )
 
   /**

@@ -3,7 +3,6 @@ package controllers
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -11,6 +10,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -34,7 +34,7 @@ import scala.concurrent.duration._
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
-class AiSubmissionSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class AiSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   private val internalApiKey = "test-internal-api-key"
 

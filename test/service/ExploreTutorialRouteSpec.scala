@@ -17,13 +17,13 @@ import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTable
 import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.{ConfigTableDef, MyPostgresProfile}
 import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.silhouette.api.util.PasswordInfo
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.util.concurrent.atomic.AtomicInteger
@@ -50,7 +50,7 @@ import scala.concurrent.duration._
  */
 // BeforeAndAfterAll must be mixed in BEFORE GuiceOneAppPerSuite: linearization then runs afterAll inside the running
 // app, rather than after the app (and its DB pool) has already been stopped.
-class ExploreTutorialRouteSpec extends PlaySpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
+class ExploreTutorialRouteSpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

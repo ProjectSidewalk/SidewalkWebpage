@@ -2,7 +2,6 @@ package controllers
 
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -12,6 +11,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 import java.util.UUID
 
@@ -26,7 +26,7 @@ import java.util.UUID
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
+class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

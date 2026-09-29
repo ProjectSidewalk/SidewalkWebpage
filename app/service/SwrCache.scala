@@ -10,7 +10,6 @@ import java.time.temporal.ChronoUnit
 import javax.inject._
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import scala.reflect.ClassTag
 
 /**
  * A stale-while-revalidate layer over the Play cache, for expensive computations that must never block a request
@@ -47,7 +46,7 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(imp
    * @param compute  The expensive computation producing a fresh value.
    * @return         The cached (possibly stale) value, or the result of `compute` when nothing is cached.
    */
-  def staleWhileRevalidate[T: ClassTag](key: String, freshFor: FiniteDuration, maxAge: FiniteDuration)(
+  def staleWhileRevalidate[T](key: String, freshFor: FiniteDuration, maxAge: FiniteDuration)(
       compute: => Future[T]
   ): Future[T] =
     serveCached(key, freshFor, maxAge)(compute).flatMap {
@@ -68,7 +67,7 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(imp
    * @return         `Some(value)` — cached, stale, or computed within `coldWait` — or `None` when the deadline passed
    *                 first. The compute's failure is still the caller's, as in [[staleWhileRevalidate]].
    */
-  def staleWhileRevalidateWithin[T: ClassTag](
+  def staleWhileRevalidateWithin[T](
       key: String,
       freshFor: FiniteDuration,
       maxAge: FiniteDuration,
@@ -106,7 +105,7 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(imp
    *
    * @return `Some(cached)` on a hit, `None` on a miss (nothing started; the caller decides how to wait).
    */
-  private def serveCached[T: ClassTag](key: String, freshFor: FiniteDuration, maxAge: FiniteDuration)(
+  private def serveCached[T](key: String, freshFor: FiniteDuration, maxAge: FiniteDuration)(
       compute: => Future[T]
   ): Future[Option[T]] =
     cacheApi.get[Timestamped[T]](key).map {

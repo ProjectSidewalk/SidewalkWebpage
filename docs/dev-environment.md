@@ -306,7 +306,7 @@ make compile
 ```
 
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
-sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
+sets `-Werror`, so a `[success]` is also warning-clean.
 
 Use `--jvm-client`, not `--client`: the native client (`sbtn`) needs a newer glibc than the container's focal base,
 so it dies on startup, though `sbt --client --version` still prints happily (#5268). A server belongs to one project

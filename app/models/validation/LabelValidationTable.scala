@@ -12,7 +12,6 @@ import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragmen
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime}
@@ -507,7 +506,7 @@ class LabelValidationTable @Inject() (
    * @return A database action that, when executed, will return a sequence of ValidationResultTypeForApi objects.
    */
   def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
-    getValidationCountsByValidatorRole.map { results: Seq[(Boolean, ValidationOption.Value, Int)] =>
+    getValidationCountsByValidatorRole.map { (results: Seq[(Boolean, ValidationOption.Value, Int)]) =>
       // Create a ValidationResultTypeForApi object for each validation result type.
       ValidationOption.values.toSeq
         .map { valResult =>

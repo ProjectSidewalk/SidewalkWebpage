@@ -149,6 +149,12 @@ jobs:
         if: always()
         run: node tools/lint/check-js-types.mjs
 
+      # Blocking: every backend spec extends util.SidewalkSpec, never PlaySpec (#3936). It lives in this job because
+      # it needs only node. Run locally with `make lint-spec-base`.
+      - name: Spec base class (blocking)
+        if: always()
+        run: node tools/lint/check-spec-base.mjs
+
       # Blocking: the jsdom unit suite (test/js/). Thin *coverage* is why there's no `coverageThreshold`
       # (jest.config.js says why); it is not a reason to let a suite that does exist go red.
       - name: Jest unit tests (blocking)
@@ -319,7 +325,7 @@ jobs:
       # check green with nothing measured.
       - name: Coverage report (blocking ratchet)
         run: |
-          test -s target/scala-2.13/scoverage-data/scoverage.coverage \
+          test -s target/scala-*/scoverage-data/scoverage.coverage \
             || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
           sbt coverageReport
 
@@ -331,7 +337,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: scoverage-report
-          path: target/scala-2.13/scoverage-report/
+          path: target/scala-*/scoverage-report/
           retention-days: 7
           if-no-files-found: ignore
 

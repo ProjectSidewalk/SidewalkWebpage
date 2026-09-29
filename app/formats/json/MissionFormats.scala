@@ -27,5 +27,5 @@ object MissionFormats {
       (__ \ "skipped").write[Boolean] and
       (__ \ "current_audit_task_id").writeNullable[Int] and
       (__ \ "user_route_id").writeNullable[Int]
-  )(unlift(Mission.unapply))
+  )((o: Mission) => Tuple.fromProductTyped(o))
 }

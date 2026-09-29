@@ -1,6 +1,5 @@
 package actor
 
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsNull, Json}
 import service.CropService.CropRunResult
 import service.{
@@ -11,6 +10,7 @@ import service.{
   SidewalkPresenceRebuildResult,
   StreetGradientStaleness
 }
+import util.SidewalkSpec
 
 /**
  * The wire shape of the run details each multi-trigger job records (#5044).
@@ -25,7 +25,7 @@ import service.{
  *
  * Pure — no database, no application.
  */
-class JobRunDetailsSpec extends PlaySpec {
+class JobRunDetailsSpec extends SidewalkSpec {
 
   "the run details of a job with both a nightly and a hand trigger" should {
     "record user stats under the key its readers use" in {

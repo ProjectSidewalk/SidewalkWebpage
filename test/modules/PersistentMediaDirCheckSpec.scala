@@ -1,8 +1,8 @@
 package modules
 
 import modules.PersistentMediaDirCheck.{persistentDirs, unsafeDirs}
-import org.scalatestplus.play.PlaySpec
 import play.api.{Configuration, Environment, Mode}
+import util.SidewalkSpec
 
 import java.io.File
 import scala.io.Source
@@ -19,7 +19,7 @@ import scala.util.Using
  *
  * Pure logic — no app boot and no database.
  */
-class PersistentMediaDirCheckSpec extends PlaySpec {
+class PersistentMediaDirCheckSpec extends SidewalkSpec {
 
   // The shape a staged deploy actually runs from: the app root is `target/universal/stage`, and the deploy's
   // `sbt clean` deletes everything under `target/`.

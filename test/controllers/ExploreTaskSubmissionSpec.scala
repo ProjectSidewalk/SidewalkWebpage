@@ -5,7 +5,6 @@ import models.utils.MyPostgresProfile.api._
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -15,6 +14,7 @@ import play.api.mvc.Cookie
 import play.api.test.CSRFTokenHelper._
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -48,7 +48,7 @@ import scala.concurrent.duration._
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
-class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eventually with GuiceOneAppPerSuite {
+class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with Eventually with GuiceOneAppPerSuite {
 
   // Every pano this suite creates carries this prefix, so cleanup can't touch real panos.
   private val panoPrefix = "ExploreTaskSubmissionSpec-4587"

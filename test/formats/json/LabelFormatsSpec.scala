@@ -3,8 +3,8 @@ package formats.json
 import formats.json.LabelFormats.labelForLabelMapToGeoJson
 import models.label.LabelForLabelMap
 import models.validation.ValidationOption
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsNull, JsObject}
+import util.SidewalkSpec
 
 /**
  * Pure JSON-contract tests for `LabelFormats.labelForLabelMapToGeoJson`, the per-feature serializer behind both label
@@ -14,7 +14,7 @@ import play.api.libs.json.{JsNull, JsObject}
  *
  * Needs no database — `RouteAuthPostureSpec` covers the public set end to end over HTTP where one is available.
  */
-class LabelFormatsSpec extends PlaySpec {
+class LabelFormatsSpec extends SidewalkSpec {
 
   /** Every property key `/labels/all` publishes per feature. */
   private val PublicProperties: Set[String] = Set("label_id", "label_type", "severity", "correct", "has_validations",

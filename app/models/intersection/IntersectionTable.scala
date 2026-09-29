@@ -5,7 +5,6 @@ import models.region.RegionTableDef
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
-import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{FilteredTables, LatLngBBox, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}

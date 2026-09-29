@@ -2,9 +2,9 @@ package service
 
 import models.utils.ImageUtils
 import org.scalatest.Assertion
-import org.scalatestplus.play.PlaySpec
 import play.api.libs.json.{JsLookupResult, JsValue, Json}
 import service.CropGeometry.CropBox
+import util.SidewalkSpec
 
 import java.awt.image.BufferedImage
 import java.io.File
@@ -22,7 +22,7 @@ import javax.imageio.ImageIO
  *
  * Pure: no application, no database.
  */
-class CropGeometrySpec extends PlaySpec {
+class CropGeometrySpec extends SidewalkSpec {
 
   private val fixtures = new File("test/resources/crops")
   private val pano     = new File(fixtures, "synthetic-pano.png")
