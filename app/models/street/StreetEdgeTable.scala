@@ -73,9 +73,7 @@ class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge")
 trait StreetEdgeTableRepository {}
 
 @Singleton
-class StreetEdgeTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider
-)(using ec: ExecutionContext)
+class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends StreetEdgeTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

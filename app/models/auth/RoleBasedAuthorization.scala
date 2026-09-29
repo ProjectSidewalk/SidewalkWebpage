@@ -6,9 +6,7 @@ import play.silhouette.api.{Authenticator, Authorization, Identity}
 import scala.concurrent.{ExecutionContext, Future}
 
 trait RoleBasedAuthorization[Id <: Identity, Auth <: Authenticator] extends Authorization[Id, Auth] {
-  def checkAuthorization[B](identity: Id, authenticator: Auth)(using
-      request: Request[B]
-  ): Future[AuthorizationResult]
+  def checkAuthorization[B](identity: Id, authenticator: Auth)(using request: Request[B]): Future[AuthorizationResult]
 
   override def isAuthorized[B](identity: Id, authenticator: Auth)(using request: Request[B]): Future[Boolean] = {
     // The parent trait's signature provides no ExecutionContext, and this trivial synchronous mapping doesn't merit

@@ -157,9 +157,7 @@ class PartnerController @Inject() (
     Json.obj("name" -> contact.map(_.name), "url" -> contact.map(_.url))
 
   /** Shared body of the two create actions; `cityId` is the scope the route already authorized. */
-  private def create(
-      cityId: Option[String]
-  )(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
+  private def create(cityId: Option[String])(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     request.body.asMultipartFormData match {
       case None       => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> "Expected a form")))
       case Some(body) =>
@@ -186,9 +184,7 @@ class PartnerController @Inject() (
   }
 
   /** Shared body of the two reorder actions; `cityId` is the scope the route already authorized. */
-  private def reorder(
-      cityId: Option[String]
-  )(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
+  private def reorder(cityId: Option[String])(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     request.body.asJson.flatMap(json => (json \ "partner_ids").asOpt[Seq[Int]]) match {
       case None      => Future.successful(BadRequest(Json.obj("success" -> false, "error" -> "Expected partner_ids")))
       case Some(ids) =>

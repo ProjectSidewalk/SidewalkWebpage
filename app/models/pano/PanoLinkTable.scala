@@ -25,9 +25,8 @@ class PanoLinkTableDef(tag: Tag) extends Table[PanoLink](tag, "pano_link") {
 trait PanoLinkTableRepository {}
 
 @Singleton
-class PanoLinkTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider
-) extends PanoLinkTableRepository
+class PanoLinkTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends PanoLinkTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val panoLinks = TableQuery[PanoLinkTableDef]

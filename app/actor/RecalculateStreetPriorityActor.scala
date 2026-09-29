@@ -48,10 +48,8 @@ class RecalculateStreetPriorityActor @Inject() (
     regionService: RegionService,
     imageryFreshnessService: ImageryFreshnessService,
     jobRunService: JobRunService
-)(using
-    ec: ExecutionContext,
-    configService: ConfigService
-) extends Actor {
+)(using ec: ExecutionContext, configService: ConfigService)
+    extends Actor {
 
   private var cancellable: Option[Cancellable] = None
   private val logger                           = Logger(this.getClass)

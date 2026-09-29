@@ -44,8 +44,7 @@ object UserFormats {
   given roleWrites: Writes[Role.Value] = Writes(role => JsString(role.toString))
 
   given measurementSystemReads: Reads[MeasurementSystem.Value]   = Reads.enumNameReads(MeasurementSystem)
-  given measurementSystemWrites: Writes[MeasurementSystem.Value] =
-    Writes.enumNameWrites[MeasurementSystem.type]
+  given measurementSystemWrites: Writes[MeasurementSystem.Value] = Writes.enumNameWrites[MeasurementSystem.type]
 
   given sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and

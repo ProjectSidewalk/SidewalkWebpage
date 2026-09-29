@@ -59,9 +59,8 @@ class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with E
       jobRuns: RecordingJobRunService
   ): ActorRef = {
     // The schedule is never armed, so the only ticks are the ones a test sends.
-    given configService: ConfigService =
-      StubService.answering[ConfigService](Map("getOffsetHours" -> Future.never))
-    val cropService = StubService.answeringWith[CropService](
+    given configService: ConfigService = StubService.answering[ConfigService](Map("getOffsetHours" -> Future.never))
+    val cropService                    = StubService.answeringWith[CropService](
       Map(
         "isRunning"            -> (() => { val _ = asked.incrementAndGet(); running() }),
         "generateMissingCrops" -> (() => { val _ = generated.incrementAndGet(); Future.successful(result) })

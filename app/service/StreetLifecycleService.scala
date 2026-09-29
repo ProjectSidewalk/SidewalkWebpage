@@ -70,8 +70,7 @@ object StreetStatusTrend {
   private given reportWeekWrites: Writes[NoImageryReportWeek]           = Json.writes[NoImageryReportWeek]
   private given imageryWeekWrites: Writes[PanoImageryWeek]              = Json.writes[PanoImageryWeek]
   private given reportRegionWrites: Writes[NoImageryReportRegion]       = Json.writes[NoImageryReportRegion]
-  private given corroboratedWrites: Writes[CorroboratedNoImageryStreet] =
-    Json.writes[CorroboratedNoImageryStreet]
+  private given corroboratedWrites: Writes[CorroboratedNoImageryStreet] = Json.writes[CorroboratedNoImageryStreet]
   private given reopenCandidateWrites: Writes[ReopenCandidateForReview] = Json.writes[ReopenCandidateForReview]
 
   given writes: Writes[StreetStatusTrend] = Json.writes[StreetStatusTrend]

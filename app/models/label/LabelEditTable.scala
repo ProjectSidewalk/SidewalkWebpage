@@ -68,9 +68,8 @@ class LabelEditTableDef(tag: slick.lifted.Tag) extends Table[LabelEdit](tag, "la
 trait LabelEditTableRepository {}
 
 @Singleton
-class LabelEditTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider
-) extends LabelEditTableRepository
+class LabelEditTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends LabelEditTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val labelEdits       = TableQuery[LabelEditTableDef]

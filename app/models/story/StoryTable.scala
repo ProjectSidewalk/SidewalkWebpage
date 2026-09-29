@@ -89,9 +89,7 @@ trait StoryTableRepository {}
  * `story_media` rows cascade in the DB, so callers fetch media rows first when they need to remove files from disk.
  */
 @Singleton
-class StoryTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider
-)(using ec: ExecutionContext)
+class StoryTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends StoryTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

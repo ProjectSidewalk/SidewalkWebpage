@@ -26,9 +26,7 @@ class UserTeamTableDef(tag: slick.lifted.Tag) extends Table[UserTeam](tag, "user
 trait UserTeamTableRepository {}
 
 @Singleton
-class UserTeamTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider
-)(using ec: ExecutionContext)
+class UserTeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends UserTeamTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
