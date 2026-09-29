@@ -5,7 +5,7 @@
  */
 package models.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.label.LocationXY
 import models.utils.CommonUtils.UiSource.UiSource
 import models.validation.ValidationOption
@@ -27,7 +27,7 @@ case class ValidationFiltersForApi(
     labelId: Option[Int] = None,
     userId: Option[String] = None,
     validationResult: Option[ValidationOption.Value] = None,
-    labelType: Option[LabelTypeEnum.Base] = None,
+    labelType: Option[LabelType] = None,
     validationTimestamp: Option[OffsetDateTime] = None,
     source: Option[UiSource] = None
 )

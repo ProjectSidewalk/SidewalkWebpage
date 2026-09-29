@@ -1,6 +1,5 @@
 package models.label
 
-import models.label.LabelTypeEnum.{AccessImpact, RatingScale}
 import play.api.libs.json.{JsObject, Json}
 import util.SidewalkSpec
 
@@ -13,25 +12,25 @@ import java.io.File
  * interpretation (positive access features and problems read severity in opposite directions), `nameKey` must track
  * `descriptionKey`, and the icon files must exist on disk because share-image compositing loads them by convention.
  */
-class LabelTypeEnumSpec extends SidewalkSpec {
+class LabelTypeSpec extends SidewalkSpec {
 
   "accessImpact" should {
     "put every label type in the right bucket" in {
       // A type in the wrong bucket silently inverts share copy and every severity interpretation built on this.
-      LabelTypeEnum.values.filter(_.accessImpact == AccessImpact.Problem) mustBe Set(
-        LabelTypeEnum.NoCurbRamp,
-        LabelTypeEnum.Obstacle,
-        LabelTypeEnum.SurfaceProblem,
-        LabelTypeEnum.NoSidewalk
+      LabelType.ordered.filter(_.accessImpact == AccessImpact.Problem) must contain theSameElementsAs Seq(
+        LabelType.NoCurbRamp,
+        LabelType.Obstacle,
+        LabelType.SurfaceProblem,
+        LabelType.NoSidewalk
       )
-      LabelTypeEnum.values.filter(_.accessImpact == AccessImpact.Feature) mustBe Set(
-        LabelTypeEnum.CurbRamp,
-        LabelTypeEnum.Crosswalk,
-        LabelTypeEnum.Signal
+      LabelType.ordered.filter(_.accessImpact == AccessImpact.Feature) must contain theSameElementsAs Seq(
+        LabelType.CurbRamp,
+        LabelType.Crosswalk,
+        LabelType.Signal
       )
-      LabelTypeEnum.values.filter(_.accessImpact == AccessImpact.Neutral) mustBe Set(
-        LabelTypeEnum.Occlusion,
-        LabelTypeEnum.Other
+      LabelType.ordered.filter(_.accessImpact == AccessImpact.Neutral) must contain theSameElementsAs Seq(
+        LabelType.Occlusion,
+        LabelType.Other
       )
     }
 
@@ -43,20 +42,20 @@ class LabelTypeEnumSpec extends SidewalkSpec {
 
   "ratingScale" should {
     "put every label type on the right scale" in {
-      LabelTypeEnum.values.filter(_.ratingScale == RatingScale.Quality) mustBe Set(
-        LabelTypeEnum.CurbRamp,
-        LabelTypeEnum.Crosswalk
+      LabelType.ordered.filter(_.ratingScale == RatingScale.Quality) must contain theSameElementsAs Seq(
+        LabelType.CurbRamp,
+        LabelType.Crosswalk
       )
-      LabelTypeEnum.values.filter(_.ratingScale == RatingScale.Severity) mustBe Set(
-        LabelTypeEnum.NoCurbRamp,
-        LabelTypeEnum.Obstacle,
-        LabelTypeEnum.SurfaceProblem,
-        LabelTypeEnum.Other
+      LabelType.ordered.filter(_.ratingScale == RatingScale.Severity) must contain theSameElementsAs Seq(
+        LabelType.NoCurbRamp,
+        LabelType.Obstacle,
+        LabelType.SurfaceProblem,
+        LabelType.Other
       )
-      LabelTypeEnum.values.filter(_.ratingScale == RatingScale.Unrated) mustBe Set(
-        LabelTypeEnum.Signal,
-        LabelTypeEnum.NoSidewalk,
-        LabelTypeEnum.Occlusion
+      LabelType.ordered.filter(_.ratingScale == RatingScale.Unrated) must contain theSameElementsAs Seq(
+        LabelType.Signal,
+        LabelType.NoSidewalk,
+        LabelType.Occlusion
       )
     }
 
@@ -69,7 +68,7 @@ class LabelTypeEnumSpec extends SidewalkSpec {
       // The two axes are otherwise independent — Other is Neutral but rated, NoSidewalk a Problem but unrated — but
       // "1 is good" only makes sense for something whose presence helps. A Problem on the quality scale would read
       // its own severity backwards.
-      for (lt <- LabelTypeEnum.values if lt.ratingScale == RatingScale.Quality) {
+      for (lt <- LabelType.ordered if lt.ratingScale == RatingScale.Quality) {
         withClue(s"${lt.name}: ") { lt.accessImpact mustBe AccessImpact.Feature }
       }
     }
@@ -79,14 +78,14 @@ class LabelTypeEnumSpec extends SidewalkSpec {
     "be the primary types minus Signal" in {
       // Signal is labeled at the base of its pole, so judging it needs a pan upward that a static image (the
       // landing-page validation grid, #1638) can't provide.
-      LabelTypeEnum.staticValidatableLabelTypes mustBe LabelTypeEnum.primaryLabelTypes - LabelTypeEnum.Signal
-      LabelTypeEnum.staticValidatableLabelTypes must not contain LabelTypeEnum.Signal
+      LabelType.staticValidatableLabelTypes mustBe LabelType.primaryLabelTypes - LabelType.Signal
+      LabelType.staticValidatableLabelTypes must not contain LabelType.Signal
     }
   }
 
   "nameKey" should {
     "be the descriptionKey without its .description suffix for every label type" in {
-      for (lt <- LabelTypeEnum.values) {
+      for (lt <- LabelType.ordered) {
         lt.nameKey mustBe lt.descriptionKey.stripSuffix(".description")
         lt.descriptionKey mustBe s"${lt.nameKey}.description"
       }
@@ -97,7 +96,7 @@ class LabelTypeEnumSpec extends SidewalkSpec {
     "exist on disk in every variant for every label type" in {
       // A missing file degrades silently — a markerless share preview, a broken chip — so pin every variant. The
       // paths are logical (under public/), which is what makes this check a plain file lookup.
-      for (lt <- LabelTypeEnum.values) {
+      for (lt <- LabelType.ordered) {
         for (path <- Seq(lt.iconPath, lt.smallIconPath, lt.tinyIconPath, lt.smallIconSvgPath)) {
           val icon = new File(s"public/$path")
           assert(icon.exists(), s"missing icon for ${lt.name}: ${icon.getPath}")
@@ -108,9 +107,9 @@ class LabelTypeEnumSpec extends SidewalkSpec {
     "publish API URLs that are the logical path under /assets/, un-fingerprinted" in {
       // A consumer that stores an icon_url expects it to survive our next deploy, so these deliberately skip the
       // content-hashed name our own pages use.
-      LabelTypeEnum.CurbRamp.iconUrl mustBe "/assets/images/icons/label_type_icons/CurbRamp.png"
-      LabelTypeEnum.CurbRamp.smallIconUrl mustBe "/assets/images/icons/label_type_icons/CurbRamp_small.png"
-      LabelTypeEnum.CurbRamp.tinyIconUrl mustBe "/assets/images/icons/label_type_icons/CurbRamp_tiny.png"
+      LabelType.CurbRamp.iconUrl mustBe "/assets/images/icons/label_type_icons/CurbRamp.png"
+      LabelType.CurbRamp.smallIconUrl mustBe "/assets/images/icons/label_type_icons/CurbRamp_small.png"
+      LabelType.CurbRamp.tinyIconUrl mustBe "/assets/images/icons/label_type_icons/CurbRamp_tiny.png"
     }
   }
 
@@ -119,12 +118,12 @@ class LabelTypeEnumSpec extends SidewalkSpec {
       // test/js/loadGlobalScript.js stamps that fixture as window.labelTypes. If it stops matching what the pages
       // actually stamp, the JS suite is testing a table no browser ever sees — so fail here instead, with the diff.
       val fixture = Json.parse(new File("test/resources/label-types-stamp.json").toURI.toURL.openStream())
-      Json.parse(LabelTypeEnum.pageStampJson) mustBe fixture
+      Json.parse(LabelType.pageStampJson) mustBe fixture
     }
 
     "carry every label type, in canonical order" in {
-      Json.parse(LabelTypeEnum.pageStampJson).as[Seq[JsObject]].map(t => (t \ "name").as[String]) mustBe
-        LabelTypeEnum.orderedNames
+      Json.parse(LabelType.pageStampJson).as[Seq[JsObject]].map(t => (t \ "name").as[String]) mustBe
+        LabelType.orderedNames
     }
   }
 }

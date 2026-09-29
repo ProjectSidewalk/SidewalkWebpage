@@ -6,7 +6,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
-import models.label.{LabelDeletion, LabelTypeEnum}
+import models.label.{LabelDeletion, LabelType}
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -468,9 +468,9 @@ class AdminController @Inject() (
    */
   private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
     (item.labelId, item.labelType) match {
-      case (Some(id), Some(labelType)) if LabelTypeEnum.labelTypeNames.contains(labelType) =>
+      case (Some(id), Some(labelType)) if LabelType.labelTypeNames.contains(labelType) =>
         panoDataService
-          .cropUrl(id, LabelTypeEnum.byName(labelType))
+          .cropUrl(id, LabelType.byName(labelType))
           .orElse(metaById.get(id).flatMap { m =>
             panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
               m.canvasHeight)
@@ -705,7 +705,7 @@ class AdminController @Inject() (
         val byLabelType = JsObject(
           sc.byLabelType.toSeq
             .sortBy { case (labelType, _) =>
-              LabelTypeEnum.orderedNames.indexOf(labelType)
+              LabelType.orderedNames.indexOf(labelType)
             }
             .map { case (labelType, s) =>
               labelType -> Json.obj(

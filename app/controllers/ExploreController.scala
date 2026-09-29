@@ -7,7 +7,7 @@ import formats.json.ExploreFormats._
 import formats.json.MissionFormats._
 import models.audit._
 import models.auth.DefaultEnv
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
@@ -325,7 +325,7 @@ class ExploreController @Inject() (
               .map { _ =>
                 // Send labels to SidewalkAI API for AI validation. Only available for some label types and imagery sources.
                 val labelsToSend = returnData.newLabels.filter { l =>
-                  LabelTypeEnum.aiLabelTypes.contains(l.labelType) && l.panoSource == PanoSource.Gsv && !l.tutorial
+                  LabelType.aiLabelTypes.contains(l.labelType) && l.panoSource == PanoSource.Gsv && !l.tutorial
                 }
                 aiService
                   .validateLabelsWithAi(labelsToSend.map(_.labelId))

@@ -25,8 +25,8 @@ case class LabelEdit(
     labelEditId: Int,
     labelId: Int,
     userId: String,
-    oldLabelType: LabelTypeEnum.Base,
-    newLabelType: LabelTypeEnum.Base,
+    oldLabelType: LabelType,
+    newLabelType: LabelType,
     oldSeverity: Option[Int],
     newSeverity: Option[Int],
     oldTags: List[String],
@@ -37,11 +37,11 @@ case class LabelEdit(
 )
 
 class LabelEditTableDef(tag: slick.lifted.Tag) extends Table[LabelEdit](tag, "label_edit") {
-  def labelEditId: Rep[Int]                 = column[Int]("label_edit_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                     = column[Int]("label_id")
-  def userId: Rep[String]                   = column[String]("user_id")
-  def oldLabelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("old_label_type")
-  def newLabelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("new_label_type")
+  def labelEditId: Rep[Int]        = column[Int]("label_edit_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]            = column[Int]("label_id")
+  def userId: Rep[String]          = column[String]("user_id")
+  def oldLabelType: Rep[LabelType] = column[LabelType]("old_label_type")
+  def newLabelType: Rep[LabelType] = column[LabelType]("new_label_type")
   // CHECK: NULL or 1-3, and NULL when the type on the same side is unrated (label_edit_unrated_no_severity_check).
   def oldSeverity: Rep[Option[Int]] = column[Option[Int]]("old_severity")
   def newSeverity: Rep[Option[Int]] = column[Option[Int]]("new_severity")
@@ -105,7 +105,7 @@ class LabelEditTable @Inject() (
   /** Extends a folded edit with a later change: its new state and time move, its old state stays. */
   def updateNewState(
       labelEditId: Int,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       severity: Option[Int],
       tags: List[String],
       editTime: OffsetDateTime
@@ -118,7 +118,7 @@ class LabelEditTable @Inject() (
   /** Rebases an edit onto a different starting state, after the edit before it was unwound. */
   def updateOldState(
       labelEditId: Int,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       severity: Option[Int],
       tags: List[String]
   ): DBIO[Int] =

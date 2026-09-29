@@ -44,7 +44,7 @@ case class ExplorePageData(
 case class NewLabelData(
     labelId: Int,
     temporaryLabelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     panoSource: PanoSource,
     tutorial: Boolean,
     timeCreated: OffsetDateTime
@@ -703,7 +703,7 @@ class ExploreServiceImpl @Inject() (
           missionId = missionId,
           userId = userId,
           panoId = label.panoId,
-          labelType = LabelTypeEnum.withName(label.labelType),
+          labelType = LabelType.valueOf(label.labelType),
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
           timeCreated = timeCreated,
@@ -731,7 +731,7 @@ class ExploreServiceImpl @Inject() (
       )
       _ <- labelPointTable.computeCenterlineOffset(newLabelPointId, calculatedStreetEdgeId)
     } yield {
-      NewLabelData(newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource,
+      NewLabelData(newLabelId, label.temporaryLabelId, LabelType.byName(label.labelType), label.panoSource,
         label.tutorial, timeCreated)
     }
   }
@@ -1004,7 +1004,7 @@ class ExploreServiceImpl @Inject() (
           // Insert any labels.
           val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
             data.labels.map { (label: LabelSubmission) =>
-              val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(label.labelType)
+              val labelType: LabelType = LabelType.valueOf(label.labelType)
               labelTable.find(label.temporaryLabelId, userId).flatMap {
                 case Some(existingLabel) =>
                   // If there is already a label with this temp id but a mismatched label type, the user probably has the

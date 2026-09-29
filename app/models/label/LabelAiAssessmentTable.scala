@@ -21,7 +21,7 @@ object AiImageSource extends Enumeration {
 case class LabelAiAssessment(
     labelAiAssessmentId: Int,
     labelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     validationResult: ValidationOption.Value,
     validationAccuracy: Double,
     validationConfidence: Double,
@@ -41,7 +41,7 @@ case class LabelAiAssessment(
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
   def labelAiAssessmentId: Rep[Int]                 = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
   def labelId: Rep[Int]                             = column[Int]("label_id")
-  def labelType: Rep[LabelTypeEnum.Base]            = column[LabelTypeEnum.Base]("label_type")
+  def labelType: Rep[LabelType]                     = column[LabelType]("label_type")
   def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
   def validationAccuracy: Rep[Double]               = column[Double]("validation_accuracy")
   def validationConfidence: Rep[Double]             = column[Double]("validation_confidence")

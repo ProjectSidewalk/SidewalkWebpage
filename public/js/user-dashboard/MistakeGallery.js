@@ -438,7 +438,7 @@ class MistakeGallery {
   /**
    * The localized display name for a label type, via the shared common-namespace keys ("NoCurbRamp" ->
    * t('common:no-curb-ramp')).
-   * @param {string} type - LabelTypeEnum name.
+   * @param {string} type - LabelType name.
    * @returns {string}
    */
   static #typeName(type) {

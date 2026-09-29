@@ -4,7 +4,7 @@ import controllers.base._
 import controllers.helper.SignedMediaUtils
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.utils.ImageUtils
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request, RequestHeader}
@@ -199,14 +199,14 @@ class ImageController @Inject() (
   def getCropImageMetadata(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
       Future.successful(Forbidden("Request origin not allowed."))
-    } else if (!LabelTypeEnum.labelTypeNames.contains(labelType)) {
+    } else if (!LabelType.labelTypeNames.contains(labelType)) {
       Future.successful(
         BadRequest(
-          s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.labelTypeNames.mkString(", ")}."
+          s"Invalid label type provided: $labelType. Valid label types are: ${LabelType.labelTypeNames.mkString(", ")}."
         )
       )
     } else {
-      panoDataService.cropUrl(labelId, LabelTypeEnum.byName(labelType)) match {
+      panoDataService.cropUrl(labelId, LabelType.byName(labelType)) match {
         case Some(url) =>
           cropService.cropMarker(labelId).map(m => Ok(LabelFormats.cropImagePayload(labelId, labelType, url, m)))
         case None => Future.successful(NotFound(s"No crop image found for label: $labelId"))
@@ -223,10 +223,10 @@ class ImageController @Inject() (
   def serveCropImage(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     val earlyReject =
       if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
-      else if (!LabelTypeEnum.labelTypeNames.contains(labelType))
+      else if (!LabelType.labelTypeNames.contains(labelType))
         Some(
           BadRequest(
-            s"Invalid label type provided: $labelType. Valid label types are: ${LabelTypeEnum.labelTypeNames.mkString(", ")}."
+            s"Invalid label type provided: $labelType. Valid label types are: ${LabelType.labelTypeNames.mkString(", ")}."
           )
         )
       else verifySignature(request, s"/cropImage/$labelType/$labelId")
@@ -253,7 +253,7 @@ class ImageController @Inject() (
         val labelType: String = (json \ "label_type").as[String]
         val labelId: Int      = (json \ "label_id").as[Int]
         // Validate the label type (matching serveCropImage) before using it to build a filesystem path.
-        if (!LabelTypeEnum.labelTypeNames.contains(labelType)) {
+        if (!LabelType.labelTypeNames.contains(labelType)) {
           Future.successful(BadRequest(s"Invalid label type provided: $labelType."))
         } else {
           initializeDirIfNeeded(labelType)

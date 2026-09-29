@@ -1,14 +1,14 @@
-@import models.label.LabelTypeEnum
+@import models.label.{LabelType, RatingScale}
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
-@* The types that carry no rating, named from LabelTypeEnum so the "% w/ severity" caveats below can't outlive a
+@* The types that carry no rating, named from LabelType so the "% w/ severity" caveats below can't outlive a
    change to it — they are the same types ConfigTable excludes from that column's denominator. *@
 @unratedTypeNames = @{
-  LabelTypeEnum.ordered.filter(_.ratingScale == LabelTypeEnum.RatingScale.Unrated).map(lt => Messages(lt.nameKey))
+  LabelType.ordered.filter(_.ratingScale == RatingScale.Unrated).map(lt => Messages(lt.nameKey))
 }
 @unratedList = @{unratedTypeNames.mkString(", ")}
 @unratedProse = @{

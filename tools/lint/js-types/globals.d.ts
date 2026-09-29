@@ -127,7 +127,7 @@ interface Window {
   citiesMap?: mapboxgl.Map;
   // Explore's rasterized label icons, by icon path. Set up by Label.js.
   labelIconCache: Record<string, HTMLCanvasElement>;
-  // Stamped from LabelTypeEnum.pageStampJson.
+  // Stamped from LabelType.pageStampJson.
   labelTypes: Array<{
     name: string;
     color: string;

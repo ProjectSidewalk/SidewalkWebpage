@@ -26,7 +26,7 @@ class AiApiAuthException(message: String) extends Exception(message)
  * What [[AiService.ensureSeedRows]] had to insert: whether the AI's user_stat row was missing, and the label types
  * whose `aiValidation` mission was. Both empty means the schema already carried every row.
  */
-case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelTypeEnum.Base]) {
+case class AiSeedRows(statRowInserted: Boolean, missionsInserted: Seq[LabelType]) {
 
   /** @return True when the schema already carried every row, so the run was a no-op. */
   def nothingInserted: Boolean = !statRowInserted && missionsInserted.isEmpty
@@ -129,9 +129,9 @@ class AiServiceImpl @Inject() (
     // The mission inserts are exists-then-insert, which a transaction alone doesn't serialize: two boots of the same
     // schema at once (a deploy overlapping a restart) would each see "missing" and both insert. The lock is
     // database-wide, so every city's boot takes it in turn, for the milliseconds this transaction lasts.
-    _                                 <- sql"SELECT 1 FROM pg_advisory_xact_lock(5349)".as[Int]
-    statRows: Int                     <- userStatTable.insertAiUserStatIfMissing()
-    missions: Seq[LabelTypeEnum.Base] <- missionTable.insertMissingAiValidationMissions()
+    _                        <- sql"SELECT 1 FROM pg_advisory_xact_lock(5349)".as[Int]
+    statRows: Int            <- userStatTable.insertAiUserStatIfMissing()
+    missions: Seq[LabelType] <- missionTable.insertMissingAiValidationMissions()
   } yield AiSeedRows(statRows == 1, missions)).transactionally
 
   def validateLabelsWithAiDaily(n: Int): Future[Seq[Option[LabelAiAssessment]]] = {
@@ -325,7 +325,7 @@ class AiServiceImpl @Inject() (
    * @param labelType The label type for which to get the AI validation mission_id
    * @return A DBIO containing the AI validation mission_id
    */
-  private def getAiValidateMissionId(labelType: LabelTypeEnum.Base): DBIO[Int] =
+  private def getAiValidateMissionId(labelType: LabelType): DBIO[Int] =
     configService.cachedDBIO[Int](s"getAiValidateMissionId(${labelType.name})")(
       missionTable.getAiValidateMissionId(labelType)
     )

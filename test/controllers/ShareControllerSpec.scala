@@ -1,7 +1,7 @@
 package controllers
 
-import models.label.LabelTypeEnum.AccessImpact
-import models.label.{CropMarker, LabelMetadata, LabelTypeEnum}
+import models.label.AccessImpact
+import models.label.{CropMarker, LabelMetadata, LabelType}
 import models.story.Story
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -373,7 +373,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     val canvasCenter = CropMarker(0.5, 0.5)
 
     "output the fixed share dimensions and keep a centered marker centered when a taller base is cover-cropped" in {
-      val out = controller.compositeMarker(solidBase(640, 480, bg), LabelTypeEnum.CurbRamp, canvasCenter)
+      val out = controller.compositeMarker(solidBase(640, 480, bg), LabelType.CurbRamp, canvasCenter)
       out.getWidth mustBe 1440
       out.getHeight mustBe 960
       val (cx, cy) = markerCenter(out, bg)
@@ -386,16 +386,16 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // if it is that frame — any extra rows would shift the same fraction (a 640x480 still lands this one 42 px up).
       val nearTop = CropMarker(0.62, 0.15)
       val still   = solidBase(PanoDataService.StaticStillWidth, PanoDataService.StaticStillHeight, bg)
-      val onStill = markerCenter(controller.compositeMarker(still, LabelTypeEnum.Crosswalk, nearTop), bg)
+      val onStill = markerCenter(controller.compositeMarker(still, LabelType.Crosswalk, nearTop), bg)
       val onCrop  =
-        markerCenter(controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.Crosswalk, nearTop), bg)
+        markerCenter(controller.compositeMarker(solidBase(1440, 960, bg), LabelType.Crosswalk, nearTop), bg)
       onStill._1 must be(onCrop._1 +- 3)
       onStill._2 must be(onCrop._2 +- 3)
       onCrop._2 must be(144 +- 3)
     }
 
     "keep a centered marker centered for a crop-sized (already 3:2) base" in {
-      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.NoCurbRamp, canvasCenter)
+      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelType.NoCurbRamp, canvasCenter)
       val (cx, cy) = markerCenter(out, bg)
       cx must be(720 +- 3)
       cy must be(480 +- 3)
@@ -404,7 +404,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "map an off-center marker through the cover-crop transform" in {
       // A marker at 1/4 width on a 3:2 base (scale-only, no crop): marker center must land at 1/4 output width.
       val quarter  = CropMarker(0.25, 0.5)
-      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelTypeEnum.Obstacle, quarter)
+      val out      = controller.compositeMarker(solidBase(1440, 960, bg), LabelType.Obstacle, quarter)
       val (cx, cy) = markerCenter(out, bg)
       cx must be(360 +- 3)
       cy must be(480 +- 3)
@@ -415,7 +415,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // scales by 960/900 (scaledW 1707) and trims 133 px off each side, so a marker at 1/4 of the crop's width lands
       // at 0.25 * 1707 - 133 = 293 px, and one at mid-height stays at mid-height.
       val quarterWide = CropMarker(0.25, 0.5)
-      val out         = controller.compositeMarker(solidBase(1600, 900, bg), LabelTypeEnum.Crosswalk, quarterWide)
+      val out         = controller.compositeMarker(solidBase(1600, 900, bg), LabelType.Crosswalk, quarterWide)
       val (cx, cy)    = markerCenter(out, bg)
       cx must be(293 +- 4)
       cy must be(480 +- 4)

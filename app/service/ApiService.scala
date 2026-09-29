@@ -188,7 +188,7 @@ trait ApiService {
    * @param lang The language to use for the localized display name and description
    * @return A future containing a set of label type details
    */
-  def getLabelTypes(lang: Lang): Set[LabelTypeForApi]
+  def getLabelTypes(lang: Lang): Seq[LabelTypeForApi]
 
   /**
    * Gets user statistics with optional filtering parameters applied at the database level.
@@ -328,8 +328,8 @@ class ApiServiceImpl @Inject() (
     setUpStreamFromDb(labelTable.getLabelDataWithFilters(filters), batchSize)
   }
 
-  def getLabelTypes(lang: Lang): Set[LabelTypeForApi] = {
-    LabelTypeEnum.values.map { labelType =>
+  def getLabelTypes(lang: Lang): Seq[LabelTypeForApi] = {
+    LabelType.ordered.map { labelType =>
       LabelTypeForApi(
         name = labelType.name,
         displayName = messagesApi(labelType.nameKey)(lang),
@@ -340,8 +340,8 @@ class ApiServiceImpl @Inject() (
         color = labelType.color,
         accessImpact = labelType.accessImpact.name,
         ratingScale = labelType.ratingScale.name,
-        isPrimary = LabelTypeEnum.primaryLabelTypes.contains(labelType),
-        isPrimaryValidate = LabelTypeEnum.primaryValidateLabelTypes.contains(labelType)
+        isPrimary = LabelType.primaryLabelTypes.contains(labelType),
+        isPrimaryValidate = LabelType.primaryValidateLabelTypes.contains(labelType)
       )
     }
   }
@@ -468,7 +468,7 @@ class ApiServiceImpl @Inject() (
       clusterObjs: Seq[Cluster] =
         clusters.zip(streetIds).map { case (cluster, streetId) =>
           val geom = gf.createPoint(new Coordinate(cluster.lng, cluster.lat))
-          Cluster(0, sessionId, LabelTypeEnum.withName(cluster.labelType), streetId, geom, cluster.severity, None)
+          Cluster(0, sessionId, LabelType.valueOf(cluster.labelType), streetId, geom, cluster.severity, None)
         }
 
       // Bulk insert clusters and return their newly created IDs in the same order.

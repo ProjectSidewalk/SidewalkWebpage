@@ -40,7 +40,7 @@ object StoryFormats {
       "story_id"   -> s.story.storyId,
       "label_id"   -> s.story.labelId,
       "label_type" -> s.labelType,
-      // Flips the edit composer's problem-vs-feature phrasing (LabelTypeEnum-sourced, never re-derived in JS).
+      // Flips the edit composer's problem-vs-feature phrasing (LabelType-sourced, never re-derived in JS).
       "access_impact"     -> s.accessImpact.name,
       "text"              -> s.story.storyText,
       "display_name_mode" -> s.story.displayNameMode,

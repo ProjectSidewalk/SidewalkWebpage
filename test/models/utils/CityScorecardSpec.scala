@@ -1,6 +1,6 @@
 package models.utils
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -78,7 +78,7 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
     "report every label type in the scorecard's per-type breakdown, zero counts included" in {
       // The per-type query LEFT JOINs labels onto the full type list so a type with no labels still gets a row.
-      run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelTypeEnum.labelTypeNames
+      run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelType.labelTypeNames
     }
     "execute getCityWeeklyTrendBySchema (all-time and windowed)" in {
       run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[_]]

@@ -10,7 +10,7 @@
  */
 package models.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.place.PlaceCategory
 import models.street.StreetGradientStats
 import models.utils.LatLngBBox
@@ -38,16 +38,16 @@ object AccessScoreApiModels {
    * @param labelType A label type name (e.g. "NoCurbRamp").
    * @return          Its short code (e.g. "NoCRamp").
    */
-  def shapefileTypeCode(labelType: String): String = LabelTypeEnum.withName(labelType) match {
-    case LabelTypeEnum.CurbRamp       => "CRamp"
-    case LabelTypeEnum.NoCurbRamp     => "NoCRamp"
-    case LabelTypeEnum.Obstacle       => "Obst"
-    case LabelTypeEnum.SurfaceProblem => "Surf"
-    case LabelTypeEnum.Crosswalk      => "Xwalk"
-    case LabelTypeEnum.Signal         => "Signal"
-    case LabelTypeEnum.NoSidewalk     => "NoSwk"
-    case LabelTypeEnum.Occlusion      => "Occl"
-    case LabelTypeEnum.Other          => "Other"
+  def shapefileTypeCode(labelType: String): String = LabelType.valueOf(labelType) match {
+    case LabelType.CurbRamp       => "CRamp"
+    case LabelType.NoCurbRamp     => "NoCRamp"
+    case LabelType.Obstacle       => "Obst"
+    case LabelType.SurfaceProblem => "Surf"
+    case LabelType.Crosswalk      => "Xwalk"
+    case LabelType.Signal         => "Signal"
+    case LabelType.NoSidewalk     => "NoSwk"
+    case LabelType.Occlusion      => "Occl"
+    case LabelType.Other          => "Other"
   }
 
   /** The rating buckets a cluster can fall into, in column order. */

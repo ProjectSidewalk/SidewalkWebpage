@@ -5,7 +5,7 @@ import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, regionsPara
 import formats.json.GalleryFormats._
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
-import models.label.{LabelTypeEnum, Tag}
+import models.label.{LabelType, Tag}
 import models.region.Region
 import play.api.Configuration
 import play.api.i18n.Messages
@@ -71,7 +71,7 @@ class GalleryController @Inject() (
       // The label type filter is a list, and an empty one means every type — which is what the legacy "Assorted"
       // value, and anything else unrecognized, falls back to.
       val labTypes: Seq[String] =
-        labelType.split(",").map(_.trim).filter(LabelTypeEnum.labelTypeNames.contains).toSeq
+        labelType.split(",").map(_.trim).filter(LabelType.labelTypeNames.contains).toSeq
 
       // Nothing here depends on anything else, so start all three before the for-comprehension sequences them.
       val regionsF: Future[Seq[Region]] = regionService.getAllRegions
@@ -151,16 +151,16 @@ class GalleryController @Inject() (
       submission => {
         val n: Int = submission.n
         // An empty set of types means "every type", which is what the landing grid and the Gallery's default ask for.
-        val labelTypes: Set[LabelTypeEnum.Base] =
-          submission.labelTypes.getOrElse(Seq()).flatMap(LabelTypeEnum.byName.get).toSet
+        val labelTypes: Set[LabelType] =
+          submission.labelTypes.getOrElse(Seq()).flatMap(LabelType.byName.get).toSet
         val loadedLabels: Set[Int]       = submission.loadedLabels.toSet
         val valOptions: Set[String]      = submission.validationOptions.getOrElse(Seq()).toSet
         val regionIds: Set[Int]          = submission.regionIds.getOrElse(Seq()).toSet
         val severities: Set[Option[Int]] =
           submission.severities.getOrElse(Seq()).toSet.map { (s: String) => if (s == "null") None else Some(s.toInt) }
-        val tagsByLabelType: Map[LabelTypeEnum.Base, Set[String]] = submission.tagsByLabelType
+        val tagsByLabelType: Map[LabelType, Set[String]] = submission.tagsByLabelType
           .getOrElse(Map())
-          .flatMap { case (name, tags) => LabelTypeEnum.byName.get(name).map(_ -> tags.toSet) }
+          .flatMap { case (name, tags) => LabelType.byName.get(name).map(_ -> tags.toSet) }
         val aiValOptions: Set[String]  = submission.aiValidationOptions.getOrElse(Seq()).toSet
         val userId: String             = request.identity.map(_.userId).getOrElse(NoUserId)
         val recentFirst: Boolean       = submission.sort.contains("recent")

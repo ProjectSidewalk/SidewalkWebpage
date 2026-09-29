@@ -1,13 +1,13 @@
 package controllers.helper
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.validation.ValidationLabelFilter
 import models.validation.ValidationQueuePolicy.ValidationQueue
 
 object ValidateHelper {
   case class ValidateParams(
       adminVersion: Boolean,
-      labelType: Option[LabelTypeEnum.Base] = None,
+      labelType: Option[LabelType] = None,
       userIds: Option[Seq[String]] = None,
       regionIds: Option[Seq[Int]] = None,
       unvalidatedOnly: Boolean = false,

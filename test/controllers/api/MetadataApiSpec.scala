@@ -1,6 +1,6 @@
 package controllers.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -46,7 +46,7 @@ class MetadataApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
         val display = (lt \ "display_name").as[String]
         display.trim must not be empty
         // An unresolved Messages key comes back as the raw key, which would silently look like a valid name.
-        display must not be LabelTypeEnum.byName((lt \ "name").as[String]).nameKey
+        display must not be LabelType.byName((lt \ "name").as[String]).nameKey
         display must not be (lt \ "description").as[String]
       }
 
@@ -60,7 +60,7 @@ class MetadataApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val types = (json \ "label_types").as[Seq[JsObject]]
 
       types.map(lt => (lt \ "name").as[String] -> (lt \ "access_impact").as[String]).toMap mustBe
-        LabelTypeEnum.values.map(lt => lt.name -> lt.accessImpact.name).toMap
+        LabelType.ordered.map(lt => lt.name -> lt.accessImpact.name).toMap
     }
 
     "publish each type's rating scale, which is a separate question from its access impact" in {
@@ -70,7 +70,7 @@ class MetadataApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val types = (json \ "label_types").as[Seq[JsObject]]
 
       types.map(lt => (lt \ "name").as[String] -> (lt \ "rating_scale").as[String]).toMap mustBe
-        LabelTypeEnum.values.map(lt => lt.name -> lt.ratingScale.name).toMap
+        LabelType.ordered.map(lt => lt.name -> lt.ratingScale.name).toMap
     }
 
     "publish icon URLs that survive a deploy, so a consumer can store one" in {

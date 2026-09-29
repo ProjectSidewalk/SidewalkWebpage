@@ -14,8 +14,8 @@
     case AccessScoreCalculator.StreetCondition => "Street condition: one pooled term per street"
   }
 }
-@noSidewalkBase = @{AccessScoreCalculator.typeWeights(models.label.LabelTypeEnum.NoSidewalk.name).baseWeight}
-@noSidewalkTag(tag: String) = @{AccessScoreCalculator.tagAdjustments((models.label.LabelTypeEnum.NoSidewalk.name, tag))}
+@noSidewalkBase = @{AccessScoreCalculator.typeWeights(models.label.LabelType.NoSidewalk.name).baseWeight}
+@noSidewalkTag(tag: String) = @{AccessScoreCalculator.tagAdjustments((models.label.LabelType.NoSidewalk.name, tag))}
 @saturation = @{AccessScoreCalculator.streetConditionSaturationCount}
 @radius = @{AccessScoreCalculator.attributionRadiusMeters.toInt}
 @perMeters = @{AccessScoreCalculator.lengthNormalizationPerMeters.toInt}
