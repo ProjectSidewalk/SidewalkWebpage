@@ -46,6 +46,8 @@ class DesktopValidationMenu {
       this.#setUnsureView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
     });
+    // Immersive mode's close control on the open dock (#5560); the boxed column never shows it.
+    menuUI.verdictClearButton?.addEventListener('click', () => this.clearVerdict());
 
     // Tag and severity sections only available with Expert Validate.
     if (svv.adminVersion) {
@@ -313,6 +315,8 @@ class DesktopValidationMenu {
   #showVerdict(chosenButton, sections) {
     const menuUI = this.#menuUI;
     this.#wrongTypeView = sections.includes('labelTypeMenu');
+    // The dock's close control (immersive mode) shows only while there is a verdict to take back.
+    menuUI.holder?.classList.toggle('has-verdict', chosenButton !== null);
     for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]) {
       button.classList.toggle('is-chosen', button === chosenButton);
     }
@@ -365,6 +369,33 @@ class DesktopValidationMenu {
     this.#dropPendingEdits();
     this.#showVerdict(this.#menuUI.noButton, ['noMenu']);
     this.#menuUI.submitButton.disabled = false;
+  }
+
+  /**
+   * Takes the verdict back to no answer (#5560): the sections fold away, the buttons unchoose, and the label forgets
+   * the result and its reasons so Submit has nothing to send. The reason buttons stay rendered for the type; only
+   * what was entered for this label goes. Reachable from the dock's close control in immersive mode.
+   */
+  clearVerdict() {
+    const menuUI = this.#menuUI;
+    const label = svv.labelContainer.getCurrentLabel();
+    const verdict = label.getProperty('validationResult');
+    if (verdict === undefined) return;
+    svv.tracker.push('Click_ClearVerdict', { verdict });
+    this.#dropPendingEdits();
+    for (const name of ['validationResult', 'disagreeOption', 'unsureOption', 'agreeComment',
+      'disagreeReasonTextBox', 'unsureReasonTextBox']) {
+      label.setProperty(name, undefined);
+    }
+    this.#showVerdict(null, []);
+    menuUI.optionalCommentTextBox.value = '';
+    DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
+    DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
+    menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
+    menuUI.unsureReasonTextBox.classList.remove('is-chosen');
+    menuUI.disagreeReasonTextBox.value = '';
+    menuUI.unsureReasonTextBox.value = '';
+    menuUI.submitButton.disabled = true;
   }
 
   #setUnsureView() {

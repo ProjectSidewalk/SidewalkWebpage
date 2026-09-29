@@ -41,6 +41,14 @@
   justify-content: space-between;
 }
 
+/* The verdict thumbs, Back's arrow and the dock's close control are immersive mode's (svv-immersive.css); the
+   column keeps its plain text buttons. */
+.validate-page-button__icon,
+.validate-undo-button__icon,
+#validate-verdict-clear {
+  display: none;
+}
+
 /* Overriding some of our design system tokens, though we could likely bring them more in line with DST. */
 .validate-page-button {
   display: inline-block;

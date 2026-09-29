@@ -42,31 +42,16 @@ body.svv-immersive #pano-border-frame {
   display: none;
 }
 
-/* The mission title becomes a chip at the top-centre, the one place the corner controls never reach: the boxed
-   title runs the width of the tool. Its text is StatusField's uppercase title, so the chip's letter-spacing is the
-   boxed one's. */
+/* The mission title ("VALIDATE 10 CURB RAMP LABELS") is cut: the dock's question names the type, and one pill at the
+   top is all the mode can afford there. */
 body.svv-immersive #mission-title {
-  top: calc(8px * var(--ui-scale));
-  left: 50%;
-  transform: translateX(-50%);
-  width: auto;
-  max-width: 60vw;
-  padding: calc(5px * var(--ui-scale)) calc(12px * var(--ui-scale));
-  font: var(--text-small-bold);
-  letter-spacing: 5%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--color-neutral-white);
-  background: var(--svv-scrim);
-  border-radius: calc(999px * var(--ui-scale));
-  z-index: 4;
+  display: none;
 }
 
-/* The progress bar sits under the chip as a second, narrower pill: the count is worth its pixels (a validator paces
-   a mission by it), and the top-centre is sky in nearly every pano. */
+/* The progress bar becomes the one pill at the top-centre, the place the corner controls never reach and sky in
+   nearly every pano; the count is worth its pixels, since a validator paces a mission by it. */
 body.svv-immersive #mission-progress-bar-section {
-  top: calc(40px * var(--ui-scale));
+  top: calc(8px * var(--ui-scale));
   left: 50%;
   transform: translateX(-50%);
   width: calc(240px * var(--ui-scale));
@@ -114,14 +99,80 @@ body.svv-immersive #validate-submit-section {
   margin-top: 0;
 }
 
-body.svv-immersive .validation-menu-section-header {
-  margin-bottom: calc(8px * var(--ui-scale));
+/* The buttons and fields keep their white fills on the scrim, so their text must not inherit the dock's white. The
+   chosen states keep their own colours (svv-validation-menu.css). */
+body.svv-immersive .validate-page-button,
+body.svv-immersive .validation-reason-button,
+body.svv-immersive .validate-text-input input {
+  color: var(--color-neutral-900);
 }
 
-/* The imagery date reads from the pano's bottom-left; the dock never reaches it, but the pill's row and the dock's
-   bottom edge line up, so the two read as one row of floating controls. */
-body.svv-immersive #svv-panorama-date-holder {
-  bottom: calc(14px * var(--ui-scale));
+/* The verdict buttons carry the same thumbs mobile Validate does, beside the underlined shortcut letter. */
+body.svv-immersive .validate-page-button {
+  display: inline-flex; /* The boxed rule sets inline-block, which cannot centre the thumb beside the text. */
+  align-items: center;
+  justify-content: center;
+  gap: calc(6px * var(--ui-scale));
+}
+
+body.svv-immersive .validate-page-button__icon {
+  display: inline-block;
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+/* Back reads as "go back" with its arrow. */
+body.svv-immersive #validate-undo-button {
+  gap: calc(2px * var(--ui-scale));
+  padding-left: calc(6px * var(--ui-scale));
+}
+
+body.svv-immersive .validate-undo-button__icon {
+  display: inline-block;
+  width: calc(18px * var(--ui-scale));
+  height: calc(18px * var(--ui-scale));
+}
+
+/* The close control in the dock's top-right corner, once a verdict has opened it: an X takes the answer back so the
+   dock folds to the three buttons again. Shown by the has-verdict class DesktopValidationMenu keeps on the holder. */
+body.svv-immersive #validation-menu-holder.has-verdict #validate-verdict-clear {
+  display: inline-flex;
+}
+
+body.svv-immersive #validate-verdict-clear {
+  position: absolute;
+  top: calc(8px * var(--ui-scale));
+  right: calc(8px * var(--ui-scale));
+  align-items: center;
+  justify-content: center;
+  width: calc(24px * var(--ui-scale));
+  height: calc(24px * var(--ui-scale));
+  padding: 0;
+  border: none;
+  border-radius: calc(4px * var(--ui-scale));
+  background: none;
+  color: var(--color-neutral-white);
+  cursor: pointer;
+}
+
+body.svv-immersive #validate-verdict-clear:hover {
+  background: rgb(from var(--color-neutral-white) r g b / 15%);
+}
+
+body.svv-immersive .validate-verdict-clear__icon {
+  width: calc(14px * var(--ui-scale));
+  height: calc(14px * var(--ui-scale));
+  -webkit-mask-image: url("../../../images/icons/cross.svg");
+  mask-image: url("../../../images/icons/cross.svg");
+}
+
+/* The question keeps clear of the close control. */
+body.svv-immersive #main-validate-header {
+  padding-right: calc(28px * var(--ui-scale));
+}
+
+body.svv-immersive .validation-menu-section-header {
+  margin-bottom: calc(8px * var(--ui-scale));
 }
 
 /* The Hide-label, chevron, zoom and immersive controls keep the boxed layout's top corners (svv-panorama.css). Over

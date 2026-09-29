@@ -85,6 +85,8 @@ class Main {
     svv.ui.busyRegion = [...document.querySelectorAll(busySelectors.join(', '))];
 
     svv.ui.validationMenu = {
+      holder: byId('validation-menu-holder'), // Desktop only; the phone lays its menu over the pano.
+      verdictClearButton: byId('validate-verdict-clear'), // Desktop only, shown in immersive mode.
       header: byId('main-validate-header'),
       yesButton: byId('validate-yes-button'),
       noButton: byId('validate-no-button'),

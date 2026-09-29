@@ -198,12 +198,26 @@
         </div>
       </div>
       <div id="validation-menu-holder">
+        @* Immersive mode only (svv-immersive.css): takes the verdict back so the dock folds to the three buttons. *@
+        <button type="button" id="validate-verdict-clear" class="validate-verdict-clear" aria-label="Clear your answer" data-i18n-aria-label="validate:validate-menu.clear-verdict">
+          <span class="ps-mask-icon validate-verdict-clear__icon" aria-hidden="true"></span>
+        </button>
         <div id="main-validate-section" class="validation-menu-section button-section">
           <div id="main-validate-header" class="validation-menu-section-header">Is this a curb ramp?</div>
+          @* The same thumbs mobile Validate and the mission-complete counts carry; the boxed column hides them. *@
           <div id="validation-button-holder">
-            <button type="button" id="validate-yes-button"class="validate-page-button validate-button button button--small">@Html(Messages("yes.caps.shortcut"))</button>
-            <button type="button" id="validate-no-button"class="validate-page-button validate-button button button--small">@Html(Messages("no.caps.shortcut"))</button>
-            <button type="button" id="validate-unsure-button"class="validate-page-button validate-button button button--small">@Html(Messages("unsure.caps.shortcut"))</button>
+            <button type="button" id="validate-yes-button"class="validate-page-button validate-button button button--small">
+              <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="validate-page-button__icon" alt="">
+              <span>@Html(Messages("yes.caps.shortcut"))</span>
+            </button>
+            <button type="button" id="validate-no-button"class="validate-page-button validate-button button button--small">
+              <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="validate-page-button__icon" alt="">
+              <span>@Html(Messages("no.caps.shortcut"))</span>
+            </button>
+            <button type="button" id="validate-unsure-button"class="validate-page-button validate-button button button--small">
+              <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="validate-page-button__icon" alt="">
+              <span>@Html(Messages("unsure.caps.shortcut"))</span>
+            </button>
           </div>
         </div>
         @if(validateParams.adminVersion) {
@@ -280,7 +294,10 @@
           </div>
         </div>
         <div id="validate-submit-section" class="validation-menu-section button-section">
-          <button type="button" id="validate-undo-button"class="button button--secondary button--small">@Html(Messages("back.shortcut"))</button>
+          <button type="button" id="validate-undo-button"class="button button--secondary button--small">
+            <img src='@assets.path("images/icons/chevron-left-feather.svg")' class="validate-undo-button__icon" alt="">
+            <span>@Html(Messages("back.shortcut"))</span>
+          </button>
           <button type="button" id="validate-submit-button"class="button button--primary button--small">@Html(Messages("submit.shortcut"))</button>
         </div>
       </div>
