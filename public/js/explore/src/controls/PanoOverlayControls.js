@@ -30,13 +30,15 @@ class PanoOverlayControls {
   }
 
   /**
-   * Opens/closes the menu when the chevron is clicked. CSS flips the chevron.
+   * Opens/closes the menu when the chevron is clicked. CSS flips the chevron. Logged under the same name as
+   * Validate's chevron (PanoControlMenu), so one query covers both tools.
    * @param {Event} e
    */
   #handleToggleControls = (e) => {
     e.preventDefault();
     const expanded = this.#controlButtonsToggle.getAttribute('aria-expanded') !== 'true';
     this.#controlButtonsToggle.setAttribute('aria-expanded', expanded);
+    this.tracker.push('Click_PanoControlMenu_Toggle', { expanded });
   };
 
   /**
