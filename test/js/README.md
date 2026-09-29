@@ -58,15 +58,20 @@ Also covered, beyond the api-docs previews:
   suite pins the disclosure ARIA, sliders ranged from the model's SPECS, `input` applying while `change` is what
   logs, Reset/active-dot state and the screen-reader text standing in for the dot, the trigger passed as the
   popover's `source` (focus order), `isOpen()` staying safe without a trigger, the open/close hooks Explore uses to
-  suspend its shortcuts, and light dismiss.
+  suspend its shortcuts, light dismiss (including Tab leaving from the trigger), and the `placement` hook: right or
+  below the trigger, each falling back to the other, and the function form asked on every open.
 - `validate/src/keyboard/KeyboardManager.js` → `validateImageAdjustmentsKeyboard.test.js` — Validate's keyboard
   scope for the image adjustments panel (#5501). Keys on a slider, and any key while the panel is open, reach no
   shortcut and leave Escape to the panel, which one case proves with the real popover (Escape closes it and focus
   returns to the pill). On a top-left pill (Hide label, Image) only Space is left to the browser: Enter still
-  submits, as from any focused button, and letter shortcuts still fire from a pill a mouse click left focused.
+  submits, as from any focused button, while the chevron takes Enter as well; letter shortcuts still fire from a
+  control a mouse click left focused.
 - `validate/src/panorama/PanoControlMenu.js` → `validatePanoControlMenu.test.js` — the chevron that opens the menu
   holding Validate's Image pill (#5501): a click flips `aria-expanded` both ways (the CSS shows the menu from it),
   each flip is logged with the resulting state, and the collapsed indicator toggles the shared active-dot class.
+- `explore/src/controls/PanoOverlayControls.js` → `explorePanoOverlayControls.test.js` — Explore's chevron toggle
+  (#5501): a click flips `aria-expanded` both ways and logs `Click_PanoControlMenu_Toggle` with the resulting state,
+  the same event Validate's chevron writes.
 - `common/pano-viewer/src/PanoInfoPopover.js` → `panoInfoViewLink.test.js` — the pano info popover's
   "view in \<provider\>" link (#4813). Validate and the label card swap the active viewer from label to label, so the
   popover resolves it on every open and offers the link only when that viewer both publishes a public site and is
