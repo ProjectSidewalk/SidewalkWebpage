@@ -199,10 +199,10 @@ class AppManager {
       // whose namespaces failed should still render its distances converted and labeled rather than as raw meters.
       this._addDistanceFormatter();
 
-      // Ignore errors loading translations, but log any other errors.
-      if (err && err.filter((e) => !e.includes('status code: 404')).length > 0) {
-        return console.error(err.filter((e) => !e.includes('status code: 404')));
-      }
+      // Ignore errors loading translations, but log any other errors. Most arrive as text, but a request cut short
+      // arrives as an Error object.
+      const realErrors = (err || []).filter((e) => !String(e).includes('status code: 404'));
+      if (realErrors.length > 0) return console.error(realErrors);
 
       // After loading, merge the country-specific override namespaces into the base ones.
       // Going through list of languages so that we still get the en translations when using en-US.

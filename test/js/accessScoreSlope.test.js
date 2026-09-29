@@ -48,7 +48,9 @@ describe('slope in the AccessScore scoring controls', () => {
         // Echoes the key with any interpolated values, so a test can see what was handed to a string.
         window.i18next = {
             language: 'en',
-            t: (key, values = {}) => [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
+            // A string that names its own fallback is one this locale may not have, and here it doesn't.
+            t: (key, values = {}) => values.defaultValue
+                ?? [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
         };
         window.util = { escapeHTML: (text) => String(text) };
         window.eval(read('public/js/common/urlQuery.js'));
@@ -100,6 +102,9 @@ describe('slope in the AccessScore scoring controls', () => {
             expect(el('acs-slope-low').min).toBe('1');
             expect(el('acs-slope-low').max).toBe('40');
             expect([...el('acs-slope-statistic').options].map((o) => o.value)).toEqual(CONFIG.grade_scoring.statistics);
+            // A statistic the locale has no name for yet is listed by its id.
+            expect([...el('acs-slope-statistic').options].map((o) => o.textContent))
+                .toEqual(CONFIG.grade_scoring.statistics);
             expect(el('acs-slope-reset').hidden).toBe(true);
             expect(el('acs-slope-summary').textContent).toBe('');
             expect(el('acs-slope-barrier-threshold').disabled).toBe(true);
