@@ -506,12 +506,12 @@ class LabelServiceImpl @Inject() (
   }
 
   /** Starts a fresh walk that keeps every label of each batch; see the full version below. */
-  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
-      queryFor: Seq[A] => Query[TupleRep, Tuple, Seq],
+  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Row](
+      queryFor: Seq[A] => Query[TupleRep, Row, Seq],
       randomize: Boolean,
       useCrops: Boolean,
       remaining: Int
-  )(implicit tupleConverter: TupleConverter[Tuple, A]): Future[Seq[A]] = {
+  )(implicit tupleConverter: TupleConverter[Row, A]): Future[Seq[A]] = {
     findValidLabelsForType(
       queryFor,
       randomize,
@@ -538,15 +538,15 @@ class LabelServiceImpl @Inject() (
    *                        it drops cost no provider lookups.
    * @param tupleConverter Implicit converter to convert the tuple from the db to the appropriate case class.
    */
-  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Tuple](
-      queryFor: Seq[A] => Query[TupleRep, Tuple, Seq],
+  private def findValidLabelsForType[A <: BasicLabelMetadata, TupleRep, Row](
+      queryFor: Seq[A] => Query[TupleRep, Row, Seq],
       randomize: Boolean,
       useCrops: Boolean,
       remaining: Int,
       offset: Int,
       accumulator: Seq[A],
       selectFromBatch: (Seq[A], Seq[A]) => Seq[A]
-  )(implicit tupleConverter: TupleConverter[Tuple, A]): Future[Seq[A]] = {
+  )(implicit tupleConverter: TupleConverter[Row, A]): Future[Seq[A]] = {
     if (remaining <= 0) {
       Future.successful(accumulator)
     } else {

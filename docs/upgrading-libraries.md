@@ -86,8 +86,7 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
 
 ### Core toolchain
 
-- **Scala: 3.3.8** — the 3.3 LTS line. Edit `scalaVersion` in `build.sbt` and the two `target/scala-<version>/`
-  paths in `.github/workflows/ci.yml`.
+- **Scala: 3.3.8** — the 3.3 LTS line. Edit `scalaVersion` in `build.sbt`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
 - **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
   `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump

@@ -18,7 +18,7 @@ import java.util.UUID
  * exactly ("these three streets, in this order").
  *
  * Every helper writes real rows, so a spec must either wrap them in [[RolledBackDb.runRolledBack]] or delete what it
- * seeded in an `afterAll`. Mix into a `PlaySpec with GuiceOneAppPerSuite with RolledBackDb`.
+ * seeded in an `afterAll`. Mix into a `SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb`.
  */
 trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
 

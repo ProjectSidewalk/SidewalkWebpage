@@ -59,7 +59,7 @@ case class PanoData(
 object PanoSource extends Enumeration {
   type PanoSource = Value
 
-  implicit val writes: play.api.libs.json.Writes[Value] = v => play.api.libs.json.JsString(v.toString)
+  implicit val writes: play.api.libs.json.Writes[Value] = play.api.libs.json.Writes.enumNameWrites[PanoSource.type]
 
   val Gsv       = Value("gsv")
   val Mapillary = Value("mapillary")

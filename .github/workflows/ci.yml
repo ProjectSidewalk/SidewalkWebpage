@@ -325,7 +325,7 @@ jobs:
       # check green with nothing measured.
       - name: Coverage report (blocking ratchet)
         run: |
-          test -s target/scala-3.3.8/scoverage-data/scoverage.coverage \
+          test -s target/scala-*/scoverage-data/scoverage.coverage \
             || { echo "::error::no scoverage data — the spec steps above did not run under \`coverage\`, or something recompiled after them"; exit 1; }
           sbt coverageReport
 
@@ -337,7 +337,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: scoverage-report
-          path: target/scala-3.3.8/scoverage-report/
+          path: target/scala-*/scoverage-report/
           retention-days: 7
           if-no-files-found: ignore
 

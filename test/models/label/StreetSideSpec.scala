@@ -42,7 +42,7 @@ class StreetSideSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionVa
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val labelPointTable = app.injector.instanceOf[LabelPointTable]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
+  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 

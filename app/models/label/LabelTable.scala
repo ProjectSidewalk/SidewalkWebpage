@@ -574,8 +574,8 @@ object LabelTable {
       (label.deletedSource.map(_ =!= UiSource.Explore).getOrElse(false) && !label.correct.getOrElse(true))
 
   // Define a type class for converting tuples to instances of a case class.
-  trait TupleConverter[Tuple, A] {
-    def fromTuple(tuple: Tuple): A
+  trait TupleConverter[Row, A] {
+    def fromTuple(tuple: Row): A
   }
 
   // Ordered list of (columnPrefix, labelTypeName) groups used by the validation-stats portion of

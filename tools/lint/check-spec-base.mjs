@@ -1,7 +1,6 @@
 #!/usr/bin/env node
-// Every backend spec must extend util.SidewalkSpec, never PlaySpec directly. SidewalkSpec switches off ScalaTest's
-// `===`, which otherwise wins over Slick's inside a spec and quietly turns `filter(_.id === id)` into `where false`
-// (#3936). Nothing fails when that happens, so this check is the only thing that catches a spec that forgot.
+// A spec that touches the database must build on util.SidewalkSpec. Any other base leaves ScalaTest's `===` on, which
+// quietly turns Slick's `filter(_.id === id)` into `where false` (#3936), and nothing fails when that happens.
 //
 // Exits non-zero with the offending lines listed, so it can gate CI.
 
@@ -27,14 +26,24 @@ function scalaFiles(dir) {
   });
 }
 
+const PLAY_SPEC = /\bPlaySpec\b/;
+// ScalaTest's own bases are fine for plain logic, so they are flagged only in a file that uses Slick.
+const SCALATEST_BASE = /\bextends\s+Any[A-Z]\w*\b/;
+const USES_SLICK = /^import\s+(slick\.|models\.utils\.MyPostgresProfile)/m;
+
 const offenders = scalaFiles(TEST_DIR)
   .filter((file) => file !== BASE_CLASS)
-  .flatMap((file) => readFileSync(file, 'utf8').split('\n')
-    .map((line, i) => ({ line, location: `${relative(ROOT, file)}:${i + 1}` }))
-    .filter(({ line }) => /\bextends\s+PlaySpec\b/.test(line)));
+  .flatMap((file) => {
+    const source = readFileSync(file, 'utf8');
+    const usesSlick = USES_SLICK.test(source);
+    return source.split('\n')
+      .map((line, i) => ({ line, location: `${relative(ROOT, file)}:${i + 1}` }))
+      .filter(({ line }) => !/^\s*(\/\/|\*|\/\*)/.test(line) && !/^import\s/.test(line))
+      .filter(({ line }) => PLAY_SPEC.test(line) || (usesSlick && SCALATEST_BASE.test(line)));
+  });
 
 if (offenders.length > 0) {
-  console.error('These specs extend PlaySpec directly. Extend util.SidewalkSpec instead:');
+  console.error('These specs can reach ScalaTest\'s ===. Build them on util.SidewalkSpec instead:');
   offenders.forEach(({ line, location }) => console.error(`  ${location}: ${line.trim()}`));
   process.exit(1);
 }

@@ -1,7 +1,6 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -15,7 +14,7 @@ import util.{AnonSession, SidewalkSpec, UserAgents}
  * SecuredActions that bounce cookie-less requests through /anonSignUp) and a page fetch that follows that flow. The
  * public pages themselves render cookie-less since #4643 — SessionlessPagesSpec pins that contract.
  */
-trait SeoSpecHelpers extends AnonSession { this: PlaySpec with GuiceOneAppPerSuite =>
+trait SeoSpecHelpers extends AnonSession { this: SidewalkSpec with GuiceOneAppPerSuite =>
 
   implicit lazy val mat: Materializer = app.materializer
 

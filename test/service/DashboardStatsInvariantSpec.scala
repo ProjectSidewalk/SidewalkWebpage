@@ -46,7 +46,7 @@ class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite 
   private val config                    = app.injector.instanceOf[Configuration]
   private val userStatTable             = app.injector.instanceOf[UserStatTable]
   private val auditTaskInteractionTable = app.injector.instanceOf[models.audit.AuditTaskInteractionTable]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
+  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 

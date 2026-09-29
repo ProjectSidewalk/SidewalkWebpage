@@ -9,7 +9,8 @@ package models.validation
 object ValidationOption extends Enumeration {
   type ValidationOption = Value
 
-  implicit val writes: play.api.libs.json.Writes[Value] = v => play.api.libs.json.JsString(v.toString)
+  implicit val writes: play.api.libs.json.Writes[Value] =
+    play.api.libs.json.Writes.enumNameWrites[ValidationOption.type]
 
   val Agree: Value    = Value("Agree")
   val Disagree: Value = Value("Disagree")

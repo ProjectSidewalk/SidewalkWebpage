@@ -28,7 +28,7 @@ import scala.jdk.CollectionConverters._
  * behave normally.
  */
 @Singleton
-class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(implicit ec: ExecutionContext)
+class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(implicit context: ExecutionContext)
     extends SwrCache(cacheApi, actorSystem) {
 
   override def staleWhileRevalidateWithin[T](

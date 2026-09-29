@@ -44,9 +44,9 @@ object TimeInterval {
    * @return The start, or None for all time.
    */
   def start(interval: TimeInterval): Option[OffsetDateTime] = interval match {
-    case Today => Some(ZonedDateTime.now(ZoneId.of("US/Pacific")).truncatedTo(ChronoUnit.DAYS).toOffsetDateTime)
-    case Week  => Some(OffsetDateTime.now().minusDays(7))
-    case _     => None
+    case Today   => Some(ZonedDateTime.now(ZoneId.of("US/Pacific")).truncatedTo(ChronoUnit.DAYS).toOffsetDateTime)
+    case Week    => Some(OffsetDateTime.now().minusDays(7))
+    case AllTime => None
   }
 
   /**
@@ -56,9 +56,9 @@ object TimeInterval {
    * @return A condition keeping rows in the interval; `TRUE` for all time.
    */
   def sqlFilter(interval: TimeInterval, column: String): String = interval match {
-    case Today => s"$column >= date_trunc('day', NOW() AT TIME ZONE 'US/Pacific') AT TIME ZONE 'US/Pacific'"
-    case Week  => s"$column >= NOW() - INTERVAL '7 days'"
-    case _     => "TRUE"
+    case Today   => s"$column >= date_trunc('day', NOW() AT TIME ZONE 'US/Pacific') AT TIME ZONE 'US/Pacific'"
+    case Week    => s"$column >= NOW() - INTERVAL '7 days'"
+    case AllTime => "TRUE"
   }
 }
 

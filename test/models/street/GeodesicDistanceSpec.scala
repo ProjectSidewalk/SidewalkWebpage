@@ -59,7 +59,7 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
   private val userStatTable   = app.injector.instanceOf[UserStatTable]
   private val routeTable      = app.injector.instanceOf[RouteTable]
   private val regionService   = app.injector.instanceOf[RegionService]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
+  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 

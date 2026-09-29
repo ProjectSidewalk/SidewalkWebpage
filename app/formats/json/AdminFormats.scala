@@ -70,13 +70,6 @@ object AdminFormats {
       (JsPath \ "state").read[Boolean]
   )(TaskFlagSubmission.apply _)
 
-  // Play has no built-in writer for a map whose keys are an enum, so this writes the keys by name.
-  implicit def timeIntervalMapWrites[A](implicit writesA: Writes[A]): Writes[Map[TimeInterval, A]] =
-    (map: Map[TimeInterval, A]) => {
-      val stringMap = map.map { case (interval, value) => (interval.name, value) }
-      Json.toJson(stringMap)(Writes.map[A](writesA))
-    }
-
   implicit val userCountWrites: Writes[UserCount] = (
     (__ \ "count").write[Int] and
       (__ \ "tool_used").write[String] and

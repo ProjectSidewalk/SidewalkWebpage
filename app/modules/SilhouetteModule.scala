@@ -111,18 +111,19 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       clock: Clock,
       authenticationService: AuthenticationService
   ): AuthenticatorService[CookieAuthenticator] = {
-    // Every setting is required, so a misspelled key stops the app at startup rather than falling back to a default.
-    val c        = configuration.get[Configuration]("silhouette.authenticator")
-    val sameSite = c.get[Option[String]]("sameSite").map { name =>
-      Cookie.SameSite.parse(name).getOrElse(throw c.reportError("sameSite", s"Unknown sameSite value: $name"))
-    }
+    // Every setting read here is required, so a misspelled key stops the app at startup.
+    val c            = configuration.get[Configuration]("silhouette.authenticator")
+    val sameSiteName = c.get[String]("sameSite")
+    val sameSite     = Cookie.SameSite
+      .parse(sameSiteName)
+      .getOrElse(throw c.reportError("sameSite", s"Unknown sameSite value: $sameSiteName"))
     val config = CookieAuthenticatorSettings(
       cookieName = c.get[String]("cookieName"),
       cookiePath = c.get[String]("cookiePath"),
       cookieDomain = c.get[Option[String]]("cookieDomain"),
       secureCookie = c.get[Boolean]("secureCookie"),
       httpOnlyCookie = c.get[Boolean]("httpOnlyCookie"),
-      sameSite = sameSite,
+      sameSite = Some(sameSite),
       useFingerprinting = c.get[Boolean]("useFingerprinting"),
       cookieMaxAge = None, // A session cookie, unless the user ticks "remember me" (see UserController).
       authenticatorIdleTimeout = Some(c.get[FiniteDuration]("authenticatorIdleTimeout")),

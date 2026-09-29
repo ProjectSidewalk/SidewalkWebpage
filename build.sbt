@@ -239,8 +239,11 @@ scalacOptions ++= Seq(
   "-feature", // Emit warning and location for usages of features that should be imported explicitly.
 
   // Fail the compilation if there are any warnings, except in generated code: Twirl templates (.scala.html) and the
-  // routes file, whose warnings we can't fix.
-  "-Werror", "-Wconf:src=views/.*:s", "-Wconf:src=.*routes.*:s",
+  // routes file, whose warnings we can't fix. The paths name sbt's output folders, so no checkout path matches.
+  "-Werror", "-Wconf:src=.*/twirl/main/.*:s", "-Wconf:src=.*/routes/main/.*:s",
+  "-Xlint:all",             // Warn when a name hides one from a parent class or an outer scope.
+  "-Wrecurse-with-default", // Warn when a method calls itself with a default argument.
+  "-Wunused:nowarn",        // Warn if a @nowarn annotation silences nothing.
   "-Wunused:imports",   // Warn if an import is unused.
   "-Wunused:explicits", // Warn if an explicit parameter is unused.
   "-Wunused:implicits", // Warn if an implicit parameter is unused.
