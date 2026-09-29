@@ -52,6 +52,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     bind[EventBus].toInstance(EventBus())
     bind[Clock].toInstance(Clock())
     bind[DelegableAuthInfoDAO[PasswordInfo]].toInstance(new InMemoryAuthInfoDAO[PasswordInfo])
+    bind[RememberMeSettings].asEagerSingleton()
   }
 
   /**
@@ -133,16 +134,6 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     val encoder = new CrypterAuthenticatorEncoder(crypter)
     new RevocableCookieAuthenticatorService(config, signer, cookieHeaderEncoding, encoder, fingerprintGenerator,
       idGenerator, clock, authenticationService)
-  }
-
-  /**
-   * Provides the "remember me" settings, so a missing key stops the app at startup instead of at sign-in.
-   * @param configuration The Play configuration.
-   * @return The "remember me" settings.
-   */
-  @Provides
-  def provideRememberMeSettings(configuration: Configuration): RememberMeSettings = {
-    RememberMeSettings(configuration.get[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge"))
   }
 
   /**

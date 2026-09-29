@@ -58,7 +58,7 @@ class RevocableCookieAuthenticatorService(
    * @return The authenticator on the right when nothing needs rewriting, as Silhouette expects.
    */
   override def touch(authenticator: CookieAuthenticator): Either[CookieAuthenticator, CookieAuthenticator] = {
-    // The minute absorbs sign-in setting a "remember me" expiry a few milliseconds after the last-used time.
+    // The minute covers "remember me" cookies issued before #5571, whose expiry was set a few ms after last-used.
     val idleCantExpireFirst = authenticator.idleTimeout.forall { timeout =>
       !authenticator.lastUsedDateTime.plusSeconds(timeout.toSeconds + 60).isBefore(authenticator.expirationDateTime)
     }
@@ -72,7 +72,7 @@ class RevocableCookieAuthenticatorService(
    */
   override def renew(authenticator: CookieAuthenticator)(implicit request: RequestHeader): Future[Cookie] = {
     create(authenticator.loginInfo)
-      .map(_.copy(idleTimeout = authenticator.idleTimeout, cookieMaxAge = authenticator.cookieMaxAge))
+      .map(_.copy(cookieMaxAge = authenticator.cookieMaxAge))
       .flatMap(init)
   }
 

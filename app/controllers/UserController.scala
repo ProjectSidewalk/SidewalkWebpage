@@ -33,7 +33,7 @@ class UserController @Inject() (
     authenticationService: service.AuthenticationService,
     userService: service.UserService,
     passwordHasher: PasswordHasher,
-    rememberMe: RememberMeSettings,
+    rememberMeSettings: RememberMeSettings,
     mailerClient: MailerClient,
     rateLimiter: service.RateLimiter
 )(implicit ec: ExecutionContext, assets: AssetsFinder)
@@ -311,7 +311,8 @@ class UserController @Inject() (
                           silhouette.env.authenticatorService
                             .create(loginInfo)
                             .map { authenticator =>
-                              if (data.rememberMe) authenticator.copy(cookieMaxAge = Some(rememberMe.cookieMaxAge))
+                              if (data.rememberMe)
+                                authenticator.copy(cookieMaxAge = Some(rememberMeSettings.cookieMaxAge))
                               else authenticator
                             }
                             .flatMap { authenticator =>
