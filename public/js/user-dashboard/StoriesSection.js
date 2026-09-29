@@ -123,8 +123,8 @@ class StoriesSection {
 
     const meta = document.createElement('div');
     meta.className = 'ud-story-meta';
-    const typeName = i18next.t(`common:${camelToKebab(story.label_type)}`);
-    const postedDate = moment(new Date(story.created_at)).format('ll');
+    const typeName = i18next.t(`common:${camelToKebab(story.label_type)}`).replaceAll('&shy;', '');
+    const postedDate = new Date(story.created_at).toLocaleDateString(i18next.language, util.SHORT_DATE);
     const labelLink = document.createElement('a');
     labelLink.href = `/label/${encodeURIComponent(story.label_id)}`;
     labelLink.textContent = typeName;

@@ -224,6 +224,30 @@ class Main {
         { labelContainer: svv.labelContainer },
       );
       svv.zoomControl = new ZoomControl();
+
+      // Shadows/brightness/contrast as a display-only filter (#5501), the same model and panel Explore uses. Both
+      // viewer mounts get it, since PanoManager swaps a label onto the Pannellum sibling when GSV has no imagery, and
+      // by now #init has created that sibling. No keyboard hooks: KeyboardManager treats the panel as its own scope.
+      // Desktop only because mobile has neither the pill nor the panel, and the popover logs an error without them.
+      svv.imageAdjustments = new PanoImageAdjustments([
+        document.getElementById('svv-panorama'), document.getElementById('svv-panorama-pannellum'),
+      ]);
+      svv.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svv.imageAdjustments,
+        document.getElementById('validate-control-image'), document.getElementById('pano-image-adjustments'), {
+          // Below, so the hide-label toggle and chevron in the row stay visible beside the open panel.
+          placement: 'below',
+          onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
+          onClose: (via) => svv.tracker.push('Click_ImageAdjustments_Close', { via }),
+          onChange: (values) => svv.tracker.push('ImageAdjustments_Change', values),
+          onReset: () => svv.tracker.push('Click_ImageAdjustments_Reset'),
+        });
+      // The Image pill waits in the chevron's menu, so the chevron carries its active dot while the menu is closed.
+      svv.panoControlMenu
+        = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), svv.tracker);
+      svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault());
+      svv.imageAdjustments.onChange(() =>
+        svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault()));
+
       new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
     }
 
@@ -278,6 +302,11 @@ class Main {
     svv.modalMission = new ModalMission(svv.ui.modalMission);
     svv.missionContainer = new MissionContainer();
     svv.missionContainer.createAMission(param.mission, param.progress);
+    // Logged only now: the tracker stamps each row with the current mission, and without one this row, the only
+    // record of a filter carried in from an earlier visit, could not be tied to a validator. Desktop builds the model.
+    if (svv.imageAdjustments && !svv.imageAdjustments.isDefault()) {
+      svv.tracker.push('ImageAdjustments_Restored', svv.imageAdjustments.values());
+    }
 
     if (!util.isMobile()) {
       // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the

@@ -526,7 +526,7 @@ class AccessScoreSpotlight {
     // Minute precision: the run's seconds say nothing a reader wants.
     const when = feed.computed_at
       ? ` ${i18next.t('common:access-score-spotlight.updated-last', {
-        date: new Date(feed.computed_at).toLocaleString(i18next.language, { dateStyle: 'medium', timeStyle: 'short' }),
+        date: new Date(feed.computed_at).toLocaleString(i18next.language, util.SHORT_DATE_TIME),
       })}`
       : '';
     tip.textContent = `${i18next.t('common:access-score-spotlight.updated-info')}${when}`;

@@ -7,7 +7,7 @@
  * directly: resolve on position_changed, reject on timeout, and settle only once.
  *
  * GsvViewer is a top-level `class` written for Grunt concatenation, so we eval the source into the jsdom global scope.
- * It only needs its parent `PanoViewer` defined at class-definition time — the google.maps/PanoData/moment references
+ * It only needs its parent `PanoViewer` defined at class-definition time — the google.maps/PanoData references
  * live inside other methods that these tests never call.
  */
 

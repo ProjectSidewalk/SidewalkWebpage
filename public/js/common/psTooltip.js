@@ -394,9 +394,10 @@
     if (!pinned) hide();
   });
   // Hide on scroll, since the fixed-position card would drift from its trigger. A pinned card follows its trigger
-  // instead, and closes only once the trigger has scrolled out of view.
+  // instead, and closes only once the trigger has scrolled out of view. So does a card opened by keyboard focus: Tab
+  // scrolls an off-screen trigger into view, and that scroll would otherwise close the card the focus just opened.
   window.addEventListener('scroll', () => {
-    if (!pinned) {
+    if (!pinned && !activeTrigger?.contains(document.activeElement)) {
       hide();
       return;
     }

@@ -171,12 +171,10 @@ class StreetReauditCard {
     const card = document.createElement('div');
     card.className = 'street-reaudit';
 
-    const lastMapped = moment(new Date(summary.last_audited_at)).format('ll');
+    const lastMapped = new Date(summary.last_audited_at).toLocaleDateString(i18next.language, util.SHORT_DATE);
     // Capture dates are month-granular in practice, so a full date would over-claim precision (the dashboard's
     // re-audit list renders them the same way).
-    const newImagery = summary.new_imagery_date
-      ? moment(new Date(`${summary.new_imagery_date}T00:00:00`)).format('MMMM YYYY')
-      : null;
+    const newImagery = util.monthYear(summary.new_imagery_date);
 
     card.innerHTML = `
       <h4 class="street-reaudit__title">${i18next.t('labelmap:reaudit-card-title')}</h4>

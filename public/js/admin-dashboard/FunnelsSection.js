@@ -157,11 +157,11 @@ class FunnelsSection {
         const width = base > 0 ? (v / base) * 100 : 0;
         const conv = d ? d.step_conversion[i] : 0;
         const valText = i === 0 ? this.#compact(v) : `${this.#compact(v)} · ${this.#pct(conv)}`;
-        const title = i === 0
-          ? `${FunnelsSection.#esc(full)}: ${this.#num(v)} visitors`
-          : `${FunnelsSection.#esc(full)}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
+        const tip = i === 0
+          ? `${full}: ${this.#num(v)} visitors`
+          : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `
-          <div class="ac-funnel-bar" title="${title}">
+          <div class="ac-funnel-bar" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}">
             <span class="ac-funnel-bar-fill"
               style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>
             <span class="ac-funnel-bar-val">${valText}</span>
@@ -208,7 +208,7 @@ class FunnelsSection {
   #formatDate(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(undefined, util.SHORT_DATE);
   }
 
   static #esc(s) {

@@ -109,7 +109,7 @@ describe('Validate marker halo pulse (issue #4790)', () => {
 
         const panoData = {
             getPanoId: () => 'pano1',
-            getProperty: () => ({ format: () => 'Jun 2026' })
+            getProperty: () => new Date(2026, 5)
         };
         const fakeViewer = {
             setPano: jest.fn(() => Promise.resolve(panoData)),

@@ -161,7 +161,7 @@ class OverviewPage {
       const start = this.#addDays(end, -6);
       let sum = 0;
       for (let d = 0; d < 7; d++) {
-        const rec = byDate.get(this.#isoDay(this.#addDays(start, d)));
+        const rec = byDate.get(util.localIsoDate(this.#addDays(start, d)));
         if (rec) sum += get(rec);
       }
       values.push(sum);
@@ -418,12 +418,6 @@ class OverviewPage {
     const x = new Date(d);
     x.setDate(x.getDate() + n);
     return x;
-  }
-
-  #isoDay(d) {
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${d.getFullYear()}-${m}-${day}`;
   }
 
   static #esc(s) {

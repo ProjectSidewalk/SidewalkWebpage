@@ -21,7 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
 
 const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
 const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
@@ -250,7 +250,6 @@ describe('the validator comment box (#5015)', () => {
         card = buildCard();
 
         window.i18next = { t: (key) => key };
-        window.moment = () => ({ format: () => '', fromNow: () => 'a while ago' });
         window.logWebpageActivity = jest.fn();
         window.buildBackupImageData = () => null;
         // The card reaches for this both bare and through `util`, so both spellings have to answer.
@@ -273,6 +272,7 @@ describe('the validator comment box (#5015)', () => {
             pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
+        installDateHelpers();
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
         window.LabelVisibilityToggle = class { constructor() {} };
         window.PanoInfoPopover = class { constructor() {} };

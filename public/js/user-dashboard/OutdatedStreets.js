@@ -84,15 +84,20 @@ class OutdatedStreets {
   }
 
   /**
-   * Rewrites each row's audited-on date into the reader's own timezone.
+   * Rewrites each row's audited-on date into the reader's own timezone, and its imagery month into their language.
    *
    * The server can only render a timestamp in UTC, which shows tomorrow's date for anything finished in the evening
    * west of Greenwich.
    */
   #localizeDates() {
+    const shortDate = new Intl.DateTimeFormat(i18next.language, util.SHORT_DATE);
     this.#list.querySelectorAll('.ud-reaudit-date').forEach((el) => {
       const auditedAt = new Date(el.dateTime);
-      if (!Number.isNaN(auditedAt.getTime())) el.textContent = moment(auditedAt).format('ll');
+      if (Number.isNaN(auditedAt.getTime())) return;
+      el.textContent = shortDate.format(auditedAt);
+    });
+    this.#list.querySelectorAll('.ud-reaudit-imagery-date').forEach((el) => {
+      el.textContent = util.monthYear(el.dateTime) ?? el.textContent;
     });
   }
 

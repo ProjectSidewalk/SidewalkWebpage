@@ -9,6 +9,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { installDateHelpers } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
@@ -76,7 +77,7 @@ function newCommunityPage() {
 beforeEach(() => {
     loadClasses();
     window.logWebpageActivity = jest.fn();
-    window.moment = jest.fn(() => ({ format: () => 'LOCALIZED-DATE' }));
+    installDateHelpers();
     // The string sort passes the page language to localeCompare; the Twirl layout always renders <html lang="...">,
     // but jsdom's default is the empty string, which localeCompare rejects.
     document.documentElement.lang = 'en';
@@ -166,11 +167,12 @@ describe('CommunityListPage', () => {
         expect(document.querySelector('[data-route-id="2"]').hidden).toBe(true); // Still filtered out.
     });
 
-    test('server-rendered UTC dates are rewritten through moment in the reader\'s locale', () => {
+    test('server-rendered UTC dates are rewritten in the reader\'s timezone and language', () => {
         setupDom(routeCard({ id: '1', created: 1, region: 'A', text: 'x' })
             .replace('<h2>x</h2>', '<h2>x</h2><time class="community-date" datetime="2026-07-24T01:00:00Z">raw</time>'));
         newCommunityPage();
-        expect(document.querySelector('.community-date').textContent).toBe('LOCALIZED-DATE');
+        // 01:00 UTC on the 24th is still the 23rd in Los Angeles, where jest.config.js pins the clock.
+        expect(document.querySelector('.community-date').textContent).toBe('Jul 23, 2026');
     });
 });
 

@@ -214,6 +214,17 @@
   "pano-attribution": {
     "opens-new-tab": "(s'ouvre dans un nouvel onglet)"
   },
+  "image-adjustments": {
+    "button": "Image",
+    "active-sr": "(ajustée)",
+    "tooltip": "Ajustez les ombres, la luminosité et le contraste de l'image",
+    "title": "Réglages de l'image",
+    "shadows": "Ombres",
+    "brightness": "Luminosité",
+    "contrast": "Contraste",
+    "reset": "Rétablir les valeurs par défaut",
+    "persist-note": "Ces réglages sont conservés dans Explorer et Valider jusqu'à leur réinitialisation."
+  },
   "mission-start-tutorial": {
     "example-type-label-correct": "EXEMPLE CORRECT",
     "label-type-subtitle": "Pourquoi est-ce faux ?",

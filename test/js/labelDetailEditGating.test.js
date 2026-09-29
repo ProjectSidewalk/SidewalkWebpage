@@ -28,7 +28,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
 
 const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
 const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
@@ -268,7 +268,6 @@ describe('LabelDetail edit gating (#5047)', () => {
         // i18next echoes its key so assertions can name the key they expect rather than an English string that
         // translation churn would break.
         window.i18next = { t: (key) => key };
-        window.moment = () => ({ format: () => '' });
         window.logWebpageActivity = jest.fn();
         window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
         window.buildBackupImageData = () => null;
@@ -287,6 +286,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
+        installDateHelpers();
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
         window.LabelVisibilityToggle = class { constructor() {} };
         window.PanoInfoPopover = class { constructor() {} };

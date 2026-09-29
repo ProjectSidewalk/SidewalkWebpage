@@ -87,7 +87,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
       labelRadius: 10,
     };
 
-    panoData = {getPanoId: () => 'pano1', getProperty: () => ({format: () => 'Jun 2026'})};
+    panoData = {getPanoId: () => 'pano1', getProperty: () => new Date(2026, 5)};
     fakeViewer = {
       setPano: jest.fn(() => Promise.resolve(panoData)),
       addListener: jest.fn(),
