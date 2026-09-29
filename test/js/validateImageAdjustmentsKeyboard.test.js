@@ -5,7 +5,7 @@
  * The manager listens on window with capture and treats most keys as global shortcuts, Enter submitting the current
  * validation from anywhere. The image adjustments panel is an exception: while focus is inside it, or while it is
  * open at all, keys belong to the sliders and to the panel's own Escape handler, and no shortcut may fire. The pills
- * in the pano's top-left group (Hide label, Image) are a narrower exception: only Space is left to the browser, which
+ * in the pano's top-left group (Hide label, the chevron and the Image pill in its menu) are a narrower exception: only Space is left to the browser, which
  * activates the focused pill. Enter still submits from a pill, as from any focused button on Validate, because closing
  * the panel puts focus back on the Image pill and a validator's next Enter means "submit". The letter shortcuts keep
  * working too, since a mouse click leaves focus on the pill. These tests pin both boundaries: a regression inside
@@ -71,7 +71,10 @@ describe('KeyboardManager image adjustments scope', () => {
         document.body.innerHTML = `
           <div id="label-visibility-control-holder">
             <button type="button" id="label-visibility-control-button"></button>
-            <button type="button" id="validate-control-image"></button>
+            <button type="button" id="validate-control-buttons-toggle" aria-expanded="true"></button>
+            <div id="validate-control-menu">
+              <button type="button" id="validate-control-image"></button>
+            </div>
           </div>
           <div id="label-card"><button type="button" id="label-visibility-button-on-label"></button></div>
           <div id="pano-image-adjustments" popover="manual">
@@ -96,6 +99,7 @@ describe('KeyboardManager image adjustments scope', () => {
     });
 
     const pill = () => document.getElementById('validate-control-image');
+    const chevron = () => document.getElementById('validate-control-buttons-toggle');
     const hideLabelToggle = () => document.getElementById('label-visibility-control-button');
     const slider = () => document.getElementById('pano-image-adjustments-shadows');
 
@@ -120,6 +124,18 @@ describe('KeyboardManager image adjustments scope', () => {
             const ev = key('Enter', pill());
 
             expect(ev.defaultPrevented).toBe(true);
+            expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
+        });
+
+        it('Space on the chevron is left to the browser, Enter on it submits', () => {
+            const space = key('Space', chevron());
+
+            expect(space.defaultPrevented).toBe(false);
+            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+
+            const enter = key('Enter', chevron());
+
+            expect(enter.defaultPrevented).toBe(true);
             expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
         });
 

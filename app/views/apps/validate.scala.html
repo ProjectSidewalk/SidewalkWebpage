@@ -123,11 +123,18 @@
            LabelVisibilityControl, which keeps it in step with the toggle in the label card's footer. *@
         <div id="label-visibility-control-holder" class="pano-overlay-button-group">
           <button type="button" id="label-visibility-control-button" class="pano-overlay-button"></button>
-          @* Opens the image adjustments popover (@common.panoImageAdjustments()); wired by PanoImageAdjustmentsPopover. *@
-          <button type="button" id="validate-control-image" class="pano-overlay-button" data-ps-tooltip="Adjust shadows, brightness and contrast of the imagery" data-i18n-tooltip="common:image-adjustments.tooltip">
-            <img class="pano-overlay-button-icon" src='@assets.path("images/icons/sliders-white-feather.svg")' alt="">
-            <span class="pano-overlay-button-label" data-i18n="common:image-adjustments.button">Image</span>
+          @* The less-used controls drop down from a chevron, as under Explore's Stuck button, so the corner over the
+             imagery stays uncluttered and the two tools read the same. PanoControlMenu runs the toggle. *@
+          <button type="button" id="validate-control-buttons-toggle" class="pano-overlay-button pano-overlay-toggle" aria-label="More options" data-i18n-aria-label="common:more-options" aria-expanded="false" aria-controls="validate-control-menu">
+            <img class="pano-overlay-button-icon" src='@assets.path("images/icons/chevron-right-white-feather.svg")' alt="">
           </button>
+          <div id="validate-control-menu">
+            @* Opens the image adjustments popover (@common.panoImageAdjustments()); wired by PanoImageAdjustmentsPopover. *@
+            <button type="button" id="validate-control-image" class="pano-overlay-button" data-ps-tooltip="Adjust shadows, brightness and contrast of the imagery" data-i18n-tooltip="common:image-adjustments.tooltip">
+              <img class="pano-overlay-button-icon" src='@assets.path("images/icons/sliders-white-feather.svg")' alt="">
+              <span class="pano-overlay-button-label" data-i18n="common:image-adjustments.button">Image</span>
+            </button>
+          </div>
         </div>
         <div id="svv-panorama-date-holder">
           <span id="svv-panorama-date"></span>

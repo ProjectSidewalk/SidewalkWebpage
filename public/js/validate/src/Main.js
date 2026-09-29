@@ -239,6 +239,11 @@ class Main {
           onChange: (values) => svv.tracker.push('ImageAdjustments_Change', values),
           onReset: () => svv.tracker.push('Click_ImageAdjustments_Reset'),
         });
+      // The Image pill waits in the chevron's menu, so the chevron carries its active dot while the menu is closed.
+      svv.panoControlMenu = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), svv.tracker);
+      svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault());
+      svv.imageAdjustments.onChange(() =>
+        svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault()));
 
       new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
     }

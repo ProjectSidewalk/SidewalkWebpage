@@ -61,14 +61,20 @@ test('/validate renders the primary viewer when the pano is still served', async
   if (onMission) await expectPanoRendered(page, '/validate', 'gsv');
 });
 
-test('/validate opens and closes the image adjustments panel', async ({page, consoleErrors}) => {
+test('/validate opens the chevron menu and the image adjustments panel', async ({page, consoleErrors}) => {
   const onMission = await loadValidate(page, '/validate');
   // False covers both no-mission outcomes: no mission was assigned, so the tool was never built, or one was but none
   // of its labels had imagery (#4810) and only the modal shows. Neither leaves a label to adjust.
   test.skip(!onMission, 'Validate settled on the no-mission modal, so there is no label to adjust');
+  const chevron = page.locator('#validate-control-buttons-toggle');
   const pill = page.locator('#validate-control-image');
   const panel = page.locator('#pano-image-adjustments');
-  await expect(pill).toBeAttached();
+  await expect(chevron).toBeAttached();
+  await expect(chevron).toHaveAttribute('aria-expanded', 'false');
+  // Clicked from the page for the same reason as the open() below: the tutorial overlay covers the corner.
+  await page.evaluate(() => document.getElementById('validate-control-buttons-toggle').click());
+  await expect(chevron).toHaveAttribute('aria-expanded', 'true');
+  await expect(pill).toBeVisible();
   // Opened through the popover rather than a click: the mission-start tutorial overlay covers the pill, and
   // dismissing it is pano interaction this suite stays out of.
   await page.evaluate(() => window.svv.imageAdjustmentsPopover.open());

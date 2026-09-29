@@ -316,7 +316,8 @@ corresponding Twirl view:
   localStorage, shared with Validate, which mounts the same two classes (below).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
-  Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill beside the hide-label toggle.
+  Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
+  hide-label toggle (`validate/src/panorama/PanoControlMenu.js`), the same arrangement as Explore's under Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
   swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
   the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag

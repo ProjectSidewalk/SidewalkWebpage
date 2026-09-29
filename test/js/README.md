@@ -64,6 +64,9 @@ Also covered, beyond the api-docs previews:
   shortcut and leave Escape to the panel, which one case proves with the real popover (Escape closes it and focus
   returns to the pill). On a top-left pill (Hide label, Image) only Space is left to the browser: Enter still
   submits, as from any focused button, and letter shortcuts still fire from a pill a mouse click left focused.
+- `validate/src/panorama/PanoControlMenu.js` → `validatePanoControlMenu.test.js` — the chevron that opens the menu
+  holding Validate's Image pill (#5501): a click flips `aria-expanded` both ways (the CSS shows the menu from it),
+  each flip is logged with the resulting state, and the collapsed indicator toggles the shared active-dot class.
 - `common/pano-viewer/src/PanoInfoPopover.js` → `panoInfoViewLink.test.js` — the pano info popover's
   "view in \<provider\>" link (#4813). Validate and the label card swap the active viewer from label to label, so the
   popover resolves it on every open and offers the link only when that viewer both publishes a public site and is
