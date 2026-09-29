@@ -14,7 +14,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { loadGlobalScript, loadVendored, REPO_ROOT } = require('./loadGlobalScript');
+const { loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub } = require('./loadGlobalScript');
 
 const LOCALES_DIR = path.join(REPO_ROOT, 'public/locales');
 const LANGUAGES = fs.readdirSync(LOCALES_DIR, { withFileTypes: true })
@@ -58,18 +58,19 @@ const WITHHELD = plainKeys(flatten(readLocale('en', 'common'))).find((key) => !k
  * @param {object} [options]
  * @param {string} [options.countryId] - The deployment's country, which decides the override namespaces.
  * @param {(url: string) => Promise<object>} [options.fetch] - Replaces the stand-in `fetch`.
+ * @param {string[]} [options.missing] - Files, as `<language>/<namespace>.json`, the stand-in `fetch` 404s anyway.
  * @param {string[]} [options.localeFiles] - The locale files the page is told exist, if not the real ones.
  * @returns {Promise<{requested: string[], consoleError: jest.SpyInstance}>} The locale files the page asked for,
  *   as `<language>/<namespace>.json`, and what it reported as errors.
  */
-async function startPage(language, { countryId = 'usa', fetch, localeFiles = LOCALE_FILES } = {}) {
+async function startPage(language, { countryId = 'usa', fetch, missing = [], localeFiles = LOCALE_FILES } = {}) {
     const requested = [];
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     window.fetch = fetch ?? (async (url) => {
         const relative = String(url).replace('/assets/locales/', '');
         requested.push(relative);
         const file = path.join(LOCALES_DIR, relative);
-        const found = fs.existsSync(file);
+        const found = fs.existsSync(file) && !missing.includes(relative);
         let body = found ? fs.readFileSync(file, 'utf8') : '';
         if (found && relative !== 'en/common.json' && relative.endsWith('/common.json')) {
             const strings = JSON.parse(body);
@@ -81,7 +82,7 @@ async function startPage(language, { countryId = 'usa', fetch, localeFiles = LOC
     loadVendored('i18next');
     loadVendored('i18next-http-backend');
     window.util = {
-        assetPath: (logicalPath) => `/assets/${logicalPath}`,
+        assetPath: assetPathStub,
         isMetric: () => true,
         math: {
             metersToFeet: (meters) => meters * 3.28084,
@@ -195,12 +196,23 @@ describe('the vendored i18next over our locale files', () => {
     describe('a locale file the page expects but cannot load', () => {
         afterEach(stopPage);
 
-        test('is reported, since the page only asks for files that should exist', async () => {
-            const { consoleError } = await startPage('en', {
-                fetch: async () => ({ ok: false, status: 404, statusText: '', headers: new Map(), text: async () => '' }),
-            });
+        test('is reported, and the rest of the page is still translated', async () => {
+            const { consoleError } = await startPage('en', { countryId: 'india', missing: ['en/validate.json'] });
             expect(consoleError).toHaveBeenCalledTimes(1);
             expect(String(consoleError.mock.calls[0][0])).toContain('status code: 404');
+            const overrides = flatten(readLocale('en', 'common-india'));
+            const key = plainKeys(overrides)[0];
+            expect(window.i18next.t(`common:${key}`)).toBe(overrides[key]);
+        });
+    });
+
+    describe('a page given no locale file list', () => {
+        afterEach(stopPage);
+
+        test('reports it, instead of quietly showing raw keys', async () => {
+            const { requested, consoleError } = await startPage('en', { localeFiles: [] });
+            expect(requested).toEqual([]);
+            expect(String(consoleError.mock.calls[0][0])).toContain('no locale files listed');
         });
     });
 

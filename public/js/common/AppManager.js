@@ -169,6 +169,8 @@ class AppManager {
     }
 
     const localeFiles = new Set(params.localeFiles);
+    // With no list, every file is skipped and the page silently shows raw keys, so make that loud.
+    if (localeFiles.size === 0) console.error('AppManager: no locale files listed, so nothing will be translated');
     return i18next.use(i18nextHttpBackend).init({
       backend: {
         // i18next asks for every namespace in every language, but most country overrides exist only in English, so
@@ -201,7 +203,8 @@ class AppManager {
       // whose namespaces failed should still render its distances converted and labeled rather than as raw meters.
       this._addDistanceFormatter();
 
-      if (err?.length > 0) return console.error(err);
+      // Keep going: one file failing shouldn't leave the rest of the page untranslated.
+      if (err?.length > 0) console.error(err);
 
       // After loading, merge the country-specific override namespaces into the base ones.
       // Going through list of languages so that we still get the en translations when using en-US.

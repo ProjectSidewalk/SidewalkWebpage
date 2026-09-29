@@ -43,5 +43,12 @@ class AssetManifestWiringSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       withClue("utilities.js is not loaded at all: ")(utilitiesAt must be >= 0)
       withClue("the stamp comes after utilities.js: ")(stampAt must be < utilitiesAt)
     }
+
+    "hand i18next the list of locale files, so it asks only for ones that exist (#5570)" in {
+      val resp = route(app, FakeRequest(GET, "/")).get
+      status(resp) mustBe OK
+      contentAsString(resp) must include("localeFiles: [")
+      contentAsString(resp) must include("\"locales/en/common.json\"")
+    }
   }
 }
