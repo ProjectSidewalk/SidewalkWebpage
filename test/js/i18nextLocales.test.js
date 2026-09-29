@@ -9,6 +9,7 @@
  *
  * Both libraries are found by folder rather than by filename, so a version bump needs no edit here. The only
  * stand-in is `fetch`, which serves public/locales/ from disk and 404s anything that isn't there.
+ * The page is told which files exist the way the server tells it, by listing public/locales/.
  */
 
 const fs = require('fs');
@@ -21,6 +22,8 @@ const LANGUAGES = fs.readdirSync(LOCALES_DIR, { withFileTypes: true })
 const NAMESPACES = fs.readdirSync(path.join(LOCALES_DIR, 'en'))
     .filter((file) => file.endsWith('.json') && !/-(india|zurich)\.json$/.test(file))
     .map((file) => file.replace('.json', ''));
+const LOCALE_FILES = LANGUAGES.flatMap((language) => fs.readdirSync(path.join(LOCALES_DIR, language))
+    .map((file) => `locales/${language}/${file}`));
 const UNIT_WORDS = { unitAbbr: 'km', unitAbbrSmall: 'm', unitName: 'kilometers', unitNameSingular: 'kilometer' };
 const PLURAL_SUFFIX = /_(zero|one|other)$/;
 
@@ -55,10 +58,11 @@ const WITHHELD = plainKeys(flatten(readLocale('en', 'common'))).find((key) => !k
  * @param {object} [options]
  * @param {string} [options.countryId] - The deployment's country, which decides the override namespaces.
  * @param {(url: string) => Promise<object>} [options.fetch] - Replaces the stand-in `fetch`.
+ * @param {string[]} [options.localeFiles] - The locale files the page is told exist, if not the real ones.
  * @returns {Promise<{requested: string[], consoleError: jest.SpyInstance}>} The locale files the page asked for,
  *   as `<language>/<namespace>.json`, and what it reported as errors.
  */
-async function startPage(language, { countryId = 'usa', fetch } = {}) {
+async function startPage(language, { countryId = 'usa', fetch, localeFiles = LOCALE_FILES } = {}) {
     const requested = [];
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     window.fetch = fetch ?? (async (url) => {
@@ -77,6 +81,7 @@ async function startPage(language, { countryId = 'usa', fetch } = {}) {
     loadVendored('i18next');
     loadVendored('i18next-http-backend');
     window.util = {
+        assetPath: (logicalPath) => `/assets/${logicalPath}`,
         isMetric: () => true,
         math: {
             metersToFeet: (meters) => meters * 3.28084,
@@ -86,7 +91,7 @@ async function startPage(language, { countryId = 'usa', fetch } = {}) {
     };
     loadGlobalScript('public/js/common/AppManager.js');
     await window.appManager._setupI18next({
-        language, supportedLanguages: LANGUAGES, defaultNS: 'common', namespaces: NAMESPACES, countryId,
+        language, supportedLanguages: LANGUAGES, localeFiles, defaultNS: 'common', namespaces: NAMESPACES, countryId,
         unitWords: UNIT_WORDS,
     });
     return { requested, consoleError };
@@ -174,8 +179,28 @@ describe('the vendored i18next over our locale files', () => {
             const overrides = flatten(readLocale('en', `${namespace}-${suffix}`));
             const key = plainKeys(overrides)[0];
             expect(window.i18next.t(`${namespace}:${key}`)).toBe(overrides[key]);
-            // A namespace with no override file 404s by design, and that must not be reported as an error.
             expect(consoleError).not.toHaveBeenCalled();
+        });
+
+        test('asks only for override files that exist, in every language', async () => {
+            for (const language of LANGUAGES) {
+                const { requested } = await startPage(language, { countryId });
+                expect(requested.filter((file) => !fs.existsSync(path.join(LOCALES_DIR, file)))).toEqual([]);
+                expect(requested).toContain(`en/common-${suffix}.json`);
+                stopPage();
+            }
+        });
+    });
+
+    describe('a locale file the page expects but cannot load', () => {
+        afterEach(stopPage);
+
+        test('is reported, since the page only asks for files that should exist', async () => {
+            const { consoleError } = await startPage('en', {
+                fetch: async () => ({ ok: false, status: 404, statusText: '', headers: new Map(), text: async () => '' }),
+            });
+            expect(consoleError).toHaveBeenCalledTimes(1);
+            expect(String(consoleError.mock.calls[0][0])).toContain('status code: 404');
         });
     });
 

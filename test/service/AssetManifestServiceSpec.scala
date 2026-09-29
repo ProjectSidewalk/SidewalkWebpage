@@ -70,7 +70,8 @@ class AssetManifestServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
         "images/badges/badge_labels_badge1.svg", "images/examples/tags/placeholder.png",
         "images/explore/onboarding/TutorialMiniMap.jpg", "images/logos/google-logo.svg",
         "images/pano-tutorial/tutorial/1-0-0.jpg", "images/tutorials/explore-crosswalk-incorrect-1.png",
-        "images/validate/ExpertValidateTooltips/CommonUnsure1.png"
+        "images/validate/ExpertValidateTooltips/CommonUnsure1.png", "locales/en/common.json",
+        "locales/de/audit-zurich.json"
       ).foreach(path => withClue(s"$path missing from the inventory: ")(AssetInventory.paths must contain(path)))
     }
 
@@ -92,6 +93,15 @@ class AssetManifestServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // Pins the fallback path: with no stamp entries, every util.assetPath call returns the plain /assets/ URL, so
       // dev serves assets exactly as staging does minus the fingerprint, and no dev map can mask a broken digest.
       app.injector.instanceOf[AssetManifestService].assetDigests mustBe empty
+    }
+  }
+
+  "The locale file list the layout stamps" should {
+    "name every translation file, even in dev/test mode where nothing is fingerprinted" in {
+      val listed = app.injector.instanceOf[AssetManifestService].localeFilesJson.body
+      listed must include("\"locales/en/common.json\"")
+      listed must include("\"locales/en/validate-india.json\"")
+      listed must not include "images/"
     }
   }
 }

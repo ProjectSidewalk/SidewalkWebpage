@@ -11,8 +11,7 @@
 //
 // So this checks:
 //   1. No hardcoded '/assets/' URL in public/js, whether a full path or a bare base directory that a name is later
-//      appended to — sbt-digest fingerprints the filename, so a base directory can never carry a digest. The
-//      exceptions are the ALLOWED entries below (which must still match, or the registry is stale and this fails).
+//      appended to — sbt-digest fingerprints the filename, so a base directory can never carry a digest.
 //   2. Every `util.assetPath` argument names something the digest manifest can fingerprint:
 //      - a literal argument must be a real file under public/, written as a logical path (no leading slash, no
 //        'assets/' prefix), sitting under one of build.sbt's `assetManifestPrefixes`;
@@ -50,16 +49,6 @@ const JS_DIR = join(ROOT, 'public', 'js');
 const VIEWS_DIR = join(ROOT, 'app', 'views');
 const PUBLIC_DIR = join(ROOT, 'public');
 const ASSETS_PREFIX = '/assets/';
-
-// The hardcoded '/assets/' URLs that may stay, each with the reason it can't go through util.assetPath. Every entry
-// must match something in its file; one that matches nothing is a stale exemption and fails the check.
-const ALLOWED = [
-  {
-    file: 'public/js/common/AppManager.js',
-    url: '/assets/locales/{{lng}}/{{ns}}.json',
-    reason: 'an i18next-http-backend loadPath template the library interpolates itself',
-  },
-];
 
 // A hardcoded asset URL: '/assets/' opening a string or a css url(), and however much literal path follows — none at
 // all still counts, since a bare '/assets/' is a base directory something appends a filename to, which is the one
@@ -321,10 +310,6 @@ for (const file of files) {
   lines.forEach((line, i) => {
     for (const [match] of line.matchAll(HARDCODED)) {
       const url = match.slice(1); // Drop the opening quote/paren.
-      // Exact match, not a prefix match: the allowed URL is a template the library interpolates, so the literal this
-      // scanner can see is all of it. Matching on a prefix would exempt every longer '/assets/locales/...' string in
-      // the same file.
-      if (ALLOWED.some((entry) => entry.file === file && url === entry.url.split('{')[0])) continue;
       problems.push(`${file}:${i + 1}: hardcoded '${url}' URL — use util.assetPath('images/...') so staged builds `
         + 'serve the fingerprinted, immutable-cached copy');
     }
@@ -389,16 +374,6 @@ for (const file of files) {
   }
 }
 
-// --- 4. The allowlist is still live -------------------------------------------------------------------------------
-
-for (const { file, url } of ALLOWED) {
-  const text = existsSync(join(ROOT, file)) ? readFileSync(join(ROOT, file), 'utf8') : '';
-  if (!text.includes(url)) {
-    problems.push(`tools/lint/check-asset-paths.mjs: allows '${url}' in ${file}, which no longer contains it — drop the `
-      + 'ALLOWED entry');
-  }
-}
-
 // --- 5 + 6. Every css url() is a relative path to a real file ------------------------------------------------------
 
 const cssFiles = walkCss(PUBLIC_DIR);
@@ -456,7 +431,7 @@ for (const file of viewFiles) {
 
 if (problems.length === 0) {
   console.log(`Asset paths OK -- ${files.length} JS files, ${staticCalls} literal and ${dynamicCalls} interpolated `
-    + `util.assetPath() calls, ${PREFIXES.length} manifest prefixes, ${ALLOWED.length} allowed hardcoded URL(s); `
+    + `util.assetPath() calls, ${PREFIXES.length} manifest prefixes; `
     + `${cssFiles.length} CSS files, ${cssUrls} file-naming url() reference(s); ${viewFiles.length} views, `
     + `${viewCalls} literal assets.path() calls.`);
   process.exit(0);

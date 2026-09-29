@@ -58,6 +58,10 @@ Project Sidewalk has two separate translation systems; which one you use depends
 - Translations live in **`public/locales/<lang>/<namespace>.json`**, split into namespaces such as `common.json`,
   `audit.json`, `gallery.json`, `dashboard.json`, `routebuilder.json`, and `labelmap.json` (plus city-specific
   variants like `common-india.json`, `audit-zurich.json`).
+- The page loads only the files that exist: the build lists `public/locales/` (`assetManifestPrefixes` in
+  `build.sbt`), and `AppManager` skips any language/namespace pair not on that list and fetches the rest through
+  `util.assetPath`, so a deploy never serves new JS with cached old translations. A new file needs nothing registered,
+  and a locale 404 is reported as a real error.
 - Reference a string with `i18next.t('namespace:your-key')`, **or prefer `data-i18n="namespace:key"` directly in the
   HTML** — that keeps the translation in i18next and avoids duplicating strings across JS and markup.
 
