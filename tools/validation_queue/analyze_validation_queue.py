@@ -75,7 +75,7 @@ TYPE_PROBABILITY_FLOOR = 0.02
 # The bounded-jitter alternative the issue floated (`det + random() * 25`), kept as a comparison column.
 JITTER_WIDTH = 25.0
 
-# LabelTypeEnum.primaryLabelTypes, and the six of them Validate served before #5285 brought NoSidewalk back.
+# LabelType.primaryLabelTypes, and the six of them Validate served before #5285 brought NoSidewalk back.
 PRIMARY_LABEL_TYPES = ("CurbRamp", "NoCurbRamp", "Obstacle", "SurfaceProblem", "Crosswalk", "Signal", "NoSidewalk")
 TYPES_WITHOUT_NO_SIDEWALK = tuple(t for t in PRIMARY_LABEL_TYPES if t != "NoSidewalk")
 

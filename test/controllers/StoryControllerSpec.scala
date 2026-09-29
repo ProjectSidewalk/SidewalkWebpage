@@ -1,6 +1,6 @@
 package controllers
 
-import models.label.{LabelTableDef, LabelTypeEnum}
+import models.label.{LabelTableDef, LabelType}
 import models.pano.{PanoDataTableDef, PanoSource}
 import models.story.Story
 import models.utils.MyPostgresProfile.api._
@@ -55,7 +55,7 @@ class StoryControllerSpec extends SidewalkSpec with RolledBackDb with AnonSessio
   private val maxTextLength: Int       = app.configuration.get[Int]("stories.max-text-length")
   private val maxAltTextLength: Int    = app.configuration.get[Int]("stories.max-alt-text-length")
   private val maxPerDay: Int           = app.configuration.get[Int]("stories.max-per-user-per-day")
-  private val impactNames: Set[String] = LabelTypeEnum.values.map(_.accessImpact.name)
+  private val impactNames: Set[String] = LabelType.ordered.map(_.accessImpact.name).toSet
 
   private lazy val labelIds: Seq[Int] =
     Await.result(labelService.getRecentLabelMetadata(50), 60.seconds).map(_.labelId).distinct

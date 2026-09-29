@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskComment, AuditTaskInteractionTable, AuditTaskTable, OutdatedStreetForUser}
-import models.label.{LabelLocation, LabelTable, LabelTypeEnum}
+import models.label.{LabelLocation, LabelTable, LabelType}
 import models.mission.MissionTable
 import models.region.Region
 import models.street.StreetEdge
@@ -111,7 +111,7 @@ case class TeamOverview(team: Team, members: Seq[TeamMemberStats], totals: TeamT
 /**
  * A user's accuracy for one label type, for the dashboard's learning section.
  *
- * @param labelType   LabelTypeEnum name (e.g. "NoCurbRamp").
+ * @param labelType   LabelType name (e.g. "NoCurbRamp").
  * @param cssKey      Kebab-case key for the `--color-label-*` token (e.g. "no-curb-ramp").
  * @param displayName Human-readable name (e.g. "No Curb Ramp").
  * @param pct         Accuracy percent (correct / validated), 0–100.
@@ -339,8 +339,7 @@ object UserService {
   }
 
   /** Label types shown in the per-type accuracy bars (the ones with canonical `--color-label-*` colors), in order. */
-  private val PrimaryLabelTypes: Seq[String] =
-    LabelTypeEnum.ordered.filter(LabelTypeEnum.primaryLabelTypes.contains).map(_.name)
+  private val PrimaryLabelTypes: Seq[String] = LabelType.primaryLabelTypeNames
 
   /**
    * Minimum validated labels of a type before it's eligible to be flagged as the user's "weakest" (avoids flagging a

@@ -59,7 +59,7 @@ const assetPathStub = (logicalPath) => `/assets/${logicalPath}`;
 /**
  * Stamps `window.labelTypes` the way main.scala.html does, so `util.misc` has a label-type table to build from.
  *
- * The fixture is a committed copy of what LabelTypeEnum serializes, and LabelTypeEnumSpec fails if the two diverge —
+ * The fixture is a committed copy of what LabelType serializes, and LabelTypeSpec fails if the two diverge —
  * so this can't quietly become the stale duplicate that sourcing the table from the backend was meant to remove.
  */
 function stampLabelTypes() {

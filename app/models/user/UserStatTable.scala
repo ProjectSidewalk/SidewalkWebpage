@@ -3,7 +3,7 @@ package models.user
 import com.google.inject.ImplementedBy
 import models.api.UserStatForApi
 import models.audit.AuditTaskTable
-import models.label.{LabelTable, LabelTypeEnum}
+import models.label.{LabelTable, LabelType}
 import models.mission.{MissionTableDef, MissionType}
 import models.user.Role.ROLES_RESEARCHER_COLLAPSED
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
@@ -253,9 +253,7 @@ class UserStatTable @Inject() (
       r.nextInt(),
       r.nextInt(),
       // Read by position, so this must follow the column order getStatsForApiWithFilters writes.
-      LabelTypeEnum.ordered.map { lt =>
-        lt.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
-      }.toMap
+      LabelType.ordered.map { lt => lt.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()) }.toMap
     )
   )
 
@@ -1119,7 +1117,7 @@ class UserStatTable @Inject() (
       minAccuracy.map(min => s"AND user_stat.accuracy IS NOT NULL AND user_stat.accuracy >= $min").getOrElse("")
 
     // Four counts per label type, in the order userStatApiConverter reads them.
-    val labelTypeStatCols: Seq[(String, String)] = LabelTypeEnum.ordered.flatMap { lt =>
+    val labelTypeStatCols: Seq[(String, String)] = LabelType.ordered.flatMap { lt =>
       val col    = lt.name.toLowerCase
       val isType = s"label_type = '${lt.name}'"
       Seq(

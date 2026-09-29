@@ -1,7 +1,7 @@
 package models.story
 
 import com.google.inject.ImplementedBy
-import models.label.{LabelTableDef, LabelTypeEnum}
+import models.label.{LabelTableDef, LabelType}
 import models.pano.PanoDataTableDef
 import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
@@ -117,7 +117,7 @@ class StoryTable @Inject() (
   }
 
   /** The label's type, or None when the label doesn't exist. Drives the card's problem-vs-feature story copy. */
-  def labelTypeForLabel(labelId: Int): DBIO[Option[LabelTypeEnum.Base]] = {
+  def labelTypeForLabel(labelId: Int): DBIO[Option[LabelType]] = {
     labels.filter(_.labelId === labelId).map(_.labelType).result.headOption
   }
 
@@ -193,7 +193,7 @@ class StoryTable @Inject() (
   }
 
   /** All of one user's stories (including hidden ones), for the dashboard management surface. */
-  def getForUser(userId: String): DBIO[Seq[(Story, Option[StoryMedia], LabelTypeEnum.Base)]] = {
+  def getForUser(userId: String): DBIO[Seq[(Story, Option[StoryMedia], LabelType)]] = {
     stories
       .filter(_.userId === userId)
       .join(labels)
@@ -215,7 +215,7 @@ class StoryTable @Inject() (
    */
   def getVisibleForCity(
       n: Int
-  ): DBIO[Seq[(Story, Option[StoryMedia], String, LabelTypeEnum.Base, Int, String, Option[String])]] = {
+  ): DBIO[Seq[(Story, Option[StoryMedia], String, LabelType, Int, String, Option[String])]] = {
     val visibleWithPlace = for {
       story            <- stories if story.visible
       user             <- users if user.userId === story.userId
@@ -237,7 +237,7 @@ class StoryTable @Inject() (
   }
 
   /** Most recent stories across all users (hidden included), for the admin moderation queue. */
-  def getRecent(n: Int): DBIO[Seq[(Story, Option[StoryMedia], String, LabelTypeEnum.Base)]] = {
+  def getRecent(n: Int): DBIO[Seq[(Story, Option[StoryMedia], String, LabelType)]] = {
     stories
       .join(users)
       .on(_.userId === _.userId)

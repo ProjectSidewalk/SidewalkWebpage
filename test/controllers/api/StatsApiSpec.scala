@@ -1,6 +1,6 @@
 package controllers.api
 
-import models.label.LabelTypeEnum
+import models.label.{LabelType, RatingScale}
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -113,10 +113,10 @@ class StatsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     // column landed in the wrong field.
     "report per-label-type counts that sum to the total, with no rating stats on unrated types" in {
       val labels = (contentAsJson(route(app, FakeRequest(GET, "/v3/api/overallStats")).get) \ "labels").as[JsObject]
-      val byType = LabelTypeEnum.ordered.map(lt => lt -> (labels \ lt.name).as[JsObject])
+      val byType = LabelType.ordered.map(lt => lt -> (labels \ lt.name).as[JsObject])
 
       byType.map { case (_, stats) => (stats \ "count").as[Int] }.sum mustBe (labels \ "count").as[Int]
-      byType.filter(_._1.ratingScale == LabelTypeEnum.RatingScale.Unrated).foreach { case (_, stats) =>
+      byType.filter(_._1.ratingScale == RatingScale.Unrated).foreach { case (_, stats) =>
         (stats \ "count_with_severity").asOpt[Int] mustBe None
         (stats \ "severity_mean").asOpt[Double] mustBe None
       }
@@ -140,7 +140,7 @@ class StatsApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val rows = contentAsJson(route(app, FakeRequest(GET, "/v3/api/userStats")).get).as[Seq[JsObject]]
       rows.foreach { row =>
         val byType = (row \ "stats_by_label_type").as[JsObject]
-        byType.keys mustBe LabelTypeEnum.labelTypeNames
+        byType.keys mustBe LabelType.labelTypeNames
         def sumOf(field: String): Int = byType.values.map { (lt: JsValue) => (lt \ field).as[Int] }.sum
         sumOf("labels") mustBe (row \ "labels").as[Int]
         sumOf("validated_correct") mustBe (row \ "labels_validated_correct").as[Int]

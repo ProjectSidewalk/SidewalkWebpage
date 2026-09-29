@@ -73,7 +73,7 @@ class StoryController @Inject() (
       Json.obj(
         "label_id"        -> labelId,
         "max_text_length" -> storyService.maxTextLength, // Composer counter limit; sourced here, never a JS literal.
-        // Problem-vs-feature story prompts flip on this; sourced from LabelTypeEnum, never re-derived in JS. Null
+        // Problem-vs-feature story prompts flip on this; sourced from LabelType, never re-derived in JS. Null
         // when the label doesn't exist (the card then keeps its default copy).
         "access_impact" -> impact.map(_.name),
         "stories"       -> stories.map(StoryFormats.storyForViewToJson)

@@ -24,7 +24,7 @@ class MistakeCardQuerySpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
   private lazy val labelTable = app.injector.instanceOf[LabelTable]
 
   /** The user with the most incorrectly-validated labels of this type, so the ordering check has rows to work on. */
-  private def busiestUser(labelType: LabelTypeEnum.Base): Option[String] =
+  private def busiestUser(labelType: LabelType): Option[String] =
     run(
       sql"""SELECT label.user_id
             FROM label
@@ -39,11 +39,11 @@ class MistakeCardQuerySpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
 
   "getValidatedLabelsForUserQuery" should {
     "be a query Postgres accepts" in {
-      run(labelTable.getValidatedLabelsForUserQuery("no-such-user", LabelTypeEnum.Obstacle).take(5).result) mustBe empty
+      run(labelTable.getValidatedLabelsForUserQuery("no-such-user", LabelType.Obstacle).take(5).result) mustBe empty
     }
 
     "hand back the newest validations first, not the lowest label ids" in {
-      LabelTypeEnum.primaryValidateLabelTypes.foreach { labelType =>
+      LabelType.primaryValidateLabelTypes.foreach { labelType =>
         busiestUser(labelType).foreach { userId =>
           val rows       = run(labelTable.getValidatedLabelsForUserQuery(userId, labelType).take(25).result)
           val timestamps = rows.map(_._12)
@@ -55,7 +55,7 @@ class MistakeCardQuerySpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
     }
 
     "give each label exactly one row" in {
-      LabelTypeEnum.primaryValidateLabelTypes.foreach { labelType =>
+      LabelType.primaryValidateLabelTypes.foreach { labelType =>
         busiestUser(labelType).foreach { userId =>
           val labelIds = run(labelTable.getValidatedLabelsForUserQuery(userId, labelType).take(25).result).map(_._1)
           labelIds.distinct mustBe labelIds

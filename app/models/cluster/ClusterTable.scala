@@ -3,7 +3,7 @@ package models.cluster
 import com.google.inject.ImplementedBy
 import models.api.{LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
 import models.intersection.IntersectionTableDef
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.pano.PanoDataTable
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api._
@@ -28,7 +28,7 @@ import javax.inject.{Inject, Singleton}
 case class Cluster(
     clusterId: Int,
     clusteringSessionId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     streetEdgeId: Int,
     geom: Point,
     severity: Option[Int],
@@ -58,13 +58,13 @@ case class ClusterScoreRow(
 )
 
 class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluster") {
-  def clusterId: Rep[Int]                = column[Int]("cluster_id", O.PrimaryKey, O.AutoInc)
-  def clusteringSessionId: Rep[Int]      = column[Int]("clustering_session_id")
-  def labelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("label_type")
-  def streetEdgeId: Rep[Int]             = column[Int]("street_edge_id")
-  def geom: Rep[Point]                   = column[Point]("geom")
-  def severity: Rep[Option[Int]]         = column[Option[Int]]("severity")
-  def intersectionId: Rep[Option[Int]]   = column[Option[Int]]("intersection_id")
+  def clusterId: Rep[Int]              = column[Int]("cluster_id", O.PrimaryKey, O.AutoInc)
+  def clusteringSessionId: Rep[Int]    = column[Int]("clustering_session_id")
+  def labelType: Rep[LabelType]        = column[LabelType]("label_type")
+  def streetEdgeId: Rep[Int]           = column[Int]("street_edge_id")
+  def geom: Rep[Point]                 = column[Point]("geom")
+  def severity: Rep[Option[Int]]       = column[Option[Int]]("severity")
+  def intersectionId: Rep[Option[Int]] = column[Option[Int]]("intersection_id")
 
   def * = (clusterId, clusteringSessionId, labelType, streetEdgeId, geom, severity, intersectionId) <> (
     (Cluster.apply _).tupled,

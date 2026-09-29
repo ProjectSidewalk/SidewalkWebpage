@@ -37,10 +37,10 @@ trait LabelService {
   def countLabelsInRegion(regionId: Int): Future[Int]
   def selectAllTags: DBIO[Seq[models.label.Tag]]
   def selectAllTagsFuture: Future[Seq[models.label.Tag]]
-  def selectTagsByLabelType(labelType: LabelTypeEnum.Base): Future[Seq[models.label.Tag]]
+  def selectTagsByLabelType(labelType: LabelType): Future[Seq[models.label.Tag]]
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]]
-  def cleanTagList(tags: Seq[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]]
-  def severityFor(labelType: LabelTypeEnum.Base, severity: Option[Int]): Option[Int]
+  def cleanTagList(tags: Seq[String], labelType: LabelType): DBIO[Seq[String]]
+  def severityFor(labelType: LabelType, severity: Option[Int]): Option[Int]
   def findLabel(labelId: Int): Future[Option[Label]]
   def getSingleLabelMetadata(labelId: Int, userId: String): Future[Option[LabelMetadata]]
   def getLabelLatLng(labelId: Int): Future[Option[LatLng]]
@@ -55,12 +55,12 @@ trait LabelService {
   ): Source[LabelForLabelMap, _]
   def getGalleryLabels(
       n: Int,
-      labelTypes: Set[LabelTypeEnum.Base],
+      labelTypes: Set[LabelType],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Option[Int]],
-      tagsByLabelType: Map[LabelTypeEnum.Base, Set[String]],
+      tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
       recentFirst: Boolean = false,
@@ -71,7 +71,7 @@ trait LabelService {
       userId: String,
       n: Int,
       viewer: PanoSource,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       queues: Seq[ValidationQueue],
       filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
@@ -89,16 +89,16 @@ trait LabelService {
   ): Future[ValidationTaskPostReturnValue]
   def getMoreLabelsToValidate(
       user: SidewalkUserWithRole,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       labelsNeeded: Int,
       excludedLabelIds: Set[Int],
       validateParams: ValidateParams
   ): Future[(Seq[LabelValidationMetadata], Seq[AdminValidationData])]
   def getRecentValidatedLabelsForUser(
       userId: String,
-      labelTypes: Set[LabelTypeEnum.Base],
+      labelTypes: Set[LabelType],
       nPerType: Int
-  ): Future[Map[LabelTypeEnum.Base, Seq[LabelMetadataUserDash]]]
+  ): Future[Map[LabelType, Seq[LabelMetadataUserDash]]]
   def recordMistakeVote(labelId: Int, userId: String, agrees: Boolean): Future[Boolean]
   def recordMistakeNote(labelId: Int, userId: String, comment: Option[String]): Future[Boolean]
   def getLabelsFromUserInRegion(regionId: Int, userId: String): Future[Seq[ResumeLabelMetadata]]
@@ -232,11 +232,11 @@ class LabelServiceImpl @Inject() (
   def selectAllTagsFuture: Future[Seq[models.label.Tag]] =
     db.run(selectAllTags)
 
-  def selectTagsByLabelTypeDbio(labelType: LabelTypeEnum.Base): DBIO[Seq[models.label.Tag]] = {
+  def selectTagsByLabelTypeDbio(labelType: LabelType): DBIO[Seq[models.label.Tag]] = {
     selectAllTags.map(_.filter(_.labelType == labelType))
   }
 
-  def selectTagsByLabelType(labelType: LabelTypeEnum.Base): Future[Seq[models.label.Tag]] =
+  def selectTagsByLabelType(labelType: LabelType): Future[Seq[models.label.Tag]] =
     db.run(selectTagsByLabelTypeDbio(labelType))
 
   def getTagsForCurrentCity: Future[Seq[models.label.Tag]] = {
@@ -248,7 +248,7 @@ class LabelServiceImpl @Inject() (
     })
   }
 
-  def findConflictingTags(tags: Set[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]] = {
+  def findConflictingTags(tags: Set[String], labelType: LabelType): DBIO[Seq[String]] = {
     selectTagsByLabelTypeDbio(labelType).map { (allTags: Seq[models.label.Tag]) =>
       allTags.filter(tag => tags.contains(tag.tag) && tag.mutuallyExclusiveWith.exists(tags.contains)).map(_.tag)
     }
@@ -263,10 +263,10 @@ class LabelServiceImpl @Inject() (
   def findLabel(labelId: Int): Future[Option[Label]] = db.run(labelTable.find(labelId))
 
   /** A severity a label of this type can carry: the one given, or none for an unrated type. */
-  def severityFor(labelType: LabelTypeEnum.Base, severity: Option[Int]): Option[Int] =
-    if (labelType.ratingScale == LabelTypeEnum.RatingScale.Unrated) None else severity
+  def severityFor(labelType: LabelType, severity: Option[Int]): Option[Int] =
+    if (labelType.ratingScale == RatingScale.Unrated) None else severity
 
-  def cleanTagList(tags: Seq[String], labelType: LabelTypeEnum.Base): DBIO[Seq[String]] = {
+  def cleanTagList(tags: Seq[String], labelType: LabelType): DBIO[Seq[String]] = {
     for {
       validTags: Seq[String] <- selectTagsByLabelTypeDbio(labelType).map(_.map(_.tag))
       cleanedTags: Seq[String] = tags.distinct.filter(t => validTags.contains(t))
@@ -332,12 +332,12 @@ class LabelServiceImpl @Inject() (
    */
   def getGalleryLabels(
       n: Int,
-      labelTypes: Set[LabelTypeEnum.Base],
+      labelTypes: Set[LabelType],
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
       severity: Set[Option[Int]],
-      tagsByLabelType: Map[LabelTypeEnum.Base, Set[String]],
+      tagsByLabelType: Map[LabelType, Set[String]],
       aiValOptions: Set[String],
       userId: String,
       recentFirst: Boolean = false,
@@ -353,11 +353,11 @@ class LabelServiceImpl @Inject() (
     // With recentFirst the query is ordered newest-first, so findValidLabelsForType's batching draws from the most
     // recent labels and randomize=true shuffles within that recent pool.
     // lazy: a review list spreads across no types at all, so this is the filtered path's to compute.
-    lazy val typesToSpread: Set[LabelTypeEnum.Base] =
+    lazy val typesToSpread: Set[LabelType] =
       if (labelTypes.isEmpty) {
-        if (staticImageryOnly) LabelTypeEnum.staticValidatableLabelTypes else LabelTypeEnum.primaryLabelTypes
+        if (staticImageryOnly) LabelType.staticValidatableLabelTypes else LabelType.primaryLabelTypes
       } else if (staticImageryOnly) {
-        labelTypes.intersect(LabelTypeEnum.staticValidatableLabelTypes)
+        labelTypes.intersect(LabelType.staticValidatableLabelTypes)
       } else {
         // An explicit request is honored as given: the Gallery offers Occlusion and Other, which the default mix
         // (primaryLabelTypes) leaves out.
@@ -428,7 +428,7 @@ class LabelServiceImpl @Inject() (
       userId: String,
       n: Int,
       viewer: PanoSource,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       queues: Seq[ValidationQueue],
       filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
@@ -483,7 +483,7 @@ class LabelServiceImpl @Inject() (
       }
     }
 
-    if (labelType != LabelTypeEnum.NoSidewalk) {
+    if (labelType != LabelType.NoSidewalk) {
       drainCascade(Seq.empty, randomize = true, oneLabelPerFace = false, Set.empty)
     } else {
       // A NoSidewalk mission holds one label per block face, distinct streets preferred, so a validator sees the city's
@@ -681,11 +681,11 @@ class LabelServiceImpl @Inject() (
       userId: String,
       missionLength: Int,
       viewerType: PanoSource,
-      requiredLabelType: Option[LabelTypeEnum.Base],
+      requiredLabelType: Option[LabelType],
       queues: Seq[ValidationQueue],
       unvalidatedOnly: Boolean,
       filter: ValidationLabelFilter
-  ): Future[Option[LabelTypeEnum.Base]] = {
+  ): Future[Option[LabelType]] = {
     val counts = labelTable.getAvailableValidationsLabelsByType(userId, viewerType, unvalidatedOnly, queues,
       requiredLabelType, filter)
     db.run(counts.map { availValidations =>
@@ -693,7 +693,7 @@ class LabelServiceImpl @Inject() (
       // votes rather than its label count (LabelTypeValidationsLeft.weightFor, #5285).
       val candidates: Seq[LabelTypeValidationsLeft] = availValidations
         .filter(x => requiredLabelType.isEmpty || requiredLabelType.contains(x.labelType))
-        .filter(x => LabelTypeEnum.primaryValidateLabelTypes.contains(x.labelType))
+        .filter(x => LabelType.primaryValidateLabelTypes.contains(x.labelType))
 
       val (queue, typesFiltered) =
         LabelServiceImpl.chooseQueueAndTypes(candidates, queues, missionLength, allowShortMission = !filter.isEmpty)
@@ -703,8 +703,8 @@ class LabelServiceImpl @Inject() (
       } else {
         // Each label type has at least a 2% chance of being selected. Remaining probability is divvied up
         // proportionally based on how many labels of that type the chosen queue holds.
-        val totalWeight: Int                                     = typesFiltered.map(_.weightFor(queue)).sum
-        val typeProbabilities: Seq[(LabelTypeEnum.Base, Double)] = typesFiltered.map { t =>
+        val totalWeight: Int                            = typesFiltered.map(_.weightFor(queue)).sum
+        val typeProbabilities: Seq[(LabelType, Double)] = typesFiltered.map { t =>
           (t.labelType, 0.02 + (1 - typesFiltered.length * 0.02) * (t.weightFor(queue).toDouble / totalWeight))
         }
 
@@ -775,7 +775,7 @@ class LabelServiceImpl @Inject() (
    */
   def getMoreLabelsToValidate(
       user: SidewalkUserWithRole,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       labelsNeeded: Int,
       excludedLabelIds: Set[Int],
       validateParams: ValidateParams
@@ -813,7 +813,7 @@ class LabelServiceImpl @Inject() (
         if (missionProgress.exists(_.completed))
           getLabelTypeToValidate(user.userId, labelsToRetrieve, viewerType, validateParams.labelType,
             validateParams.queueCascade, validateParams.unvalidatedOnly, validateParams.labelFilter)
-        else Future.successful(Option.empty[LabelTypeEnum.Base])
+        else Future.successful(Option.empty[LabelType])
       }
     } yield {
       (missionProgress, nextMissionLabelType) match {
@@ -869,9 +869,9 @@ class LabelServiceImpl @Inject() (
    */
   def getRecentValidatedLabelsForUser(
       userId: String,
-      labelTypes: Set[LabelTypeEnum.Base],
+      labelTypes: Set[LabelType],
       nPerType: Int
-  ): Future[Map[LabelTypeEnum.Base, Seq[LabelMetadataUserDash]]] = {
+  ): Future[Map[LabelType, Seq[LabelMetadataUserDash]]] = {
     // Get labels for each type in parallel.
     Future
       .sequence(labelTypes.map { labelType =>

@@ -2,7 +2,7 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import models.api.{ApiError, LabelEditDataForApi, LabelEditFiltersForApi}
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.utils.CommonUtils.UiSource
 import org.apache.pekko.stream.scaladsl.Source
 import play.silhouette.api.Silhouette
@@ -63,7 +63,7 @@ class LabelEditApiController @Inject() (
         }
     }
 
-    val parsedLabelType: Either[ApiError, Option[LabelTypeEnum.Base]] = parseLabelTypeParam(labelType)
+    val parsedLabelType: Either[ApiError, Option[LabelType]] = parseLabelTypeParam(labelType)
 
     val firstError: Option[ApiError] = Seq(
       parsedTimestamp.left.toOption,

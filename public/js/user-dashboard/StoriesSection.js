@@ -151,7 +151,7 @@ class StoriesSection {
       // Every row's visible label is just "Edit"/"Delete", so the accessible name says which story (WCAG 2.4.6).
       edit.setAttribute('aria-label', i18next.t('labelmap:story.edit-aria', { labelType: typeName, date: postedDate }));
       edit.addEventListener('click', () => {
-        // Problem-vs-feature phrasing comes from the payload's LabelTypeEnum-sourced flag, never derived here.
+        // Problem-vs-feature phrasing comes from the payload's LabelType-sourced flag, never derived here.
         this.#composer.setCopyVariant(story.access_impact);
         this.#composer.openForEdit(story, this.#maxTextLength);
       });

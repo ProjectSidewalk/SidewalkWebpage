@@ -3,7 +3,7 @@
  */
 package models.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import play.api.libs.json.{JsBoolean, JsNull, JsNumber, JsObject, JsString, JsValue, Json}
 
 object ApiModelUtils {
@@ -15,7 +15,7 @@ object ApiModelUtils {
   val labelTypeOrdering: Ordering[(String, Any)] = Ordering.by { case (labelType, _) =>
     (
       labelType != "Overall",
-      LabelTypeEnum.orderedNames.indexOf(labelType) match {
+      LabelType.orderedNames.indexOf(labelType) match {
         case -1 => Int.MaxValue
         case i  => i
       }

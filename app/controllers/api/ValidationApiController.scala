@@ -2,7 +2,7 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import models.api.{ApiError, ValidationDataForApi, ValidationFiltersForApi}
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.utils.CommonUtils.UiSource
 import models.validation.ValidationOption
 import org.apache.pekko.stream.scaladsl.Source
@@ -82,7 +82,7 @@ class ValidationApiController @Inject() (
         }
     }
 
-    val parsedLabelType: Either[ApiError, Option[LabelTypeEnum.Base]] = parseLabelTypeParam(labelType)
+    val parsedLabelType: Either[ApiError, Option[LabelType]] = parseLabelTypeParam(labelType)
 
     // Collect the first invalid-parameter error, if any.
     val firstError: Option[ApiError] = Seq(

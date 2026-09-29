@@ -26,7 +26,7 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 case class ValidationSubmission(
     validation: LabelValidation,
-    newLabelType: Option[LabelTypeEnum.Base],
+    newLabelType: Option[LabelType],
     severity: Option[Int],
     tags: List[String],
     comment: Option[ValidationTaskComment],
@@ -43,7 +43,7 @@ trait ValidationService {
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
   def replaceComment(comment: ValidationTaskComment): Future[Int]
-  def deleteComment(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Int]
+  def deleteComment(labelId: Int, userId: String, labelType: LabelType): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
   def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome]
@@ -227,7 +227,7 @@ class ValidationServiceImpl @Inject() (
    * @param labelType The type the comment is about. Comments on the label's other types stay.
    * @return Count of comments deleted, 0 or 1.
    */
-  def deleteComment(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Int] =
+  def deleteComment(labelId: Int, userId: String, labelType: LabelType): Future[Int] =
     db.run(validationTaskCommentTable.archive(labelId, userId, labelType, ValidationCommentChangeType.Delete))
 
   /**
@@ -296,7 +296,7 @@ class ValidationServiceImpl @Inject() (
     val valSubmitActions: Seq[DBIO[Int]] = for (valSubmission <- validationSubmissions) yield {
       // An Agree that changes the label's type is a vote on the new type (#3671): it is what the validator asserts,
       // and it starts the re-typed label's count at one agree while every earlier vote drops out as stale.
-      val typeChange: Option[LabelTypeEnum.Base] = valSubmission.newLabelType.filter(_ =>
+      val typeChange: Option[LabelType] = valSubmission.newLabelType.filter(_ =>
         valSubmission.validation.validationResult == ValidationOption.Agree && valSubmission.canEdit
       )
       val validation: LabelValidation =

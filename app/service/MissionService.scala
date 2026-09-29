@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import formats.json.ExploreFormats.AuditMissionProgress
 import formats.json.ValidateFormats.ValidationMissionProgress
 import models.audit.AuditTaskTable
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.mission.MissionTable.{distanceForLaterMissions, distancesForFirstAuditMissions}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.route.{RouteTable, UserRoute}
@@ -33,14 +33,14 @@ trait MissionService {
   def resumeOrCreateNewValidateMission(
       userId: String,
       missionType: MissionType.Value,
-      labelType: LabelTypeEnum.Base
+      labelType: LabelType
   ): Future[Option[Mission]]
   def updateCompleteAndGetNextValidationMission(
       userId: String,
       missionId: Int,
       missionType: MissionType.Value,
       labelsProgress: Int,
-      labelType: Option[LabelTypeEnum.Base]
+      labelType: Option[LabelType]
   ): Future[Option[Mission]]
   def updateValidationProgressOnly(
       userId: String,
@@ -51,7 +51,7 @@ trait MissionService {
   def updateMissionTableValidate(
       user: SidewalkUserWithRole,
       missionProgress: ValidationMissionProgress,
-      nextMissionLabelType: Option[LabelTypeEnum.Base]
+      nextMissionLabelType: Option[LabelType]
   ): Future[Option[Mission]]
   def updateMissionTableExplore(userId: String, missionProgress: AuditMissionProgress): DBIO[Option[Mission]]
   def getCompletedExploreMissionsInRegion(userId: String, regionId: Int): Future[Seq[Mission]]
@@ -312,7 +312,7 @@ class MissionServiceImpl @Inject() (
   def resumeOrCreateNewValidateMission(
       userId: String,
       missionType: MissionType.Value,
-      labelType: LabelTypeEnum.Base
+      labelType: LabelType
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("getValidationMission")
     queryMissionTableValidationMissions(actions, userId, None, Some(missionType), None, Some(labelType))
@@ -331,7 +331,7 @@ class MissionServiceImpl @Inject() (
       missionId: Int,
       missionType: MissionType.Value,
       labelsProgress: Int,
-      labelType: Option[LabelTypeEnum.Base]
+      labelType: Option[LabelType]
   ): Future[Option[Mission]] = {
     val actions: Seq[String] = Seq("updateProgress", "updateComplete", "getValidationMission")
     queryMissionTableValidationMissions(
@@ -375,7 +375,7 @@ class MissionServiceImpl @Inject() (
       missionId: Option[Int],
       missionType: Option[MissionType.Value],
       labelsProgress: Option[Int],
-      labelType: Option[LabelTypeEnum.Base]
+      labelType: Option[LabelType]
   ): Future[Option[Mission]] = {
 
     val updateProgressAction =
@@ -433,7 +433,7 @@ class MissionServiceImpl @Inject() (
   def updateMissionTableValidate(
       user: SidewalkUserWithRole,
       missionProgress: ValidationMissionProgress,
-      nextMissionLabelType: Option[LabelTypeEnum.Base]
+      nextMissionLabelType: Option[LabelType]
   ): Future[Option[Mission]] = {
     val missionId: Int      = missionProgress.missionId
     val userId: String      = user.userId

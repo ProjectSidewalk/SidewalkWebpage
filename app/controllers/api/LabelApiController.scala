@@ -3,7 +3,7 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.api._
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
 import play.silhouette.api.Silhouette
@@ -73,9 +73,7 @@ class LabelApiController @Inject() (
    */
   def getLabelTypes = silhouette.UserAwareAction.async { request =>
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
-    val labelTypeDetailsList: Seq[LabelTypeForApi] =
-      apiService.getLabelTypes(request.lang).toList.sortBy(lt => LabelTypeEnum.orderedNames.indexOf(lt.name))
-    Future.successful(Ok(Json.obj("status" -> "OK", "label_types" -> labelTypeDetailsList)))
+    Future.successful(Ok(Json.obj("status" -> "OK", "label_types" -> apiService.getLabelTypes(request.lang))))
   }
 
   /**
@@ -162,7 +160,7 @@ class LabelApiController @Inject() (
     val parsedStartDate          = parseDateTimeParam(startDate, "startDate")
     val parsedEndDate            = parseDateTimeParam(endDate, "endDate")
     val parsedValidationStatuses = parseValidationStatuses(validationStatus)
-    val parsedLabelTypes         = parseAllowlistedList(labelType, LabelTypeEnum.labelTypeNames, "labelType")
+    val parsedLabelTypes         = parseAllowlistedList(labelType, LabelType.labelTypeNames, "labelType")
     val parsedSeverity           = parseSeverityParam(severity, minSeverity, maxSeverity)
 
     // Tag values are validated against the city's full tag list (cached), not the UI-facing one: a tag a city hides
@@ -170,7 +168,7 @@ class LabelApiController @Inject() (
     labelService.selectAllTagsFuture.flatMap { cityTags =>
       val tagsByLabelType: Map[String, Set[String]] =
         cityTags.groupMap(_.labelType.name)(_.tag).map { case (lt, tagNames) => lt -> tagNames.toSet }
-      val parsedTags = TagFilterForApi.parse(tags, LabelTypeEnum.labelTypeNames, tagsByLabelType)
+      val parsedTags = TagFilterForApi.parse(tags, LabelType.labelTypeNames, tagsByLabelType)
 
       // Collect the first invalid-parameter error, if any.
       val firstError: Option[ApiError] = Seq(

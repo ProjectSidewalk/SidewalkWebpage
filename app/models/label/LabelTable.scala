@@ -17,7 +17,6 @@ import models.api.{
 }
 import models.audit.AuditTaskTableDef
 import models.label.LabelTable._
-import models.label.LabelTypeEnum._
 import models.mission.MissionTableDef
 import models.pano.PanoSource.PanoSource
 import models.pano.{PanoData, PanoDataTable, PanoDataTableDef, PanoSource, PanoViewerMetadata}
@@ -52,7 +51,7 @@ case class Label(
     missionId: Int,
     userId: String,
     panoId: String,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     deleted: Boolean,
     temporaryLabelId: Int,
     timeCreated: OffsetDateTime,
@@ -145,7 +144,7 @@ case class TagCount(labelType: String, tag: String, count: Int)
  *                             the same thing for every type.
  */
 case class LabelTypeValidationsLeft(
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     validationsAvailable: Int,
     needsVotes: Int,
     triage: Int,
@@ -172,7 +171,7 @@ case class LabelTypeValidationsLeft(
     case ValidationQueuePolicy.ValidationQueue.Any        => 1
     case ValidationQueuePolicy.ValidationQueue.Triage     => triage
     case ValidationQueuePolicy.ValidationQueue.NeedsVotes =>
-      if (labelType == LabelTypeEnum.NoSidewalk) facesNeedingVotes.getOrElse(0) else needsVotes
+      if (labelType == LabelType.NoSidewalk) facesNeedingVotes.getOrElse(0) else needsVotes
   }
 
   /**
@@ -203,13 +202,13 @@ case class NoSidewalkFaceEvidence(
 )
 
 case class LabelCount(count: Int, timeInterval: TimeInterval, labelType: String) {
-  require((labelTypeNames ++ Seq("All")).contains(labelType))
+  require((LabelType.labelTypeNames ++ Seq("All")).contains(labelType))
 }
 
 // Defines some common fields for a label metadata, which allows us to create generic functions using these fields.
 trait BasicLabelMetadata {
   val labelId: Int
-  val labelType: LabelTypeEnum.Base
+  val labelType: LabelType
   val panoId: String
   val panoSource: PanoSource
   val pov: POV
@@ -230,7 +229,7 @@ case class LabelMetadata(
     userId: String,
     username: String,
     timestamp: OffsetDateTime,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     severity: Option[Int],
     description: Option[String],
     userValidation: Option[ValidationOption.Value],
@@ -294,7 +293,7 @@ case class ResumeLabelMetadata(
     fromOutdatedImagery: Boolean
 )
 
-case class LabelDataForAi(labelId: Int, labelType: LabelTypeEnum.Base, labelPoint: LabelPoint, panoData: PanoData)
+case class LabelDataForAi(labelId: Int, labelType: LabelType, labelPoint: LabelPoint, panoData: PanoData)
 
 case class LabelMetadataUserDash(
     labelId: Int,
@@ -307,7 +306,7 @@ case class LabelMetadataUserDash(
     canvasY: Int,
     canvasWidth: Int,
     canvasHeight: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     timeValidated: OffsetDateTime,
     validatorComment: Option[String]
 ) extends BasicLabelMetadata
@@ -315,7 +314,7 @@ case class LabelMetadataUserDash(
 // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
 case class LabelValidationMetadata(
     labelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     panoId: String,
     panoSource: PanoSource,
     expired: Boolean,
@@ -344,12 +343,12 @@ case class LabelValidationMetadata(
 ) extends BasicLabelMetadata
 
 class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
-  def labelId: Rep[Int]                  = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
-  def auditTaskId: Rep[Int]              = column[Int]("audit_task_id")
-  def missionId: Rep[Int]                = column[Int]("mission_id")
-  def userId: Rep[String]                = column[String]("user_id")
-  def panoId: Rep[String]                = column[String]("pano_id")
-  def labelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("label_type")
+  def labelId: Rep[Int]         = column[Int]("label_id", O.PrimaryKey, O.AutoInc)
+  def auditTaskId: Rep[Int]     = column[Int]("audit_task_id")
+  def missionId: Rep[Int]       = column[Int]("mission_id")
+  def userId: Rep[String]       = column[String]("user_id")
+  def panoId: Rep[String]       = column[String]("pano_id")
+  def labelType: Rep[LabelType] = column[LabelType]("label_type")
   // The enum's label as text, for the many queries that group or report by label type name.
   def labelTypeName: Rep[String] = labelType.asColumnOf[String]
   def deleted: Rep[Boolean]      = column[Boolean]("deleted", O.Default(false))
@@ -523,14 +522,14 @@ type LabelValidationMetadataTupleRep = (
 
 // One row of getCropCandidates: label id and type, pano id, the label's pano_x/pano_y, and the pano's recorded
 // width/height. Mapped to service.CropService.CropCandidate by the crop job.
-type CropCandidateTuple = (Int, LabelTypeEnum.Base, String, Int, Int, Option[Int], Option[Int])
+type CropCandidateTuple = (Int, LabelType, String, Int, Int, Option[Int], Option[Int])
 
 /**
  * (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, panoWidth,
  * panoHeight, aiGenerated).
  */
 type CropProvenanceTuple =
-  (Int, LabelTypeEnum.Base, OffsetDateTime, String, Int, Int, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
+  (Int, LabelType, OffsetDateTime, String, Int, Int, Int, Int, Int, Int, Option[Int], Option[Int], Boolean)
 
 // Type alias for the tuple representation of LabelCVMetadata.
 type LabelCVMetadataTuple = (
@@ -584,15 +583,15 @@ object LabelTable {
   // order, so the two stay in lockstep.
   val validationStatLabelTypes: Seq[(String, String)] = Seq(
     "overall"    -> "Overall",
-    "ramp"       -> CurbRamp.name,
-    "noramp"     -> NoCurbRamp.name,
-    "obs"        -> Obstacle.name,
-    "surf"       -> SurfaceProblem.name,
-    "nosidewalk" -> NoSidewalk.name,
-    "crswlk"     -> Crosswalk.name,
-    "signal"     -> Signal.name,
-    "occlusion"  -> Occlusion.name,
-    "other"      -> Other.name
+    "ramp"       -> LabelType.CurbRamp.name,
+    "noramp"     -> LabelType.NoCurbRamp.name,
+    "obs"        -> LabelType.Obstacle.name,
+    "surf"       -> LabelType.SurfaceProblem.name,
+    "nosidewalk" -> LabelType.NoSidewalk.name,
+    "crswlk"     -> LabelType.Crosswalk.name,
+    "signal"     -> LabelType.Signal.name,
+    "occlusion"  -> LabelType.Occlusion.name,
+    "other"      -> LabelType.Other.name
   )
 
   // Ordered list of (columnPrefix, SQL role filter) for the three validation-vote sources: combined (all votes),
@@ -605,7 +604,7 @@ object LabelTable {
 
   // The types the AI validates, each broken out in getOverallStatsForApi's AI stats. ORDER MATTERS (see
   // validationStatLabelTypes).
-  val aiStatLabelTypes: Seq[LabelTypeEnum.Base] = LabelTypeEnum.ordered.filter(aiLabelTypes.contains)
+  val aiStatLabelTypes: Seq[LabelType] = LabelType.ordered.filter(LabelType.aiLabelTypes.contains)
 
   /**
    * Builds the `WHERE` fragment for the Raw Labels API's `tags` filter.
@@ -658,7 +657,7 @@ object LabelTable {
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
         LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.apply.tupled(t._6), t._7, t._8, t._9, t._10,
-          LabelTypeEnum.byName(t._11), t._12, t._13)
+          LabelType.valueOf(t._11), t._12, t._13)
     }
 
   /**
@@ -692,7 +691,7 @@ object LabelTable {
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
         labelId = t._1,
-        labelType = LabelTypeEnum.byName(t._2),
+        labelType = LabelType.valueOf(t._2),
         panoId = t._3,
         panoSource = t._4,
         expired = t._5,
@@ -922,7 +921,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString(),
       r.nextString(),
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
-      LabelTypeEnum.byName(r.nextString()),
+      LabelType.valueOf(r.nextString()),
       r.nextIntOption(),
       r.nextStringOption(),
       r.nextStringOption().map(ValidationOption.withName), // userValidation
@@ -1004,7 +1003,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextDurationOption(),
       r.nextDurationOption(),
       // Read by position, so this must follow the column order getOverallStatsForApi writes.
-      LabelTypeEnum.ordered.map { lt =>
+      LabelType.ordered.map { lt =>
         lt.name -> LabelSevStats(r.nextInt(), r.nextIntOption(), r.nextDoubleOption(), r.nextDoubleOption())
       }.toMap, {
         // Read the combined/human/ai validation breakdowns in the exact order getOverallStatsForApi emits them: for
@@ -1060,9 +1059,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .result
       .map { labelCounts =>
         // Put data into LabelCount objects, and add an entry for any nonexistent label types with count=0.
-        val countsByType: Seq[LabelCount] = labelTypeNames.map { labelType =>
+        val countsByType: Seq[LabelCount] = LabelType.orderedNames.map { labelType =>
           LabelCount(labelCounts.find(_._1 == labelType).map(_._2).getOrElse(0), timeInterval, labelType)
-        }.toSeq
+        }
 
         // Create an "All" entry that sums all the counts.
         countsByType ++ Seq(LabelCount(labelCounts.map(_._2).sum, timeInterval, "All"))
@@ -1480,7 +1479,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       viewer: PanoSource,
       unvalidatedOnly: Boolean,
       queues: Seq[ValidationQueuePolicy.ValidationQueue],
-      requiredLabelType: Option[LabelTypeEnum.Base],
+      requiredLabelType: Option[LabelType],
       filter: ValidationLabelFilter
   ): DBIO[Seq[LabelTypeValidationsLeft]] = {
     val servable = servableLabels(userId, viewer, unvalidatedOnly, filter)
@@ -1496,7 +1495,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       }
       .result
 
-    val triageByType: DBIO[Map[LabelTypeEnum.Base, Int]] =
+    val triageByType: DBIO[Map[LabelType, Int]] =
       if (!queues.contains(ValidationQueuePolicy.ValidationQueue.Triage)) DBIO.successful(Map.empty)
       else
         servable
@@ -1511,7 +1510,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     val canServeNoSidewalkFromNeedsVotes: Boolean =
       queues.contains(ValidationQueuePolicy.ValidationQueue.NeedsVotes) &&
-        requiredLabelType.forall(_ == LabelTypeEnum.NoSidewalk)
+        requiredLabelType.forall(_ == LabelType.NoSidewalk)
     val facesNeedingVotes: DBIO[Option[Int]] =
       if (canServeNoSidewalkFromNeedsVotes)
         countNoSidewalkFacesNeedingVotes(userId, viewer, unvalidatedOnly, filter).map(Some(_))
@@ -1527,7 +1526,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         available,
         needsVotes,
         triage.getOrElse(labType, 0),
-        if (labType == LabelTypeEnum.NoSidewalk) faces else None
+        if (labType == LabelType.NoSidewalk) faces else None
       )
     }
   }
@@ -1554,7 +1553,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     Seq
   ] = {
     val sidedNoSidewalk = for {
-      _lb <- labels if _lb.labelType === (LabelTypeEnum.NoSidewalk: LabelTypeEnum.Base)
+      _lb <- labels if _lb.labelType === LabelType.NoSidewalk
       _lp <- labelPoints if _lb.labelId === _lp.labelId && _lp.streetSide.isDefined
     } yield (_lb, _lp.streetSide, isAiLabeler(_lb))
 
@@ -1611,7 +1610,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   ): DBIO[Int] = {
     val sidedServable = for {
       _lb <- servableLabels(userId, viewer, unvalidatedOnly, filter)
-      if _lb.labelType === (LabelTypeEnum.NoSidewalk: LabelTypeEnum.Base) && ValidationQueuePolicy.needsVotes(_lb)
+      if _lb.labelType === LabelType.NoSidewalk && ValidationQueuePolicy.needsVotes(_lb)
       _lp <- labelPoints if _lb.labelId === _lp.labelId && _lp.streetSide.isDefined
     } yield (_lb.streetEdgeId, _lp.streetSide)
 
@@ -1672,7 +1671,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def retrieveLabelListForValidationQuery(
       userId: String,
       viewer: PanoSource,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       queue: ValidationQueuePolicy.ValidationQueue,
       includeAiTags: Boolean = true,
       filter: ValidationLabelFilter,
@@ -1722,7 +1721,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     // NoSidewalk's score reads the block face's evidence, so only its query joins the face subquery; every other type
     // is scored from the label alone.
     val _labelInfoScored = {
-      if (labelType == LabelTypeEnum.NoSidewalk)
+      if (labelType == LabelType.NoSidewalk)
         _labelInfoInQueue
           .joinLeft(noSidewalkFaceEvidence)
           .on { case ((l, lp, _, _, _, _, _, _, _, _), face) =>
@@ -1829,7 +1828,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getGalleryLabelsQuery(
       viewer: PanoSource,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       loadedLabelIds: Set[Int],
       valOptions: Set[String],
       regionIds: Set[Int],
@@ -2055,7 +2054,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    */
   def getValidatedLabelsForUserQuery(
       userId: String,
-      labelType: LabelTypeEnum.Base
+      labelType: LabelType
   ): Query[LabelMetadataUserDashTupleRep, LabelMetadataUserDashTuple, Seq] = {
     // Attach comments to validations using a left join.
     val _validationsWithComments = labelValidations
@@ -2667,7 +2666,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
 
     // (e) Count and rating stats per label type, in the order projectSidewalkStatsConverter reads them. Unrated types
     // have no ratings to summarize, so their rating columns are NULL.
-    val sevStatCols: Seq[(String, String)] = LabelTypeEnum.ordered.flatMap { lt =>
+    val sevStatCols: Seq[(String, String)] = LabelType.ordered.flatMap { lt =>
       val col        = lt.name.toLowerCase
       val isType     = s"label.label_type = '${lt.name}'"
       val ratingCols = Seq(
@@ -2912,7 +2911,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   def getLabelsToValidateWithAi(n: Int, labelId: Option[Int] = None): DBIO[Seq[LabelDataForAi]] = {
     val possibleLabels = labels
       .filterOpt(labelId)(_.labelId === _)
-      .filter(_.labelType inSet LabelTypeEnum.aiLabelTypes)
+      .filter(_.labelType inSet LabelType.aiLabelTypes)
       .join(userRoles)
       .on(_.userId === _.userId)
       .filter { case (l, ur) => ur.role =!= Role.Ai } // No labels created by AI

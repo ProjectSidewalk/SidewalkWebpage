@@ -1,6 +1,6 @@
 package service
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.user.SidewalkUserTable
 import models.utils.MyPostgresProfile.api._
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -50,10 +50,10 @@ class AiSeedRowsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBa
         missions <- aiMissions
       } yield (first, second, statRow, missions))
 
-      first mustBe AiSeedRows(statRowInserted = true, LabelTypeEnum.ordered)
+      first mustBe AiSeedRows(statRowInserted = true, LabelType.ordered)
       second mustBe AiSeedRows(statRowInserted = false, Seq.empty)
       statRow mustBe Seq((true, Some(true), false))
-      missions.map(_._1) mustBe LabelTypeEnum.orderedNames
+      missions.map(_._1) mustBe LabelType.orderedNames
       missions.map(m => (m._2, m._3, m._4)).distinct mustBe Seq((Some(1), Some(0), false))
     }
 
@@ -65,9 +65,9 @@ class AiSeedRowsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBa
         labelTypes <- aiMissions.map(_.map(_._1))
       } yield (healed, labelTypes))
 
-      healed mustBe AiSeedRows(statRowInserted = false, Seq(LabelTypeEnum.Signal, LabelTypeEnum.Occlusion))
+      healed mustBe AiSeedRows(statRowInserted = false, Seq(LabelType.Signal, LabelType.Occlusion))
       // Distinct: CI's seed adds a second CurbRamp mission for the AI, which the heal rightly leaves alone.
-      labelTypes.distinct.sorted mustBe LabelTypeEnum.orderedNames.sorted
+      labelTypes.distinct.sorted mustBe LabelType.orderedNames.sorted
     }
   }
 }

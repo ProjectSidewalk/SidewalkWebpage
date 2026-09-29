@@ -2,7 +2,7 @@ package formats.json
 
 import formats.json.PanoFormats.{panoSourceReads, PanoDate}
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
-import models.label.{ComputationMethod, LabelPointTable}
+import models.label.{ComputationMethod, LabelPointTable, LabelType}
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.street.StreetEdgePriority
@@ -58,7 +58,7 @@ object ExploreFormats {
   case class LabelSubmission(
       panoId: String,
       panoSource: PanoSource,
-      labelType: String,
+      labelType: LabelType,
       deleted: Boolean,
       severity: Option[Int],
       description: Option[String],
@@ -131,7 +131,7 @@ object ExploreFormats {
 
   // Includes a list of labels found on a single panorama.
   case class AiLabelsSubmission(
-      labelType: String,
+      labelType: LabelType,
       modelId: String,
       modelTrainingDate: String,
       apiVersion: String,
@@ -337,7 +337,7 @@ object ExploreFormats {
   implicit val labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "pano_id").read[String] and
       (JsPath \ "pano_source").read[PanoSource.Value] and
-      (JsPath \ "label_type").read[String] and
+      (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "deleted").read[Boolean] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "description").readNullable[String] and
@@ -406,7 +406,7 @@ object ExploreFormats {
   )(AiLabelDetection.apply _)
 
   implicit val aiLabelSubmissionReads: Reads[AiLabelsSubmission] = (
-    (JsPath \ "label_type").read[String] and
+    (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "model_id").read[String] and
       (JsPath \ "model_training_date").read[String] and
       (JsPath \ "api_version").read[String] and

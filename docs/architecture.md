@@ -509,9 +509,9 @@ canonical color table and icon locations.
 
 Each type carries two independent domain facts, both published by that endpoint:
 
-- **access impact** (`LabelTypeEnum.AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
+- **access impact** (`AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
   that helps), or `neutral` (Occlusion and Other). This drives framing and copy.
-- **rating scale** (`LabelTypeEnum.RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
+- **rating scale** (`RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
   (1 is low, 3 is high), or `unrated` for a type whose labels never carry a 1–3 rating. Anything that *reads* a
   label's severity branches on this.
 

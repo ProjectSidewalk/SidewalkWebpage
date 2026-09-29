@@ -1,5 +1,5 @@
 @import controllers.helper.ControllerUtils
-@import models.label.LabelTypeEnum
+@import models.label.LabelType
 @import models.pano.ImageryAttribution
 @import models.utils.PanoScoring
 @import play.api.libs.json.Json
@@ -90,11 +90,11 @@
        the live viewer name the same licence the same way. PanoramaxViewer shows an identifier it can't find here
        verbatim, so a page that never stamps this (jsdom, the error pages) degrades rather than breaks. *@
     <script>window.panoramaxLicenses = @Html(ImageryAttribution.panoramaxLicensesJson);</script>
-    @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelTypeEnum
+    @* The label-type table, in canonical order — colour, access impact, rating scale, primary flags. LabelType
        owns it; utilitiesSidewalk.js builds every label-type lookup from this rather than keeping a parallel set of
        literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
        that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
-    <script>window.labelTypes = @Html(LabelTypeEnum.pageStampJson);</script>
+    <script>window.labelTypes = @Html(LabelType.pageStampJson);</script>
     <script src='@assets.path("js/common/utilities.js")'></script>
     <script src='@assets.path("js/common/utilitiesMath.js")'></script>
     <script src='@assets.path("js/common/i18nDom.js")'></script>
