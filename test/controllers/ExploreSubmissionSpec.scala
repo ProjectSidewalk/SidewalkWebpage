@@ -365,6 +365,16 @@ class ExploreSubmissionSpec
       (contentAsJson(resp) \ "status").as[String] mustBe "Error"
     }
 
+    "400 a label whose type isn't one we know, and write nothing" in {
+      val session  = freshAnonSession()
+      val b        = fetchExploreBootstrap(session)
+      val tempId   = 777009
+      val badLabel = labelJson(tempId, b, b.missionType == "auditOnboarding") + ("label_type" -> JsString("NotAType"))
+
+      status(postTask(session, submission(b, labels = Seq(badLabel)))) mustBe BAD_REQUEST
+      labelRows(b.userId, tempId) mustBe empty
+    }
+
     "write audit_task, label, and label_point rows and echo the temp-to-permanent label id mapping" in {
       val session  = freshAnonSession()
       val b        = fetchExploreBootstrap(session)

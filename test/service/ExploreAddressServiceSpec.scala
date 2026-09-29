@@ -3,7 +3,7 @@ package service
 import formats.json.ExploreFormats._
 import formats.json.MissionFormats._
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
-import models.label.{LabelHistoryTableDef, LabelPointTableDef, LabelTableDef}
+import models.label.{LabelHistoryTableDef, LabelPointTableDef, LabelTableDef, LabelType}
 import models.mission.{Mission, MissionTableDef, MissionType}
 import models.pano.{PanoDataTableDef, PanoSource}
 import models.region.RegionCompletionTableDef
@@ -214,7 +214,7 @@ class ExploreAddressServiceSpec
     LabelSubmission(
       panoId = specPanoId,
       panoSource = PanoSource.Gsv,
-      labelType = "Obstacle",
+      labelType = LabelType.Obstacle,
       deleted = false,
       severity = Some(1),
       description = None,

@@ -703,7 +703,7 @@ class ExploreServiceImpl @Inject() (
           missionId = missionId,
           userId = userId,
           panoId = label.panoId,
-          labelType = LabelType.valueOf(label.labelType),
+          labelType = label.labelType,
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
           timeCreated = timeCreated,
@@ -731,8 +731,7 @@ class ExploreServiceImpl @Inject() (
       )
       _ <- labelPointTable.computeCenterlineOffset(newLabelPointId, calculatedStreetEdgeId)
     } yield {
-      NewLabelData(newLabelId, label.temporaryLabelId, LabelType.byName(label.labelType), label.panoSource,
-        label.tutorial, timeCreated)
+      NewLabelData(newLabelId, label.temporaryLabelId, label.labelType, label.panoSource, label.tutorial, timeCreated)
     }
   }
 
@@ -1004,12 +1003,11 @@ class ExploreServiceImpl @Inject() (
           // Insert any labels.
           val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
             data.labels.map { (label: LabelSubmission) =>
-              val labelType: LabelType = LabelType.valueOf(label.labelType)
               labelTable.find(label.temporaryLabelId, userId).flatMap {
                 case Some(existingLabel) =>
                   // If there is already a label with this temp id but a mismatched label type, the user probably has the
                   // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
-                  if (existingLabel.labelType != labelType) {
+                  if (existingLabel.labelType != label.labelType) {
                     refreshPage = true
                     DBIO.successful(None)
                   } else {

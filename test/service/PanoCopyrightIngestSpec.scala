@@ -45,7 +45,7 @@ class PanoCopyrightIngestSpec extends SidewalkSpec with BeforeAndAfterAll with G
   /** A pano block as the AI labeler sends it, with the copyright it composes. */
   private def submission(panoId: String, source: PanoSource.Value, copyright: String): AiLabelsSubmission =
     AiLabelsSubmission(
-      labelType = "CurbRamp",
+      labelType = models.label.LabelType.CurbRamp,
       modelId = "test",
       modelTrainingDate = "01-01-2026",
       apiVersion = "test",

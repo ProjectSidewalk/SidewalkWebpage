@@ -199,20 +199,18 @@ class ImageController @Inject() (
   def getCropImageMetadata(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     if (!refererAllowed(request)) {
       Future.successful(Forbidden("Request origin not allowed."))
-    } else if (!LabelType.labelTypeNames.contains(labelType)) {
-      Future.successful(
-        BadRequest(
-          s"Invalid label type provided: $labelType. Valid label types are: ${LabelType.labelTypeNames.mkString(", ")}."
-        )
-      )
     } else {
-      panoDataService.cropUrl(labelId, LabelType.byName(labelType)) match {
-        case Some(url) =>
+      LabelType.byName.get(labelType).map(panoDataService.cropUrl(labelId, _)) match {
+        case None            => Future.successful(BadRequest(invalidLabelTypeMessage(labelType)))
+        case Some(None)      => Future.successful(NotFound(s"No crop image found for label: $labelId"))
+        case Some(Some(url)) =>
           cropService.cropMarker(labelId).map(m => Ok(LabelFormats.cropImagePayload(labelId, labelType, url, m)))
-        case None => Future.successful(NotFound(s"No crop image found for label: $labelId"))
       }
     }
   }
+
+  private def invalidLabelTypeMessage(labelType: String): String =
+    s"Invalid label type provided: $labelType. Valid label types are: ${LabelType.orderedNames.mkString(", ")}."
 
   /**
    * Serves a previously-saved crop image for a label.
@@ -223,12 +221,7 @@ class ImageController @Inject() (
   def serveCropImage(labelType: String, labelId: Int) = cc.securityService.UserAwareAction { implicit request =>
     val earlyReject =
       if (!refererAllowed(request)) Some(Forbidden("Request origin not allowed."))
-      else if (!LabelType.labelTypeNames.contains(labelType))
-        Some(
-          BadRequest(
-            s"Invalid label type provided: $labelType. Valid label types are: ${LabelType.labelTypeNames.mkString(", ")}."
-          )
-        )
+      else if (!LabelType.labelTypeNames.contains(labelType)) Some(BadRequest(invalidLabelTypeMessage(labelType)))
       else verifySignature(request, s"/cropImage/$labelType/$labelId")
 
     earlyReject match {

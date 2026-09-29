@@ -331,7 +331,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
     AccessScoreCalculator.typeWeights.foreach { case (typeName, weight) =>
       val impact = LabelType.byName(typeName).accessImpact
-      withClue(s"$typeName is a $impact but weighs ${weight.baseWeight}: ") {
+      withClue(s"$typeName is a ${impact.name} but weighs ${weight.baseWeight}: ") {
         if (impact == AccessImpact.Problem) weight.baseWeight should be < 0.0 else weight.baseWeight should be > 0.0
       }
     }

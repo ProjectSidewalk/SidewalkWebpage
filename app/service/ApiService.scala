@@ -186,7 +186,7 @@ trait ApiService {
    * Gets all label types and transforms them into LabelTypeForApi objects, including icon paths and colors.
    *
    * @param lang The language to use for the localized display name and description
-   * @return A future containing a set of label type details
+   * @return Every label type's details, in canonical order
    */
   def getLabelTypes(lang: Lang): Seq[LabelTypeForApi]
 

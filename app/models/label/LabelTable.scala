@@ -657,7 +657,7 @@ object LabelTable {
     new TupleConverter[LabelMetadataUserDashTuple, LabelMetadataUserDash] {
       def fromTuple(t: LabelMetadataUserDashTuple): LabelMetadataUserDash =
         LabelMetadataUserDash(t._1, t._2, t._3, t._4, t._5, POV.apply.tupled(t._6), t._7, t._8, t._9, t._10,
-          LabelType.byName(t._11), t._12, t._13)
+          LabelType.valueOf(t._11), t._12, t._13)
     }
 
   /**
@@ -691,7 +691,7 @@ object LabelTable {
     new TupleConverter[LabelValidationMetadataTuple, LabelValidationMetadata] {
       def fromTuple(t: LabelValidationMetadataTuple): LabelValidationMetadata = LabelValidationMetadata(
         labelId = t._1,
-        labelType = LabelType.byName(t._2),
+        labelType = LabelType.valueOf(t._2),
         panoId = t._3,
         panoSource = t._4,
         expired = t._5,
@@ -921,7 +921,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextString(),
       r.nextString(),
       OffsetDateTime.ofInstant(r.nextTimestamp().toInstant, ZoneOffset.UTC),
-      LabelType.byName(r.nextString()),
+      LabelType.valueOf(r.nextString()),
       r.nextIntOption(),
       r.nextStringOption(),
       r.nextStringOption().map(ValidationOption.withName), // userValidation
@@ -1059,9 +1059,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .result
       .map { labelCounts =>
         // Put data into LabelCount objects, and add an entry for any nonexistent label types with count=0.
-        val countsByType: Seq[LabelCount] = LabelType.labelTypeNames.map { labelType =>
+        val countsByType: Seq[LabelCount] = LabelType.orderedNames.map { labelType =>
           LabelCount(labelCounts.find(_._1 == labelType).map(_._2).getOrElse(0), timeInterval, labelType)
-        }.toSeq
+        }
 
         // Create an "All" entry that sums all the counts.
         countsByType ++ Seq(LabelCount(labelCounts.map(_._2).sum, timeInterval, "All"))

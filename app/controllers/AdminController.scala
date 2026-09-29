@@ -6,6 +6,7 @@ import formats.json.AdminFormats._
 import formats.json.LabelFormats._
 import formats.json.UserFormats._
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
+import models.api.ApiModelUtils
 import models.label.{LabelDeletion, LabelType}
 import models.user.Role
 import models.utils.JobRunTrigger
@@ -467,10 +468,10 @@ class AdminController @Inject() (
    * @return A signed image URL, or None for items without a previewable label (e.g. comments).
    */
   private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
-    (item.labelId, item.labelType) match {
-      case (Some(id), Some(labelType)) if LabelType.labelTypeNames.contains(labelType) =>
+    (item.labelId, item.labelType.flatMap(LabelType.byName.get)) match {
+      case (Some(id), Some(labelType)) =>
         panoDataService
-          .cropUrl(id, LabelType.byName(labelType))
+          .cropUrl(id, labelType)
           .orElse(metaById.get(id).flatMap { m =>
             panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
               m.canvasHeight)
@@ -704,9 +705,7 @@ class AdminController @Inject() (
         // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
         val byLabelType = JsObject(
           sc.byLabelType.toSeq
-            .sortBy { case (labelType, _) =>
-              LabelType.orderedNames.indexOf(labelType)
-            }
+            .sorted(ApiModelUtils.labelTypeOrdering)
             .map { case (labelType, s) =>
               labelType -> Json.obj(
                 "labels"    -> s.labels,

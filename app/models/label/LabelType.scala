@@ -120,7 +120,7 @@ object LabelType {
 
   val primaryLabelTypes: Set[LabelType] =
     Set(CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, NoSidewalk, Crosswalk, Signal)
-  val primaryLabelTypeNames: Set[String] = primaryLabelTypes.map(_.name)
+  val primaryLabelTypeNames: Seq[String] = ordered.filter(primaryLabelTypes.contains).map(_.name)
 
   // Label types that can be judged from a single static image. Signal is excluded: labelers place it at the base of
   // the signal pole, so confirming a real pedestrian signal means panning up — impossible without a pano viewer.
