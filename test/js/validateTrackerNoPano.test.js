@@ -65,3 +65,39 @@ describe('Tracker before the first pano loads', () => {
         expect(action).toMatchObject({ pano_id: 'pano-1', lat: 40.9, lng: -74.0, heading: 10, pitch: 2, zoom: 1 });
     });
 });
+
+describe('Tracker before the mission exists', () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+        delete global.svv;
+    });
+
+    /** A mission container reporting one mission, as MissionContainer does once Main has created it. */
+    function missionContainerWith(missionId) {
+        return { getCurrentMission: () => ({ getProperty: (key) => (key === 'missionId' ? missionId : undefined) }) };
+    }
+
+    test('an action pushed before the mission container exists is filed under the mission at drain time', () => {
+        global.svv = { panoManager: null, panoViewer: null, missionContainer: null, form: {} };
+        const tracker = new Tracker();
+        tracker.push('Viewer_Pannellum');
+        expect(tracker.getActions()[0].mission_id).toBeNull();
+
+        global.svv.missionContainer = missionContainerWith(42);
+        tracker.push('MissionStart');
+        expect(tracker.getActions().map((a) => a.mission_id)).toEqual([42, 42]);
+    });
+
+    test('an action that already names a mission keeps it', () => {
+        global.svv = { panoManager: null, panoViewer: null, missionContainer: missionContainerWith(7), form: {} };
+        const tracker = new Tracker();
+        tracker.push('MissionComplete');
+        global.svv.missionContainer = missionContainerWith(8);
+        tracker.push('MissionStart');
+        expect(tracker.getActions().map((a) => a.mission_id)).toEqual([7, 8]);
+    });
+});

@@ -69,7 +69,21 @@ class Tracker {
     };
   }
 
+  /**
+   * The buffered actions, ready to submit.
+   *
+   * An action pushed during init lands before the mission container exists (the first pano loads first), so it was
+   * created without a mission id. Every such action belongs to the mission the page then started, which is the
+   * current one at the first drain, so it is filled in here rather than left as a row nothing can join to.
+   *
+   * @returns {Array<object>} The actions, oldest first.
+   */
   getActions() {
+    const currentMission = svv.missionContainer ? svv.missionContainer.getCurrentMission() : null;
+    if (currentMission) {
+      const missionId = currentMission.getProperty('missionId');
+      for (const action of this.#actions) if (action.mission_id === null) action.mission_id = missionId;
+    }
     return this.#actions;
   }
 

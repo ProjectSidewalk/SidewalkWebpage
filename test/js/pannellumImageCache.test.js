@@ -173,6 +173,18 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
         expect(viewer.getPanoId()).toBe('p2');
     });
 
+    test('asking for the pano already shown fetches nothing and reports no prefetch outcome', async () => {
+        const { attempted } = installFakePannellum();
+        const cache = fakeCache({});
+        const viewer = await viewerWith(cache);
+        expect(viewer.lastLoadPrefetched).toBe(false);
+
+        await viewer.loadPano('p1', metadata('p1', NATIVE_URL), { heading: 0, pitch: 0, zoom: 1 });
+
+        expect(attempted).toEqual([NATIVE_URL]);
+        expect(viewer.lastLoadPrefetched).toBeNull();
+    });
+
     test('a next pano that fails even at the smallest copy is still released', async () => {
         const failing = new Set(['blob:p2', `${NEXT_URL}?maxWidth=8192`, `${NEXT_URL}?maxWidth=4096`]);
         installFakePannellum(failing);

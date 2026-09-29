@@ -291,7 +291,11 @@ class PannellumViewer extends PanoViewer {
     const oldSceneId = this.#currentSceneId;
 
     if (panoId === oldSceneId) {
-      // Same pano — update calibration (e.g. if metadata was re-fetched) and reposition.
+      // Same pano — update calibration (e.g. if metadata was re-fetched) and reposition. Nothing is fetched or
+      // decoded, so there is no prefetch outcome to report: without this the previous load's verdict would be
+      // logged a second time (Validate asks for the first label's pano twice at init, once from PanoManager's
+      // own start-up and once from the first render).
+      this.lastLoadPrefetched = null;
       this.#cameraHeading = metadata.cameraHeading || 0;
       this.currPanoData = this.#buildPanoData(panoId, metadata);
       this.setPov(pov);

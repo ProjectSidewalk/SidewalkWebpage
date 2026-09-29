@@ -498,13 +498,15 @@ class PanoManager {
       throw err;
     }
 
+    this.#watchViewerPov(this.#pannellumViewer);
+    svv.panoViewer = this.#pannellumViewer;
+
     // Whether the image was already on the device (#5562): the measure of the prefetch, and of the wait it saved.
+    // Logged once this viewer is the active one, so the row carries the pano it just loaded rather than the
+    // outgoing viewer's — or, on the first load of a page, no pano at all.
     if (typeof this.#pannellumViewer.lastLoadPrefetched === 'boolean') {
       svv.tracker.push('PanoPrefetch', { hit: this.#pannellumViewer.lastLoadPrefetched });
     }
-
-    this.#watchViewerPov(this.#pannellumViewer);
-    svv.panoViewer = this.#pannellumViewer;
     // As #teardownPannellum does on the way back: a viewer only measures its container when told to, and this one
     // has been sitting hidden — since a rotation, in the mobile case, which resized every canvas underneath it.
     svv.panoViewer.resize();
