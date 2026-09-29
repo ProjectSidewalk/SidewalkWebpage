@@ -108,9 +108,8 @@ a comment, never `true`: turning escaping on at a text sink is the bug #5389 fix
 Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
 and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is.
 
-To mark where a long word may break, write a soft hyphen as `\u00AD` in the JSON, never the `&shy;` entity: most
-of our JS writes translations as plain text, where the entity prints literally (`make lint-locales` rejects it). In
-JS, read a label type's name with `util.misc.labelTypeName(type)`.
+Write a soft hyphen as `\u00AD`, never `&shy;`, which prints literally in plain text. Read a label type's name in JS
+with `util.misc.labelTypeName(type)`.
 
 ### Dates
 
