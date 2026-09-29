@@ -104,6 +104,8 @@ case class CommonPageData(
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
     assetDigestsJson: Html,
+    // Every translation file under public/locales/, so i18next only asks for ones that exist (#5570).
+    localeFilesJson: Html,
     // Every language the site offers (play.i18n.langs), so i18next only asks for translation files that exist.
     supportedLanguages: Seq[String]
 ) {
@@ -2335,7 +2337,7 @@ class ConfigServiceImpl @Inject() (
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
         gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
         BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
-        assetManifestService.assetDigestsJson, supportedLanguages)
+        assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson, supportedLanguages)
     }
   }
 }

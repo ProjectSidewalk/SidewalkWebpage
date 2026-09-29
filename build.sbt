@@ -148,8 +148,7 @@ Compile / sourceGenerators += Def.task {
 // AssetManifestService turns into the `window.assetDigests` stamp main.scala.html puts on every page.
 //
 // tools/lint/check-asset-paths.mjs parses this Seq to decide which logical paths `util.assetPath` may name, so keep the
-// literal shape — one quoted prefix per line. `locales` is deliberately absent: i18next-http-backend interpolates its
-// own `loadPath` template, so those URLs never reach the helper.
+// literal shape — one quoted prefix per line.
 val assetManifestPrefixes = Seq(
   "audio",
   "images/badges",
@@ -159,7 +158,8 @@ val assetManifestPrefixes = Seq(
   "images/logos",
   "images/pano-tutorial",
   "images/tutorials",
-  "images/validate"
+  "images/validate",
+  "locales"
 )
 
 // Generate models.utils.AssetInventory: the sorted logical paths of every file under the prefixes above, so the app

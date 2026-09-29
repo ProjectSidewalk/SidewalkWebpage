@@ -37,10 +37,9 @@ class CustomErrorHandler @Inject() (
    */
   private def isApiRequest(request: RequestHeader): Boolean = request.path.startsWith("/v3/api/")
 
-  /** City-specific files the frontend requests in case they exist, then falls back to the generic one (#5366). */
+  /** City-specific tag images the frontend requests in case they exist, then falls back to the generic one (#5366). */
   private def isOptionalCityAsset(path: String): Boolean =
-    (path.startsWith("/assets/locales/") && (path.endsWith("-india.json") || path.endsWith("-zurich.json"))) ||
-      path.startsWith("/assets/images/examples/tags/india/") ||
+    path.startsWith("/assets/images/examples/tags/india/") ||
       path.startsWith("/assets/images/examples/tags/zurich/")
 
   override def onClientError(request: RequestHeader, statusCode: Int, message: String): Future[Result] = {
