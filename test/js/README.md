@@ -64,8 +64,8 @@ Also covered, beyond the api-docs previews:
   scope for the image adjustments panel (#5501). Keys on a slider, and any key while the panel is open, reach no
   shortcut and leave Escape to the panel, which one case proves with the real popover (Escape closes it and focus
   returns to the pill). On a top-left pill (Hide label, Image) only Space is left to the browser: Enter still
-  submits, as from any focused button, while the chevron takes Enter as well; letter shortcuts still fire from a
-  control a mouse click left focused.
+  submits, as from any focused button, while the chevron takes Enter when reached by keyboard (`:focus-visible`);
+  letter shortcuts still fire from a control a mouse click left focused.
 - `validate/src/panorama/PanoControlMenu.js` → `validatePanoControlMenu.test.js` — the chevron that opens the menu
   holding Validate's Image pill (#5501): a click flips `aria-expanded` both ways (the CSS shows the menu from it),
   each flip is logged with the resulting state, and the collapsed indicator toggles the shared active-dot class.

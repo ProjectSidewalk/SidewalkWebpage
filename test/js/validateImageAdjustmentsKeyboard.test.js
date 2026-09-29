@@ -8,10 +8,11 @@
  * controls in the pano's top-left group (Hide label, the chevron and the Image pill in its menu) are a narrower
  * exception: Space is left to the browser, which activates the focused control. Enter still submits from the two
  * pills, as from any focused button on Validate, because closing the panel puts focus back on the Image pill and a
- * validator's next Enter means "submit". The chevron, which nothing ever focuses for the validator, takes Enter as
- * well. The letter shortcuts keep working throughout, since a mouse click leaves focus on the control. These tests
- * pin both boundaries: a regression inside submits or re-labels from a slider, and one outside breaks the shortcuts
- * a validator uses right after clicking a pill.
+ * validator's next Enter means "submit". The chevron takes Enter as well, but only when reached by keyboard
+ * (`:focus-visible`): after a mouse click it submits like any other button. The letter shortcuts keep working
+ * throughout, since a mouse click leaves focus on the control. These tests pin both boundaries: a regression inside
+ * submits or re-labels from a slider, and one outside breaks the shortcuts a validator uses right after clicking a
+ * pill.
  *
  * One case loads the real PanoImageAdjustmentsPopover, to show that Escape from a slider gets through
  * KeyboardManager's window-capture listener to the panel's own handler and actually closes it. jsdom has no Popover
@@ -136,12 +137,35 @@ describe('KeyboardManager image adjustments scope', () => {
             expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
         });
 
-        it.each(['Enter', 'NumpadEnter'])('%s on the chevron opens the menu and does not submit', (code) => {
-            const ev = key(code, chevron());
+        // jsdom reports :focus-visible true for any focused element, so focus() stands for a Tab onto the chevron.
+        it.each(['Enter', 'NumpadEnter'])('%s on a keyboard-focused chevron is left to the browser and does not submit',
+            (code) => {
+                chevron().focus();
+                const ev = key(code, chevron());
 
-            expect(ev.defaultPrevented).toBe(false);
-            expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
-            expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+                expect(ev.defaultPrevented).toBe(false);
+                expect(validationMenuUi.submitButton.click).not.toHaveBeenCalled();
+                expect(window.svv.labelVisibilityControl.hideLabelCard).not.toHaveBeenCalled();
+            });
+
+        it('Enter on a chevron a mouse click focused submits, as from any other clicked button', () => {
+            chevron().focus();
+            // A click leaves :focus-visible false in a browser; jsdom can't tell, so the selector answers as one would.
+            const matches = chevron().matches.bind(chevron());
+            chevron().matches = (sel) => (sel === ':focus-visible' ? false : matches(sel));
+            const ev = key('Enter', chevron());
+
+            expect(ev.defaultPrevented).toBe(true);
+            expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
+        });
+
+        it('Enter on the chevron submits where the browser rejects :focus-visible', () => {
+            chevron().focus();
+            chevron().matches = () => { throw new SyntaxError('unsupported selector'); };
+            const ev = key('Enter', chevron());
+
+            expect(ev.defaultPrevented).toBe(true);
+            expect(validationMenuUi.submitButton.click).toHaveBeenCalledTimes(1);
         });
 
         it('Enter on the hide-label toggle submits, as from any other focused button', () => {
