@@ -308,6 +308,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
             isMobile: () => false,
             lazyIdentityFetch: post,
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.camelToKebab(type)}`),
                 getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
                 getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
                 isPositiveLabelType: () => false,

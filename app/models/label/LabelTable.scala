@@ -20,7 +20,7 @@ import models.label.LabelTable._
 import models.label.LabelTypeEnum._
 import models.mission.MissionTableDef
 import models.pano.PanoSource.PanoSource
-import models.pano.{PanoData, PanoDataTableDef, PanoSource, PanoViewerMetadata}
+import models.pano.{PanoData, PanoDataTable, PanoDataTableDef, PanoSource, PanoViewerMetadata}
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user._
@@ -2698,6 +2698,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       aiComparisons.map { case (name, cond) => s"$prefix$name" -> s"COUNT(CASE WHEN $typeCond$cond THEN 1 END)" }
     }
 
+    // How old the imagery was when each label was placed; NULL (and so skipped) when the pano has no usable date.
+    val ageWhenLabeled =
+      s"(time_created - TO_TIMESTAMP(EXTRACT(epoch from ${PanoDataTable.captureDateSql("pano_data.capture_date")})))"
+
     sql"""
       SELECT '#$launchDate' AS launch_date,
              #${avgRecentLabels.map(avg => s"'$avg'").getOrElse("NULL")} AS avg_timestamp_last_100_labels,
@@ -2811,23 +2815,11 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           SELECT COUNT(*) AS label_count,
                  COUNT(CASE WHEN severity IS NOT NULL THEN 1 END) AS n_with_sev,
                  to_timestamp(AVG(EXTRACT(EPOCH FROM time_created))) AS avg_label_timestamp,
-                 AVG(
-                     CASE
-                         WHEN pano_data.capture_date IS NOT NULL AND pano_data.capture_date <> ''
-                         THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))
-                     END
-                 ) AS avg_age_when_labeled,
+                 AVG(#$ageWhenLabeled) AS avg_age_when_labeled,
                  -- STDDEV operates on seconds, then `* INTERVAL '1 second'` yields an interval so the spread is read as
                  -- a Duration (a standard deviation of dates is a duration/spread, not itself a date).
                  STDDEV(EXTRACT(EPOCH FROM time_created)) * INTERVAL '1 second' AS stddev_label_timestamp,
-                 STDDEV(
-                     EXTRACT(EPOCH FROM (
-                         CASE
-                             WHEN pano_data.capture_date IS NOT NULL AND pano_data.capture_date <> ''
-                             THEN time_created - TO_TIMESTAMP(EXTRACT(epoch from CAST(pano_data.capture_date || '-01' AS DATE)))
-                         END
-                     ))
-                 ) * INTERVAL '1 second' AS stddev_age_when_labeled,
+                 STDDEV(EXTRACT(EPOCH FROM #$ageWhenLabeled)) * INTERVAL '1 second' AS stddev_age_when_labeled,
                  #${subqueryCols(sevStatCols)}
           FROM #${FilteredTables.labels(contributors = contributors)}
           LEFT JOIN pano_data ON label.pano_id = pano_data.pano_id

@@ -117,7 +117,7 @@ class Card {
     else if (param.agree_count + param.disagree_count + param.unsure_count > 0) properties.correctness = 'unsure';
     else properties.correctness = 'unvalidated';
 
-    const labelTypeName = i18next.t(util.camelToKebab(this.getLabelType()));
+    const labelTypeName = util.misc.labelTypeName(this.getLabelType());
 
     labelIcon.src = util.misc.getIconImagePaths(this.getLabelType()).iconImagePath;
     labelIcon.classList.add('label-icon', 'label-icon-gallery');
@@ -453,7 +453,7 @@ class Card {
   updateLabelType(labelType) {
     if (labelType === this.getLabelType()) return;
     this.#properties.label_type = labelType;
-    const labelTypeName = i18next.t(util.camelToKebab(labelType));
+    const labelTypeName = util.misc.labelTypeName(labelType);
     const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
     if (icon) icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     const header = this.#card.querySelector('.card-header__type');

@@ -278,6 +278,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             isMobile: () => false,
             lazyIdentityFetch: saveRequest,
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.camelToKebab(type)}`),
                 getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
                 getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
                 isPositiveLabelType: () => false,

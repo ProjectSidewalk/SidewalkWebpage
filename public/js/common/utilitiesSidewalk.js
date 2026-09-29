@@ -44,6 +44,15 @@ function UtilitiesMisc(JSON) {
     return category ? imagePaths[category] : imagePaths;
   }
 
+  /**
+   * A label type's translated name. Some (the German ones) carry soft hyphens so long words can wrap.
+   * @param {string} labelType - A label type name, e.g. 'SurfaceProblem'.
+   * @returns {string}
+   */
+  function labelTypeName(labelType) {
+    return i18next.t(`common:${util.camelToKebab(labelType)}`);
+  }
+
   // TODO either explain why the translations aren't found programmatically, or make it programmatic.
   function getLabelDescriptions(category) {
     const descriptions = {
@@ -774,6 +783,7 @@ function UtilitiesMisc(JSON) {
 
   self.labelMarkerFraction = labelMarkerFraction;
   self.getIconImagePaths = getIconImagePaths;
+  self.labelTypeName = labelTypeName;
   self.getLabelDescriptions = getLabelDescriptions;
   self.isPositiveLabelType = isPositiveLabelType;
   self.labelTypeHasSeverity = labelTypeHasSeverity;

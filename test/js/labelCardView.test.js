@@ -63,6 +63,7 @@ describe('LabelCardView', () => {
         window.util = {
             camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
                 getIconImagePaths: (type) => ({ iconImagePath: `/icons/${type}.svg` }),
                 // CurbRamp plays the positive type (rated for quality), Obstacle the negative one.
                 getRatingLevelKeys: () => ({ 1: 'level-one', 2: 'level-two', 3: 'level-three' }),

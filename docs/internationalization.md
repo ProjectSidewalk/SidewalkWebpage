@@ -106,8 +106,10 @@ need neither. And if the rule fires on something that is really a text sink, the
 a comment, never `true`: turning escaping on at a text sink is the bug #5389 fixed.
 
 Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
-and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is — the label-type
-names use that, because the German ones carry a `&shy;`.
+and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is.
+
+Write a soft hyphen as `\u00AD`, never `&shy;`, which prints literally in plain text. Read a label type's name in JS
+with `util.misc.labelTypeName(type)`.
 
 ### Dates
 

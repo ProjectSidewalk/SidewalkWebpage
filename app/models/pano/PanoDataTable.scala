@@ -151,6 +151,22 @@ object PanoDataTable {
 
   /** Ids per `markHasBackup` statement: enough to make a night's update a handful of round trips, not thousands. */
   val MarkHasBackupChunk: Int = 1000
+
+  /**
+   * SQL that reads a free-text `capture_date` column as a date, or NULL when the value isn't a usable date. It takes
+   * `YYYY`, `YYYY-MM`, and `YYYY-MM-DD` (missing parts become the 1st). Blank, junk ('Invalid date'), impossible
+   * months, and years before 2004 (when street-level imagery began) give NULL instead of failing the query; an
+   * impossible day like Feb 31 rolls into the next month.
+   *
+   * @param column The capture-date column, written in code (e.g. `pano_data.capture_date`).
+   * @return A SQL date expression to splice into a query with `#$`.
+   */
+  def captureDateSql(column: String): String = {
+    val usable = "'^(200[4-9]|20[1-9][0-9])(-(0?[1-9]|1[0-2])(-(0?[1-9]|[12][0-9]|3[01]))?)?$'"
+    // The n-th dash-separated number in the value, or 1 when the value stops before it.
+    def part(n: Int): String = s"COALESCE(NULLIF(split_part($column, '-', $n), '')::int, 1)"
+    s"(CASE WHEN $column ~ $usable THEN make_date(${part(1)}, ${part(2)}, 1) + (${part(3)} - 1) END)"
+  }
 }
 
 @Singleton
