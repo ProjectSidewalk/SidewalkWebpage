@@ -169,7 +169,7 @@ class PanoImageAdjustmentsPopover {
     return this.#button?.getAttribute('aria-expanded') === 'true';
   }
 
-  /** Opens the panel below the trigger and moves focus to the first slider. */
+  /** Opens the panel on the side of the trigger the placement hook names and moves focus to the first slider. */
   open() {
     if (this.isOpen()) return;
     this.#button.setAttribute('aria-expanded', 'true');
