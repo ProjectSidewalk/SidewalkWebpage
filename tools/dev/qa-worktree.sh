@@ -3,9 +3,9 @@
 # Run an uncommitted git worktree's app on http://localhost:9000 for QA.
 #
 # Runs INSIDE the web container (the main repo is mounted at /home). Invoke via:
-#     make qa-worktree wt=<name>                  # start; from the host - Mac, Linux, or WSL
+#     make qa-worktree wt=<name> [wait=1] [force=1] [purpose="…"]   # start; from the host - Mac, Linux, or WSL
 #     make qa-worktree-stop wt=<name> [clean=1]   # stop; teardown the session started above
-#     bash /home/tools/dev/qa-worktree.sh <name>            # start; from inside the container shell
+#     bash /home/tools/dev/qa-worktree.sh <name> [--wait] [--force]   # start; from inside the container shell
 #     bash /home/tools/dev/qa-worktree.sh <name> --stop     # stop; add --clean to drop the node_modules symlink
 #
 # The make targets run the WORKTREE's copy of this script when it has one, so the branch being QA'd supplies its own
@@ -14,14 +14,16 @@
 #     docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/dev/qa-worktree.sh <name>
 #
 # Handles the worktree-specific setup the plain `npm start` flow doesn't (node_modules,
-# bundles, a backgrounded grunt watch, sbt caches, config.file, thin-client contention).
+# bundles, a backgrounded grunt watch, sbt caches, config.file, thin-client contention). Starting takes the lease on
+# :9000 (tools/dev/lease.sh), so it won't stop another checkout's app while that one is in use; --wait joins the line
+# for it and --force takes it anyway.
 # See docs/dev-environment.md -> "Running a branch from a git worktree".
 #
 set -euo pipefail
 
 WT="${1:-}"
 [ -n "$WT" ] || {
-  echo "usage: qa-worktree <name> [--stop] [--clean]   (a dir under .claude/worktrees/)"
+  echo "usage: qa-worktree <name> [--stop] [--clean] [--wait] [--force]   (a dir under .claude/worktrees/)"
   exit 2
 }
 # Require a bare directory name so $WT can't escape the worktrees dir (e.g. "../..").
@@ -32,10 +34,12 @@ esac
 shift
 MODE="run"
 CLEAN=""
+LEASE_FLAGS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --stop)  MODE="stop" ;;
     --clean) CLEAN="1" ;;
+    --wait | --force) LEASE_FLAGS+=("$1") ;;
     *) echo "error: unknown argument: $1"; exit 2 ;;
   esac
   shift
@@ -44,6 +48,10 @@ done
 command -v pgrep >/dev/null 2>&1 || { echo "error: pgrep not found — install procps in the web container"; exit 1; }
 
 WT_DIR="/home/.claude/worktrees/$WT"
+# A branch older than lease.sh falls back to the main checkout's copy, or leases nothing.
+LEASE_SH="$(dirname "$0")/lease.sh"
+[ -f "$LEASE_SH" ] || LEASE_SH=/home/tools/dev/lease.sh
+lease() { [ ! -f "$LEASE_SH" ] || bash "$LEASE_SH" "$@"; }
 # grunt watch's log lives here (per-worktree) so `make qa-worktree-stop clean=1` can remove it.
 GRUNT_WATCH_LOG="/tmp/qa-worktree-grunt-watch-$WT.log"
 
@@ -72,6 +80,7 @@ fi
 # --- stop mode: tear down the session started by a prior launch, then exit. ------------------------------------
 if [ "$MODE" = "stop" ]; then
   echo "==> stopping worktree QA session: $WT_DIR"
+  lease release app --checkout "$WT_DIR"
   reap_in_worktree TERM 'grunt' "grunt watch"
   reap_in_worktree TERM '~ run' "app on :9000 (~ run)"
   # `make compile`, `make test-scala`, and `make scalafmt` leave sbt running here, so stop that too.
@@ -97,6 +106,9 @@ fi
 # --- run mode: set up and launch the worktree's app. -----------------------------------------------------------
 cd "$WT_DIR"
 echo "==> worktree: $WT_DIR"
+
+# Taken before any setup so a busy :9000 fails (or waits) fast; held until this script, and so the app, exits.
+lease take app --checkout "$WT_DIR" --pid $$ "${LEASE_FLAGS[@]}" || exit 1
 
 # 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. Test for grunt rather than the folder,
 #    so a broken link or a partial install (e.g. only typescript, added by hand) is replaced too.
@@ -143,6 +155,7 @@ fi
 GRUNT_WATCH_PID=""
 cleanup() {
   trap - EXIT INT TERM  # disarm so cleanup runs at most once
+  lease release app --checkout "$WT_DIR" --pid $$
   if [ -n "$GRUNT_WATCH_PID" ] && kill -0 "$GRUNT_WATCH_PID" 2>/dev/null; then
     echo ""
     echo "==> stopping grunt watch (pid $GRUNT_WATCH_PID)"

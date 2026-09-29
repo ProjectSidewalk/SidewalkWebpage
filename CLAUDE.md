@@ -121,6 +121,9 @@ share images and the API's `icon_url` fields only.
 - Most routes need a session: `curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"`
   once, then pass `-b /tmp/sidewalk_cookies.txt`. Admin-role QA and running a worktree's branch
   (`make qa-worktree wt=<name>`): `docs/dev-environment.md`.
+- Other sessions share :9000 and the test DB. When `make qa-worktree` or `make test-e2e` says another checkout holds
+  :9000, rerun with `wait=1` or message the holder it names; never `force=1` without the developer's OK.
+  `make lease-status` shows who holds what (`docs/dev-environment.md` → "Sharing the app and the test database").
 - Inspect the DB read-only: `docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "…"` (never
   `-U sidewalk`). One schema per city (`sidewalk_seattle` is a safe default for schema questions), auth in
   `sidewalk_login`. The active schema is `$DATABASE_USER` in the web container; `readonly_user` may lack rights on

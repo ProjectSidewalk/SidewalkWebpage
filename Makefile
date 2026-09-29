@@ -1,4 +1,5 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
+        lease-status lease-take lease-release \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
@@ -23,11 +24,18 @@ only ?=
 clean ?=
 force ?=
 replace ?=
+wait ?=
+purpose ?=
+res ?=
 
 # `clean=1` (or true/yes) expands to the qa-worktree-stop --clean flag; anything else (incl. empty) expands to nothing.
 qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
 # Same idiom for worktree-remove's `force=1`.
 worktree-force-flag = $(if $(filter 1 true yes,$(force)),--force,)
+# Same idiom for a lease's `wait=1` and `force=1` (tools/dev/lease.sh).
+lease-flags = $(if $(filter 1 true yes,$(wait)),--wait,) $(if $(filter 1 true yes,$(force)),--force,)
+# Who is asking, for the lease: the Claude session (unset in a person's terminal) and an optional `purpose="…"`.
+lease-env = -e CLAUDE_CODE_SESSION_ID -e LEASE_PURPOSE="$(purpose)"
 # Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
 import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
 
@@ -192,10 +200,11 @@ ssh:
 	@docker exec -it $($(target)-container) /bin/bash
 
 # Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/dev/qa-worktree.sh and CLAUDE.md
-# "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
+# "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`. When another checkout holds
+# :9000, `wait=1` waits in line for it and `force=1` takes it anyway.
 qa-worktree:
 	$(worktree-require-wt)
-	@docker exec -it $(web-container) bash -c '$(call qa-worktree-exec,$(wt))'
+	@docker exec -it $(lease-env) $(web-container) bash -c '$(call qa-worktree-exec,$(wt) $(lease-flags))'
 
 # End a qa-worktree session: stop its app, its grunt watch, and any sbt left running there. Add `clean=1` to also
 # drop the node_modules symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or
@@ -210,6 +219,20 @@ qa-worktree-stop:
 worktree-remove:
 	$(worktree-require-wt)
 	@bash tools/dev/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
+
+# Leases on what checkouts share (tools/dev/lease.sh): the app on :9000 (`app`), the Scala test database (`db-tests`),
+# or anything else by name, e.g. `res=browser`. qa-worktree and test-scala take theirs on their own; these are for
+# looking, and for claiming something no target claims. `lease-take` accepts wait=1, force=1 and purpose="…".
+lease-status:
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh status $(res)
+
+lease-take:
+	@[ -n "$(res)" ] || { echo "usage: make lease-take res=<name> [wait=1] [force=1] [purpose=\"…\"]"; exit 2; }
+	@docker exec $(tty-flags) $(lease-env) $(web-container) bash $(self-container-dir)/tools/dev/lease.sh take $(res) --checkout $(container-dir) $(lease-flags)
+
+lease-release:
+	@[ -n "$(res)" ] || { echo "usage: make lease-release res=<name>"; exit 2; }
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh release $(res) --checkout $(container-dir)
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh $(import-users-replace-flag)"
@@ -333,6 +356,9 @@ test-e2e:
 	  || { echo "error: no @playwright/test version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -n "$(axe-version)" ] \
 	  || { echo "error: no @axe-core/playwright version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
+	@[ -n "$(filter 1 true yes,$(force))" ] \
+	  || docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh check app --checkout $(container-dir) \
+	  || { echo "Start this checkout's app with 'make qa-worktree wt=<name> wait=1', or add force=1 to test that app anyway."; exit 1; }
 	@app=$$(docker exec $(web-container) sh -c '$(e2e-app-dir)'); [ -z "$$app" ] || [ "$$app" = "$(container-dir)" ] \
 	  || echo "warning: the app on :9000 is $$app's, not $(container-dir)'s (make qa-worktree wt=<name> serves a worktree)"
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
@@ -424,7 +450,7 @@ compile:
 	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) compile"
 
 test-scala:
-	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
+	@docker exec $(tty-flags) $(lease-env) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
 
 # Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,
 # keeping compiled classes so the next `make compile` is still incremental.
