@@ -19,7 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * signed-in browser signed in until its cookie expired.
  *
  * A cookie doesn't record when it was issued, so that's worked out as its expiry minus `authenticatorExpiry`, which
- * `SilhouetteModule` makes sure every cookie shares.
+ * every cookie shares ("remember me" only changes how long the browser keeps the cookie).
  */
 class RevocableCookieAuthenticatorService(
     settings: CookieAuthenticatorSettings,

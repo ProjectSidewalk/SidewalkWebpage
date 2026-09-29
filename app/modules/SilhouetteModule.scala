@@ -6,6 +6,7 @@ import models.auth.{
   CustomSecuredErrorHandler,
   CustomUnsecuredErrorHandler,
   DefaultEnv,
+  RememberMeSettings,
   RevocableCookieAuthenticatorService
 }
 import net.codingwell.scalaguice.ScalaModule
@@ -129,15 +130,19 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       authenticatorIdleTimeout = Some(c.get[FiniteDuration]("authenticatorIdleTimeout")),
       authenticatorExpiry = c.get[FiniteDuration]("authenticatorExpiry")
     )
-    // RevocableCookieAuthenticatorService works out when a cookie was issued from this one lifetime.
-    val rememberMeExpiry = c.get[FiniteDuration]("rememberMe.authenticatorExpiry")
-    require(
-      rememberMeExpiry == config.authenticatorExpiry,
-      "silhouette.authenticator.authenticatorExpiry and rememberMe.authenticatorExpiry must be equal"
-    )
     val encoder = new CrypterAuthenticatorEncoder(crypter)
     new RevocableCookieAuthenticatorService(config, signer, cookieHeaderEncoding, encoder, fingerprintGenerator,
       idGenerator, clock, authenticationService)
+  }
+
+  /**
+   * Provides the "remember me" settings, so a missing key stops the app at startup instead of at sign-in.
+   * @param configuration The Play configuration.
+   * @return The "remember me" settings.
+   */
+  @Provides
+  def provideRememberMeSettings(configuration: Configuration): RememberMeSettings = {
+    RememberMeSettings(configuration.get[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge"))
   }
 
   /**
