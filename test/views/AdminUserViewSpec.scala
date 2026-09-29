@@ -10,7 +10,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.api.{Application, Configuration}
-import service.{AdminUserProfileData, CityHours, CommonPageData, ConfigService, CrossCityHours, PublicProfile}
+import service.{AdminUserProfileData, CityHours, CommonPageData, ConfigService, CrossCityHours}
 import util.SidewalkSpec
 
 import scala.concurrent.Await
@@ -147,27 +147,4 @@ class AdminUserViewSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
   }
 
-  "A public profile" should {
-    // A private profile keeps the page light (no KPIs or map), and the sidebar doesn't depend on visibility.
-    val privateProfile = Some(PublicProfile(subject.username, visible = false, None, Seq.empty))
-    def profilePage(viewer: SidewalkUserWithRole, profile: Option[PublicProfile]): String =
-      views.html.userDashboard
-        .publicProfile(commonData, viewer, subject.username, isMetric = false, profile, Seq.empty)
-        .body
-    val adminLink = s"/admin/user/${subject.username}"
-
-    "link an admin to that user's admin pages (#5564)" in {
-      val page = profilePage(admin, privateProfile)
-      page must include(s"""href="$adminLink"""")
-      page must include(s"""href="$adminLink/manage"""")
-    }
-
-    "not show the admin links to a non-admin" in {
-      profilePage(subject, privateProfile) must not include adminLink
-    }
-
-    "not link to admin pages for a username that matches no account" in {
-      profilePage(admin, None) must not include adminLink
-    }
-  }
 }

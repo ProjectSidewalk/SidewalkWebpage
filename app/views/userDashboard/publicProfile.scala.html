@@ -1,3 +1,4 @@
+@import controllers.helper.ControllerUtils
 @import controllers.helper.ControllerUtils.distanceUnitWords
 @import service.{CommonPageData, PublicProfile, UserProfileData}
 @import models.user.{Role, SidewalkUserWithRole}
@@ -182,5 +183,5 @@
 @common.main(commonData, s"$profileName — Project Sidewalk", i18Namespaces = Seq("common", "labelmap", "dashboard")) {
   @common.navbar(commonData, Some(user))
   @userDashboard.layout("", isSignedIn = user.role != Role.Anonymous,
-    adminLinkFor = Option.when(profile.isDefined && Role.ADMIN_ROLES.contains(user.role))(profileName))(body)
+    adminLinkFor = profile.map(_.username).filter(_ => ControllerUtils.isAdmin(user)))(body)
 }

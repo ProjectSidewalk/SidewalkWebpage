@@ -15,7 +15,7 @@
 * Manage user pages plus a way back to the admin dashboard's Management page. Admin-only, so English-only.
 *
 * With `adminLinkFor` set (an admin on that user's public profile, #5564), the normal nav gets an extra section
-* linking to that user's admin pages.
+* linking to that user's admin pages. It sits on a public page, so unlike the admin-view nav it is translated.
 *@
 
 @adminSection(username: String) = {
@@ -31,9 +31,11 @@
 }
 
 @adminLinkSection(username: String) = {
-  <div class="page-nav-header">Admin</div>
-  <a href="@routes.UserDashboardController.adminDashboard(username)" class="page-nav-item">Admin view</a>
-  <a href="@routes.UserDashboardController.manageUser(username)" class="page-nav-item">Manage user</a>
+  <div class="page-nav-header">@Messages("navbar.tools.admin")</div>
+  <a href="@routes.UserDashboardController.adminDashboard(username)"
+   class="page-nav-item">@Messages("dashboard.nav.dashboard")</a>
+  <a href="@routes.UserDashboardController.manageUser(username)"
+   class="page-nav-item">@Messages("dashboard.nav.manageuser")</a>
 }
 
 @youSection = {
@@ -65,7 +67,7 @@
     } else {
       @communitySection
       @youSection
+      @adminLinkFor.map(adminLinkSection)
     }
-    @adminLinkFor.map(adminLinkSection)
   </nav>
 </div>
