@@ -1,6 +1,6 @@
 /**
- * The chevron in the pano's top-left corner on desktop Validate and the menu it opens under the hide-label toggle
- * (#5501). The less-used controls (for now, the Image adjustments pill) wait in the menu, as they do under Explore's
+ * The chevron in the pano's top-left corner on desktop Validate and the menu it opens beside the hide-label toggle
+ * (#5501). The less-used controls (for now, the Image adjustments pill) wait in the menu, as they do beside Explore's
  * Stuck button, so the corner over the imagery stays uncluttered. CSS shows the menu from the chevron's
  * `aria-expanded`; this class only flips it, logs the toggle, and badges the chevron while a hidden control is active.
  *

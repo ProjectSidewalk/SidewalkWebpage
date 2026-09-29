@@ -240,7 +240,8 @@ class Main {
           onReset: () => svv.tracker.push('Click_ImageAdjustments_Reset'),
         });
       // The Image pill waits in the chevron's menu, so the chevron carries its active dot while the menu is closed.
-      svv.panoControlMenu = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), svv.tracker);
+      svv.panoControlMenu
+        = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), svv.tracker);
       svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault());
       svv.imageAdjustments.onChange(() =>
         svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault()));

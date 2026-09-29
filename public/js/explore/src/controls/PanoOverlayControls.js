@@ -1,6 +1,6 @@
 /**
  * Handles the compact control buttons overlaid on the top-left of the panorama on the Explore page: the Stuck button
- * and the chevron that opens/closes the menu under it (image, sound, feedback). Other classes run the menu buttons;
+ * and the chevron that opens/closes the menu beside it (image, sound, feedback). Other classes run the menu buttons;
  * this one runs the Stuck button and the chevron.
  */
 class PanoOverlayControls {

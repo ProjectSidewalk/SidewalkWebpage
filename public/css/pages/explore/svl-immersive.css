@@ -150,3 +150,21 @@ body.svl-immersive #minimap-holder {
 body.svl-immersive #compass-message-holder {
   right: calc(var(--sidebar-width) + 36px * var(--ui-scale));
 }
+
+/* Drops below the Stuck row instead of continuing it (svl-canvas.css): in full screen the label-type buttons sit to
+   the right of this corner, and a row would slide under them. */
+body.svl-immersive #explore-control-menu {
+  position: absolute;
+  top: calc(100% + 3px * var(--ui-scale, 1));
+  left: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+body.svl-immersive #explore-control-buttons-toggle .pano-overlay-button-icon {
+  transform: rotate(90deg);
+}
+
+body.svl-immersive #explore-control-buttons-toggle[aria-expanded="true"] .pano-overlay-button-icon {
+  transform: rotate(-90deg);
+}

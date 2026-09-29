@@ -307,7 +307,7 @@ corresponding Twirl view:
   Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
   browser window with the pano; the labeling frame it stores with every label, and why, is in
   [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
-  The Image pill in the menu under Stuck (#3136, `common/PanoImageAdjustments.js` + `PanoImageAdjustmentsPopover.js`)
+  The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` + `PanoImageAdjustmentsPopover.js`)
   lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount — display-only, for the labeler's
   eyes: the mount is a sibling of every overlay, and crops are cut from the provider's raw canvas, so neither the
   label markers nor the stored imagery carry it. Shadows is a gamma curve (an SVG `feComponentTransfer` the model
@@ -317,7 +317,7 @@ corresponding Twirl view:
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
   Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
-  hide-label toggle (`validate/src/panorama/PanoControlMenu.js`), the same arrangement as Explore's under Stuck.
+  hide-label toggle (`validate/src/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
   swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
   the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
