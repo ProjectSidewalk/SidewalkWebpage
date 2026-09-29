@@ -149,6 +149,7 @@ class AppManager {
    *
    * @param {object} params - Properties that determine which translations should be loaded.
    * @param {string} params.language - The language to use for translations, e.g., "en", "en-US", "es", etc.
+   * @param {Array<string>} params.supportedLanguages - Every language the site offers, e.g., ["en", "pt-BR"]
    * @param {string} params.defaultNS - The default namespace to use if no specific ns is provided, e.g., "common"
    * @param {Array<string>} params.namespaces - An array of namespaces to load, e.g., ["common", "explore"]
    * @param {string} params.countryId - The server's country ID to determine if we load country-specific overrides
@@ -169,18 +170,17 @@ class AppManager {
     return i18next.use(i18nextHttpBackend).init({
       backend: {
         // The one hardcoded '/assets/' URL in the codebase, allowlisted in tools/lint/check-asset-paths.mjs: this is a
-        // template i18next-http-backend interpolates itself (and joins several namespaces into with
-        // allowMultiLoading), not a URL we build, so it can't go through util.assetPath. The 404s an absent
-        // country-override namespace produces are load-bearing — test/e2e/fixtures.js allowlists them (#4893).
+        // template i18next-http-backend interpolates itself, not a URL we build, so it can't go through
+        // util.assetPath. The 404s an absent country-override namespace produces are load-bearing —
+        // test/e2e/fixtures.js allowlists them (#4893).
         loadPath: '/assets/locales/{{lng}}/{{ns}}.json',
-        allowMultiLoading: true,
       },
       fallbackLng: 'en',
+      // Stops i18next asking for languages we don't have: for pt-BR it would otherwise also try plain "pt".
+      supportedLngs: params.supportedLanguages,
       ns: namespaces,
       defaultNS: params.defaultNS,
       lng: params.language,
-      partialBundledLanguages: true,
-      debug: false,
       interpolation: {
         // Every string may write {{unitName}}, {{unitAbbr}}, … and get this reader's units with no argument at the
         // call site, so there is nothing a caller can forget and no metric/imperial pair of keys to keep in sync.
@@ -199,10 +199,10 @@ class AppManager {
       // whose namespaces failed should still render its distances converted and labeled rather than as raw meters.
       this._addDistanceFormatter();
 
-      // Ignore errors loading translations, but log any other errors.
-      if (err && err.filter((e) => !e.includes('status code: 404')).length > 0) {
-        return console.error(err.filter((e) => !e.includes('status code: 404')));
-      }
+      // Ignore errors loading translations, but log any other errors. Most arrive as text, but a request cut short
+      // arrives as an Error object.
+      const realErrors = (err || []).filter((e) => !String(e).includes('status code: 404'));
+      if (realErrors.length > 0) return console.error(realErrors);
 
       // After loading, merge the country-specific override namespaces into the base ones.
       // Going through list of languages so that we still get the en translations when using en-US.

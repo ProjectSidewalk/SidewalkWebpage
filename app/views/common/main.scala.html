@@ -51,8 +51,8 @@
     @extraHead
     @* Deferred: i18next is only touched from AppManager's DOM-ready callback, which runs after deferred scripts
        execute, so these don't need to block HTML parsing. *@
-    <script src='@assets.path("vendor/i18next/i18next-23.16.8.min.js")' defer></script>
-    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-3.0.6.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next/i18next-26.4.2.min.js")' defer></script>
+    <script src='@assets.path("vendor/i18next-http-backend/i18nextHttpBackend-4.0.2.min.js")' defer></script>
     <link rel="icon" type="image/png" href='@assets.path("images/favicon.png")'>
 
     <script>
@@ -108,6 +108,7 @@
         const csrfToken = "@CSRF.getToken.map(_.value)";
         const i18nextParams = {
           language: "@messages.lang.code",
+          supportedLanguages: @Html(Json.stringify(Json.toJson(commonData.supportedLanguages))),
           defaultNS: "@defaultI18nNamespace",
           namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
           countryId: "@currentCity.countryId",

@@ -103,7 +103,9 @@ case class CommonPageData(
     volunteerSupervisor: String,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
-    assetDigestsJson: Html
+    assetDigestsJson: Html,
+    // Every language the site offers (play.i18n.langs), so i18next only asks for translation files that exist.
+    supportedLanguages: Seq[String]
 ) {
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
@@ -2323,16 +2325,17 @@ class ConfigServiceImpl @Inject() (
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
       prodUrl: String           = config.get[String](s"city-params.landing-page-url.prod.$cityId")
       imageryAccess: ImageryAccessToken <- getImageryAccessToken
-      gMapsApiKey: String         = config.get[String]("google-maps-api-key")
-      mapboxApiKey: String        = config.get[String]("mapbox-api-key")
-      allCityInfo: Seq[CityInfo]  = getAllCityInfo(lang)
-      volunteerEmail: String      = config.get[String]("volunteer-email-address")
-      volunteerSupervisor: String = config.get[String]("volunteer-supervisor-name")
+      gMapsApiKey: String             = config.get[String]("google-maps-api-key")
+      mapboxApiKey: String            = config.get[String]("mapbox-api-key")
+      allCityInfo: Seq[CityInfo]      = getAllCityInfo(lang)
+      volunteerEmail: String          = config.get[String]("volunteer-email-address")
+      volunteerSupervisor: String     = config.get[String]("volunteer-supervisor-name")
+      supportedLanguages: Seq[String] = config.get[Seq[String]]("play.i18n.langs")
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
         gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
         BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
-        assetManifestService.assetDigestsJson)
+        assetManifestService.assetDigestsJson, supportedLanguages)
     }
   }
 }
