@@ -181,7 +181,7 @@ class LandingValidationGrid {
     // for every engaged visitor rather than only the ones who scroll two-thirds down the page.
     const freeToWarm = entry.cropUrl && !util.saveDataEnabled();
     img.loading = freeToWarm && index < LandingValidationGrid.#visibleCardCount() ? 'eager' : 'lazy';
-    img.alt = i18next.t(`common:${typeKebab}`).replaceAll('&shy;', '');
+    img.alt = util.misc.labelTypeName(label.label_type);
     // Set once the overlays are on the card, below; the error handler fires on a later event, so it exists by then.
     let creditImage = null;
     img.addEventListener('error', () => {
@@ -235,7 +235,7 @@ class LandingValidationGrid {
     question.innerHTML = i18next.t(`validate:top-ui.title.${typeKebab}`);
     questionRow.appendChild(question);
     this.#attachTypeTooltip(questionRow, question, label, typeKebab);
-    questionRow.appendChild(this.#buildShareChip(label, typeKebab));
+    questionRow.appendChild(this.#buildShareChip(label));
     body.appendChild(questionRow);
 
     const actions = document.createElement('div');
@@ -260,10 +260,9 @@ class LandingValidationGrid {
    * problematic can pass it along, straight from the landing page.
    *
    * @param {Record<string, any>} label - The card's label from /label/labels.
-   * @param {string} typeKebab - The label type in kebab-case (e.g. 'curb-ramp'), as used in locale keys.
    * @returns {HTMLElement}
    */
-  #buildShareChip(label, typeKebab) {
+  #buildShareChip(label) {
     // .label-detail__share supplies the popover's positioning anchor; .lvg-share pushes the chip to the row's end.
     if (typeof ShareWidget === 'undefined') { // Grid still works if the share script failed to load.
       const wrap = document.createElement('span');
@@ -279,7 +278,7 @@ class LandingValidationGrid {
 
     const widget = new ShareWidget(trigger, { host: wrap });
     // The title feeds the native sheet and the email subject, so it carries the descriptive text, not "Share".
-    const typeName = i18next.t(`common:${typeKebab}`).replaceAll('&shy;', '');
+    const typeName = util.misc.labelTypeName(label.label_type);
     const shareText = i18next.t('common:share.text', { labelType: typeName });
     widget.setTarget({
       url: `${window.location.origin}/label/${label.label_id}`,

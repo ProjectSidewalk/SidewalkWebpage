@@ -675,7 +675,7 @@ class Label {
    * @returns {string}
    */
   static minimapMarkerTitle(labelType, era) {
-    const labelTypeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replaceAll('&shy;', '');
+    const labelTypeName = util.misc.labelTypeName(labelType);
     const key = {
       current: 'audit:right-ui.minimap.label-marker-title',
       prior: 'audit:right-ui.minimap.label-marker-title-prior',

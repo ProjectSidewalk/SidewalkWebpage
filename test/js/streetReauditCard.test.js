@@ -49,7 +49,10 @@ describe('the street re-audit hover card', () => {
         window.i18next = { language: 'en', t: (key) => key };
         window.util = {
             camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase(),
-            misc: { getIconImagePaths: (type) => ({ iconImagePath: `/assets/icons/${type}_small.svg` }) },
+            misc: {
+                getIconImagePaths: (type) => ({ iconImagePath: `/assets/icons/${type}_small.svg` }),
+                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
+            },
         };
         installDateHelpers();
         // A Popup stub that renders into the document the way Mapbox does, so :hover and listeners are testable.

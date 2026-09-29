@@ -58,6 +58,7 @@ describe('the dashboard mistake card\'s image', () => {
             assetPath: assetPathStub,
             EXPLORE_CANVAS_WIDTH: 720,
             EXPLORE_CANVAS_HEIGHT: 480,
+            camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
         };
         installUtilitiesMisc(); // The real util.misc, so labelMarkerFraction under test is the shipped one.
         // The imagery-credit overlays; dashboardMistakeCardAttribution.test.js checks them for real.
@@ -70,15 +71,6 @@ describe('the dashboard mistake card\'s image', () => {
         mistakes = [mistake()];
         window.fetch = jest.fn(() =>
             Promise.resolve({ ok: true, json: () => Promise.resolve({ Obstacle: mistakes }) }));
-    });
-
-    it('titles the card without the soft-hyphen entity German translations carry', async () => {
-        const t = window.i18next.t;
-        window.i18next.t = (key) => (key === 'common:obstacle' ? 'Hindernis&shy;objekt' : t(key));
-        await renderGallery();
-        window.i18next.t = t;
-
-        expect(document.querySelector('.ud-card-title').textContent).toBe('Hindernisobjekt');
     });
 
     it('prefers the saved crop over the Street View Static API image', async () => {

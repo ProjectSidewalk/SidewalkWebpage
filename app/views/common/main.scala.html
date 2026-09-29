@@ -109,6 +109,7 @@
         const i18nextParams = {
           language: "@messages.lang.code",
           supportedLanguages: @Html(Json.stringify(Json.toJson(commonData.supportedLanguages))),
+          localeFiles: @commonData.localeFilesJson,
           defaultNS: "@defaultI18nNamespace",
           namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
           countryId: "@currentCity.countryId",

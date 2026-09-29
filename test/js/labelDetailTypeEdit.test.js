@@ -185,6 +185,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
       isMobile: () => false,
       lazyIdentityFetch: saveRequest,
       misc: {
+        labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
         VALID_LABEL_TYPES: TYPES,
         getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
         getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
