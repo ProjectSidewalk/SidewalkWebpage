@@ -72,7 +72,8 @@ updates:
         update-types: ["major"]
 
   - package-ecosystem: docker
-    directory: "/"
+    # docker/shellcheck/ holds only the ShellCheck image pin that `make shellcheck` and CI run (#5589).
+    directories: ["/", "/docker/shellcheck"]
     schedule:
       interval: monthly
     groups:

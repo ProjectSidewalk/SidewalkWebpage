@@ -22,6 +22,7 @@
 # =====================================================================================================================
 set -euo pipefail
 
+# shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
 # Optional positional args ($1 schema, $2 tutorial region id, $3 regions to open: 'all', 'include:<ids>', or

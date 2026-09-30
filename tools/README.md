@@ -4,7 +4,7 @@ Everything a person or CI runs. A script lives where its caller is:
 
 | Folder | Who runs it | What's there |
 | --- | --- | --- |
-| [`lint/`](lint) | CI (`make lint`) | The `check-*.mjs` gates, the route-reachability lint, our ESLint rules and the JSDoc type-check configs |
+| [`lint/`](lint) | CI (`make lint`) | The `check-*.mjs` gates, the route-reachability lint, the ShellCheck runner, our ESLint rules and the JSDoc type-check configs |
 | [`dev/`](dev) | A developer working on the dev env | Worktree QA, the sbt runner, leases on the shared app and test DB, `npm-sync.sh` |
 | [`city/`](city/README.md) | A developer setting up or updating a city's data | Onboarding, imagery scans, street gradients, GA and Maps key setup |
 | [`validation_queue/`](validation_queue) | A developer changing the queue policy | The exports and analyzer behind `docs/validation-queue.md` |

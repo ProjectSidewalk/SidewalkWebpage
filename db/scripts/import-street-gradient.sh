@@ -13,6 +13,7 @@ set -euo pipefail
 # mean anything (one street edited since the export is a third of a three-row file), so it only aborts when nothing
 # matches at all.
 
+# shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
 # Optional positional args ($1 schema, $2 CSV path relative to the db dir) so a caller can drive the script without

@@ -155,7 +155,10 @@ status() {
   else
     list=$({
       printf '%s\n' app db-tests
-      ls "$LEASE_DIR" 2>/dev/null | sed -n 's/\.\(lease\|queue\)$//p'
+      for f in "$LEASE_DIR"/*.lease "$LEASE_DIR"/*.queue; do
+        [ -e "$f" ] || continue
+        basename "${f%.*}"
+      done
     } | sort -u)
   fi
   lock
