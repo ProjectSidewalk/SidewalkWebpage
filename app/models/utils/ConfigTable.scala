@@ -397,8 +397,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       lastActivity: Option[OffsetDateTime]
   )
 
-  // The nullable last-activity timestamp can be NULL on an empty schema, so it is read as an Option and normalized to
-  // UTC (we only need the instant, for "days since last activity").
+  // Last activity is NULL on an empty schema, so it is read as an Option; UTC because only the instant matters.
   private given getScorecardCore: GetResult[ScorecardCore] = { r =>
     ScorecardCore(
       totalStreets = r.nextInt(),
@@ -479,15 +478,15 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * The scorecard's single-row core: street coverage, label and validation counts, contributor counts, the 7- and
-   * 30-day activity windows, and the last activity timestamp.
+   * The scorecard's one-row core: street coverage, label, validation and contributor counts, the 7- and 30-day
+   * activity windows, and the last activity time.
    *
    * @param schema                 The city schema to query.
-   * @param upToDateFilter         SQL appended to the audited-street joins, restricting them to current imagery when
-   *                               the schema has that column (see the caller).
+   * @param upToDateFilter         SQL added to the audited-street joins to keep only current imagery, when the schema
+   *                               has that column (see the caller).
    * @param labelTypeSql           How this schema spells label types (enum or text).
    * @param hasValidationLabelType Whether the schema records a vote's label type, which the verdict counts need.
-   * @return                       DBIO yielding the one core row.
+   * @return                       The one core row.
    */
   private def scorecardCoreQuery(
       schema: String,
@@ -629,14 +628,10 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
-   * Assembles the scorecard from its parts.
+   * Puts the scorecard together from its parts.
    *
-   * @param schema      The city schema, standing in for the city id until the service layer swaps in the real one.
-   * @param core        The single-row core metrics.
-   * @param byLabelType The per-label-type breakdown.
-   * @param weeklyTrend The weekly activity trend.
-   * @param output      The per-user output and speed stats.
-   * @return            The complete scorecard.
+   * @param schema The city schema, standing in for the city id until the service layer swaps in the real one.
+   * @return       The complete scorecard.
    */
   private def assembleScorecard(
       schema: String,

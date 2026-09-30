@@ -1752,20 +1752,19 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     val candidates =
       validationCandidates(userId, viewer, labelType, filter, unvalidatedOnly, excludedLabelIds, excludedFaces)
 
-    // The queue filter sits after the AI join because the triage predicate reads the AI's vote.
+    // The queue filter comes after the AI join because it reads the AI's vote.
     val inQueue = candidates.filter { case (l, _, _, _, _, _, _, _, _, aiv) =>
       ValidationQueuePolicy.inQueue(queue, l, aiv.map(_.validationResult))
     }
 
-    // Weighted random sample of the queue, P(pick) proportional to score²; see the method comment.
+    // Weighted random sample, each label's odds proportional to score²; see the method comment.
     scoredForQueue(labelType, inQueue)
       .sortBy { case (_, score) => ValidationQueuePolicy.pickKey(score).desc }
       .map { case (row, _) => asValidationMetadata(row, includeAiTags) }
   }
 
-  // The lifted row the Validate queue's stages hand each other, and its unpacked twin: the label with its point, pano,
-  // labeler's stats and audit task, then the type name, the region, whether an AI placed it, and the AI's assessment
-  // and vote when there is one.
+  // The row the Validate queue's stages pass along, lifted and plain: the label, its point, pano, labeler's stats and
+  // audit task, then the type name, region, whether an AI placed it, and the AI's assessment and vote if any.
   private type ValidationCandidateRep = (
       LabelTableDef,
       LabelPointTableDef,
@@ -1792,11 +1791,10 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   )
 
   /**
-   * The labels a user could be asked to validate, joined with the AI's current assessment, before any queue applies.
+   * The labels a user could be asked to validate, with the AI's current assessment, before any queue is applied.
+   * Parameters are those of `retrieveLabelListForValidationQuery`, documented there.
    *
-   * Takes the parameters of `retrieveLabelListForValidationQuery`, which documents them.
-   *
-   * @return One row per candidate label; see [[ValidationCandidateRep]] for its shape.
+   * @return One row per candidate; see [[ValidationCandidateRep]].
    */
   private def validationCandidates(
       userId: String,
@@ -1816,8 +1814,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _lb.labelType === labelType && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
       if _pd.source === viewer && imageryViewable(_pd)
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty // Filter out validated labels.
-      // Filter out labels the caller already holds. An empty set can't go through `inSetBind`, which renders an
-      // `IN ()` that Postgres rejects, so it short-circuits to a constant.
+      // Skip labels the caller already holds. An empty set would render as `IN ()`, which Postgres rejects, so it
+      // short-circuits.
       if (if (excludedLabelIds.isEmpty) true: Rep[Boolean] else !(_lb.labelId inSetBind excludedLabelIds))
       if !onExcludedFace(_lb, _lp, StreetSide.Left, excludedFaces) &&
         !onExcludedFace(_lb, _lp, StreetSide.Right, excludedFaces)
@@ -1847,10 +1845,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Whether a label sits on one of the excluded block faces, for one side (#5285).
-   *
-   * A face is a street edge and a side, so the label is on an excluded face when its edge is in the list for its
-   * side. An empty list short-circuits to a constant, since `inSetBind` renders an `IN ()` that Postgres rejects.
+   * Whether a label sits on one of the excluded block faces, checked for one side (#5285). A face is a street edge
+   * plus a side. An empty list short-circuits, since `inSetBind` would render an `IN ()` that Postgres rejects.
    *
    * @return A predicate on the label and its point.
    */
@@ -1866,8 +1862,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Pairs each candidate with its priority score. NoSidewalk's score reads the block face's evidence, so only its
-   * query joins the face subquery; every other type is scored from the label alone.
+   * Pairs each candidate with its priority score. Only NoSidewalk needs the block-face evidence, so only its query
+   * joins the face subquery.
    *
    * @return The candidates with their `ValidationQueuePolicy` score.
    */
@@ -1892,9 +1888,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
   }
 
   /**
-   * Projects a candidate row onto the columns `LabelValidationMetadata` is read from.
+   * Narrows a candidate row to the columns `LabelValidationMetadata` reads.
    *
-   * @param includeAiTags Whether to carry the AI's tag suggestions (present and absent) or leave both empty.
+   * @param includeAiTags Whether to carry the AI's tag suggestions, or leave both lists empty.
    * @return              The lifted row for one label.
    */
   private def asValidationMetadata(row: ValidationCandidateRep, includeAiTags: Boolean): LabelValidationMetadataRep = {

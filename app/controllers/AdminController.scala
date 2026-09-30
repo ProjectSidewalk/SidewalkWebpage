@@ -727,12 +727,11 @@ class AdminController @Inject() (
   }
 
   /**
-   * One city's row of the scorecard table: identity from config, then the coverage, data-quality, people, activity
-   * and effort lenses, with snake_case names (v3 API convention).
+   * One city's row of the scorecard table, with snake_case keys like the v3 API.
    *
-   * @param info           The city's display name, URL and visibility, when it is configured.
-   * @param secondsPer100m Seconds of active auditing per 100 m from the daily-cached heavy path, when it has data.
-   * @param now            The moment "days since activity" is measured from.
+   * @param info           The city's name, URL and visibility, if it is configured.
+   * @param secondsPer100m Seconds of active auditing per 100 m, from the daily cache, if it has data.
+   * @param now            When "days since activity" is counted from.
    * @return               The city's JSON object.
    */
   private def cityScorecardJson(
@@ -834,8 +833,8 @@ class AdminController @Inject() (
   }
 
   /**
-   * The cross-city weekly series for the full project history (the "All time" toggle on the over-time charts).
-   * new_users feeds the cumulative-users chart (#4686): each person counts once, in their first-activity week.
+   * The project-wide weekly series behind the "All time" charts. `new_users` counts each person once, in the week
+   * they first did anything, so the cumulative-users chart adds up (#4686).
    *
    * @return One object per week, oldest first.
    */
@@ -851,11 +850,10 @@ class AdminController @Inject() (
     })
 
   /**
-   * The trailing-7-day cross-city daily series for the "this week" bar charts (#4686); zero-filled, today partial.
-   * Each day also carries the breakdown its hover card shows (#4931): the human/AI split, the day's busiest cities,
-   * and the people who were active, so the card is derived from the same rows the bar is summed from.
+   * The last seven days, project-wide, for the "this week" bar charts (#4686): zero-filled, today partial. Each day
+   * also carries what its hover card shows (#4931), so the card and the bar come from the same rows.
    *
-   * @param cityInfoById Each city's config, for display names and URLs.
+   * @param cityInfoById Each city's config, for names and URLs.
    * @return             One object per day.
    */
   private def dailyTrendJson(trend: Seq[DailyActivity], cityInfoById: Map[String, CityInfo]): JsArray =
@@ -887,8 +885,7 @@ class AdminController @Inject() (
             "kind"        -> c.kind.name,
             "labels"      -> c.labels,
             "validations" -> c.validations,
-            // Each city's URL rides along so the pinned card can link a name to that person's admin page on the
-            // deployment that holds their work (#5495).
+            // The city's URL lets the card link a name to that person's admin page in that city (#5495).
             "cities" -> JsArray(c.cities.map { city =>
               val info = cityInfoById.get(city.cityId)
               Json.obj(
@@ -905,8 +902,8 @@ class AdminController @Inject() (
     })
 
   /**
-   * Story counts per city (#5543), kept apart from the scorecard rows so a city whose scorecard failed still reports
-   * its stories; `counts` is null where the count itself failed, which the page shows as unavailable, not zero.
+   * Story counts per city (#5543), kept separate from the scorecard rows so a city whose scorecard failed still
+   * reports its stories. `counts` is null where the count itself failed; the page shows that as unavailable, not 0.
    *
    * @return One object per city, by city id.
    */
@@ -935,11 +932,9 @@ class AdminController @Inject() (
     })
 
   /**
-   * Project-wide "hero" totals, summed from the cities shown so they reconcile with the table. Distinct countries
-   * come from city config; languages from the app's supported set. global_agreement is the share of agree/disagree
-   * validations that agreed. total_users is the sum of per-city contributors (a person who contributes in two cities
-   * counts in each — there is no cross-city dedup here). The anomaly thresholds ride along so the page can label the
-   * "needs attention" items.
+   * The page's headline totals, summed from the cities shown so they match the table. `total_users` adds up each
+   * city's contributors, so a person active in two cities counts twice. The anomaly thresholds ride along so the
+   * page can flag the "needs attention" items.
    *
    * @return The summary block.
    */

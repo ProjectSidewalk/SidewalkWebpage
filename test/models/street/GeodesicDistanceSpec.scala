@@ -155,9 +155,8 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
 
   "cached distances" should {
     "write the same user_stat.meters_audited as evolution 347's backfill" in {
-      // The evolution's SQL and the runtime recompute (updateAuditedDistanceHelper) are two spellings of one formula,
-      // so on the same data they must agree for every user. Both run inside one rolled-back transaction, so the check
-      // holds on any database, however stale its cached values were when the run started.
+      // The evolution's SQL and the runtime recompute are two spellings of one formula, so they must agree for every
+      // user. Both run in one rolled-back transaction, so the check holds however stale the cached values were.
       val allUserIds          = TableQuery[UserStatTableDef].map(_.userId)
       val (backfill, runtime) = runRolledBack(for {
         _ <- sqlu"""UPDATE user_stat
@@ -251,11 +250,10 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
     }
 
     "write the same distance-derived user_stat.high_quality flag as evolution 347's backfill" in {
-      // Same idea for the quality flag, whose heuristic reads labels_per_meter: the evolution's SQL sets every user's
-      // flag from the formula, and a runtime updateHighQuality pass with an epoch cutoff (every user who has ever
-      // audited or been validated) must then change nothing. Runs in one rolled-back transaction, so it holds however
-      // stale the flags were beforehand. The WHERE is the evolution's too: without it the update rewrites, and locks
-      // until the rollback, every user_stat row in the city rather than the handful whose flag changes.
+      // Same for the quality flag, which reads labels_per_meter: after the evolution's SQL sets every flag, a runtime
+      // updateHighQuality pass with an epoch cutoff (everyone who ever audited or was validated) must change nothing.
+      // The WHERE is the evolution's too: without it the update rewrites, and locks until the rollback, every
+      // user_stat row in the city instead of the few whose flag changes.
       val epoch               = OffsetDateTime.parse("1970-01-01T00:00:00Z")
       val (backfill, runtime) = runRolledBack(for {
         _ <- sqlu"""UPDATE user_stat

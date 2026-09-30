@@ -307,10 +307,9 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
 
     "serve nearby labels as GeoJSON from /v3/api/rawLabels with no auth cookie" in {
-      // Bounded to a small box around a label the endpoint itself serves, as the spotlight page asks. Unbounded, the
-      // endpoint streams the whole city, which on a big dev database runs the suite out of heap. The anchor comes from
-      // the endpoint's own stream (one row, then cancel) rather than from recentLabels, which ignores the filters
-      // rawLabels applies (excluded users, streets with no OSM way) and so could pick a label the box then lacks.
+      // A small box around a label the endpoint itself serves, as the spotlight page asks. Unbounded, the endpoint
+      // streams the whole city and a big dev database runs the suite out of heap. The anchor comes from the endpoint's
+      // own stream (one row, then cancel) so it can't be a label rawLabels filters out, like an excluded user's.
       val anchor = Await.result(
         apiService.getRawLabels(RawLabelFiltersForApi(), batchSize = 1).take(1).runWith(Sink.headOption),
         60.seconds
