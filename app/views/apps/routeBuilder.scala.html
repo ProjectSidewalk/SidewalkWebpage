@@ -7,7 +7,6 @@
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 @* A cookie-less visitor (None) gets the same treatment as an anonymous account. *@
 @isAnon = @{user.forall(_.role == Role.Anonymous)}
-@paceRounded = @{f"$minutesPer100m%.1f"}
 
 @common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common"), url = "/routeBuilder") {
   @common.navbar(commonData, user)
@@ -50,7 +49,8 @@
             <span aria-hidden="true">·</span>
             <span id="route-time-wrap">
               <span id="route-time-val" tabindex="0" role="button" aria-describedby="route-time-tip"></span>
-              <span id="route-time-tip" role="tooltip" hidden>@Messages("routebuilder.stat.time.tooltip", paceRounded)</span>
+              @* Filled by RouteBuilder.js on every stats update: the text names the route's own estimate. *@
+              <span id="route-time-tip" role="tooltip" hidden></span>
             </span>
           </div>
           <span id="route-stats-caption"></span>

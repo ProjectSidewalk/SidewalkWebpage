@@ -21,6 +21,7 @@
   "route-usage-tooltip": "Exploré : nombre de personnes ayant commencé cet itinéraire. Terminé : nombre de personnes l'ayant parcouru en entier.",
   "est-time-minutes": "{{min}} min",
   "est-time-hours": "{{hours}} h {{min}} min",
+  "est-time-tooltip": "Nous estimons qu'évaluer cet itinéraire dans Project Sidewalk prendrait environ {{time}}. Il s'agit du temps d'étiquetage, pas du temps de marche : l'estimation repose sur le rythme habituel des explorateurs de cette ville, environ {{pace}} minutes pour 100 mètres.",
   "street-count_one": "{{count}} rue",
   "street-count_other": "{{count}} rues",
   "street-count-in-region_one": "{{count}} rue dans {{region}}",
