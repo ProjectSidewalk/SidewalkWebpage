@@ -11,7 +11,7 @@ import javax.inject.{Inject, Singleton}
 
 case class WebpageActivity(
     webpageActivityId: Int,
-    userId: String,
+    userId: Option[String], // None for a visitor with no session.
     ipAddress: IpAddress,
     description: String,
     timestamp: OffsetDateTime
@@ -34,7 +34,7 @@ case class ApiSourceIpCount(source: String, uniqueIps: Long)
 
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
   def webpageActivityId: Rep[Int] = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String]         = column[String]("user_id")
+  def userId: Rep[Option[String]] = column[Option[String]]("user_id")
   def ipAddress: Rep[IpAddress]   = column[IpAddress]("ip_address")
   def activity: Rep[String]       = column[String]("activity")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
@@ -42,7 +42,7 @@ class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "web
 
   def * = (webpageActivityId, userId, ipAddress, activity, timestamp).mapTo[WebpageActivity]
 
-  def user = foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def user = foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId.?)
 }
 
 @ImplementedBy(classOf[WebpageActivityTable])
@@ -60,43 +60,47 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
     (activities returning activities.map(_.webpageActivityId)) += activity
   }
 
+  // Most of these have details tacked on (`AnonAutoSignUp_url="/explore"`), so they're matched by how they start.
+  private def isAnonSignUp(a: WebpageActivityTableDef): Rep[Boolean] = a.activity like "AnonAutoSignUp%"
+  private def isRealSignIn(a: WebpageActivityTableDef): Rep[Boolean] =
+    a.activity === "SignIn" || (a.activity like "SignInSuccess%")
+
+  /** Activity rows of accounts that aren't anonymous, the only ones the admin Users tab lists. */
+  private def nonAnonActivities(keep: WebpageActivityTableDef => Rep[Boolean]) =
+    activities.filter(keep).join(userRoles).on(_.userId === _.userId).filter(_._2.role =!= Role.Anonymous)
+
   /**
-   * Get the time that each user signed up (if we have it logged).
+   * Get the time that each non-anonymous user signed up (if we have it logged).
    */
   def getSignUpTimes: DBIO[Seq[(String, Option[OffsetDateTime])]] = {
-    activities
-      .filter(_.activity inSet Seq("AnonAutoSignUp", "SignUp"))
-      .groupBy(_.userId)
-      .map { case (_userId, group) => (_userId, group.map(_.timestamp).max) }
+    nonAnonActivities(_.activity === "SignUp")
+      .groupBy(_._2.userId)
+      .map { case (_userId, group) => (_userId, group.map(_._1.timestamp).max) }
       .result
   }
 
   /**
-   * For each user, gets count of number of sign ins and the timestamp of their most recent sign-in.
+   * For each non-anonymous user, gets count of number of sign ins and the timestamp of their most recent sign-in.
    */
   def getSignInTimesAndCounts: DBIO[Seq[(String, (Int, Option[OffsetDateTime]))]] = {
-    activities
-      .filter(row => row.activity === "AnonAutoSignUp" || (row.activity like "SignIn%"))
-      .groupBy(_.userId)
-      .map { case (_userId, rows) => (_userId, (rows.length, rows.map(_.timestamp).max)) }
+    nonAnonActivities(isRealSignIn)
+      .groupBy(_._2.userId)
+      .map { case (_userId, rows) => (_userId, (rows.length, rows.map(_._1.timestamp).max)) }
       .result
   }
 
   /**
    * Daily count of successful sign-in events, split by whether the signer is anonymous.
    *
-   * Registered logins log `SignIn` / `SignInSuccess`; anonymous sessions log `AnonAutoSignUp`. Failed attempts
-   * (`SignInAttempt`, `SignInFailed`) are excluded — they aren't sign-ins, and their activity strings embed the typed
-   * email address. The anon flag is derived from the activity name, which already distinguishes the two cases, so no
-   * role join is needed.
+   * Failed and throttled attempts are left out.
    *
    * @return One row per day and anon flag, sorted ascending; `day` is the timestamp truncated to the day.
    */
   def getSignInCountsByDate: DBIO[Seq[DailyCountByAnon]] = {
-    val successfulSignIns = Seq("SignIn", "SignInSuccess")
     activities
-      .filter(a => (a.activity inSet successfulSignIns) || a.activity === "AnonAutoSignUp")
-      .map(a => (a.timestamp.trunc("day"), a.activity === "AnonAutoSignUp", a.webpageActivityId))
+      // Anyone can log an activity string without a session, but a real sign-in always has a user.
+      .filter(a => a.userId.isDefined && (isRealSignIn(a) || isAnonSignUp(a)))
+      .map(a => (a.timestamp.trunc("day"), isAnonSignUp(a), a.webpageActivityId))
       .groupBy { case (day, isAnon, _) => (day, isAnon) }
       .map { case ((day, isAnon), group) => (day, isAnon, group.length) }
       .sortBy { case (day, _, _) => day }

@@ -50,6 +50,8 @@ table (`app/models/utils/WebpageActivityTable.scala`) rather than the interactio
 - **Frontend** — `window.logWebpageActivity(activity)` (set up in `common/AppManager.js`) POSTs to
   `/userapi/logWebpageActivity` for client-side clicks.
 
+A visitor with no session (a crawler, say) is logged with no `user_id` (#4643).
+
 Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `Visit_UserDashboard`,
 `Visit_Leaderboard`, `Visit_Settings`, `Visit_PublicProfile` — the dashboard/leaderboard names carry over from the
 pre-redesign pages, so per-page analytics stay continuous across the #4474 cutover) and **`Click_module=<Action>`** for

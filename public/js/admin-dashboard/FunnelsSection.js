@@ -4,7 +4,7 @@
  * The per-city counterpart of the cross-city funnels on the Across Cities page (#288): it reads /adminapi/funnels
  * (this schema only) and draws the two funnels — "mapping" (the Explore onboarding flow) and "contribution" (any
  * labeling/validation contribution and finishing a mission) — as horizontal bar funnels, each step normalized to its
- * segment's visitors (= 100%) and labeled with the count and per-step drop-off. A window selector refetches; a
+ * segment's step 1 (= 100%) and labeled with the count and per-step drop-off. A window selector refetches; a
  * breakdown selector (all / registered-vs-anonymous / desktop-vs-mobile) re-renders from cached data. Reuses the
  * shared `.ac-funnel-*` / `.ac-toggle` CSS; no charting library.
  *
@@ -17,9 +17,9 @@ class FunnelsSection {
    * here but kept parallel to the Across Cities page for consistency. Covers both funnels.
    */
   static #STEP_LABELS = {
-    visited:                { full: 'Visited site' },
+    visited:                { full: 'New account, visited this city' },
     tutorial_started:       { full: 'Started tutorial' },
-    tutorial_finished:      { full: 'Finished or skipped tutorial' },
+    tutorial_finished:      { full: 'Finished or skipped tutorial, in any city' },
     took_step:              { full: 'Took a step' },
     labeled:                { full: 'Placed a label' },
     mission_completed:      { full: 'Completed a mapping mission' },
@@ -158,7 +158,7 @@ class FunnelsSection {
         const conv = d ? d.step_conversion[i] : 0;
         const valText = i === 0 ? this.#compact(v) : `${this.#compact(v)} · ${this.#pct(conv)}`;
         const tip = i === 0
-          ? `${full}: ${this.#num(v)} visitors`
+          ? `${full}: ${this.#num(v)} accounts`
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `
           <div class="ac-funnel-bar" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}">

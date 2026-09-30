@@ -455,11 +455,12 @@ WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username
 
 ### Exercising authenticated routes
 
-Most routes need a session. Grab an anonymous cookie once, then reuse the jar:
+Public pages and the public API work without a session, so skip this for them: every session is a new account. For
+Explore, Validate, dashboards and most saves, grab an anonymous cookie once, then reuse the jar:
 
 ```bash
 curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"
-curl -s -b /tmp/sidewalk_cookies.txt "http://localhost:9000/v3/api/labelTypes"
+curl -s -b /tmp/sidewalk_cookies.txt "http://localhost:9000/userapi/basicStats"
 ```
 
 ### Inspecting the database

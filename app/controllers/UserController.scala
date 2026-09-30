@@ -183,9 +183,7 @@ class UserController @Inject() (
     }
   }
 
-  // Post function that receives a String and saves it into WebpageActivityTable with userId, ipAddress, timestamp.
-  // User-aware (#4643): public pages log page-view/interaction beacons through this for cookie-less visitors too;
-  // a missing identity is logged under the shared default anonymous user inside LoggingService.
+  // Saves a page's activity string to webpage_activity. Works without a session too, logging no user (#4643).
   def logWebpageActivity() = cc.securityService.UserAwareAction(parse.json) { implicit request =>
     request.body
       .validate[String]

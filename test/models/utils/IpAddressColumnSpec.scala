@@ -20,7 +20,7 @@ class IpAddressColumnSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
   private lazy val table: WebpageActivityTable = app.injector.instanceOf[WebpageActivityTable]
 
   private def activity(ip: String): WebpageActivity =
-    WebpageActivity(0, SidewalkUserTable.aiUserId, IpAddress(ip), "IpAddressColumnSpec", OffsetDateTime.now)
+    WebpageActivity(0, Some(SidewalkUserTable.aiUserId), IpAddress(ip), "IpAddressColumnSpec", OffsetDateTime.now)
 
   "The ip_address column" should {
     "save an IP and read it back in Postgres's standard spelling" in {
