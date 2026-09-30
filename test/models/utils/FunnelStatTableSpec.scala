@@ -17,15 +17,15 @@ class FunnelStatTableSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
   private lazy val table: FunnelStatTable = app.injector.instanceOf[FunnelStatTable]
 
   /**
-   * Adds a brand-new account with one activity row in the current city.
+   * Adds an account made `daysOld` days ago that visited the current city today.
    *
    * @return The inserts, to run inside a rolled-back transaction.
    */
-  private def newAccount(userId: String, activity: String): DBIO[Int] =
+  private def account(userId: String, daysOld: Int): DBIO[Int] =
     sqlu"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email, created_at)
-           VALUES ($userId, $userId, ${userId + "@test.invalid"}, NOW())""" andThen
+           VALUES ($userId, $userId, ${userId + "@test.invalid"}, NOW() - $daysOld * INTERVAL '1 day')""" andThen
       sqlu"""INSERT INTO webpage_activity (user_id, ip_address, activity, timestamp)
-             VALUES ($userId, '10.0.0.1', $activity, NOW())"""
+             VALUES ($userId, '10.0.0.1', 'Visit_Index', NOW())"""
 
   "The funnel queries" should {
     "run for every window" in {
@@ -35,14 +35,14 @@ class FunnelStatTableSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
       } run(currentSchema.flatMap(schema => funnel(schema, window))) mustBe a[Seq[?]]
     }
 
-    "start with new accounts that opened a page, not ones with only a sign-up row" in {
+    "start with the accounts made in the window" in {
       def step1(schema: String) =
         table.computeMappingFunnelBySchema(schema, Some(30)).map(_.find(_.segment == "all").fold(0)(_.steps.head))
       val (before, after) = runRolledBack(for {
         schema <- currentSchema
         before <- step1(schema)
-        _      <- newAccount("funnel-spec-visitor", "Visit_Index")
-        _      <- newAccount("funnel-spec-crawler", "AnonAutoSignUp_url=\"/\"")
+        _      <- account("funnel-spec-new", daysOld = 0)
+        _      <- account("funnel-spec-old", daysOld = 60)
         after  <- step1(schema)
       } yield (before, after))
       after - before mustBe 1
