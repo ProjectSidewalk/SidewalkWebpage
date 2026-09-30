@@ -283,6 +283,25 @@ describe('PanoImageCache (issue #5562)', () => {
         }
     });
 
+    test('a refused download released during its wait is not retried', async () => {
+        jest.useFakeTimers();
+        try {
+            global.fetch = jest.fn(() => Promise.resolve({
+                ok: false, status: 503, headers: { get: () => '2' }, blob: () => Promise.resolve(new Blob([])),
+            }));
+
+            const download = cache.prefetch('/backupImage/p1');
+            await Promise.resolve();
+            cache.release('/backupImage/p1');
+            await jest.advanceTimersByTimeAsync(2000);
+
+            await expect(download).resolves.toBe(false);
+            expect(global.fetch).toHaveBeenCalledTimes(1);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
     test('a download refused twice is a miss, not a loop', async () => {
         jest.useFakeTimers();
         try {

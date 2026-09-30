@@ -54,7 +54,7 @@ class PanoDisplayCopyServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
 
     "answer Unavailable for a native file it cannot read, never the native file" in {
-      val corrupt = File.createTempFile("not-an-image", ".jpg")
+      val corrupt = new File(mediaRoot, "not-an-image.jpg") // Under the spec's own temp dir, gone with it.
       Files.write(corrupt.toPath, "definitely not a JPEG".getBytes)
       Await.result(service.displayCopy("spec-corrupt", corrupt, 512), 30.seconds) mustBe DisplayCopy.Unavailable
     }

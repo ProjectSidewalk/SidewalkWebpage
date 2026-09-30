@@ -112,6 +112,8 @@ class PanoImageCache {
     const retryAfterSec = Number(response.headers?.get?.('Retry-After')) || PanoImageCache.RETRY_AFTER_DEFAULT_SEC;
     const waitMs = Math.min(retryAfterSec, PanoImageCache.RETRY_AFTER_MAX_SEC) * 1000;
     await new Promise((resolve) => setTimeout(resolve, waitMs));
+    // Released while waiting: the bytes would be dropped on arrival, so don't spend a slot in a full pool on them.
+    if (this.#abandoned.has(url)) return response;
     return fetch(url);
   }
 
