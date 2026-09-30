@@ -45,6 +45,25 @@ enum TimeInterval(val name: String) extends NamedEnum {
   case Today   extends TimeInterval("today")
 }
 
+/** Limits on how much the admin dashboard feeds can ask for, so an odd `n` in the URL can't error or load everything. */
+object AdminService {
+
+  /** How many recent comments the activity feed pulls in; the feed itself is capped to match. */
+  val RecentCommentLimit: Int = 100
+
+  /** Largest recent-activity feed; any longer and older comments would go missing between newer labels. */
+  val MaxRecentActivity: Int = RecentCommentLimit
+
+  /** Largest contributor leaderboard. */
+  val MaxLeaderboardRows: Int = 100
+
+  /** Keeps a requested feed length between 1 and [[MaxRecentActivity]]. */
+  def clampRecentActivity(n: Int): Int = math.max(1, math.min(MaxRecentActivity, n))
+
+  /** Keeps a requested leaderboard length between 1 and [[MaxLeaderboardRows]]. */
+  def clampLeaderboardRows(n: Int): Int = math.max(1, math.min(MaxLeaderboardRows, n))
+}
+
 object TimeInterval extends NamedEnumCompanion[TimeInterval] {
 
   /**
@@ -520,14 +539,14 @@ class AdminServiceImpl @Inject() (
   }
 
   /**
-   * Gets the 100 most recent comments made through either the Explore or (any) Validate page.
+   * Gets the [[AdminService.RecentCommentLimit]] most recent comments from the Explore or (any) Validate page.
    */
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]] = {
     db.run(for {
-      exploreComments  <- auditTaskCommentTable.getRecentExploreComments(100)
-      validateComments <- validationTaskCommentTable.getRecentValidateComments(100)
+      exploreComments  <- auditTaskCommentTable.getRecentExploreComments(AdminService.RecentCommentLimit)
+      validateComments <- validationTaskCommentTable.getRecentValidateComments(AdminService.RecentCommentLimit)
     } yield {
-      (exploreComments ++ validateComments).sortBy(_.timestamp).reverse.take(100)
+      (exploreComments ++ validateComments).sortBy(_.timestamp).reverse.take(AdminService.RecentCommentLimit)
     })
   }
 
@@ -538,12 +557,13 @@ class AdminServiceImpl @Inject() (
    * Each source is queried for its own `n` most-recent rows in parallel, then the union is re-sorted by timestamp and
    * trimmed to `n` so the result is the true `n` most-recent contributions across all three kinds.
    *
-   * @param n Number of stream items to return.
+   * @param n Number of stream items to return; kept within 1 to [[AdminService.MaxRecentActivity]].
    * @return Recent activity items, most recent first.
    */
   def getRecentActivity(n: Int): Future[Seq[RecentActivityItem]] = {
-    val labelsFut   = db.run(labelTable.getRecentLabels(n))
-    val valsFut     = db.run(labelValidationTable.getRecentValidations(n))
+    val limit       = AdminService.clampRecentActivity(n)
+    val labelsFut   = db.run(labelTable.getRecentLabels(limit))
+    val valsFut     = db.run(labelValidationTable.getRecentValidations(limit))
     val commentsFut = getRecentExploreAndValidateComments
     for {
       labels   <- labelsFut
@@ -560,7 +580,7 @@ class AdminServiceImpl @Inject() (
       val commentItems = comments.map { c =>
         RecentActivityItem("comment", c.username, c.timestamp, c.labelId, None, None, Some(c.comment))
       }
-      (labelItems ++ validationItems ++ commentItems).sortBy(_.timestamp).reverse.take(n)
+      (labelItems ++ validationItems ++ commentItems).sortBy(_.timestamp).reverse.take(limit)
     }
   }
 
@@ -618,13 +638,14 @@ class AdminServiceImpl @Inject() (
    * mix, severity distribution, validation-result split) are then queried only for the ranked users, so those joins
    * stay scoped to ~`n` ids rather than the whole user base.
    *
-   * @param n Number of rows per leaderboard.
+   * @param n Number of rows per leaderboard; kept within 1 to [[AdminService.MaxLeaderboardRows]].
    * @return The two assembled leaderboards.
    */
   def getContributorLeaderboards(n: Int): Future[ContributorLeaderboards] = {
+    val limit = AdminService.clampLeaderboardRows(n)
     getUserStatsForAdminPage.flatMap { stats =>
-      val topLabelers   = stats.filter(_.labels > 0).sortBy(-_.labels).take(n)
-      val topValidators = stats.filter(_.othersValidated > 0).sortBy(-_.othersValidated).take(n)
+      val topLabelers   = stats.filter(_.labels > 0).sortBy(-_.labels).take(limit)
+      val topValidators = stats.filter(_.othersValidated > 0).sortBy(-_.othersValidated).take(limit)
       val labelerIds    = topLabelers.map(_.userId)
       val validatorIds  = topValidators.map(_.userId)
 
