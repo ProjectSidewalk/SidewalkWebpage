@@ -748,9 +748,11 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-   * See PanoViewer.setPov().
+   * See PanoViewer.setPov(). Returns nothing to wait on: MapillaryJS 4.1.2's setCenter and setFieldOfView return
+   * undefined, whatever its API docs say, and the SDK applies and draws the new view on its own animation frames. A
+   * caller that must not show the old heading waits for frames after this returns (Validate's reveal, #5582).
    * @param {{heading: number, pitch: number, zoom?: number}} pov - Where to aim; a missing zoom keeps the current one.
-   * @returns {Promise<void>} Settles once the SDK has applied both the center and the field of view.
+   * @returns {void}
    */
   setPov = (pov) => {
     // Find x-position of requested heading on the underlying image [0,1]. To do this, we find the difference b/w
@@ -761,25 +763,22 @@ class MapillaryViewer extends PanoViewer {
     // Find y-position of requested pitch on underlying image [0,1]. Requested pitch is wrt the center of the image.
     const y = 0.5 - pov.pitch / 180;
 
-    // Set the x/y position of the camera based on the requested heading/pitch. The SDK applies it asynchronously, so
-    // it is cached in this.currCenter for the synchronous getPov() as well.
-    const centerSet = this.viewer.setCenter([x, y]);
+    // Set the x/y position of the camera based on the requested heading/pitch.
+    // NOTE despite not returning a Promise, setCenter() happens async, so we save it in this.currCenter as well.
+    this.viewer.setCenter([x, y]);
     this.currCenter = [x, y];
 
     // Convert zoom to a horizontal fov, and then convert to the vertical fov used by Mapillary.
     pov.zoom = pov.zoom || this.getPov().zoom || 1;
     const horizontalFov = util.pano.zoomToFov(pov.zoom);
     const verticalFov = util.pano.hFovToVFov(horizontalFov, this.currAspect || this._viewportAspect());
-    // setFieldOfView() is asynchronous too, so the fov is cached in this.currVerticalFov. Mirror the SDK's own clamp
-    // into that cache, or getPov() reports a zoom the viewer isn't showing: a portrait viewport asks for more than 90°
-    // at wide zooms, a landscape one for less than 14.25° at zoom 3. It only has to bridge one frame — the
-    // renderCamera$ subscription replaces it with the rendered fov on the next tick.
-    const fovSet = this.viewer.setFieldOfView(verticalFov);
+    // NOTE despite not returning a Promise, setFieldOfView() happens async, so we save it in this.currVerticalFov.
+    // Mirror the SDK's own clamp into that cache, or getPov() reports a zoom the viewer isn't showing: a portrait
+    // viewport asks for more than 90° at wide zooms, a landscape one for less than 14.25° at zoom 3. It only has
+    // to bridge one frame — the renderCamera$ subscription replaces it with the rendered fov on the next tick.
+    this.viewer.setFieldOfView(verticalFov);
     this.currVerticalFov = Math.min(MapillaryViewer.#MAX_VERTICAL_FOV,
       Math.max(MapillaryViewer.#MIN_VERTICAL_FOV, verticalFov));
-
-    // Settles once the SDK has both, so a caller hiding the canvas until the view is aimed knows when it is (#5582).
-    return Promise.all([centerSet, fovSet]).then(() => undefined);
   };
 
   hideNavigationArrows = () => {

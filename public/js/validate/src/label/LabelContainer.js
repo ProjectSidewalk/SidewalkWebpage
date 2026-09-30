@@ -241,6 +241,9 @@ class LabelContainer {
       // — a bare `Promise.reject()`, a string thrown by a viewer SDK — would make this line a TypeError of its own,
       // losing the event and handing the caller an exception unrelated to what actually failed.
       svv.tracker?.push('ValidateRenderFailed', { error: error?.message ?? String(error) });
+      // The finally hands the tool back, so a canvas still held unpainted for the reveal would leave the validator
+      // judging a blank pano area (#5582). Guarded because a cleanup that throws would replace the error reported.
+      svv.panoManager?.revealPendingCanvas?.();
       throw error;
     } finally {
       // The out-of-labels path releases early on purpose, so that the modal's own disableKeyboard is what stands;

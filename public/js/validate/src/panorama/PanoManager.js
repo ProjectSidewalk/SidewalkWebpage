@@ -55,6 +55,12 @@ class PanoManager {
   static #POV_LOG_INTERVAL_MS = 500;
   #logPovChange;
 
+  // The longest a reveal waits for its two animation frames, in ms. A background tab runs no animation frames, so an
+  // uncapped wait would keep the tool locked, and anything awaiting the render, until the tab came back. Nothing is
+  // painted in a hidden tab anyway, and the viewer already has the POV, so revealing on the timer shows nothing stale.
+  // In a visible tab the two frames take about 33 ms and win.
+  static #REVEAL_FRAME_CAP_MS = 100;
+
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewerPov(). */
   #povWatchedViewers = new Set();
 
@@ -235,20 +241,34 @@ class PanoManager {
    * unpainted for the load.
    *
    * The marker is drawn before this first awaits, so a caller that doesn't wait still has it on return. What waiting
-   * adds is the reveal: on a viewer that paints during a load, the canvas stays unpainted until the SDK has applied
-   * this label's POV, so the first frame the validator sees is already facing the label (#5582).
+   * adds is the reveal: on a viewer that paints during a load, the canvas and marker stay unpainted until the viewer
+   * has drawn this label's POV, so the first frame the validator sees is already facing the label (#5582). The reveal
+   * runs even if aiming or drawing throws: the caller unlocks the tool either way, and a pano at the wrong heading, or
+   * without its marker, beats a blank one the validator is asked to judge.
    * @param {Label} currentLabel - The label to render.
    * @returns {Promise<void>} Settles once the pano is on screen at the label's POV.
    */
   async renderPanoMarker(currentLabel) {
+    try {
+      this.#aimAndDrawMarker(currentLabel);
+    } finally {
+      await this.#revealPrimaryOnceAimed();
+    }
+  }
+
+  /**
+   * The synchronous half of renderPanoMarker: applies the label's POV and draws or moves its marker.
+   * @param {Label} currentLabel - The label to render.
+   * @returns {void}
+   */
+  #aimAndDrawMarker(currentLabel) {
     const labelPov = currentLabel.getOriginalPov();
 
     // Set to user's POV when labeling if on desktop. If on mobile, center the label on the screen.
-    let povApplied;
     if (util.isMobile()) {
-      povApplied = svv.panoViewer.setPov(labelPov);
+      svv.panoViewer.setPov(labelPov);
     } else {
-      povApplied = svv.panoViewer.setPov({
+      svv.panoViewer.setPov({
         heading: currentLabel.getAuditProperty('heading'),
         pitch: currentLabel.getAuditProperty('pitch'),
         zoom: currentLabel.getAuditProperty('zoom'),
@@ -283,39 +303,52 @@ class PanoManager {
       markerEl.addEventListener('animationend', (e) => {
         if (e.animationName === 'label-marker-pulse') markerEl.classList.remove('label-marker-pulse');
       });
+      // A marker created while the canvas is held unpainted (after #clearViewer, or on a switch back from Pannellum)
+      // would otherwise float over the empty pano area, placed from a view that isn't aimed yet (#5582).
+      if (this.#primaryRevealPending) markerEl.style.visibility = 'hidden';
     } else {
       this.labelMarker.setPosition({ heading: labelPov.heading, pitch: labelPov.pitch });
     }
 
     const marker = this.labelMarker.marker_;
     this.styleMarkerForLabel(currentLabel);
-    this.#restartMarkerPulse(marker);
+    // A hidden marker's pulse would play unseen, so the reveal starts it instead.
+    if (!this.#primaryRevealPending) this.#restartMarkerPulse(marker);
     this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
-
-    await this.#revealPrimaryOnceAimed(povApplied);
   }
 
   /**
-   * Reveals the primary canvas once the viewer has applied the label's POV, if setPanorama left it waiting for that.
+   * Reveals the primary canvas once the viewer has drawn the label's POV, if setPanorama left it waiting for that.
    *
-   * Two animation frames after the SDK settles, the same wait PanoViewer._firePovChangedAfterResize uses: the SDK
-   * renders the new center in its own frame, and revealing in the frame after it keeps the first painted frame from
-   * being the one it drew before the POV landed. A POV that fails to apply still reveals, since a pano at the wrong
-   * heading beats one that never appears; a newer load starting meanwhile cancels the reveal, as that load owns the
-   * canvas now.
-   * @param {void|Promise<void>} povApplied - What the viewer's setPov returned.
+   * Two animation frames after setPov, the same wait PanoViewer._firePovChangedAfterResize uses, and the only
+   * guarantee available: the SDKs give nothing to wait on (MapillaryJS's setCenter and setFieldOfView return
+   * undefined) and apply and draw a new POV on their own animation frames, so revealing a frame after that keeps the
+   * first painted frame from being one drawn before the POV landed. The wait is capped for a background tab
+   * (#REVEAL_FRAME_CAP_MS). A newer load starting meanwhile cancels the reveal, as that load owns the canvas now.
    * @returns {Promise<void>}
    */
-  async #revealPrimaryOnceAimed(povApplied) {
+  async #revealPrimaryOnceAimed() {
     if (!this.#primaryRevealPending) return;
     const loadSeq = this.#loadSeq;
-    try {
-      await povApplied;
-    } catch (err) {
-      console.warn('Setting the label POV failed; revealing the pano anyway:', err);
-    }
-    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await new Promise(/** @param {(value?: void) => void} resolve */ (resolve) => {
+      const cap = setTimeout(resolve, PanoManager.#REVEAL_FRAME_CAP_MS);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        clearTimeout(cap);
+        resolve();
+      }));
+    });
     if (loadSeq === this.#loadSeq && this.#primaryRevealPending) this.#revealPrimaryCanvas();
+  }
+
+  /**
+   * Reveals a primary canvas that setPanorama left unpainted, for a render that failed before renderPanoMarker ran.
+   *
+   * The caller unlocks the tool after a failed render, and a canvas still held unpainted would leave the validator
+   * judging a blank pano area. No-op when nothing is pending.
+   * @returns {void}
+   */
+  revealPendingCanvas() {
+    if (this.#primaryRevealPending) this.#revealPrimaryCanvas();
   }
 
   /**
@@ -588,12 +621,17 @@ class PanoManager {
   }
 
   /**
-   * Paints the primary canvas and the marker setPanorama hid with it, once the pano faces the current label.
+   * Paints the primary canvas and the marker hidden with it, once the pano faces the current label, and starts the
+   * marker's pulse, which renderPanoMarker held back so it wouldn't play while the marker was hidden.
+   * @returns {void}
    */
   #revealPrimaryCanvas() {
     this.#primaryRevealPending = false;
     this.#panoCanvas.style.visibility = '';
-    if (this.labelMarker) this.labelMarker.marker_.style.visibility = '';
+    if (this.labelMarker) {
+      this.labelMarker.marker_.style.visibility = '';
+      this.#restartMarkerPulse(this.labelMarker.marker_);
+    }
   }
 
   /**

@@ -96,8 +96,9 @@ function makeSdk(moveTo) {
     off: jest.fn((event, fn) => { listeners[event] = (listeners[event] ?? []).filter((f) => f !== fn); }),
     getCenter: jest.fn(() => Promise.resolve([0.5, 0.5])),
     getFieldOfView: jest.fn(() => Promise.resolve(70)),
-    setCenter: jest.fn(() => Promise.resolve()),
-    setFieldOfView: jest.fn(() => Promise.resolve()),
+    // MapillaryJS 4.1.2 returns undefined from both, whatever its API docs say (measured in the vendored bundle).
+    setCenter: jest.fn(() => undefined),
+    setFieldOfView: jest.fn(() => undefined),
     _navigator: {
       _api: { _data: { _accessToken: 'MLY|test' } },
       graphService: { cacheImage$: jest.fn(() => ({ subscribe: jest.fn() })) },
@@ -435,25 +436,19 @@ describe('MapillaryViewer\'s other load-path contracts (issues #5581, #5582)', (
     console.warn.mockRestore();
   });
 
-  test('setPov settles only once the SDK has applied both the center and the field of view', async () => {
+  test('setPov hands the SDK the center and fov and offers nothing to wait on, as the SDK offers nothing', () => {
+    // Validate's reveal waits for animation frames because no promise here could mean "applied" (#5582).
     const viewer = new classes.MapillaryViewer();
     const sdk = makeSdk(() => Promise.resolve(makeImage('pano1')));
-    let centerApplied;
-    sdk.setCenter = jest.fn(() => new Promise((resolve) => { centerApplied = resolve; }));
     viewer.viewer = sdk;
     viewer.currCameraHeading = 0;
     viewer.currCenter = [0.5, 0.5];
     viewer.currAspect = 1.5;
 
-    let settled = false;
-    const applied = viewer.setPov({ heading: 90, pitch: 0, zoom: 1 }).then(() => { settled = true; });
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(settled).toBe(false); // Validate reveals the canvas off this, so it can't settle before the SDK has.
-
-    centerApplied();
-    await applied;
-    expect(settled).toBe(true);
+    expect(viewer.setPov({ heading: 90, pitch: 0, zoom: 1 })).toBeUndefined();
+    expect(sdk.setCenter).toHaveBeenCalledWith([0.75, 0.5]);
+    expect(sdk.setFieldOfView).toHaveBeenCalled();
+    expect(viewer.currCenter).toEqual([0.75, 0.5]); // Cached for the synchronous getPov().
   });
 
   test('_withTimeout names its own rejection, so a caller can tell giving up from the provider failing', async () => {

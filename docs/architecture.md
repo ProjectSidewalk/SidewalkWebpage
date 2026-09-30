@@ -331,8 +331,10 @@ corresponding Twirl view:
   (`validate/src/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
   the primary canvas rejoins the layout unpainted after a fallback label (#5453), and on a primary viewer that paints
   during a load (`PanoViewer.PAINTS_DURING_LOAD`: Mapillary, Panoramax) the canvas and marker are hidden for every load
-  and revealed by `renderPanoMarker` two animation frames after the SDK has applied the label's POV (#5582), which is
-  also when `LabelContainer` unlocks the tool. GSV keeps the outgoing pano up during its ~50 ms swap. Mapillary moves
+  and revealed by `renderPanoMarker` two animation frames after it sets the label's POV (#5582), capped at 100 ms for
+  a background tab, which is also when `LabelContainer` unlocks the tool. The reveal runs even when aiming or drawing
+  the marker throws, a marker built while the canvas is hidden is hidden with it, and its pulse starts at the
+  reveal. GSV keeps the outgoing pano up during its ~50 ms swap. Mapillary moves
   in Validate and the label popup use `TransitionMode.Instantaneous`; Explore keeps the animated walk.
   **A label whose pano won't load** is passed over by `LabelContainer.#loadPanoForCurrentLabel`, and `setPanorama`'s
   `{panoData, reason}` result says which kind: `'no-imagery'` drops it and asks `/validationTask/moreLabels` for a
@@ -443,9 +445,10 @@ corresponding Twirl view:
   only a 404 or Graph's "does not exist" error (code 100, subcode 33) makes it `NoImageryError`, since that verdict
   drops a Validate label, and a check that can't be made makes it `PanoLoadTimeoutError` whatever the SDK said, since
   offline or rate-limited the SDK fails fast rather than timing out. A move the SDK cancels for a newer one is
-  rethrown unclassified. A viewer whose SDK draws the incoming pano before
-  `setPano` resolves declares `static PAINTS_DURING_LOAD = true`, and its `setPov` returns a promise that settles once
-  the POV is applied, which is what Validate's reveal waits on (#5582).
+  rethrown unclassified. A viewer whose SDK draws the incoming pano before `setPano` resolves declares
+  `static PAINTS_DURING_LOAD = true` (#5582). `setPov` returns nothing to wait on (MapillaryJS 4.1.2's `setCenter` and
+  `setFieldOfView` return `undefined`), so a caller that must not show the old heading waits animation frames instead,
+  as Validate's reveal does.
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`

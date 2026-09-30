@@ -398,7 +398,6 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
   let panoData;
   let primaryCanvas;
   let frames;     // Animation-frame callbacks, run by hand so a test controls which frame has painted.
-  let povSettle;  // Resolves the pending setPov, standing in for the SDK applying the label's POV.
 
   /** What a validator can see of the primary canvas right now. */
   function primaryShowing() {
@@ -451,6 +450,8 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
   beforeEach(async () => {
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>'
       + '<div id="view-control-layer"></div>';
+    // Fake timers so the reveal's background-tab cap only runs when a test advances the clock to it.
+    jest.useFakeTimers();
     frames = [];
     global.requestAnimationFrame = (cb) => { frames.push(cb); return frames.length; };
 
@@ -492,7 +493,7 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
       addListener: jest.fn(),
       resize: jest.fn(),
       prefetchPano: jest.fn(),
-      setPov: jest.fn(() => new Promise((resolve) => { povSettle = resolve; })),
+      setPov: jest.fn(() => undefined), // Like MapillaryJS's setCenter/setFieldOfView: nothing to wait on.
       getPov: () => ({ heading: 0, pitch: 0, zoom: 1 }),
     };
     const PaintingViewerType = class PaintingViewerType {
@@ -508,7 +509,6 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     // The first label is up and aimed, as it is by the time a validator moves on from it.
     await panoManager.setPanorama('pano1', null);
     const firstRender = panoManager.renderPanoMarker(makeLabel());
-    povSettle();
     await flushMicrotasks();
     paint();
     paint();
@@ -517,6 +517,7 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     document.body.innerHTML = '';
     delete global.requestAnimationFrame;
     delete global.util;
@@ -531,7 +532,7 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     delete global.svv;
   });
 
-  test('the canvas is unpainted from before the load starts until the label\'s POV has been applied', async () => {
+  test('the canvas is unpainted from before the load starts until two frames after the label\'s POV', async () => {
     const load = holdPrimaryLoad();
     const inFlight = panoManager.setPanorama('pano2', null);
     await load.started;
@@ -545,15 +546,12 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     expect(primaryShowing()).toBe(false);
 
     const rendering = panoManager.renderPanoMarker(makeLabel());
+    expect(primaryViewer.setPov).toHaveBeenCalled();
     await flushMicrotasks();
+    expect(primaryShowing()).toBe(false); // The SDK draws the new center on its own frame first.
     paint();
-    paint();
-    expect(primaryShowing()).toBe(false); // The POV hasn't landed, so no frame may show yet.
-
-    povSettle();
     await flushMicrotasks();
-    expect(primaryShowing()).toBe(false); // The SDK draws the new center in its own frame first.
-    paint();
+    expect(primaryShowing()).toBe(false);
     paint();
     await rendering;
     expect(primaryShowing()).toBe(true);
@@ -568,7 +566,6 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     load.resolve();
     await inFlight;
     const rendering = panoManager.renderPanoMarker(makeLabel());
-    povSettle();
     await flushMicrotasks();
     paint();
     paint();
@@ -583,7 +580,6 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     const next = holdPrimaryLoad();
     const nextInFlight = panoManager.setPanorama('pano3', null);
     await next.started;
-    povSettle();
     await flushMicrotasks();
     paint();
     paint();
@@ -606,17 +602,59 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     expect(primaryCanvas.style.display).toBe('none');
   });
 
-  test('a POV the SDK fails to apply still reveals the pano rather than leaving the area blank', async () => {
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  test('a setPov that throws still reveals the pano, so the tool never unlocks over a blank area', async () => {
     await panoManager.setPanorama('pano2', null);
-    primaryViewer.setPov = jest.fn(() => Promise.reject(new Error('not navigable')));
+    primaryViewer.setPov = jest.fn(() => { throw new Error('not navigable'); });
 
     const rendering = panoManager.renderPanoMarker(makeLabel());
+    const outcome = rendering.catch((err) => err);
+    await flushMicrotasks();
+    paint();
+    paint();
+
+    expect((await outcome).message).toBe('not navigable'); // Still reported, so the render failure is logged.
+    expect(primaryShowing()).toBe(true);
+  });
+
+  test('a render that fails before the marker is drawn can still reveal the pano it loaded', async () => {
+    await panoManager.setPanorama('pano2', null);
+    expect(primaryShowing()).toBe(false);
+
+    panoManager.revealPendingCanvas();
+
+    expect(primaryShowing()).toBe(true);
+  });
+
+  test('a marker created after the pano area was cleared stays hidden, and unpulsed, until the reveal', async () => {
+    // A failed load clears the viewer, which takes the marker down; the next label then builds a new one.
+    primaryViewer.setPano = jest.fn(() => Promise.reject(new Error('imagery expired')));
+    await panoManager.setPanorama('pano2', null);
+    expect(markerEl()).toBeNull();
+
+    primaryViewer.setPano = jest.fn(() => Promise.resolve(panoData));
+    await panoManager.setPanorama('pano3', null);
+    const rendering = panoManager.renderPanoMarker(makeLabel());
+
+    expect(markerEl().style.visibility).toBe('hidden'); // Or it floats over the unpainted canvas.
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(false); // Its pulse would play unseen.
+
     await flushMicrotasks();
     paint();
     paint();
     await rendering;
     expect(primaryShowing()).toBe(true);
-    console.warn.mockRestore();
+    expect(markerEl().style.visibility).toBe('');
+    expect(markerEl().classList.contains('label-marker-pulse')).toBe(true);
+  });
+
+  test('in a background tab, where no animation frame runs, the reveal still happens on a short timer', async () => {
+    await panoManager.setPanorama('pano2', null);
+    const rendering = panoManager.renderPanoMarker(makeLabel());
+    await flushMicrotasks();
+    expect(primaryShowing()).toBe(false);
+
+    await jest.advanceTimersByTimeAsync(100); // No paint() at all.
+    await rendering;
+    expect(primaryShowing()).toBe(true);
   });
 });

@@ -464,8 +464,7 @@ class PanoViewer {
    * @param {number} _pov.heading - Desired heading in degrees (0-360, where 0 is true north)
    * @param {number} _pov.pitch - Desired pitch in degrees (-90 to 90, where 0 is horizontal)
    * @param {number} _pov.zoom - Desired zoom (1, 2, or 3)
-   * @returns {void|Promise<void>} A viewer whose SDK applies the POV asynchronously returns a promise that settles once
-   *     it has, so a caller that must not paint the old heading (Validate's reveal, #5582) can wait for it.
+   * @returns {void}
    * @abstract
    */
   setPov(_pov) {

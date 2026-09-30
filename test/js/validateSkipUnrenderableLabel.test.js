@@ -455,6 +455,17 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(uiReleased()).toBe(true);
   });
 
+  test('a render that throws before the marker is drawn reveals the loaded pano before the tool unlocks', async () => {
+    // Otherwise a canvas held unpainted for the reveal (#5582) stays blank under a tool that accepts verdicts again.
+    svv.panoManager.revealPendingCanvas = jest.fn();
+    svv.labelCard.render = jest.fn(() => { throw new Error('card broke'); });
+
+    await expect(buildContainer()).rejects.toThrow('card broke');
+
+    expect(svv.panoManager.revealPendingCanvas).toHaveBeenCalled();
+    expect(uiReleased()).toBe(true);
+  });
+
   test('the next label\'s pano is prefetched once a label is on screen', async () => {
     const labelContainer = await buildContainer();
     expect(svv.panoManager.prefetchPano).toHaveBeenLastCalledWith('panoB');
