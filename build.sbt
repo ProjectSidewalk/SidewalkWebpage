@@ -252,7 +252,12 @@ scalacOptions ++= Seq(
   "-Wunused:implicits", // Warn if an implicit parameter is unused.
   "-Wunused:privates",  // Warn if a private member is unused.
   "-Wunused:locals",    // Warn if a local definition is unused.
-  "-Wvalue-discard"     // Warn when non-Unit expression results are unused.
+  "-Wvalue-discard",    // Warn when non-Unit expression results are unused.
+  "-Wsafe-init",             // Warn when a field could be read before its initializer has run.
+  "-Winfer-union",           // Warn when a type is inferred as `A | B`, which usually means two branches disagree.
+  "-Wimplausible-patterns",  // Warn when a `case` compares against a value of a type it can never equal.
+  "-Wenum-comment-discard",  // Warn when a doc comment between enum cases is dropped.
+  "-Wwrong-arrow"            // Warn when `=>` is used where a context function `?=>` was meant.
 )
 
 // A test often ends on `if (hasData) result mustBe expected`, which the value-discard check would flag.

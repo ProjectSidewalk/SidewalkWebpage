@@ -74,7 +74,7 @@ class PlacesRefreshActor @Inject() (
         .onComplete {
           case Success(result) if result.skipped =>
             logger.info(
-              s"Places refresh skipped: ${result.total} places, fetched ${result.fetchedAt.getOrElse("never")}"
+              s"Places refresh skipped: ${result.total} places, fetched ${result.fetchedAt.fold("never")(_.toString)}"
             )
           case Success(result) =>
             logger.info(

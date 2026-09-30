@@ -5,7 +5,7 @@ import models.user.{UserStatTable, UserStatTableDef}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
-import org.scalatest.OptionValues
+import org.scalatest.{Assertion, OptionValues}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -82,10 +82,9 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
   }
 
   /** Relative-with-absolute-floor closeness check for distances in meters. */
-  private def assertClose(actual: Double, expected: Double, relTol: Double = 1e-9, absTol: Double = 1e-6): Unit = {
+  private def assertClose(actual: Double, expected: Double, relTol: Double = 1e-9, absTol: Double = 1e-6): Assertion = {
     val bound = math.max(relTol * math.max(actual.abs, expected.abs), absTol)
     actual mustBe expected +- bound
-    ()
   }
 
   /**
