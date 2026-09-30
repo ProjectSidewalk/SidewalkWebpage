@@ -38,6 +38,54 @@
   display: none !important;
 }
 
+/* The loading status over the pano (#5581, PanoLoadingStatus.js), shared by boxed, immersive and mobile Validate. The
+   live region fills the holder so its box centers over whichever viewer canvas is up, but only the box paints, and
+   nothing takes the pointer: a drag that starts over it still reaches the pano. Stacked with the corner controls (3)
+   and before them in the markup, so those and the label card (4) stay on top of it. */
+.svv-pano-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* Solid, not a translucent scrim: on desktop the whole tool sits at 60% opacity while a label loads
+   (.validate-disabled), and over the boxed page's white a translucent backdrop took the text under 4.5:1. The darkest
+   asphalt keeps white text past 4.9:1 even dimmed, and far past it on mobile and over imagery. */
+.svv-pano-loading__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xxs);
+  max-width: calc(100% - 32px * var(--ui-scale, 1));
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-asphalt-800);
+  box-shadow: var(--box-shadow-lg);
+  color: var(--color-neutral-white);
+  font: var(--text-small-medium);
+  text-align: center;
+}
+
+/* The display above would otherwise override the hidden attribute PanoLoadingStatus toggles. */
+.svv-pano-loading__box[hidden] {
+  display: none;
+}
+
+.svv-pano-loading__img {
+  width: calc(64px * var(--ui-scale, 1));
+  height: calc(64px * var(--ui-scale, 1));
+}
+
+/* The .webp animates on its own and cannot be paused, so drop it entirely and let the text carry the message, as the
+   label popup's loading overlay does (css/components/label-detail.css). */
+@media (prefers-reduced-motion: reduce) {
+  .svv-pano-loading__img { display: none; }
+}
+
 /* Colored frame on top of the pano and marker layers. Drawing it above the marker (rather than as the pano's own
    border underneath) means a label at the very edge is clipped by the frame instead of rendering on top of it. */
 #pano-border-frame {

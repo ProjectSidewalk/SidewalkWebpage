@@ -106,6 +106,16 @@
       <div id="svv-panorama-holder">
         <div id="svv-panorama"></div>
         <div id="view-control-layer"></div>
+        @* Says a slow load is a load rather than a hang (#5581); PanoLoadingStatus shows it after 2 s. The element with
+           the id is the live region and is always rendered, and the box inside it is what gets hidden: revealing
+           content inside a live region already in the accessibility tree is announced reliably, unhiding the region
+           itself is not. *@
+        <div id="svv-pano-loading" class="svv-pano-loading" role="status" aria-live="polite">
+          <div class="svv-pano-loading__box" hidden>
+            <img class="svv-pano-loading__img" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt="" aria-hidden="true">
+            <span class="svv-pano-loading__text" data-i18n="common:loading-imagery">Loading imagery...</span>
+          </div>
+        </div>
         @* No Delete, no Edit, and the card is not itself a click target the way Explore's is. A validator judges the
            label; the one change allowed here is an expert picking a new type from the header's dropdown (#5409), which
            is the same as picking it in the menu. The one action it carries is the Hide-label toggle, which

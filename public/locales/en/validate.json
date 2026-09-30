@@ -106,6 +106,9 @@
     "body": "We couldn't load the street imagery for the labels in this mission, so there's nothing to show you right now. Your finished validations are saved. This usually clears up on its own — please try again.",
     "retry": "Try Again"
   },
+  "pano-loading": {
+    "skipping": "Still loading, trying the next label..."
+  },
   "mission-complete": {
     "title": "Great Job!",
     "body-CurbRamp": "You just validated {{n}} Curb Ramp labels.",

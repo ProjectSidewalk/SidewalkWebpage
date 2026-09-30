@@ -222,6 +222,9 @@ class Main {
     // usable imagery, LabelContainer drops all of them and shows this modal instead of an empty pano (#4810).
     svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
+    // Built before the first label renders so that render can report a slow load too (#5581).
+    svv.panoLoadingStatus = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
+
     const firstLabel = param.labelList[0];
     svv.panoManager = await PanoManager.create(
       svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
