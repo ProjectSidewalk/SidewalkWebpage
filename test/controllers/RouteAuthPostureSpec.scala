@@ -115,7 +115,7 @@ class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
    * Reads rather than creates: minting a user would leave a fixture account behind in whatever database the suite is
    * pointed at, and `sidewalk_login` is shared across every city schema on the host.
    */
-  private def emailOfUserWithRole(role: Role.Value): Option[String] = {
+  private def emailOfUserWithRole(role: Role): Option[String] = {
     // Held as a local so its path-dependent Database type stays stable; a field would need an existential.
     val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
     Await.result(
@@ -123,7 +123,7 @@ class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
         sql"""SELECT sidewalk_user.email
               FROM sidewalk_login.sidewalk_user
               INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
-              WHERE user_role.role = ${role.toString}::sidewalk_login.role
+              WHERE user_role.role = $role
               LIMIT 1""".as[String].headOption
       ),
       30.seconds

@@ -91,11 +91,7 @@ class NightlyJobStatusSpec extends SidewalkSpec with BeforeAndAfterAll with Guic
   }
 
   /** Seeds one finished run. */
-  private def seedFinished(
-      trigger: JobRunTrigger.Value,
-      status: JobRunStatus.Value,
-      startedAt: OffsetDateTime
-  ): Unit = {
+  private def seedFinished(trigger: JobRunTrigger, status: JobRunStatus, startedAt: OffsetDateTime): Unit = {
     val id = run(jobRunTable.insertRunning(jobName, trigger, startedAt))
     seededRunIds ::= id
     val error = if (status == JobRunStatus.Failed) Some("seeded failure") else None

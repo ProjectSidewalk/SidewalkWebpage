@@ -15,7 +15,7 @@ object ApiModelUtils {
   val labelTypeOrdering: Ordering[(String, Any)] = Ordering.by { case (labelType, _) =>
     (
       labelType != "Overall",
-      LabelType.orderedNames.indexOf(labelType) match {
+      LabelType.names.indexOf(labelType) match {
         case -1 => Int.MaxValue
         case i  => i
       }

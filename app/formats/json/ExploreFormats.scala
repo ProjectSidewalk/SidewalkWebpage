@@ -1,10 +1,9 @@
 package formats.json
 
-import formats.json.PanoFormats.{panoSourceReads, PanoDate}
+import formats.json.PanoFormats.PanoDate
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
 import models.label.{ComputationMethod, LabelPointTable, LabelType}
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
 import models.street.StreetEdgePriority
 import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
@@ -53,7 +52,7 @@ object ExploreFormats {
       zoom: Double,
       lat: Option[Double],
       lng: Option[Double],
-      computationMethod: Option[ComputationMethod.Value]
+      computationMethod: Option[ComputationMethod]
   )
   case class LabelSubmission(
       panoId: String,
@@ -193,7 +192,7 @@ object ExploreFormats {
         "street_edge_id"        -> task.edgeId,
         "current_lng"           -> task.currentLng,
         "current_lat"           -> task.currentLat,
-        "way_type"              -> task.wayType.toString,
+        "way_type"              -> task.wayType.name,
         "max_speed"             -> task.maxSpeed,
         "start_point_reversed"  -> task.startPointReversed,
         "task_start"            -> task.taskStart.toString,
@@ -260,18 +259,6 @@ object ExploreFormats {
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(InteractionSubmission.apply _)
 
-  given computationMethodReads: Reads[ComputationMethod.Value] = Reads { json =>
-    json.validate[String].flatMap { method =>
-      ComputationMethod.fromString(method) match {
-        case Some(computationMethod) => JsSuccess(computationMethod)
-        case None                    =>
-          JsError(
-            s"Invalid computation method: $method. Valid methods are: ${ComputationMethod.values.mkString(", ")}."
-          )
-      }
-    }
-  }
-
   private val positiveFrameError = JsonValidationError("canvas_width and canvas_height must be positive")
 
   given labelPointSubmissionReads: Reads[LabelPointSubmission] = (
@@ -291,7 +278,7 @@ object ExploreFormats {
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").readNullable[Double] and
       (JsPath \ "lng").readNullable[Double] and
-      (JsPath \ "computation_method").readNullable[ComputationMethod.Value]
+      (JsPath \ "computation_method").readNullable[ComputationMethod]
   )(LabelPointSubmission.apply _)
 
   given panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
@@ -315,7 +302,7 @@ object ExploreFormats {
 
   given panoSubmissionReads: Reads[PanoSubmission] = (
     (JsPath \ "pano_id").read[String] and
-      (JsPath \ "source").read[PanoSource.Value] and
+      (JsPath \ "source").read[PanoSource] and
       (JsPath \ "capture_date").read[String] and
       (JsPath \ "width").readNullable[Int] and
       (JsPath \ "height").readNullable[Int] and
@@ -336,7 +323,7 @@ object ExploreFormats {
 
   given labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "pano_id").read[String] and
-      (JsPath \ "pano_source").read[PanoSource.Value] and
+      (JsPath \ "pano_source").read[PanoSource] and
       (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "deleted").read[Boolean] and
       (JsPath \ "severity").readNullable[Int] and

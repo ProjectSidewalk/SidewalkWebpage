@@ -1,9 +1,8 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.label.AiImageSource.AiImageSource
 import models.utils.MyPostgresProfile.api.{given, _}
-import models.utils.{AiTagConfidence, MyPostgresProfile}
+import models.utils.{AiTagConfidence, MyPostgresProfile, NamedEnum, PgEnumCompanion}
 import models.validation.{LabelValidationTableDef, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -11,18 +10,19 @@ import java.time.OffsetDateTime
 import javax.inject._
 import scala.concurrent.ExecutionContext
 
-// NOTE need to update ai_image_source enum in postgres as well if changing this Enumeration.
-object AiImageSource extends Enumeration {
-  type AiImageSource = Value
-  val Download = Value("download")
-  val Cache    = Value("cache")
+// NOTE need to update ai_image_source enum in postgres as well if changing this enum.
+enum AiImageSource(val name: String) extends NamedEnum {
+  case Download extends AiImageSource("download")
+  case Cache    extends AiImageSource("cache")
 }
+
+object AiImageSource extends PgEnumCompanion[AiImageSource]("ai_image_source")
 
 case class LabelAiAssessment(
     labelAiAssessmentId: Int,
     labelId: Int,
     labelType: LabelType,
-    validationResult: ValidationOption.Value,
+    validationResult: ValidationOption,
     validationAccuracy: Double,
     validationConfidence: Double,
     tags: Option[List[String]],
@@ -39,14 +39,14 @@ case class LabelAiAssessment(
 )
 
 class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, "label_ai_assessment") {
-  def labelAiAssessmentId: Rep[Int]                 = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                             = column[Int]("label_id")
-  def labelType: Rep[LabelType]                     = column[LabelType]("label_type")
-  def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
-  def validationAccuracy: Rep[Double]               = column[Double]("validation_accuracy")
-  def validationConfidence: Rep[Double]             = column[Double]("validation_confidence")
-  def tags: Rep[Option[List[String]]]               = column[Option[List[String]]]("tags", O.Default(Some(List())))
-  def tagsNotPresent: Rep[Option[List[String]]]     =
+  def labelAiAssessmentId: Rep[Int]             = column[Int]("label_ai_assessment_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]                         = column[Int]("label_id")
+  def labelType: Rep[LabelType]                 = column[LabelType]("label_type")
+  def validationResult: Rep[ValidationOption]   = column[ValidationOption]("validation_result")
+  def validationAccuracy: Rep[Double]           = column[Double]("validation_accuracy")
+  def validationConfidence: Rep[Double]         = column[Double]("validation_confidence")
+  def tags: Rep[Option[List[String]]]           = column[Option[List[String]]]("tags", O.Default(Some(List())))
+  def tagsNotPresent: Rep[Option[List[String]]] =
     column[Option[List[String]]]("tags_not_present", O.Default(Some(List())))
   def tagsConfidence: Rep[Option[Seq[AiTagConfidence]]] = column[Option[Seq[AiTagConfidence]]]("tags_confidence")
   def apiVersion: Rep[String]                           = column[String]("api_version")

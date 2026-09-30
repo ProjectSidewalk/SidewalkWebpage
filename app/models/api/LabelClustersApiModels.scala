@@ -7,7 +7,7 @@
 package models.api
 
 import models.api.ApiModelUtils.createGeoJsonPoint
-import models.pano.PanoSource.PanoSource
+import models.pano.PanoSource
 import models.utils.LatLngBBox
 import play.api.libs.json.{JsObject, Json, Writes}
 

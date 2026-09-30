@@ -2,7 +2,6 @@ package models.api
 
 import models.label.StreetSide
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
 import org.scalatest.OptionValues
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -25,7 +24,7 @@ class LabelApiModelsSpec extends AnyFunSuite with Matchers with OptionValues {
       source: PanoSource,
       heading: Option[Double] = Some(94.3114318847656),
       pitch: Option[Double] = Some(-24.6774997711182),
-      streetSide: Option[StreetSide.Value] = Some(StreetSide.Left),
+      streetSide: Option[StreetSide] = Some(StreetSide.Left),
       centerlineOffsetM: Option[Double] = Some(4.25)
   ): LabelDataForApi = LabelDataForApi(
     labelId = 8,

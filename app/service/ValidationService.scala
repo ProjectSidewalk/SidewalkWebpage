@@ -4,8 +4,7 @@ import com.google.inject.ImplementedBy
 import models.label._
 import models.mission.MissionType
 import models.user.{Role, SidewalkUserWithRole, UserStatTable}
-import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.CommonUtils.ViewerType
+import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import models.validation._
@@ -94,8 +93,8 @@ class ValidationServiceImpl @Inject() (
    */
   def updateValidationCounts(
       labelId: Int,
-      newResult: Option[ValidationOption.Value],
-      oldResult: Option[ValidationOption.Value]
+      newResult: Option[ValidationOption],
+      oldResult: Option[ValidationOption]
   ): DBIO[Int] = {
     labelTable
       .find(labelId)

@@ -8,7 +8,7 @@ import models.label.{
   LabelValidationMetadata,
   StreetSide
 }
-import models.pano.PanoSource.PanoSource
+import models.pano.PanoSource
 import models.utils.MyPostgresProfile.api._
 import models.validation.ValidationLabelFilter
 import models.validation.ValidationQueuePolicy.ValidationQueue
@@ -78,7 +78,7 @@ class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
   private lazy val fixturePanoId: Option[String] = run(
     sql"""SELECT pano_data.pano_id
           FROM pano_data
-          WHERE pano_data.source = ${viewer.toString}::pano_source
+          WHERE pano_data.source = $viewer
             AND NOT pano_data.expired
           ORDER BY (pano_data.last_checked >= now() - INTERVAL '6 days') DESC NULLS LAST
           LIMIT 1""".as[String].headOption
@@ -213,7 +213,7 @@ class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
   private def insertPano(): DBIO[String] = {
     val panoId = s"spec-4715-${UUID.randomUUID().toString.take(8)}"
     sqlu"""INSERT INTO pano_data (pano_id, capture_date, expired, last_viewed, last_checked, source)
-            VALUES ($panoId, '2024-01', FALSE, now(), now(), ${viewer.toString}::pano_source)""".map(_ => panoId)
+            VALUES ($panoId, '2024-01', FALSE, now(), now(), $viewer)""".map(_ => panoId)
   }
 
   /**
@@ -297,7 +297,7 @@ class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
   }
 
   /** The face evidence rows on the fixture's streets, keyed by (street, side). */
-  private def fixtureFaceEvidence: DBIO[Map[(Int, StreetSide.Value), (Int, Int, Int)]] =
+  private def fixtureFaceEvidence: DBIO[Map[(Int, StreetSide), (Int, Int, Int)]] =
     labelTable.getNoSidewalkFaceEvidence.map(
       _.filter(f => fixtureStreetEdgeIds.contains(f.streetEdgeId))
         .map(f => (f.streetEdgeId, f.streetSide) -> (f.labelerCount, f.support, f.labelCount))
@@ -838,7 +838,7 @@ class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
 
   "spreadAcrossFaces" should {
     "take one label per face, distinct streets first, and fall back to a repeat face only when short" in {
-      def label(id: Int, street: Int, side: Option[StreetSide.Value]): LabelValidationMetadata = {
+      def label(id: Int, street: Int, side: Option[StreetSide]): LabelValidationMetadata = {
         // Only the face fields matter to the spread; the rest is filler.
         LabelValidationMetadata(
           id,

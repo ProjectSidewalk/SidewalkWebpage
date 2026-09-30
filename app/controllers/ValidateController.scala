@@ -219,7 +219,7 @@ class ValidateController @Inject() (
       teams: Option[String]
   ): Future[(ValidateParams, Result)] = {
     // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
-    val parsedLabelType: Option[Option[LabelType]]       = labelType.map(LabelType.byName.get)
+    val parsedLabelType: Option[Option[LabelType]]       = labelType.map(LabelType.withNameOption)
     val userIdsList: Option[Seq[Future[Option[String]]]] = users.map(
       _.split(',')
         .map(_.trim)
@@ -655,7 +655,7 @@ class ValidateController @Inject() (
    * @return `Ok` with the number deleted (0 if they had not commented), so a double-click is not an error.
    */
   def deleteLabelMapComment(labelId: Int, labelType: String) = cc.securityService.SecuredAction { implicit request =>
-    LabelType.byName.get(labelType) match {
+    LabelType.withNameOption(labelType) match {
       case None     => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Unknown label type")))
       case Some(lt) =>
         validationService.deleteComment(labelId, request.identity.userId, lt).map { deleted =>

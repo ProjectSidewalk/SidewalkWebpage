@@ -5,7 +5,6 @@ import models.cluster.ClusterLabelTable
 import models.label._
 import models.user.{Role, SidewalkUserWithRole, UserStatTable}
 import models.utils.CommonUtils.UiSource
-import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}

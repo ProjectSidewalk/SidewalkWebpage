@@ -96,7 +96,7 @@ object AccessScoreCalculator {
   val scoredTypeNames: Set[String] = typeWeights.keySet
 
   /** Scored types in the canonical label type order so CSV/shapefile columns never drift from the header. */
-  val orderedScoredTypes: Seq[String] = LabelType.orderedNames.filter(scoredTypeNames.contains)
+  val orderedScoredTypes: Seq[String] = LabelType.names.filter(scoredTypeNames.contains)
 
   /** Each scored type's signed base weight, the form [[subScoresFromCounts]] takes so a caller can substitute its own. */
   val baseWeights: Map[String, Double] = typeWeights.map { case (t, tw) => t -> tw.baseWeight }

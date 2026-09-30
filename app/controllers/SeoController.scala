@@ -38,7 +38,7 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
    * `ConfigService.getPanoSource` uses, so this controller keeps its build-once, no-DB property.
    */
   private val signInWalled: Boolean =
-    config.get[String](s"city-params.pano-viewer-type.$cityId") == PanoSource.Infra3d.toString
+    config.get[String](s"city-params.pano-viewer-type.$cityId") == PanoSource.Infra3d.name
 
   /**
    * Public, indexable pages promoted in the sitemap. Duplicate route aliases are excluded (see SeoUtils).

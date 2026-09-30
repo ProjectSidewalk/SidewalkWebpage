@@ -167,7 +167,7 @@ class BackgroundJobRunTableSpec extends SidewalkSpec with BeforeAndAfterAll with
   "outcomeCountsSince" should {
 
     /** The counts for `jobName`, keyed by (status, whether an open run is old enough to read as abandoned). */
-    def counts(): Map[(JobRunStatus.Value, Boolean), Int] = {
+    def counts(): Map[(JobRunStatus, Boolean), Int] = {
       run(jobRunTable.outcomeCountsSince(OffsetDateTime.now.minusDays(7), OffsetDateTime.now.minusHours(12)))
         .filter(_._1 == jobName)
         .map(count => (count._2, count._3) -> count._4)
@@ -215,7 +215,7 @@ class BackgroundJobRunTableSpec extends SidewalkSpec with BeforeAndAfterAll with
   "runsForJobsSince" should {
 
     /** Seeds one finished run and returns its id. */
-    def seed(job: String, startedAt: OffsetDateTime, status: JobRunStatus.Value, details: Option[String]): Int = {
+    def seed(job: String, startedAt: OffsetDateTime, status: JobRunStatus, details: Option[String]): Int = {
       val id = run(jobRunTable.insertRunning(job, JobRunTrigger.Scheduled, startedAt))
       val _  = run(
         jobRunTable.finish(

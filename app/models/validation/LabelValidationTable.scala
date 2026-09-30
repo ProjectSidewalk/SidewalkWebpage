@@ -6,8 +6,7 @@ import models.label.LabelType.labelTypeNames
 import models.label._
 import models.mission.MissionTableDef
 import models.user._
-import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.CommonUtils.ViewerType.ViewerType
+import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -29,7 +28,7 @@ case class LabelValidation(
     labelValidationId: Int,
     labelId: Int,
     labelType: LabelType,
-    validationResult: ValidationOption.Value,
+    validationResult: ValidationOption,
     userId: String,
     missionId: Int,
     // NOTE: canvas_x and canvas_y are null when the label is not visible when validation occurs.
@@ -50,7 +49,7 @@ case class ValidationCount(
     count: Int,
     timeInterval: TimeInterval,
     labelType: String,
-    validationResult: Option[ValidationOption.Value], // None represents the "All" results subtotal.
+    validationResult: Option[ValidationOption], // None represents the "All" results subtotal.
     validatorType: String
 ) {
   require((labelTypeNames ++ Seq("All")).contains(labelType))
@@ -63,23 +62,23 @@ case class ValidationCount(
  * @param tag
  */
 class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidation](tag, "label_validation") {
-  def labelValidationId: Rep[Int]                   = column[Int]("label_validation_id", O.AutoInc)
-  def labelId: Rep[Int]                             = column[Int]("label_id")
-  def labelType: Rep[LabelType]                     = column[LabelType]("label_type")
-  def validationResult: Rep[ValidationOption.Value] = column[ValidationOption.Value]("validation_result")
-  def userId: Rep[String]                           = column[String]("user_id")
-  def missionId: Rep[Int]                           = column[Int]("mission_id")
-  def canvasX: Rep[Option[Int]]                     = column[Option[Int]]("canvas_x")
-  def canvasY: Rep[Option[Int]]                     = column[Option[Int]]("canvas_y")
-  def heading: Rep[Double]                          = column[Double]("heading")
-  def pitch: Rep[Double]                            = column[Double]("pitch")
-  def zoom: Rep[Double]                             = column[Double]("zoom")
-  def canvasHeight: Rep[Int]                        = column[Int]("canvas_height")
-  def canvasWidth: Rep[Int]                         = column[Int]("canvas_width")
-  def startTimestamp: Rep[OffsetDateTime]           = column[OffsetDateTime]("start_timestamp")
-  def endTimestamp: Rep[OffsetDateTime]             = column[OffsetDateTime]("end_timestamp")
-  def source: Rep[UiSource]                         = column[UiSource]("source")
-  def viewerType: Rep[ViewerType]                   = column[ViewerType]("viewer_type")
+  def labelValidationId: Rep[Int]             = column[Int]("label_validation_id", O.AutoInc)
+  def labelId: Rep[Int]                       = column[Int]("label_id")
+  def labelType: Rep[LabelType]               = column[LabelType]("label_type")
+  def validationResult: Rep[ValidationOption] = column[ValidationOption]("validation_result")
+  def userId: Rep[String]                     = column[String]("user_id")
+  def missionId: Rep[Int]                     = column[Int]("mission_id")
+  def canvasX: Rep[Option[Int]]               = column[Option[Int]]("canvas_x")
+  def canvasY: Rep[Option[Int]]               = column[Option[Int]]("canvas_y")
+  def heading: Rep[Double]                    = column[Double]("heading")
+  def pitch: Rep[Double]                      = column[Double]("pitch")
+  def zoom: Rep[Double]                       = column[Double]("zoom")
+  def canvasHeight: Rep[Int]                  = column[Int]("canvas_height")
+  def canvasWidth: Rep[Int]                   = column[Int]("canvas_width")
+  def startTimestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("start_timestamp")
+  def endTimestamp: Rep[OffsetDateTime]       = column[OffsetDateTime]("end_timestamp")
+  def source: Rep[UiSource]                   = column[UiSource]("source")
+  def viewerType: Rep[ViewerType]             = column[ViewerType]("viewer_type")
 
   def * = (labelValidationId, labelId, labelType, validationResult, userId, missionId, canvasX, canvasY, heading, pitch,
     zoom, canvasWidth, canvasHeight, startTimestamp, endTimestamp, source, viewerType) <> (
@@ -356,7 +355,7 @@ class LabelValidationTable @Inject() (
         // We want to also calculate a sum for every possible subgroup b/w label_type, validation_result and validator.
         // Let's start by enumerating every subgroup combination. We include None for each of the three fields to
         // allow for "All" entries.
-        val subgroupCombinations: Set[(Option[String], Option[ValidationOption.Value], Option[Boolean])] = for {
+        val subgroupCombinations: Set[(Option[String], Option[ValidationOption], Option[Boolean])] = for {
           labelType <- labelTypeNames.map(Some(_)) ++ Seq(None)
           valResult <- ValidationOption.values.toSeq.map(Some(_)) ++ Seq(None)
           validator <- Seq(Some(true), Some(false), None)
@@ -398,9 +397,7 @@ class LabelValidationTable @Inject() (
    * @param userIds The users to break down.
    * @return DBIO[Seq[(userId, validationResult, count)]].
    */
-  def getValidationResultCountsForUsers(
-      userIds: Seq[String]
-  ): DBIO[Seq[(String, ValidationOption.Value, Int)]] = {
+  def getValidationResultCountsForUsers(userIds: Seq[String]): DBIO[Seq[(String, ValidationOption, Int)]] = {
     validations
       .filter(_.userId inSet userIds)
       .groupBy(v => (v.userId, v.validationResult))
@@ -415,7 +412,7 @@ class LabelValidationTable @Inject() (
    *
    * @return DBIO[Seq[(isAi, validationResult, count)]].
    */
-  def getValidationCountsByValidatorRole: DBIO[Seq[(Boolean, ValidationOption.Value, Int)]] = {
+  def getValidationCountsByValidatorRole: DBIO[Seq[(Boolean, ValidationOption, Int)]] = {
     (for {
       _validation <- validations
       _userRole   <- userRoles if _validation.userId === _userRole.userId
@@ -434,7 +431,7 @@ class LabelValidationTable @Inject() (
    * @param n Number of validations to retrieve.
    * @return DBIO[Seq[(labelId, labelType, username, validationResult, endTimestamp)]], most recent first.
    */
-  def getRecentValidations(n: Int): DBIO[Seq[(Int, String, String, ValidationOption.Value, OffsetDateTime)]] = {
+  def getRecentValidations(n: Int): DBIO[Seq[(Int, String, String, ValidationOption, OffsetDateTime)]] = {
     (for {
       _validation <- validations
       _user       <- sidewalkUserTable.humanUsers if _validation.userId === _user.userId
@@ -452,9 +449,7 @@ class LabelValidationTable @Inject() (
    * @param filters The filters to apply to the validation data.
    * @return A query for retrieving filtered validation data as tuples.
    */
-  def getValidationsForApi(
-      filters: ValidationFiltersForApi
-  ): Query[_, (LabelValidation, Label, Role.Value), Seq] = {
+  def getValidationsForApi(filters: ValidationFiltersForApi): Query[_, (LabelValidation, Label, Role), Seq] = {
     for {
       validation       <- validations
       label            <- labelsUnfiltered if validation.labelId === label.labelId
@@ -475,9 +470,7 @@ class LabelValidationTable @Inject() (
    *
    * TODO try doing something like TupleConverter in LabelTable.scala. Need a more general solution.
    */
-  def tupleToValidationDataForApi(
-      tuple: (LabelValidation, Label, Role.Value)
-  ): ValidationDataForApi = {
+  def tupleToValidationDataForApi(tuple: (LabelValidation, Label, Role)): ValidationDataForApi = {
     val (validation, label, role) = tuple
     ValidationDataForApi(
       labelValidationId = validation.labelValidationId,
@@ -506,7 +499,7 @@ class LabelValidationTable @Inject() (
    * @return A database action that, when executed, will return a sequence of ValidationResultTypeForApi objects.
    */
   def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
-    getValidationCountsByValidatorRole.map { (results: Seq[(Boolean, ValidationOption.Value, Int)]) =>
+    getValidationCountsByValidatorRole.map { (results: Seq[(Boolean, ValidationOption, Int)]) =>
       // Create a ValidationResultTypeForApi object for each validation result type.
       ValidationOption.values.toSeq
         .map { valResult =>
@@ -514,7 +507,7 @@ class LabelValidationTable @Inject() (
           val humanCount: Int = currValCounts.find(_._1 == false).map(_._3).getOrElse(0)
           val aiCount: Int    = currValCounts.find(_._1 == true).map(_._3).getOrElse(0)
           ValidationResultTypeForApi(
-            name = valResult.toString,
+            name = valResult.name,
             count = humanCount + aiCount,
             countHuman = humanCount,
             countAi = aiCount

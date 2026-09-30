@@ -1,5 +1,7 @@
 package models.label
 
+import models.utils.{NamedEnum, PgEnumCompanion}
+
 /**
  * Which side of its street a label sits on, backing the `street_side` Postgres enum type (#2886).
  *
@@ -11,11 +13,9 @@ package models.label
  *
  * NOTE: if changing these values, update the `street_side` Postgres enum type as well (see 377.sql).
  */
-object StreetSide extends Enumeration {
-  type StreetSide = Value
-  val Left: Value  = Value("left")
-  val Right: Value = Value("right")
-
-  /** Parses a string into a street side, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum StreetSide(val name: String) extends NamedEnum {
+  case Left  extends StreetSide("left")
+  case Right extends StreetSide("right")
 }
+
+object StreetSide extends PgEnumCompanion[StreetSide]("street_side")

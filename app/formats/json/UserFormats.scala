@@ -32,45 +32,31 @@ object UserFormats {
       (JsPath \ "measurementSystem").readNullable[String]
   )(SettingsSubmission.apply _)
 
-  /** The canonical JSON format for a role. Other format objects import these rather than defining their own. */
-  given roleReads: Reads[Role.Value] = Reads { json =>
-    json.validate[String].flatMap { role =>
-      Role.fromString(role) match {
-        case Some(parsed) => JsSuccess(parsed)
-        case None         => JsError(s"Invalid role: $role. Valid roles are: ${Role.values.mkString(", ")}.")
-      }
-    }
-  }
-  given roleWrites: Writes[Role.Value] = Writes(role => JsString(role.toString))
-
-  given measurementSystemReads: Reads[MeasurementSystem.Value]   = Reads.enumNameReads(MeasurementSystem)
-  given measurementSystemWrites: Writes[MeasurementSystem.Value] = Writes.enumNameWrites[MeasurementSystem.type]
-
   given sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String] and
       (JsPath \ "email").read[String] and
-      (JsPath \ "role").read[Role.Value] and
+      (JsPath \ "role").read[Role] and
       (JsPath \ "community_service").read[Boolean] and
       (JsPath \ "infra3d_access").read[Boolean] and
-      (JsPath \ "measurement_system").readNullable[MeasurementSystem.Value]
+      (JsPath \ "measurement_system").readNullable[MeasurementSystem]
   )(SidewalkUserWithRole.apply _)
 
   given sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = (
     (JsPath \ "user_id").write[String] and
       (JsPath \ "username").write[String] and
       (JsPath \ "email").write[String] and
-      (JsPath \ "role").write[Role.Value] and
+      (JsPath \ "role").write[Role] and
       (JsPath \ "community_service").write[Boolean] and
       (JsPath \ "infra3d_access").write[Boolean] and
-      (JsPath \ "measurement_system").writeNullable[MeasurementSystem.Value]
+      (JsPath \ "measurement_system").writeNullable[MeasurementSystem]
   )((o: SidewalkUserWithRole) => Tuple.fromProductTyped(o))
 
   given userStatsWrites: Writes[UserStatsForAdminPage] = (
     (__ \ "userId").write[String] and
       (__ \ "username").write[String] and
       (__ \ "email").write[String] and
-      (__ \ "role").write[Role.Value] and
+      (__ \ "role").write[Role] and
       (__ \ "team").writeNullable[String] and
       (__ \ "signUpTime").writeNullable[OffsetDateTime] and
       (__ \ "lastSignInTime").writeNullable[OffsetDateTime] and
@@ -100,7 +86,7 @@ object UserFormats {
   given teamMemberStatsWrites: Writes[TeamMemberStats] = (
     (__ \ "user_id").write[String] and
       (__ \ "username").write[String] and
-      (__ \ "role").write[Role.Value] and
+      (__ \ "role").write[Role] and
       (__ \ "labels").write[Int] and
       (__ \ "validations").write[Int] and
       (__ \ "distance_meters").write[Double] and
@@ -138,7 +124,7 @@ object UserFormats {
     (__ \ "user_id").write[String] and
       (__ \ "username").write[String] and
       (__ \ "email").write[String] and
-      (__ \ "role").write[Role.Value] and
+      (__ \ "role").write[Role] and
       (__ \ "team").writeNullable[String]
   )((o: UserSearchResult) => Tuple.fromProductTyped(o))
 

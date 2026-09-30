@@ -37,11 +37,9 @@ class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with E
 
   /** Stands in for the row-writing service: runs the work and remembers what it was asked to record. */
   private class RecordingJobRunService extends JobRunService {
-    val calls = new CopyOnWriteArrayList[(String, JobRunTrigger.Value)]()
+    val calls = new CopyOnWriteArrayList[(String, JobRunTrigger)]()
 
-    def record[T](jobName: String, trigger: JobRunTrigger.Value)(work: => Future[T])(
-        details: T => JsObject
-    ): Future[T] = {
+    def record[T](jobName: String, trigger: JobRunTrigger)(work: => Future[T])(details: T => JsObject): Future[T] = {
       calls.add((jobName, trigger))
       work
     }

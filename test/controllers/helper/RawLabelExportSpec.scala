@@ -57,7 +57,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
   /** A label fixture; `streetSide`/`centerlineOffsetM` are the fields under test, the rest are arbitrary but valid. */
   private def sampleLabel(
       labelId: Int,
-      streetSide: Option[StreetSide.Value],
+      streetSide: Option[StreetSide],
       centerlineOffsetM: Option[Double]
   ): LabelDataForApi = LabelDataForApi(
     labelId = labelId,

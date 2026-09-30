@@ -74,7 +74,7 @@
   <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
 
   <script>
-    const imagerySrc = "@commonData.imagerySource.toString";
+    const imagerySrc = "@commonData.imagerySource.name";
     const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
       : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
     const accessToken = "@commonData.imageryAccessToken";

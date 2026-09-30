@@ -167,8 +167,8 @@ class AdminController @Inject() (
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: String              = submission.userId
-        val newRole: Option[Role.Value] = Role.fromString(submission.roleId)
+        val userId: String        = submission.userId
+        val newRole: Option[Role] = Role.withNameOption(submission.roleId)
 
         authenticationService.findByUserId(userId) flatMap {
           case Some(user) =>
@@ -182,9 +182,9 @@ class AdminController @Inject() (
               authenticationService
                 .updateRole(userId, newRole.get)
                 .map(_ => {
-                  val logText = s"UpdateRole_User=${userId}_Old=${user.role}_New=${newRole.get}"
+                  val logText = s"UpdateRole_User=${userId}_Old=${user.role.name}_New=${newRole.get.name}"
                   cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
-                  Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole.get.toString))
+                  Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole.get.name))
                 })
             }
           case None =>
@@ -226,12 +226,12 @@ class AdminController @Inject() (
               currTeam <- userService.getUserTeam(userId)
               response <- {
                 // None for a role the enum doesn't know, which the assignable-roles check below refuses by name.
-                val newRole: Option[Role.Value] = Role.fromString(s.role)
-                val usernameChanged             = s.username != user.username
-                val roleChanged                 = !newRole.contains(user.role)
-                val teamChanged                 = currTeam.map(_.teamId) != teamId
-                val serviceChanged              = s.communityService != user.communityService
-                val privacyChanged              =
+                val newRole: Option[Role] = Role.withNameOption(s.role)
+                val usernameChanged       = s.username != user.username
+                val roleChanged           = !newRole.contains(user.role)
+                val teamChanged           = currTeam.map(_.teamId) != teamId
+                val serviceChanged        = s.communityService != user.communityService
+                val privacyChanged        =
                   stats.exists(st => st.onLeaderboard != s.onLeaderboard || st.publicProfile != s.publicProfile)
                 // An excluded user's quality is set by the exclusion, so the quality field is ignored for them.
                 val qualityChanged  = !s.excluded && stats.exists(_.highQualityManual != s.highQualityManual)
@@ -246,7 +246,7 @@ class AdminController @Inject() (
                   else if (roleChanged && !newRole.exists(Role.ADMIN_ASSIGNABLE_ROLES.contains))
                     Some(s"Can't assign role ${s.role}")
                   else if (roleChanged && !Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
-                    Some(s"A ${user.role} account's role can't be changed")
+                    Some(s"A ${user.role.name} account's role can't be changed")
                   else if (excludedChanged && user.role == Role.Administrator && admin.role != Role.Owner)
                     Some("An admin can only be excluded by an Owner")
                   else if (qualityChanged && user.role == Role.Administrator && admin.role != Role.Owner)
@@ -302,7 +302,7 @@ class AdminController @Inject() (
                         val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
-                          s"UpdateRole_User=${userId}_Old=${user.role}_New=${s.role}"
+                          s"UpdateRole_User=${userId}_Old=${user.role.name}_New=${s.role}"
                         )
                       }
                       if (qualityChanged) {
@@ -468,7 +468,7 @@ class AdminController @Inject() (
    * @return A signed image URL, or None for items without a previewable label (e.g. comments).
    */
   private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
-    (item.labelId, item.labelType.flatMap(LabelType.byName.get)) match {
+    (item.labelId, item.labelType.flatMap(LabelType.withNameOption)) match {
       case (Some(id), Some(labelType)) =>
         panoDataService
           .cropUrl(id, labelType)
@@ -656,7 +656,7 @@ class AdminController @Inject() (
     "contributors"      -> JsArray(w.contributors.map { c =>
       Json.obj(
         "username"             -> c.username,
-        "kind"                 -> c.kind.toString,
+        "kind"                 -> c.kind.name,
         "labels_7d"            -> c.labels7d,
         "labels_prior_7d"      -> c.labelsPrior7d,
         "validations_7d"       -> c.validations7d,
@@ -833,7 +833,7 @@ class AdminController @Inject() (
           "contributor_list" -> JsArray(d.contributors.map { c =>
             Json.obj(
               "username"    -> c.username,
-              "kind"        -> c.kind.toString,
+              "kind"        -> c.kind.name,
               "labels"      -> c.labels,
               "validations" -> c.validations,
               // Each city's URL rides along so the pinned card can link a name to that person's admin page on the

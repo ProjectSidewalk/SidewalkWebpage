@@ -48,10 +48,10 @@ class LabelEditApiController @Inject() (
 
     val parsedTimestamp = parseDateTimeParam(editTimestamp, "editTimestamp")
 
-    val parsedSource: Either[ApiError, Option[UiSource.Value]] = source match {
+    val parsedSource: Either[ApiError, Option[UiSource]] = source match {
       case None    => Right(None)
       case Some(s) =>
-        UiSource.values.find(_.toString == s) match {
+        UiSource.withNameOption(s) match {
           case Some(uiSource) => Right(Some(uiSource))
           case None           =>
             Left(

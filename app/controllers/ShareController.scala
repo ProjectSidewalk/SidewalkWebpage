@@ -4,7 +4,7 @@ import controllers.base._
 import models.auth.{DefaultEnv, WithAdmin}
 import models.label.AccessImpact
 import models.label.{CropMarker, LabelMetadata, LabelType}
-import models.pano.PanoSource.PanoSource
+import models.pano.PanoSource
 import models.story.StoryForView
 import models.user.SidewalkUserWithRole
 import models.utils.ImageUtils

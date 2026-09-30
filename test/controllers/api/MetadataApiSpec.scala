@@ -46,7 +46,7 @@ class MetadataApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
         val display = (lt \ "display_name").as[String]
         display.trim must not be empty
         // An unresolved Messages key comes back as the raw key, which would silently look like a valid name.
-        display must not be LabelType.byName((lt \ "name").as[String]).nameKey
+        display must not be LabelType.withName((lt \ "name").as[String]).nameKey
         display must not be (lt \ "description").as[String]
       }
 

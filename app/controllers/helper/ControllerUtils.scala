@@ -75,9 +75,9 @@ object ControllerUtils {
    * @param messages The request's messages, supplying the language default when there is no saved choice.
    * @return         Either `MeasurementSystem.Metric` or `MeasurementSystem.Imperial` — never a language's own wording.
    */
-  def measurementSystem(using request: RequestHeader, messages: Messages): MeasurementSystem.Value = {
+  def measurementSystem(using request: RequestHeader, messages: Messages): MeasurementSystem = {
     requestUser(request).flatMap(_.measurementSystem).getOrElse {
-      MeasurementSystem.fromString(messages("measurement.system")).getOrElse(MeasurementSystem.Imperial)
+      MeasurementSystem.withNameOption(messages("measurement.system")).getOrElse(MeasurementSystem.Imperial)
     }
   }
 
@@ -107,7 +107,7 @@ object ControllerUtils {
 
   /** The distance-unit words for this request, in its measurement system and language. */
   def distanceUnitWords(using request: RequestHeader, messages: Messages): DistanceUnitWords = {
-    val system = measurementSystem
+    val system = measurementSystem.name
     DistanceUnitWords(
       abbr = messages(s"unit.distance.abbr.$system"),
       abbrSmall = messages(s"unit.distance.abbr.small.$system"),

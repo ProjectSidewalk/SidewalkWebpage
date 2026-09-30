@@ -6,6 +6,7 @@ import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.IpAddress
 import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.{NamedEnum, PgEnumCompanion}
 
 import java.time.OffsetDateTime
 
@@ -14,18 +15,20 @@ import java.time.OffsetDateTime
  *
  * NOTE: if changing these values, update the `validation_comment_change_type` Postgres enum type as well (378.sql).
  */
-object ValidationCommentChangeType extends Enumeration {
-  type ValidationCommentChangeType = Value
+enum ValidationCommentChangeType(val name: String) extends NamedEnum {
 
   /** Superseded by new text from the same user, whether typed on the label card or carried in with a new vote. */
-  val Edit: Value = Value("edit")
+  case Edit extends ValidationCommentChangeType("edit")
 
   /** The user asked for it to be removed, via the label card's Delete control (#5015). */
-  val Delete: Value = Value("delete")
+  case Delete extends ValidationCommentChangeType("delete")
 
   /** Collateral of the user's vote being cleared or replaced, which is not a request to erase anything. */
-  val ValidationChange: Value = Value("validation_change")
+  case ValidationChange extends ValidationCommentChangeType("validation_change")
 }
+
+object ValidationCommentChangeType
+    extends PgEnumCompanion[ValidationCommentChangeType]("validation_comment_change_type")
 
 /**
  * One superseded version of a validator's comment on a label (#5076).
@@ -57,7 +60,7 @@ case class ValidationTaskCommentHistory(
     timestamp: OffsetDateTime,
     comment: String,
     supersededAt: OffsetDateTime,
-    changeType: ValidationCommentChangeType.Value
+    changeType: ValidationCommentChangeType
 )
 
 class ValidationTaskCommentHistoryTableDef(tag: Tag)
@@ -79,9 +82,8 @@ class ValidationTaskCommentHistoryTableDef(tag: Tag)
   def timestamp: Rep[OffsetDateTime]    = column[OffsetDateTime]("timestamp")
   def comment: Rep[String]              = column[String]("comment")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
-  def supersededAt: Rep[OffsetDateTime]                  = column[OffsetDateTime]("superseded_at")
-  def changeType: Rep[ValidationCommentChangeType.Value] =
-    column[ValidationCommentChangeType.Value]("change_type")
+  def supersededAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("superseded_at")
+  def changeType: Rep[ValidationCommentChangeType] = column[ValidationCommentChangeType]("change_type")
 
   def * = (validationTaskCommentHistoryId, validationTaskCommentId, missionId, labelId, labelType, userId, ipAddress,
     panoId, heading, pitch, zoom, lat, lng, timestamp, comment, supersededAt, changeType) <> (

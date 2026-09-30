@@ -48,7 +48,7 @@ class ActivityBreakdownSpec extends SidewalkSpec {
       id: String,
       labels: Int,
       validations: Int,
-      kind: ContributorKind.Value = ContributorKind.Registered
+      kind: ContributorKind = ContributorKind.Registered
   ) = {
     val name = kind match {
       case ContributorKind.Ai        => s"ai-$id"

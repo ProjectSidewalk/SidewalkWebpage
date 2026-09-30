@@ -48,7 +48,7 @@ class UserTeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * @param teamId The id of the team.
    * @return One entry per member: (user id, username, role).
    */
-  def getMembers(teamId: Int): DBIO[Seq[(String, String, Role.Value)]] = {
+  def getMembers(teamId: Int): DBIO[Seq[(String, String, Role)]] = {
     userTeams
       .filter(_.teamId === teamId)
       .join(sidewalkUsers)
