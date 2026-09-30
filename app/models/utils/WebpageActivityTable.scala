@@ -8,7 +8,6 @@ import slick.jdbc.GetResult
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
 case class WebpageActivity(
     webpageActivityId: Int,
@@ -50,9 +49,8 @@ class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "web
 trait WebpageActivityTableRepository {}
 
 @Singleton
-class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
-    ec: ExecutionContext
-) extends WebpageActivityTableRepository
+class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends WebpageActivityTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val activities = TableQuery[WebpageActivityTableDef]
@@ -70,28 +68,28 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
     a.activity === "SignIn" || (a.activity like "SignInSuccess%")
   private def isAnySignIn(a: WebpageActivityTableDef): Rep[Boolean] = isRealSignIn(a) || isAnonSignUp(a)
 
+  /** Activity rows of accounts that aren't anonymous, the only ones the admin Users tab lists. */
+  private def nonAnonActivities(keep: WebpageActivityTableDef => Rep[Boolean]) =
+    activities.filter(keep).join(userRoles).on(_.userId === _.userId).filter(_._2.role =!= Role.Anonymous)
+
   /**
-   * Get the time that each user signed up (if we have it logged).
+   * Get the time that each non-anonymous user signed up (if we have it logged).
    */
   def getSignUpTimes: DBIO[Seq[(String, Option[OffsetDateTime])]] = {
-    activities
-      .filter(isSignUp)
-      .groupBy(_.userId)
-      .map { case (_userId, group) => (_userId, group.map(_.timestamp).max) }
+    nonAnonActivities(isSignUp)
+      .groupBy(_._2.userId)
+      .map { case (_userId, group) => (_userId, group.map(_._1.timestamp).max) }
       .result
-      .map(_.collect { case (Some(userId), time) => (userId, time) })
   }
 
   /**
-   * For each user, gets count of number of sign ins and the timestamp of their most recent sign-in.
+   * For each non-anonymous user, gets count of number of sign ins and the timestamp of their most recent sign-in.
    */
   def getSignInTimesAndCounts: DBIO[Seq[(String, (Int, Option[OffsetDateTime]))]] = {
-    activities
-      .filter(isAnySignIn)
-      .groupBy(_.userId)
-      .map { case (_userId, rows) => (_userId, (rows.length, rows.map(_.timestamp).max)) }
+    nonAnonActivities(isAnySignIn)
+      .groupBy(_._2.userId)
+      .map { case (_userId, rows) => (_userId, (rows.length, rows.map(_._1.timestamp).max)) }
       .result
-      .map(_.collect { case (Some(userId), countAndTime) => (userId, countAndTime) })
   }
 
   /**
