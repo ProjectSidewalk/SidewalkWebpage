@@ -341,6 +341,18 @@ class PanoManager {
   }
 
   /**
+   * Whether the next load leaves the pano area blank while it runs, so the loading status should caption it at once
+   * rather than after its usual delay. True for a primary that paints during loads (its canvas is held unpainted for
+   * the whole load) and when nothing is up at all after a cleared viewer; false when the outgoing pano stays on
+   * screen until the new one is ready, where an instant status would flicker on every fast label.
+   * @returns {boolean}
+   */
+  blanksPanoWhileLoading() {
+    const nothingUp = this.#panoCanvas.style.display === 'none' && this.#pannellumCanvas.style.display === 'none';
+    return this.#primaryPaintsDuringLoad || nothingUp;
+  }
+
+  /**
    * Reveals a primary canvas that setPanorama left unpainted, for a render that failed before renderPanoMarker ran.
    *
    * The caller unlocks the tool after a failed render, and a canvas still held unpainted would leave the validator

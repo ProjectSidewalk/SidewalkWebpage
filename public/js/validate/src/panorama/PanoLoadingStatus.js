@@ -2,19 +2,26 @@
  * The status over the pano that says a label's imagery is still loading (#5581).
  *
  * On its own, a slow load reads as a hang: desktop shows only the dimmed tool and a wait cursor, and mobile shows
- * nothing at all, for up to 12 s per label. This appears only for loads that outlast DELAY_MS, so the quick loads most
- * labels get never flicker it, and a screen reader hears about the slow ones only.
+ * nothing at all, for up to 12 s per label. The visible box and the screen-reader announcement follow different
+ * clocks. The box appears at once when the pano area is blank for the load (a viewer that paints mid-load has its
+ * canvas held unpainted, so the validator is already looking at an empty grey box that needs a caption), and only
+ * after DELAY_MS when the outgoing pano stays up, so the quick loads most labels get never flicker it. The
+ * announcement always waits for DELAY_MS: a screen reader hearing "Loading imagery" on every one-second label change
+ * would be noise, and a load past DELAY_MS is the one worth telling about. That is also the moment onShown reports,
+ * so the logged count means "slow enough to notice" on every viewer.
  *
- * The element with the id is the live region and is always rendered; the visible box inside it is what gets hidden,
- * with `.ps-hidden`. Revealing content inside a live region that is already in the accessibility tree is announced
+ * The element with the id is the live region and is always rendered. The box inside it is aria-hidden and is what
+ * gets shown and hidden with `.ps-hidden`; the announcement is a visually hidden span in the region whose text is set
+ * when a load turns slow. Changing text inside a live region already in the accessibility tree is announced
  * reliably, where unhiding the region itself is not. The region must not sit inside an `aria-busy="true"` element
- * while it speaks, since assistive tech may hold a busy subtree's changes until it clears, by which time the box is
- * hidden again (LabelContainer.#setUiBusy leaves the attribute off the region that contains it).
+ * while it speaks, since assistive tech may hold a busy subtree's changes until it clears, by which time the load is
+ * over (LabelContainer.#setUiBusy leaves the attribute off the region that contains it).
  */
 class PanoLoadingStatus {
   /**
-   * How long a load runs before the status appears, in ms. Long enough that GSV's typical few-hundred-ms swap and a
-   * warm Mapillary cache never show it; short enough that a validator watching a slow load hears why in time.
+   * How long a load runs before it counts as slow: the announcement, the onShown report and (when the outgoing pano
+   * stays up) the box all wait this long. Long enough that GSV's typical few-hundred-ms swap and a warm Mapillary
+   * cache never cross it; short enough that a validator watching a slow load hears why in time.
    * @type {number}
    */
   static DELAY_MS = 2000;
@@ -31,10 +38,13 @@ class PanoLoadingStatus {
   /** @type {?HTMLElement} The text inside the box. */
   #text = null;
 
+  /** @type {?HTMLElement} The visually hidden span the screen reader hears; null when the markup lacks it. */
+  #announce = null;
+
   /** @type {?ReturnType<typeof setTimeout>} The pending DELAY_MS timer, while a load is younger than that. */
   #timer = null;
 
-  /** @type {?(() => void)} What begin() was asked to call if this load's status comes into view. */
+  /** @type {?(() => void)} What begin() was asked to call if this load turns slow. */
   #onShown = null;
 
   /**
@@ -47,25 +57,28 @@ class PanoLoadingStatus {
     if (box && text) {
       this.#box = box;
       this.#text = text;
+      this.#announce = holder.querySelector('.svv-pano-loading__announce');
     }
   }
 
   /**
-   * Marks the start of a load. The status shows only if end() hasn't been called within DELAY_MS.
-   * @param {() => void} [onShown] - Called once if the status comes into view before end(), whether by the
-   *     delay running out or by setMessage(). Validate logs it, which is how prod counts loads slow enough to be seen
-   *     that still succeed (#5581).
+   * Marks the start of a load.
+   * @param {() => void} [onShown] - Called once if the load turns slow before end(), whether by the delay running
+   *     out or by setMessage(). Validate logs it, which is how prod counts loads slow enough to be seen that still
+   *     succeed (#5581).
+   * @param {{immediate?: boolean}} [options] - `immediate` when the pano area is blank for this load, so the box
+   *     appears now to caption it. The announcement still waits for the delay.
    * @returns {void}
    */
-  begin(onShown) {
+  begin(onShown, { immediate = false } = {}) {
     this.end();
     if (!this.#box) return;
     this.#onShown = onShown ?? null;
-    // Staged while hidden, so it isn't announced now; the reveal is the announcement.
     this.#setText(PanoLoadingStatus.LOADING_KEY);
+    if (immediate) this.#showBox();
     this.#timer = setTimeout(() => {
       this.#timer = null;
-      this.#show();
+      this.#markSlow();
     }, PanoLoadingStatus.DELAY_MS);
   }
 
@@ -79,21 +92,23 @@ class PanoLoadingStatus {
     if (!this.#box) return;
     this.#clearTimer();
     this.#setText(key);
-    this.#show();
+    this.#markSlow();
   }
 
   /**
-   * Marks the end of a load, however it ended: hides the status and cancels a pending one.
+   * Marks the end of a load, however it ended: hides the status and cancels a pending one. The announcement is
+   * emptied so the next slow load's text is a change the live region reports.
    * @returns {void}
    */
   end() {
     this.#clearTimer();
     this.#onShown = null;
     this.#box?.classList.add('ps-hidden');
+    if (this.#announce) this.#announce.textContent = '';
   }
 
   /**
-   * Whether the status is on screen.
+   * Whether the box is on screen.
    * @returns {boolean}
    */
   isShowing() {
@@ -101,19 +116,28 @@ class PanoLoadingStatus {
   }
 
   /**
-   * Brings the box into view, reporting it the first time it appears during this load.
+   * The load has run long enough to be worth telling about: the box is up, the screen reader hears the current
+   * message, and the first time in a load onShown is reported.
    * @returns {void}
    */
-  #show() {
-    if (this.isShowing()) return;
-    this.#box.classList.remove('ps-hidden');
+  #markSlow() {
+    this.#showBox();
+    if (this.#announce) this.#announce.textContent = this.#text.textContent;
     const onShown = this.#onShown;
     this.#onShown = null;
     onShown?.();
   }
 
   /**
-   * Cancels a pending reveal.
+   * Brings the box into view, silently: the box is aria-hidden, so this is the visual half only.
+   * @returns {void}
+   */
+  #showBox() {
+    this.#box.classList.remove('ps-hidden');
+  }
+
+  /**
+   * Cancels a pending slow mark.
    * @returns {void}
    */
   #clearTimer() {
@@ -123,6 +147,7 @@ class PanoLoadingStatus {
 
   /**
    * Puts a message in the box. The key is written to data-i18n too, so a later re-translation of the page keeps it.
+   * The announcement is left alone here; only #markSlow copies the text across.
    * @param {string} key - The i18n key of the message.
    * @returns {void}
    */

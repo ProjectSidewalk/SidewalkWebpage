@@ -189,14 +189,14 @@ class LabelContainer {
   async renderCurrentLabel({ undo = false } = {}) {
     try {
       this.#setUiBusy(true);
-      // Logged against the label loading when the status appears, which a deferral can have moved on from this one.
+      // Logged against the label loading when the load turns slow, which a deferral can have moved on from this one.
       svv.panoLoadingStatus?.begin(() => {
         if (!this.#currLabel) return;
         svv.tracker.push('PanoLoadingStatus_Shown', {
           labelId: this.#currLabel.getAuditProperty('labelId'),
           panoId: this.#currLabel.getAuditProperty('panoId'),
         });
-      });
+      }, { immediate: svv.panoManager?.blanksPanoWhileLoading?.() ?? false });
 
       if (this.#currLabelIndex > 0) {
         svv.undoValidation.enableUndo();

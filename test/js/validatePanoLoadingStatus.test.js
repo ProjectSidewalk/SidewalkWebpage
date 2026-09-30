@@ -37,7 +37,7 @@ function loadClassFromFile(filePath, className) {
  */
 function statusMarkup(viewPath) {
   const view = fs.readFileSync(viewPath, 'utf8');
-  const match = view.match(/<div id="svv-pano-loading"[\s\S]*?<\/div>\s*<\/div>/);
+  const match = view.match(/<div id="svv-pano-loading"[\s\S]*?<\/div>\s*<span class="svv-pano-loading__announce[^>]*><\/span>\s*<\/div>/);
   if (!match) throw new Error(`No #svv-pano-loading in ${viewPath}`);
   return match[0].replace(/@assets\.path\("([^"]+)"\)/g, '/assets/$1');
 }
@@ -60,6 +60,7 @@ describe.each([
   let region;
   let box;
   let text;
+  let announce;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -69,6 +70,7 @@ describe.each([
     region = document.getElementById('svv-pano-loading');
     box = region.querySelector('.svv-pano-loading__box');
     text = region.querySelector('.svv-pano-loading__text');
+    announce = region.querySelector('.svv-pano-loading__announce');
     status = new PanoLoadingStatus(region);
   });
 
@@ -107,6 +109,36 @@ describe.each([
     expect(hidden(box)).toBe(false);
     expect(status.isShowing()).toBe(true);
     expect(text.textContent).toBe('t(common:loading-imagery)');
+    expect(announce.textContent).toBe('t(common:loading-imagery)');
+  });
+
+  test('captions a blank pano area at once, but tells the screen reader only when the load turns slow', () => {
+    // The box is aria-hidden, so showing it early says nothing to assistive tech; the span is what it hears.
+    expect(box.getAttribute('aria-hidden')).toBe('true');
+    expect(announce.classList.contains('sr-only')).toBe(true);
+
+    const onShown = jest.fn();
+    status.begin(onShown, { immediate: true });
+    expect(hidden(box)).toBe(false);
+    expect(text.textContent).toBe('t(common:loading-imagery)');
+    expect(announce.textContent).toBe('');
+    expect(onShown).not.toHaveBeenCalled();
+
+    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS - 1);
+    expect(announce.textContent).toBe('');
+    jest.advanceTimersByTime(1);
+    expect(announce.textContent).toBe('t(common:loading-imagery)');
+    expect(onShown).toHaveBeenCalledTimes(1);
+  });
+
+  test('an immediate box that ends fast is never announced or reported, like a delayed one', () => {
+    const onShown = jest.fn();
+    status.begin(onShown, { immediate: true });
+    status.end();
+    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS * 2);
+    expect(hidden(box)).toBe(true);
+    expect(announce.textContent).toBe('');
+    expect(onShown).not.toHaveBeenCalled();
   });
 
   test('switches to the skipping message at once when a label is deferred', () => {
@@ -115,6 +147,7 @@ describe.each([
 
     expect(hidden(box)).toBe(false);
     expect(text.textContent).toBe('t(validate:pano-loading.skipping)');
+    expect(announce.textContent).toBe('t(validate:pano-loading.skipping)');
     // Kept in data-i18n too, so a re-translation of the page keeps the message that is actually up.
     expect(text.dataset.i18n).toBe('validate:pano-loading.skipping');
 
@@ -149,6 +182,8 @@ describe.each([
     status.setMessage('validate:pano-loading.skipping');
     status.end();
     expect(hidden(box)).toBe(true);
+    // Emptied, so the next slow load's text is a change the live region reports rather than a repeat it may skip.
+    expect(announce.textContent).toBe('');
 
     status.begin();
     expect(hidden(box)).toBe(true);

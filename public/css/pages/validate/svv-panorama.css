@@ -52,9 +52,20 @@
   pointer-events: none;
 }
 
-/* Solid, not a translucent scrim: on desktop the whole tool sits at 60% opacity while a label loads
-   (.validate-disabled), and over the boxed page's white a translucent backdrop took the text under 4.5:1. The darkest
-   asphalt keeps white text past 4.9:1 even dimmed, and far past it on mobile and over imagery. */
+/* The busy dim (.validate-disabled, svv-validation-menu.css) sits on the whole application holder, and a child cannot
+   opt out of an ancestor's opacity, so the status would render washed out exactly when it is the one thing meant to be
+   read. The holder therefore dims its parts individually while busy, and the status is the one part left out. */
+#svv-application-holder.validate-disabled {
+  opacity: 1;
+}
+
+#svv-application-holder.validate-disabled > :not(#svv-panorama-holder),
+#svv-application-holder.validate-disabled > #svv-panorama-holder > :not(#svv-pano-loading) {
+  opacity: 0.6;
+}
+
+/* Solid, not a translucent scrim: over the boxed page's white a translucent backdrop took the text under 4.5:1, and
+   the darkest asphalt keeps white text far past it on every layout and over imagery. */
 .svv-pano-loading__box {
   display: flex;
   flex-direction: column;

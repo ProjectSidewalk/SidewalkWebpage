@@ -346,11 +346,14 @@ corresponding Twirl view:
   validated, so it must not be deferred or owed): the label undone from is shown again and Back is disabled.
   `PanoManager.create` loads no pano; the first label's `setPanorama` is its only load. The label after the current
   one is prefetched through
-  `PanoViewer.prefetchPano`. Past 2 s of loading, `PanoLoadingStatus` shows "Loading imagery…" over the pano
-  (`#svv-pano-loading`, a polite live region in both views, so boxed, immersive and mobile share it), switching to
-  "Still loading, trying the next label…" when a label is deferred, and logging `PanoLoadingStatus_Shown` when it
-  appears. The busy state leaves `aria-busy` off the region that contains that live region, since assistive tech may
-  hold a busy subtree's announcements until it clears. `#svv-panorama-holder` carries the viewer's dark backdrop, so
+  `PanoViewer.prefetchPano`. `PanoLoadingStatus` shows "Loading imagery…" over the pano (`#svv-pano-loading`, a
+  polite live region in both views, so boxed, immersive and mobile share it): at once when the pano area is blank for
+  the load (`PanoManager.blanksPanoWhileLoading`, true for a paints-during-load primary or an empty pano area), after
+  2 s when the outgoing pano stays up. The screen-reader announcement and the `PanoLoadingStatus_Shown` event always
+  wait the 2 s, so neither fires for fast labels. It switches to "Still loading, trying the next label…" when a label
+  is deferred. The busy state leaves `aria-busy` off the region that contains that live region, since assistive tech
+  may hold a busy subtree's announcements until it clears, and dims the application holder's parts individually so the
+  status itself is never under the 60 % opacity. `#svv-panorama-holder` carries the viewer's dark backdrop, so
   the area stays dark while the canvas is hidden for a load.
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
   (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters

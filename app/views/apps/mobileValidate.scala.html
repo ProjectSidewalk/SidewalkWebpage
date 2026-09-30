@@ -57,15 +57,17 @@
     <div id="svv-panorama-holder">
       <div id="svv-panorama"></div>
       <div id="view-control-layer"></div>
-      @* Says a slow load is a load rather than a hang (#5581); PanoLoadingStatus shows it after 2 s. The element with
-         the id is the live region and is always rendered, and the box inside it is what gets hidden: revealing content
-         inside a live region already in the accessibility tree is announced reliably, unhiding the region itself is
-         not. *@
+      @* Says a slow load is a load rather than a hang (#5581). PanoLoadingStatus shows the box at once when the pano
+         area is blank for the load and after 2 s otherwise; the announcement always waits the 2 s. The element with the
+         id is the live region and is always rendered, the box is aria-hidden and is what gets shown, and the visually
+         hidden span is what the screen reader hears: changing text inside a live region already in the accessibility
+         tree is announced reliably, unhiding the region itself is not. *@
       <div id="svv-pano-loading" class="svv-pano-loading" role="status" aria-live="polite">
-        <div class="svv-pano-loading__box ps-hidden">
-          <img class="svv-pano-loading__img" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt="" aria-hidden="true">
+        <div class="svv-pano-loading__box ps-hidden" aria-hidden="true">
+          <img class="svv-pano-loading__img" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt="">
           <span class="svv-pano-loading__text" data-i18n="common:loading-imagery">Loading imagery...</span>
         </div>
+        <span class="svv-pano-loading__announce sr-only"></span>
       </div>
       @* Same read-only card as desktop Validate; a tap on the marker opens and closes it (LabelVisibilityControl). *@
       @components.labelCard(idPrefix = "label-card", noInfoKey = Some("validate:center-ui.no-info")) {
