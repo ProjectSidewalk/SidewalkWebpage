@@ -106,6 +106,9 @@
     "body": "We konden de straatbeelden voor de labels in deze missie niet laden, dus er is nu niets om te tonen. Je afgeronde validaties zijn opgeslagen. Dit lost zichzelf meestal op — probeer het opnieuw.",
     "retry": "Opnieuw proberen"
   },
+  "pano-loading": {
+    "skipping": "Nog steeds aan het laden, we proberen het volgende label..."
+  },
   "mission-complete": {
     "title": "Goed gedaan!",
     "body-CurbRamp": "Je hebt net {{n}} Trottoir Oprit labels gelabeld.",

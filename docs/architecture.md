@@ -335,6 +335,43 @@ corresponding Twirl view:
   the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
   that the modals and the loading lock also set, and the partial sits outside `#svv-application-holder` so the busy
   state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
+  **A viewer canvas is painted only while it holds the current label's pano at that label's POV**
+  (`validate/src/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
+  the primary canvas rejoins the layout unpainted after a fallback label (#5453), and on a primary viewer that paints
+  during a load (`PanoViewer.PAINTS_DURING_LOAD`: Mapillary, Panoramax) the canvas and marker are hidden for every load
+  and revealed by `renderPanoMarker` two animation frames after it sets the label's POV (#5582), capped at 100 ms for
+  a background tab, which is also when `LabelContainer` unlocks the tool. The reveal runs even when aiming or drawing
+  the marker throws, a marker built while the canvas is hidden is hidden with it, and its pulse starts at the
+  reveal. GSV keeps the outgoing pano up during its ~50 ms swap. Mapillary moves
+  in Validate and the label popup use `TransitionMode.Instantaneous`; Explore keeps the animated walk.
+  **A label whose pano won't load** is passed over by `LabelContainer.#loadPanoForCurrentLabel`, and `setPanorama`'s
+  `{panoData, reason}` result says which kind: `'no-imagery'` drops it and asks `/validationTask/moreLabels` for a
+  replacement (#4810); `'slow'` (the primary threw `PanoLoadTimeoutError` and there was no usable backup) moves it to
+  the end of the queue once, and drops it only if it is slow again (#5581), so the validator waits out at most one
+  deadline before seeing another label. After three slow loads in a row with none succeeding, slow labels are dropped
+  on their first try and no replacements are requested, so a dead network reaches the imagery modal in minutes
+  rather than a quarter of an hour. A failed load during an undo abandons the undo instead (the label is already
+  validated, so it must not be deferred or owed): the label undone from is shown again and Back is disabled.
+  `PanoManager.create` loads no pano; the first label's `setPanorama` is its only load. A label the payload flags
+  `expired` that has a backup skips the primary and goes straight to Pannellum (#5561), trying the primary only if
+  the backup fails, so a slow `reason` there comes from that late attempt and a load that never asked the primary is
+  `'no-imagery'`. Once a label is on screen, `LabelContainer.#prefetchUpcomingPanos` warms the next two: an expired
+  label with a backup has that backup fetched into `PanoImageCache` (#5562), and any other has its pano warmed
+  through `PanoViewer.prefetchPano` (Mapillary caches the image's metadata and thumbnail, which is what `moveTo`
+  waits on; #5581). Validate and the label popup pass the `linkedPanos: false` pano
+  option, so a Mapillary load resolves as soon as the image is set instead of after the linked-pano graph request
+  that only Explore's navigation reads. `PanoLoadingStatus` shows "Loading imagery…" over the pano
+  (`#svv-pano-loading`, a polite live region in both views, so boxed, immersive and mobile share it): at once when
+  the pano area is blank for
+  the load (`PanoManager.blanksPanoWhileLoading`, true for a paints-during-load primary or an empty pano area), after
+  2 s when the outgoing pano stays up. The screen-reader announcement and the `PanoLoadingStatus_Shown` event always
+  wait the 2 s, so neither fires for fast labels. It switches to "Still loading, trying the next label…" when a label
+  is deferred. The busy state leaves `aria-busy` off the region that contains that live region, since assistive tech
+  may hold a busy subtree's announcements until it clears, and dims the application holder's parts individually so the
+  status itself is never under the 60 % opacity; the mission modals are left out of that dim as well, so they keep
+  stacking above the status, and the status is not started at all while one of them covers the pano (the next
+  mission's first label loads behind "Great job!", whose disabled button is the loading state there). `#svv-panorama-holder` carries the viewer's dark backdrop, so
+  the area stays dark while the canvas is hidden for a load.
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
   (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
   rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four
@@ -423,6 +460,18 @@ corresponding Twirl view:
   beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
   that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
   `setLocation`.
+  `PanoViewer.setPano` types its rejections, because callers decide from them whether to give up on what needed the
+  pano: `NoImageryError` means the provider no longer has it, `PanoLoadTimeoutError` means it didn't load in time or
+  the network failed and the provider didn't say it is gone, and anything else is a failure on a pano the provider
+  still has. `MapillaryViewer` holds only `moveTo` to its 12 s deadline, gives the linked-pano wait its own 4 s one
+  that degrades to no links, and classifies a failure with one Graph API read of the image, capped at 3 s (#5581):
+  only a 404 or Graph's "does not exist" error (code 100, subcode 33) makes it `NoImageryError`, since that verdict
+  drops a Validate label, and a check that can't be made makes it `PanoLoadTimeoutError` whatever the SDK said, since
+  offline or rate-limited the SDK fails fast rather than timing out. A move the SDK cancels for a newer one is
+  rethrown unclassified. A viewer whose SDK draws the incoming pano before `setPano` resolves declares
+  `static PAINTS_DURING_LOAD = true` (#5582). `setPov` returns nothing to wait on (MapillaryJS 4.1.2's `setCenter` and
+  `setFieldOfView` return `undefined`), so a caller that must not show the old heading waits animation frames instead,
+  as Validate's reveal does.
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`

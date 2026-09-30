@@ -22,6 +22,20 @@ class PanoManager {
   /** @type {PanoViewer|undefined} Tracks which viewer the current label marker was created for. */
   #markerViewer;
 
+  /** @type {boolean} Whether the primary viewer draws a pano before its load resolves (see PAINTS_DURING_LOAD). */
+  #primaryPaintsDuringLoad = false;
+
+  /**
+   * True from a successful load on a PAINTS_DURING_LOAD primary until renderPanoMarker has aimed it at the label and
+   * revealed it. Anything that takes the primary canvas down clears it, so a late reveal can't bring back a canvas
+   * that has since been handed over or emptied.
+   * @type {boolean}
+   */
+  #primaryRevealPending = false;
+
+  /** @type {number} Counts setPanorama calls, so a reveal can tell whether a newer load has started since its own. */
+  #loadSeq = 0;
+
   #bottomLinksClickable = false;
   #linksListener = null;
 
@@ -41,29 +55,45 @@ class PanoManager {
   static #POV_LOG_INTERVAL_MS = 500;
   #logPovChange;
 
+  // The longest a reveal waits for its two animation frames, in ms. A background tab runs no animation frames, so an
+  // uncapped wait would keep the tool locked, and anything awaiting the render, until the tab came back. Nothing is
+  // painted in a hidden tab anyway, and the viewer already has the POV, so revealing on the timer shows nothing stale.
+  // In a visible tab the two frames take about 33 ms and win.
+  static #REVEAL_FRAME_CAP_MS = 100;
+
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewerPov(). */
   #povWatchedViewers = new Set();
 
   /**
-   * Initializes panoViewer on the validate page and loads the first pano.
+   * Initializes panoViewer on the validate page, without loading a pano.
    *
-   * Tries the primary viewer first; if the first pano is expired and a backup image is available, falls back to
-   * Pannellum so that a pano is always loaded before this resolves.
+   * The first label's pano is loaded by the first setPanorama, like every other label's. Loading it here as well would
+   * make the first label pay two load deadlines on a slow network, the first of them behind the page's loading overlay
+   * with its failure type lost (#5581); setPanorama has the expired shortcut and the Pannellum fallback, and reports a
+   * slow load as slow.
    *
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
-   * @param {string} startPanoId - The ID of the panorama to load first
-   * @param {?BackupImage} startBackupImage - Self-hosted backup for the first pano, or null.
-   * @param {boolean} startExpired - True when the backend's imagery sweep found the provider without the first pano.
-   * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
+   * @returns {Promise<void>} A Promise that resolves once the viewer exists
    */
-  async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage, startExpired) {
+  async #init(panoViewerType, viewerAccessToken) {
     // Create the primary viewer without a startPanoId so viewer construction never fails due to an expired pano.
+    /** @type {Record<string, any>} */
     const panoOptions = {
       accessToken: viewerAccessToken,
       defaultNavigation: false,
       scrollwheel: util.isMobile(),
+      // Nothing in Validate follows a pano's links, and Mapillary reports them in a graph request that can trail the
+      // image by seconds; a load that waited for them kept the canvas hidden that much longer (#5581).
+      linkedPanos: false,
     };
+    // Every move in Validate is a jump between unrelated panos, so Mapillary's default animated transition only adds
+    // frames of the wrong place, turning from the old label's heading (#5582). Explore keeps it: walking between
+    // neighboring panos is what the animation is for. The SDK global only exists on pages that load Mapillary.
+    if (typeof mapillary !== 'undefined' && panoViewerType === MapillaryViewer) {
+      panoOptions.transitionMode = mapillary.TransitionMode.Instantaneous;
+    }
+    this.#primaryPaintsDuringLoad = Boolean(panoViewerType.PAINTS_DURING_LOAD);
 
     this.#panoCanvas = document.getElementById('svv-panorama');
 
@@ -84,46 +114,10 @@ class PanoManager {
     // no alert banner; its per-label Pannellum fallback is what the labeler sees when the primary viewer stops.
     this.#primaryViewer.addListener('diagnostic', (name, details) => svv.tracker.push(`PanoViewer_${name}`, details));
 
-    // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
+    // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over for a label.
     this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType.SOURCE);
     this.#logo.showPrimaryLogo();
     this.#attribution = createPanoAttribution(this.#panoCanvas.parentElement);
-
-    // Load the first pano, falling back to Pannellum if the primary viewer fails — or without asking it, when the
-    // pano is already known to be gone (#5561; setPanorama has the reasoning).
-    let panoData = null;
-    const skipPrimary = startExpired && Boolean(startBackupImage);
-    if (!skipPrimary) {
-      try {
-        panoData = await this.#primaryViewer.setPano(startPanoId);
-      } catch {
-        // The provider hasn't got it; the backup below is the next chance.
-      }
-    }
-    if (!panoData && startBackupImage) {
-      try {
-        panoData = await this.#showPannellumPano(startBackupImage);
-      } catch (err) {
-        // A failed backup must not take Validate's start-up down with it: with no pano the first render asks again
-        // through setPanorama, which drops the label if nothing can show it. Under a flag that may be stale, the
-        // provider that was skipped gets its turn first, as setPanorama gives it.
-        console.error('PannellumViewer failed to load the first pano for Validate:', err);
-        if (skipPrimary) {
-          try {
-            panoData = await this.#primaryViewer.setPano(startPanoId);
-          } catch {
-            // Nothing can show it; the first render's setPanorama handles an empty pano area.
-          }
-        }
-      }
-    }
-    if (panoData) this.#setPanoCallback(panoData);
-
-    // Subscribed after the first pano has loaded rather than beside the viewer's creation: that load sets the
-    // viewer's initial POV, which fires pov_changed, and the throttle's leading edge would log it as a pan the
-    // user never made. (Pannellum, when the fallback above builds one, subscribes at its own creation instead —
-    // by then a POV change is a real one.)
-    this.#watchViewerPov(this.#primaryViewer);
 
     if (util.isMobile()) {
       this.sizePano();
@@ -247,10 +241,31 @@ class PanoManager {
   }
 
   /**
-   * Renders a label onto the screen using a PanoMarker.
+   * Aims the pano at a label, draws the label as a PanoMarker, and reveals a primary canvas that setPanorama kept
+   * unpainted for the load.
+   *
+   * The marker is drawn before this first awaits, so a caller that doesn't wait still has it on return. What waiting
+   * adds is the reveal: on a viewer that paints during a load, the canvas and marker stay unpainted until the viewer
+   * has drawn this label's POV, so the first frame the validator sees is already facing the label (#5582). The reveal
+   * runs even if aiming or drawing throws: the caller unlocks the tool either way, and a pano at the wrong heading, or
+   * without its marker, beats a blank one the validator is asked to judge.
    * @param {Label} currentLabel - The label to render.
+   * @returns {Promise<void>} Settles once the pano is on screen at the label's POV.
    */
-  renderPanoMarker(currentLabel) {
+  async renderPanoMarker(currentLabel) {
+    try {
+      this.#aimAndDrawMarker(currentLabel);
+    } finally {
+      await this.#revealPrimaryOnceAimed();
+    }
+  }
+
+  /**
+   * The synchronous half of renderPanoMarker: applies the label's POV and draws or moves its marker.
+   * @param {Label} currentLabel - The label to render.
+   * @returns {void}
+   */
+  #aimAndDrawMarker(currentLabel) {
     const labelPov = currentLabel.getOriginalPov();
 
     // Set to user's POV when labeling if on desktop. If on mobile, center the label on the screen.
@@ -292,14 +307,64 @@ class PanoManager {
       markerEl.addEventListener('animationend', (e) => {
         if (e.animationName === 'label-marker-pulse') markerEl.classList.remove('label-marker-pulse');
       });
+      // A marker created while the canvas is held unpainted (after #clearViewer, or on a switch back from Pannellum)
+      // would otherwise float over the empty pano area, placed from a view that isn't aimed yet (#5582).
+      if (this.#primaryRevealPending) markerEl.style.visibility = 'hidden';
     } else {
       this.labelMarker.setPosition({ heading: labelPov.heading, pitch: labelPov.pitch });
     }
 
     const marker = this.labelMarker.marker_;
     this.styleMarkerForLabel(currentLabel);
-    this.#restartMarkerPulse(marker);
+    // A hidden marker's pulse would play unseen, so the reveal starts it instead.
+    if (!this.#primaryRevealPending) this.#restartMarkerPulse(marker);
     this.#updateMarkerAiIndicator(currentLabel.getAuditProperty('aiGenerated'));
+  }
+
+  /**
+   * Reveals the primary canvas once the viewer has drawn the label's POV, if setPanorama left it waiting for that.
+   *
+   * Two animation frames after setPov, the same wait PanoViewer._firePovChangedAfterResize uses, and the only
+   * guarantee available: the SDKs give nothing to wait on (MapillaryJS's setCenter and setFieldOfView return
+   * undefined) and apply and draw a new POV on their own animation frames, so revealing a frame after that keeps the
+   * first painted frame from being one drawn before the POV landed. The wait is capped for a background tab
+   * (#REVEAL_FRAME_CAP_MS). A newer load starting meanwhile cancels the reveal, as that load owns the canvas now.
+   * @returns {Promise<void>}
+   */
+  async #revealPrimaryOnceAimed() {
+    if (!this.#primaryRevealPending) return;
+    const loadSeq = this.#loadSeq;
+    await new Promise(/** @param {(value?: void) => void} resolve */ (resolve) => {
+      const cap = setTimeout(resolve, PanoManager.#REVEAL_FRAME_CAP_MS);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        clearTimeout(cap);
+        resolve();
+      }));
+    });
+    if (loadSeq === this.#loadSeq && this.#primaryRevealPending) this.#revealPrimaryCanvas();
+  }
+
+  /**
+   * Whether the next load leaves the pano area blank while it runs, so the loading status should caption it at once
+   * rather than after its usual delay. True for a primary that paints during loads (its canvas is held unpainted for
+   * the whole load) and when nothing is up at all after a cleared viewer; false when the outgoing pano stays on
+   * screen until the new one is ready, where an instant status would flicker on every fast label.
+   * @returns {boolean}
+   */
+  blanksPanoWhileLoading() {
+    const nothingUp = this.#panoCanvas.style.display === 'none' && this.#pannellumCanvas.style.display === 'none';
+    return this.#primaryPaintsDuringLoad || nothingUp;
+  }
+
+  /**
+   * Reveals a primary canvas that setPanorama left unpainted, for a render that failed before renderPanoMarker ran.
+   *
+   * The caller unlocks the tool after a failed render, and a canvas still held unpainted would leave the validator
+   * judging a blank pano area. No-op when nothing is pending.
+   * @returns {void}
+   */
+  revealPendingCanvas() {
+    if (this.#primaryRevealPending) this.#revealPrimaryCanvas();
   }
 
   /**
@@ -365,18 +430,27 @@ class PanoManager {
   }
 
   /**
-   * Sets the panorama. Tries the primary viewer first; falls back to Pannellum if there's a backup image available.
+   * Sets the panorama. Tries the primary viewer first and falls back to Pannellum if there's a backup image, except
+   * for a pano flagged expired that has a backup, which goes to Pannellum first and to the primary only if that fails.
+   *
+   * On a success from a primary viewer that paints during loads (PanoViewer.PAINTS_DURING_LOAD), the canvas is still
+   * unpainted when this resolves; renderPanoMarker reveals it once it faces the label.
    *
    * @param {string} panoId - The ID for the panorama that we want to move to.
    * @param {?{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano, or null.
    * @param {object} [opts]
    * @param {boolean} [opts.expired=false] - True when the backend's imagery sweep found the provider without this pano.
-   * @returns {Promise<PanoData|null>} The loaded pano's metadata, or `null` when no viewer could render it. A null
-   *      return means the pano area is now empty, so the caller must not draw a label marker over it or ask for a
-   *      validation of the label it was loading (#4810).
+   * @returns {Promise<{panoData: PanoData, reason?: undefined} | {panoData: null, reason: ('slow'|'no-imagery')}>}
+   *      The loaded pano's metadata, or `panoData: null` when no viewer could render it. A null means the pano area is
+   *      now empty, so the caller must not draw a label marker over it or ask for a validation of the label it was
+   *      loading (#4810). `reason` says whether trying again later could help: 'slow' when the last primary attempt
+   *      threw PanoLoadTimeoutError (out of time, or a network failure on a pano not known to be gone, #5581),
+   *      'no-imagery' for everything else, including a load that never asked the primary.
    */
   async setPanorama(panoId, backupImage = null, { expired = false } = {}) {
     this.setProperty('panoLoaded', false);
+    this.#loadSeq += 1;
+    this.#primaryRevealPending = false;
 
     // A pano the nightly imagery sweep already found gone goes straight to the fallback (#5561). Asking the provider
     // anyway costs a metadata round trip that ends in the rejection the flag predicted, on every such label, and on
@@ -384,11 +458,14 @@ class PanoManager {
     // label's backup had of being fetched ahead of time going unused. If the flag is stale and the pano is back, the
     // backup is still the right imagery, just older than it needed to be. A label flagged expired but holding no
     // backup takes the ordinary path, since the provider is its only chance.
-    const skipPrimary = expired && backupImage !== null;
+    const skipPrimary = expired && Boolean(backupImage);
 
+    // The error from the latest primary attempt, which is what decides `reason`; undefined while none has been made.
+    let primaryError;
     if (!skipPrimary) {
-      const panoData = await this.#showPrimaryPano(panoId);
-      if (panoData) return panoData;
+      const primary = await this.#showPrimaryPano(panoId);
+      if (primary.panoData) return { panoData: primary.panoData };
+      primaryError = primary.error;
     }
 
     // The primary viewer failed, or wasn't asked — try Pannellum if we have local pano data.
@@ -398,34 +475,39 @@ class PanoManager {
         this.#setPanoCallback(panoData);
         this.setProperty('panoLoaded', true);
         svv.tracker.push('PanoId_Changed');
-        return panoData;
+        return { panoData };
       } catch (err) {
         console.error('PannellumViewer failed to load for Validate:', err);
       }
       // A backup that won't load under a flag that may be stale: the provider it was skipped for is the last
       // chance, and asking costs only the round trip the shortcut saved.
       if (skipPrimary) {
-        const panoData = await this.#showPrimaryPano(panoId);
-        if (panoData) return panoData;
+        const primary = await this.#showPrimaryPano(panoId);
+        if (primary.panoData) return { panoData: primary.panoData };
+        primaryError = primary.error;
       }
     }
 
     this.#clearViewer();
-    return null;
+    return { panoData: null, reason: primaryError instanceof PanoLoadTimeoutError ? 'slow' : 'no-imagery' };
   }
 
   /**
-   * Loads a pano in the primary viewer and makes that the active viewer, or leaves everything as it was.
+   * Loads a pano in the primary viewer and makes that the active viewer, or leaves the pano area as it was.
    *
    * The fallback's invariant from #showPannellumPano, applied the other way round (#5453). While the fallback or an
    * empty pano area is up, the primary canvas is out of the layout and holds whatever it last drew: the last live
    * label's pano, however many labels back. A provider left out of the layout doesn't render, so revealing it once
    * setPano resolved put that frame back on screen until it caught up. It rejoins the layout unpainted instead and
-   * switches panos underneath the outgoing one; #teardownPannellum reveals it. The resize is what makes it measure
-   * the box it rejoined: a window resize while the fallback was up only reached the fallback.
+   * switches panos underneath the outgoing one; #teardownPannellum reveals it, or renderPanoMarker does on a viewer
+   * that paints mid-load. The resize is what makes it measure the box it rejoined: a window resize while the
+   * fallback was up only reached the fallback.
+   *
+   * On a success from a viewer that paints mid-load, the canvas is still unpainted when this resolves.
    *
    * @param {string} panoId - The pano to load.
-   * @returns {Promise<PanoData|null>} The loaded pano's metadata, or null when the provider hasn't got it.
+   * @returns {Promise<{panoData: PanoData, error?: undefined} | {panoData: null, error: unknown}>} The loaded pano's
+   *     metadata, or null with the viewer's error, which setPanorama needs to tell a slow load from a missing pano.
    */
   async #showPrimaryPano(panoId) {
     const primaryWasHidden = this.#panoCanvas.style.display === 'none';
@@ -433,20 +515,45 @@ class PanoManager {
       this.#panoCanvas.style.visibility = 'hidden';
       this.#panoCanvas.style.display = '';
       this.#primaryViewer.resize();
+    } else if (this.#primaryPaintsDuringLoad) {
+      // The same invariant for a live label after a live one (#5582). This viewer draws the incoming pano mid-load at
+      // the outgoing label's heading, then sits there until the label's POV arrives, which reads as a pano to judge.
+      // So the canvas goes unpainted for the load, and the outgoing marker with it: left up, it would float over an
+      // empty pano area.
+      this.#panoCanvas.style.visibility = 'hidden';
+      if (this.labelMarker) this.labelMarker.marker_.style.visibility = 'hidden';
     }
+    // Whether the primary canvas is being held unpainted, and so has to be taken down if this load fails. A failed
+    // load on a viewer that paints mid-load leaves a half-drawn pano there, which must never be revealed.
+    const primaryHeldUnpainted = primaryWasHidden || this.#primaryPaintsDuringLoad;
 
     try {
       const panoData = await this.#primaryViewer.setPano(panoId);
-      this.#teardownPannellum();
+      // Subscribed after the primary's first load rather than at its creation: that load sets the viewer's initial
+      // POV, which fires pov_changed, and the throttle's leading edge would log it as a pan the user never made.
+      // (Pannellum subscribes at its own creation instead: by then a POV change is a real one.)
+      this.#watchViewerPov(this.#primaryViewer);
+      this.#teardownPannellum({ reveal: !this.#primaryPaintsDuringLoad });
+      this.#primaryRevealPending = this.#primaryPaintsDuringLoad;
       this.#setPanoCallback(panoData);
       this.setProperty('panoLoaded', true);
       svv.tracker.push('PanoId_Changed');
-      return panoData;
-    } catch {
+      return { panoData };
+    } catch (err) {
       // Put the primary canvas back the way this call found it, so it can't sit laid out under the fallback.
-      if (primaryWasHidden) this.#hidePrimaryCanvas();
-      return null;
+      if (primaryHeldUnpainted) this.#hidePrimaryCanvas();
+      return { panoData: null, error: err };
     }
+  }
+
+  /**
+   * Starts downloading a pano the validator is expected to see soon, so its load later is quick (#5581). Goes to the
+   * primary viewer, since that is the one whose loads are slow enough to need it; a no-op for providers that can't.
+   * @param {string} panoId - The primary provider's id for the pano.
+   * @returns {void}
+   */
+  prefetchPano(panoId) {
+    this.#primaryViewer.prefetchPano(panoId);
   }
 
   /**
@@ -469,16 +576,19 @@ class PanoManager {
   }
 
   /**
-   * Shows the primary viewer canvas and hides the Pannellum canvas; resets svv.panoViewer to the primary viewer.
+   * Hands the pano area to the primary viewer and hides the Pannellum canvas; resets svv.panoViewer to the primary.
    *
    * Only called once the primary viewer has loaded the current label's pano, which is what makes it safe to paint.
    * Both properties are restated, as #showPannellumPano does for its own canvas, so an overlapping load's cleanup
    * can't leave this one laid out but hidden.
+   *
+   * @param {{reveal: boolean}} options - False to leave the canvas laid out but unpainted, for a viewer that is not
+   *     yet facing the label (#5582); renderPanoMarker reveals it.
    */
-  #teardownPannellum() {
+  #teardownPannellum({ reveal }) {
     this.#hidePannellumCanvas();
     this.#panoCanvas.style.display = '';
-    this.#panoCanvas.style.visibility = '';
+    this.#panoCanvas.style.visibility = reveal ? '' : 'hidden';
     svv.panoViewer = this.#primaryViewer;
     svv.panoViewer.resize();
     svv.tracker.push('Viewer_Primary');
@@ -566,8 +676,23 @@ class PanoManager {
    * Takes the primary canvas out of sight and out of the layout, clearing any unpainted-load state setPanorama left.
    */
   #hidePrimaryCanvas() {
+    this.#primaryRevealPending = false;
     this.#panoCanvas.style.display = 'none';
     this.#panoCanvas.style.visibility = '';
+  }
+
+  /**
+   * Paints the primary canvas and the marker hidden with it, once the pano faces the current label, and starts the
+   * marker's pulse, which renderPanoMarker held back so it wouldn't play while the marker was hidden.
+   * @returns {void}
+   */
+  #revealPrimaryCanvas() {
+    this.#primaryRevealPending = false;
+    this.#panoCanvas.style.visibility = '';
+    if (this.labelMarker) {
+      this.labelMarker.marker_.style.visibility = '';
+      this.#restartMarkerPulse(this.labelMarker.marker_);
+    }
   }
 
   /**
@@ -669,17 +794,14 @@ class PanoManager {
   }
 
   /**
-   * Factory function that sets up the panorama viewer.
+   * Factory function that sets up the panorama viewer. No pano is loaded yet: the first label's setPanorama does that.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
-   * @param {string} startPanoId - The ID of the panorama to load first
-   * @param {?BackupImage} startBackupImage - Self-hosted backup for the first pano, or null.
-   * @param {boolean} [startExpired=false] - True when the backend's imagery sweep found the provider without it.
-   * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
+   * @returns {Promise<PanoManager>} The panoManager instance.
    */
-  static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null, startExpired = false) {
+  static async create(panoViewerType, viewerAccessToken) {
     const newPanoManager = new PanoManager();
-    await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage, startExpired);
+    await newPanoManager.#init(panoViewerType, viewerAccessToken);
     return newPanoManager;
   }
 }

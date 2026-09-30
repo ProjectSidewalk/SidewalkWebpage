@@ -106,6 +106,9 @@
     "body": "Não conseguimos carregar as imagens de rua dos rótulos desta missão, então não há nada para mostrar agora. Suas validações concluídas estão salvas. Isso costuma se resolver sozinho — tente novamente.",
     "retry": "Tentar novamente"
   },
+  "pano-loading": {
+    "skipping": "Ainda carregando, tentando o próximo rótulo..."
+  },
   "mission-complete": {
     "title": "Ótimo trabalho!",
     "body-CurbRamp": "Você acabou de validar {{n}} rótulos de Rampa de Calçada.",

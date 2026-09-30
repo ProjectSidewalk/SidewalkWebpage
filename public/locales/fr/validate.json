@@ -106,6 +106,9 @@
     "body": "Nous n'avons pas pu charger les images de rue des étiquettes de cette mission, il n'y a donc rien à afficher pour le moment. Vos validations terminées sont enregistrées. Cela se résout généralement tout seul — veuillez réessayer.",
     "retry": "Réessayer"
   },
+  "pano-loading": {
+    "skipping": "Chargement toujours en cours, essai de l'étiquette suivante..."
+  },
   "mission-complete": {
     "title": "Excellent travail !",
     "body-CurbRamp": "Vous venez de valider {{n}} étiquettes Bateau de trottoir.",

@@ -106,6 +106,9 @@
     "body": "No pudimos cargar las imágenes de calle de las etiquetas de esta misión, así que ahora mismo no hay nada que mostrarte. Tus validaciones completadas están guardadas. Esto suele resolverse solo; inténtalo de nuevo.",
     "retry": "Intentar de nuevo"
   },
+  "pano-loading": {
+    "skipping": "Sigue cargando; pasamos a la siguiente etiqueta..."
+  },
   "mission-complete": {
     "title": "¡Gran trabajo!",
     "body-CurbRamp": "Acabas de validar {{n}} etiquetas de Rampas Peatonales.",

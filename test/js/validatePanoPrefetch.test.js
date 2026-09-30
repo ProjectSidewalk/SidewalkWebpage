@@ -1,11 +1,12 @@
 /**
- * Tests for Validate prefetching the next labels' backup panos (public/js/validate/src/label/LabelContainer.js
- * `#prefetchUpcomingPanos`, issue #5562).
+ * Tests for Validate prefetching the next labels' imagery (public/js/validate/src/label/LabelContainer.js
+ * `#prefetchUpcomingPanos`, issues #5562 and #5581).
  *
  * After a label's imagery is on screen the connection is idle, so that is when the next labels' images start
- * downloading. Only labels whose pano is known to have expired are asked for: those go straight to the Pannellum
- * fallback (#5561), which is the one viewer that loads from a URL this page controls, while a live label loads
- * through the provider's own viewer and its backup would be bytes nobody looks at.
+ * downloading. A label whose pano is known to have expired has its backup asked for: those go straight to the
+ * Pannellum fallback (#5561), which is the one viewer that loads from a URL this page controls, while a live label's
+ * backup would be bytes nobody looks at. Every other label has its pano warmed in the provider instead
+ * (PanoManager.prefetchPano, #5581), since that is the viewer its load will ask.
  *
  * Fake PanoManager and cache, in the shape validateSkipUnrenderableLabel.test.js uses.
  */
@@ -66,7 +67,8 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
       ui: { holder: el(), busyRegion: [el()], viewer: { controlLayer: el() } },
       panoManager: {
         renderPanoMarker: jest.fn(),
-        setPanorama: jest.fn((panoId) => Promise.resolve({ panoId })),
+        setPanorama: jest.fn((panoId) => Promise.resolve({ panoData: { panoId } })),
+        prefetchPano: jest.fn(),
       },
       panoImageCache: { prefetchBackups: jest.fn() },
     };
@@ -80,6 +82,11 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
   /** @returns {string[][]} The pano ids asked for on each prefetch, in order. */
   function prefetchedPanoIds() {
     return svv.panoImageCache.prefetchBackups.mock.calls.map(([backups]) => backups.map((b) => b.panoId));
+  }
+
+  /** @returns {string[]} The pano ids warmed in the provider, in order. */
+  function providerPrefetchedPanoIds() {
+    return svv.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId);
   }
 
   test('the two labels after the current one are asked for, when they are expired with a backup', async () => {
@@ -98,6 +105,17 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
     expect(prefetchedPanoIds()).toEqual([['b', 'c'], ['c'], [], ['f']]);
   });
 
+  test('labels that will ask the provider are warmed there instead, in the same window', async () => {
+    const labelContainer = await LabelContainer.create(labels, 'CurbRamp'); // On a: b and c go to their backups.
+    expect(providerPrefetchedPanoIds()).toEqual([]);
+
+    await labelContainer.moveToNextLabel(); // On b: c goes to its backup; d has no backup, so asks the provider.
+    await labelContainer.moveToNextLabel(); // On c: d and e both ask the provider.
+    await labelContainer.moveToNextLabel(); // On d: e asks the provider; f goes to its backup.
+
+    expect(providerPrefetchedPanoIds()).toEqual(['d', 'd', 'e', 'e']);
+  });
+
   test('the prefetch waits for the current label\'s imagery to be up', async () => {
     await LabelContainer.create(labels, 'CurbRamp');
 
@@ -107,7 +125,9 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
   });
 
   test('a label the mission dropped for bad imagery is not what the window is measured from', async () => {
-    svv.panoManager.setPanorama = jest.fn((panoId) => Promise.resolve(panoId === 'b' ? null : { panoId }));
+    svv.panoManager.setPanorama = jest.fn((panoId) => Promise.resolve(
+      panoId === 'b' ? { panoData: null, reason: 'no-imagery' } : { panoData: { panoId } },
+    ));
     const labelContainer = await LabelContainer.create(labels, 'CurbRamp');
 
     await labelContainer.moveToNextLabel(); // b is dropped; c is shown in its place, so d and e are next.
@@ -122,5 +142,7 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
     await expect(labelContainer.moveToNextLabel()).resolves.toBeUndefined();
 
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
+    // The provider warm-up doesn't depend on the backup cache.
+    expect(providerPrefetchedPanoIds()).toEqual(['d']);
   });
 });

@@ -106,7 +106,8 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1');
+    panoManager = await PanoManager.create(FakeViewerType, 'token');
+    await loadPrimaryLabel('pano1'); // The first label's load, which is the first setPanorama (#5581).
   });
 
   afterEach(() => {
@@ -207,8 +208,10 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
     expect(attributionOverlay.show).toHaveBeenCalledTimes(1);
     expect(attributionOverlay.show).toHaveBeenLastCalledWith(attribution);
 
+    // The first label's primary load already hid it once, in beforeEach.
+    const hidesBefore = attributionOverlay.hide.mock.calls.length;
     await loadPrimaryLabel('pano3');
-    expect(attributionOverlay.hide).toHaveBeenCalledTimes(1);
+    expect(attributionOverlay.hide).toHaveBeenCalledTimes(hidesBefore + 1);
   });
 });
 

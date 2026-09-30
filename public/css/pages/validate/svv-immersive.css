@@ -34,8 +34,9 @@ body.svv-immersive #svv-application-holder {
   background: var(--color-asphalt-400); /* The viewer's own backdrop, for the frame before imagery paints. */
 }
 
-/* The screen edge is the frame. */
-body.svv-immersive #svv-panorama {
+/* The screen edge is the frame. The holder too, since it carries the pano's backdrop while a load hides the canvas. */
+body.svv-immersive #svv-panorama,
+body.svv-immersive #svv-panorama-holder {
   border-radius: 0;
 }
 
@@ -296,6 +297,19 @@ body.svv-immersive #modal-mission-complete-foreground {
 
 body.svv-immersive #modal-mission-complete-title {
   margin-top: 0;
+}
+
+/* At this width the side-by-side 3:2 row leaves the primary about 150px of text once .button--large's padding is paid,
+   so "Start an exploration mission" wrapped to three lines and stretched its neighbour to match. Stacked full-width,
+   each label fits on one line in every locale (the French one is the longest), primary on top. */
+body.svv-immersive .modal-mission-complete-buttons {
+  flex-direction: column;
+}
+
+body.svv-immersive #modal-mission-complete-close-button-primary,
+body.svv-immersive #modal-mission-complete-close-button-secondary {
+  flex: none;
+  width: 100%;
 }
 
 body.svv-immersive #modal-mission-complete-table {
