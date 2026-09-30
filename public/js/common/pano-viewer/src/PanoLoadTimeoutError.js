@@ -7,16 +7,18 @@
  * be loaded" screen with the imagery still there.
  *
  * Only a viewer that has checked the pano still exists (or could not find out) throws this; a pano the provider says
- * is missing is a NoImageryError however long the load took.
+ * is missing is a NoImageryError however long the load took. "Timeout" is meant as the caller sees it: no pano by the
+ * deadline. A load that failed early because the network did (offline, rate-limited, a 5xx), on a pano whose
+ * existence then couldn't be checked either, is this error too, since it is just as likely to load on a later try.
  */
 class PanoLoadTimeoutError extends Error {
   /**
    * @param {string} panoId - The pano that did not load.
    * @param {number} elapsedMs - How long the load ran before the viewer gave up on it.
-   * @param {object} [options] - Standard Error options; `cause` carries the timeout the viewer hit.
+   * @param {object} [options] - Standard Error options; `cause` carries the timeout or network failure the viewer hit.
    */
   constructor(panoId, elapsedMs, options) {
-    super(`Pano ${panoId} did not load within ${elapsedMs} ms.`, options);
+    super(`Pano ${panoId} did not load; gave up after ${elapsedMs} ms.`, options);
     this.name = 'PanoLoadTimeoutError';
     /** @type {string} */
     this.panoId = panoId;

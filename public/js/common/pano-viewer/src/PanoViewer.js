@@ -387,8 +387,10 @@ class PanoViewer {
    *
    * How a rejection is typed is part of the contract, because callers decide from it whether to give up on whatever
    * needed the pano (#5581): a NoImageryError means the provider no longer has it; a PanoLoadTimeoutError means it
-   * still exists (or its existence couldn't be checked) but didn't load in time, so trying again later is reasonable;
-   * anything else is a load failure of unknown cause. Only viewers that can check existence throw the second.
+   * didn't load in time, or the network failed, and the provider did not say it is gone (it exists, or the check
+   * couldn't be made), so trying again later is reasonable; anything else is a failure on a pano the provider still
+   * has, of unknown cause. Only viewers that can check existence throw the second. A load superseded by a newer
+   * setPano() may reject with the provider's own cancellation error, which says nothing about the pano.
    * @param {string} _panoId - The panorama ID to set.
    * @returns {Promise<PanoData>} The panorama data object.
    * @abstract

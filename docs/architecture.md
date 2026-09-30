@@ -431,11 +431,14 @@ corresponding Twirl view:
   that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
   `setLocation`.
   `PanoViewer.setPano` types its rejections, because callers decide from them whether to give up on what needed the
-  pano: `NoImageryError` means the provider no longer has it, `PanoLoadTimeoutError` means it exists (or its existence
-  couldn't be checked) but didn't load in time, and anything else is a load failure of unknown cause. `MapillaryViewer`
-  holds only `moveTo` to its 12 s deadline, gives the linked-pano wait its own 4 s one that degrades to no links, and
-  classifies a failure with one Graph API read of the image (#5581): only a 404 or Graph's "does not exist" code makes
-  it `NoImageryError`, since that verdict drops a Validate label. A viewer whose SDK draws the incoming pano before
+  pano: `NoImageryError` means the provider no longer has it, `PanoLoadTimeoutError` means it didn't load in time or
+  the network failed and the provider didn't say it is gone, and anything else is a failure on a pano the provider
+  still has. `MapillaryViewer` holds only `moveTo` to its 12 s deadline, gives the linked-pano wait its own 4 s one
+  that degrades to no links, and classifies a failure with one Graph API read of the image, capped at 3 s (#5581):
+  only a 404 or Graph's "does not exist" error (code 100, subcode 33) makes it `NoImageryError`, since that verdict
+  drops a Validate label, and a check that can't be made makes it `PanoLoadTimeoutError` whatever the SDK said, since
+  offline or rate-limited the SDK fails fast rather than timing out. A move the SDK cancels for a newer one is
+  rethrown unclassified. A viewer whose SDK draws the incoming pano before
   `setPano` resolves declares `static PAINTS_DURING_LOAD = true`, and its `setPov` returns a promise that settles once
   the POV is applied, which is what Validate's reveal waits on (#5582).
 

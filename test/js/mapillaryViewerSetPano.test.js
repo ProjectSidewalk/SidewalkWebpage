@@ -5,8 +5,8 @@
  * A single 12 s race over the move *and* the linked-pano wait, whose every failure comes out as the same untyped
  * Error, reads to Validate as "no imagery" and drops labels whose panos the Graph API still serves. So the
  * assertions here are about the type of each rejection, which is what callers decide from: NoImageryError only when
- * Graph says the image is missing; PanoLoadTimeoutError when the move ran out of time on an image that exists or
- * whose existence couldn't be checked; the SDK's own error otherwise. And a linked-pano wait that never finishes must
+ * Graph says the image is missing; PanoLoadTimeoutError when the move ran out of time, or Graph couldn't be asked
+ * whatever the SDK said; the SDK's own error when the image exists. And a linked-pano wait that never finishes must
  * cost the pano its arrows, never the pano.
  *
  * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
@@ -80,7 +80,7 @@ function makeImage(id, edgesCached = true) {
 }
 
 // One panoramic link (direction 9 is Mapillary's code for a pano-to-pano edge).
-const LINK = { target: 'neighbor', data: { direction: 9, worldMotionAzimuth: 0 } };
+const LINK = { source: 'pano1', target: 'neighbor', data: { direction: 9, worldMotionAzimuth: 0 } };
 
 /**
  * A mapillary-js Viewer with the surface setPano, setPov and prefetchPano touch.
@@ -261,6 +261,91 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     expect(error).not.toBeInstanceOf(classes.PanoLoadTimeoutError);
   });
 
+  test('an SDK that fails fast while Graph is unreachable is slow, not missing', async () => {
+    // Offline, a 429 or a 5xx makes the SDK's own request reject in milliseconds, never as a TimeoutError, and the
+    // existence check then fails on the same network. "Unknown" must still never read as "gone".
+    buildViewer(() => Promise.reject(new Error('Request error: 0')));
+    global.fetch.mockReturnValue(Promise.reject(new TypeError('Failed to fetch')));
+
+    const { error } = await settle('offline');
+
+    expect(error).toBeInstanceOf(classes.PanoLoadTimeoutError);
+    expect(error).not.toBeInstanceOf(classes.NoImageryError);
+    expect(error.cause.message).toBe('Request error: 0');
+  });
+
+  test('an SDK that fails fast on an image Graph answers 404 for is a NoImageryError', async () => {
+    buildViewer(() => Promise.reject(new Error('Response status error')));
+    global.fetch.mockReturnValue(graphAnswers(404, {}));
+
+    const { error } = await settle('gone');
+
+    expect(error).toBeInstanceOf(classes.NoImageryError);
+  });
+
+  test('Graph\'s code 100 without subcode 33 is a malformed request, not a missing image, so it stays slow', async () => {
+    buildViewer(hangs);
+    global.fetch.mockReturnValue(graphAnswers(400, { error: { message: 'Invalid parameter', code: 100 } }));
+
+    const { error } = await settle('slow');
+
+    expect(error).toBeInstanceOf(classes.PanoLoadTimeoutError);
+  });
+
+  test('a failure reading the loaded image\'s metadata is classified like a failed move', async () => {
+    buildViewer(() => Promise.resolve(makeImage('pano1')));
+    sdk.getCenter = jest.fn(() => Promise.reject(new Error('Request error: 0')));
+    global.fetch.mockReturnValue(Promise.reject(new TypeError('Failed to fetch')));
+
+    const { error } = await settle('pano1');
+
+    expect(error).toBeInstanceOf(classes.PanoLoadTimeoutError);
+  });
+
+  test('the existence check hands fetch a signal, so an abandoned check doesn\'t hold a connection open', async () => {
+    buildViewer(hangs);
+    global.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
+
+    await settle('slow');
+
+    expect(global.fetch.mock.calls[0][1].signal).toBeDefined();
+  });
+
+  test('a move a newer one superseded is rethrown as is: no existence check, no error logged', async () => {
+    const cancelled = new Error('Request aborted by a subsequent request.');
+    cancelled.name = 'CancelMapillaryError';
+    buildViewer(() => Promise.reject(cancelled));
+
+    const { error } = await settle('older');
+
+    expect(error).toBe(cancelled);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  test('a superseded call finishing first leaves the flag set for the newer call still in flight', async () => {
+    let rejectOlder;
+    let resolveNewer;
+    buildViewer(() => new Promise(() => {}));
+    sdk.moveTo
+      .mockImplementationOnce(() => new Promise((_, reject) => { rejectOlder = reject; }))
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveNewer = resolve; }));
+
+    const older = viewer.setPano('older').catch((err) => err);
+    const newer = viewer.setPano('newer');
+    const cancelled = new Error('Request aborted by a subsequent request.');
+    cancelled.name = 'CancelMapillaryError';
+    rejectOlder(cancelled);
+    await older;
+
+    // Cleared here, the newer pano's 'image' event would run updateImageData as though the user had navigated.
+    expect(viewer.changingPanoOurselves).toBe(true);
+
+    resolveNewer(makeImage('newer'));
+    await newer;
+    expect(viewer.changingPanoOurselves).toBe(false);
+  });
+
   test('a failed load clears the flag that makes nav-arrow moves skip their metadata update', async () => {
     buildViewer(hangs);
     global.fetch.mockReturnValue(graphAnswers(200, { id: 'slow' }));
@@ -294,6 +379,19 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     expect(panoData.getProperty('linkedPanos').map((link) => link.panoId)).toEqual(['neighbor']);
     expect(sdk.listeners.spatialedges).toEqual([]);
     expect(jest.getTimerCount()).toBe(0);
+  });
+
+  test('linked panos reported for a different image are ignored', async () => {
+    buildViewer(() => Promise.resolve(makeImage('pano1', false)));
+
+    const outcome = viewer.setPano('pano1');
+    await jest.advanceTimersByTimeAsync(100);
+    // The previous image's links, which the SDK can still be reporting as the move lands.
+    sdk.emit('spatialedges', { status: { cached: true, edges: [{ ...LINK, source: 'previous', target: 'elsewhere' }] } });
+    sdk.emit('spatialedges', { status: { cached: true, edges: [{ ...LINK, source: 'pano1' }] } });
+    const panoData = await outcome;
+
+    expect(panoData.getProperty('linkedPanos').map((link) => link.panoId)).toEqual(['neighbor']);
   });
 
   test('the move alone is held to the load deadline, so a slow link wait can\'t fail a pano that loaded', async () => {
