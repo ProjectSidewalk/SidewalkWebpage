@@ -1,21 +1,25 @@
 package models.utils
 
-import models.pano.PanoImageryChangeSource
-import models.street.StreetEdgeStatusChangeSource
-import models.validation.ValidationCommentChangeType
+import models.label.{AiImageSource, ComputationMethod, CropSource, LabelType, StreetSide}
+import models.mission.MissionType
+import models.pano.{PanoImageryChangeSource, PanoSource}
+import models.street._
+import models.user.{MeasurementSystem, Role}
+import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile.api.given
+import models.validation.{ValidationCommentChangeType, ValidationOption}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, SidewalkSpec}
 
 /**
- * Checks that the Scala enums behind the transition logs still match the Postgres enum types they back.
+ * Checks that every Scala enum stored as a Postgres enum type still has exactly that type's labels.
  *
- * Each of these pairs is held together only by a `NOTE:` comment asking the next person to change both sides. Nothing
- * enforced it, and the failure mode is bad: `createEnumJdbcType` maps by name, so a label present on one side and not
- * the other throws `NoSuchElementException` mid-read on the Scala side, or a "invalid input value for enum" on the
- * Postgres side — at runtime, on whichever page happens to read that row first, long after the change that caused it.
+ * Each pair is otherwise held together only by a `NOTE:` comment asking the next person to change both sides, and
+ * the failure mode is bad: values are matched up by name, so a label present on one side and not the other throws
+ * `NoSuchElementException` mid-read on the Scala side, or a "invalid input value for enum" on the Postgres side — at
+ * runtime, on whichever page happens to touch that row first, long after the change that caused it.
  *
  * Deliberately asserts set equality in both directions. A one-way check would pass while the DB quietly grew a label
  * no Scala code can read, which is the direction an `ALTER TYPE ... ADD VALUE` in a later evolution takes.
@@ -27,43 +31,32 @@ class EnumTypeParitySpec extends SidewalkSpec with GuiceOneAppPerSuite with Roll
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  /** The labels Postgres holds for an enum type, in the current schema. */
+  // A new enum has to be added here by hand: nothing lists the companions for us.
+  private val enums: Seq[PgEnumCompanion[_ <: NamedEnum]] = Seq(
+    AiImageSource, ComputationMethod, CropSource, JobRunStatus, JobRunTrigger, LabelType, MeasurementSystem,
+    MissionType, PanoImageryChangeSource, PanoSource, Role, SidewalkPresenceBasis, SidewalkPresenceStatus,
+    StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetGradientConfidence,
+    StreetGradientQuality, StreetImagerySource, StreetSide, UiSource, ValidationCommentChangeType, ValidationOption,
+    ViewerType, WayType
+  )
+
+  /** The labels Postgres holds for an enum type, in the city's schema or the shared login one. */
   private def labelsOf(typeName: String): Set[String] = {
     run(
       sql"""SELECT enumlabel
             FROM pg_enum
             JOIN pg_type ON pg_type.oid = pg_enum.enumtypid
             WHERE pg_type.typname = $typeName
-                AND pg_type.typnamespace = current_schema()::regnamespace
-            ORDER BY enumsortorder""".as[String]
+                AND pg_type.typnamespace IN (current_schema()::regnamespace, 'sidewalk_login'::regnamespace)"""
+        .as[String]
     ).toSet
   }
 
-  "the Postgres enum types behind the transition logs" should {
-    "match JobRunStatus exactly" in {
-      labelsOf("job_run_status") mustBe JobRunStatus.names.toSet
-    }
-
-    "match JobRunTrigger exactly" in {
-      labelsOf("job_run_trigger") mustBe JobRunTrigger.names.toSet
-    }
-
-    "match StreetEdgeStatusChangeSource exactly" in {
-      // This one also has a third side: the `db/scripts` shell writers each emit one of these labels. A source they
-      // emit that Postgres doesn't know fails their INSERT loudly, which is why the enum is an enum (#4103).
-      labelsOf("street_edge_status_change_source") mustBe StreetEdgeStatusChangeSource.names.toSet
-    }
-
-    "match PanoImageryChangeSource exactly" in {
-      // The writers cast a Scala-supplied string to this type inside raw SQL, so a drift here fails the pano upsert
-      // itself — the path every labeler's viewer takes — rather than only a read.
-      labelsOf("pano_imagery_change_source") mustBe PanoImageryChangeSource.names.toSet
-    }
-
-    "match ValidationCommentChangeType exactly" in {
-      // Cast from a Scala-supplied string in raw SQL like the one above, on a path where drift costs the comment
-      // text itself: the archiving insert is what the delete of the live row hangs off (#5076).
-      labelsOf("validation_comment_change_type") mustBe ValidationCommentChangeType.names.toSet
+  "every enum stored as a Postgres enum type" should {
+    enums.foreach { companion =>
+      s"match ${companion.pgType} exactly" in {
+        labelsOf(companion.pgType) mustBe companion.names.toSet
+      }
     }
   }
 }

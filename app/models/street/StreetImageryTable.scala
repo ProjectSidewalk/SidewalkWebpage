@@ -3,8 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.pano.PanoDataTable
 import models.utils.MyPostgresProfile.api.{given, _}
-import models.utils.{FilteredTables, MyPostgresProfile}
-import models.utils.{NamedEnum, PgEnumCompanion}
+import models.utils.{FilteredTables, MyPostgresProfile, NamedEnum, PgEnumCompanion}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult

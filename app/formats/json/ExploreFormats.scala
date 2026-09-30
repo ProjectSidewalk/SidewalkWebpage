@@ -1,6 +1,6 @@
 package formats.json
 
-import formats.json.PanoFormats.{panoSourceReads, PanoDate}
+import formats.json.PanoFormats.PanoDate
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
 import models.label.{ComputationMethod, LabelPointTable, LabelType}
 import models.pano.PanoSource

@@ -78,7 +78,7 @@ enum LabelType(
   case Other      extends LabelType("other.description", "#B3B3B3", AccessImpact.Neutral, RatingScale.Severity)
 
   /** This type's name as the database and the API spell it, e.g. "CurbRamp". */
-  def name: String = toString
+  def name: String = productPrefix
 
   // Messages key for the short name (e.g. "curb.ramp"), derived from descriptionKey so the two can't drift.
   val nameKey: String = descriptionKey.stripSuffix(".description")

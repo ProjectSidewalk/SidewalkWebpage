@@ -9,8 +9,7 @@ package models.api
 import models.api.ApiModelUtils.createGeoJsonPointGeometry
 import models.label.StreetSide
 import models.pano.PanoSource
-import models.utils.LatLngBBox
-import models.utils.{NamedEnum, NamedEnumCompanion}
+import models.utils.{LatLngBBox, NamedEnum, NamedEnumCompanion}
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json, Writes}
 
 import java.time.OffsetDateTime

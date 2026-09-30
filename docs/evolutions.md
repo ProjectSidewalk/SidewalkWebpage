@@ -82,7 +82,8 @@ When a column can only hold a fixed set of values, pick between two tools (#4103
   hand-maintained Scala id map that nothing validates) and fails loudly on drift. Wire it up like the existing ones
   (`pano_source`, `validation_option`, `street_edge_status`, `mission_type`, `way_type`, `role`, `label_type`): a Scala
   `enum` extending `NamedEnum` whose `name` values match the enum labels, with a companion object extending
-  `PgEnumCompanion("<type name>")`. Raw SQL then takes a value as-is (`$status`), with no `::type` cast. Growing a set later is fine; `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339).
+  `PgEnumCompanion("<type name>")`. Raw SQL then takes a value as-is (`$status`), with no `::type` cast. Growing a set
+  later is fine; `ALTER TYPE ... ADD VALUE` has prod precedent (331/332/339).
 - A plain **`CHECK (col IN (...))`** for tiny script-seeded config/cache tables (e.g. `config.open_status`,
   `funnel_stat.funnel_type`), where the enum's join/space/mapping benefits are nil.
 

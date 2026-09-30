@@ -441,7 +441,7 @@ class MissionServiceImpl @Inject() (
 
     if (missionProgress.completed) {
       updateCompleteAndGetNextValidationMission(
-        userId, missionId, MissionType.withName(missionProgress.missionType), labelsProgress, nextMissionLabelType
+        userId, missionId, missionProgress.missionType, labelsProgress, nextMissionLabelType
       )
     } else {
       updateValidationProgressOnly(userId, missionId, labelsProgress, missionProgress.labelsTotal)

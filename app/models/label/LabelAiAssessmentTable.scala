@@ -2,8 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile.api.{given, _}
-import models.utils.{AiTagConfidence, MyPostgresProfile}
-import models.utils.{NamedEnum, PgEnumCompanion}
+import models.utils.{AiTagConfidence, MyPostgresProfile, NamedEnum, PgEnumCompanion}
 import models.validation.{LabelValidationTableDef, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 

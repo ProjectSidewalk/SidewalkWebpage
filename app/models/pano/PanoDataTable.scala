@@ -7,7 +7,7 @@ import models.utils.MyPostgresProfile.api.{given, _}
 import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{__, JsValue, Json, Writes}
+import play.api.libs.json.{__, JsValue, Json, Reads, Writes}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -80,6 +80,12 @@ object PanoSource extends PgEnumCompanion[PanoSource]("pano_source") {
    * Sources a client may name in a submission. `Tutorial` is server-owned.
    */
   val clientSubmittableSources: Set[PanoSource] = Set(Gsv, Mapillary, Infra3d, Panoramax)
+
+  /** Only what a client may name, so no submission format can let one claim `Tutorial` by oversight. */
+  override protected def readable: Seq[PanoSource] = values.toSeq.filter(clientSubmittableSources.contains)
+
+  /** Takes every source, for JSON that the database built. */
+  val storedReads: Reads[PanoSource] = readsAmong(values.toSeq)
 }
 
 case class PanoDataSlim(

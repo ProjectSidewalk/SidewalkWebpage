@@ -4,6 +4,7 @@ import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
 import formats.json.PanoFormats._
 import models.label.LabelType
+import models.mission.MissionType
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import play.api.libs.functional.syntax._
@@ -85,7 +86,7 @@ object ValidateFormats {
   // No `skipped`, unlike AuditMissionProgress: only Explore's onboarding can skip a mission.
   case class ValidationMissionProgress(
       missionId: Int,
-      missionType: String,
+      missionType: MissionType,
       labelsProgress: Int,
       labelsTotal: Int,
       labelType: LabelType,
@@ -196,7 +197,7 @@ object ValidateFormats {
 
   given validationMissionReads: Reads[ValidationMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "mission_type").read[String] and
+      (JsPath \ "mission_type").read[MissionType] and
       (JsPath \ "labels_progress").read[Int] and
       (JsPath \ "labels_total").read[Int] and
       (JsPath \ "label_type").read[LabelType] and
