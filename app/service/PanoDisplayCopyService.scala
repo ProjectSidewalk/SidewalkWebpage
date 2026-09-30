@@ -58,8 +58,7 @@ object PanoDisplayCopyService {
   /**
    * The allowed width at or below what the viewer asked for, so a device is never handed something larger than it
    * said it could take. A request under the smallest allowed width gets that width — a device that can't render
-   * 2048 can't be helped by this route anyway, and refusing outright would leave it with the native file, which is
-   * strictly worse.
+   * 2048 can't be helped by this route anyway, and the smallest copy is a better answer than a refusal.
    */
   def snapToAllowed(requested: Int): Int =
     AllowedWidths.filter(_ <= requested).lastOption.getOrElse(AllowedWidths.head)
@@ -144,6 +143,7 @@ class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(us
   def displayCopy(panoId: String, native: File, maxWidth: Int): Future[DisplayCopy] = {
     val cached = displayCopyFile(panoId, maxWidth)
     if (cached.isFile) Future.successful(DisplayCopy.Ready(cached))
+    else if (nativeFits(native, maxWidth)) Future.successful(DisplayCopy.NativeFits)
     else {
       val key    = s"$panoId@$maxWidth"
       val result = inFlight.computeIfAbsent(key, _ => submitCut(panoId, native, cached, maxWidth))
@@ -152,6 +152,16 @@ class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(us
       result.andThen { case _ => inFlight.remove(key, result) }
     }
   }
+
+  /**
+   * Whether the native file is already no wider than the viewer asked for, read from its header alone.
+   *
+   * Decided before a cut is queued, so a pano that needs no copy is never refused for want of a pool slot. A file
+   * whose header can't be read answers false and takes the cut path, which turns the same failure into Unavailable.
+   */
+  private def nativeFits(native: File, maxWidth: Int): Boolean =
+    try ImageUtils.withReader(native)((_, width, height) => ImageUtils.subsamplePeriod(width, height, maxWidth) == 1)
+    catch { case NonFatal(_) => false }
 
   /**
    * Hands the cut to [[cutPool]], answering Unavailable rather than failing when there is no room for it.

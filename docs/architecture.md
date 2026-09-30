@@ -134,7 +134,9 @@ width on demand, caching it under the crop store (#5256). A phone asks for 8192 
 native file's decode and textures are more memory than iOS lets a tab have, and it answers by killing the tab (#5561).
 For the same reason a requested width is a bound, not a preference: a copy the server can't cut right now (its cut
 pool is full, or the cut failed) is a `503` with `Retry-After`, never the native file, and the viewer's own ladder
-steps down to a smaller width on that refusal. Validate also fetches the backups of the next expired labels into
+steps down to a smaller width on that refusal. A pool with no room refuses every width alike, so a foreground load
+that meets one gives the label up (`LabelSkipped_NoImagery`, the #4810 path) rather than wait; a prefetch, with
+nothing waiting on it, retries once after `Retry-After`. Validate also fetches the backups of the next expired labels into
 `PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of
 the network one, waiting a bounded time for a prefetch still in flight rather than downloading beside it (#5562).
 

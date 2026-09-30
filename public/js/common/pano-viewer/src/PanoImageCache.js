@@ -30,6 +30,12 @@ class PanoImageCache {
    */
   static MAX_ENTRIES = 3;
 
+  /** How long to wait before retrying a refused download when the server names no `Retry-After`, in seconds. */
+  static RETRY_AFTER_DEFAULT_SEC = 5;
+
+  /** The longest a refused download waits before its one retry, in seconds, whatever the server asks for. */
+  static RETRY_AFTER_MAX_SEC = 10;
+
   /** @type {Map<string, string>} Network URL to object URL, in insertion order, so the oldest is first. */
   #entries = new Map();
 
@@ -66,27 +72,47 @@ class PanoImageCache {
    */
   prefetch(url) {
     if (!url) return Promise.resolve(false);
+    this.#abandoned.delete(url); // Asking again is interest again, whatever a release said in between.
     if (this.#entries.has(url)) return Promise.resolve(true);
     if (this.#inFlight.has(url)) return this.#inFlight.get(url);
     if (!PanoImageCache.prefetchAllowed()) return Promise.resolve(false);
 
-    this.#abandoned.delete(url);
     const download = (async () => {
       try {
-        const response = await fetch(url);
+        const response = await this.#fetchWithOneRetry(url);
         if (!response.ok) return false;
         const blob = await response.blob();
-        if (this.#abandoned.delete(url)) return false;
+        if (this.#abandoned.has(url)) return false;
         this.#store(url, URL.createObjectURL(blob));
         return true;
       } catch {
         return false;
       } finally {
         this.#inFlight.delete(url);
+        this.#abandoned.delete(url);
       }
     })();
     this.#inFlight.set(url, download);
     return download;
+  }
+
+  /**
+   * Fetches a pano, and once more after a refusal the server says to come back from.
+   *
+   * `/backupImage` answers 503 with `Retry-After` when its cut pool has no room for the copy (#5561). A prefetch
+   * runs in the background with nothing waiting on it, so it can afford to wait that out where a foreground load
+   * cannot; one retry keeps a persistently full pool from turning into a polling loop.
+   *
+   * @param {string} url - The network URL.
+   * @returns {Promise<Response>} The last response.
+   */
+  async #fetchWithOneRetry(url) {
+    const response = await fetch(url);
+    if (response.status !== 503) return response;
+    const retryAfterSec = Number(response.headers?.get?.('Retry-After')) || PanoImageCache.RETRY_AFTER_DEFAULT_SEC;
+    const waitMs = Math.min(retryAfterSec, PanoImageCache.RETRY_AFTER_MAX_SEC) * 1000;
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    return fetch(url);
   }
 
   /**
@@ -136,6 +162,7 @@ class PanoImageCache {
    * @returns {Promise<string|undefined>} A `blob:` URL to load instead, or undefined to load from the network.
    */
   async settle(url, timeoutMs) {
+    this.#abandoned.delete(url); // The viewer wants these bytes after all; a download in flight must keep them.
     const download = this.#inFlight.get(url);
     if (download) {
       let timer;

@@ -52,7 +52,7 @@ class MissionContainer {
   createAMission(missionMetadata, progressMetadata) {
     svv.undoValidation.disableUndo();
     // Each mission re-marks the tab as live, so a kill during a later mission of the page is filed against that
-    // mission and its own age (#5561). Optional: the marker is built during init, and the first mission precedes it.
+    // mission and its own age (#5561). Optional only for the tests that build a container without one.
     svv.missionLiveMarker?.markLive(missionMetadata.mission_id);
     const metadata = {
       agreeCount: progressMetadata.agree_count,

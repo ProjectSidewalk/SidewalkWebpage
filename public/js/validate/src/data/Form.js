@@ -74,7 +74,10 @@ class Form {
       });
       return;
     }
-    this.#send(data, true, 0, keepalive);
+    // Ahead of the queue by design: a retry backoff waiting in it would hold this flush past the moment the page can
+    // be killed, and what this carries is newer than anything queued. The trade is that it can cross a send already
+    // in flight, and the server then keeps whichever lands last; the buffers are disjoint, so nothing is duplicated.
+    this.#send(data, true, keepalive);
   }
 
   /**
@@ -103,14 +106,17 @@ class Form {
    * Gives a payload about to be resent the latest progress compiled for its mission.
    *
    * Only a resend is ever behind: a fresh payload is compiled from the mission as it is now, which makes it the
-   * latest by definition, undo and all. A resend still carries the verdicts it was compiled with.
+   * latest by definition, undo and all. A resend still carries the verdicts it was compiled with, and its own
+   * `completed` flag: that says which server path this request is (the mission-complete submit whose response
+   * starts the next mission, or a flush that must not), and swapping it would leave the validator waiting on a
+   * mission-complete modal that nothing answers.
    *
    * @param {Record<string, any>} data - The payload about to be resent.
    */
   #refreshProgress(data) {
     const progress = data.mission_progress;
     const latest = progress && this.#latestProgress.get(progress.mission_id);
-    if (latest) data.mission_progress = { ...latest };
+    if (latest) data.mission_progress = { ...latest, completed: progress.completed };
   }
 
   /**
@@ -241,62 +247,69 @@ class Form {
   submit(data, isIntermediateSubmit = false) {
     const snapshot = Form.#snapshot(data);
     this.#noteProgress(snapshot);
-    const turn = this.#queue.then(() => this.#send(snapshot, isIntermediateSubmit, 0, false));
+    let firstAttemptSettled;
+    const firstAttempt = new Promise((resolve) => {
+      firstAttemptSettled = resolve;
+    });
+    // The queue turn lasts for the whole delivery, retries included, so nothing submitted meanwhile — an undo of a
+    // verdict still in flight, say — can go out ahead of a resend and be overwritten by it.
+    const turn = this.#queue.then(() => this.#send(snapshot, isIntermediateSubmit, false, firstAttemptSettled));
     this.#queue = turn.catch(() => {});
-    return turn;
+    return firstAttempt;
   }
 
   /**
-   * One attempt to deliver a payload, and what follows it: a retry queued behind the current sends, or the mission
-   * transition the response carries.
+   * Delivers a payload: attempt, back off and retry until it lands or the budget is spent, then act on the response.
    *
    * @param {Record<string, any>} data     - The payload, already snapshotted.
    * @param {boolean} isIntermediateSubmit - True when the response carries no mission transition to act on.
-   * @param {number}  retryCount           - Which attempt this is; 0 for the first.
    * @param {boolean} keepalive            - Whether the request may outlive the page.
+   * @param {Function} [onFirstAttempt]    - Called once the first attempt has settled: after a failure, or once a
+   *                                         success's response has been applied.
    * @returns {Promise<void>}
    */
-  async #send(data, isIntermediateSubmit, retryCount, keepalive) {
-    if (retryCount > 0) this.#refreshProgress(data);
+  async #send(data, isIntermediateSubmit, keepalive, onFirstAttempt = () => {}) {
     let result;
-    try {
-      const response = await fetch(this.#dataStoreUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json; charset=utf-8' },
-        body: JSON.stringify(data),
-        keepalive,
-      });
-      if (!response.ok) {
-        throw Object.assign(new Error(`Validation submit failed with HTTP ${response.status}`), {
-          status: response.status,
+    for (let attempt = 0; ; attempt++) {
+      if (attempt > 0) this.#refreshProgress(data);
+      try {
+        const response = await fetch(this.#dataStoreUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify(data),
+          keepalive,
         });
-      }
-      result = await response.json();
-    } catch (submitError) {
-      // Do not reload — retry the same snapshot with backoff so the validations eventually reach the server when
-      // connectivity returns. Network errors, timeouts and 5xx are worth retrying; a 4xx means the request itself is
-      // the problem (malformed body, expired session) and would fail identically on a resend. 408 and 429 are the
-      // server asking us to come back later (#4377).
-      const status = submitError.status;
-      const retryable = !(status >= 400 && status < 500) || status === 408 || status === 429;
-      if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt: retryCount, status, error: submitError.message });
-      if (retryable && retryCount < Form.#MAX_SUBMIT_RETRIES) {
-        // Queued rather than merely timed: everything submitted meanwhile waits behind the resend, so it can't be
-        // overtaken by it.
-        const wait = Form.#RETRY_BACKOFF_MS * (retryCount + 1);
-        const retry = this.#queue
-          .then(() => new Promise((resolve) => setTimeout(resolve, wait)))
-          .then(() => this.#send(data, isIntermediateSubmit, retryCount + 1, keepalive));
-        this.#queue = retry.catch(() => {});
-      } else {
+        if (!response.ok) {
+          throw Object.assign(new Error(`Validation submit failed with HTTP ${response.status}`), {
+            status: response.status,
+          });
+        }
+        result = await response.json();
+        break;
+      } catch (submitError) {
+        if (attempt === 0) onFirstAttempt();
+        // Do not reload — retry the same snapshot with backoff so the validations eventually reach the server when
+        // connectivity returns. Network errors, timeouts and 5xx are worth retrying; a 4xx means the request itself
+        // is the problem (malformed body, expired session) and would fail identically on a resend. 408 and 429 are
+        // the server asking us to come back later (#4377).
+        const status = submitError.status;
+        const retryable = !(status >= 400 && status < 500) || status === 408 || status === 429;
+        if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt, status, error: submitError.message });
+        if (retryable && attempt < Form.#MAX_SUBMIT_RETRIES) {
+          await new Promise((resolve) => setTimeout(resolve, Form.#RETRY_BACKOFF_MS * (attempt + 1)));
+          continue;
+        }
         if (!retryable) console.error('Validation submit rejected by the server:', submitError.message);
-        if (svv.tracker) svv.tracker.push('SubmitFailedGaveUp', { attempts: retryCount, retryable });
+        if (svv.tracker) svv.tracker.push('SubmitFailedGaveUp', { attempts: attempt, retryable });
+        return;
       }
-      return;
     }
 
     // An intermediate flush only persists data; it never expects (and must not act on) a mission transition.
-    if (isIntermediateSubmit) return;
+    if (isIntermediateSubmit) {
+      onFirstAttempt();
+      return;
+    }
 
     // The data is already saved server-side, so a failure here must not trigger a retry or reload — just log it.
     try {
@@ -316,5 +329,8 @@ class Form {
     } catch (handlerError) {
       console.error('Error applying validation submit response:', handlerError);
     }
+    // A delivery that landed settles the caller's promise only once its response has been applied, so a caller
+    // that awaits a mission-complete submit sees the next mission in place.
+    onFirstAttempt();
   }
 }

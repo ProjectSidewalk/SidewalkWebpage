@@ -235,6 +235,71 @@ describe('PanoImageCache (issue #5562)', () => {
         expect(cache.has('/backupImage/p1')).toBe(true);
     });
 
+    test('asking again for an abandoned download in flight keeps its bytes after all', async () => {
+        let finish;
+        global.fetch = jest.fn(() => new Promise((resolve) => { finish = resolve; }));
+        const download = cache.prefetch('/backupImage/p1');
+        cache.release('/backupImage/p1');
+
+        const again = cache.prefetch('/backupImage/p1'); // Interest again, e.g. an undo back to that label.
+        finish({ ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p1'])) });
+
+        await expect(Promise.all([download, again])).resolves.toEqual([true, true]);
+        expect(cache.has('/backupImage/p1')).toBe(true);
+    });
+
+    test('settle() on an abandoned download in flight un-abandons it, so the wait is not for nothing', async () => {
+        let finish;
+        global.fetch = jest.fn(() => new Promise((resolve) => { finish = resolve; }));
+        cache.prefetch('/backupImage/p1');
+        cache.release('/backupImage/p1');
+
+        const waiting = cache.settle('/backupImage/p1', 10000);
+        finish({ ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p1'])) });
+
+        await expect(waiting).resolves.toBe('blob:pano-0');
+    });
+
+    test('a refused download is retried once after Retry-After, and held if the retry succeeds', async () => {
+        jest.useFakeTimers();
+        try {
+            global.fetch = jest.fn()
+                .mockImplementationOnce(() => Promise.resolve({
+                    ok: false, status: 503, headers: { get: () => '3' }, blob: () => Promise.resolve(new Blob([])),
+                }))
+                .mockImplementation(() => Promise.resolve({
+                    ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p1'])),
+                }));
+
+            const download = cache.prefetch('/backupImage/p1');
+            await Promise.resolve();
+            expect(global.fetch).toHaveBeenCalledTimes(1);
+            await jest.advanceTimersByTimeAsync(3000);
+
+            await expect(download).resolves.toBe(true);
+            expect(global.fetch).toHaveBeenCalledTimes(2);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('a download refused twice is a miss, not a loop', async () => {
+        jest.useFakeTimers();
+        try {
+            global.fetch = jest.fn(() => Promise.resolve({
+                ok: false, status: 503, headers: { get: () => null }, blob: () => Promise.resolve(new Blob([])),
+            }));
+
+            const download = cache.prefetch('/backupImage/p1');
+            await jest.advanceTimersByTimeAsync(PanoImageCache.RETRY_AFTER_DEFAULT_SEC * 1000);
+
+            await expect(download).resolves.toBe(false);
+            expect(global.fetch).toHaveBeenCalledTimes(2);
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
     test('clear() releases everything', async () => {
         await cache.prefetch('/backupImage/p1');
         await cache.prefetch('/backupImage/p2');

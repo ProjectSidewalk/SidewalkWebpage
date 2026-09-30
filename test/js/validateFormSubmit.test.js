@@ -288,6 +288,49 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(JSON.parse(global.fetch.mock.calls[1][1].body).validations[0].undone).toBe(false);
     });
 
+    test('a submit made while an earlier one is still in flight waits behind that one\'s retries too', async () => {
+        let failFirst;
+        global.fetch = jest.fn()
+            .mockImplementationOnce(() => new Promise((_, reject) => { failFirst = reject; }))
+            .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+        form.submit({ validations: [{ label_id: 1 }] }, true); // A verdict, slow to answer.
+        await Promise.resolve();
+        form.submit({ validations: [{ label_id: 2 }] }, true); // Its undo, while the verdict is still in flight.
+        failFirst(new Error('timed out'));
+        await jest.advanceTimersByTimeAsync(2000);
+
+        const labelIds = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).validations[0].label_id);
+        expect(labelIds).toEqual([1, 1, 2]);
+    });
+
+    test('a resend of the mission-complete submit stays the mission-complete submit', async () => {
+        global.fetch = jest.fn()
+            .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+            .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+        await form.submit({ mission_progress: { mission_id: 5, labels_progress: 10, completed: true }, validations: [] });
+        // A flush compiled during the backoff: same mission, not a completion.
+        form.submit({ mission_progress: { mission_id: 5, labels_progress: 10, completed: false }, validations: [] }, true);
+        await jest.advanceTimersByTimeAsync(2000);
+
+        const completed = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress.completed);
+        expect(completed).toEqual([true, true, false]);
+    });
+
+    test('a resend of a flush does not become a mission-complete submit', async () => {
+        global.fetch = jest.fn()
+            .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+            .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+        await form.submit({ mission_progress: { mission_id: 5, labels_progress: 9, completed: false }, validations: [] }, true);
+        form.submit({ mission_progress: { mission_id: 5, labels_progress: 10, completed: true }, validations: [] });
+        await jest.advanceTimersByTimeAsync(2000);
+
+        const progress = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress);
+        expect(progress.map((p) => [p.labels_progress, p.completed])).toEqual([[9, false], [10, false], [10, true]]);
+    });
+
     test('never rejects, even when every attempt fails (callers do not catch)', async () => {
         global.fetch = jest.fn(() => Promise.reject(new Error('down')));
 
