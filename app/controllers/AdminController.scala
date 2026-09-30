@@ -424,7 +424,8 @@ class AdminController @Inject() (
    * snake_case output per the dashboard convention.
    */
   def getRecentActivity(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
-    adminService.getRecentActivity(n).flatMap { items =>
+    // Clamp both ends: a negative n 500s on an invalid SQL LIMIT, and a huge one loads the city's whole history.
+    adminService.getRecentActivity(math.min(math.max(n, 0), 500)).flatMap { items =>
       // Enrich the feed batch with two cheap scoped lookups, run in parallel: a preview thumbnail per labelled item,
       // and a "who is this contributor" summary (role + totals) per distinct user.
       val labelIds  = items.collect { case i if i.labelId.isDefined && i.labelType.isDefined => i.labelId.get }.distinct
