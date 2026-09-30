@@ -51,8 +51,7 @@ class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     PanoBackupStats(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong())
   }
 
-  private given grDbEnvInfo: GetResult[DbEnvInfo] =
-    r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean())
+  private given grDbEnvInfo: GetResult[DbEnvInfo] = r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean())
 
   /**
    * Caps a health read so it can never hold a pool connection for long. A monitoring query must not add load — least

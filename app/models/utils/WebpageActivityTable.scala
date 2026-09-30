@@ -228,8 +228,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiDailyCountsBySource(days: Int): DBIO[Seq[ApiDailySourceCount]] = {
-    given gr: GetResult[ApiDailySourceCount] =
-      r => ApiDailySourceCount(r.nextString(), r.nextString(), r.nextLong())
+    given gr: GetResult[ApiDailySourceCount] = r => ApiDailySourceCount(r.nextString(), r.nextString(), r.nextLong())
     sql"""
       SELECT DATE(timestamp)::text AS date,
              #$sourceCase AS source,
@@ -246,8 +245,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiFormatCountsBySource(days: Int): DBIO[Seq[ApiFormatSourceCount]] = {
-    given gr: GetResult[ApiFormatSourceCount] =
-      r => ApiFormatSourceCount(r.nextString(), r.nextString(), r.nextLong())
+    given gr: GetResult[ApiFormatSourceCount] = r => ApiFormatSourceCount(r.nextString(), r.nextString(), r.nextLong())
     sql"""
       SELECT COALESCE((REGEXP_MATCH(activity, '[?&]filetype=([^&\s]+)'))[1], 'json') AS format,
              #$sourceCase AS source,

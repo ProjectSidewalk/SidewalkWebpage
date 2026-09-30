@@ -108,8 +108,7 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
     )
   }
 
-  private given getJobSuccess: GetResult[(String, OffsetDateTime)] =
-    r => (r.nextString(), r.nextOffsetDateTime())
+  private given getJobSuccess: GetResult[(String, OffsetDateTime)] = r => (r.nextString(), r.nextOffsetDateTime())
 
   private given getOutcomeCount: GetResult[JobOutcomeCount] =
     r => JobOutcomeCount(r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt())
