@@ -69,7 +69,7 @@ class RecalculateStreetPriorityActor @Inject() (
           24.hours,
           self,
           RecalculateStreetPriorityActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("RecalculateStreetPriorityActor created")
     }

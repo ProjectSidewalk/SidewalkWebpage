@@ -66,14 +66,14 @@ trait PgEnumCompanion[E <: NamedEnum: ClassTag](val pgType: String) extends Name
     MyPostgresProfile.createEnumJdbcType[E](pgType, _.name, withName, quoteName = false)
 
   // Lets raw SQL take a value as-is (`$status`), already typed, so the query needs no `::pg_type` cast.
-  given setParameter: SetParameter[E] = SetParameter { (value, params) =>
+  given setParameter: SetParameter[E] = { (value, params) =>
     val typed = PGobject()
     typed.setType(pgType)
     typed.setValue(value.name)
     params.setObject(typed, Types.OTHER)
   }
 
-  given setOptionParameter: SetParameter[Option[E]] = SetParameter {
+  given setOptionParameter: SetParameter[Option[E]] = {
     case (Some(value), params) => setParameter(value, params)
     case (None, params)        =>
       // Typed like a value is, or Postgres can't tell what `$x IS NULL` is asking about.

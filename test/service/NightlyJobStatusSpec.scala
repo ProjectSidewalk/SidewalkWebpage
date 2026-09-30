@@ -205,7 +205,7 @@ class NightlyJobStatusSpec extends SidewalkSpec with BeforeAndAfterAll with Guic
       // The JS renders from its own fixtures, so nothing else would notice a field being renamed here until the
       // panel quietly started drawing blank cells against a live database.
       await(cacheApi.removeAll())
-      val row = (Json.toJson(await(healthService.getDbHealth))(HealthService.dbHealthDataWrites) \ "nightly_jobs")
+      val row = (Json.toJson(await(healthService.getDbHealth))(using HealthService.dbHealthDataWrites) \ "nightly_jobs")
         .as[JsArray]
         .value
         .find(entry => (entry \ "job_name").as[String] == jobName)

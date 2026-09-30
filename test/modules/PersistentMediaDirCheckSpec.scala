@@ -33,6 +33,14 @@ class PersistentMediaDirCheckSpec extends SidewalkSpec {
   private def flaggedKeys(dirs: Map[String, String]): Seq[String] =
     unsafeDirs(Configuration.from(dirs), env()).map(_.dir.key)
 
+  private val safeDirs: Map[String, String] = allDirsAt("/srv/sidewalk-media")
+
+  private val fatalKeys: Set[String] = persistentDirs.filter(_.irreplaceable).map(_.key).toSet
+
+  private def runCheck(mode: Mode, dirs: Map[String, String]): Unit = {
+    val _ = PersistentMediaDirCheck(Configuration.from(dirs), Environment(appRoot, getClass.getClassLoader, mode))
+  }
+
   "unsafeDirs" should {
     "flag a relative path, which resolves inside the stage directory on a deployed stage" in {
       val flagged = unsafeDirs(Configuration.from(allDirsAt(".story-media")), env())
@@ -127,13 +135,5 @@ class PersistentMediaDirCheckSpec extends SidewalkSpec {
     "stay out of the way in dev and test runs, where the application root is the repo checkout" in {
       Seq(Mode.Dev, Mode.Test).foreach { mode => noException must be thrownBy runCheck(mode, allDirsAt(".panos")) }
     }
-  }
-
-  private val safeDirs: Map[String, String] = allDirsAt("/srv/sidewalk-media")
-
-  private val fatalKeys: Set[String] = persistentDirs.filter(_.irreplaceable).map(_.key).toSet
-
-  private def runCheck(mode: Mode, dirs: Map[String, String]): Unit = {
-    val _ = PersistentMediaDirCheck(Configuration.from(dirs), Environment(appRoot, getClass.getClassLoader, mode))
   }
 }

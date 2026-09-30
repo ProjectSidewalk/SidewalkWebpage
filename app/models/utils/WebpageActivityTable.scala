@@ -177,7 +177,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @return DBIO with a sequence of (endpoint, count) tuples, ordered by count descending.
    */
   def getApiEndpointCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiEndpointCount]] = {
-    given gr: GetResult[ApiEndpointCount] = GetResult(r => ApiEndpointCount(r.nextString(), r.nextLong()))
+    given gr: GetResult[ApiEndpointCount] = r => ApiEndpointCount(r.nextString(), r.nextLong())
     val apiDocsFilter                     = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint, COUNT(*) AS call_count
@@ -215,7 +215,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def getApiEndpointCountsBySource(days: Int): DBIO[Seq[ApiEndpointSourceCount]] = {
     given gr: GetResult[ApiEndpointSourceCount] =
-      GetResult(r => ApiEndpointSourceCount(r.nextString(), r.nextString(), r.nextLong()))
+      r => ApiEndpointSourceCount(r.nextString(), r.nextString(), r.nextLong())
     sql"""
       SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint,
              #$sourceCase AS source,
@@ -232,8 +232,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiDailyCountsBySource(days: Int): DBIO[Seq[ApiDailySourceCount]] = {
-    given gr: GetResult[ApiDailySourceCount] =
-      GetResult(r => ApiDailySourceCount(r.nextString(), r.nextString(), r.nextLong()))
+    given gr: GetResult[ApiDailySourceCount] = r => ApiDailySourceCount(r.nextString(), r.nextString(), r.nextLong())
     sql"""
       SELECT DATE(timestamp)::text AS date,
              #$sourceCase AS source,
@@ -250,8 +249,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiFormatCountsBySource(days: Int): DBIO[Seq[ApiFormatSourceCount]] = {
-    given gr: GetResult[ApiFormatSourceCount] =
-      GetResult(r => ApiFormatSourceCount(r.nextString(), r.nextString(), r.nextLong()))
+    given gr: GetResult[ApiFormatSourceCount] = r => ApiFormatSourceCount(r.nextString(), r.nextString(), r.nextLong())
     sql"""
       SELECT COALESCE((REGEXP_MATCH(activity, '[?&]filetype=([^&\s]+)'))[1], 'json') AS format,
              #$sourceCase AS source,
@@ -270,7 +268,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiUniqueIpCountsBySource(days: Int): DBIO[Seq[ApiSourceIpCount]] = {
-    given gr: GetResult[ApiSourceIpCount] = GetResult(r => ApiSourceIpCount(r.nextString(), r.nextLong()))
+    given gr: GetResult[ApiSourceIpCount] = r => ApiSourceIpCount(r.nextString(), r.nextLong())
     sql"""
       SELECT #$sourceCase AS source, COUNT(DISTINCT ip_address) AS ip_count
       FROM webpage_activity

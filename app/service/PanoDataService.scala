@@ -876,13 +876,11 @@ class PanoDataServiceImpl @Inject() (
 
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit] = {
     db.run(DBIO.traverse(histories) { panoHist =>
-      DBIO.sequence(
-        Seq(
-          panoDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved)),
-          DBIO.sequence(panoHist.history.map { h =>
-            panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, panoHist.currPanoId))
-          })
-        )
+      DBIO.seq(
+        panoDataTable.updatePanoHistorySaved(panoHist.currPanoId, Some(panoHist.panoHistorySaved)),
+        DBIO.sequence(panoHist.history.map { h =>
+          panoHistoryTable.insertIfNew(PanoHistory(h.panoId, h.date, panoHist.currPanoId))
+        })
       )
     }).map { _ => () }
   }

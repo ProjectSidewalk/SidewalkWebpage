@@ -65,7 +65,7 @@ class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService:
           24.hours,
           self,
           OsmWayRefreshActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("OsmWayRefreshActor created")
     }

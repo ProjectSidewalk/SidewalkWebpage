@@ -130,7 +130,7 @@ class AdminJobTriggerSpec
         ),
         bind[PanoDataService].toInstance(
           StubService.answering[PanoDataService](
-            Map(
+            Map[String, Any](
               "checkForImagery" -> Future.successful(ImageryResult),
               // Play builds every controller to route one request, and ImageController reads this in its constructor.
               "getCropDirectory" -> ".crops"

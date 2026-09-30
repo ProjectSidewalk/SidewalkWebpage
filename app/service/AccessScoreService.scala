@@ -153,7 +153,7 @@ class AccessScoreService @Inject() (
               )
             }
             AccessScores(streetScores, intersectionScores)
-          }(cpuEc)
+          }(using cpuEc)
         }
       }
       .flatten

@@ -42,7 +42,7 @@ class SearchIndexingCheckSpec extends SidewalkSpec {
 
     "flag a missing status rather than throwing, so one bad entry can't abort the sweep" in {
       val config = Configuration.from(
-        Map(
+        Map[String, Any](
           "city-id"                                 -> "seattle-wa",
           "environment-type"                        -> "prod",
           "city-params.city-ids"                    -> Seq("seattle-wa", "newcity"),
@@ -131,7 +131,7 @@ class SearchIndexingCheckSpec extends SidewalkSpec {
 
     "name a missing status rather than throwing" in {
       val config = Configuration.from(
-        Map(
+        Map[String, Any](
           "city-id"                              -> "newcity",
           "environment-type"                     -> "prod",
           "city-params.city-ids"                 -> Seq("newcity"),

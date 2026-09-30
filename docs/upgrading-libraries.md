@@ -7,7 +7,7 @@ a glance whether something has a newer release available, or has gone end-of-lif
 
 **Keep the versions here in sync with the code, and keep this the only _doc_ that carries full versions.** Other docs
 ([`CLAUDE.md`](../CLAUDE.md), [`docs/architecture.md`](architecture.md), the README) mention only stable *major*
-versions (Scala 3.3, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
+versions (Scala 3.9, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
 recorded once. When you upgrade something, bump its version number below in the same change.
 
 > Many entries carry a **note** explaining *why* we're pinned where we are (a known incompatibility, an abandoned
@@ -87,8 +87,14 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
 
 ### Core toolchain
 
-- **Scala: 3.3.8** — the 3.3 LTS line. Edit `scalaVersion` in `build.sbt`.
-  [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
+- **Scala: 3.9.0** — the 3.9 LTS line; `.scala-steward.conf` pins Steward to it, so the next LTS is a deliberate
+  bump. Edit `scalaVersion` in `build.sbt` and `runner.dialect` in `.scalafmt.conf` (once scalafmt knows the new
+  minor; #5609). Our libraries are published for 3.3, which a newer compiler reads fine. A bump mostly surfaces new
+  warnings, and the compiler can fix many itself, but only with `-Werror` off (a failed compile writes no fixes):
+  `set scalacOptions := scalacOptions.value.filterNot(_ == "-Werror") ++ Seq("-rewrite", "-source", "3.7-migration")`
+  then `compile; Test/compile`, once per minor that changed the language (3.3 → 3.9 needed `3.7-migration`, for
+  `using`).
+  [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala3/releases)
 - **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
   `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump
   (Compose won't rebuild on its own). sbt **2.x** is gated on Play: its `sbt-plugin` has no sbt 2 build outside the

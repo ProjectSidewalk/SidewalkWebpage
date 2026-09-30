@@ -291,10 +291,10 @@ class CropServiceImpl @Inject() (
       Future
         .delegate {
           for {
-            existing   <- Future(existingCropIds())(cpuEc)
+            existing   <- Future(existingCropIds())(using cpuEc)
             _          <- reconcileProvenance(existing, counts)
             candidates <- cropCandidates(existing)
-            backed     <- Future(cutCrops(candidates, counts))(cpuEc)
+            backed     <- Future(cutCrops(candidates, counts))(using cpuEc)
             _          <- writeProvenance(counts.provenance.result())
             _          <- markHasBackup(backed)
           } yield counts.result
@@ -366,7 +366,7 @@ class CropServiceImpl @Inject() (
       .filter(c => existing.getOrElse(c.labelType, Set.empty).contains(c.labelId))
       .grouped(labelCropTable.UpsertBatchSize)
       .mapAsync(parallelism = 1) { batch =>
-        Future(batch.flatMap(classifyProvenance(_, counts)))(cpuEc).flatMap(writeProvenance)
+        Future(batch.flatMap(classifyProvenance(_, counts)))(using cpuEc).flatMap(writeProvenance)
       }
       .runWith(Sink.ignore)
       .map(_ => ())

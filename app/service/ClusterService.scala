@@ -172,6 +172,6 @@ class ClusterServiceImpl @Inject() (
           logger.debug(stdout.toString)
         }
         logger.info("Finished 100% of regions!!\n\n")
-      }(cpuEc)
+      }(using cpuEc)
   }
 }

@@ -246,27 +246,23 @@ class UserStatTable @Inject() (
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
   private given labelTypeTallyConverter: GetResult[LabelTypeTally] =
-    GetResult(r => LabelTypeTally(r.nextString(), r.nextInt(), r.nextInt()))
+    r => LabelTypeTally(r.nextString(), r.nextInt(), r.nextInt())
 
-  private given leaderboardStatConverter: GetResult[LeaderboardStat] = GetResult(r =>
+  private given leaderboardStatConverter: GetResult[LeaderboardStat] = r =>
     LeaderboardStat(r.nextString(), r.nextInt(), r.nextInt(), r.nextDouble(), r.nextDoubleOption(), r.nextDouble())
-  )
 
-  private given globalLeaderboardStatConverter: GetResult[GlobalLeaderboardStat] = GetResult(r =>
+  private given globalLeaderboardStatConverter: GetResult[GlobalLeaderboardStat] = r =>
     GlobalLeaderboardStat(r.nextString(), r.nextString(), r.nextInt(), r.nextInt(), r.nextDouble(),
       r.nextDoubleOption(), r.nextString())
-  )
 
-  private given crossCityUserStatConverter: GetResult[CrossCityUserStat] = GetResult(r =>
+  private given crossCityUserStatConverter: GetResult[CrossCityUserStat] = r =>
     CrossCityUserStat(r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(),
       r.nextOffsetDateTimeOption())
-  )
 
-  private given standingQueryRowConverter: GetResult[StandingQueryRow] = GetResult(r =>
+  private given standingQueryRowConverter: GetResult[StandingQueryRow] = r =>
     StandingQueryRow(r.nextInt(), r.nextString(), r.nextInt(), r.nextBoolean(), r.nextInt(), r.nextInt(), r.nextInt())
-  )
 
-  given userStatApiConverter: GetResult[UserStatForApi] = GetResult[UserStatForApi](r =>
+  given userStatApiConverter: GetResult[UserStatForApi] = r =>
     UserStatForApi(
       r.nextString(),
       r.nextInt(),
@@ -288,7 +284,6 @@ class UserStatTable @Inject() (
       // Read by position, so this must follow the column order getStatsForApiWithFilters writes.
       LabelType.ordered.map { lt => lt.name -> LabelTypeStat(r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()) }.toMap
     )
-  )
 
   def isExcludedUser(userId: String): DBIO[Boolean] = {
     userStats.filter(_.userId === userId).map(_.excluded).result.head

@@ -41,7 +41,7 @@ class CheckImageExpiryActor @Inject() (panoDataService: PanoDataService, jobRunS
           24.hours,
           self,
           CheckImageExpiryActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("CheckImageExpiryActor created")
     }

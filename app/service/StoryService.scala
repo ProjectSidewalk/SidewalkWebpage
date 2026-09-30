@@ -187,7 +187,7 @@ class StoryServiceImpl @Inject() (
               case None         => insertStory(labelId, userId, text, displayNameMode, None)
               case Some(upload) =>
                 labelService.getLabelLatLng(labelId).flatMap { labelLatLng =>
-                  Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
+                  Future(processPhoto(upload, labelLatLng))(using cpuEc).flatMap {
                     case Left(rejection) => Future.successful(Left(rejection))
                     case Right(p)        =>
                       // Whatever happens downstream (duplicate-race Left, DB error, failed move), the staged file was
@@ -257,7 +257,7 @@ class StoryServiceImpl @Inject() (
             newPhoto match {
               case Some(upload) =>
                 labelService.getLabelLatLng(story.labelId).flatMap { labelLatLng =>
-                  Future(processPhoto(upload, labelLatLng))(cpuEc).flatMap {
+                  Future(processPhoto(upload, labelLatLng))(using cpuEc).flatMap {
                     case Left(rejection) => Future.successful(Left(rejection))
                     case Right(p)        =>
                       replaceStoryPhoto(story, text, displayNameMode, upload, p).andThen { case _ =>
@@ -312,7 +312,7 @@ class StoryServiceImpl @Inject() (
             target.getParentFile.mkdirs()
             Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
             ()
-          }(cpuEc)
+          }(using cpuEc)
           _ <- db.run(
             (for {
               _ <- storyTable.updateOwnedContent(story.storyId, story.userId, text, displayNameMode)
@@ -545,7 +545,7 @@ class StoryServiceImpl @Inject() (
               // concurrent reader sees the complete file or nothing.
               Files.move(p.staged.toPath, target.toPath, StandardCopyOption.ATOMIC_MOVE)
               ()
-            }(cpuEc).recoverWith { case e =>
+            }(using cpuEc).recoverWith { case e =>
               logger.error(s"Failed to place story media file for story $storyId: ${e.getMessage}")
               db.run(storyTable.delete(storyId)).flatMap(_ => Future.failed(e))
             }

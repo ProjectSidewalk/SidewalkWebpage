@@ -41,7 +41,7 @@ class ClusteringActor @Inject() (clusterService: ClusterService, jobRunService: 
           24.hours,
           self,
           ClusteringActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("ClusteringActor created")
     }

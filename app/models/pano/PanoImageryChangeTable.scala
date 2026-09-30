@@ -84,7 +84,7 @@ class PanoImageryChangeTable @Inject() (protected val dbConfigProvider: Database
   val imageryChanges = TableQuery[PanoImageryChangeTableDef]
 
   private given getPanoImageryWeek: GetResult[PanoImageryWeek] =
-    GetResult(r => PanoImageryWeek(r.nextDate().toLocalDate, r.nextInt(), r.nextInt()))
+    r => PanoImageryWeek(r.nextDate().toLocalDate, r.nextInt(), r.nextInt())
 
   /**
    * Panos crossing the expired boundary in each direction, bucketed by ISO week, for the admin imagery chart.

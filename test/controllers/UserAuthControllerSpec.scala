@@ -207,7 +207,7 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
       status(signIn) mustBe OK
       (contentAsJson(signIn) \ "redirect").asOpt[String] mustBe defined
       authCookie(signIn).flatMap(_.maxAge) mustBe Some(
-        app.injector.instanceOf[RememberMeSettings].cookieMaxAge.toSeconds
+        app.injector.instanceOf[RememberMeSettings].cookieMaxAge.toSeconds.toInt
       )
 
       // 4. The same account also signs in by username, not just email — the controller resolves it (#4375).

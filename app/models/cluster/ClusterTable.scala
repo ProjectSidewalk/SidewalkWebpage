@@ -127,7 +127,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   private given panoSourceReads: Reads[models.pano.PanoSource]    = models.pano.PanoSource.storedReads
   private given rawLabelReads: Reads[RawLabelInClusterDataForApi] = Json.reads[RawLabelInClusterDataForApi]
 
-  given labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
+  given labelClusterForApiConverter: GetResult[LabelClusterForApi] = { r =>
     val labelClusterId = r.nextInt()
     val labelType      = r.nextString()
     val streetEdgeId   = r.nextInt()
@@ -173,7 +173,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     )
   }
 
-  given clusterScoreRowConverter: GetResult[ClusterScoreRow] = GetResult[ClusterScoreRow] { r =>
+  given clusterScoreRowConverter: GetResult[ClusterScoreRow] = { r =>
     ClusterScoreRow(
       streetEdgeId = r.nextInt(),
       intersectionId = r.nextIntOption(),

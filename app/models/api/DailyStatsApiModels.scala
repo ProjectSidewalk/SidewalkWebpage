@@ -14,7 +14,7 @@ case class DailyLabelStat(date: LocalDate, labelType: String, humanLabels: Int, 
 
 object DailyLabelStat {
   given getResult: GetResult[DailyLabelStat] =
-    GetResult(r => DailyLabelStat(LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
+    r => DailyLabelStat(LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt())
 }
 
 /** One day's validation counts for one label type, split by human vs. AI and by vote. */
@@ -30,10 +30,9 @@ case class DailyValidationStat(
 )
 
 object DailyValidationStat {
-  given getResult: GetResult[DailyValidationStat] = GetResult(r =>
+  given getResult: GetResult[DailyValidationStat] = r =>
     DailyValidationStat(LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(),
       r.nextInt(), r.nextInt(), r.nextInt())
-  )
 }
 
 /**

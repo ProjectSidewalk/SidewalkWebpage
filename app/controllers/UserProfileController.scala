@@ -129,7 +129,7 @@ class UserProfileController @Inject() (
         }
         val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
         Ok(featureCollection)
-      }(cpuEc)
+      }(using cpuEc)
   }
 
   /**

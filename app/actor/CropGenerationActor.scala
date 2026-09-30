@@ -46,7 +46,7 @@ class CropGenerationActor @Inject() (cropService: CropService, jobRunService: Jo
           24.hours,
           self,
           CropGenerationActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("CropGenerationActor created")
     }

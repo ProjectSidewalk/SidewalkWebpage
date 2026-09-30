@@ -314,7 +314,7 @@ class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       ORDER BY place.category, place.place_id
     """)
 
-    given getPlaceForApi: GetResult[PlaceForApi] = GetResult { r =>
+    given getPlaceForApi: GetResult[PlaceForApi] = { r =>
       PlaceForApi(
         placeId = r.nextInt(),
         category = r.nextString(),

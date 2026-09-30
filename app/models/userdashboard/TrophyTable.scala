@@ -31,9 +31,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   import profile.api.*
 
   private given weeklyPodiumConverter: GetResult[WeeklyPodium] =
-    GetResult(r => WeeklyPodium(r.nextString(), r.nextInt(), r.nextInt()))
+    r => WeeklyPodium(r.nextString(), r.nextInt(), r.nextInt())
   private given regionChampionConverter: GetResult[RegionChampion] =
-    GetResult(r => RegionChampion(r.nextString(), r.nextInt(), r.nextInt()))
+    r => RegionChampion(r.nextString(), r.nextInt(), r.nextInt())
 
   // Start of the US/Pacific week (Sunday) containing a given date expression — matches the leaderboard's week math.
   private def weekStart(dateExpr: String): String =

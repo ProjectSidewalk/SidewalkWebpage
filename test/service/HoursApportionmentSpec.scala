@@ -65,7 +65,7 @@ class HoursApportionmentSpec extends SidewalkSpec {
     "never reorder a descending list, so the table stays sorted after apportioning" in {
       apportion(Seq(5.0, 0.49, 0.46, 0.45, 0.2)).map(_.hours).sliding(2).foreach {
         case Seq(higher, lower) => higher must be >= lower
-        case _                  => ()
+        case _                  => succeed
       }
     }
 

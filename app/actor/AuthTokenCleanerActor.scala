@@ -43,7 +43,7 @@ class AuthTokenCleanerActor @Inject() (
           24.hours,
           self,
           AuthTokenCleanerActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("AuthTokenCleanerActor created")
     }

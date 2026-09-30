@@ -244,7 +244,7 @@ class RegionTable @Inject() (
       #${limit.map(n => s"LIMIT $n").getOrElse("")}
     """)
 
-    given getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>
+    given getRegionDataForApi: GetResult[RegionDataForApi] = { r =>
       RegionDataForApi(
         regionId = r.nextInt(),
         name = r.nextString(),

@@ -49,7 +49,7 @@ class SidewalkPresenceActor @Inject() (
           24.hours,
           self,
           SidewalkPresenceActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("SidewalkPresenceActor created")
     }

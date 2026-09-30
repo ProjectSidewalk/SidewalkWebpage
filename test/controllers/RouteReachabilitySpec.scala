@@ -122,14 +122,12 @@ class RouteReachabilitySpec extends SidewalkSpec with GuiceOneAppPerSuite {
         pathSamples(pat) match {
           case None          => skipped += s"$mth $pat"
           case Some(samples) =>
-            (0 until j)
+            violations ++= (0 until j)
               .map(compiled)
               .find { case (mi, _, _, rxi) =>
                 mi == mth && samples.forall(s => rxi.pattern.matcher(s).matches())
               }
-              .foreach { case (mi, pi, hi, _) =>
-                violations += s"  $mth $pat -> $handler\n      is shadowed by earlier  $mi $pi -> $hi"
-              }
+              .map { case (mi, pi, hi, _) => s"  $mth $pat -> $handler\n      is shadowed by earlier  $mi $pi -> $hi" }
         }
       }
 

@@ -59,7 +59,7 @@ class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Mate
    * @return The store as the SQL-backed kind gt-geopkg builds, so [[writeGeoPackageExtent]] can borrow its connection.
    */
   private def openGeoPackage(geopackagePath: Path): JDBCDataStore = {
-    val params = Map(
+    val params = Map[String, AnyRef](
       GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
       GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
     ).asJava

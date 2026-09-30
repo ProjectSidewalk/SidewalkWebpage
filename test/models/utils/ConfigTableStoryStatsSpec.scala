@@ -69,7 +69,7 @@ class ConfigTableStoryStatsSpec extends SidewalkSpec with GuiceOneAppPerSuite wi
   /** Inserts one story on `labelId`, `hoursAgo` hours old, returning its id and creation time. */
   private def seedStory(labelId: Int, userId: String, hoursAgo: Int, visible: Boolean): DBIO[(Int, OffsetDateTime)] = {
     given getResult: GetResult[(Int, OffsetDateTime)] =
-      GetResult(r => (r.nextInt(), r.nextTimestamp().toInstant.atOffset(ZoneOffset.UTC)))
+      r => (r.nextInt(), r.nextTimestamp().toInstant.atOffset(ZoneOffset.UTC))
     sql"""INSERT INTO story (story_id, label_id, user_id, story_text, visible, created_at)
           VALUES ((SELECT COALESCE(MAX(story_id), 0) + 1 FROM story), $labelId, $userId, 'ci story', $visible,
                   now() - ($hoursAgo * INTERVAL '1 hour'))

@@ -98,7 +98,7 @@ class LabelApiController @Inject() (
             id = tag.tagId,
             labelType = tag.labelType.name,
             tag = tag.tag,
-            description = messagesApi(s"tag.description.${tag.tagId}")(request.lang),
+            description = messagesApi(s"tag.description.${tag.tagId}")(using request.lang),
             mutuallyExclusiveWith = mutuallyExclusiveList
           )
         }

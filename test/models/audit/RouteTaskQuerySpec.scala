@@ -24,6 +24,7 @@ import slick.dbio.DBIO
 import util.SidewalkSpec
 
 import java.time.OffsetDateTime
+import scala.compiletime.uninitialized
 import scala.concurrent.Await
 import scala.concurrent.duration.*
 
@@ -63,9 +64,9 @@ class RouteTaskQuerySpec extends SidewalkSpec with org.scalatest.BeforeAndAfterA
   private val streetEdgeRegion = TableQuery[StreetEdgeRegionTableDef]
   private val regions          = TableQuery[RegionTableDef]
 
-  private var userId: String           = _
-  private var routeId: Int             = _
-  private var userRouteId: Int         = _
+  private var userId: String           = uninitialized
+  private var routeId: Int             = uninitialized
+  private var userRouteId: Int         = uninitialized
   private var routeStreetIds: Seq[Int] = Seq.empty
   private var auditTaskIds: Seq[Int]   = Seq.empty
 

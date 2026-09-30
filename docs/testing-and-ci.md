@@ -109,7 +109,9 @@ is seeded, so data-dependent paths are covered locally and not there — expect 
 
 Only `controllers.javascript.*` is excluded: Twirl emits the JS reverse router for the browser, so nothing calls its
 692 statements from Scala. The Scala router and the templates stay in — the functional specs render pages and route
-requests, so their coverage is real, and excluding them would move the number by only ~1.5 points.
+requests, so their coverage is real, and excluding them would move the number by only ~1.5 points. The compiler also
+won't instrument a method over 3000 tree nodes, and under `-Werror` its warning fails the build, so split the method
+into private helpers (#5605).
 
 **JavaScript — Jest, report-only for now.** `collectCoverageFrom` is `public/js/**/*.js` minus the Grunt `build/`
 bundles, with `public/js` in `roots` so an untested file counts against the ratio instead of being invisible.

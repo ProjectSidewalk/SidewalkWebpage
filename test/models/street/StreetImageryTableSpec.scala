@@ -48,7 +48,7 @@ class StreetImageryTableSpec extends SidewalkSpec with GuiceOneAppPerSuite {
         // Where both endpoints of the capture-date range are known, oldest must not be after newest.
         (row.oldestCapture, row.newestCapture) match {
           case (Some(oldest), Some(newest)) => oldest.isAfter(newest) mustBe false
-          case _                            => // a one-sided or absent range has nothing to compare
+          case _                            => succeed // a one-sided or absent range has nothing to compare
         }
       }
     }

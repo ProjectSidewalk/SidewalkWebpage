@@ -53,7 +53,7 @@ class UserStatActor @Inject() (adminService: AdminService, jobRunService: JobRun
           24.hours,
           self,
           UserStatActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("UserStatActor created")
     }

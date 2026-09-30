@@ -124,10 +124,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @throws NoSuchElementException if no map parameters are found in the specified schema
    */
   def getCityMapParamsBySchema(schema: String): DBIO[MapParams] = {
-    given getResult: GetResult[MapParams] = GetResult(r =>
+    given getResult: GetResult[MapParams] = r =>
       MapParams(r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(),
         r.nextDouble())
-    )
 
     // SQL query with explicit schema reference using double quotes for proper PostgreSQL schema qualification.
     sql"""
@@ -398,6 +397,35 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       lastActivity: Option[OffsetDateTime]
   )
 
+  // Last activity is NULL on an empty schema, so it is read as an Option; UTC because only the instant matters.
+  private given getScorecardCore: GetResult[ScorecardCore] = { r =>
+    ScorecardCore(
+      totalStreets = r.nextInt(),
+      auditedStreets = r.nextInt(),
+      totalKm = r.nextDouble(),
+      auditedKm = r.nextDouble(),
+      totalLabels = r.nextInt(),
+      aiLabels = r.nextInt(),
+      labelsWithSeverity = r.nextInt(),
+      labelsSeverityEligible = r.nextInt(),
+      labelsWithTags = r.nextInt(),
+      labelsTagEligible = r.nextInt(),
+      totalValidations = r.nextInt(),
+      validationsAgree = r.nextInt(),
+      validationsDisagree = r.nextInt(),
+      aiValidations = r.nextInt(),
+      activeContributors = r.nextInt(),
+      lowQualityContributors = r.nextInt(),
+      labels7d = r.nextInt(),
+      labels30d = r.nextInt(),
+      validations7d = r.nextInt(),
+      validations30d = r.nextInt(),
+      audits7d = r.nextInt(),
+      audits30d = r.nextInt(),
+      lastActivity = r.nextTimestampOption().map(_.toInstant.atOffset(ZoneOffset.UTC))
+    )
+  }
+
   /** Number of trailing weeks of activity trend the scorecard fetches per city. */
   private val ScorecardTrendWeeks: Int = 12
 
@@ -422,176 +450,12 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *               `coverage` is 0.0 when the city has no streets loaded.
    */
   def getCityScorecardBySchema(schema: String): DBIO[CityScorecard] = {
-    // The nullable last-activity timestamp can be NULL on an empty schema, so it is read as an Option and normalized to
-    // UTC (we only need the instant, for "days since last activity").
-    given getResult: GetResult[ScorecardCore] = GetResult { r =>
-      ScorecardCore(
-        totalStreets = r.nextInt(),
-        auditedStreets = r.nextInt(),
-        totalKm = r.nextDouble(),
-        auditedKm = r.nextDouble(),
-        totalLabels = r.nextInt(),
-        aiLabels = r.nextInt(),
-        labelsWithSeverity = r.nextInt(),
-        labelsSeverityEligible = r.nextInt(),
-        labelsWithTags = r.nextInt(),
-        labelsTagEligible = r.nextInt(),
-        totalValidations = r.nextInt(),
-        validationsAgree = r.nextInt(),
-        validationsDisagree = r.nextInt(),
-        aiValidations = r.nextInt(),
-        activeContributors = r.nextInt(),
-        lowQualityContributors = r.nextInt(),
-        labels7d = r.nextInt(),
-        labels30d = r.nextInt(),
-        validations7d = r.nextInt(),
-        validations30d = r.nextInt(),
-        audits7d = r.nextInt(),
-        audits30d = r.nextInt(),
-        lastActivity = r.nextTimestampOption().map(_.toInstant.atOffset(ZoneOffset.UTC))
-      )
-    }
-
     // Coverage counts only audits on current imagery (#4384), but this query runs against OTHER cities' schemas,
     // which may not have applied the evolution adding audit_task.outdated_imagery yet (e.g. mid-deploy). Gate the
     // filter on the column existing so unmigrated schemas fall back to counting every completed audit instead of
     // erroring out their whole scorecard. Once every deployed schema has the column this gate (and the branch in
-    // coreQuery) can go away -- tracked in #4705.
+    // scorecardCoreQuery) can go away -- tracked in #4705.
     val upToDateFilterQuery = columnExists(schema, "audit_task", "outdated_imagery")
-
-    def coreQuery(upToDateFilter: String, labelTypeSql: LabelTypeSql, hasValidationLabelType: Boolean) = {
-      sql"""
-      SELECT total_streets.cnt          AS total_streets,
-             audited_streets.cnt        AS audited_streets,
-             COALESCE(street_km.km, 0)  AS total_km,
-             COALESCE(audited_km.km, 0) AS audited_km,
-             label_counts.label_count    AS total_labels,
-             label_counts.ai_count       AS ai_labels,
-             label_counts.with_severity     AS labels_with_severity,
-             label_counts.severity_eligible AS labels_severity_eligible,
-             label_counts.with_tags         AS labels_with_tags,
-             label_counts.tag_eligible      AS labels_tag_eligible,
-             val_counts.val_count + voided_val_counts.cnt AS total_validations,
-             verdict_counts.agree_count    AS validations_agree,
-             verdict_counts.disagree_count AS validations_disagree,
-             ai_val_counts.ai_count     AS ai_validations,
-             active_contributors.cnt    AS active_contributors,
-             low_quality.cnt            AS low_quality_contributors,
-             label_counts.labels_7d     AS labels_7d,
-             label_counts.labels_30d    AS labels_30d,
-             val_counts.val_7d          AS validations_7d,
-             val_counts.val_30d         AS validations_30d,
-             audit_windows.audits_7d    AS audits_7d,
-             audit_windows.audits_30d   AS audits_30d,
-             last_activity.ts           AS last_activity
-      FROM (
-          SELECT COUNT(*) AS cnt FROM #${FilteredTables.streets(Some(schema))}
-      ) AS total_streets, (
-          -- Filter audited streets to open-only so the numerator can't exceed total_streets (non-open streets can
-          -- still have audit_task rows, which would push coverage above 100% and make "streets left" negative). #4329
-          SELECT COUNT(DISTINCT street_edge.street_edge_id) AS cnt
-          FROM #${FilteredTables.streets(Some(schema))}
-          INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
-              ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
-      ) AS audited_streets, (
-          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
-          FROM #${FilteredTables.streets(Some(schema))}
-      ) AS street_km, (
-          -- Distinct audited length (no double-counting overlapping audits), open-only (see audited_streets).
-          SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
-          FROM (
-              SELECT DISTINCT street_edge.street_edge_id, geom
-              FROM #${FilteredTables.streets(Some(schema))}
-              INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
-                  ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
-          ) AS distinct_audited
-      ) AS audited_km, (
-          SELECT COUNT(DISTINCT label.label_id) AS label_count,
-                 COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
-                 COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
-                 -- Denominator for "% with severity": only types that CAN take a rating, per LabelType.
-                 COUNT(DISTINCT label.label_id) FILTER (
-                     WHERE #${labelTypeSql.labelIsOneOf(LabelType.ratedTypeNames)}
-                 ) AS severity_eligible,
-                 COUNT(DISTINCT label.label_id) FILTER (WHERE cardinality(label.tags) > 0) AS with_tags,
-                 -- Denominator for "% with tags": only types that CAN take tags, i.e. types that have any tag defined
-                 -- in this deployment's tag table (self-adapting per city; typically all types except Occlusion).
-                 COUNT(DISTINCT label.label_id) FILTER (WHERE #${labelTypeSql.labelTypeHasTags}) AS tag_eligible,
-                 COUNT(DISTINCT label.label_id) FILTER (WHERE label.time_created >= NOW() - INTERVAL '7 days') AS labels_7d,
-                 COUNT(DISTINCT label.label_id) FILTER (WHERE label.time_created >= NOW() - INTERVAL '30 days') AS labels_30d
-          FROM #${FilteredTables.labels(Some(schema))}
-          LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-      ) AS label_counts, (
-          -- All votes, AI included: how much validating happened.
-          SELECT COUNT(*) AS val_count,
-                 COUNT(*) FILTER (WHERE end_timestamp >= NOW() - INTERVAL '7 days')  AS val_7d,
-                 COUNT(*) FILTER (WHERE end_timestamp >= NOW() - INTERVAL '30 days') AS val_30d
-          FROM #${FilteredTables.votesCast(Some(schema))}
-      ) AS val_counts, (
-          -- Agreement: only votes that count toward a verdict, from people (AI is in ai_val_counts).
-          SELECT COUNT(*) FILTER (WHERE validation_result::text = 'Agree'    AND user_role.role IS DISTINCT FROM 'AI') AS agree_count,
-                 COUNT(*) FILTER (WHERE validation_result::text = 'Disagree' AND user_role.role IS DISTINCT FROM 'AI') AS disagree_count
-          FROM #${FilteredTables.verdictVotes(
-          Some(schema),
-          voteTypeKnown = labelTypeSql.hasEnum && hasValidationLabelType
-        )}
-          LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-      ) AS verdict_counts, (
-          -- AI-authored validations, counted separately from val_counts so the AI-role join can't fan out the totals.
-          SELECT COUNT(DISTINCT label_validation.label_validation_id) AS ai_count
-          FROM #${FilteredTables.votesCast(Some(schema))}
-          LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-          WHERE user_role.role = 'AI'
-      ) AS ai_val_counts, (
-          -- Work-credit add-on (#4842): archived voided votes count toward total_validations (activity volume) but
-          -- not the agree/disagree verdict columns — those verdicts were cast against an off-target marker, so they
-          -- are kept as study material and deliberately left out of the agreement signal.
-          SELECT COUNT(*) AS cnt
-          FROM #${FilteredTables.voidedVotesCast(Some(schema))}
-      ) AS voided_val_counts, (
-          SELECT COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '7 days')  AS audits_7d,
-                 COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '30 days') AS audits_30d
-          FROM #${FilteredTables.completedAudits(Some(schema))}
-          WHERE #${FilteredTables.notTutorialStreet("audit_task.street_edge_id", Some(schema))}
-      ) AS audit_windows, (
-          -- Distinct PEOPLE who labeled or validated: union of non-excluded, non-AI label authors and validators.
-          SELECT COUNT(DISTINCT contributor_id) AS cnt FROM (
-              SELECT label.user_id AS contributor_id
-              FROM #${FilteredTables.labels(Some(schema))}
-              LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
-              WHERE user_role.role IS DISTINCT FROM 'AI'
-              UNION
-              SELECT label_validation.user_id AS contributor_id
-              FROM #${FilteredTables.votesCast(Some(schema))}
-              LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-              WHERE user_role.role IS DISTINCT FROM 'AI'
-              -- Voided votes (#4842) still mark their caster as a contributor. No AI-role filter here, unlike the
-              -- arms above: the archive is human-only by construction.
-              UNION
-              SELECT voided_label_validation.user_id AS contributor_id
-              FROM #${FilteredTables.voidedVotesCast(Some(schema))}
-          ) AS contributor_union
-      ) AS active_contributors, (
-          -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
-          -- Everyone's labels, since this counts the excluded users.
-          SELECT COUNT(DISTINCT label.user_id) AS cnt
-          FROM #${FilteredTables.labels(Some(schema), Contributors.Everyone)}
-          INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
-          WHERE user_stat.excluded
-      ) AS low_quality, (
-          -- ORDER BY ... LIMIT 1 instead of MAX, so the label and vote parts can use their time indexes.
-          SELECT GREATEST(
-              (SELECT label.time_created FROM #${FilteredTables.labels(Some(schema))}
-               ORDER BY label.time_created DESC LIMIT 1),
-              (SELECT label_validation.end_timestamp FROM #${FilteredTables.votesCast(Some(schema))}
-               ORDER BY label_validation.end_timestamp DESC LIMIT 1),
-              (SELECT audit_task.task_end FROM #${FilteredTables.completedAudits(Some(schema))}
-               WHERE #${FilteredTables.notTutorialStreet("audit_task.street_edge_id", Some(schema))}
-               ORDER BY audit_task.task_end DESC NULLS LAST LIMIT 1)
-          ) AS ts
-      ) AS last_activity;
-    """.as[ScorecardCore].head
-    }
 
     // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats, then
     // assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on a separate
@@ -601,7 +465,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       hasLabelTypeEnum       <- schemaHasLabelTypeEnum(schema)
       hasValidationLabelType <- schemaHasValidationLabelType(schema)
       labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
-      core <- coreQuery(
+      core <- scorecardCoreQuery(
+        schema,
         if (hasOutdatedImageryCol) "AND audit_task.outdated_imagery = FALSE" else "",
         labelTypeSql,
         hasValidationLabelType
@@ -609,46 +474,209 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       byLabelType <- labelTypeStatsBySchema(schema, labelTypeSql)
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
       output      <- getCityContributorOutputBySchema(schema)
-    } yield {
-      CityScorecard(
-        cityId = schema, // Replaced with the real cityId at the service layer; schema is the only id known here.
-        totalStreets = core.totalStreets,
-        auditedStreets = core.auditedStreets,
-        coverage = if (core.totalStreets > 0) core.auditedStreets.toDouble / core.totalStreets else 0.0,
-        totalKm = core.totalKm,
-        auditedKm = core.auditedKm,
-        totalLabels = core.totalLabels,
-        aiLabels = core.aiLabels,
-        labelsWithSeverity = core.labelsWithSeverity,
-        labelsSeverityEligible = core.labelsSeverityEligible,
-        labelsWithTags = core.labelsWithTags,
-        labelsTagEligible = core.labelsTagEligible,
-        labelsValidated = byLabelType.values.map(_.labelsValidated).sum,
-        totalValidations = core.totalValidations,
-        validationsAgree = core.validationsAgree,
-        validationsDisagree = core.validationsDisagree,
-        aiValidations = core.aiValidations,
-        byLabelType = byLabelType,
-        activeContributors = core.activeContributors,
-        lowQualityContributors = core.lowQualityContributors,
-        labels7d = core.labels7d,
-        labels30d = core.labels30d,
-        validations7d = core.validations7d,
-        validations30d = core.validations30d,
-        audits7d = core.audits7d,
-        audits30d = core.audits30d,
-        lastActivity = core.lastActivity,
-        weeklyTrend = weeklyTrend,
-        labelsPerUserMedian = output.labelMedian,
-        labelsPerUserP90 = output.labelP90,
-        numLabelers = output.numLabelers,
-        validationsPerUserMedian = output.validationMedian,
-        validationsPerUserP90 = output.validationP90,
-        numValidators = output.numValidators,
-        validationSecondsMedian = output.validationSecondsMedian
-      )
-    }
+    } yield assembleScorecard(schema, core, byLabelType, weeklyTrend, output)
   }
+
+  /**
+   * The scorecard's one-row core: street coverage, label, validation and contributor counts, the 7- and 30-day
+   * activity windows, and the last activity time.
+   *
+   * @param schema                 The city schema to query.
+   * @param upToDateFilter         SQL added to the audited-street joins to keep only current imagery, when the schema
+   *                               has that column (see the caller).
+   * @param labelTypeSql           How this schema spells label types (enum or text).
+   * @param hasValidationLabelType Whether the schema records a vote's label type, which the verdict counts need.
+   * @return                       The one core row.
+   */
+  private def scorecardCoreQuery(
+      schema: String,
+      upToDateFilter: String,
+      labelTypeSql: LabelTypeSql,
+      hasValidationLabelType: Boolean
+  ): DBIO[ScorecardCore] = {
+    sql"""
+    SELECT total_streets.cnt          AS total_streets,
+           audited_streets.cnt        AS audited_streets,
+           COALESCE(street_km.km, 0)  AS total_km,
+           COALESCE(audited_km.km, 0) AS audited_km,
+           label_counts.label_count    AS total_labels,
+           label_counts.ai_count       AS ai_labels,
+           label_counts.with_severity     AS labels_with_severity,
+           label_counts.severity_eligible AS labels_severity_eligible,
+           label_counts.with_tags         AS labels_with_tags,
+           label_counts.tag_eligible      AS labels_tag_eligible,
+           val_counts.val_count + voided_val_counts.cnt AS total_validations,
+           verdict_counts.agree_count    AS validations_agree,
+           verdict_counts.disagree_count AS validations_disagree,
+           ai_val_counts.ai_count     AS ai_validations,
+           active_contributors.cnt    AS active_contributors,
+           low_quality.cnt            AS low_quality_contributors,
+           label_counts.labels_7d     AS labels_7d,
+           label_counts.labels_30d    AS labels_30d,
+           val_counts.val_7d          AS validations_7d,
+           val_counts.val_30d         AS validations_30d,
+           audit_windows.audits_7d    AS audits_7d,
+           audit_windows.audits_30d   AS audits_30d,
+           last_activity.ts           AS last_activity
+    FROM (
+        SELECT COUNT(*) AS cnt FROM #${FilteredTables.streets(Some(schema))}
+    ) AS total_streets, (
+        -- Filter audited streets to open-only so the numerator can't exceed total_streets (non-open streets can
+        -- still have audit_task rows, which would push coverage above 100% and make "streets left" negative). #4329
+        SELECT COUNT(DISTINCT street_edge.street_edge_id) AS cnt
+        FROM #${FilteredTables.streets(Some(schema))}
+        INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
+            ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
+    ) AS audited_streets, (
+        SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
+        FROM #${FilteredTables.streets(Some(schema))}
+    ) AS street_km, (
+        -- Distinct audited length (no double-counting overlapping audits), open-only (see audited_streets).
+        SELECT SUM(ST_Length(geom::geography)) / 1000 AS km
+        FROM (
+            SELECT DISTINCT street_edge.street_edge_id, geom
+            FROM #${FilteredTables.streets(Some(schema))}
+            INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
+                ON street_edge.street_edge_id = audit_task.street_edge_id #$upToDateFilter
+        ) AS distinct_audited
+    ) AS audited_km, (
+        SELECT COUNT(DISTINCT label.label_id) AS label_count,
+               COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
+               COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
+               -- Denominator for "% with severity": only types that CAN take a rating, per LabelType.
+               COUNT(DISTINCT label.label_id) FILTER (
+                   WHERE #${labelTypeSql.labelIsOneOf(LabelType.ratedTypeNames)}
+               ) AS severity_eligible,
+               COUNT(DISTINCT label.label_id) FILTER (WHERE cardinality(label.tags) > 0) AS with_tags,
+               -- Denominator for "% with tags": only types that CAN take tags, i.e. types that have any tag defined
+               -- in this deployment's tag table (self-adapting per city; typically all types except Occlusion).
+               COUNT(DISTINCT label.label_id) FILTER (WHERE #${labelTypeSql.labelTypeHasTags}) AS tag_eligible,
+               COUNT(DISTINCT label.label_id) FILTER (WHERE label.time_created >= NOW() - INTERVAL '7 days') AS labels_7d,
+               COUNT(DISTINCT label.label_id) FILTER (WHERE label.time_created >= NOW() - INTERVAL '30 days') AS labels_30d
+        FROM #${FilteredTables.labels(Some(schema))}
+        LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
+    ) AS label_counts, (
+        -- All votes, AI included: how much validating happened.
+        SELECT COUNT(*) AS val_count,
+               COUNT(*) FILTER (WHERE end_timestamp >= NOW() - INTERVAL '7 days')  AS val_7d,
+               COUNT(*) FILTER (WHERE end_timestamp >= NOW() - INTERVAL '30 days') AS val_30d
+        FROM #${FilteredTables.votesCast(Some(schema))}
+    ) AS val_counts, (
+        -- Agreement: only votes that count toward a verdict, from people (AI is in ai_val_counts).
+        SELECT COUNT(*) FILTER (WHERE validation_result::text = 'Agree'    AND user_role.role IS DISTINCT FROM 'AI') AS agree_count,
+               COUNT(*) FILTER (WHERE validation_result::text = 'Disagree' AND user_role.role IS DISTINCT FROM 'AI') AS disagree_count
+        FROM #${FilteredTables.verdictVotes(
+        Some(schema),
+        voteTypeKnown = labelTypeSql.hasEnum && hasValidationLabelType
+      )}
+        LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
+    ) AS verdict_counts, (
+        -- AI-authored validations, counted separately from val_counts so the AI-role join can't fan out the totals.
+        SELECT COUNT(DISTINCT label_validation.label_validation_id) AS ai_count
+        FROM #${FilteredTables.votesCast(Some(schema))}
+        LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
+        WHERE user_role.role = 'AI'
+    ) AS ai_val_counts, (
+        -- Work-credit add-on (#4842): archived voided votes count toward total_validations (activity volume) but
+        -- not the agree/disagree verdict columns — those verdicts were cast against an off-target marker, so they
+        -- are kept as study material and deliberately left out of the agreement signal.
+        SELECT COUNT(*) AS cnt
+        FROM #${FilteredTables.voidedVotesCast(Some(schema))}
+    ) AS voided_val_counts, (
+        SELECT COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '7 days')  AS audits_7d,
+               COUNT(DISTINCT street_edge_id) FILTER (WHERE task_end >= NOW() - INTERVAL '30 days') AS audits_30d
+        FROM #${FilteredTables.completedAudits(Some(schema))}
+        WHERE #${FilteredTables.notTutorialStreet("audit_task.street_edge_id", Some(schema))}
+    ) AS audit_windows, (
+        -- Distinct PEOPLE who labeled or validated: union of non-excluded, non-AI label authors and validators.
+        SELECT COUNT(DISTINCT contributor_id) AS cnt FROM (
+            SELECT label.user_id AS contributor_id
+            FROM #${FilteredTables.labels(Some(schema))}
+            LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
+            WHERE user_role.role IS DISTINCT FROM 'AI'
+            UNION
+            SELECT label_validation.user_id AS contributor_id
+            FROM #${FilteredTables.votesCast(Some(schema))}
+            LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
+            WHERE user_role.role IS DISTINCT FROM 'AI'
+            -- Voided votes (#4842) still mark their caster as a contributor. No AI-role filter here, unlike the
+            -- arms above: the archive is human-only by construction.
+            UNION
+            SELECT voided_label_validation.user_id AS contributor_id
+            FROM #${FilteredTables.voidedVotesCast(Some(schema))}
+        ) AS contributor_union
+    ) AS active_contributors, (
+        -- Distinct EXCLUDED (low-quality) users who placed a label — the data-quality "how much got filtered" signal.
+        -- Everyone's labels, since this counts the excluded users.
+        SELECT COUNT(DISTINCT label.user_id) AS cnt
+        FROM #${FilteredTables.labels(Some(schema), Contributors.Everyone)}
+        INNER JOIN "#$schema".user_stat ON label.user_id = user_stat.user_id
+        WHERE user_stat.excluded
+    ) AS low_quality, (
+        -- ORDER BY ... LIMIT 1 instead of MAX, so the label and vote parts can use their time indexes.
+        SELECT GREATEST(
+            (SELECT label.time_created FROM #${FilteredTables.labels(Some(schema))}
+             ORDER BY label.time_created DESC LIMIT 1),
+            (SELECT label_validation.end_timestamp FROM #${FilteredTables.votesCast(Some(schema))}
+             ORDER BY label_validation.end_timestamp DESC LIMIT 1),
+            (SELECT audit_task.task_end FROM #${FilteredTables.completedAudits(Some(schema))}
+             WHERE #${FilteredTables.notTutorialStreet("audit_task.street_edge_id", Some(schema))}
+             ORDER BY audit_task.task_end DESC NULLS LAST LIMIT 1)
+        ) AS ts
+    ) AS last_activity;
+  """.as[ScorecardCore].head
+  }
+
+  /**
+   * Puts the scorecard together from its parts.
+   *
+   * @param schema The city schema, standing in for the city id until the service layer swaps in the real one.
+   * @return       The complete scorecard.
+   */
+  private def assembleScorecard(
+      schema: String,
+      core: ScorecardCore,
+      byLabelType: Map[String, LabelTypeStats],
+      weeklyTrend: Seq[WeeklyPoint],
+      output: CityContributorOutput
+  ): CityScorecard =
+    CityScorecard(
+      cityId = schema, // Replaced with the real cityId at the service layer; schema is the only id known here.
+      totalStreets = core.totalStreets,
+      auditedStreets = core.auditedStreets,
+      coverage = if (core.totalStreets > 0) core.auditedStreets.toDouble / core.totalStreets else 0.0,
+      totalKm = core.totalKm,
+      auditedKm = core.auditedKm,
+      totalLabels = core.totalLabels,
+      aiLabels = core.aiLabels,
+      labelsWithSeverity = core.labelsWithSeverity,
+      labelsSeverityEligible = core.labelsSeverityEligible,
+      labelsWithTags = core.labelsWithTags,
+      labelsTagEligible = core.labelsTagEligible,
+      labelsValidated = byLabelType.values.map(_.labelsValidated).sum,
+      totalValidations = core.totalValidations,
+      validationsAgree = core.validationsAgree,
+      validationsDisagree = core.validationsDisagree,
+      aiValidations = core.aiValidations,
+      byLabelType = byLabelType,
+      activeContributors = core.activeContributors,
+      lowQualityContributors = core.lowQualityContributors,
+      labels7d = core.labels7d,
+      labels30d = core.labels30d,
+      validations7d = core.validations7d,
+      validations30d = core.validations30d,
+      audits7d = core.audits7d,
+      audits30d = core.audits30d,
+      lastActivity = core.lastActivity,
+      weeklyTrend = weeklyTrend,
+      labelsPerUserMedian = output.labelMedian,
+      labelsPerUserP90 = output.labelP90,
+      numLabelers = output.numLabelers,
+      validationsPerUserMedian = output.validationMedian,
+      validationsPerUserP90 = output.validationP90,
+      numValidators = output.numValidators,
+      validationSecondsMedian = output.validationSecondsMedian
+    )
 
   /**
    * Returns weekly label/validation/active-user volume for a city schema, oldest week first (#4329).
@@ -663,7 +691,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityWeeklyTrendBySchema(schema: String, weeks: Option[Int]): DBIO[Seq[WeeklyPoint]] = {
     given getResult: GetResult[WeeklyPoint] =
-      GetResult(r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
+      r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
 
     // weeks is an Int (safe to interpolate); None drops the lower bound to return the city's full history.
     val labelBound = weeks.map(w => s"WHERE label.time_created >= NOW() - ($w * INTERVAL '1 week')").getOrElse("")
@@ -778,12 +806,11 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityDailyActivityByUserBySchema(schema: String, days: Int): DBIO[Seq[DailyContributorActivity]] = {
     given getResult: GetResult[DailyContributorActivity] =
-      GetResult(r =>
+      r =>
         DailyContributorActivity(
           LocalDate.parse(r.nextString()), r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()),
           r.nextInt(), r.nextInt()
         )
-      )
 
     sql"""
       WITH activity AS (
@@ -835,12 +862,11 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityWindowActivityByUserBySchema(schema: String): DBIO[Seq[ContributorWindowActivity]] = {
     given getResult: GetResult[ContributorWindowActivity] =
-      GetResult(r =>
+      r =>
         ContributorWindowActivity(
           r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()), r.nextInt(), r.nextInt(),
           r.nextInt(), r.nextInt()
         )
-      )
 
     sql"""
       WITH activity AS (
@@ -883,10 +909,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       The city's [[CityContributorOutput]]; zeros when a population is empty.
    */
   def getCityContributorOutputBySchema(schema: String): DBIO[CityContributorOutput] = {
-    given getResult: GetResult[CityContributorOutput] = GetResult(r =>
+    given getResult: GetResult[CityContributorOutput] = r =>
       CityContributorOutput(r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(),
         r.nextDouble())
-    )
 
     sql"""
       SELECT COALESCE(lbl.median, 0), COALESCE(lbl.p90, 0), COALESCE(lbl.n, 0),
@@ -942,7 +967,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       (activeAuditHours, auditedKmWithOverlap); hours is 0 when there is no interaction data.
    */
   def getCityLabelingSpeedBySchema(schema: String): DBIO[(Double, Double)] = {
-    given getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
+    given getResult: GetResult[(Double, Double)] = r => (r.nextDouble(), r.nextDouble())
 
     sql"""
       SELECT COALESCE(audit_time.hours, 0) AS hours,
@@ -974,7 +999,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       DBIO yielding the city's [[CityStoryStats]]; all zeros and no `newest` when it has no stories.
    */
   def getCityStoryStatsBySchema(schema: String): DBIO[CityStoryStats] = {
-    given getResult: GetResult[CityStoryStats] = GetResult(r =>
+    given getResult: GetResult[CityStoryStats] = r =>
       CityStoryStats(
         r.nextInt(),
         r.nextInt(),
@@ -984,7 +1009,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         r.nextInt(),
         r.nextTimestampOption().map(_.toInstant.atOffset(ZoneOffset.UTC))
       )
-    )
     sql"""
       SELECT COUNT(*),
              COUNT(*) FILTER (WHERE NOT story.visible),

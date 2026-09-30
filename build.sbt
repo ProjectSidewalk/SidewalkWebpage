@@ -6,7 +6,7 @@ name := """sidewalk-webpage"""
 
 version := "11.16.0"
 
-scalaVersion := "3.3.8"
+scalaVersion := "3.9.0"
 
 // An idle server sits on ~1GB, and the default keeps one alive per worktree for a week.
 Global / serverIdleTimeout := Some(scala.concurrent.duration.Duration(1, "hour"))
@@ -241,7 +241,7 @@ scalacOptions ++= Seq(
   // Fail the compilation if there are any warnings, except in generated code: Twirl templates (.scala.html) and the
   // routes file, whose warnings we can't fix. The paths name sbt's output folders, so no checkout path matches.
   "-Werror", "-Wconf:src=.*/twirl/main/.*:s", "-Wconf:src=.*/routes/main/.*:s",
-  "-Xlint:all",             // Warn when a name hides one from a parent class or an outer scope.
+  "-Wshadow:all",           // Warn when a name hides one from a parent class or an outer scope.
   "-Wrecurse-with-default", // Warn when a method calls itself with a default argument.
   "-Wunused:nowarn",        // Warn if a @nowarn annotation silences nothing.
   "-Wunused:imports",   // Warn if an import is unused.
@@ -249,7 +249,12 @@ scalacOptions ++= Seq(
   "-Wunused:implicits", // Warn if an implicit parameter is unused.
   "-Wunused:privates",  // Warn if a private member is unused.
   "-Wunused:locals",    // Warn if a local definition is unused.
-  "-Wvalue-discard"     // Warn when non-Unit expression results are unused.
+  "-Wvalue-discard",    // Warn when non-Unit expression results are unused.
+  "-Wsafe-init",             // Warn when a field could be read before it is set.
+  "-Winfer-union",           // Warn when a type comes out as `A | B`, usually because two branches disagree.
+  "-Wimplausible-patterns",  // Warn when a `case` compares against a value it can never equal.
+  "-Wenum-comment-discard",  // Warn when a doc comment between enum cases is dropped.
+  "-Wwrong-arrow"            // Warn when `=>` is used where `?=>` was meant.
 )
 
 // A test often ends on `if (hasData) result mustBe expected`, which the value-discard check would flag.

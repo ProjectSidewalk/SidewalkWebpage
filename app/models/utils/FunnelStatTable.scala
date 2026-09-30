@@ -100,7 +100,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    * @return       The rows for that window across all funnel types; empty if the schema has no funnel_stat yet.
    */
   def getFunnelStatsBySchema(schema: String, window: String): DBIO[Seq[FunnelStat]] = {
-    given getResult: GetResult[FunnelStat] = GetResult { r =>
+    given getResult: GetResult[FunnelStat] = { r =>
       FunnelStat(
         r.nextString(),
         r.nextString(),
@@ -205,7 +205,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       numSteps: Int
   ): DBIO[Seq[FunnelSegmentCounts]] = {
     given getResult: GetResult[FunnelSegmentCounts] =
-      GetResult(r => FunnelSegmentCounts(r.nextString(), Vector.fill(numSteps)(r.nextInt())))
+      r => FunnelSegmentCounts(r.nextString(), Vector.fill(numSteps)(r.nextInt()))
     val filterCols =
       (1 to numSteps).map(k => s"COUNT(*) FILTER (WHERE deepest >= $k) AS s$k").mkString(",\n             ")
     // windowDays is an Int, so it's safe to splice in. No visit comes before its account, so the visit bound only

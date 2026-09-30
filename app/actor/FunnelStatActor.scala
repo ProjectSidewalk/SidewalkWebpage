@@ -62,7 +62,7 @@ class FunnelStatActor @Inject() (adminService: AdminService, jobRunService: JobR
           24.hours,
           self,
           FunnelStatActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("FunnelStatActor created")
     }

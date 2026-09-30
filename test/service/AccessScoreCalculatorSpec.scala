@@ -136,12 +136,12 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   test("'ends abruptly' is a point tag: one cluster carrying it at the threshold activates it for the street") {
     // 1 of 8 clusters tagged — pooled that is 1/8 of the labels, but a sidewalk only ends in one place.
     noSidewalkTerm(
-      Seq.fill(7)(noSidewalk()) :+ noSidewalk(labelCount = 1, "ends abruptly", tagged = 1): _*
+      Seq.fill(7)(noSidewalk()) :+ noSidewalk(labelCount = 1, "ends abruptly", tagged = 1)*
     ) shouldBe (-2.0 - 1.0 +- eps)
 
     // The tagged cluster itself still has to clear the threshold: 1 of 3 of its labels is not enough.
     noSidewalkTerm(
-      Seq.fill(7)(noSidewalk()) :+ noSidewalk(labelCount = 3, "ends abruptly", tagged = 1): _*
+      Seq.fill(7)(noSidewalk()) :+ noSidewalk(labelCount = 3, "ends abruptly", tagged = 1)*
     ) shouldBe (-2.0 +- eps)
 
     AccessScoreCalculator.streetConditionPointTags shouldBe Set(("NoSidewalk", "ends abruptly"))

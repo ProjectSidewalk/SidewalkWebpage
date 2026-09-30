@@ -17,7 +17,7 @@ import models.api.{
   ValidationStats,
   ValidatorType
 }
-import models.audit.AuditTaskTableDef
+import models.audit.{AuditTask, AuditTaskTableDef}
 import models.label.LabelTable.{given, *}
 import models.mission.MissionTableDef
 import models.pano.{PanoData, PanoDataTable, PanoDataTableDef, PanoSource, PanoViewerMetadata}
@@ -36,6 +36,7 @@ import models.utils.{
   SqlFragments
 }
 import models.validation.{
+  LabelValidation,
   LabelValidationTableDef,
   ValidationLabelFilter,
   ValidationOption,
@@ -798,7 +799,7 @@ object LabelTable {
   /**
    * Implicit converter from SQL results to LabelDataForApi objects.
    */
-  given labelDataConverter: GetResult[LabelDataForApi] = GetResult[LabelDataForApi] { r =>
+  given labelDataConverter: GetResult[LabelDataForApi] = { r =>
     LabelDataForApi(
       labelId = r.nextInt(),
       userId = r.nextString(),
@@ -975,7 +976,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     .filterNot { case (_l, _us) => _l.deleted || _us.excluded }
     .map { case (_l, _) => _l }
 
-  given labelMetadataConverter: GetResult[LabelMetadata] = GetResult[LabelMetadata] { r =>
+  given labelMetadataConverter: GetResult[LabelMetadata] = { r =>
     LabelMetadata(
       r.nextInt(),
       r.nextString(),
@@ -1031,7 +1032,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     )
   }
 
-  given projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats] { r =>
+  given projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = { r =>
     // Read the leading scalar columns into locals (rather than inline constructor args) so we can derive
     // kmExploredSingleUser. Reads must stay in SELECT order; GetResult is positional. km_explored_no_overlap counts
     // streets with ≥1 completed audit and km_explored_multiple_users counts streets with ≥2 distinct auditors, so
@@ -1748,17 +1749,64 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       excludedLabelIds: Set[Int] = Set.empty,
       excludedFaces: Set[(Int, StreetSide)] = Set.empty
   ): Query[LabelValidationMetadataRep, LabelValidationMetadata, Seq] = {
-    // One `IN` list per side: a face is a street edge and a side, and a label is on an excluded face when its edge is
-    // in the list for its side. An empty set can't go through `inSetBind`, which renders an `IN ()` that Postgres
-    // rejects, so each empty list short-circuits to a constant.
-    def onExcludedFaces(l: LabelTableDef, lp: LabelPointTableDef, side: StreetSide): Rep[Boolean] = {
-      val edges: Set[Int] = excludedFaces.collect { case (edge, s) if s == side => edge }
-      if (edges.isEmpty) false: Rep[Boolean]
-      else (l.streetEdgeId inSetBind edges) && (lp.streetSide === side).getOrElse(false)
+    val candidates =
+      validationCandidates(userId, viewer, labelType, filter, unvalidatedOnly, excludedLabelIds, excludedFaces)
+
+    // The queue filter comes after the AI join because it reads the AI's vote.
+    val inQueue = candidates.filter { case (l, _, _, _, _, _, _, _, _, aiv) =>
+      ValidationQueuePolicy.inQueue(queue, l, aiv.map(_.validationResult))
     }
 
+    // Weighted random sample, each label's odds proportional to score²; see the method comment.
+    scoredForQueue(labelType, inQueue)
+      .sortBy { case (_, score) => ValidationQueuePolicy.pickKey(score).desc }
+      .map { case (row, _) => asValidationMetadata(row, includeAiTags) }
+  }
+
+  // The row the Validate queue's stages pass along, lifted and plain: the label, its point, pano, labeler's stats and
+  // audit task, then the type name, region, whether an AI placed it, and the AI's assessment and vote if any.
+  private type ValidationCandidateRep = (
+      LabelTableDef,
+      LabelPointTableDef,
+      PanoDataTableDef,
+      UserStatTableDef,
+      AuditTaskTableDef,
+      Rep[String],
+      Rep[Int],
+      Rep[Boolean],
+      Rep[Option[LabelAiAssessmentTableDef]],
+      Rep[Option[LabelValidationTableDef]]
+  )
+  private type ValidationCandidate = (
+      Label,
+      LabelPoint,
+      PanoData,
+      UserStat,
+      AuditTask,
+      String,
+      Int,
+      Boolean,
+      Option[LabelAiAssessment],
+      Option[LabelValidation]
+  )
+
+  /**
+   * The labels a user could be asked to validate, with the AI's current assessment, before any queue is applied.
+   * Parameters are those of `retrieveLabelListForValidationQuery`, documented there.
+   *
+   * @return One row per candidate; see [[ValidationCandidateRep]].
+   */
+  private def validationCandidates(
+      userId: String,
+      viewer: PanoSource,
+      labelType: LabelType,
+      filter: ValidationLabelFilter,
+      unvalidatedOnly: Boolean,
+      excludedLabelIds: Set[Int],
+      excludedFaces: Set[(Int, StreetSide)]
+  ): Query[ValidationCandidateRep, ValidationCandidate, Seq] = {
     // Join all necessary tables and filter potential labels according to the given parameters.
-    val _labelInfo = for {
+    val labelInfo = for {
       (_lb, _at, _us) <- labelsWithAuditTasksAndUserStats
       _lp             <- labelPoints if _lb.labelId === _lp.labelId
       _pd             <- panoData if _lb.panoId === _pd.panoId
@@ -1766,16 +1814,18 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       if _lb.labelType === labelType && _lp.lat.isDefined && _lp.lng.isDefined && _lb.userId =!= userId
       if _pd.source === viewer && imageryViewable(_pd)
       if !unvalidatedOnly.asColumnOf[Boolean] || _lb.correct.isEmpty // Filter out validated labels.
-      // Filter out labels the caller already holds; the empty-set constant is for the same `IN ()` reason as above.
+      // Skip labels the caller already holds. An empty set would render as `IN ()`, which Postgres rejects, so it
+      // short-circuits.
       if (if (excludedLabelIds.isEmpty) true: Rep[Boolean] else !(_lb.labelId inSetBind excludedLabelIds))
-      if !onExcludedFaces(_lb, _lp, StreetSide.Left) && !onExcludedFaces(_lb, _lp, StreetSide.Right)
+      if !onExcludedFace(_lb, _lp, StreetSide.Left, excludedFaces) &&
+        !onExcludedFace(_lb, _lp, StreetSide.Right, excludedFaces)
       if matchesFilter(_lb, filter)
       if !validatedByUser(_lb, userId) // See the predicate for why this is not a left join.
     } yield (_lb, _lp, _pd, _us, _at, _lb.labelTypeName, _ser.regionId, isAiLabeler(_lb))
 
     // Get any AI suggested tags and validation. An assessment is about one label type, so one whose vote predates a
     // type change is left out along with the vote (#3671).
-    val _labelInfoWithAiData = _labelInfo
+    labelInfo
       .joinLeft(aiData)
       .on { case ((l, _, _, _, _, _, _, _), (laa, _)) => laa.labelId === l.labelId && aiAssessmentIsCurrent(l, laa) }
       .map { case ((_lb, _lp, _pd, _us, _at, labelType, regionId, isAiUser), _ai) =>
@@ -1792,78 +1842,98 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           _ai.flatMap { case (_, _aiv) => _aiv }
         )
       }
+  }
 
-    // The queue filter sits after the AI join because the triage predicate reads the AI's vote.
-    val _labelInfoInQueue = _labelInfoWithAiData.filter { case (l, _, _, _, _, _, _, _, _, aiv) =>
-      ValidationQueuePolicy.inQueue(queue, l, aiv.map(_.validationResult))
-    }
+  /**
+   * Whether a label sits on one of the excluded block faces, checked for one side (#5285). A face is a street edge
+   * plus a side. An empty list short-circuits, since `inSetBind` would render an `IN ()` that Postgres rejects.
+   *
+   * @return A predicate on the label and its point.
+   */
+  private def onExcludedFace(
+      l: LabelTableDef,
+      lp: LabelPointTableDef,
+      side: StreetSide,
+      excludedFaces: Set[(Int, StreetSide)]
+  ): Rep[Boolean] = {
+    val edges: Set[Int] = excludedFaces.collect { case (edge, s) if s == side => edge }
+    if (edges.isEmpty) false: Rep[Boolean]
+    else (l.streetEdgeId inSetBind edges) && (lp.streetSide === side).getOrElse(false)
+  }
 
-    // NoSidewalk's score reads the block face's evidence, so only its query joins the face subquery; every other type
-    // is scored from the label alone.
-    val _labelInfoScored = {
-      if (labelType == LabelType.NoSidewalk)
-        _labelInfoInQueue
-          .joinLeft(noSidewalkFaceEvidence)
-          .on { case ((l, lp, _, _, _, _, _, _, _, _), face) =>
-            l.streetEdgeId === face.streetEdgeId && lp.streetSide === face.streetSide
-          }
-          .map { case (row @ (l, _, _, us, at, _, _, _, _, _), face) =>
-            val evidence = ValidationQueuePolicy.FaceEvidenceRep(face.map(_.labelerCount), face.map(_.support))
-            (row, ValidationQueuePolicy.noSidewalkPriorityScore(l, at, us, evidence))
-          }
-      else
-        _labelInfoInQueue.map { case row @ (l, _, _, us, at, _, _, _, _, _) =>
-          (row, ValidationQueuePolicy.priorityScore(l, at, us))
+  /**
+   * Pairs each candidate with its priority score. Only NoSidewalk needs the block-face evidence, so only its query
+   * joins the face subquery.
+   *
+   * @return The candidates with their `ValidationQueuePolicy` score.
+   */
+  private def scoredForQueue(
+      labelType: LabelType,
+      candidates: Query[ValidationCandidateRep, ValidationCandidate, Seq]
+  ): Query[(ValidationCandidateRep, Rep[Double]), (ValidationCandidate, Double), Seq] = {
+    if (labelType == LabelType.NoSidewalk)
+      candidates
+        .joinLeft(noSidewalkFaceEvidence)
+        .on { case ((l, lp, _, _, _, _, _, _, _, _), face) =>
+          l.streetEdgeId === face.streetEdgeId && lp.streetSide === face.streetSide
         }
-    }
-
-    // Weighted random sample of the queue, P(pick) proportional to score²; see the method comment.
-    val _labelInfoSorted = _labelInfoScored
-      .sortBy { case (_, score) => ValidationQueuePolicy.pickKey(score).desc }
-      // Select only the columns needed for the LabelValidationMetadata class.
-      .map { case ((l, lp, pd, us, at, labelType, regionId, isAiUser, laa, aiv), _) =>
-        LabelValidationMetadataRep(
-          labelId = l.labelId,
-          labelType = labelType,
-          panoId = l.panoId,
-          panoSource = pd.source,
-          expired = pd.expired,
-          imageCaptureDate = pd.captureDate,
-          timestamp = l.timeCreated,
-          location = (lp.lat, lp.lng),
-          pov = (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom.asColumnOf[Double]),
-          canvas = (lp.canvasX, lp.canvasY, lp.canvasWidth, lp.canvasHeight),
-          severity = l.severity,
-          description = l.description,
-          street = (l.streetEdgeId, regionId, lp.streetSide),
-          // userValidation is always None here bc we only show labels the user hasn't already validated.
-          validationInfo = (
-            l.agreeCount,
-            l.disagreeCount,
-            l.unsureCount,
-            l.correct,
-            Option.empty[ValidationOption].bind,
-            aiv.map(_.validationResult)
-          ),
-          tags = l.tags,
-          cameraLocation = (pd.lat, pd.lng),
-          // Include AI tag suggestions (present and not present) if requested.
-          aiTags =
-            if (includeAiTags) laa.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
-            else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-          aiTagsNotPresent =
-            if (includeAiTags)
-              laa.flatMap(_.tagsNotPresent).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
-            else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
-          aiGenerated = isAiUser,
-          comments = None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Not needed for validation rn.
-          fromCurrentUser = false.bind,
-          pano = (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll,
-            pd.copyright, pd.license, pd.address)
-        )
+        .map { case (row @ (l, _, _, us, at, _, _, _, _, _), face) =>
+          val evidence = ValidationQueuePolicy.FaceEvidenceRep(face.map(_.labelerCount), face.map(_.support))
+          (row, ValidationQueuePolicy.noSidewalkPriorityScore(l, at, us, evidence))
+        }
+    else
+      candidates.map { case row @ (l, _, _, us, at, _, _, _, _, _) =>
+        (row, ValidationQueuePolicy.priorityScore(l, at, us))
       }
+  }
 
-    _labelInfoSorted
+  /**
+   * Narrows a candidate row to the columns `LabelValidationMetadata` reads.
+   *
+   * @param includeAiTags Whether to carry the AI's tag suggestions, or leave both lists empty.
+   * @return              The lifted row for one label.
+   */
+  private def asValidationMetadata(row: ValidationCandidateRep, includeAiTags: Boolean): LabelValidationMetadataRep = {
+    val (l, lp, pd, _, _, labelType, regionId, isAiUser, laa, aiv) = row
+    LabelValidationMetadataRep(
+      labelId = l.labelId,
+      labelType = labelType,
+      panoId = l.panoId,
+      panoSource = pd.source,
+      expired = pd.expired,
+      imageCaptureDate = pd.captureDate,
+      timestamp = l.timeCreated,
+      location = (lp.lat, lp.lng),
+      pov = (lp.heading.asColumnOf[Double], lp.pitch.asColumnOf[Double], lp.zoom.asColumnOf[Double]),
+      canvas = (lp.canvasX, lp.canvasY, lp.canvasWidth, lp.canvasHeight),
+      severity = l.severity,
+      description = l.description,
+      street = (l.streetEdgeId, regionId, lp.streetSide),
+      // userValidation is always None here bc we only show labels the user hasn't already validated.
+      validationInfo = (
+        l.agreeCount,
+        l.disagreeCount,
+        l.unsureCount,
+        l.correct,
+        Option.empty[ValidationOption].bind,
+        aiv.map(_.validationResult)
+      ),
+      tags = l.tags,
+      cameraLocation = (pd.lat, pd.lng),
+      // Include AI tag suggestions (present and not present) if requested.
+      aiTags =
+        if (includeAiTags) laa.flatMap(_.tags).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
+        else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
+      aiTagsNotPresent =
+        if (includeAiTags)
+          laa.flatMap(_.tagsNotPresent).getOrElse(List.empty[String].bind).asColumnOf[Option[List[String]]]
+        else None.asInstanceOf[Option[List[String]]].asColumnOf[Option[List[String]]],
+      aiGenerated = isAiUser,
+      comments = None.asInstanceOf[Option[String]].asColumnOf[Option[String]], // Not needed for validation rn.
+      fromCurrentUser = false.bind,
+      pano = (pd.width, pd.height, pd.tileWidth, pd.tileHeight, pd.cameraHeading, pd.cameraPitch, pd.cameraRoll,
+        pd.copyright, pd.license, pd.address)
+    )
   }
 
   /**

@@ -86,12 +86,12 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTableDef]
 
   private given getIssueWeek: GetResult[NoImageryReportWeek] =
-    GetResult(r => NoImageryReportWeek(r.nextDate().toLocalDate, r.nextInt(), r.nextInt()))
+    r => NoImageryReportWeek(r.nextDate().toLocalDate, r.nextInt(), r.nextInt())
 
   private given getIssueRegion: GetResult[NoImageryReportRegion] =
-    GetResult(r => NoImageryReportRegion(r.nextInt(), r.nextString(), r.nextInt(), r.nextInt()))
+    r => NoImageryReportRegion(r.nextInt(), r.nextString(), r.nextInt(), r.nextInt())
 
-  private given getCorroboratedStreet: GetResult[CorroboratedNoImageryStreet] = GetResult { r =>
+  private given getCorroboratedStreet: GetResult[CorroboratedNoImageryStreet] = { r =>
     CorroboratedNoImageryStreet(r.nextInt(), r.nextInt(), r.nextString(), r.nextInt(), r.nextInt(),
       r.nextOffsetDateTime())
   }

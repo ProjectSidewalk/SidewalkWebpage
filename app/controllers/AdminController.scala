@@ -701,200 +701,14 @@ class AdminController @Inject() (
       val scorecards = withFlags.map(_.scorecard)
 
       val cities = withFlags.map { case CityScorecardWithFlags(sc, anomalies) =>
-        val info = cityInfoById.get(sc.cityId)
-        // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
-        val byLabelType = JsObject(
-          sc.byLabelType.toSeq
-            .sorted(ApiModelUtils.labelTypeOrdering)
-            .map { case (labelType, s) =>
-              labelType -> Json.obj(
-                "labels"    -> s.labels,
-                "validated" -> s.labelsValidated,
-                "agree"     -> s.labelsValidatedAgree,
-                "disagree"  -> s.labelsValidatedDisagree
-              )
-            }
-        )
-        // Trailing weekly activity (oldest first) — drives per-city sparklines and the aggregate overview line charts.
-        val weeklyTrend = JsArray(sc.weeklyTrend.map { w =>
-          Json.obj(
-            "week_start"   -> w.weekStart.toString,
-            "labels"       -> w.labels,
-            "validations"  -> w.validations,
-            "active_users" -> w.activeUsers
-          )
-        })
-        Json.obj(
-          "city_id"             -> sc.cityId,
-          "city_name"           -> info.map(_.cityNameShort),
-          "city_name_formatted" -> info.map(_.cityNameFormatted),
-          "url"                 -> info.map(_.URL),
-          "visibility"          -> info.map(_.visibility),
-          // Coverage lens.
-          "coverage"          -> sc.coverage,
-          "total_streets"     -> sc.totalStreets,
-          "audited_streets"   -> sc.auditedStreets,
-          "streets_remaining" -> (sc.totalStreets - sc.auditedStreets),
-          "total_km"          -> sc.totalKm,
-          "audited_km"        -> sc.auditedKm,
-          "km_remaining"      -> math.max(0.0, sc.totalKm - sc.auditedKm),
-          // Data + quality lens.
-          "total_labels"             -> sc.totalLabels,
-          "ai_labels"                -> sc.aiLabels,
-          "ai_label_share"           -> (if (sc.totalLabels > 0) sc.aiLabels.toDouble / sc.totalLabels else 0.0),
-          "labels_validated"         -> sc.labelsValidated,
-          "labels_validated_share"   -> (if (sc.totalLabels > 0) sc.labelsValidated.toDouble / sc.totalLabels else 0.0),
-          "labels_with_severity"     -> sc.labelsWithSeverity,
-          "labels_severity_eligible" -> sc.labelsSeverityEligible,
-          // Share computed only over types that CAN have a rating, i.e. RatingScale other than Unrated.
-          "severity_share" -> (if (sc.labelsSeverityEligible > 0)
-                                 sc.labelsWithSeverity.toDouble / sc.labelsSeverityEligible
-                               else 0.0),
-          "labels_with_tags"    -> sc.labelsWithTags,
-          "labels_tag_eligible" -> sc.labelsTagEligible,
-          // Share computed only over types that CAN have tags (types present in the deployment's tag table).
-          "tags_share" -> (if (sc.labelsTagEligible > 0) sc.labelsWithTags.toDouble / sc.labelsTagEligible else 0.0),
-          "validations_per_label" -> (if (sc.totalLabels > 0) sc.totalValidations.toDouble / sc.totalLabels else 0.0),
-          "total_validations"     -> sc.totalValidations,
-          "validations_agree"     -> sc.validationsAgree,
-          "validations_disagree"  -> sc.validationsDisagree,
-          "validation_disagreement_rate" -> ConfigService.disagreementRate(sc),
-          "ai_validations"               -> sc.aiValidations,
-          "ai_validation_share" -> (if (sc.totalValidations > 0) sc.aiValidations.toDouble / sc.totalValidations
-                                    else 0.0),
-          "by_label_type" -> byLabelType,
-          // People lens.
-          "active_contributors"      -> sc.activeContributors,
-          "low_quality_contributors" -> sc.lowQualityContributors,
-          // Activity lens.
-          "labels_7d"           -> sc.labels7d,
-          "labels_30d"          -> sc.labels30d,
-          "validations_7d"      -> sc.validations7d,
-          "validations_30d"     -> sc.validations30d,
-          "audits_7d"           -> sc.audits7d,
-          "audits_30d"          -> sc.audits30d,
-          "last_activity"       -> sc.lastActivity,
-          "days_since_activity" -> sc.lastActivity.map(ts => ChronoUnit.DAYS.between(ts, now)),
-          "weekly_trend"        -> weeklyTrend,
-          // Contributors & effort (per-user output is median/p90, not mean±SD — the distribution is power-law).
-          "labels_per_user_median"      -> sc.labelsPerUserMedian,
-          "labels_per_user_p90"         -> sc.labelsPerUserP90,
-          "num_labelers"                -> sc.numLabelers,
-          "validations_per_user_median" -> sc.validationsPerUserMedian,
-          "validations_per_user_p90"    -> sc.validationsPerUserP90,
-          "num_validators"              -> sc.numValidators,
-          "seconds_per_validation"      -> sc.validationSecondsMedian,
-          "seconds_to_validate_10"      -> (sc.validationSecondsMedian * 10),
-          // Labeling speed (seconds of active auditing per 100 m) from the daily-cached heavy path; None if no data.
-          "seconds_per_100m" -> labelingSpeed.get(sc.cityId),
-          // Lifecycle/health state: active | wrapped_up | stalled | low_traction (#4329).
-          "lifecycle" -> ConfigService.lifecycle(sc, now),
-          "anomalies" -> anomalies
-        )
+        cityScorecardJson(sc, anomalies, cityInfoById.get(sc.cityId), labelingSpeed.get(sc.cityId), now)
       }
-
-      // Cross-city weekly series for the full project history (the "All time" toggle on the over-time charts).
-      // new_users feeds the cumulative-users chart (#4686): each person counts once, in their first-activity week.
-      val overTimeAllTime = JsArray(allTimeTrend.map { w =>
-        Json.obj(
-          "week_start"   -> w.weekStart.toString,
-          "labels"       -> w.labels,
-          "validations"  -> w.validations,
-          "active_users" -> w.activeUsers,
-          "new_users"    -> w.newUsers
-        )
-      })
-
-      // Trailing-7-day cross-city daily series for the "this week" bar charts (#4686); zero-filled, today partial.
-      // Each day also carries the breakdown its hover card shows (#4931): the human/AI split, the day's busiest
-      // cities, and the people who were active, so the card is derived from the same rows the bar is summed from.
-      val overTimeDaily = JsArray(dailyTrend.map { d =>
-        Json.obj(
-          "day"               -> d.point.day.toString,
-          "labels"            -> d.point.labels,
-          "validations"       -> d.point.validations,
-          "contributors"      -> d.point.contributors,
-          "anon_sessions"     -> d.point.anonSessions,
-          "ai_labels"         -> d.point.aiLabels,
-          "ai_validations"    -> d.point.aiValidations,
-          "ai_agents"         -> d.point.aiAgents,
-          "contributor_total" -> d.contributorTotal,
-          "top_cities"        -> JsArray(d.topCities.map { city =>
-            val cityName: String = cityInfoById.get(city.cityId).map(_.cityNameShort).getOrElse(city.cityId)
-            Json.obj(
-              "city_id"      -> city.cityId,
-              "city_name"    -> cityName,
-              "url"          -> cityInfoById.get(city.cityId).map(_.URL),
-              "labels"       -> city.labels,
-              "validations"  -> city.validations,
-              "contributors" -> city.contributors
-            )
-          }),
-          "contributor_list" -> JsArray(d.contributors.map { c =>
-            Json.obj(
-              "username"    -> c.username,
-              "kind"        -> c.kind.name,
-              "labels"      -> c.labels,
-              "validations" -> c.validations,
-              // Each city's URL rides along so the pinned card can link a name to that person's admin page on the
-              // deployment that holds their work (#5495).
-              "cities" -> JsArray(c.cities.map { city =>
-                val info = cityInfoById.get(city.cityId)
-                Json.obj(
-                  "city_id"     -> city.cityId,
-                  "city_name"   -> info.map(_.cityNameShort).getOrElse[String](city.cityId),
-                  "url"         -> info.map(_.URL),
-                  "labels"      -> city.labels,
-                  "validations" -> city.validations
-                )
-              })
-            )
-          })
-        )
-      })
-
-      // Project-wide "hero" totals, summed from the cities shown above so they reconcile with the table. Distinct
-      // countries come from city config; languages from the app's supported set. global_agreement is the share of
-      // agree/disagree validations that agreed. total_users is the sum of per-city contributors (a person who
-      // contributes in two cities counts in each — there is no cross-city dedup here).
-      val numCountries      = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
-      val numLanguages      = config.get[Seq[String]]("play.i18n.langs").size
-      val totalContributors = scorecards.map(_.activeContributors).sum
-      val totalKm           = scorecards.map(_.auditedKm).sum
-      val totalLabels       = scorecards.map(_.totalLabels).sum
-      val totalValidations  = scorecards.map(_.totalValidations).sum
-      val sumAgree          = scorecards.map(_.validationsAgree).sum
-      val sumDisagree       = scorecards.map(_.validationsDisagree).sum
-      val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
-
-      // Story counts per city (#5543), kept apart from `cities` so a city whose scorecard failed still reports its
-      // stories; `counts` is null where the count itself failed, which the page shows as unavailable, not zero.
-      val stories = JsArray(storyStats.toSeq.sortBy { case (cityId, _) => cityId }.map { case (cityId, stats) =>
-        val info = cityInfoById.get(cityId)
-        Json.obj(
-          "city_id"   -> cityId,
-          "city_name" -> info.map(_.cityNameShort),
-          "url"       -> info.map(_.URL),
-          "counts"    -> stats.map { st =>
-            Json.obj(
-              "total"      -> st.total,
-              "hidden"     -> st.hidden,
-              "with_photo" -> st.withPhoto,
-              "last_7d"    -> st.last7d,
-              "visible_7d" -> st.visible7d,
-              "last_30d"   -> st.last30d,
-              "newest"     -> st.newest
-            )
-          }
-        )
-      })
-
       Ok(
         Json.obj(
-          "cities"             -> cities,
-          "stories"            -> stories,
-          "over_time_all_time" -> overTimeAllTime,
-          "over_time_daily"    -> overTimeDaily,
+          "cities"             -> JsArray(cities),
+          "stories"            -> storyStatsJson(storyStats, cityInfoById),
+          "over_time_all_time" -> allTimeTrendJson(allTimeTrend),
+          "over_time_daily"    -> dailyTrendJson(dailyTrend, cityInfoById),
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
           // (#4758). Headcounts here are distinct across every city, so they can come out below the same column
           // summed down `window_by_city` — someone who mapped in three cities is one contributor here.
@@ -906,24 +720,249 @@ class AdminController @Inject() (
           "window_by_city" -> JsObject(windowSummary.byCity.toSeq.map { case (cityId, w) =>
             cityId -> cityActivityWindowJson(w)
           }),
-          "summary" -> Json.obj(
-            "num_cities"                -> scorecards.length,
-            "num_countries"             -> numCountries,
-            "num_languages"             -> numLanguages,
-            "total_users"               -> totalContributors,
-            "total_km"                  -> totalKm,
-            "total_labels"              -> totalLabels,
-            "total_validations"         -> totalValidations,
-            "total_datapoints"          -> (totalLabels.toLong + totalValidations.toLong),
-            "global_agreement"          -> globalAgreement,
-            "median_disagreement_rate"  -> ConfigService.medianDisagreementRate(scorecards),
-            "active_within_days"        -> ConfigService.ActiveWithinDays,
-            "wrapped_up_coverage"       -> ConfigService.WrappedUpCoverage,
-            "low_traction_contributors" -> ConfigService.LowTractionContributors
-          )
+          "summary" -> crossCitySummaryJson(scorecards, cityInfoById)
         )
       )
     }
+  }
+
+  /**
+   * One city's row of the scorecard table, with snake_case keys like the v3 API.
+   *
+   * @param info           The city's name, URL and visibility, if it is configured.
+   * @param secondsPer100m Seconds of active auditing per 100 m, from the daily cache, if it has data.
+   * @param now            When "days since activity" is counted from.
+   * @return               The city's JSON object.
+   */
+  private def cityScorecardJson(
+      sc: CityScorecard,
+      anomalies: Seq[String],
+      info: Option[CityInfo],
+      secondsPer100m: Option[Double],
+      now: OffsetDateTime
+  ): JsObject = {
+    // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
+    val byLabelType = JsObject(
+      sc.byLabelType.toSeq
+        .sorted(using ApiModelUtils.labelTypeOrdering)
+        .map { case (labelType, s) =>
+          labelType -> Json.obj(
+            "labels"    -> s.labels,
+            "validated" -> s.labelsValidated,
+            "agree"     -> s.labelsValidatedAgree,
+            "disagree"  -> s.labelsValidatedDisagree
+          )
+        }
+    )
+    // Trailing weekly activity (oldest first) — drives per-city sparklines and the aggregate overview line charts.
+    val weeklyTrend = JsArray(sc.weeklyTrend.map { w =>
+      Json.obj(
+        "week_start"   -> w.weekStart.toString,
+        "labels"       -> w.labels,
+        "validations"  -> w.validations,
+        "active_users" -> w.activeUsers
+      )
+    })
+    Json.obj(
+      "city_id"             -> sc.cityId,
+      "city_name"           -> info.map(_.cityNameShort),
+      "city_name_formatted" -> info.map(_.cityNameFormatted),
+      "url"                 -> info.map(_.URL),
+      "visibility"          -> info.map(_.visibility),
+      // Coverage lens.
+      "coverage"          -> sc.coverage,
+      "total_streets"     -> sc.totalStreets,
+      "audited_streets"   -> sc.auditedStreets,
+      "streets_remaining" -> (sc.totalStreets - sc.auditedStreets),
+      "total_km"          -> sc.totalKm,
+      "audited_km"        -> sc.auditedKm,
+      "km_remaining"      -> math.max(0.0, sc.totalKm - sc.auditedKm),
+      // Data + quality lens.
+      "total_labels"             -> sc.totalLabels,
+      "ai_labels"                -> sc.aiLabels,
+      "ai_label_share"           -> (if (sc.totalLabels > 0) sc.aiLabels.toDouble / sc.totalLabels else 0.0),
+      "labels_validated"         -> sc.labelsValidated,
+      "labels_validated_share"   -> (if (sc.totalLabels > 0) sc.labelsValidated.toDouble / sc.totalLabels else 0.0),
+      "labels_with_severity"     -> sc.labelsWithSeverity,
+      "labels_severity_eligible" -> sc.labelsSeverityEligible,
+      // Share computed only over types that CAN have a rating, i.e. RatingScale other than Unrated.
+      "severity_share" -> (if (sc.labelsSeverityEligible > 0)
+                             sc.labelsWithSeverity.toDouble / sc.labelsSeverityEligible
+                           else 0.0),
+      "labels_with_tags"    -> sc.labelsWithTags,
+      "labels_tag_eligible" -> sc.labelsTagEligible,
+      // Share computed only over types that CAN have tags (types present in the deployment's tag table).
+      "tags_share" -> (if (sc.labelsTagEligible > 0) sc.labelsWithTags.toDouble / sc.labelsTagEligible else 0.0),
+      "validations_per_label" -> (if (sc.totalLabels > 0) sc.totalValidations.toDouble / sc.totalLabels else 0.0),
+      "total_validations"     -> sc.totalValidations,
+      "validations_agree"     -> sc.validationsAgree,
+      "validations_disagree"  -> sc.validationsDisagree,
+      "validation_disagreement_rate" -> ConfigService.disagreementRate(sc),
+      "ai_validations"               -> sc.aiValidations,
+      "ai_validation_share"          -> (if (sc.totalValidations > 0) sc.aiValidations.toDouble / sc.totalValidations
+                                else 0.0),
+      "by_label_type" -> byLabelType,
+      // People lens.
+      "active_contributors"      -> sc.activeContributors,
+      "low_quality_contributors" -> sc.lowQualityContributors,
+      // Activity lens.
+      "labels_7d"           -> sc.labels7d,
+      "labels_30d"          -> sc.labels30d,
+      "validations_7d"      -> sc.validations7d,
+      "validations_30d"     -> sc.validations30d,
+      "audits_7d"           -> sc.audits7d,
+      "audits_30d"          -> sc.audits30d,
+      "last_activity"       -> sc.lastActivity,
+      "days_since_activity" -> sc.lastActivity.map(ts => ChronoUnit.DAYS.between(ts, now)),
+      "weekly_trend"        -> weeklyTrend,
+      // Contributors & effort (per-user output is median/p90, not mean±SD — the distribution is power-law).
+      "labels_per_user_median"      -> sc.labelsPerUserMedian,
+      "labels_per_user_p90"         -> sc.labelsPerUserP90,
+      "num_labelers"                -> sc.numLabelers,
+      "validations_per_user_median" -> sc.validationsPerUserMedian,
+      "validations_per_user_p90"    -> sc.validationsPerUserP90,
+      "num_validators"              -> sc.numValidators,
+      "seconds_per_validation"      -> sc.validationSecondsMedian,
+      "seconds_to_validate_10"      -> (sc.validationSecondsMedian * 10),
+      // Labeling speed (seconds of active auditing per 100 m) from the daily-cached heavy path; None if no data.
+      "seconds_per_100m" -> secondsPer100m,
+      // Lifecycle/health state: active | wrapped_up | stalled | low_traction (#4329).
+      "lifecycle" -> ConfigService.lifecycle(sc, now),
+      "anomalies" -> anomalies
+    )
+  }
+
+  /**
+   * The project-wide weekly series behind the "All time" charts. `new_users` counts each person once, in the week
+   * they first did anything, so the cumulative-users chart adds up (#4686).
+   *
+   * @return One object per week, oldest first.
+   */
+  private def allTimeTrendJson(trend: Seq[WeeklyPoint]): JsArray =
+    JsArray(trend.map { w =>
+      Json.obj(
+        "week_start"   -> w.weekStart.toString,
+        "labels"       -> w.labels,
+        "validations"  -> w.validations,
+        "active_users" -> w.activeUsers,
+        "new_users"    -> w.newUsers
+      )
+    })
+
+  /**
+   * The last seven days, project-wide, for the "this week" bar charts (#4686): zero-filled, today partial. Each day
+   * also carries what its hover card shows (#4931), so the card and the bar come from the same rows.
+   *
+   * @param cityInfoById Each city's config, for names and URLs.
+   * @return             One object per day.
+   */
+  private def dailyTrendJson(trend: Seq[DailyActivity], cityInfoById: Map[String, CityInfo]): JsArray =
+    JsArray(trend.map { d =>
+      Json.obj(
+        "day"               -> d.point.day.toString,
+        "labels"            -> d.point.labels,
+        "validations"       -> d.point.validations,
+        "contributors"      -> d.point.contributors,
+        "anon_sessions"     -> d.point.anonSessions,
+        "ai_labels"         -> d.point.aiLabels,
+        "ai_validations"    -> d.point.aiValidations,
+        "ai_agents"         -> d.point.aiAgents,
+        "contributor_total" -> d.contributorTotal,
+        "top_cities"        -> JsArray(d.topCities.map { city =>
+          val cityName: String = cityInfoById.get(city.cityId).map(_.cityNameShort).getOrElse(city.cityId)
+          Json.obj(
+            "city_id"      -> city.cityId,
+            "city_name"    -> cityName,
+            "url"          -> cityInfoById.get(city.cityId).map(_.URL),
+            "labels"       -> city.labels,
+            "validations"  -> city.validations,
+            "contributors" -> city.contributors
+          )
+        }),
+        "contributor_list" -> JsArray(d.contributors.map { c =>
+          Json.obj(
+            "username"    -> c.username,
+            "kind"        -> c.kind.name,
+            "labels"      -> c.labels,
+            "validations" -> c.validations,
+            // The city's URL lets the card link a name to that person's admin page in that city (#5495).
+            "cities" -> JsArray(c.cities.map { city =>
+              val info = cityInfoById.get(city.cityId)
+              Json.obj(
+                "city_id"     -> city.cityId,
+                "city_name"   -> info.map(_.cityNameShort).getOrElse[String](city.cityId),
+                "url"         -> info.map(_.URL),
+                "labels"      -> city.labels,
+                "validations" -> city.validations
+              )
+            })
+          )
+        })
+      )
+    })
+
+  /**
+   * Story counts per city (#5543), kept separate from the scorecard rows so a city whose scorecard failed still
+   * reports its stories. `counts` is null where the count itself failed; the page shows that as unavailable, not 0.
+   *
+   * @return One object per city, by city id.
+   */
+  private def storyStatsJson(
+      storyStats: Map[String, Option[CityStoryStats]],
+      cityInfoById: Map[String, CityInfo]
+  ): JsArray =
+    JsArray(storyStats.toSeq.sortBy { case (cityId, _) => cityId }.map { case (cityId, stats) =>
+      val info = cityInfoById.get(cityId)
+      Json.obj(
+        "city_id"   -> cityId,
+        "city_name" -> info.map(_.cityNameShort),
+        "url"       -> info.map(_.URL),
+        "counts"    -> stats.map { st =>
+          Json.obj(
+            "total"      -> st.total,
+            "hidden"     -> st.hidden,
+            "with_photo" -> st.withPhoto,
+            "last_7d"    -> st.last7d,
+            "visible_7d" -> st.visible7d,
+            "last_30d"   -> st.last30d,
+            "newest"     -> st.newest
+          )
+        }
+      )
+    })
+
+  /**
+   * The page's headline totals, summed from the cities shown so they match the table. `total_users` adds up each
+   * city's contributors, so a person active in two cities counts twice. The anomaly thresholds ride along so the
+   * page can flag the "needs attention" items.
+   *
+   * @return The summary block.
+   */
+  private def crossCitySummaryJson(scorecards: Seq[CityScorecard], cityInfoById: Map[String, CityInfo]): JsObject = {
+    val numCountries      = scorecards.flatMap(sc => cityInfoById.get(sc.cityId).map(_.countryId)).distinct.size
+    val numLanguages      = config.get[Seq[String]]("play.i18n.langs").size
+    val totalContributors = scorecards.map(_.activeContributors).sum
+    val totalKm           = scorecards.map(_.auditedKm).sum
+    val totalLabels       = scorecards.map(_.totalLabels).sum
+    val totalValidations  = scorecards.map(_.totalValidations).sum
+    val sumAgree          = scorecards.map(_.validationsAgree).sum
+    val sumDisagree       = scorecards.map(_.validationsDisagree).sum
+    val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
+    Json.obj(
+      "num_cities"                -> scorecards.length,
+      "num_countries"             -> numCountries,
+      "num_languages"             -> numLanguages,
+      "total_users"               -> totalContributors,
+      "total_km"                  -> totalKm,
+      "total_labels"              -> totalLabels,
+      "total_validations"         -> totalValidations,
+      "total_datapoints"          -> (totalLabels.toLong + totalValidations.toLong),
+      "global_agreement"          -> globalAgreement,
+      "median_disagreement_rate"  -> ConfigService.medianDisagreementRate(scorecards),
+      "active_within_days"        -> ConfigService.ActiveWithinDays,
+      "wrapped_up_coverage"       -> ConfigService.WrappedUpCoverage,
+      "low_traction_contributors" -> ConfigService.LowTractionContributors
+    )
   }
 
   /**

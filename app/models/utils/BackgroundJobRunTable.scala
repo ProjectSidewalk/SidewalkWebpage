@@ -95,7 +95,7 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val backgroundJobRuns = TableQuery[BackgroundJobRunTableDef]
 
-  private given getBackgroundJobRun: GetResult[BackgroundJobRun] = GetResult { r =>
+  private given getBackgroundJobRun: GetResult[BackgroundJobRun] = { r =>
     BackgroundJobRun(
       r.nextInt(),
       r.nextString(),
@@ -108,11 +108,10 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
     )
   }
 
-  private given getJobSuccess: GetResult[(String, OffsetDateTime)] =
-    GetResult(r => (r.nextString(), r.nextOffsetDateTime()))
+  private given getJobSuccess: GetResult[(String, OffsetDateTime)] = r => (r.nextString(), r.nextOffsetDateTime())
 
   private given getOutcomeCount: GetResult[JobOutcomeCount] =
-    GetResult(r => JobOutcomeCount(r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt()))
+    r => JobOutcomeCount(r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt())
 
   /**
    * Opens a run row, before the work starts, so a job that dies mid-run still leaves a trace.

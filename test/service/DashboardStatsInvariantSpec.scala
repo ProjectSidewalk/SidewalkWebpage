@@ -134,7 +134,7 @@ class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite 
     board.map(_.username).distinct.length mustBe board.length // no user listed twice
     board.map(_.score).sliding(2).foreach {
       case Seq(higher, lower) => higher must be >= lower // ranked by score, descending
-      case _                  => ()
+      case _                  => succeed
     }
     board.foreach { s =>
       s.labelCount must be >= 0
@@ -339,7 +339,7 @@ class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       // Unlike the per-city boards, this one ranks on the value it displays, so rows are in true descending order.
       globalBoard.map(_.labelCount).sliding(2).foreach {
         case Seq(higher, lower) => higher must be >= lower
-        case _                  => ()
+        case _                  => succeed
       }
       globalBoard.foreach { s =>
         s.labelCount must be > 0 // a user whose every city is excluded is dropped, not shown with a zero
@@ -458,7 +458,7 @@ class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite 
         stats.cities.map(_.cityId).distinct.length mustBe stats.cities.length
         stats.cities.map(_.labels).sliding(2).foreach {
           case Seq(higher, lower) => higher must be >= lower
-          case _                  => ()
+          case _                  => succeed
         }
         stats.cities.foreach { city =>
           (city.labels + city.validations + city.missions) > 0 || city.distance > 0 mustBe true
@@ -614,7 +614,7 @@ class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite 
         rows.map(_.cityId).distinct.length mustBe rows.length
         rows.map(_.hours).sliding(2).foreach {
           case Seq(higher, lower) => higher must be >= lower
-          case _                  => ()
+          case _                  => succeed
         }
         rows.foreach { row =>
           row.hours must be >= 0d

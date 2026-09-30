@@ -304,7 +304,7 @@ object ExploreFormats {
       (JsPath \ "license").readNullable[String] and
       (JsPath \ "address").readNullable[String] and
       (JsPath \ "history").read[Seq[PanoDate]] and
-      (JsPath \ "source_metadata").readNullable[JsObject](sourceMetadataReads)
+      (JsPath \ "source_metadata").readNullable[JsObject](using sourceMetadataReads)
   )(PanoSubmission.apply)
 
   given labelSubmissionReads: Reads[LabelSubmission] = (
