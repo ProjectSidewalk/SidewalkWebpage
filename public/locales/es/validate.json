@@ -107,7 +107,7 @@
     "retry": "Intentar de nuevo"
   },
   "pano-loading": {
-    "skipping": "Todavía cargando; probando la siguiente etiqueta..."
+    "skipping": "Sigue cargando; pasamos a la siguiente etiqueta..."
   },
   "mission-complete": {
     "title": "¡Gran trabajo!",

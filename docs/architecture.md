@@ -348,7 +348,10 @@ corresponding Twirl view:
   one is prefetched through
   `PanoViewer.prefetchPano`. Past 2 s of loading, `PanoLoadingStatus` shows "Loading imagery…" over the pano
   (`#svv-pano-loading`, a polite live region in both views, so boxed, immersive and mobile share it), switching to
-  "Still loading, trying the next label…" when a label is deferred.
+  "Still loading, trying the next label…" when a label is deferred, and logging `PanoLoadingStatus_Shown` when it
+  appears. The busy state leaves `aria-busy` off the region that contains that live region, since assistive tech may
+  hold a busy subtree's announcements until it clears. `#svv-panorama-holder` carries the viewer's dark backdrop, so
+  the area stays dark while the canvas is hidden for a load.
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
   (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
   rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four

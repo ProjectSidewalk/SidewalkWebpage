@@ -34,8 +34,9 @@ body.svv-immersive #svv-application-holder {
   background: var(--color-asphalt-400); /* The viewer's own backdrop, for the frame before imagery paints. */
 }
 
-/* The screen edge is the frame. */
-body.svv-immersive #svv-panorama {
+/* The screen edge is the frame. The holder too, since it carries the pano's backdrop while a load hides the canvas. */
+body.svv-immersive #svv-panorama,
+body.svv-immersive #svv-panorama-holder {
   border-radius: 0;
 }
 

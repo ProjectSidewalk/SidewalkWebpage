@@ -5,9 +5,11 @@
  * nothing at all, for up to 12 s per label. This appears only for loads that outlast DELAY_MS, so the quick loads most
  * labels get never flicker it, and a screen reader hears about the slow ones only.
  *
- * The element with the id is the live region and is always rendered; the visible box inside it is what gets hidden.
- * Revealing content inside a live region that is already in the accessibility tree is announced reliably, where
- * unhiding the region itself is not.
+ * The element with the id is the live region and is always rendered; the visible box inside it is what gets hidden,
+ * with `.ps-hidden`. Revealing content inside a live region that is already in the accessibility tree is announced
+ * reliably, where unhiding the region itself is not. The region must not sit inside an `aria-busy="true"` element
+ * while it speaks, since assistive tech may hold a busy subtree's changes until it clears, by which time the box is
+ * hidden again (LabelContainer.#setUiBusy leaves the attribute off the region that contains it).
  */
 class PanoLoadingStatus {
   /**
@@ -17,7 +19,10 @@ class PanoLoadingStatus {
    */
   static DELAY_MS = 2000;
 
-  /** The i18n key begin() shows; reused from the label popup's own loading overlay. */
+  /**
+   * The i18n key begin() shows; reused from the label popup's own loading overlay.
+   * @type {string}
+   */
   static LOADING_KEY = 'common:loading-imagery';
 
   /** @type {?HTMLElement} The box shown over the pano; null when the page has no status markup. */
@@ -29,27 +34,38 @@ class PanoLoadingStatus {
   /** @type {?ReturnType<typeof setTimeout>} The pending DELAY_MS timer, while a load is younger than that. */
   #timer = null;
 
+  /** @type {?(() => void)} What begin() was asked to call if this load's status comes into view. */
+  #onShown = null;
+
   /**
-   * @param {?HTMLElement} holder - The `#svv-pano-loading` live region. Tolerates null so a page without the markup
-   *     degrades to no status rather than a broken load path.
+   * @param {?HTMLElement} holder - The `#svv-pano-loading` live region. Tolerates null, or markup missing the box or
+   *     its text, so a page without it degrades to no status rather than a broken load path.
    */
   constructor(holder) {
-    this.#box = holder?.querySelector('.svv-pano-loading__box') ?? null;
-    this.#text = holder?.querySelector('.svv-pano-loading__text') ?? null;
+    const box = holder?.querySelector('.svv-pano-loading__box') ?? null;
+    const text = holder?.querySelector('.svv-pano-loading__text') ?? null;
+    if (box && text) {
+      this.#box = box;
+      this.#text = text;
+    }
   }
 
   /**
    * Marks the start of a load. The status shows only if end() hasn't been called within DELAY_MS.
+   * @param {() => void} [onShown] - Called once if the status comes into view before end(), whether by the
+   *     delay running out or by setMessage(). Validate logs it, which is how prod counts loads slow enough to be seen
+   *     that still succeed (#5581).
    * @returns {void}
    */
-  begin() {
+  begin(onShown) {
     this.end();
     if (!this.#box) return;
+    this.#onShown = onShown ?? null;
     // Staged while hidden, so it isn't announced now; the reveal is the announcement.
     this.#setText(PanoLoadingStatus.LOADING_KEY);
     this.#timer = setTimeout(() => {
       this.#timer = null;
-      this.#box.hidden = false;
+      this.#show();
     }, PanoLoadingStatus.DELAY_MS);
   }
 
@@ -63,7 +79,7 @@ class PanoLoadingStatus {
     if (!this.#box) return;
     this.#clearTimer();
     this.#setText(key);
-    this.#box.hidden = false;
+    this.#show();
   }
 
   /**
@@ -72,7 +88,8 @@ class PanoLoadingStatus {
    */
   end() {
     this.#clearTimer();
-    if (this.#box) this.#box.hidden = true;
+    this.#onShown = null;
+    this.#box?.classList.add('ps-hidden');
   }
 
   /**
@@ -80,10 +97,25 @@ class PanoLoadingStatus {
    * @returns {boolean}
    */
   isShowing() {
-    return Boolean(this.#box && !this.#box.hidden);
+    return Boolean(this.#box && !this.#box.classList.contains('ps-hidden'));
   }
 
-  /** Cancels a pending reveal. */
+  /**
+   * Brings the box into view, reporting it the first time it appears during this load.
+   * @returns {void}
+   */
+  #show() {
+    if (this.isShowing()) return;
+    this.#box.classList.remove('ps-hidden');
+    const onShown = this.#onShown;
+    this.#onShown = null;
+    onShown?.();
+  }
+
+  /**
+   * Cancels a pending reveal.
+   * @returns {void}
+   */
   #clearTimer() {
     if (this.#timer !== null) clearTimeout(this.#timer);
     this.#timer = null;
@@ -92,6 +124,7 @@ class PanoLoadingStatus {
   /**
    * Puts a message in the box. The key is written to data-i18n too, so a later re-translation of the page keeps it.
    * @param {string} key - The i18n key of the message.
+   * @returns {void}
    */
   #setText(key) {
     this.#text.dataset.i18n = key;

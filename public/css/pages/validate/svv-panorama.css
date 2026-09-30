@@ -1,9 +1,14 @@
-/* Container for the panorama and its overlay controls (zoom, date, speed limit, etc.). */
+/* Container for the panorama and its overlay controls (zoom, date, speed limit, etc.). It carries the viewer's dark
+   backdrop and shape as well, because PanoManager holds #svv-panorama at visibility: hidden (or out of the layout)
+   while a pano loads (#5582), which hides that element's own background with it; without this the area would flash
+   the page's white for the length of every load, on boxed desktop and on mobile. */
 #svv-panorama-holder {
   position: absolute;
   top: var(--header-height);
   width: var(--pano-width);
   height: var(--pano-height);
+  border-radius: calc(4px * var(--ui-scale));
+  background-color: var(--color-asphalt-400);
 }
 
 /* The panorama viewport. It fills the full pano area (no border) so the marker layer, which is the same size,
@@ -24,17 +29,12 @@
   isolation: isolate;
 }
 
-/* Pannellum's own progress box, desktop only. The fallback viewer's canvas is painted only once it holds the
-   current label's pano (PanoManager.#showPannellumPano, #5206), so this box can surface in one case: a fallback
-   label following another, where the outgoing pano stays up during the load. There it reads as a second provider's
-   progress UI, in its own styling, reporting megabytes, over a picture it does not belong to — and desktop already
-   says the tool is busy in its own voice, via the controls LabelContainer.#setUiBusy dims and the wait cursor.
-
-   Scoped to the desktop wrapper because mobile says it differently: its busy state dims the controls laid over the
-   pano (Main.js VALIDATE_BUSY_SELECTORS) and deliberately spares the imagery, since dimming the holder they share
-   would take the pano down with them. That leaves the picture itself the one part of a mobile load with nothing to
-   show for it, so the box stays and covers exactly what the busy state gave up. */
-#svv-application-holder #svv-panorama-pannellum .pnlm-load-box {
+/* Pannellum's own progress box. The fallback viewer's canvas is painted only once it holds the current label's pano
+   (PanoManager.#showPannellumPano, #5206), so this box can surface in one case: a fallback label following another,
+   where the outgoing pano stays up during the load. There it reads as a second provider's progress UI, in its own
+   styling, reporting megabytes, over a picture it does not belong to, and it would stack with the Validate loading
+   status below (#5581), which says the same thing in the tool's own voice in every layout, mobile included. */
+#svv-panorama-pannellum .pnlm-load-box {
   display: none !important;
 }
 
@@ -68,11 +68,6 @@
   color: var(--color-neutral-white);
   font: var(--text-small-medium);
   text-align: center;
-}
-
-/* The display above would otherwise override the hidden attribute PanoLoadingStatus toggles. */
-.svv-pano-loading__box[hidden] {
-  display: none;
 }
 
 .svv-pano-loading__img {

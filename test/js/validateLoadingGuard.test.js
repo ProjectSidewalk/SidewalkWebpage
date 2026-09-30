@@ -213,6 +213,25 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     expect(labelContainer.dropInputWhileLoading('Agree')).toBe(false);
   });
 
+  // WAI-ARIA lets assistive tech hold a busy subtree's changes until aria-busy clears, and it clears in the same tick
+  // the loading status hides, so a status inside a busy region would never be spoken (#5581).
+  test('the loading status\'s live region is never inside an aria-busy region while a label loads', async () => {
+    const holder = fakeElement();
+    holder.innerHTML = '<div id="svv-pano-loading" role="status" aria-live="polite"></div>';
+    const menu = fakeElement();
+    document.body.append(holder, menu);
+    svv.ui.busyRegion = [holder, menu];
+
+    const {inFlight} = await buildContainerMidLoad();
+
+    expect(document.getElementById('svv-pano-loading').closest('[aria-busy="true"]')).toBeNull();
+    expect(holder.classList.contains('validate-disabled')).toBe(true); // Still dimmed and pointer-blocked.
+    expect(menu.getAttribute('aria-busy')).toBe('true'); // Regions without the status keep it.
+
+    await finishLoad(inFlight);
+    document.body.innerHTML = '';
+  });
+
   // The lock is released on the two normal exits only, so before this a throw anywhere in the render left it set for
   // good: every later verdict, undo and advance dropped, the tool reading as dead rather than busy, and the only
   // trace a flood of this event. Mobile is where it would bite, since desktop is already unusable once the

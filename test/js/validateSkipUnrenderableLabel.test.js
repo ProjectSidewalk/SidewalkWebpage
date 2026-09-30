@@ -466,6 +466,15 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(uiReleased()).toBe(true);
   });
 
+  test('a status that comes into view is logged against the label loading under it', async () => {
+    // How prod counts loads slow enough to be seen that still succeed (#5581).
+    svv.panoLoadingStatus.begin = jest.fn((onShown) => onShown());
+
+    await buildContainer();
+
+    expect(svv.tracker.push).toHaveBeenCalledWith('PanoLoadingStatus_Shown', {labelId: 1, panoId: 'panoA'});
+  });
+
   test('the next label\'s pano is prefetched once a label is on screen', async () => {
     const labelContainer = await buildContainer();
     expect(svv.panoManager.prefetchPano).toHaveBeenLastCalledWith('panoB');

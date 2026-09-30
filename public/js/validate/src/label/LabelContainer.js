@@ -189,7 +189,14 @@ class LabelContainer {
   async renderCurrentLabel({ undo = false } = {}) {
     try {
       this.#setUiBusy(true);
-      svv.panoLoadingStatus?.begin();
+      // Logged against the label loading when the status appears, which a deferral can have moved on from this one.
+      svv.panoLoadingStatus?.begin(() => {
+        if (!this.#currLabel) return;
+        svv.tracker.push('PanoLoadingStatus_Shown', {
+          labelId: this.#currLabel.getAuditProperty('labelId'),
+          panoId: this.#currLabel.getAuditProperty('panoId'),
+        });
+      });
 
       if (this.#currLabelIndex > 0) {
         svv.undoValidation.enableUndo();
@@ -269,10 +276,14 @@ class LabelContainer {
    */
   #setUiBusy(busy) {
     this.#loading = busy;
+    const loadingStatus = document.getElementById('svv-pano-loading');
     for (const region of svv.ui.busyRegion) {
       region.classList.toggle('validate-disabled', busy);
-      // The class is only opacity and pointer-events, so on its own it says nothing to a screen reader.
-      if (busy) region.setAttribute('aria-busy', 'true');
+      // The class is only opacity and pointer-events, so on its own it says nothing to a screen reader. Except on the
+      // region holding the loading status's live region (desktop's #svv-application-holder): assistive tech may hold
+      // a busy subtree's changes until aria-busy clears, which happens in the same tick the status hides, so the
+      // status would never be spoken there (#5581). That status is what tells a screen reader the load is slow.
+      if (busy && !(loadingStatus && region.contains(loadingStatus))) region.setAttribute('aria-busy', 'true');
       else region.removeAttribute('aria-busy');
     }
     svv.ui.holder.style.cursor = busy ? 'wait' : '';

@@ -42,6 +42,15 @@ function statusMarkup(viewPath) {
   return match[0].replace(/@assets\.path\("([^"]+)"\)/g, '/assets/$1');
 }
 
+/**
+ * Whether the box is hidden the way the style guide prescribes, with `.ps-hidden`.
+ * @param {HTMLElement} el - The element to check.
+ * @returns {boolean} True if it carries the class.
+ */
+function hidden(el) {
+  return el.classList.contains('ps-hidden');
+}
+
 describe.each([
   ['desktop', DESKTOP_VIEW_PATH],
   ['mobile', MOBILE_VIEW_PATH],
@@ -74,7 +83,7 @@ describe.each([
     expect(region.getAttribute('aria-live')).toBe('polite');
     // Unhiding a live region is not reliably announced; revealing content inside one that is already there is.
     expect(region.hidden).toBe(false);
-    expect(box.hidden).toBe(true);
+    expect(hidden(box)).toBe(true);
     expect(text.dataset.i18n).toBe('common:loading-imagery');
     // The animation is decoration; the text is the message.
     expect(region.querySelector('img').getAttribute('alt')).toBe('');
@@ -83,11 +92,11 @@ describe.each([
   test('stays hidden for a load that finishes inside the delay, so fast loads never flicker it', () => {
     status.begin();
     jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS - 1);
-    expect(box.hidden).toBe(true);
+    expect(hidden(box)).toBe(true);
 
     status.end();
     jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS * 5);
-    expect(box.hidden).toBe(true);
+    expect(hidden(box)).toBe(true);
     expect(status.isShowing()).toBe(false);
   });
 
@@ -95,7 +104,7 @@ describe.each([
     status.begin();
     jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
 
-    expect(box.hidden).toBe(false);
+    expect(hidden(box)).toBe(false);
     expect(status.isShowing()).toBe(true);
     expect(text.textContent).toBe('t(common:loading-imagery)');
   });
@@ -104,7 +113,7 @@ describe.each([
     status.begin();
     status.setMessage('validate:pano-loading.skipping');
 
-    expect(box.hidden).toBe(false);
+    expect(hidden(box)).toBe(false);
     expect(text.textContent).toBe('t(validate:pano-loading.skipping)');
     // Kept in data-i18n too, so a re-translation of the page keeps the message that is actually up.
     expect(text.dataset.i18n).toBe('validate:pano-loading.skipping');
@@ -114,14 +123,35 @@ describe.each([
     expect(text.textContent).toBe('t(validate:pano-loading.skipping)');
   });
 
+  test('reports coming into view once per load, whether by the delay or by a message', () => {
+    const onShown = jest.fn();
+    status.begin(onShown);
+    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
+    status.setMessage('validate:pano-loading.skipping'); // Already showing, so not a second appearance.
+    expect(onShown).toHaveBeenCalledTimes(1);
+
+    const shownByMessage = jest.fn();
+    status.begin(shownByMessage);
+    status.setMessage('validate:pano-loading.skipping');
+    expect(shownByMessage).toHaveBeenCalledTimes(1);
+  });
+
+  test('says nothing about a load that ended before it appeared', () => {
+    const onShown = jest.fn();
+    status.begin(onShown);
+    status.end();
+    jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS * 2);
+    expect(onShown).not.toHaveBeenCalled();
+  });
+
   test('is hidden when the load ends, and the next load starts over from "loading"', () => {
     status.begin();
     status.setMessage('validate:pano-loading.skipping');
     status.end();
-    expect(box.hidden).toBe(true);
+    expect(hidden(box)).toBe(true);
 
     status.begin();
-    expect(box.hidden).toBe(true);
+    expect(hidden(box)).toBe(true);
     jest.advanceTimersByTime(PanoLoadingStatus.DELAY_MS);
     expect(text.textContent).toBe('t(common:loading-imagery)');
   });
@@ -140,10 +170,28 @@ describe('the pano loading status degrades quietly without its markup', () => {
   });
 });
 
+describe('the pano loading status degrades quietly with its markup half there', () => {
+  test('a box without its text element is treated as no status, rather than throwing mid-render', () => {
+    global.i18next = {t: jest.fn((key) => key)};
+    document.body.innerHTML = '<div id="svv-pano-loading"><div class="svv-pano-loading__box ps-hidden"></div></div>';
+    const PanoLoadingStatus = loadClassFromFile(STATUS_PATH, 'PanoLoadingStatus');
+    const status = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
+    expect(() => {
+      status.begin();
+      status.setMessage('validate:pano-loading.skipping');
+      status.end();
+    }).not.toThrow();
+    expect(status.isShowing()).toBe(false);
+    document.body.innerHTML = '';
+    delete global.i18next;
+  });
+});
+
 describe('the pano loading status stylesheet', () => {
-  test('lets the hidden attribute win over the box\'s flex display', () => {
-    // Without this rule `display: flex` overrides [hidden], and the box would sit on every pano all the time.
+  test('leaves hiding to .ps-hidden, whose !important beats the box\'s flex display', () => {
     const css = fs.readFileSync(CSS_PATH, 'utf8');
-    expect(css).toMatch(/\.svv-pano-loading__box\[hidden\]\s*\{\s*display:\s*none;/);
+    expect(css).not.toMatch(/\.svv-pano-loading__box\[hidden\]/);
+    const mainCss = fs.readFileSync(path.join(REPO_ROOT, 'public/css/main.css'), 'utf8');
+    expect(mainCss).toMatch(/\.ps-hidden\s*\{\s*display:\s*none !important;/);
   });
 });

@@ -107,7 +107,7 @@
     "retry": "Erneut versuchen"
   },
   "pano-loading": {
-    "skipping": "Lädt noch, die nächste Beschriftung wird versucht …"
+    "skipping": "Lädt noch – wir versuchen die nächste Beschriftung …"
   },
   "mission-complete": {
     "title": "Gute Arbeit!",
