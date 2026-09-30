@@ -4,8 +4,8 @@ name: CI
 #   - frontend:        asset build (grunt) + `eslint` (JS/JSON) + `stylelint` (CSS) + `htmlhint` (HTML) + locale
 #                      checks + CSS layout + asset paths + JS types + the jsdom `jest` suite in test/js/ (all BLOCKING).
 #                      Jest reports JS coverage but has no floor — the number can't support one yet, see #5112.
-#   - evolutions-lint: static checks on conf/evolutions/default/*.sql, plus ShellCheck on the repo's .sh files
-#                      (both BLOCKING — fast, deterministic, no DB).
+#   - evolutions-lint: static checks on conf/evolutions/default/*.sql (BLOCKING — fast, deterministic, no DB).
+#   - shell-lint:      ShellCheck over the repo's .sh files (BLOCKING — fast, deterministic, no DB).
 #   - route-lint:      conf/routes reachability — fails if any route is shadowed by an earlier one (BLOCKING — no DB).
 #   - backend-tests:   the whole of test/ against a real Postgres+PostGIS (BLOCKING). Boots the app, which
 #                      auto-applies pending evolutions -- so it doubles as the forward-apply gate. Also carries
@@ -175,10 +175,16 @@ jobs:
       - name: Lint evolution files
         run: bash db/scripts/lint-evolutions.sh
 
-      # Blocking: ShellCheck over every tracked .sh file (#5589). It lives in this job so it rides an already-required
-      # check. The script runs ShellCheck from a pinned Docker image, the same one `make shellcheck` uses.
-      - name: ShellCheck (blocking)
-        if: always()
+  shell-lint:
+    name: Shell script lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # Fast, deterministic, no DB: ShellCheck over every .sh file in the repo (#5589), from the Docker image pinned in
+      # docker/shellcheck/Dockerfile so CI and `make shellcheck` run the same version. Blocking from day one, like the
+      # evolutions and route lints.
+      - name: Run ShellCheck
         run: bash tools/lint/shellcheck.sh
 
   route-lint:

@@ -86,7 +86,7 @@ PR:
   `make shellcheck` (the `.sh` files), or `make lint` for all of them (it also runs the evolutions lint). The trees
   are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any
   finding is from your change. **All of them are blocking CI checks** now (in the `Frontend (build)` job; ShellCheck
-  rides `Evolutions lint`), so a lint failure blocks the merge — just like scalafmt.
+  is its own `Shell script lint` job), so a lint failure blocks the merge — just like scalafmt.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens — type via the composite
   `--text-*` tokens (see the [style guide](docs/style-guide.md)). The target, the axe-core gate in the browser suite,
   and the manual checklist are in **[`docs/accessibility.md`](docs/accessibility.md)**.
