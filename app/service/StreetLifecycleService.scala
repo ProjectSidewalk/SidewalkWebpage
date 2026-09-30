@@ -167,6 +167,8 @@ class StreetLifecycleServiceImpl @Inject() (
 )(using ec: ExecutionContext)
     extends StreetLifecycleService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import StreetLifecycleService.ReopenOutcome
+
   import profile.api.given
 
   /**
@@ -259,8 +261,8 @@ class StreetLifecycleServiceImpl @Inject() (
       outcome <-
         if (flipped == 0) {
           sql"SELECT status::text FROM street_edge WHERE street_edge_id = $streetEdgeId".as[String].headOption.map {
-            case Some(status) => StreetLifecycleService.ReopenOutcome.NotNoImagery(status)
-            case None         => StreetLifecycleService.ReopenOutcome.StreetNotFound
+            case Some(status) => ReopenOutcome.NotNoImagery(status)
+            case None         => ReopenOutcome.StreetNotFound
           }
         } else {
           for {
@@ -273,13 +275,14 @@ class StreetLifecycleServiceImpl @Inject() (
             """
             _ <- streetReopenCandidateTable.delete(streetEdgeId)
             _ <- regionCompletionTable.truncateTable
-          } yield StreetLifecycleService.ReopenOutcome.Reopened
+          } yield ReopenOutcome.Reopened
         }
     } yield outcome
 
     db.run(action.transactionally).flatMap {
-      case StreetLifecycleService.ReopenOutcome.Reopened => cacheApi.removeAll().map(_ => StreetLifecycleService.ReopenOutcome.Reopened)
-      case other                           => Future.successful(other)
+      case ReopenOutcome.Reopened =>
+        cacheApi.removeAll().map(_ => ReopenOutcome.Reopened)
+      case other => Future.successful(other)
     }
   }
 
