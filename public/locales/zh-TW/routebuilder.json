@@ -21,7 +21,7 @@
   "route-usage-tooltip": "探索過：開始探索此路線的人數。完成：走完整條路線的人數。",
   "est-time-minutes": "{{min}} 分鐘",
   "est-time-hours": "{{hours}} 小時 {{min}} 分鐘",
-  "est-time-tooltip": "我們估計在 Project Sidewalk 中評估此路線約需 {{time}}。這是標記所需的時間，而非步行時間：依據本市探索者的平均速度估算，每 100 公尺約 {{pace}} 分鐘。",
+  "est-time-tooltip": "我們估計在 Project Sidewalk 中評估此路線約需 {{time}}。此標記時間依據本市探索者的平均速度估算，每 100 公尺約 {{pace}} 分鐘。",
   "street-count_other": "{{count}} 條街道",
   "street-count-in-region_other": "{{region}}的 {{count}} 條街道",
   "see-all-routes_other": "在儀表板中查看全部 {{count}} 條路線",

@@ -21,7 +21,7 @@
   "route-usage-tooltip": "Explorada: cuántas personas han empezado a explorar esta ruta. Completada: cuántas la han terminado por completo.",
   "est-time-minutes": "{{min}} min",
   "est-time-hours": "{{hours}} h {{min}} min",
-  "est-time-tooltip": "Estimamos que evaluar esta ruta en Project Sidewalk llevaría unos {{time}}. Es tiempo de etiquetado, no de caminata: se basa en el ritmo típico de quienes exploran en esta ciudad, unos {{pace}} minutos por 100 metros.",
+  "est-time-tooltip": "Estimamos que evaluar esta ruta en Project Sidewalk llevaría unos {{time}}. Este tiempo de etiquetado se basa en el ritmo típico de quienes exploran en esta ciudad, unos {{pace}} minutos por 100 metros.",
   "street-count_one": "{{count}} calle",
   "street-count_other": "{{count}} calles",
   "street-count-in-region_one": "{{count}} calle en {{region}}",
