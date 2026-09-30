@@ -241,6 +241,9 @@ scalacOptions ++= Seq(
   // Fail the compilation if there are any warnings, except in generated code: Twirl templates (.scala.html) and the
   // routes file, whose warnings we can't fix. The paths name sbt's output folders, so no checkout path matches.
   "-Werror", "-Wconf:src=.*/twirl/main/.*:s", "-Wconf:src=.*/routes/main/.*:s",
+  // The coverage build (CI only) warns when it skips a method body too big to instrument; that costs coverage on
+  // two giant query methods, not correctness, so it must not fail the build. The threshold isn't configurable.
+  "-Wconf:msg=Skipping coverage instrumentation:s",
   "-Wshadow:all",           // Warn when a name hides one from a parent class or an outer scope.
   "-Wrecurse-with-default", // Warn when a method calls itself with a default argument.
   "-Wunused:nowarn",        // Warn if a @nowarn annotation silences nothing.
