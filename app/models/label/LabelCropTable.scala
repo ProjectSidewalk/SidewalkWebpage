@@ -2,7 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{Json, Writes}
@@ -72,8 +72,7 @@ class LabelCropTableDef(tag: slick.lifted.Tag) extends Table[LabelCrop](tag, "la
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
 
-  def * = (labelId, source, markerX, markerY, width, height, cropRuleVersion, timeCreated) <>
-    ((LabelCrop.apply _).tupled, LabelCrop.unapply)
+  def * = (labelId, source, markerX, markerY, width, height, cropRuleVersion, timeCreated).mapTo[LabelCrop]
 
   def label = foreignKey("label_crop_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
 }

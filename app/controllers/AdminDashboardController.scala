@@ -17,7 +17,7 @@ import service.{
   UserService
 }
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**

@@ -87,7 +87,7 @@ class LabelEditApiController @Inject() (
           editTimestamp = parsedTimestamp.toOption.flatten, source = parsedSource.toOption.flatten,
           withValidation = withValidation
         )
-        val dbDataStream: Source[LabelEditDataForApi, _] = apiService.getLabelEdits(filters, DEFAULT_BATCH_SIZE)
+        val dbDataStream: Source[LabelEditDataForApi, ?] = apiService.getLabelEdits(filters, DEFAULT_BATCH_SIZE)
         val baseFileName: String                         = timestampedFilename("label_edits")
 
         filetype match {

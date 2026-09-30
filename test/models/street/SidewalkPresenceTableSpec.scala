@@ -1,7 +1,7 @@
 package models.street
 
 import models.label.StreetSide
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.OptionValues
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -30,7 +30,7 @@ class SidewalkPresenceTableSpec
     with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val table: SidewalkPresenceTable = app.injector.instanceOf[SidewalkPresenceTable]
 

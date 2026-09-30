@@ -1,8 +1,8 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, regionsParam, NoUserId}
-import formats.json.GalleryFormats._
+import formats.json.GalleryFormats.*
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.label.{LabelType, Tag}
@@ -12,7 +12,7 @@ import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import play.silhouette.api.Silhouette
-import service._
+import service.*
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}

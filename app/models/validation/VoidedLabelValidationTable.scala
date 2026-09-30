@@ -4,7 +4,7 @@ import models.label.{LabelAiAssessmentTableDef, LabelTableDef}
 import models.mission.MissionTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.CommonUtils.{UiSource, ViewerType}
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 
 import java.time.OffsetDateTime
 
@@ -79,7 +79,7 @@ class VoidedLabelValidationTableDef(tag: slick.lifted.Tag)
 
   def * = (labelValidationId, labelId, validationResult, oldSeverity, newSeverity, oldTags, newTags, userId, missionId,
     canvasX, canvasY, heading, pitch, zoom, canvasHeight, canvasWidth, startTimestamp, endTimestamp, source, viewerType,
-    oldRenderErrorPx, labelAiAssessmentId) <> ((VoidedLabelValidation.apply _).tupled, VoidedLabelValidation.unapply)
+    oldRenderErrorPx, labelAiAssessmentId).mapTo[VoidedLabelValidation]
 
   def label   = foreignKey("voided_label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user    = foreignKey("voided_label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)

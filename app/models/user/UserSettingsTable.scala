@@ -2,10 +2,10 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 
 /**
  * @param measurementSystem The units the user chose, or None to follow the site language.
@@ -18,7 +18,7 @@ class UserSettingsTableDef(tag: Tag) extends Table[UserSettings](tag, "user_sett
   def measurementSystem: Rep[Option[MeasurementSystem]] = column[Option[MeasurementSystem]]("measurement_system")
   def communityService: Rep[Boolean]                    = column[Boolean]("community_service", O.Default(false))
 
-  def * = (userId, measurementSystem, communityService) <> ((UserSettings.apply _).tupled, UserSettings.unapply)
+  def * = (userId, measurementSystem, communityService).mapTo[UserSettings]
 
   def user = foreignKey("user_settings_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }

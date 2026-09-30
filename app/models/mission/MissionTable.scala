@@ -8,7 +8,7 @@ import models.region.RegionTableDef
 import models.route.UserRouteTableDef
 import models.user.{SidewalkUserTable, SidewalkUserTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -58,10 +58,7 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
 
   def * =
     (missionId, missionType, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress,
-      regionId, labelsValidated, labelsProgress, labelType, skipped, currentAuditTaskId, userRouteId) <> (
-      (Mission.apply _).tupled,
-      Mission.unapply
-    )
+      regionId, labelsValidated, labelsProgress, labelType, skipped, currentAuditTaskId, userRouteId).mapTo[Mission]
 
   def user             = foreignKey("mission_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def region           = foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId.?)
@@ -292,7 +289,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     missionType match {
       case MissionType.Validation         => normalValidationMissionLength
       case MissionType.LabelmapValidation => labelmapValidationMissionLength
-      case other => throw new IllegalArgumentException(s"Not a validation mission type: $other")
+      case other                          => throw IllegalArgumentException(s"Not a validation mission type: $other")
     }
   }
 

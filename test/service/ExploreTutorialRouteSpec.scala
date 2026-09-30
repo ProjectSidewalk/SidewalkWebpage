@@ -16,7 +16,7 @@ import models.route.{
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
 import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.{ConfigTableDef, MyPostgresProfile}
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -28,7 +28,7 @@ import util.SidewalkSpec
 import java.time.OffsetDateTime
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed regression tests for #4816: an in-progress route walk must never surface on the Explore page while the
@@ -53,7 +53,7 @@ import scala.concurrent.duration._
 class ExploreTutorialRouteSpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val exploreService        = app.injector.instanceOf[ExploreService]
   private val missionService        = app.injector.instanceOf[MissionService]
@@ -77,7 +77,7 @@ class ExploreTutorialRouteSpec extends SidewalkSpec with org.scalatest.BeforeAnd
   private val createdUserIds = scala.collection.mutable.Set[String]()
 
   /** Distinguishes seeded routes' slugs; route.slug is globally unique (route_slug_idx). */
-  private val slugCounter = new AtomicInteger(0)
+  private val slugCounter = AtomicInteger(0)
 
   /** Creates a throwaway anonymous user and registers it for afterAll cleanup. */
   private def newAnonUser(): SidewalkUserWithRole = {

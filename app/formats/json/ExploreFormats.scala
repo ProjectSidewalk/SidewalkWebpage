@@ -7,8 +7,8 @@ import models.pano.PanoSource
 import models.street.StreetEdgePriority
 import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import service.UpdatedStreets
 
 import java.nio.charset.StandardCharsets
@@ -230,7 +230,7 @@ object ExploreFormats {
   given pointReads: Reads[Point] = (
     (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
-  )((lat, lng) => new GeometryFactory().createPoint(new Coordinate(lat, lng)))
+  )((lat, lng) => GeometryFactory().createPoint(Coordinate(lat, lng)))
 
   given environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "browser").readNullable[String] and
@@ -244,7 +244,7 @@ object ExploreFormats {
       (JsPath \ "operating_system").readNullable[String] and
       (JsPath \ "language").read[String] and
       (JsPath \ "css_zoom").read[Int]
-  )(EnvironmentSubmission.apply _)
+  )(EnvironmentSubmission.apply)
 
   given interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
@@ -257,7 +257,7 @@ object ExploreFormats {
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "temporary_label_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-  )(InteractionSubmission.apply _)
+  )(InteractionSubmission.apply)
 
   private val positiveFrameError = JsonValidationError("canvas_width and canvas_height must be positive")
 
@@ -279,13 +279,13 @@ object ExploreFormats {
       (JsPath \ "lat").readNullable[Double] and
       (JsPath \ "lng").readNullable[Double] and
       (JsPath \ "computation_method").readNullable[ComputationMethod]
-  )(LabelPointSubmission.apply _)
+  )(LabelPointSubmission.apply)
 
   given panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
     (JsPath \ "target_pano_id").read[String] and
       (JsPath \ "yaw_deg").read[Double] and
       (JsPath \ "description").readNullable[String]
-  )(PanoLinkSubmission.apply _)
+  )(PanoLinkSubmission.apply)
 
   // Ceiling on the provider blob a single submission may persist (#4806). It is stored verbatim, the JSON body parser
   // accepts up to play.http.parser.maxMemoryBuffer (100M), and the column rides pano_data's default projection, so
@@ -319,7 +319,7 @@ object ExploreFormats {
       (JsPath \ "address").readNullable[String] and
       (JsPath \ "history").read[Seq[PanoDate]] and
       (JsPath \ "source_metadata").readNullable[JsObject](sourceMetadataReads)
-  )(PanoSubmission.apply _)
+  )(PanoSubmission.apply)
 
   given labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "pano_id").read[String] and
@@ -334,7 +334,7 @@ object ExploreFormats {
       (JsPath \ "time_created").readNullable[OffsetDateTime] and
       (JsPath \ "tutorial").read[Boolean] and
       (JsPath \ "pano").readNullable[PanoSubmission]
-  )(LabelSubmission.apply _)
+  )(LabelSubmission.apply)
     // A mismatched block would let a buggy client write one pano's metadata while committing a label that points at
     // another — exactly the orphan #4587 exists to prevent — so refuse it before anything touches the database.
     .filter(JsonValidationError("The label's pano block must describe the label's own pano_id."))(label =>
@@ -354,12 +354,12 @@ object ExploreFormats {
       (JsPath \ "request_updated_street_priority").read[Boolean] and
       (JsPath \ "audited_distance_m").readNullable[Double] and
       (JsPath \ "route_street_id").readNullable[Int]
-  )(TaskSubmission.apply _)
+  )(TaskSubmission.apply)
 
   given noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (
     (JsPath \ "audit_task").read[TaskSubmission] and
       (JsPath \ "mission_id").read[Int]
-  )(NoStreetViewSubmission.apply _)
+  )(NoStreetViewSubmission.apply)
 
   given auditMissionProgressReads: Reads[AuditMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
@@ -368,7 +368,7 @@ object ExploreFormats {
       (JsPath \ "completed").read[Boolean] and
       (JsPath \ "audit_task_id").readNullable[Int] and
       (JsPath \ "skipped").read[Boolean]
-  )(AuditMissionProgress.apply _)
+  )(AuditMissionProgress.apply)
 
   given auditTaskSubmissionReads: Reads[AuditTaskSubmission] = (
     (JsPath \ "mission").read[AuditMissionProgress] and
@@ -379,18 +379,18 @@ object ExploreFormats {
       (JsPath \ "panos").read[Seq[PanoSubmission]] and
       (JsPath \ "user_route_id").readNullable[Int] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-  )(AuditTaskSubmission.apply _)
+  )(AuditTaskSubmission.apply)
 
   given surveySingleSubmissionReads: Reads[SurveySingleSubmission] = (
     (JsPath \ "name").read[String] and
       (JsPath \ "value").read[String]
-  )(SurveySingleSubmission.apply _)
+  )(SurveySingleSubmission.apply)
 
   given aiLabelDetectionReads: Reads[AiLabelDetection] = (
     (JsPath \ "pano_x").read[Int] and
       (JsPath \ "pano_y").read[Int] and
       (JsPath \ "confidence").read[Double]
-  )(AiLabelDetection.apply _)
+  )(AiLabelDetection.apply)
 
   given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = (
     (JsPath \ "label_type").read[LabelType] and
@@ -399,5 +399,5 @@ object ExploreFormats {
       (JsPath \ "api_version").read[String] and
       (JsPath \ "pano").read[PanoSubmission] and
       (JsPath \ "labels").read[Seq[AiLabelDetection]]
-  )(AiLabelsSubmission.apply _)
+  )(AiLabelsSubmission.apply)
 }

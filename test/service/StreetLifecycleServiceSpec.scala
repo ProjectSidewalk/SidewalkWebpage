@@ -14,7 +14,7 @@ import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for the street status-change log (#4928, evolution 358), the trend it feeds, and the
@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val statusChangeTable      = app.injector.instanceOf[StreetEdgeStatusChangeTable]
   private val streetLifecycleService = app.injector.instanceOf[StreetLifecycleService]

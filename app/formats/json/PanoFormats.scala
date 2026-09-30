@@ -1,6 +1,6 @@
 package formats.json
 
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, Reads}
 
 import java.time.OffsetDateTime
@@ -12,11 +12,11 @@ object PanoFormats {
   given panoDateReads: Reads[PanoDate] = (
     (JsPath \ "pano_id").read[String] and
       (JsPath \ "date").read[String]
-  )(PanoDate.apply _)
+  )(PanoDate.apply)
 
   given panoHistorySubmissionReads: Reads[PanoHistorySubmission] = (
     (JsPath \ "curr_pano_id").read[String] and
       (JsPath \ "history").read[Seq[PanoDate]] and
       (JsPath \ "pano_history_saved").read[OffsetDateTime]
-  )(PanoHistorySubmission.apply _)
+  )(PanoHistorySubmission.apply)
 }

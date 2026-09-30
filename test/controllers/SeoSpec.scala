@@ -6,7 +6,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.{AnonSession, SidewalkSpec, UserAgents}
 
 /**
@@ -14,7 +14,7 @@ import util.{AnonSession, SidewalkSpec, UserAgents}
  * SecuredActions that bounce cookie-less requests through /anonSignUp) and a page fetch that follows that flow. The
  * public pages themselves render cookie-less since #4643 — SessionlessPagesSpec pins that contract.
  */
-trait SeoSpecHelpers extends AnonSession { this: SidewalkSpec with GuiceOneAppPerSuite =>
+trait SeoSpecHelpers extends AnonSession { this: SidewalkSpec & GuiceOneAppPerSuite =>
 
   given mat: Materializer = app.materializer
 
@@ -23,7 +23,7 @@ trait SeoSpecHelpers extends AnonSession { this: SidewalkSpec with GuiceOneAppPe
 
   /** Fetches a page as an anonymous-but-authenticated user and returns (status, body). */
   def getPage(path: String): (Int, String) = {
-    val resp = route(app, FakeRequest(GET, path).withCookies(anonCookies: _*)).get
+    val resp = route(app, FakeRequest(GET, path).withCookies(anonCookies*)).get
     (status(resp), contentAsString(resp))
   }
 
@@ -33,7 +33,7 @@ trait SeoSpecHelpers extends AnonSession { this: SidewalkSpec with GuiceOneAppPe
    */
   def getMobilePage(path: String): (Int, String) = {
     val mobileCookies = freshAnonSession(UserAgents.mobile)
-    val resp = route(app, FakeRequest(GET, path).withCookies(mobileCookies: _*).withHeaders(UserAgents.mobile)).get
+    val resp = route(app, FakeRequest(GET, path).withCookies(mobileCookies*).withHeaders(UserAgents.mobile)).get
     (status(resp), contentAsString(resp))
   }
 }
@@ -46,7 +46,7 @@ trait SeoSpecHelpers extends AnonSession { this: SidewalkSpec with GuiceOneAppPe
 class SeoSpec extends SidewalkSpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("environment-type" -> "test")
       .build()
@@ -95,7 +95,7 @@ class SeoProdSpec extends SidewalkSpec with GuiceOneAppPerSuite with SeoSpecHelp
 
   // All three inputs to indexability are pinned: on a private or Infra3D city every assertion below would invert.
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "environment-type"                      -> "prod",
@@ -243,7 +243,7 @@ class SeoSignInWalledSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "environment-type"                      -> "prod",
@@ -285,7 +285,7 @@ class SeoPrivateCitySpec extends SidewalkSpec with GuiceOneAppPerSuite with SeoS
   private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "environment-type"                      -> "prod",

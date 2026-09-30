@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -55,10 +55,8 @@ class StreetEdgeStatusChangeTableDef(tag: Tag) extends Table[StreetEdgeStatusCha
   def source: Rep[StreetEdgeStatusChangeSource] = column[StreetEdgeStatusChangeSource]("source")
 
   // CHECK constraint, which Slick can't express: old_status <> new_status, so only real transitions are recorded.
-  def * = (streetEdgeStatusChangeId, streetEdgeId, oldStatus, newStatus, changedAt, source) <> (
-    (StreetEdgeStatusChange.apply _).tupled,
-    StreetEdgeStatusChange.unapply
-  )
+  def * =
+    (streetEdgeStatusChangeId, streetEdgeId, oldStatus, newStatus, changedAt, source).mapTo[StreetEdgeStatusChange]
 
   // ON DELETE CASCADE, which tools/one-off/4181-remove-streets.sql relies on: once the street row is gone, its status
   // history describes nothing, so that script deletes no rows here of its own.

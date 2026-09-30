@@ -2,10 +2,10 @@ package service
 
 import com.google.inject.ImplementedBy
 import play.api.cache.AsyncCacheApi
-import play.api.libs.json._
-import play.api.libs.ws.WSBodyReadables._
+import play.api.libs.json.*
+import play.api.libs.ws.WSBodyReadables.*
 import play.api.libs.ws.WSClient
-import play.api.libs.ws.WSBodyWritables._
+import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
 
 import java.nio.charset.StandardCharsets
@@ -14,7 +14,7 @@ import java.security.{KeyFactory, PrivateKey, Signature}
 import java.time.format.DateTimeFormatter
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
 import java.util.Base64
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -159,7 +159,7 @@ object TrafficService {
     val der = Base64.getMimeDecoder.decode(
       pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "")
     )
-    val key = KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(der))
+    val key = KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(der))
     GaCredentials((json \ "client_email").as[String], key)
   }
 
@@ -277,7 +277,7 @@ class TrafficServiceImpl @Inject() (
     ws: WSClient
 )(using val ec: ExecutionContext)
     extends TrafficService {
-  import TrafficService._
+  import TrafficService.*
 
   private val logger  = Logger(this.getClass)
   private val envType = config.get[String]("environment-type")
@@ -344,7 +344,7 @@ class TrafficServiceImpl @Inject() (
           val failed = perProperty.flatMap(_._2)
           // Every property failing signals a systemic problem (auth, quota, outage): fail the refresh so nothing is
           // cached and the next request retries, instead of pinning an empty snapshot for the whole fresh window.
-          if (cities.isEmpty) throw new RuntimeException(s"All ${properties.size} GA property fetches failed")
+          if (cities.isEmpty) throw RuntimeException(s"All ${properties.size} GA property fetches failed")
           TrafficSnapshot(OffsetDateTime.now(), cities.sortBy(_.cityId), failed.sorted)
         }
     }
@@ -363,7 +363,7 @@ class TrafficServiceImpl @Inject() (
         .map { response =>
           if (response.status == 200) (response.json \ "access_token").as[String]
           else
-            throw new RuntimeException(
+            throw RuntimeException(
               s"GA token request failed (${response.status}): ${response.body[String].take(300)}"
             )
         }
@@ -428,7 +428,7 @@ class TrafficServiceImpl @Inject() (
       .post(body)
       .map { response =>
         if (response.status != 200)
-          throw new RuntimeException(s"batchRunReports failed (${response.status}): ${response.body[String].take(300)}")
+          throw RuntimeException(s"batchRunReports failed (${response.status}): ${response.body[String].take(300)}")
         val reports                 = (response.json \ "reports").asOpt[Seq[JsValue]].getOrElse(Seq.empty)
         def report(i: Int): JsValue = reports.lift(i).getOrElse(JsNull)
 

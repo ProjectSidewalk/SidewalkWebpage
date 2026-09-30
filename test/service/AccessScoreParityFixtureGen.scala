@@ -131,7 +131,7 @@ object AccessScoreParityFixtureGen {
 
   /** Random streets, each with a random length from below the floor to several hundred meters. */
   def randomStreets(seed: Int, count: Int): Seq[(String, Double, Seq[ClusterScoreInput])] = {
-    val rng   = new scala.util.Random(seed)
+    val rng   = scala.util.Random(seed)
     val types = AccessScoreCalculator.orderedScoredTypes :+ "Occlusion"
     (1 to count).map { i =>
       val clusters = randomClusters(rng, types)
@@ -163,7 +163,7 @@ object AccessScoreParityFixtureGen {
 
   /** Random intersections: corner types only, as attribution guarantees. */
   def randomIntersections(seed: Int, count: Int): Seq[(String, Seq[ClusterScoreInput])] = {
-    val rng = new scala.util.Random(seed)
+    val rng = scala.util.Random(seed)
     (1 to count).map(i =>
       s"random intersection $i" -> randomClusters(rng, AccessScoreCalculator.orderedIntersectionTypes)
     )
@@ -383,7 +383,7 @@ object AccessScoreParityFixtureGen {
     namedStreets
       .collectFirst { case (n, cs) if n == name => (cs, referenceLength) }
       .orElse(lengthStreets.collectFirst { case (n, len, cs) if n == name => (cs, len) })
-      .getOrElse(throw new IllegalArgumentException(s"no street case named '$name'"))
+      .getOrElse(throw IllegalArgumentException(s"no street case named '$name'"))
 
   /** One slope case in the fixture's JSON shape: the base street's name, the slope, the settings, and the results. */
   private def slopeCaseJson(

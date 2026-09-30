@@ -7,7 +7,7 @@ import util.SidewalkSpec
 
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future, Promise}
 
 /**
@@ -23,7 +23,7 @@ import scala.concurrent.{Await, Future, Promise}
 class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val swrCache                  = app.injector.instanceOf[SwrCache]
   private def await[T](f: Future[T]): T = Await.result(f, 30.seconds)
@@ -81,7 +81,7 @@ class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "answer None at the deadline, keep the one compute running, and serve its value once it lands" in {
       val key                      = freshKey()
       val promise                  = Promise[Payload]()
-      val runs                     = new AtomicInteger(0)
+      val runs                     = AtomicInteger(0)
       def compute: Future[Payload] = { runs.incrementAndGet(); promise.future }
 
       // Cold: nothing cached, the compute never finishes inside the deadline.
@@ -108,7 +108,7 @@ class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "share the in-flight compute with staleWhileRevalidate on the same key" in {
       val key                      = freshKey()
       val promise                  = Promise[Payload]()
-      val runs                     = new AtomicInteger(0)
+      val runs                     = AtomicInteger(0)
       def compute: Future[Payload] = { runs.incrementAndGet(); promise.future }
 
       await(swrCache.staleWhileRevalidateWithin[Payload](key, 10.minutes, 1.hour, 200.millis)(compute)) mustBe None
@@ -137,7 +137,7 @@ class SwrCacheSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val key  = freshKey()
       val boom =
         swrCache.staleWhileRevalidateWithin[Payload](key, 10.minutes, 1.hour, 20.seconds)(
-          Future.failed(new IllegalStateException("db down"))
+          Future.failed(IllegalStateException("db down"))
         )
       an[IllegalStateException] must be thrownBy await(boom)
     }

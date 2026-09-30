@@ -3,7 +3,7 @@ package models.region
 import com.google.inject.ImplementedBy
 import models.api.RegionSpotlightRowForApi
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -52,10 +52,7 @@ class RegionAccessScoreTableDef(tag: Tag) extends Table[RegionAccessScore](tag, 
 
   def * = (
     regionAccessScoreId, regionId, score, completionRate, auditedDistanceM, totalDistanceM, clusterCount, computedAt
-  ) <> (
-    (RegionAccessScore.apply _).tupled,
-    RegionAccessScore.unapply
-  )
+  ).mapTo[RegionAccessScore]
 
   def region = foreignKey("region_access_score_region_id_fkey", regionId, TableQuery[RegionTableDef])(
     _.regionId,

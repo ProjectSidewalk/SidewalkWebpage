@@ -1,6 +1,6 @@
 package formats.json
 
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, Reads}
 
 import java.time.OffsetDateTime
@@ -57,19 +57,19 @@ object GalleryFormats {
       (JsPath \ "avail_height").readNullable[Int] and
       (JsPath \ "operating_system").readNullable[String] and
       (JsPath \ "language").read[String]
-  )(GalleryEnvironmentSubmission.apply _)
+  )(GalleryEnvironmentSubmission.apply)
 
   given galleryInteractionSubmissionReads: Reads[GalleryInteractionSubmission] = (
     (JsPath \ "action").read[String] and
       (JsPath \ "pano_id").readNullable[String] and
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-  )(GalleryInteractionSubmission.apply _)
+  )(GalleryInteractionSubmission.apply)
 
   given galleryTaskSubmissionReads: Reads[GalleryTaskSubmission] = (
     (JsPath \ "environment").read[GalleryEnvironmentSubmission] and
       (JsPath \ "interactions").read[Seq[GalleryInteractionSubmission]]
-  )(GalleryTaskSubmission.apply _)
+  )(GalleryTaskSubmission.apply)
 
   given galleryLabelsRequestReads: Reads[GalleryLabelsRequest] = (
     (JsPath \ "n").read[Int] and
@@ -83,5 +83,5 @@ object GalleryFormats {
       (JsPath \ "sort").readNullable[String] and
       (JsPath \ "static_imagery_only").readNullable[Boolean] and
       (JsPath \ "label_ids").readNullable[Seq[Int]]
-  )(GalleryLabelsRequest.apply _)
+  )(GalleryLabelsRequest.apply)
 }

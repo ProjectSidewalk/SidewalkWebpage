@@ -3,9 +3,9 @@ package controllers
 import play.api.Application
 import play.api.libs.json.{JsNull, JsObject, Json}
 import play.api.mvc.{Cookie, Result}
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 
 import scala.concurrent.Future
 
@@ -42,7 +42,7 @@ object ValidateSpecSupport {
       app,
       FakeRequest(POST, "/validationTask/moreLabels")
         .withHeaders(XHR)
-        .withCookies(cookies: _*)
+        .withCookies(cookies*)
         .withJsonBody(body)
         .withCSRFToken
     ).get

@@ -5,7 +5,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 /**
@@ -20,7 +20,7 @@ import util.SidewalkSpec
 class AdminCityTrafficSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // Force the unusable-key path so the unavailability assertion holds even where a real key is configured.
       .configure("ga-service-account-key" -> "DUMMY_GA_SERVICE_ACCOUNT_KEY")

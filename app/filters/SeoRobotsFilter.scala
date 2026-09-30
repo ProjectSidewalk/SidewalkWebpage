@@ -5,7 +5,7 @@ import org.apache.pekko.stream.Materializer
 import play.api.Configuration
 import play.api.mvc.{Filter, RequestHeader, Result}
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**

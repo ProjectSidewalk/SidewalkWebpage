@@ -2,7 +2,7 @@ package models.pano
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -55,10 +55,7 @@ class PanoImageryChangeTableDef(tag: Tag) extends Table[PanoImageryChange](tag, 
   def changedAt: Rep[OffsetDateTime]       = column[OffsetDateTime]("changed_at") // DEFAULT now() in the DB.
   def source: Rep[PanoImageryChangeSource] = column[PanoImageryChangeSource]("source")
 
-  def * = (panoImageryChangeId, panoId, expired, changedAt, source) <> (
-    (PanoImageryChange.apply _).tupled,
-    PanoImageryChange.unapply
-  )
+  def * = (panoImageryChangeId, panoId, expired, changedAt, source).mapTo[PanoImageryChange]
 
   // ON DELETE CASCADE: once the pano row is gone, its imagery history describes nothing.
   def pano =

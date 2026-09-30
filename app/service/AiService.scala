@@ -1,22 +1,22 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.label._
+import models.label.*
 import models.user.SidewalkUserTable
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile.api.given
-import models.utils._
+import models.utils.*
 import models.validation.{LabelValidation, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.libs.ws.WSClient
-import play.api.libs.ws.WSBodyWritables._
+import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
 import slick.dbio.DBIO
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /** The AI server rejected our password, so no request in this run can succeed. */
@@ -302,7 +302,7 @@ class AiServiceImpl @Inject() (
           } else if (response.status == 401 || response.status == 403) {
             // Wrong password means every label would fail the same way, so stop the whole run here.
             val msg = s"AI API returned ${response.status} for label $labelId: SIDEWALK_AI_API_KEY is missing or wrong."
-            Future.failed(new AiApiAuthException(msg))
+            Future.failed(AiApiAuthException(msg))
           } else {
             logger.warn(s"AI API for label $labelId returned error status: ${response.status} - ${response.statusText}")
             panoDataService.panoExists(labelData.panoData.panoId, labelData.panoData.source).map(_ => None)

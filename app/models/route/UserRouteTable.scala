@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskTable, NewTask}
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -28,7 +28,7 @@ class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "us
   def paused: Rep[Boolean]    = column[Boolean]("paused", O.Default(false))
 
   def * =
-    (userRouteId, routeId, userId, completed, discarded, paused) <> ((UserRoute.apply _).tupled, UserRoute.unapply)
+    (userRouteId, routeId, userId, completed, discarded, paused).mapTo[UserRoute]
 
   def route = foreignKey("user_route_route_id_fkey", routeId, TableQuery[RouteTableDef])(_.routeId)
   def user  = foreignKey("user_route_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)

@@ -5,8 +5,8 @@ import models.label.LabelCount
 import models.user.UserCount
 import models.utils.MyPostgresProfile.api.given
 import models.validation.{ValidationCount, ValidationOption}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import service.TimeInterval
 
 import java.time.OffsetDateTime
@@ -41,14 +41,14 @@ object AdminFormats {
   given userRoleSubmissionReads: Reads[UserRoleSubmission] = (
     (JsPath \ "user_id").read[String] and
       (JsPath \ "role_id").read[String]
-  )(UserRoleSubmission.apply _)
+  )(UserRoleSubmission.apply)
 
   given taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "date").read[OffsetDateTime] and
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]
-  )(TaskFlagsByDateSubmission.apply _)
+  )(TaskFlagsByDateSubmission.apply)
 
   given adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] = (
     (JsPath \ "userId").read[String] and
@@ -61,13 +61,13 @@ object AdminFormats {
       (JsPath \ "onLeaderboard").read[Boolean] and
       (JsPath \ "publicProfile").read[Boolean] and
       (JsPath \ "infra3dAccess").readNullable[Boolean]
-  )(AdminUserSettingsSubmission.apply _)
+  )(AdminUserSettingsSubmission.apply)
 
   given taskFlagSubmissionReads: Reads[TaskFlagSubmission] = (
     (JsPath \ "auditTaskId").read[Int] and
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]
-  )(TaskFlagSubmission.apply _)
+  )(TaskFlagSubmission.apply)
 
   given userCountWrites: Writes[UserCount] = (
     (__ \ "count").write[Int] and

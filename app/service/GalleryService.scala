@@ -2,12 +2,12 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.GalleryFormats.GalleryTaskSubmission
-import models.gallery._
+import models.gallery.*
 import models.utils.{IpAddress, MyPostgresProfile}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[GalleryServiceImpl])

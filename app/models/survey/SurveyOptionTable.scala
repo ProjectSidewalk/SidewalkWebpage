@@ -2,7 +2,7 @@ package models.survey
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -14,7 +14,7 @@ class SurveyOptionTableDef(tag: Tag) extends Table[SurveyOption](tag, "survey_op
   def surveyQuestionId: Rep[Int]          = column[Int]("survey_question_id")
   def surveyDisplayRank: Rep[Option[Int]] = column[Option[Int]]("survey_display_rank")
 
-  def * = (surveyOptionId, surveyQuestionId, surveyDisplayRank) <> ((SurveyOption.apply _).tupled, SurveyOption.unapply)
+  def * = (surveyOptionId, surveyQuestionId, surveyDisplayRank).mapTo[SurveyOption]
 
   def surveyQuestion =
     foreignKey("survey_option_survey_question_id_fkey", surveyQuestionId, TableQuery[SurveyQuestionTableDef])(

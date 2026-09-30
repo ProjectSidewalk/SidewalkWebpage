@@ -1,10 +1,11 @@
 package service
 
-import models.auth._
+import models.auth.*
+import models.auth.AuthorizationResult.*
 import models.pano.PanoSource
 import models.user.{Role, SidewalkUserWithRole}
 import play.api.mvc.Results.{Redirect, Status}
-import play.api.mvc._
+import play.api.mvc.*
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.{SecuredRequest, UserAwareRequest}
 import javax.inject.Inject
@@ -147,7 +148,7 @@ class CustomSecurityService @Inject() (
    * @param request The secured request containing user identity.
    * @return Future completing when user stat is ensured.
    */
-  private def ensureUserStatExists(request: SecuredRequest[DefaultEnv, _]): Future[Unit] = {
+  private def ensureUserStatExists(request: SecuredRequest[DefaultEnv, ?]): Future[Unit] = {
     authenticationService.addUserStatEntryIfNew(request.identity.userId).map(_ => ())
   }
 }

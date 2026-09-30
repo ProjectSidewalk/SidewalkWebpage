@@ -2,7 +2,7 @@ package formats.json
 
 import models.cluster.LabelToCluster
 import models.utils.ClusteringThreshold
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, Reads, Writes}
 
 object ClusterFormats {
@@ -18,7 +18,7 @@ object ClusterFormats {
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "cluster").read[Int]
-  )(ClusteredLabelSubmission.apply _)
+  )(ClusteredLabelSubmission.apply)
 
   given clusterSubmissionReads: Reads[ClusterSubmission] = (
     (JsPath \ "label_type").read[String] and
@@ -26,13 +26,13 @@ object ClusterFormats {
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double] and
       (JsPath \ "severity").readNullable[Int]
-  )(ClusterSubmission.apply _)
+  )(ClusterSubmission.apply)
 
   given clusteringSubmissionReads: Reads[ClusteringSubmission] = (
     (JsPath \ "thresholds").read[Seq[ClusteringThreshold]] and
       (JsPath \ "labels").read[Seq[ClusteredLabelSubmission]] and
       (JsPath \ "clusters").read[Seq[ClusterSubmission]]
-  )(ClusteringSubmission.apply _)
+  )(ClusteringSubmission.apply)
 
   given labelToClusterWrites: Writes[LabelToCluster] = (
     (JsPath \ "region_id").write[Int] and

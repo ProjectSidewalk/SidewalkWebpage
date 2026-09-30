@@ -3,7 +3,7 @@ package service
 import com.typesafe.config.{Config, ConfigFactory}
 import util.SidewalkSpec
 
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /**
  * Shape checks on the per-city boolean blocks in `cityparams.conf` that `ConfigServiceImpl.cityFlag` reads.

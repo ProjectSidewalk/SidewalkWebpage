@@ -127,7 +127,7 @@ class ClusterServiceImpl @Inject() (
     val script: File = environment
       .getExistingFile("scripts/label_clustering.py")
       .getOrElse(
-        throw new RuntimeException(
+        throw RuntimeException(
           s"Clustering script not found at " +
             s"${environment.getFile("scripts/label_clustering.py").getAbsolutePath}; is scripts/ packaged into the build?"
         )
@@ -156,8 +156,8 @@ class ClusterServiceImpl @Inject() (
           )
 
           // Capture stdout/stderr separately so a subprocess failure surfaces the Python error to Play's logger.
-          val stdout   = new StringBuilder
-          val stderr   = new StringBuilder
+          val stdout   = StringBuilder()
+          val stderr   = StringBuilder()
           val exitCode = process.!(
             ProcessLogger(
               line => { stdout.append(line).append('\n'); () },
@@ -167,7 +167,7 @@ class ClusterServiceImpl @Inject() (
 
           if (exitCode != 0) {
             logger.error(s"Clustering script failed for region $regionId (exit $exitCode):\n${stderr.toString.trim}")
-            throw new RuntimeException(s"Clustering failed for region $regionId (exit $exitCode)")
+            throw RuntimeException(s"Clustering failed for region $regionId (exit $exitCode)")
           }
           logger.debug(stdout.toString)
         }

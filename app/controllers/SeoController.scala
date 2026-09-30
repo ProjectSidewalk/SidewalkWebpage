@@ -6,7 +6,7 @@ import models.utils.SeoUtils
 import play.api.Configuration
 import play.api.mvc.{Action, AnyContent}
 
-import javax.inject._
+import javax.inject.*
 
 /**
  * Serves robots.txt and sitemap.xml (issue #4237).

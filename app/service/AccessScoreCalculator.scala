@@ -43,28 +43,30 @@ import models.street.StreetGradientStats
 object AccessScoreCalculator {
 
   /** How a label type's clusters are turned into its contribution to a street's score. */
-  sealed trait Scoring
+  enum Scoring {
 
-  /** Severity ignored; each cluster's presence alone contributes `baseWeight` (e.g. Signal). */
-  case object PresenceOnly extends Scoring
+    /** Severity ignored; each cluster's presence alone contributes `baseWeight` (e.g. Signal). */
+    case PresenceOnly
 
-  /** Quality-rated positive feature: severity 1=Good, 2=Okay, 3=Bad (a Bad one contributes negatively). */
-  case object PositiveQuality extends Scoring
+    /** Quality-rated positive feature: severity 1=Good, 2=Okay, 3=Bad (a Bad one contributes negatively). */
+    case PositiveQuality
 
-  /** Severity-rated negative feature: severity 1=Low, 2=Med, 3=High (magnitude grows with severity). */
-  case object NegativeSeverity extends Scoring
+    /** Severity-rated negative feature: severity 1=Low, 2=Med, 3=High (magnitude grows with severity). */
+    case NegativeSeverity
 
-  /**
-   * Scored once per street rather than once per cluster (#5093).
-   *
-   * NoSidewalk describes a stretch of street, not a point, and labelers pin it repeatedly along the stretch (it also
-   * has the tightest clustering threshold, 10 m), so a per-cluster weight would track label density instead of the
-   * street's condition. All of a street's clusters of this type pool into one term:
-   * `baseWeight * min(1, n / streetConditionSaturationCount) + pooledTagAdjustments`, where `n` is the cluster count.
-   * A tag is active when it covers at least [[tagActiveThreshold]] of the street's pooled labels of this type, except
-   * the [[streetConditionPointTags]], which are active when any single cluster carries them at that threshold.
-   */
-  case object StreetCondition extends Scoring
+    /**
+     * Scored once per street rather than once per cluster (#5093).
+     *
+     * NoSidewalk describes a stretch of street, not a point, and labelers pin it repeatedly along the stretch (it also
+     * has the tightest clustering threshold, 10 m), so a per-cluster weight would track label density instead of the
+     * street's condition. All of a street's clusters of this type pool into one term:
+     * `baseWeight * min(1, n / streetConditionSaturationCount) + pooledTagAdjustments`, where `n` is the cluster count.
+     * A tag is active when it covers at least [[tagActiveThreshold]] of the street's pooled labels of this type, except
+     * the [[streetConditionPointTags]], which are active when any single cluster carries them at that threshold.
+     */
+    case StreetCondition
+  }
+  export Scoring.*
 
   /**
    * Per-type scoring configuration.
@@ -482,23 +484,25 @@ object AccessScoreCalculator {
   private def sigmoid(t: Double): Double = 1.0 / (1.0 + math.exp(-t))
 
   /** Which of a street's slope statistics drives its slope term. */
-  sealed trait SlopeStatistic
+  enum SlopeStatistic {
 
-  /** The mean absolute grade over 10 m baselines: how steep the street is on the whole. */
-  case object MeanGrade extends SlopeStatistic
+    /** The mean absolute grade over 10 m baselines: how steep the street is on the whole. */
+    case MeanGrade
 
-  /** The steepest 30 m stretch: the worst a traveler meets, which one short pitch can set. */
-  case object MaxGrade extends SlopeStatistic
+    /** The steepest 30 m stretch: the worst a traveler meets, which one short pitch can set. */
+    case MaxGrade
 
-  /**
-   * The share of the street's length over the two ADA / PROWAG limits. Those lengths are measured when the street is
-   * sampled, against [[StreetGradientStats.WalkingSurfaceLimit]] and [[StreetGradientStats.RampLimit]], so this is
-   * the one statistic a reader's own thresholds do not move.
-   */
-  case object MetersOverLimit extends SlopeStatistic
+    /**
+     * The share of the street's length over the two ADA / PROWAG limits. Those lengths are measured when the street is
+     * sampled, against [[StreetGradientStats.WalkingSurfaceLimit]] and [[StreetGradientStats.RampLimit]], so this is
+     * the one statistic a reader's own thresholds do not move.
+     */
+    case MetersOverLimit
+  }
+  export SlopeStatistic.*
 
   /** The statistics in the order a control lists them. */
-  val slopeStatistics: Seq[SlopeStatistic] = Seq(MeanGrade, MaxGrade, MetersOverLimit)
+  val slopeStatistics: Seq[SlopeStatistic] = SlopeStatistic.values.toSeq
 
   /** The API's snake_case name for a slope statistic, the one source for both the config and the tool's URL. */
   def slopeStatisticName(statistic: SlopeStatistic): String = statistic match {

@@ -2,7 +2,7 @@ package models.pano
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -15,7 +15,7 @@ class PanoLinkTableDef(tag: Tag) extends Table[PanoLink](tag, "pano_link") {
   def yawDeg: Rep[Double]              = column[Double]("yaw_deg")
   def description: Rep[Option[String]] = column[Option[String]]("description")
 
-  def * = (panoId, targetPanoId, yawDeg, description) <> ((PanoLink.apply _).tupled, PanoLink.unapply)
+  def * = (panoId, targetPanoId, yawDeg, description).mapTo[PanoLink]
 
   def pano = foreignKey("pano_link_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
   def pk   = primaryKey("gsv_link_pkey", (panoId, targetPanoId))

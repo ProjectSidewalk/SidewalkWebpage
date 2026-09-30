@@ -12,7 +12,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
 import play.api.Logger
 import service.CropGeometry.CropBox
-import service.CropService._
+import service.CropService.*
 
 import java.awt.image.BufferedImage
 import java.io.File
@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.imageio.ImageReader
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Using
 import scala.util.control.NonFatal
 
@@ -175,7 +175,7 @@ object CropService {
    * @return          The window, `box.width` x `box.height`, opaque RGB.
    */
   def cutWindow(reader: ImageReader, box: CropBox, panoWidth: Int): BufferedImage = {
-    val out = new BufferedImage(box.width, box.height, BufferedImage.TYPE_INT_RGB)
+    val out = BufferedImage(box.width, box.height, BufferedImage.TYPE_INT_RGB)
     val g   = out.createGraphics()
     try {
       CropGeometry.segments(box, panoWidth).foreach { segment =>
@@ -292,9 +292,9 @@ class CropServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  private val cropsDir: File = new File(panoDataService.getCropDirectory)
+  private val cropsDir: File = File(panoDataService.getCropDirectory)
 
-  private val running = new AtomicBoolean(false)
+  private val running = AtomicBoolean(false)
 
   /** Mutable tallies for one run; `result` freezes them. The crop pass also collects the rows it has to write. */
   private class Counts {
@@ -313,9 +313,9 @@ class CropServiceImpl @Inject() (
 
   def generateMissingCrops(): Future[CropRunResult] = {
     if (!running.compareAndSet(false, true)) {
-      Future.failed(new IllegalStateException("A crop generation run is already in progress."))
+      Future.failed(IllegalStateException("A crop generation run is already in progress."))
     } else {
-      val counts = new Counts
+      val counts = Counts()
       // Future.delegate so that a synchronous throw (an unreadable crop store, say) still releases the guard.
       Future
         .delegate {
@@ -362,7 +362,7 @@ class CropServiceImpl @Inject() (
   /** The labels that already have a crop, by listing each type's directory once rather than stat-ing per label. */
   private def existingCropIds(): Map[LabelType, Set[Int]] = {
     LabelType.ordered.iterator.map { labelType =>
-      val dir = new File(cropsDir, labelType.name)
+      val dir = File(cropsDir, labelType.name)
       val ids =
         if (!dir.isDirectory) Set.empty[Int]
         else

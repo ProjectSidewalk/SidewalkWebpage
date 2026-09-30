@@ -15,7 +15,7 @@ import play.silhouette.api.actions.SecuredRequest
 import play.silhouette.api.Silhouette
 import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**

@@ -12,9 +12,9 @@ import util.{SidewalkSpec, StubService}
 
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.atomic.AtomicInteger
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext, Future, Promise}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /**
  * What the nightly crop actor does on a tick (#4865): records a scheduled run of the job — or, while a manual run is
@@ -37,7 +37,7 @@ class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with E
 
   /** Stands in for the row-writing service: runs the work and remembers what it was asked to record. */
   private class RecordingJobRunService extends JobRunService {
-    val calls = new CopyOnWriteArrayList[(String, JobRunTrigger)]()
+    val calls = CopyOnWriteArrayList[(String, JobRunTrigger)]()
 
     def record[T](jobName: String, trigger: JobRunTrigger)(work: => Future[T])(details: T => JsObject): Future[T] = {
       calls.add((jobName, trigger))
@@ -64,7 +64,7 @@ class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with E
         "generateMissingCrops" -> (() => { val _ = generated.incrementAndGet(); Future.successful(result) })
       )
     )
-    system.actorOf(Props(new CropGenerationActor(cropService, jobRuns)))
+    system.actorOf(Props(CropGenerationActor(cropService, jobRuns)))
   }
 
   override given patienceConfig: PatienceConfig =
@@ -72,9 +72,9 @@ class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with E
 
   "CropGenerationActor" should {
     "record a tick as a scheduled run of the crop job and let it run" in {
-      val jobRuns   = new RecordingJobRunService
-      val generated = new AtomicInteger
-      val actor     = actorWith(() => false, new AtomicInteger, generated, jobRuns)
+      val jobRuns   = RecordingJobRunService()
+      val generated = AtomicInteger()
+      val actor     = actorWith(() => false, AtomicInteger(), generated, jobRuns)
 
       actor ! CropGenerationActor.Tick
 
@@ -85,9 +85,9 @@ class CropGenerationActorSpec extends SidewalkSpec with BeforeAndAfterAll with E
     }
 
     "skip a tick, recording nothing, while a run is already in flight" in {
-      val jobRuns   = new RecordingJobRunService
-      val asked     = new AtomicInteger
-      val generated = new AtomicInteger
+      val jobRuns   = RecordingJobRunService()
+      val asked     = AtomicInteger()
+      val generated = AtomicInteger()
       val running   = Promise[Unit]()
       // The first tick sees a run in flight; the flag clears for the second, whose recording proves the first tick
       // was fully handled — an actor takes its messages in order — without a sleep standing in for that proof.

@@ -3,13 +3,13 @@ package service
 import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.ValidateFormats.ValidationMissionProgress
-import models.label.LabelTable.{given, _}
-import models.label.{Tag, _}
+import models.label.LabelTable.{given, *}
+import models.label.{Tag, *}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{ExcludedTag, LatLngBBox, MyPostgresProfile}
 import models.validation.{LabelValidationTable, ValidationLabelFilter}
 import models.validation.ValidationQueuePolicy.ValidationQueue
@@ -18,7 +18,7 @@ import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -51,7 +51,7 @@ trait LabelService {
       aiValOptions: Seq[String],
       bbox: Option[LatLngBBox],
       batchSize: Int
-  ): Source[LabelForLabelMap, _]
+  ): Source[LabelForLabelMap, ?]
   def getGalleryLabels(
       n: Int,
       labelTypes: Set[LabelType],
@@ -296,7 +296,7 @@ class LabelServiceImpl @Inject() (
       aiValOptions: Seq[String],
       bbox: Option[LatLngBBox],
       batchSize: Int
-  ): Source[LabelForLabelMap, _] =
+  ): Source[LabelForLabelMap, ?] =
     // `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932). It
     // also means a pooled connection stays checked out, transaction open, for the whole response rather than just the
     // query: `Ok.chunked` backpressures from the client socket, so a slow reader pins one of the 25 connections until
@@ -712,7 +712,7 @@ class LabelServiceImpl @Inject() (
           typeProbabilities.scanLeft(0.0) { case (acc, (_, prob)) => acc + prob }.tail
 
         // Choose a label type proportionally based on the calculated probabilities.
-        val random = new Random()
+        val random = Random()
         Some(typeProbabilities(cumulativeProbabilities.indexWhere(_ > random.nextDouble()))._1)
       }
     })

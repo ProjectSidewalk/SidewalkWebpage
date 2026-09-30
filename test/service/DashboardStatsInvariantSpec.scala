@@ -37,7 +37,7 @@ import scala.concurrent.duration.DurationInt
 class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val userService               = app.injector.instanceOf[UserService]
   private val messages                  = play.api.test.Helpers.stubMessages()

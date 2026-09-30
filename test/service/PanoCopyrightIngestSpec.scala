@@ -13,7 +13,7 @@ import slick.dbio.DBIO
 import util.SidewalkSpec
 
 import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for what a submission's copyright becomes in `pano_data.copyright` (#5360).
@@ -31,7 +31,7 @@ import scala.concurrent.duration._
 class PanoCopyrightIngestSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val exploreService = app.injector.instanceOf[ExploreService]
   private val panoDataTable  = app.injector.instanceOf[PanoDataTable]

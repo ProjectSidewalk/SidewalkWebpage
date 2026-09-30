@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.region.RegionTableDef
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{FilteredTables, LatLngBBox, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -76,10 +76,7 @@ class IntersectionTableDef(tag: Tag) extends Table[Intersection](tag, "intersect
   def gradeSeparated: Rep[Boolean] = column[Boolean]("grade_separated", O.Default(false))
   def regionId: Rep[Option[Int]]   = column[Option[Int]]("region_id")
 
-  def * = (intersectionId, geom, degree, gradeSeparated, regionId) <> (
-    (Intersection.apply _).tupled,
-    Intersection.unapply
-  )
+  def * = (intersectionId, geom, degree, gradeSeparated, regionId).mapTo[Intersection]
 
   def region = foreignKey("intersection_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId.?)
 }
@@ -90,10 +87,7 @@ class IntersectionStreetEdgeTableDef(tag: Tag) extends Table[IntersectionStreetE
   def streetEdgeId: Rep[Int]             = column[Int]("street_edge_id")
   def streetEnd: Rep[String] = column[String]("street_end") // CHECK (street_end IN ('start', 'end')) in the DB.
 
-  def * = (intersectionStreetEdgeId, intersectionId, streetEdgeId, streetEnd) <> (
-    (IntersectionStreetEdge.apply _).tupled,
-    IntersectionStreetEdge.unapply
-  )
+  def * = (intersectionStreetEdgeId, intersectionId, streetEdgeId, streetEnd).mapTo[IntersectionStreetEdge]
 
   def intersection =
     foreignKey("intersection_street_edge_intersection_id_fkey", intersectionId, TableQuery[IntersectionTableDef])(

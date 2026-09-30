@@ -1,6 +1,6 @@
 package models.place
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatest.OptionValues
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -28,11 +28,11 @@ class PlaceTableSpec
     with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val table: PlaceTable = app.injector.instanceOf[PlaceTable]
 
-  private val gf = new GeometryFactory(new PrecisionModel(), 4326)
+  private val gf = GeometryFactory(PrecisionModel(), 4326)
 
   /** A fetched OSM node at (lng, lat). */
   private def fetched(
@@ -49,7 +49,7 @@ class PlaceTableSpec
       osmType,
       id,
       Json.obj("name" -> name.getOrElse[String]("")),
-      gf.createPoint(new Coordinate(lng, lat))
+      gf.createPoint(Coordinate(lng, lat))
     )
 
   private def placeByOsm(osmType: String, osmId: Long): DBIO[Option[Place]] =

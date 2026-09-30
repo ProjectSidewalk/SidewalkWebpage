@@ -86,7 +86,7 @@ object SqlFragments {
    */
   def withLocalSetting[R, S <: NoStream, E <: Effect](name: String, value: String)(
       action: DBIOAction[R, S, E]
-  ): DBIOAction[R, S, E with Effect.Transactional] =
+  ): DBIOAction[R, S, E & Effect.Transactional] =
     (sqlu"SET LOCAL #$name = #$value" >> action).transactionally
 
   /**

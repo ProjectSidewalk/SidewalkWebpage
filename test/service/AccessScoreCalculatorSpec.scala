@@ -106,9 +106,9 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     // base −2.0 × min(1, n / 3): one stray pin is a third of a missing sidewalk; eight pins are no worse than three.
     noSidewalkTerm(noSidewalk()) shouldBe (-2.0 / 3 +- eps)
     noSidewalkTerm(noSidewalk(), noSidewalk()) shouldBe (-4.0 / 3 +- eps)
-    noSidewalkTerm(Seq.fill(3)(noSidewalk()): _*) shouldBe (-2.0 +- eps)
-    noSidewalkTerm(Seq.fill(8)(noSidewalk()): _*) shouldBe (-2.0 +- eps)
-    noSidewalkTerm(Seq.fill(40)(noSidewalk()): _*) shouldBe (-2.0 +- eps)
+    noSidewalkTerm(Seq.fill(3)(noSidewalk())*) shouldBe (-2.0 +- eps)
+    noSidewalkTerm(Seq.fill(8)(noSidewalk())*) shouldBe (-2.0 +- eps)
+    noSidewalkTerm(Seq.fill(40)(noSidewalk())*) shouldBe (-2.0 +- eps)
     AccessScoreCalculator.streetConditionSaturationCount shouldBe 3
   }
 
@@ -219,7 +219,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
   /** A deterministic spread of clusters: every scored type, every rating bucket, tags on and off, pooled NoSidewalk. */
   private def randomClusters(seed: Int, n: Int): Seq[ClusterScoreInput] = {
-    val rng   = new scala.util.Random(seed)
+    val rng   = scala.util.Random(seed)
     val types = AccessScoreCalculator.orderedScoredTypes :+ "Occlusion"
     Seq.fill(n) {
       val labelType  = types(rng.nextInt(types.size))

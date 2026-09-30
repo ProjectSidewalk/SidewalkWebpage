@@ -2,7 +2,7 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -17,7 +17,7 @@ class TeamTableDef(tag: slick.lifted.Tag) extends Table[Team](tag, "team") {
   def open: Rep[Boolean]       = column[Boolean]("open", O.Default(true))
   def visible: Rep[Boolean]    = column[Boolean]("visible", O.Default(true))
 
-  def * = (teamId, name, description, open, visible) <> ((Team.apply _).tupled, Team.unapply)
+  def * = (teamId, name, description, open, visible).mapTo[Team]
 }
 
 @ImplementedBy(classOf[TeamTable])

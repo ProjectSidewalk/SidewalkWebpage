@@ -1,8 +1,8 @@
 package formats.json
 
-import models.user._
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import models.user.*
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTotals, UserSearchResult}
 
 import java.time.OffsetDateTime
@@ -30,7 +30,7 @@ object UserFormats {
       (JsPath \ "teamId").readNullable[Int] and
       (JsPath \ "communityService").readNullable[Boolean] and
       (JsPath \ "measurementSystem").readNullable[String]
-  )(SettingsSubmission.apply _)
+  )(SettingsSubmission.apply)
 
   given sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and
@@ -40,7 +40,7 @@ object UserFormats {
       (JsPath \ "community_service").read[Boolean] and
       (JsPath \ "infra3d_access").read[Boolean] and
       (JsPath \ "measurement_system").readNullable[MeasurementSystem]
-  )(SidewalkUserWithRole.apply _)
+  )(SidewalkUserWithRole.apply)
 
   given sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = (
     (JsPath \ "user_id").write[String] and

@@ -1,6 +1,6 @@
 package formats.json
 
-import formats.json.ValidateFormats._
+import formats.json.ValidateFormats.*
 import models.utils.CommonUtils.UiSource
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers

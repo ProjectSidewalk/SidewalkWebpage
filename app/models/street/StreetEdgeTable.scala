@@ -5,7 +5,7 @@ import models.api.{StreetDataForApi, StreetFiltersForApi}
 import models.audit.{AuditTask, AuditTaskTableDef}
 import models.region.RegionTableDef
 import models.user.UserStatTableDef
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{ConfigTableDef, FilteredTables, LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray
@@ -15,7 +15,7 @@ import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
@@ -63,10 +63,7 @@ class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, status, timestamp) <> (
-    (StreetEdge.apply _).tupled,
-    StreetEdge.unapply
-  )
+  def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, status, timestamp).mapTo[StreetEdge]
 }
 
 @ImplementedBy(classOf[StreetEdgeTable])

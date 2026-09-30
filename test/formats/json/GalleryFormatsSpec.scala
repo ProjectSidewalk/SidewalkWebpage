@@ -1,6 +1,6 @@
 package formats.json
 
-import formats.json.GalleryFormats._
+import formats.json.GalleryFormats.*
 import models.utils.CommonUtils.UiSource
 import play.api.libs.json.{JsBoolean, JsError, JsString, JsSuccess, Json}
 import util.SidewalkSpec

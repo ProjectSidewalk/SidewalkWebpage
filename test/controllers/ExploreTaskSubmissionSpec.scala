@@ -1,7 +1,7 @@
 package controllers
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -11,15 +11,15 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Locks the pano/label contract of POST /task (#4587). A pano's metadata is integral to its labels: each label
@@ -54,7 +54,7 @@ class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with
   private val panoPrefix = "ExploreTaskSubmissionSpec-4587"
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .configure("ai-enabled" -> false) // Label submission fires AI validation calls; keep the suite offline.
       .build()
@@ -238,7 +238,7 @@ class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with
   }
 
   private def post(body: JsObject) =
-    route(app, FakeRequest(POST, "/task").withCookies(sessionCookies: _*).withJsonBody(body).withCSRFToken).get
+    route(app, FakeRequest(POST, "/task").withCookies(sessionCookies*).withJsonBody(body).withCSRFToken).get
 
   private def labelCount(panoId: String): Int =
     runDb(sql"SELECT count(*) FROM label WHERE pano_id = $panoId AND user_id = $userId".as[Int].head)

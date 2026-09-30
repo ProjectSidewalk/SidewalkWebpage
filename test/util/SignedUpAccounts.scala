@@ -1,25 +1,25 @@
 package util
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 
 import java.util.UUID
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Signs up real accounts through `/signUp` and deletes them in `afterAll`, since the HTTP path can't use a rolled-back
  * transaction. Mix in before `GuiceOneAppPerSuite`, because the cleanup needs the app's DB pool. A spec's own
  * `afterAll` runs first, so it can delete any other rows it wrote for these users.
  */
-trait SignedUpAccounts extends BeforeAndAfterAll { this: SidewalkSpec with GuiceOneAppPerSuite =>
+trait SignedUpAccounts extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPerSuite =>
 
   /** The password every account here is created with; it meets `PasswordPolicy`. */
   protected val signUpPassword: String = "TestPass1"

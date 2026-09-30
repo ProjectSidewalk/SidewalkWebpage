@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{NamedEnum, PgEnumCompanion}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -156,12 +156,9 @@ class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "stree
   def stats = (
     streetEdgeId, quality, confidence, netGrade, meanGrade, maxGrade, metersOver5pctGrade, metersOver8pctGrade, climbM,
     descentM, elevStartM, elevEndM, demSource, demResolutionM
-  ) <> ((StreetGradientStats.apply _).tupled, StreetGradientStats.unapply)
+  ).mapTo[StreetGradientStats]
 
-  def * = (stats, profileCm, geomMd5, sampledAt, maxGradeFromM, maxGradeToM) <> (
-    (StreetGradient.apply _).tupled,
-    StreetGradient.unapply
-  )
+  def * = (stats, profileCm, geomMd5, sampledAt, maxGradeFromM, maxGradeToM).mapTo[StreetGradient]
 
   def streetEdge =
     foreignKey("street_gradient_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -181,7 +178,7 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
 ) extends StreetGradientTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  import profile.api._
+  import profile.api.*
   val streetGradients = TableQuery[StreetGradientTableDef]
 
   /**

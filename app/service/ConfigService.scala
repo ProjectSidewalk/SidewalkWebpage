@@ -5,12 +5,12 @@ import com.typesafe.config.ConfigException
 import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
 import models.pano.PanoSource
 import models.utils.MyPostgresProfile.api.given
-import models.utils._
+import models.utils.*
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
-import play.api.libs.ws.WSBodyWritables._
+import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
 import play.twirl.api.Html
 import slick.dbio.DBIO
@@ -18,7 +18,7 @@ import slick.dbio.DBIO
 import java.lang.management.ManagementFactory
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneId, ZoneOffset}
 import java.time.temporal.ChronoUnit
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
@@ -609,7 +609,7 @@ object ConfigService {
     val cleanName  = name.trim
     val cleanUrl   = url.trim
     val urlIsHttps = Try {
-      val uri = new java.net.URI(cleanUrl)
+      val uri = java.net.URI(cleanUrl)
       Option(uri.getScheme).exists(_.equalsIgnoreCase("https")) && uri.getHost != null && uri.getRawUserInfo == null
     }.getOrElse(false)
     if (cleanUrl.isEmpty) Right(None)
@@ -622,7 +622,7 @@ object ConfigService {
       // java.net.URI finds no host in a non-ASCII domain, so name the fix where an admin who hit it will look.
       Left(
         "The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us." +
-          (if (Try(new java.net.URI(cleanUrl).getRawAuthority).toOption.flatMap(Option(_)).exists(_.exists(_ > 127)))
+          (if (Try(java.net.URI(cleanUrl).getRawAuthority).toOption.flatMap(Option(_)).exists(_.exists(_ > 127)))
              " For a domain with accented or non-Latin letters, paste its punycode (xn--) form."
            else "")
       )
@@ -2224,7 +2224,7 @@ class ConfigServiceImpl @Inject() (
   def sha256Hash(text: String): String =
     String.format(
       "%064x",
-      new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8")))
+      java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8")))
     )
 
   /**
@@ -2314,7 +2314,7 @@ class ConfigServiceImpl @Inject() (
         Future.successful(ImageryAccessToken(source, config.get[String]("mapillary-access-token"), None))
       // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
       case PanoSource.Panoramax => Future.successful(ImageryAccessToken(source, "", None))
-      case other                => Future.failed(new Exception(s"No valid imagery source specified: $other"))
+      case other                => Future.failed(Exception(s"No valid imagery source specified: $other"))
     }
   }
 

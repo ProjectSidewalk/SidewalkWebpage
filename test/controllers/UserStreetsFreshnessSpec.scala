@@ -2,13 +2,13 @@ package controllers
 
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, JsValue}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.silhouette.api.util.PasswordInfo
 import service.AuthenticationService
 import util.{AnonSession, RolledBackDb, SidewalkSpec, StreetFixtures}
@@ -43,7 +43,7 @@ class UserStreetsFreshnessSpec
   // The limiter counts every session this suite mints against one loopback address, and a 429 would surface as a
   // failed session mint rather than as anything about the feed.
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
@@ -123,7 +123,7 @@ class UserStreetsFreshnessSpec
   private def feed: JsValue = {
     val resp = route(
       app,
-      FakeRequest(GET, s"/userapi/public/${mapper.username}/streets").withCookies(freshAnonSession(): _*)
+      FakeRequest(GET, s"/userapi/public/${mapper.username}/streets").withCookies(freshAnonSession()*)
     ).get
     status(resp) mustBe OK
     contentAsJson(resp)

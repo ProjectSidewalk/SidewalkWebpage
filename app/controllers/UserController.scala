@@ -1,9 +1,9 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
-import forms._
+import forms.*
 import models.auth.{DefaultEnv, RememberMeSettings}
 import models.user.{Role, SidewalkUserWithRole, UserUtm}
 import models.utils.{IpAddress, ProfanityGuard}
@@ -12,7 +12,7 @@ import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
 import play.api.mvc.{AnyContent, Request}
 import play.api.{Configuration, Logger}
-import play.silhouette.api._
+import play.silhouette.api.*
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.silhouette.api.exceptions.ProviderException
 import play.silhouette.api.util.PasswordHasher
@@ -20,7 +20,7 @@ import play.silhouette.impl.exceptions.IdentityNotFoundException
 import play.silhouette.impl.providers.CredentialsProvider
 
 import java.util.UUID
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -330,7 +330,7 @@ class UserController @Inject() (
                           // Log failed sign-in due to a database issue.
                           val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
                           cc.loggingService.insert(currUserId, ipAddress, activity)
-                          Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
+                          Future.failed(IdentityNotFoundException("Couldn't find the user in db"))
                       }
                     }
                     .recover {

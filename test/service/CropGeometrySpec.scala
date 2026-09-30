@@ -24,10 +24,10 @@ import javax.imageio.ImageIO
  */
 class CropGeometrySpec extends SidewalkSpec {
 
-  private val fixtures = new File("test/resources/crops")
-  private val pano     = new File(fixtures, "synthetic-pano.png")
+  private val fixtures = File("test/resources/crops")
+  private val pano     = File(fixtures, "synthetic-pano.png")
 
-  private def fixture(name: String): JsValue = Json.parse(Files.readAllBytes(new File(fixtures, name).toPath))
+  private def fixture(name: String): JsValue = Json.parse(Files.readAllBytes(File(fixtures, name).toPath))
 
   private def box(json: JsLookupResult): CropBox = CropBox(
     (json \ "left").as[Int],
@@ -254,10 +254,10 @@ class CropGeometrySpec extends SidewalkSpec {
           withClue(s"$name: box ") { computed mustBe expected }
 
           val cut = CropService.cutWindow(reader, computed, w)
-          assertSamePixels(cut, ImageIO.read(new File(fixtures, s"expected/$name.png")), s"$name vs reference")
+          assertSamePixels(cut, ImageIO.read(File(fixtures, s"expected/$name.png")), s"$name vs reference")
 
           // The window read through the reader must be the same pixels a full decode would hand back, run by run.
-          val reference = new BufferedImage(computed.width, computed.height, BufferedImage.TYPE_INT_RGB)
+          val reference = BufferedImage(computed.width, computed.height, BufferedImage.TYPE_INT_RGB)
           val g         = reference.createGraphics()
           CropGeometry.segments(computed, w).foreach { s =>
             val _ = g.drawImage(whole.getSubimage(s.srcX, computed.top, s.width, computed.height), s.dstX, 0, null)
@@ -278,7 +278,7 @@ class CropGeometrySpec extends SidewalkSpec {
         computed mustBe box(e2e \ "box")
         assertSamePixels(
           CropService.cutWindow(reader, computed, w),
-          ImageIO.read(new File(fixtures, "expected/sizing_e2e.png")),
+          ImageIO.read(File(fixtures, "expected/sizing_e2e.png")),
           "sizing_e2e"
         )
       }
@@ -287,11 +287,11 @@ class CropGeometrySpec extends SidewalkSpec {
 
   "CropService.storedCrop" should {
     "cap a wide window at the stored width, keeping the aspect, and leave a narrow one alone" in {
-      val wide   = new BufferedImage(3000, 2000, BufferedImage.TYPE_INT_RGB)
+      val wide   = BufferedImage(3000, 2000, BufferedImage.TYPE_INT_RGB)
       val stored = CropService.storedCrop(wide)
       (stored.getWidth, stored.getHeight) mustBe (1440, 960)
 
-      val narrow       = new BufferedImage(600, 400, BufferedImage.TYPE_INT_RGB)
+      val narrow       = BufferedImage(600, 400, BufferedImage.TYPE_INT_RGB)
       val storedNarrow = CropService.storedCrop(narrow)
       (storedNarrow.getWidth, storedNarrow.getHeight) mustBe (600, 400)
     }

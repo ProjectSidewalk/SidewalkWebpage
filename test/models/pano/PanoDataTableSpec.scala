@@ -14,7 +14,7 @@ import util.SidewalkSpec
 import java.time.OffsetDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract tests for the two `PanoDataTable` queries behind imagery-expiry checking: the reuse lookup that
@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 class PanoDataTableSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val panoDataTable = app.injector.instanceOf[PanoDataTable]
   // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a

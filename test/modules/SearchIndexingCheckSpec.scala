@@ -152,7 +152,7 @@ class SearchIndexingCheckSpec extends SidewalkSpec {
 class SearchIndexingCheckWiringSpec extends SidewalkSpec with org.scalatestplus.play.guice.GuiceOneAppPerSuite {
 
   override def fakeApplication(): play.api.Application =
-    new play.api.inject.guice.GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    play.api.inject.guice.GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   "StartupChecksModule" should {
     "bind SearchIndexingCheck" in {
@@ -162,7 +162,8 @@ class SearchIndexingCheckWiringSpec extends SidewalkSpec with org.scalatestplus.
     "construct it in Dev mode, where it actually reads config and logs, without failing the boot" in {
       // The suite runs in Mode.Test, which the check skips, so this is the only exercise of the live branch — and a
       // boot check that throws takes the deployment down, far worse than the misconfiguration it reports.
-      val devApp = new play.api.inject.guice.GuiceApplicationBuilder()
+      val devApp = play.api.inject.guice
+        .GuiceApplicationBuilder()
         .in(play.api.Mode.Dev)
         .disable[modules.ActorModule]
         .build()

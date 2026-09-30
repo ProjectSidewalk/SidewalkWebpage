@@ -13,7 +13,7 @@ import util.SidewalkSpec
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime}
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for `pano_data.expired_at` (#4928, evolution 358).
@@ -30,7 +30,7 @@ import scala.concurrent.duration._
 class PanoExpiredAtSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val panoDataTable = app.injector.instanceOf[PanoDataTable]
   private val dbConfig      = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]

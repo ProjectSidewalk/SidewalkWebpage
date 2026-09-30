@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.{AggregateStats, LabelTypeStats}
 import models.label.LabelType
 import models.street.StreetEdgeTableDef
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.{
   CityScorecard,
@@ -17,7 +17,7 @@ import service.{
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
@@ -75,24 +75,12 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
     openStatus,
     mapathonEventLink,
     (cityCenterLat, cityCenterLng, defaultMapZoom, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat,
-      northeastBoundaryLng),
+      northeastBoundaryLng).mapTo[MapParams],
     tutorialStreetEdgeID,
     offsetHours,
     makeCrops,
     excludedTags
-  ).shaped <> (
-    { case (openStatus, mapathonEventLink, cityMapParams, tutorialStreetEdgeID, offsetHours, makeCrops, excludedTags) =>
-      Config(openStatus, mapathonEventLink, MapParams.apply.tupled.apply(cityMapParams), tutorialStreetEdgeID,
-        offsetHours, makeCrops, excludedTags)
-    },
-    { (c: Config) =>
-      def f1(i: MapParams) = Tuple.fromProductTyped(i)
-      Some(
-        (c.openStatus, c.mapathonEventLink, f1(c.cityMapParams), c.tutorialStreetEdgeID, c.offsetHours, c.makeCrops,
-          c.excludedTags)
-      )
-    }
-  )
+  ).mapTo[Config]
 
   def tutorialStreetEdge =
     foreignKey("config_tutorial_street_edge_id_fkey", tutorialStreetEdgeID, TableQuery[StreetEdgeTableDef])(
@@ -134,7 +122,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       .as[(Double, Double, Double, Double, Double, Double, Double)]
       .map { rows =>
         // Extract the first row from the result set (if any).
-        rows.headOption.map { row => MapParams.apply.tupled(row) }.getOrElse {
+        rows.headOption.map(MapParams.apply.tupled).getOrElse {
           // Throw an exception if no results were found.
           throw new NoSuchElementException(s"No map parameters found in schema: $schema")
         }

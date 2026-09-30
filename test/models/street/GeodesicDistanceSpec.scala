@@ -3,7 +3,7 @@ package models.street
 import models.route.RouteTable
 import models.user.{UserStatTable, UserStatTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
 import org.scalatest.OptionValues
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -11,7 +11,7 @@ import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.RegionService
 import slick.basic.DatabaseConfig
 import slick.dbio.DBIO
@@ -51,7 +51,7 @@ import scala.concurrent.duration.DurationInt
 class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   given mat: Materializer = app.materializer
 

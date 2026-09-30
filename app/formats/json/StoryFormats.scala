@@ -1,6 +1,6 @@
 package formats.json
 
-import models.story._
+import models.story.*
 import play.api.libs.json.{JsNumber, JsObject, Json}
 
 /**

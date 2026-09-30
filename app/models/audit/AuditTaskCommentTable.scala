@@ -6,7 +6,7 @@ import models.street.StreetEdgeTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.IpAddress
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -59,8 +59,7 @@ class AuditTaskCommentTableDef(tag: Tag) extends Table[AuditTaskComment](tag, "a
   def comment: Rep[String]           = column[String]("comment")
 
   def * = (auditTaskCommentId, auditTaskId, missionId, edgeId, userId, ipAddress, panoId, heading, pitch, zoom, lat,
-    lng, timestamp, comment) <>
-    ((AuditTaskComment.apply _).tupled, AuditTaskComment.unapply)
+    lng, timestamp, comment).mapTo[AuditTaskComment]
 
   def auditTask =
     foreignKey("audit_task_comment_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
@@ -114,6 +113,6 @@ class AuditTaskCommentTable @Inject() (
     ))
       .take(n)
       .result
-      .map(_.map(GenericComment.apply.tupled(_)))
+      .map(_.map(GenericComment.apply.tupled))
   }
 }

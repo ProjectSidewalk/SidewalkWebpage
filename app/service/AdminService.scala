@@ -1,13 +1,13 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.audit._
+import models.audit.*
 import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
 import models.mission.MissionTable
 import models.pano.PanoSource
 import models.region.Region
 import models.street.StreetEdgeTable
-import models.user._
+import models.user.*
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.{
   ApiDailySourceCount,
@@ -27,7 +27,7 @@ import slick.dbio.DBIO
 
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, OffsetDateTime, ZoneId, ZonedDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A window of time that the admin page reports stats over. `name` is how it is written in JSON. */

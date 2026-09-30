@@ -16,13 +16,13 @@ import play.api.mvc.{Cookie, CookieHeaderEncoding}
 import play.silhouette.api.actions.{SecuredErrorHandler, UnsecuredErrorHandler}
 import play.silhouette.api.crypto.{Crypter, CrypterAuthenticatorEncoder, Signer}
 import play.silhouette.api.repositories.AuthInfoRepository
-import play.silhouette.api.services._
-import play.silhouette.api.util._
+import play.silhouette.api.services.*
+import play.silhouette.api.util.*
 import play.silhouette.api.{Environment, EventBus, Silhouette, SilhouetteProvider}
-import play.silhouette.crypto._
-import play.silhouette.impl.authenticators._
+import play.silhouette.crypto.*
+import play.silhouette.impl.authenticators.*
 import play.silhouette.impl.providers.CredentialsProvider
-import play.silhouette.impl.util._
+import play.silhouette.impl.util.*
 import play.silhouette.password.{BCryptPasswordHasher, BCryptSha256PasswordHasher}
 import play.silhouette.persistence.daos.{DelegableAuthInfoDAO, InMemoryAuthInfoDAO}
 import play.silhouette.persistence.repositories.DelegableAuthInfoRepository
@@ -46,12 +46,12 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
     bind[SecuredErrorHandler].to[CustomSecuredErrorHandler]
     bind[AuthenticationService].to[AuthenticationServiceImpl]
     bind[CacheLayer].to[PlayCacheLayer]
-    bind[IDGenerator].toInstance(new SecureRandomIDGenerator())
-    bind[PasswordHasher].toInstance(new BCryptPasswordHasher)
-    bind[FingerprintGenerator].toInstance(new DefaultFingerprintGenerator(false))
+    bind[IDGenerator].toInstance(SecureRandomIDGenerator())
+    bind[PasswordHasher].toInstance(BCryptPasswordHasher())
+    bind[FingerprintGenerator].toInstance(DefaultFingerprintGenerator(false))
     bind[EventBus].toInstance(EventBus())
     bind[Clock].toInstance(Clock())
-    bind[DelegableAuthInfoDAO[PasswordInfo]].toInstance(new InMemoryAuthInfoDAO[PasswordInfo])
+    bind[DelegableAuthInfoDAO[PasswordInfo]].toInstance(InMemoryAuthInfoDAO[PasswordInfo]())
     bind[RememberMeSettings].asEagerSingleton()
   }
 
@@ -62,7 +62,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    * @return The HTTP layer implementation.
    */
   @Provides
-  def provideHTTPLayer(client: WSClient): HTTPLayer = new PlayHTTPLayer(client)
+  def provideHTTPLayer(client: WSClient): HTTPLayer = PlayHTTPLayer(client)
 
   /**
    * Provides the Silhouette environment.
@@ -87,7 +87,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides @Named("authenticator-crypter")
   def provideAuthenticatorCrypter(configuration: Configuration): Crypter = {
-    new JcaCrypter(JcaCrypterSettings(configuration.get[String]("silhouette.authenticator.crypter.key")))
+    JcaCrypter(JcaCrypterSettings(configuration.get[String]("silhouette.authenticator.crypter.key")))
   }
 
   /**
@@ -131,8 +131,8 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       authenticatorIdleTimeout = Some(c.get[FiniteDuration]("authenticatorIdleTimeout")),
       authenticatorExpiry = c.get[FiniteDuration]("authenticatorExpiry")
     )
-    val encoder = new CrypterAuthenticatorEncoder(crypter)
-    new RevocableCookieAuthenticatorService(config, signer, cookieHeaderEncoding, encoder, fingerprintGenerator,
+    val encoder = CrypterAuthenticatorEncoder(crypter)
+    RevocableCookieAuthenticatorService(config, signer, cookieHeaderEncoding, encoder, fingerprintGenerator,
       idGenerator, clock, authenticationService)
   }
 
@@ -143,7 +143,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides @Named("authenticator-signer")
   def provideAuthenticatorSigner(configuration: Configuration): Signer = {
-    new JcaSigner(JcaSignerSettings(configuration.get[String]("silhouette.authenticator.signer.key")))
+    JcaSigner(JcaSignerSettings(configuration.get[String]("silhouette.authenticator.signer.key")))
   }
 
   /**
@@ -152,7 +152,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides
   def providePasswordHasherRegistry(): PasswordHasherRegistry = {
-    PasswordHasherRegistry(new BCryptSha256PasswordHasher(), Seq(new BCryptPasswordHasher()))
+    PasswordHasherRegistry(BCryptSha256PasswordHasher(), Seq(BCryptPasswordHasher()))
   }
 
   /**
@@ -166,7 +166,7 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
       authInfoRepository: AuthInfoRepository,
       passwordHasherRegistry: PasswordHasherRegistry
   ): CredentialsProvider = {
-    new CredentialsProvider(authInfoRepository, passwordHasherRegistry)
+    CredentialsProvider(authInfoRepository, passwordHasherRegistry)
   }
 
   /**
@@ -176,6 +176,6 @@ class SilhouetteModule extends AbstractModule with ScalaModule {
    */
   @Provides
   def provideAuthInfoRepository(passwordInfoDAO: DelegableAuthInfoDAO[PasswordInfo]): AuthInfoRepository = {
-    new DelegableAuthInfoRepository(passwordInfoDAO)
+    DelegableAuthInfoRepository(passwordInfoDAO)
   }
 }

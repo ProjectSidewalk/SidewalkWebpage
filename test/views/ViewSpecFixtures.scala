@@ -23,7 +23,7 @@ import scala.concurrent.duration.DurationInt
 trait ViewSpecFixtures extends GuiceOneAppPerSuite { self: org.scalatest.TestSuite =>
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   protected given request: RequestHeader = CSRFTokenHelper.addCSRFToken(FakeRequest())
   protected given messages: Messages     = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("en")))

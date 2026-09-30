@@ -13,7 +13,7 @@ import models.route.{
 }
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -25,7 +25,7 @@ import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for AuditTaskTable.selectTasksInRoute, the query that hands Explore the full task list for a route
@@ -45,7 +45,7 @@ import scala.concurrent.duration._
 class RouteTaskQuerySpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val dbConfig        = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
   private lazy val auditTaskTable  = app.injector.instanceOf[AuditTaskTable]

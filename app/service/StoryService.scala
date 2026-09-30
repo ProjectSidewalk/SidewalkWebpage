@@ -6,8 +6,8 @@ import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
 import models.label.AccessImpact
 import models.label.{LabelType, LatLng}
-import models.story._
-import models.utils.MyPostgresProfile.api._
+import models.story.*
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -132,7 +132,7 @@ class StoryServiceImpl @Inject() (
       meta: PhotoMetadata
   )
 
-  def storyMediaFile(storyMediaId: Int): File = new File(mediaBaseDir, s"story_$storyMediaId.jpg")
+  def storyMediaFile(storyMediaId: Int): File = File(mediaBaseDir, s"story_$storyMediaId.jpg")
 
   def getStoriesForLabel(labelId: Int, viewerUserId: Option[String], isAdmin: Boolean): Future[Seq[StoryForView]] = {
     db.run(storyTable.getForLabel(labelId, viewerUserId, isAdmin))
@@ -604,7 +604,7 @@ class StoryServiceImpl @Inject() (
    * atomic rename; a crash can only leave junk under staging/, never a half-written serving file.
    */
   private def stageJpeg(img: BufferedImage): File = {
-    val stagingDir = new File(mediaBaseDir, "staging")
+    val stagingDir = File(mediaBaseDir, "staging")
     stagingDir.mkdirs()
     val staged = File.createTempFile("story_staged_", ".jpg", stagingDir)
     try {

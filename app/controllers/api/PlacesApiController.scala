@@ -83,7 +83,7 @@ class PlacesApiController @Inject() (
           )
           val isFullCity: Boolean = noLocationFilter && category.isEmpty
 
-          val streamFuture: Future[Source[PlaceForApi, _]] =
+          val streamFuture: Future[Source[PlaceForApi, ?]] =
             if (isFullCity) {
               placesService
                 .getFullCityPlaces(DEFAULT_BATCH_SIZE)

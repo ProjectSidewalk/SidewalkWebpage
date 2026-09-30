@@ -9,7 +9,7 @@ import models.label.{
   StreetSide
 }
 import models.pano.PanoSource
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.validation.ValidationLabelFilter
 import models.validation.ValidationQueuePolicy.ValidationQueue
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -19,7 +19,7 @@ import util.{RolledBackDb, SidewalkSpec}
 
 import java.util.UUID
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for the queue policy Validate selects labels with (#4715), and for NoSidewalk's per-block-face
@@ -41,7 +41,7 @@ import scala.concurrent.duration._
 class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val labelTable                                 = app.injector.instanceOf[LabelTable]
   private val labelService                               = app.injector.instanceOf[LabelService]

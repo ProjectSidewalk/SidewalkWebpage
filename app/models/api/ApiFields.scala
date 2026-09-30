@@ -119,7 +119,7 @@ object ApiFields {
  *
  * @param binding The Java class GeoTools builds the column from.
  */
-sealed abstract class GeoColumn(val binding: Class[_ <: AnyRef]) {
+sealed abstract class GeoColumn(val binding: Class[? <: AnyRef]) {
 
   /** @return The value to store, or null where the JSON has null. */
   final def fromJson(json: JsValue): AnyRef = json match {
@@ -171,7 +171,7 @@ object GeoColumnFor {
 
   given temporal[D <: Temporal]: GeoColumnFor[D]      = GeoColumnFor(GeoColumn.TextColumn)
   given namedEnum[E <: NamedEnum]: GeoColumnFor[E]    = GeoColumnFor(GeoColumn.TextColumn)
-  given collection[C <: Iterable[_]]: GeoColumnFor[C] = GeoColumnFor(GeoColumn.TextColumn)
+  given collection[C <: Iterable[?]]: GeoColumnFor[C] = GeoColumnFor(GeoColumn.TextColumn)
   given json[J <: JsValue]: GeoColumnFor[J]           = GeoColumnFor(GeoColumn.TextColumn)
 
   /** An optional value uses the column of the value inside it; None is stored as null. */

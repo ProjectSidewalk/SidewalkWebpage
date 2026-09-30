@@ -2,12 +2,12 @@ package formats.json
 
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
-import formats.json.PanoFormats._
+import formats.json.PanoFormats.*
 import models.label.LabelType
 import models.mission.MissionType
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, JsonValidationError, Reads}
 
 import java.time.OffsetDateTime
@@ -156,7 +156,7 @@ object ValidateFormats {
       (JsPath \ "operating_system").readNullable[String] and
       (JsPath \ "language").read[String] and
       (JsPath \ "css_zoom").read[Int]
-  )(EnvironmentSubmission.apply _)
+  )(EnvironmentSubmission.apply)
 
   given interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
@@ -169,7 +169,7 @@ object ValidateFormats {
       (JsPath \ "zoom").readNullable[Double] and
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-  )(InteractionSubmission.apply _)
+  )(InteractionSubmission.apply)
 
   given labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
@@ -193,7 +193,7 @@ object ValidateFormats {
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean] and
       (JsPath \ "viewer_type").read[ViewerType]
-  )(LabelValidationSubmission.apply _)
+  )(LabelValidationSubmission.apply)
 
   given validationMissionReads: Reads[ValidationMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
@@ -202,7 +202,7 @@ object ValidateFormats {
       (JsPath \ "labels_total").read[Int] and
       (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "completed").read[Boolean]
-  )(ValidationMissionProgress.apply _)
+  )(ValidationMissionProgress.apply)
 
   // The admin-only fields are checked before `ValidateParams` is built: its constructor rejects them without
   // `admin_version` too, but as an exception, which would answer a malformed body with a 500 instead of this 400.
@@ -232,7 +232,7 @@ object ValidateFormats {
       (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
       (JsPath \ "source").read[UiSource] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-  )(ValidationTaskSubmission.apply _)
+  )(ValidationTaskSubmission.apply)
 
   given labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
@@ -254,7 +254,7 @@ object ValidateFormats {
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean] and
       (JsPath \ "viewer_type").read[ViewerType]
-  )(LabelMapValidationSubmission.apply _)
+  )(LabelMapValidationSubmission.apply)
 
   given labelEditSubmissionReads: Reads[LabelEditSubmission] = (
     (JsPath \ "label_id").read[Int] and
@@ -263,12 +263,12 @@ object ValidateFormats {
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
       (JsPath \ "source").read[UiSource]
-  )(LabelEditSubmission.apply _)
+  )(LabelEditSubmission.apply)
 
   given moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
     (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "labels_needed").read[Int] and
       (JsPath \ "excluded_label_ids").read[Seq[Int]] and
       (JsPath \ "validate_params").read[ValidateParams]
-  )(MoreLabelsRequest.apply _)
+  )(MoreLabelsRequest.apply)
 }

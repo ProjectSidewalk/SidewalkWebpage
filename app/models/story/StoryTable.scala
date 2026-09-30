@@ -7,7 +7,7 @@ import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -70,10 +70,8 @@ class StoryTableDef(tag: Tag) extends Table[Story](tag, "story") {
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
 
-  def * = (storyId, labelId, userId, storyText, displayNameMode, visible, moderatedBy, moderatedAt, createdAt) <> (
-    (Story.apply _).tupled,
-    Story.unapply
-  )
+  def * =
+    (storyId, labelId, userId, storyText, displayNameMode, visible, moderatedBy, moderatedAt, createdAt).mapTo[Story]
 
   def label = foreignKey("story_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user  = foreignKey("story_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)

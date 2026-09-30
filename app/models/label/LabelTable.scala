@@ -16,13 +16,13 @@ import models.api.{
   ValidatorType
 }
 import models.audit.AuditTaskTableDef
-import models.label.LabelTable.{given, _}
+import models.label.LabelTable.{given, *}
 import models.mission.MissionTableDef
 import models.pano.{PanoData, PanoDataTable, PanoDataTableDef, PanoSource, PanoViewerMetadata}
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
-import models.user._
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.user.*
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.CommonUtils.UiSource
 import models.utils.{ConfigTableDef, Contributors, FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
 import models.validation.{
@@ -39,7 +39,7 @@ import service.TimeInterval
 import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
-import java.time._
+import java.time.*
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -364,10 +364,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
 
   def * = (labelId, auditTaskId, missionId, userId, panoId, labelType, deleted, temporaryLabelId, timeCreated, tutorial,
     streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags, deletedBy, deletedAt,
-    deletedSource) <> (
-    (Label.apply _).tupled,
-    Label.unapply
-  )
+    deletedSource).mapTo[Label]
 
   /** The `deleted` flag with its provenance, which the DB CHECK makes change together. */
   def deletion = (deleted, deletedBy, deletedAt, deletedSource)
@@ -2105,7 +2102,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       routeIds: Seq[Int],
       aiValOptions: Seq[String],
       bbox: Option[LatLngBBox]
-  ): Query[_, LabelForLabelMapTuple, Seq] = {
+  ): Query[?, LabelForLabelMapTuple, Seq] = {
     // Label IDs with at least one validation from an Administrator or Owner.
     val _adminValidatedLabelIds = for {
       _lv <- labelValidations
@@ -2216,7 +2213,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       LabelForLabelMap(id, taskId, lType, lat, lng, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup, highQual,
         sev, tags, ai)
     case _ =>
-      throw new IllegalStateException(
+      throw IllegalStateException(
         s"Label ${t._1} has a NULL lat (${t._5}) or lng (${t._6}); getLabelsForLabelMap must filter them out."
       )
   }

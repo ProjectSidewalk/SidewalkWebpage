@@ -116,7 +116,7 @@ class LabelClustersApiController @Inject() (
           )
 
           // Get the data stream.
-          val dbDataStream: Source[LabelClusterForApi, _] = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
+          val dbDataStream: Source[LabelClusterForApi, ?] = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
           val baseFileName: String                        = timestampedFilename("labelClusters")
 
           // Output data in the appropriate file format.

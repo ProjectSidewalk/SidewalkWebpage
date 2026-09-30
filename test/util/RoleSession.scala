@@ -1,6 +1,6 @@
 package util
 
-import com.google.inject.{Injector => GuiceInjector, Key, TypeLiteral}
+import com.google.inject.{Injector as GuiceInjector, Key, TypeLiteral}
 import models.auth.DefaultEnv
 import models.user.Role
 import models.utils.MyPostgresProfile
@@ -14,7 +14,7 @@ import play.silhouette.api.Silhouette
 import service.AuthenticationService
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Mints signed-in sessions holding a given role, for specs that pin a role-gated route with a real caller.
@@ -28,7 +28,7 @@ import scala.concurrent.duration._
  * with AnonSession`): the demotion in `afterAll` needs the app's DB pool, and a trait mixed in later would run its
  * `afterAll` outside the app's lifetime.
  */
-trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec with GuiceOneAppPerSuite with AnonSession =>
+trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPerSuite & AnonSession =>
 
   private lazy val roleSessionDbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
@@ -56,7 +56,7 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec with GuiceOneAp
     val silhouetteKey = Key.get(new TypeLiteral[Silhouette[DefaultEnv]]() {})
     val env           = app.injector.instanceOf[GuiceInjector].getInstance(silhouetteKey).env
     val authenticator =
-      Await.result(env.authenticatorService.retrieve(FakeRequest().withCookies(cookies: _*)), 30.seconds)
+      Await.result(env.authenticatorService.retrieve(FakeRequest().withCookies(cookies*)), 30.seconds)
     val user = authenticator.flatMap { auth =>
       Await.result(app.injector.instanceOf[AuthenticationService].retrieve(auth.loginInfo), 30.seconds)
     }

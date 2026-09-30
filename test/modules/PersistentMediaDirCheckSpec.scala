@@ -23,7 +23,7 @@ class PersistentMediaDirCheckSpec extends SidewalkSpec {
 
   // The shape a staged deploy actually runs from: the app root is `target/universal/stage`, and the deploy's
   // `sbt clean` deletes everything under `target/`.
-  private val appRoot = new File("/srv/sidewalk/target/universal/stage")
+  private val appRoot = File("/srv/sidewalk/target/universal/stage")
 
   private def env(mode: Mode = Mode.Test): Environment = Environment(appRoot, getClass.getClassLoader, mode)
 
@@ -67,7 +67,7 @@ class PersistentMediaDirCheckSpec extends SidewalkSpec {
     }
 
     "treat the application root as the danger zone when it is not inside a build tree" in {
-      val bareRoot = Environment(new File("/srv/app"), getClass.getClassLoader, Mode.Test)
+      val bareRoot = Environment(File("/srv/app"), getClass.getClassLoader, Mode.Test)
       unsafeDirs(Configuration.from(allDirsAt(".story-media")), bareRoot) must not be empty
       unsafeDirs(Configuration.from(allDirsAt("../media")), bareRoot) mustBe empty
     }
@@ -134,6 +134,6 @@ class PersistentMediaDirCheckSpec extends SidewalkSpec {
   private val fatalKeys: Set[String] = persistentDirs.filter(_.irreplaceable).map(_.key).toSet
 
   private def runCheck(mode: Mode, dirs: Map[String, String]): Unit = {
-    val _ = new PersistentMediaDirCheck(Configuration.from(dirs), Environment(appRoot, getClass.getClassLoader, mode))
+    val _ = PersistentMediaDirCheck(Configuration.from(dirs), Environment(appRoot, getClass.getClassLoader, mode))
   }
 }

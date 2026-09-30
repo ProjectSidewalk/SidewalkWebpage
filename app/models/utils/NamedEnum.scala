@@ -67,7 +67,7 @@ trait PgEnumCompanion[E <: NamedEnum: ClassTag](val pgType: String) extends Name
 
   // Lets raw SQL take a value as-is (`$status`), already typed, so the query needs no `::pg_type` cast.
   given setParameter: SetParameter[E] = SetParameter { (value, params) =>
-    val typed = new PGobject()
+    val typed = PGobject()
     typed.setType(pgType)
     typed.setValue(value.name)
     params.setObject(typed, Types.OTHER)

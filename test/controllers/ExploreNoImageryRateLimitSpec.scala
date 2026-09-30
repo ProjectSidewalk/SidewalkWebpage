@@ -1,16 +1,16 @@
 package controllers
 
 import controllers.helper.{ExploreBootstrap, SubmissionSpecHelpers}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import _root_.util.SidewalkSpec
 
 import java.time.OffsetDateTime
@@ -45,7 +45,7 @@ class ExploreNoImageryRateLimitSpec
   private val MaxReports = 2
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // Several anon sessions per run share one loopback IP, so the 100/hr signup cap would 429 across repeat runs
       // and break session minting rather than anything under test.
@@ -127,7 +127,7 @@ class ExploreNoImageryRateLimitSpec
   private def postReport(session: Seq[Cookie], payload: JsValue) =
     route(
       app,
-      FakeRequest(POST, "/explore/nostreetview").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+      FakeRequest(POST, "/explore/nostreetview").withCookies(session*).withJsonBody(payload).withCSRFToken
     ).get
 
   /** How many streets the user has reported as imagery-less — the row the endpoint exists to write. */

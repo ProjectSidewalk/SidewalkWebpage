@@ -3,7 +3,7 @@ package models.cluster
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -15,7 +15,7 @@ class ClusterLabelTableDef(tag: Tag) extends Table[ClusterLabel](tag, "cluster_l
   def clusterId: Rep[Int]      = column[Int]("cluster_id")
   def labelId: Rep[Int]        = column[Int]("label_id")
 
-  def * = (clusterLabelId, clusterId, labelId) <> ((ClusterLabel.apply _).tupled, ClusterLabel.unapply)
+  def * = (clusterLabelId, clusterId, labelId).mapTo[ClusterLabel]
 
   def cluster =
     foreignKey("cluster_label_cluster_id_fkey", clusterId, TableQuery[ClusterTableDef])(
