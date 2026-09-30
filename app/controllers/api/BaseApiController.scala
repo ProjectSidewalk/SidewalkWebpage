@@ -116,7 +116,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(using ec: Execu
    */
   protected def parseLabelTypeParam(labelType: Option[String]): Either[ApiError, Option[LabelType]] =
     parseAllowlistedList(labelType, LabelType.labelTypeNames, "labelType")
-      .map(_.flatMap(_.headOption).flatMap(LabelType.byName.get))
+      .map(_.flatMap(_.headOption).flatMap(LabelType.withNameOption))
 
   /** Renders an `ApiError` as an RFC 7807 `application/problem+json` response with the error's HTTP status. */
   protected def badRequest(error: ApiError): Result = ApiError.toResult(error)

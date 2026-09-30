@@ -123,7 +123,7 @@ class LabelTypeSpec extends SidewalkSpec {
 
     "carry every label type, in canonical order" in {
       Json.parse(LabelType.pageStampJson).as[Seq[JsObject]].map(t => (t \ "name").as[String]) mustBe
-        LabelType.orderedNames
+        LabelType.names
     }
   }
 }

@@ -14,7 +14,7 @@ import javax.inject.{Inject, Singleton}
 case class StreetEdgeIssue(
     streetEdgeIssueId: Int,
     streetEdgeId: Int,
-    issue: StreetEdgeIssueType.Value,
+    issue: StreetEdgeIssueType,
     userId: String,
     ipAddress: IpAddress,
     timestamp: OffsetDateTime
@@ -43,11 +43,11 @@ case class CorroboratedNoImageryStreet(
 )
 
 class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "street_edge_issue") {
-  def streetEdgeIssueId: Rep[Int]           = column[Int]("street_edge_issue_id", O.PrimaryKey, O.AutoInc)
-  def streetEdgeId: Rep[Int]                = column[Int]("street_edge_id")
-  def issue: Rep[StreetEdgeIssueType.Value] = column[StreetEdgeIssueType.Value]("issue")
-  def userId: Rep[String]                   = column[String]("user_id")
-  def ipAddress: Rep[IpAddress]             = column[IpAddress]("ip_address")
+  def streetEdgeIssueId: Rep[Int]     = column[Int]("street_edge_issue_id", O.PrimaryKey, O.AutoInc)
+  def streetEdgeId: Rep[Int]          = column[Int]("street_edge_id")
+  def issue: Rep[StreetEdgeIssueType] = column[StreetEdgeIssueType]("issue")
+  def userId: Rep[String]             = column[String]("user_id")
+  def ipAddress: Rep[IpAddress]       = column[IpAddress]("ip_address")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
@@ -124,7 +124,7 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
 
   // Spliced rather than bound because Postgres compares an enum column against an enum literal, not a bind parameter
   // typed as text. Safe to splice: it is a compile-time constant off the enum, never anything a caller supplies.
-  private val NoImageryIssue: String = StreetEdgeIssueType.PanoNotAvailable.toString
+  private val NoImageryIssue: String = StreetEdgeIssueType.PanoNotAvailable.name
 
   /**
    * Labeler reports of missing imagery, bucketed by ISO week (#4928).

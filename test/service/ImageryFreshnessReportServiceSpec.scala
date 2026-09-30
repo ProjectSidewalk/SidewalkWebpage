@@ -110,8 +110,8 @@ class ImageryFreshnessReportServiceSpec extends SidewalkSpec with BeforeAndAfter
       job: String,
       startedAt: OffsetDateTime,
       details: Map[String, Int],
-      status: JobRunStatus.Value = JobRunStatus.Succeeded,
-      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
+      status: JobRunStatus = JobRunStatus.Succeeded,
+      trigger: JobRunTrigger = JobRunTrigger.Scheduled
   ): Unit = {
     val id = run(jobRunTable.insertRunning(job, trigger, startedAt))
     seededRunIds ::= id

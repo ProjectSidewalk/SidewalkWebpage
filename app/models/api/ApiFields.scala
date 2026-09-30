@@ -4,6 +4,7 @@
 package models.api
 
 import models.api.ApiModelUtils.csvCell
+import models.utils.NamedEnum
 import play.api.libs.json.{JsNull, JsObject, JsString, JsValue, Json, Writes}
 
 import java.time.temporal.Temporal
@@ -168,10 +169,10 @@ object GeoColumnFor {
   /** Text, since GeoTools maps a Long to SQL BIGINT, which isn't one of GeoPackage's column types. */
   given long: GeoColumnFor[Long] = GeoColumnFor(GeoColumn.TextColumn)
 
-  given temporal[D <: Temporal]: GeoColumnFor[D]           = GeoColumnFor(GeoColumn.TextColumn)
-  given enumValue[E <: Enumeration#Value]: GeoColumnFor[E] = GeoColumnFor(GeoColumn.TextColumn)
-  given collection[C <: Iterable[_]]: GeoColumnFor[C]      = GeoColumnFor(GeoColumn.TextColumn)
-  given json[J <: JsValue]: GeoColumnFor[J]                = GeoColumnFor(GeoColumn.TextColumn)
+  given temporal[D <: Temporal]: GeoColumnFor[D]      = GeoColumnFor(GeoColumn.TextColumn)
+  given namedEnum[E <: NamedEnum]: GeoColumnFor[E]    = GeoColumnFor(GeoColumn.TextColumn)
+  given collection[C <: Iterable[_]]: GeoColumnFor[C] = GeoColumnFor(GeoColumn.TextColumn)
+  given json[J <: JsValue]: GeoColumnFor[J]           = GeoColumnFor(GeoColumn.TextColumn)
 
   /** An optional value uses the column of the value inside it; None is stored as null. */
   given option[V](using inner: GeoColumnFor[V]): GeoColumnFor[Option[V]] = GeoColumnFor(inner.column)

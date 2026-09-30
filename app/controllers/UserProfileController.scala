@@ -53,7 +53,7 @@ class UserProfileController @Inject() (
     val features: Seq[JsObject] = streets.map { case (street, outdated) =>
       val properties: JsObject = Json.obj(
         "street_edge_id" -> street.streetEdgeId,
-        "way_type"       -> street.wayType.toString,
+        "way_type"       -> street.wayType.name,
         "audited"        -> !outdated,
         "outdated"       -> outdated
       )
@@ -123,7 +123,7 @@ class UserProfileController @Inject() (
           val features: Seq[JsObject] = streets.map { street =>
             val properties: JsObject = Json.obj(
               "street_edge_id" -> street.streetEdgeId,
-              "way_type"       -> street.wayType.toString,
+              "way_type"       -> street.wayType.name,
               "region_id"      -> street.regionId,
               "audited"        -> street.audited,
               // Audited before, but every audit predates newer imagery (needs re-audit, #4384). Never true when

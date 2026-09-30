@@ -393,7 +393,7 @@ object OsmWayService {
     WayType.Motorway, WayType.Trunk, WayType.Primary, WayType.Secondary, WayType.Tertiary, WayType.Unclassified,
     WayType.Residential, WayType.MotorwayLink, WayType.TrunkLink, WayType.PrimaryLink, WayType.SecondaryLink,
     WayType.TertiaryLink, WayType.LivingStreet, WayType.Road
-  ).map(_.toString)
+  ).map(_.name)
 
   private val geometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
 

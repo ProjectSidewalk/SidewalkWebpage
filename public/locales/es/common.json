@@ -402,5 +402,8 @@
     "region-sub-pending": "{{length}} de calles · {{percent}}% explorado",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Calle sin nombre"
-  }
+  },
+  "immersive-enter": "Entrar en el modo inmersivo",
+  "immersive-exit": "Salir del modo inmersivo",
+  "immersive-exit-hint": "Modo inmersivo. Pulsa F para salir."
 }

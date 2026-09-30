@@ -27,8 +27,8 @@ object StreetGradientApiFields {
     field("total_descent_meters")(_.flatMap(_.descentM)),
     field("meters_over_5pct")(_.flatMap(_.metersOver5pctGrade)),
     field("meters_over_8pct")(_.flatMap(_.metersOver8pctGrade)),
-    field("grade_confidence")(_.map(_.confidence.toString)),
-    field("grade_quality")(_.map(_.quality.toString)),
+    field("grade_confidence")(_.map(_.confidence)),
+    field("grade_quality")(_.map(_.quality)),
     field("dem_source")(_.map(_.demSource))
   )
 }

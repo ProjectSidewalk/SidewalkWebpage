@@ -45,6 +45,8 @@ file, and this table says which doc to read first:
 - **Never open a pull request, merge, tag, or release without the maintainer's explicit OK.** Do the work, run the
   checks, push the branch if useful, then stop and ask. Filing GitHub issues is fine. Maintainers: @jonfroehlich
   and @misaugstad.
+- End every issue, PR description, and comment you post on GitHub with `🤖 <model> · effort: <level>` (e.g.
+  `🤖 Claude Opus 5.5 · effort: high`), reading the level from `$CLAUDE_EFFORT` at post time.
 - Prod deploys are tag-triggered (`vX.Y.Z` on `master`); pushing `develop` redeploys the test stage.
 - Edit `src/` files only. Never run grunt or edit `build/` output: the developer's `npm start` runs `grunt watch`.
   A new `src/` file must match a glob in `Gruntfile.js`.

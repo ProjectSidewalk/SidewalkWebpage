@@ -9,8 +9,7 @@ package models.api
 import models.api.ApiModelUtils.createGeoJsonPointGeometry
 import models.label.StreetSide
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
-import models.utils.LatLngBBox
+import models.utils.{LatLngBBox, NamedEnum, NamedEnumCompanion}
 import play.api.libs.json.{JsArray, JsObject, JsValue, Json, Writes}
 
 import java.time.OffsetDateTime
@@ -21,12 +20,14 @@ import java.time.OffsetDateTime
  * The value names are the public API tokens. `Unsure` means the label has at least one validation but no consensus
  * (`correct` still NULL); `Unvalidated` means the label has zero validations.
  */
-object RawLabelValidationStatus extends Enumeration {
-  val ValidatedCorrect   = Value("validated_correct")
-  val ValidatedIncorrect = Value("validated_incorrect")
-  val Unsure             = Value("unsure")
-  val Unvalidated        = Value("unvalidated")
+enum RawLabelValidationStatus(val name: String) extends NamedEnum {
+  case ValidatedCorrect   extends RawLabelValidationStatus("validated_correct")
+  case ValidatedIncorrect extends RawLabelValidationStatus("validated_incorrect")
+  case Unsure             extends RawLabelValidationStatus("unsure")
+  case Unvalidated        extends RawLabelValidationStatus("unvalidated")
 }
+
+object RawLabelValidationStatus extends NamedEnumCompanion[RawLabelValidationStatus]
 
 /**
  * Parsed severity-set filter from the Raw Labels API's `severity` parameter.
@@ -148,7 +149,7 @@ case class RawLabelFiltersForApi(
     severity: Option[SeverityFilterForApi] = None,
     minSeverity: Option[Int] = None,
     maxSeverity: Option[Int] = None,
-    validationStatuses: Option[Set[RawLabelValidationStatus.Value]] = None,
+    validationStatuses: Option[Set[RawLabelValidationStatus]] = None,
     highQualityUserOnly: Boolean = false,
     startDate: Option[OffsetDateTime] = None,
     endDate: Option[OffsetDateTime] = None,
@@ -235,7 +236,7 @@ case class LabelDataForApi(
     osmWayId: Long,
     regionId: Int,
     regionName: String,
-    streetSide: Option[StreetSide.Value],
+    streetSide: Option[StreetSide],
     centerlineOffsetM: Option[Double],
     latitude: Double,
     longitude: Double,
@@ -326,7 +327,7 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
     field("label_id")(_.labelId),
     field("user_id")(_.userId),
     field("pano_id")(_.panoId),
-    field("pano_source")(_.panoSource.toString),
+    field("pano_source")(_.panoSource.name),
     field("label_type")(_.labelType),
     field("severity")(_.severity),
     field("tags")(_.tags),
@@ -337,7 +338,7 @@ object LabelDataForApi extends ApiFields[LabelDataForApi] {
     field("osm_way_id")(_.osmWayId),
     field("region_id")(_.regionId),
     field("region_name")(_.regionName),
-    field("street_side")(_.streetSide.map(_.toString)),
+    field("street_side")(_.streetSide.map(_.name)),
     field("centerline_offset_m")(_.centerlineOffsetM),
     field("correct")(_.correct),
     field("agree_count")(_.agreeCount),

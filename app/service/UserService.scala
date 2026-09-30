@@ -70,7 +70,7 @@ case class PublicProfile(
 case class TeamMemberStats(
     userId: String,
     username: String,
-    role: Role.Value,
+    role: Role,
     labels: Int,
     validations: Int,
     distanceMeters: Double,
@@ -99,7 +99,7 @@ case class TeamTotals(
  *
  * @param team The team they're already on, so the admin can see that adding them would move them.
  */
-case class UserSearchResult(userId: String, username: String, email: String, role: Role.Value, team: Option[String])
+case class UserSearchResult(userId: String, username: String, email: String, role: Role, team: Option[String])
 
 /**
  * Everything `/admin/team/:teamId` shows (#5381).
@@ -489,7 +489,7 @@ trait UserService {
   def setCommunityService(userId: String, enabled: Boolean): Future[Int]
 
   /** Saves the user's units for every city; None follows the site language. */
-  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem.Value]): Future[Int]
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int]
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -693,7 +693,7 @@ class UserServiceImpl @Inject() (
   def setCommunityService(userId: String, enabled: Boolean): Future[Int] =
     db.run(userSettingsTable.setCommunityService(userId, enabled))
 
-  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem.Value]): Future[Int] =
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int] =
     db.run(userSettingsTable.setMeasurementSystem(userId, system))
 
   def getPublicProfile(

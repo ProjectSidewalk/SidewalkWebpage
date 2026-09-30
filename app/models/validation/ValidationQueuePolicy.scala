@@ -128,7 +128,7 @@ object ValidationQueuePolicy {
    * @param l        The label being judged.
    * @param aiResult The AI's vote on this label, absent when the AI never assessed it.
    */
-  def aiContested(l: LabelTableDef, aiResult: Rep[Option[ValidationOption.Value]]): Rep[Boolean] = {
+  def aiContested(l: LabelTableDef, aiResult: Rep[Option[ValidationOption]]): Rep[Boolean] = {
     val aiAgreed: Rep[Boolean]    = (aiResult === ValidationOption.Agree).getOrElse(false)
     val aiDisagreed: Rep[Boolean] = (aiResult === ValidationOption.Disagree).getOrElse(false)
     margin(l) < SettledMargin &&
@@ -136,7 +136,7 @@ object ValidationQueuePolicy {
   }
 
   /** Labels the crowd cannot finish on its own, which is what Expert Validate exists to clear. */
-  def triage(l: LabelTableDef, aiResult: Rep[Option[ValidationOption.Value]]): Rep[Boolean] =
+  def triage(l: LabelTableDef, aiResult: Rep[Option[ValidationOption]]): Rep[Boolean] =
     crowdCappedOut(l) || unsureHeavy(l) || aiContested(l, aiResult)
 
   /**
@@ -146,7 +146,7 @@ object ValidationQueuePolicy {
    * @param l        The label being judged.
    * @param aiResult The AI's vote on this label; only [[ValidationQueue.Triage]] reads it.
    */
-  def inQueue(q: ValidationQueue, l: LabelTableDef, aiResult: Rep[Option[ValidationOption.Value]]): Rep[Boolean] =
+  def inQueue(q: ValidationQueue, l: LabelTableDef, aiResult: Rep[Option[ValidationOption]]): Rep[Boolean] =
     q match {
       case ValidationQueue.NeedsVotes => needsVotes(l)
       case ValidationQueue.Triage     => triage(l, aiResult)

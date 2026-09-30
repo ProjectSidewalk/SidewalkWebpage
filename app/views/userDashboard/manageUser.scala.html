@@ -57,15 +57,15 @@
         <label class="ud-label" for="au-role">Role</label>
         <select class="ps-select ps-select--large" id="au-role" @disabledIf(roleLocked)>
           @if(roleLocked) {
-            <option value="@user.role" selected>@user.role</option>
+            <option value="@user.role.name" selected>@user.role.name</option>
           } else {
             @for(r <- Role.ADMIN_ASSIGNABLE_ROLES) {
-              <option value="@r" @selectedIf(r==user.role)>@r</option>
+              <option value="@r.name" @selectedIf(r==user.role)>@r.name</option>
             }
           }
         </select>
         @if(roleLocked) {
-          <span class="ud-field-help">@user.role accounts can't be moved to another role.</span>
+          <span class="ud-field-help">@user.role.name accounts can't be moved to another role.</span>
         }
       </div>
       <div class="ud-field">

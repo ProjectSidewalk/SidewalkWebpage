@@ -528,7 +528,7 @@
           </div>
           @* Immersive mode toggle (#5085), its own holder so the zoom pair keeps its rounded bottom corner. *@
           <div id="immersive-toggle-holder" class="ps-icon-button-stack">
-            <button type="button" id="immersive-toggle-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.key", "F")" aria-label="Fill the window" data-i18n-aria-label="audit:controls.immersive-enter" data-ps-tooltip-placement="left">
+            <button type="button" id="immersive-toggle-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.key", "F")" aria-label="Fill the window" data-i18n-aria-label="common:immersive-enter" data-ps-tooltip-placement="left">
               <img id="immersive-toggle-icon" class="ps-icon-button-icon" src='@assets.path("images/icons/maximize-2-white-feather.svg")' alt="">
             </button>
           </div>
@@ -982,7 +982,7 @@
 
     mainParam.user = {
       username: @jsonForScript(user.username),
-      role: '@user.role',
+      role: '@user.role.name',
       userId: '@user.userId'
     };
     mainParam.regionId = @data.region.regionId;
@@ -1036,7 +1036,7 @@
        where each fitted value comes from) so the client-side copy of the estimator (Label.js) can never drift from
        the server-side one. *@
     mainParam.latLngEstimation = @jsonForScript(service.PanoDataService.LatLngEstimation.asJson);
-    const imagerySrc = "@commonData.imagerySource.toString";
+    const imagerySrc = "@commonData.imagerySource.name";
     mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
       : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
     mainParam.viewerAccessToken = "@commonData.imageryAccessToken";

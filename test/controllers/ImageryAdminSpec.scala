@@ -64,9 +64,9 @@ class ImageryAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
 
   /** Seeds one finished run of the imagery-age poll, giving the row's optional fields something to carry. */
   private def seedPollRun(
-      status: JobRunStatus.Value,
+      status: JobRunStatus,
       details: Option[JsValue],
-      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
+      trigger: JobRunTrigger = JobRunTrigger.Scheduled
   ): Unit = {
     // The run must land on today (the run_days assertions look for today's row) and successive seeds must stay
     // ordered (a job row reports its latest run). A flat hour back breaks the first between 00:00 and 01:00; pinning

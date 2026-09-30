@@ -330,7 +330,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     AccessScoreCalculator.scoredTypeNames shouldBe meaningful.map(_.name).toSet
 
     AccessScoreCalculator.typeWeights.foreach { case (typeName, weight) =>
-      val impact = LabelType.byName(typeName).accessImpact
+      val impact = LabelType.withName(typeName).accessImpact
       withClue(s"$typeName is a ${impact.name} but weighs ${weight.baseWeight}: ") {
         if (impact == AccessImpact.Problem) weight.baseWeight should be < 0.0 else weight.baseWeight should be > 0.0
       }
@@ -341,7 +341,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     // Scoring carries what the enum doesn't know (per-cluster vs pooled vs presence-only, length normalization), but
     // which way a rating reads is LabelType's to say. Pin them together so the two can't drift (#4457).
     AccessScoreCalculator.typeWeights.foreach { case (typeName, weight) =>
-      val scale = LabelType.byName(typeName).ratingScale
+      val scale = LabelType.withName(typeName).ratingScale
       withClue(s"$typeName is $scale but scores as ${weight.scoring}: ") {
         weight.scoring match {
           case AccessScoreCalculator.PositiveQuality  => scale shouldBe RatingScale.Quality

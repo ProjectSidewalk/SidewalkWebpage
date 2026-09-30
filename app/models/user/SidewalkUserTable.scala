@@ -28,10 +28,10 @@ case class SidewalkUserWithRole(
     userId: String,
     username: String,
     email: String,
-    role: Role.Value,
+    role: Role,
     communityService: Boolean,
     infra3dAccess: Boolean,
-    measurementSystem: Option[MeasurementSystem.Value]
+    measurementSystem: Option[MeasurementSystem]
 ) extends Identity
 
 class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_user") {
@@ -103,7 +103,7 @@ class SidewalkUserTable @Inject() (
    * @param usernames Usernames to look up.
    * @return Per matched user: (username, userId, role).
    */
-  def getUserIdAndRoleByUsernames(usernames: Seq[String]): DBIO[Seq[(String, String, Role.Value)]] = {
+  def getUserIdAndRoleByUsernames(usernames: Seq[String]): DBIO[Seq[(String, String, Role)]] = {
     sidewalkUserToRoleJoin
       .filter(_._1.username inSet usernames)
       .map { case (user, userRole) => (user.username, user.userId, userRole.role) }
@@ -123,10 +123,7 @@ class SidewalkUserTable @Inject() (
    * @param limit The most matches to return.
    * @return Per match: (user id, username, email, role, the name of the team they're on).
    */
-  def searchUsers(
-      query: String,
-      limit: Int
-  ): DBIO[Seq[(String, String, String, Role.Value, Option[String])]] = {
+  def searchUsers(query: String, limit: Int): DBIO[Seq[(String, String, String, Role, Option[String])]] = {
     val escaped = SidewalkUserTable.escapeLike(query.trim)
     // Both sides fold in SQL: Java's case folding differs from Postgres's for some letters (the same trap
     // TeamTable.findByIdOrName calls out), and lower-casing the pattern here would apply only one of the two.

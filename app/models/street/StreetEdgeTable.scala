@@ -45,21 +45,21 @@ case class StreetEdge(
     y1: Double,
     x2: Double,
     y2: Double,
-    wayType: WayType.Value,
-    status: StreetEdgeStatus.Value,
+    wayType: WayType,
+    status: StreetEdgeStatus,
     timestamp: OffsetDateTime
 )
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
 class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
-  def streetEdgeId: Rep[Int]              = column[Int]("street_edge_id", O.PrimaryKey)
-  def geom                                = column[LineString]("geom")
-  def x1: Rep[Double]                     = column[Double]("x1")
-  def y1: Rep[Double]                     = column[Double]("y1")
-  def x2: Rep[Double]                     = column[Double]("x2")
-  def y2: Rep[Double]                     = column[Double]("y2")
-  def wayType: Rep[WayType.Value]         = column[WayType.Value]("way_type")
-  def status: Rep[StreetEdgeStatus.Value] = column[StreetEdgeStatus.Value]("status")
+  def streetEdgeId: Rep[Int]        = column[Int]("street_edge_id", O.PrimaryKey)
+  def geom                          = column[LineString]("geom")
+  def x1: Rep[Double]               = column[Double]("x1")
+  def y1: Rep[Double]               = column[Double]("y1")
+  def x2: Rep[Double]               = column[Double]("x2")
+  def y2: Rep[Double]               = column[Double]("y2")
+  def wayType: Rep[WayType]         = column[WayType]("way_type")
+  def status: Rep[StreetEdgeStatus] = column[StreetEdgeStatus]("status")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
@@ -382,7 +382,7 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    *
    * @return A database action that yields a sequence of (wayType, count) tuples.
    */
-  def getStreetTypes: DBIO[Seq[(WayType.Value, Int)]] = {
+  def getStreetTypes: DBIO[Seq[(WayType, Int)]] = {
     streets
       .groupBy(_.wayType)
       .map { case (wayType, group) => (wayType, group.length) }

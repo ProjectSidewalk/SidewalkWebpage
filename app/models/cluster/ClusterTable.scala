@@ -127,8 +127,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   val clusters: TableQuery[ClusterTableDef] = TableQuery[ClusterTableDef]
 
   // Built once at class level: the raw-labels JSON parse runs per streamed row, so the Reads must not be rebuilt there.
-  private given panoSourceReads: Reads[models.pano.PanoSource.Value] = formats.json.PanoFormats.panoSourceReads
-  private given rawLabelReads: Reads[RawLabelInClusterDataForApi]    = Json.reads[RawLabelInClusterDataForApi]
+  private given panoSourceReads: Reads[models.pano.PanoSource]    = models.pano.PanoSource.storedReads
+  private given rawLabelReads: Reads[RawLabelInClusterDataForApi] = Json.reads[RawLabelInClusterDataForApi]
 
   given labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
     val labelClusterId = r.nextInt()

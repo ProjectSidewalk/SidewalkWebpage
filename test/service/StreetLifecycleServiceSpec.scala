@@ -43,20 +43,15 @@ class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll wit
   private lazy val streetEdgeId: Option[Int] =
     run(sql"SELECT street_edge_id FROM street_edge ORDER BY street_edge_id LIMIT 1".as[Int].headOption)
 
-  private def seedChange(
-      oldStatus: StreetEdgeStatus.Value,
-      newStatus: StreetEdgeStatus.Value,
-      changedAt: OffsetDateTime
-  ): Unit = {
+  private def seedChange(oldStatus: StreetEdgeStatus, newStatus: StreetEdgeStatus, changedAt: OffsetDateTime): Unit = {
     val streetId = streetEdgeId.get
     val _        = run(
       sqlu"""INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, changed_at, source)
                VALUES ($streetId,
-                       ${oldStatus.toString}::street_edge_status,
-                       ${newStatus.toString}::street_edge_status,
+                       $oldStatus,
+                       $newStatus,
                        $changedAt,
-                       ${StreetEdgeStatusChangeSource.HideStreetsWithoutImagery.toString}
-                         ::street_edge_status_change_source)"""
+                       ${StreetEdgeStatusChangeSource.HideStreetsWithoutImagery})"""
     )
   }
 

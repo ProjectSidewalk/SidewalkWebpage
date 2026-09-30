@@ -1,5 +1,7 @@
 package models.street
 
+import models.utils.{NamedEnum, PgEnumCompanion}
+
 /**
  * Whether a block face (one side of one street) has a sidewalk, as inferred from labels, backing the
  * `sidewalk_presence_status` Postgres enum type (#5279).
@@ -10,12 +12,10 @@ package models.street
  *
  * NOTE: if changing these values, update the `sidewalk_presence_status` Postgres enum type as well (see 383.sql).
  */
-object SidewalkPresenceStatus extends Enumeration {
-  type SidewalkPresenceStatus = Value
-  val Present: Value = Value("present")
-  val Absent: Value  = Value("absent")
-  val Unknown: Value = Value("unknown")
-
-  /** Parses a string into a status, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum SidewalkPresenceStatus(val name: String) extends NamedEnum {
+  case Present extends SidewalkPresenceStatus("present")
+  case Absent  extends SidewalkPresenceStatus("absent")
+  case Unknown extends SidewalkPresenceStatus("unknown")
 }
+
+object SidewalkPresenceStatus extends PgEnumCompanion[SidewalkPresenceStatus]("sidewalk_presence_status")

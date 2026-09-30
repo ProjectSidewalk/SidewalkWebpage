@@ -15,7 +15,7 @@ import java.time.OffsetDateTime
  */
 class StreetGradientApiModelsSpec extends SidewalkSpec {
 
-  private def stats(quality: StreetGradientQuality.Value, measured: Boolean, demSource: String = "usgs-3dep-10m") =
+  private def stats(quality: StreetGradientQuality, measured: Boolean, demSource: String = "usgs-3dep-10m") =
     StreetGradientStats(
       streetEdgeId = 7,
       quality = quality,

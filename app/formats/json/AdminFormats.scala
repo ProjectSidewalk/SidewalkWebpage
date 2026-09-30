@@ -2,7 +2,6 @@ package formats.json
 
 import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment}
 import models.label.LabelCount
-import formats.json.UserFormats.roleWrites
 import models.user.UserCount
 import models.utils.MyPostgresProfile.api.given
 import models.validation.{ValidationCount, ValidationOption}
@@ -96,7 +95,7 @@ object AdminFormats {
       (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String] and
       // None represents the "All" results subtotal.
-      (__ \ "result").write[String].contramap[Option[ValidationOption.Value]](_.map(_.toString).getOrElse("All")) and
+      (__ \ "result").write[String].contramap[Option[ValidationOption]](_.map(_.name).getOrElse("All")) and
       (__ \ "validator").write[String]
   )((o: ValidationCount) => Tuple.fromProductTyped(o))
 

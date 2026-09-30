@@ -316,7 +316,7 @@ class PublicApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventuall
       val rawLabels = (json \ "features")
         .as[Seq[JsObject]]
         .flatMap(f => (f \ "properties" \ "labels").asOpt[Seq[JsObject]].getOrElse(Seq.empty))
-      val knownSources = models.pano.PanoSource.values.map(_.toString)
+      val knownSources = models.pano.PanoSource.names
       rawLabels.foreach { label =>
         (label \ "pano_source").asOpt[String].foreach { source => knownSources must contain(source) }
       }
