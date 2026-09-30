@@ -59,11 +59,7 @@ case class BackgroundJobRun(
     errorMessage: Option[String]
 )
 
-/**
- * How many scheduled runs of a job ended a given way; see [[BackgroundJobRunTable.outcomeCountsSince]].
- *
- * @param abandoned The run started long enough ago that, if still open, the app never closed it.
- */
+/** How many scheduled runs of a job ended a given way; see [[BackgroundJobRunTable.outcomeCountsSince]]. */
 case class JobOutcomeCount(jobName: String, status: JobRunStatus, abandoned: Boolean, count: Int)
 
 class BackgroundJobRunTableDef(tag: Tag) extends Table[BackgroundJobRun](tag, "background_job_run") {

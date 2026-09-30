@@ -108,9 +108,7 @@ case class OutdatedStreetForUser(
     lastAuditedAt: Option[OffsetDateTime]
 )
 
-/**
- * One street's audit state for the user a task is being handed to; see [[AuditTaskTable.streetAuditState]].
- */
+/** One street's audit state for a given user; see [[AuditTaskTable.streetAuditState]]. */
 case class StreetAuditState(
     streetEdgeId: Int,
     completedByAnyUser: Boolean,
@@ -120,9 +118,7 @@ case class StreetAuditState(
     newImageryDate: Option[LocalDate]
 )
 
-/**
- * [[StreetAuditState]] while it is still part of a query, so joins and projections can read its columns by name.
- */
+/** [[StreetAuditState]] while it is still part of a query. */
 case class StreetAuditStateRep(
     streetEdgeId: Rep[Int],
     completedByAnyUser: Rep[Boolean],
@@ -136,11 +132,7 @@ object StreetAuditStateRep {
     LiftedRow.shape(StreetAuditStateRep.apply.tupled)(StreetAuditState.apply.tupled)
 }
 
-/**
- * The open route task a labeler resumes on; see [[AuditTaskTable.resumableRouteTask]].
- *
- * @param position The street's walking-order position within the route.
- */
+/** The open route task a labeler resumes on, and where its street falls in the route's walking order. */
 case class ResumableRouteTask(auditTaskId: Int, routeStreetId: Int, position: Int)
 
 class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "audit_task") {

@@ -278,7 +278,7 @@ case class LabelComment(
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
 case class AdminValidationData(labelId: Int, username: String, previousValidations: Seq[PreviousValidation])
 
-/** One earlier vote on a label: who cast it and what they said. */
+/** One earlier vote on a label. */
 case class PreviousValidation(username: String, validation: ValidationOption)
 
 /** The admin-set flags on the audit task a label was placed during. */
@@ -396,11 +396,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
   def panoData = foreignKey("label_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId)
 }
 
-/**
- * [[LabelMetadataUserDash]] while it is still part of a query, so later query steps read its columns by name.
- *
- * @param pov The label's (heading, pitch, zoom).
- */
+/** [[LabelMetadataUserDash]] while it is still part of a query; `pov` is (heading, pitch, zoom). */
 case class LabelMetadataUserDashRep(
     labelId: Rep[Int],
     panoId: Rep[String],
@@ -453,13 +449,10 @@ object LabelMetadataUserDashRep {
 }
 
 /**
- * One label-map row while it is still part of a query; fetched rows become [[LabelForLabelMap]].
+ * [[LabelForLabelMap]] while it is still part of a query, plus the street id that route filtering needs.
  *
- * `lat`/`lng` stay optional here because unwrapping them inside the query fails at runtime with "SlickException:
- * Expected an option type, found Float/REAL". `getLabelsForLabelMap` filters out NULL coordinates, so one in a fetched
- * row means that filter was lost; that fails loudly rather than silently dropping labels off the map.
- *
- * @param streetEdgeId Only used for route filtering; not part of [[LabelForLabelMap]].
+ * `lat`/`lng` can't be unwrapped inside the query (Slick fails at runtime), so a row with a missing one throws when
+ * fetched rather than silently dropping the label off the map.
  */
 case class LabelForLabelMapRep(
     labelId: Rep[Int],
@@ -510,18 +503,8 @@ object LabelForLabelMapRep {
 }
 
 /**
- * [[LabelValidationMetadata]] while it is still part of a query. Related columns are grouped so the row stays within
- * the 22 fields Slick can map.
- *
- * @param location       The label's (lat, lng).
- * @param pov            The label's (heading, pitch, zoom).
- * @param canvas         The label's canvas (x, y) and that canvas's (width, height).
- * @param street         (streetEdgeId, regionId, streetSide).
- * @param validationInfo (agreeCount, disagreeCount, unsureCount, correct, userValidation, aiValidation).
- * @param cameraLocation The pano's (lat, lng).
- * @param comments       The label's comments, aggregated into one JSON string.
- * @param pano           (width, height, tileWidth, tileHeight, cameraHeading, cameraPitch, cameraRoll, copyright,
- *                       license, address).
+ * [[LabelValidationMetadata]] while it is still part of a query. Related columns are grouped into tuples because Slick
+ * can map at most 22 fields; the shape below names what is in each group.
  */
 case class LabelValidationMetadataRep(
     labelId: Rep[Int],
@@ -631,11 +614,7 @@ object LabelValidationMetadataRep {
     }
 }
 
-/**
- * [[NoSidewalkFaceEvidence]] while it is still part of a query; see `LabelTable.noSidewalkFaceEvidence`.
- *
- * @param streetSide Never NULL: only sided labels are aggregated, but the column itself is nullable.
- */
+/** [[NoSidewalkFaceEvidence]] while it is still part of a query. */
 case class NoSidewalkFaceEvidenceRep(
     streetEdgeId: Rep[Int],
     streetSide: Rep[Option[StreetSide]],
@@ -662,7 +641,7 @@ case class RecentLabel(labelId: Int, labelType: String, username: String, timeCr
 /** How many labels of one type a user has placed. */
 case class UserLabelTypeCount(userId: String, labelType: String, count: Int)
 
-/** How many labels a user has placed at one severity rating (the raw rating, not bucketed). */
+/** How many labels a user has placed at one severity rating. */
 case class UserSeverityCount(userId: String, severity: Option[Int], count: Int)
 
 /** A user's label count and when they placed their most recent one. */
@@ -676,16 +655,16 @@ case class UserLabelCount(userId: String, count: Int, latest: Option[OffsetDateT
  */
 case class LabelStatsByAuthorRole(isAi: Boolean, labelType: String, total: Int, validated: Int, correct: Int)
 
-/** How many labels the AI, or every human labeler, placed at one severity rating (the raw rating, not bucketed). */
+/** How many labels the AI (or humans) placed at one severity rating. */
 case class SeverityCountByAuthorRole(isAi: Boolean, severity: Option[Int], count: Int)
 
-/** How many labels of one type carry a tag at one severity rating (the raw rating, not bucketed). */
+/** How many labels of one type carry a tag at one severity rating. */
 case class TagSeverityCountRow(labelType: String, tag: String, severity: Option[Int], count: Int)
 
-/** Which block face a label sits on; the side is None for an unsided label. */
+/** Which street, and which side of it, a label sits on. */
 case class LabelFace(labelId: Int, streetEdgeId: Int, streetSide: Option[StreetSide])
 
-/** The pano and point-of-view a label was placed from: enough to build a preview image URL or look up a crop. */
+/** The pano and camera angle a label was placed from, for building its preview image. */
 case class LabelPanoMetadata(
     labelId: Int,
     panoId: String,
@@ -2380,8 +2359,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd.expired
     )
 
-    // lat/lng are unwrapped here rather than in the query: using both `_l.agreeCount > 0` and `_lp.lat.get` in the
-    // yield fails at runtime with "SlickException: Expected an option type, found Float/REAL".
+    // lat/lng are unwrapped here because doing it inside the query fails at runtime.
     _labels.result.map(_.map {
       case (labelId, auditTaskId, panoId, labelType, lat, lng, correct, hasValidations, expired) =>
         LabelLocation(labelId, auditTaskId, panoId, labelType, lat.get, lng.get, correct, hasValidations, expired)

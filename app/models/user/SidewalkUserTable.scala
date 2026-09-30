@@ -36,17 +36,13 @@ case class SidewalkUserWithRole(
     measurementSystem: Option[MeasurementSystem]
 ) extends Identity
 
-/** The little that lists of people need to name a user and say what kind of account it is. */
+/** A user's id, name, and role. */
 case class UserNameAndRole(userId: String, username: String, role: Role)
 
-/**
- * One account an admin's user search matched.
- *
- * @param team The name of the team they're on, if any.
- */
+/** One account an admin's user search matched, with the name of the team they're on. */
 case class UserSearchResult(userId: String, username: String, email: String, role: Role, team: Option[String])
 
-/** [[SidewalkUserWithRole]] while it is still part of a query, so filters can read its columns by name. */
+/** [[SidewalkUserWithRole]] while it is still part of a query. */
 case class SidewalkUserWithRoleRep(
     userId: Rep[String],
     username: Rep[String],

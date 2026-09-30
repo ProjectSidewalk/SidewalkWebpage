@@ -7,12 +7,7 @@ import slick.jdbc.GetResult
 
 import javax.inject.*
 
-/**
- * One week the user placed in the top 3 by label count.
- *
- * @param weekOf The week's start date as ISO yyyy-MM-dd; the caller formats it for the viewer's locale.
- * @param rank   1-3.
- */
+/** One week the user placed in the top 3 by label count; `weekOf` is the week's start date (yyyy-MM-dd). */
 case class WeeklyPodium(weekOf: String, rank: Int, labelCount: Int)
 
 /** A region where the user is the top labeler, with their label count there. */

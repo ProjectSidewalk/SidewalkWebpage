@@ -33,14 +33,7 @@ import scala.util.Random
  */
 case class SpotlightSnapshotResult(regions: Int, streets: Int)
 
-/**
- * One city's contribution to the cross-city Spotlight.
- *
- * @param candidates Rows that could make the merged lists.
- * @param qualifying How many of the city's rows are rankable.
- * @param total      How many rows the city has at all.
- * @param computedAt When the city's scores were computed, if they have been.
- */
+/** One city's contribution to the cross-city Spotlight. */
 private case class CitySpotlight(
     candidates: Seq[SpotlightRowForApi],
     qualifying: Int,

@@ -143,19 +143,15 @@ case class StandingRow(rank: Int, username: String, labelCount: Int, isYou: Bool
  * @param slice      The user's row ± a couple of neighbors, ordered by rank.
  * @param delta      Spots moved since the previous week (positive = climbed), or None if not comparable.
  */
-/** How many of a user's labels of one type were judged correct and incorrect by majority vote. */
+/** How many of a user's labels of one type were judged correct and incorrect. */
 case class LabelTypeTally(labelType: String, correct: Int, incorrect: Int)
 
-/**
- * A user's quality standing in this city.
- *
- * @param excluded Whether their work is left out of the city's stats.
- */
+/** Whether a user is rated high quality, and whether their work is left out of the city's stats. */
 case class UserQualityFlags(userId: String, highQuality: Boolean, excluded: Boolean)
 
 case class UserStanding(rank: Int, cohortSize: Int, labelCount: Int, slice: Seq[StandingRow], delta: Option[Int] = None)
 
-/** One row of the standing query: a neighbor's [[StandingRow]] plus the requesting user's own totals, repeated. */
+/** One row of the standing query: a [[StandingRow]] plus the requesting user's own totals. */
 private case class StandingQueryRow(
     rank: Int,
     username: String,

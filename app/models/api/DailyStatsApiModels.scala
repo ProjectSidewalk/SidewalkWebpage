@@ -9,16 +9,15 @@ import slick.jdbc.GetResult
 
 import java.time.LocalDate
 
-/** One day's label counts for one label type, split by whether a person or the AI placed them. */
+/** One day's label counts for one label type, split by human vs. AI. */
 case class DailyLabelStat(date: LocalDate, labelType: String, humanLabels: Int, aiLabels: Int)
 
 object DailyLabelStat {
-  // Shared by the per-city query and its cross-schema twin, whose SELECTs list these columns in this order.
   given getResult: GetResult[DailyLabelStat] =
     GetResult(r => DailyLabelStat(LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
 }
 
-/** One day's validation counts for one label type, split by who voted (people or the AI) and how they voted. */
+/** One day's validation counts for one label type, split by human vs. AI and by vote. */
 case class DailyValidationStat(
     date: LocalDate,
     labelType: String,
@@ -31,7 +30,6 @@ case class DailyValidationStat(
 )
 
 object DailyValidationStat {
-  // Shared by the per-city query and its cross-schema twin, whose SELECTs list these columns in this order.
   given getResult: GetResult[DailyValidationStat] = GetResult(r =>
     DailyValidationStat(LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(),
       r.nextInt(), r.nextInt(), r.nextInt())

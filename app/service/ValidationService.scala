@@ -100,8 +100,7 @@ class ValidationServiceImpl @Inject() (
       .find(labelId)
       .flatMap {
         case Some(label) =>
-          // A count gains 1 when the new validation is that option and loses 1 when the user's previous one was; a
-          // delete has no new validation, and a first vote has no previous one.
+          // Each count gains 1 if the new vote is that option and loses 1 if the user's old vote was.
           def change(option: ValidationOption): Int =
             (if (newResult.contains(option)) 1 else 0) - (if (oldResult.contains(option)) 1 else 0)
           val agreeCount: Int    = label.agreeCount + change(ValidationOption.Agree)

@@ -243,12 +243,7 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
   `implicit request =>` on an action block, which has no shorter Scala 3 spelling.
 - **Use Slick for database access**, not raw SQL, wherever possible — you get compile-time type checking. When you
   must write SQL, **avoid table aliases**.
-- **Read query results by name, never by position (`row._3`)** — a reordered column compiles fine and silently shifts
-  every positional reader. End a Slick projection in `.mapTo[CaseClass]` (filter, sort, and join *before* projecting)
-  and give raw SQL a `GetResult` for a case class rather than `.as[(Int, String, …)]`. Destructure join pairs, `groupBy`
-  results, and map entries with `{ case (label, user) => … }`. A sub-query that other queries join against gets a
-  column-side twin (`FooRep`, one `Rep` per field) with a shape from `LiftedRow.shape` in its companion, so its
-  columns keep their names inside later joins — see `StreetAuditStateRep` in `AuditTaskTable.scala`.
+- **Read query results by name, not by position** — return a case class rather than a tuple, so nothing reads `row._3`.
 - **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
   extension method in Slick, turf.js on the frontend. Never measure by projecting to a fixed SRID: a projection is
   only accurate near its own meridian (measuring every city through UTM zone 18N overstated street distances by up

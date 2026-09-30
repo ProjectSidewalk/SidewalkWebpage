@@ -32,7 +32,7 @@ case class LabelToCluster(
     severity: Option[Int]
 )
 
-/** [[LabelToCluster]] while it is still part of a query, so joins and filters can read its columns by name. */
+/** [[LabelToCluster]] while it is still part of a query. */
 case class LabelToClusterRep(
     regionId: Rep[Int],
     userId: Rep[String],
