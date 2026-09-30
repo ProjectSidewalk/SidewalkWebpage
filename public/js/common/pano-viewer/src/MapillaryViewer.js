@@ -6,6 +6,30 @@ class MapillaryViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
   static SOURCE = 'mapillary';
 
+  /** See PanoViewer.PAINTS_DURING_LOAD. The SDK draws the new image at the old heading before moveTo() resolves. */
+  static PAINTS_DURING_LOAD = true;
+
+  /**
+   * How long setPano() waits for the SDK to move to a pano before giving up on it, in ms. Covers the move alone: the
+   * linked-pano wait after it has its own, shorter budget, since a pano with no links is still a usable pano.
+   * @type {number}
+   */
+  static PANO_LOAD_TIMEOUT_MS = 12000;
+
+  /**
+   * How long to wait for the SDK to report a new pano's linked panos before carrying on without them, in ms. Links
+   * only feed navigation arrows and minimap crumbs, so waiting longer would hold up a pano the user can already use.
+   * @type {number}
+   */
+  static SPATIAL_EDGES_TIMEOUT_MS = 4000;
+
+  /**
+   * Budget for the Graph API existence check that classifies a failed load, in ms. It runs after a load has already
+   * failed, often on a network that is the reason why, so it gets a short leash; running out means "unknown".
+   * @type {number}
+   */
+  static EXISTS_CHECK_TIMEOUT_MS = 5000;
+
   // The vertical fov Mapillary can actually render a spherical image at: it renders fov = 2·atan(2^−zoom) and
   // clamps zoom to [0, 3], giving [14.25°, 90°]. Requests outside that are silently clamped by the SDK (#4852).
   // Plain Math rather than util.math.toDegrees: these evaluate at bundle load, and util ships in a separate
@@ -135,19 +159,28 @@ class MapillaryViewer extends PanoViewer {
   _getPanoramaCallback = async (newImage) => {
     const oldPov = this.currImage ? this.getPov() : null; // Save old pov so we can keep the same view.
 
-    // Make sure that the node has the linked panos are initialized (in image._cache._spatialEdges.edges).
+    // Make sure that the node has the linked panos are initialized (in image._cache._spatialEdges.edges). The SDK
+    // reports them in a separate graph request that can lag the image by seconds; a pano whose links never arrive in
+    // time is still the right pano, so it resolves with none rather than failing the load (#5581).
     const edgesInitialized = new Promise((resolve) => {
       // Use links if they're already cached.
       if (newImage._cache._spatialEdges.cached) {
         resolve(newImage._cache._spatialEdges.edges);
       } else {
+        let timer;
+        const finish = (edges) => {
+          clearTimeout(timer);
+          this.viewer.off('spatialedges', linksListener);
+          resolve(edges);
+        };
         // Listen for the event that fires when the links are updated.
         const linksListener = (e) => {
-          if (e.status.cached) {
-            this.viewer.off('spatialedges', linksListener);
-            resolve(e.status.edges);
-          }
+          if (e.status.cached) finish(e.status.edges);
         };
+        timer = setTimeout(() => {
+          console.warn(`Mapillary linked panos for ${newImage.id} not ready; continuing without them.`);
+          finish([]);
+        }, MapillaryViewer.SPATIAL_EDGES_TIMEOUT_MS);
         this.viewer.on('spatialedges', linksListener);
       }
     });
@@ -483,6 +516,69 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
+   * See PanoViewer.prefetchPano(). Validate calls it one label ahead (#5581), since a jump to an unrelated pano never
+   * benefits from the SDK's own neighbor cache. Guarded because it reaches into SDK internals: a prefetch that can't
+   * run must never break the label that asked for it.
+   * @param {string} panoId - The Mapillary image id to warm.
+   * @returns {void}
+   */
+  prefetchPano = (panoId) => {
+    try {
+      this.#cachePanoAssets(panoId);
+    } catch (err) {
+      console.warn(`Could not prefetch Mapillary pano ${panoId}:`, err);
+    }
+  };
+
+  /**
+   * Asks the Graph API whether an image still exists, to classify a load that failed.
+   *
+   * Only an answer that names the image as missing counts as "no": Graph's 404, or its code 100 ("does not exist,
+   * cannot be loaded due to missing permissions, or does not support this operation"), which is what it answers for
+   * a deleted image id. A rate limit, an expired token, a 5xx, or no answer inside the budget is "unknown", because
+   * the caller treats "no" as grounds to drop what needed the pano and must not do that on a guess (#5581).
+   * @param {string} panoId - The Mapillary image id.
+   * @returns {Promise<?boolean>} True if Graph returned the image, false if it said the image is missing, null if it
+   *     couldn't say. Never rejects.
+   */
+  #panoExists = async (panoId) => {
+    try {
+      const token = this.viewer._navigator._api._data._accessToken;
+      const url = `https://graph.mapillary.com/${encodeURIComponent(panoId)}?fields=id&access_token=${token}`;
+      const { status, body } = await PanoViewer._withTimeout((async () => {
+        const response = await fetch(url);
+        return { status: response.status, body: await response.json().catch(() => null) };
+      })(), MapillaryViewer.EXISTS_CHECK_TIMEOUT_MS, `Mapillary existence check for ${panoId}`);
+
+      if (status === 404 || body?.error?.code === 100) return false;
+      if (body && body.id) return true;
+      return null;
+    } catch (err) {
+      console.warn(`Could not check whether Mapillary pano ${panoId} exists:`, err);
+      return null;
+    }
+  };
+
+  /**
+   * Turns a failed move into the error setPano() promises its callers (see PanoViewer.setPano()).
+   * @param {string} panoId - The pano that failed to load.
+   * @param {unknown} err - What the move rejected with: the SDK's error, or _withTimeout's TimeoutError.
+   * @param {number} elapsedMs - How long the move ran.
+   * @returns {Promise<Error>} The error to throw: NoImageryError when Graph says the pano is gone,
+   *     PanoLoadTimeoutError when the move ran out of time on a pano that exists or might, otherwise the SDK's error.
+   */
+  #classifyLoadFailure = async (panoId, err, elapsedMs) => {
+    const exists = await this.#panoExists(panoId);
+    if (exists === false) {
+      return new NoImageryError(`Mapillary image ${panoId} no longer exists.`, { cause: err });
+    }
+    if (err instanceof Error && err.name === 'TimeoutError') {
+      return new PanoLoadTimeoutError(panoId, elapsedMs, { cause: err });
+    }
+    return err instanceof Error ? err : new Error(`Failed to load Mapillary pano ${panoId}`, { cause: err });
+  };
+
+  /**
    * Creates a prefetch entry for the given location, stores it, and returns it.
    *
    * @param {turf.Point} centerPoint
@@ -581,16 +677,30 @@ class MapillaryViewer extends PanoViewer {
     return bestPano;
   };
 
+  /**
+   * See PanoViewer.setPano(), including how a rejection is typed.
+   * @param {string} panoId - The Mapillary image id to move to.
+   * @returns {Promise<PanoData>}
+   */
   setPano = async (panoId) => {
     this.changingPanoOurselves = true;
+    const startedAt = Date.now();
     try {
-      return await Promise.race([
-        this.viewer.moveTo(panoId).then(this._getPanoramaCallback),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timed out')), 12000)),
-      ]);
-    } catch {
-      console.error('Failed to load pano: ', panoId);
-      throw new Error(`Failed to load pano: ${panoId}`);
+      let image;
+      try {
+        image = await PanoViewer._withTimeout(
+          this.viewer.moveTo(panoId), MapillaryViewer.PANO_LOAD_TIMEOUT_MS, `Mapillary pano ${panoId}`,
+        );
+      } catch (err) {
+        const classified = await this.#classifyLoadFailure(panoId, err, Date.now() - startedAt);
+        console.error(`Failed to load Mapillary pano ${panoId}:`, classified);
+        throw classified;
+      }
+      return await this._getPanoramaCallback(image);
+    } finally {
+      // A failed load never reaches _getPanoramaCallback, which is otherwise what clears this, and a flag left set
+      // would make the next nav-arrow move skip its metadata update.
+      this.changingPanoOurselves = false;
     }
   };
 
@@ -615,6 +725,11 @@ class MapillaryViewer extends PanoViewer {
     };
   };
 
+  /**
+   * See PanoViewer.setPov().
+   * @param {{heading: number, pitch: number, zoom?: number}} pov - Where to aim; a missing zoom keeps the current one.
+   * @returns {Promise<void>} Settles once the SDK has applied both the center and the field of view.
+   */
   setPov = (pov) => {
     // Find x-position of requested heading on the underlying image [0,1]. To do this, we find the difference b/w
     // requested heading and the heading for the start of the image (which is cameraHeading - 180), divide by 360.
@@ -624,22 +739,25 @@ class MapillaryViewer extends PanoViewer {
     // Find y-position of requested pitch on underlying image [0,1]. Requested pitch is wrt the center of the image.
     const y = 0.5 - pov.pitch / 180;
 
-    // Set the x/y position of the camera based on the requested heading/pitch.
-    // NOTE despite not returning a Promise, setCenter() happens async, so we save it in this.currCenter as well.
-    this.viewer.setCenter([x, y]);
+    // Set the x/y position of the camera based on the requested heading/pitch. The SDK applies it asynchronously, so
+    // it is cached in this.currCenter for the synchronous getPov() as well.
+    const centerSet = this.viewer.setCenter([x, y]);
     this.currCenter = [x, y];
 
     // Convert zoom to a horizontal fov, and then convert to the vertical fov used by Mapillary.
     pov.zoom = pov.zoom || this.getPov().zoom || 1;
     const horizontalFov = util.pano.zoomToFov(pov.zoom);
     const verticalFov = util.pano.hFovToVFov(horizontalFov, this.currAspect || this._viewportAspect());
-    // NOTE despite not returning a Promise, setFieldOfView() happens async, so we save it in this.currVerticalFov.
-    // Mirror the SDK's own clamp into that cache, or getPov() reports a zoom the viewer isn't showing: a portrait
-    // viewport asks for more than 90° at wide zooms, a landscape one for less than 14.25° at zoom 3. It only has
-    // to bridge one frame — the renderCamera$ subscription replaces it with the rendered fov on the next tick.
-    this.viewer.setFieldOfView(verticalFov);
+    // setFieldOfView() is asynchronous too, so the fov is cached in this.currVerticalFov. Mirror the SDK's own clamp
+    // into that cache, or getPov() reports a zoom the viewer isn't showing: a portrait viewport asks for more than 90°
+    // at wide zooms, a landscape one for less than 14.25° at zoom 3. It only has to bridge one frame — the
+    // renderCamera$ subscription replaces it with the rendered fov on the next tick.
+    const fovSet = this.viewer.setFieldOfView(verticalFov);
     this.currVerticalFov = Math.min(MapillaryViewer.#MAX_VERTICAL_FOV,
       Math.max(MapillaryViewer.#MIN_VERTICAL_FOV, verticalFov));
+
+    // Settles once the SDK has both, so a caller hiding the canvas until the view is aimed knows when it is (#5582).
+    return Promise.all([centerSet, fovSet]).then(() => undefined);
   };
 
   hideNavigationArrows = () => {

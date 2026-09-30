@@ -9,6 +9,16 @@ class PanoViewer {
   static SOURCE;
 
   /**
+   * Whether the viewer draws a new pano on its canvas before setPano() resolves, and so at whatever heading the
+   * previous pano was left at (#5582). Mapillary and Panoramax start drawing as soon as the new image's texture
+   * arrives and only report the load finished later; GSV swaps panos in about 50 ms, so for it keeping the outgoing
+   * image up during the load is right (#5208). A page that aims each pano itself keeps such a viewer's canvas
+   * unpainted until it has, rather than letting the validator see the new pano pointed the old way.
+   * @type {boolean}
+   */
+  static PAINTS_DURING_LOAD = false;
+
+  /**
    * The pano on screen, or the previous one while the next is loading. Undefined until the first pano loads.
    * @type {PanoData|undefined}
    */
@@ -291,6 +301,15 @@ class PanoViewer {
   async preloadPanoNear(_latLng, _excludedPanos = new Set()) {}
 
   /**
+   * Starts downloading a pano the page expects to show soon, without moving to it, so the later setPano() finds it
+   * in the provider's cache. Fire-and-forget: a prefetch that fails costs nothing, since setPano() fetches anyway.
+   * No-op by default; override in providers whose SDK can cache an image it isn't showing.
+   * @param {string} _panoId - The provider's id for the pano.
+   * @returns {void}
+   */
+  prefetchPano(_panoId) {}
+
+  /**
    * Whether this provider can search for a pano by location, and so answer findPanoNear() with more than null.
    * Callers that would otherwise sample a whole street for nothing (Pannellum) check this first. False by default;
    * a provider that implements findPanoNear() overrides it.
@@ -337,7 +356,8 @@ class PanoViewer {
    * @param {Promise<T>} promise - The provider call.
    * @param {number} ms - How long to wait before giving up.
    * @param {string} what - Names the operation in the rejection message.
-   * @returns {Promise<T>} Resolves/rejects with the promise, or rejects with a "Timed out" Error after `ms`.
+   * @returns {Promise<T>} Resolves/rejects with the promise, or rejects with a "Timed out" Error after `ms`, whose
+   *     `name` is 'TimeoutError' so a caller can tell giving up apart from the provider's own rejection.
    * @protected
    */
   static _withTimeout(promise, ms, what) {
@@ -345,7 +365,11 @@ class PanoViewer {
     return Promise.race([
       promise,
       new Promise((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`Timed out: ${what}`)), ms);
+        timer = setTimeout(() => {
+          const timeout = new Error(`Timed out: ${what}`);
+          timeout.name = 'TimeoutError';
+          reject(timeout);
+        }, ms);
       }),
     ]).finally(() => clearTimeout(timer));
   }
@@ -360,6 +384,11 @@ class PanoViewer {
 
   /**
    * Moves the current panorama to the specified panorama ID.
+   *
+   * How a rejection is typed is part of the contract, because callers decide from it whether to give up on whatever
+   * needed the pano (#5581): a NoImageryError means the provider no longer has it; a PanoLoadTimeoutError means it
+   * still exists (or its existence couldn't be checked) but didn't load in time, so trying again later is reasonable;
+   * anything else is a load failure of unknown cause. Only viewers that can check existence throw the second.
    * @param {string} _panoId - The panorama ID to set.
    * @returns {Promise<PanoData>} The panorama data object.
    * @abstract
@@ -433,7 +462,8 @@ class PanoViewer {
    * @param {number} _pov.heading - Desired heading in degrees (0-360, where 0 is true north)
    * @param {number} _pov.pitch - Desired pitch in degrees (-90 to 90, where 0 is horizontal)
    * @param {number} _pov.zoom - Desired zoom (1, 2, or 3)
-   * @returns {void}
+   * @returns {void|Promise<void>} A viewer whose SDK applies the POV asynchronously returns a promise that settles once
+   *     it has, so a caller that must not paint the old heading (Validate's reveal, #5582) can wait for it.
    * @abstract
    */
   setPov(_pov) {

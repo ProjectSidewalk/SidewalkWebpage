@@ -22,6 +22,13 @@ class PanoramaxViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
   static SOURCE = 'panoramax';
 
+  /**
+   * See PanoViewer.PAINTS_DURING_LOAD. PSV draws the new picture as soon as its own load resolves, still at the old
+   * heading, and setPano() resolves only after a second request for the picture's links, so the page's POV lands
+   * that request's length after the picture first painted.
+   */
+  static PAINTS_DURING_LOAD = true;
+
   /** The federated meta-catalog, which searches every Panoramax instance at once. */
   static API_BASE = 'https://api.panoramax.xyz/api';
 
