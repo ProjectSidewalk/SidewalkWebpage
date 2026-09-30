@@ -247,7 +247,8 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
   and its consumer is a named tuple, `type UserLabelCount = (userId: String, count: Int, latest: Option[Instant])`:
   a lifted query's plain tuple already conforms to it (no `mapTo`), a plain-SQL reader just returns the tuple, and
   fields read as `row.count` or match as `case (userId = u, count = c)`. Anything with JSON writes, methods, a
-  companion, or several consumers is a case class.
+  companion, or several consumers is a case class. Build a row from `r.nextX()` reads as a positional tuple, not a
+  named literal: Scala 3.9's coverage build evaluates `(a = r.nextInt(), b = r.nextInt())` out of order (#5605).
 - **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
   extension method in Slick, turf.js on the frontend. Never measure by projecting to a fixed SRID: a projection is
   only accurate near its own meridian (measuring every city through UTM zone 18N overstated street distances by up

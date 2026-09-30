@@ -999,7 +999,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextStringOption().map(ValidationOption.withName), // aiValidation
       Map("agree" -> r.nextInt(), "disagree" -> r.nextInt(), "unsure" -> r.nextInt()),
       r.nextStringArray().toList,
-      (lowQuality = r.nextBoolean(), incomplete = r.nextBoolean(), stale = r.nextBoolean()),
+      // taskFlags. Positional on purpose: written as `(lowQuality = r.nextBoolean(), …)`, the 3.9 coverage build reads
+      // the columns out of order and every share-page spec fails on CI (fine without coverage).
+      (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
         case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
