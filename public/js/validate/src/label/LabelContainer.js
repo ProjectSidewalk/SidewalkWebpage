@@ -8,6 +8,11 @@ class LabelContainer {
   // luck — imagery is broadly unavailable (a provider outage or quota). Stop asking and tell the user (#4810).
   static #MAX_TOP_UP_ROUNDS = 2;
 
+  // Loads a label gets before a slow one is dropped (#5581). The first slow load sends it to the back of the queue,
+  // since the pano exists and often loads on a second try once the CDN has warmed; a second one means this network
+  // can't fetch it in time today, and holding the validator for a third deadline would cost more than the label.
+  static #MAX_LOAD_ATTEMPTS = 2;
+
   // These are all set in resetLabelList.
   #labels;  // All labels in the mission.
   #currLabelIndex;
@@ -16,6 +21,8 @@ class LabelContainer {
   #seenLabelIds;     // Every label this mission has handed us, so a replacement can't duplicate one.
   #labelsOwed;       // Labels dropped for unrenderable imagery that haven't been replaced yet.
   #topUpRounds;
+  /** @type {Map<Label, number>} Loads tried per label that failed as slow, so a deferred label is deferred once. */
+  #slowLoads;
 
   #labelsToSubmit = [];
   #submittedLabels = [];
@@ -159,6 +166,7 @@ class LabelContainer {
   async renderCurrentLabel() {
     try {
       this.#setUiBusy(true);
+      svv.panoLoadingStatus?.begin();
 
       if (this.#currLabelIndex > 0) {
         svv.undoValidation.enableUndo();
@@ -186,7 +194,9 @@ class LabelContainer {
       svv.labelCard.render(this.#currLabel);
       svv.validationMenu.resetMenu(this.#currLabel);
       if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);
-      svv.panoManager.renderPanoMarker(this.#currLabel);
+      // Awaited so the tool unlocks only once the pano is on screen facing this label: on a viewer that paints during
+      // loads, that is renderPanoMarker's reveal, not setPanorama resolving (#5582).
+      await svv.panoManager.renderPanoMarker(this.#currLabel);
       // Tell the sign here rather than leave it waiting on a pano_changed: the label that just loaded may have swapped
       // the active viewer, and the viewer the sign last heard from is then the one that stays silent (#4828). Absent
       // on mobile, and on the first label, whose render runs inside LabelContainer.create — before SpeedLimit exists.
@@ -194,6 +204,11 @@ class LabelContainer {
       // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
       // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
       svv.labelVisibilityControl?.unhideLabel();
+
+      // Warm the next label's pano while this one is being judged, since a jump to an unrelated pano never hits the
+      // provider's own neighbor cache (#5581). One ahead is enough: validators take seconds per label.
+      const nextLabel = this.#labels[this.#currLabelIndex + 1];
+      if (nextLabel) svv.panoManager.prefetchPano(nextLabel.getAuditProperty('panoId'));
     } catch (error) {
       // The only trace a render failure leaves. It used to announce itself by stranding the lock, which turned every
       // later tap and keypress into a ValidateInputDropped_Loading — unusable for the validator, but at least loud.
@@ -209,6 +224,7 @@ class LabelContainer {
       // the condition is what keeps this from re-enabling the keyboard behind it. Every other way out lands here,
       // a throw included — leaving #loading set would drop every tap and keypress for the rest of the session.
       if (this.#loading) this.#setUiBusy(false);
+      svv.panoLoadingStatus?.end();
     }
   }
 
@@ -245,27 +261,44 @@ class LabelContainer {
   }
 
   /**
-   * Loads the current label's pano, dropping labels whose imagery won't load until one renders or none are left.
+   * Loads the current label's pano, passing over labels whose imagery won't load until one renders or none are left.
    *
-   * A dropped label is spliced out of the list rather than stepped over, so that the indices the undo button walks
-   * back through only ever hold labels the user actually saw.
+   * A label whose pano is gone is dropped. One whose pano exists but loaded too slowly is moved to the back of the
+   * queue the first time (#5581), so the validator waits out at most one deadline on it before seeing another label,
+   * and dropped the second. Either way it is spliced out of its place rather than stepped over, so that the indices
+   * the undo button walks back through only ever hold labels the user actually saw.
    */
   async #loadPanoForCurrentLabel() {
     while (this.#currLabel) {
-      this.#currLabel.setProperty('startTimestamp', new Date());
-      const panoData = await svv.panoManager.setPanorama(
-        this.#currLabel.getAuditProperty('panoId'), this.#currLabel.getAuditProperty('backupImage'),
-      );
+      const label = this.#currLabel;
+      const panoId = label.getAuditProperty('panoId');
+      label.setProperty('startTimestamp', new Date());
+      const { panoData, reason } = await svv.panoManager.setPanorama(panoId, label.getAuditProperty('backupImage'));
       if (panoData) return;
 
-      // Log it: this is invisible to the user by design, so the tracker is the only signal we have for how often
-      // imagery fails in production (#4810).
-      svv.tracker.push('LabelSkipped_NoImagery', {
-        labelId: this.#currLabel.getAuditProperty('labelId'),
-        panoId: this.#currLabel.getAuditProperty('panoId'),
-      });
-      this.#labelsOwed += 1;
+      const ids = { labelId: label.getAuditProperty('labelId'), panoId };
       this.#labels.splice(this.#currLabelIndex, 1);
+      if (reason === 'slow') {
+        const attempt = (this.#slowLoads.get(label) ?? 0) + 1;
+        this.#slowLoads.set(label, attempt);
+        if (attempt < LabelContainer.#MAX_LOAD_ATTEMPTS) {
+          // Nothing is owed: the label is still in the mission, just later. The prefetch keeps the provider working on
+          // its pano in the background, so the second attempt usually finds it cached.
+          svv.tracker.push('LabelDeferred_SlowImagery', { ...ids, attempt });
+          this.#labels.push(label);
+          svv.panoManager.prefetchPano(panoId);
+          this.#currLabel = this.#labels[this.#currLabelIndex];
+          // A label that was the last one left comes straight back, and "trying the next label" would be untrue.
+          if (this.#currLabel !== label) svv.panoLoadingStatus?.setMessage('validate:pano-loading.skipping');
+          continue;
+        }
+      }
+
+      // Log it: this is invisible to the user by design, so the tracker is the only signal we have for how often
+      // imagery fails in production (#4810). Slow and missing imagery are told apart because they call for different
+      // fixes: a slow provider is a network or CDN problem, a missing pano is expired imagery (#5581).
+      svv.tracker.push(reason === 'slow' ? 'LabelSkipped_SlowImagery' : 'LabelSkipped_NoImagery', ids);
+      this.#labelsOwed += 1;
       this.#currLabel = this.#labels[this.#currLabelIndex];
     }
   }
@@ -329,6 +362,7 @@ class LabelContainer {
     this.#seenLabelIds = new Set(this.#labels.map((label) => label.getAuditProperty('labelId')));
     this.#labelsOwed = 0;
     this.#topUpRounds = 0;
+    this.#slowLoads = new Map();
   }
 
   /**

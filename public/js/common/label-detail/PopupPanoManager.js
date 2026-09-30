@@ -216,11 +216,17 @@ class PopupPanoManager {
       return Promise.reject(new Error('Pano viewer build abandoned after repeated failures'));
     }
     if (!this.#primaryViewerCreation) {
+      /** @type {Record<string, any>} */
       const panoOptions = {
         accessToken: this.#viewerAccessToken,
         scrollwheel: true,
         defaultNavigation: !!this.#admin, // Only allow navigation on admin version, not on normal LabelMap.
       };
+      // Paging through labels jumps between unrelated panos, where Mapillary's animated transition only shows the
+      // wrong place turning toward the next label (#5582). The SDK global only exists on pages that load Mapillary.
+      if (typeof mapillary !== 'undefined' && this.#viewerType === MapillaryViewer) {
+        panoOptions.transitionMode = mapillary.TransitionMode.Instantaneous;
+      }
       // Starts from a resolved promise so a synchronous throw in create() rejects like any other failure.
       this.#primaryViewerCreation = Promise.resolve()
         .then(() => this.#viewerType.create(this.#panoCanvas, panoOptions))

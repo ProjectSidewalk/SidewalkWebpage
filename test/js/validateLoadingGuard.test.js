@@ -98,10 +98,11 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
       },
       panoManager: {
         renderPanoMarker: jest.fn(),
+        prefetchPano: jest.fn(),
         setPanorama: jest.fn((panoId) => {
-          if (!holdNextLoad) return Promise.resolve({panoId});
+          if (!holdNextLoad) return Promise.resolve({panoData: {panoId}});
           holdNextLoad = false;
-          return new Promise((resolve) => { releaseLoad = () => resolve({panoId}); });
+          return new Promise((resolve) => { releaseLoad = () => resolve({panoData: {panoId}}); });
         }),
       },
     };
