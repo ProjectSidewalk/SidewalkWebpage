@@ -23,6 +23,7 @@
       "Bash(make htmlhint:*)",
       "Bash(make lint-locales:*)",
       "Bash(make lint:*)",
+      "Bash(make shellcheck:*)",
       "Bash(gh label list:*)"
     ],
     "deny": [

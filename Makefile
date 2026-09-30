@@ -7,7 +7,7 @@
         import-street-imagery export-street-gradient-input street-gradient import-street-gradient \
         reveal-or-hide-regions \
         lint lint-fix lint-evolutions lint-locales lint-css-layout lint-asset-paths lint-vendor-versions lint-js-types \
-        lint-spec-base \
+        lint-spec-base lint-shellcheck shellcheck \
         scalafmt scalafmt-fix compile test-scala clean-dist \
         eslint htmlhint stylelint eslint-fix stylelint-fix \
         lint-eslint lint-htmlhint lint-stylelint lint-fix-eslint lint-fix-stylelint
@@ -144,13 +144,15 @@ eslint-fix: | lint-fix-eslint
 
 stylelint-fix: | lint-fix-stylelint
 
-# Runs every linter (the frontend set + evolutions) even if an earlier one fails, so all problems surface in one pass,
-# then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
+shellcheck: | lint-shellcheck
+
+# Runs every linter (the frontend set + evolutions + shell scripts) even if an earlier one fails, so all problems
+# surface in one pass, then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
 	for t in lint-eslint lint-htmlhint lint-stylelint lint-locales lint-css-layout lint-asset-paths \
-			lint-vendor-versions lint-js-types lint-spec-base lint-evolutions; do \
+			lint-vendor-versions lint-js-types lint-spec-base lint-evolutions lint-shellcheck; do \
 		if $(MAKE) --no-print-directory $$t; then \
 			printf "$(GREEN)✓ %s passed$(RESET)\n" "$$t"; \
 		else \
@@ -382,7 +384,7 @@ reveal-or-hide-regions:
 
 # Static checks on conf/evolutions/default/*.sql. Host-side bash, no container needed. Also a blocking CI job.
 lint-evolutions:
-	@bash "$(host-dir)/db/scripts/lint-evolutions.sh"
+	@bash "$(check-host-dir)$(host-dir)/db/scripts/lint-evolutions.sh"
 
 # Cross-locale key parity and empty values for public/locales/ (the i18next plural/override handling a per-file JSON
 # rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
@@ -427,6 +429,14 @@ lint-spec-base:
 	@echo "Checking spec base classes...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-spec-base.mjs"
 	@echo "Finished checking spec base classes";
+
+# ShellCheck over the repo's .sh files (#5589). Host-side, in ShellCheck's own Docker image (pinned in
+# docker/shellcheck/Dockerfile), so the web container doesn't need to be up. Scope it with files=, e.g.
+# `make shellcheck files=tools/dev/lease.sh`. Also a blocking CI step.
+lint-shellcheck:
+	@echo "Running ShellCheck...";
+	@bash "$(check-host-dir)$(host-dir)/tools/lint/shellcheck.sh" $(files)
+	@echo "Finished running ShellCheck";
 
 # The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.
 #

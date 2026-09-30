@@ -19,6 +19,7 @@
 # =====================================================================================================================
 set -euo pipefail
 
+# shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
 SCHEMA=${1:-}
