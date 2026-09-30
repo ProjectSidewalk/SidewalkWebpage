@@ -2,6 +2,12 @@
 
 Where our images came from. Most are our own Google Street View screenshots and need no entry here. When you add an image that came from somewhere else, add a row so the source stays recorded.
 
+## `public/images/icons/*-feather.svg`
+
+Glyphs from [Feather](https://feathericons.com/) (MIT), recolored for the surface they sit on (the `-white-` variants
+are `#F0F0F0` strokes for the dark pano-overlay buttons). `maximize-2`/`minimize-2` are Explore's immersive-mode toggle
+(#5085).
+
 ## `public/images/validate/ExpertValidateTooltips/`
 
 The example images shown in the tooltips on Validate's disagree and unsure reason buttons.

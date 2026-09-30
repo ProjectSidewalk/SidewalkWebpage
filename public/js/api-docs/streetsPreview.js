@@ -408,7 +408,7 @@
           <p><strong>Last Label:</strong> ${lastLabelDate}</p>
           <p><strong>Audit Age:</strong> ${formatAuditAge(props.last_label_date)}</p>
           <p><strong>OSM ID:</strong> ${osmLink}</p>
-          <a href="/explore?streetEdgeId=${props.street_edge_id}" class="button-ps button--primary button--tiny"
+          <a href="/explore?streetEdgeId=${props.street_edge_id}" class="button button--primary button--tiny"
             target="_blank">
             Explore Street in Project Sidewalk
           </a>

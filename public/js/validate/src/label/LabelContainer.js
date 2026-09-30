@@ -227,16 +227,19 @@ class LabelContainer {
    */
   #setUiBusy(busy) {
     this.#loading = busy;
-    svv.ui.busyRegion.toggleClass('validate-disabled', busy);
-    // The class is only opacity and pointer-events, so on its own it says nothing to a screen reader.
-    svv.ui.busyRegion.attr('aria-busy', busy ? 'true' : null);
-    svv.ui.holder.css('cursor', busy ? 'wait' : '');
+    for (const region of svv.ui.busyRegion) {
+      region.classList.toggle('validate-disabled', busy);
+      // The class is only opacity and pointer-events, so on its own it says nothing to a screen reader.
+      if (busy) region.setAttribute('aria-busy', 'true');
+      else region.removeAttribute('aria-busy');
+    }
+    svv.ui.holder.style.cursor = busy ? 'wait' : '';
     if (busy) {
       if (svv.keyboard) svv.keyboard.disableKeyboard();
     } else {
       // The cursor is cached by the browser, so a timestamp is attached to invalidate it and force the reset.
-      svv.ui.viewer.controlLayer
-        .css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}?${Date.now()}) 4 4, move`);
+      const openHand = `url(${util.assetPath('images/icons/openhand.cur')}?${Date.now()}) 4 4, move`;
+      svv.ui.viewer.controlLayer.style.cursor = openHand;
       if (svv.keyboard) svv.keyboard.enableKeyboard();
     }
   }

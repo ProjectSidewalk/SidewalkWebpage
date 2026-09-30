@@ -212,7 +212,7 @@
           <p><strong>Completed audits:</strong> ${props.audit_count}</p>
           <p><strong>First Label:</strong> ${firstLabelDate}</p>
           <p><strong>Last Label:</strong> ${lastLabelDate}</p>
-          <a href="/labelmap?regions=${props.region_id}" class="button-ps button--primary button--tiny"
+          <a href="/labelmap?regions=${props.region_id}" class="button button--primary button--tiny"
             target="_blank">
             View region on the label map
           </a>

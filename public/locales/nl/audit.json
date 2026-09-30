@@ -134,7 +134,20 @@
     "feedback": "Feedback",
     "feedback-tooltip": "Deel uw mening met ons",
     "feedback-submitted": "Feedback Ingediend",
-    "feedback-title": "Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!"
+    "feedback-title": "Nog ideeën? Ben je tegen iets verwarrends aangelopen? Of heb je een fout gevonden?<br>Stuur ons een reactie!",
+    "immersive-enter": "Immersieve modus openen",
+    "immersive-exit": "Immersieve modus verlaten",
+    "immersive-exit-hint": "Immersieve modus. Druk op F om te verlaten.",
+    "image": "Beeld",
+    "image-tooltip": "Pas schaduwen, helderheid en contrast van de beelden aan",
+    "image-adjustments": {
+      "title": "Beeldinstellingen",
+      "shadows": "Schaduwen",
+      "brightness": "Helderheid",
+      "contrast": "Contrast",
+      "reset": "Standaardwaarden herstellen",
+      "persist-note": "Deze instellingen blijven behouden tussen Verken-missies totdat u ze herstelt."
+    }
   },
   "right-ui": {
     "opens-new-tab": "(opent in een nieuw tabblad)",
@@ -160,10 +173,18 @@
     },
     "reaudit": {
       "title": "Deze straat heeft nieuwere beelden",
-      "message-you": "Jij hebt deze straat voor het laatst in {{lastMapped}} in kaart gebracht, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Laten we kijken wat er veranderd is!",
-      "message-you-no-dates": "Jij hebt deze straat eerder in kaart gebracht, maar de beelden zijn sindsdien vernieuwd. Laten we kijken wat er veranderd is!",
-      "message-others": "Een andere gebruiker heeft deze straat in {{lastMapped}} in kaart gebracht, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Laten we kijken wat er veranderd is!",
-      "message-others-no-dates": "Een andere gebruiker heeft deze straat eerder in kaart gebracht, maar de beelden zijn sindsdien vernieuwd. Laten we kijken wat er veranderd is!"
+      "message-you": "Jij hebt deze straat voor het laatst in {{lastMapped}} beoordeeld, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "message-you-no-dates": "Jij hebt deze straat eerder beoordeeld, maar de beelden zijn sindsdien vernieuwd. Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "message-others": "Deze straat is voor het laatst in {{lastMapped}} beoordeeld, maar de beelden zijn sindsdien vernieuwd (in {{newImagery}}). Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "message-others-no-dates": "Deze straat is eerder beoordeeld, maar de beelden zijn sindsdien vernieuwd. Beoordeel deze straat opnieuw, zodat we kunnen analyseren wat er veranderd is."
+    },
+    "pano-date-note": {
+      "image-date": "Beeld: {{date}}",
+      "needs-reassessment": "Nieuwe beoordeling nodig",
+      "already-assessed": "Al beoordeeld",
+      "already-assessed-tip": "Jij hebt deze locatie voor het laatst in {{assessedDate}} beoordeeld, en de beelden ({{captureDate}}) zijn sinds die beoordeling niet veranderd. Voeg gerust nieuwe labels toe als je iets ziet!",
+      "needs-reassessment-tip-you": "Jij hebt deze locatie voor het laatst in {{assessedDate}} beoordeeld, maar de beelden hier zijn nieuwer ({{captureDate}}). Beoordeel de locatie opnieuw, zodat we kunnen analyseren wat er veranderd is.",
+      "needs-reassessment-tip-others": "Een gebruiker heeft deze locatie voor het laatst in {{assessedDate}} beoordeeld, maar de beelden hier zijn nieuwer ({{captureDate}}). Beoordeel de locatie opnieuw, zodat we kunnen analyseren wat er veranderd is."
     },
     "minimap": {
       "coach-dismiss": "Begrepen",
@@ -184,11 +205,14 @@
       "forward-crumb-title": "Ga vooruit naar stop {{rank}}",
       "legend-other-links": "Andere richtingen",
       "legend-faced": "Gevuld: waar vooruit u heen brengt",
+      "legend-earlier-labels": "Mijn eerdere labels",
       "link-crumb-title": "Ga naar dit panorama",
       "legend-next-step": "Lichtblauw: volgende stap (spatiebalk)",
       "route-stop-title": "Stop {{rank}} op uw route",
       "breadcrumb-title": "Bezocht: klik om hierheen terug te gaan",
       "label-marker-title": "{{labelType}}-label: klik om te bekijken",
+      "label-marker-title-prior": "“{{labelType}}”-label uit een eerdere missie",
+      "label-marker-title-outdated": "Oud “{{labelType}}”-label op een straat met nieuwe beelden",
       "route-start-flag": "Start van de route",
       "route-finish-flag": "Einde van de route",
       "mission-start-flag": "Waar deze missie begon",

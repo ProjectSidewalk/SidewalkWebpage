@@ -1,6 +1,6 @@
 /**
  * Narrow-viewport sidebar disclosure, shared by the `.page-*` shell (components/page-shell.css: API docs, admin
- * dashboard, user dashboard) and the Gallery's filter column.
+ * dashboard, user dashboard, labeling guide) and the Gallery's filter column.
  *
  * Under their breakpoints these sidebars stop being columns and become an in-flow strip between the navbar and the
  * content, with their contents collapsed. The button that reopens them belongs *inside* that strip, so what it
@@ -49,10 +49,11 @@ function wireSidebarDisclosure(toggle, root, options = {}) {
  * @returns {HTMLButtonElement} The wired-up button, not yet inserted into the document.
  */
 function buildSidebarDisclosure(sidebar) {
-  // The active item names the current page; the first group header is the fallback on a page with no active item.
-  const active = sidebar.querySelector('.page-nav-item.active');
+  // The active item names the current page; the first group header is the fallback on a page with no active item. An
+  // item that also carries a description or badge marks its name with .page-nav-label, so the toggle reads just that.
+  const active = sidebar.querySelector('.page-nav-item.is-active');
   const heading = sidebar.querySelector('.page-nav-header');
-  const label = (active || heading)?.textContent.trim() || 'Menu';
+  const label = (active?.querySelector('.page-nav-label') || active || heading)?.textContent.trim() || 'Menu';
 
   const toggle = document.createElement('button');
   toggle.type = 'button';

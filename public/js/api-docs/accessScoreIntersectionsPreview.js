@@ -159,9 +159,9 @@
       // Explore's lat/lng drop-in should start the user at the corner the score describes.
       const [lng, lat] = feature.geometry.coordinates;
       return `
-        <a href="/explore?lat=${lat}&amp;lng=${lng}" class="button-ps button--primary button--tiny"
+        <a href="/explore?lat=${lat}&amp;lng=${lng}" class="button button--primary button--tiny"
           target="_blank" rel="noopener">
-          Explore here<span class="map-popup__sr-only"> (opens in a new tab)</span>
+          Explore here<span class="sr-only"> (opens in a new tab)</span>
         </a>`;
     },
 

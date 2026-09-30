@@ -192,7 +192,7 @@ class StreetStatusPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   /** True if two id lists contain the same set of ids (order-independent). */

@@ -80,7 +80,8 @@ class ApplicationController @Inject() (
           // Get names and URLs for other cities so we can link to them on landing page.
           val metric: Boolean = ControllerUtils.isMetric
           // Kicked off eagerly so it overlaps the queries below rather than adding a serial round trip.
-          val partnersFuture = partnerService.getPartnersForLanding
+          val partnersFuture        = partnerService.getPartnersForLanding
+          val officialContactFuture = configService.getOfficialContact
           for {
             commonData                   <- configService.getCommonPageData(request2Messages.lang)
             openStatus: String           <- configService.getOpenStatus
@@ -90,6 +91,7 @@ class ApplicationController @Inject() (
             labelCount: Int              <- labelService.countLabels
             valCount: Int                <- validationService.countHumanValidations
             partners                     <- partnersFuture
+            officialContact              <- officialContactFuture
           } yield {
             Ok(
               views.html.index(
@@ -102,7 +104,8 @@ class ApplicationController @Inject() (
                 auditedDist,
                 labelCount,
                 valCount,
-                partners
+                partners,
+                officialContact
               )
             )
           }
@@ -114,12 +117,14 @@ class ApplicationController @Inject() (
     val user: Option[SidewalkUserWithRole] = request.identity
     cc.loggingService.insert(user.map(_.userId), request.ipAddress, "Visit_MobileLanding")
     // Kicked off eagerly so it overlaps the queries below rather than adding a serial round trip.
-    val partnersFuture = partnerService.getPartnersForLanding
+    val partnersFuture        = partnerService.getPartnersForLanding
+    val officialContactFuture = configService.getOfficialContact
     for {
       commonData      <- configService.getCommonPageData(request2Messages.lang)
       labelCount: Int <- labelService.countLabels
       valCount: Int   <- validationService.countHumanValidations
       partners        <- partnersFuture
+      officialContact <- officialContactFuture
     } yield {
       Ok(
         views.html.mobileLanding(
@@ -128,7 +133,8 @@ class ApplicationController @Inject() (
           user,
           labelCount,
           valCount,
-          partners
+          partners,
+          officialContact
         )
       )
     }

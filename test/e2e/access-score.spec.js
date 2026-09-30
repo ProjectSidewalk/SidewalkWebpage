@@ -949,10 +949,14 @@ test.describe('/accessScore', () => {
     expect(await visibility()).toEqual({school: 'none', transit: 'none'});
     expect(await urlParam(page, 'pc')).toBeNull();
 
+    // The catalog is the backend's, so the row count is read from it rather than repeated here.
+    const config = await (await page.request.get('/v3/api/accessScoreConfig')).json();
+    const total = config.place_categories.length;
+
     await fold.click();
     await expect(fold).toHaveAttribute('aria-expanded', 'true');
     const rows = page.locator('.acs-place-row');
-    await expect(rows).toHaveCount(7);
+    await expect(rows).toHaveCount(total);
     await expect(rows.first()).toHaveAttribute('data-category', 'school');
     await expect(rows.first().locator('.acs-place__count')).toHaveText('1');
     await expect(rows.nth(1).locator('.acs-place__count')).toHaveText('0');
@@ -963,7 +967,7 @@ test.describe('/accessScore', () => {
     await page.locator('#acs-place-transit').check();
     expect(await visibility()).toEqual({school: 'none', transit: 'visible'});
     await expect.poll(() => urlParam(page, 'pc')).toBe('transit');
-    await expect(page.locator('#acs-places-summary')).toHaveText('1 of 7');
+    await expect(page.locator('#acs-places-summary')).toHaveText(`1 of ${total}`);
 
     // "Only" turns every other row off in one click; the heading's action reads "Select all" until every row is
     // on, and "Deselect all" then.
@@ -977,7 +981,7 @@ test.describe('/accessScore', () => {
     expect(await visibility()).toEqual({school: 'visible', transit: 'visible'});
     await expect.poll(() => urlParam(page, 'pc')).toBe('all');
     await expect(toggleAll).toHaveText('Deselect all');
-    await expect(page.locator('#acs-places-summary')).toHaveText('7 of 7');
+    await expect(page.locator('#acs-places-summary')).toHaveText(`${total} of ${total}`);
 
     await toggleAll.click();
     expect(await visibility()).toEqual({school: 'none', transit: 'none'});

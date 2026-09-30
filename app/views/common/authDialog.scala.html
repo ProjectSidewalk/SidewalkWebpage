@@ -41,7 +41,7 @@
             </div>
           </div>
           <label class="au-check" for="sign-in-remember"><input type="checkbox" id="sign-in-remember" name="rememberMe" value="true" checked> @Messages("authenticate.remember.me")</label>
-          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("navbar.signin")</button>
+          <button type="submit" class="button button--primary button--large au-submit">@Messages("navbar.signin")</button>
         }
         <div class="au-footer">@Html(Messages("authenticate.new.detail"))</div>
       </div>
@@ -74,7 +74,7 @@
           </div>
           @common.authPasswordFields("sign-up", "password", "passwordConfirm")
           <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
-          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
+          <button type="submit" class="button button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
         }
         <div class="au-footer">@Html(Messages("authenticate.has.account"))</div>
       </div>

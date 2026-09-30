@@ -17,7 +17,7 @@ set -euo pipefail
 
 source /opt/scripts/helpers.sh
 
-# Optional positional args ($1 schema, $2 CSV path relative to the db dir) so tools/setup_new_city.py can drive the
+# Optional positional args ($1 schema, $2 CSV path relative to the db dir) so tools/city/setup_new_city.py can drive the
 # script without faking its prompts; anything omitted is prompted for. The CSV path is prepended with the container
 # working dir (/opt == ./db on the host). No prompt default: the scan writes into each city's own onboarding dir.
 SCHEMA_NAME=${1:-$(prompt_with_default "Schema name")}

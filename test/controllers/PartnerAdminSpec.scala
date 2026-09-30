@@ -225,6 +225,17 @@ class PartnerAdminSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuit
       body.indexOf(s"/partnerLogo/$globalIdCreated") must be < body.indexOf(s"/partnerLogo/$cityIdCreated")
     }
 
+    "name each partner in a psTooltip on its logo wrapper, double-escaped for psTooltip's innerHTML" in {
+      // psTooltip renders the attribute value as HTML, so an admin-supplied name needs two levels of escaping: one the
+      // attribute parse consumes, one innerHTML consumes. With only one, this name would inject a live <img> (#5469).
+      val name = "Spec <img src=x onerror=alert(1)> & Co"
+      createPartner(adminCookies, "/adminapi/partners", name)
+      val body = landingBody()
+      body must include(
+        """<div class="partner-logo" data-ps-tooltip="Spec &amp;lt;img src=x onerror=alert(1)&amp;gt; &amp;amp; Co">"""
+      )
+    }
+
     "404 an unknown logo id" in {
       status(route(app, FakeRequest(GET, "/partnerLogo/999999999")).get) mustBe NOT_FOUND
     }

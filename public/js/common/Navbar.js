@@ -158,7 +158,7 @@ class NavbarController {
    */
   #closeAll({ except = null, within = null } = {}) {
     for (const btn of this.#toggles) {
-      const li = btn.closest('.navbar-lnk');
+      const li = btn.closest('.navbar-item');
       if (!li || li === except || !li.classList.contains('is-open')) continue;
       if (within && !within.contains(li)) continue;
       this.#close(li, btn);
@@ -169,7 +169,7 @@ class NavbarController {
   #wireDropdowns() {
     this.#toggles = Array.from(this.#nav.querySelectorAll('[data-nav-dropdown]'));
     for (const btn of this.#toggles) {
-      const li = btn.closest('.navbar-lnk');
+      const li = btn.closest('.navbar-item');
       const panel = document.getElementById(btn.getAttribute('aria-controls'));
       if (!li || !panel) continue;
 
@@ -276,7 +276,7 @@ class NavbarController {
    */
   #wireResponsiveNav() {
     if (!this.#menu) return;
-    this.#navGroups = Array.from(this.#menu.querySelectorAll('#navbar > .navbar-nav'));
+    this.#navGroups = Array.from(this.#menu.querySelectorAll('#navbar > .navbar-list'));
 
     this.#quickStrip = document.getElementById('navbar-quick');
     this.#quickItems = Array.from(this.#menu.querySelectorAll('[data-nav-quick]'))
@@ -388,7 +388,7 @@ class NavbarController {
   /**
    * Closes an item's dropdown, if it has one open, before the item changes lists.
    *
-   * The open state is a class on the <li> and `.navbar-lnk.is-open > .dropdown-menu` isn't scoped by breakpoint, so an
+   * The open state is a class on the <li> and `.navbar-item.is-open > .navbar-menu` isn't scoped by breakpoint, so an
    * item carried across the collapse boundary still open would render its panel in a bar the user never opened it
    * from — floating and unanchored in the inline bar, with no gesture behind it.
    *

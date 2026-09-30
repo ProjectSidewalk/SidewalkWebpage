@@ -6,15 +6,14 @@
  * must be reused; and a build that fails must fall back to the label's crop and be retried by the next label rather
  * than leaving the popup imagery-less for the rest of the page.
  *
- * PopupPanoManager is a top-level `class` written for the Grunt-concatenation world and leans on jQuery, so the vendor
- * jQuery and the source are eval'd into the jsdom global scope with the rest of its collaborators stubbed.
+ * PopupPanoManager is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into the
+ * jsdom global scope with the rest of its collaborators stubbed.
  */
 
 const fs = require('fs');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const JQUERY_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8');
 const MANAGER_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/label-detail/PopupPanoManager.js'), 'utf8');
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
@@ -70,7 +69,7 @@ describe('PopupPanoManager builds its viewer lazily', () => {
             preloadLibrary: jest.fn(() => Promise.resolve()),
         };
 
-        window.eval(`${JQUERY_SRC}\n${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
+        window.eval(`${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
         PopupPanoManager = window.PopupPanoManager;
     });
 

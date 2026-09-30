@@ -3,7 +3,7 @@
  *
  * `conf/pano-scoring.json` is read three ways: `models.utils.PanoScoring` parses it and `main.scala.html` stamps it
  * onto `<html data-pano-scoring>`, `MapillaryViewer.#scorePano` and `PanoramaxViewer.#scorePano` read it back through
- * `util.pano.scoring()`, and `score_pano` in `scripts/check_streets_for_imagery.py` reads the file off disk. The two
+ * `util.pano.scoring()`, and `score_pano` in `tools/city/check_streets_for_imagery.py` reads the file off disk. The two
  * viewers must rank a location's candidates the way the scan does, or a street records the capture date of a pano
  * Explore never shows — the failure the shared file exists to prevent.
  *

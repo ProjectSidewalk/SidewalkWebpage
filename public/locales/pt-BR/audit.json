@@ -134,7 +134,20 @@
     "feedback": "Opinião",
     "feedback-tooltip": "Compartilhe suas ideias conosco",
     "feedback-submitted": "Comentários enviados",
-    "feedback-title": "Alguma opinião? Encontrou algo confuso? Viu algum bug?<br>Envie seus comentários!"
+    "feedback-title": "Alguma opinião? Encontrou algo confuso? Viu algum bug?<br>Envie seus comentários!",
+    "immersive-enter": "Entrar no modo imersivo",
+    "immersive-exit": "Sair do modo imersivo",
+    "immersive-exit-hint": "Modo imersivo. Pressione F para sair.",
+    "image": "Imagem",
+    "image-tooltip": "Ajuste as sombras, o brilho e o contraste da imagem",
+    "image-adjustments": {
+      "title": "Ajustes de imagem",
+      "shadows": "Sombras",
+      "brightness": "Brilho",
+      "contrast": "Contraste",
+      "reset": "Restaurar padrões",
+      "persist-note": "Estas configurações persistem entre missões de Explorar até você redefini-las."
+    }
   },
   "right-ui": {
     "opens-new-tab": "(abre em uma nova aba)",
@@ -160,10 +173,18 @@
     },
     "reaudit": {
       "title": "Esta rua tem imagens mais recentes",
-      "message-you": "Você mapeou esta rua pela última vez em {{lastMapped}}, mas as imagens foram renovadas desde então (em {{newImagery}}). Vamos ver o que mudou!",
-      "message-you-no-dates": "Você já mapeou esta rua antes, mas as imagens foram renovadas desde então. Vamos ver o que mudou!",
-      "message-others": "Outro usuário mapeou esta rua em {{lastMapped}}, mas as imagens foram renovadas desde então (em {{newImagery}}). Vamos ver o que mudou!",
-      "message-others-no-dates": "Outro usuário já mapeou esta rua antes, mas as imagens foram renovadas desde então. Vamos ver o que mudou!"
+      "message-you": "Você avaliou esta rua pela última vez em {{lastMapped}}, mas as imagens foram renovadas desde então (em {{newImagery}}). Por favor, avalie esta rua novamente para nos ajudar a analisar o que mudou.",
+      "message-you-no-dates": "Você já avaliou esta rua antes, mas as imagens foram renovadas desde então. Por favor, avalie esta rua novamente para nos ajudar a analisar o que mudou.",
+      "message-others": "Esta rua foi avaliada pela última vez em {{lastMapped}}, mas as imagens foram renovadas desde então (em {{newImagery}}). Por favor, avalie esta rua novamente para nos ajudar a analisar o que mudou.",
+      "message-others-no-dates": "Esta rua já foi avaliada antes, mas as imagens foram renovadas desde então. Por favor, avalie esta rua novamente para nos ajudar a analisar o que mudou."
+    },
+    "pano-date-note": {
+      "image-date": "Imagem: {{date}}",
+      "needs-reassessment": "Precisa de reavaliação",
+      "already-assessed": "Já avaliado",
+      "already-assessed-tip": "Você avaliou este local pela última vez em {{assessedDate}}, e as imagens ({{captureDate}}) não mudaram desde essa avaliação. Fique à vontade para adicionar novos rótulos se notar algo!",
+      "needs-reassessment-tip-you": "Você avaliou este local pela última vez em {{assessedDate}}, mas as imagens aqui são mais recentes ({{captureDate}}). Por favor, avalie-o novamente para nos ajudar a analisar o que mudou.",
+      "needs-reassessment-tip-others": "Um usuário avaliou este local pela última vez em {{assessedDate}}, mas as imagens aqui são mais recentes ({{captureDate}}). Por favor, avalie-o novamente para nos ajudar a analisar o que mudou."
     },
     "minimap": {
       "coach-dismiss": "Entendi",
@@ -184,11 +205,14 @@
       "forward-crumb-title": "Avançar para a parada {{rank}}",
       "legend-other-links": "Outras direções",
       "legend-faced": "Preenchido: para onde avançar leva",
+      "legend-earlier-labels": "Meus rótulos anteriores",
       "link-crumb-title": "Ir para este panorama",
       "legend-next-step": "Azul claro: próximo passo (barra de espaço)",
       "route-stop-title": "Parada {{rank}} da sua rota",
       "breadcrumb-title": "Visitado: clique para voltar aqui",
       "label-marker-title": "Rótulo {{labelType}}: clique para revisar",
+      "label-marker-title-prior": "Rótulo “{{labelType}}” de uma missão anterior",
+      "label-marker-title-outdated": "Rótulo antigo “{{labelType}}” em uma rua com imagens novas",
       "route-start-flag": "Início da rota",
       "route-finish-flag": "Fim da rota",
       "mission-start-flag": "Onde esta missão começou",

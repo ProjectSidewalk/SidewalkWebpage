@@ -1,12 +1,10 @@
 package models.cluster
 
 import com.google.inject.ImplementedBy
-import models.audit.AuditTaskTableDef
-import models.label.{LabelPointTableDef, LabelTableDef}
+import models.label.{LabelPointTableDef, LabelTable, LabelTableDef}
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
-import models.user.UserStatTableDef
 import models.utils.MyPostgresProfile.api._
 import models.utils.{ClusteringThreshold, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -95,8 +93,8 @@ trait ClusteringSessionTableRepository {
 }
 
 @Singleton
-class ClusteringSessionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
-    ec: ExecutionContext
+class ClusteringSessionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider, labelTable: LabelTable)(
+    implicit ec: ExecutionContext
 ) extends ClusteringSessionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val clusteringSessions = TableQuery[ClusteringSessionTableDef]
@@ -104,8 +102,6 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
   private val labelsUnfiltered   = TableQuery[LabelTableDef]
   private val missions           = TableQuery[MissionTableDef]
   private val regions            = TableQuery[RegionTableDef]
-  private val auditTasks         = TableQuery[AuditTaskTableDef]
-  private val userStats          = TableQuery[UserStatTableDef]
   private val labelPoints        = TableQuery[LabelPointTableDef]
   private val streetEdgeRegions  = TableQuery[StreetEdgeRegionTableDef]
 
@@ -116,19 +112,12 @@ class ClusteringSessionTable @Inject() (protected val dbConfigProvider: Database
     (Int, String, String, Int, String, Double, Double, Option[Int]),
     Seq
   ] = for {
-    m   <- missions
-    r   <- regions if m.regionId === r.regionId
-    us  <- userStats if m.userId === us.userId
-    l   <- labelsUnfiltered if l.missionId === m.missionId
-    ser <- streetEdgeRegions if l.streetEdgeId === ser.streetEdgeId
-    at  <- auditTasks if l.auditTaskId === at.auditTaskId
-    lp  <- labelPoints if l.labelId === lp.labelId
+    m           <- missions
+    r           <- regions if m.regionId === r.regionId
+    (l, at, us) <- labelTable.labelsWithAuditTasksAndUserStats if l.missionId === m.missionId
+    ser         <- streetEdgeRegions if l.streetEdgeId === ser.streetEdgeId
+    lp          <- labelPoints if l.labelId === lp.labelId
     if r.deleted === false
-    if l.deleted === false
-    if us.excluded === false
-    // Tutorial labels were kept out only by accident: auditOnboarding missions have a NULL region_id, so the
-    // mission -> region join dropped them. That misses one flagged tutorial inside a real audit mission (#4587).
-    if l.tutorial === false
     if l.correct || (us.highQuality && l.correct.isEmpty && !at.lowQuality)
     if lp.lat.isDefined && lp.lng.isDefined
   } yield (ser.regionId, us.userId, l.panoId, l.labelId, l.labelTypeName, lp.lat.ifNull(-1d), lp.lng.ifNull(-1d),

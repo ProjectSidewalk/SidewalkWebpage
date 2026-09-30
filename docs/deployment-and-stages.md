@@ -52,7 +52,7 @@ verifiable from the deploy log rather than by curling every host:
 
 ```
 INFO m.SearchIndexingCheck - Search indexing: seattle-wa is INDEXABLE (environment-type=prod, status=public,
-pano-viewer-type=gsv); 39 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
+pano-viewer-type=gsv); 41 of 60 configured cities are public. A vhost X-Robots-Tag header can still override this.
 ```
 
 `AiSeedRowsRepair` (the same module) logs one line per boot about the SidewalkAI user's per-schema rows, which a city
@@ -463,8 +463,8 @@ fingerprints the wrong file. All necessary because neither half of a mistake rai
 mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
 ([`project/CssAssetUrls.scala`](../project/CssAssetUrls.scala)) rewrites its `url(...)` targets to the `<md5>-<name>`
 form at stage time, deriving the name from the file's bytes as sbt-digest does. Absolute stays absolute and relative
-stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along, which
-keeps Bootstrap's `...eot?#iefix` glyphicons working. **A new reference needs nothing registered**: unlike
+stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along.
+**A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
 file that exists, by relative path: a stylesheet Grunt bundles into `public/js/*/build/` has its relative `url()`s
 rewritten to `/assets/` paths first (`concat_css`'s `assetBaseUrl` in `Gruntfile.js`), which would double up an
@@ -479,7 +479,7 @@ Two things about that stage are load-bearing:
 - **An unresolvable `url()` fails the build**, like the asset-manifest generator: passing it through means a broken
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
   `make lint-asset-paths` applies the same rule to `public/css/` (rule 5 in
-  [`tools/check-asset-paths.mjs`](../tools/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
+  [`tools/lint/check-asset-paths.mjs`](../tools/lint/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
   Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
@@ -533,7 +533,7 @@ falls back to its own backoff and still converges, just more slowly. Two checks:
   app also canonicalizes the host. A fast success on the *followed* request points at the proxy layer; a hang or error
   points at the app/DB.
 - **If the request dies inside the database** (e.g. a PostGIS/JIT segfault,
-  [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)), the app only sees a dropped connection — the
+  [#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)), the app only sees a dropped connection — the
   real crash (`server process … was terminated by signal 11`) is written to the **Postgres server log**, not the
   application log. That log lives on the database host under the standard PostgreSQL data-directory layout; ask a running
   server for its exact location with `psql -c 'SHOW log_directory;'` (relative to `SHOW data_directory;`) rather than
@@ -554,7 +554,7 @@ plumbed through both this app's config *and* the deployment tooling, or it will 
 | **App secrets** | `SIDEWALK_APPLICATION_SECRET`, `SILHOUETTE_SIGNER_KEY`, `SILHOUETTE_CRYPTER_KEY` |
 | **Email** | `SIDEWALK_EMAIL_ADDRESS`, `SIDEWALK_EMAIL_PASSWORD` |
 | **Imagery / maps** | `GOOGLE_MAPS_API_KEY`, `GOOGLE_MAPS_SECRET`, `MAPBOX_API_KEY`, `MAPILLARY_ACCESS_TOKEN`, Infra3d client id/secret (including per-city credentials) |
-| **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
+| **Other integrations** | `GEMINI_API_KEY`, `SCISTARTER_API_KEY`, `INTERNAL_API_KEY`, `SIDEWALK_AI_API_KEY` (the AI server's password; unset means every AI validation and tag suggestion fails), `GA_SERVICE_ACCOUNT_KEY` (Google Analytics reader — unset just disables the admin traffic reporting) |
 
 > If this table drifts from reality, the authoritative sources are `conf/application.conf` (+ the stage overlays) in
 > this repo and the deployment tooling in the IT ops repo.

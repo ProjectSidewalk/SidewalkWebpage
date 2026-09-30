@@ -8,7 +8,7 @@ import models.mission.MissionTableDef
 import models.user._
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.CommonUtils.ViewerType.ViewerType
-import models.utils.MyPostgresProfile
+import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
 import models.utils.MyPostgresProfile.api._
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
@@ -115,13 +115,12 @@ class LabelValidationTable @Inject() (
 ) extends LabelValidationTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  val validations          = TableQuery[LabelValidationTableDef]
-  val voidedValidations    = TableQuery[VoidedLabelValidationTableDef]
-  val users                = TableQuery[SidewalkUserTableDef]
-  val userRoles            = TableQuery[UserRoleTableDef]
-  val labelsUnfiltered     = TableQuery[LabelTableDef]
-  val humanValidations     = validations.join(sidewalkUserTable.humanUsers).on(_.userId === _.userId).map(_._1)
-  val labelsWithoutDeleted = labelsUnfiltered.filter(_.deleted === false)
+  val validations       = TableQuery[LabelValidationTableDef]
+  val voidedValidations = TableQuery[VoidedLabelValidationTableDef]
+  val users             = TableQuery[SidewalkUserTableDef]
+  val userRoles         = TableQuery[UserRoleTableDef]
+  val labelsUnfiltered  = TableQuery[LabelTableDef]
+  val humanValidations  = validations.join(sidewalkUserTable.humanUsers).on(_.userId === _.userId).map(_._1)
 
   /**
    * A function to count all validations by the given user for the given label. There should always be a maximum of one.
@@ -169,6 +168,15 @@ class LabelValidationTable @Inject() (
       .headOption
   }
 
+  /** The user's most recent vote on the label, of any type: the one a redo replaces. */
+  def getNewestValidation(labelId: Int, userId: String): DBIO[Option[LabelValidation]] = {
+    validations
+      .filter(x => x.labelId === labelId && x.userId === userId)
+      .sortBy(_.labelValidationId.desc)
+      .result
+      .headOption
+  }
+
   /**
    * Calculates and returns the user accuracy for the supplied userId. The accuracy calculation is performed if and only
    * if 10 of the user's labels have been validated. A label is considered validated if it has either more agree
@@ -180,10 +188,8 @@ class LabelValidationTable @Inject() (
       FROM (
           SELECT CAST(SUM(CASE WHEN correct THEN 1 ELSE 0 END) AS FLOAT) / NULLIF(SUM(CASE WHEN correct THEN 1 ELSE 0 END) + SUM(CASE WHEN NOT correct THEN 1 ELSE 0 END), 0) AS accuracy,
                  COUNT(CASE WHEN correct IS NOT NULL THEN 1 END) AS validated_count
-          FROM label
-          WHERE #${LabelTable.countsTowardAccuracySql}
-              AND label.tutorial = FALSE
-              AND label.user_id = $userId
+          FROM #${FilteredTables.accuracyLabels}
+          WHERE label.user_id = $userId
       ) "accuracy_subquery";""".as[Option[Double]].map(_.headOption.flatten)
   }
 
@@ -214,7 +220,7 @@ class LabelValidationTable @Inject() (
       case None      => users
     }
     val _labels = for {
-      _label <- labelTable.labelsUnfiltered if !_label.tutorial && LabelTable.countsTowardAccuracy(_label)
+      _label <- labelTable.labelsForAccuracy
       _user  <- _labelers if _user.userId === _label.userId // User who placed the label.
       if _label.correct.isDefined // Filter for labels marked as either correct or incorrect.
     } yield (_user.userId, _label.correct)
@@ -257,12 +263,7 @@ class LabelValidationTable @Inject() (
    *
    * @return The total number of validations performed, including archived voided ones.
    */
-  def countValidations: DBIO[Int] = {
-    for {
-      liveCount     <- validations.length.result
-      archivedCount <- voidedValidations.length.result
-    } yield liveCount + archivedCount
-  }
+  def countValidations: DBIO[Int] = countWithVoided(validations, voidedValidations)
 
   /**
    * The total number of human validations performed (i.e., excluding AI validations), as work credit. The voided-vote
@@ -272,12 +273,7 @@ class LabelValidationTable @Inject() (
    *
    * @return The total number of human validations performed, including archived voided ones.
    */
-  def countHumanValidations: DBIO[Int] = {
-    for {
-      liveCount     <- humanValidations.length.result
-      archivedCount <- voidedValidations.length.result
-    } yield liveCount + archivedCount
-  }
+  def countHumanValidations: DBIO[Int] = countWithVoided(humanValidations, voidedValidations)
 
   /**
    * The number of validations performed by this user, as work credit: votes voided by the #4842 repair (evolution
@@ -285,12 +281,22 @@ class LabelValidationTable @Inject() (
    *
    * @return The number of validations performed by this user, including archived voided ones.
    */
-  def countValidations(userId: String): DBIO[Int] = {
+  def countValidations(userId: String): DBIO[Int] =
+    countWithVoided(validations.filter(_.userId === userId), voidedValidations.filter(_.userId === userId))
+
+  /**
+   * Adds the voided-vote archive to a count of live votes, the rule every work-credit count above shares.
+   *
+   * @return The number of live votes plus the number of archived voided ones.
+   */
+  private def countWithVoided(
+      live: Query[LabelValidationTableDef, LabelValidation, Seq],
+      voided: Query[VoidedLabelValidationTableDef, _, Seq]
+  ): DBIO[Int] =
     for {
-      liveCount     <- validations.filter(_.userId === userId).length.result
-      archivedCount <- voidedValidations.filter(_.userId === userId).length.result
+      liveCount     <- live.length.result
+      archivedCount <- voided.length.result
     } yield liveCount + archivedCount
-  }
 
   /**
    * Counts work credit the way [[countValidations]] does, so the voided-vote archive counts too: the vote no longer
@@ -333,16 +339,12 @@ class LabelValidationTable @Inject() (
   def countValidationsByResultAndLabelType(
       timeInterval: TimeInterval = TimeInterval.AllTime
   ): DBIO[Seq[ValidationCount]] = {
-    // Filter by the given time interval.
-    val validationsInTimeInterval = timeInterval match {
-      case TimeInterval.Today => validations.filter(l => l.endTimestamp > OffsetDateTime.now().minusDays(1))
-      case TimeInterval.Week  => validations.filter(l => l.endTimestamp >= OffsetDateTime.now().minusDays(7))
-      case _                  => validations
-    }
+    val validationsInTimeInterval =
+      TimeInterval.start(timeInterval).map(s => validations.filter(_.endTimestamp >= s)).getOrElse(validations)
 
     // Join with labels to get label type. Group by validation result and label type and get counts.
     validationsInTimeInterval
-      .join(labelsWithoutDeleted)
+      .join(labelTable.labelsWithTutorialAndExcludedUsers)
       .on(_.labelId === _.labelId)
       .join(sidewalkUserTable.sidewalkUserToRoleJoin)
       .on(_._1.userId === _._1.userId)
@@ -437,7 +439,7 @@ class LabelValidationTable @Inject() (
     (for {
       _validation <- validations
       _user       <- sidewalkUserTable.humanUsers if _validation.userId === _user.userId
-      _label      <- labelsWithoutDeleted if _validation.labelId === _label.labelId
+      _label      <- labelTable.labelsWithTutorialAndExcludedUsers if _validation.labelId === _label.labelId
     } yield (_validation.labelId, _label.labelTypeName, _user.username, _validation.validationResult,
       _validation.endTimestamp))
       .sortBy(_._5.desc)
@@ -505,27 +507,21 @@ class LabelValidationTable @Inject() (
    * @return A database action that, when executed, will return a sequence of ValidationResultTypeForApi objects.
    */
   def getValidationResultTypes: DBIO[Seq[ValidationResultTypeForApi]] = {
-    validations
-      .join(sidewalkUserTable.sidewalkUserToRoleJoin)
-      .on(_.userId === _._1.userId)
-      .groupBy { case (v, (u, ur)) => (v.validationResult, ur.role === Role.Ai) }
-      .map { case ((valResult, isAi), group) => (valResult, isAi, group.length) }
-      .result
-      .map { results: Seq[(ValidationOption.Value, Boolean, Int)] =>
-        // Create a ValidationResultTypeForApi object for each validation result type.
-        ValidationOption.values.toSeq
-          .map { valResult =>
-            val currValCounts   = results.filter(_._1 == valResult)
-            val humanCount: Int = currValCounts.find(_._2 == false).map(_._3).getOrElse(0)
-            val aiCount: Int    = currValCounts.find(_._2 == true).map(_._3).getOrElse(0)
-            ValidationResultTypeForApi(
-              name = valResult.toString,
-              count = humanCount + aiCount,
-              countHuman = humanCount,
-              countAi = aiCount
-            )
-          }
-      }
+    getValidationCountsByValidatorRole.map { results: Seq[(Boolean, ValidationOption.Value, Int)] =>
+      // Create a ValidationResultTypeForApi object for each validation result type.
+      ValidationOption.values.toSeq
+        .map { valResult =>
+          val currValCounts   = results.filter(_._2 == valResult)
+          val humanCount: Int = currValCounts.find(_._1 == false).map(_._3).getOrElse(0)
+          val aiCount: Int    = currValCounts.find(_._1 == true).map(_._3).getOrElse(0)
+          ValidationResultTypeForApi(
+            name = valResult.toString,
+            count = humanCount + aiCount,
+            countHuman = humanCount,
+            countAi = aiCount
+          )
+        }
+    }
   }
 
   /**
@@ -537,7 +533,8 @@ class LabelValidationTable @Inject() (
    * administratively excluded users are removed; when true, only high_quality users are included.
    *
    * validation_result is compared via ::text cast to support both integer and validation_option enum
-   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure').
+   * schemas across different city deployments ('Agree', 'Disagree', 'Unsure'). Votes are grouped by the type they
+   * judged.
    *
    * @param startDate        Inclusive lower bound on end_timestamp (Pacific date); no bound if None.
    * @param endDate          Inclusive upper bound on end_timestamp; no bound if None.
@@ -551,14 +548,12 @@ class LabelValidationTable @Inject() (
       endDate: Option[LocalDate],
       filterLowQuality: Boolean
   ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
-    val userFilter   = if (filterLowQuality) "user_stat.high_quality" else "NOT user_stat.excluded"
-    val whereClauses = scala.collection.mutable.ListBuffer(
-      "label.deleted = FALSE",
-      userFilter
-    )
-    startDate.foreach(d => whereClauses += s"label_validation.end_timestamp >= '$d'::date")
-    endDate.foreach(d => whereClauses += s"label_validation.end_timestamp < ('$d'::date + INTERVAL '1 day')")
-    val where = whereClauses.mkString(" AND ")
+    val contributors = Contributors(filterLowQuality)
+    val conditions   = Seq(
+      Some(sql"label.deleted = FALSE"),
+      startDate.map(d => sql"label_validation.end_timestamp >= $d::date"),
+      endDate.map(d => sql"label_validation.end_timestamp < ($d::date + INTERVAL '1 day')")
+    ).flatten
 
     implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
       GetResult(r =>
@@ -568,7 +563,7 @@ class LabelValidationTable @Inject() (
 
     sql"""
       SELECT CAST((label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date AS TEXT) AS date,
-             label.label_type::text,
+             label_validation.label_type::text,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Agree'
                         THEN 1 END) AS human_agree,
              COUNT(CASE WHEN user_role.role IS DISTINCT FROM 'AI' AND label_validation.validation_result::text = 'Disagree'
@@ -581,13 +576,15 @@ class LabelValidationTable @Inject() (
                         THEN 1 END) AS ai_disagree,
              COUNT(CASE WHEN user_role.role = 'AI' AND label_validation.validation_result::text = 'Unsure'
                         THEN 1 END) AS ai_unsure
-      FROM label_validation
-      INNER JOIN label      ON label_validation.label_id    = label.label_id
-      INNER JOIN user_stat  ON label_validation.user_id     = user_stat.user_id
+      FROM #${FilteredTables.votesCast(contributors = contributors)}
+      INNER JOIN label ON label_validation.label_id = label.label_id
       LEFT  JOIN sidewalk_login.user_role ON label_validation.user_id = user_role.user_id
-      WHERE #$where
-      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label.label_type::text
-      ORDER BY date ASC, label.label_type::text
-    """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+      WHERE """
+      .concat(SqlFragments.allOf(conditions))
+      .concat(sql"""
+      GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, label_validation.label_type::text
+      ORDER BY date ASC, label_validation.label_type::text
+    """)
+      .as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
   }
 }

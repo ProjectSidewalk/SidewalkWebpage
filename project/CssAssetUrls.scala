@@ -108,8 +108,7 @@ object CssAssetUrls {
   ): Either[String, Option[String]] = {
     if (raw.isEmpty || NotAFileReference.findPrefixOf(raw).isDefined) return Right(None)
 
-    // A query string or fragment is part of the URL but not of the filename, so it rides along untouched — Bootstrap's
-    // glyphicons carry both (`...eot?#iefix`, `...svg#glyphicons_halflingsregular`).
+    // A `?query` or `#fragment` belongs to the URL, not the filename, so it rides along untouched.
     val cut                = raw.indexWhere(c => c == '?' || c == '#')
     val (pathPart, suffix) = if (cut < 0) (raw, "") else raw.splitAt(cut)
 

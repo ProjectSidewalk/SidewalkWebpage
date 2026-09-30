@@ -39,7 +39,11 @@ object GalleryFormats {
       aiValidationOptions: Option[Seq[String]],
       loadedLabels: Seq[Int],
       sort: Option[String],
-      staticImageryOnly: Option[Boolean]
+      staticImageryOnly: Option[Boolean],
+      // A review list (#5444). When present and non-empty it replaces every filter above: the Gallery is showing
+      // exactly these labels, in this order, so intersecting with a type or validation filter would silently drop
+      // items the reviewer asked to see.
+      labelIds: Option[Seq[Int]]
   )
 
   implicit val galleryEnvironmentSubmissionReads: Reads[GalleryEnvironmentSubmission] = (
@@ -77,6 +81,7 @@ object GalleryFormats {
       (JsPath \ "ai_validation_options").readNullable[Seq[String]] and
       (JsPath \ "loaded_labels").read[Seq[Int]] and
       (JsPath \ "sort").readNullable[String] and
-      (JsPath \ "static_imagery_only").readNullable[Boolean]
+      (JsPath \ "static_imagery_only").readNullable[Boolean] and
+      (JsPath \ "label_ids").readNullable[Seq[Int]]
   )(GalleryLabelsRequest.apply _)
 }

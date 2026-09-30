@@ -32,33 +32,33 @@ function buildNavbar() {
         <div class="navbar-container">
           <div class="navbar-brand-area">
             <div class="navbar-logo"><a id="navbar-brand" href="/"></a></div>
-            <ul class="navbar-nav navbar-quick" id="navbar-quick"></ul>
-            <button type="button" class="navbar-toggle" data-nav-toggle aria-controls="navbar"
+            <ul class="navbar-list navbar-quick" id="navbar-quick"></ul>
+            <button type="button" class="navbar-menu-toggle" data-nav-toggle aria-controls="navbar"
                     aria-expanded="false"></button>
           </div>
           <div id="navbar">
-            <ul class="navbar-nav navbar-nav--primary">
-              <li class="navbar-lnk" id="li-explore"><a class="navbar-button" id="navbar-start-btn"></a></li>
-              <li class="navbar-lnk" id="li-validate" data-nav-quick="2">
+            <ul class="navbar-list navbar-list--primary">
+              <li class="navbar-item" id="li-explore"><a class="navbar-button" id="navbar-start-btn"></a></li>
+              <li class="navbar-item" id="li-validate" data-nav-quick="2">
                 <a class="navbar-button" id="navbar-validate-btn"></a>
               </li>
-              <li class="navbar-lnk" id="li-api" data-nav-shed="3" data-nav-quick="4">
+              <li class="navbar-item" id="li-api" data-nav-shed="3" data-nav-quick="4">
                 <a class="navbar-button" id="navbar-api-btn"></a>
               </li>
-              <li class="navbar-lnk" id="li-about" data-nav-shed="1" data-nav-quick="3">
+              <li class="navbar-item" id="li-about" data-nav-shed="1" data-nav-quick="3">
                 <a class="navbar-button" id="navbar-about-btn"></a>
               </li>
             </ul>
-            <ul class="navbar-nav navbar-nav--utility">
-              <li class="dropdown navbar-lnk" id="li-user" data-nav-quick="1">
+            <ul class="navbar-list navbar-list--utility">
+              <li class="dropdown navbar-item" id="li-user" data-nav-quick="1">
                 <button type="button" class="navbar-button" data-nav-dropdown aria-expanded="false"
                         aria-controls="nav-user-menu"></button>
-                <ul id="nav-user-menu" class="dropdown-menu"><li><a href="/dashboard"></a></li></ul>
+                <ul id="nav-user-menu" class="navbar-menu"><li><a href="/dashboard"></a></li></ul>
               </li>
-              <li class="dropdown navbar-lnk" id="language-dropdown">
+              <li class="dropdown navbar-item" id="language-dropdown">
                 <button type="button" class="navbar-button" data-nav-dropdown aria-expanded="false"
                         aria-controls="nav-language-menu"></button>
-                <ul id="nav-language-menu" class="dropdown-menu"><li><a href="/lang"></a></li></ul>
+                <ul id="nav-language-menu" class="navbar-menu"><li><a href="/lang"></a></li></ul>
               </li>
             </ul>
           </div>
@@ -110,7 +110,7 @@ function stubLayout({ stacked, barWidth, visibleWidth = Infinity }) {
     });
 
     // The inline bar's own fit check; irrelevant while stacked, and generous enough not to shed when not.
-    for (const group of document.querySelectorAll('#navbar > .navbar-nav')) width(group, 100);
+    for (const group of document.querySelectorAll('#navbar > .navbar-list')) width(group, 100);
     Object.defineProperty(document.getElementById('navbar'), 'clientWidth', {
         configurable: true, get: () => barWidth,
     });
@@ -123,7 +123,7 @@ function stripIds() {
 
 /** @returns {string[]} The ids of the items still inside the collapsible panel, in DOM order. */
 function panelIds() {
-    return Array.from(document.querySelectorAll('#navbar .navbar-lnk')).map((el) => el.id);
+    return Array.from(document.querySelectorAll('#navbar .navbar-item')).map((el) => el.id);
 }
 
 describe('Navbar quick strip', () => {

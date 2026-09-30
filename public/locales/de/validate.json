@@ -16,52 +16,53 @@
   },
   "validate-menu": {
     "remove-tag": "Tag entfernen: {{tag}}",
+    "tag-search-placeholder": "Weitere Tags hier hinzufügen",
+    "tag-search-no-results": "Keine passenden Tags",
     "disagree-reason": {
+      "common": {
+        "wrong-type": "Das ist der falsche Etikettentyp",
+        "wrong-type-tooltip": "Hier ist etwas, aber es sollte mit einem anderen Etikettentyp gekennzeichnet werden"
+      },
       "curb-ramp": {
-        "no-button-1": "Dies ist eine Einfahrt.",
-        "no-button-2": "Dies ist ein Übergang vom Trottoir zur Einfahrt.",
-        "no-button-2-tooltip": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt",
-        "no-button-3": "Dies sollte ein Etikett „Fehlende Trottoirabsenkung“ sein.",
-        "no-button-3-tooltip": "Manchmal wird eine fehlende Trottoirabsenkung versehentlich fälschlicherweise als Trottoirabsenkung bezeichnet."
+        "wrong-type-tooltip": "Manchmal wird eine fehlende Trottoirabsenkung versehentlich fälschlicherweise als Trottoirabsenkung bezeichnet.",
+        "no-button-2": "Dies ist eine Einfahrt.",
+        "no-button-3": "Dies ist ein Übergang vom Trottoir zur Einfahrt.",
+        "no-button-3-tooltip": "Übergänge zwischen Trottoir und Ein- bzw. Ausfahrten sind keine Trottoirabsenkungen, es sei denn, es wurde eine spezielle Rampe hinzugefügt"
       },
       "no-curb-ramp": {
-        "no-button-1": "Dies ist ein Gehweg in einem Wohngebiet.",
-        "no-button-2": "Hier gibt es keinen Bürgersteig.",
-        "no-button-3": "Dies sollte ein Etikett für eine Trottoirabsenkung sein.",
-        "no-button-3-tooltip": "Manchmal wird eine Trottoirabsenkung fälschlicherweise als fehlende Trottoirabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt.",
+        "wrong-type-tooltip": "Manchmal wird eine Trottoirabsenkung fälschlicherweise als fehlende Trottoirabsenkung gekennzeichnet, oft weil eine taktile Warnmarkierung fehlt.",
+        "no-button-2": "Dies ist ein Gehweg in einem Wohngebiet.",
+        "no-button-3": "Hier gibt es keinen Bürgersteig.",
         "no-button-4": "Hier kann man nicht sicher überqueren.",
         "no-button-4-tooltip": "Fußgänger sollen an dieser Stelle nicht überqueren, daher ist hier keine Trottoirabsenkung zu erwarten."
       },
       "obstacle": {
-        "no-button-1": "Dies ist kein Weg für Fussgänger:innen.",
-        "no-button-1-tooltip": "Wenn kein Trottoir vorhanden ist oder sich das Objekt nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, wie in der Abbildung unten, ist keine Hinderniskennzeichnung erforderlich.",
-        "no-button-2": "Es ist ausreichend Platz vorhanden, um diesem Objekt auszuweichen.",
-        "no-button-2-tooltip": "Auf sehr breiten Trottoirs sollten leicht vermeidbare Objekte <b>nicht</b> als Hindernisse gekennzeichnet werden.",
-        "no-button-3": "Dies sollte ein Etikett für ein Oberflächenproblem sein.",
-        "no-button-3-tooltip": "Gras und Ablagerungen wie Laub sollten mit einem Etikett „Oberflächenproblem“ gekennzeichnet werden."
+        "wrong-type-tooltip": "Gras und Ablagerungen wie Laub sollten mit einem Etikett „Oberflächenproblem“ gekennzeichnet werden.",
+        "no-button-2": "Dies ist kein Weg für Fussgänger:innen.",
+        "no-button-2-tooltip": "Wenn kein Trottoir vorhanden ist oder sich das Objekt nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, wie in der Abbildung unten, ist keine Hinderniskennzeichnung erforderlich.",
+        "no-button-3": "Es ist ausreichend Platz vorhanden, um diesem Objekt auszuweichen.",
+        "no-button-3-tooltip": "Auf sehr breiten Trottoirs sollten leicht vermeidbare Objekte <b>nicht</b> als Hindernisse gekennzeichnet werden."
       },
       "surface-problem": {
-        "no-button-1": "Dies sollte ein „kein Trottoir“-Schild sein.",
-        "no-button-1-tooltip": "Schotter oder Gras gelten nicht als Gehweg und sollten mit einem „kein Trottoir“-Schild gekennzeichnet werden.",
+        "wrong-type-tooltip": "Schotter oder Gras gelten nicht als Gehweg und sollten mit einem „kein Trottoir“-Schild gekennzeichnet werden.",
         "no-button-2": "Dies ist kein Weg für Fussgänger:innen.",
         "no-button-2-tooltip": "Wenn sich ein Oberflächenproblem nicht auf einem für Fussgänger:innen vorgesehenen Weg befindet, sollte es <b>nicht</b>  als Oberflächenproblem gekennzeichnet werden.",
         "no-button-3": "Das sind normale Belagsplatten."
       },
       "no-sidewalk": {
-        "no-button-1": "Hier gibt es ein Trottoir.",
-        "no-button-2": "Dies ist eine Verkehrsinsel.",
-        "no-button-3": "Dies sollte mit einem anderen Etikettentyp gekennzeichnet werden.",
-        "no-button-3-tooltip": "Oberflächenprobleme oder Hindernisse können fälschlicherweise als „kein Trottoir“ gekennzeichnet werden."
+        "wrong-type-tooltip": "Oberflächenprobleme oder Hindernisse können fälschlicherweise als „kein Trottoir“ gekennzeichnet werden.",
+        "no-button-2": "Hier gibt es ein Trottoir.",
+        "no-button-3": "Dies ist eine Verkehrsinsel."
       },
       "crosswalk": {
-        "no-button-1": "Hier ist kein Zebrastreifen sichtbar.",
-        "no-button-2": "Dies ist eine Haltelinie für Autos.",
-        "no-button-3": "Dies ist eine Bremsschwelle"
+        "no-button-2": "Hier ist kein Zebrastreifen sichtbar.",
+        "no-button-3": "Dies ist eine Haltelinie für Autos.",
+        "no-button-4": "Dies ist eine Bremsschwelle"
       },
       "signal": {
-        "no-button-1": "Dieses Lichtsignal ist nur für Fahrzeuge vorgesehen.",
-        "no-button-2": "Dies ist ein Schild ohne Beleuchtung, das einen sicheren Übergang signalisiert.",
-        "no-button-3": "Dies ist ein Pfosten ohne Fussgänger:innenlichtsignal oder -knopf."
+        "no-button-2": "Dieses Lichtsignal ist nur für Fahrzeuge vorgesehen.",
+        "no-button-3": "Dies ist ein Schild ohne Beleuchtung, das einen sicheren Übergang signalisiert.",
+        "no-button-4": "Dies ist ein Pfosten ohne Fussgänger:innenlichtsignal oder -knopf."
       }
     },
     "unsure-reason": {

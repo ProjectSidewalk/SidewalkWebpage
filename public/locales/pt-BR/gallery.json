@@ -2,6 +2,17 @@
   "card-image-alt": "Foto do Street View de uma etiqueta de {{labelType}}",
   "clear-filters": "Limpar filtros",
   "filter-by": "Filtrar por",
+  "list-browse-all": "Ver todos os rótulos",
+  "list-count-partial_one": "{{shown}} de {{count}} rótulo nesta lista",
+  "list-count-partial_other": "{{shown}} de {{count}} rótulos nesta lista",
+  "list-count_one": "{{count}} rótulo nesta lista",
+  "list-count_other": "{{count}} rótulos nesta lista",
+  "list-error": "Não foi possível carregar a lista. Recarregue a página para tentar de novo.",
+  "list-position": "{{k}} de {{n}}",
+  "list-truncated_one": "{{count}} ID passou do limite de {{max}} e não pôde ser carregado.",
+  "list-truncated_other": "{{count}} IDs passaram do limite de {{max}} e não puderam ser carregados.",
+  "list-unavailable_one": "{{count}} indisponível",
+  "list-unavailable_other": "{{count}} indisponíveis",
   "none": "nenhuma",
   "not-applicable": "não aplicável"
 }

@@ -56,8 +56,8 @@
   gap: 32px;
 }
 
-/* One column is already plenty wide on a phone, and two 300px columns plus the gap stop fitting the Bootstrap
-   container around here (--breakpoint-sm is 768px). */
+/* One column is already plenty wide on a phone, and two 300px columns plus the gap stop fitting the page column
+   around here (--breakpoint-sm is 768px). */
 @media (width <= 768px) {
   .spotlight-cols {
     grid-template-columns: 1fr;
@@ -115,7 +115,7 @@
 /* The same orange the map-linked table rows use (components/tables.css): the high-contrast pick against the
    choropleth's Blues scale, which is the map this highlight is paired with. */
 .spotlight-row:hover,
-.spotlight-row.highlighted {
+.spotlight-row.is-highlighted {
   background: rgb(246 141 62 / 14%);
   box-shadow: inset 3px 0 0 var(--color-label-surface-problem, #f68d3e);
 }

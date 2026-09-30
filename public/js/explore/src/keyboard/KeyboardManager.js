@@ -126,8 +126,13 @@ class KeyboardManager {
             this.#navigationService.moveToLinkedPano(180);
             break;
           case ' ':
+            // A focused checkbox or radio button (e.g. the minimap key's "My earlier labels", #4945) has no key but
+            // Space to toggle it, so it keeps Space; cancelling it here would leave the control mouse-only.
+            if (e.target instanceof HTMLInputElement && (e.target.type === 'checkbox' || e.target.type === 'radio')) {
+              break;
+            }
             // preventDefault stops the page from scrolling and stops space from re-activating a
-            // focused button (e.g. the Stuck/ribbon button right after a mouse click).
+            // focused button (e.g. the Stuck/ribbon button right after a mouse click), which Enter still activates.
             e.preventDefault();
             this.#advanceForwardAlongRoute();
             break;
@@ -182,6 +187,16 @@ class KeyboardManager {
         svl.tracker.push('KeyboardShortcut_ModeSwitch_Walk', { keyCode: e.keyCode });
       }
 
+      // Immersive mode on/off (#5085). F is a tag shortcut while the context menu is open, and an f typed into a text
+      // field must not toggle the layout: #status.focusOnTextField only tracks the context menu's own textarea. The
+      // physical key, like Z for zoom, so the toggle sits where the hint's "F" is on a QWERTY layout.
+      const editing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+        || /** @type {?HTMLElement} */ (document.activeElement)?.isContentEditable;
+      if (e.code === 'KeyF' && !e.shiftKey && !e.altKey && !e.metaKey && !this.#contextMenu.isOpen()
+        && !editing && svl.immersiveMode) {
+        svl.immersiveMode.toggle('KeyboardShortcut');
+      }
+
       // Zooming in/out.
       if (e.code === 'KeyZ') {
         // Close the context menu whenever we zoom.
@@ -219,7 +234,7 @@ class KeyboardManager {
           const tags = this.#contextMenu.labelTags.filter((tag) => tag.label_type === labelType);
           for (const tag of tags) {
             if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType).tagInfo[tag.tag].keyChar) {
-              $(`.tag-id-${tag.tag_id}`).first().trigger('click', { lowLevelLogging: false });
+              document.querySelector(`[data-tag-id="${tag.tag_id}"]`)?.click();
             }
           }
         }

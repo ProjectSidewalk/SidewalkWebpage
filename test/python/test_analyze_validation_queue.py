@@ -1,4 +1,4 @@
-"""Unit tests for tools/analyze_validation_queue.py (#4715).
+"""Unit tests for tools/validation_queue/analyze_validation_queue.py (#4715).
 
 These pin the policy arithmetic the evidence report is built on, so a transcription slip between
 `models.validation.ValidationQueuePolicy` and the analysis shows up here rather than as a wrong number in a doc.
@@ -530,6 +530,32 @@ def test_load_validations_reads_the_flags_as_booleans(tmp_path):
     assert rows[0]["is_ai"] is True and rows[0]["self_vote"] is False
 
 
+def test_load_filters_a_merged_every_city_export_by_city_and_ignores_a_single_city_one(tmp_path):
+    base = {"label_type": "CurbRamp", "agree_count": 0, "disagree_count": 0, "unsure_count": 0, "correct": "",
+            "own_labels_validated": 3, "high_quality": "t", "low_quality": "f", "stale": "f", "recent": "t",
+            "ai_result": ""}
+    merged_pool = tmp_path / "pool.csv"
+    _write_csv(merged_pool, ["city"] + POOL_CSV_FIELDS,
+               [dict(base, city="seattle", label_id=1), dict(base, city="chicago", label_id=2),
+                dict(base, city="seattle", label_id=3)])
+    assert list(avq.load_pool(str(merged_pool), city="seattle").label_id) == [1, 3]
+    vote = {"label_type": "CurbRamp", "validation_result": "Agree", "end_timestamp": "2026-01-01 00:00:00+00",
+            "source": "Validate", "self_vote": "f", "is_ai": "f"}
+    merged_votes = tmp_path / "validations.csv"
+    _write_csv(merged_votes, ["city"] + VALIDATION_CSV_FIELDS,
+               [dict(vote, city="chicago", label_id=2), dict(vote, city="seattle", label_id=1)])
+    assert [row["label_id"] for row in avq.load_validations(str(merged_votes), city="seattle")] == [1]
+    # A merged export must name a city, and a city it does not hold is a typo, not an empty pool.
+    with pytest.raises(SystemExit, match="pass --city"):
+        avq.load_pool(str(merged_pool))
+    with pytest.raises(SystemExit, match="holds: chicago, seattle"):
+        avq.load_validations(str(merged_votes), city="Seattle")
+    # A single-city export has no city column, so asking for a city changes nothing.
+    single = tmp_path / "single.csv"
+    _write_csv(single, VALIDATION_CSV_FIELDS, [dict(vote, label_id=5)])
+    assert [row["label_id"] for row in avq.load_validations(str(single), city="seattle")] == [5]
+
+
 def test_markdown_table_renders_a_header_separator_and_every_row():
     table = avq.markdown_table(["a", "b"], [[1, 2], [3, 4]])
     assert table.splitlines() == ["| a | b |", "|---|---|", "| 1 | 2 |", "| 3 | 4 |"]
@@ -826,7 +852,10 @@ def test_main_writes_to_stdout_without_an_out_path(tmp_path, capsys):
     _write_csv(validations_path, VALIDATION_CSV_FIELDS, [])
     assert avq.main(["--pool", str(pool_path), "--validations", str(validations_path), "--votes", "10",
                      "--missions", "2"]) == 0
-    assert capsys.readouterr().out.startswith("# Validate queue analysis")
+    assert capsys.readouterr().out.startswith("# Validate queue analysis -- `unknown`")
+    assert avq.main(["--pool", str(pool_path), "--validations", str(validations_path), "--votes", "10",
+                     "--missions", "2", "--city", "seattle"]) == 0
+    assert capsys.readouterr().out.startswith("# Validate queue analysis -- `seattle`")
 
 
 # The policy constants against their source of truth.

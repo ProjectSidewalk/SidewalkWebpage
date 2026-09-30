@@ -4,7 +4,7 @@ import com.typesafe.sbt.web.pipeline.Pipeline
 
 name := """sidewalk-webpage"""
 
-version := "11.14.1"
+version := "11.16.0"
 
 scalaVersion := "2.13.18"
 
@@ -57,11 +57,6 @@ libraryDependencies ++= Seq(
   // Reads EXIF (photos) and QuickTime/MP4 atoms (videos, for the later #4054 increments) from user-uploaded story
   // media. Pure Java, one small transitive dep (xmpcore). Used transiently on ingest; precise values are discarded.
   "com.drewnoakes" % "metadata-extractor" % "2.21.0",
-
-  // Used for the sign in/up views. https://github.com/mohiva/play-silhouette-seed/blob/1710f9f3337cbe10d1928fd53a5ab933352b3cf5/build.sbt
-  // Find versions here (P26-B3 is Play 2.6, Bootstrap 3): https://adrianhurt.github.io/play-bootstrap/changelog/
-  // TODO no releases since Play 2.8. Seems to continue to work, but should consider other options.
-  "com.adrianhurt" %% "play-bootstrap" % "1.6.1-P28-B3",
 
   // Used to create the shapefile and GeoPackage exports (ShapefilesCreatorHelper). Served by the OSGeo resolver above.
   "org.geotools" % "gt-shapefile" % "35.1",
@@ -153,7 +148,7 @@ Compile / sourceGenerators += Def.task {
 // `util.assetPath` (#4893). Everything under these prefixes goes into the generated inventory below, which
 // AssetManifestService turns into the `window.assetDigests` stamp main.scala.html puts on every page.
 //
-// tools/check-asset-paths.mjs parses this Seq to decide which logical paths `util.assetPath` may name, so keep the
+// tools/lint/check-asset-paths.mjs parses this Seq to decide which logical paths `util.assetPath` may name, so keep the
 // literal shape — one quoted prefix per line. `locales` is deliberately absent: i18next-http-backend interpolates its
 // own `loadPath` template, so those URLs never reach the helper.
 val assetManifestPrefixes = Seq(

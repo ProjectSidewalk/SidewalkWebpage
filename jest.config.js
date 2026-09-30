@@ -5,6 +5,10 @@
  * blocking step in the frontend job. See test/js/README.md and docs/testing-and-ci.md.
  */
 
+// Pinned, or the suite inherits the machine's zone and a bug that only bites west of Greenwich -- a UTC timestamp
+// near midnight printing as the month before -- passes in a UTC runner while failing for the labelers it reaches.
+process.env.TZ = 'America/Los_Angeles';
+
 /** @type {import('jest').Config} */
 module.exports = {
   // These tests render into a DOM, so run them under jsdom (provides window/document). Jest only honors a

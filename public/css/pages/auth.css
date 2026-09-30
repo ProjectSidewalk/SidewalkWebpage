@@ -225,9 +225,9 @@ dialog.au-dialog::backdrop {
 .au-eye:focus-visible,
 .au-check input:focus-visible,
 .au-link:focus-visible,
-.au-dialog .button-ps:focus-visible,
-.wl-page .button-ps:focus-visible,
-.sh-page .button-ps:focus-visible {
+.au-dialog .button:focus-visible,
+.wl-page .button:focus-visible,
+.sh-page .button:focus-visible {
   outline: 2px solid var(--color-pine-700);
   outline-offset: 2px;
 }

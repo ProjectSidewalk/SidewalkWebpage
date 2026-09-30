@@ -11,7 +11,7 @@ import scala.util.Using
  *
  * The point of `conf/pano-scoring.json` is that one file feeds three consumers that must agree — the Mapillary and
  * Panoramax viewers (through the `data-pano-scoring` stamp in `main.scala.html`) and `score_pano` in
- * `scripts/check_streets_for_imagery.py`, which reads the same file off disk. These pin the parts that would break
+ * `tools/city/check_streets_for_imagery.py`, which reads the same file off disk. These pin the parts that would break
  * that quietly: the file being unreachable on the classpath, growing a key the loader drops on the floor, losing a
  * provider, or shipping its `_comment` to every page.
  */

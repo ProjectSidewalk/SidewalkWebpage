@@ -30,7 +30,7 @@
   gap: 4px;
 }
 
-/* .button-ps sets `display: inline-flex`, which outranks the browser's `[hidden] { display: none }`, so the button
+/* .button sets `display: inline-flex`, which outranks the browser's `[hidden] { display: none }`, so the button
    would stay on screen while no filter is applied without this. */
 #clear-filters[hidden] {
   display: none;

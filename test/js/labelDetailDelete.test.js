@@ -28,11 +28,11 @@ function buildCard() {
       <header class="label-detail__header">
         <div class="label-detail__title-wrap">
           <h2 class="label-detail__title">
-            <span class="label-detail__type label-detail__type--static">
-              <img class="label-detail__type-icon" alt=""><span class="label-detail__type-name"></span>
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
             </span>
-            <button type="button" class="label-detail__type label-detail__type-button" hidden aria-expanded="false">
-              <img class="label-detail__type-icon" alt=""><span class="label-detail__type-name"></span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
             </button>
           </h2>
           <button type="button" class="label-detail__delete" hidden></button>
@@ -40,8 +40,9 @@ function buildCard() {
           <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </div>
       </header>
-      <div class="label-detail__type-picker" popover hidden>
-        <div class="label-detail__type-picker-chips"></div>
+      <div class="label-type-popover" popover hidden>
+        <p class="label-type-popover__hint" hidden></p>
+        <div class="label-type-popover__chips"></div>
       </div>
       <div class="label-detail__pano-wrap">
         <div class="label-detail__pano"></div>

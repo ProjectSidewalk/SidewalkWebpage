@@ -15,6 +15,7 @@
   <div class="page-section" id="label-edits-intro-section">
     <h1 class="page-heading" id="label-edits-api">Label Edits API <a href="#label-edits-api" class="permalink">#</a></h1>
     <p>The Label Edits API lists every change made to a label's severity or tags after the label was placed. An edit records who made it, the severity and tags before and after, the interface it was made in, and when. Edits come from two places: a validator who agrees a label is correct can fix its severity or tags as part of their vote (those edits carry the vote's <code>label_validation_id</code>), and the person who placed a label, or an admin, can edit it directly from the label's detail card on the Label Map or Gallery (those have no validation).</p>
+    <p>Unlike our other APIs, this one includes edits from accounts we've removed as spam or unreliable, and edits to their labels.</p>
     <p>Use it to study how crowd editing refines label metadata, to audit changes to a specific label, or to reconstruct what a label looked like at a point in time. The <a href="@routes.ApiDocsController.rawLabels">Raw Labels API</a> always reflects the current, post-edit state.</p>
   </div>
 

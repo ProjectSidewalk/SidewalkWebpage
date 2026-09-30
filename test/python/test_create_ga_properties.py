@@ -1,5 +1,5 @@
 """
-Unit tests for tools/create_ga_properties.py — the GA4 property/stream creation `make onboard-city` runs as step 2.
+Unit tests for tools/city/create_ga_properties.py — the GA4 property/stream creation `make onboard-city` runs as step 2.
 
 The cityparams/messages lookups run against copies of the real files with a test city registered through
 setup_new_city (so the two scripts' view of the file agrees); the Analytics Admin API and the OAuth token exchange are

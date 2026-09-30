@@ -235,8 +235,8 @@ function addRegionsToMap(map, regionGeoJSON, completionRates, params) {
       //           _needsReaudit=<bool>_target=audit' (one string; wrapped here for line length).
       // needsReaudit says whether the region had streets flagged for re-audit (#4384) when clicked, so re-audit CTA
       // clicks can be distinguished from first-audit ones.
-      $(`#${params.mapName}`).on('click', '.region-selection-trigger', function () {
-        const regionId = parseInt($(this).attr('regionId'), 10);
+      logPopupLinkClicks(map, '.region-selection-trigger', (link) => {
+        const regionId = parseInt(link.getAttribute('regionId'), 10);
         const region = regionGeoJSON.features.find((x) => {
           return regionId === x.properties.region_id;
         });
@@ -247,9 +247,8 @@ function addRegionsToMap(map, regionGeoJSON, completionRates, params) {
         else if (distanceLeftRounded === 1) distanceLeftStr = '1';
         else distanceLeftStr = '>1';
         const needsReaudit = (region.properties.outdated_distance_m || 0) > 0;
-        const activity = `Click_module=${params.mapName}_regionId=${regionId}`
+        return `Click_module=${params.mapName}_regionId=${regionId}`
           + `_distanceLeft=${distanceLeftStr}_needsReaudit=${needsReaudit}_target=audit`;
-        window.logWebpageActivity(activity);
       });
     }
   }

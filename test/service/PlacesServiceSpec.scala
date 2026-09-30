@@ -39,6 +39,23 @@ class PlacesServiceSpec extends PlaySpec with OptionValues {
       PlaceCategory.Library.rules.head.overpassSelector mustBe "[amenity=library]"
       PlaceCategory.Grocery.rules.head.overpassSelector mustBe """[shop~"^(greengrocer|supermarket)$"]"""
     }
+
+    "AND a qualified rule's selectors, so Overpass returns only public-facing government offices" in {
+      val office = PlaceCategory.Government.rules.find(_.key == "office").value
+      office.overpassSelector must startWith("""[office=government][government~"^(""")
+      office.overpassSelector must include("passport")
+      office.overpassSelector must not include "public_works"
+    }
+  }
+
+  "PlaceCategory.resolve" should {
+    "file a government office only when its government=* subtag is public-facing" in {
+      PlaceCategory.resolve(Map("office" -> "government", "government" -> "passport")).map(_.id) mustBe
+        Some("government")
+      PlaceCategory.resolve(Map("office" -> "government", "government" -> "aviation")) mustBe None
+      PlaceCategory.resolve(Map("office" -> "government")) mustBe None
+      PlaceCategory.resolve(Map("amenity" -> "courthouse")).map(_.id) mustBe Some("government")
+    }
   }
 
   "pad" should {

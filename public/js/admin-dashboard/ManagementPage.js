@@ -10,8 +10,8 @@
  * downloaded once and then filtered/sorted/paginated entirely client-side — small enough to keep every column sortable
  * without a per-page server round-trip, but paginated in the DOM so we never render thousands of rows at once.
  *
- * Built as an accessible HTML/CSS table (no DataTables/jQuery), consistent with the rest of the redesign. Mutations
- * update local state optimistically-then-confirm: the request fires, and the row reverts with a message if it fails.
+ * Built as an accessible HTML/CSS table, consistent with the rest of the redesign. Mutations update local state
+ * optimistically-then-confirm: the request fires, and the row reverts with a message if it fails.
  */
 class ManagementPage {
   /** Roles an admin may assign from this page. Owner is intentionally excluded (the backend forbids it); the system
@@ -38,7 +38,8 @@ class ManagementPage {
   /**
    * @param {{userStatsUrl: string, setRoleUrl: string, setTeamUrl: string, teamStatusUrl: string,
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
-   *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string}} urls
+   *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
+   *          refreshPlacesUrl: string, recountGradientStalenessUrl: string}} urls
    */
   constructor(urls) {
     this.#urls = urls;
@@ -46,7 +47,7 @@ class ManagementPage {
 
   async init() {
     try {
-      const data = await AdminShell.fetchJson(this.#urls.userStatsUrl);
+      const data = await util.fetchJson(this.#urls.userStatsUrl);
       this.#users = (data && data.user_stats) || [];
       this.#teams = (data && data.teams) || [];
       this.#teamsByName = new Map(this.#teams.map((t) => [t.name, t]));
@@ -80,11 +81,10 @@ class ManagementPage {
       { key: 'role', label: 'Role', align: 'left', sort: (u) => u.role || '' },
       { key: 'team', label: 'Team', align: 'left', sort: (u) => u.team || '' },
       { key: 'highQuality', label: 'Quality', align: 'left', sort: (u) => (u.highQuality ? 1 : 0),
-        help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it by hand.' },
+        help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it.' },
       { key: 'ownValidatedAgreedPct', label: 'Labeling accuracy', align: 'right',
         sort: (u) => u.ownValidatedAgreedPct || 0,
-        help: 'Share of this user’s own labels that other people agreed with when validating them '
-          + '(with how many were validated).' },
+        help: 'Share of this user’s validated labels that validators agreed with, and how many were validated.' },
       { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => AdminShell.ts(u.signUpTime) },
       { key: 'lastSignInTime', label: 'Last sign-in', align: 'right',
         sort: (u) => AdminShell.ts(u.lastSignInTime) },
@@ -314,7 +314,7 @@ class ManagementPage {
   #renderTeams() {
     const el = document.getElementById('mgmt-teams');
     if (!this.#teams.length) {
-      el.innerHTML = '<p class="dq-empty">No teams on this deployment.</p>';
+      el.innerHTML = '<p class="dq-empty">No teams in this city.</p>';
       return;
     }
     const head = `<tr>
@@ -364,7 +364,17 @@ class ManagementPage {
   // --- Maintenance ------------------------------------------------------------------------------------------------
 
   #wireMaintenance() {
-    // `done` is what the button reports on success: a trigger that answers before its job finishes can't say "Done".
+    /**
+     * Wires one maintenance button: confirm, call the endpoint, report in the status region.
+     *
+     * @param {string} id - The button's element id.
+     * @param {string} url - The endpoint to call.
+     * @param {string} method - Its HTTP method.
+     * @param {string} label - The action, as the status line names it.
+     * @param {string | ((result: any) => string)} [done] - What the button reports on success: a trigger that
+     *   answers before its job finishes can't say "Done", and one that answers with its counts hands them to a
+     *   function so the admin need not open the Health panel.
+     */
     const run = (id, url, method, label, done = `Done: ${label}.`) => {
       const btn = /** @type {HTMLButtonElement} */ (document.getElementById(id));
       if (!btn) return;
@@ -378,8 +388,8 @@ class ManagementPage {
         btn.disabled = true;
         this.#maintResult(`Running: ${label}…`);
         try {
-          await AdminShell.mutate(url, method);
-          this.#maintResult(done);
+          const result = await AdminShell.mutate(url, method);
+          this.#maintResult(typeof done === 'function' ? done(result) : done);
         } catch (err) {
           this.#maintResult(`Failed: ${label} — ${err.message}`, true);
         } finally {
@@ -392,11 +402,15 @@ class ManagementPage {
     run('mgmt-recalc-validation-counts', this.#urls.recalcValidationCountsUrl, 'POST',
       'recalculate validation counts');
     run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops',
-      'Started: generate crops. It runs in the background — the Health panel reports how it ended.');
+      'Started: generate crops. It runs in the background; Health (Owners) reports the result.');
     run('mgmt-rebuild-sidewalk-presence', this.#urls.rebuildSidewalkPresenceUrl, 'POST',
       'rebuild sidewalk presence');
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
-      'Started: refresh places. It runs in the background — the Health panel reports how it ended.');
+      'Started: refresh places. It runs in the background; Health (Owners) reports the result.');
+    run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
+      'recount street gradient staleness',
+      (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
+        + `${AdminShell.num(counts.streets_stale)} sampled on an older geometry.`);
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 
@@ -423,7 +437,7 @@ class ManagementPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   #maintResult(message, isError = false) {

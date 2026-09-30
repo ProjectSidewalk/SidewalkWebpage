@@ -2,7 +2,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], labelCount: Int, valCount: Int,
-  partners: Seq[models.partner.PartnerMetadata]
+  partners: Seq[models.partner.PartnerMetadata], officialContact: Option[models.utils.OfficialContact]
 )(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
@@ -73,7 +73,7 @@
 
     <!-- Community partners -->
   <section id="mobile-partners">
-    @landing._partners(partners, currentCity.cityNameShort)
+    @landing._partners(partners, officialContact, currentCity.cityNameShort)
   </section>
 
     <!-- Bottom CTA with footer info merged in -->

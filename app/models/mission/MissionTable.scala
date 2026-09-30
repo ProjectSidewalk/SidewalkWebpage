@@ -43,16 +43,16 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def missionStart: Rep[OffsetDateTime]          = column[OffsetDateTime]("mission_start")
   def missionEnd: Rep[OffsetDateTime]            = column[OffsetDateTime]("mission_end")
-  def completed: Rep[Boolean]                    = column[Boolean]("completed")
+  def completed: Rep[Boolean]                    = column[Boolean]("completed", O.Default(false))
   def pay: Rep[Double]                           = column[Double]("pay", O.Default(0.0))
-  def paid: Rep[Boolean]                         = column[Boolean]("paid")
+  def paid: Rep[Boolean]                         = column[Boolean]("paid", O.Default(false))
   def distanceMeters: Rep[Option[Double]]        = column[Option[Double]]("distance_meters")
   def distanceProgress: Rep[Option[Double]]      = column[Option[Double]]("distance_progress")
   def regionId: Rep[Option[Int]]                 = column[Option[Int]]("region_id")
   def labelsValidated: Rep[Option[Int]]          = column[Option[Int]]("labels_validated")
   def labelsProgress: Rep[Option[Int]]           = column[Option[Int]]("labels_progress")
   def labelType: Rep[Option[LabelTypeEnum.Base]] = column[Option[LabelTypeEnum.Base]]("label_type")
-  def skipped: Rep[Boolean]                      = column[Boolean]("skipped")
+  def skipped: Rep[Boolean]                      = column[Boolean]("skipped", O.Default(false))
   def currentAuditTaskId: Rep[Option[Int]]       = column[Option[Int]]("current_audit_task_id")
   def userRouteId: Rep[Option[Int]]              = column[Option[Int]]("user_route_id")
 
@@ -343,23 +343,26 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * No distance target and no region: the mission is a free-exploration container that is never completed, so a
    * region_id would let getCurrentMissionInRegion-style queries mistake it for a resumable audit mission.
    */
-  def createExploreAddressMission(userId: String): DBIO[Mission] = {
-    val now: OffsetDateTime = OffsetDateTime.now
-    val newMission = Mission(0, MissionType.ExploreAddress, userId, now, now, completed = false, 0d, paid = false, None,
-      None, None, None, None, None, skipped = false, None, None)
-    (missions returning missions) += newMission
-  }
+  def createExploreAddressMission(userId: String): DBIO[Mission] = createBareMission(userId, MissionType.ExploreAddress)
 
   /**
    * Creates a new auditOnboarding mission entry in the mission table for the specified user.
    *
    * NOTE only call from queryMissionTable or queryMissionTableValidationMissions funcs to prevent race conditions.
    */
-  def createAuditOnboardingMission(userId: String): DBIO[Mission] = {
+  def createAuditOnboardingMission(userId: String): DBIO[Mission] =
+    createBareMission(userId, MissionType.AuditOnboarding)
+
+  /**
+   * Inserts a mission with no distance or label target and no region, for the mission types that need neither.
+   *
+   * @return The inserted mission.
+   */
+  private def createBareMission(userId: String, missionType: MissionType.Value): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
-    val newMiss = Mission(0, MissionType.AuditOnboarding, userId, now, now, completed = false, 0d, paid = false, None,
-      None, None, None, None, None, skipped = false, None, None)
-    (missions returning missions) += newMiss
+    val newMission = Mission(0, missionType, userId, now, now, completed = false, 0d, paid = false, None, None, None,
+      None, None, None, skipped = false, None, None)
+    (missions returning missions) += newMission
   }
 
   /**

@@ -9,6 +9,7 @@ import actor.{
   PlacesRefreshActor,
   RecalculateStreetPriorityActor,
   SidewalkPresenceActor,
+  StreetGradientStalenessActor,
   UserStatActor
 }
 import models.user.Role
@@ -40,6 +41,7 @@ import service.{
   PlacesService,
   SidewalkPresenceRebuildResult,
   SidewalkPresenceService,
+  StreetGradientStaleness,
   StreetService
 }
 import util.{AnonSession, RoleSession, RolledBackDb, StubService}
@@ -91,6 +93,8 @@ class AdminJobTriggerSpec
     fetchedAt = None
   )
 
+  private val StalenessResult = StreetGradientStaleness(unsampled = 4641, stale = 4642)
+
   /** Set per test: this endpoint's failure path is part of its contract, and Guice owns the stub. */
   @volatile private var osmWayAnswer: Future[OsmWayRefreshResult] = Future.successful(OsmWayRefreshResult.empty)
 
@@ -118,7 +122,12 @@ class AdminJobTriggerSpec
           )
         ),
         bind[StreetService].toInstance(
-          StubService.answering[StreetService](Map("recalculateStreetPriority" -> Future.successful(Seq(1, 2))))
+          StubService.answering[StreetService](
+            Map(
+              "recalculateStreetPriority"    -> Future.successful(Seq(1, 2)),
+              "countStreetGradientStaleness" -> Future.successful(StalenessResult)
+            )
+          )
         ),
         bind[PanoDataService].toInstance(
           StubService.answering[PanoDataService](
@@ -284,6 +293,18 @@ class AdminJobTriggerSpec
     }
   }
 
+  "POST /adminapi/recountStreetGradientStaleness" should {
+    "record the recount as a manual run of the nightly staleness job, with its counts" in {
+      val (code, body, jobRun) =
+        trigger("/adminapi/recountStreetGradientStaleness", StreetGradientStalenessActor.Name, POST)
+      code mustBe OK
+      body must include(StalenessResult.unsampled.toString)
+      jobRun.triggeredBy mustBe JobRunTrigger.Manual
+      jobRun.status mustBe JobRunStatus.Succeeded
+      jobRun.details.value mustBe StalenessResult.runDetails
+    }
+  }
+
   "POST /adminapi/refreshPlaces" should {
     // Answers before the Overpass round trip finishes, as crop generation does, so the run row is read back later.
     "answer at once and record the refresh as a manual run of the nightly job, with its counts" in {
@@ -400,6 +421,7 @@ class AdminJobTriggerSpec
         (GET, "/adminapi/checkImagery", CheckImageExpiryActor.Name),
         (GET, "/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name),
         (POST, "/adminapi/refreshPlaces", PlacesRefreshActor.Name),
+        (POST, "/adminapi/recountStreetGradientStaleness", StreetGradientStalenessActor.Name),
         (POST, "/adminapi/generateCrops", CropGenerationActor.Name),
         (GET, "/runClustering", ClusteringActor.Name)
       ).foreach { case (method, path, jobName) =>

@@ -35,7 +35,7 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
    type was edited is assessed again right after the edit (`AiService.reassessAfterTypeChange`, same eligibility
    rules, #3671), with this sweep as the fallback.
 2. `AiService.callAiApi` (`app/service/AiService.scala`) POSTs
-   `{label_type, panorama_id, x, y, city}` to
+   `{label_type, panorama_id, x, y, city}`, plus the API password as an `Authorization: Bearer` header, to
    `https://sidewalk-ai-api.cs.washington.edu/process` (code:
    [`sidewalk-ai-api`](https://github.com/ProjectSidewalk/sidewalk-ai-api) — Dockerized GPU
    service, ≥ 9–10 GB VRAM, serving both model families from HuggingFace).
@@ -61,7 +61,8 @@ for CurbRamp, NoCurbRamp, Obstacle, SurfaceProblem, Crosswalk.
   maximize recall subject to precision ≥ 0.92 (Wilson lower bound ≥ 0.90) — deliberately the
   same 0.92 as `ai-validation-min-accuracy`.
 
-**Config:** `ai-enabled`, `sidewalk-ai-api-hostname` (`application.conf`);
+**Config:** `ai-enabled`, `sidewalk-ai-api-hostname`, `sidewalk-ai-api-key` (`application.conf`; the password must
+match the AI server's, and when rotating it, update every stage *before* the AI server so nothing fails in between);
 `ai-tag-suggestions-enabled`, `ai-validation-enabled`, `ai-validation-min-accuracy`
 (`cityparams.conf`, per city).
 

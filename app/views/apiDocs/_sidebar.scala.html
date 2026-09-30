@@ -4,37 +4,37 @@
   <div class="page-nav">
       <!-- Getting Started Section -->
     <div class="page-nav-header">Getting Started</div>
-    <a href="@routes.ApiDocsController.index" class="page-nav-item @if(activePage == "introduction"){active}">Introduction</a>
+    <a href="@routes.ApiDocsController.index" class="page-nav-item @if(activePage == "introduction"){is-active}">Introduction</a>
 
     <div class="page-nav-header">Metadata APIs</div>
-    <a href="@routes.ApiDocsController.cities" class="page-nav-item @if(activePage == "cities"){active}">Cities</a>
-    <a href="@routes.ApiDocsController.labelTypes" class="page-nav-item @if(activePage == "label-types"){active}">Label Types</a>
-    <a href="@routes.ApiDocsController.labelTags" class="page-nav-item @if(activePage == "label-tags"){active}">Label Tags</a>
-    <a href="@routes.ApiDocsController.streetTypes" class="page-nav-item @if(activePage == "street-types"){active}">Street Types</a>
+    <a href="@routes.ApiDocsController.cities" class="page-nav-item @if(activePage == "cities"){is-active}">Cities</a>
+    <a href="@routes.ApiDocsController.labelTypes" class="page-nav-item @if(activePage == "label-types"){is-active}">Label Types</a>
+    <a href="@routes.ApiDocsController.labelTags" class="page-nav-item @if(activePage == "label-tags"){is-active}">Label Tags</a>
+    <a href="@routes.ApiDocsController.streetTypes" class="page-nav-item @if(activePage == "street-types"){is-active}">Street Types</a>
 
     <div class="page-nav-header">Data APIs</div>
-    <a href="@routes.ApiDocsController.rawLabels" class="page-nav-item @if(activePage == "raw-labels"){active}">Raw Labels</a>
-    <a href="@routes.ApiDocsController.labelClusters" class="page-nav-item @if(activePage == "label-clusters"){active}">Label Clusters</a>
-    <a href="@routes.ApiDocsController.streets" class="page-nav-item @if(activePage == "streets"){active}">Streets</a>
-    <a href="@routes.ApiDocsController.sidewalkPresence" class="page-nav-item @if(activePage == "sidewalk-presence"){active}">Sidewalk Presence</a>
-    <a href="@routes.ApiDocsController.streetGrade" class="page-nav-item @if(activePage == "street-grade"){active}">Street Grade</a>
-    <a href="@routes.ApiDocsController.regions" class="page-nav-item @if(activePage == "regions"){active}">Regions</a>
-    <a href="@routes.ApiDocsController.places" class="page-nav-item @if(activePage == "places"){active}">Places</a>
-    <a href="@routes.ApiDocsController.validations" class="page-nav-item @if(activePage == "validations"){active}">Validations</a>
-    <a href="@routes.ApiDocsController.validationResultTypes" class="page-nav-item @if(activePage == "validation-result-types"){active}">Validation Result Types</a>
-    <a href="@routes.ApiDocsController.labelEdits" class="page-nav-item @if(activePage == "label-edits"){active}">Label Edits</a>
+    <a href="@routes.ApiDocsController.rawLabels" class="page-nav-item @if(activePage == "raw-labels"){is-active}">Raw Labels</a>
+    <a href="@routes.ApiDocsController.labelClusters" class="page-nav-item @if(activePage == "label-clusters"){is-active}">Label Clusters</a>
+    <a href="@routes.ApiDocsController.streets" class="page-nav-item @if(activePage == "streets"){is-active}">Streets</a>
+    <a href="@routes.ApiDocsController.sidewalkPresence" class="page-nav-item @if(activePage == "sidewalk-presence"){is-active}">Sidewalk Presence</a>
+    <a href="@routes.ApiDocsController.streetGrade" class="page-nav-item @if(activePage == "street-grade"){is-active}">Street Grade</a>
+    <a href="@routes.ApiDocsController.regions" class="page-nav-item @if(activePage == "regions"){is-active}">Regions</a>
+    <a href="@routes.ApiDocsController.places" class="page-nav-item @if(activePage == "places"){is-active}">Places</a>
+    <a href="@routes.ApiDocsController.validations" class="page-nav-item @if(activePage == "validations"){is-active}">Validations</a>
+    <a href="@routes.ApiDocsController.validationResultTypes" class="page-nav-item @if(activePage == "validation-result-types"){is-active}">Validation Result Types</a>
+    <a href="@routes.ApiDocsController.labelEdits" class="page-nav-item @if(activePage == "label-edits"){is-active}">Label Edits</a>
 
     <div class="page-nav-header">Access Score APIs</div>
-    <a href="@routes.ApiDocsController.accessScoreStreets" class="page-nav-item @if(activePage == "access-score-streets"){active}">AccessScore: Streets</a>
-    <a href="@routes.ApiDocsController.accessScoreIntersections" class="page-nav-item @if(activePage == "access-score-intersections"){active}">AccessScore: Intersections</a>
-    <a href="@routes.ApiDocsController.accessScoreRegions" class="page-nav-item @if(activePage == "access-score-regions"){active}">AccessScore: Regions</a>
-    <a href="@routes.ApiDocsController.accessScoreSpotlight" class="page-nav-item @if(activePage == "access-score-spotlight"){active}">AccessScore: Spotlight</a>
+    <a href="@routes.ApiDocsController.accessScoreStreets" class="page-nav-item @if(activePage == "access-score-streets"){is-active}">AccessScore: Streets</a>
+    <a href="@routes.ApiDocsController.accessScoreIntersections" class="page-nav-item @if(activePage == "access-score-intersections"){is-active}">AccessScore: Intersections</a>
+    <a href="@routes.ApiDocsController.accessScoreRegions" class="page-nav-item @if(activePage == "access-score-regions"){is-active}">AccessScore: Regions</a>
+    <a href="@routes.ApiDocsController.accessScoreSpotlight" class="page-nav-item @if(activePage == "access-score-spotlight"){is-active}">AccessScore: Spotlight</a>
 
     <div class="page-nav-header">Stat APIs</div>
-    <a href="@routes.ApiDocsController.userStats" class="page-nav-item @if(activePage == "user-stats"){active}">User Stats</a>
-    <a href="@routes.ApiDocsController.overallStats" class="page-nav-item @if(activePage == "overall-stats"){active}">Overall Stats</a>
-    <a href="@routes.ApiDocsController.overallStatsByDay" class="page-nav-item @if(activePage == "overall-stats-by-day"){active}">Overall Stats by Day</a>
-    <a href="@routes.ApiDocsController.aggregateStats" class="page-nav-item @if(activePage == "aggregate-stats"){active}">Aggregate Stats</a>
-    <a href="@routes.ApiDocsController.aggregateStatsByDay" class="page-nav-item @if(activePage == "aggregate-stats-by-day"){active}">Aggregate Stats by Day</a>
+    <a href="@routes.ApiDocsController.userStats" class="page-nav-item @if(activePage == "user-stats"){is-active}">User Stats</a>
+    <a href="@routes.ApiDocsController.overallStats" class="page-nav-item @if(activePage == "overall-stats"){is-active}">Overall Stats</a>
+    <a href="@routes.ApiDocsController.overallStatsByDay" class="page-nav-item @if(activePage == "overall-stats-by-day"){is-active}">Overall Stats by Day</a>
+    <a href="@routes.ApiDocsController.aggregateStats" class="page-nav-item @if(activePage == "aggregate-stats"){is-active}">Aggregate Stats</a>
+    <a href="@routes.ApiDocsController.aggregateStatsByDay" class="page-nav-item @if(activePage == "aggregate-stats-by-day"){is-active}">Aggregate Stats by Day</a>
   </div>
 </div>

@@ -19,13 +19,13 @@ class StreetPriorityTiers {
       key: 'unaudited',
       label: 'Not yet audited',
       color: '#000000',
-      description: 'No completed audit counts toward priority yet, so these are served first.',
+      description: 'No audit counts toward priority yet; served first.',
     },
     {
       key: 'reaudit',
       label: 'Needs re-audit',
       color: '#D55E00',
-      description: 'Audited, but every counted audit is on imagery that has since been replaced.',
+      description: 'Every counted audit is on since-replaced imagery.',
     },
     {
       key: 'audited_once',

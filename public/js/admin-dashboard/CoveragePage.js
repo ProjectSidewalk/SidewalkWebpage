@@ -120,7 +120,7 @@ class CoveragePage {
 
     document.querySelectorAll('.coverage-toggle-btn').forEach((b) => {
       const active = b.dataset.view === mode;
-      b.classList.toggle('active', active);
+      b.classList.toggle('is-active', active);
       b.setAttribute('aria-pressed', String(active));
     });
 
@@ -203,10 +203,10 @@ class CoveragePage {
     const buttons = document.querySelectorAll('.coverage-sort-btn');
     buttons.forEach((btn) => {
       btn.addEventListener('click', async () => {
-        if (btn.classList.contains('active')) return;
+        if (btn.classList.contains('is-active')) return;
         buttons.forEach((b) => {
           const isTarget = b === btn;
-          b.classList.toggle('active', isTarget);
+          b.classList.toggle('is-active', isTarget);
           b.setAttribute('aria-pressed', String(isTarget));
         });
         await this.#bars.setSort(btn.dataset.sort);
@@ -241,7 +241,7 @@ class CoveragePage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   /** True if two id lists contain the same set of ids (order-independent). */

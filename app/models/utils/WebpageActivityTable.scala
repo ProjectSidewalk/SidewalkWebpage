@@ -30,10 +30,11 @@ case class ApiFormatSourceCount(format: String, source: String, count: Long)
 case class ApiSourceIpCount(source: String, uniqueIps: Long)
 
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
-  def webpageActivityId: Rep[Int]    = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String]            = column[String]("user_id")
-  def ipAddress: Rep[IpAddress]      = column[IpAddress]("ip_address")
-  def activity: Rep[String]          = column[String]("activity")
+  def webpageActivityId: Rep[Int] = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
+  def userId: Rep[String]         = column[String]("user_id")
+  def ipAddress: Rep[IpAddress]   = column[IpAddress]("ip_address")
+  def activity: Rep[String]       = column[String]("activity")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
   def * = (webpageActivityId, userId, ipAddress, activity, timestamp) <> (
@@ -149,6 +150,16 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   }
 
   /**
+   * The v3 API calls in the window, the rows every API analytics query below counts.
+   *
+   * @param days Number of past days to include (0 = all time).
+   * @return A SQL condition on webpage_activity.
+   */
+  private def v3ApiCallsSince(days: Int): String =
+    if (days > 0) s"activity LIKE 'GET /v3/api/%' AND timestamp >= NOW() - INTERVAL '$days days'"
+    else "activity LIKE 'GET /v3/api/%'"
+
+  /**
    * Returns per-endpoint call counts for v3 API requests.
    *
    * The `activity` column stores Play's `request.toString`, which is "METHOD /path?query", so filtering on
@@ -161,13 +172,11 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def getApiEndpointCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiEndpointCount]] = {
     implicit val gr: GetResult[ApiEndpointCount] = GetResult(r => ApiEndpointCount(r.nextString(), r.nextLong()))
-    val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint, COUNT(*) AS call_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
         #$apiDocsFilter
       GROUP BY endpoint
       ORDER BY call_count DESC
@@ -182,13 +191,11 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @return DBIO with the unique IP count.
    */
   def getApiUniqueIpCount(excludeApiDocs: Boolean, days: Int): DBIO[Long] = {
-    val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT COUNT(DISTINCT ip_address)
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
         #$apiDocsFilter
     """.as[Long].head
   }
@@ -203,14 +210,12 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   def getApiEndpointCountsBySource(days: Int): DBIO[Seq[ApiEndpointSourceCount]] = {
     implicit val gr: GetResult[ApiEndpointSourceCount] =
       GetResult(r => ApiEndpointSourceCount(r.nextString(), r.nextString(), r.nextLong()))
-    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     sql"""
       SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint,
              #$sourceCase AS source,
              COUNT(*) AS call_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
       GROUP BY endpoint, source
       ORDER BY call_count DESC
     """.as[ApiEndpointSourceCount]
@@ -223,14 +228,12 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   def getApiDailyCountsBySource(days: Int): DBIO[Seq[ApiDailySourceCount]] = {
     implicit val gr: GetResult[ApiDailySourceCount] =
       GetResult(r => ApiDailySourceCount(r.nextString(), r.nextString(), r.nextLong()))
-    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     sql"""
       SELECT DATE(timestamp)::text AS date,
              #$sourceCase AS source,
              COUNT(*) AS call_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
       GROUP BY date, source
       ORDER BY date ASC
     """.as[ApiDailySourceCount]
@@ -243,14 +246,12 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   def getApiFormatCountsBySource(days: Int): DBIO[Seq[ApiFormatSourceCount]] = {
     implicit val gr: GetResult[ApiFormatSourceCount] =
       GetResult(r => ApiFormatSourceCount(r.nextString(), r.nextString(), r.nextLong()))
-    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     sql"""
       SELECT COALESCE((REGEXP_MATCH(activity, '[?&]filetype=([^&\s]+)'))[1], 'json') AS format,
              #$sourceCase AS source,
              COUNT(*) AS call_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
       GROUP BY format, source
       ORDER BY call_count DESC
     """.as[ApiFormatSourceCount]
@@ -264,12 +265,10 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def getApiUniqueIpCountsBySource(days: Int): DBIO[Seq[ApiSourceIpCount]] = {
     implicit val gr: GetResult[ApiSourceIpCount] = GetResult(r => ApiSourceIpCount(r.nextString(), r.nextLong()))
-    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     sql"""
       SELECT #$sourceCase AS source, COUNT(DISTINCT ip_address) AS ip_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
       GROUP BY source
     """.as[ApiSourceIpCount]
   }
@@ -284,7 +283,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
     sql"""
       SELECT MAX(date(timestamp))::TEXT
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
+      WHERE #${v3ApiCallsSince(0)}
     """.as[Option[String]].head
   }
 }

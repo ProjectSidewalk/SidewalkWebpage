@@ -314,7 +314,7 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
                 isPositiveLabelType: () => false,
                 labelTypeHasSeverity: () => true,
             },
-            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
+            pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
@@ -332,11 +332,14 @@ describe('the label card\'s keyboard shortcuts (#5194)', () => {
                 currPanoData: null,
                 getPanoId: () => 'pano-1',
                 getPosition: () => ({ lat: 47.61, lng: -122.33 }),
+                getViewerType: () => 'gsv',
             },
             getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
             getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
-            // A jQuery object in the real card: indexable, and asked for its size when a vote is submitted.
-            svHolder: Object.assign([document.createElement('div')], { width: () => 720, height: () => 480 }),
+            // Measured when a vote is submitted; jsdom lays nothing out.
+            svHolder: Object.defineProperties(document.createElement('div'), {
+                clientWidth: { value: 720 }, clientHeight: { value: 480 },
+            }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
         window.PopupPanoManager = { create: async () => panoManager };

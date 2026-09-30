@@ -60,8 +60,8 @@ class StreetEdgeStatusChangeTableDef(tag: Tag) extends Table[StreetEdgeStatusCha
     StreetEdgeStatusChange.unapply
   )
 
-  // ON DELETE CASCADE, which remove_streets.sql relies on: once the street row is gone, its status history describes
-  // nothing, so that script deletes no rows here of its own.
+  // ON DELETE CASCADE, which tools/one-off/4181-remove-streets.sql relies on: once the street row is gone, its status
+  // history describes nothing, so that script deletes no rows here of its own.
   def streetEdge =
     foreignKey("street_edge_status_change_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(
       _.streetEdgeId,

@@ -6,8 +6,8 @@
  * work, and one who doesn't can't tell a refresh from a first pass. Everything it says rides on the task payload
  * (`AuditTaskTable.streetAuditState`), so serving a re-audit street costs no request of its own.
  *
- * The wording splits on who did the earlier pass: "you last mapped this street" is the case #4895 is really about, while a
- * street somebody else mapped gets the same news without claiming the reader's memory of it. That split also keeps
+ * The wording splits on who did the earlier pass: "you last mapped this street" is the case #4895 is really about,
+ * while a street somebody else mapped gets the same news without claiming the reader's memory of it. That split keeps
  * this consistent with the minimap's earlier-label eras (#4945), which are the user's own work only -- on a street
  * mapped by others there are no dimmed markers, and the toast no longer implies there should be.
  *
@@ -42,8 +42,8 @@ class ReauditNotice {
     const streetEdgeId = task.getStreetEdgeId();
     if (this.#shownStreetIds.has(streetEdgeId)) return false;
 
-    const lastMapped = this.#monthYear(task.getProperty('lastMappedAt'));
-    const newImagery = this.#monthYear(task.getProperty('newImageryDate'));
+    const lastMapped = util.monthYear(task.getProperty('lastMappedAt'));
+    const newImagery = util.monthYear(task.getProperty('newImageryDate'));
     const byThisUser = Boolean(task.getProperty('mappedByThisUser'));
     // Both dates or neither: the sentence reads as a comparison, so half of one is worse than none.
     const haveDates = Boolean(lastMapped && newImagery);
@@ -65,24 +65,5 @@ class ReauditNotice {
       onClose: () => this.#tracker.push('Click_ReauditToast_Close', { streetEdgeId }),
     });
     return true;
-  }
-
-  /**
-   * Month precision, which is all GSV capture dates carry. Null for a missing or unparseable value, so the sentence
-   * drops to the dateless wording rather than printing a raw timestamp at the labeler.
-   *
-   * @param {?string} iso - A date (`2019-03-01`) or timestamp string.
-   * @returns {?string}
-   */
-  #monthYear(iso) {
-    if (!iso) return null;
-    // A bare date parses as UTC midnight, which west of Greenwich is the evening before -- and for a first-of-month
-    // capture date that is the wrong month. Reading the calendar fields directly sidesteps the zone entirely.
-    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-    const date = dateOnly
-      ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
-      : new Date(iso);
-    if (Number.isNaN(date.getTime())) return null;
-    return date.toLocaleDateString(i18next.language, { month: 'long', year: 'numeric' });
   }
 }

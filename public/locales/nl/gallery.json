@@ -2,6 +2,17 @@
   "card-image-alt": "Street View-foto van een {{labelType}}-label",
   "clear-filters": "Filters Wissen",
   "filter-by": "Filteren op",
+  "list-browse-all": "Alle labels bekijken",
+  "list-count-partial_one": "{{shown}} van {{count}} label in deze lijst",
+  "list-count-partial_other": "{{shown}} van {{count}} labels in deze lijst",
+  "list-count_one": "{{count}} label in deze lijst",
+  "list-count_other": "{{count}} labels in deze lijst",
+  "list-error": "De lijst kon niet worden geladen. Herlaad de pagina om het opnieuw te proberen.",
+  "list-position": "{{k}} van {{n}}",
+  "list-truncated_one": "{{count}} id lag boven de limiet van {{max}} en kon niet worden geladen.",
+  "list-truncated_other": "{{count}} ids lagen boven de limiet van {{max}} en konden niet worden geladen.",
+  "list-unavailable_one": "{{count}} niet beschikbaar",
+  "list-unavailable_other": "{{count}} niet beschikbaar",
   "none": "geen",
   "not-applicable": "niet toepasbaar"
 }

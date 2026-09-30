@@ -47,8 +47,10 @@ object CropService {
   /**
    * A label whose crop is on disk with no `label_crop` row saying where the label is in it (#2660).
    *
-   * @param timeCreated When the label was placed; an Explore-frame crop is uploaded within the same session.
-   * @param aiGenerated Whether an AI placed it, in which case no browser ever snapshotted a canvas for it.
+   * @param timeCreated  When the label was placed; an Explore-frame crop is uploaded within the same session.
+   * @param canvasWidth  With `canvasHeight`, the frame `canvasX`/`canvasY` are expressed in (#5085); a snapshot of
+   *                     the canvas has the same aspect ratio.
+   * @param aiGenerated  Whether an AI placed it, in which case no browser ever snapshotted a canvas for it.
    */
   case class ProvenanceCandidate(
       labelId: Int,
@@ -59,6 +61,8 @@ object CropService {
       panoY: Int,
       canvasX: Int,
       canvasY: Int,
+      canvasWidth: Int,
+      canvasHeight: Int,
       panoWidth: Option[Int],
       panoHeight: Option[Int],
       aiGenerated: Boolean
@@ -91,7 +95,8 @@ object CropService {
     def summary: String =
       s"Crop generation (rule ${CropSizingRule.Version}): opened $panosOpened panos, wrote $cropsWritten crops " +
         s"($shiftedVertically shifted to stay inside the pano, $dimsUnverified against a pano whose dimensions the " +
-        s"database doesn't record); skipped $panosWithoutBackup panos with no self-hosted image, $dimsMismatch labels " +
+        s"database doesn't record); skipped $panosWithoutBackup panos with no self-hosted image, " +
+        s"$dimsMismatch labels " +
         s"on a dimension mismatch and $outOfFrame labels outside the image; recorded provenance for " +
         s"$provenanceExplore Explore-frame and $provenanceWindow pano-window crops, $provenanceUnresolved " +
         s"unresolved; $errors errors."
@@ -114,11 +119,38 @@ object CropService {
   }
 
   /**
-   * The size `POST /saveImage` stores the Explore-canvas snapshot at (2x the 720x480 canvas, for retina density). The
-   * same 1440 as [[CropGeometry.MaxStoredWidth]], which is why a wide pano window is not told from a snapshot by size.
+   * The width `POST /saveImage` stores the Explore-canvas snapshot at (2x the 720-wide logical canvas, for retina
+   * density); the height follows the frame the label was placed in (`exploreSnapshotSize`), 960 for the boxed 720x480
+   * tool. The same 1440 as [[CropGeometry.MaxStoredWidth]], which is why a wide pano window is not told from a
+   * snapshot by size.
    */
   val ExploreFrameCropWidth: Int  = 1440
-  val ExploreFrameCropHeight: Int = 960
+  val ExploreFrameCropHeight: Int = 960 // The boxed 720x480 frame's snapshot height; the specs plant crops at it.
+
+  /**
+   * The size a snapshot of a labeling frame is stored at: [[ExploreFrameCropWidth]] wide, the frame's aspect ratio
+   * kept (#5085). The height is rounded as `ImageController.writeImageFile` rounds it.
+   */
+  def exploreSnapshotSize(canvasWidth: Int, canvasHeight: Int): (Int, Int) =
+    (ExploreFrameCropWidth, math.max(1, math.round(ExploreFrameCropWidth.toDouble * canvasHeight / canvasWidth).toInt))
+
+  /**
+   * The shapes a browser snapshot may have, as width:height: a phone-tall portrait window through an ultrawide one.
+   * The stored size follows the upload's aspect ratio, so `POST /saveImage` refuses an upload outside this band, or
+   * over [[SnapshotMaxSourcePixels]], on its declared size before decoding it: a 1x300 file of a hundred bytes would
+   * otherwise become a 1440x432,000 raster, and a signed-in user is all it takes to send one.
+   */
+  val SnapshotAspectRange: (Double, Double) = (0.5, 4.0)
+
+  /** Explore caps its snapshot at 1440 wide (`Canvas.CROP_MAX_WIDTH`), so a real one is under 5 megapixels. */
+  val SnapshotMaxSourcePixels: Long = 20000000L
+
+  /** Whether an upload of this declared size is worth decoding as a snapshot of a labeling frame. */
+  def acceptsSnapshot(width: Int, height: Int): Boolean = {
+    val aspect = width.toDouble / height
+    width > 0 && height > 0 && aspect >= SnapshotAspectRange._1 && aspect <= SnapshotAspectRange._2 &&
+    width.toLong * height <= SnapshotMaxSourcePixels
+  }
 
   /**
    * An Explore-frame crop is uploaded in the labeler's session, so a crop written later than this was cut by the job.
@@ -178,14 +210,31 @@ object CropService {
   }
 
   /**
-   * Where a label is in its Explore-frame crop: the canvas click as a fraction of the 720x480 canvas. Clamped, because
-   * a few historic rows carry a canvas position outside the frame (a click recorded mid-pan), and a marker pinned to
-   * the nearest edge is the same thing those rows have always drawn.
+   * Where a label is in its Explore-frame crop: the canvas click as a fraction of the frame it was made in (720x480
+   * for the boxed tool; the window's aspect in immersive mode, #5085). Clamped, because a few historic rows carry a
+   * canvas position outside the frame (a click recorded mid-pan), and a marker pinned to the nearest edge is the same
+   * thing those rows have always drawn.
    */
-  def exploreFrameMarker(canvasX: Int, canvasY: Int): CropMarker = CropMarker(
-    clampFraction(canvasX.toDouble / LabelPointTable.canvasWidth),
-    clampFraction(canvasY.toDouble / LabelPointTable.canvasHeight)
+  def exploreFrameMarker(canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int): CropMarker = CropMarker(
+    clampFraction(canvasX.toDouble / canvasWidth),
+    clampFraction(canvasY.toDouble / canvasHeight)
   )
+
+  /**
+   * Where a label is on the Street View still that stands in for a missing crop. The still is requested at the boxed
+   * frame's 3:2 (`PanoDataService.staticStillUrl`, rounded to whole pixels) at the label's horizontal field of view
+   * whatever the frame was, so a frame of another aspect sits in it vertically centered: the port of
+   * `util.misc.labelMarkerFraction`'s still case (#5085), which reads the still's aspect as the same exact 3:2. The
+   * identity for the boxed 720x480 frame.
+   */
+  def stillMarker(canvasX: Int, canvasY: Int, canvasWidth: Int, canvasHeight: Int): CropMarker = {
+    val stillAspect = LabelPointTable.canvasWidth.toDouble / LabelPointTable.canvasHeight
+    val frameAspect = canvasWidth.toDouble / canvasHeight
+    CropMarker(
+      clampFraction(canvasX.toDouble / canvasWidth),
+      clampFraction(0.5 + (canvasY.toDouble / canvasHeight - 0.5) * (stillAspect / frameAspect))
+    )
+  }
 
   private def clampFraction(f: Double): Double = math.min(1.0, math.max(0.0, f))
 }
@@ -284,18 +333,23 @@ class CropServiceImpl @Inject() (
   }
 
   def recordExploreFrameCrop(labelId: Int, width: Int, height: Int): Future[Unit] = {
-    db.run(labelPointTable.labelPoints.filter(_.labelId === labelId).map(p => (p.canvasX, p.canvasY)).result.headOption)
-      .flatMap {
-        case Some((canvasX, canvasY)) =>
-          val marker = exploreFrameMarker(canvasX, canvasY)
-          val row    = LabelCrop(
-            labelId, CropSource.ExploreFrame, marker.x, marker.y, width, height, None, OffsetDateTime.now
-          )
-          db.run(labelCropTable.upsert(row)).map(_ => ())
-        case None =>
-          logger.warn(s"Label $labelId has a crop but no label_point row yet; its provenance waits for the crop job.")
-          Future.unit
-      }
+    db.run(
+      labelPointTable.labelPoints
+        .filter(_.labelId === labelId)
+        .map(p => (p.canvasX, p.canvasY, p.canvasWidth, p.canvasHeight))
+        .result
+        .headOption
+    ).flatMap {
+      case Some((canvasX, canvasY, canvasWidth, canvasHeight)) =>
+        val marker = exploreFrameMarker(canvasX, canvasY, canvasWidth, canvasHeight)
+        val row    = LabelCrop(
+          labelId, CropSource.ExploreFrame, marker.x, marker.y, width, height, None, OffsetDateTime.now
+        )
+        db.run(labelCropTable.upsert(row)).map(_ => ())
+      case None =>
+        logger.warn(s"Label $labelId has a crop but no label_point row yet; its provenance waits for the crop job.")
+        Future.unit
+    }
   }
 
   def cropMarker(labelId: Int): Future[Option[CropMarker]] = db.run(labelCropTable.get(labelId)).map(_.map(_.marker))
@@ -341,8 +395,8 @@ class CropServiceImpl @Inject() (
       .fromPublisher(
         db.stream(labelTable.getLabelsWithoutCropProvenance.transactionally.withStatementParameters(fetchSize = 1000))
       )
-      .map { case (labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, width, height, ai) =>
-        ProvenanceCandidate(labelId, labelType, timeCreated, panoId, panoX, panoY, canvasX, canvasY, width, height, ai)
+      .map { case (labelId, labelType, timeCreated, panoId, panoX, panoY, cx, cy, cw, ch, width, height, ai) =>
+        ProvenanceCandidate(labelId, labelType, timeCreated, panoId, panoX, panoY, cx, cy, cw, ch, width, height, ai)
       }
       .filter(c => existing.getOrElse(c.labelType, Set.empty).contains(c.labelId))
       .grouped(labelCropTable.UpsertBatchSize)
@@ -356,11 +410,12 @@ class CropServiceImpl @Inject() (
   /**
    * Decides which writer produced a crop with no row, and where its label is (#2660).
    *
-   * Two writers share the path. The browser's snapshot is always [[ExploreFrameCropWidth]] x
-   * [[ExploreFrameCropHeight]]; the job's window is stored at the size [[storedSize]] gives its box — which is the
+   * Two writers share the path. The browser's snapshot is [[ExploreFrameCropWidth]] wide at the aspect ratio of the
+   * label's frame ([[exploreSnapshotSize]]), give or take the pixels the upload path's rounding can add
+   * ([[snapshotSizeAgrees]]); the job's window is stored at the size [[storedSize]] gives its box — which is the
    * same 1440x960 whenever the window was at least that wide, so size settles most cases and not all. Where it
    * cannot, the file's age does: an Explore upload lands within [[ExploreUploadWindow]] of the label, and an AI label
-   * never had a browser to upload one. A pano whose frame is recorded nowhere — not in `pano_data`, not in the store —
+   * never had a browser to upload one. A pano whose frame is recorded nowhere, not in `pano_data`, not in the store,
    * leaves the window uncomputable, so the crop is counted unresolved and left for a run that can read it.
    *
    * No branch calls a crop a snapshot on size alone: the window is recomputed from `pano_data` and the store *as they
@@ -374,7 +429,7 @@ class CropServiceImpl @Inject() (
     val file = panoDataService.cropFile(c.labelId, c.labelType.name)
     try {
       val (fileW, fileH) = ImageUtils.withReader(file)((_, w, h) => (w, h))
-      val isExploreSize  = (fileW, fileH) == ((ExploreFrameCropWidth, ExploreFrameCropHeight))
+      val isExploreSize  = snapshotSizeAgrees(exploreSnapshotSize(c.canvasWidth, c.canvasHeight), (fileW, fileH))
       val panoDims       = (c.panoWidth, c.panoHeight) match {
         case (Some(w), Some(h)) => Some((w, h))
         case _                  => storedPanoDims(c.panoId)
@@ -390,7 +445,7 @@ class CropServiceImpl @Inject() (
 
       def explore: Option[LabelCrop] = {
         counts.provenanceExplore += 1
-        val m = exploreFrameMarker(c.canvasX, c.canvasY)
+        val m = exploreFrameMarker(c.canvasX, c.canvasY, c.canvasWidth, c.canvasHeight)
         Some(LabelCrop(c.labelId, CropSource.ExploreFrame, m.x, m.y, fileW, fileH, None, OffsetDateTime.now))
       }
       def panoWindow: Option[LabelCrop] = window.flatMap { case (_, (fx, fy)) =>
@@ -439,6 +494,14 @@ class CropServiceImpl @Inject() (
   /** The stored file's height is rounded by the resampler, so a unit of slack; the width cap is exact. */
   private def sizesAgree(expected: (Int, Int), actual: (Int, Int)): Boolean =
     expected._1 == actual._1 && math.abs(expected._2 - actual._2) <= 1
+
+  /**
+   * Whether a file is the browser's snapshot of a frame, to within the rounding the upload path can add: the
+   * browser rounds its canvas to whole pixels, and `POST /saveImage` scales a canvas narrower than 1440 up, which
+   * multiplies that rounding (a 584-wide boxed canvas stores as 1440x962).
+   */
+  private def snapshotSizeAgrees(expected: (Int, Int), actual: (Int, Int)): Boolean =
+    expected._1 == actual._1 && math.abs(expected._2 - actual._2) <= 2
 
   /** The pano's frame from its header in the store, for a `pano_data` row that records none. */
   private def storedPanoDims(panoId: String): Option[(Int, Int)] =

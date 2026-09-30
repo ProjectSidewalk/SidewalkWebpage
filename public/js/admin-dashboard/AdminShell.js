@@ -138,7 +138,7 @@ class AdminShell {
         for (let i = 0; i < this.#headings.length; i++) {
           if (this.#headings[i].offsetTop <= scrollPos) activeIndex = i;
         }
-        this.#tocLinks.forEach((link, i) => link.classList.toggle('active', i === activeIndex));
+        this.#tocLinks.forEach((link, i) => link.classList.toggle('is-active', i === activeIndex));
         ticking = false;
       });
     };
@@ -216,7 +216,8 @@ class AdminShell {
     }).observe(this.#content);
     // A reload or history traversal restores the reader's last position instead of scrolling to the fragment, and
     // the observer's first delivery would throw that position away. (bfcache returns keep this object's own state.)
-    const [navEntry] = /** @type {PerformanceNavigationTiming[]} */ (performance.getEntriesByType?.('navigation') ?? []);
+    const navEntries = performance.getEntriesByType?.('navigation') ?? [];
+    const [navEntry] = /** @type {PerformanceNavigationTiming[]} */ (navEntries);
     const navType = navEntry?.type;
     if (navType !== 'reload' && navType !== 'back_forward') arm();
   }
@@ -408,13 +409,6 @@ class AdminShell {
     if (AdminShell.nil(ts)) return 0;
     const t = Date.parse(String(ts));
     return isNaN(t) ? 0 : t;
-  }
-
-  /** @returns {Promise<any>} The endpoint's parsed JSON body. */
-  static async fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   /**

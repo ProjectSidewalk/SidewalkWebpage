@@ -2,6 +2,9 @@
  * Canvas Module. Owns the label canvas: drawing labels, hit-testing the cursor, and pano pan/cursor handling.
  */
 class Canvas {
+  // Widest crop we store, in px: what the boxed tool's HiDPI canvas has always produced (1440x960), and the size the
+  // share images and ML crops are cut from.
+  static CROP_MAX_WIDTH = 1440;
   // Grace period before the hover card hides once the cursor leaves the label, giving the pointer time to
   // travel from the icon onto the card (e.g. to reach its Edit/Delete buttons) without the card vanishing mid-way.
   static #HOVER_CARD_HIDE_DELAY_MS = 200;
@@ -29,8 +32,6 @@ class Canvas {
     isLeftDown: false,
   };
 
-  #canvasProperties = { height: 0, width: 0 };
-
   /**
    * @param {object} ribbon - The RibbonMenu, queried for the selected label type / mode.
    */
@@ -54,29 +55,25 @@ class Canvas {
     // than the 720x480 logical frame, while keeping all drawing code in that logical frame via a context transform.
     util.sizeCanvasToDisplay(el, this.#ctx);
 
-    // clearRect() operates in the logical frame thanks to the context transform set in util.sizeCanvasToDisplay.
-    this.#canvasProperties.width = util.EXPLORE_CANVAS_WIDTH;
-    this.#canvasProperties.height = util.EXPLORE_CANVAS_HEIGHT;
-
     // Attach listeners to dom elements. view-control-layer handles panning, drawing-layer handles adding labels.
-    svl.ui.canvas.drawingLayer.on('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
-    svl.ui.canvas.drawingLayer.on('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
-    svl.ui.canvas.drawingLayer.on('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
-    $('#interaction-area-holder').on('mouseleave', () => this.#handleDrawingLayerMouseOut());
-    svl.ui.canvas.hoverCard.on('click', () => this.#handleHoverCardClick('card'));
-    svl.ui.canvas.hoverCard.on('mouseenter', () => this.#cancelScheduledHoverCardHide());
-    svl.ui.canvas.hoverCard.on('mouseleave', () => this.#scheduleHoverCardHide());
-    svl.ui.canvas.hoverCardEdit.on('click', (e) => {
+    svl.ui.canvas.drawingLayer.addEventListener('mousedown', (e) => this.#handleDrawingLayerMouseDown(e));
+    svl.ui.canvas.drawingLayer.addEventListener('mouseup', (e) => this.#handleDrawingLayerMouseUp(e));
+    svl.ui.canvas.drawingLayer.addEventListener('mousemove', (e) => this.#handleDrawingLayerMouseMove(e));
+    Canvas.watchPanoExit(document.getElementById('interaction-area-holder'), () => this.#handleDrawingLayerMouseOut());
+    svl.ui.canvas.hoverCard.addEventListener('click', () => this.#handleHoverCardClick('card'));
+    svl.ui.canvas.hoverCard.addEventListener('mouseenter', () => this.#cancelScheduledHoverCardHide());
+    svl.ui.canvas.hoverCard.addEventListener('mouseleave', () => this.#scheduleHoverCardHide());
+    svl.ui.canvas.hoverCardEdit.addEventListener('click', (e) => {
       e.stopPropagation(); // So the card's own click handler doesn't open the menu a second time.
       this.#handleHoverCardClick('edit-button');
     });
-    svl.ui.canvas.hoverCardDelete.on('click', (e) => this.#handleHoverCardDeleteClick(e));
+    svl.ui.canvas.hoverCardDelete.addEventListener('click', (e) => this.#handleHoverCardDeleteClick(e));
     this.#initShareWidget();
-    svl.ui.streetview.viewControlLayer.on('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
-    svl.ui.streetview.viewControlLayer.on('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
-    svl.ui.streetview.viewControlLayer.on('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
-    svl.ui.streetview.viewControlLayer.on('mouseleave', () => this.#handlerViewControlLayerMouseLeave());
-    svl.ui.streetview.viewControlLayer[0].onselectstart = () => false;
+    svl.ui.streetview.viewControlLayer.addEventListener('mousedown', (e) => this.#handlerViewControlLayerMouseDown(e));
+    svl.ui.streetview.viewControlLayer.addEventListener('mouseup', (e) => this.#handlerViewControlLayerMouseUp(e));
+    svl.ui.streetview.viewControlLayer.addEventListener('mousemove', (e) => this.#handlerViewControlLayerMouseMove(e));
+    svl.ui.streetview.viewControlLayer.addEventListener('mouseleave', () => this.#handlerViewControlLayerMouseLeave());
+    svl.ui.streetview.viewControlLayer.onselectstart = () => false;
   }
 
   /**
@@ -88,11 +85,13 @@ class Canvas {
     // Generate some metadata for the new label.
     const labelType = this.#ribbon.getStatus('selectedLabelType');
     const pov = svl.panoViewer.getPov();
-    const povOfLabel = util.pano.canvasCoordToCenteredPov(
-      pov, canvasX, canvasY, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT,
-    );
+    // The click is projected through the frame it was made in, and the label keeps that frame (#5085): it is stored
+    // beside canvas_x/canvas_y so every later reader can project the point the same way.
+    const frame = svl.CANVAS_FRAME;
+    const hFov = svl.renderedHFov(pov.zoom);
+    const povOfLabel = util.pano.canvasCoordToCenteredPov(pov, canvasX, canvasY, frame.width, frame.height, hFov);
     const rerenderCanvasCoord = util.pano.centeredPovToCanvasCoord(
-      povOfLabel, pov, util.EXPLORE_CANVAS_WIDTH, util.EXPLORE_CANVAS_HEIGHT, svl.LABEL_ICON_RADIUS,
+      povOfLabel, pov, frame.width, frame.height, svl.LABEL_ICON_RADIUS, hFov,
     );
     const param = {
       tutorial: svl.missionContainer.getCurrentMission().getProperty('missionType') === 'auditOnboarding',
@@ -100,6 +99,7 @@ class Canvas {
       auditTaskId: svl.taskContainer.getCurrentTask().getAuditTaskId(),
       labelType,
       originalCanvasXY: { x: canvasX, y: canvasY },
+      originalCanvasFrame: { width: frame.width, height: frame.height },
       currCanvasXY: rerenderCanvasCoord,
       povOfLabelIfCentered: povOfLabel,
       panoId: svl.panoViewer.getPanoId(),
@@ -115,6 +115,8 @@ class Canvas {
       labelType,
       canvasX,
       canvasY,
+      canvasWidth: frame.width,
+      canvasHeight: frame.height,
     }, {
       temporaryLabelId: this.#status.currentLabel.getProperty('temporaryLabelId'),
     });
@@ -147,25 +149,24 @@ class Canvas {
    * @param {string} type - One of 'OpenHand', 'ClosedHand', or 'Pointer'; uses 'default' for any other input.
    */
   #setViewControlLayerCursor(type) {
+    const layer = svl.ui.streetview.viewControlLayer;
     switch (type) {
       case 'OpenHand':
-        svl.ui.streetview.viewControlLayer
-          .css('cursor', `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`);
+        layer.style.cursor = `url(${util.assetPath('images/icons/openhand.cur')}) 4 4, move`;
         break;
       case 'ClosedHand':
-        svl.ui.streetview.viewControlLayer
-          .css('cursor', `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`);
+        layer.style.cursor = `url(${util.assetPath('images/icons/closedhand.cur')}) 4 4, move`;
         break;
       case 'Pointer':
-        svl.ui.streetview.viewControlLayer.css('cursor', 'pointer');
+        layer.style.cursor = 'pointer';
         break;
       default:
-        svl.ui.streetview.viewControlLayer.css('cursor', 'default');
+        layer.style.cursor = 'default';
     }
   }
 
   /**
-   * Returns the cursor position in the fixed 720x480 logical canvas frame.
+   * Returns the cursor position in the logical canvas frame (720 px wide, see util.exploreCanvasFrame).
    *
    * The street view is displayed larger than the logical frame (see the --pano-width CSS variable), so we
    * divide the on-screen position by the display scale.
@@ -270,6 +271,39 @@ class Canvas {
   }
 
   /**
+   * Calls `onExit` when the pointer leaves the pano. Toasts float over the pano but mount on <body> (#5496). While
+   * labeling their card is click-through (svl-canvas.css), but their buttons are not, so the pointer reaching the
+   * close X fires `mouseleave` although it never left the pano; the real exit is then when it leaves the toast for
+   * somewhere outside the pano. Only a toast reached from the pano counts: Explore raises toasts elsewhere too (the
+   * badge-unlock toast over the mission-complete modal), and crossing one of those says nothing about the pano.
+   *
+   * A toast removed from under the pointer fires no mouseout, so an exit made straight off it goes unseen and the
+   * label type stays armed. That is the state right after picking a type from the ribbon, so it's left alone.
+   * @param {HTMLElement|null} holder - The element wrapping the pano and its drawing layers; null watches nothing.
+   * @param {() => void} onExit - Called once per exit.
+   * @param {{signal?: AbortSignal}} [opts] - `signal` removes the listeners when aborted.
+   */
+  static watchPanoExit(holder, onExit, { signal } = {}) {
+    if (!holder) return;
+    const isToast = (el) => el instanceof Element && el.closest('.ps-toast') !== null;
+    const isOverPano = (el) => isToast(el) || (el instanceof Node && holder.contains(el));
+    let onToastFromPano = false;
+    holder.addEventListener('mouseenter', () => {
+      onToastFromPano = false;
+    }, { signal });
+    holder.addEventListener('mouseleave', (e) => {
+      if (isToast(e.relatedTarget)) onToastFromPano = true;
+      else onExit();
+    }, { signal });
+    // mouseout rather than mouseleave: it bubbles, so one listener covers toasts created after this runs.
+    document.addEventListener('mouseout', (e) => {
+      if (!onToastFromPano || !isToast(e.target) || isOverPano(e.relatedTarget)) return;
+      onToastFromPano = false;
+      onExit();
+    }, { signal });
+  }
+
+  /**
    * When mousing out of the canvas, stop trying to add a label type, switching back to Explore mode.
    */
   #handleDrawingLayerMouseOut() {
@@ -313,8 +347,9 @@ class Canvas {
     if (cursorUrl) {
       const hotspot = Label.CURSOR_ICON_SIZE / 2;
       // Need to reset the cursor first, otherwise Safari strangely doesn't update the cursor.
-      $(e.currentTarget).css('cursor', '');
-      $(e.currentTarget).css('cursor', `url(${cursorUrl}) ${hotspot} ${hotspot}, auto`);
+      const layer = /** @type {HTMLElement} */ (e.currentTarget);
+      layer.style.cursor = '';
+      layer.style.cursor = `url(${cursorUrl}) ${hotspot} ${hotspot}, auto`;
     }
   }
 
@@ -360,7 +395,7 @@ class Canvas {
    * for and the button is hidden instead (see #pointShareAtLabel).
    */
   #initShareWidget() {
-    const trigger = svl.ui.canvas.hoverCardShare?.[0];
+    const trigger = svl.ui.canvas.hoverCardShare;
     if (!trigger || typeof ShareWidget === 'undefined') return;
 
     // The card as a whole opens the context menu; nothing in the share control may also do that. The listener goes
@@ -398,7 +433,7 @@ class Canvas {
    * on the card, where it is meant to stay.
    */
   #handleShareDismissed() {
-    if (!svl.ui.canvas.hoverCard[0]?.matches(':hover')) this.#scheduleHoverCardHide();
+    if (!svl.ui.canvas.hoverCard.matches(':hover')) this.#scheduleHoverCardHide();
   }
 
   /**
@@ -413,7 +448,7 @@ class Canvas {
   pointShareAtLabel(label) {
     // Tutorial labels are never submitted, so no id is coming and the button would be a dead end.
     const shareable = !svl.isOnboarding() && !label.isDeleted();
-    svl.ui.canvas.hoverCard.toggleClass('label-hover-card--no-share', !shareable);
+    svl.ui.canvas.hoverCard.classList.toggle('label-hover-card--no-share', !shareable);
     if (!this.#shareWidget || !shareable) return;
 
     const id = label.getProperty('labelId');
@@ -488,7 +523,7 @@ class Canvas {
    * Hides the hover card immediately, without the grace period.
    */
   hideHoverCard() {
-    svl.ui.canvas.hoverCard.css('visibility', 'hidden');
+    svl.ui.canvas.hoverCard.style.visibility = 'hidden';
   }
 
   /**
@@ -496,7 +531,8 @@ class Canvas {
    * @returns {Canvas} this.
    */
   clear() {
-    this.#ctx.clearRect(0, 0, this.#canvasProperties.width, this.#canvasProperties.height);
+    // clearRect() operates in the logical frame thanks to the context transform set in util.sizeCanvasToDisplay.
+    this.#ctx.clearRect(0, 0, svl.CANVAS_FRAME.width, svl.CANVAS_FRAME.height);
     return this;
   }
 
@@ -701,8 +737,29 @@ class Canvas {
     }
 
     // Save a high-res version of the image to the label object. Uploaded after label is saved to the db.
-    const panoCanvas = /** @type {HTMLCanvasElement} */ ($(`.${svl.panoViewer.getCanvasClass()}`)[0]);
-    const newCrop = panoCanvas.toDataURL('image/jpeg', 1);
-    label.setProperty('crop', newCrop);
+    const source = /** @type {HTMLCanvasElement} */ (document.querySelector(`.${svl.panoViewer.getCanvasClass()}`));
+    label.setProperty('crop', Canvas.#cropDataUrl(source));
+  }
+
+  /**
+   * The crop as a JPEG data URL, no wider than CROP_MAX_WIDTH.
+   *
+   * The pano's canvas is its on-screen box times the device pixel ratio: 1440 px wide for the boxed tool at its
+   * largest, but 5000+ px for a fill-window viewport on a HiDPI display (#5085), which would make every crop 6-10x
+   * the bytes for no gain to the card surfaces and ML pipeline that consume them. Wider canvases are downscaled,
+   * keeping their aspect ratio, which the card surfaces read from the label's frame.
+   *
+   * @param {HTMLCanvasElement} source - The pano viewer's canvas.
+   * @returns {string} A JPEG data URL.
+   */
+  static #cropDataUrl(source) {
+    if (source.width <= Canvas.CROP_MAX_WIDTH) return source.toDataURL('image/jpeg', 1);
+    const scaled = document.createElement('canvas');
+    scaled.width = Canvas.CROP_MAX_WIDTH;
+    scaled.height = Math.round(source.height * Canvas.CROP_MAX_WIDTH / source.width);
+    const ctx = scaled.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(source, 0, 0, scaled.width, scaled.height);
+    return scaled.toDataURL('image/jpeg', 1);
   }
 }

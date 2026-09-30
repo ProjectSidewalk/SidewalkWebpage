@@ -3,8 +3,8 @@
 @*
 * Loads the shared PSMap choropleth (audited streets + label points) into an existing holder `#@mapId`, wiring it to
 * whichever streets/labels endpoints the caller passes. Used by the dashboard (the signed-in user's own map) and the
-* public profile (another mapper's map, via the public username-keyed endpoints). jQuery, appManager, i18next, and
-* util.* come from common.main. The caller renders the `#@mapId` holder + map sidebar.
+* public profile (another mapper's map, via the public username-keyed endpoints). appManager, i18next, and util.*
+* come from common.main. The caller renders the `#@mapId` holder + map sidebar.
 *
 * With `wireLabelPopup = true`, map labels become hoverable/clickable and open the shared label-detail popup, exactly
 * like LabelMap. The caller must then load the label-popup stack (common.labelPopup + pano-viewer/label-detail
@@ -64,7 +64,7 @@
       };
     }
     try {
-      const m = await createPSMap($, params);
+      const m = await createPSMap(params);
       new MapSidebarFilter(m[0], m[4], { highQualityFilter: false });
       contributionMapReadyResolve(m[0]);
       // Wheel/trackpad zooms the map whenever the pointer is over it, and scrolls the page everywhere else.

@@ -98,10 +98,6 @@ describe('mobile Validate mission screens', () => {
               </div>
             </div>`;
 
-        // These screens are driven through jQuery element bags built in Main.js, so run the real vendored jQuery
-        // rather than a stub — `.html()`, `.css()`, `.scrollTop()`, and empty-set no-ops are all load-bearing here.
-        window.eval(SRC('public/vendor/jquery/jquery-1.12.2.min.js'));
-        global.$ = window.$;
         global.i18next = {
             // Echo the key plus any interpolation, so assertions can name what a slot was filled with.
             t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key),
@@ -136,7 +132,7 @@ describe('mobile Validate mission screens', () => {
 
     afterEach(() => {
         document.body.innerHTML = '';
-        for (const key of ['$', 'i18next', 'util', 'MissionStartTutorial', 'BadgeAchievements', 'ProgressBar',
+        for (const key of ['i18next', 'util', 'MissionStartTutorial', 'BadgeAchievements', 'ProgressBar',
             'Confetti', 'svv']) {
             delete global[key];
         }
@@ -144,33 +140,33 @@ describe('mobile Validate mission screens', () => {
 
     /** The UI element bag Main.js builds for the mission modal. @returns {Object} */
     const missionUI = () => ({
-        holder: $('#modal-mission-holder'),
-        foreground: $('#modal-mission-foreground'),
-        background: $('#modal-mission-background'),
-        eyebrow: $('#modal-mission-eyebrow'),
-        missionTitle: $('#modal-mission-header'),
-        instruction: $('#modal-mission-instruction'),
-        closeButton: $('#modal-mission-close-button'),
+        holder: document.getElementById('modal-mission-holder'),
+        foreground: document.getElementById('modal-mission-foreground'),
+        background: document.getElementById('modal-mission-background'),
+        eyebrow: document.getElementById('modal-mission-eyebrow'),
+        missionTitle: document.getElementById('modal-mission-header'),
+        instruction: document.getElementById('modal-mission-instruction'),
+        closeButton: document.getElementById('modal-mission-close-button'),
     });
 
     /** The UI element bag Main.js builds for the mission-complete modal. @returns {Object} */
     const completeUI = () => ({
-        holder: $('#modal-mission-complete-holder'),
-        foreground: $('#modal-mission-complete-foreground'),
-        background: $('#modal-mission-complete-background'),
-        closeButtonPrimary: $('#modal-mission-complete-close-button-primary'),
-        closeButtonSecondary: $('#modal-mission-complete-close-button-secondary'),
-        agreeCount: $('#modal-mission-complete-agree-count'),
-        disagreeCount: $('#modal-mission-complete-disagree-count'),
-        unsureCount: $('#modal-mission-complete-unsure-count'),
-        message: $('#modal-mission-complete-message'),
-        missionTitle: $('#modal-mission-complete-title'),
-        labelIcon: $('#mission-complete-label-icon'),
-        badgeIcon: $('#mission-complete-badge-icon'),
-        badgeName: $('#mission-complete-badge-name'),
-        badgeProgressFill: $('#mission-complete-badge-progress-fill'),
-        badgeNext: $('#mission-complete-badge-next'),
-        yourOverallTotalCount: $('#modal-mission-complete-your-overall-total-count'),
+        holder: document.getElementById('modal-mission-complete-holder'),
+        foreground: document.getElementById('modal-mission-complete-foreground'),
+        background: document.getElementById('modal-mission-complete-background'),
+        closeButtonPrimary: document.getElementById('modal-mission-complete-close-button-primary'),
+        closeButtonSecondary: document.getElementById('modal-mission-complete-close-button-secondary'),
+        agreeCount: document.getElementById('modal-mission-complete-agree-count'),
+        disagreeCount: document.getElementById('modal-mission-complete-disagree-count'),
+        unsureCount: document.getElementById('modal-mission-complete-unsure-count'),
+        message: document.getElementById('modal-mission-complete-message'),
+        missionTitle: document.getElementById('modal-mission-complete-title'),
+        labelIcon: document.getElementById('mission-complete-label-icon'),
+        badgeIcon: document.getElementById('mission-complete-badge-icon'),
+        badgeName: document.getElementById('mission-complete-badge-name'),
+        badgeProgressFill: document.getElementById('mission-complete-badge-progress-fill'),
+        badgeNext: document.getElementById('mission-complete-badge-next'),
+        yourOverallTotalCount: document.getElementById('modal-mission-complete-your-overall-total-count'),
     });
 
     describe('the briefing’s examples carousel', () => {

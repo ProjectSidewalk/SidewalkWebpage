@@ -91,6 +91,7 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         util.pano = {
             centeredPovToCanvasCoord2d: () => ({ x: 0, y: 0 }),
             centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }),
+            renderedHFov: () => 90,
         };
 
         global.PanoMarker = loadClassFromFile(PANO_MARKER_PATH, 'PanoMarker');

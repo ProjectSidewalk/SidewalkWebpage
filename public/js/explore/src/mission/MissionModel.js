@@ -2,18 +2,17 @@
  * Holds and triggers mission-related pub/sub events.
  */
 class MissionModel extends EventEmitter {
+  /**
+   * Loads the missions already completed in this region and registers each one.
+   * @param {Function} [callback] - Runs after the missions are registered.
+   */
   fetchCompletedMissionsInRegion(callback) {
-    const _onFetch = (missions) => {
-      for (let i = 0, len = missions.length; i < len; i++) {
-        this.createAMission(missions[i]);
-      }
-    };
-
-    if (callback) {
-      $.when($.ajax(`/completedMissionsInRegion?regionId=${svl.regionId}`)).done(_onFetch).done(callback);
-    } else {
-      $.when($.ajax(`/completedMissionsInRegion?regionId=${svl.regionId}`)).done(_onFetch);
-    }
+    fetch(`/completedMissionsInRegion?regionId=${svl.regionId}`)
+      .then((res) => res.json())
+      .then((missions) => {
+        for (const mission of missions) this.createAMission(mission);
+        if (callback) callback();
+      });
   }
 
   addAMission(mission) {

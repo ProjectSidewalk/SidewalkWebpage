@@ -69,7 +69,7 @@ class LabelMapPage {
     };
 
     try {
-      const result = await createPSMap($, params);
+      const result = await createPSMap(params);
       this.#map = result[0];
       this.#mapData = result[4];
       new MapSidebarFilter(this.#map, this.#mapData, { highQualityFilter: true });

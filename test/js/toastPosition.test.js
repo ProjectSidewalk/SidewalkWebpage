@@ -39,10 +39,16 @@ function stubLayout(toastWidth, refRect) {
     };
 }
 
-/** Shows a toast over a reference at `refRect` and returns the `left`/`top` px it placed itself at. */
-function place(toastWidth, refRect) {
+/**
+ * Shows a toast over a reference at `refRect` and returns the `left`/`top` px it placed itself at.
+ * @param {number} toastWidth - The toast's laid-out width.
+ * @param {object} refRect - The reference's box.
+ * @param {string} [minTop] - An inline `--toast-min-top` on the reference, as a page's layout code sets it.
+ */
+function place(toastWidth, refRect, minTop) {
     stubLayout(toastWidth, refRect);
     const reference = document.createElement('div');
+    if (minTop) reference.style.setProperty('--toast-min-top', minTop);
     document.body.appendChild(reference);
 
     // duration 0 disables the auto-dismiss timer, so nothing is left pending after the test.
@@ -64,6 +70,25 @@ describe('Toast placement', () => {
 
     afterEach(() => {
         Element.prototype.getBoundingClientRect = realGetBoundingClientRect;
+    });
+
+    it('sits at the reference\'s --toast-min-top when 10% down would be higher (#5085)', () => {
+        const rect = { left: 200, top: 100, width: 600, height: 400 };
+        expect(place(300, rect, '300px').top).toBe(300);
+        document.querySelector('.ps-toast').remove();
+        expect(place(300, rect, '120px').top).toBe(100 + 400 * VERTICAL_FRACTION); // 140 is already lower.
+    });
+
+    it('re-places a live toast on repositionAll, as a layout switch without a resize event needs (#5085)', () => {
+        const rect = { left: 200, top: 100, width: 600, height: 400 };
+        expect(place(300, rect).top).toBe(140);
+        // The page re-lays itself out: the reference now fills the window and asks toasts to stay under a strip.
+        stubLayout(300, { left: 0, top: 0, width: 1000, height: 800 });
+        document.querySelectorAll('div:not(.ps-toast)').forEach((d) => d.style.setProperty('--toast-min-top', '190px'));
+        Toast.repositionAll();
+        const el = document.querySelector('.ps-toast');
+        expect(parseFloat(el.style.top)).toBe(190);
+        expect(parseFloat(el.style.left)).toBe(500);
     });
 
     it('centers on the reference and sits 10% down it when there is room on both sides', () => {

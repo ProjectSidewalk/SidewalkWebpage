@@ -117,22 +117,32 @@ object PanoDataService {
 
   /**
    * The unsigned Static API URL for a label's still: the labeling POV at `StaticStillWidth x StaticStillHeight`, with
-   * the fov the canvas projection uses for that zoom. Pure so the request can be pinned without an app; `getImageUrl`
-   * signs it.
+   * the horizontal fov the label's frame was rendered at (`renderedHFov`: the zoom curve, widened where GSV's
+   * vertical clamp bound in a wide immersive frame, #5085). The still keeps the boxed 3:2 whatever the frame was, so
+   * every consumer's marker math (`CropService.stillMarker`, `util.misc.labelMarkerFraction`) rests on the two sharing
+   * the fov, which this is what guarantees. Pure so the request can be pinned without an app; `getImageUrl` signs it.
    *
    * `return_error_code` is what makes missing imagery legible downstream: without it Google answers 200 with a flat
    * "no imagery" placeholder that nothing can tell from a photo, while a 404 lands in the `error` handler every
    * `<img>` consumer already has (a replacement card, a hidden thumb, a text-only card) and in the non-200 branch
    * `ShareController` serves its branded fallback from.
    */
-  def staticStillUrl(panoId: String, heading: Double, pitch: Double, zoom: Double, apiKey: String): String =
+  def staticStillUrl(
+      panoId: String,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int,
+      apiKey: String
+  ): String =
     staticApiUrl(
       Seq(
         "pano"              -> panoId,
         "size"              -> s"${StaticStillWidth}x$StaticStillHeight",
         "heading"           -> heading,
         "pitch"             -> pitch,
-        "fov"               -> getFov(zoom),
+        "fov"               -> renderedHFov(zoom, canvasWidth.toDouble / canvasHeight, PanoSource.Gsv),
         "return_error_code" -> true // An expired or removed pano is a 404, not a placeholder image.
       ),
       apiKey
@@ -241,6 +251,35 @@ object PanoDataService {
   }
 
   /**
+   * GSV's silent vertical field-of-view clamp, in degrees, measured in #5083: the same two numbers as
+   * `util.pano.GSV_VFOV_CLAMP_DEG` (public/js/common/pano-viewer/src/panoUtilities.js), which documents the model.
+   */
+  val GSV_VFOV_CLAMP_DEG: (Double, Double) = (14.97, 89.84)
+
+  /**
+   * The horizontal field of view a pano viewer renders for a zoom in a viewport of the given aspect ratio: GSV spans
+   * `getFov(zoom)` across the width but clamps the implied vertical field to `GSV_VFOV_CLAMP_DEG`, and when a bound
+   * binds the horizontal field follows from the aspect instead. Every other source renders the curve itself. Port of
+   * `util.pano.renderedHFov`, so the server's replay of a click (#4842) uses the fov the client projected with (#5085).
+   *
+   * @param zoom   The zoom level (GSV's scale).
+   * @param aspect Width:height of the frame the click was made in.
+   * @param source The imagery the frame rendered.
+   * @return       The rendered horizontal field of view, in degrees.
+   */
+  def renderedHFov(zoom: Double, aspect: Double, source: PanoSource): Double = {
+    val curve = getFov(zoom)
+    if (source != PanoSource.Gsv || !(aspect > 0)) curve
+    else {
+      val (floor, ceiling) = GSV_VFOV_CLAMP_DEG
+      val vFov             = math.toDegrees(2 * math.atan(math.tan(math.toRadians(curve / 2)) / aspect))
+      if (vFov > ceiling) math.toDegrees(2 * math.atan(math.tan(math.toRadians(ceiling / 2)) * aspect))
+      else if (vFov < floor) math.toDegrees(2 * math.atan(math.tan(math.toRadians(floor / 2)) * aspect))
+      else curve
+    }
+  }
+
+  /**
    * How far a submitted label record may miss its own pano_x/pano_y before the submission guard logs it, in degrees
    * of angular disagreement (0.18 deg is ~8 px on a 16384-px pano). Above integer-rounding noise (~0.02 deg) and the
    * few-hundredths-of-a-degree jitter of Google's metadata, below anything a user could notice on screen.
@@ -258,18 +297,32 @@ object PanoDataService {
    * how the submission guard detects a record that does not reproduce its own coordinate (issue #4842; the
    * off-target-markers study in sidewalk-panorama-tools reports/2026-08-10-off-target-markers-validate.md).
    *
-   * @param viewport Viewport POV when the click happened (heading/pitch in degrees; zoom sets the fov).
-   * @param canvasX  Click x on the logical labeling canvas (720x480, origin top-left).
-   * @param canvasY  Click y on the logical labeling canvas.
-   * @return         The label's own POV: heading in [0, 360), pitch in [-90, 90], zoom carried through.
+   * The click has to be projected through the frame it was made in (#5085): the frame's width sets the focal length
+   * and its center is the offset origin, so the same fractions in a 720x480 and a 1440x960 frame give one direction,
+   * while a 720x480 and a 720x405 frame do not. Callers pass the label's own `canvas_width/canvas_height`.
+   *
+   * @param viewport     Viewport POV when the click happened (heading/pitch in degrees; zoom sets the fov).
+   * @param canvasX      Click x on the labeling canvas, in the frame's px (origin top-left).
+   * @param canvasY      Click y on the labeling canvas.
+   * @param canvasWidth  Width of the frame the click is expressed in, in px.
+   * @param canvasHeight Height of that frame, in px.
+   * @param source       The imagery the frame rendered, which decides the fov it rendered at (`renderedHFov`).
+   * @return             The label's own POV: heading in [0, 360), pitch in [-90, 90], zoom carried through.
    */
-  def calculatePovIfCentered(viewport: POV, canvasX: Double, canvasY: Double): POV = {
-    val fov = math.toRadians(getFov(viewport.zoom))
+  def calculatePovIfCentered(
+      viewport: POV,
+      canvasX: Double,
+      canvasY: Double,
+      canvasWidth: Int,
+      canvasHeight: Int,
+      source: PanoSource
+  ): POV = {
+    val fov = math.toRadians(renderedHFov(viewport.zoom, canvasWidth.toDouble / canvasHeight, source))
     val h0  = math.toRadians(viewport.heading)
     val p0  = math.toRadians(viewport.pitch)
-    val f   = 0.5 * LabelPointTable.canvasWidth / math.tan(0.5 * fov)
-    val du  = canvasX - LabelPointTable.canvasWidth / 2.0
-    val dv  = LabelPointTable.canvasHeight / 2.0 - canvasY
+    val f   = 0.5 * canvasWidth / math.tan(0.5 * fov)
+    val du  = canvasX - canvasWidth / 2.0
+    val dv  = canvasHeight / 2.0 - canvasY
     // The sign factor is the JS's beyond-vertical guard; it never fires for real viewer pitch but is kept verbatim.
     val sg = if (math.cos(p0) >= 0) 1.0 else -1.0
 
@@ -474,7 +527,15 @@ trait PanoDataService {
   def panoExists(panoId: String, panoSource: PanoSource): Future[Option[Boolean]]
   def signUrl(urlString: String): String
   def getReusableImageryStatus(panoIds: Set[String]): Future[Map[String, Boolean]]
-  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String]
+  def getImageUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int
+  ): Option[String]
   def getGsvImageUrlsForStreet(streetEdgeId: Int): Future[Seq[String]]
   def insertPanoHistories(histories: Seq[PanoHistorySubmission]): Future[Unit]
   def getAllPanos: Future[Seq[PanoDataSlim]]
@@ -761,11 +822,21 @@ class PanoDataServiceImpl @Inject() (
    * @param heading Compass heading of the camera.
    * @param pitch Up or down angle of the camera relative to the vehicle.
    * @param zoom Zoom level of the canvas (for fov calculation).
+   * @param canvasWidth With `canvasHeight`, the frame the label was placed in (#5085), which sets the fov it rendered at.
+   * @param canvasHeight Height of that frame.
    * @return Image URL that represents the background of the label.
    */
-  def getImageUrl(panoId: String, panoSrc: PanoSource, heading: Double, pitch: Double, zoom: Double): Option[String] =
+  def getImageUrl(
+      panoId: String,
+      panoSrc: PanoSource,
+      heading: Double,
+      pitch: Double,
+      zoom: Double,
+      canvasWidth: Int,
+      canvasHeight: Int
+  ): Option[String] =
     if (panoSrc != PanoSource.Gsv) None
-    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, googleApiKey)))
+    else Some(signUrl(staticStillUrl(panoId, heading, pitch, zoom, canvasWidth, canvasHeight, googleApiKey)))
 
   /**
    * Creates a signed URL that retrieves a static image at the given lat/lng and heading from the GSV Static API.

@@ -55,7 +55,6 @@ no.caps = Non
 no.caps.shortcut = <u>N</u>on
 unsure.caps = Incertain
 unsure.caps.shortcut = Incertain (<u>U</u>)
-wrong.type.shortcut = Mauvais <u>t</u>ype
 thanks = Merci !
 username = Nom d''utilisateur
 loading = Chargement...
@@ -295,7 +294,8 @@ landing.ml.gif.explain.alt = GIF expliquant les résultats de la participation c
 landing.deployment.map.title = Explorer d''autres villes
 landing.deployment.map.subtitle = Cliquez sur un cercle ci-dessous pour explorer d''autres villes Project Sidewalk !
 landing.partners.title = Partenaires locaux à {0}
-landing.partners.tagline = Notre travail à {0} est rendu possible grâce à nos formidables partenaires locaux, dont :
+landing.partners.tagline = Notre travail à {0} est rendu possible grâce à nos partenaires locaux, dont :
+landing.partners.official.contact = Project Sidewalk est un outil de recherche. Pour signaler un problème ou demander une réparation, contactez directement {0}. Vous pouvez joindre à votre demande des liens vers des <a href="/labelMap" data-partner-source="official-contact-labelmap">étiquettes</a> ou des <a href="/stories" data-partner-source="official-contact-stories">témoignages</a> de Project Sidewalk.
 landing.partners.logo.alt = Logo de {0}
 landing.partners.created.by = Project Sidewalk a été créé avec {0} par
 landing.partners.created.heart = amour
@@ -339,7 +339,7 @@ audit.ribbon.other.labels = AUTRES ÉTIQUETTES D''ACCESSIBILITÉ
 audit.ribbon.explore = <u>E</u>xplorer
 audit.ribbon.curb.ramp = Bateau de trottoir (<u>C</u>)
 audit.ribbon.missing.ramp = Bateau <u>m</u>anquant
-audit.ribbon.obstacle = <u>O</u>bstacle sur le passage
+audit.ribbon.obstacle = <u>O</u>bstacle
 audit.ribbon.surface.problem = Problème de <u>s</u>urface
 audit.ribbon.no.sidewalk = Absence de trottoir (<u>N</u>)
 audit.ribbon.crosswalk = Passage piéton marqué (<u>W</u>)
@@ -566,6 +566,12 @@ gallery.all = Tous les types d''étiquettes
 gallery.labels.not.found = Aucun résultat. <a href="/explore">Commencez à explorer</a> pour contribuer plus de données !
 gallery.cards = Les étiquettes sont triées aléatoirement selon les filtres sélectionnés
 gallery.clear.filters = Effacer les filtres
+gallery.list.count = {0,choice,1#1 étiquette|1<{0} étiquettes} dans cette liste
+# Four apostrophes, not two: a choice sub-message containing a placeholder is re-parsed as a MessageFormat
+# pattern, so the quoting is undone twice. Two here renders "na pas pu".
+gallery.list.truncated = {0,choice,1#1 identifiant dépassait la limite de {1} et n''''a pas pu être chargé.|1<{0} identifiants dépassaient la limite de {1} et n''''ont pas pu être chargés.}
+gallery.list.error = La liste n''a pas pu être chargée. Rechargez la page pour réessayer.
+gallery.list.browse.all = Parcourir toutes les étiquettes
 
 routebuilder.name = RouteBuilder
 routebuilder.welcome = Bienvenue dans RouteBuilder

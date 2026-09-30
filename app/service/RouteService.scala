@@ -148,7 +148,7 @@ class RouteServiceImpl @Inject() (
         .map(uniqueSlugAction(_, None))
         .getOrElse(DBIO.successful(s"route-tmp-${UUID.randomUUID}"))
       routeId: Int <- routeTable.insert(
-        Route(0, userId, route.regionId, submittedName.getOrElse(""), initialSlug, description, public = false,
+        Route(0, userId, route.regionId, submittedName.getOrElse(""), initialSlug, description, public = true,
           deleted = false, OffsetDateTime.now, distanceMeters = 0d, streetCount = 0)
       )
       savedName: String = submittedName.getOrElse(s"Route $routeId")

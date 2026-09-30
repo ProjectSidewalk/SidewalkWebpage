@@ -155,7 +155,8 @@ class PanoInfoPopover {
   }
 
   /**
-   * Positions the popover above the info button, centered horizontally, clamped to the viewport.
+   * Positions the popover above the info button. Near a screen edge the popover is nudged back on screen, so the arrow
+   * moves too, to keep pointing at the button.
    */
   #positionPopover() {
     const btnRect = this.#infoButton.getBoundingClientRect();
@@ -172,6 +173,11 @@ class PanoInfoPopover {
 
     this.#popoverEl.style.left = `${Math.round(left)}px`;
     this.#popoverEl.style.top = `${Math.round(top)}px`;
+    // Kept clear of the popover's rounded corners.
+    const arrowInset = 20 * uiScale;
+    const btnCenter = btnRect.left + btnRect.width / 2 - left;
+    const arrowLeft = Math.max(arrowInset, Math.min(btnCenter, popRect.width - arrowInset));
+    this.#popoverEl.style.setProperty('--pano-info-arrow-left', `${Math.round(arrowLeft)}px`);
   }
 
   /**

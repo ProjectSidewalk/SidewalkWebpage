@@ -13,6 +13,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadGlobalScript } = require('./loadGlobalScript');
+
+// The page fetches through util.fetchJson.
+loadGlobalScript('public/js/common/utilities.js');
 
 const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
@@ -222,7 +226,7 @@ describe('Across Cities — traffic section', () => {
     expect(cells[7].textContent.trim()).toBe('12%');
     // The window isn't the city's lifetime, so the cell has to date itself.
     expect(cells[5].getAttribute('title')).toContain('2021');
-    expect(cells[5].getAttribute('title')).toContain("earlier traffic isn't included");
+    expect(cells[5].getAttribute('title')).toContain("earlier traffic isn't counted");
   });
 
   it('sorts by an all-time column independently of the recent ones', async () => {

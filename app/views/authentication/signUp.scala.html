@@ -54,7 +54,7 @@
           </div>
           @common.authPasswordFields("sign-up", "password", "passwordConfirm")
           <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
-          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
+          <button type="submit" class="button button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
         }
         <div class="au-footer">@Html(Messages("authenticate.is.member", s"${routes.UserController.signIn().url}?url=${java.net.URLEncoder.encode(buildUrlFromQueryString(request.queryString), "UTF-8")}"))</div>
       </div>

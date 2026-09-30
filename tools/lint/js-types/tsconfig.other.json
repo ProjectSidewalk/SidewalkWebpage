@@ -1,0 +1,12 @@
+// Everything in public/js/ outside the Explore, Validate, and Gallery bundles. See tools/lint/check-js-types.mjs.
+{
+  "extends": "../../../jsconfig.json",
+  "compilerOptions": {"checkJs": true},
+  "include": ["../../../public/js/**/*.js", "*.d.ts"],
+  "exclude": [
+    "../../../public/js/**/build/**",
+    "../../../public/js/explore/**",
+    "../../../public/js/validate/**",
+    "../../../public/js/gallery/**"
+  ]
+}

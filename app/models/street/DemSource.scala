@@ -23,7 +23,7 @@ case class DemSource(
 /**
  * The elevation models the app knows how to credit.
  *
- * One entry per source registered in scripts/street_gradient.py (`Source(...)`), which test_street_gradient.py holds
+ * One entry per source registered in tools/city/street_gradient.py (`Source(...)`), which test_street_gradient.py holds
  * to: a source the sampler can write and the app cannot credit would put unattributed grades on a public map. Most of
  * these models are attribution-only, so the credit is the whole of the obligation; docs/street-gradient.md has the
  * roster of planned sources.

@@ -177,8 +177,6 @@
       "photo-invalid": "Não conseguimos ler esse arquivo como imagem (JPEG ou PNG)."
     }
   },
-  "change-type": "Alterar o tipo de rótulo",
-  "change-type-hint": "Tags que não se aplicam ao novo tipo são removidas. Uma avaliação só é mantida entre tipos avaliados da mesma forma.",
   "edit-type-changed": "Alterado para {{labelType}}",
   "edit-undo": "Desfazer",
   "edit-conflict-short": "Tipo de rótulo alterado em outro lugar",

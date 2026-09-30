@@ -89,16 +89,15 @@ class RegionCompletionTable @Inject() (
         .result
         .head
 
-      // Check if region is fully audited. Exclude the tutorial street (permanent priority=1.0) and the street
-      // currently being audited (its priority update runs separately in partiallyUpdatePriority — if we don't exclude
-      // it here, the last street in a region always appears un-audited at this point, so regionIncomplete is always
-      // true and the floating-point equalization never fires).
+      // Only open, non-tutorial streets can hold a region back; the others never lose priority 1.0. The street being
+      // audited is skipped too, since its priority updates separately and would always look unfinished here.
       regionIncomplete: Boolean <- streetEdgeRegion
-        .join(streetEdgePriorityTable)
+        .join(streetEdgeTable.streets)
         .on(_.streetEdgeId === _.streetEdgeId)
-        .filter(x => x._1.regionId === regionId && x._2.priority === 1.0)
-        .filterNot(_._1.streetEdgeId in tutorialStreetId)
-        .filterNot(_._1.streetEdgeId === streetEdgeId)
+        .join(streetEdgePriorityTable)
+        .on(_._1.streetEdgeId === _.streetEdgeId)
+        .filter(x => x._1._1.regionId === regionId && x._2.priority === 1.0)
+        .filterNot(_._1._1.streetEdgeId === streetEdgeId)
         .exists
         .result
 

@@ -10,11 +10,13 @@ class PopupPanoManager {
   panoViewer = undefined;
   label = undefined;
   activeViewerName = ''; // 'Default' (primary viewer), 'Pannellum', 'StaticApi', or 'StaticCrop'.
-  svHolder; // jQuery-wrapped svHolder element.
+  /** @type {HTMLElement} */
+  svHolder;
 
   #admin;
   #viewerType;
   #viewerAccessToken;
+  /** @type {HTMLElement} */
   #buttonHolder;
   #labelMarkers = [];
   // The GSV/Mapillary/Infra3d viewer. Built on the first setPano() that needs it, not at init (#5128): Google bills
@@ -71,8 +73,8 @@ class PopupPanoManager {
   /**
    * Builds a PopupPanoManager and its DOM. The pano viewer itself is created by the first setPano() (#5128).
    *
-   * @param {Element} svHolder - One single DOM element.
-   * @param {Element} buttonHolder - DOM element that holds the validation buttons.
+   * @param {HTMLElement} svHolder - One single DOM element.
+   * @param {HTMLElement} buttonHolder - DOM element that holds the validation buttons.
    * @param {boolean} admin
    * @param {typeof PanoViewer} viewerType
    * @param {string} viewerAccessToken
@@ -89,79 +91,91 @@ class PopupPanoManager {
   }
 
   /**
+   * @param {string} tag
+   * @param {string} id
+   * @param {Partial<CSSStyleDeclaration>} styles
+   * @param {string} [className]
+   * @returns {HTMLElement}
+   */
+  static #build(tag, id, styles, className = '') {
+    const el = document.createElement(tag);
+    el.id = id;
+    if (className) el.className = className;
+    Object.assign(el.style, styles);
+    return el;
+  }
+
+  /**
    * Builds the pano canvas, the fallback viewers' DOM, and the provider logo, and schedules the free part of the
    * viewer's load. Nothing here talks to the imagery provider.
-   * @param {Element} svHolder
-   * @param {Element} buttonHolder
+   * @param {HTMLElement} svHolder
+   * @param {HTMLElement} buttonHolder
    */
   #init(svHolder, buttonHolder) {
-    this.#buttonHolder = $(buttonHolder);
-    this.svHolder = $(svHolder);
-    this.svHolder.addClass('admin-panorama');
+    this.#buttonHolder = buttonHolder;
+    this.svHolder = svHolder;
+    this.svHolder.classList.add('admin-panorama');
     this.#loadingEl = svHolder.parentElement?.querySelector('.label-detail__pano-loading') ?? null;
 
     // svHolder's children are absolutely aligned, svHolder's position has to be either absolute or relative
-    if (this.svHolder.css('position') !== 'absolute' && this.svHolder.css('position') !== 'relative') {
-      this.svHolder.css('position', 'relative');
+    const position = getComputedStyle(this.svHolder).position;
+    if (position !== 'absolute' && position !== 'relative') {
+      this.svHolder.style.position = 'relative';
     }
 
     // Panorama will be added to panoCanvas. Use 100%/100% so the viewer fills the CSS-driven container
     // rather than locking in whatever pixel dimensions the element happened to measure at init time.
-    this.#panoCanvas = $('<div id=\'pano\'>').css({ width: '100%', height: '100%' })[0];
+    this.#panoCanvas = PopupPanoManager.#build('div', 'pano', { width: '100%', height: '100%' });
 
     // Separate container for the Pannellum fallback viewer. Created up-front but only mounted with a Pannellum
     // instance when we hit an expired pano that has a self-hosted copy.
-    this.#pannellumCanvas = $('<div id=\'pano-pannellum\'>').css({ width: '100%', height: '100%', display: 'none' })[0];
+    this.#pannellumCanvas = PopupPanoManager.#build('div', 'pano-pannellum', {
+      width: '100%', height: '100%', display: 'none',
+    });
 
     // No-imagery / expired-label panel (#4483): a branded logo, one concise line, and a button CTA. Absolutely fills
     // svHolder (kept position:relative above) and centers its content; styled via .pano-not-avail in label-detail.css.
-    this.#panoNotAvailable = $(`<div id="pano-not-avail" class="pano-not-avail">
+    this.#panoNotAvailable = PopupPanoManager.#build('div', 'pano-not-avail', {}, 'pano-not-avail');
+    this.#panoNotAvailable.innerHTML = `
         <img class="pano-not-avail__logo" alt=""
              src="${util.assetPath('images/logos/ProjectSidewalkLogo_NoText_WheelchairCircleCentered_100x100.png')}">
         <p class="pano-not-avail__msg">${i18next.t('common:errors.title')}</p>
         <a id="explore-street" class="pano-not-avail__cta"
-           href="#">${i18next.t('common:errors.explore-street')}<span aria-hidden="true">→</span></a>
-      </div>`)[0];
+           href="#">${i18next.t('common:errors.explore-street')}<span aria-hidden="true">→</span></a>`;
 
-    this.#fallbackContainer = $('<div id="pano-fallback-container">').css({
+    this.#fallbackContainer = PopupPanoManager.#build('div', 'pano-fallback-container', {
       position: 'relative',
       width: '100%',
       height: '100%',
       display: 'none',
       overflow: 'hidden',
-    })[0];
+    });
     // The panzoom target — wraps the image. The marker stays OUTSIDE this wrapper so it doesn't scale
     // with the image; instead we reposition it manually whenever panzoom emits a transform event.
     // Cursor comes from CSS (#pano-fallback-pz grab/grabbing) — an inline cursor here would override the
     // :active grabbing state.
-    this.#fallbackPanzoomWrap = $('<div id="pano-fallback-pz">').css({
+    this.#fallbackPanzoomWrap = PopupPanoManager.#build('div', 'pano-fallback-pz', { width: '100%', height: '100%' });
+    this.#fallbackImage = PopupPanoManager.#build('img', 'pano-fallback-image', {
       width: '100%',
       height: '100%',
-    })[0];
-    this.#fallbackImage = $('<img id="pano-fallback-image">').css({
-      'width': '100%',
-      'height': '100%',
-      'object-fit': 'cover',
-      'user-select': 'none',
-      'pointer-events': 'none',
-    })[0];
+      objectFit: 'cover',
+      userSelect: 'none',
+      pointerEvents: 'none',
+    });
     // A div, not an img, so it wears the shared .label-marker styles — including the hidden state, which fades an
     // icon drawn by ::before and so can't reach into an <img> (#2477).
-    this.#fallbackMarker = $('<div id="pano-fallback-marker">').addClass('icon-outline label-marker').css({
-      'position': 'absolute',
-      'width': '28px',
-      'height': '28px',
-      'transform': 'translate(-50%, -50%)',
-      'display': 'none',
-      'pointer-events': 'none',
-    })[0];
-    $(this.#fallbackPanzoomWrap).append(this.#fallbackImage);
-    $(this.#fallbackContainer).append(this.#fallbackPanzoomWrap, this.#fallbackMarker);
+    this.#fallbackMarker = PopupPanoManager.#build('div', 'pano-fallback-marker', {
+      position: 'absolute',
+      width: '28px',
+      height: '28px',
+      transform: 'translate(-50%, -50%)',
+      display: 'none',
+      pointerEvents: 'none',
+    }, 'icon-outline label-marker');
+    this.#fallbackPanzoomWrap.append(this.#fallbackImage);
+    this.#fallbackContainer.append(this.#fallbackPanzoomWrap, this.#fallbackMarker);
 
-    this.svHolder.append($(this.#panoCanvas));
-    this.svHolder.append($(this.#pannellumCanvas));
-    this.svHolder.append($(this.#fallbackContainer));
-    this.svHolder.append($(this.#panoNotAvailable));
+    this.svHolder.append(this.#panoCanvas, this.#pannellumCanvas, this.#fallbackContainer, this.#panoNotAvailable);
 
     // Initialize panzoom on the wrapper.
     this.#fallbackPanzoom = panzoom(this.#fallbackPanzoomWrap, {
@@ -174,9 +188,9 @@ class PopupPanoManager {
     });
     this.#fallbackPanzoom.on('transform', () => this.#updateFallbackMarkerPosition());
 
-    this.#logo = createPanoViewerLogo(this.svHolder[0], this.#viewerType.SOURCE);
+    this.#logo = createPanoViewerLogo(this.svHolder, this.#viewerType.SOURCE);
     this.#logo.showPrimaryLogo();
-    this.#attribution = createPanoAttribution(this.svHolder[0]);
+    this.#attribution = createPanoAttribution(this.svHolder);
 
     // Pre-pay the viewer library's download (free) so the first open only pays for the viewer itself. Idle-timed so
     // it never competes with the host page's own load; a failure here just means the first open downloads it.
@@ -302,7 +316,7 @@ class PopupPanoManager {
   async setPano(panoId, pov, cropUrl, expired = false, backupImage = null, attribution = null) {
     const load = ++this.#loadToken;
     this.#cropUrl = typeof cropUrl === 'string' ? cropUrl : null;
-    this.svHolder.css('visibility', 'hidden'); // Hide until we've finished rendering.
+    this.svHolder.style.visibility = 'hidden'; // Hide until we've finished rendering.
     if (this.#loadingEl) this.#loadingEl.hidden = false;
     // Reset fallback zoom/pan so a previous label's manipulation doesn't leak into this one.
     this.#resetFallbackTransform();
@@ -368,7 +382,7 @@ class PopupPanoManager {
     if (showAttribution) this.#attribution?.show(attribution);
     else this.#attribution?.hide();
     if (this.#loadingEl) this.#loadingEl.hidden = true;
-    if (!this.svHolder[0].dataset.closedDuringLoad) this.svHolder.css('visibility', 'visible');
+    if (!this.svHolder.dataset.closedDuringLoad) this.svHolder.style.visibility = 'visible';
   }
 
   /**
@@ -376,7 +390,7 @@ class PopupPanoManager {
    * pano has built it).
    */
   #teardownPannellum() {
-    $(this.#pannellumCanvas).css('display', 'none');
+    this.#pannellumCanvas.style.display = 'none';
     this.panoViewer = this.#primaryViewer;
     if (this.#logo) this.#logo.showPrimaryLogo();
   }
@@ -389,11 +403,11 @@ class PopupPanoManager {
    */
   async #showPannellumPano(backupImage, pov) {
     // Hide primary canvas, fallback image, and any error messages.
-    $(this.#panoCanvas).css('display', 'none');
-    $(this.#fallbackContainer).css('display', 'none');
-    $(this.#panoNotAvailable).css('display', 'none');
-    this.#buttonHolder.css('display', '');
-    $(this.#pannellumCanvas).css('display', 'block');
+    this.#panoCanvas.style.display = 'none';
+    this.#fallbackContainer.style.display = 'none';
+    this.#panoNotAvailable.style.display = 'none';
+    this.#buttonHolder.style.display = '';
+    this.#pannellumCanvas.style.display = 'block';
 
     if (this.#pannellumViewer) {
       await this.#pannellumViewer.loadPano(backupImage.panoId, backupImage, pov);
@@ -420,10 +434,10 @@ class PopupPanoManager {
    */
   async #panoSuccessCallback(targetPov, load) {
     // Show the pano, hide the fallback image and error messages.
-    $(this.#panoCanvas).css('display', 'block');
-    $(this.#fallbackContainer).css('display', 'none');
-    $(this.#panoNotAvailable).css('display', 'none');
-    this.#buttonHolder.css('display', '');
+    this.#panoCanvas.style.display = 'block';
+    this.#fallbackContainer.style.display = 'none';
+    this.#panoNotAvailable.style.display = 'none';
+    this.#buttonHolder.style.display = '';
 
     // There is a bug that can sometimes cause Google's panos to go black when you load a new one. We can deal with
     // it by triggering a resize event after a short delay. This seems to only be an issue with the label popup, not
@@ -438,7 +452,7 @@ class PopupPanoManager {
         }
         // The host may have closed over this load: a viewer measured at 0x0 derives a tile zoom of NaN and wedges
         // retrying a request the provider rejects, so let the next open run these against a laid-out container.
-        const { width, height } = this.svHolder[0].getBoundingClientRect();
+        const { width, height } = this.svHolder.getBoundingClientRect();
         if (width > 0 && height > 0) {
           this.panoViewer.resize();
           this.panoViewer.setPov(targetPov);
@@ -454,35 +468,35 @@ class PopupPanoManager {
    * @returns {Promise<boolean>} Whether the crop fallback was shown (false only when no imagery is available at all).
    */
   #panoFailureCallback() {
-    $(this.#panoCanvas).css('display', 'none');
+    this.#panoCanvas.style.display = 'none';
     if (this.#cropUrl) {
       // Show the screenshot as a fallback instead of the error message.
-      $(this.#fallbackImage).attr('src', this.#cropUrl);
-      $(this.#fallbackContainer).css('display', 'block');
+      this.#fallbackImage.src = this.#cropUrl;
+      this.#fallbackContainer.style.display = 'block';
       // Position the label icon on the fallback image.
       const fallbackIcon = this.label && this.#iconFor(this.label.label_type);
       if (fallbackIcon) {
         this.#fallbackMarker.style.setProperty('--label-icon', `url(${fallbackIcon})`);
         this.#fallbackMarker.style.setProperty('--label-color', util.misc.getLabelColors(this.label.label_type));
-        $(this.#fallbackMarker).css('display', 'block');
+        this.#fallbackMarker.style.display = 'block';
         this.#updateFallbackMarkerPosition();
       } else {
-        $(this.#fallbackMarker).css('display', 'none');
+        this.#fallbackMarker.style.display = 'none';
       }
-      $(this.#panoNotAvailable).css('display', 'none');
-      this.#buttonHolder.css('display', '');
+      this.#panoNotAvailable.style.display = 'none';
+      this.#buttonHolder.style.display = '';
     } else {
       // Clear any inline height the failed viewer left on svHolder so its CSS (aspect-ratio) height returns; the
       // absolute-positioned .pano-not-avail panel fills that box.
-      this.svHolder.css('height', '');
-      $(this.#fallbackContainer).css('display', 'none');
+      this.svHolder.style.height = '';
+      this.#fallbackContainer.style.display = 'none';
       // Same reason as LabelDetail's "Explore here": /explore bounces mobile visitors, so the CTA goes away
       // rather than promising a destination this device can't reach.
-      const exploreStreet = $('#explore-street');
-      exploreStreet.prop('hidden', util.isMobile());
-      if (this.label) exploreStreet.attr('href', `/explore?streetEdgeId=${this.label.streetEdgeId}`);
-      $(this.#panoNotAvailable).css('display', 'flex');
-      this.#buttonHolder.css('display', 'none');
+      const exploreStreet = this.#panoNotAvailable.querySelector('#explore-street');
+      exploreStreet.hidden = util.isMobile();
+      if (this.label) exploreStreet.setAttribute('href', `/explore?streetEdgeId=${this.label.streetEdgeId}`);
+      this.#panoNotAvailable.style.display = 'flex';
+      this.#buttonHolder.style.display = 'none';
     }
     return Promise.resolve(Boolean(this.#cropUrl));
   }
@@ -532,24 +546,24 @@ class PopupPanoManager {
     if (W === 0 || H === 0) return;
 
     const t = this.#fallbackPanzoom.getTransform();
-    // The canvas fraction is only right for an Explore snapshot; a recorded crop says where its label is (#2660).
-    const marker = this.label.cropMarker;
-    const fracX = marker ? marker.x : this.label.canvasX / this.label.originalCanvasWidth;
-    const fracY = marker ? marker.y : this.label.canvasY / this.label.originalCanvasHeight;
-    this.#fallbackMarker.style.left = `${t.x + fracX * W * t.scale}px`;
-    this.#fallbackMarker.style.top = `${t.y + fracY * H * t.scale}px`;
+    // The canvas fraction is only right for an Explore snapshot; a recorded crop says where its label is (#2660). The
+    // crop is cover-fitted into the container, so a crop of another aspect has its overflow trimmed (#5085).
+    const { x, y } = util.misc.labelMarkerFraction(
+      'crop', this.label.cropMarker, this.label.canvasX, this.label.canvasY,
+      { canvasWidth: this.label.originalCanvasWidth, canvasHeight: this.label.originalCanvasHeight, boxAspect: W / H },
+    );
+    this.#fallbackMarker.style.left = `${t.x + x * W * t.scale}px`;
+    this.#fallbackMarker.style.top = `${t.y + y * H * t.scale}px`;
   }
 
   /**
    * Renders a PanoMarker (label) onto a Streetview Panorama.
    * @param {Record<string, any>} label - Plain-object label shape produced by LabelPopup.
-   *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, pov,
-   *   streetEdgeId, aiGenerated, and cropMarker ({x, y} fractions of the crop image, or null).
+   *   Expected fields: labelId, label_type, canvasX, canvasY, originalCanvasWidth, originalCanvasHeight, panoSource,
+   *   pov, streetEdgeId, aiGenerated, and cropMarker ({x, y} fractions of the crop image, or null).
    */
   renderLabel(label) {
-    const pos = util.pano.canvasCoordToCenteredPov(
-      label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight,
-    );
+    const pos = this.#labelPov(label);
     // Mount the marker inside whichever canvas is currently visible so it sits over the right viewer.
     const activeCanvas = this.panoViewer === this.#pannellumViewer ? this.#pannellumCanvas : this.#panoCanvas;
     const panoMarker = new PanoMarker({
@@ -590,9 +604,7 @@ class PopupPanoManager {
    */
   #attachAiIndicatorToMarker(panoMarker) {
     if (!panoMarker.marker_.querySelector('.admin-ai-icon-marker')) {
-      const indicator = aiLabelIndicator(['admin-ai-icon-marker']);
-      panoMarker.marker_.appendChild(indicator);
-      ensureAiTooltip(indicator);
+      panoMarker.marker_.appendChild(aiLabelIndicator(['admin-ai-icon-marker']));
     }
   }
 
@@ -601,8 +613,25 @@ class PopupPanoManager {
    * @returns {{heading: number, pitch: number}}
    */
   getOriginalPosition() {
-    return util.pano.canvasCoordToCenteredPov(this.label.pov, this.label.canvasX, this.label.canvasY,
-      this.label.originalCanvasWidth, this.label.originalCanvasHeight);
+    return this.#labelPov(this.label);
+  }
+
+  /**
+   * The label's own direction: its stored click projected through the frame it was made in, with the fov that
+   * frame's aspect rendered at (#5085) on the imagery it was placed with, which is the label's own pano source
+   * rather than whatever this popup is showing: a GSV label shown on the self-hosted backup was still clicked
+   * through GSV's clamp.
+   * @param {Record<string, any>} label - Plain-object label shape produced by LabelPopup (see renderLabel).
+   * @returns {{heading: number, pitch: number, zoom: number}}
+   */
+  #labelPov(label) {
+    const hFov = util.pano.renderedHFov(
+      label.pov.zoom, label.originalCanvasWidth / label.originalCanvasHeight,
+      label.panoSource ?? this.panoViewer?.getViewerType(),
+    );
+    return util.pano.canvasCoordToCenteredPov(
+      label.pov, label.canvasX, label.canvasY, label.originalCanvasWidth, label.originalCanvasHeight, hFov,
+    );
   }
 
   /**

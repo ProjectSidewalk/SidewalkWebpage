@@ -11,6 +11,7 @@ import play.api.test.Helpers._
 import util.SignedUpAccounts
 import models.utils.MyPostgresProfile.api._
 
+import java.time.OffsetDateTime
 import java.util.UUID
 
 /**
@@ -215,6 +216,40 @@ class UserAuthControllerSpec extends PlaySpec with SignedUpAccounts with GuiceOn
       status(signInByUsername) mustBe OK
       (contentAsJson(signInByUsername) \ "redirect").asOpt[String] mustBe defined
       cookies(signInByUsername).exists(_.name.toLowerCase.contains("authenticator")) mustBe true
+    }
+  }
+
+  "A new account" should {
+    "record when it was created (#5532)" in {
+      val (userId, _, _) = signUpFreshUser()
+      runAccounts(
+        sql"""SELECT created_at BETWEEN now() - interval '1 minute' AND now() FROM sidewalk_login.sidewalk_user
+              WHERE user_id = $userId""".as[Boolean]
+      ).head mustBe true
+    }
+
+    "keep the date of the first visit when an anonymous visitor registers (#5532)" in {
+      val firstVisit = route(app, FakeRequest(GET, "/anonSignUp?url=%2F")).get
+      status(firstVisit) mustBe SEE_OTHER
+      val afterFirstVisit = OffsetDateTime.now.toString
+
+      val (username, email, password) = freshCreds()
+      val signUp                      = route(
+        app,
+        FakeRequest(POST, "/signUp")
+          .withHeaders(XHR)
+          .withCookies(cookies(firstVisit).toSeq: _*)
+          .withFormUrlEncodedBody(signUpBody(username, email, password, password): _*)
+          .withCSRFToken
+      ).get
+      status(signUp) mustBe OK
+
+      val (userId, keptItsDate) = runAccounts(
+        sql"""SELECT user_id, created_at < $afterFirstVisit::timestamptz FROM sidewalk_login.sidewalk_user
+              WHERE email = $email""".as[(String, Boolean)]
+      ).head
+      createdUserIds += userId
+      keptItsDate mustBe true
     }
   }
 

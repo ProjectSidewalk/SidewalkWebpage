@@ -12,12 +12,24 @@
  */
 
 /**
+ * The official-contact form, with its two fields reachable by name.
+ * @typedef {HTMLFormElement & {elements: HTMLFormControlsCollection & OfficialContactFields}} OfficialContactForm
+ */
+
+/**
+ * @typedef {object} OfficialContactFields
+ * @property {HTMLInputElement} name - The agency's name as the landing-page sentence reads it.
+ * @property {HTMLInputElement} url - The agency's contact page.
+ */
+
+/**
  * PartnersPage — the /admin/partners manager for the landing page's community-partner logos (#4516).
  *
  * Renders two independently ordered lists from /adminapi/partners — this city's partners and the global list shown
  * on every deployment — with per-row reorder/edit/delete and one add form per editable scope. City rows are editable
  * by any admin; global rows only by Owners (the server enforces this on the /adminapi/globalPartners routes, so the
- * flag here only decides what UI to draw). Admin-only page, English-only by convention.
+ * flag here only decides what UI to draw). It also runs the page's official-contact form (#5462), the city's
+ * "contact us directly" sentence in the landing page's partners section. Admin-only page, English-only by convention.
  */
 class PartnersPage {
   /** Long edge, in px, of the PNG an uploaded SVG is rasterized to: ~4x the widest the strip ever renders a logo. */
@@ -49,7 +61,100 @@ class PartnersPage {
       });
       form.querySelector('.partners-cancel-edit').addEventListener('click', () => this.#cancelEdit(form));
     }
+    this.#initOfficialContact();
     this.#load();
+  }
+
+  /** Wires the official-contact form: loads the saved values, keeps the preview live, and saves or turns it off. */
+  #initOfficialContact() {
+    const form = /** @type {?OfficialContactForm} */ (document.getElementById('official-contact-form'));
+    if (!form) return;
+    form.addEventListener('input', () => this.#renderOfficialContactPreview(form));
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.#saveOfficialContact(form, form.elements.name.value, form.elements.url.value);
+    });
+    document.getElementById('official-contact-clear')
+      .addEventListener('click', () => this.#saveOfficialContact(form, '', ''));
+    this.#loadOfficialContact(form);
+  }
+
+  /**
+   * Fills the form with the city's saved contact, or shows an inline error if it can't be read.
+   *
+   * @param {OfficialContactForm} form
+   */
+  async #loadOfficialContact(form) {
+    try {
+      const res = await fetch('/adminapi/officialContact');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.#fillOfficialContact(form, await res.json());
+    } catch (err) {
+      console.error('Partners page: official contact failed to load.', err);
+      this.#showError(form, 'Could not load the official contact. Reload to try again.');
+    }
+  }
+
+  /**
+   * Sends the fields as typed; the server trims and validates them, and its error message is shown as-is so the rules
+   * live in one place. Blank fields turn the notice off.
+   *
+   * @param {OfficialContactForm} form
+   * @param {string} name
+   * @param {string} url
+   */
+  async #saveOfficialContact(form, name, url) {
+    this.#showError(form, null);
+    document.getElementById('official-contact-status').textContent = '';
+    try {
+      const res = await fetch('/adminapi/officialContact', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ name, url }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        this.#showError(form, data.error || 'Something went wrong. Please try again.');
+        return;
+      }
+      this.#fillOfficialContact(form, data);
+      // Its own live region: #partners-status belongs to the partner lists' counts.
+      const statusEl = document.getElementById('official-contact-status');
+      statusEl.textContent = data.url ? 'Official contact notice saved.' : 'Official contact notice turned off.';
+    } catch (err) {
+      console.error('Partners page: official contact failed to save.', err);
+      this.#showError(form, 'Something went wrong. Please try again.');
+    }
+  }
+
+  /**
+   * @param {OfficialContactForm} form
+   * @param {{name: ?string, url: ?string}} contact - Both null when the notice is off.
+   */
+  #fillOfficialContact(form, contact) {
+    form.elements.name.value = contact.name || '';
+    form.elements.url.value = contact.url || '';
+    this.#renderOfficialContactPreview(form);
+  }
+
+  /**
+   * Shows the sentence the landing page will render. The template is the landing page's own translated message,
+   * rendered server-side with a {name} slot, so the wording can't drift from the real thing.
+   *
+   * @param {OfficialContactForm} form
+   */
+  #renderOfficialContactPreview(form) {
+    const preview = document.getElementById('official-contact-preview');
+    const name = form.elements.name.value.trim();
+    if (!form.elements.url.value.trim()) {
+      preview.textContent = 'Off: nothing shows on the landing page.';
+    } else {
+      // textContent, not innerHTML: the name is admin-entered free text.
+      // The message carries its own LabelMap/Stories anchors, so read it as HTML and keep only its text. A replacer
+      // function, so a `$&` or `$'` in the name is inserted literally rather than read as a pattern.
+      const template = new DOMParser().parseFromString(preview.dataset.template, 'text/html').body.textContent;
+      preview.textContent = `Landing page preview: ${template.replace('{name}', () => name || '…')}`;
+    }
   }
 
   async #load() {
@@ -63,7 +168,7 @@ class PartnersPage {
       this.#setStatus(`${this.#partners.global.length} global · ${this.#partners.city.length} city`);
     } catch (err) {
       console.error('Partners page: list failed to load.', err);
-      this.#setStatus('Failed to load partners — try reloading the page.');
+      this.#setStatus('Could not load partners. Reload to try again.');
     }
   }
 
@@ -145,8 +250,8 @@ class PartnersPage {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = danger
-      ? 'button-ps button--secondary button--small partners-row-btn--danger'
-      : 'button-ps button--secondary button--small';
+      ? 'button button--secondary button--small partners-row-btn--danger'
+      : 'button button--secondary button--small';
     btn.textContent = text;
     btn.setAttribute('aria-label', label);
     btn.disabled = disabled;
@@ -263,7 +368,7 @@ class PartnersPage {
       await this.#load();
     } catch (err) {
       console.error('Partners page: save failed.', err);
-      this.#showError(form, 'Something went wrong — please try again.');
+      this.#showError(form, 'Something went wrong. Please try again.');
     } finally {
       submitBtn.disabled = false;
     }
@@ -343,8 +448,7 @@ class PartnersPage {
 
   async #deletePartner(partner) {
     const ok = await ConfirmDialog.confirm({
-      message: `Delete the "${partner.name}" logo? It disappears from the landing page immediately, `
-        + 'and this cannot be undone.',
+      message: `Delete the "${partner.name}" logo? It leaves the landing page immediately and can't be restored.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       danger: true,
@@ -379,21 +483,21 @@ class PartnersPage {
   #errorMessage(form, code) {
     const mb = (bytes) => `${Math.round(bytes / 1048576)} MB`;
     const messages = {
-      logo_required: 'Choose a logo image (PNG, JPEG, or SVG) to upload.',
-      logo_too_large: `That image is too large — please upload a file under ${mb(form.dataset.maxUploadBytes)}.`,
+      logo_required: 'Choose a logo image (PNG, JPEG, or SVG).',
+      logo_too_large: `That image is too large. Upload a file under ${mb(form.dataset.maxUploadBytes)}.`,
       logo_encoded_too_large: `Even re-encoded, that image exceeds the ${mb(form.dataset.maxStoredBytes)} storage `
-        + 'cap — try a smaller or simpler image.',
+        + 'cap. Try a smaller or simpler image.',
       logo_invalid: 'That file could not be read as a PNG or JPEG image.',
-      svg_invalid: 'That SVG could not be read — try exporting it again, or upload a PNG instead.',
-      svg_has_text: 'That SVG sets type as live text, which needs a font this page cannot load. Convert the text '
-        + 'to outlines in your design tool, or upload a PNG instead.',
+      svg_invalid: 'That SVG could not be read. Re-export it, or upload a PNG.',
+      svg_has_text: 'That SVG uses live text, which needs a font this page can’t load. Convert the text to '
+        + 'outlines in your design tool, or upload a PNG.',
       name_invalid: `Enter a partner name (at most ${form.elements.name.maxLength} characters).`,
-      url_invalid: 'The website URL must be a full http(s) address, e.g. https://example.org.',
+      url_invalid: 'Enter a full http(s) address, e.g. https://example.org.',
       alt_text_invalid: `Alt text can be at most ${form.elements.alt_text.maxLength} characters.`,
-      bad_order: 'The list changed underneath you — reloading.',
-      not_found: 'That partner no longer exists — reloading.',
+      bad_order: 'Someone else changed the list. Reloading.',
+      not_found: 'That partner no longer exists. Reloading.',
     };
-    return messages[code] || 'Something went wrong — please try again.';
+    return messages[code] || 'Something went wrong. Please try again.';
   }
 
   /** Shows (or with null, clears) a form's inline error line. */

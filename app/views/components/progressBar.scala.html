@@ -28,8 +28,8 @@
 <div@if(trackId != ""){ id="@trackId"} class="ps-progress-bar__track">
 @if(segmented) {
   <div@if(fillId != ""){ id="@fillId"} class="ps-progress-bar__fill ps-progress-bar__fill--segmented">
-  <div@if(communityId != ""){ id="@communityId"} class="ps-progress-bar__segment ps-progress-bar__segment--community"@if(communityTooltip != ""){ data-i18n-title="@communityTooltip" data-i18n-aria-label="@communityTooltip"}></div>
-  <div@if(youId != ""){ id="@youId"} class="ps-progress-bar__segment ps-progress-bar__segment--you"@if(youTooltip != ""){ data-i18n-title="@youTooltip" data-i18n-aria-label="@youTooltip"}></div>
+  <div@if(communityId != ""){ id="@communityId"} class="ps-progress-bar__segment ps-progress-bar__segment--community"@if(communityTooltip != ""){ data-i18n-tooltip="@communityTooltip" data-i18n-aria-label="@communityTooltip"}></div>
+  <div@if(youId != ""){ id="@youId"} class="ps-progress-bar__segment ps-progress-bar__segment--you"@if(youTooltip != ""){ data-i18n-tooltip="@youTooltip" data-i18n-aria-label="@youTooltip"}></div>
   </div>
 } else {
   <div@if(fillId != ""){ id="@fillId"} class="ps-progress-bar__fill"></div>

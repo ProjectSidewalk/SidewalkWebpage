@@ -90,7 +90,7 @@ describe('the severity rating group is operable and announced', () => {
   // Only Expert Validate: Explore reads `checked` to pick its icons, so the two cannot disagree there, while Validate
   // derives both from the label's newSeverity and so has to write each. The two writes are pinned to one loop body
   // rather than to the file, since a checked write somewhere else in the class is what a drift would look like.
-  // Source-level because the renderer is a #private method on a class that needs jQuery, i18next and Bootstrap.
+  // Source-level because the renderer is a #private method on a class with more dependencies than are worth building here.
   test('Expert Validate writes the checked state alongside the smiley it swaps', () => {
     const lines = fs.readFileSync(
       path.join(REPO_ROOT, 'public/js/validate/src/menu/DesktopValidationMenu.js'), 'utf8',

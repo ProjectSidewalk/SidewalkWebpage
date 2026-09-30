@@ -70,8 +70,11 @@ class StatusField {
       labelType: i18next.t(`common:${util.camelToKebab(labelType)}`),
       interpolation: { escapeValue: true },
     }).toUpperCase().replace(/&SHY;/g, '&shy;');
-    this.#statusUI.upperMenuTitle.html(newMissionTitle);
-    svv.ui.validationMenu.header.html(i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`));
+    this.#statusUI.upperMenuTitle.innerHTML = newMissionTitle;
+    // The menu header is desktop's; the phone has no menu column.
+    if (svv.ui.validationMenu.header) {
+      svv.ui.validationMenu.header.innerHTML = i18next.t(`top-ui.title.${util.camelToKebab(labelType)}`);
+    }
   }
 
   /**

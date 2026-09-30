@@ -22,8 +22,15 @@ object CropSource extends Enumeration {
   val PanoWindow = Value("pano_window")
 }
 
-/** Where the label is in its crop, as fractions of the image (`0` to `1`), so it places the marker at any scale. */
-case class CropMarker(x: Double, y: Double)
+/**
+ * Where the label is in its crop, as fractions of the image (`0` to `1`), so it places the marker at any scale.
+ *
+ * @param width  The crop's stored width, when a `label_crop` row recorded it. A card cover-fits the crop into a box of
+ *               its own aspect ratio, and a snapshot of an immersive-mode frame (#5085) has the window's, so the card
+ *               needs the crop's shape to keep the marker on the labeled spot.
+ * @param height The crop's stored height, likewise.
+ */
+case class CropMarker(x: Double, y: Double, width: Option[Int] = None, height: Option[Int] = None)
 
 object CropMarker {
   implicit val writes: Writes[CropMarker] = Json.writes[CropMarker]
@@ -49,7 +56,7 @@ case class LabelCrop(
     cropRuleVersion: Option[String],
     timeCreated: OffsetDateTime
 ) {
-  def marker: CropMarker = CropMarker(markerX, markerY)
+  def marker: CropMarker = CropMarker(markerX, markerY, Some(width), Some(height))
 }
 
 class LabelCropTableDef(tag: slick.lifted.Tag) extends Table[LabelCrop](tag, "label_crop") {

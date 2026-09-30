@@ -65,9 +65,9 @@ class ActivityPage {
       // The contribution-time stats are a non-critical all-time summary, so a failure there shouldn't blank the
       // whole page — swallow it to null and leave its tiles as placeholders.
       const [seriesResp, recentResp, timeResp] = await Promise.all([
-        this.#fetchJson(this.#seriesUrl),
-        this.#fetchJson(this.#recentUrl),
-        this.#fetchJson(this.#contributionTimeUrl).catch((err) => {
+        util.fetchJson(this.#seriesUrl),
+        util.fetchJson(this.#recentUrl),
+        util.fetchJson(this.#contributionTimeUrl).catch((err) => {
           console.error('Activity page: contribution-time stats failed to load.', err);
           return null;
         }),
@@ -82,12 +82,6 @@ class ActivityPage {
       console.error('Activity page failed to load:', err);
       this.#setStatus('Could not load activity. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   /** Everything that depends on the range/bucket toggles — re-run on toggle without refetching. */
@@ -109,7 +103,7 @@ class ActivityPage {
     if (!el) return;
     const top = this.#recent && this.#recent[0];
     if (!top && !this.#series.length) {
-      el.innerHTML = 'No activity has been recorded for this deployment yet.';
+      el.innerHTML = 'No activity yet.';
       return;
     }
     let html;
@@ -470,10 +464,10 @@ class ActivityPage {
     const buttons = document.querySelectorAll(selector);
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('active')) return;
+        if (btn.classList.contains('is-active')) return;
         buttons.forEach((b) => {
           const isTarget = b === btn;
-          b.classList.toggle('active', isTarget);
+          b.classList.toggle('is-active', isTarget);
           b.setAttribute('aria-pressed', String(isTarget));
         });
         updateState(btn);
@@ -492,8 +486,8 @@ class ActivityPage {
   /** Message shown when the window has fewer than two buckets, so there's no line to draw. */
   #tooSparseMsg() {
     return this.#series && this.#series.length
-      ? 'Not enough activity in this range to plot a trend. Try a longer range.'
-      : 'No activity has been recorded yet.';
+      ? 'Too little activity in this range to plot. Try a longer range.'
+      : 'No activity yet.';
   }
 
   static #startOfToday() {
@@ -563,6 +557,6 @@ class ActivityPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

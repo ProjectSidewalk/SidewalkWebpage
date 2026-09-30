@@ -143,7 +143,7 @@ function setupStaticNavAccordions() {
  */
 function generateDynamicSidebarSubmenu() {
   console.log('Generating dynamic sidebar submenu for active page');
-  const activeNavItem = document.querySelector('.page-sidebar .page-nav-item.active');
+  const activeNavItem = document.querySelector('.page-sidebar .page-nav-item.is-active');
 
   // Ensure it's a top-level item (not already inside a submenu).
   if (!activeNavItem || activeNavItem.closest('.page-nav-submenu')) {
@@ -357,9 +357,9 @@ function setupScrollSpy() {
       const linkHref = link.getAttribute('href');
       // Check if href exists and matches currentSectionId after removing '#'.
       if (linkHref && linkHref.substring(1) === currentSectionId) {
-        link.classList.add('active');
+        link.classList.add('is-active');
       } else {
-        link.classList.remove('active');
+        link.classList.remove('is-active');
       }
     });
   }
@@ -526,7 +526,6 @@ function setupDownloadButtons() {
   function setButtonsBusy(busy) {
     downloadButtons.forEach((btn) => {
       btn.setAttribute('aria-disabled', String(busy));
-      btn.classList.toggle('disabled', busy);
     });
   }
 
@@ -727,7 +726,7 @@ function initPermalinkClipboard() {
     permalink.setAttribute('tabindex', '0');
     permalink.setAttribute('role', 'button');
     permalink.setAttribute('aria-label', 'Copy link to this section');
-    permalink.setAttribute('title', 'Click to copy link');
+    permalink.setAttribute('data-ps-tooltip', 'Click to copy link');
 
     // Add click event listener.
     permalink.addEventListener('click', function (e) {

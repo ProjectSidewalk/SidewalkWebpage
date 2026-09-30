@@ -356,7 +356,9 @@
   "download-already-preparing": "此檔案已在為另一個請求準備中，請稍後再試。",
   "label-type-picker": {
     "current": "{{labelType}}（目前類型）",
-    "change": "更改"
+    "change": "更改",
+    "change-type": "更改標籤類型",
+    "change-type-hint": "不適用於新類型的標記會被移除。評分只會在評分方式相同的類型之間保留。"
   },
   "access-score-spotlight": {
     "subtitle-regions": "每個鄰里的人行道都由我們的 <a href=\"{{href}}\">AccessScore</a> 演算法評為 0 到 100 分（100 分最佳）。",

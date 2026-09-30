@@ -3,11 +3,18 @@ package service
 import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskTable, StreetEdgeWithAuditStatus}
 import models.label.LabelTable
-import models.street.{StreetEdgePriorityTable, StreetEdgeTable, StreetImageryTable, StreetPriorityForAdmin}
+import models.street.{
+  StreetEdgePriorityTable,
+  StreetEdgeTable,
+  StreetGradientTable,
+  StreetImageryTable,
+  StreetPriorityForAdmin
+}
 import models.utils.MyPostgresProfile
 import models.utils.MyPostgresProfile.api._
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{JsObject, Json}
 
 import java.time.{LocalDate, OffsetDateTime}
 import javax.inject._
@@ -33,6 +40,18 @@ case class StreetReauditSummary(
     labelCounts: Seq[(String, Int)]
 )
 
+/**
+ * How far the city's `street_gradient` table lags its streets (#5223): what the offline sampler's export would emit.
+ *
+ * @param unsampled Served streets with no gradient row: a city never sampled, or streets added since it was.
+ * @param stale     Served streets whose geometry changed since they were sampled (`geom_md5`).
+ */
+case class StreetGradientStaleness(unsampled: Int, stale: Int) {
+
+  /** The run details both the nightly count and the admin recount record, under the keys the Health panel shows. */
+  def runDetails: JsObject = Json.obj("streets_unsampled" -> unsampled, "streets_stale" -> stale)
+}
+
 @ImplementedBy(classOf[StreetServiceImpl])
 trait StreetService {
   def getStreetCountDBIO: DBIO[Int]
@@ -40,6 +59,9 @@ trait StreetService {
   def getTotalStreetDistance(metric: Boolean): Future[Double]
   def getAuditedStreetDistance(metric: Boolean): Future[Double]
   def recalculateStreetPriority: Future[Seq[Int]]
+
+  /** Counts the served streets with no gradient row or a row from an older geometry (#5223); see `stalenessCounts`. */
+  def countStreetGradientStaleness: Future[StreetGradientStaleness]
   def getPriorityWithInputs: Future[Seq[StreetPriorityForAdmin]]
   def selectStreetsWithAuditStatus(
       filterLowQuality: Boolean,
@@ -58,6 +80,7 @@ class StreetServiceImpl @Inject() (
     streetEdgeTable: StreetEdgeTable,
     streetEdgePriorityTable: StreetEdgePriorityTable,
     streetImageryTable: StreetImageryTable,
+    streetGradientTable: StreetGradientTable,
     auditTaskTable: AuditTaskTable,
     labelTable: LabelTable,
     implicit val ec: ExecutionContext
@@ -65,6 +88,11 @@ class StreetServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   def getStreetCountDBIO: DBIO[Int] = configService.cachedDBIO[Int]("streetCount")(streetEdgeTable.streetCount)
+
+  def countStreetGradientStaleness: Future[StreetGradientStaleness] =
+    db.run(streetGradientTable.stalenessCounts(streetEdgeTable.streets)).map { case (unsampled, stale) =>
+      StreetGradientStaleness(unsampled, stale)
+    }
 
   def getTotalStreetDistanceDBIO: DBIO[Double] =
     configService.cachedDBIO[Double]("totalStreetDistance")(streetEdgeTable.totalStreetDistance)

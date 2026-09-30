@@ -384,7 +384,7 @@ describe('the regained-imagery rotation line', () => {
 
     const text = document.getElementById('imagery-no-imagery-note').textContent;
     expect(text).toContain('49 of 50');
-    expect(text).toContain('1 for review');
+    expect(text).toContain('1 queued for review');
     expect(text).toContain('25 a night');
   });
 

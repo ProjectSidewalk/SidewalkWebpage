@@ -44,7 +44,10 @@ class ForwardCrumbs {
   /** A pano this close to the furthest point reached is the cluster the user is standing in, not "ahead" (m). */
   static MIN_AHEAD_M = 5;
 
-  /** Long streets sample coarser than DIST_INCREMENT so one street can't queue hundreds of lookups. */
+  /**
+   * Long streets sample coarser than DIST_INCREMENT so one street can't queue hundreds of lookups, down to the spacing
+   * maxSampleStepKm allows.
+   */
   static MAX_SAMPLES = 100;
 
   /**
@@ -330,17 +333,34 @@ class ForwardCrumbs {
   }
 
   /**
-   * Distances along a street at which to look for panos: every `stepKm` from the start, widened so that no street
-   * needs more than `maxSamples` lookups, always ending at the street's end.
+   * The widest sample spacing (km) that still reaches every crumb-worthy pano: one up to MAX_OFFSET_M off the street
+   * and midway between two samples must be within `searchRadiusM` of one of them, since GsvViewer rejects anything
+   * farther (#5114). That is 2 * sqrt(r^2 - offset^2), 40 m at a 25 m radius.
+   * @param {number} searchRadiusM - The provider search radius (svl.STREETVIEW_MAX_DISTANCE).
+   * @returns {number} The spacing cap in km; Infinity when the radius doesn't reach MAX_OFFSET_M at all, since no
+   *     spacing could then guarantee coverage and the sample cap alone should decide.
+   */
+  static maxSampleStepKm(searchRadiusM) {
+    if (!(searchRadiusM > ForwardCrumbs.MAX_OFFSET_M)) return Infinity;
+    return (2 * Math.sqrt(searchRadiusM ** 2 - ForwardCrumbs.MAX_OFFSET_M ** 2)) / 1000;
+  }
+
+  /**
+   * Distances along a street at which to look for panos: every `stepKm` from the start, widened so that a long street
+   * needs no more than `maxSamples` lookups but never past `maxStepKm`, always ending at the street's end. The spacing
+   * cap wins over the sample cap because a gap wider than it drops real crumbs; it only binds on streets longer than
+   * maxSamples * maxStepKm (4 km with the defaults; Seattle's longest street is 1.5 km), and #IN_FLIGHT_LIMIT still
+   * bounds the burst there.
    * @param {number} lengthKm - The street's length.
    * @param {number} stepKm - The preferred spacing (NavigationService.DIST_INCREMENT, so caches primed by the
    *     forward walk are hit).
-   * @param {number} maxSamples - Cap on the number of offsets.
+   * @param {number} maxSamples - Cap on the number of offsets, short of the spacing cap.
+   * @param {number} [maxStepKm=Infinity] - The widest spacing allowed (see maxSampleStepKm).
    * @returns {number[]} Ascending offsets in km, starting at 0.
    */
-  static sampleOffsetsKm(lengthKm, stepKm, maxSamples) {
+  static sampleOffsetsKm(lengthKm, stepKm, maxSamples, maxStepKm = Infinity) {
     if (!(lengthKm > 0)) return [0];
-    const step = Math.max(stepKm, lengthKm / maxSamples);
+    const step = Math.max(stepKm, Math.min(lengthKm / maxSamples, maxStepKm));
     const offsets = [];
     for (let d = 0; d < lengthKm - step / 2; d += step) offsets.push(d);
     offsets.push(lengthKm);
@@ -465,6 +485,7 @@ class ForwardCrumbs {
     const originKm = Math.min(furthestKm, hereKm);
     const offsets = ForwardCrumbs.sampleOffsetsKm(
       turf.length(street), NavigationService.DIST_INCREMENT, ForwardCrumbs.MAX_SAMPLES,
+      ForwardCrumbs.maxSampleStepKm(svl.STREETVIEW_MAX_DISTANCE),
     );
     const pending = [];
     offsets.forEach((offsetKm, i) => {

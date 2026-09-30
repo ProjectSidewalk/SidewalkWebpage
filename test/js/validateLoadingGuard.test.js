@@ -39,9 +39,23 @@ function loadBindingFromFile(filePath, name) {
   return (0, eval)('(() => {\n' + src + '\nreturn ' + name + ';\n})()');
 }
 
-/** @returns {object} A fake jQuery wrapper with the handful of methods Validate calls on its UI elements. */
-function fakeJqueryElement() {
-  return {addClass: jest.fn(), removeClass: jest.fn(), toggleClass: jest.fn(), css: jest.fn(), attr: jest.fn()};
+/** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
+function fakeElement() {
+  return document.createElement('div');
+}
+
+/** @returns {boolean} Whether every busy-region element carries the busy class and aria-busy. */
+function busyRegionIsBusy() {
+  return svv.ui.busyRegion.every(
+    (el) => el.classList.contains('validate-disabled') && el.getAttribute('aria-busy') === 'true',
+  );
+}
+
+/** @returns {boolean} Whether every busy-region element has had both the busy class and aria-busy taken off. */
+function busyRegionIsReleased() {
+  return svv.ui.busyRegion.every(
+    (el) => !el.classList.contains('validate-disabled') && !el.hasAttribute('aria-busy'),
+  );
 }
 
 describe('input aimed at a label whose pano is still loading is dropped (issue #5211)', () => {
@@ -78,9 +92,9 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
       labelVisibilityControl: {hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true},
       modalNoNewMission: {show: jest.fn()},
       ui: {
-        holder: fakeJqueryElement(),
-        busyRegion: fakeJqueryElement(),
-        viewer: {controlLayer: fakeJqueryElement()},
+        holder: fakeElement(),
+        busyRegion: [fakeElement(), fakeElement()],
+        viewer: {controlLayer: fakeElement()},
       },
       panoManager: {
         renderPanoMarker: jest.fn(),
@@ -190,13 +204,11 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
   test('the busy region is marked aria-busy for the load and unmarked after it', async () => {
     const {labelContainer, inFlight} = await buildContainerMidLoad();
 
-    expect(svv.ui.busyRegion.attr).toHaveBeenLastCalledWith('aria-busy', 'true');
-    expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', true);
+    expect(busyRegionIsBusy()).toBe(true);
 
     await finishLoad(inFlight);
 
-    expect(svv.ui.busyRegion.attr).toHaveBeenLastCalledWith('aria-busy', null);
-    expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
+    expect(busyRegionIsReleased()).toBe(true);
     expect(labelContainer.dropInputWhileLoading('Agree')).toBe(false);
   });
 
@@ -214,8 +226,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     await expect(labelContainer.moveToNextLabel()).rejects.toThrow(boom);
 
     expect(labelContainer.dropInputWhileLoading('Agree')).toBe(false);
-    expect(svv.ui.busyRegion.attr).toHaveBeenLastCalledWith('aria-busy', null);
-    expect(svv.ui.busyRegion.toggleClass).toHaveBeenLastCalledWith('validate-disabled', false);
+    expect(busyRegionIsReleased()).toBe(true);
   });
 
   // Releasing the lock on a throw takes away the symptom that used to announce one — an endless run of
@@ -255,7 +266,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
 // stopPropagation but never preventDefault. The write then lands on a label the validator has not seen and survives
 // resetMenu, which clears the chosen styling but not the label's properties.
 //
-// Checked in the source rather than by driving the menus, which need jQuery, i18next and Bootstrap to construct, and
+// Checked in the source rather than by driving the menus, which need i18next and tom-select to construct, and
 // whose #private methods a test can't reach anyway. The invariant is narrow enough to read directly: the guard has to
 // be the handler's first statement, since everything after it writes.
 describe('every menu path that writes onto the current label refuses one that is still loading', () => {
@@ -268,20 +279,28 @@ describe('every menu path that writes onto the current label refuses one that is
   test.each([
     ['desktop', 'the disagree reason setter', '#setDisagreeReason(id) {', 'DisagreeReason'],
     ['desktop', 'the unsure reason setter', '#setUnsureReason(id) {', 'UnsureReason'],
-    ['desktop', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.on('input', () => {", 'DisagreeReason'],
-    ['desktop', 'the unsure "other" box', "menuUI.unsureReasonTextBox.on('input', () => {", 'UnsureReason'],
+    ['desktop', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.addEventListener('input', () => {",
+      'DisagreeReason'],
+    ['desktop', 'the unsure "other" box', "menuUI.unsureReasonTextBox.addEventListener('input', () => {",
+      'UnsureReason'],
     ['desktop', 'the tag adder', '#addTag(tagName, fromAiSuggestion = false) {', 'TagAdd'],
     ['desktop', 'the tag picker', 'onItemAdd: (tagName) => {', 'TagAdd'],
     ['desktop', 'the tag remover', '#removeTag(tagName, label, fromAiSuggestion = false) {', 'TagRemove'],
     ['mobile', 'the disagree reason setter', '#setDisagreeReason(id) {', 'DisagreeReason'],
     ['mobile', 'the unsure reason setter', '#setUnsureReason(id) {', 'UnsureReason'],
-    ['mobile', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.on('input', () => {", 'DisagreeReason'],
-    ['mobile', 'the unsure "other" box', "menuUI.unsureReasonTextBox.on('input', () => {", 'UnsureReason'],
-    ['mobile', 'the disagree skip button', "$('#no-menu-skip-reason-button').click((e) => {", 'DisagreeReason_Skip'],
-    ['mobile', 'the unsure skip button', "$('#unsure-menu-skip-reason-button').click((e) => {", 'UnsureReason_Skip'],
+    ['mobile', 'the disagree "other" box', "menuUI.disagreeReasonTextBox.addEventListener('input', () => {",
+      'DisagreeReason'],
+    ['mobile', 'the unsure "other" box', "menuUI.unsureReasonTextBox.addEventListener('input', () => {",
+      'UnsureReason'],
+    ['mobile', 'the disagree skip button',
+      "document.getElementById('no-menu-skip-reason-button').addEventListener('click', (e) => {",
+      'DisagreeReason_Skip'],
+    ['mobile', 'the unsure skip button',
+      "document.getElementById('unsure-menu-skip-reason-button').addEventListener('click', (e) => {",
+      'UnsureReason_Skip'],
     // Expert Validate only, and the widest blast radius of the lot: unlike a reason this writes newSeverity, which
     // is submitted as validation data rather than as a comment string.
-    ['desktop', 'the severity buttons', '$severityButtons.click((e) => {', 'Severity'],
+    ['desktop', 'the severity buttons', "severityButton.addEventListener('click', () => {", 'Severity'],
   ])('%s: %s opens with the load guard', (layout, what, opener, source) => {
     const lines = fs.readFileSync(MENU_PATHS[layout], 'utf8').split('\n');
     const openerLine = lines.findIndex((line) => line.trim() === opener);
@@ -304,7 +323,7 @@ describe('every menu path that writes onto the current label refuses one that is
   test.each([['desktop'], ['mobile']])('%s: a reason button refuses before it logs', (layout) => {
     const lines = fs.readFileSync(MENU_PATHS[layout], 'utf8').split('\n');
     const openers = lines.reduce(
-      (acc, line, i) => (line.trim() === 'reasonButton.onclick = (e) => {' ? [...acc, i] : acc), [],
+      (acc, line, i) => (line.trim() === "reasonButton.addEventListener('click', (e) => {" ? [...acc, i] : acc), [],
     );
 
     expect(openers).toHaveLength(2); // One for disagree, one for unsure.
@@ -319,9 +338,8 @@ describe('every menu path that writes onto the current label refuses one that is
   });
 });
 
-// Mobile had no busy state for years because #setUiBusy named two ids that exist only in the desktop view: jQuery
-// answers an unmatched selector with an empty set and no complaint, so the tool went on reporting itself busy to
-// nothing at all. These check the selector lists against the markup they are meant to cover.
+// An id missing from the view matches nothing, silently, which is how mobile came to have no busy state (#5211).
+// These check the selector lists against the markup they cover.
 describe('every element the busy state covers exists in the view it covers it in', () => {
   const busySelectors = loadBindingFromFile(MAIN_PATH, 'VALIDATE_BUSY_SELECTORS');
 

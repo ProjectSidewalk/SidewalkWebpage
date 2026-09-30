@@ -46,9 +46,9 @@ class ModalMission {
     if (svv.keyboard) {
       svv.keyboard.enableKeyboard();
     }
-    this.#uiModalMission.background.css('visibility', 'hidden');
-    this.#uiModalMission.holder.css('visibility', 'hidden');
-    this.#uiModalMission.foreground.css('visibility', 'hidden');
+    this.#uiModalMission.background.style.visibility = 'hidden';
+    this.#uiModalMission.holder.style.visibility = 'hidden';
+    this.#uiModalMission.foreground.style.visibility = 'hidden';
   }
 
   /**
@@ -167,7 +167,7 @@ class ModalMission {
    * Keeps the dots in step with the swiped-to example, and logs each example the validator actually reaches.
    */
   #watchCarousel() {
-    const strip = this.#uiModalMission.instruction[0].querySelector('.mv-examples');
+    const strip = this.#uiModalMission.instruction.querySelector('.mv-examples');
     if (!strip) return;
     const dots = strip.parentElement.querySelectorAll('.mv-dot');
     strip.addEventListener('scroll', () => {
@@ -218,24 +218,29 @@ class ModalMission {
       svv.keyboard.disableKeyboard();
     }
     if (instruction) {
-      this.#uiModalMission.instruction.html(instruction);
+      this.#uiModalMission.instruction.innerHTML = instruction;
       this.#currentSlideIdx = 0;
       this.#watchCarousel();
     }
-    const icon = labelType ? `<img src="${util.misc.getIconImagePaths(labelType).iconImagePath}" alt="">` : '';
-    this.#uiModalMission.eyebrow.html(`${icon}${i18next.t('validate:mission-start-tutorial.mst-instruction-1')}`);
+    // The eyebrow is the phone briefing's; desktop has none.
+    if (this.#uiModalMission.eyebrow) {
+      const icon = labelType ? `<img src="${util.misc.getIconImagePaths(labelType).iconImagePath}" alt="">` : '';
+      const eyebrowText = i18next.t('validate:mission-start-tutorial.mst-instruction-1');
+      this.#uiModalMission.eyebrow.innerHTML = `${icon}${eyebrowText}`;
+    }
 
-    this.#uiModalMission.background.css('visibility', 'visible');
-    this.#uiModalMission.missionTitle.html(title);
+    this.#uiModalMission.background.style.visibility = 'visible';
+    this.#uiModalMission.missionTitle.innerHTML = title;
     // Only the phone screen is tight enough to need it, and only it is visible: desktop's copy of this modal is
     // display:none, so a fit measured there would size the title against a box of zero width.
-    if (util.isMobile()) ModalMission.#fitTitleWhenReady(this.#uiModalMission.missionTitle[0]);
-    this.#uiModalMission.holder.css('visibility', 'visible');
-    this.#uiModalMission.foreground.css('visibility', 'visible');
+    if (util.isMobile()) ModalMission.#fitTitleWhenReady(this.#uiModalMission.missionTitle);
+    this.#uiModalMission.holder.style.visibility = 'visible';
+    this.#uiModalMission.foreground.style.visibility = 'visible';
     // Hiding this screen only makes it invisible, which preserves how far it was scrolled — and briefings routinely
     // run past a phone screen, so without this the next mission's opens partway down.
-    this.#uiModalMission.foreground.scrollTop(0);
-    this.#uiModalMission.closeButton.html(i18next.t('common:mission-start-tutorial.start-mission'));
-    this.#uiModalMission.closeButton.off('click').on('click', this.#handleButtonClick);
+    this.#uiModalMission.foreground.scrollTop = 0;
+    this.#uiModalMission.closeButton.innerHTML = i18next.t('common:mission-start-tutorial.start-mission');
+    // Assigned, not added: ModalNoNewMission uses this same button, and each show must replace the other's handler.
+    this.#uiModalMission.closeButton.onclick = this.#handleButtonClick;
   }
 }

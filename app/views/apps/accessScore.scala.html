@@ -30,7 +30,7 @@
   <div id="page-loading">
     <img id="loading-animation" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
   </div>
-  <div id="acs-map-container" class="container choropleth-container">
+  <div id="acs-map-container" class="choropleth-container">
     <div id="acs-map-holder" class="choropleth-holder" data-city-name="@currentCity.cityNameShort">
       <div id="acs-map" class="choropleth"></div>
 
@@ -103,7 +103,7 @@
                 <span class="acs-weight__role acs-weight__role--problem" data-i18n="accessscore:row-hurts">hurts</span>
                 <output class="acs-weight__value" id="acs-slope-weight-value" for="acs-slope-weight"></output>
               </div>
-              <input type="range" class="acs-range" id="acs-slope-weight" min="0" step="0.05" aria-describedby="acs-slope-impact">
+              <input type="range" class="ps-range" id="acs-slope-weight" min="0" step="0.05" aria-describedby="acs-slope-impact">
               @* What a barely-moving map cannot say: a weight of 0 and a threshold no street passes look alike on it. *@
               <p class="acs-field__note" id="acs-slope-impact" role="status"></p>
             </div>
@@ -200,7 +200,7 @@
         }
 
         <section class="filter-sidebar__section acs-section acs-actions" aria-label="Actions" data-i18n-aria-label="accessscore:actions">
-          <button type="button" id="acs-reset-all" class="button-ps button--small button--secondary" data-i18n="accessscore:reset-all">Reset everything</button>
+          <button type="button" id="acs-reset-all" class="button button--small button--secondary" data-i18n="accessscore:reset-all">Reset everything</button>
           <p class="acs-updated-at"><span id="acs-updated-at" aria-live="polite"></span>@info("updated-help")</p>
           <a class="acs-actions__docs" href="@routes.ApiDocsController.accessScoreStreets#scoring-model" target="_blank" rel="noopener">
             <span data-i18n="accessscore:how-computed">How is this computed?</span>
@@ -238,7 +238,7 @@
           <div id="acs-dock-kpis" class="acs-dock__kpis"></div>
           <div id="acs-dock-brush" class="acs-dock__brush" hidden>
             <span id="acs-dock-brush-text"></span>
-            <button type="button" id="acs-dock-brush-clear" class="button-ps button--small button--secondary" data-i18n="accessscore:brush-clear">Clear highlight</button>
+            <button type="button" id="acs-dock-brush-clear" class="button button--small button--secondary" data-i18n="accessscore:brush-clear">Clear highlight</button>
           </div>
           <div id="acs-dock-status" class="sr-only" role="status" aria-live="polite"></div>
         </div>

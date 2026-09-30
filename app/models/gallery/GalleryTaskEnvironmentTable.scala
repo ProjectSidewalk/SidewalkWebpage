@@ -37,7 +37,7 @@ class GalleryTaskEnvironmentTableDef(tag: Tag) extends Table[GalleryTaskEnvironm
   def screenHeight: Rep[Option[Int]]       = column[Option[Int]]("screen_height")
   def operatingSystem: Rep[Option[String]] = column[Option[String]]("operating_system")
   def ipAddress: Rep[IpAddress]            = column[IpAddress]("ip_address")
-  def language: Rep[String]                = column[String]("language")
+  def language: Rep[String]                = column[String]("language", O.Default("en"))
   def userId: Rep[Option[String]]          = column[Option[String]]("user_id")
 
   def * = (galleryTaskEnvironmentId, browser, browserVersion, browserWidth, browserHeight, availWidth, availHeight,

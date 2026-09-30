@@ -43,7 +43,7 @@ trait ValidationService {
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
   def replaceComment(comment: ValidationTaskComment): Future[Int]
-  def deleteComment(labelId: Int, userId: String): Future[Int]
+  def deleteComment(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
   def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome]
@@ -141,7 +141,7 @@ class ValidationServiceImpl @Inject() (
 
   /**
    * Whether a vote goes into the label's counts: not the labeler's own, not from an excluded user, and cast on the
-   * type the label has now (#3671). Must match `LabelTable.recalculateValidationCounts`.
+   * type the label has now (#3671). Must match `FilteredTables.isVerdictVote`.
    */
   private def counts(vote: LabelValidation, label: Label, excludedUser: Boolean): Boolean =
     label.userId != vote.userId && !excludedUser && vote.labelType == label.labelType
@@ -205,7 +205,12 @@ class ValidationServiceImpl @Inject() (
    */
   def replaceComment(comment: ValidationTaskComment): Future[Int] = runWithUniqueViolationRetry {
     (for {
-      _         <- validationTaskCommentTable.archive(comment.labelId, comment.userId, ValidationCommentChangeType.Edit)
+      _ <- validationTaskCommentTable.archive(
+        comment.labelId,
+        comment.userId,
+        comment.labelType,
+        ValidationCommentChangeType.Edit
+      )
       commentId <- validationTaskCommentTable.insert(comment)
     } yield commentId).transactionally
   }
@@ -219,10 +224,11 @@ class ValidationServiceImpl @Inject() (
    * The text leaves every read path in the tool but is kept in `validation_task_comment_history`, marked a
    * deliberate delete rather than a side effect (#5076).
    *
+   * @param labelType The type the comment is about. Comments on the label's other types stay.
    * @return Count of comments deleted, 0 or 1.
    */
-  def deleteComment(labelId: Int, userId: String): Future[Int] =
-    db.run(validationTaskCommentTable.archive(labelId, userId, ValidationCommentChangeType.Delete))
+  def deleteComment(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Int] =
+    db.run(validationTaskCommentTable.archive(labelId, userId, labelType, ValidationCommentChangeType.Delete))
 
   /**
    * Submits a set of validations from a POST request on Validate.
@@ -266,8 +272,8 @@ class ValidationServiceImpl @Inject() (
         Seq(
           ValidationSubmission(
             LabelValidation(0, label.labelId, label.labelType, ValidationOption.Disagree, adminId, missionId,
-              Some(point.canvasX), Some(point.canvasY), point.heading, point.pitch, point.zoom,
-              LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, now, now, source, ViewerType.Default),
+              Some(point.canvasX), Some(point.canvasY), point.heading, point.pitch, point.zoom, point.canvasWidth,
+              point.canvasHeight, now, now, source, ViewerType.Default),
             newLabelType = None,
             label.severity,
             label.tags,
@@ -300,11 +306,34 @@ class ValidationServiceImpl @Inject() (
       // its labeler deleted before it had one. An admin's delete files its Disagree first, so that one lands.
       val deleted: DBIO[Boolean] =
         labelsUnfiltered.filter(_.labelId === validation.labelId).map(_.deleted).result.headOption.map(_.contains(true))
+      // A redo replaces the vote just cast, which sits on another type when it was an admin's type-changing Agree: the
+      // redo is filed on the type the validator saw, so the same-type lookup below would miss it.
+      val redoneOtherType: DBIO[Option[LabelValidation]] =
+        if (valSubmission.redone)
+          labelValidationTable
+            .getNewestValidation(validation.labelId, validation.userId)
+            .map(_.filter(_.labelType != validation.labelType))
+        else DBIO.successful(None)
+
       deleted.flatMap(
         if (_) DBIO.successful(0)
         else
-          labelValidationTable.getValidation(validation.labelId, validation.userId, validation.labelType).flatMap {
-            existingVal =>
+          labelValidationTable
+            .getValidation(validation.labelId, validation.userId, validation.labelType)
+            .zip(redoneOtherType)
+            .flatMap { case (existingVal, redoneVal) =>
+              // Removed first, and as a retraction: the redo names the old type, so keeping the type change would
+              // leave the new vote stale on arrival. Unwinding it puts the label back on the type this vote is on.
+              val redoneValRemoved = redoneVal match {
+                case Some(v) =>
+                  for {
+                    _ <- validationTaskCommentTable
+                      .archive(v.labelId, v.userId, v.labelType, ValidationCommentChangeType.ValidationChange)
+                    _ <- deleteLabelValidation(v, retracted = true)
+                  } yield ()
+                case None => DBIO.successful(())
+              }
+
               // The undone/redone flags cover the replacements the client knows about, but a duplicate can arrive
               // without them: a POST retried after its original committed, or the label served again in a later
               // mission. Removing first makes those a clean replacement (latest verdict wins) instead of a
@@ -315,7 +344,7 @@ class ValidationServiceImpl @Inject() (
                 case None         => DBIO.successful(false)
               }
 
-              // Comments are keyed by (label, user), one apiece (#4942), so only clear one when this submission
+              // Comments are keyed by (label, user, type), like votes, so only clear one when this submission
               // accounts for it: an undo/redo retracts the comment that came with the vote, and a submission carrying
               // its own replaces it. A repeat validation carrying none leaves the user's earlier text alone.
               val oldCommentRemoved =
@@ -326,7 +355,8 @@ class ValidationServiceImpl @Inject() (
                   val changeType =
                     if (valSubmission.comment.isDefined && !valSubmission.undone) ValidationCommentChangeType.Edit
                     else ValidationCommentChangeType.ValidationChange
-                  validationTaskCommentTable.archive(validation.labelId, validation.userId, changeType)
+                  validationTaskCommentTable
+                    .archive(validation.labelId, validation.userId, validation.labelType, changeType)
                 } else DBIO.successful(0)
 
               // If the validation is new or is an update for an undone label, save it.
@@ -341,20 +371,22 @@ class ValidationServiceImpl @Inject() (
                         valSubmission.severity, valSubmission.tags, validation.source, Some(newValId))
                     } else DBIO.successful(None)
                   }
-                  // Insert the comment if there is one.
+                  // Filed under the vote's type, which is the new one after a type change.
                   _ <- valSubmission.comment match {
-                    case Some(comment) => validationTaskCommentTable.insert(comment)
-                    case None          => DBIO.successful(0)
+                    case Some(comment) =>
+                      validationTaskCommentTable.insert(comment.copy(labelType = validation.labelType))
+                    case None => DBIO.successful(0)
                   }
                 } yield newValId
               } else DBIO.successful(0)
 
               for {
+                _        <- redoneValRemoved
                 _        <- oldCommentRemoved
                 _        <- oldValRemoved
                 newValId <- newValInserted
               } yield newValId
-          }
+            }
       )
     }
 

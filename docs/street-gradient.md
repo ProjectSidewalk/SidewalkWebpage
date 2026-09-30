@@ -2,7 +2,7 @@
 
 Every street gets a running slope, a climb and an elevation profile, sampled along its centerline from a bare-earth
 elevation model (#5223). It needs no labeling, so it exists for unaudited streets too. The numbers live in the
-`street_gradient` table (399.sql), filled offline by [`scripts/street_gradient.py`](../scripts/street_gradient.py).
+`street_gradient` table (399.sql), filled offline by [`tools/city/street_gradient.py`](../tools/city/street_gradient.py).
 The app reads it and never writes it ([Where it shows up](#where-it-shows-up)). Grade is weighed into the
 AccessScore by default, on each street's steepest stretch ([Slope in the score](#slope-in-the-score)).
 
@@ -18,6 +18,27 @@ make street-gradient id=<city-id>         # -> db/onboarding/<city-id>/street_gr
 make import-street-gradient               # prompts: schema, CSV path -> upsert into street_gradient
 ```
 
+Both db targets take their answers positionally through `args=` instead of prompting
+(`make import-street-gradient args="sidewalk_<city> onboarding/<city-id>/street_gradient.csv"`).
+
+**A new city gets this during onboarding**: step 8 of `make onboard-city` runs the three commands, with the export
+reading the bridge/tunnel flags from the street build's `street_structures.csv` (`--structures`) rather than the
+`osm_way` cache, which is empty until the city's first nightly refresh. The rows ride into production inside the
+onboarding dump. A country with no registered source gets the `--dem-dir` recipe printed and the run continues;
+once the rasters are downloaded, `make onboard-city id=<city-id> args="--dem-dir … --dem-name … --dem-resolution-m …"`
+samples them (a rerun without the flags is refused again). The handoff checklist says which way it went
+([`onboarding-a-city.md`](onboarding-a-city.md)).
+
+**An existing city** is filled by running the same three commands against it and loading the CSV into its
+production schema, which is what the backfill runbook in the private `sidewalk-server-tools` repo does, city by city.
+
+**Nothing in the app samples, but the app does count.** The nightly `StreetGradientStalenessActor` records, as a
+`background_job_run` with `streets_unsampled` and `streets_stale`, how many served streets have no row or a row from
+an older geometry: the same set the export would emit, over the streets the public APIs serve. Admin > Health shows
+the two numbers on the job's row, and Admin > Management's "Recount street gradient staleness" refreshes them right
+after an import. A city that reads zero and zero is fully sampled over the streets the APIs serve (the export also
+emits hidden and closed streets, which the count leaves out); one that never was reads its whole served count.
+
 The import loads a row only while its `geom_md5` still matches the street, and aborts when none of the file does, or
 less than half of a file of 20 rows or more, which is what a CSV pointed at the wrong city's schema looks like
 (`street_edge_id` is a per-city serial). A smaller top-up just reports the rows it skipped.
@@ -31,8 +52,15 @@ stands in for a street whose geometry has changed since.
 
 Run the export after the city's first nightly OSM way refresh. Which streets are bridges or tunnels comes from
 `osm_way.tags`, and with an empty `osm_way` every bridge would be sampled as the ravine beneath it without anything
-downstream noticing, so the export refuses to run against one. `args=--allow-empty-osm-way` overrides that for a
-city that really has none.
+downstream noticing, so the export refuses to run against one. `args="--structures <path>"` reads the flags from
+the street build's `street_structures.csv` instead (the same three tags with the same value readings, off the OSM
+data the build already fetched, and read off every way a street spans where `osm_way` holds only the way it starts
+on; the file and the schema must name the same streets with the same geometry, checked by id and by `geom_md5`,
+since every build numbers its streets 1..N, and `--allow-unflagged-streets` admits streets inserted by hand after
+the build), and `args=--allow-empty-osm-way`
+overrides the check for a city that really has none. The
+tutorial street is never exported: it is the shared DC geometry, and no model the city is sampled from says
+anything true about it.
 
 A city whose country has no registered source (every country but the USA today) is sampled from rasters someone
 downloaded by hand:

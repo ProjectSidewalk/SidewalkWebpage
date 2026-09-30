@@ -27,9 +27,16 @@
   left: var(--menu-left);
 }
 
-/* The popover renders on <body> (so it reads --ui-scale from :root); override Bootstrap's 276px max-width. */
+/* Parked under its button by AdminInfo.js. It paints in the top layer, so it reads --ui-scale from :root. */
 .admin-info-popover {
+  margin: 0;
+  padding: calc(12px * var(--ui-scale));
   max-width: calc(450px * var(--ui-scale));
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-neutral-white);
+  box-shadow: var(--box-shadow-lg);
+  font: var(--text-small-regular);
 }
 
 #admin-info-content h1 {

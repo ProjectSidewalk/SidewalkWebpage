@@ -169,8 +169,6 @@
       "photo-invalid": "我們無法將該檔案讀取為圖片（JPEG 或 PNG）。"
     }
   },
-  "change-type": "更改標籤類型",
-  "change-type-hint": "不適用於新類型的標記會被移除。評分只會在評分方式相同的類型之間保留。",
   "edit-type-changed": "已更改為 {{labelType}}",
   "edit-undo": "復原",
   "edit-conflict-short": "標籤類型已在其他地方更改",

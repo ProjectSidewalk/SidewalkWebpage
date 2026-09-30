@@ -42,7 +42,7 @@ function createPanoAttribution(container, options = {}) {
         link.textContent = attribution.license;
         // A new tab is a change of context the visible text doesn't announce (WCAG 3.2.5, G201).
         const newTab = document.createElement('span');
-        newTab.className = 'pano-attribution__new-tab';
+        newTab.className = 'sr-only';
         newTab.textContent = ` ${i18next.t('common:pano-attribution.opens-new-tab')}`;
         link.appendChild(newTab);
         parts.push(link);

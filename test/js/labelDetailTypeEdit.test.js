@@ -40,19 +40,20 @@ function buildCard() {
       <header class="label-detail__header">
         <div class="label-detail__title-wrap">
           <h2 class="label-detail__title">
-            <span class="label-detail__type label-detail__type--static">
-              <img class="label-detail__type-icon" alt=""><span class="label-detail__type-name"></span>
+            <span class="label-type-trigger label-type-trigger--static">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
             </span>
-            <button type="button" class="label-detail__type label-detail__type-button" hidden aria-expanded="false">
-              <img class="label-detail__type-icon" alt=""><span class="label-detail__type-name"></span>
+            <button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+              <img class="label-type-trigger__icon" alt=""><span class="label-type-trigger__name"></span>
             </button>
           </h2>
           <span class="label-detail__own-badge" role="img" hidden></span>
           <span class="label-detail__edit-status label-detail__edit-status--type" role="status"></span>
         </div>
       </header>
-      <div class="label-detail__type-picker" popover hidden>
-        <div class="label-detail__type-picker-chips"></div>
+      <div class="label-type-popover" popover hidden>
+        <p class="label-type-popover__hint" hidden></p>
+        <div class="label-type-popover__chips"></div>
       </div>
       <div class="label-detail__pano-wrap">
         <div class="label-detail__pano"></div>
@@ -142,9 +143,9 @@ describe('changing a label\'s type from the card (#3671)', () => {
 
   const flush = () => new Promise((resolve) => { setTimeout(resolve, 0); });
   const q = (sel) => card.querySelector(sel);
-  const typeButton = () => q('.label-detail__type-button');
-  const picker = () => q('.label-detail__type-picker');
-  const chip = (type) => q(`.label-detail__type-picker-chips [data-label-type="${type}"]`);
+  const typeButton = () => q('.label-type-trigger__button');
+  const picker = () => q('.label-type-popover');
+  const chip = (type) => q(`.label-type-popover__chips [data-label-type="${type}"]`);
   const typeStatus = () => q('.label-detail__edit-status--type');
   const savedEdits = () => saveRequest.mock.calls.filter(([url]) => url === '/label/edit')
     .map(([, opts]) => JSON.parse(opts.body));
@@ -212,7 +213,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
       resolvePano: (shown) => resolvePano(shown),
       activeViewerName: 'Default',
       panoViewer: { currPanoData: null },
-      svHolder: [document.createElement('div')],
+      svHolder: document.createElement('div'),
     };
     window.PopupPanoManager = { create: async () => panoManager };
     // The tag catalog for the tag editor, and the label itself for the vote-count refresh after a type change.
@@ -237,14 +238,14 @@ describe('changing a label\'s type from the card (#3671)', () => {
   test('the title is a plain span for a viewer who may not edit, and a button for one who may', async () => {
     await showLabel({ can_edit: false });
     expect(typeButton().hidden).toBe(true);
-    expect(q('.label-detail__type--static').hidden).toBe(false);
-    expect(q('.label-detail__type--static .label-detail__type-name').textContent).toBe('common:obstacle');
+    expect(q('.label-type-trigger--static').hidden).toBe(false);
+    expect(q('.label-type-trigger--static .label-type-trigger__name').textContent).toBe('common:obstacle');
 
     await showLabel({ can_edit: true });
     expect(typeButton().hidden).toBe(false);
-    expect(q('.label-detail__type--static').hidden).toBe(true);
-    expect(typeButton().getAttribute('aria-label')).toBe('common:obstacle: labelmap:change-type');
-    expect(typeButton().querySelector('.label-detail__type-icon').getAttribute('src')).toContain('Obstacle_small');
+    expect(q('.label-type-trigger--static').hidden).toBe(true);
+    expect(typeButton().getAttribute('aria-label')).toBe('common:obstacle: common:label-type-picker.change-type');
+    expect(typeButton().querySelector('.label-type-trigger__icon').getAttribute('src')).toContain('Obstacle_small');
   });
 
   test('the button opens the picker with the label\'s own type marked current, and logs the open', async () => {
@@ -270,7 +271,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
       label_id: 42, label_type: 'Obstacle', new_label_type: 'Signal', severity: null, tags: ['pole'],
     })]);
     // The reply is the truth: Signal is unrated, so the rating column goes away with it.
-    expect(q('.label-detail__type-button .label-detail__type-name').textContent).toBe('common:signal');
+    expect(q('.label-type-trigger__button .label-type-trigger__name').textContent).toBe('common:signal');
     expect(panoManager.setLabelType).toHaveBeenCalledWith('Signal');
     expect(q('.label-detail__col--severity').hidden).toBe(true);
     expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ label_type: 'Signal' }));
@@ -295,7 +296,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
     expect(savedEdits()[1]).toEqual(expect.objectContaining({
       label_type: 'SurfaceProblem', new_label_type: 'Obstacle', severity: 2, tags: ['pole'],
     }));
-    expect(q('.label-detail__type-button .label-detail__type-name').textContent).toBe('common:obstacle');
+    expect(q('.label-type-trigger__button .label-type-trigger__name').textContent).toBe('common:obstacle');
     expect(typeStatus().textContent).toBe('labelmap:edit-saved');
     expect(typeStatus().querySelector('.label-detail__edit-status-action')).toBeNull();
     expect(window.logWebpageActivity).toHaveBeenCalledWith(
@@ -345,7 +346,7 @@ describe('changing a label\'s type from the card (#3671)', () => {
     chip('Signal').click();
     await flush();
 
-    expect(q('.label-detail__type-button .label-detail__type-name').textContent).toBe('common:curb-ramp');
+    expect(q('.label-type-trigger__button .label-type-trigger__name').textContent).toBe('common:curb-ramp');
     expect(q('.label-detail__severity-faces [data-severity="1"]').getAttribute('aria-pressed')).toBe('true');
     expect(window.Toast.show).toHaveBeenCalledWith(expect.objectContaining({
       title: 'labelmap:edit-conflict-short', message: 'labelmap:edit-conflict',

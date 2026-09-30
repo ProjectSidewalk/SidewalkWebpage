@@ -16,52 +16,53 @@
   },
   "validate-menu": {
     "remove-tag": "Retirer le tag : {{tag}}",
+    "tag-search-placeholder": "Ajoutez d'autres tags ici",
+    "tag-search-no-results": "Aucun tag correspondant",
     "disagree-reason": {
+      "common": {
+        "wrong-type": "Ce n'est pas le bon type d'étiquette",
+        "wrong-type-tooltip": "Il y a bien quelque chose ici, mais ce devrait être un autre type d'étiquette"
+      },
       "curb-ramp": {
-        "no-button-1": "C'est une entrée charretière",
-        "no-button-2": "C'est une transition trottoir–entrée charretière",
-        "no-button-2-tooltip": "Les transitions entre trottoir et entrée charretière ne sont pas des bateaux, sauf si une rampe dédiée a été ajoutée",
-        "no-button-3": "Ce devrait être une étiquette Bateau manquant",
-        "no-button-3-tooltip": "Il arrive qu'un bateau manquant soit étiqueté par erreur comme un bateau"
+        "wrong-type-tooltip": "Il arrive qu'un bateau manquant soit étiqueté par erreur comme un bateau",
+        "no-button-2": "C'est une entrée charretière",
+        "no-button-3": "C'est une transition trottoir–entrée charretière",
+        "no-button-3-tooltip": "Les transitions entre trottoir et entrée charretière ne sont pas des bateaux, sauf si une rampe dédiée a été ajoutée"
       },
       "no-curb-ramp": {
-        "no-button-1": "C'est une allée privée",
-        "no-button-2": "Il n'y a pas de trottoir ici",
-        "no-button-3": "Ce devrait être une étiquette Bateau de trottoir",
-        "no-button-3-tooltip": "Il arrive qu'un bateau soit étiqueté par erreur comme manquant, souvent parce qu'il n'a pas de bande d'éveil",
+        "wrong-type-tooltip": "Il arrive qu'un bateau soit étiqueté par erreur comme manquant, souvent parce qu'il n'a pas de bande d'éveil",
+        "no-button-2": "C'est une allée privée",
+        "no-button-3": "Il n'y a pas de trottoir ici",
         "no-button-4": "Il n'est pas sûr de traverser ici",
         "no-button-4-tooltip": "Les piétons ne sont pas censés traverser à cet endroit, donc aucun bateau n'est attendu"
       },
       "obstacle": {
-        "no-button-1": "Ce n'est pas sur un cheminement piéton",
-        "no-button-1-tooltip": "S'il n'y a pas de trottoir, ou si l'objet n'est pas sur la partie du trottoir réservée aux piétons, comme sur l'image ci-dessous, aucune étiquette Obstacle n'est nécessaire",
-        "no-button-2": "Il y a largement la place d'éviter cet objet",
-        "no-button-2-tooltip": "Sur les trottoirs très larges, les objets faciles à éviter ne doivent <b>pas</b> être étiquetés comme obstacles",
-        "no-button-3": "Ce devrait être une étiquette Problème de surface",
-        "no-button-3-tooltip": "L'herbe et les débris comme les feuilles doivent être marqués avec une étiquette Problème de surface"
+        "wrong-type-tooltip": "L'herbe et les débris comme les feuilles doivent être marqués avec une étiquette Problème de surface",
+        "no-button-2": "Ce n'est pas sur un cheminement piéton",
+        "no-button-2-tooltip": "S'il n'y a pas de trottoir, ou si l'objet n'est pas sur la partie du trottoir réservée aux piétons, comme sur l'image ci-dessous, aucune étiquette Obstacle n'est nécessaire",
+        "no-button-3": "Il y a largement la place d'éviter cet objet",
+        "no-button-3-tooltip": "Sur les trottoirs très larges, les objets faciles à éviter ne doivent <b>pas</b> être étiquetés comme obstacles"
       },
       "surface-problem": {
-        "no-button-1": "Ce devrait être une étiquette Absence de trottoir",
-        "no-button-1-tooltip": "Le gravier ou l'herbe ne sont pas considérés comme un trottoir et doivent être marqués avec une étiquette Absence de trottoir",
+        "wrong-type-tooltip": "Le gravier ou l'herbe ne sont pas considérés comme un trottoir et doivent être marqués avec une étiquette Absence de trottoir",
         "no-button-2": "Ce n'est pas sur un cheminement piéton",
         "no-button-2-tooltip": "Si un problème de surface n'est pas sur un chemin destiné aux piétons, il ne doit pas être étiqueté comme problème de surface",
         "no-button-3": "Ce sont des dalles de trottoir normales"
       },
       "no-sidewalk": {
-        "no-button-1": "Il y a un trottoir ici",
-        "no-button-2": "C'est un terre-plein central",
-        "no-button-3": "Ce devrait être un autre type d'étiquette",
-        "no-button-3-tooltip": "Des problèmes de surface ou des obstacles sont parfois étiquetés par erreur comme Absence de trottoir"
+        "wrong-type-tooltip": "Des problèmes de surface ou des obstacles sont parfois étiquetés par erreur comme Absence de trottoir",
+        "no-button-2": "Il y a un trottoir ici",
+        "no-button-3": "C'est un terre-plein central"
       },
       "crosswalk": {
-        "no-button-1": "Il n'y a aucun passage piéton visible ici",
-        "no-button-2": "C'est une ligne d'arrêt pour les voitures",
-        "no-button-3": "C'est un ralentisseur"
+        "no-button-2": "Il n'y a aucun passage piéton visible ici",
+        "no-button-3": "C'est une ligne d'arrêt pour les voitures",
+        "no-button-4": "C'est un ralentisseur"
       },
       "signal": {
-        "no-button-1": "Ce n'est qu'un feu de circulation pour véhicules",
-        "no-button-2": "C'est un panneau sans feu indiquant quand traverser",
-        "no-button-3": "C'est un poteau sans feu ni bouton piéton"
+        "no-button-2": "Ce n'est qu'un feu de circulation pour véhicules",
+        "no-button-3": "C'est un panneau sans feu indiquant quand traverser",
+        "no-button-4": "C'est un poteau sans feu ni bouton piéton"
       }
     },
     "unsure-reason": {

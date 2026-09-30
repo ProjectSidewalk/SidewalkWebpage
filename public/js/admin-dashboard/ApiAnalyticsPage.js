@@ -23,7 +23,7 @@ class ApiAnalyticsPage {
   async #load() {
     this.#setStatus('Loading API analytics…', false);
     try {
-      const data = await this.#fetchJson(`${this.#dataUrl}?days=${this.#days}`);
+      const data = await util.fetchJson(`${this.#dataUrl}?days=${this.#days}`);
       this.#data = data;
       this.#renderRangeCaptions(data);
       this.#renderKpis(data);
@@ -35,12 +35,6 @@ class ApiAnalyticsPage {
       console.error('API Analytics page failed to load:', err);
       this.#setStatus('Could not load API analytics. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   #renderKpis(d) {
@@ -154,13 +148,13 @@ class ApiAnalyticsPage {
       if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
       const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
       const agoText = ago === null || ago === undefined ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
-      return `The selected range is ${range}, and there's been no API activity in it — the last call was on `
-        + `${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. Try a longer range.`;
+      return `No API calls in ${range}. The last was on ${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. `
+        + 'Try a longer range.';
     }
     // total > 0 but a single bucket: all activity lands in one month (only reachable for the All time range), so
     // there's no second point to draw a line to yet.
     const unit = this.#days > 0 ? 'day' : 'month';
-    return `So far there's only a single ${unit} of API activity, so there's no trend to plot yet.`;
+    return `Only one ${unit} of API activity so far; no trend to plot yet.`;
   }
 
   /** Writes the active date range ("Date range: …") onto every chart so the selected window is always explicit. */
@@ -312,10 +306,10 @@ class ApiAnalyticsPage {
     const buttons = document.querySelectorAll('.api-range-btn');
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('active')) return;
+        if (btn.classList.contains('is-active')) return;
         buttons.forEach((b) => {
           const isTarget = b === btn;
-          b.classList.toggle('active', isTarget);
+          b.classList.toggle('is-active', isTarget);
           b.setAttribute('aria-pressed', String(isTarget));
         });
         this.#days = parseInt(btn.dataset.days, 10);
@@ -335,7 +329,7 @@ class ApiAnalyticsPage {
       const legend = input.closest('.api-docs-control').querySelector('.api-docs-legend');
       input.addEventListener('change', () => {
         this.#showDocs[chart] = input.checked;
-        if (legend) legend.classList.toggle('hidden', !input.checked);
+        if (legend) legend.classList.toggle('ps-hidden', !input.checked);
         if (!this.#data) return;
         if (chart === 'endpoints') this.#renderEndpoints(this.#data);
         else if (chart === 'formats') this.#renderFormats(this.#data);
@@ -361,6 +355,6 @@ class ApiAnalyticsPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

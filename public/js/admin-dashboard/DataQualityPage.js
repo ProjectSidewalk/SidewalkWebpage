@@ -34,9 +34,9 @@ class DataQualityPage {
   async init() {
     try {
       const [stats, tags, labelTypes, byDay, tagSeverity] = await Promise.all([
-        this.#fetchJson(this.#statsUrl), this.#fetchJson(this.#tagsUrl),
-        this.#fetchJson(this.#labelTypesUrl), this.#fetchJson(this.#byDayUrl),
-        this.#fetchJson(this.#tagSeverityUrl),
+        util.fetchJson(this.#statsUrl), util.fetchJson(this.#tagsUrl),
+        util.fetchJson(this.#labelTypesUrl), util.fetchJson(this.#byDayUrl),
+        util.fetchJson(this.#tagSeverityUrl),
       ]);
 
       this.#buildMeta(labelTypes);
@@ -56,12 +56,6 @@ class DataQualityPage {
       console.error('Data Quality page failed to load:', err);
       this.#setStatus('Could not load data quality metrics. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   /** Builds the canonical type order + color/icon/display lookup from /v3/api/labelTypes. */
@@ -201,7 +195,7 @@ class DataQualityPage {
 
     const container = document.getElementById('dq-validation');
     if (rows.length === 0) {
-      container.innerHTML = '<p class="dq-empty">No validations recorded for this validator group.</p>';
+      container.innerHTML = '<p class="dq-empty">No validations from this validator group.</p>';
       return;
     }
     container.innerHTML = rows.map((r) => {
@@ -340,7 +334,7 @@ class DataQualityPage {
 
     const el = document.getElementById('dq-trend');
     if (dataMonths.length < 2) {
-      el.innerHTML = '<p class="dq-empty">Not enough validation history to chart a trend yet.</p>';
+      el.innerHTML = '<p class="dq-empty">Not enough validation history to chart yet.</p>';
       return;
     }
     // Span the axis from the first month with data through the *current* month, so the right edge always reads as
@@ -369,8 +363,8 @@ class DataQualityPage {
     const pct = (v) => `${Math.round(v * 100)}%`;
     const first = DataQualityPage.#monthLabel(dataMonths[0]);
     const last = DataQualityPage.#monthLabel(dataMonths[dataMonths.length - 1]);
-    const caption = `<p class="dq-trend-caption">Validation data spans <strong>${first}</strong> to `
-      + `<strong>${last}</strong>; the axis runs to the current month.</p>`;
+    const caption = `<p class="dq-trend-caption">Data runs <strong>${first}</strong> to `
+      + `<strong>${last}</strong>; the axis extends to this month.</p>`;
     el.innerHTML = `<div class="mini-host"></div>${caption}`;
     MiniLineChart.renderInto(el.querySelector('.mini-host'), months, series, {
       yMax: 1, tickFormat: pct, valueFormat: pct, ariaLabel: 'Validation agreement over time by validator',
@@ -408,10 +402,10 @@ class DataQualityPage {
     const buttons = document.querySelectorAll('.dq-validator-btn');
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('active')) return;
+        if (btn.classList.contains('is-active')) return;
         buttons.forEach((b) => {
           const isTarget = b === btn;
-          b.classList.toggle('active', isTarget);
+          b.classList.toggle('is-active', isTarget);
           b.setAttribute('aria-pressed', String(isTarget));
         });
         this.#renderValidation(btn.dataset.validator);
@@ -493,6 +487,6 @@ class DataQualityPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

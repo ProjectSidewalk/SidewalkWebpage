@@ -17,6 +17,11 @@
   border-radius: calc(4px * var(--ui-scale));
   background-color: var(--color-asphalt-400);
   overflow: hidden;
+
+  /* Keeps the provider's own z-indexed elements inside this box. The canvas sits laid out under the Pannellum sibling
+     while a live pano loads behind a fallback one (PanoManager.setPanorama, #5453), and without its own stacking
+     context a Google control with a z-index would paint, and take taps, over the fallback's imagery. */
+  isolation: isolate;
 }
 
 /* Pannellum's own progress box, desktop only. The fallback viewer's canvas is painted only once it holds the

@@ -4,11 +4,16 @@
  *
  * Everything the notice needs now rides on the task payload, so there is no request to stub and no in-flight race to
  * cover. ReauditNotice is a top-level `class` written for the Grunt-concatenation world, so the source is eval'd into
- * the jsdom global scope with the globals it reads (`Toast`, `i18next`) stubbed around it.
+ * the jsdom global scope with the globals it reads (`Toast`, `i18next`, `util`) stubbed or loaded around it.
+ *
+ * `util.monthYear` is loaded for real rather than stubbed: the month wording is half of what these assertions check,
+ * and a stub would let the shared formatter drift from what the toast actually prints (#5413).
  */
 
 const fs = require('fs');
 const path = require('path');
+
+const { loadGlobalScript } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/alert/ReauditNotice.js'), 'utf8');
@@ -40,6 +45,7 @@ describe('ReauditNotice.showForTask', () => {
             language: 'en',
             t: (key, opts) => (opts ? `${key}|${opts.lastMapped}|${opts.newImagery}` : key),
         };
+        loadGlobalScript('public/js/common/utilities.js');
         document.body.innerHTML = '<div id="pano"></div>';
     });
 
@@ -68,6 +74,13 @@ describe('ReauditNotice.showForTask', () => {
             lastMappedAt: '2019-06-14T18:20:00Z',
             newImageryDate: '2025-03-01',
         });
+    });
+
+    test('names the month the labeler did the work in, not the UTC month the server wrote', () => {
+        // jest.config.js pins Los Angeles, where 2024-11-01T03:00Z is the evening of October 31.
+        const notice = new ReauditNotice(tracker);
+        notice.showForTask(makeTask(7, { ...REAUDIT_BY_ME, lastMappedAt: '2024-11-01T03:00:00Z' }));
+        expect(window.Toast.show.mock.calls[0][0].message).toBe('right-ui.reaudit.message-you|October 2024|March 2025');
     });
 
     test('says "someone mapped this" when the earlier pass was not the labeler\'s', () => {

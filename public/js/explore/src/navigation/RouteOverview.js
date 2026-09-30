@@ -22,19 +22,19 @@ class RouteOverview {
   #enabled;
 
   /**
-   * @param {Record<string, JQuery>} uiMinimap - The svl.ui.minimap object holding the minimap's jQuery DOM elements.
+   * @param {Record<string, HTMLElement>} uiMinimap - The svl.ui.minimap object holding the minimap's DOM elements.
    * @param {Tracker} tracker - Interaction logger.
    */
   constructor(uiMinimap, tracker) {
     this.#tracker = tracker;
-    this.#canvas = /** @type {HTMLCanvasElement} */ (uiMinimap.routeOverviewCanvas[0]);
+    this.#canvas = /** @type {HTMLCanvasElement} */ (uiMinimap.routeOverviewCanvas);
     this.#ctx = this.#canvas.getContext('2d');
     this.#enabled = !!(svl.regionModel && svl.regionModel.isRoute);
 
     if (this.#enabled) {
       // Reveal the upper-right overview inset (CSS keys off this holder class); the mini-legend stays bottom-left.
-      uiMinimap.holder.addClass('minimap-route-mode');
-      uiMinimap.routeOverview.on('click', () => {
+      uiMinimap.holder.classList.add('minimap-route-mode');
+      uiMinimap.routeOverview.addEventListener('click', () => {
         this.#tracker.push('Click_MinimapRouteOverview');
         svl.minimap.toggleOverview('route-inset');
       });

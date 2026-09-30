@@ -129,6 +129,9 @@ class Infra3dViewer extends PanoViewer {
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
+      // Let the keys through in a text field, where they move the cursor rather than the pano.
+      const t = e.target;
+      if (t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && t.type === 'text')) return;
       if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space'].indexOf(e.code) > -1) {
         e.stopPropagation();
       }
@@ -644,5 +647,6 @@ class Infra3dViewer extends PanoViewer {
     // promises an immediate re-measure (rotation and viewer-swap paths call this expecting the next frame to be
     // right), so delegate to the mapillary-js-fork viewer's resize directly rather than waiting out the debounce.
     this.viewer._sdk_viewer.resize();
+    this._firePovChangedAfterResize();
   };
 }

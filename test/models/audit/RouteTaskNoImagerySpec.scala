@@ -62,7 +62,7 @@ class RouteTaskNoImagerySpec extends PlaySpec with GuiceOneAppPerSuite with Roll
 
   private def insertRoute(userId: String, regionId: Int, slug: String): DBIO[Int] = {
     sql"""INSERT INTO route (route_id, user_id, region_id, name, slug, public, deleted, distance_meters, street_count)
-          SELECT COALESCE(MAX(route_id), 0) + 1, $userId, $regionId, '5008 spec route', $slug, false, false, 0, 0
+          SELECT COALESCE(MAX(route_id), 0) + 1, $userId, $regionId, '5008 spec route', $slug, true, false, 0, 0
           FROM route
           RETURNING route_id""".as[Int].head
   }

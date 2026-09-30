@@ -409,6 +409,17 @@ class ShareControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       cx must be(360 +- 3)
       cy must be(480 +- 3)
     }
+
+    "cover-crop a wider-than-3:2 base around the marker's fraction of it (#5085)" in {
+      // A crop taken in a 16:9 immersive viewport keeps that aspect. Cover-scaling a 1600x900 base into 1440x960
+      // scales by 960/900 (scaledW 1707) and trims 133 px off each side, so a marker at 1/4 of the crop's width lands
+      // at 0.25 * 1707 - 133 = 293 px, and one at mid-height stays at mid-height.
+      val quarterWide = CropMarker(0.25, 0.5)
+      val out         = controller.compositeMarker(solidBase(1600, 900, bg), LabelTypeEnum.Crosswalk, quarterWide)
+      val (cx, cy)    = markerCenter(out, bg)
+      cx must be(293 +- 4)
+      cy must be(480 +- 4)
+    }
   }
 
   "shareImageDir" should {

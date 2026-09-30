@@ -21,7 +21,7 @@ import models.user.UserStatTable
 import models.utils.BackgroundJobRunTable
 import models.utils.MyPostgresProfile.api._
 import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{ClusteringThreshold, LatLngBBox, MyPostgresProfile}
+import models.utils.{ClusteringThreshold, LatLngBBox, MyPostgresProfile, SqlFragments}
 import models.validation.LabelValidationTable
 import org.apache.pekko.stream.scaladsl.Source
 import org.geotools.geometry.jts.JTSFactoryFinder
@@ -276,7 +276,7 @@ class ApiServiceImpl @Inject() (
   val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 
   /**
-   * Sets up a streaming query to fetch data from the database in batches.
+   * Sets up a streaming query to fetch data from the database in batches, planned per run (see [[planEachRun]]).
    *
    * @param query The SQL streaming action to execute.
    * @param batchSize The number of records to fetch in each batch from the database.
@@ -287,8 +287,17 @@ class ApiServiceImpl @Inject() (
       query: SqlStreamingAction[Vector[A], A, Effect.Read],
       batchSize: Int
   ): Source[A, _] = {
-    Source.fromPublisher(db.stream(query.transactionally.withStatementParameters(fetchSize = batchSize)))
+    Source.fromPublisher(db.stream(planEachRun(query.withStatementParameters(fetchSize = batchSize))))
   }
+
+  /**
+   * Has Postgres plan the query for this run's own values. The API binds its filters as parameters, and after a few
+   * identical calls Postgres would otherwise switch to one reused plan, which was 2-3x slower for whole-city requests.
+   *
+   * @return The same action, run in a transaction that plans it afresh.
+   */
+  private def planEachRun[R, S <: NoStream, E <: Effect](action: DBIOAction[R, S, E]) =
+    SqlFragments.withLocalSetting("plan_cache_mode", "force_custom_plan")(action)
 
   def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _] = {
     setUpStreamFromDb(streetEdgeTable.getStreetsForApi(filters), batchSize)
@@ -354,10 +363,10 @@ class ApiServiceImpl @Inject() (
   }
 
   def getIntersectionsForStreets(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[IntersectionInfo]] =
-    db.run(intersectionTable.getIntersectionsForStreets(spatialQueryType, bbox))
+    db.run(planEachRun(intersectionTable.getIntersectionsForStreets(spatialQueryType, bbox)))
 
   def getStreetEnds(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): Future[Seq[IntersectionStreetEnd]] =
-    db.run(intersectionTable.getStreetEnds(spatialQueryType, bbox))
+    db.run(planEachRun(intersectionTable.getStreetEnds(spatialQueryType, bbox)))
 
   def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]] =
     db.run(streetEdgeTable.getStreetLengths(streetEdgeIds))

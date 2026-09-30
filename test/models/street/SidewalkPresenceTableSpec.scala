@@ -21,8 +21,7 @@ import scala.io.Source
  * an existing label's task, mission and pano for their foreign keys, so a schema without any label (CI's) cancels
  * the label-bearing cases rather than failing them.
  *
- * A [[util.StreetFixtures.insertUser]] mapper has no `user_stat` row, which the derivation reads as not-excluded, so
- * every case here counts unless it calls `excludeUser`.
+ * Every seeded mapper counts unless the case calls `excludeUser`.
  */
 class SidewalkPresenceTableSpec
     extends PlaySpec

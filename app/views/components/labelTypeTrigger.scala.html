@@ -1,0 +1,18 @@
+@*
+* A label's type as a title: a plain icon and name, plus a button version for someone who may change the type.
+* LabelTypeDropdown (js/common/LabelTypePicker.js) fills both in and shows whichever fits; the button opens
+* components/labelTypePopover. Shared by LabelDetail's header and Expert Validate's label card (#3671, #5409).
+*
+* @param nameId Id for the plain name, for a dialog that takes its accessible name from it.
+*@
+@(nameId: Option[String] = None)(implicit assets: AssetsFinder)
+
+<span class="label-type-trigger label-type-trigger--static">
+  <img class="label-type-trigger__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" aria-hidden="true">
+  <span @for(id <- nameId) {id="@id"} class="label-type-trigger__name"></span>
+</span>
+<button type="button" class="label-type-trigger label-type-trigger__button" hidden aria-expanded="false">
+  <img class="label-type-trigger__icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" aria-hidden="true">
+  <span class="label-type-trigger__name"></span>
+  <img class="label-type-trigger__chevron" src="@assets.path("images/icons/chevron-down-feather.svg")" alt="" aria-hidden="true">
+</button>

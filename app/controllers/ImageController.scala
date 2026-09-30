@@ -5,6 +5,7 @@ import controllers.helper.SignedMediaUtils
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats
 import models.label.LabelTypeEnum
+import models.utils.ImageUtils
 import play.api.libs.json._
 import play.api.mvc.{AnyContent, Request, RequestHeader}
 import play.api.{Configuration, Logger}
@@ -40,9 +41,9 @@ class ImageController @Inject() (
   // Allowed characters in a pano ID: GSV uses base64url-style (alphanumeric + - + _); Mapillary uses digits.
   private val PANO_ID_PATTERN = "^[A-Za-z0-9_-]+$".r
 
-  // Owned by the crop service: its reconcile pass tells the two crop writers apart by this size (#2660).
-  val CROP_WIDTH  = service.CropService.ExploreFrameCropWidth
-  val CROP_HEIGHT = service.CropService.ExploreFrameCropHeight
+  // Owned by the crop service: its reconcile pass tells the two crop writers apart by this width and the frame's
+  // aspect ratio (#2660, #5085).
+  val CROP_WIDTH = service.CropService.ExploreFrameCropWidth
 
   // Resize the image to the new width and height.
   def resize(img: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage = {
@@ -55,28 +56,48 @@ class ImageController @Inject() (
   }
 
   // Write the image to a file.
-  def writeImageFile(filename: String, b64String: String): Unit = {
-    val imageBytes: Array[Byte]      = Base64.getDecoder.decode(b64String)
-    val inputStream                  = new ByteArrayInputStream(imageBytes)
-    val bufferedImage: BufferedImage = ImageIO.read(inputStream)
+  /**
+   * Decodes and stores a crop upload at `CROP_WIDTH` wide, keeping its aspect ratio.
+   *
+   * Browsers send different sizes for different zoom levels and pixel densities, so the width is normalized. The
+   * height is not: a snapshot of an immersive-mode frame has the window's aspect ratio (#5085), and the marker every
+   * card draws on it is a fraction of the crop, so squashing it to 3:2 would move the labeled spot as well as distort
+   * the picture. `CropService.exploreSnapshotSize` mirrors this rounding.
+   *
+   * The upload's declared size is checked before anything is decoded (`CropService.acceptsSnapshot`): the stored
+   * height follows the upload's aspect ratio, so without the check a hundred-byte 1x300 file would have the server
+   * allocate a 1440x432,000 raster, and the resulting OutOfMemoryError is no `Exception` for the caller to recover.
+   *
+   * @return The stored image's (width, height), or the reason the upload was refused.
+   */
+  def writeImageFile(filename: String, b64String: String): Either[String, (Int, Int)] = {
+    val imageBytes: Array[Byte] = Base64.getDecoder.decode(b64String)
+    ImageUtils.encodedDimensions(imageBytes) match {
+      case None                                                                   => Left("The upload is not an image.")
+      case Some((srcW, srcH)) if !service.CropService.acceptsSnapshot(srcW, srcH) =>
+        Left(s"Refusing a ${srcW}x$srcH upload: not the shape of a labeling frame.")
+      case Some(_) =>
+        val inputStream                  = new ByteArrayInputStream(imageBytes)
+        val bufferedImage: BufferedImage =
+          try ImageIO.read(inputStream)
+          finally inputStream.close()
+        val (w, h) = service.CropService.exploreSnapshotSize(bufferedImage.getWidth, bufferedImage.getHeight)
+        val resizedImage: BufferedImage = resize(bufferedImage, w, h)
 
-    // Resize the image as we might be getting different sizes for different browser zoom levels.
-    // The aspect ratio of the image should be preserved even if it is a different size so that should be okay.
-    val resizedImage: BufferedImage = resize(bufferedImage, CROP_WIDTH, CROP_HEIGHT)
-
-    val f = new File(filename)
-    try {
-      val result: Boolean = ImageIO.write(resizedImage, "png", f)
-      if (!result) {
-        logger.error("Failed to write image file: " + filename)
-      }
-    } catch {
-      case e: IOException =>
-        logger.error(s"IOException while writing image file $filename: ${e.getMessage}")
-      case e: Exception =>
-        logger.error(s"Unexpected error while writing image file $filename: ${e.getMessage}")
-    } finally {
-      inputStream.close()
+        val f = new File(filename)
+        // A failed write is refused rather than reported as stored: the caller records the crop's provenance on a
+        // Right, and a label_crop row for a file that isn't there would send every card to a broken image.
+        try {
+          if (ImageIO.write(resizedImage, "png", f)) Right((w, h))
+          else {
+            logger.error("Failed to write image file: " + filename)
+            Left("The crop could not be stored.")
+          }
+        } catch {
+          case e: IOException =>
+            logger.error(s"IOException while writing image file $filename: ${e.getMessage}")
+            Left("The crop could not be stored.")
+        }
     }
   }
 
@@ -241,18 +262,24 @@ class ImageController @Inject() (
           // Base64 decode + ImageIO read/resize/write is CPU-bound; run it off the request EC so concurrent crop
           // uploads can't starve the HTTP dispatcher (#4415).
           Future(writeImageFile(filename, b64String))(cpuEc)
-            .flatMap { _ =>
-              // The label's social-preview image may have been built and cached before this crop existed, from a
-              // Street View still or the branded placeholder. That cache never expires, so drop it here and let the
-              // next request rebuild it from the crop we just wrote (#4726).
-              shareImageCache.invalidate(labelId)
-              // Best effort: the crop is on disk either way, and the reconcile pass records any row this misses.
-              cropService
-                .recordExploreFrameCrop(labelId, CROP_WIDTH, CROP_HEIGHT)
-                .recover { case e: Exception =>
-                  logger.warn(s"Could not record crop provenance for label $labelId: $e")
-                }
-                .map(_ => Ok("Got: crop_" + labelId))
+            .flatMap {
+              case Left(reason) if reason.startsWith("The crop could not be stored") =>
+                Future.successful(InternalServerError(reason))
+              case Left(reason) =>
+                logger.warn(s"Refused crop upload for label $labelId: $reason")
+                Future.successful(BadRequest(reason))
+              case Right((width, height)) =>
+                // The label's social-preview image may have been built and cached before this crop existed, from a
+                // Street View still or the branded placeholder. That cache never expires, so drop it here and let the
+                // next request rebuild it from the crop we just wrote (#4726).
+                shareImageCache.invalidate(labelId)
+                // Best effort: the crop is on disk either way, and the reconcile pass records any row this misses.
+                cropService
+                  .recordExploreFrameCrop(labelId, width, height)
+                  .recover { case e: Exception =>
+                    logger.warn(s"Could not record crop provenance for label $labelId: $e")
+                  }
+                  .map(_ => Ok("Got: crop_" + labelId))
             }
             .recover { case e: Exception =>
               logger.error("Exception when writing image file: " + filename + "\n\t" + e)

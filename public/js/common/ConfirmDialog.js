@@ -27,9 +27,9 @@
 class ConfirmDialog {
   // The design system has no destructive variant, so 'danger' is a primary button the dialog's stylesheet re-tints.
   static #BUTTON_CLASSES = {
-    secondary: 'button-ps button--medium button--secondary',
-    primary: 'button-ps button--medium button--primary',
-    danger: 'button-ps button--medium button--primary ps-confirm__btn--danger',
+    secondary: 'button button--medium button--secondary',
+    primary: 'button button--medium button--primary',
+    danger: 'button button--medium button--primary ps-confirm__btn--danger',
   };
 
   /** @type {HTMLDialogElement|null} */

@@ -4,6 +4,8 @@ import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.i18n.{Lang, MessagesApi}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import util.UserAgents
@@ -17,6 +19,9 @@ import java.net.URLEncoder
  * The filter is invisible when it breaks — an unrecognized tag is dropped rather than reported, so the page renders
  * a perfectly normal grid of unfiltered cards. That is how a comma-joined `tags` param hid the fact that it was
  * shredding "yellow box, accessibility features not visible" into two names that matched nothing.
+ *
+ * Also locks the review-list contract of `?labelIds=` (#5444): the page carries the list through in the order it was
+ * given, and the card query behind it returns exactly those labels and names the ones it could not serve.
  *
  * Reads the tag vocabulary off the page itself rather than hardcoding one, since which tags exist depends on the
  * city the connected database holds.
@@ -47,6 +52,25 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
     tagPillElement.findAllMatchIn(body).filter(_.matched.contains("tag-pill--active")).map(_.group(1)).toSet
 
   private def encode(tag: String): String = URLEncoder.encode(tag, "UTF-8")
+
+  private lazy val messagesApi: MessagesApi = app.injector.instanceOf[MessagesApi]
+
+  /** An id no city's `label` serial has reached, so a review list naming it is always short one label. */
+  private val missingLabelId: Int = Int.MaxValue
+
+  /** The `labelIds: [...]` array the page carries into its card query, as rendered. */
+  private val renderedLabelIds                     = """labelIds: \[([^\]]*)\]""".r
+  private def pageLabelIds(body: String): Seq[Int] =
+    renderedLabelIds.findFirstMatchIn(body).map(_.group(1)).filter(_.nonEmpty).toSeq.flatMap(_.split(",").map(_.toInt))
+
+  /** POSTs a card query and returns its JSON body. */
+  private def labelsFor(request: JsObject): JsValue = {
+    val resp = route(app, FakeRequest(POST, "/label/labels").withJsonBody(request)).get
+    status(resp) mustBe OK
+    contentAsJson(resp)
+  }
+
+  private def labelIdsIn(json: JsValue): Seq[Int] = (json \ "labelsOfType" \\ "label_id").map(_.as[Int]).toSeq
 
   "GET /gallery" should {
     "render with no tags selected by default" in {
@@ -88,9 +112,150 @@ class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
       galleryPage(s"?neighborhoods=$regionId") must include(s"regionIds: [$regionId]")
     }
 
+    "carry a label list to the page in the order it was given, deduped" in {
+      pageLabelIds(galleryPage("?labelIds=8,3,3,5")) mustBe Seq(8, 3, 5)
+    }
+
+    "drop a token of a label list that isn't an integer" in {
+      pageLabelIds(galleryPage("?labelIds=7,x,7,8")) mustBe Seq(7, 8)
+    }
+
+    // A hand-written or copy-pasted list has spaces in it, and an unparseable token can't report itself, so an
+    // untrimmed parse keeps only the first id and says nothing about the rest.
+    "read a label list written with spaces after the commas" in {
+      pageLabelIds(galleryPage("?labelIds=8,%209,%2010")) mustBe Seq(8, 9, 10)
+    }
+
+    "leave the label list empty when the parameter is absent" in {
+      pageLabelIds(galleryPage()) mustBe empty
+    }
+
+    // The list named the cards, so there is nothing left to filter and the grid takes the whole width. Rendering
+    // the sidebar hidden instead would leave the grid three columns wide for no reason a reader could see.
+    "render no sidebar at all in list mode, and the strip instead" in {
+      val listPage = galleryPage("?labelIds=8,3")
+      listPage must not include """class="sidebar""""
+      listPage must not include """id="card-filter""""
+      listPage must not include "gallery-filter-sections"
+      listPage must include("gallery-list-bar")
+      listPage must include("""id="gallery-list-count"""")
+    }
+
+    // A link, since it navigates; as a button it read as acting on the list. The arrow is decoration, not name.
+    "offer the way out as a link rather than as a button" in {
+      val listPage = galleryPage("?labelIds=8,3")
+      listPage must include("""<a class="gallery-list-bar__browse-all" href="/gallery">""")
+      listPage must include("""<span class="gallery-list-bar__arrow" aria-hidden="true">""")
+      listPage must include("Browse all labels")
+      listPage must not include "gallery-list-bar__show-all"
+    }
+
+    // /gallery?labelIds= is a sharing URL as much as a review queue, so the strip carries no heading and no
+    // instructions about how to run a review pass.
+    "leave the review hint and the mode heading off the list page" in {
+      val listPage = galleryPage("?labelIds=8,3")
+      listPage must not include "gallery:list-hint"
+      listPage must not include "gallery:list-heading"
+    }
+
+    "still render the filter sidebar, and no strip, without a list" in {
+      val filteredPage = galleryPage()
+      filteredPage must include("""id="card-filter"""")
+      filteredPage must include("gallery-filter-sections")
+      filteredPage must not include "gallery-list-bar"
+    }
+
+    "cap a label list at MaxLabelIds rather than trusting its length" in {
+      val ids = (1 to GalleryController.MaxLabelIds + 100).mkString(",")
+      pageLabelIds(galleryPage(s"?labelIds=$ids")) must have size GalleryController.MaxLabelIds.toLong
+    }
+
+    "say how many ids the cap dropped, rather than silently serving a short list" in {
+      val ids  = (1 to GalleryController.MaxLabelIds + 100).mkString(",")
+      val page = galleryPage(s"?labelIds=$ids")
+      page must include("""data-dropped="100"""")
+      page must include(s"""data-max="${GalleryController.MaxLabelIds}"""")
+      page must include(s"100 ids were past the ${GalleryController.MaxLabelIds}-id limit")
+    }
+
+    "say nothing about the cap for a list that fits under it" in {
+      galleryPage("?labelIds=8,3") must not include "gallery-list-truncated"
+    }
+
+    // The server-rendered count is what a reviewer reads before the cards land, so its plural has to be right then
+    // — i18next only takes over once the card query returns.
+    "render the count with the plural the number calls for" in {
+      galleryPage("?labelIds=8") must include(">1 label in this list<")
+      galleryPage("?labelIds=8,3") must include(">2 labels in this list<")
+    }
+
+    // The client turns this into "N of M" once it knows how many came back, so M has to reach it without the
+    // client re-parsing the URL the server already parsed.
+    "carry the requested count to the client for the partial-count wording" in {
+      galleryPage("?labelIds=8,3,5") must include("""data-requested="3"""")
+    }
+
     "serve the page to a mobile visitor instead of redirecting to /mobileLanding" in {
       val resp = route(app, FakeRequest(GET, "/gallery").withHeaders(UserAgents.mobile)).get
       status(resp) mustBe OK
+    }
+  }
+
+  /**
+   * The review-list half of the card query (#5444). A list is explicit, so the contract is that every id asked for
+   * either comes back as a card or is named as unavailable — a silently shorter grid would read as "these are all
+   * the labels there were", which is exactly the wrong thing to tell someone building ground truth.
+   */
+  "POST /label/labels with a label list" should {
+    // Ids the ordinary card query already served, so they are known to be renderable in the connected city. Every
+    // correctness option is named because an empty set means "none of them", which serves nothing at all.
+    val allValOptions          = Json.arr("correct", "incorrect", "unsure", "unvalidated")
+    lazy val seedIds: Seq[Int] =
+      labelIdsIn(labelsFor(Json.obj("n" -> 10, "loaded_labels" -> Json.arr(), "validation_options" -> allValOptions)))
+
+    "return exactly the requested labels, in the requested order, ignoring the other filters" in {
+      assume(seedIds.size >= 2, "connected database served fewer than two gallery labels")
+      // Sorted then reversed, so the request is always descending. The filtered query these come from is
+      // shuffled, so picking two of its ids in place would be ascending about half the time — and ascending is
+      // the order a query with no ORDER BY tends to return anyway, which is the thing this has to rule out.
+      val descendingPair = seedIds.take(2).sorted.reverse
+      val requested      = descendingPair :+ missingLabelId
+
+      val json = labelsFor(
+        Json.obj(
+          "n"             -> requested.size,
+          "loaded_labels" -> Json.arr(),
+          "label_ids"     -> requested,
+          // Filters that between them match nothing: list mode has to ignore them rather than intersect with them.
+          "label_types"        -> Json.arr("Signal"),
+          "region_ids"         -> Json.arr(-1),
+          "validation_options" -> Json.arr("incorrect")
+        )
+      )
+
+      labelIdsIn(json) mustBe descendingPair
+      (json \ "unavailableLabelIds").as[Seq[Int]] mustBe Seq(missingLabelId)
+    }
+
+    // MessageFormat unquotes a choice sub-message that contains a placeholder twice, so the apostrophe in the
+    // French string needs four of them to survive. Two renders "na pas pu", which reads as a typo in the
+    // translation rather than as the quoting rule it is — hence a test, so the doubling can't be tidied away.
+    "keep the apostrophe in the French over-cap notice" in {
+      messagesApi("gallery.list.truncated", 1, 500)(Lang("fr")) must include("n'a pas pu")
+      messagesApi("gallery.list.truncated", 2, 500)(Lang("fr")) must include("n'ont pas pu")
+    }
+
+    "say nothing about unavailable ids when no list was asked for" in {
+      val json = labelsFor(Json.obj("n" -> 1, "loaded_labels" -> Json.arr(), "validation_options" -> allValOptions))
+      (json \ "unavailableLabelIds").toOption mustBe None
+    }
+
+    "report every id of a list that served nothing" in {
+      val json = labelsFor(
+        Json.obj("n" -> 1, "loaded_labels" -> Json.arr(), "label_ids" -> Json.arr(missingLabelId))
+      )
+      labelIdsIn(json) mustBe empty
+      (json \ "unavailableLabelIds").as[Seq[Int]] mustBe Seq(missingLabelId)
     }
   }
 }

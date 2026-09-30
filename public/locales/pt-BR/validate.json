@@ -16,52 +16,53 @@
   },
   "validate-menu": {
     "remove-tag": "Remover etiqueta: {{tag}}",
+    "tag-search-placeholder": "Adicione mais etiquetas aqui",
+    "tag-search-no-results": "Nenhuma etiqueta correspondente",
     "disagree-reason": {
+      "common": {
+        "wrong-type": "Este é o tipo de rótulo errado",
+        "wrong-type-tooltip": "Há algo aqui, mas deveria ser marcado com outro tipo de rótulo"
+      },
       "curb-ramp": {
-        "no-button-1": "Isto é uma entrada de garagem",
-        "no-button-2": "Isto é uma transição entre calçada e entrada de garagem",
-        "no-button-2-tooltip": "As transições entre calçada e entrada de garagem não são consideradas rampas de acesso, a menos que uma rampa específica tenha sido adicionada",
-        "no-button-3": "Isto deveria ser um rótulo de Rampa de Calçada Ausente",
-        "no-button-3-tooltip": "Às vezes uma rampa ausente é rotulada por engano como rampa de calçada"
+        "wrong-type-tooltip": "Às vezes uma rampa ausente é rotulada por engano como rampa de calçada",
+        "no-button-2": "Isto é uma entrada de garagem",
+        "no-button-3": "Isto é uma transição entre calçada e entrada de garagem",
+        "no-button-3-tooltip": "As transições entre calçada e entrada de garagem não são consideradas rampas de acesso, a menos que uma rampa específica tenha sido adicionada"
       },
       "no-curb-ramp": {
-        "no-button-1": "Isto é um passagem residencial",
-        "no-button-2": "Não há calçada aqui",
-        "no-button-3": "Isto deveria ser um rótulo de Rampa de Calçada",
-        "no-button-3-tooltip": "Às vezes uma rampa de calçada é rotulada como ausente, geralmente porque falta o piso tátil de alerta",
+        "wrong-type-tooltip": "Às vezes uma rampa de calçada é rotulada como ausente, geralmente porque falta o piso tátil de alerta",
+        "no-button-2": "Isto é um passagem residencial",
+        "no-button-3": "Não há calçada aqui",
         "no-button-4": "Não é seguro atravessar aqui",
         "no-button-4-tooltip": "Os pedestres não devem atravessar neste ponto, portanto não se espera uma rampa de calçada"
       },
       "obstacle": {
-        "no-button-1": "Isto não está em um caminho de pedestres",
-        "no-button-1-tooltip": "Se não houver calçada ou se o objeto não estiver na parte da calçada destinada aos pedestres, como na imagem abaixo, não é necessário rotular como Obstáculo",
-        "no-button-2": "Há espaço suficiente para evitar este objeto",
-        "no-button-2-tooltip": "Em calçadas muito largas, objetos fáceis de evitar <b>não</b> devem ser rotulados como obstáculos",
-        "no-button-3": "Isto deveria ser um rótulo de Problema na Superfície",
-        "no-button-3-tooltip": "Grama e detritos como folhas devem ser marcados como Problema na Superfície"
+        "wrong-type-tooltip": "Grama e detritos como folhas devem ser marcados como Problema na Superfície",
+        "no-button-2": "Isto não está em um caminho de pedestres",
+        "no-button-2-tooltip": "Se não houver calçada ou se o objeto não estiver na parte da calçada destinada aos pedestres, como na imagem abaixo, não é necessário rotular como Obstáculo",
+        "no-button-3": "Há espaço suficiente para evitar este objeto",
+        "no-button-3-tooltip": "Em calçadas muito largas, objetos fáceis de evitar <b>não</b> devem ser rotulados como obstáculos"
       },
       "surface-problem": {
-        "no-button-1": "Isto deveria ser um rótulo de Sem Calçada",
-        "no-button-1-tooltip": "Cascalho ou grama não são considerados calçada e devem ser marcados como Sem Calçada",
+        "wrong-type-tooltip": "Cascalho ou grama não são considerados calçada e devem ser marcados como Sem Calçada",
         "no-button-2": "Isto não está em um caminho de pedestres",
         "no-button-2-tooltip": "Se um problema de superfície não estiver em um caminho destinado a pedestres, não deve ser rotulado como Problema de Superfície",
         "no-button-3": "Estas são placas normais de calçada"
       },
       "no-sidewalk": {
-        "no-button-1": "Há uma calçada aqui",
-        "no-button-2": "Isto é um canteiro central de tráfego",
-        "no-button-3": "Isto deveria ser marcado com outro tipo de rótulo",
-        "no-button-3-tooltip": "Problemas de superfície ou obstáculos podem ser rotulados incorretamente como Sem Calçada"
+        "wrong-type-tooltip": "Problemas de superfície ou obstáculos podem ser rotulados incorretamente como Sem Calçada",
+        "no-button-2": "Há uma calçada aqui",
+        "no-button-3": "Isto é um canteiro central de tráfego"
       },
       "crosswalk": {
-        "no-button-1": "Não há faixa de pedestres visível aqui",
-        "no-button-2": "Isto é uma linha de parada para carros",
-        "no-button-3": "Isto é uma lombada"
+        "no-button-2": "Não há faixa de pedestres visível aqui",
+        "no-button-3": "Isto é uma linha de parada para carros",
+        "no-button-4": "Isto é uma lombada"
       },
       "signal": {
-        "no-button-1": "Isto é apenas um semáforo para veículos",
-        "no-button-2": "Isto é uma placa indicando travessia segura",
-        "no-button-3": "Isto é um poste sem sinal ou botão de pedestres"
+        "no-button-2": "Isto é apenas um semáforo para veículos",
+        "no-button-3": "Isto é uma placa indicando travessia segura",
+        "no-button-4": "Isto é um poste sem sinal ou botão de pedestres"
       }
     },
     "unsure-reason": {

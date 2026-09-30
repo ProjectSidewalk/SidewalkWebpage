@@ -5,16 +5,17 @@
  * without the means to say whether it is right.
  *
  * A vote posts to `/labelmap/validate` with the payload the label card and the Gallery card send. The crop is a
- * screenshot of the label's stored point of view, so the vote carries that POV and the pano canvas the label was
- * placed on (`CANVAS`, mirroring `LabelPointTable.canvasWidth/Height`), never the thumbnail's own size. Counts
+ * screenshot of the label's stored point of view, so the vote carries that POV and the frame the label was placed
+ * in (its `canvas_width`/`canvas_height`, #5085; the boxed 720x480 when the payload has none), never the
+ * thumbnail's own size. Counts
  * update optimistically and roll back with a toast if the server refuses.
  *
  * Reads `util.misc`, `util.assetPath`, `util.lazyIdentityFetch`, `i18next`, `Toast` and `BadgeAchievements`, all
  * loaded before it on every host page.
  */
 class LabelMiniCard {
-  /** The pano canvas a label's stored `canvas_x`/`canvas_y` refer to; a static-crop vote reports that canvas. */
-  static CANVAS = Object.freeze({ width: 720, height: 480 });
+  // Width:height of the card's figure (.lmc__figure); the crop is cover-fitted into it.
+  static CARD_IMAGE_ASPECT = 3 / 2;
 
   /** The votes, in the order the chips are drawn. */
   static ACTIONS = Object.freeze(['Agree', 'Disagree', 'Unsure']);
@@ -162,7 +163,9 @@ class LabelMiniCard {
     };
     if (this.#els.marker) {
       // Custom properties rather than offsets, so the marker's centring on the point stays in CSS beside its size.
-      const { x, y } = util.misc.labelMarkerFraction('crop', label.crop_marker, label.canvas_x, label.canvas_y);
+      const { x, y } = util.misc.labelMarkerFraction('crop', label.crop_marker, label.canvas_x, label.canvas_y, {
+        canvasWidth: label.canvas_width, canvasHeight: label.canvas_height, boxAspect: LabelMiniCard.CARD_IMAGE_ASPECT,
+      });
       this.#els.marker.style.setProperty('--lmc-marker-x', String(x));
       this.#els.marker.style.setProperty('--lmc-marker-y', String(y));
     }
@@ -258,8 +261,9 @@ class LabelMiniCard {
       heading: label.heading ?? null,
       pitch: label.pitch ?? null,
       zoom: label.zoom ?? null,
-      canvas_height: LabelMiniCard.CANVAS.height,
-      canvas_width: LabelMiniCard.CANVAS.width,
+      // The frame the label's canvas_x/canvas_y refer to (#5085); a static-crop vote reports that frame.
+      canvas_height: label.canvas_height ?? util.EXPLORE_CANVAS_HEIGHT,
+      canvas_width: label.canvas_width ?? util.EXPLORE_CANVAS_WIDTH,
       start_timestamp: now,
       end_timestamp: now,
       source: this.#opts.source,

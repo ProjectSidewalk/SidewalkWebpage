@@ -95,6 +95,28 @@ describe('util.sizeCanvasToDisplay', () => {
         expect(scale * util.EXPLORE_CANVAS_HEIGHT).toBeCloseTo(el.height, 6);
     });
 
+    it('follows the box\'s own aspect, so a fill-window pano gets a fill-window bitmap (#5085)', () => {
+        const el = makeCanvas(1920, 1080);
+        const ctx = makeCtx();
+        setDpr(2);
+        util.sizeCanvasToDisplay(el, ctx);
+
+        expect(el.width).toBe(3840);
+        expect(el.height).toBe(2160);
+        // The transform stays uniform and width-based: logical (720, 405) lands on the far corner.
+        const scale = 3840 / util.EXPLORE_CANVAS_WIDTH;
+        expect(ctx.transform).toEqual([scale, 0, 0, scale, 0, 0]);
+        expect(scale * 405).toBeCloseTo(el.height, 6);
+    });
+
+    it('falls back to the 3:2 height when only the width is measurable', () => {
+        const el = makeCanvas(1080, 0);
+        util.sizeCanvasToDisplay(el, makeCtx());
+
+        expect(el.width).toBe(1080);
+        expect(el.height).toBe(720);
+    });
+
     it('asks for high-quality smoothing, so downscaled label icons keep a clean outer circle', () => {
         const ctx = makeCtx();
         util.sizeCanvasToDisplay(makeCanvas(1080), ctx);

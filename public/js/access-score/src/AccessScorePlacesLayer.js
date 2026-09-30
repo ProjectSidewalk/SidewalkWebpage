@@ -1,6 +1,7 @@
 /**
  * The places the AccessScore map shows beside the scores (#5311): schools, health care, libraries, grocery stores,
- * transit stops, parks, and community centers, one Mapbox symbol layer per category, fed by `/v3/api/places`.
+ * transit stops, parks, community centers, and government offices, one Mapbox symbol layer per category, fed by
+ * `/v3/api/places`.
  *
  * The categories come from the backend (`place_categories` on `/v3/api/accessScoreConfig`); what this class holds
  * is presentation only — which glyph each category wears. A marker is a disc in the score color of the nearest
@@ -16,24 +17,6 @@
  * page, which owns the model and the place card.
  */
 class AccessScorePlacesLayer {
-  /**
-   * Per category: the glyph file under `images/icons/`. No zoom gate: every category starts off, so one that is on
-   * was asked for, and a reader who ticks "Transit stops" at city scale should see stops, not an empty map. Collision
-   * detection keeps a crowded category to what fits.
-   */
-  static PRESENTATION = Object.freeze({
-    school: Object.freeze({ icon: 'school-white-lucide.svg' }),
-    health: Object.freeze({ icon: 'hospital-white-lucide.svg' }),
-    library: Object.freeze({ icon: 'library-white-lucide.svg' }),
-    grocery: Object.freeze({ icon: 'shopping-basket-white-lucide.svg' }),
-    transit: Object.freeze({ icon: 'bus-white-lucide.svg' }),
-    park: Object.freeze({ icon: 'trees-white-lucide.svg' }),
-    community: Object.freeze({ icon: 'users-white-lucide.svg' }),
-  });
-
-  /** What a category the backend added before this file learned it looks like: a plain pin. */
-  static DEFAULT_PRESENTATION = Object.freeze({ icon: 'map-pin-white-lucide.svg' });
-
   /** The marker disc's diameter in CSS pixels at `icon-size` 1. */
   static MARKER_PX = 26;
 
@@ -139,12 +122,12 @@ class AccessScorePlacesLayer {
   }
 
   /**
-   * The presentation of a category: its own row, or the default for one this file does not know.
+   * The presentation of a category.
    * @param {string} category - A category id.
-   * @returns {{icon: string}} The glyph file.
+   * @returns {{icon: string}} The glyph file, from the shared PlaceCategoryIcons.
    */
   static presentation(category) {
-    return AccessScorePlacesLayer.PRESENTATION[category] ?? AccessScorePlacesLayer.DEFAULT_PRESENTATION;
+    return { icon: PlaceCategoryIcons.file(category) };
   }
 
   /**
@@ -384,7 +367,13 @@ class AccessScorePlacesLayer {
     }));
   }
 
-  /** One source + symbol layer for a category, gated at the category's zoom and named from `NAME_ZOOM`. */
+  /**
+   * One source + symbol layer for a category, named from `NAME_ZOOM`. No zoom gate: every category starts off, so one
+   * that is on was asked for, and a reader who ticks "Transit stops" at city scale should see stops, not an empty map.
+   * Collision detection keeps a crowded category to what fits.
+   * @param {string} category - A category id.
+   * @returns {string} The layer's id, which is also its source's.
+   */
   #addLayer(category) {
     const id = AccessScorePlacesLayer.#layerId(category);
     this.#map.addSource(id, {

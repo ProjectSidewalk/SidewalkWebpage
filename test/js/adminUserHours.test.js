@@ -32,7 +32,7 @@ function buildDom() {
         <span class="ps-kpi-label" id="au-hours-label">Exploring &amp; validating</span>
       </div>
     </div>
-    <span id="au-hours-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+    <span id="au-hours-status" class="sr-only" role="status" aria-live="polite"></span>
     <div id="au-hours-cities" hidden>
       <h3 class="page-subhead" id="au-hours-cities-title">Where their time came from</h3>
       <div class="ps-table-scroll ud-admin-hours-cities" id="au-hours-cities-table"></div>

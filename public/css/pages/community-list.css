@@ -42,7 +42,7 @@
   color: var(--color-neutral-800);
 }
 
-.community-page a.button-ps {
+.community-page a.button {
   text-decoration: none;
 }
 
@@ -68,7 +68,6 @@
 }
 
 .community-sort-label {
-  margin: 0;
   font: var(--text-small-medium);
   color: var(--color-neutral-800);
 }

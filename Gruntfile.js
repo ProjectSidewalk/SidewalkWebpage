@@ -18,7 +18,10 @@ module.exports = function (grunt) {
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
           'public/js/common/BadgeAchievements.js',
-          'public/js/common/share/ShareWidget.js'
+          'public/js/common/share/ShareWidget.js',
+          // The pano image adjustments: the model, then the popover that drives it.
+          'public/js/common/PanoImageAdjustments.js',
+          'public/js/common/PanoImageAdjustmentsPopover.js'
         ],
         dest: 'public/js/explore/build/explore.js'
       },
@@ -112,6 +115,7 @@ module.exports = function (grunt) {
           'public/js/access-score/src/AccessScoreSlopePanel.js',
           'public/js/access-score/src/AccessScoreSidebar.js',
           'public/js/access-score/src/AccessScoreClusterLayer.js',
+          'public/js/common/PlaceCategoryIcons.js',
           'public/js/access-score/src/AccessScorePlacesLayer.js',
           // The insights dock: the chart base class precedes the views that extend it (a subclass evaluates its
           // superclass at definition time), and the dock that owns them comes last.

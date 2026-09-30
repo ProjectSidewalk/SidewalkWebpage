@@ -176,10 +176,10 @@ class AccessScoreSidebar {
             <img class="acs-weight__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
             <label class="acs-weight__label" for="acs-weight-${type}">${name}</label>
             <span class="acs-weight__role acs-weight__role--${problem ? 'problem' : 'feature'}"
-                  title="${roleTitle}">${role}</span>
+                  tabindex="0" data-ps-tooltip="${roleTitle}">${role}</span>
             <output class="acs-weight__value" for="acs-weight-${type}"></output>
           </div>
-          <input type="range" class="acs-range" id="acs-weight-${type}" min="0" max="${this.#maxWeight()}"
+          <input type="range" class="ps-range" id="acs-weight-${type}" min="0" max="${this.#maxWeight()}"
                  step="0.05" data-type="${type}">
           <div class="acs-weight__contrib" aria-hidden="true">
             <span class="acs-weight__bar"></span><span class="acs-weight__bar-label"></span>

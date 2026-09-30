@@ -172,6 +172,35 @@ class StreetGradientTableSpec
     }
   }
 
+  "StreetGradientTable.stalenessCounts" should {
+    "count the served streets with no row and those sampled on an older geometry" in {
+      // Deltas against whatever the connected city already holds, so the case reads the same on a sampled dev DB.
+      val servedStreets = app.injector.instanceOf[StreetEdgeTable].streets
+      val ((unsampledBefore, staleBefore), (unsampledAfter, staleAfter)) = runRolledBack(for {
+        // The tutorial street is never exported or served, so it is not owed a grade either. Moved before the
+        // baseline, since the street it replaces becomes an ordinary served street the moment config lets go of it.
+        tutorial <- insertStreet()
+        _        <- sqlu"UPDATE config SET tutorial_street_edge_id = $tutorial"
+        before   <- table.stalenessCounts(servedStreets)
+        current  <- insertStreet()
+        moved    <- insertStreet()
+        missing  <- insertStreet()
+        hidden   <- insertStreet(status = "no_imagery")
+        _        <- insertMeasured(current)
+        _        <- sqlu"""UPDATE street_gradient
+                           SET geom_md5 = (SELECT md5(ST_AsBinary(geom)) FROM street_edge
+                                           WHERE street_edge_id = $current)
+                           WHERE street_edge_id = $current"""
+        _     <- insertMeasured(moved) // Its fixed Md5 is no street's hash: sampled, then the street moved.
+        after <- table.stalenessCounts(servedStreets)
+      } yield (before, after))
+
+      // The hidden and tutorial streets have no row either, but no API serves them, so neither is owed a grade.
+      unsampledAfter - unsampledBefore mustBe 1
+      staleAfter - staleBefore mustBe 1
+    }
+  }
+
   "the Postgres enum types behind street_gradient" should {
     def labelsOf(typeName: String): Set[String] = run(
       sql"""SELECT enumlabel

@@ -68,8 +68,7 @@
     "add-note": "💬 Notiz hinzufügen",
     "note-placeholder": "Notiz zu dieser Beschriftung hinzufügen (optional)…",
     "save-note": "Notiz speichern",
-    "popup-heading": "Ihre Beschriftung wurde als falsch validiert. Stimmen Sie zu, dass das ein Fehler war?",
-    "your-label": "Ihre Beschriftung: {{type}}"
+    "popup-heading": "Ihre Beschriftung wurde als falsch validiert. Stimmen Sie zu, dass das ein Fehler war?"
   },
   "settings-form": {
     "saving": "Wird gespeichert…",

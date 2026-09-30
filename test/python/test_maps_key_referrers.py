@@ -1,5 +1,5 @@
 """
-Unit tests for tools/maps_key_referrers.py, which adds a city's hostnames to the production Maps key (#5339).
+Unit tests for tools/city/maps_key_referrers.py, which adds a city's hostnames to the production Maps key (#5339).
 
 gcloud is faked at the ``subprocess.run`` seam and cityparams.conf is read from a copy, so nothing here reaches Google.
 Stdlib-only, so it runs in both interpreter halves.

@@ -170,7 +170,7 @@
             (${p.audited_street_count} of ${p.total_street_count} streets audited)</p>
           <p><strong>Region ID:</strong> ${p.region_id}</p>
           <a href="/v3/api/accessScoreRegions?regionId=${p.region_id}&inline=true"
-            class="button-ps button--primary button--tiny" target="_blank">
+            class="button button--primary button--tiny" target="_blank">
             View this region's JSON
           </a>
         `);

@@ -21,9 +21,11 @@ const MANAGER_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
 );
 
-/** A stand-in for one of the menu's jQuery-wrapped controls. */
+/** A stand-in for one of the menu's controls, with its click spied. */
 function makeControl() {
-    return { on: () => {}, 0: document.createElement('textarea'), click: jest.fn(), hasClass: () => false };
+    const control = document.createElement('textarea');
+    control.click = jest.fn();
+    return control;
 }
 
 /** Dispatches a keydown with the given code on a target, returning the event for defaultPrevented checks. */

@@ -133,13 +133,15 @@ class OverallStats {
    * @param {?number} accuracy
    */
   #renderAccuracy(accuracy) {
-    if (accuracy !== null && accuracy !== undefined) {
+    const hasAccuracy = accuracy !== null && accuracy !== undefined;
+    if (hasAccuracy) {
       this.#stats.accuracy = 100 * accuracy;
       this.#accuracyEl.textContent = `${Math.round(this.#stats.accuracy)}%`;
-      this.#accuracyHolderEl.title = i18next.t('right-ui.accuracy-tooltip').replace(/<[^>]*>/g, '');
     } else {
       this.#accuracyEl.textContent = 'N/A';
-      this.#accuracyHolderEl.title = i18next.t('right-ui.no-accuracy-tooltip').replace(/<[^>]*>/g, '');
     }
+    // The tooltip can't be clicked, so the dashboard link in the text is flattened to plain words.
+    const tip = i18next.t(hasAccuracy ? 'right-ui.accuracy-tooltip' : 'right-ui.no-accuracy-tooltip');
+    this.#accuracyHolderEl.setAttribute('data-ps-tooltip', tip.replace(/<[^>]*>/g, ''));
   }
 }
