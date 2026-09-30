@@ -422,10 +422,11 @@ class AdminController @Inject() (
    * Recent-activity stream for the redesigned admin dashboard's Activity page (#4272): the latest labels, validations,
    * and comments interleaved by recency, each tagged with who did it and (where applicable) the label it points at.
    * snake_case output per the dashboard convention.
+   *
+   * @param n Number of feed items; kept within 1 to [[service.AdminService.MaxRecentActivity]].
    */
   def getRecentActivity(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
-    // Clamp both ends: a negative n 500s on an invalid SQL LIMIT, and a huge one loads the city's whole history.
-    adminService.getRecentActivity(math.min(math.max(n, 0), 500)).flatMap { items =>
+    adminService.getRecentActivity(n).flatMap { items =>
       // Enrich the feed batch with two cheap scoped lookups, run in parallel: a preview thumbnail per labelled item,
       // and a "who is this contributor" summary (role + totals) per distinct user.
       val labelIds  = items.collect { case i if i.labelId.isDefined && i.labelType.isDefined => i.labelId.get }.distinct
@@ -483,6 +484,8 @@ class AdminController @Inject() (
   /**
    * Contributors-page leaderboards for the redesigned admin dashboard (#4272): top labelers (with label-type mix and
    * severity distribution) and top validators (with agree/disagree/unsure split). snake_case per the dashboard convention.
+   *
+   * @param n Rows per leaderboard; kept within 1 to [[service.AdminService.MaxLeaderboardRows]].
    */
   def getContributorLeaderboards(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getContributorLeaderboards(n).map { boards =>

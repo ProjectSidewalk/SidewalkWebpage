@@ -115,6 +115,12 @@ object LabelServiceImpl {
    */
   val ImageryCheckChunkSize: Int = 50
 
+  /** Most mistakes per label type the user dashboard can ask for; a huge count would check imagery for thousands. */
+  val MaxMistakesPerType: Int = 50
+
+  /** Keeps a requested mistakes-per-type count between 1 and [[MaxMistakesPerType]]. */
+  def clampMistakesPerType(n: Int): Int = math.max(1, math.min(MaxMistakesPerType, n))
+
   /**
    * Picks the queue a mission is chosen from, and the label types that queue can fill a mission with.
    *
@@ -864,7 +870,8 @@ class LabelServiceImpl @Inject() (
    * Get the most recent validated labels for a user (with valid GSV imagery), grouped by label type.
    * @param userId User ID of the user to get labels for.
    * @param labelTypes Set of label types to get labels for.
-   * @param nPerType Number of labels to get for each label type.
+   * @param nPerType Number of labels to get for each label type; kept within 1 to
+   *                 [[LabelServiceImpl.MaxMistakesPerType]].
    */
   def getRecentValidatedLabelsForUser(
       userId: String,
@@ -878,7 +885,7 @@ class LabelServiceImpl @Inject() (
           (_: Seq[LabelMetadataUserDash]) => labelTable.getValidatedLabelsForUserQuery(userId, labelType),
           randomize = false,
           useCrops = true,
-          nPerType
+          LabelServiceImpl.clampMistakesPerType(nPerType)
         )
           .map(labels => (labelType, labels))
       })
