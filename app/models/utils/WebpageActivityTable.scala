@@ -62,10 +62,8 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
 
   // Most of these have details tacked on (`AnonAutoSignUp_url="/explore"`), so they're matched by how they start.
   private def isAnonSignUp(a: WebpageActivityTableDef): Rep[Boolean] = a.activity like "AnonAutoSignUp%"
-  private def isSignUp(a: WebpageActivityTableDef): Rep[Boolean]     = a.activity === "SignUp" || isAnonSignUp(a)
   private def isRealSignIn(a: WebpageActivityTableDef): Rep[Boolean] =
     a.activity === "SignIn" || (a.activity like "SignInSuccess%")
-  private def isAnySignIn(a: WebpageActivityTableDef): Rep[Boolean] = isRealSignIn(a) || isAnonSignUp(a)
 
   /** Activity rows of accounts that aren't anonymous, the only ones the admin Users tab lists. */
   private def nonAnonActivities(keep: WebpageActivityTableDef => Rep[Boolean]) =
@@ -75,7 +73,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * Get the time that each non-anonymous user signed up (if we have it logged).
    */
   def getSignUpTimes: DBIO[Seq[(String, Option[OffsetDateTime])]] = {
-    nonAnonActivities(isSignUp)
+    nonAnonActivities(_.activity === "SignUp")
       .groupBy(_._2.userId)
       .map { case (_userId, group) => (_userId, group.map(_._1.timestamp).max) }
       .result
@@ -85,7 +83,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * For each non-anonymous user, gets count of number of sign ins and the timestamp of their most recent sign-in.
    */
   def getSignInTimesAndCounts: DBIO[Seq[(String, (Int, Option[OffsetDateTime]))]] = {
-    nonAnonActivities(isAnySignIn)
+    nonAnonActivities(isRealSignIn)
       .groupBy(_._2.userId)
       .map { case (_userId, rows) => (_userId, (rows.length, rows.map(_._1.timestamp).max)) }
       .result
@@ -100,7 +98,8 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def getSignInCountsByDate: DBIO[Seq[DailyCountByAnon]] = {
     activities
-      .filter(isAnySignIn)
+      // Anyone can log an activity string without a session, but a real sign-in always has a user.
+      .filter(a => a.userId.isDefined && (isRealSignIn(a) || isAnonSignUp(a)))
       .map(a => (a.timestamp.trunc("day"), isAnonSignUp(a), a.webpageActivityId))
       .groupBy { case (day, isAnon, _) => (day, isAnon) }
       .map { case ((day, isAnon), group) => (day, isAnon, group.length) }

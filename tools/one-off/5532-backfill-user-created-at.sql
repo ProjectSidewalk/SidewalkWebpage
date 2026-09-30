@@ -44,7 +44,7 @@ BEGIN
   LOOP
     EXECUTE format(
       'INSERT INTO first_seen_by_source
-       SELECT user_id, MIN(timestamp) FROM %1$I.webpage_activity GROUP BY user_id
+       SELECT user_id, MIN(timestamp) FROM %1$I.webpage_activity WHERE user_id IS NOT NULL GROUP BY user_id
        UNION ALL SELECT user_id, MIN(mission_start) FROM %1$I.mission GROUP BY user_id
        UNION ALL SELECT user_id, MIN(task_start) FROM %1$I.audit_task GROUP BY user_id
        UNION ALL SELECT user_id, MIN(start_timestamp) FROM %1$I.label_validation GROUP BY user_id',

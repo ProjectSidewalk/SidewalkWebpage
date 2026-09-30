@@ -111,7 +111,8 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
       WebpageActivity(0, user, IpAddress("10.0.0.1"), "SignInSuccess_Email=\"a@b.c\"", day),
       WebpageActivity(0, user, IpAddress("10.0.0.1"), "SignInFailed_Email=\"a@b.c\"_Reason=\"invalid credentials\"",
         day),
-      WebpageActivity(0, None, IpAddress("10.0.0.1"), "SignUp", day)
+      WebpageActivity(0, None, IpAddress("10.0.0.1"), "SignUp", day),
+      WebpageActivity(0, None, IpAddress("10.0.0.1"), "AnonAutoSignUp_url=\"/\"", day)
     )
 
     "count the logged activity strings and skip rows with no user" in {
@@ -125,8 +126,8 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
 
       val aiUser = SidewalkUserTable.aiUserId
       signUps.get(aiUser).flatten mustBe defined
-      // The anonymous sign-up and the successful sign-in count; the failed attempt doesn't.
-      signInsAfter(aiUser)._1 - signInsBefore.get(aiUser).map(_._1).getOrElse(0) mustBe 2
+      // Only the successful sign-in counts for the Users tab.
+      signInsAfter(aiUser)._1 - signInsBefore.get(aiUser).map(_._1).getOrElse(0) mustBe 1
       byDate.map(c => c.isAnonymous -> c.count).toMap mustBe Map(true -> 1, false -> 1)
     }
   }

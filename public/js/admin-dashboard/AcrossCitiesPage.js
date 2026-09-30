@@ -1394,7 +1394,7 @@ class AcrossCitiesPage {
         if (l.full === l.short) return `<th>${short}</th>`;
         return `<th tabindex="0" data-ps-tooltip="${AdminShell.tooltipAttr(l.full)}">${short}</th>`;
       }),
-      '<th tabindex="0" data-ps-tooltip="Final step as a share of visitors">Overall</th></tr>',
+      '<th tabindex="0" data-ps-tooltip="Final step as a share of step 1">Overall</th></tr>',
     ].join('');
 
     const rows = [];
@@ -1414,7 +1414,7 @@ class AcrossCitiesPage {
       body = rows.map(({ c, seg, d }) => {
         const stepCells = d.steps.map((v, i) => {
           const title = i === 0
-            ? `${this.#num(v)} visitors`
+            ? `${this.#num(v)} accounts`
             : `${this.#num(v)} — ${this.#pct(d.step_conversion[i])} of previous step`;
           return `<td class="ac-num" title="${title}">${this.#compact(v)}</td>`;
         }).join('');
@@ -1432,7 +1432,7 @@ class AcrossCitiesPage {
   }
 
   /**
-   * Per-city small-multiples for one funnel: a horizontal funnel of bars, each normalized to that segment's visitors
+   * Per-city small-multiples for one funnel: a horizontal funnel of bars, each normalized to that segment's step 1
    * (= 100%) and labeled with the count and (past the first step) the drop-off. Cities are ordered by overall traffic.
    * @returns {string} The concatenated panel HTML.
    */
@@ -1461,7 +1461,7 @@ class AcrossCitiesPage {
         const conv = d ? d.step_conversion[i] : 0;
         const valText = i === 0 ? this.#compact(v) : `${this.#compact(v)} · ${this.#pct(conv)}`;
         const tip = i === 0
-          ? `${full}: ${this.#num(v)} visitors`
+          ? `${full}: ${this.#num(v)} accounts`
           : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `<div class="ac-funnel-bar" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}">`
           + `<span class="ac-funnel-bar-fill" `

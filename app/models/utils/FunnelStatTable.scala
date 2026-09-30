@@ -176,8 +176,9 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
   private def realLabels(schema: String): String = FilteredTables.labels(Some(schema), Contributors.Everyone)
 
   /**
-   * Runs a funnel over the accounts made in the window that have visited this city (step 1, the `cohort`). Their
-   * later steps count whenever they happened, so the window only decides who is new.
+   * Runs a funnel over the accounts made in the window that opened a page or started a mission in this city (step 1,
+   * the `cohort`). A bare sign-up row doesn't count, since crawlers made most of those. Later steps count whenever they
+   * happened, so the window only decides who is new.
    *
    * From a per-step `events` body (each row is a (user_id, step) for a step the user reached), reduce to
    * each user's DEEPEST step, classify role and device, then count per segment with `COUNT(*) FILTER (WHERE deepest >=
@@ -208,21 +209,24 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       GetResult(r => FunnelSegmentCounts(r.nextString(), Vector.fill(numSteps)(r.nextInt())))
     val filterCols =
       (1 to numSteps).map(k => s"COUNT(*) FILTER (WHERE deepest >= $k) AS s$k").mkString(",\n             ")
-    // windowDays is an Int, so it's safe to splice in. No visit comes before its account, so the visit bound only
-    // skips old rows.
-    val newSince = windowDays
-      .map(d =>
-        s"AND sidewalk_user.created_at >= NOW() - ($d * INTERVAL '1 day')" +
-          s" AND webpage_activity.timestamp >= NOW() - ($d * INTERVAL '1 day')"
-      )
-      .getOrElse("")
-    val query =
+    // windowDays is an Int, so it's safe to splice in. Nothing an account does comes before it was made, so the
+    // bounds on visits and missions only skip old rows.
+    val since        = windowDays.map(d => s"NOW() - ($d * INTERVAL '1 day')")
+    val newAccount   = since.map(t => s"AND sidewalk_user.created_at >= $t").getOrElse("")
+    val visitSince   = since.map(t => s"AND webpage_activity.timestamp >= $t").getOrElse("")
+    val missionSince = since.map(t => s"AND mission.mission_start >= $t").getOrElse("")
+    val query        =
       s"""
         WITH cohort AS (
-            SELECT DISTINCT webpage_activity.user_id
+            SELECT webpage_activity.user_id
             FROM "$schema".webpage_activity
             INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = webpage_activity.user_id
-            WHERE TRUE $newSince
+            WHERE webpage_activity.activity LIKE 'Visit%' $newAccount $visitSince
+            UNION
+            SELECT mission.user_id
+            FROM "$schema".mission
+            INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = mission.user_id
+            WHERE TRUE $newAccount $missionSince
         ),
         events AS (
             SELECT user_id, 1 AS step FROM cohort
