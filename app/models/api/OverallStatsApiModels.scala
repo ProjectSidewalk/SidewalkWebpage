@@ -73,7 +73,7 @@ case class ValidationSourceStats(nValidations: Int, accuracyByLabelType: Map[Str
   def toJson: JsObject = JsObject(
     Seq("total_validations" -> JsNumber(nValidations)) ++
       // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
-      accuracyByLabelType.toSeq.sorted(labelTypeOrdering).map { case (labelType, accuracy) =>
+      accuracyByLabelType.toSeq.sorted(using labelTypeOrdering).map { case (labelType, accuracy) =>
         labelType -> Json.toJson(accuracy)
       }
   )
@@ -164,7 +164,7 @@ case class ProjectSidewalkStats(
           )
         ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.
-          severityByLabelType.toSeq.sorted(labelTypeOrdering).map { case (labelType, stats) =>
+          severityByLabelType.toSeq.sorted(using labelTypeOrdering).map { case (labelType, stats) =>
             labelType -> Json.toJson(stats)
           }
       ),
@@ -177,9 +177,9 @@ case class ProjectSidewalkStats(
       ),
       "ai_stats" -> JsObject(
         // { "Overall" -> "human_maj_vote" -> { "ai_yes_maj_vote_concurs": ###, ... }, ... }, "CurbRamp" -> {...},...}.
-        aiPerformance.toSeq.sorted(labelTypeOrdering).map { case (lType, statsMap) =>
+        aiPerformance.toSeq.sorted(using labelTypeOrdering).map { case (lType, statsMap) =>
           lType -> JsObject(
-            statsMap.toSeq.sorted(AiConcurrence.voteTypeOrdering).map { case (voteType, stats) =>
+            statsMap.toSeq.sorted(using AiConcurrence.voteTypeOrdering).map { case (voteType, stats) =>
               voteType -> Json.toJson(stats)
             }
           )

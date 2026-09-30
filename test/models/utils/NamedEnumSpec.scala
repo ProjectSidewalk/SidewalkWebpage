@@ -29,7 +29,7 @@ class NamedEnumSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBac
   "PanoSource" should {
     "refuse a server-owned source from a client, while reading it back from the database" in {
       JsString("tutorial").validate[PanoSource] mustBe a[JsError]
-      JsString("tutorial").validate[PanoSource](PanoSource.storedReads) mustBe JsSuccess(PanoSource.Tutorial)
+      JsString("tutorial").validate[PanoSource](using PanoSource.storedReads) mustBe JsSuccess(PanoSource.Tutorial)
     }
   }
 

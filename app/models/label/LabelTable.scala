@@ -798,7 +798,7 @@ object LabelTable {
   /**
    * Implicit converter from SQL results to LabelDataForApi objects.
    */
-  given labelDataConverter: GetResult[LabelDataForApi] = GetResult[LabelDataForApi] { r =>
+  given labelDataConverter: GetResult[LabelDataForApi] = { r =>
     LabelDataForApi(
       labelId = r.nextInt(),
       userId = r.nextString(),
@@ -975,7 +975,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     .filterNot { case (_l, _us) => _l.deleted || _us.excluded }
     .map { case (_l, _) => _l }
 
-  given labelMetadataConverter: GetResult[LabelMetadata] = GetResult[LabelMetadata] { r =>
+  given labelMetadataConverter: GetResult[LabelMetadata] = { r =>
     LabelMetadata(
       r.nextInt(),
       r.nextString(),
@@ -1031,7 +1031,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     )
   }
 
-  given projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = GetResult[ProjectSidewalkStats] { r =>
+  given projectSidewalkStatsConverter: GetResult[ProjectSidewalkStats] = { r =>
     // Read the leading scalar columns into locals (rather than inline constructor args) so we can derive
     // kmExploredSingleUser. Reads must stay in SELECT order; GetResult is positional. km_explored_no_overlap counts
     // streets with ≥1 completed audit and km_explored_multiple_users counts streets with ≥2 distinct auditors, so

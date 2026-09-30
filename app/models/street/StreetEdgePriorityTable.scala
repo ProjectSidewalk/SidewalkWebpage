@@ -139,7 +139,7 @@ class StreetEdgePriorityTable @Inject() (
    * mislabeling the map.
    */
   def getPriorityWithInputs: DBIO[Seq[StreetPriorityForAdmin]] = {
-    given getStreetPriorityForAdmin: GetResult[StreetPriorityForAdmin] = GetResult { r =>
+    given getStreetPriorityForAdmin: GetResult[StreetPriorityForAdmin] = { r =>
       StreetPriorityForAdmin(
         r.nextInt(),
         r.nextInt(),

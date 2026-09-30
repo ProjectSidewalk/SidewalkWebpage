@@ -124,10 +124,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @throws NoSuchElementException if no map parameters are found in the specified schema
    */
   def getCityMapParamsBySchema(schema: String): DBIO[MapParams] = {
-    given getResult: GetResult[MapParams] = GetResult(r =>
+    given getResult: GetResult[MapParams] = r =>
       MapParams(r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(),
         r.nextDouble())
-    )
 
     // SQL query with explicit schema reference using double quotes for proper PostgreSQL schema qualification.
     sql"""
@@ -424,7 +423,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   def getCityScorecardBySchema(schema: String): DBIO[CityScorecard] = {
     // The nullable last-activity timestamp can be NULL on an empty schema, so it is read as an Option and normalized to
     // UTC (we only need the instant, for "days since last activity").
-    given getResult: GetResult[ScorecardCore] = GetResult { r =>
+    given getResult: GetResult[ScorecardCore] = { r =>
       ScorecardCore(
         totalStreets = r.nextInt(),
         auditedStreets = r.nextInt(),
@@ -663,7 +662,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityWeeklyTrendBySchema(schema: String, weeks: Option[Int]): DBIO[Seq[WeeklyPoint]] = {
     given getResult: GetResult[WeeklyPoint] =
-      GetResult(r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
+      r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt())
 
     // weeks is an Int (safe to interpolate); None drops the lower bound to return the city's full history.
     val labelBound = weeks.map(w => s"WHERE label.time_created >= NOW() - ($w * INTERVAL '1 week')").getOrElse("")
@@ -778,12 +777,11 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityDailyActivityByUserBySchema(schema: String, days: Int): DBIO[Seq[DailyContributorActivity]] = {
     given getResult: GetResult[DailyContributorActivity] =
-      GetResult(r =>
+      r =>
         DailyContributorActivity(
           LocalDate.parse(r.nextString()), r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()),
           r.nextInt(), r.nextInt()
         )
-      )
 
     sql"""
       WITH activity AS (
@@ -835,12 +833,11 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityWindowActivityByUserBySchema(schema: String): DBIO[Seq[ContributorWindowActivity]] = {
     given getResult: GetResult[ContributorWindowActivity] =
-      GetResult(r =>
+      r =>
         ContributorWindowActivity(
           r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()), r.nextInt(), r.nextInt(),
           r.nextInt(), r.nextInt()
         )
-      )
 
     sql"""
       WITH activity AS (
@@ -883,10 +880,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       The city's [[CityContributorOutput]]; zeros when a population is empty.
    */
   def getCityContributorOutputBySchema(schema: String): DBIO[CityContributorOutput] = {
-    given getResult: GetResult[CityContributorOutput] = GetResult(r =>
+    given getResult: GetResult[CityContributorOutput] = r =>
       CityContributorOutput(r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(),
         r.nextDouble())
-    )
 
     sql"""
       SELECT COALESCE(lbl.median, 0), COALESCE(lbl.p90, 0), COALESCE(lbl.n, 0),
@@ -942,7 +938,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       (activeAuditHours, auditedKmWithOverlap); hours is 0 when there is no interaction data.
    */
   def getCityLabelingSpeedBySchema(schema: String): DBIO[(Double, Double)] = {
-    given getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
+    given getResult: GetResult[(Double, Double)] = r => (r.nextDouble(), r.nextDouble())
 
     sql"""
       SELECT COALESCE(audit_time.hours, 0) AS hours,
@@ -974,7 +970,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       DBIO yielding the city's [[CityStoryStats]]; all zeros and no `newest` when it has no stories.
    */
   def getCityStoryStatsBySchema(schema: String): DBIO[CityStoryStats] = {
-    given getResult: GetResult[CityStoryStats] = GetResult(r =>
+    given getResult: GetResult[CityStoryStats] = r =>
       CityStoryStats(
         r.nextInt(),
         r.nextInt(),
@@ -984,7 +980,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         r.nextInt(),
         r.nextTimestampOption().map(_.toInstant.atOffset(ZoneOffset.UTC))
       )
-    )
     sql"""
       SELECT COUNT(*),
              COUNT(*) FILTER (WHERE NOT story.visible),

@@ -158,7 +158,7 @@ class StreetAccessScoreTable @Inject() (protected val dbConfigProvider: Database
 
   val streetAccessScores = TableQuery[StreetAccessScoreTableDef]
 
-  private given rowResult: GetResult[StreetSpotlightRowForApi] = GetResult { r =>
+  private given rowResult: GetResult[StreetSpotlightRowForApi] = { r =>
     StreetSpotlightRowForApi(
       osmWayId = r.nextLong(), streetEdgeId = r.nextInt(), regionId = r.nextInt(), regionName = r.nextString(),
       name = r.nextStringOption(), score = r.nextDoubleOption(), lengthM = r.nextDouble(), clusterCount = r.nextInt(),

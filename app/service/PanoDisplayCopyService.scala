@@ -171,7 +171,7 @@ class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(us
    * `computeIfAbsent` and reach the controller as an exception instead of an answer.
    */
   private def submitCut(panoId: String, native: File, target: File, maxWidth: Int): Future[DisplayCopy] = {
-    try Future(cut(panoId, native, target, maxWidth))(cutEc)
+    try Future(cut(panoId, native, target, maxWidth))(using cutEc)
     catch {
       case _: RejectedExecutionException =>
         logger.warn(s"No room to cut a ${maxWidth}px display copy of pano $panoId; refusing.")

@@ -15,6 +15,6 @@ trait RoleBasedAuthorization[Id <: Identity, Auth <: Authenticator] extends Auth
     checkAuthorization(identity, authenticator).map {
       case Authorized          => true
       case NotAuthorized(_, _) => false
-    }(ExecutionContext.parasitic)
+    }(using ExecutionContext.parasitic)
   }
 }

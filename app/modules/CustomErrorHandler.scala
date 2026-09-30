@@ -136,10 +136,10 @@ class CustomErrorHandler @Inject() (
       override def attrs: TypedMap                                   = request.attrs
     }
 
-    val extractableRequest = ExtractableRequest(dummyRequest)
+    val extractableRequest = new ExtractableRequest(dummyRequest)
 
     val userInfo = authenticatorService
-      .retrieve(extractableRequest)
+      .retrieve(using extractableRequest)
       .flatMap {
         case Some(authenticator) if authenticator.isValid =>
           Future.successful(s"Email: ${authenticator.loginInfo.providerKey}, IP: ${request.remoteAddress}")

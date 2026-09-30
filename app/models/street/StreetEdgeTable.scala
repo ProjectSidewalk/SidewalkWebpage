@@ -74,7 +74,7 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
     extends StreetEdgeTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  given streetEdgeInfoConverter: GetResult[StreetEdgeInfo] = GetResult[StreetEdgeInfo](r => {
+  given streetEdgeInfoConverter: GetResult[StreetEdgeInfo] = r => {
     StreetEdgeInfo(
       StreetEdge(
         r.nextInt(),
@@ -91,7 +91,7 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       r.nextInt(),
       r.nextInt()
     )
-  })
+  }
 
   val auditTasks        = TableQuery[AuditTaskTableDef]
   val streetsUnfiltered = TableQuery[StreetEdgeTableDef]
@@ -353,7 +353,7 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       .concat(SqlFragments.allOf(countFilters))
 
     // Use the plainSQL function with given GetResult for StreetDataForApi.
-    given getStreetDataForApi: GetResult[StreetDataForApi] = GetResult { r =>
+    given getStreetDataForApi: GetResult[StreetDataForApi] = { r =>
       StreetDataForApi(
         streetEdgeId = r.nextInt(),
         osmWayId = r.nextLong(),

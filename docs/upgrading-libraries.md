@@ -7,7 +7,7 @@ a glance whether something has a newer release available, or has gone end-of-lif
 
 **Keep the versions here in sync with the code, and keep this the only _doc_ that carries full versions.** Other docs
 ([`CLAUDE.md`](../CLAUDE.md), [`docs/architecture.md`](architecture.md), the README) mention only stable *major*
-versions (Scala 3.3, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
+versions (Scala 3.9, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
 recorded once. When you upgrade something, bump its version number below in the same change.
 
 > Many entries carry a **note** explaining *why* we're pinned where we are (a known incompatibility, an abandoned
@@ -87,7 +87,9 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
 
 ### Core toolchain
 
-- **Scala: 3.3.8** — the 3.3 LTS line. Edit `scalaVersion` in `build.sbt`.
+- **Scala: 3.9.0** — the 3.9 LTS line. Edit `scalaVersion` in `build.sbt`. Our libraries are published for 3.3,
+  which a newer compiler consumes fine. A bump mostly surfaces new warnings, and the compiler can fix many of
+  them itself: `set scalacOptions ++= Seq("-rewrite", "-source", "3.x-migration")` then `compile; Test/compile`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
 - **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
   `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump

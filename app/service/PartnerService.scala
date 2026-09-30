@@ -254,7 +254,7 @@ class PartnerServiceImpl @Inject() (
             )
       }
     }
-  }(cpuEc)
+  }(using cpuEc)
 }
 
 object PartnerServiceImpl {

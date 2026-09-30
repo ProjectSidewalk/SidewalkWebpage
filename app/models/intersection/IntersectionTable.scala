@@ -153,7 +153,7 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   val intersections: TableQuery[IntersectionTableDef]                     = TableQuery[IntersectionTableDef]
   val intersectionStreetEdges: TableQuery[IntersectionStreetEdgeTableDef] = TableQuery[IntersectionStreetEdgeTableDef]
 
-  given intersectionInfoConverter: GetResult[IntersectionInfo] = GetResult[IntersectionInfo] { r =>
+  given intersectionInfoConverter: GetResult[IntersectionInfo] = { r =>
     IntersectionInfo(
       intersectionId = r.nextInt(),
       geom = r.nextGeometry[Point](),
@@ -165,7 +165,7 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
     )
   }
 
-  given intersectionStreetEndConverter: GetResult[IntersectionStreetEnd] = GetResult[IntersectionStreetEnd] { r =>
+  given intersectionStreetEndConverter: GetResult[IntersectionStreetEnd] = { r =>
     IntersectionStreetEnd(r.nextInt(), r.nextString(), r.nextInt())
   }
 

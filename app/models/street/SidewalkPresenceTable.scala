@@ -228,7 +228,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       ORDER BY sidewalk_presence.street_edge_id, sidewalk_presence.street_side
     """)
 
-    given getSidewalkPresenceForApi: GetResult[SidewalkPresenceForApi] = GetResult { r =>
+    given getSidewalkPresenceForApi: GetResult[SidewalkPresenceForApi] = { r =>
       SidewalkPresenceForApi(
         streetEdgeId = r.nextInt(),
         streetSide = r.nextString(),

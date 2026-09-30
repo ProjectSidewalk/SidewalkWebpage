@@ -2216,13 +2216,13 @@ class ConfigServiceImpl @Inject() (
       val cityURL    = config.get[String](s"city-params.landing-page-url.$envType.$cityId")
       val visibility = config.get[String](s"city-params.status.$cityId")
 
-      val cityName          = messagesApi(s"city.name.$cityId")(lang)
+      val cityName          = messagesApi(s"city.name.$cityId")(using lang)
       val cityNameShort     = config.get[Option[String]](s"city-params.city-short-name.$cityId").getOrElse(cityName)
       val cityNameFormatted =
         if (currentCountryId == "usa" && stateId.isDefined && countryId == "usa")
-          messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(lang))(lang)
+          messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(using lang))(using lang)
         else
-          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(lang))(lang)
+          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(using lang))(using lang)
 
       CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
     }
@@ -2265,7 +2265,7 @@ class ConfigServiceImpl @Inject() (
 
   def getCurrentCountryId: String = config.get[String](s"city-params.country-id.$getCityId")
 
-  def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(lang)
+  def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(using lang)
 
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
 

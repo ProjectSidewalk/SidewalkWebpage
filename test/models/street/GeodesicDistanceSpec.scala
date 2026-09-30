@@ -158,8 +158,8 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
     "match a fresh runtime recompute of user_stat.meters_audited" in {
       // Runs the REAL runtime recompute (updateAuditedDistanceHelper) over every user inside a rolled-back
       // transaction: cached values must already equal what it writes. Also evolution 347's backfill postcondition.
-      val allUserIds                                                  = TableQuery[UserStatTableDef].map(_.userId)
-      val (before, after): (Map[String, Double], Map[String, Double]) = runRolledBack(for {
+      val allUserIds      = TableQuery[UserStatTableDef].map(_.userId)
+      val (before, after) = runRolledBack(for {
         before <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
         _      <- userStatTable.updateAuditedDistanceHelper(allUserIds)
         after  <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
@@ -179,8 +179,8 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
       // Seeds the street as well as the user rather than looking for either, so the check runs for real against any
       // schema — including CI's empty one, which has no street to find. The street must be open: the refresh only
       // credits open streets.
-      val cutoff                                     = OffsetDateTime.now().minusHours(1)
-      val (credited, streetLength): (Double, Double) = runRolledBack(for {
+      val cutoff                   = OffsetDateTime.now().minusHours(1)
+      val (credited, streetLength) = runRolledBack(for {
         streetEdgeId <- insertSyntheticStreet(-122.3, 47.6, -122.301, 47.6, "open")
         length       <- streetEdgeTable.getStreetLengths(Seq(streetEdgeId)).map(_(streetEdgeId))
         userId       <- sql"""INSERT INTO sidewalk_login.sidewalk_user (user_id, username, email)
@@ -216,7 +216,7 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
                            WHERE user_stat.meters_audited > 0
                                AND sidewalk_user.username NOT LIKE 'spec%'""".as[(String, Option[Double])].map(_.toMap)
 
-      val (before, after): (Map[String, Option[Double]], Map[String, Option[Double]]) = runRolledBack(for {
+      val (before, after) = runRolledBack(for {
         before <- snapshot
         _      <- userStatTable.updateLabelsPerMeterHelper(auditedUserIds)
         after  <- snapshot
@@ -241,8 +241,8 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
     "match a fresh runtime recompute of the distance-derived user_stat.high_quality flag" in {
       // labels_per_meter is an input to the quality heuristic, so the cached flag must agree with a fresh
       // updateHighQuality run. Epoch cutoff = every user the runtime recompute would ever touch.
-      val epoch                                                         = OffsetDateTime.parse("1970-01-01T00:00:00Z")
-      val (before, after): (Map[String, Boolean], Map[String, Boolean]) = runRolledBack(for {
+      val epoch           = OffsetDateTime.parse("1970-01-01T00:00:00Z")
+      val (before, after) = runRolledBack(for {
         before <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
         _      <- userStatTable.updateHighQuality(epoch)
         after  <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
@@ -256,7 +256,7 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
       // total_distance must equal what initializeRegionCompletionTable would write today. audited_distance is only
       // bounds-checked: it is maintained incrementally at runtime (with deliberate equalization fudges in
       // RegionCompletionTable), so exact equality with a fresh recompute is not an invariant.
-      val (cached, fresh): (Map[Int, (Double, Double)], Map[Int, (Double, Double)]) = runRolledBack(for {
+      val (cached, fresh) = runRolledBack(for {
         cached <- sql"SELECT region_id, total_distance, audited_distance FROM region_completion"
           .as[(Int, Double, Double)]
           .map(_.map { case (id, total, audited) => id -> (total, audited) }.toMap)

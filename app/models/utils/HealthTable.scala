@@ -20,39 +20,39 @@ import javax.inject.*
 class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  private given getBlockingSession: GetResult[BlockingSession] = GetResult { r =>
+  private given getBlockingSession: GetResult[BlockingSession] = { r =>
     BlockingSession(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(),
       r.nextLongOption(), r.nextStringOption(), r.nextInt(), r.nextLongOption(), r.nextStringOption())
   }
 
-  private given getIdleTxnSession: GetResult[IdleTxnSession] = GetResult { r =>
+  private given getIdleTxnSession: GetResult[IdleTxnSession] = { r =>
     IdleTxnSession(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(),
       r.nextLongOption(), r.nextStringOption())
   }
 
-  private given getActiveQuery: GetResult[ActiveQuery] = GetResult { r =>
+  private given getActiveQuery: GetResult[ActiveQuery] = { r =>
     ActiveQuery(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(), r.nextStringOption(),
       r.nextStringOption())
   }
 
-  private given getStuckEvolution: GetResult[StuckEvolution] = GetResult { r =>
+  private given getStuckEvolution: GetResult[StuckEvolution] = { r =>
     StuckEvolution(r.nextString(), r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption())
   }
 
-  private given grTableBloat: GetResult[TableBloat] = GetResult { r =>
+  private given grTableBloat: GetResult[TableBloat] = { r =>
     TableBloat(r.nextString(), r.nextString(), r.nextLong(), r.nextLong(), r.nextDoubleOption(), r.nextLongOption(),
       r.nextLongOption(), r.nextStringOption())
   }
 
   private given getConnCount: GetResult[ConnCount] =
-    GetResult(r => ConnCount(r.nextStringOption(), r.nextStringOption(), r.nextInt()))
+    r => ConnCount(r.nextStringOption(), r.nextStringOption(), r.nextInt())
 
-  private given grPanoBackupStats: GetResult[PanoBackupStats] = GetResult { r =>
+  private given grPanoBackupStats: GetResult[PanoBackupStats] = { r =>
     PanoBackupStats(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong())
   }
 
   private given grDbEnvInfo: GetResult[DbEnvInfo] =
-    GetResult(r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean()))
+    r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean())
 
   /**
    * Caps a health read so it can never hold a pool connection for long. A monitoring query must not add load — least

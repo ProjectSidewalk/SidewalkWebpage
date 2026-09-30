@@ -267,7 +267,7 @@ class ImageController @Inject() (
           val filename: String  = panoDataService.cropFile(labelId, labelType).getPath
           // Base64 decode + ImageIO read/resize/write is CPU-bound; run it off the request EC so concurrent crop
           // uploads can't starve the HTTP dispatcher (#4415).
-          Future(writeImageFile(filename, b64String))(cpuEc)
+          Future(writeImageFile(filename, b64String))(using cpuEc)
             .flatMap {
               case Left(reason) if reason.startsWith("The crop could not be stored") =>
                 Future.successful(InternalServerError(reason))

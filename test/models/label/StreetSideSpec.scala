@@ -220,7 +220,7 @@ class StreetSideSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionVa
       // The backfill and the insert path share label_centerline_offset_m, so the only way to drift is a reposition
       // that forgot to recompute (docs/evolutions.md, cached distance columns). Unpositioned labels are in scope
       // too: their offset must be absent, not merely unequal to a recompute that never ran.
-      val (labelled, stale): (Int, Int) = run(
+      val (labelled, stale) = run(
         sql"""SELECT count(*),
                      count(*) FILTER (WHERE label_point.centerline_offset_m IS DISTINCT FROM
                                             label_centerline_offset_m(label_point.geom, street_edge.geom))

@@ -82,7 +82,7 @@ object ImageryFreshnessReport {
     Json.obj(
       "days"     -> report.days,
       "since"    -> report.since.toString,
-      "jobs"     -> JsArray(report.jobs.map(Json.toJson(_)(HealthService.nightlyJobStatusWrites))),
+      "jobs"     -> JsArray(report.jobs.map(Json.toJson(_)(using HealthService.nightlyJobStatusWrites))),
       "run_days" -> JsArray(report.runDays.map { day =>
         Json.obj(
           "day"                 -> day.day.toString,

@@ -240,8 +240,8 @@ class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     // French string needs four of them to survive. Two renders "na pas pu", which reads as a typo in the
     // translation rather than as the quoting rule it is — hence a test, so the doubling can't be tidied away.
     "keep the apostrophe in the French over-cap notice" in {
-      messagesApi("gallery.list.truncated", 1, 500)(Lang("fr")) must include("n'a pas pu")
-      messagesApi("gallery.list.truncated", 2, 500)(Lang("fr")) must include("n'ont pas pu")
+      messagesApi("gallery.list.truncated", 1, 500)(using Lang("fr")) must include("n'a pas pu")
+      messagesApi("gallery.list.truncated", 2, 500)(using Lang("fr")) must include("n'ont pas pu")
     }
 
     "say nothing about unavailable ids when no list was asked for" in {

@@ -705,7 +705,7 @@ class AdminController @Inject() (
         // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
         val byLabelType = JsObject(
           sc.byLabelType.toSeq
-            .sorted(ApiModelUtils.labelTypeOrdering)
+            .sorted(using ApiModelUtils.labelTypeOrdering)
             .map { case (labelType, s) =>
               labelType -> Json.obj(
                 "labels"    -> s.labels,

@@ -56,7 +56,7 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPe
     val silhouetteKey = Key.get(new TypeLiteral[Silhouette[DefaultEnv]]() {})
     val env           = app.injector.instanceOf[GuiceInjector].getInstance(silhouetteKey).env
     val authenticator =
-      Await.result(env.authenticatorService.retrieve(FakeRequest().withCookies(cookies*)), 30.seconds)
+      Await.result(env.authenticatorService.retrieve(using FakeRequest().withCookies(cookies*)), 30.seconds)
     val user = authenticator.flatMap { auth =>
       Await.result(app.injector.instanceOf[AuthenticationService].retrieve(auth.loginInfo), 30.seconds)
     }

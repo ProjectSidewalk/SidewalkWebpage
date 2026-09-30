@@ -166,7 +166,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * @param limit Maximum number of streets to return.
    */
   def streetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
-    given getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+    given getStreetToPoll: GetResult[StreetToPoll] = { r =>
       val id     = r.nextInt()
       val points = Seq.fill(3)((r.nextDouble(), r.nextDouble())) // Each ST_LineInterpolatePoint pair is (lat, lng).
       StreetToPoll(id, points, r.nextGeometry[LineString]())
@@ -208,7 +208,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * @param limit Maximum number of streets to return.
    */
   def noImageryStreetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
-    given getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+    given getStreetToPoll: GetResult[StreetToPoll] = { r =>
       val id     = r.nextInt()
       val points = Seq.fill(3)((r.nextDouble(), r.nextDouble())) // Each ST_LineInterpolatePoint pair is (lat, lng).
       StreetToPoll(id, points, r.nextGeometry[LineString]())
@@ -370,7 +370,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
     if (panos.isEmpty) DBIO.successful(AttributedImagery(0, None))
     else {
       given getAttributedImagery: GetResult[AttributedImagery] =
-        GetResult(r => AttributedImagery(r.nextInt(), r.nextDateOption().map(_.toLocalDate)))
+        r => AttributedImagery(r.nextInt(), r.nextDateOption().map(_.toLocalDate))
       sql"""
         #${observedAndKeptCte(streetEdgeId, panos)}
         SELECT COUNT(DISTINCT (kept.lat, kept.lng))::int, MAX(kept.capture)

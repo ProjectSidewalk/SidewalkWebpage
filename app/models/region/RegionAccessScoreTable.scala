@@ -107,7 +107,7 @@ class RegionAccessScoreTable @Inject() (protected val dbConfigProvider: Database
 
   val regionAccessScores = TableQuery[RegionAccessScoreTableDef]
 
-  private given rowResult: GetResult[RegionSpotlightRowForApi] = GetResult { r =>
+  private given rowResult: GetResult[RegionSpotlightRowForApi] = { r =>
     RegionSpotlightRowForApi(
       regionId = r.nextInt(), name = r.nextString(), score = r.nextDoubleOption(), completionRate = r.nextDouble(),
       auditedDistanceM = r.nextDouble(), totalDistanceM = r.nextDouble(), clusterCount = r.nextInt()

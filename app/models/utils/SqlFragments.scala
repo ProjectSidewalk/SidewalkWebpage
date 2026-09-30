@@ -105,7 +105,7 @@ object SqlFragments {
 
   object EnumList {
     // Quotes every element so a comma or quote in a value stays inside it.
-    given setEnumList: SetParameter[EnumList] = SetParameter { (list, pp) =>
+    given setEnumList: SetParameter[EnumList] = { (list, pp) =>
       val elements = list.values.map(v => "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
       pp.setObject(elements.mkString("{", ",", "}"), Types.OTHER)
     }

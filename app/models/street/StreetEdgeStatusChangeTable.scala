@@ -83,7 +83,7 @@ class StreetEdgeStatusChangeTable @Inject() (protected val dbConfigProvider: Dat
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val statusChanges = TableQuery[StreetEdgeStatusChangeTableDef]
 
-  private given getStatusChangeWeek: GetResult[StatusChangeWeek] = GetResult { r =>
+  private given getStatusChangeWeek: GetResult[StatusChangeWeek] = { r =>
     StatusChangeWeek(r.nextDate().toLocalDate, StreetEdgeStatus.withName(r.nextString()), r.nextInt())
   }
 

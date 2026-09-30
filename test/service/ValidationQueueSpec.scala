@@ -245,7 +245,7 @@ class ValidationQueueSpec extends SidewalkSpec with RolledBackDb with GuiceOneAp
           sqlu"DELETE FROM sidewalk_user WHERE user_id = $id"
         )
       }
-      run(DBIO.seq(perLabeler :+ sqlu"DELETE FROM pano_data WHERE pano_id = $panoId": _*).transactionally)
+      run(DBIO.seq(perLabeler :+ sqlu"DELETE FROM pano_data WHERE pano_id = $panoId"*).transactionally)
     }
   }
 

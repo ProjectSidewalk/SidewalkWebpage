@@ -45,7 +45,7 @@ class StreetGradientStalenessActor @Inject() (
           24.hours,
           self,
           StreetGradientStalenessActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("StreetGradientStalenessActor created")
     }

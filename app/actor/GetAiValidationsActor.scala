@@ -43,7 +43,7 @@ class GetAiValidationsActor @Inject() (aiService: AiService, jobRunService: JobR
           24.hours,
           self,
           GetAiValidationsActor.Tick
-        )(context.dispatcher, ActorRef.noSender)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("GetAiValidationsActor created")
     }

@@ -332,8 +332,8 @@ class ApiServiceImpl @Inject() (
     LabelType.ordered.map { labelType =>
       LabelTypeForApi(
         name = labelType.name,
-        displayName = messagesApi(labelType.nameKey)(lang),
-        description = messagesApi(labelType.descriptionKey)(lang),
+        displayName = messagesApi(labelType.nameKey)(using lang),
+        description = messagesApi(labelType.descriptionKey)(using lang),
         iconUrl = labelType.iconUrl,
         smallIconUrl = labelType.smallIconUrl,
         tinyIconUrl = labelType.tinyIconUrl,
@@ -503,7 +503,7 @@ class ApiServiceImpl @Inject() (
       wayTypeCounts
         .sortBy { case (wayType, _) => wayType.name }
         .map { case (wayType, count) =>
-          val description: String = messagesApi(s"way.type.${wayType.name.replace("_", ".")}")(lang)
+          val description: String = messagesApi(s"way.type.${wayType.name.replace("_", ".")}")(using lang)
           StreetTypeForApi(wayType.name, description, count)
         }
     }

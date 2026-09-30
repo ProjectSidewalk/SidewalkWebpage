@@ -25,7 +25,7 @@ object RouteBuilderFormats {
   // It's also invisible in listings (they inner-join route_street), so its owner couldn't delete it either.
   given newRouteReads: Reads[NewRoute] = (
     (JsPath \ "region_id").read[Int] and
-      (JsPath \ "streets").read[Seq[NewRouteStreet]](Reads.minLength[Seq[NewRouteStreet]](1)) and
+      (JsPath \ "streets").read[Seq[NewRouteStreet]](using Reads.minLength[Seq[NewRouteStreet]](1)) and
       (JsPath \ "name").readNullable[String] and
       (JsPath \ "description").readNullable[String]
   )(NewRoute.apply)
