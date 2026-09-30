@@ -183,6 +183,7 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
           'public/js/common/pano-viewer/src/MapillaryViewer.js',
           'public/js/common/pano-viewer/src/Infra3dViewer.js',
+          'public/js/common/pano-viewer/src/PanoImageCache.js',
           'public/js/common/pano-viewer/src/PannellumViewer.js',
           'public/js/common/pano-viewer/src/PanoramaxViewer.js',
           'public/js/common/pano-viewer/src/PanoViewerLogo.js',

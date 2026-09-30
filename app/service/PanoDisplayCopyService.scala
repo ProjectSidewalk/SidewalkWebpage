@@ -39,28 +39,50 @@ object PanoDisplayCopyService {
    * How many copies may be cut at once, process-wide.
    *
    * One costs ~105 MB of heap, so without a cap a burst would put several of those into a 1.5 GB heap at the same
-   * moment — the shape of #5239, arrived at from the other direction. Two is chosen against measured demand: the
-   * busiest city serves tens of these a quarter, so contention is theoretical.
+   * moment — the shape of #5239, arrived at from the other direction. Two keeps that bounded. Every phone asks for an
+   * 8192 copy of every backup pano it shows (#5561) and fetches the next one ahead of time (#5562), but a copy is cut
+   * once and then served from disk, so what the pool sees is each pano's first phone, not each phone.
    */
   val MaxConcurrent: Int = 2
 
   /**
-   * How many cuts may wait behind those threads before the rest are refused and served the native file instead.
+   * How many cuts may wait behind those threads before the rest are refused.
    *
-   * Refusing beats queueing without bound: the device asking for a copy is one that failed to texture the native
-   * file, and it has its own ladder of smaller widths to walk. A fast refusal sends it down that ladder; a long
-   * wait just delays the same outcome while holding a request open.
+   * Refusing beats queueing without bound: a device asking for a copy has its own ladder of smaller widths to walk,
+   * and a fast refusal sends it down that ladder while a long wait holds a request open for the same outcome. Eight
+   * is one load plus one prefetch (Validate prefetches one pano at a time) from four phones arriving in the same
+   * couple of seconds, which is the burst a city's launch produces.
    */
-  val QueueDepth: Int = 4
+  val QueueDepth: Int = 8
 
   /**
    * The allowed width at or below what the viewer asked for, so a device is never handed something larger than it
    * said it could take. A request under the smallest allowed width gets that width — a device that can't render
-   * 2048 can't be helped by this route anyway, and refusing outright would leave it with the native file, which is
-   * strictly worse.
+   * 2048 can't be helped by this route anyway, and the smallest copy is a better answer than a refusal.
    */
   def snapToAllowed(requested: Int): Int =
     AllowedWidths.filter(_ <= requested).lastOption.getOrElse(AllowedWidths.head)
+}
+
+/**
+ * What the service can answer when a viewer asks for a copy no wider than some width.
+ *
+ * Three answers rather than an Option because the two "no copy" cases call for opposite responses: a native file
+ * already inside the width is the right thing to serve, while a copy that could not be cut must not be replaced by
+ * the native file. The device asked for a bound because it cannot take more, and on a phone the native file is what
+ * gets the tab killed (#5561).
+ */
+sealed trait DisplayCopy
+object DisplayCopy {
+
+  /** A copy at or under the width asked for. */
+  final case class Ready(file: File) extends DisplayCopy
+
+  /** The native file is already no wider than what was asked for, so it is the right answer. */
+  case object NativeFits extends DisplayCopy
+
+  /** No copy could be produced right now: the pool is full, or the cut failed. */
+  case object Unavailable extends DisplayCopy
 }
 
 /** A downscaled copy of a stored panorama, cut when a viewer asks for one and kept for the next viewer (#5256). */
@@ -70,10 +92,11 @@ trait PanoDisplayCopyService {
   /**
    * A copy of `native` no wider than `maxWidth`, cutting one if it isn't already cached.
    *
-   * @return The copy, or None when it couldn't be produced — the caller serves the native file, which is what a
-   *         viewer that never asked for a copy gets anyway.
+   * @return [[DisplayCopy.Ready]] with the copy; [[DisplayCopy.NativeFits]] when the native file is already within
+   *         the width; [[DisplayCopy.Unavailable]] when one couldn't be produced, which the caller refuses rather
+   *         than answering with the native file.
    */
-  def displayCopy(panoId: String, native: File, maxWidth: Int): Future[Option[File]]
+  def displayCopy(panoId: String, native: File, maxWidth: Int): Future[DisplayCopy]
 
   /** Where a copy is, or would be, cached. */
   def displayCopyFile(panoId: String, maxWidth: Int): File
@@ -112,14 +135,15 @@ class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(us
 
   // Single-flight: a burst on one pano cuts one copy, not one per request. Entries are removed on completion, so
   // this holds only what is in flight.
-  private val inFlight = new ConcurrentHashMap[String, Future[Option[File]]]()
+  private val inFlight = new ConcurrentHashMap[String, Future[DisplayCopy]]()
 
   def displayCopyFile(panoId: String, maxWidth: Int): File =
     new File(new File(displayDir, panoId.take(2)), s"$panoId.w$maxWidth.jpg")
 
-  def displayCopy(panoId: String, native: File, maxWidth: Int): Future[Option[File]] = {
+  def displayCopy(panoId: String, native: File, maxWidth: Int): Future[DisplayCopy] = {
     val cached = displayCopyFile(panoId, maxWidth)
-    if (cached.isFile) Future.successful(Some(cached))
+    if (cached.isFile) Future.successful(DisplayCopy.Ready(cached))
+    else if (nativeFits(native, maxWidth)) Future.successful(DisplayCopy.NativeFits)
     else {
       val key    = s"$panoId@$maxWidth"
       val result = inFlight.computeIfAbsent(key, _ => submitCut(panoId, native, cached, maxWidth))
@@ -130,47 +154,58 @@ class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(us
   }
 
   /**
-   * Hands the cut to [[cutPool]], answering None rather than failing when there is no room for it.
+   * Whether the native file is already no wider than the viewer asked for, read from its header alone.
+   *
+   * Decided before a cut is queued, so a pano that needs no copy is never refused for want of a pool slot. A file
+   * whose header can't be read answers false and takes the cut path, which turns the same failure into Unavailable.
+   */
+  private def nativeFits(native: File, maxWidth: Int): Boolean =
+    try ImageUtils.withReader(native)((_, width, height) => ImageUtils.subsamplePeriod(width, height, maxWidth) == 1)
+    catch { case NonFatal(_) => false }
+
+  /**
+   * Hands the cut to [[cutPool]], answering Unavailable rather than failing when there is no room for it.
    *
    * The queue is bounded and the policy is abort, so `execute` throws here instead of growing without limit. That
    * throw is synchronous, and it has to be caught here rather than recovered downstream: it would otherwise escape
    * `computeIfAbsent` and reach the controller as an exception instead of an answer.
    */
-  private def submitCut(panoId: String, native: File, target: File, maxWidth: Int): Future[Option[File]] = {
+  private def submitCut(panoId: String, native: File, target: File, maxWidth: Int): Future[DisplayCopy] = {
     try Future(cut(panoId, native, target, maxWidth))(cutEc)
     catch {
       case _: RejectedExecutionException =>
-        logger.warn(s"No room to cut a ${maxWidth}px display copy of pano $panoId; serving the native file.")
-        Future.successful(None)
+        logger.warn(s"No room to cut a ${maxWidth}px display copy of pano $panoId; refusing.")
+        Future.successful(DisplayCopy.Unavailable)
     }
   }
 
   /**
-   * Cuts the copy, or answers None if anything about it fails — an unreadable pano, a full disk, a raster the heap
-   * cannot hold. None is a complete answer here rather than an error: the route falls back to the native file,
-   * which is what it served before this route existed.
+   * Cuts the copy, or answers Unavailable if anything about it fails — an unreadable pano, a full disk, a raster the
+   * heap cannot hold. Unavailable is a complete answer here rather than an error: the route turns it into a refusal
+   * the viewer can act on (it steps down to a smaller width, or gives the label up), which is what it must get
+   * instead of a file wider than it said it could take.
    */
-  private def cut(panoId: String, native: File, target: File, maxWidth: Int): Option[File] = {
+  private def cut(panoId: String, native: File, target: File, maxWidth: Int): DisplayCopy = {
     try {
       ImageUtils.withReader(native) { (reader, width, height) =>
         val period = ImageUtils.subsamplePeriod(width, height, maxWidth)
-        if (period == 1) None // Already inside the viewer's budget; the native file is the right answer.
+        if (period == 1) DisplayCopy.NativeFits // Already inside the viewer's budget; the native file is the answer.
         else {
           val _ = target.getParentFile.mkdirs()
           ImageUtils.writeJpeg(ImageUtils.readSubsampled(reader, period), target, JpegQuality)
           logger.info(s"Cut a ${width / period}px display copy of pano $panoId for a ${maxWidth}px viewer.")
-          Some(target)
+          DisplayCopy.Ready(target)
         }
       }
     } catch {
       case NonFatal(e) =>
         logger.warn(s"Could not cut a ${maxWidth}px display copy of pano $panoId: $e")
-        None
+        DisplayCopy.Unavailable
       // Caught by name because it is Fatal, so NonFatal misses it and the failed Future would reach the route as a
-      // 500 -- withholding the native file exactly when a shortage of memory is what went wrong.
+      // 500 instead of the refusal the viewer knows how to act on.
       case e: OutOfMemoryError =>
-        logger.error(s"Out of memory cutting a ${maxWidth}px copy of pano $panoId; serving the native file.", e)
-        None
+        logger.error(s"Out of memory cutting a ${maxWidth}px copy of pano $panoId; refusing.", e)
+        DisplayCopy.Unavailable
     }
   }
 }

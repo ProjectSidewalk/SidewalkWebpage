@@ -315,10 +315,13 @@ class Infra3dViewer extends PanoViewer {
   }
 
   getPanoId = () => {
-    return this.currPanoData.getPanoId();
+    // Null until the first pano's metadata has loaded: the tracker asks on every input event, including during init.
+    return this.currPanoData ? this.currPanoData.getPanoId() : null;
   };
 
   getPosition = () => {
+    // Null until the first pano's metadata has loaded.
+    if (!this.currPanoData) return null;
     return { lat: this.currPanoData.getProperty('lat'), lng: this.currPanoData.getProperty('lng') };
   };
 
@@ -542,8 +545,10 @@ class Infra3dViewer extends PanoViewer {
   };
 
   getPov = () => {
-    const currentView = this.viewer.getCameraView();
     const node = this.currNode || this.prevNode;
+    // Null until the first pano has loaded: the tracker asks on every input event, including during init.
+    if (!node) return null;
+    const currentView = this.viewer.getCameraView();
 
     // Calculate the orientation of the camera.
     const horizontalOrientation = this._getHeading(node.frame.omega, node.frame.phi);

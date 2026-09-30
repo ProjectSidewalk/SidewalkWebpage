@@ -129,8 +129,9 @@ async function stubGoogleMaps(context, leaks) {
 
 /**
  * Makes the Google Maps stub resolve every pano id on this context's pages, instead of only ids it has seen (its
- * default, Google's contract, which sends an expired pano down the Pannellum + backup path). For a spec that wants
- * the primary-viewer path — production's when Google still serves a panorama our metadata check has retired. Must
+ * default, Google's contract, which sends an expired pano down the Pannellum + backup path). Production's shape
+ * when Google still serves a panorama our metadata check has retired — which a page that trusts the flag must
+ * not take up (Validate, #5561), and one that asks the provider first renders through the primary viewer. Must
  * run before navigation: it is an init script the stub reads at install.
  *
  * @param {import('@playwright/test').BrowserContext} context - The context whose pages should see every pano resolve.
