@@ -870,8 +870,7 @@ class LabelServiceImpl @Inject() (
    * Get the most recent validated labels for a user (with valid GSV imagery), grouped by label type.
    * @param userId User ID of the user to get labels for.
    * @param labelTypes Set of label types to get labels for.
-   * @param nPerType Number of labels to get for each label type; kept within 1 to
-   *                 [[LabelServiceImpl.MaxMistakesPerType]].
+   * @param nPerType Labels to get per label type; kept within 1 to [[LabelServiceImpl.MaxMistakesPerType]].
    */
   def getRecentValidatedLabelsForUser(
       userId: String,

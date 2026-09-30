@@ -529,8 +529,7 @@ class AdminServiceImpl @Inject() (
   }
 
   /**
-   * Gets the [[AdminService.RecentCommentLimit]] most recent comments made through either the Explore or (any)
-   * Validate page.
+   * Gets the [[AdminService.RecentCommentLimit]] most recent comments from the Explore or (any) Validate page.
    */
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]] = {
     db.run(for {
