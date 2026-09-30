@@ -1,6 +1,10 @@
 package controllers
 
+import models.utils.MyPostgresProfile.api.given
+import models.utils.WebpageActivityTable
 import org.apache.pekko.stream.Materializer
+import org.scalatest.concurrent.Eventually
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -8,7 +12,7 @@ import play.api.libs.json.Json
 import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import util.{SidewalkSpec, UserAgents}
+import util.{RolledBackDb, SidewalkSpec, UserAgents}
 
 /**
  * Public pages must render for cookie-less requests WITHOUT minting an anonymous account (issue #4643).
@@ -21,7 +25,7 @@ import util.{SidewalkSpec, UserAgents}
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class SessionlessPagesSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+class SessionlessPagesSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb with Eventually {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder()
@@ -29,6 +33,9 @@ class SessionlessPagesSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .build()
 
   given mat: Materializer = app.materializer
+
+  override given patienceConfig: PatienceConfig =
+    PatienceConfig(timeout = Span(10, Seconds), interval = Span(100, Millis))
 
   /** The Silhouette authenticator cookie name ("test-authenticator" here); setting it means a session was minted. */
   private lazy val authCookieName: String = app.configuration.get[String]("silhouette.authenticator.cookieName")
@@ -98,15 +105,23 @@ class SessionlessPagesSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       cookies(resp).get(authCookieName) mustBe None
     }
 
-    "accept a cookie-less activity beacon (POST /userapi/logWebpageActivity) without setting the authenticator" in {
-      val resp = route(
-        app,
-        FakeRequest(POST, "/userapi/logWebpageActivity")
-          .withJsonBody(Json.toJson("Test_SessionlessBeacon"))
-          .withCSRFToken
-      ).get
-      status(resp) mustBe OK
-      cookies(resp).get(authCookieName) mustBe None
+    "accept a cookie-less activity beacon (POST /userapi/logWebpageActivity) and log it with no user" in {
+      val activities = app.injector.instanceOf[WebpageActivityTable].activities
+      val activity   = s"Test_SessionlessBeacon_${System.nanoTime}"
+      // Only rows added after this, so the lookup stays fast.
+      val lastId = run(activities.map(_.webpageActivityId).max.result).getOrElse(0)
+      val mine   = activities.filter(a => a.webpageActivityId > lastId && a.activity === activity)
+      try {
+        val resp = route(
+          app,
+          FakeRequest(POST, "/userapi/logWebpageActivity").withJsonBody(Json.toJson(activity)).withCSRFToken
+        ).get
+        status(resp) mustBe OK
+        cookies(resp).get(authCookieName) mustBe None
+
+        // The beacon answers before its row is written.
+        eventually { run(mine.map(_.userId).result) mustBe Seq(None) }
+      } finally { run(mine.delete): Unit }
     }
   }
 

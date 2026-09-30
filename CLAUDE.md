@@ -122,8 +122,9 @@ share images and the API's `icon_url` fields only.
 
 - Everything runs in Docker (`make dev`). The developer usually has it up: check `docker ps` and reuse. The app is
   at http://localhost:9000; `WebFetch` can't reach it, so use `curl`.
-- Most routes need a session: `curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"`
-  once, then pass `-b /tmp/sidewalk_cookies.txt`. Admin-role QA and running a worktree's branch
+- Public pages and the public API work without a session. Explore, Validate, dashboards and most saves need one:
+  `curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"` once (it makes an account), then
+  pass `-b /tmp/sidewalk_cookies.txt`. Admin-role QA and running a worktree's branch
   (`make qa-worktree wt=<name>`): `docs/dev-environment.md`.
 - Other sessions share :9000 and the test DB. If a command says another checkout holds :9000, rerun with `wait=1` or
   message the holder it names; never `force=1` without the developer's OK.

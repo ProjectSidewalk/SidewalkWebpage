@@ -4,7 +4,8 @@
  *
  * The adjustment is a CSS `filter` on the element the pano viewer renders into, so it works the same for every
  * imagery provider (GSV, Mapillary, Panoramax, Infra3d all draw into a canvas under that element) and touches nothing
- * layered over it — the label canvas, nav arrows and controls are siblings of the mount, not children. Label crops
+ * layered over it — the label canvas, nav arrows and controls are siblings of the mount, not children. What a provider
+ * draws inside its own mount (Google's logo, Mapillary's attribution pill) is filtered with the imagery. Label crops
  * are unaffected too: `Canvas.saveCanvasScreenshot` reads the provider's canvas with `toDataURL`, which never sees a
  * CSS filter, so the stored crop stays the raw imagery.
  *
