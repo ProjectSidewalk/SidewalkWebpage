@@ -5,16 +5,16 @@ import models.mission.MissionTableDef
 import models.mturk.AMTAssignmentTableDef
 import models.region.RegionTableDef
 import models.route.{AuditTaskUserRouteTableDef, RouteStreetTableDef, UserRouteTableDef}
-import models.street._
+import models.street.*
 import models.user.{Role, SidewalkUserTableDef, UserRoleTableDef, UserStatTableDef}
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{ConfigTableDef, FilteredTables, MyPostgresProfile}
 import org.locationtech.jts.geom.{LineString, Point}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 
 import java.time.{LocalDate, OffsetDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 case class AuditTask(
@@ -135,10 +135,7 @@ class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "au
 
   def * = (auditTaskId, amtAssignmentId, userId, streetEdgeId, taskStart, taskEnd, completed, currentLat, currentLng,
     startPointReversed, currentMissionId, currentMissionStart, lowQuality, incomplete, stale, auditedDistanceM,
-    startOffsetM, outdatedImagery, outdatedImageryAt) <> (
-    (AuditTask.apply _).tupled,
-    AuditTask.unapply
-  )
+    startOffsetM, outdatedImagery, outdatedImageryAt).mapTo[AuditTask]
 
   def streetEdge =
     foreignKey("audit_task_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -820,7 +817,7 @@ class AuditTaskTable @Inject() (
       scau._6                                              // newImageryDate
     )
 
-    tasks.result.map(_.map(NewTask.apply.tupled(_)))
+    tasks.result.map(_.map(NewTask.apply.tupled))
   }
 
   /**
@@ -1054,7 +1051,7 @@ class AuditTaskTable @Inject() (
       _scau._6                              // newImageryDate
     )
 
-    tasks.result.map(_.map(NewTask.apply.tupled(_)))
+    tasks.result.map(_.map(NewTask.apply.tupled))
   }
 
   /**

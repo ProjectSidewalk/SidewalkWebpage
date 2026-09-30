@@ -13,7 +13,7 @@ import util.{RolledBackDb, SidewalkSpec}
 class NamedEnumSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   "a named enum" should {
     "print as its name, which is not always the Scala case's" in {

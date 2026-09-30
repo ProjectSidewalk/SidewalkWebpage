@@ -1,6 +1,6 @@
 package models.user
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.validation.LabelValidationTable
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -16,7 +16,7 @@ import util.{RolledBackDb, SidewalkSpec}
 class DeletedLabelAccuracySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val userStatTable    = app.injector.instanceOf[UserStatTable]
   private lazy val validationTable  = app.injector.instanceOf[LabelValidationTable]

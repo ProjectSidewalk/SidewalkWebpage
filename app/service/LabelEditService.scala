@@ -2,26 +2,25 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.cluster.ClusterLabelTable
-import models.label._
+import models.label.*
 import models.user.{Role, SidewalkUserWithRole, UserStatTable}
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.{Duration, OffsetDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /** What came of a request to edit a label from the label popup. */
-sealed trait LabelEditOutcome
-object LabelEditOutcome {
-  case object NotFound             extends LabelEditOutcome
-  case object Forbidden            extends LabelEditOutcome
-  case class Applied(label: Label) extends LabelEditOutcome
+enum LabelEditOutcome {
+  case NotFound
+  case Forbidden
+  case Applied(label: Label)
 
   /** The label's type changed under the editor, so the edit they built on the old type was not applied. */
-  case class Conflict(label: Label) extends LabelEditOutcome
+  case Conflict(label: Label)
 }
 
 @ImplementedBy(classOf[LabelEditServiceImpl])

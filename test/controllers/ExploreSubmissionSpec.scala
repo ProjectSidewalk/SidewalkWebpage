@@ -1,18 +1,18 @@
 package controllers
 
 import controllers.helper.{ExploreBootstrap, SubmissionSpecHelpers}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import _root_.util.SidewalkSpec
 
 import java.time.OffsetDateTime
@@ -42,7 +42,7 @@ class ExploreSubmissionSpec
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // Submitting eligible labels fires an async AI-validation HTTP call; keep the spec off the network.
       .configure("ai-enabled" -> false)
@@ -199,7 +199,7 @@ class ExploreSubmissionSpec
 
   /** Posts a submission over HTTP as the session's user, the way the frontend does. */
   private def postTask(session: Seq[Cookie], payload: JsValue) =
-    route(app, FakeRequest(POST, "/task").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
+    route(app, FakeRequest(POST, "/task").withCookies(session*).withJsonBody(payload).withCSRFToken).get
 
   /** Reports the bootstrap's street as having no usable imagery, the way `util.misc.reportNoImagery` does. */
   private def postNoImagery(session: Seq[Cookie], b: ExploreBootstrap) = {
@@ -220,7 +220,7 @@ class ExploreSubmissionSpec
     )
     route(
       app,
-      FakeRequest(POST, "/explore/nostreetview").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+      FakeRequest(POST, "/explore/nostreetview").withCookies(session*).withJsonBody(payload).withCSRFToken
     ).get
   }
 
@@ -260,7 +260,7 @@ class ExploreSubmissionSpec
       sql"""SELECT label_id, audit_task_id, mission_id, deleted, tutorial, severity
             FROM label WHERE user_id = $userId AND temporary_label_id = $tempLabelId"""
         .as[(Int, Int, Int, Boolean, Boolean, Option[Int])]
-    ).map((LabelRow.apply _).tupled)
+    ).map(LabelRow.apply.tupled)
 
   /** The street's current priority, or None when it has no `street_edge_priority` row. */
   private def streetPriority(streetEdgeId: Int): Option[Double] =

@@ -8,7 +8,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, SidewalkSpec}
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for LabelService tag lookups (the Gallery page's tag-filter source), for the gallery label query
@@ -21,7 +21,7 @@ import scala.concurrent.duration._
 class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val labelService                               = app.injector.instanceOf[LabelService]
   private val labelTable                                 = app.injector.instanceOf[LabelTable]

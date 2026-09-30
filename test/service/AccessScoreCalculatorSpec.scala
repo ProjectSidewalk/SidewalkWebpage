@@ -106,9 +106,9 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
     // base −2.0 × min(1, n / 3): one stray pin is a third of a missing sidewalk; eight pins are no worse than three.
     noSidewalkTerm(noSidewalk()) shouldBe (-2.0 / 3 +- eps)
     noSidewalkTerm(noSidewalk(), noSidewalk()) shouldBe (-4.0 / 3 +- eps)
-    noSidewalkTerm(Seq.fill(3)(noSidewalk()): _*) shouldBe (-2.0 +- eps)
-    noSidewalkTerm(Seq.fill(8)(noSidewalk()): _*) shouldBe (-2.0 +- eps)
-    noSidewalkTerm(Seq.fill(40)(noSidewalk()): _*) shouldBe (-2.0 +- eps)
+    noSidewalkTerm(Seq.fill(3)(noSidewalk())*) shouldBe (-2.0 +- eps)
+    noSidewalkTerm(Seq.fill(8)(noSidewalk())*) shouldBe (-2.0 +- eps)
+    noSidewalkTerm(Seq.fill(40)(noSidewalk())*) shouldBe (-2.0 +- eps)
     AccessScoreCalculator.streetConditionSaturationCount shouldBe 3
   }
 
@@ -219,7 +219,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
   /** A deterministic spread of clusters: every scored type, every rating bucket, tags on and off, pooled NoSidewalk. */
   private def randomClusters(seed: Int, n: Int): Seq[ClusterScoreInput] = {
-    val rng   = new scala.util.Random(seed)
+    val rng   = scala.util.Random(seed)
     val types = AccessScoreCalculator.orderedScoredTypes :+ "Occlusion"
     Seq.fill(n) {
       val labelType  = types(rng.nextInt(types.size))
@@ -291,12 +291,12 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
   test("ratingMultiplier ignores the bucket for the modes that ignore ratings") {
     AccessScoreCalculator.severityBuckets.foreach { b =>
-      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.PresenceOnly, b) shouldBe 1.0
-      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.StreetCondition, b) shouldBe 1.0
+      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.PresenceOnly, b) shouldBe 1.0
+      AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.StreetCondition, b) shouldBe 1.0
     }
-    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.PositiveQuality, "3") shouldBe -1.0
-    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.PositiveQuality, "null") shouldBe 0.5
-    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.NegativeSeverity, "null") shouldBe 0.33
+    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.PositiveQuality, "3") shouldBe -1.0
+    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.PositiveQuality, "null") shouldBe 0.5
+    AccessScoreCalculator.ratingMultiplier(AccessScoreCalculator.Scoring.NegativeSeverity, "null") shouldBe 0.33
   }
 
   test("every preset weights exactly the scored types, and 'default' is the engine's own magnitudes") {
@@ -344,10 +344,10 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
       val scale = LabelType.withName(typeName).ratingScale
       withClue(s"$typeName is $scale but scores as ${weight.scoring}: ") {
         weight.scoring match {
-          case AccessScoreCalculator.PositiveQuality  => scale shouldBe RatingScale.Quality
-          case AccessScoreCalculator.NegativeSeverity => scale shouldBe RatingScale.Severity
+          case AccessScoreCalculator.Scoring.PositiveQuality  => scale shouldBe RatingScale.Quality
+          case AccessScoreCalculator.Scoring.NegativeSeverity => scale shouldBe RatingScale.Severity
           // Both ignore the rating entirely, which is only sound for a type that never carries one.
-          case AccessScoreCalculator.PresenceOnly | AccessScoreCalculator.StreetCondition =>
+          case AccessScoreCalculator.Scoring.PresenceOnly | AccessScoreCalculator.Scoring.StreetCondition =>
             scale shouldBe RatingScale.Unrated
         }
       }
@@ -468,7 +468,10 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
 
   /** A double weight on the mean grade: the statistic the ramp cases below name their grades against. */
   private val slopeOn =
-    AccessScoreCalculator.defaultSlopeSettings.copy(weight = 2.0, statistic = AccessScoreCalculator.MeanGrade)
+    AccessScoreCalculator.defaultSlopeSettings.copy(
+      weight = 2.0,
+      statistic = AccessScoreCalculator.SlopeStatistic.MeanGrade
+    )
 
   private def measured(mean: Double, max: Double, over5: Double = 0.0, over8: Double = 0.0) =
     Some(AccessScoreCalculator.SlopeInput(Some(mean), Some(max), Some(mean), Some(over5), Some(over8), false))
@@ -476,7 +479,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   test("the default slope settings weigh the steepest stretch between the two ADA limits, with no barrier") {
     val d = AccessScoreCalculator.defaultSlopeSettings
     d.weight shouldBe 1.0
-    d.statistic shouldBe AccessScoreCalculator.MaxGrade
+    d.statistic shouldBe AccessScoreCalculator.SlopeStatistic.MaxGrade
     d.lowThreshold shouldBe 0.05
     d.highThreshold shouldBe (1.0 / 12.0)
     d.barrierEnabled shouldBe false
@@ -508,7 +511,7 @@ class AccessScoreCalculatorSpec extends AnyFunSuite with Matchers {
   }
 
   test("the over-limit statistic is the share over 5% plus the share over 8.33%, halved") {
-    val s = slopeOn.copy(statistic = AccessScoreCalculator.MetersOverLimit)
+    val s = slopeOn.copy(statistic = AccessScoreCalculator.SlopeStatistic.MetersOverLimit)
     AccessScoreCalculator.slopeUnits(measured(0.06, 0.1, over5 = 100, over8 = 0), 200, s) shouldBe (0.25 +- eps)
     AccessScoreCalculator.slopeUnits(measured(0.1, 0.1, over5 = 200, over8 = 200), 200, s) shouldBe (1.0 +- eps)
     // A stored length a hair over the street's own (both are geodesic, measured separately) cannot pass 1.

@@ -88,7 +88,7 @@ private[api] object RawLabelFields extends ApiFields[RawLabelInClusterDataForApi
 }
 
 object RawLabelInClusterDataForApi {
-  given clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = RawLabelFields.toJson _
+  given clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = Writes(RawLabelFields.toJson)
 
   /** The same labels as their own CSV file or GeoPackage layer, each naming its parent cluster in a column of its own. */
   object InCluster extends ApiFields[(Int, RawLabelInClusterDataForApi)] {

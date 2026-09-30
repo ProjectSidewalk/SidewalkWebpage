@@ -1,6 +1,6 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.partner.{PartnerLogoUpload, PartnerMetadata, PartnerRejection}
 import models.user.{Role, SidewalkUserWithRole}
@@ -123,8 +123,8 @@ class PartnerController @Inject() (
       case Some((bytes, mime, updatedAt)) =>
         val etag    = "\"" + PartnerMetadata.logoVersionOf(updatedAt) + "\""
         val headers = Seq(CACHE_CONTROL -> "public, max-age=31536000, immutable", ETAG -> etag)
-        if (request.headers.get(IF_NONE_MATCH).contains(etag)) NotModified.withHeaders(headers: _*)
-        else Ok(bytes).as(mime).withHeaders(headers: _*)
+        if (request.headers.get(IF_NONE_MATCH).contains(etag)) NotModified.withHeaders(headers*)
+        else Ok(bytes).as(mime).withHeaders(headers*)
     }
   }
 

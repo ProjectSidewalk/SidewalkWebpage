@@ -1,8 +1,8 @@
 package forms
 
 import play.api.data.Form
-import play.api.data.Forms._
-import play.api.data.validation.Constraints._
+import play.api.data.Forms.*
+import play.api.data.validation.Constraints.*
 
 /**
  * The sign-up form, shared by the auth dialog and the full-page/mobile sign-up views.

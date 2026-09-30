@@ -3,7 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.api.{SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
 import models.label.StreetSide
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{FilteredTables, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -76,7 +76,7 @@ class SidewalkPresenceTableDef(tag: Tag) extends Table[SidewalkPresence](tag, "s
     streetEdgeId, streetSide, presence, presenceBasis, noSidewalkLabelCount, noSidewalkUserCount,
     validatedNoSidewalkCount, rejectedNoSidewalkCount, labelCount, auditCount, firstNoSidewalkLabelAt,
     lastNoSidewalkLabelAt
-  ) <> ((SidewalkPresence.apply _).tupled, SidewalkPresence.unapply)
+  ).mapTo[SidewalkPresence]
 
   def pk = primaryKey("sidewalk_presence_pkey", (streetEdgeId, streetSide))
 

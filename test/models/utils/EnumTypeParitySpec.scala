@@ -3,7 +3,7 @@ package models.utils
 import models.label.{AiImageSource, ComputationMethod, CropSource, LabelType, StreetSide}
 import models.mission.MissionType
 import models.pano.{PanoImageryChangeSource, PanoSource}
-import models.street._
+import models.street.*
 import models.user.{MeasurementSystem, Role}
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile.api.given
@@ -29,10 +29,10 @@ import util.{RolledBackDb, SidewalkSpec}
 class EnumTypeParitySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   // A new enum has to be added here by hand: nothing lists the companions for us.
-  private val enums: Seq[PgEnumCompanion[_ <: NamedEnum]] = Seq(
+  private val enums: Seq[PgEnumCompanion[? <: NamedEnum]] = Seq(
     AiImageSource, ComputationMethod, CropSource, JobRunStatus, JobRunTrigger, LabelType, MeasurementSystem,
     MissionType, PanoImageryChangeSource, PanoSource, Role, SidewalkPresenceBasis, SidewalkPresenceStatus,
     StreetEdgeIssueType, StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetGradientConfidence,

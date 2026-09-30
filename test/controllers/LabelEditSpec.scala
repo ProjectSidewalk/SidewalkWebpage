@@ -1,16 +1,16 @@
 package controllers
 
 import controllers.helper.SubmissionSpecHelpers
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import _root_.util.{SidewalkSpec, SignedUpAccounts}
 
 /**
@@ -27,7 +27,7 @@ class LabelEditSpec
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
@@ -118,7 +118,7 @@ class LabelEditSpec
   )
 
   private def postEdit(session: Seq[Cookie], body: JsValue) =
-    route(app, FakeRequest(POST, "/label/edit").withCookies(session: _*).withJsonBody(body).withCSRFToken).get
+    route(app, FakeRequest(POST, "/label/edit").withCookies(session*).withJsonBody(body).withCSRFToken).get
 
   private def labelState(labelId: Int): (Option[Int], List[String]) = {
     val row = run(
@@ -219,7 +219,7 @@ class LabelEditSpec
   }
 
   private def postPopupVote(session: Seq[Cookie], body: JsValue) =
-    route(app, FakeRequest(POST, "/labelmap/validate").withCookies(session: _*).withJsonBody(body).withCSRFToken).get
+    route(app, FakeRequest(POST, "/labelmap/validate").withCookies(session*).withJsonBody(body).withCSRFToken).get
 
   override def afterAll(): Unit = {
     try {
@@ -279,7 +279,7 @@ class LabelEditSpec
     "403 a non-admin editing someone else's label, and flag the label as not editable" in {
       val target               = pickLabel()
       val (userId, _, session) = signUpFreshUser()
-      val meta = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session: _*)).get
+      val meta                 = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session*)).get
       status(meta) mustBe OK
       (contentAsJson(meta) \ "can_edit").as[Boolean] mustBe false
 
@@ -296,7 +296,7 @@ class LabelEditSpec
       grantAdmin(userId)
       val historyBefore = historyCount(target.labelId)
 
-      val meta = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session: _*)).get
+      val meta = route(app, FakeRequest(GET, s"/label/id/${target.labelId}").withCookies(session*)).get
       (contentAsJson(meta) \ "can_edit").as[Boolean] mustBe true
 
       // First change: the severity. One standalone edit from the label's old state, with its history row.

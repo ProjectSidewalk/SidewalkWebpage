@@ -1,6 +1,6 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, isMobile, regionsParam}
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
@@ -16,7 +16,7 @@ import formats.json.ValidateFormats.{
 import models.auth.WithAdmin
 import models.label.{LabelType, Tag}
 import models.mission.MissionType
-import models.user._
+import models.user.*
 import models.utils.IpAddress
 import models.validation.{
   LabelValidation,
@@ -27,7 +27,7 @@ import models.validation.{
 }
 import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Result
 import service.ValidationSubmission
 

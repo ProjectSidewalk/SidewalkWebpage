@@ -8,7 +8,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.test.FakeRequest
 import util.SidewalkSpec
 
@@ -30,7 +30,7 @@ import scala.util.Using
 class PublicApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventually {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests (nothing else injects their ActorRefs).
       .build()
 
@@ -195,7 +195,7 @@ class PublicApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventuall
 
     "answer a repeat of a file download still being built with 429 and Retry-After (#4161)" in {
       val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=shapefile"
-      BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))
+      BaseApiController.inFlight.put(url, BaseApiController.InFlight(Instant.now()))
       try {
         val resp = route(app, FakeRequest(GET, url)).get
         status(resp) mustBe TOO_MANY_REQUESTS
@@ -204,7 +204,7 @@ class PublicApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventuall
       } finally { val _ = BaseApiController.inFlight.remove(url) }
 
       // A body Play never started sending stops blocking after a short grace period.
-      val abandoned = new BaseApiController.InFlight(Instant.now())
+      val abandoned = BaseApiController.InFlight(Instant.now())
       abandoned.resultAt = Some(Instant.now().minus(BaseApiController.bodyStartGrace).minusSeconds(1))
       BaseApiController.inFlight.put(url, abandoned)
       val resp = route(app, FakeRequest(GET, url)).get
@@ -215,7 +215,7 @@ class PublicApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventuall
 
     "answer a HEAD with the same 429 while the file is being built, and 200 otherwise, without building anything" in {
       val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=geopackage"
-      BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))
+      BaseApiController.inFlight.put(url, BaseApiController.InFlight(Instant.now()))
       try status(route(app, FakeRequest(HEAD, url)).get) mustBe TOO_MANY_REQUESTS
       finally { val _ = BaseApiController.inFlight.remove(url) }
 
@@ -228,7 +228,7 @@ class PublicApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventuall
 
     "keep serving a repeat of a plain streamed URL, which the site's own pages fetch in parallel" in {
       val url = s"/v3/api/rawLabels?bbox=$emptyBbox&filetype=geojson"
-      BaseApiController.inFlight.put(url, new BaseApiController.InFlight(Instant.now()))
+      BaseApiController.inFlight.put(url, BaseApiController.InFlight(Instant.now()))
       try {
         val resp = route(app, FakeRequest(GET, url)).get
         status(resp) mustBe OK
@@ -237,7 +237,7 @@ class PublicApiSpec extends SidewalkSpec with GuiceOneAppPerSuite with Eventuall
     }
 
     "stay busy while a body is still streaming, however long ago it started" in {
-      val entry = new BaseApiController.InFlight(Instant.now().minus(BaseApiController.inFlightLimit).minusSeconds(60))
+      val entry = BaseApiController.InFlight(Instant.now().minus(BaseApiController.inFlightLimit).minusSeconds(60))
       entry.resultAt = Some(entry.started.plusSeconds(1))
       entry.bodyStarted = true
       entry.stillBusy(Instant.now()) mustBe false // Nothing sent since it started: treated as leaked.

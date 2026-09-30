@@ -2,7 +2,7 @@ package util
 
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.user.{SidewalkUser, SidewalkUserTableDef}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
 import java.time.OffsetDateTime
@@ -20,7 +20,7 @@ import java.util.UUID
  * Every helper writes real rows, so a spec must either wrap them in [[RolledBackDb.runRolledBack]] or delete what it
  * seeded in an `afterAll`. Mix into a `SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb`.
  */
-trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
+trait StreetFixtures { this: GuiceOneAppPerSuite & RolledBackDb =>
 
   // Plain defs, deliberately: a `lazy val` here would be initialized under the spec instance's monitor, and these
   // helpers' later steps run on a Slick thread. A spec that blocks on `run(...)` from inside its own lazy val would

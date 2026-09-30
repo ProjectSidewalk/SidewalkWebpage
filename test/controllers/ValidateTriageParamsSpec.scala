@@ -8,7 +8,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.{AnonSession, RoleSession, SidewalkSpec}
 
 /**
@@ -24,7 +24,7 @@ import util.{AnonSession, RoleSession, SidewalkSpec}
 class ValidateTriageParamsSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // This suite mints a session per test, and /anonSignUp is capped per IP per hour.
       .configure("rate-limit.anon-signup.enabled" -> false)
@@ -37,7 +37,7 @@ class ValidateTriageParamsSpec extends SidewalkSpec with RoleSession with GuiceO
     """triage:\s*(true|false)""".r.findFirstMatchIn(body).map(_.group(1).toBoolean)
 
   private def getPage(path: String, cookies: Seq[Cookie]): (Int, String) = {
-    val resp = route(app, FakeRequest(GET, path).withCookies(cookies: _*)).get
+    val resp = route(app, FakeRequest(GET, path).withCookies(cookies*)).get
     (status(resp), contentAsString(resp))
   }
 

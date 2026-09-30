@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json}
@@ -50,7 +50,7 @@ class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
   def updatedAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("updated_at")
   def missingSince: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("missing_since")
 
-  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt, missingSince) <> ((OsmWay.apply _).tupled, OsmWay.unapply)
+  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt, missingSince).mapTo[OsmWay]
 }
 
 @ImplementedBy(classOf[OsmWayTable])

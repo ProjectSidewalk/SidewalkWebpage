@@ -1,6 +1,6 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.isAdmin
 import controllers.helper.SignedMediaUtils
 import formats.json.StoryFormats
@@ -172,7 +172,7 @@ class StoryController @Inject() (
    */
   private def updateStory(storyId: Int, event: String, body: MultipartFormData[TemporaryFile])(
       save: StoryEdit => Future[Either[StoryRejection, Unit]]
-  )(using request: SecuredRequest[DefaultEnv, _]): Future[Result] = {
+  )(using request: SecuredRequest[DefaultEnv, ?]): Future[Result] = {
     def dataPart(name: String): Option[String] = body.dataParts.get(name).flatMap(_.headOption)
 
     val ipKey   = s"story-submit:ip:${request.ipAddress}"
@@ -217,10 +217,7 @@ class StoryController @Inject() (
   def getMyStories = cc.securityService.SecuredAction { implicit request => userStoriesJson(request.identity.userId) }
 
   /** Any user's stories in the owner shape, for the admin view of their dashboard (same list they see themselves). */
-  def getUserStories(userId: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
-    userStoriesJson(userId)
-  }
+  def getUserStories(userId: String) = cc.securityService.SecuredAction(WithAdmin()) { _ => userStoriesJson(userId) }
 
   private def userStoriesJson(userId: String): Future[Result] = {
     storyService.getStoriesForUser(userId).map { stories =>
@@ -304,8 +301,7 @@ class StoryController @Inject() (
   }
 
   /** Most recent stories across all users, hidden included — the admin moderation queue feed. */
-  def getRecentStories(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
+  def getRecentStories(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     // Clamp both ends: a negative n would reach Slick's .take and emit an invalid negative SQL LIMIT (500 otherwise).
     storyService.getRecentStories(math.min(math.max(n, 0), 500)).map { stories =>
       Ok(Json.obj("stories" -> stories.map(StoryFormats.storyForAdminToJson)))

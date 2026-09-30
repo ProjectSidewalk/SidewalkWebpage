@@ -3,7 +3,7 @@ package util
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 
 /**
  * Mints anonymous sessions for the specs that drive SecuredAction routes over HTTP.
@@ -16,7 +16,7 @@ import play.api.test.Helpers._
  * `fakeApplication()` with `.configure("rate-limit.anon-signup.enabled" -> false)`; otherwise repeat runs start
  * hitting 429s, which surface here as a failed session mint rather than as anything about the code under test.
  */
-trait AnonSession { this: SidewalkSpec with GuiceOneAppPerSuite =>
+trait AnonSession { this: SidewalkSpec & GuiceOneAppPerSuite =>
 
   /**
    * Mints a fresh anonymous session and returns its cookies.
@@ -26,7 +26,7 @@ trait AnonSession { this: SidewalkSpec with GuiceOneAppPerSuite =>
    * @return The session cookies, to pass to subsequent requests via `withCookies`.
    */
   protected def freshAnonSession(headers: (String, String)*): Seq[Cookie] = {
-    val resp = route(app, FakeRequest(GET, "/anonSignUp?url=%2F").withHeaders(headers: _*)).get
+    val resp = route(app, FakeRequest(GET, "/anonSignUp?url=%2F").withHeaders(headers*)).get
     status(resp) mustBe SEE_OTHER
     cookies(resp).toSeq
   }

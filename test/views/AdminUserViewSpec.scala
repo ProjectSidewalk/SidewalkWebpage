@@ -28,7 +28,7 @@ import scala.concurrent.duration.DurationInt
 class AdminUserViewSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private given request: RequestHeader = FakeRequest()
   private given messages: Messages     = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("en")))

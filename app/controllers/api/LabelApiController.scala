@@ -2,7 +2,7 @@ package controllers.api
 
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
-import models.api._
+import models.api.*
 import models.label.LabelType
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.libs.json.Json
@@ -53,7 +53,7 @@ class LabelApiController @Inject() (
       inline: Option[Boolean]
   ) = silhouette.UserAwareAction.async { implicit request =>
     // Set up streaming data from the database.
-    val dbDataStream: Source[LabelCVMetadata, _] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
+    val dbDataStream: Source[LabelCVMetadata, ?] = apiService.getLabelCVMetadata(DEFAULT_BATCH_SIZE)
     val baseFileName: String                     = timestampedFilename("labelsWithCVMetadata")
     cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -199,7 +199,7 @@ class LabelApiController @Inject() (
             )
 
             // Get the data stream.
-            val dbDataStream: Source[LabelDataForApi, _] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
+            val dbDataStream: Source[LabelDataForApi, ?] = apiService.getRawLabels(filters, DEFAULT_BATCH_SIZE)
             val baseFileName: String                     = timestampedFilename("labels")
 
             // Output data in the appropriate file format.

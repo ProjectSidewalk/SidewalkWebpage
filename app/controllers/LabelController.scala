@@ -1,16 +1,15 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, NoUserId}
 import formats.json.LabelFormats
 import formats.json.ValidateFormats.{labelEditSubmissionReads, LabelEditSubmission}
 import models.auth.DefaultEnv
-import models.label._
+import models.label.*
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
 import models.utils.LatLngBBox
-import play.api.Logger
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Result
 import play.silhouette.api.Silhouette
 import service.{
@@ -39,8 +38,6 @@ class LabelController @Inject() (
 )(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
-  private val logger = Logger(this.getClass)
-
   /**
    * Fetches the labels that a user has added in the current region they are working in.
    * @param regionId Region id
@@ -59,8 +56,7 @@ class LabelController @Inject() (
    * Gets the total label count in a region across all users.
    * @param regionId Region id
    */
-  def getRegionLabelCount(regionId: Int) = cc.securityService.SecuredAction { implicit request =>
-    logger.debug(request.toString) // The request is unused, but SecuredAction needs it and the compiler wants it read.
+  def getRegionLabelCount(regionId: Int) = cc.securityService.SecuredAction { _ =>
     labelService.countLabelsInRegion(regionId).map { labelCount => Ok(Json.obj("label_count" -> labelCount)) }
   }
 
@@ -231,9 +227,7 @@ class LabelController @Inject() (
   /**
    * Gets all tags in the database in JSON.
    */
-  def getLabelTags = silhouette.UserAwareAction.async { implicit request =>
-    logger.debug(request.toString)
-
+  def getLabelTags = silhouette.UserAwareAction.async { _ =>
     // TODO this should use implicit conversion maybe?
     labelService.getTagsForCurrentCity.map { tags =>
       Ok(JsArray(tags.map { tag =>

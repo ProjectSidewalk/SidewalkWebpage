@@ -14,7 +14,7 @@ import play.api.{Configuration, Logger}
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -215,7 +215,7 @@ class ImageryFreshnessServiceImpl @Inject() (
 )(using ec: ExecutionContext)
     extends ImageryFreshnessService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import ImageryFreshnessService._
+  import ImageryFreshnessService.*
   import models.utils.MyPostgresProfile.api.given
 
   private val logger = Logger(this.getClass)
@@ -272,14 +272,14 @@ class ImageryFreshnessServiceImpl @Inject() (
         config.getOptional[String]("google-maps-api-key") match {
           case Some(key) => pollStreets("GSV")(fetchGsvPointObservations(key))
           case None      =>
-            Future.failed(new MissingImageryCredentialException("No google-maps-api-key configured for a GSV city."))
+            Future.failed(MissingImageryCredentialException("No google-maps-api-key configured for a GSV city."))
         }
       case PanoSource.Mapillary =>
         config.getOptional[String]("mapillary-access-token") match {
           case Some(token) => pollStreets("Mapillary")(fetchMapillaryPointObservations(token))
           case None        =>
             Future.failed(
-              new MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
+              MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
             )
         }
       // Panoramax's API is public, so there is no credential to resolve (#5185).

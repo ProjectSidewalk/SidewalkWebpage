@@ -2,7 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -15,7 +15,7 @@ class TagTableDef(tagParam: slick.lifted.Tag) extends Table[Tag](tagParam, "tag"
   def tag: Rep[String]                           = column[String]("tag")
   def mutuallyExclusiveWith: Rep[Option[String]] = column[Option[String]]("mutually_exclusive_with")
 
-  def * = (tagId, labelType, tag, mutuallyExclusiveWith) <> ((Tag.apply _).tupled, Tag.unapply)
+  def * = (tagId, labelType, tag, mutuallyExclusiveWith).mapTo[Tag]
 
   def labelTypeTagUnique = index("tag_label_type_tag_unique", (labelType, tag), unique = true)
 }

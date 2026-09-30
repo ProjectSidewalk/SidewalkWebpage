@@ -3,7 +3,7 @@ package models.validation
 import models.audit.AuditTaskTableDef
 import models.label.LabelTableDef
 import models.user.{UserStatTable, UserStatTableDef}
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 
 import java.time.{Duration, OffsetDateTime}
 
@@ -79,18 +79,19 @@ object ValidationQueuePolicy {
   val FaceSettledSupport: Int = 2
 
   /** Which subset of labels a Validate page draws from. Cascades are drained in order until a mission is full. */
-  sealed trait ValidationQueue
-  object ValidationQueue {
+  enum ValidationQueue {
 
     /** Labels the crowd can still settle: no votes yet, or unsettled and under the vote cap. */
-    case object NeedsVotes extends ValidationQueue
+    case NeedsVotes
 
     /** Labels the crowd is stuck on: capped out, unsure-heavy, or the humans and the AI disagree. */
-    case object Triage extends ValidationQueue
+    case Triage
 
     /** Everything the viewer can render; the fallback that keeps the game endless (#2929). */
-    case object Any extends ValidationQueue
+    case Any
+  }
 
+  object ValidationQueue {
     val crowdCascade: Seq[ValidationQueue]  = Seq(NeedsVotes, Any)
     val expertCascade: Seq[ValidationQueue] = Seq(Triage, NeedsVotes, Any)
   }

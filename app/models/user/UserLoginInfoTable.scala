@@ -2,10 +2,10 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 
 case class UserLoginInfo(userLoginInfoId: Int, userId: String, loginInfoId: Long)
 
@@ -13,7 +13,7 @@ class UserLoginInfoTableDef(tag: Tag) extends Table[UserLoginInfo](tag, "user_lo
   def userLoginInfoId: Rep[Int] = column[Int]("user_login_info_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]       = column[String]("user_id")
   def loginInfoId: Rep[Long]    = column[Long]("login_info_id")
-  def * = (userLoginInfoId, userId, loginInfoId) <> (UserLoginInfo.apply.tupled, UserLoginInfo.unapply)
+  def *                         = (userLoginInfoId, userId, loginInfoId).mapTo[UserLoginInfo]
 
   def user      = foreignKey("user_login_info_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def loginInfo =

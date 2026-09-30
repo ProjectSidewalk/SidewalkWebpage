@@ -1,6 +1,6 @@
 package models.api
 
-import models.street._
+import models.street.*
 import play.api.libs.json.{JsNull, JsObject}
 import util.SidewalkSpec
 

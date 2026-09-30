@@ -1,7 +1,7 @@
 package models.label
 
 import models.user.UserStatTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -15,7 +15,7 @@ import util.{RolledBackDb, SidewalkSpec}
 class ValidationRecountSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val labelTable    = app.injector.instanceOf[LabelTable]
   private lazy val userStatTable = app.injector.instanceOf[UserStatTable]

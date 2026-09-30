@@ -12,7 +12,7 @@ import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for `background_job_run` (#4928, evolution 358) and its DAO.
@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 class BackgroundJobRunTableSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
   private val dbConfig    = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]

@@ -5,7 +5,7 @@ import models.api.{LabelEditDataForApi, LabelEditFiltersForApi}
 import models.user.SidewalkUserTableDef
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -53,7 +53,7 @@ class LabelEditTableDef(tag: slick.lifted.Tag) extends Table[LabelEdit](tag, "la
   // CHECK label_edit_not_noop_check: the type differs, the severity differs, or the tag sets differ.
 
   def * = (labelEditId, labelId, userId, oldLabelType, newLabelType, oldSeverity, newSeverity, oldTags, newTags, source,
-    editTime, labelValidationId) <> ((LabelEdit.apply _).tupled, LabelEdit.unapply)
+    editTime, labelValidationId).mapTo[LabelEdit]
 
   def label           = foreignKey("label_edit_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user            = foreignKey("label_edit_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -128,7 +128,7 @@ class LabelEditTable @Inject() (protected val dbConfigProvider: DatabaseConfigPr
   /**
    * Edits for the v3 API, joined to their label.
    */
-  def getLabelEditsForApi(filters: LabelEditFiltersForApi): Query[_, (LabelEdit, Label), Seq] = {
+  def getLabelEditsForApi(filters: LabelEditFiltersForApi): Query[?, (LabelEdit, Label), Seq] = {
     for {
       edit  <- labelEdits
       label <- labelsUnfiltered if edit.labelId === label.labelId

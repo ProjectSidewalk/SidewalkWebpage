@@ -11,7 +11,7 @@ import javax.imageio.stream.{
   MemoryCacheImageOutputStream
 }
 import javax.imageio.{IIOImage, ImageIO, ImageReader, ImageWriteParam}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.{Try, Using}
 
 /**
@@ -27,7 +27,7 @@ object ImageUtils {
    * @return      (width, height), or None when no ImageIO reader claims the bytes.
    */
   def encodedDimensions(bytes: Array[Byte]): Option[(Int, Int)] =
-    Option(ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))).flatMap { stream =>
+    Option(ImageIO.createImageInputStream(ByteArrayInputStream(bytes))).flatMap { stream =>
       Using.resource(stream) { s =>
         ImageIO.getImageReaders(s).asScala.nextOption().map { reader =>
           try {
@@ -52,12 +52,12 @@ object ImageUtils {
    * @throws IllegalArgumentException when no ImageIO reader claims the file.
    */
   def withReader[T](file: File)(f: (ImageReader, Int, Int) => T): T = {
-    Using.resource(new FileImageInputStream(file)) { stream =>
+    Using.resource(FileImageInputStream(file)) { stream =>
       val reader = ImageIO
         .getImageReaders(stream)
         .asScala
         .nextOption()
-        .getOrElse(throw new IllegalArgumentException(s"No image reader for ${file.getPath}"))
+        .getOrElse(throw IllegalArgumentException(s"No image reader for ${file.getPath}"))
       try {
         reader.setInput(stream, false, true)
         f(reader, reader.getWidth(0), reader.getHeight(0))
@@ -79,7 +79,7 @@ object ImageUtils {
    */
   def readRegion(reader: ImageReader, x: Int, y: Int, width: Int, height: Int): BufferedImage = {
     val param = reader.getDefaultReadParam
-    param.setSourceRegion(new Rectangle(x, y, width, height))
+    param.setSourceRegion(Rectangle(x, y, width, height))
     reader.read(0, param)
   }
 
@@ -123,7 +123,7 @@ object ImageUtils {
 
   /** Writes the image to the given file as PNG. Atomic, per [[atomically]]. */
   def writePng(img: BufferedImage, file: File): Unit = atomically(file) { tmp =>
-    if (!ImageIO.write(img, "png", tmp)) throw new IllegalStateException("No PNG writer available")
+    if (!ImageIO.write(img, "png", tmp)) throw IllegalStateException("No PNG writer available")
   }
 
   /**
@@ -184,7 +184,7 @@ object ImageUtils {
   }
 
   private def drawScaled(src: BufferedImage, width: Int, height: Int, imageType: Int): BufferedImage = {
-    val out = new BufferedImage(width, height, imageType)
+    val out = BufferedImage(width, height, imageType)
     val g2d = out.createGraphics()
     g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
     g2d.drawImage(src, 0, 0, width, height, null)
@@ -197,20 +197,20 @@ object ImageUtils {
    * Atomic, per [[atomically]].
    */
   def writeJpeg(img: BufferedImage, file: File, quality: Float): Unit = atomically(file) { tmp =>
-    Using.resource(new FileImageOutputStream(tmp))(writeJpegTo(img, _, quality))
+    Using.resource(FileImageOutputStream(tmp))(writeJpegTo(img, _, quality))
   }
 
   /** In-memory variant of `writeJpeg`, for images stored as DB bytes rather than files (partner logos, #4516). */
   def writeJpegBytes(img: BufferedImage, quality: Float): Array[Byte] = {
-    val baos = new ByteArrayOutputStream()
-    Using.resource(new MemoryCacheImageOutputStream(baos))(writeJpegTo(img, _, quality))
+    val baos = ByteArrayOutputStream()
+    Using.resource(MemoryCacheImageOutputStream(baos))(writeJpegTo(img, _, quality))
     baos.toByteArray
   }
 
   /** PNG bytes for an image; PNG is lossless, so unlike JPEG there is no quality knob. */
   def writePngBytes(img: BufferedImage): Array[Byte] = {
-    val baos = new ByteArrayOutputStream()
-    if (!ImageIO.write(img, "png", baos)) throw new IllegalStateException("No PNG writer available")
+    val baos = ByteArrayOutputStream()
+    if (!ImageIO.write(img, "png", baos)) throw IllegalStateException("No PNG writer available")
     baos.toByteArray
   }
 
@@ -226,7 +226,7 @@ object ImageUtils {
    */
   def sniffAcceptedFormat(file: File, accepted: Set[String], maxDimension: Int, maxPixels: Long): Option[String] = {
     Try {
-      val stream = new FileImageInputStream(file)
+      val stream = FileImageInputStream(file)
       try {
         ImageIO.getImageReaders(stream).asScala.nextOption().flatMap { reader =>
           try {
@@ -251,7 +251,7 @@ object ImageUtils {
       params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT)
       params.setCompressionQuality(quality)
       writer.setOutput(out)
-      writer.write(null, new IIOImage(img, null, null), params)
+      writer.write(null, IIOImage(img, null, null), params)
     } finally writer.dispose()
   }
 }

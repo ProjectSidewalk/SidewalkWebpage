@@ -1,12 +1,12 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
 import formats.json.UserFormats.given
-import models.auth._
+import models.auth.*
 import models.label.LabelType
 import models.user.Role
 import models.utils.CommonUtils.METERS_TO_MILES
@@ -16,12 +16,12 @@ import models.utils.MyPostgresProfile.api.given
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.AnyContent
-import play.api.{Configuration, Logger}
+import play.api.Configuration
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.SecuredRequest
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -40,7 +40,6 @@ class UserProfileController @Inject() (
     extends CustomBaseController(cc) {
 
   given Configuration = config
-  private val logger  = Logger(this.getClass)
 
   /**
    * Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets.
@@ -85,13 +84,11 @@ class UserProfileController @Inject() (
   /**
    * Get the list of streets that have been audited by the given user.
    */
-  def getAuditedStreets(userId: String) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) {
-    implicit request =>
-      logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-      authenticationService.findByUserId(userId).flatMap {
-        case Some(user) => userService.getAuditedStreets(userId).map(streets => Ok(streetsToGeoJson(streets)))
-        case _          => Future.failed(new IdentityNotFoundException("Username not found."))
-      }
+  def getAuditedStreets(userId: String) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { _ =>
+    authenticationService.findByUserId(userId).flatMap {
+      case Some(user) => userService.getAuditedStreets(userId).map(streets => Ok(streetsToGeoJson(streets)))
+      case _          => Future.failed(IdentityNotFoundException("Username not found."))
+    }
   }
 
   /**
@@ -112,29 +109,27 @@ class UserProfileController @Inject() (
    * Get the list of all streets and whether they have been audited or not, regardless of user.
    */
   def getAllStreets(filterLowQuality: Boolean, regions: Option[String], routes: Option[String]) = Action.async {
-    implicit request =>
-      logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-      val regionIds: Seq[Int] = parseIntegerSeq(regions)
-      val routeIds: Seq[Int]  = parseIntegerSeq(routes)
+    val regionIds: Seq[Int] = parseIntegerSeq(regions)
+    val routeIds: Seq[Int]  = parseIntegerSeq(routes)
 
-      streetService
-        .selectStreetsWithAuditStatus(filterLowQuality, regionIds, routeIds)
-        .map { streets =>
-          val features: Seq[JsObject] = streets.map { street =>
-            val properties: JsObject = Json.obj(
-              "street_edge_id" -> street.streetEdgeId,
-              "way_type"       -> street.wayType.name,
-              "region_id"      -> street.regionId,
-              "audited"        -> street.audited,
-              // Audited before, but every audit predates newer imagery (needs re-audit, #4384). Never true when
-              // audited is true; a street with neither is unaudited.
-              "outdated" -> street.outdated
-            )
-            Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
-          }
-          val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
-          Ok(featureCollection)
-        }(cpuEc)
+    streetService
+      .selectStreetsWithAuditStatus(filterLowQuality, regionIds, routeIds)
+      .map { streets =>
+        val features: Seq[JsObject] = streets.map { street =>
+          val properties: JsObject = Json.obj(
+            "street_edge_id" -> street.streetEdgeId,
+            "way_type"       -> street.wayType.name,
+            "region_id"      -> street.regionId,
+            "audited"        -> street.audited,
+            // Audited before, but every audit predates newer imagery (needs re-audit, #4384). Never true when
+            // audited is true; a street with neither is unaudited.
+            "outdated" -> street.outdated
+          )
+          Json.obj("type" -> "Feature", "geometry" -> street.geom, "properties" -> properties)
+        }
+        val featureCollection: JsObject = Json.obj("type" -> "FeatureCollection", "features" -> features)
+        Ok(featureCollection)
+      }(cpuEc)
   }
 
   /**
@@ -147,8 +142,7 @@ class UserProfileController @Inject() (
    * Kept off `/v3/api` on purpose, following the same call for per-street priority data (#4908): this shape is
    * expected to change as the re-audit UI develops, and publishing it would freeze it into the public contract.
    */
-  def getStreetReauditSummary(streetEdgeId: Int) = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getStreetReauditSummary(streetEdgeId: Int) = Action.async {
     streetService.getReauditSummary(streetEdgeId).map {
       case Some(summary) =>
         Ok(
@@ -169,11 +163,10 @@ class UserProfileController @Inject() (
    * Get the list of labels submitted by the given user. Only include labels in the given region if supplied.
    */
   def getSubmittedLabels(userId: String, regionId: Option[Int]) =
-    cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { implicit request =>
-      logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+    cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { _ =>
       authenticationService.findByUserId(userId).flatMap {
         case Some(user) => userService.getLabelLocations(userId, regionId).map(labels => Ok(labelsToGeoJson(labels)))
-        case _          => Future.failed(new IdentityNotFoundException("Username not found."))
+        case _          => Future.failed(IdentityNotFoundException("Username not found."))
       }
     }
 
@@ -196,29 +189,27 @@ class UserProfileController @Inject() (
    * @param n Number of mistakes to retrieve for each label type.
    * @return
    */
-  def getRecentMistakes(userId: String, n: Int) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) {
-    implicit request =>
-      logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-      authenticationService.findByUserId(userId).flatMap {
-        case Some(user) =>
-          val labelTypes: Set[LabelType] = LabelType.primaryValidateLabelTypes
-          labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).flatMap { validations =>
-            val labelIds: Seq[Int] = labelTypes.toSeq.flatMap(validations(_).map(_.labelId))
-            cropService.cropMarkers(labelIds).map { markers =>
-              val validationJson = Json.toJson(labelTypes.map { labelType =>
-                labelType.name -> validations(labelType).map { l =>
-                  val cropUrl: Option[String]     = panoDataService.cropUrl(l.labelId, l.labelType)
-                  val gsvImageUrl: Option[String] =
-                    panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom,
-                      l.canvasWidth, l.canvasHeight)
-                  labelMetadataUserDashToJson(l, cropUrl, markers.get(l.labelId), gsvImageUrl)
-                }
-              }.toMap)
-              Ok(validationJson)
-            }
+  def getRecentMistakes(userId: String, n: Int) = cc.securityService.SecuredAction(WithAdminOrIsUser(userId)) { _ =>
+    authenticationService.findByUserId(userId).flatMap {
+      case Some(user) =>
+        val labelTypes: Set[LabelType] = LabelType.primaryValidateLabelTypes
+        labelService.getRecentValidatedLabelsForUser(userId, labelTypes, n).flatMap { validations =>
+          val labelIds: Seq[Int] = labelTypes.toSeq.flatMap(validations(_).map(_.labelId))
+          cropService.cropMarkers(labelIds).map { markers =>
+            val validationJson = Json.toJson(labelTypes.map { labelType =>
+              labelType.name -> validations(labelType).map { l =>
+                val cropUrl: Option[String]     = panoDataService.cropUrl(l.labelId, l.labelType)
+                val gsvImageUrl: Option[String] =
+                  panoDataService.getImageUrl(l.panoId, l.panoSource, l.pov.heading, l.pov.pitch, l.pov.zoom,
+                    l.canvasWidth, l.canvasHeight)
+                labelMetadataUserDashToJson(l, cropUrl, markers.get(l.labelId), gsvImageUrl)
+              }
+            }.toMap)
+            Ok(validationJson)
           }
-        case _ => Future.failed(new IdentityNotFoundException("Username not found."))
-      }
+        }
+      case _ => Future.failed(IdentityNotFoundException("Username not found."))
+    }
   }
 
   /**
@@ -325,10 +316,7 @@ class UserProfileController @Inject() (
   /**
    * Grabs a list of all the teams in the tables, regardless of open or closed status.
    */
-  def getTeams = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
-    userService.getAllTeams.map(teams => Ok(Json.toJson(teams)))
-  }
+  def getTeams = Action.async { userService.getAllTeams.map(teams => Ok(Json.toJson(teams))) }
 
   /**
    * Gets some basic stats about the logged-in user that we show across the site: distance, label count, and accuracy.

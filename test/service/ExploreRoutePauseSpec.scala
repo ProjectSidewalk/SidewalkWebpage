@@ -1,6 +1,6 @@
 package service
 
-import formats.json.ExploreFormats._
+import formats.json.ExploreFormats.*
 import models.mission.MissionTableDef
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
@@ -16,7 +16,7 @@ import models.route.{
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.user.{SidewalkUserWithRole, UserAccountStateTable, UserAccountStateTableDef, UserCurrentRegionTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -28,7 +28,7 @@ import util.SidewalkSpec
 import java.time.OffsetDateTime
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for #4833: exiting a custom-route walk pauses it (progress kept, resumable) rather than
@@ -57,7 +57,7 @@ class ExploreRoutePauseSpec
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val exploreService        = app.injector.instanceOf[ExploreService]
   private val authService           = app.injector.instanceOf[AuthenticationService]
@@ -80,7 +80,7 @@ class ExploreRoutePauseSpec
   private val createdUserIds = scala.collection.mutable.Set[String]()
 
   /** Distinguishes seeded routes' slugs; route.slug is globally unique (route_slug_idx). */
-  private val slugCounter = new AtomicInteger(0)
+  private val slugCounter = AtomicInteger(0)
 
   /** Creates a throwaway anonymous user (marked past the tutorial) and registers it for afterAll cleanup. */
   private def newTutorialGraduate(): SidewalkUserWithRole = {

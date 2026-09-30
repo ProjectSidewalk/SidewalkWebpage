@@ -116,7 +116,7 @@ class ValidationApiController @Inject() (
           labelType = parsedLabelType.toOption.flatten, validationTimestamp = parsedTimestamp.toOption.flatten,
           source = parsedSource.toOption.flatten
         )
-        val dbDataStream: Source[ValidationDataForApi, _] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
+        val dbDataStream: Source[ValidationDataForApi, ?] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
         val baseFileName: String                          = timestampedFilename("validations")
 
         // Output data in the appropriate file format.

@@ -2,7 +2,7 @@ package models.place
 
 import com.google.inject.ImplementedBy
 import models.api.{PlaceFiltersForApi, PlaceForApi}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -97,7 +97,7 @@ class PlaceTableDef(tag: Tag) extends Table[Place](tag, "place") {
   def * = (
     placeId, category, name, source, osmType, osmId, tags, geom, regionId, nearestStreetEdgeId, nearestStreetDistanceM,
     fetchedAt
-  ) <> ((Place.apply _).tupled, Place.unapply)
+  ).mapTo[Place]
 
   def osmKey = index("place_osm_key", (osmType, osmId), unique = true)
 
@@ -122,7 +122,7 @@ class FetchedPlaceTableDef(tag: Tag) extends Table[FetchedPlace](tag, "fetched_p
   def tags: Rep[JsValue]        = column[JsValue]("tags")
   def geom: Rep[Point]          = column[Point]("geom")
 
-  def * = (category, name, osmType, osmId, tags, geom) <> ((FetchedPlace.apply _).tupled, FetchedPlace.unapply)
+  def * = (category, name, osmType, osmId, tags, geom).mapTo[FetchedPlace]
 }
 
 @ImplementedBy(classOf[PlaceTable])

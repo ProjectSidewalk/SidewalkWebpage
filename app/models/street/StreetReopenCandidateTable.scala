@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -48,10 +48,8 @@ class StreetReopenCandidateTableDef(tag: Tag) extends Table[StreetReopenCandidat
   def newestCapture: Rep[Option[LocalDate]]    = column[Option[LocalDate]]("newest_capture")
   def dismissedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("dismissed_at")
 
-  def * = (streetEdgeId, firstDetectedAt, lastDetectedAt, nPanos, newestCapture, dismissedAt) <> (
-    (StreetReopenCandidate.apply _).tupled,
-    StreetReopenCandidate.unapply
-  )
+  def * =
+    (streetEdgeId, firstDetectedAt, lastDetectedAt, nPanos, newestCapture, dismissedAt).mapTo[StreetReopenCandidate]
 
   // ON DELETE CASCADE: once the street row is gone (a tools/one-off/4181-remove-streets.sql hard delete), evidence
   // about it is meaningless.

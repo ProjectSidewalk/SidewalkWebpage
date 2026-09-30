@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.pano.PanoDataTable
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{FilteredTables, MyPostgresProfile, NamedEnum, PgEnumCompanion}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -90,8 +90,8 @@ class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
 
-  def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt) <>
-    ((StreetImagery.apply _).tupled, StreetImagery.unapply)
+  def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt)
+    .mapTo[StreetImagery]
 
   def streetEdge =
     foreignKey("street_imagery_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -129,7 +129,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
     extends StreetImageryTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  import profile.api._
+  import profile.api.*
   val streetImageryRecords = TableQuery[StreetImageryTableDef]
 
   /**

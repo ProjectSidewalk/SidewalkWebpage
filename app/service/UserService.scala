@@ -6,11 +6,11 @@ import models.label.{LabelLocation, LabelTable, LabelType}
 import models.mission.MissionTable
 import models.region.Region
 import models.street.StreetEdge
-import models.user._
+import models.user.*
 import models.userdashboard.{Trophy, TrophyTable}
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.utils.ProfanityGuard
 import models.validation.LabelValidationTable
 import play.api.Logger
@@ -21,7 +21,7 @@ import play.api.i18n.{Lang, Messages}
 import java.time.format.{DateTimeFormatter, FormatStyle}
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import java.util.Locale
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -814,7 +814,7 @@ class UserServiceImpl @Inject() (
     if (query.trim.isEmpty) Future.successful(Seq())
     else {
       db.run(sidewalkUserTable.searchUsers(query, limit))
-        .map(_.map((UserSearchResult.apply _).tupled))
+        .map(_.map(UserSearchResult.apply.tupled))
     }
   }
 

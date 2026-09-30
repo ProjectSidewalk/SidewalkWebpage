@@ -6,7 +6,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 /**
@@ -22,7 +22,7 @@ import util.SidewalkSpec
 class CitiesApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
@@ -39,7 +39,7 @@ class CitiesApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
    */
   private def splitCsvRow(row: String): Seq[String] = {
     val cells    = scala.collection.mutable.ListBuffer.empty[String]
-    val cell     = new StringBuilder
+    val cell     = StringBuilder()
     var inQuotes = false
     var i        = 0
     val chars    = row.stripSuffix("\r")

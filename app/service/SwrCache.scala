@@ -7,7 +7,7 @@ import play.api.cache.AsyncCacheApi
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -26,7 +26,7 @@ class SwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(usi
   private case class Timestamped[T](value: T, computedAt: OffsetDateTime)
 
   /** In-flight cache recomputes by cache key, so concurrent refreshes of a key share one computation (#4600). */
-  private val refreshesInFlight = scala.collection.mutable.Map.empty[String, Future[_]]
+  private val refreshesInFlight = scala.collection.mutable.Map.empty[String, Future[?]]
 
   /**
    * Serves the cached value for `key` immediately — even when stale — while keeping it fresh in the background.

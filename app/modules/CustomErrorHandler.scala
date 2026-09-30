@@ -6,16 +6,16 @@ import play.api.http.DefaultHttpErrorHandler
 import play.api.http.Status.{INTERNAL_SERVER_ERROR, NOT_FOUND}
 import play.api.i18n.{Messages, MessagesApi}
 import play.api.libs.typedmap.TypedMap
-import play.api.mvc.Results._
-import play.api.mvc._
+import play.api.mvc.Results.*
+import play.api.mvc.*
 import play.api.routing.Router
 import play.api.{Configuration, Environment, Logger, OptionalSourceMapper, UsefulException}
 import play.silhouette.api.services.AuthenticatorService
 import play.silhouette.api.util.ExtractableRequest
 import play.silhouette.impl.authenticators.CookieAuthenticator
 
-import javax.inject._
-import scala.concurrent._
+import javax.inject.*
+import scala.concurrent.*
 
 @Singleton
 class CustomErrorHandler @Inject() (
@@ -136,7 +136,7 @@ class CustomErrorHandler @Inject() (
       override def attrs: TypedMap                                   = request.attrs
     }
 
-    val extractableRequest = new ExtractableRequest(dummyRequest)
+    val extractableRequest = ExtractableRequest(dummyRequest)
 
     val userInfo = authenticatorService
       .retrieve(extractableRequest)

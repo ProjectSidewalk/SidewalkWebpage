@@ -2,7 +2,7 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -24,8 +24,7 @@ class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
   def zurichInfra3dAccess: Rep[Boolean]     = column[Boolean]("zurich_infra3d_access", O.Default(false))
   def winterthurInfra3dAccess: Rep[Boolean] = column[Boolean]("winterthur_infra3d_access", O.Default(false))
 
-  def * = (userRoleId, userId, role, zurichInfra3dAccess, winterthurInfra3dAccess) <>
-    ((UserRole.apply _).tupled, UserRole.unapply)
+  def * = (userRoleId, userId, role, zurichInfra3dAccess, winterthurInfra3dAccess).mapTo[UserRole]
 
   def user = foreignKey("user_role_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 

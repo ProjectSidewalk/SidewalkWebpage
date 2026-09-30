@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.StreetSpotlightRowForApi
 import models.region.{RegionAccessScoreTable, RegionTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -83,10 +83,7 @@ class StreetAccessScoreTableDef(tag: Tag) extends Table[StreetAccessScore](tag, 
   def computedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("computed_at")
 
   def * = (streetAccessScoreId, osmWayId, regionId, streetEdgeId, name, score, lengthM, auditCount, clusterCount,
-    validationCount, tieBreak, computedAt) <> (
-    (StreetAccessScore.apply _).tupled,
-    StreetAccessScore.unapply
-  )
+    validationCount, tieBreak, computedAt).mapTo[StreetAccessScore]
 
   def region = foreignKey("street_access_score_region_id_fkey", regionId, TableQuery[RegionTableDef])(
     _.regionId,

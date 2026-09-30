@@ -12,9 +12,9 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.{Cookie, MultipartFormData}
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import slick.dbio.DBIO
 import util.{AnonSession, RoleSession, SidewalkSpec}
 
@@ -23,7 +23,7 @@ import java.io.ByteArrayInputStream
 import java.time.OffsetDateTime
 import javax.imageio.ImageIO
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the community-partner logo surface (#4516): the admin CRUD under /adminapi, the Owner-only
@@ -38,7 +38,7 @@ import scala.concurrent.duration._
 class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
@@ -75,7 +75,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       width: Int = 1200,
       height: Int = 300
   ): MultipartFormData.FilePart[play.api.libs.Files.TemporaryFile] = {
-    val img  = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
+    val img  = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
     val temp = SingletonTemporaryFileCreator.create("partner-spec", ".png")
     ImageIO.write(img, "png", temp.path.toFile) mustBe true
     MultipartFormData.FilePart(key = "logo", filename = "partner-spec.png", contentType = Some("image/png"), ref = temp)
@@ -93,13 +93,13 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
    * the class of file (with e.g. CMYK JPEGs) that must come back 400, not 500.
    */
   private def truncatedPngFilePart(): MultipartFormData.FilePart[play.api.libs.Files.TemporaryFile] = {
-    val img = new BufferedImage(400, 200, BufferedImage.TYPE_INT_RGB)
-    val rng = new scala.util.Random(4516) // Noise, so the pixel data far outweighs the header and truncation hits it.
+    val img = BufferedImage(400, 200, BufferedImage.TYPE_INT_RGB)
+    val rng = scala.util.Random(4516) // Noise, so the pixel data far outweighs the header and truncation hits it.
     for {
       x <- 0 until 400
       y <- 0 until 200
     } img.setRGB(x, y, rng.nextInt())
-    val baos = new java.io.ByteArrayOutputStream()
+    val baos = java.io.ByteArrayOutputStream()
     ImageIO.write(img, "png", baos) mustBe true
     val bytes = baos.toByteArray
     val temp  = SingletonTemporaryFileCreator.create("partner-truncated", ".png")
@@ -126,7 +126,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       app,
       FakeRequest(POST, path)
         .withHeaders(XHR)
-        .withCookies(session: _*)
+        .withCookies(session*)
         .withMultipartFormDataBody(multipartBody(parts, files))
         .withCSRFToken
     ).get
@@ -146,13 +146,13 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       app,
       FakeRequest(PUT, path)
         .withHeaders(XHR)
-        .withCookies(session: _*)
+        .withCookies(session*)
         .withJsonBody(Json.obj("partner_ids" -> ids))
         .withCSRFToken
     ).get
 
   private def getAdminLists(session: Seq[Cookie]): JsObject =
-    contentAsJson(route(app, FakeRequest(GET, "/adminapi/partners").withHeaders(XHR).withCookies(session: _*)).get)
+    contentAsJson(route(app, FakeRequest(GET, "/adminapi/partners").withHeaders(XHR).withCookies(session*)).get)
       .as[JsObject]
 
   private def landingBody(): String = {
@@ -165,7 +165,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
     "refuse a signed-in visitor, naming the role it wants" in {
       // The anonymous checks in RouteAuthPostureSpec cannot tell WithAdmin from WithOwner; this can.
       Seq(GET -> "/admin/partners", GET -> "/adminapi/partners").foreach { case (method, path) =>
-        val resp = route(app, FakeRequest(method, path).withHeaders(XHR).withCookies(visitorCookies: _*)).get
+        val resp = route(app, FakeRequest(method, path).withHeaders(XHR).withCookies(visitorCookies*)).get
         status(resp) mustBe FORBIDDEN
         contentAsString(resp) must include("Administrator")
       }
@@ -179,7 +179,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
     }
 
     "serve the page to an administrator, with the containers its client fills" in {
-      val resp = route(app, FakeRequest(GET, "/admin/partners").withCookies(adminCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, "/admin/partners").withCookies(adminCookies*)).get
       status(resp) mustBe OK
       val body = contentAsString(resp)
       Seq("partners-city-list", "partners-global-list", "partners-status").foreach(id => body must include(id))
@@ -199,7 +199,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
       status(logoResp) mustBe OK
       contentType(logoResp) mustBe Some("image/png")
       header("Cache-Control", logoResp).value must include("immutable")
-      val decoded = ImageIO.read(new ByteArrayInputStream(contentAsBytes(logoResp).toArray))
+      val decoded = ImageIO.read(ByteArrayInputStream(contentAsBytes(logoResp).toArray))
       decoded.getColorModel.hasAlpha mustBe true
       // The 1200px upload must come back downscaled to the 800px storage edge.
       decoded.getWidth mustBe 800
@@ -273,7 +273,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
         app,
         FakeRequest(PUT, s"/adminapi/partners/$globalId")
           .withHeaders(XHR)
-          .withCookies(adminCookies: _*)
+          .withCookies(adminCookies*)
           .withMultipartFormDataBody(multipartBody(Map("name" -> Seq("hijacked")), Seq.empty))
           .withCSRFToken
       ).get
@@ -283,7 +283,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
           app,
           FakeRequest(DELETE, s"/adminapi/partners/$globalId")
             .withHeaders(XHR)
-            .withCookies(adminCookies: _*)
+            .withCookies(adminCookies*)
             .withCSRFToken
         ).get
       status(delete) mustBe NOT_FOUND
@@ -319,7 +319,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
           app,
           FakeRequest(DELETE, s"/adminapi/partners/$otherCity")
             .withHeaders(XHR)
-            .withCookies(ownerCookies: _*)
+            .withCookies(ownerCookies*)
             .withCSRFToken
         ).get
       status(delete) mustBe NOT_FOUND
@@ -331,7 +331,7 @@ class PartnerAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
         app,
         FakeRequest(PUT, s"/adminapi/partners/$globalId")
           .withHeaders(XHR)
-          .withCookies(ownerCookies: _*)
+          .withCookies(ownerCookies*)
           .withMultipartFormDataBody(
             multipartBody(
               Map("name" -> Seq("Partner Spec Global Renamed"), "url" -> Seq("https://example.org/new")),

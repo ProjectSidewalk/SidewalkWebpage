@@ -2,7 +2,7 @@ package models.pano
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -14,7 +14,7 @@ class PanoHistoryTableDef(tag: Tag) extends Table[PanoHistory](tag, "pano_histor
   def captureDate: Rep[String]        = column[String]("capture_date")
   def locationCurrPanoId: Rep[String] = column[String]("location_curr_pano_id")
 
-  def * = (panoId, captureDate, locationCurrPanoId) <> ((PanoHistory.apply _).tupled, PanoHistory.unapply)
+  def * = (panoId, captureDate, locationCurrPanoId).mapTo[PanoHistory]
 
   def locationCurrentPano =
     foreignKey("pano_history_location_curr_pano_id_fkey", locationCurrPanoId, TableQuery[PanoDataTableDef])(_.panoId)

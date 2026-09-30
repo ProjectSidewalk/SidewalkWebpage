@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime

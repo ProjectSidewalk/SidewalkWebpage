@@ -62,8 +62,8 @@ object ControllerUtils {
    * @return        The user, or None for a request with no session.
    */
   private def requestUser(request: RequestHeader): Option[SidewalkUserWithRole] = request match {
-    case secured: SecuredRequestHeader[_] => Some(secured.identity).collect { case user: SidewalkUserWithRole => user }
-    case aware: UserAwareRequestHeader[_] => aware.identity.collect { case user: SidewalkUserWithRole => user }
+    case secured: SecuredRequestHeader[?] => Some(secured.identity).collect { case user: SidewalkUserWithRole => user }
+    case aware: UserAwareRequestHeader[?] => aware.identity.collect { case user: SidewalkUserWithRole => user }
     case _                                => None
   }
 
@@ -213,7 +213,7 @@ object ControllerUtils {
               case key :: Nil =>
                 key -> Seq.empty[String]
               case _ =>
-                throw new IllegalArgumentException(s"Invalid query parameter format: $param")
+                throw IllegalArgumentException(s"Invalid query parameter format: $param")
             }
           }
           .toMap
@@ -221,7 +221,7 @@ object ControllerUtils {
       case path :: Nil =>
         (path, Map.empty[String, Seq[String]])
       case _ =>
-        throw new IllegalArgumentException(s"Invalid URL format: $url")
+        throw IllegalArgumentException(s"Invalid URL format: $url")
     }
   }
 
@@ -289,9 +289,9 @@ object ControllerUtils {
    * Form binding errors as the JSON `AuthModal.js`'s `renderAuthErrors` draws: `{"errors": {field -> message}}`, with
    * form-level errors (like a password mismatch) under `_summary`.
    */
-  def formErrorsJson(formWithErrors: Form[_])(using messages: Messages): JsObject = {
+  def formErrorsJson(formWithErrors: Form[?])(using messages: Messages): JsObject = {
     val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
-      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args: _*))
+      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args*))
     }
     Json.obj("errors" -> JsObject(fields))
   }

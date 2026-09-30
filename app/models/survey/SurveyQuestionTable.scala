@@ -3,7 +3,7 @@ package models.survey
 import com.google.inject.ImplementedBy
 import models.user.Role
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -40,10 +40,8 @@ class SurveyQuestionTableDef(tag: Tag) extends Table[SurveyQuestion](tag, "surve
   def required: Rep[Boolean]              = column[Boolean]("required", O.Default(false))
 
   def * =
-    (surveyQuestionId, surveyQuestionTextId, surveyInputType, surveyDisplayRank, deleted, surveyUserRole, required) <> (
-      (SurveyQuestion.apply _).tupled,
-      SurveyQuestion.unapply
-    )
+    (surveyQuestionId, surveyQuestionTextId, surveyInputType, surveyDisplayRank, deleted, surveyUserRole, required)
+      .mapTo[SurveyQuestion]
 }
 
 @ImplementedBy(classOf[SurveyQuestionTable])

@@ -11,11 +11,11 @@ import models.route.{RouteTable, UserRoute}
 import models.user.SidewalkUserTable.aiUserId
 import models.user.{SidewalkUserWithRole, UserAccountStateTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[MissionServiceImpl])

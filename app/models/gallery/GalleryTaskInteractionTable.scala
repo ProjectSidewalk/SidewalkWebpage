@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -28,10 +28,7 @@ class GalleryTaskInteractionTableDef(tag: slick.lifted.Tag)
   def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")
   def userId: Rep[Option[String]]        = column[Option[String]]("user_id")
 
-  def * = (galleryTaskInteractionId, action, panoId, note, timestamp, userId) <> (
-    (GalleryTaskInteraction.apply _).tupled,
-    GalleryTaskInteraction.unapply
-  )
+  def * = (galleryTaskInteractionId, action, panoId, note, timestamp, userId).mapTo[GalleryTaskInteraction]
 
   def user = foreignKey("gallery_task_interaction_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId.?)
   def pano = foreignKey("gallery_task_interaction_pano_id_fkey", panoId, TableQuery[PanoDataTableDef])(_.panoId.?)

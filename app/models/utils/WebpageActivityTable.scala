@@ -2,7 +2,7 @@ package models.utils
 
 import com.google.inject.ImplementedBy
 import models.user.{Role, SidewalkUserTableDef, UserRoleTableDef}
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -37,10 +37,7 @@ class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "web
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (webpageActivityId, userId, ipAddress, activity, timestamp) <> (
-    (WebpageActivity.apply _).tupled,
-    WebpageActivity.unapply
-  )
+  def * = (webpageActivityId, userId, ipAddress, activity, timestamp).mapTo[WebpageActivity]
 
   def user = foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }

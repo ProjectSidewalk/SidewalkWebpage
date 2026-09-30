@@ -1,49 +1,22 @@
 package formats.json
 
-import models.label._
+import models.label.*
 import models.pano.{ImageryAttribution, PanoData, PanoSource, PanoViewerMetadata}
 import models.utils.CommonUtils.UiSource
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 
 import java.time.OffsetDateTime
 
 object LabelFormats {
+  // snake_case keys for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-  given labelWrites: Writes[Label] = (
-    (__ \ "label_id").write[Int] and
-      (__ \ "audit_task_id").write[Int] and
-      (__ \ "mission_id").write[Int] and
-      (__ \ "user_id").write[String] and
-      (__ \ "pano_id").write[String] and
-      (__ \ "label_type").write[LabelType] and
-      (__ \ "deleted").write[Boolean] and
-      (__ \ "temporary_label_id").write[Int] and
-      (__ \ "time_created").write[OffsetDateTime] and
-      (__ \ "tutorial").write[Boolean] and
-      (__ \ "street_edge_id").write[Int] and
-      (__ \ "agree_count").write[Int] and
-      (__ \ "disagree_count").write[Int] and
-      (__ \ "unsure_count").write[Int] and
-      (__ \ "correct").writeNullable[Boolean] and
-      (__ \ "severity").writeNullable[Int] and
-      (__ \ "description").writeNullable[String] and
-      (__ \ "tags").write[List[String]] and
-      (__ \ "deleted_by").writeNullable[String] and
-      (__ \ "deleted_at").writeNullable[OffsetDateTime] and
-      (__ \ "deleted_source").writeNullable[UiSource]
-  )((o: Label) => Tuple.fromProductTyped(o))
+  given labelWrites: Writes[Label] = Json.writes[Label]
 
-  given POVWrites: Writes[POV] = (
-    (__ \ "heading").write[Double] and
-      (__ \ "pitch").write[Double] and
-      (__ \ "zoom").write[Double]
-  )((o: POV) => Tuple.fromProductTyped(o))
+  given POVWrites: Writes[POV] = Json.writes[POV]
 
-  given locationXYWrites: Writes[LocationXY] = (
-    (__ \ "x").write[Int] and
-      (__ \ "y").write[Int]
-  )((o: LocationXY) => Tuple.fromProductTyped(o))
+  given locationXYWrites: Writes[LocationXY] = Json.writes[LocationXY]
 
   given labelMetadataWrites: Writes[LabelMetadata] = Writes { m =>
     Json.obj(

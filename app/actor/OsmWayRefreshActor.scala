@@ -8,9 +8,9 @@ import play.api.libs.json.{JsObject, Json}
 import service.{ConfigService, JobRunService, OsmWayRefreshResult, OsmWayService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object OsmWayRefreshActor {

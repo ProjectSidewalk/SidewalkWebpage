@@ -1,7 +1,7 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.user._
+import models.user.*
 import models.utils.MyPostgresProfile
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -69,7 +69,7 @@ class AuthenticationServiceImpl @Inject() (
 )(using ec: ExecutionContext)
     extends AuthenticationService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+  import profile.api.*
 
   def sha256Hasher: MessageDigest = MessageDigest.getInstance("SHA-256")
 
@@ -88,7 +88,7 @@ class AuthenticationServiceImpl @Inject() (
     cacheApi.getOrElseUpdate[SidewalkUserWithRole]("getDefaultAnonUser") {
       findByUsername("anonymous").flatMap {
         case Some(user) => Future.successful(user)
-        case None       => throw new IdentityNotFoundException("No default anonymous user found.")
+        case None       => throw IdentityNotFoundException("No default anonymous user found.")
       }
     }
   }
@@ -187,7 +187,7 @@ class AuthenticationServiceImpl @Inject() (
   private def insertUserStatForNewUser(userId: String): DBIO[Int] = {
     val (onLeaderboard, publicProfile) = configService.defaultPrivacyFlags
     userStatTable.insertIfNew(userId, onLeaderboard, publicProfile).flatMap { rowsInserted =>
-      if (rowsInserted == 0) DBIO.failed(new RuntimeException(s"user_stat row already exists for new user $userId"))
+      if (rowsInserted == 0) DBIO.failed(RuntimeException(s"user_stat row already exists for new user $userId"))
       else DBIO.successful(rowsInserted)
     }
   }
@@ -245,7 +245,7 @@ class AuthenticationServiceImpl @Inject() (
       // Ensure both updates were successful. Returning DBIO.failed to force rollback if either update fails.
       result <-
         if (sidewalkUserRowsUpdated == 0 || loginInfoRowsUpdated == 0) {
-          DBIO.failed(new RuntimeException("Transaction failed: one or more updates affected 0 rows"))
+          DBIO.failed(RuntimeException("Transaction failed: one or more updates affected 0 rows"))
         } else {
           DBIO.successful(Math.min(sidewalkUserRowsUpdated, loginInfoRowsUpdated))
         }
@@ -303,7 +303,7 @@ class AuthenticationServiceImpl @Inject() (
   /** Every account has a login row with a password (387.sql), so a missing one is an error, not a case to handle. */
   private def updatePasswordDBIO(userId: String, pwInfo: PasswordInfo): DBIO[Int] = {
     userPasswordInfoTable.updateByUserId(userId, pwInfo).flatMap {
-      case 0           => DBIO.failed(new IdentityNotFoundException(s"No password row for user ID: $userId"))
+      case 0           => DBIO.failed(IdentityNotFoundException(s"No password row for user ID: $userId"))
       case rowsUpdated => DBIO.successful(rowsUpdated)
     }
   }
@@ -325,9 +325,9 @@ class AuthenticationServiceImpl @Inject() (
         if (passwordHasher.matches(PasswordInfo(pwInfo.hasher, pwInfo.password, pwInfo.salt), pw)) {
           Future.successful(LoginInfo(ID, email))
         } else {
-          throw new InvalidPasswordException(s"Invalid password for user with email: $email")
+          throw InvalidPasswordException(s"Invalid password for user with email: $email")
         }
-      case None => throw new IdentityNotFoundException(s"No account found for user with email: $email")
+      case None => throw IdentityNotFoundException(s"No account found for user with email: $email")
     }
   }
 

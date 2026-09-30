@@ -106,13 +106,13 @@ trait PanoDisplayCopyService {
 class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(using ec: ExecutionContext)
     extends PanoDisplayCopyService {
 
-  import PanoDisplayCopyService._
+  import PanoDisplayCopyService.*
 
   private val logger = Logger(this.getClass)
 
   // Under the crop store, which is derived, disposable and the one media directory the app writes. Its own directory
   // rather than the crop job's retired `pano-downscaled/`, so that one stays unambiguously deletable on prod.
-  private val displayDir = new File(panoDataService.getCropDirectory, "pano-display")
+  private val displayDir = File(panoDataService.getCropDirectory, "pano-display")
 
   /**
    * Cuts run here, not on `cpu-intensive`, and the bound is the pool rather than a semaphore a thread waits on.
@@ -122,23 +122,23 @@ class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(us
    * every streamed API response, the crop job and the access-score pass — for the length of the wait, doing nothing.
    * A dedicated pool puts the queueing in the queue, where waiting costs no thread at all.
    */
-  private val cutPool = new ThreadPoolExecutor(
+  private val cutPool = ThreadPoolExecutor(
     MaxConcurrent,
     MaxConcurrent,
     0L,
     TimeUnit.MILLISECONDS,
-    new ArrayBlockingQueue[Runnable](QueueDepth),
-    (r: Runnable) => { val t = new Thread(r, "pano-display-copy"); t.setDaemon(true); t },
-    new ThreadPoolExecutor.AbortPolicy
+    ArrayBlockingQueue[Runnable](QueueDepth),
+    (r: Runnable) => { val t = Thread(r, "pano-display-copy"); t.setDaemon(true); t },
+    ThreadPoolExecutor.AbortPolicy()
   )
   private val cutEc: ExecutionContext = ExecutionContext.fromExecutor(cutPool, logger.error("Display-copy cut", _))
 
   // Single-flight: a burst on one pano cuts one copy, not one per request. Entries are removed on completion, so
   // this holds only what is in flight.
-  private val inFlight = new ConcurrentHashMap[String, Future[DisplayCopy]]()
+  private val inFlight = ConcurrentHashMap[String, Future[DisplayCopy]]()
 
   def displayCopyFile(panoId: String, maxWidth: Int): File =
-    new File(new File(displayDir, panoId.take(2)), s"$panoId.w$maxWidth.jpg")
+    File(File(displayDir, panoId.take(2)), s"$panoId.w$maxWidth.jpg")
 
   def displayCopy(panoId: String, native: File, maxWidth: Int): Future[DisplayCopy] = {
     val cached = displayCopyFile(panoId, maxWidth)

@@ -2,7 +2,7 @@ package models.street
 
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.user.UserStatTableDef
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -26,7 +26,7 @@ import java.time.OffsetDateTime
 class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val streetEdgePriorityTable = app.injector.instanceOf[StreetEdgePriorityTable]
   private val auditTaskTable          = app.injector.instanceOf[AuditTaskTable]

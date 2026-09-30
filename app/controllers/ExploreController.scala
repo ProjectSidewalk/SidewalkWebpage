@@ -1,20 +1,20 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, isMobile}
-import formats.json.CommentSubmissionFormats._
-import formats.json.ExploreFormats.{given, _}
+import formats.json.CommentSubmissionFormats.*
+import formats.json.ExploreFormats.{given, *}
 import formats.json.MissionFormats.given
-import models.audit._
+import models.audit.*
 import models.auth.DefaultEnv
 import models.label.LabelType
 import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
-import models.user._
+import models.user.*
 import models.utils.IpAddress
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Result
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
@@ -239,8 +239,7 @@ class ExploreController @Inject() (
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
   }
 
-  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getTasksInARoute(userRouteId: Int) = Action.async {
     exploreService
       .selectTasksInRoute(userRouteId)
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))

@@ -66,7 +66,7 @@ object ProfanityGuard {
 
   /** Collapses runs of 3+ of the same letter to one, so "shiiiiit" reads as "shit" but "shiitake" is left alone. */
   private def unstretch(s: String): String = {
-    val out = new StringBuilder
+    val out = StringBuilder()
     var i   = 0
     while (i < s.length) {
       var run = 1

@@ -3,14 +3,14 @@ package controllers
 import models.audit.AuditTaskTableDef
 import models.region.RegionTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import java.util.UUID
@@ -41,7 +41,7 @@ class DashboardReauditSectionSpec
   // Every request here shares FakeRequest's default loopback address, so the sign-ups would eat one per-IP budget;
   // throttle behavior has its own coverage in UserAuthRateLimitSpec.
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.enabled" -> false)
       .build()
@@ -152,7 +152,7 @@ class DashboardReauditSectionSpec
   }
 
   private def dashboardHtml(mapper: Mapper): String = {
-    val resp = route(app, FakeRequest(GET, "/dashboard").withCookies(mapper.cookies: _*)).get
+    val resp = route(app, FakeRequest(GET, "/dashboard").withCookies(mapper.cookies*)).get
     status(resp) mustBe OK
     contentAsString(resp)
   }

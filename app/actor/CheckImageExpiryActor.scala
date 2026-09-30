@@ -7,9 +7,9 @@ import play.api.Logger
 import service.{ConfigService, JobRunService, PanoDataService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object CheckImageExpiryActor {

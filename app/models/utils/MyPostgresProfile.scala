@@ -1,12 +1,12 @@
 package models.utils
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.github.tminglei.slickpg._
+import com.github.tminglei.slickpg.*
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json._
+import play.api.libs.json.*
 import slick.jdbc.{JdbcType, PositionedResult}
 import slick.lifted.OptionMapperDSL
 
@@ -45,7 +45,7 @@ trait MyPostgresProfile
     val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
 
     // Postgres won't save plain text into an inet column, so the value is sent untyped and Postgres reads it as an IP.
-    given ipAddressMapper: JdbcType[IpAddress] = new GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
+    given ipAddressMapper: JdbcType[IpAddress] = GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
 
     // Built once and shared, because slick-pg looks an array's element type up by `tag.repr`: a bare
     // `nextArray[T]()` rebuilds the tag and re-renders that string per row, ~0.3 µs inside the `GetResult`.
@@ -59,8 +59,8 @@ trait MyPostgresProfile
     }
 
     // Adds conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
-    private val mapper = new ObjectMapper()
-    mapper.registerModule(new JtsModule())
+    private val mapper = ObjectMapper()
+    mapper.registerModule(JtsModule())
     given geometryWrites: Writes[Geometry] = Writes[Geometry] { geom => Json.parse(mapper.writeValueAsString(geom)) }
     given multiPolygonWrites: Writes[MultiPolygon] = geometryWrites.contramap(identity)
     given lineStringWrites: Writes[LineString]     = geometryWrites.contramap(identity)
@@ -108,7 +108,7 @@ trait MyPostgresProfile
 
     // New mapper for Seq[ExcludedTag] stored as JSONB.
     given excludedTagListMapper: DriverJdbcType[Seq[ExcludedTag]] =
-      new GenericJdbcType[Seq[ExcludedTag]](
+      GenericJdbcType[Seq[ExcludedTag]](
         pgjson,
         s => if (s == null) List.empty[ExcludedTag] else Json.parse(s).as[Seq[ExcludedTag]],
         v => Json.stringify(Json.toJson(v))
@@ -116,7 +116,7 @@ trait MyPostgresProfile
 
     // New mapper for Seq[AiTagConfidence] stored as JSONB.
     given aiTagConfidenceSeqMapper: DriverJdbcType[Seq[AiTagConfidence]] =
-      new GenericJdbcType[Seq[AiTagConfidence]](
+      GenericJdbcType[Seq[AiTagConfidence]](
         pgjson,
         s => if (s == null) List.empty[AiTagConfidence] else Json.parse(s).as[Seq[AiTagConfidence]],
         v => Json.stringify(Json.toJson(v))
@@ -124,7 +124,7 @@ trait MyPostgresProfile
 
     // New mapper for Seq[ClusteringThreshold] stored as JSONB.
     given clusteringThresholdSeqMapper: DriverJdbcType[Seq[ClusteringThreshold]] =
-      new GenericJdbcType[Seq[ClusteringThreshold]](
+      GenericJdbcType[Seq[ClusteringThreshold]](
         pgjson,
         s => if (s == null) List.empty[ClusteringThreshold] else Json.parse(s).as[Seq[ClusteringThreshold]],
         v => Json.stringify(Json.toJson(v))
@@ -145,7 +145,7 @@ object ExcludedTag {
     val reads: Reads[ExcludedTag] = (
       (__ \ "label_type").read[String] and
         (__ \ "tag").read[String]
-    )(ExcludedTag.apply _)
+    )(ExcludedTag.apply)
 
     val writes: Writes[ExcludedTag] = (
       (__ \ "label_type").write[String] and
@@ -164,7 +164,7 @@ object AiTagConfidence {
     val reads: Reads[AiTagConfidence] = (
       (__ \ "tag").read[String] and
         (__ \ "confidence").read[Double]
-    )(AiTagConfidence.apply _)
+    )(AiTagConfidence.apply)
 
     val writes: Writes[AiTagConfidence] = (
       (__ \ "tag").write[String] and
@@ -183,7 +183,7 @@ object ClusteringThreshold {
     val reads: Reads[ClusteringThreshold] = (
       (__ \ "label_type").read[String] and
         (__ \ "threshold").read[Double]
-    )(ClusteringThreshold.apply _)
+    )(ClusteringThreshold.apply)
 
     val writes: Writes[ClusteringThreshold] = (
       (__ \ "label_type").write[String] and

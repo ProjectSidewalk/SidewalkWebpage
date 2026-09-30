@@ -5,7 +5,7 @@ import models.label.{LabelPointTableDef, LabelTable, LabelTableDef}
 import models.mission.MissionTableDef
 import models.region.RegionTableDef
 import models.street.StreetEdgeRegionTableDef
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{ClusteringThreshold, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -38,8 +38,7 @@ class ClusteringSessionTableDef(tag: Tag) extends Table[ClusteringSession](tag, 
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (clusteringSessionId, regionId, thresholds, timestamp) <>
-    ((ClusteringSession.apply _).tupled, ClusteringSession.unapply)
+  def * = (clusteringSessionId, regionId, thresholds, timestamp).mapTo[ClusteringSession]
 
   def region = foreignKey("clustering_session_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
 }

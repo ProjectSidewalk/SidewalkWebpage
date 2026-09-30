@@ -4,7 +4,7 @@ import models.api.{RegionSpotlightRowForApi, SpotlightUnit, StreetSpotlightRowFo
 import models.region.{RegionAccessScoreTable, RegionAccessScoreTableDef}
 import models.street.{StreetAccessScore, StreetAccessScoreTable, StreetAccessScoreTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.cache.AsyncCacheApi
@@ -16,7 +16,7 @@ import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 /**
@@ -38,7 +38,7 @@ import scala.concurrent.{Await, Future}
 class AccessScoreSpotlightSnapshotSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val service                    = app.injector.instanceOf[AccessScoreSpotlightService]
   private val accessScoreService         = app.injector.instanceOf[AccessScoreService]

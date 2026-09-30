@@ -86,7 +86,7 @@ class StreetsApiController @Inject() (
           )
 
           // Get the data stream.
-          val dbDataStream: Source[StreetDataForApi, _] = apiService.getStreets(filters, DEFAULT_BATCH_SIZE)
+          val dbDataStream: Source[StreetDataForApi, ?] = apiService.getStreets(filters, DEFAULT_BATCH_SIZE)
           val baseFileName: String                      = timestampedFilename("streets")
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 
@@ -161,7 +161,7 @@ class StreetsApiController @Inject() (
             minAuditCount = minAuditCount, wayTypes = parsedWayTypes
           )
 
-          val dbDataStream: Source[SidewalkPresenceForApi, _] =
+          val dbDataStream: Source[SidewalkPresenceForApi, ?] =
             apiService.getSidewalkPresence(filters, DEFAULT_BATCH_SIZE)
           val baseFileName: String = timestampedFilename("sidewalk_presence")
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)

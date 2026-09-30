@@ -1,19 +1,19 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.SignedMediaUtils
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats
 import models.label.LabelType
 import models.utils.ImageUtils
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{AnyContent, Request, RequestHeader}
 import play.api.{Configuration, Logger}
 import service.ImageSigningService
 
 import java.awt.Image
 import java.awt.image.BufferedImage
-import java.io._
+import java.io.*
 import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
@@ -48,7 +48,7 @@ class ImageController @Inject() (
   // Resize the image to the new width and height.
   def resize(img: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage = {
     val tmp: Image          = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
-    val dimg: BufferedImage = new BufferedImage(newWidth, newHeight, img.getType)
+    val dimg: BufferedImage = BufferedImage(newWidth, newHeight, img.getType)
     val g2d                 = dimg.createGraphics()
     g2d.drawImage(tmp, 0, 0, null)
     g2d.dispose()
@@ -77,14 +77,14 @@ class ImageController @Inject() (
       case Some((srcW, srcH)) if !service.CropService.acceptsSnapshot(srcW, srcH) =>
         Left(s"Refusing a ${srcW}x$srcH upload: not the shape of a labeling frame.")
       case Some(_) =>
-        val inputStream                  = new ByteArrayInputStream(imageBytes)
+        val inputStream                  = ByteArrayInputStream(imageBytes)
         val bufferedImage: BufferedImage =
           try ImageIO.read(inputStream)
           finally inputStream.close()
         val (w, h) = service.CropService.exploreSnapshotSize(bufferedImage.getWidth, bufferedImage.getHeight)
         val resizedImage: BufferedImage = resize(bufferedImage, w, h)
 
-        val f = new File(filename)
+        val f = File(filename)
         // A failed write is refused rather than reported as stored: the caller records the crop's provenance on a
         // Right, and a label_crop row for a file that isn't there would send every card to a broken image.
         try {
@@ -109,7 +109,7 @@ class ImageController @Inject() (
 
   // Creates the base directory for the crops if it doesn't exist. Uses subdirectories /<city-id>/<label-type>.
   private def initializeDirIfNeeded(labelType: String): Unit = {
-    val file = new File(CROPS_DIR_NAME + File.separator + labelType)
+    val file = File(CROPS_DIR_NAME + File.separator + labelType)
     if (!file.exists()) {
       val result = file.mkdirs()
       if (!result) {

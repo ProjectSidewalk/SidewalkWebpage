@@ -2,12 +2,12 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.Identity
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -40,7 +40,7 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
   def email: Rep[String]    = column[String]("email")
   // DEFAULT now() in the DB.
   def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
-  def * = (userId, username, email, createdAt) <> (SidewalkUser.apply.tupled, SidewalkUser.unapply)
+  def *                              = (userId, username, email, createdAt).mapTo[SidewalkUser]
 
   // CHECK (email = lower(email)) and CHECK (username NOT LIKE '%@%') in the DB.
   def usernameUnique = index("sidewalk_user_username_key", username, unique = true)

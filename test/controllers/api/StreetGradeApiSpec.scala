@@ -7,7 +7,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsNull, JsObject}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 /**
@@ -28,7 +28,7 @@ class StreetGradeApiSpec
     with StreetFixtures {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private var measuredStreet: Int  = 0
   private var structureStreet: Int = 0

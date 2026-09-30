@@ -23,10 +23,10 @@ import java.io.File
 class EvolutionsApplySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val headRevision: Int = {
-    val files = Option(new File("conf/evolutions/default").listFiles()).getOrElse(Array.empty[File])
+    val files = Option(File("conf/evolutions/default").listFiles()).getOrElse(Array.empty[File])
     files
       .map(_.getName)
       .collect { case name if name.endsWith(".sql") => name.stripSuffix(".sql") }

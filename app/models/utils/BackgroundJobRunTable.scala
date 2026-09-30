@@ -1,7 +1,7 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json}
 import slick.jdbc.GetResult
@@ -72,10 +72,8 @@ class BackgroundJobRunTableDef(tag: Tag) extends Table[BackgroundJobRun](tag, "b
 
   // CHECK constraints, which Slick can't express: finished_at >= started_at, error_message only on a failed run, and
   // status = 'running' exactly while finished_at is NULL.
-  def * = (backgroundJobRunId, jobName, triggeredBy, startedAt, finishedAt, status, details, errorMessage) <> (
-    (BackgroundJobRun.apply _).tupled,
-    BackgroundJobRun.unapply
-  )
+  def * = (backgroundJobRunId, jobName, triggeredBy, startedAt, finishedAt, status, details, errorMessage)
+    .mapTo[BackgroundJobRun]
 }
 
 @ImplementedBy(classOf[BackgroundJobRunTable])

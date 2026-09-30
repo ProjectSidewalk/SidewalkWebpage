@@ -8,7 +8,7 @@ import util.SidewalkSpec
 import java.io.File
 import java.nio.file.Files
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * The three answers `PanoDisplayCopyService.displayCopy` can give (#5561): a copy, "the native file already fits",
@@ -22,14 +22,14 @@ class PanoDisplayCopyServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   private val mediaRoot = Files.createTempDirectory("pano-display-copy-spec").toFile
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
-      .configure("cropped.image.directory" -> new File(mediaRoot, "crops").getPath)
+      .configure("cropped.image.directory" -> File(mediaRoot, "crops").getPath)
       .build()
 
   private lazy val service = app.injector.instanceOf[PanoDisplayCopyService]
 
-  private val pano = new File("test/resources/crops/synthetic-pano.png") // 1024x512
+  private val pano = File("test/resources/crops/synthetic-pano.png") // 1024x512
 
   private def copyOf(panoId: String, maxWidth: Int): DisplayCopy =
     Await.result(service.displayCopy(panoId, pano, maxWidth), 30.seconds)
@@ -54,7 +54,7 @@ class PanoDisplayCopyServiceSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
 
     "answer Unavailable for a native file it cannot read, never the native file" in {
-      val corrupt = new File(mediaRoot, "not-an-image.jpg") // Under the spec's own temp dir, gone with it.
+      val corrupt = File(mediaRoot, "not-an-image.jpg") // Under the spec's own temp dir, gone with it.
       Files.write(corrupt.toPath, "definitely not a JPEG".getBytes)
       Await.result(service.displayCopy("spec-corrupt", corrupt, 512), 30.seconds) mustBe DisplayCopy.Unavailable
     }

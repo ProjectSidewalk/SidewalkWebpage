@@ -1,16 +1,16 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{parseIntegerSeq, NoUserId}
 import models.auth.DefaultEnv
 import models.utils.MyPostgresProfile.api.given
 import play.api.libs.json.{JsArray, JsObject, Json}
-import play.api.mvc._
+import play.api.mvc.*
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.UserAwareRequest
 import service.RegionService
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 @Singleton

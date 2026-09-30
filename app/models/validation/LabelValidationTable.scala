@@ -3,12 +3,12 @@ package models.validation
 import com.google.inject.ImplementedBy
 import models.api.{ValidationDataForApi, ValidationFiltersForApi, ValidationResultTypeForApi, ValidatorType}
 import models.label.LabelType.labelTypeNames
-import models.label._
+import models.label.*
 import models.mission.MissionTableDef
-import models.user._
+import models.user.*
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import slick.jdbc.GetResult
@@ -81,10 +81,7 @@ class LabelValidationTableDef(tag: slick.lifted.Tag) extends Table[LabelValidati
   def viewerType: Rep[ViewerType]             = column[ViewerType]("viewer_type")
 
   def * = (labelValidationId, labelId, labelType, validationResult, userId, missionId, canvasX, canvasY, heading, pitch,
-    zoom, canvasWidth, canvasHeight, startTimestamp, endTimestamp, source, viewerType) <> (
-    (LabelValidation.apply _).tupled,
-    LabelValidation.unapply
-  )
+    zoom, canvasWidth, canvasHeight, startTimestamp, endTimestamp, source, viewerType).mapTo[LabelValidation]
 
   def label   = foreignKey("label_validation_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user    = foreignKey("label_validation_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -289,7 +286,7 @@ class LabelValidationTable @Inject() (
    */
   private def countWithVoided(
       live: Query[LabelValidationTableDef, LabelValidation, Seq],
-      voided: Query[VoidedLabelValidationTableDef, _, Seq]
+      voided: Query[VoidedLabelValidationTableDef, ?, Seq]
   ): DBIO[Int] =
     for {
       liveCount     <- live.length.result
@@ -449,7 +446,7 @@ class LabelValidationTable @Inject() (
    * @param filters The filters to apply to the validation data.
    * @return A query for retrieving filtered validation data as tuples.
    */
-  def getValidationsForApi(filters: ValidationFiltersForApi): Query[_, (LabelValidation, Label, Role), Seq] = {
+  def getValidationsForApi(filters: ValidationFiltersForApi): Query[?, (LabelValidation, Label, Role), Seq] = {
     for {
       validation       <- validations
       label            <- labelsUnfiltered if validation.labelId === label.labelId

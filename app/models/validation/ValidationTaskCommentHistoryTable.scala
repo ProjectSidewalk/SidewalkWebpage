@@ -5,7 +5,7 @@ import models.mission.MissionTableDef
 import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.IpAddress
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{NamedEnum, PgEnumCompanion}
 
 import java.time.OffsetDateTime
@@ -85,11 +85,9 @@ class ValidationTaskCommentHistoryTableDef(tag: Tag)
   def supersededAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("superseded_at")
   def changeType: Rep[ValidationCommentChangeType] = column[ValidationCommentChangeType]("change_type")
 
-  def * = (validationTaskCommentHistoryId, validationTaskCommentId, missionId, labelId, labelType, userId, ipAddress,
-    panoId, heading, pitch, zoom, lat, lng, timestamp, comment, supersededAt, changeType) <> (
-    (ValidationTaskCommentHistory.apply _).tupled,
-    ValidationTaskCommentHistory.unapply
-  )
+  def * =
+    (validationTaskCommentHistoryId, validationTaskCommentId, missionId, labelId, labelType, userId, ipAddress, panoId,
+      heading, pitch, zoom, lat, lng, timestamp, comment, supersededAt, changeType).mapTo[ValidationTaskCommentHistory]
 
   def mission =
     foreignKey("validation_task_comment_history_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId)

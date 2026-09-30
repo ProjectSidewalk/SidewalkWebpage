@@ -28,7 +28,7 @@ import java.time.{LocalDate, OffsetDateTime}
 class ApiFilterQueriesSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val labelTable: LabelTable                       = app.injector.instanceOf[LabelTable]
   private lazy val clusterTable: ClusterTable                   = app.injector.instanceOf[ClusterTable]

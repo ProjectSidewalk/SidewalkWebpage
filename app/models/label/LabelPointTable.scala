@@ -2,7 +2,7 @@ package models.label
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -61,7 +61,7 @@ class LabelPointTableDef(tag: slick.lifted.Tag) extends Table[LabelPoint](tag, "
   def streetSide: Rep[Option[StreetSide]] = column[Option[StreetSide]]("street_side")
 
   def * = (labelPointId, labelId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, heading, pitch, zoom, lat,
-    lng, geom, computationMethod, centerlineOffsetM, streetSide) <> ((LabelPoint.apply _).tupled, LabelPoint.unapply)
+    lng, geom, computationMethod, centerlineOffsetM, streetSide).mapTo[LabelPoint]
 
   def insertProjection = (labelId, panoX, panoY, canvasX, canvasY, canvasWidth, canvasHeight, heading, pitch, zoom, lat,
     lng, geom, computationMethod, centerlineOffsetM)
@@ -132,7 +132,7 @@ class LabelPointTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
         case 1    => DBIO.successful(1)
         case rows =>
           DBIO.failed(
-            new IllegalStateException(
+            IllegalStateException(
               s"Expected to set centerline_offset_m on 1 row for label_point $labelPointId against street edge " +
                 s"$streetEdgeId, updated $rows"
             )

@@ -1,13 +1,13 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{AiTagConfidence, MyPostgresProfile, NamedEnum, PgEnumCompanion}
 import models.validation.{LabelValidationTableDef, ValidationOption}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 // NOTE need to update ai_image_source enum in postgres as well if changing this enum.
@@ -62,10 +62,7 @@ class LabelAiAssessmentTableDef(tag: Tag) extends Table[LabelAiAssessment](tag, 
   def * =
     (labelAiAssessmentId, labelId, labelType, validationResult, validationAccuracy, validationConfidence, tags,
       tagsNotPresent, tagsConfidence, apiVersion, validatorModelId, validatorTrainingDate, taggerModelId,
-      taggerTrainingDate, timestamp, labelValidationId, aiImageSource) <> (
-      (LabelAiAssessment.apply _).tupled,
-      LabelAiAssessment.unapply
-    )
+      taggerTrainingDate, timestamp, labelValidationId, aiImageSource).mapTo[LabelAiAssessment]
 
   def label           = foreignKey("label_ai_assessment_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def labelValidation =

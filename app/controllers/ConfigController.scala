@@ -1,15 +1,11 @@
 package controllers
 
-import controllers.base._
-import models.auth.DefaultEnv
+import controllers.base.*
 import models.pano.PanoSource
 import models.utils.MapParams
-import play.api.Logger
 import play.api.libs.json.Json
-import play.api.mvc.AnyContent
-import play.silhouette.api.actions.UserAwareRequest
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -18,13 +14,11 @@ class ConfigController @Inject() (
     configService: service.ConfigService
 )(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
-  private val logger = Logger(this.getClass)
 
   /**
    * Get the city-specific parameters used to pan/zoom maps to correct location.
    */
-  def getCityMapParams() = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getCityMapParams() = Action.async {
     val cityMapParams: Future[MapParams] = configService.getCityMapParams
     cityMapParams.map { params =>
       Ok(
@@ -44,21 +38,19 @@ class ConfigController @Inject() (
    * it needs no more protection than a page does. Other providers' keys are static and 404 here, so the route never
    * becomes a second place a key is served from.
    */
-  def getImageryAccessToken() = cc.securityService.UserAwareAction {
-    implicit request: UserAwareRequest[DefaultEnv, AnyContent] =>
-      logger.debug(request.toString) // Keeps the implicit from reading as unused.
-      configService.getImageryAccessToken.map { access =>
-        if (access.source != PanoSource.Infra3d) {
-          NotFound(Json.obj("error" -> s"${access.source.name} uses a static key; nothing to renew"))
-        } else {
-          Ok(
-            Json.obj(
-              "source"     -> access.source.name,
-              "token"      -> access.token,
-              "expires_at" -> access.expiresAt.map(_.toString)
-            )
+  def getImageryAccessToken() = cc.securityService.UserAwareAction { _ =>
+    configService.getImageryAccessToken.map { access =>
+      if (access.source != PanoSource.Infra3d) {
+        NotFound(Json.obj("error" -> s"${access.source.name} uses a static key; nothing to renew"))
+      } else {
+        Ok(
+          Json.obj(
+            "source"     -> access.source.name,
+            "token"      -> access.token,
+            "expires_at" -> access.expiresAt.map(_.toString)
           )
-        }
+        )
       }
+    }
   }
 }

@@ -1,11 +1,11 @@
 package models.utils
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service._
+import service.*
 import slick.jdbc.GetResult
 
-import javax.inject._
+import javax.inject.*
 
 /**
  * Read-only DAO of Postgres catalog queries backing the Owner-only Health dashboard (#4561).

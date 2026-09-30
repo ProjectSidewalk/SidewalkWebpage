@@ -14,7 +14,7 @@ import slick.dbio.DBIO
 import util.SidewalkSpec
 
 import java.time.{LocalDate, OffsetDateTime}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 /**
@@ -37,7 +37,7 @@ import scala.concurrent.{Await, Future}
 class ImageryFreshnessReportServiceSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val reportService = app.injector.instanceOf[ImageryFreshnessReportService]
   private val jobRunTable   = app.injector.instanceOf[BackgroundJobRunTable]

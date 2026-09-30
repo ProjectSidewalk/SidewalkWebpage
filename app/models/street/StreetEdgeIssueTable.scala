@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.{FilteredTables, IpAddress}
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -51,10 +51,7 @@ class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "str
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp) <> (
-    (StreetEdgeIssue.apply _).tupled,
-    StreetEdgeIssue.unapply
-  )
+  def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp).mapTo[StreetEdgeIssue]
 
   def streetEdge =
     foreignKey("street_edge_issue_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)

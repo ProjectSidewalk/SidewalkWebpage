@@ -3,7 +3,7 @@ package service
 import play.api.libs.json.{JsObject, JsValue, Json}
 import util.SidewalkSpec
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 /**
@@ -88,7 +88,7 @@ class OsmWayServiceSpec extends SidewalkSpec {
       var pauses: Int                                                = 0
       def fetch(ids: Seq[Long]): Future[Option[Map[Long, JsObject]]] = {
         requests = requests :+ ids
-        if (failing(ids)) Future.failed(new RuntimeException("503"))
+        if (failing(ids)) Future.failed(RuntimeException("503"))
         else Future.successful(if (ids.exists(neverExisted)) None else Some(ids.map(_ -> tags).toMap))
       }
       def pause(): Future[Unit] = { pauses += 1; Future.unit }
@@ -98,7 +98,7 @@ class OsmWayServiceSpec extends SidewalkSpec {
       Await.result(OsmWayService.fetchSplittingOnNotFound(ids)(api.fetch, () => api.pause()), 5.seconds)
 
     "fetch a chunk with no bad id in one request and no pause" in {
-      val api    = new FakeApi(Set.empty)
+      val api    = FakeApi(Set.empty)
       val result = fetchAll(1L to 8L, api)
       result.live.keySet mustBe (1L to 8L).toSet
       result.neverHeld mustBe Nil
@@ -107,7 +107,7 @@ class OsmWayServiceSpec extends SidewalkSpec {
     }
 
     "narrow a 404 down to the one bad id, keeping every other id, in a bisection rather than one request per id" in {
-      val api    = new FakeApi(Set(6L))
+      val api    = FakeApi(Set(6L))
       val result = fetchAll(1L to 8L, api)
       result.live.keySet mustBe Set(1L, 2L, 3L, 4L, 5L, 7L, 8L)
       result.neverHeld mustBe Seq(6L)
@@ -118,7 +118,7 @@ class OsmWayServiceSpec extends SidewalkSpec {
     }
 
     "name every id in a chunk that is all bad ids" in {
-      val api    = new FakeApi(Set(1L, 2L))
+      val api    = FakeApi(Set(1L, 2L))
       val result = fetchAll(Seq(1L, 2L), api)
       result.live mustBe Map.empty
       result.neverHeld mustBe Seq(1L, 2L)
@@ -126,7 +126,7 @@ class OsmWayServiceSpec extends SidewalkSpec {
     }
 
     "propagate a failed request rather than treating it as a 404" in {
-      val boom                                                      = new RuntimeException("503")
+      val boom                                                      = RuntimeException("503")
       val failing: Seq[Long] => Future[Option[Map[Long, JsObject]]] = _ => Future.failed(boom)
       the[RuntimeException] thrownBy
         Await.result(OsmWayService.fetchSplittingOnNotFound(Seq(1L, 2L))(failing), 5.seconds) mustBe boom
@@ -134,7 +134,7 @@ class OsmWayServiceSpec extends SidewalkSpec {
 
     "propagate a failure in the second half even after the first half succeeded" in {
       // 1-4 404s because 3 never existed, so it splits: 1-2 is fine, then 3-4 fails on the request itself.
-      val api = new FakeApi(neverExisted = Set(3L), failing = _ == Seq(3L, 4L))
+      val api = FakeApi(neverExisted = Set(3L), failing = _ == Seq(3L, 4L))
       a[RuntimeException] mustBe thrownBy(fetchAll(1L to 4L, api))
       api.requests mustBe List(1L to 4L, 1L to 2L, 3L to 4L)
     }

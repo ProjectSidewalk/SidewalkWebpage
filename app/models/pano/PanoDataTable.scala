@@ -3,11 +3,10 @@ package models.pano
 import com.google.inject.ImplementedBy
 import models.label.LabelTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.functional.syntax._
-import play.api.libs.json.{__, JsValue, Json, Reads, Writes}
+import play.api.libs.json.{JsValue, Json, JsonConfiguration, JsonNaming, Reads, Writes}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -102,18 +101,10 @@ case class PanoDataSlim(
 )
 
 object PanoDataSlim {
-  given panoDataSlimWrites: Writes[PanoDataSlim] = (
-    (__ \ "pano_id").write[String] and
-      (__ \ "has_labels").write[Boolean] and
-      (__ \ "width").writeNullable[Int] and
-      (__ \ "height").writeNullable[Int] and
-      (__ \ "lat").writeNullable[Double] and
-      (__ \ "lng").writeNullable[Double] and
-      (__ \ "camera_heading").writeNullable[Double] and
-      (__ \ "camera_pitch").writeNullable[Double] and
-      (__ \ "camera_roll").writeNullable[Double] and
-      (__ \ "source").write[PanoSource]
-  )((o: PanoDataSlim) => Tuple.fromProductTyped(o))
+  // snake_case keys for the Json.writes macro below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
+  given panoDataSlimWrites: Writes[PanoDataSlim] = Json.writes[PanoDataSlim]
 }
 
 class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
@@ -146,8 +137,7 @@ class PanoDataTableDef(tag: Tag) extends Table[PanoData](tag, "pano_data") {
 
   def * = (panoId, width, height, tileWidth, tileHeight, captureDate, copyright, license, lat, lng, cameraHeading,
     cameraPitch, cameraRoll, expired, lastViewed, panoHistorySaved, lastChecked, source, hasBackup, address,
-    sourceMetadata) <>
-    ((PanoData.apply _).tupled, PanoData.unapply)
+    sourceMetadata).mapTo[PanoData]
 }
 
 @ImplementedBy(classOf[PanoDataTable]) trait PanoDataTableRepository {}
@@ -179,7 +169,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
     extends PanoDataTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  import profile.api._
+  import profile.api.*
   val panoDataRecords = TableQuery[PanoDataTableDef]
   val labelTable      = TableQuery[LabelTableDef]
 
@@ -213,7 +203,7 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
         (g.panoId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.cameraRoll, g.source)
       }
       .result
-      .map(_.map((PanoDataSlim.apply _).tupled))
+      .map(_.map(PanoDataSlim.apply.tupled))
   }
 
   /**

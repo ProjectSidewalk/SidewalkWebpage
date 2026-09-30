@@ -1,5 +1,6 @@
 package models.auth
 
+import models.auth.AuthorizationResult.*
 import play.api.mvc.Request
 import play.silhouette.api.{Authenticator, Authorization, Identity}
 

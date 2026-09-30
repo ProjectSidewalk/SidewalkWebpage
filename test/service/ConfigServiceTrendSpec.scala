@@ -26,7 +26,7 @@ import scala.concurrent.duration.DurationInt
 class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val configService = app.injector.instanceOf[ConfigService]
 

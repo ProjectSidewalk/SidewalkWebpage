@@ -8,7 +8,7 @@ import util.SidewalkSpec
  * page, so the rules that keep a bad value out of it are pinned here without an app or a database.
  */
 class OfficialContactValidationSpec extends SidewalkSpec {
-  import ConfigService.{validateOfficialContact => validate}
+  import ConfigService.validateOfficialContact as validate
 
   private val url = "https://www.burnaby.ca/our-city/contact-us"
 

@@ -1,6 +1,6 @@
 package service
 
-import formats.json.ExploreFormats._
+import formats.json.ExploreFormats.*
 import formats.json.MissionFormats.given
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.label.{LabelHistoryTableDef, LabelPointTableDef, LabelTableDef, LabelType}
@@ -17,7 +17,7 @@ import models.street.{
 }
 import models.user.SidewalkUserWithRole
 import models.utils.IpAddress
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.i18n.{Lang, MessagesApi, MessagesImpl}
@@ -29,7 +29,7 @@ import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for the exploreAddress (address-drop-in) flow (#4451).
@@ -63,7 +63,7 @@ class ExploreAddressServiceSpec
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val exploreService                             = app.injector.instanceOf[ExploreService]
   private val authService                                = app.injector.instanceOf[AuthenticationService]

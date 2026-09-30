@@ -10,7 +10,7 @@ import play.api.i18n.{Lang, MessagesApi}
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.{AuthenticationService, LabelService, PanoDataService, ShareImageCache, StoryService}
 import util.SidewalkSpec
 
@@ -19,7 +19,7 @@ import java.io.{ByteArrayInputStream, File}
 import java.nio.file.Files
 import javax.imageio.ImageIO
 import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the public label-share surface (issue #456): GET /label/:labelId (rich-preview landing) and
@@ -37,7 +37,7 @@ import scala.concurrent.duration._
 class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests (nothing else injects their ActorRefs).
       .build()
 
@@ -238,7 +238,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
           // The meta advertises og:image:width/height 1440x960; the pipeline must make that true for every source
           // (stored crop, GSV still, or fallback), so decode the actual bytes and check.
-          val img = ImageIO.read(new ByteArrayInputStream(contentAsBytes(resp).toArray))
+          val img = ImageIO.read(ByteArrayInputStream(contentAsBytes(resp).toArray))
           img.getWidth mustBe 1440
           img.getHeight mustBe 960
       }
@@ -345,9 +345,9 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
     /** Builds a solid-color base image for compositing tests. */
     def solidBase(w: Int, h: Int, rgb: Int): BufferedImage = {
-      val img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB)
+      val img = BufferedImage(w, h, BufferedImage.TYPE_INT_RGB)
       val g   = img.createGraphics()
-      g.setColor(new java.awt.Color(rgb))
+      g.setColor(java.awt.Color(rgb))
       g.fillRect(0, 0, w, h)
       g.dispose()
       img
@@ -444,17 +444,17 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // The sweep trusts generationOf to find every preview fileFor writes: a name the two disagree on would either
       // never be evicted or be evicted on every build.
       ShareImageCache.generationOf(cache.fileFor(syntheticLabelId)) mustBe Some(ShareImageCache.Generation)
-      ShareImageCache.generationOf(new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))) mustBe Some(1)
-      ShareImageCache.fileName(12, 1) mustBe "share_12.jpg" // Generation 1 predates the suffix.
-      ShareImageCache.generationOf(new File(cache.dir, "share_12_g1.jpg")) mustBe None // Never written; a stray.
-      ShareImageCache.generationOf(new File(cache.dir, "share_fallback.jpg")) mustBe None
-      ShareImageCache.generationOf(new File(cache.dir, "share_12_g2.jpg.8675309.tmp")) mustBe None
-      ShareImageCache.generationOf(new File(cache.dir, "story_12.jpg")) mustBe None
+      ShareImageCache.generationOf(File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))) mustBe Some(1)
+      ShareImageCache.fileName(12, 1) mustBe "share_12.jpg"                        // Generation 1 predates the suffix.
+      ShareImageCache.generationOf(File(cache.dir, "share_12_g1.jpg")) mustBe None // Never written; a stray.
+      ShareImageCache.generationOf(File(cache.dir, "share_fallback.jpg")) mustBe None
+      ShareImageCache.generationOf(File(cache.dir, "share_12_g2.jpg.8675309.tmp")) mustBe None
+      ShareImageCache.generationOf(File(cache.dir, "story_12.jpg")) mustBe None
     }
 
     "promote the newest earlier-generation preview to current, and drop them all once the current one exists" in {
       val _          = cache.dir.mkdirs()
-      val legacyGen1 = new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
+      val legacyGen1 = File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
       val current    = cache.fileFor(syntheticLabelId)
       try {
         cache.promoteLegacy(syntheticLabelId) mustBe None
@@ -475,7 +475,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "delete a cached preview so the next request rebuilds it from the crop that just landed (#4726)" in {
       val _      = cache.dir.mkdirs()
       val file   = cache.fileFor(syntheticLabelId)
-      val legacy = new File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
+      val legacy = File(cache.dir, ShareImageCache.fileName(syntheticLabelId, 1))
       val _      = file.createNewFile()
       val _      = legacy.createNewFile() // An old still-based preview is just as stale once the crop is here.
       file.exists() mustBe true
@@ -498,7 +498,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     /** Creates `n` empty current-generation cache files with strictly increasing mtimes (index 0 = oldest). */
     def fillCache(dir: File, n: Int): Seq[File] =
       (1 to n).map { i =>
-        val f = new File(dir, s"share_${i}_g${ShareImageCache.Generation}.jpg")
+        val f = File(dir, s"share_${i}_g${ShareImageCache.Generation}.jpg")
         val _ = f.createNewFile()
         val _ = f.setLastModified(1700000000000L + i * 60000L)
         f
@@ -532,7 +532,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val dir = Files.createTempDirectory("share-evict-spec").toFile
       try {
         val current = fillCache(dir, 2)
-        val legacy  = Seq(new File(dir, "share_7.jpg"), new File(dir, "share_8.jpg"))
+        val legacy  = Seq(File(dir, "share_7.jpg"), File(dir, "share_8.jpg"))
         legacy.zipWithIndex.foreach { case (f, i) =>
           val _ = f.createNewFile()
           val _ = f.setLastModified(1600000000000L + i * 60000L) // Both older than every current file.
@@ -555,7 +555,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       val dir = Files.createTempDirectory("share-evict-spec").toFile
       try {
         val current   = fillCache(dir, 4)
-        val untouched = Seq(new File(dir, "share_fallback.jpg"), new File(dir, "share_9_g2.jpg.12345.tmp"))
+        val untouched = Seq(File(dir, "share_fallback.jpg"), File(dir, "share_9_g2.jpg.12345.tmp"))
         untouched.foreach { f =>
           val _ = f.createNewFile()
           val _ = f.setLastModified(1600000000000L) // Older than everything: age alone would evict these first.
@@ -577,7 +577,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
     "serve the label's earlier-generation preview when nothing better can be built, as the current one (#3095)" in {
       val _       = cache.dir.mkdirs()
-      val legacy  = new File(cache.dir, ShareImageCache.fileName(labelId, 1))
+      val legacy  = File(cache.dir, ShareImageCache.fileName(labelId, 1))
       val current = cache.fileFor(labelId)
       try {
         Files.write(legacy.toPath, Array[Byte](1, 2, 3)) // Any bytes: the point is which file is served.
@@ -592,7 +592,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "fall back to the branded image when the label has no preview of any generation" in {
       val result = Future.successful(controller.serveLegacyOrFallbackImage(labelId))
       status(result) mustBe OK
-      val img = ImageIO.read(new ByteArrayInputStream(contentAsBytes(result).toArray))
+      val img = ImageIO.read(ByteArrayInputStream(contentAsBytes(result).toArray))
       img.getWidth mustBe 1440
       img.getHeight mustBe 960
     }
@@ -601,7 +601,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   "buildFallbackImage" should {
     "write a branded fallback at exactly the advertised share dimensions" in {
       val controller = app.injector.instanceOf[ShareController]
-      val tmp        = new File(System.getProperty("java.io.tmpdir"), s"share-fallback-spec-${System.nanoTime()}.jpg")
+      val tmp        = File(System.getProperty("java.io.tmpdir"), s"share-fallback-spec-${System.nanoTime()}.jpg")
       try {
         controller.buildFallbackImage(tmp)
         assert(tmp.exists(), "fallback image file was not written (is public/images/sidewalk-logo.png present?)")

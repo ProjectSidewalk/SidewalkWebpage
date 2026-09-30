@@ -1,12 +1,12 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.region._
+import models.region.*
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 
 case class StreetEdgeRegion(streetEdgeId: Int, regionId: Int)
 
@@ -14,7 +14,7 @@ class StreetEdgeRegionTableDef(tag: Tag) extends Table[StreetEdgeRegion](tag, "s
   def streetEdgeId: Rep[Int] = column[Int]("street_edge_id")
   def regionId: Rep[Int]     = column[Int]("region_id")
 
-  def * = (streetEdgeId, regionId) <> ((StreetEdgeRegion.apply _).tupled, StreetEdgeRegion.unapply)
+  def * = (streetEdgeId, regionId).mapTo[StreetEdgeRegion]
 
   def streetEdge =
     foreignKey("street_edge_region_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(

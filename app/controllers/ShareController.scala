@@ -1,6 +1,6 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import models.auth.{DefaultEnv, WithAdmin}
 import models.label.AccessImpact
 import models.label.{CropMarker, LabelMetadata, LabelType}
@@ -10,7 +10,7 @@ import models.user.SidewalkUserWithRole
 import models.utils.ImageUtils
 import play.api.i18n.Messages
 import play.api.libs.ws.WSClient
-import play.api.mvc._
+import play.api.mvc.*
 import play.api.{Configuration, Environment, Logger}
 import play.silhouette.api.Silhouette
 import play.twirl.api.Html
@@ -28,7 +28,7 @@ import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import java.io.{ByteArrayInputStream, File}
 import javax.imageio.ImageIO
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
@@ -354,7 +354,7 @@ class ShareController @Inject() (
               // The still is requested with `return_error_code`, so missing imagery arrives as a 404 rather than as a
               // placeholder photo: any non-200 means there is no base image and the caller serves the branded fallback.
               if (r.status != 200) None
-              else Option(ImageIO.read(new ByteArrayInputStream(r.bodyAsBytes.toArray)))
+              else Option(ImageIO.read(ByteArrayInputStream(r.bodyAsBytes.toArray)))
             }
             .recover { case e =>
               logger.warn(s"Failed to fetch GSV still for label ${meta.labelId}: ${e.getMessage}"); None
@@ -376,7 +376,7 @@ class ShareController @Inject() (
       marker: CropMarker
   ): BufferedImage = {
     // RGB (not ARGB): the canvas is fully covered by the base photo, and ImageIO's JPEG writer rejects alpha.
-    val out: BufferedImage = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
+    val out: BufferedImage = BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
     val g                  = out.createGraphics()
     g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
 
@@ -429,7 +429,7 @@ class ShareController @Inject() (
    * city and cached alongside the per-label images, which the sweep leaves alone (it only evicts previews).
    */
   private def serveFallbackImage(): Result = {
-    val cached: File = new File(shareImageDir, "share_fallback.jpg")
+    val cached: File = File(shareImageDir, "share_fallback.jpg")
     if (!cached.exists()) buildFallbackImage(cached)
     if (cached.exists()) serveImage(cached) else NotFound("No preview image available.")
   }
@@ -447,7 +447,7 @@ class ShareController @Inject() (
   private[controllers] def buildFallbackImage(cached: File): Unit = {
     val logo: File = environment.getFile("public/images/sidewalk-logo.png")
     Option(if (logo.exists()) ImageIO.read(logo) else null).foreach { mark =>
-      val out = new BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
+      val out = BufferedImage(SHARE_IMAGE_WIDTH, SHARE_IMAGE_HEIGHT, BufferedImage.TYPE_INT_RGB)
       val g   = out.createGraphics()
       g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR)
       g.setColor(java.awt.Color.WHITE)

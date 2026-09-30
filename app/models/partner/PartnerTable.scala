@@ -2,11 +2,11 @@ package models.partner
 
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /** A community-partner logo shown on the landing page (#4516). `cityId` None means global (every deployment). */
@@ -75,7 +75,7 @@ class PartnerTableDef(tag: Tag) extends Table[Partner](tag, "partner") {
   def updatedBy: Rep[String]         = column[String]("updated_by")
 
   def * = (partnerId, cityId, name, url, altText, displayOrder, logoImage, logoMimeType, logoWidth, logoHeight,
-    createdAt, updatedAt, createdBy, updatedBy) <> ((Partner.apply _).tupled, Partner.unapply)
+    createdAt, updatedAt, createdBy, updatedBy).mapTo[Partner]
 
   def creator = foreignKey("partner_created_by_fkey", createdBy, TableQuery[SidewalkUserTableDef])(_.userId)
   def updater = foreignKey("partner_updated_by_fkey", updatedBy, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -97,7 +97,7 @@ class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     (p.partnerId, p.cityId, p.name, p.url, p.altText, p.displayOrder, p.logoWidth, p.logoHeight, p.updatedAt)
   }
 
-  private val toMetadata = (PartnerMetadata.apply _).tupled
+  private val toMetadata = PartnerMetadata.apply.tupled
 
   /** The partners a city's landing page shows: global partners first, then the city's own, each in display order. */
   def getForLanding(cityId: String): DBIO[Seq[PartnerMetadata]] = {

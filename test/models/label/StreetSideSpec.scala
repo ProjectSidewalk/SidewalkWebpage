@@ -39,14 +39,14 @@ import scala.concurrent.duration.DurationInt
 class StreetSideSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val labelPointTable = app.injector.instanceOf[LabelPointTable]
   // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
-  private val gf = new GeometryFactory(new PrecisionModel(), 4326)
+  private val gf = GeometryFactory(PrecisionModel(), 4326)
 
   private def run[T](action: DBIO[T]): T = Await.result(dbConfig.db.run(action), 120.seconds)
 
@@ -176,7 +176,7 @@ class StreetSideSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionVa
             coords <- sql"SELECT ST_X(ST_GeomFromText($wkt, 4326)), ST_Y(ST_GeomFromText($wkt, 4326))"
               .as[(Double, Double)]
               .head
-            geom = gf.createPoint(new Coordinate(coords._1, coords._2))
+            geom = gf.createPoint(Coordinate(coords._1, coords._2))
             labelPointId <- labelPointTable.insert(
               LabelPoint(0, labelId.get, 0, 0, 0, 0, 720, 480, 0d, 0d, 1d, Some(geom.getY), Some(geom.getX), Some(geom),
                 Some(ComputationMethod.Approximation3), centerlineOffsetM = None, streetSide = None)
