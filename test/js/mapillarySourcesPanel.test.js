@@ -170,6 +170,19 @@ test('warns when the server reports the creator was already listed, e.g. added m
   expect(document.querySelector('button[type="submit"]').disabled).toBe(false);
 });
 
+test('re-adding a listed creator in different case warns without asking the server', async () => {
+  const requests = await renderPanel([source('profjfray')]);
+  await add('ProfJFray');
+  expect(requests.some((r) => r.method === 'POST')).toBe(false);
+  expect(error().textContent).toBe('"profjfray" is already an allowed creator, so nothing changed.');
+});
+
+test('an already-listed warning names Mapillary\'s spelling, not what was typed', async () => {
+  await renderPanel([], { POST: () => reply({ status: 'success', username: 'profjfray', added: 0 }) });
+  await add('ProfJFray');
+  expect(error().textContent).toBe('"profjfray" is already an allowed creator, so nothing changed.');
+});
+
 test('a blank username is not sent', async () => {
   const requests = await renderPanel([]);
   await add('   ');

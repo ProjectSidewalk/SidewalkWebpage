@@ -8,6 +8,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.libs.json.Json
 import slick.dbio.DBIO
 
 import scala.concurrent.duration._
@@ -60,10 +61,26 @@ class MapillarySourceServiceSpec extends PlaySpec with GuiceOneAppPerSuite {
       val allowed = Seq("profjfray", "alice")
       MapillarySourceService.creatorAllowed(allowed, Some("alice")) mustBe true
       MapillarySourceService.creatorAllowed(allowed, Some("stranger")) mustBe false
-      // Mapillary's own creator_username filter is case-sensitive, and this has to agree with it.
+      // Exact, because images carry Mapillary's spelling and the allowlist stores that same spelling (canonicalCreator).
       MapillarySourceService.creatorAllowed(allowed, Some("Alice")) mustBe false
       // An image whose response carried no creator can't be shown to be ours.
       MapillarySourceService.creatorAllowed(allowed, None) mustBe false
+    }
+  }
+
+  "canonicalCreator" should {
+    "return Mapillary's spelling, whatever case the lookup was typed in" in {
+      val response = Json.parse("""{"data": [{"id": "1", "creator": {"id": "9", "username": "profjfray"}}]}""")
+      MapillarySourceService.canonicalCreator(response) mustBe Right(Some("profjfray"))
+    }
+
+    "report no imagery when Mapillary found none" in {
+      MapillarySourceService.canonicalCreator(Json.parse("""{"data": []}""")) mustBe Right(None)
+    }
+
+    "refuse a response it can't read a creator from, rather than guess one" in {
+      MapillarySourceService.canonicalCreator(Json.parse("""{"error": {}}""")).isLeft mustBe true
+      MapillarySourceService.canonicalCreator(Json.parse("""{"data": [{"id": "1"}]}""")).isLeft mustBe true
     }
   }
 

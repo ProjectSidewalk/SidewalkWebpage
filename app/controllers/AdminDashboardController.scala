@@ -422,15 +422,15 @@ class AdminDashboardController @Inject() (
       case None           => Future.successful(BadRequest(error("Expected a JSON body with a 'username' string.")))
       case Some(username) =>
         mapillarySourceService.addCreator(username, request.identity.userId).map {
-          case MapillarySourceService.Added =>
+          case MapillarySourceService.Added(canonical) =>
             cc.loggingService.insert(
               request.identity.userId,
               request.ipAddress,
-              s"AddMapillaryCreator_Username=${username.trim}"
+              s"AddMapillaryCreator_Username=$canonical"
             )
-            Ok(Json.obj("status" -> "success", "username" -> username.trim, "added" -> 1))
-          case MapillarySourceService.AlreadyListed =>
-            Ok(Json.obj("status" -> "success", "username" -> username.trim, "added" -> 0))
+            Ok(Json.obj("status" -> "success", "username" -> canonical, "added" -> 1))
+          case MapillarySourceService.AlreadyListed(canonical) =>
+            Ok(Json.obj("status" -> "success", "username" -> canonical, "added" -> 0))
           case MapillarySourceService.InvalidUsername =>
             BadRequest(error(s"'${username.trim}' can't be a Mapillary username."))
           case MapillarySourceService.NoPanosFound =>

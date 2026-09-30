@@ -110,8 +110,9 @@ class MapillarySourcesPanel {
     if (!username) return;
     this.#setError('');
     // Caught here to spare a Mapillary round trip; the server's `added: 0` below still covers a list gone stale.
-    if (this.#isListed(username)) {
-      this.#warnAlreadyListed(username);
+    const listed = this.#listedSpelling(username);
+    if (listed) {
+      this.#warnAlreadyListed(listed);
       return;
     }
     const submit = this.#form.querySelector('button[type="submit"]');
@@ -123,8 +124,9 @@ class MapillarySourcesPanel {
         body: JSON.stringify({ username }),
       });
       if (!response.ok) throw new Error(await MapillarySourcesPanel.#errorMessage(response));
-      const { added } = await response.json();
-      if (added === 0) this.#warnAlreadyListed(username);
+      // The server answers with Mapillary's spelling, which is what the list holds when the case typed differs.
+      const { added, username: canonical } = await response.json();
+      if (added === 0) this.#warnAlreadyListed(canonical);
       else this.#input.value = '';
       await this.#load();
     } catch (e) {
@@ -174,16 +176,22 @@ class MapillarySourcesPanel {
 
   /**
    * @param {string} username - A trimmed username.
-   * @returns {boolean} Whether the rendered list already holds it, compared exactly as the server's uniqueness does.
+   * @returns {string|undefined} The listed spelling if the rendered list already holds it, ignoring case as
+   *   Mapillary's username lookup does: the server stores Mapillary's spelling, so "ProfJFray" would only come back as
+   *   the listed "profjfray".
    */
-  #isListed(username) {
-    return [...this.#list.querySelectorAll('tr[data-username]')].some((row) => row.dataset.username === username);
+  #listedSpelling(username) {
+    const lower = username.toLowerCase();
+    return [...this.#list.querySelectorAll('tr[data-username]')]
+      .map((row) => row.dataset.username)
+      .find((listed) => listed.toLowerCase() === lower);
   }
 
   /**
-   * Says a creator is already listed, keeping what was typed so a near-miss of the intended name can be corrected.
+   * Says a creator is already listed. The input keeps what was typed, so a near-miss of the intended name can be
+   * corrected.
    *
-   * @param {string} username - The trimmed username that was already listed.
+   * @param {string} username - The listed username.
    */
   #warnAlreadyListed(username) {
     this.#setError(`"${username}" is already an allowed creator, so nothing changed.`);

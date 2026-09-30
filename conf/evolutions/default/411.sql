@@ -10,7 +10,8 @@ CREATE TABLE mapillary_allowed_source (
   -- What kind of thing source_value names. Only 'creator' (a Mapillary username) exists so far. A plain CHECK
   -- rather than an enum type, per docs/evolutions.md: this is a tiny admin-seeded config table.
   source_type TEXT NOT NULL CHECK (source_type IN ('creator')),
-  -- The Mapillary username, exactly as Mapillary spells it (its creator filters are case-sensitive).
+  -- The Mapillary username as Mapillary spells it. Its username lookup ignores case, but images carry this spelling and
+  -- the viewer compares it exactly, so the app stores what Mapillary returns rather than what an admin typed.
   source_value TEXT NOT NULL CHECK (source_value <> '' AND source_value = btrim(source_value)),
   -- The admin who added the source. NULL when the onboarding tooling seeded it, before any user exists.
   added_by TEXT REFERENCES sidewalk_login.sidewalk_user (user_id),

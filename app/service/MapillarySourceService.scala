@@ -5,7 +5,7 @@ import models.pano.{MapillaryAllowedSource, MapillaryAllowedSourceTable}
 import models.utils.MyPostgresProfile
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.{JsArray, JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 
@@ -48,11 +48,19 @@ object MapillarySourceService {
   /** Outcome of an admin's attempt to add a creator to the allowlist. */
   sealed trait AddOutcome
 
-  /** The creator was verified and added. */
-  case object Added extends AddOutcome
+  /**
+   * The creator was verified and added.
+   *
+   * @param username Mapillary's spelling of the username, which can differ in case from what the admin typed.
+   */
+  case class Added(username: String) extends AddOutcome
 
-  /** The creator was already listed, so nothing changed. */
-  case object AlreadyListed extends AddOutcome
+  /**
+   * The creator was already listed, so nothing changed.
+   *
+   * @param username Mapillary's spelling of the username, which can differ in case from what the admin typed.
+   */
+  case class AlreadyListed(username: String) extends AddOutcome
 
   /** The text can't be a Mapillary username, so Mapillary was never asked. */
   case object InvalidUsername extends AddOutcome
@@ -86,6 +94,29 @@ object MapillarySourceService {
   def creatorAllowed(allowedCreators: Seq[String], creatorUsername: Option[String]): Boolean =
     allowedCreators.isEmpty || creatorUsername.exists(allowedCreators.contains)
 
+  /**
+   * Mapillary's own spelling of the creator behind a Graph API `/images` response.
+   *
+   * The API's `creator_username` filter ignores case, but each image's `creator.username` carries the canonical
+   * spelling, and that is what [[creatorAllowed]] and the viewer's SDK filter compare against exactly. Storing what
+   * the admin typed instead would let "ProfJFray" pass verification and then match none of profjfray's images,
+   * restricting the deployment to nothing.
+   *
+   * @param response A parsed `/images` response requested with `fields=id,creator`.
+   * @return Right(Some(username)) for the first image's creator, Right(None) when there are no images, and Left(why)
+   *         when the response isn't shaped as expected.
+   */
+  def canonicalCreator(response: JsValue): Either[String, Option[String]] =
+    (response \ "data").asOpt[JsArray] match {
+      case None                                 => Left("Mapillary returned a response without a data array.")
+      case Some(images) if images.value.isEmpty => Right(None)
+      case Some(images)                         =>
+        (images.value.head \ "creator" \ "username").asOpt[String] match {
+          case Some(username) => Right(Some(username))
+          case None           => Left("Mapillary returned an image without a creator username.")
+        }
+    }
+
   private[service] val AllowedCreatorsCacheKey: String = "mapillaryAllowedCreators"
 }
 
@@ -117,13 +148,13 @@ class MapillarySourceServiceImpl @Inject() (
     val trimmed = username.trim
     if (!isPlausibleUsername(trimmed)) Future.successful(InvalidUsername)
     else {
-      creatorHasPanos(trimmed).flatMap {
-        case Right(true) =>
+      fetchCanonicalCreator(trimmed).flatMap {
+        case Right(Some(canonical)) =>
           for {
-            inserted <- db.run(mapillaryAllowedSourceTable.addCreator(trimmed, adminUserId))
+            inserted <- db.run(mapillaryAllowedSourceTable.addCreator(canonical, adminUserId))
             _        <- cacheApi.remove(AllowedCreatorsCacheKey)
-          } yield if (inserted > 0) Added else AlreadyListed
-        case Right(false) => Future.successful(NoPanosFound)
+          } yield if (inserted > 0) Added(canonical) else AlreadyListed(canonical)
+        case Right(None)  => Future.successful(NoPanosFound)
         case Left(reason) => Future.successful(VerificationFailed(reason))
       }
     }
@@ -137,11 +168,12 @@ class MapillarySourceServiceImpl @Inject() (
   }
 
   /**
-   * Asks the Mapillary Graph API whether a username has any 360 imagery.
+   * Asks the Mapillary Graph API whether a username has any 360 imagery, and how Mapillary spells it.
    *
-   * @return Right(true/false) when Mapillary answered, Left(why) when it could not be asked or did not answer.
+   * @return Right(Some(spelling)) or Right(None) when Mapillary answered, per [[MapillarySourceService.canonicalCreator]];
+   *         Left(why) when it could not be asked or did not answer.
    */
-  private def creatorHasPanos(username: String): Future[Either[String, Boolean]] = {
+  private def fetchCanonicalCreator(username: String): Future[Either[String, Option[String]]] = {
     config.getOptional[String]("mapillary-access-token") match {
       case None              => Future.successful(Left("No Mapillary access token is configured on this server."))
       case Some(accessToken) =>
@@ -150,7 +182,7 @@ class MapillarySourceServiceImpl @Inject() (
             "creator_username" -> username,
             "is_pano"          -> "true",
             "limit"            -> "1",
-            "fields"           -> "id"
+            "fields"           -> "id,creator"
           )
           .addHttpHeaders("Authorization" -> s"OAuth $accessToken")
           .withRequestTimeout(10.seconds)
@@ -158,9 +190,9 @@ class MapillarySourceServiceImpl @Inject() (
           .map { response =>
             response.status match {
               case 200 =>
-                Try((Json.parse(response.body) \ "data").asOpt[JsArray]).toOption.flatten match {
-                  case Some(images) => Right(images.value.nonEmpty)
-                  case None         => Left("Mapillary returned a response without a data array.")
+                Try(Json.parse(response.body)).toOption match {
+                  case Some(json) => canonicalCreator(json)
+                  case None       => Left("Mapillary returned a response that isn't JSON.")
                 }
               case other =>
                 logger.info(s"Mapillary creator check for '$username' returned $other: ${response.body}")
