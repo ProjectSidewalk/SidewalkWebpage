@@ -13,7 +13,7 @@ import javax.imageio.ImageIO
  */
 class PanoDisplayCopySpec extends SidewalkSpec {
 
-  private val pano = new File("test/resources/crops/synthetic-pano.png") // 1024x512
+  private val pano = File("test/resources/crops/synthetic-pano.png") // 1024x512
 
   "ImageUtils.subsamplePeriod" should {
     "leave an image the viewer can already texture alone" in {

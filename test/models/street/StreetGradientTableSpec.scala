@@ -1,6 +1,6 @@
 package models.street
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.OptionValues
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -24,7 +24,7 @@ class StreetGradientTableSpec
     with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val table: StreetGradientTable = app.injector.instanceOf[StreetGradientTable]
   private lazy val served                     = app.injector.instanceOf[StreetEdgeTable].streets.map(_.streetEdgeId)
@@ -210,11 +210,11 @@ class StreetGradientTableSpec
     ).toSet
 
     "match StreetGradientQuality exactly" in {
-      labelsOf("street_gradient_quality") mustBe StreetGradientQuality.values.map(_.toString)
+      labelsOf("street_gradient_quality") mustBe StreetGradientQuality.names.toSet
     }
 
     "match StreetGradientConfidence exactly" in {
-      labelsOf("street_gradient_confidence") mustBe StreetGradientConfidence.values.map(_.toString)
+      labelsOf("street_gradient_confidence") mustBe StreetGradientConfidence.names.toSet
     }
   }
 }

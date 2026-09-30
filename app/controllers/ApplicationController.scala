@@ -1,6 +1,6 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.auth.{DefaultEnv, WithSignedIn}
@@ -8,13 +8,13 @@ import models.user.{SidewalkUserWithRole, UserUtm}
 import models.utils.IpAddress
 import play.api.Configuration
 import play.api.i18n.{Lang, Messages}
-import play.api.mvc._
+import play.api.mvc.*
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.SecuredRequest
-import service._
+import service.*
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -59,7 +59,7 @@ class ApplicationController @Inject() (
           // Save UTM parameters if present, awaiting the write so failures surface to the error handler (#4229).
           // A cookie-less visitor has no user row to attach UTM params to, so they're skipped; UTM capture for
           // these visitors moves to account-mint time (#4442).
-          val utmSaved: Future[_] =
+          val utmSaved: Future[?] =
             if (ControllerUtils.hasUtmParamsFlat(qString)) {
               user match {
                 case Some(u) =>

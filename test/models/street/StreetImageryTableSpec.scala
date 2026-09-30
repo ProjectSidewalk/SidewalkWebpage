@@ -10,7 +10,7 @@ import slick.dbio.DBIO
 import util.SidewalkSpec
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for the street_imagery table (#4348) and its read-only DAO.
@@ -26,7 +26,7 @@ import scala.concurrent.duration._
 class StreetImageryTableSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val streetImageryTable = app.injector.instanceOf[StreetImageryTable]
   // Keep the DatabaseConfig as a stable val and call .db.run inline; binding .db to its own val would infer a

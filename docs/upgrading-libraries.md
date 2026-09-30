@@ -31,6 +31,7 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
 | web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
 | db image | **`postgis/postgis:16-3.5`** | (see below) | **Aug 2026 — past** | `db/Dockerfile` |
+| ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)), and its glibc 2.31 is older than the

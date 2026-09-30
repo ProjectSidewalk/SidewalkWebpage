@@ -3,7 +3,7 @@ package models.route
 import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -18,10 +18,7 @@ class AuditTaskUserRouteTableDef(tag: slick.lifted.Tag)
   def auditTaskId: Rep[Int]          = column[Int]("audit_task_id")
   def routeStreetId: Rep[Int]        = column[Int]("route_street_id")
 
-  def * = (auditTaskUserRouteId, userRouteId, auditTaskId, routeStreetId) <> (
-    (AuditTaskUserRoute.apply _).tupled,
-    AuditTaskUserRoute.unapply
-  )
+  def * = (auditTaskUserRouteId, userRouteId, auditTaskId, routeStreetId).mapTo[AuditTaskUserRoute]
 
   def userRoute =
     foreignKey("audit_task_user_route_user_route_id_fkey", userRouteId, TableQuery[UserRouteTableDef])(_.userRouteId)

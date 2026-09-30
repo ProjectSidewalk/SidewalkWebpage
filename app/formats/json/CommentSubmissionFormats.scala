@@ -1,6 +1,6 @@
 package formats.json
 
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, Reads}
 
 object CommentSubmissionFormats {
@@ -52,7 +52,7 @@ object CommentSubmissionFormats {
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
-  )(CommentSubmission.apply _)
+  )(CommentSubmission.apply)
 
   given validationCommentSubmissionReads: Reads[ValidationCommentSubmission] = (
     (JsPath \ "mission_id").read[Int] and
@@ -64,7 +64,7 @@ object CommentSubmissionFormats {
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
-  )(ValidationCommentSubmission.apply _)
+  )(ValidationCommentSubmission.apply)
 
   given labelMapValidationCommentSubmissionReads: Reads[LabelMapValidationCommentSubmission] = (
     (JsPath \ "label_id").read[Int] and
@@ -76,5 +76,5 @@ object CommentSubmissionFormats {
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
-  )(LabelMapValidationCommentSubmission.apply _)
+  )(LabelMapValidationCommentSubmission.apply)
 }

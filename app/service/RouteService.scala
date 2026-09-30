@@ -2,9 +2,9 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.RouteBuilderFormats.{NewRoute, NewRouteStreet, RouteUpdate}
-import models.route._
+import models.route.*
 import models.utils.{MyPostgresProfile, PolylineEncoder, ProfanityGuard, RouteThumbnail, SlugUtils}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.Configuration
@@ -12,7 +12,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import javax.inject._
+import javax.inject.*
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 

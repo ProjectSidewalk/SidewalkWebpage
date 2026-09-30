@@ -6,11 +6,11 @@ import models.intersection.IntersectionTableDef
 import models.label.LabelType
 import models.pano.PanoDataTable
 import models.street.StreetEdgeTableDef
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json._
+import play.api.libs.json.*
 import slick.dbio.Effect
 import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
@@ -66,10 +66,7 @@ class ClusterTableDef(tag: slick.lifted.Tag) extends Table[Cluster](tag, "cluste
   def severity: Rep[Option[Int]]       = column[Option[Int]]("severity")
   def intersectionId: Rep[Option[Int]] = column[Option[Int]]("intersection_id")
 
-  def * = (clusterId, clusteringSessionId, labelType, streetEdgeId, geom, severity, intersectionId) <> (
-    (Cluster.apply _).tupled,
-    Cluster.unapply
-  )
+  def * = (clusterId, clusteringSessionId, labelType, streetEdgeId, geom, severity, intersectionId).mapTo[Cluster]
 
   def clusteringSession =
     foreignKey("cluster_clustering_session_id_fkey", clusteringSessionId, TableQuery[ClusteringSessionTableDef])(
@@ -127,8 +124,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   val clusters: TableQuery[ClusterTableDef] = TableQuery[ClusterTableDef]
 
   // Built once at class level: the raw-labels JSON parse runs per streamed row, so the Reads must not be rebuilt there.
-  private given panoSourceReads: Reads[models.pano.PanoSource.Value] = formats.json.PanoFormats.panoSourceReads
-  private given rawLabelReads: Reads[RawLabelInClusterDataForApi]    = Json.reads[RawLabelInClusterDataForApi]
+  private given panoSourceReads: Reads[models.pano.PanoSource]    = models.pano.PanoSource.storedReads
+  private given rawLabelReads: Reads[RawLabelInClusterDataForApi] = Json.reads[RawLabelInClusterDataForApi]
 
   given labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
     val labelClusterId = r.nextInt()

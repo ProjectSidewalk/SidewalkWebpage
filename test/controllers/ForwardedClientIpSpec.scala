@@ -4,7 +4,7 @@ import org.scalatestplus.play.guice.GuiceOneServerPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.ws.WSClient
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 /**
@@ -19,7 +19,7 @@ import util.SidewalkSpec
 class ForwardedClientIpSpec extends SidewalkSpec with GuiceOneServerPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "rate-limit.enabled"                    -> true,

@@ -34,7 +34,7 @@ class OsmWayTableSpec
     with StreetFixtures {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val osmWayTable = app.injector.instanceOf[OsmWayTable]
 

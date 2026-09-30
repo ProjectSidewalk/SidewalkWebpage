@@ -1,13 +1,13 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.audit._
+import models.audit.*
 import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
 import models.mission.MissionTable
-import models.pano.PanoSource.PanoSource
+import models.pano.PanoSource
 import models.region.Region
 import models.street.StreetEdgeTable
-import models.user._
+import models.user.*
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.{
   ApiDailySourceCount,
@@ -17,6 +17,8 @@ import models.utils.{
   FunnelStat,
   FunnelStatTable,
   MyPostgresProfile,
+  NamedEnum,
+  NamedEnumCompanion,
   WebpageActivityTable
 }
 import models.validation.{LabelValidationTable, ValidationCount, ValidationOption, ValidationTaskCommentTable}
@@ -25,18 +27,17 @@ import slick.dbio.DBIO
 
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, OffsetDateTime, ZoneId, ZonedDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /** A window of time that the admin page reports stats over. `name` is how it is written in JSON. */
-enum TimeInterval(val name: String) {
+enum TimeInterval(val name: String) extends NamedEnum {
   case AllTime extends TimeInterval("all_time")
   case Week    extends TimeInterval("week")
   case Today   extends TimeInterval("today")
 }
 
-object TimeInterval {
-  given writes: play.api.libs.json.Writes[TimeInterval] = v => play.api.libs.json.JsString(v.name)
+object TimeInterval extends NamedEnumCompanion[TimeInterval] {
 
   /**
    * When the interval starts: midnight Pacific for today, seven days ago for the week.
@@ -149,7 +150,7 @@ case class LabelThumbnailMeta(
  * @param labels      Total labels they've placed (same base as the Contributors page, so the numbers agree).
  * @param validations Total validations they've performed.
  */
-case class UserSummary(role: Role.Value, labels: Int, validations: Int)
+case class UserSummary(role: Role, labels: Int, validations: Int)
 
 /**
  * One row of the Contributors page's "Top labelers" leaderboard: a prolific labeler with the breakdowns that reveal
@@ -161,7 +162,7 @@ case class UserSummary(role: Role.Value, labels: Int, validations: Int)
 case class LabelerLeaderboardEntry(
     userId: String,
     username: String,
-    role: Role.Value,
+    role: Role,
     labels: Int,
     ownValidated: Int,
     ownValidatedAgreedPct: Double,
@@ -177,7 +178,7 @@ case class LabelerLeaderboardEntry(
 case class ValidatorLeaderboardEntry(
     userId: String,
     username: String,
-    role: Role.Value,
+    role: Role,
     validations: Int,
     agree: Int,
     disagree: Int,
@@ -543,7 +544,7 @@ class AdminServiceImpl @Inject() (
         RecentActivityItem("label", username, ts, Some(labelId), Some(labelType), None, None)
       }
       val validationItems = vals.map { case (labelId, labelType, username, result, ts) =>
-        RecentActivityItem("validation", username, ts, Some(labelId), Some(labelType), Some(result.toString), None)
+        RecentActivityItem("validation", username, ts, Some(labelId), Some(labelType), Some(result.name), None)
       }
       val commentItems = comments.map { c =>
         RecentActivityItem("comment", c.username, c.timestamp, c.labelId, None, None, Some(c.comment))
@@ -632,7 +633,7 @@ class AdminServiceImpl @Inject() (
             .collect { case (u, Some(s), c) => (u, s, c) }
             .groupBy(_._1)
             .map { case (u, rows) => u -> rows.map(r => (r._2, r._3)).sortBy(_._1) }
-        val resultsByUser: Map[String, Seq[(ValidationOption.Value, Int)]] =
+        val resultsByUser: Map[String, Seq[(ValidationOption, Int)]] =
           valCounts.groupBy(_._1).map { case (u, rows) => u -> rows.map(r => (r._2, r._3)) }
 
         val labelers = topLabelers.map { u =>
@@ -649,8 +650,8 @@ class AdminServiceImpl @Inject() (
           )
         }
         val validators = topValidators.map { u =>
-          val counts                             = resultsByUser.getOrElse(u.userId, Seq.empty)
-          def of(result: ValidationOption.Value) = counts.find(_._1 == result).map(_._2).getOrElse(0)
+          val counts                       = resultsByUser.getOrElse(u.userId, Seq.empty)
+          def of(result: ValidationOption) = counts.find(_._1 == result).map(_._2).getOrElse(0)
           ValidatorLeaderboardEntry(u.userId, u.username, u.role, u.othersValidated, of(ValidationOption.Agree),
             of(ValidationOption.Disagree), of(ValidationOption.Unsure), u.othersValidatedAgreedPct)
         }
@@ -713,7 +714,7 @@ class AdminServiceImpl @Inject() (
       }
 
       def validatorGroup(isAi: Boolean, name: String): HumanAiValidatorStats = {
-        def of(result: ValidationOption.Value): Int = vals.collect {
+        def of(result: ValidationOption): Int = vals.collect {
           case (g, r, c) if g == isAi && r == result => c
         }.sum
         val agree    = of(ValidationOption.Agree)

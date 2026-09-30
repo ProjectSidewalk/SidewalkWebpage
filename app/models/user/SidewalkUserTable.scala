@@ -2,12 +2,12 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.Identity
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -28,10 +28,10 @@ case class SidewalkUserWithRole(
     userId: String,
     username: String,
     email: String,
-    role: Role.Value,
+    role: Role,
     communityService: Boolean,
     infra3dAccess: Boolean,
-    measurementSystem: Option[MeasurementSystem.Value]
+    measurementSystem: Option[MeasurementSystem]
 ) extends Identity
 
 class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_user") {
@@ -40,7 +40,7 @@ class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_
   def email: Rep[String]    = column[String]("email")
   // DEFAULT now() in the DB.
   def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
-  def * = (userId, username, email, createdAt) <> (SidewalkUser.apply.tupled, SidewalkUser.unapply)
+  def *                              = (userId, username, email, createdAt).mapTo[SidewalkUser]
 
   // CHECK (email = lower(email)) and CHECK (username NOT LIKE '%@%') in the DB.
   def usernameUnique = index("sidewalk_user_username_key", username, unique = true)
@@ -103,7 +103,7 @@ class SidewalkUserTable @Inject() (
    * @param usernames Usernames to look up.
    * @return Per matched user: (username, userId, role).
    */
-  def getUserIdAndRoleByUsernames(usernames: Seq[String]): DBIO[Seq[(String, String, Role.Value)]] = {
+  def getUserIdAndRoleByUsernames(usernames: Seq[String]): DBIO[Seq[(String, String, Role)]] = {
     sidewalkUserToRoleJoin
       .filter(_._1.username inSet usernames)
       .map { case (user, userRole) => (user.username, user.userId, userRole.role) }
@@ -123,10 +123,7 @@ class SidewalkUserTable @Inject() (
    * @param limit The most matches to return.
    * @return Per match: (user id, username, email, role, the name of the team they're on).
    */
-  def searchUsers(
-      query: String,
-      limit: Int
-  ): DBIO[Seq[(String, String, String, Role.Value, Option[String])]] = {
+  def searchUsers(query: String, limit: Int): DBIO[Seq[(String, String, String, Role, Option[String])]] = {
     val escaped = SidewalkUserTable.escapeLike(query.trim)
     // Both sides fold in SQL: Java's case folding differs from Postgres's for some letters (the same trap
     // TeamTable.findByIdOrName calls out), and lower-casing the pattern here would apply only one of the two.

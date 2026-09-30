@@ -6,9 +6,9 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.{PanoDataService, ShareImageCache}
 import util.{AnonSession, SidewalkSpec}
 
@@ -35,7 +35,7 @@ import javax.imageio.ImageIO
 class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
@@ -51,9 +51,9 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
 
   /** A real PNG of the given size as the `data:` URL the canvas sends; the controller decodes and re-encodes it. */
   private def pngDataUrl(width: Int, height: Int): String = {
-    val img = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
+    val img = BufferedImage(width, height, BufferedImage.TYPE_INT_RGB)
     img.setRGB(0, 0, 0x00ff00)
-    val out = new ByteArrayOutputStream()
+    val out = ByteArrayOutputStream()
     val _   = ImageIO.write(img, "png", out)
     s"data:image/png;base64,${Base64.getEncoder.encodeToString(out.toByteArray)}"
   }
@@ -62,8 +62,8 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
 
   /** A 2x2 PNG whose header claims another size, with the IHDR checksum recomputed so a reader trusts the claim. */
   private def pngDataUrlClaiming(width: Int, height: Int): String = {
-    val img = new BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB)
-    val out = new ByteArrayOutputStream()
+    val img = BufferedImage(2, 2, BufferedImage.TYPE_INT_RGB)
+    val out = ByteArrayOutputStream()
     val _   = ImageIO.write(img, "png", out)
     val png = out.toByteArray
     // Signature (8 bytes), IHDR length (4), "IHDR" (4), then width and height as big-endian ints, then a CRC over
@@ -71,7 +71,7 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
     val buf = java.nio.ByteBuffer.wrap(png)
     buf.putInt(16, width)
     buf.putInt(20, height)
-    val crc = new java.util.zip.CRC32()
+    val crc = java.util.zip.CRC32()
     crc.update(png, 12, 4 + 13)
     buf.putInt(12 + 4 + 13, crc.getValue.toInt)
     s"data:image/png;base64,${Base64.getEncoder.encodeToString(png)}"
@@ -81,7 +81,7 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
     route(
       app,
       FakeRequest(POST, "/saveImage")
-        .withCookies(session: _*)
+        .withCookies(session*)
         .withJsonBody(Json.obj("label_id" -> labelId, "label_type" -> lblType, "b64" -> b64))
         .withCSRFToken
     ).get
@@ -186,7 +186,7 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
     }
 
     "reject a request with no JSON body" in {
-      val resp = route(app, FakeRequest(POST, "/saveImage").withCookies(freshAnonSession(): _*).withCSRFToken).get
+      val resp = route(app, FakeRequest(POST, "/saveImage").withCookies(freshAnonSession()*).withCSRFToken).get
       status(resp) mustBe BAD_REQUEST
     }
   }

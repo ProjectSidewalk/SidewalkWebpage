@@ -8,7 +8,7 @@ import models.region.RegionTableDef
 import models.route.UserRouteTableDef
 import models.user.{SidewalkUserTable, SidewalkUserTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -18,7 +18,7 @@ import scala.concurrent.ExecutionContext
 
 case class Mission(
     missionId: Int,
-    missionType: MissionType.Value,
+    missionType: MissionType,
     userId: String,
     missionStart: OffsetDateTime,
     missionEnd: OffsetDateTime,
@@ -37,9 +37,9 @@ case class Mission(
 )
 
 class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
-  def missionId: Rep[Int]                 = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
-  def missionType: Rep[MissionType.Value] = column[MissionType.Value]("mission_type")
-  def userId: Rep[String]                 = column[String]("user_id")
+  def missionId: Rep[Int]           = column[Int]("mission_id", O.PrimaryKey, O.AutoInc)
+  def missionType: Rep[MissionType] = column[MissionType]("mission_type")
+  def userId: Rep[String]           = column[String]("user_id")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def missionStart: Rep[OffsetDateTime]     = column[OffsetDateTime]("mission_start")
   def missionEnd: Rep[OffsetDateTime]       = column[OffsetDateTime]("mission_end")
@@ -58,10 +58,7 @@ class MissionTableDef(tag: Tag) extends Table[Mission](tag, "mission") {
 
   def * =
     (missionId, missionType, userId, missionStart, missionEnd, completed, pay, paid, distanceMeters, distanceProgress,
-      regionId, labelsValidated, labelsProgress, labelType, skipped, currentAuditTaskId, userRouteId) <> (
-      (Mission.apply _).tupled,
-      Mission.unapply
-    )
+      regionId, labelsValidated, labelsProgress, labelType, skipped, currentAuditTaskId, userRouteId).mapTo[Mission]
 
   def user             = foreignKey("mission_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def region           = foreignKey("mission_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId.?)
@@ -110,7 +107,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   /**
    * Count number of missions of the given type completed by the given user.
    */
-  def countCompletedMissions(userId: String, missionType: MissionType.Value): DBIO[Int] = {
+  def countCompletedMissions(userId: String, missionType: MissionType): DBIO[Int] = {
     missions.filter(m => m.missionType === missionType && m.userId === userId && m.completed).length.result
   }
 
@@ -219,7 +216,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   def getCurrentValidationMission(
       userId: String,
       labelType: LabelType,
-      missionType: MissionType.Value
+      missionType: MissionType
   ): DBIO[Option[Mission]] = {
     missions
       .filter(m =>
@@ -288,11 +285,11 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    * @param missionType    Name of the validation mission type
    * @return               {validation: 10, labelmapValidation: 1}
    */
-  def getNextValidationMissionLength(missionType: MissionType.Value): Int = {
+  def getNextValidationMissionLength(missionType: MissionType): Int = {
     missionType match {
       case MissionType.Validation         => normalValidationMissionLength
       case MissionType.LabelmapValidation => labelmapValidationMissionLength
-      case other => throw new IllegalArgumentException(s"Not a validation mission type: $other")
+      case other                          => throw IllegalArgumentException(s"Not a validation mission type: $other")
     }
   }
 
@@ -329,7 +326,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       userId: String,
       labelsToValidate: Int,
       labelType: LabelType,
-      missionType: MissionType.Value
+      missionType: MissionType
   ): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
     val newMission = Mission(0, missionType, userId, now, now, completed = false, 0d, paid = false, None, None, None,
@@ -358,7 +355,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
    *
    * @return The inserted mission.
    */
-  private def createBareMission(userId: String, missionType: MissionType.Value): DBIO[Mission] = {
+  private def createBareMission(userId: String, missionType: MissionType): DBIO[Mission] = {
     val now: OffsetDateTime = OffsetDateTime.now
     val newMission = Mission(0, missionType, userId, now, now, completed = false, 0d, paid = false, None, None, None,
       None, None, None, skipped = false, None, None)
@@ -368,7 +365,7 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   /**
    * Get mission_type for a given mission_id.
    */
-  def getMissionType(missionId: Int): DBIO[Option[MissionType.Value]] = {
+  def getMissionType(missionId: Int): DBIO[Option[MissionType]] = {
     missions.filter(_.missionId === missionId).map(_.missionType).result.headOption
   }
 

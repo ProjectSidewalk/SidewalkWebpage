@@ -5,7 +5,7 @@
 package models.api
 
 import models.label.LabelType
-import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.UiSource
 import play.api.libs.json.JsObject
 
 import java.time.OffsetDateTime

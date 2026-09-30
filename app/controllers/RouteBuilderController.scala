@@ -1,11 +1,11 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import formats.json.RouteBuilderFormats.{routeWithStatsWrites, NewRoute, RouteUpdate}
 import models.route.{RouteRejection, SavedRoute}
 import play.api.Configuration
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, Result}
 import service.{ConfigService, RouteService}
 

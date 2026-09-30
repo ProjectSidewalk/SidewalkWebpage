@@ -8,10 +8,10 @@
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 @ratingLabel(scoring: AccessScoreCalculator.Scoring) = @{
   scoring match {
-    case AccessScoreCalculator.PositiveQuality => "Quality (Good / Okay / Bad)"
-    case AccessScoreCalculator.NegativeSeverity => "Severity (Low / Medium / High)"
-    case AccessScoreCalculator.PresenceOnly => "Presence only, per cluster"
-    case AccessScoreCalculator.StreetCondition => "Street condition: one pooled term per street"
+    case AccessScoreCalculator.Scoring.PositiveQuality => "Quality (Good / Okay / Bad)"
+    case AccessScoreCalculator.Scoring.NegativeSeverity => "Severity (Low / Medium / High)"
+    case AccessScoreCalculator.Scoring.PresenceOnly => "Presence only, per cluster"
+    case AccessScoreCalculator.Scoring.StreetCondition => "Street condition: one pooled term per street"
   }
 }
 @noSidewalkBase = @{AccessScoreCalculator.typeWeights(models.label.LabelType.NoSidewalk.name).baseWeight}

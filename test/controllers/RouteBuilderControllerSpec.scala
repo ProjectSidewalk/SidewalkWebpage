@@ -8,9 +8,9 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 import java.util.UUID
@@ -29,7 +29,7 @@ import java.util.UUID
 class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   given mat: Materializer = app.materializer
 
@@ -70,7 +70,7 @@ class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   private def streetsInRegion(userCookies: Seq[Cookie], n: Int): (Seq[Int], Int) = {
     val resp = route(
       app,
-      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies: _*)
+      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies*)
     ).get
     status(resp) mustBe OK
     val features = (contentAsJson(resp) \ "features").as[Seq[JsValue]]
@@ -91,11 +91,11 @@ class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   private def saveRoute(userCookies: Seq[Cookie], body: JsValue) = route(
     app,
-    FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(userCookies: _*).withJsonBody(body).withCSRFToken
+    FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(userCookies*).withJsonBody(body).withCSRFToken
   ).get
 
   private def listRoutes(userCookies: Seq[Cookie]): Seq[JsValue] = {
-    val resp = route(app, FakeRequest(GET, "/userapi/routes").withCookies(userCookies: _*)).get
+    val resp = route(app, FakeRequest(GET, "/userapi/routes").withCookies(userCookies*)).get
     status(resp) mustBe OK
     contentAsJson(resp).as[Seq[JsValue]]
   }
@@ -104,19 +104,19 @@ class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     app,
     FakeRequest(PUT, s"/userapi/routes/$routeId")
       .withHeaders(XHR)
-      .withCookies(userCookies: _*)
+      .withCookies(userCookies*)
       .withJsonBody(body)
       .withCSRFToken
   ).get
 
   private def deleteRoute(userCookies: Seq[Cookie], routeId: Int) = route(
     app,
-    FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(userCookies: _*).withCSRFToken
+    FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(userCookies*).withCSRFToken
   ).get
 
   /** Fetches a route's street list as (street_id, reverse) pairs in walking order. */
   private def getRouteStreets(userCookies: Seq[Cookie], routeId: Int): Seq[(Int, Boolean)] = {
-    val resp = route(app, FakeRequest(GET, s"/userapi/routes/$routeId/streets").withCookies(userCookies: _*)).get
+    val resp = route(app, FakeRequest(GET, s"/userapi/routes/$routeId/streets").withCookies(userCookies*)).get
     status(resp) mustBe OK
     (contentAsJson(resp) \ "streets")
       .as[Seq[JsValue]]
@@ -169,7 +169,7 @@ class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
       // A different user (not the creator) sees the route on the public listing page.
       val other = signUpFreshUser()
-      val page  = route(app, FakeRequest(GET, "/routes").withCookies(other: _*)).get
+      val page  = route(app, FakeRequest(GET, "/routes").withCookies(other*)).get
       status(page) mustBe OK
       contentType(page) mustBe Some("text/html")
       val body = contentAsString(page)
@@ -186,7 +186,7 @@ class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
       // Soft-deleting removes it from the listing.
       status(deleteRoute(owner, routeId)) mustBe OK
-      val after = route(app, FakeRequest(GET, "/routes").withCookies(other: _*)).get
+      val after = route(app, FakeRequest(GET, "/routes").withCookies(other*)).get
       status(after) mustBe OK
       contentAsString(after) must not include name
     }

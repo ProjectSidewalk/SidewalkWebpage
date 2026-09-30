@@ -1,19 +1,19 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.SignedMediaUtils
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats
 import models.label.LabelType
 import models.utils.ImageUtils
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{AnyContent, Request, RequestHeader}
 import play.api.{Configuration, Logger}
 import service.ImageSigningService
 
 import java.awt.Image
 import java.awt.image.BufferedImage
-import java.io._
+import java.io.*
 import java.util.Base64
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
@@ -48,7 +48,7 @@ class ImageController @Inject() (
   // Resize the image to the new width and height.
   def resize(img: BufferedImage, newWidth: Int, newHeight: Int): BufferedImage = {
     val tmp: Image          = img.getScaledInstance(newWidth, newHeight, Image.SCALE_SMOOTH)
-    val dimg: BufferedImage = new BufferedImage(newWidth, newHeight, img.getType)
+    val dimg: BufferedImage = BufferedImage(newWidth, newHeight, img.getType)
     val g2d                 = dimg.createGraphics()
     g2d.drawImage(tmp, 0, 0, null)
     g2d.dispose()
@@ -77,14 +77,14 @@ class ImageController @Inject() (
       case Some((srcW, srcH)) if !service.CropService.acceptsSnapshot(srcW, srcH) =>
         Left(s"Refusing a ${srcW}x$srcH upload: not the shape of a labeling frame.")
       case Some(_) =>
-        val inputStream                  = new ByteArrayInputStream(imageBytes)
+        val inputStream                  = ByteArrayInputStream(imageBytes)
         val bufferedImage: BufferedImage =
           try ImageIO.read(inputStream)
           finally inputStream.close()
         val (w, h) = service.CropService.exploreSnapshotSize(bufferedImage.getWidth, bufferedImage.getHeight)
         val resizedImage: BufferedImage = resize(bufferedImage, w, h)
 
-        val f = new File(filename)
+        val f = File(filename)
         // A failed write is refused rather than reported as stored: the caller records the crop's provenance on a
         // Right, and a label_crop row for a file that isn't there would send every card to a broken image.
         try {
@@ -109,7 +109,7 @@ class ImageController @Inject() (
 
   // Creates the base directory for the crops if it doesn't exist. Uses subdirectories /<city-id>/<label-type>.
   private def initializeDirIfNeeded(labelType: String): Unit = {
-    val file = new File(CROPS_DIR_NAME + File.separator + labelType)
+    val file = File(CROPS_DIR_NAME + File.separator + labelType)
     if (!file.exists()) {
       val result = file.mkdirs()
       if (!result) {
@@ -146,6 +146,11 @@ class ImageController @Inject() (
    * copy cut to it, on demand and cached. Without the parameter — every device that can render the pano as stored —
    * this serves the native file.
    *
+   * A width that was asked for is a bound, never a preference: a copy that can't be cut right now (the cut pool is
+   * full, or the cut failed) is a 503 with Retry-After, not the native file. A phone asks for 8192 because the native
+   * file's decode is more memory than iOS lets a tab have (#5561), so handing it the native file "as a fallback"
+   * would be handing it the crash; the viewer's own ladder steps down to a smaller width on the refusal instead.
+   *
    * The pano's metadata (`width`/`height`) always describes the native file, since that is the frame label positions
    * are stored in; the viewer places markers by angle, so a smaller image is transparent to it.
    *
@@ -171,19 +176,27 @@ class ImageController @Inject() (
             // still yields something the device can render rather than a 400 it can't act on.
             val requested = request.getQueryString("maxWidth").flatMap(w => Try(w.toInt).toOption).filter(_ > 0)
             val chosen    = requested.map(service.PanoDisplayCopyService.snapToAllowed)
-            val fileF     = chosen match {
+            val fileF: Future[Option[File]] = chosen match {
               case Some(maxWidth) =>
-                // The service answers None rather than failing, but the fallback is the route's contract, so it is
-                // stated here too: no way for a copy to go wrong should cost the caller the file it asked for.
+                // The service answers Unavailable rather than failing, but the refusal is the route's contract, so
+                // it is stated here too: no way for a copy to go wrong may hand the caller more than it asked for.
                 displayCopyService
                   .displayCopy(panoId, native, maxWidth)
-                  .map(_.getOrElse(native))
-                  .recover { case NonFatal(_) => native }
-              case None => Future.successful(native)
+                  .recover { case NonFatal(_) => service.DisplayCopy.Unavailable }
+                  .map {
+                    case service.DisplayCopy.Ready(copy) => Some(copy)
+                    case service.DisplayCopy.NativeFits  => Some(native)
+                    case service.DisplayCopy.Unavailable => None
+                  }
+              case None => Future.successful(Some(native))
             }
-            fileF.map { file =>
-              val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
-              Ok.sendFile(file, inline = true).as(contentType)
+            fileF.map {
+              case Some(file) =>
+                val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
+                Ok.sendFile(file, inline = true).as(contentType)
+              case None =>
+                ServiceUnavailable(s"No display copy of pano $panoId could be cut right now.")
+                  .withHeaders(RETRY_AFTER -> "5")
             }
           case None =>
             Future.successful(NotFound(s"Pano image not found: $panoId"))
@@ -200,7 +213,7 @@ class ImageController @Inject() (
     if (!refererAllowed(request)) {
       Future.successful(Forbidden("Request origin not allowed."))
     } else {
-      LabelType.byName.get(labelType).map(panoDataService.cropUrl(labelId, _)) match {
+      LabelType.withNameOption(labelType).map(panoDataService.cropUrl(labelId, _)) match {
         case None            => Future.successful(BadRequest(invalidLabelTypeMessage(labelType)))
         case Some(None)      => Future.successful(NotFound(s"No crop image found for label: $labelId"))
         case Some(Some(url)) =>
@@ -210,7 +223,7 @@ class ImageController @Inject() (
   }
 
   private def invalidLabelTypeMessage(labelType: String): String =
-    s"Invalid label type provided: $labelType. Valid label types are: ${LabelType.orderedNames.mkString(", ")}."
+    s"Invalid label type provided: $labelType. Valid label types are: ${LabelType.names.mkString(", ")}."
 
   /**
    * Serves a previously-saved crop image for a label.

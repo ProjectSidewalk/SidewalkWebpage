@@ -19,7 +19,7 @@ class RateLimiterSpec extends SidewalkSpec {
   }
 
   private def limiter(enabled: Boolean): TestRateLimiter =
-    new TestRateLimiter(Configuration(ConfigFactory.parseString(s"""
+    TestRateLimiter(Configuration(ConfigFactory.parseString(s"""
       rate-limit {
         enabled = $enabled
         login { max-attempts = 3, window-seconds = 60 }

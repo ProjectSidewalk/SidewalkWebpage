@@ -13,9 +13,9 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.StreetService
 import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec, StubService}
 
@@ -37,10 +37,10 @@ class AdminExcludeUserSpec
     with RolledBackDb
     with Eventually {
 
-  private val priorityRecalcs = new AtomicInteger(0)
+  private val priorityRecalcs = AtomicInteger(0)
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
@@ -73,7 +73,7 @@ class AdminExcludeUserSpec
   private val runIdFloor: Int =
     run(jobRunTable.backgroundJobRuns.map(_.backgroundJobRunId).max.result).getOrElse(0)
 
-  private def targetUser(role: Role.Value): String = {
+  private def targetUser(role: Role): String = {
     val userId = userIdOf(sessionAs(role))
     touchedUserIds += userId
     userId
@@ -108,7 +108,7 @@ class AdminExcludeUserSpec
       app,
       FakeRequest(PUT, "/adminapi/saveUserSettings")
         .withHeaders("X-Requested-With" -> "XMLHttpRequest")
-        .withCookies(cookies: _*)
+        .withCookies(cookies*)
         .withJsonBody(body)
         .withCSRFToken
     ).get

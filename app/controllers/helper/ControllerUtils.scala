@@ -62,8 +62,8 @@ object ControllerUtils {
    * @return        The user, or None for a request with no session.
    */
   private def requestUser(request: RequestHeader): Option[SidewalkUserWithRole] = request match {
-    case secured: SecuredRequestHeader[_] => Some(secured.identity).collect { case user: SidewalkUserWithRole => user }
-    case aware: UserAwareRequestHeader[_] => aware.identity.collect { case user: SidewalkUserWithRole => user }
+    case secured: SecuredRequestHeader[?] => Some(secured.identity).collect { case user: SidewalkUserWithRole => user }
+    case aware: UserAwareRequestHeader[?] => aware.identity.collect { case user: SidewalkUserWithRole => user }
     case _                                => None
   }
 
@@ -75,9 +75,9 @@ object ControllerUtils {
    * @param messages The request's messages, supplying the language default when there is no saved choice.
    * @return         Either `MeasurementSystem.Metric` or `MeasurementSystem.Imperial` — never a language's own wording.
    */
-  def measurementSystem(using request: RequestHeader, messages: Messages): MeasurementSystem.Value = {
+  def measurementSystem(using request: RequestHeader, messages: Messages): MeasurementSystem = {
     requestUser(request).flatMap(_.measurementSystem).getOrElse {
-      MeasurementSystem.fromString(messages("measurement.system")).getOrElse(MeasurementSystem.Imperial)
+      MeasurementSystem.withNameOption(messages("measurement.system")).getOrElse(MeasurementSystem.Imperial)
     }
   }
 
@@ -107,7 +107,7 @@ object ControllerUtils {
 
   /** The distance-unit words for this request, in its measurement system and language. */
   def distanceUnitWords(using request: RequestHeader, messages: Messages): DistanceUnitWords = {
-    val system = measurementSystem
+    val system = measurementSystem.name
     DistanceUnitWords(
       abbr = messages(s"unit.distance.abbr.$system"),
       abbrSmall = messages(s"unit.distance.abbr.small.$system"),
@@ -213,7 +213,7 @@ object ControllerUtils {
               case key :: Nil =>
                 key -> Seq.empty[String]
               case _ =>
-                throw new IllegalArgumentException(s"Invalid query parameter format: $param")
+                throw IllegalArgumentException(s"Invalid query parameter format: $param")
             }
           }
           .toMap
@@ -221,7 +221,7 @@ object ControllerUtils {
       case path :: Nil =>
         (path, Map.empty[String, Seq[String]])
       case _ =>
-        throw new IllegalArgumentException(s"Invalid URL format: $url")
+        throw IllegalArgumentException(s"Invalid URL format: $url")
     }
   }
 
@@ -289,9 +289,9 @@ object ControllerUtils {
    * Form binding errors as the JSON `AuthModal.js`'s `renderAuthErrors` draws: `{"errors": {field -> message}}`, with
    * form-level errors (like a password mismatch) under `_summary`.
    */
-  def formErrorsJson(formWithErrors: Form[_])(using messages: Messages): JsObject = {
+  def formErrorsJson(formWithErrors: Form[?])(using messages: Messages): JsObject = {
     val fields = formWithErrors.errors.groupBy(_.key).toSeq.map { case (key, errs) =>
-      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args: _*))
+      (if (key.isEmpty) "_summary" else key) -> JsString(Messages(errs.head.message, errs.head.args*))
     }
     Json.obj("errors" -> JsObject(fields))
   }

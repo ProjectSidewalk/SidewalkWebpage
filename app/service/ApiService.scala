@@ -2,10 +2,10 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.ClusterFormats.{ClusterSubmission, ClusteredLabelSubmission}
-import models.api.{DailyStatRecord, _}
-import models.cluster._
+import models.api.{DailyStatRecord, *}
+import models.cluster.*
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, IntersectionTable}
-import models.label._
+import models.label.*
 import models.place.PlaceTable
 import models.region.{Region, RegionTable}
 import models.street.{
@@ -19,7 +19,7 @@ import models.street.{
 }
 import models.user.UserStatTable
 import models.utils.BackgroundJobRunTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{ClusteringThreshold, LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import models.validation.LabelValidationTable
 import org.apache.pekko.stream.scaladsl.Source
@@ -31,7 +31,7 @@ import play.api.i18n.{Lang, MessagesApi}
 import slick.sql.SqlStreamingAction
 
 import java.time.{LocalDate, OffsetDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[ApiServiceImpl])
@@ -47,7 +47,7 @@ trait ApiService {
       bbox: LatLngBBox,
       labelTypes: Set[String],
       batchSize: Int
-  ): Source[ClusterScoreRow, _]
+  ): Source[ClusterScoreRow, ?]
 
   /** Returns the length in meters of each given street edge, used to length-weight region AccessScores (#3855). */
   def getStreetLengths(streetEdgeIds: Seq[Int]): Future[Map[Int, Double]]
@@ -85,7 +85,7 @@ trait ApiService {
   /** When the named background job last finished successfully, or None if it never has on this deployment. */
   def lastSuccessfulJobFinish(jobName: String): Future[Option[OffsetDateTime]]
 
-  def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _]
+  def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, ?]
 
   def getLabelsToClusterInRegion(regionId: Int): Future[Seq[LabelToCluster]]
 
@@ -132,7 +132,7 @@ trait ApiService {
    * @param batchSize The number of records to fetch in each batch from the database.
    * @return          A reactive stream source that emits StreetDataForApi objects.
    */
-  def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _]
+  def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, ?]
 
   /**
    * Retrieves sidewalk presence per block face (#5279) based on the provided filters, as a reactive stream source.
@@ -141,10 +141,10 @@ trait ApiService {
    * @param batchSize The number of records to fetch in each batch from the database.
    * @return          A reactive stream source that emits SidewalkPresenceForApi objects.
    */
-  def getSidewalkPresence(filters: SidewalkPresenceFiltersForApi, batchSize: Int): Source[SidewalkPresenceForApi, _]
+  def getSidewalkPresence(filters: SidewalkPresenceFiltersForApi, batchSize: Int): Source[SidewalkPresenceForApi, ?]
 
   /** Streams the places (#5311) matching the filters. */
-  def getPlaces(filters: PlaceFiltersForApi, batchSize: Int): Source[PlaceForApi, _]
+  def getPlaces(filters: PlaceFiltersForApi, batchSize: Int): Source[PlaceForApi, ?]
 
   /**
    * Retrieves regions based on the provided filters and returns them as a reactive stream source.
@@ -153,7 +153,7 @@ trait ApiService {
    * @param batchSize The number of records to fetch in each batch from the database.
    * @return          A reactive stream source that emits RegionDataForApi objects.
    */
-  def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, _]
+  def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, ?]
 
   /**
    * Retrieves the region with the most labels from the database.
@@ -171,7 +171,7 @@ trait ApiService {
    * @param batchSize The number of records to fetch in each batch from the database
    * @return          A reactive stream source that emits `LabelClusterForApi` objects
    */
-  def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _]
+  def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, ?]
 
   /**
    * Sets up streaming query to get raw labels with filters.
@@ -180,7 +180,7 @@ trait ApiService {
    * @param batchSize The size of each batch of data to fetch.
    * @return A source of label data.
    */
-  def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, _]
+  def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, ?]
 
   /**
    * Gets all label types and transforms them into LabelTypeForApi objects, including icon paths and colors.
@@ -232,7 +232,7 @@ trait ApiService {
    * @param batchSize The number of records to fetch in each batch from the database.
    * @return          A reactive stream source that emits ValidationDataForApi objects.
    */
-  def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _]
+  def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, ?]
 
   /**
    * Streams edits to labels' severity and tags (#2575) matching the filters.
@@ -240,7 +240,7 @@ trait ApiService {
    * @param filters   The filters to apply when retrieving edits.
    * @param batchSize The number of records to fetch in each batch from the database.
    */
-  def getLabelEdits(filters: LabelEditFiltersForApi, batchSize: Int): Source[LabelEditDataForApi, _]
+  def getLabelEdits(filters: LabelEditFiltersForApi, batchSize: Int): Source[LabelEditDataForApi, ?]
 
   /**
    * Retrieves all validation result types with their counts.
@@ -285,7 +285,7 @@ class ApiServiceImpl @Inject() (
   private def setUpStreamFromDb[A](
       query: SqlStreamingAction[Vector[A], A, Effect.Read],
       batchSize: Int
-  ): Source[A, _] = {
+  ): Source[A, ?] = {
     Source.fromPublisher(db.stream(planEachRun(query.withStatementParameters(fetchSize = batchSize))))
   }
 
@@ -298,33 +298,33 @@ class ApiServiceImpl @Inject() (
   private def planEachRun[R, S <: NoStream, E <: Effect](action: DBIOAction[R, S, E]) =
     SqlFragments.withLocalSetting("plan_cache_mode", "force_custom_plan")(action)
 
-  def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, _] = {
+  def getStreets(filters: StreetFiltersForApi, batchSize: Int): Source[StreetDataForApi, ?] = {
     setUpStreamFromDb(streetEdgeTable.getStreetsForApi(filters), batchSize)
   }
 
   def getSidewalkPresence(
       filters: SidewalkPresenceFiltersForApi,
       batchSize: Int
-  ): Source[SidewalkPresenceForApi, _] = {
+  ): Source[SidewalkPresenceForApi, ?] = {
     setUpStreamFromDb(sidewalkPresenceTable.getSidewalkPresenceForApi(filters), batchSize)
   }
 
-  def getPlaces(filters: PlaceFiltersForApi, batchSize: Int): Source[PlaceForApi, _] = {
+  def getPlaces(filters: PlaceFiltersForApi, batchSize: Int): Source[PlaceForApi, ?] = {
     setUpStreamFromDb(placeTable.getPlacesForApi(filters), batchSize)
   }
 
-  def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, _] = {
+  def getRegions(filters: RegionFiltersForApi, batchSize: Int): Source[RegionDataForApi, ?] = {
     setUpStreamFromDb(regionTable.getRegionsForApi(filters), batchSize)
   }
 
-  def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, _] = {
+  def getLabelClusters(filters: LabelClusterFiltersForApi, batchSize: Int): Source[LabelClusterForApi, ?] = {
     setUpStreamFromDb(clusterTable.getLabelClustersV3(filters), batchSize)
   }
 
   def getRegionWithMostLabels: Future[Option[RegionDataForApi]] =
     db.run(regionTable.getRegionWithMostLabelsForApi)
 
-  def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, _] = {
+  def getRawLabels(filters: RawLabelFiltersForApi, batchSize: Int): Source[LabelDataForApi, ?] = {
     setUpStreamFromDb(labelTable.getLabelDataWithFilters(filters), batchSize)
   }
 
@@ -357,7 +357,7 @@ class ApiServiceImpl @Inject() (
       bbox: LatLngBBox,
       labelTypes: Set[String],
       batchSize: Int
-  ): Source[ClusterScoreRow, _] = {
+  ): Source[ClusterScoreRow, ?] = {
     setUpStreamFromDb(clusterTable.getClusterScoreRows(spatialQueryType, bbox, labelTypes), batchSize)
   }
 
@@ -402,13 +402,13 @@ class ApiServiceImpl @Inject() (
   def lastSuccessfulJobFinish(jobName: String): Future[Option[OffsetDateTime]] =
     db.run(backgroundJobRunTable.lastSuccessfulFinish(jobName))
 
-  def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, _] = {
+  def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, ?] = {
     // NOTE can't use `setUpStreamFromDb` here bc we need to call `mapResult` to convert tuples to `LabelCVMetadata`.
     Source.fromPublisher(
       db.stream(
         labelTable.getLabelCVMetadata.transactionally
           .withStatementParameters(fetchSize = batchSize)
-      ).mapResult((LabelCVMetadata.apply _).tupled)
+      ).mapResult(LabelCVMetadata.apply.tupled)
     )
   }
 
@@ -467,7 +467,7 @@ class ApiServiceImpl @Inject() (
       // Turn each cluster into a Cluster object.
       clusterObjs: Seq[Cluster] =
         clusters.zip(streetIds).map { case (cluster, streetId) =>
-          val geom = gf.createPoint(new Coordinate(cluster.lng, cluster.lat))
+          val geom = gf.createPoint(Coordinate(cluster.lng, cluster.lat))
           Cluster(0, sessionId, LabelType.valueOf(cluster.labelType), streetId, geom, cluster.severity, None)
         }
 
@@ -505,10 +505,10 @@ class ApiServiceImpl @Inject() (
     db.run(streetEdgeTable.getStreetTypes).map { wayTypeCounts =>
       // Transform to StreetTypeForApi objects with descriptions.
       wayTypeCounts
-        .sortBy(_._1.toString) // Sort by name.
+        .sortBy(_._1.name)
         .map { case (wayType, count) =>
-          val description: String = messagesApi(s"way.type.${wayType.toString.replace("_", ".")}")(lang)
-          StreetTypeForApi(wayType.toString, description, count)
+          val description: String = messagesApi(s"way.type.${wayType.name.replace("_", ".")}")(lang)
+          StreetTypeForApi(wayType.name, description, count)
         }
     }
   }
@@ -526,7 +526,7 @@ class ApiServiceImpl @Inject() (
     } yield DailyStatRecord.merge(labels, validations)
   }
 
-  def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, _] = {
+  def getValidations(filters: ValidationFiltersForApi, batchSize: Int): Source[ValidationDataForApi, ?] = {
     // NOTE can't use `setUpStreamFromDb` here bc we need to call `mapResult` to convert to `ValidationFiltersForApi`.
     Source.fromPublisher(
       db.stream(
@@ -539,7 +539,7 @@ class ApiServiceImpl @Inject() (
     )
   }
 
-  def getLabelEdits(filters: LabelEditFiltersForApi, batchSize: Int): Source[LabelEditDataForApi, _] = {
+  def getLabelEdits(filters: LabelEditFiltersForApi, batchSize: Int): Source[LabelEditDataForApi, ?] = {
     Source.fromPublisher(
       db.stream(
         labelEditTable

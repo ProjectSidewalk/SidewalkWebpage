@@ -4,7 +4,7 @@ import models.user.Role
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 
 /**
  * Read-only queries that compute a user's trophies on the fly from label/region history — there is no stored trophy
@@ -21,7 +21,7 @@ import javax.inject._
 @Singleton
 class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+  import profile.api.*
 
   // Start of the US/Pacific week (Sunday) containing a given date expression — matches the leaderboard's week math.
   private def weekStart(dateExpr: String): String =

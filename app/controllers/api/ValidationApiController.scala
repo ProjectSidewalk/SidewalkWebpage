@@ -63,13 +63,13 @@ class ValidationApiController @Inject() (
     val parsedTimestamp = parseDateTimeParam(validationTimestamp, "validationTimestamp")
 
     // Parse the validation result string into the enum (None if absent or invalid; invalid is rejected below).
-    val parsedValidationResult: Option[ValidationOption.Value] = validationResult.flatMap(ValidationOption.fromString)
+    val parsedValidationResult: Option[ValidationOption] = validationResult.flatMap(ValidationOption.withNameOption)
 
     // Parse the source (validation interface) into the UiSource enum; an unknown value is rejected below.
-    val parsedSource: Either[ApiError, Option[UiSource.Value]] = source match {
+    val parsedSource: Either[ApiError, Option[UiSource]] = source match {
       case None    => Right(None)
       case Some(s) =>
-        UiSource.values.find(_.toString == s) match {
+        UiSource.withNameOption(s) match {
           case Some(uiSource) => Right(Some(uiSource))
           case None           =>
             Left(
@@ -116,7 +116,7 @@ class ValidationApiController @Inject() (
           labelType = parsedLabelType.toOption.flatten, validationTimestamp = parsedTimestamp.toOption.flatten,
           source = parsedSource.toOption.flatten
         )
-        val dbDataStream: Source[ValidationDataForApi, _] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
+        val dbDataStream: Source[ValidationDataForApi, ?] = apiService.getValidations(filters, DEFAULT_BATCH_SIZE)
         val baseFileName: String                          = timestampedFilename("validations")
 
         // Output data in the appropriate file format.

@@ -5,13 +5,13 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.api.AggregateStats
 import service.CityScorecard
 import util.SidewalkSpec
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Integration test for the Across-Cities scorecard query on ConfigTable.
@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
@@ -74,21 +74,21 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       run(configTable.getCityAggregateDataBySchema(schema)) mustBe a[AggregateStats]
     }
     "execute getContributorUserIdsBySchema" in {
-      run(configTable.getContributorUserIdsBySchema(schema)) mustBe a[Seq[_]]
+      run(configTable.getContributorUserIdsBySchema(schema)) mustBe a[Seq[?]]
     }
     "report every label type in the scorecard's per-type breakdown, zero counts included" in {
       // The per-type query LEFT JOINs labels onto the full type list so a type with no labels still gets a row.
       run(configTable.getCityScorecardBySchema(schema)).byLabelType.keySet mustBe LabelType.labelTypeNames
     }
     "execute getCityWeeklyTrendBySchema (all-time and windowed)" in {
-      run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[_]]
-      run(configTable.getCityWeeklyTrendBySchema(schema, Some(4))) mustBe a[Seq[_]]
+      run(configTable.getCityWeeklyTrendBySchema(schema, None)) mustBe a[Seq[?]]
+      run(configTable.getCityWeeklyTrendBySchema(schema, Some(4))) mustBe a[Seq[?]]
     }
     "execute getCityWindowActivityByUserBySchema" in {
-      run(configTable.getCityWindowActivityByUserBySchema(schema)) mustBe a[Seq[_]]
+      run(configTable.getCityWindowActivityByUserBySchema(schema)) mustBe a[Seq[?]]
     }
     "execute getCityDailyActivityByUserBySchema" in {
-      run(configTable.getCityDailyActivityByUserBySchema(schema, 7)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyActivityByUserBySchema(schema, 7)) mustBe a[Seq[?]]
     }
     "execute getCityContributorOutputBySchema" in {
       run(configTable.getCityContributorOutputBySchema(schema)) mustBe a[Product] // 7-tuple
@@ -97,11 +97,11 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       run(configTable.getCityLabelingSpeedBySchema(schema)) mustBe a[Product] // (Double, Double)
     }
     "execute getCityDailyLabelStatsBySchema (both quality filters)" in {
-      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[_]]
-      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = true)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[?]]
+      run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality = true)) mustBe a[Seq[?]]
     }
     "execute getCityDailyValidationStatsBySchema" in {
-      run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[_]]
+      run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality = false)) mustBe a[Seq[?]]
     }
   }
 }

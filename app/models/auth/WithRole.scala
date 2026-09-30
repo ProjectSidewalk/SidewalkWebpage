@@ -1,5 +1,6 @@
 package models.auth
 
+import models.auth.AuthorizationResult.*
 import models.user.{Role, SidewalkUserWithRole}
 import play.api.mvc.Request
 

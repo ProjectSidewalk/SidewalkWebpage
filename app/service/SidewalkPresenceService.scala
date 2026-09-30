@@ -61,7 +61,7 @@ class SidewalkPresenceServiceImpl @Inject() (
     extends SidewalkPresenceService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  private val running = new AtomicBoolean(false)
+  private val running = AtomicBoolean(false)
 
   def isRunning: Boolean = running.get()
 
@@ -70,7 +70,7 @@ class SidewalkPresenceServiceImpl @Inject() (
   // panel then shows as a failed job. The nightly tick and the admin trigger are the two that can overlap.
   def rebuild(): Future[SidewalkPresenceRebuildResult] = {
     if (!running.compareAndSet(false, true)) {
-      Future.failed(new IllegalStateException("A sidewalk presence rebuild is already in progress."))
+      Future.failed(IllegalStateException("A sidewalk presence rebuild is already in progress."))
     } else {
       // Future.delegate so a synchronous throw while building the action still releases the guard.
       Future

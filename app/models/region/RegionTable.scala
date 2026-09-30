@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.api.{RegionDataForApi, RegionFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -13,7 +13,7 @@ import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
@@ -25,7 +25,7 @@ class RegionTableDef(tag: Tag) extends Table[Region](tag, "region") {
   def geom: Rep[MultiPolygon] = column[MultiPolygon]("geom")
   def deleted: Rep[Boolean]   = column[Boolean]("deleted", O.Default(false))
 
-  def * = (regionId, dataSource, name, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
+  def * = (regionId, dataSource, name, geom, deleted).mapTo[Region]
 }
 
 @ImplementedBy(classOf[RegionTable])

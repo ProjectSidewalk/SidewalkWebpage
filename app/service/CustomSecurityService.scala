@@ -1,10 +1,11 @@
 package service
 
-import models.auth._
+import models.auth.*
+import models.auth.AuthorizationResult.*
 import models.pano.PanoSource
 import models.user.{Role, SidewalkUserWithRole}
 import play.api.mvc.Results.{Redirect, Status}
-import play.api.mvc._
+import play.api.mvc.*
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.{SecuredRequest, UserAwareRequest}
 import javax.inject.Inject
@@ -112,8 +113,8 @@ class CustomSecurityService @Inject() (
 
   // Send user to sign in/up if they are anon. Use required role to show appropriate error message.
   private def unauthorizedErrorHelper(
-      currRole: Role.Value,
-      requiredRole: Role.Value,
+      currRole: Role,
+      requiredRole: Role,
       path: String,
       queryString: Map[String, Seq[String]]
   ): Result = {
@@ -123,14 +124,16 @@ class CustomSecurityService @Inject() (
           .flashing("error" -> "Please sign in to access this resource.")
       case (Role.Anonymous, _) =>
         Redirect("/signIn", queryString + ("url" -> Seq(path)))
-          .flashing("error" -> s"Please sign in as a $requiredRole to access this resource.")
+          .flashing("error" -> s"Please sign in as a ${requiredRole.name} to access this resource.")
       case (_, _) =>
-        Status(403)(s"Request requires privileges: $requiredRole. You are currently signed in as: $currRole.")
+        Status(403)(
+          s"Request requires privileges: ${requiredRole.name}. You are currently signed in as: ${currRole.name}."
+        )
     }
   }
 
   // Send user to sign in/up if they are anon, o/w show a message saying that they need to be granted infra3D access.
-  private def infra3dAccessHelper(currRole: Role.Value, path: String, queryString: Map[String, Seq[String]]): Result = {
+  private def infra3dAccessHelper(currRole: Role, path: String, queryString: Map[String, Seq[String]]): Result = {
     if (currRole == Role.Anonymous) {
       Redirect("/signIn", queryString + ("url" -> Seq(path)))
         .flashing("error" -> "Please sign in to access this resource.")
@@ -145,7 +148,7 @@ class CustomSecurityService @Inject() (
    * @param request The secured request containing user identity.
    * @return Future completing when user stat is ensured.
    */
-  private def ensureUserStatExists(request: SecuredRequest[DefaultEnv, _]): Future[Unit] = {
+  private def ensureUserStatExists(request: SecuredRequest[DefaultEnv, ?]): Future[Unit] = {
     authenticationService.addUserStatEntryIfNew(request.identity.userId).map(_ => ())
   }
 }

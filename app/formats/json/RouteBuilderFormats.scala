@@ -1,7 +1,7 @@
 package formats.json
 
 import models.route.RouteWithStats
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, Reads, Writes}
 
 import java.time.OffsetDateTime
@@ -19,7 +19,7 @@ object RouteBuilderFormats {
   given newRouteStreetReads: Reads[NewRouteStreet] = (
     (JsPath \ "street_id").read[Int] and
       (JsPath \ "reverse").read[Boolean]
-  )(NewRouteStreet.apply _)
+  )(NewRouteStreet.apply)
 
   // A zero-street route can't be explored: its mission has no distance, so opening its share link 500s Explore.
   // It's also invisible in listings (they inner-join route_street), so its owner couldn't delete it either.
@@ -28,13 +28,13 @@ object RouteBuilderFormats {
       (JsPath \ "streets").read[Seq[NewRouteStreet]](Reads.minLength[Seq[NewRouteStreet]](1)) and
       (JsPath \ "name").readNullable[String] and
       (JsPath \ "description").readNullable[String]
-  )(NewRoute.apply _)
+  )(NewRoute.apply)
 
   given routeUpdateReads: Reads[RouteUpdate] = (
     (JsPath \ "name").readNullable[String] and
       (JsPath \ "description").readNullable[String] and
       (JsPath \ "streets").readNullable[Seq[NewRouteStreet]]
-  )(RouteUpdate.apply _)
+  )(RouteUpdate.apply)
 
   given routeWithStatsWrites: Writes[RouteWithStats] = (
     (JsPath \ "route_id").write[Int] and

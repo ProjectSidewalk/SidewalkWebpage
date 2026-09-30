@@ -1,19 +1,18 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.label._
+import models.label.*
 import models.mission.MissionType
 import models.user.{Role, SidewalkUserWithRole, UserStatTable}
-import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.CommonUtils.ViewerType
+import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import models.validation._
+import models.utils.MyPostgresProfile.api.*
+import models.validation.*
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -94,8 +93,8 @@ class ValidationServiceImpl @Inject() (
    */
   def updateValidationCounts(
       labelId: Int,
-      newResult: Option[ValidationOption.Value],
-      oldResult: Option[ValidationOption.Value]
+      newResult: Option[ValidationOption],
+      oldResult: Option[ValidationOption]
   ): DBIO[Int] = {
     labelTable
       .find(labelId)

@@ -7,7 +7,7 @@
 package models.api
 
 import models.api.ApiModelUtils.createGeoJsonPoint
-import models.pano.PanoSource.PanoSource
+import models.pano.PanoSource
 import models.utils.LatLngBBox
 import play.api.libs.json.{JsObject, Json, Writes}
 
@@ -88,7 +88,7 @@ private[api] object RawLabelFields extends ApiFields[RawLabelInClusterDataForApi
 }
 
 object RawLabelInClusterDataForApi {
-  given clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = RawLabelFields.toJson _
+  given clusterLabelDataWrites: Writes[RawLabelInClusterDataForApi] = Writes(RawLabelFields.toJson)
 
   /** The same labels as their own CSV file or GeoPackage layer, each naming its parent cluster in a column of its own. */
   object InCluster extends ApiFields[(Int, RawLabelInClusterDataForApi)] {

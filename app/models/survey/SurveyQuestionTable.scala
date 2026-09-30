@@ -3,7 +3,7 @@ package models.survey
 import com.google.inject.ImplementedBy
 import models.user.Role
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -15,7 +15,7 @@ case class SurveyQuestion(
     surveyInputType: String,
     surveyDisplayRank: Option[Int],
     deleted: Boolean,
-    surveyUserRole: Role.Value,
+    surveyUserRole: Role,
     required: Boolean
 )
 case class SurveyQuestionWithOptions(
@@ -24,7 +24,7 @@ case class SurveyQuestionWithOptions(
     surveyInputType: String,
     surveyDisplayRank: Option[Int],
     deleted: Boolean,
-    surveyUserRole: Role.Value,
+    surveyUserRole: Role,
     required: Boolean,
     options: Seq[SurveyOption]
 )
@@ -36,14 +36,12 @@ class SurveyQuestionTableDef(tag: Tag) extends Table[SurveyQuestion](tag, "surve
   def surveyInputType: Rep[String]        = column[String]("survey_input_type")
   def surveyDisplayRank: Rep[Option[Int]] = column[Option[Int]]("survey_display_rank")
   def deleted: Rep[Boolean]               = column[Boolean]("deleted", O.Default(false))
-  def surveyUserRole: Rep[Role.Value]     = column[Role.Value]("survey_user_role", O.Default(Role.Registered))
+  def surveyUserRole: Rep[Role]           = column[Role]("survey_user_role", O.Default(Role.Registered))
   def required: Rep[Boolean]              = column[Boolean]("required", O.Default(false))
 
   def * =
-    (surveyQuestionId, surveyQuestionTextId, surveyInputType, surveyDisplayRank, deleted, surveyUserRole, required) <> (
-      (SurveyQuestion.apply _).tupled,
-      SurveyQuestion.unapply
-    )
+    (surveyQuestionId, surveyQuestionTextId, surveyInputType, surveyDisplayRank, deleted, surveyUserRole, required)
+      .mapTo[SurveyQuestion]
 }
 
 @ImplementedBy(classOf[SurveyQuestionTable])

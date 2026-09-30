@@ -2,7 +2,7 @@ package service
 
 import models.label.LabelType
 import models.user.SidewalkUserTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -19,7 +19,7 @@ import util.{RolledBackDb, SidewalkSpec}
 class AiSeedRowsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val aiService = app.injector.instanceOf[AiService]
   private val aiUserId       = SidewalkUserTable.aiUserId
@@ -53,7 +53,7 @@ class AiSeedRowsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBa
       first mustBe AiSeedRows(statRowInserted = true, LabelType.ordered)
       second mustBe AiSeedRows(statRowInserted = false, Seq.empty)
       statRow mustBe Seq((true, Some(true), false))
-      missions.map(_._1) mustBe LabelType.orderedNames
+      missions.map(_._1) mustBe LabelType.names
       missions.map(m => (m._2, m._3, m._4)).distinct mustBe Seq((Some(1), Some(0), false))
     }
 
@@ -67,7 +67,7 @@ class AiSeedRowsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBa
 
       healed mustBe AiSeedRows(statRowInserted = false, Seq(LabelType.Signal, LabelType.Occlusion))
       // Distinct: CI's seed adds a second CurbRamp mission for the AI, which the heal rightly leaves alone.
-      labelTypes.distinct.sorted mustBe LabelType.orderedNames.sorted
+      labelTypes.distinct.sorted mustBe LabelType.names.sorted
     }
   }
 }

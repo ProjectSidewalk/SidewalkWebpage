@@ -130,7 +130,15 @@ that in place of the native file without the viewer being able to tell, because 
 viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads an equirect as two halves, so
 its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide pano — the widest GSV
 produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService` cuts a copy at that
-width on demand, caching it under the crop store (#5256).
+width on demand, caching it under the crop store (#5256). A phone asks for 8192 whatever its GPU says, because the
+native file's decode and textures are more memory than iOS lets a tab have, and it answers by killing the tab (#5561).
+For the same reason a requested width is a bound, not a preference: a copy the server can't cut right now (its cut
+pool is full, or the cut failed) is a `503` with `Retry-After`, never the native file, and the viewer's own ladder
+steps down to a smaller width on that refusal. A pool with no room refuses every width alike, so a foreground load
+that meets one gives the label up (`LabelSkipped_NoImagery`, the #4810 path) rather than wait; a prefetch, with
+nothing waiting on it, retries once after `Retry-After`. Validate also fetches the backups of the next expired labels into
+`PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of
+the network one, waiting a bounded time for a prefetch still in flight rather than downloading beside it (#5562).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
@@ -344,9 +352,13 @@ corresponding Twirl view:
   on their first try and no replacements are requested, so a dead network reaches the imagery modal in minutes
   rather than a quarter of an hour. A failed load during an undo abandons the undo instead (the label is already
   validated, so it must not be deferred or owed): the label undone from is shown again and Back is disabled.
-  `PanoManager.create` loads no pano; the first label's `setPanorama` is its only load. The two labels after the
-  current one are prefetched through `PanoViewer.prefetchPano` (Mapillary caches the image's metadata and
-  thumbnail, which is what `moveTo` waits on). Validate and the label popup pass the `linkedPanos: false` pano
+  `PanoManager.create` loads no pano; the first label's `setPanorama` is its only load. A label the payload flags
+  `expired` that has a backup skips the primary and goes straight to Pannellum (#5561), trying the primary only if
+  the backup fails, so a slow `reason` there comes from that late attempt and a load that never asked the primary is
+  `'no-imagery'`. Once a label is on screen, `LabelContainer.#prefetchUpcomingPanos` warms the next two: an expired
+  label with a backup has that backup fetched into `PanoImageCache` (#5562), and any other has its pano warmed
+  through `PanoViewer.prefetchPano` (Mapillary caches the image's metadata and thumbnail, which is what `moveTo`
+  waits on; #5581). Validate and the label popup pass the `linkedPanos: false` pano
   option, so a Mapillary load resolves as soon as the image is set instead of after the linked-pano graph request
   that only Explore's navigation reads. `PanoLoadingStatus` shows "Loading imagery…" over the pano
   (`#svv-pano-loading`, a polite live region in both views, so boxed, immersive and mobile share it): at once when

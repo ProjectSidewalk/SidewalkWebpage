@@ -1,6 +1,5 @@
 package models.pano
 
-import models.pano.PanoSource.PanoSource
 import play.api.libs.json.{JsObject, Json}
 
 import scala.util.matching.Regex

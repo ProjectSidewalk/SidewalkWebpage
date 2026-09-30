@@ -12,7 +12,7 @@ import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for `background_job_run` (#4928, evolution 358) and its DAO.
@@ -28,7 +28,7 @@ import scala.concurrent.duration._
 class BackgroundJobRunTableSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
   private val dbConfig    = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
@@ -167,7 +167,7 @@ class BackgroundJobRunTableSpec extends SidewalkSpec with BeforeAndAfterAll with
   "outcomeCountsSince" should {
 
     /** The counts for `jobName`, keyed by (status, whether an open run is old enough to read as abandoned). */
-    def counts(): Map[(JobRunStatus.Value, Boolean), Int] = {
+    def counts(): Map[(JobRunStatus, Boolean), Int] = {
       run(jobRunTable.outcomeCountsSince(OffsetDateTime.now.minusDays(7), OffsetDateTime.now.minusHours(12)))
         .filter(_._1 == jobName)
         .map(count => (count._2, count._3) -> count._4)
@@ -215,7 +215,7 @@ class BackgroundJobRunTableSpec extends SidewalkSpec with BeforeAndAfterAll with
   "runsForJobsSince" should {
 
     /** Seeds one finished run and returns its id. */
-    def seed(job: String, startedAt: OffsetDateTime, status: JobRunStatus.Value, details: Option[String]): Int = {
+    def seed(job: String, startedAt: OffsetDateTime, status: JobRunStatus, details: Option[String]): Int = {
       val id = run(jobRunTable.insertRunning(job, JobRunTrigger.Scheduled, startedAt))
       val _  = run(
         jobRunTable.finish(

@@ -1,7 +1,7 @@
 package forms
 
-import play.api.data.Forms._
-import play.api.data._
+import play.api.data.Forms.*
+import play.api.data.*
 
 /** Settings' change-password form (#2285). Whether the current password is right is checked later, in the service. */
 object ChangePasswordForm {

@@ -3,7 +3,7 @@ package models.street
 import models.audit.{AuditTask, AuditTaskTableDef}
 import models.user.UserStatTableDef
 import models.utils.ConfigTableDef
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
@@ -23,7 +23,7 @@ import java.time.{LocalDate, OffsetDateTime}
 class StreetImageryPollSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val streetImageryTable = app.injector.instanceOf[StreetImageryTable]
 

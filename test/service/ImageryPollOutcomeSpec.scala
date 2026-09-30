@@ -13,7 +13,7 @@ import service.ImageryFreshnessService.{MissingImageryCredentialException, PollR
 import service.PanoDataService.ImageryCheckResult
 import util.SidewalkSpec
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 /**
@@ -29,7 +29,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private def await[T](f: Future[T]): T = Await.result(f, 60.seconds)
 
@@ -45,7 +45,7 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   /** The real service, rebuilt against a configuration with one key removed. */
   private def serviceWithout(key: String): ImageryFreshnessService = {
-    new ImageryFreshnessServiceImpl(
+    ImageryFreshnessServiceImpl(
       app.injector.instanceOf[DatabaseConfigProvider],
       Configuration(baseConfig.underlying.withoutPath(key)),
       app.injector.instanceOf[WSClient],

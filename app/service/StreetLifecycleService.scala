@@ -17,10 +17,10 @@ import models.street.{
 import models.utils.MyPostgresProfile
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json._
+import play.api.libs.json.*
 
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -64,8 +64,6 @@ object StreetStatusTrend {
   private given localDateWrites: Writes[LocalDate]           = Writes(date => JsString(date.toString))
   private given offsetDateTimeWrites: Writes[OffsetDateTime] = Writes(time => JsString(time.toString))
 
-  private given statusWrites: Writes[StreetEdgeStatus.Value] = Writes(status => JsString(status.toString))
-
   private given statusChangeWeekWrites: Writes[StatusChangeWeek]        = Json.writes[StatusChangeWeek]
   private given reportWeekWrites: Writes[NoImageryReportWeek]           = Json.writes[NoImageryReportWeek]
   private given imageryWeekWrites: Writes[PanoImageryWeek]              = Json.writes[PanoImageryWeek]
@@ -86,16 +84,17 @@ trait StreetLifecycleService {
 object StreetLifecycleService {
 
   /** Outcome of an admin's attempt to reopen a no_imagery street (#4929). */
-  sealed trait ReopenOutcome
+  enum ReopenOutcome {
 
-  /** The street was flipped back to open, with its priority row and status-change record written. */
-  case object Reopened extends ReopenOutcome
+    /** The street was flipped back to open, with its priority row and status-change record written. */
+    case Reopened
 
-  /** The street exists but isn't no_imagery (already open, or closed/disabled), so nothing was changed. */
-  case class NotNoImagery(currentStatus: String) extends ReopenOutcome
+    /** The street exists but isn't no_imagery (already open, or closed/disabled), so nothing was changed. */
+    case NotNoImagery(currentStatus: String)
 
-  /** No street with the given id exists. */
-  case object StreetNotFound extends ReopenOutcome
+    /** No street with the given id exists. */
+    case StreetNotFound
+  }
 
   /** Window the Street Status trend defaults to, in weeks. Half a year reads as a season-scale trend at chart width. */
   val DefaultTrendWeeks: Int = 26
@@ -168,6 +167,8 @@ class StreetLifecycleServiceImpl @Inject() (
 )(using ec: ExecutionContext)
     extends StreetLifecycleService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
+  import StreetLifecycleService.ReopenOutcome
+
   import profile.api.given
 
   /**
@@ -260,8 +261,8 @@ class StreetLifecycleServiceImpl @Inject() (
       outcome <-
         if (flipped == 0) {
           sql"SELECT status::text FROM street_edge WHERE street_edge_id = $streetEdgeId".as[String].headOption.map {
-            case Some(status) => StreetLifecycleService.NotNoImagery(status)
-            case None         => StreetLifecycleService.StreetNotFound
+            case Some(status) => ReopenOutcome.NotNoImagery(status)
+            case None         => ReopenOutcome.StreetNotFound
           }
         } else {
           for {
@@ -274,13 +275,14 @@ class StreetLifecycleServiceImpl @Inject() (
             """
             _ <- streetReopenCandidateTable.delete(streetEdgeId)
             _ <- regionCompletionTable.truncateTable
-          } yield StreetLifecycleService.Reopened
+          } yield ReopenOutcome.Reopened
         }
     } yield outcome
 
     db.run(action.transactionally).flatMap {
-      case StreetLifecycleService.Reopened => cacheApi.removeAll().map(_ => StreetLifecycleService.Reopened)
-      case other                           => Future.successful(other)
+      case ReopenOutcome.Reopened =>
+        cacheApi.removeAll().map(_ => ReopenOutcome.Reopened)
+      case other => Future.successful(other)
     }
   }
 

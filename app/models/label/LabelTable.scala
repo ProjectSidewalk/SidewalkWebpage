@@ -16,16 +16,14 @@ import models.api.{
   ValidatorType
 }
 import models.audit.AuditTaskTableDef
-import models.label.LabelTable.{given, _}
+import models.label.LabelTable.{given, *}
 import models.mission.MissionTableDef
-import models.pano.PanoSource.PanoSource
 import models.pano.{PanoData, PanoDataTable, PanoDataTableDef, PanoSource, PanoViewerMetadata}
 import models.route.RouteStreetTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable, StreetEdgeTableDef}
-import models.user._
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.user.*
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.CommonUtils.UiSource
-import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.{ConfigTableDef, Contributors, FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
 import models.validation.{
   LabelValidationTableDef,
@@ -41,7 +39,7 @@ import service.TimeInterval
 import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
-import java.time._
+import java.time.*
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
@@ -89,8 +87,8 @@ case class LabelValidationInfo(
     disagreeCount: Int,
     unsureCount: Int,
     correct: Option[Boolean],
-    userValidation: Option[ValidationOption.Value],
-    aiValidation: Option[ValidationOption.Value]
+    userValidation: Option[ValidationOption],
+    aiValidation: Option[ValidationOption]
 )
 case class POV(heading: Double, pitch: Double, zoom: Double)
 case class Dimensions(width: Int, height: Int)
@@ -118,7 +116,7 @@ case class LabelForLabelMap(
     correct: Option[Boolean],
     hasValidations: Boolean,
     hasAdminValidation: Boolean,
-    aiValidation: Option[ValidationOption.Value],
+    aiValidation: Option[ValidationOption],
     expired: Boolean,
     hasBackup: Boolean,
     highQualityUser: Boolean,
@@ -195,7 +193,7 @@ case class LabelTypeValidationsLeft(
  */
 case class NoSidewalkFaceEvidence(
     streetEdgeId: Int,
-    streetSide: StreetSide.Value,
+    streetSide: StreetSide,
     labelerCount: Int,
     support: Int,
     labelCount: Int
@@ -232,8 +230,8 @@ case class LabelMetadata(
     labelType: LabelType,
     severity: Option[Int],
     description: Option[String],
-    userValidation: Option[ValidationOption.Value],
-    aiValidation: Option[ValidationOption.Value],
+    userValidation: Option[ValidationOption],
+    aiValidation: Option[ValidationOption],
     validations: Map[String, Int],
     tags: List[String],
     lowQualityIncompleteStaleFlags: (Boolean, Boolean, Boolean),
@@ -267,11 +265,7 @@ case class LabelComment(
 )
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
-case class AdminValidationData(
-    labelId: Int,
-    username: String,
-    previousValidations: Seq[(String, ValidationOption.Value)]
-)
+case class AdminValidationData(labelId: Int, username: String, previousValidations: Seq[(String, ValidationOption)])
 
 /**
  * One of the user's labels in a region, with what Explore needs to put it back on the canvas and the minimap.
@@ -330,7 +324,7 @@ case class LabelValidationMetadata(
     streetEdgeId: Int,
     regionId: Int,
     // Which side of its street the label sits on; a NoSidewalk mission holds one label per (street, side) (#5285).
-    streetSide: Option[StreetSide.Value],
+    streetSide: Option[StreetSide],
     validationInfo: LabelValidationInfo,
     tags: Seq[String],
     cameraLocation: Option[LatLng],
@@ -370,10 +364,7 @@ class LabelTableDef(tag: slick.lifted.Tag) extends Table[Label](tag, "label") {
 
   def * = (labelId, auditTaskId, missionId, userId, panoId, labelType, deleted, temporaryLabelId, timeCreated, tutorial,
     streetEdgeId, agreeCount, disagreeCount, unsureCount, correct, severity, description, tags, deletedBy, deletedAt,
-    deletedSource) <> (
-    (Label.apply _).tupled,
-    Label.unapply
-  )
+    deletedSource).mapTo[Label]
 
   /** The `deleted` flag with its provenance, which the DB CHECK makes change together. */
   def deletion = (deleted, deletedBy, deletedAt, deletedSource)
@@ -423,41 +414,41 @@ type LabelMetadataUserDashTupleRep = (
 // Type alias for the tuple representation of LabelForLabelMap query results. Includes streetEdgeId (2nd element,
 // dropped when converting to the case class) because the route-filtering branch in getLabelsForLabelMap needs it.
 type LabelForLabelMapTuple = (
-    Int,                            // 1.  labelId
-    Int,                            // 2.  streetEdgeId
-    Int,                            // 3.  auditTaskId
-    String,                         // 4.  labelType
-    Option[Double],                 // 5.  lat
-    Option[Double],                 // 6.  lng
-    Option[Boolean],                // 7.  correct
-    Boolean,                        // 8.  hasValidations
-    Boolean,                        // 9.  hasAdminValidation
-    Option[ValidationOption.Value], // 10. aiValidation
-    Boolean,                        // 11. expired
-    Boolean,                        // 12. hasBackup
-    Boolean,                        // 13. highQualityUser
-    Option[Int],                    // 14. severity
-    List[String],                   // 15. tags
-    Boolean                         // 16. aiGenerated
+    Int,                      // 1.  labelId
+    Int,                      // 2.  streetEdgeId
+    Int,                      // 3.  auditTaskId
+    String,                   // 4.  labelType
+    Option[Double],           // 5.  lat
+    Option[Double],           // 6.  lng
+    Option[Boolean],          // 7.  correct
+    Boolean,                  // 8.  hasValidations
+    Boolean,                  // 9.  hasAdminValidation
+    Option[ValidationOption], // 10. aiValidation
+    Boolean,                  // 11. expired
+    Boolean,                  // 12. hasBackup
+    Boolean,                  // 13. highQualityUser
+    Option[Int],              // 14. severity
+    List[String],             // 15. tags
+    Boolean                   // 16. aiGenerated
 )
 
 // Type aliases for the tuple representation of LabelValidationMetadata and queries for them.
 type LabelValidationMetadataTuple = (
-    Int,                                  // 1.  labelId
-    String,                               // 2.  labelType
-    String,                               // 3.  panoId
-    PanoSource,                           // 4.  panoSource
-    Boolean,                              // 5.  expired
-    String,                               // 6.  imageCaptureDate
-    OffsetDateTime,                       // 7.  timestamp
-    (Option[Double], Option[Double]),     // 8.  location (lat, lng)
-    (Double, Double, Double),             // 9.  pov (heading, pitch, zoom)
-    (Int, Int, Int, Int),                 // 10. canvasXY (x, y) and its frame (width, height)
-    Option[Int],                          // 11. severity
-    Option[String],                       // 12. description
-    (Int, Int, Option[StreetSide.Value]), // 13. (streetEdgeId, regionId, streetSide)
-    (Int, Int, Int, Option[Boolean], Option[ValidationOption.Value], Option[ValidationOption.Value]), // 14. validationInfo
-    List[String],                     // 15. tags
+    Int,                              // 1.  labelId
+    String,                           // 2.  labelType
+    String,                           // 3.  panoId
+    PanoSource,                       // 4.  panoSource
+    Boolean,                          // 5.  expired
+    String,                           // 6.  imageCaptureDate
+    OffsetDateTime,                   // 7.  timestamp
+    (Option[Double], Option[Double]), // 8.  location (lat, lng)
+    (Double, Double, Double),         // 9.  pov (heading, pitch, zoom)
+    (Int, Int, Int, Int),             // 10. canvasXY (x, y) and its frame (width, height)
+    Option[Int],                      // 11. severity
+    Option[String],                   // 12. description
+    (Int, Int, Option[StreetSide]),   // 13. (streetEdgeId, regionId, streetSide)
+    (Int, Int, Int, Option[Boolean], Option[ValidationOption], Option[ValidationOption]), // 14. validationInfo
+    List[String],                                                                         // 15. tags
     (Option[Double], Option[Double]), // 16. cameraLocation (lat, lng)
     Option[List[String]],             // 17. aiTags
     Option[List[String]],             // 18. aiTagsNotPresent
@@ -478,26 +469,26 @@ type LabelValidationMetadataTuple = (
     ) // 22. pano dims, camera, attribution & address
 )
 type LabelValidationMetadataTupleRep = (
-    Rep[Int],                                            // 1.  labelId
-    Rep[String],                                         // 2.  labelType
-    Rep[String],                                         // 3.  panoId
-    Rep[PanoSource],                                     // 4.  panoSource
-    Rep[Boolean],                                        // 5.  expired
-    Rep[String],                                         // 6.  imageCaptureDate
-    Rep[OffsetDateTime],                                 // 7.  timestamp
-    (Rep[Option[Double]], Rep[Option[Double]]),          // 8.  location (lat, lng)
-    (Rep[Double], Rep[Double], Rep[Double]),             // 9.  pov (heading, pitch, zoom)
-    (Rep[Int], Rep[Int], Rep[Int], Rep[Int]),            // 10. canvasXY (x, y) and its frame (width, height)
-    Rep[Option[Int]],                                    // 11. severity
-    Rep[Option[String]],                                 // 12. description
-    (Rep[Int], Rep[Int], Rep[Option[StreetSide.Value]]), // 13. (streetEdgeId, regionId, streetSide)
+    Rep[Int],                                      // 1.  labelId
+    Rep[String],                                   // 2.  labelType
+    Rep[String],                                   // 3.  panoId
+    Rep[PanoSource],                               // 4.  panoSource
+    Rep[Boolean],                                  // 5.  expired
+    Rep[String],                                   // 6.  imageCaptureDate
+    Rep[OffsetDateTime],                           // 7.  timestamp
+    (Rep[Option[Double]], Rep[Option[Double]]),    // 8.  location (lat, lng)
+    (Rep[Double], Rep[Double], Rep[Double]),       // 9.  pov (heading, pitch, zoom)
+    (Rep[Int], Rep[Int], Rep[Int], Rep[Int]),      // 10. canvasXY (x, y) and its frame (width, height)
+    Rep[Option[Int]],                              // 11. severity
+    Rep[Option[String]],                           // 12. description
+    (Rep[Int], Rep[Int], Rep[Option[StreetSide]]), // 13. (streetEdgeId, regionId, streetSide)
     (
         Rep[Int],
         Rep[Int],
         Rep[Int],
         Rep[Option[Boolean]],
-        Rep[Option[ValidationOption.Value]],
-        Rep[Option[ValidationOption.Value]]
+        Rep[Option[ValidationOption]],
+        Rep[Option[ValidationOption]]
     ),                                          // 14. validationInfo
     Rep[List[String]],                          // 15. tags
     (Rep[Option[Double]], Rep[Option[Double]]), // 16. cameraLocation (lat, lng)
@@ -750,7 +741,7 @@ object LabelTable {
       osmWayId = r.nextLong(),
       regionId = r.nextInt(),
       regionName = r.nextString(),
-      streetSide = r.nextStringOption().flatMap(StreetSide.fromString),
+      streetSide = r.nextStringOption().flatMap(StreetSide.withNameOption),
       centerlineOffsetM = r.nextDoubleOption(),
       correct = r.nextBooleanOption(),
       agreeCount = r.nextInt(),
@@ -1057,7 +1048,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .result
       .map { labelCounts =>
         // Put data into LabelCount objects, and add an entry for any nonexistent label types with count=0.
-        val countsByType: Seq[LabelCount] = LabelType.orderedNames.map { labelType =>
+        val countsByType: Seq[LabelCount] = LabelType.names.map { labelType =>
           LabelCount(labelCounts.find(_._1 == labelType).map(_._2).getOrElse(0), timeInterval, labelType)
         }
 
@@ -1546,8 +1537,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @return Query of (streetEdgeId, streetSide, labelerCount, support, labelCount).
    */
   def noSidewalkFaceEvidence: Query[
-    (Rep[Int], Rep[Option[StreetSide.Value]], Rep[Int], Rep[Int], Rep[Int]),
-    (Int, Option[StreetSide.Value], Int, Int, Int),
+    (Rep[Int], Rep[Option[StreetSide]], Rep[Int], Rep[Int], Rep[Int]),
+    (Int, Option[StreetSide], Int, Int, Int),
     Seq
   ] = {
     val sidedNoSidewalk = for {
@@ -1628,7 +1619,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * @param labelIds Labels the client already has.
    * @return         (labelId, streetEdgeId, streetSide) per label; the side is None for an unsided label.
    */
-  def getFacesOfLabels(labelIds: Set[Int]): DBIO[Seq[(Int, Int, Option[StreetSide.Value])]] = {
+  def getFacesOfLabels(labelIds: Set[Int]): DBIO[Seq[(Int, Int, Option[StreetSide])]] = {
     if (labelIds.isEmpty) DBIO.successful(Seq.empty)
     else
       labelsUnfiltered
@@ -1675,12 +1666,12 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       filter: ValidationLabelFilter,
       unvalidatedOnly: Boolean = false,
       excludedLabelIds: Set[Int] = Set.empty,
-      excludedFaces: Set[(Int, StreetSide.Value)] = Set.empty
+      excludedFaces: Set[(Int, StreetSide)] = Set.empty
   ): Query[LabelValidationMetadataTupleRep, LabelValidationMetadataTuple, Seq] = {
     // One `IN` list per side: a face is a street edge and a side, and a label is on an excluded face when its edge is
     // in the list for its side. An empty set can't go through `inSetBind`, which renders an `IN ()` that Postgres
     // rejects, so each empty list short-circuits to a constant.
-    def onExcludedFaces(l: LabelTableDef, lp: LabelPointTableDef, side: StreetSide.Value): Rep[Boolean] = {
+    def onExcludedFaces(l: LabelTableDef, lp: LabelPointTableDef, side: StreetSide): Rep[Boolean] = {
       val edges: Set[Int] = excludedFaces.collect { case (edge, s) if s == side => edge }
       if (edges.isEmpty) false: Rep[Boolean]
       else (l.streetEdgeId inSetBind edges) && (lp.streetSide === side).getOrElse(false)
@@ -1760,7 +1751,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
             l.disagreeCount,
             l.unsureCount,
             l.correct,
-            Option.empty[ValidationOption.Value].bind,
+            Option.empty[ValidationOption].bind,
             aiv.map(_.validationResult)
           ),
           l.tags,
@@ -2111,7 +2102,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       routeIds: Seq[Int],
       aiValOptions: Seq[String],
       bbox: Option[LatLngBBox]
-  ): Query[_, LabelForLabelMapTuple, Seq] = {
+  ): Query[?, LabelForLabelMapTuple, Seq] = {
     // Label IDs with at least one validation from an Administrator or Owner.
     val _adminValidatedLabelIds = for {
       _lv <- labelValidations
@@ -2222,7 +2213,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       LabelForLabelMap(id, taskId, lType, lat, lng, correct, hasVals, hasAdminVals, aiVal, expired, hasBackup, highQual,
         sev, tags, ai)
     case _ =>
-      throw new IllegalStateException(
+      throw IllegalStateException(
         s"Label ${t._1} has a NULL lat (${t._5}) or lng (${t._6}); getLabelsForLabelMap must filter them out."
       )
   }
@@ -2481,16 +2472,15 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     }
 
     filters.validationStatuses.foreach { statuses =>
-      // A map instead of a pattern match because Enumeration matches can't be exhaustiveness-checked.
-      val conditionsByStatus: Map[RawLabelValidationStatus.Value, String] = Map(
-        RawLabelValidationStatus.ValidatedCorrect   -> "label.correct = TRUE",
-        RawLabelValidationStatus.ValidatedIncorrect -> "label.correct = FALSE",
-        RawLabelValidationStatus.Unsure             ->
-          "(label.correct IS NULL AND (label.agree_count > 0 OR label.disagree_count > 0 OR label.unsure_count > 0))",
-        RawLabelValidationStatus.Unvalidated ->
+      def condition(status: RawLabelValidationStatus): String = status match {
+        case RawLabelValidationStatus.ValidatedCorrect   => "label.correct = TRUE"
+        case RawLabelValidationStatus.ValidatedIncorrect => "label.correct = FALSE"
+        case RawLabelValidationStatus.Unsure             =>
+          "(label.correct IS NULL AND (label.agree_count > 0 OR label.disagree_count > 0 OR label.unsure_count > 0))"
+        case RawLabelValidationStatus.Unvalidated =>
           "(label.correct IS NULL AND label.agree_count = 0 AND label.disagree_count = 0 AND label.unsure_count = 0)"
-      )
-      whereConditions :+= sql"(#${statuses.toSeq.sortBy(_.id).map(conditionsByStatus).mkString(" OR ")})"
+      }
+      whereConditions :+= sql"(#${statuses.toSeq.sortBy(_.ordinal).map(condition).mkString(" OR ")})"
     }
 
     if (filters.startDate.isDefined) {

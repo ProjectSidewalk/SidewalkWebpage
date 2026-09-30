@@ -2,18 +2,18 @@ package controllers
 
 import controllers.helper.SubmissionSpecHelpers
 import models.label.LabelTableDef
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import _root_.util.SidewalkSpec
 
 import java.time.OffsetDateTime
@@ -44,7 +44,7 @@ class ValidateSubmissionSpec
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // Several anon sessions per run share one loopback IP, so the 100/hr signup cap would 429 across repeat runs
       // and break session minting rather than anything under test.
@@ -88,7 +88,7 @@ class ValidateSubmissionSpec
     val labelCount = run(sql"SELECT count(*) FROM label WHERE deleted = false".as[Int]).head
     if (labelCount == 0) cancel("No labels in the connected schema; /validate can't assign a mission.")
 
-    val resp = route(app, FakeRequest(GET, "/validate").withCookies(session: _*)).get
+    val resp = route(app, FakeRequest(GET, "/validate").withCookies(session*)).get
     status(resp) mustBe OK
     val html    = contentAsString(resp)
     val mission = embeddedPageJson(html, "param.mission")
@@ -114,7 +114,7 @@ class ValidateSubmissionSpec
         .result
         .head
     )
-    (LabelState.apply _).tupled(row)
+    LabelState.apply.tupled(row)
   }
 
   /** Records a label's pre-validation state on first touch, so `afterAll` can put it back. */
@@ -259,20 +259,20 @@ class ValidateSubmissionSpec
 
   /** Posts a Validate-tool submission over HTTP as the session's user. */
   private def postValidationTask(session: Seq[Cookie], payload: JsValue) =
-    route(app, FakeRequest(POST, "/validationTask").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
+    route(app, FakeRequest(POST, "/validationTask").withCookies(session*).withJsonBody(payload).withCSRFToken).get
 
   /** Posts a LabelMap/Gallery validation over HTTP as the session's user. */
   private def postLabelMapValidation(session: Seq[Cookie], payload: JsValue) =
     route(
       app,
-      FakeRequest(POST, "/labelmap/validate").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+      FakeRequest(POST, "/labelmap/validate").withCookies(session*).withJsonBody(payload).withCSRFToken
     ).get
 
   /** Posts a LabelMap/Gallery comment over HTTP as the session's user. */
   private def postLabelMapComment(session: Seq[Cookie], payload: JsValue) =
     route(
       app,
-      FakeRequest(POST, "/labelmap/comment").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+      FakeRequest(POST, "/labelmap/comment").withCookies(session*).withJsonBody(payload).withCSRFToken
     ).get
 
   /**
@@ -284,7 +284,7 @@ class ValidateSubmissionSpec
     val lt = labelType.getOrElse(currentLabelType(labelId))
     route(
       app,
-      FakeRequest(DELETE, s"/labelmap/comment/$labelId?labelType=$lt").withCookies(session: _*).withCSRFToken
+      FakeRequest(DELETE, s"/labelmap/comment/$labelId?labelType=$lt").withCookies(session*).withCSRFToken
     ).get
   }
 
@@ -336,7 +336,7 @@ class ValidateSubmissionSpec
 
   /** The `validation` chip on the session user's own comment, read back through `GET /label/id/:labelId`. */
   private def ownCommentValidation(session: Seq[Cookie], labelId: Int): Option[String] = {
-    val res = route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session: _*)).get
+    val res = route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session*)).get
     status(res) mustBe OK
     val own = (contentAsJson(res) \ "comments").as[Seq[JsObject]].filter(c => (c \ "mine").as[Boolean])
     own must have size 1
@@ -888,7 +888,7 @@ class ValidateSubmissionSpec
         ("About this type.", currentType)
       )
 
-      val res = route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session: _*)).get
+      val res = route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session*)).get
       status(res) mustBe OK
       val own = (contentAsJson(res) \ "comments").as[Seq[JsObject]].filter(c => (c \ "mine").as[Boolean])
       own.map(c => (c \ "comment").as[String]) mustBe Seq("About this type.")

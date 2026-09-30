@@ -8,9 +8,9 @@ import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import service.{ConfigService, ImageryFreshnessService, JobRunService, RegionService, StreetService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object RecalculateStreetPriorityActor {

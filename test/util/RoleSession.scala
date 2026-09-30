@@ -1,6 +1,6 @@
 package util
 
-import com.google.inject.{Injector => GuiceInjector, Key, TypeLiteral}
+import com.google.inject.{Injector as GuiceInjector, Key, TypeLiteral}
 import models.auth.DefaultEnv
 import models.user.Role
 import models.utils.MyPostgresProfile
@@ -14,7 +14,7 @@ import play.silhouette.api.Silhouette
 import service.AuthenticationService
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Mints signed-in sessions holding a given role, for specs that pin a role-gated route with a real caller.
@@ -28,7 +28,7 @@ import scala.concurrent.duration._
  * with AnonSession`): the demotion in `afterAll` needs the app's DB pool, and a trait mixed in later would run its
  * `afterAll` outside the app's lifetime.
  */
-trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec with GuiceOneAppPerSuite with AnonSession =>
+trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOneAppPerSuite & AnonSession =>
 
   private lazy val roleSessionDbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
@@ -41,7 +41,7 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec with GuiceOneAp
    * A bare signup carries the Anonymous role, which is sent to sign in whatever role an action wants; only a
    * registered role (e.g. "Registered", "Administrator") reaches the branch that refuses by name.
    */
-  protected def sessionAs(role: Role.Value): Seq[Cookie] = {
+  protected def sessionAs(role: Role): Seq[Cookie] = {
     val cookies = freshAnonSession()
     val userId  = userIdOf(cookies)
     promotedUserIds ::= userId
@@ -56,7 +56,7 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec with GuiceOneAp
     val silhouetteKey = Key.get(new TypeLiteral[Silhouette[DefaultEnv]]() {})
     val env           = app.injector.instanceOf[GuiceInjector].getInstance(silhouetteKey).env
     val authenticator =
-      Await.result(env.authenticatorService.retrieve(FakeRequest().withCookies(cookies: _*)), 30.seconds)
+      Await.result(env.authenticatorService.retrieve(FakeRequest().withCookies(cookies*)), 30.seconds)
     val user = authenticator.flatMap { auth =>
       Await.result(app.injector.instanceOf[AuthenticationService].retrieve(auth.loginInfo), 30.seconds)
     }
@@ -64,13 +64,11 @@ trait RoleSession extends BeforeAndAfterAll { this: SidewalkSpec with GuiceOneAp
   }
 
   /** Sets the account's role directly in the DB; roles are resolved per request, so the session picks it up. */
-  protected def setRole(userId: String, role: Role.Value): Unit = {
+  protected def setRole(userId: String, role: Role): Unit = {
     val _ = Await.result(
       roleSessionDbConfig.db.run(
-        // The cast is required: the URL sets no stringtype=unspecified, so pgjdbc binds this as varchar, and Postgres
-        // has no varchar-to-enum assignment cast. Qualified so it doesn't depend on search_path.
         sqlu"""UPDATE sidewalk_login.user_role
-               SET role = ${role.toString}::sidewalk_login.role
+               SET role = $role
                WHERE user_id = $userId"""
       ),
       60.seconds

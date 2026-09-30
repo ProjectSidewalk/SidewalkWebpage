@@ -3,14 +3,13 @@ package service
 import com.google.inject.ImplementedBy
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.ValidateFormats.ValidationMissionProgress
-import models.label.LabelTable.{given, _}
-import models.label.{Tag, _}
+import models.label.LabelTable.{given, *}
+import models.label.{Tag, *}
 import models.mission.{Mission, MissionTable, MissionType}
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
 import models.user.SidewalkUserWithRole
 import models.utils.CommonUtils.UiSource
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{ExcludedTag, LatLngBBox, MyPostgresProfile}
 import models.validation.{LabelValidationTable, ValidationLabelFilter}
 import models.validation.ValidationQueuePolicy.ValidationQueue
@@ -19,7 +18,7 @@ import play.api.Logger
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.DBIO
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -52,7 +51,7 @@ trait LabelService {
       aiValOptions: Seq[String],
       bbox: Option[LatLngBBox],
       batchSize: Int
-  ): Source[LabelForLabelMap, _]
+  ): Source[LabelForLabelMap, ?]
   def getGalleryLabels(
       n: Int,
       labelTypes: Set[LabelType],
@@ -155,10 +154,10 @@ object LabelServiceImpl {
    * @param side           Which side of it, None when unsided.
    * @param unsidedLabelId The label itself, set only when it is unsided.
    */
-  private[service] case class FaceKey(streetEdgeId: Int, side: Option[StreetSide.Value], unsidedLabelId: Option[Int])
+  private[service] case class FaceKey(streetEdgeId: Int, side: Option[StreetSide], unsidedLabelId: Option[Int])
 
   private[service] object FaceKey {
-    def of(streetEdgeId: Int, side: Option[StreetSide.Value], labelId: Int): FaceKey =
+    def of(streetEdgeId: Int, side: Option[StreetSide], labelId: Int): FaceKey =
       FaceKey(streetEdgeId, side, if (side.isEmpty) Some(labelId) else None)
 
     def of(label: LabelValidationMetadata): FaceKey = of(label.streetEdgeId, label.streetSide, label.labelId)
@@ -297,7 +296,7 @@ class LabelServiceImpl @Inject() (
       aiValOptions: Seq[String],
       bbox: Option[LatLngBBox],
       batchSize: Int
-  ): Source[LabelForLabelMap, _] =
+  ): Source[LabelForLabelMap, ?] =
     // `.transactionally` is required for Postgres to honor fetchSize and stream instead of materializing (#3932). It
     // also means a pooled connection stays checked out, transaction open, for the whole response rather than just the
     // query: `Ok.chunked` backpressures from the client socket, so a slow reader pins one of the 25 connections until
@@ -713,7 +712,7 @@ class LabelServiceImpl @Inject() (
           typeProbabilities.scanLeft(0.0) { case (acc, (_, prob)) => acc + prob }.tail
 
         // Choose a label type proportionally based on the calculated probabilities.
-        val random = new Random()
+        val random = Random()
         Some(typeProbabilities(cumulativeProbabilities.indexWhere(_ > random.nextDouble()))._1)
       }
     })

@@ -4,7 +4,7 @@ import controllers.base.{CustomBaseController, CustomControllerComponents}
 import play.api.Configuration
 import service.ConfigService
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**

@@ -2,11 +2,11 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
@@ -25,10 +25,7 @@ class UserAccountStateTableDef(tag: Tag) extends Table[UserAccountState](tag, "u
     column[Option[OffsetDateTime]]("explore_tutorial_completed_at")
   def sessionsRevokedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("sessions_revoked_at")
 
-  def * = (userId, exploreTutorialCompletedAt, sessionsRevokedAt) <> (
-    (UserAccountState.apply _).tupled,
-    UserAccountState.unapply
-  )
+  def * = (userId, exploreTutorialCompletedAt, sessionsRevokedAt).mapTo[UserAccountState]
 
   def user = foreignKey("user_account_state_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }

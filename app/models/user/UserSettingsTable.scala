@@ -2,24 +2,23 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
-import javax.inject._
+import javax.inject.*
 
 /**
  * @param measurementSystem The units the user chose, or None to follow the site language.
  * @param communityService  Whether the user is tracking their time for community service hours.
  */
-case class UserSettings(userId: String, measurementSystem: Option[MeasurementSystem.Value], communityService: Boolean)
+case class UserSettings(userId: String, measurementSystem: Option[MeasurementSystem], communityService: Boolean)
 
 class UserSettingsTableDef(tag: Tag) extends Table[UserSettings](tag, "user_settings") {
-  def userId: Rep[String]                                     = column[String]("user_id", O.PrimaryKey)
-  def measurementSystem: Rep[Option[MeasurementSystem.Value]] =
-    column[Option[MeasurementSystem.Value]]("measurement_system")
-  def communityService: Rep[Boolean] = column[Boolean]("community_service", O.Default(false))
+  def userId: Rep[String]                               = column[String]("user_id", O.PrimaryKey)
+  def measurementSystem: Rep[Option[MeasurementSystem]] = column[Option[MeasurementSystem]]("measurement_system")
+  def communityService: Rep[Boolean]                    = column[Boolean]("community_service", O.Default(false))
 
-  def * = (userId, measurementSystem, communityService) <> ((UserSettings.apply _).tupled, UserSettings.unapply)
+  def * = (userId, measurementSystem, communityService).mapTo[UserSettings]
 
   def user = foreignKey("user_settings_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }
@@ -47,11 +46,10 @@ class UserSettingsTable @Inject() (protected val dbConfigProvider: DatabaseConfi
    * @param system The units to show distances in, or None to follow the site language.
    * @return       The number of rows written.
    */
-  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem.Value]): DBIO[Int] = {
-    val systemName: Option[String] = system.map(_.toString)
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): DBIO[Int] = {
     sqlu"""
       INSERT INTO sidewalk_login.user_settings (user_id, measurement_system)
-      VALUES ($userId, $systemName::sidewalk_login.measurement_system)
+      VALUES ($userId, $system)
       ON CONFLICT (user_id) DO UPDATE SET measurement_system = EXCLUDED.measurement_system
     """
   }

@@ -3,9 +3,9 @@ package models.validation
 import com.google.inject.ImplementedBy
 import models.mission.MissionTableDef
 import models.pano.PanoDataTableDef
-import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -41,8 +41,9 @@ class ValidationTaskInteractionTableDef(tag: slick.lifted.Tag)
   def timestamp: Rep[OffsetDateTime]        = column[OffsetDateTime]("timestamp")
   def source: Rep[UiSource]                 = column[UiSource]("source")
 
-  def * = (validationTaskInteractionId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note, timestamp,
-    source) <> ((ValidationTaskInteraction.apply _).tupled, ValidationTaskInteraction.unapply)
+  def * =
+    (validationTaskInteractionId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note, timestamp, source)
+      .mapTo[ValidationTaskInteraction]
 
   def mission =
     foreignKey("validation_task_interaction_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId.?)

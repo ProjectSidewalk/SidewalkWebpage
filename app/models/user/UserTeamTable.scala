@@ -2,7 +2,7 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -15,7 +15,7 @@ class UserTeamTableDef(tag: slick.lifted.Tag) extends Table[UserTeam](tag, "user
   def userId: Rep[String]  = column[String]("user_id")
   def teamId: Rep[Int]     = column[Int]("team_id")
 
-  def * = (userTeamId, userId, teamId) <> ((UserTeam.apply _).tupled, UserTeam.unapply)
+  def * = (userTeamId, userId, teamId).mapTo[UserTeam]
 
   def user       = foreignKey("user_team_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def team       = foreignKey("user_team_team_id_fkey", teamId, TableQuery[TeamTableDef])(_.teamId)
@@ -48,7 +48,7 @@ class UserTeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * @param teamId The id of the team.
    * @return One entry per member: (user id, username, role).
    */
-  def getMembers(teamId: Int): DBIO[Seq[(String, String, Role.Value)]] = {
+  def getMembers(teamId: Int): DBIO[Seq[(String, String, Role)]] = {
     userTeams
       .filter(_.teamId === teamId)
       .join(sidewalkUsers)

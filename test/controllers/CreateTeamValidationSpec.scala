@@ -9,13 +9,13 @@ import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for `POST /userapi/createTeam`'s name rules (#5342): no comma or all-digit name, and no duplicate
@@ -26,7 +26,7 @@ import scala.concurrent.duration._
 class CreateTeamValidationSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
@@ -52,7 +52,7 @@ class CreateTeamValidationSpec extends SidewalkSpec with RoleSession with GuiceO
     route(
       app,
       FakeRequest(POST, "/userapi/createTeam")
-        .withCookies(cookies: _*)
+        .withCookies(cookies*)
         .withJsonBody(Json.obj("name" -> name, "description" -> ""))
         .withCSRFToken
     ).get

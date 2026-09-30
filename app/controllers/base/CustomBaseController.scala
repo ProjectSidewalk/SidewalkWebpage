@@ -8,7 +8,7 @@ import controllers.AssetsFinder
 import models.utils.IpAddress
 import play.api.i18n.{I18nSupport, Messages}
 import play.api.libs.json.JsObject
-import play.api.mvc._
+import play.api.mvc.*
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -64,9 +64,9 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    *                     leaving the page mid-load is routine.
    * @return             The same source, with logging attached.
    */
-  protected def logStreamFailures(source: Source[String, _], label: String, warnOnCutOff: Boolean = true)(using
+  protected def logStreamFailures(source: Source[String, ?], label: String, warnOnCutOff: Boolean = true)(using
       ec: ExecutionContext
-  ): Source[String, _] = {
+  ): Source[String, ?] = {
     val startedAt  = System.nanoTime()
     var chunks     = 0L
     var chars      = 0L
@@ -108,7 +108,7 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * @param features A source of serialized GeoJSON Feature objects.
    * @return         The same features framed as a `{"type":"FeatureCollection","features":[...]}` document.
    */
-  protected def geoJsonFeatureCollection(features: Source[String, _]): Source[String, _] =
+  protected def geoJsonFeatureCollection(features: Source[String, ?]): Source[String, ?] =
     features.intersperse("""{"type":"FeatureCollection","features":[""", ",", "]}")
 
   /**
@@ -121,8 +121,8 @@ abstract class CustomBaseController(cc: CustomControllerComponents)
    * @param features A source of GeoJSON Feature objects, e.g. a streamed db query mapped through a serializer.
    * @param label    A short identifier (e.g. the endpoint path) included in the log line if the stream fails.
    */
-  protected def streamGeoJson(features: Source[JsObject, _], label: String)(using ec: ExecutionContext): Result = {
-    val jsonSource: Source[String, _] =
+  protected def streamGeoJson(features: Source[JsObject, ?], label: String)(using ec: ExecutionContext): Result = {
+    val jsonSource: Source[String, ?] =
       geoJsonFeatureCollection(logStreamFailures(features.map(_.toString), label, warnOnCutOff = false))
     Ok.chunked(jsonSource).as(ContentTypes.JSON)
   }

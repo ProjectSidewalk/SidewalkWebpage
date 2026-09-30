@@ -18,7 +18,7 @@ import util.{RolledBackDb, SidewalkSpec}
 class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
@@ -27,7 +27,7 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
   "WebpageActivityTable.getApiEndpointCounts" should {
     "execute without error and return a Seq[ApiEndpointCount] when excluding apiDocs (last 30 days)" in {
       val results = run(table.getApiEndpointCounts(excludeApiDocs = true, days = 30))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       // All entries must have non-empty endpoint strings and non-negative counts.
       results.foreach { row =>
         row.endpoint must not be empty
@@ -37,7 +37,7 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
 
     "execute without error when including apiDocs traffic (all time)" in {
       val results = run(table.getApiEndpointCounts(excludeApiDocs = false, days = 0))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
     }
   }
 
@@ -55,7 +55,7 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
   "WebpageActivityTable.getApiEndpointCountsBySource" should {
     "execute and tag every row with a known source and non-negative count" in {
       val results = run(table.getApiEndpointCountsBySource(days = 0))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       results.foreach { row =>
         row.endpoint must not be empty
         validSources must contain(row.source)
@@ -67,7 +67,7 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
   "WebpageActivityTable.getApiDailyCountsBySource" should {
     "execute, tag every row with a known source, and return dates in ascending order" in {
       val results = run(table.getApiDailyCountsBySource(days = 90))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       results.foreach(row => validSources must contain(row.source))
       val dates = results.map(_.date)
       dates mustBe dates.sorted
@@ -77,7 +77,7 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
   "WebpageActivityTable.getApiFormatCountsBySource" should {
     "execute and tag every row with a known source" in {
       val results = run(table.getApiFormatCountsBySource(days = 30))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       results.foreach { row =>
         row.format must not be empty
         validSources must contain(row.source)
@@ -88,7 +88,7 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
   "WebpageActivityTable.getApiUniqueIpCountsBySource" should {
     "execute, return at most one row per source, with non-negative distinct counts" in {
       val results = run(table.getApiUniqueIpCountsBySource(days = 0))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       results.foreach { row =>
         validSources must contain(row.source)
         row.uniqueIps must be >= 0L

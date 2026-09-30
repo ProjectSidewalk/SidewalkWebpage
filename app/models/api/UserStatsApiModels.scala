@@ -82,7 +82,7 @@ object UserStatForApi extends ApiFields[UserStatForApi] {
     field("agree_validations_given")(_.agreeValidationsGiven),
     field("disagree_validations_given")(_.disagreeValidationsGiven),
     field("unsure_validations_given")(_.unsureValidationsGiven)
-  ) ++ LabelType.orderedNames.flatMap { labelType =>
+  ) ++ LabelType.names.flatMap { labelType =>
     Seq(
       field(s"stats_by_label_type.$labelType.labels")(_.statsByLabelType(labelType).labels),
       field(s"stats_by_label_type.$labelType.validated_correct")(_.statsByLabelType(labelType).validatedCorrect),

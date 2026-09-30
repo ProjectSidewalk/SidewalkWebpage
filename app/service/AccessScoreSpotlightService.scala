@@ -357,7 +357,7 @@ class AccessScoreSpotlightService @Inject() (
         computedAt,
         // Seeded from the run's own timestamp: the tie-break has to be one draw per run (stable all day, different
         // tomorrow), and nothing else about a run is both unique to it and reproducible from its rows.
-        new Random(computedAt.toInstant.toEpochMilli)
+        Random(computedAt.toInstant.toEpochMilli)
       )
       written <- db.run(
         regionAccessScoreTable

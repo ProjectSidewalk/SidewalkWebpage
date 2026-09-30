@@ -110,7 +110,7 @@
       // The pano viewer initializes asynchronously; once it's ready, hand the popup to the page so feed label
       // links open inline. If this fails, the links keep their href fallback (navigate to /admin/label/:id).
       try {
-        const imagerySrc = "@commonData.imagerySource.toString";
+        const imagerySrc = "@commonData.imagerySource.name";
         const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer
           : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
         const accessToken = "@commonData.imageryAccessToken";

@@ -1,8 +1,8 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, parseIntegerSeq, regionsParam, NoUserId}
-import formats.json.GalleryFormats._
+import formats.json.GalleryFormats.*
 import formats.json.LabelFormats
 import models.auth.DefaultEnv
 import models.label.{LabelType, Tag}
@@ -12,7 +12,7 @@ import play.api.i18n.Messages
 import play.api.libs.json.{JsError, JsValue, Json}
 import play.api.mvc.{Action, AnyContent}
 import play.silhouette.api.Silhouette
-import service._
+import service.*
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -150,15 +150,15 @@ class GalleryController @Inject() (
       submission => {
         val n: Int = submission.n
         // An empty set of types means "every type", which is what the landing grid and the Gallery's default ask for.
-        val labelTypes: Set[LabelType]   = submission.labelTypes.getOrElse(Seq()).flatMap(LabelType.byName.get).toSet
-        val loadedLabels: Set[Int]       = submission.loadedLabels.toSet
-        val valOptions: Set[String]      = submission.validationOptions.getOrElse(Seq()).toSet
-        val regionIds: Set[Int]          = submission.regionIds.getOrElse(Seq()).toSet
+        val labelTypes: Set[LabelType] = submission.labelTypes.getOrElse(Seq()).flatMap(LabelType.withNameOption).toSet
+        val loadedLabels: Set[Int]     = submission.loadedLabels.toSet
+        val valOptions: Set[String]    = submission.validationOptions.getOrElse(Seq()).toSet
+        val regionIds: Set[Int]        = submission.regionIds.getOrElse(Seq()).toSet
         val severities: Set[Option[Int]] =
           submission.severities.getOrElse(Seq()).toSet.map { (s: String) => if (s == "null") None else Some(s.toInt) }
         val tagsByLabelType: Map[LabelType, Set[String]] = submission.tagsByLabelType
           .getOrElse(Map())
-          .flatMap { case (name, tags) => LabelType.byName.get(name).map(_ -> tags.toSet) }
+          .flatMap { case (name, tags) => LabelType.withNameOption(name).map(_ -> tags.toSet) }
         val aiValOptions: Set[String]  = submission.aiValidationOptions.getOrElse(Seq()).toSet
         val userId: String             = request.identity.map(_.userId).getOrElse(NoUserId)
         val recentFirst: Boolean       = submission.sort.contains("recent")

@@ -2,7 +2,7 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.Configuration
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -11,7 +11,7 @@ import javax.inject.{Inject, Singleton}
 case class UserRole(
     userRoleId: Int,
     userId: String,
-    role: Role.Value,
+    role: Role,
     zurichInfra3dAccess: Boolean,
     winterthurInfra3dAccess: Boolean
 )
@@ -20,12 +20,11 @@ case class UserRole(
 class UserRoleTableDef(tag: Tag) extends Table[UserRole](tag, "user_role") {
   def userRoleId: Rep[Int]                  = column[Int]("user_role_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]                   = column[String]("user_id")
-  def role: Rep[Role.Value]                 = column[Role.Value]("role")
+  def role: Rep[Role]                       = column[Role]("role")
   def zurichInfra3dAccess: Rep[Boolean]     = column[Boolean]("zurich_infra3d_access", O.Default(false))
   def winterthurInfra3dAccess: Rep[Boolean] = column[Boolean]("winterthur_infra3d_access", O.Default(false))
 
-  def * = (userRoleId, userId, role, zurichInfra3dAccess, winterthurInfra3dAccess) <>
-    ((UserRole.apply _).tupled, UserRole.unapply)
+  def * = (userRoleId, userId, role, zurichInfra3dAccess, winterthurInfra3dAccess).mapTo[UserRole]
 
   def user = foreignKey("user_role_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 
@@ -59,7 +58,7 @@ class UserRoleTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * @param newRole The role to be added to the user
    * @return A DBIO action that returns the newly added UserRole
    */
-  def addRole(userId: String, newRole: Role.Value): DBIO[UserRole] = {
+  def addRole(userId: String, newRole: Role): DBIO[UserRole] = {
     (userRoles returning userRoles) +=
       UserRole(0, userId, newRole, zurichInfra3dAccess = false, winterthurInfra3dAccess = false)
   }
@@ -70,7 +69,7 @@ class UserRoleTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * @param newRole The new role to set for the user
    * @return A DBIO action that returns the number of rows affected
    */
-  def updateRole(userId: String, newRole: Role.Value): DBIO[Int] = {
+  def updateRole(userId: String, newRole: Role): DBIO[Int] = {
     userRoles.filter(_.userId === userId).map(_.role).update(newRole)
   }
 

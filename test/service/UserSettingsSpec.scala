@@ -2,7 +2,7 @@ package service
 
 import models.user.{MeasurementSystem, Role, SidewalkUserWithRole, UserSettingsTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
@@ -11,7 +11,7 @@ import play.silhouette.api.util.PasswordInfo
 import util.SidewalkSpec
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for the account-wide settings in `sidewalk_login.user_settings` (#3720), read back through the same
@@ -24,7 +24,7 @@ import scala.concurrent.duration._
 class UserSettingsSpec extends SidewalkSpec with org.scalatest.BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val authService = app.injector.instanceOf[AuthenticationService]
   private val userService = app.injector.instanceOf[UserService]

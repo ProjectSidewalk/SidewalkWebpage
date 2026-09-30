@@ -162,11 +162,13 @@ class MapillaryViewer extends PanoViewer {
   }
 
   getPanoId = () => {
-    return this.currImage.id;
+    // Null until the first image has loaded: the tracker asks on every input event, including during init.
+    return this.currImage ? this.currImage.id : null;
   };
 
   getPosition = () => {
-    return this.currImage.lngLat;
+    // Null until the first image has loaded.
+    return this.currImage ? this.currImage.lngLat : null;
   };
 
   _getPanoramaCallback = async (newImage) => {
@@ -534,9 +536,9 @@ class MapillaryViewer extends PanoViewer {
   };
 
   /**
-   * See PanoViewer.prefetchPano(). Validate calls it one label ahead (#5581), since a jump to an unrelated pano never
-   * benefits from the SDK's own neighbor cache. Guarded because it reaches into SDK internals: a prefetch that can't
-   * run must never break the label that asked for it.
+   * See PanoViewer.prefetchPano(). Validate calls it for the next labels (#5581), since a jump to an unrelated pano
+   * never benefits from the SDK's own neighbor cache. Guarded because it reaches into SDK internals: a prefetch that
+   * can't run must never break the label that asked for it.
    * @param {string} panoId - The Mapillary image id to warm.
    * @returns {void}
    */

@@ -31,7 +31,7 @@ import java.sql.DriverManager
 import java.time.{OffsetDateTime, ZoneOffset}
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.Using
 
 /**
@@ -50,14 +50,14 @@ import scala.util.Using
 class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val shapefileCreator = app.injector.instanceOf[ShapefilesCreatorHelper]
 
   /** A label fixture; `streetSide`/`centerlineOffsetM` are the fields under test, the rest are arbitrary but valid. */
   private def sampleLabel(
       labelId: Int,
-      streetSide: Option[StreetSide.Value],
+      streetSide: Option[StreetSide],
       centerlineOffsetM: Option[Double]
   ): LabelDataForApi = LabelDataForApi(
     labelId = labelId,
@@ -168,7 +168,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
   private def attr(feature: SimpleFeature, name: String): Any = feature.getAttribute(name)
 
   /** Reads a shapefile the way GIS tools do, taking its text encoding from the `.cpg`. */
-  private def openShapefile(shp: Path): DataStore = new ShapefileDataStoreFactory().createDataStore(shp.toUri.toURL)
+  private def openShapefile(shp: Path): DataStore = ShapefileDataStoreFactory().createDataStore(shp.toUri.toURL)
 
   private def openGeoPackage(gpkg: Path): DataStore = DataStoreFinder.getDataStore(
     Map[String, Object](
@@ -210,7 +210,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
       rs.getInt("srs_id")
     }.get
 
-  private val wgs84 = new GeometryFactory(new PrecisionModel(), 4326)
+  private val wgs84 = GeometryFactory(PrecisionModel(), 4326)
 
   "the rawLabels shapefile" should {
     "carry streetSide and ctrOffsetM under DBF-legal names, with nulls for a label that has no side (#2886)" in {
@@ -218,7 +218,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
         val shp = Await
           .result(shapefileCreator.createRawLabelShapefile(Source(labels), base, 2), 60.seconds)
           .value
-        val store             = new ShapefileDataStoreFactory().createDataStore(shp.toUri.toURL)
+        val store             = ShapefileDataStoreFactory().createDataStore(shp.toUri.toURL)
         val (names, features) = readBack(store, "labelId")
 
         names must contain allOf ("streetSide", "ctrOffsetM")
@@ -258,7 +258,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
 
     "fail and delete every part of its half-written file when the data stops partway" in {
       inTempDir("labels") { base =>
-        val broken = Source(labels).concat(Source.failed(new RuntimeException("stream broke")))
+        val broken = Source(labels).concat(Source.failed(RuntimeException("stream broke")))
         Await.result(shapefileCreator.createRawLabelShapefile(broken, base, 1), 60.seconds) mustBe None
         Using.resource(Files.list(Path.of(base).getParent))(_.count()) mustBe 0
       }
@@ -354,7 +354,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
 
     "fail and delete its half-written file when the data stops partway, rather than serve missing rows" in {
       inTempDir("labels") { base =>
-        val broken = Source(labels).concat(Source.failed(new RuntimeException("stream broke")))
+        val broken = Source(labels).concat(Source.failed(RuntimeException("stream broke")))
         Await.result(shapefileCreator.createRawLabelDataGeopackage(broken, base, 1), 60.seconds) mustBe None
         Files.exists(Path.of(s"$base.gpkg")) mustBe false
       }
@@ -364,8 +364,8 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
   "the streets GeoPackage" should {
     "declare the extent of its lines, including a bend that reaches past both ends (#5275)" in {
       // The middle point sticks out furthest, so an extent taken from each line's two ends would come up short.
-      val bent = new GeometryFactory(new PrecisionModel(), 4326).createLineString(
-        Array(new Coordinate(-74.03, 40.88), new Coordinate(-74.01, 40.90), new Coordinate(-74.02, 40.885))
+      val bent = GeometryFactory(PrecisionModel(), 4326).createLineString(
+        Array(Coordinate(-74.03, 40.88), Coordinate(-74.01, 40.90), Coordinate(-74.02, 40.885))
       )
       val street = StreetDataForApi(
         streetEdgeId = 951, osmWayId = 11584845L, regionId = 1, regionName = "Teaneck", wayType = "residential",
@@ -416,8 +416,8 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
 
   "the AccessScore streets GeoPackage" should {
     "name each per-type column as the CSV does, with its dots made underscores (#5273)" in {
-      val line = new GeometryFactory(new PrecisionModel(), 4326)
-        .createLineString(Array(new Coordinate(-74.03, 40.88), new Coordinate(-74.02, 40.89)))
+      val line = GeometryFactory(PrecisionModel(), 4326)
+        .createLineString(Array(Coordinate(-74.03, 40.88), Coordinate(-74.02, 40.89)))
       val street = StreetAccessScoreForApi(
         streetEdgeId = 951,
         osmWayId = 11584845L,
@@ -520,7 +520,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
         subScores = Map("CurbRamp" -> 0.4),
         severityCounts = Map("CurbRamp" -> Map("null" -> 1)),
         tagAdjustments = Map.empty,
-        geometry = wgs84.createPoint(new Coordinate(-74.03, 40.88))
+        geometry = wgs84.createPoint(Coordinate(-74.03, 40.88))
       )
       inTempDir("access-score-intersections") { base =>
         val gpkg = Await
@@ -546,7 +546,7 @@ class RawLabelExportSpec extends SidewalkSpec with GuiceOneAppPerSuite with Opti
     "carry the JSON's fields as columns, per-type averages underscored (#5273)" in {
       val corners = Seq((-74.03, 40.88), (-74.02, 40.88), (-74.02, 40.89), (-74.03, 40.89), (-74.03, 40.88))
       val square  = wgs84.createMultiPolygon(
-        Array(wgs84.createPolygon(corners.map { case (x, y) => new Coordinate(x, y) }.toArray))
+        Array(wgs84.createPolygon(corners.map { case (x, y) => Coordinate(x, y) }.toArray))
       )
       val region = RegionAccessScoreForApi(
         regionId = 1,

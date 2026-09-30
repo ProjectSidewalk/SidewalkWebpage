@@ -11,7 +11,7 @@ class PublicProfileViewSpec extends SidewalkSpec with ViewSpecFixtures {
   private val privateProfile = Some(PublicProfile(user.username, visible = false, None, Seq.empty))
   private val adminLink      = s"/admin/user/${user.username}"
 
-  private def viewer(role: Role.Role): SidewalkUserWithRole =
+  private def viewer(role: Role): SidewalkUserWithRole =
     user.copy(userId = "viewer", username = "viewer", email = "viewer@example.com", role = role)
 
   private def render(viewer: SidewalkUserWithRole, profile: Option[PublicProfile]): String =

@@ -1,7 +1,7 @@
 package models.audit
 
 import models.route.UserRouteTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -25,7 +25,7 @@ import util.{RolledBackDb, SidewalkSpec}
 class RouteTaskNoImagerySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val auditTaskTable = app.injector.instanceOf[AuditTaskTable]
   private val userRouteTable = app.injector.instanceOf[UserRouteTable]

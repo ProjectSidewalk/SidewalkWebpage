@@ -1,9 +1,9 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.label.CropSource.CropSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{Json, Writes}
 
@@ -11,16 +11,17 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
-// NOTE need to update crop_source enum in postgres as well if changing this Enumeration.
-object CropSource extends Enumeration {
-  type CropSource = Value
+// NOTE need to update crop_source enum in postgres as well if changing this enum.
+enum CropSource(val name: String) extends NamedEnum {
 
   /** The browser's snapshot of the Explore canvas at labeling time, where the label is at the canvas fraction. */
-  val ExploreFrame = Value("explore_frame")
+  case ExploreFrame extends CropSource("explore_frame")
 
   /** The window the crop job cuts around the label from the self-hosted pano (#4865). */
-  val PanoWindow = Value("pano_window")
+  case PanoWindow extends CropSource("pano_window")
 }
+
+object CropSource extends PgEnumCompanion[CropSource]("crop_source")
 
 /**
  * Where the label is in its crop, as fractions of the image (`0` to `1`), so it places the marker at any scale.
@@ -71,8 +72,7 @@ class LabelCropTableDef(tag: slick.lifted.Tag) extends Table[LabelCrop](tag, "la
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timeCreated: Rep[OffsetDateTime] = column[OffsetDateTime]("time_created")
 
-  def * = (labelId, source, markerX, markerY, width, height, cropRuleVersion, timeCreated) <>
-    ((LabelCrop.apply _).tupled, LabelCrop.unapply)
+  def * = (labelId, source, markerX, markerY, width, height, cropRuleVersion, timeCreated).mapTo[LabelCrop]
 
   def label = foreignKey("label_crop_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
 }

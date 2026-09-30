@@ -5,7 +5,7 @@ import models.utils.{IpAddress, MyPostgresProfile, WebpageActivity, WebpageActiv
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[LoggingServiceImpl])

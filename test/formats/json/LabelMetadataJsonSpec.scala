@@ -7,7 +7,7 @@ import service.LabelService
 import util.SidewalkSpec
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Contract tests for the shared label-card metadata JSON: the serialized label carries its own point coordinates
@@ -20,7 +20,7 @@ import scala.concurrent.duration._
 class LabelMetadataJsonSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val labelService: LabelService = app.injector.instanceOf[LabelService]
 

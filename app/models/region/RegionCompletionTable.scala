@@ -3,7 +3,7 @@ package models.region
 import com.google.inject.ImplementedBy
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.utils.{ConfigTableDef, MyPostgresProfile}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -17,7 +17,7 @@ class RegionCompletionTableDef(tag: Tag) extends Table[RegionCompletion](tag, "r
   def totalDistance: Rep[Double]   = column[Double]("total_distance")
   def auditedDistance: Rep[Double] = column[Double]("audited_distance")
 
-  def * = (regionId, totalDistance, auditedDistance) <> ((RegionCompletion.apply _).tupled, RegionCompletion.unapply)
+  def * = (regionId, totalDistance, auditedDistance).mapTo[RegionCompletion]
 
   def region =
     foreignKey("region_completion_region_id_fkey", regionId, TableQuery[RegionTableDef])(
@@ -58,7 +58,7 @@ class RegionCompletionTable @Inject() (
       if (_r.regionId inSetBind regionIds) || regionIds.isEmpty
     } yield (_r.regionId, _r.name, _rc.totalDistance, _rc.auditedDistance)
 
-    namedRegionCompletions.result.map(_.map(x => NamedRegionCompletion.apply.tupled(x)))
+    namedRegionCompletions.result.map(_.map(NamedRegionCompletion.apply.tupled))
   }
 
   /**

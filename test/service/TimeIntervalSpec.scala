@@ -20,7 +20,7 @@ import java.time.temporal.ChronoUnit
 class TimeIntervalSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val labelTable: LabelTable                               = app.injector.instanceOf[LabelTable]
   private lazy val labelValidationTable: LabelValidationTable           = app.injector.instanceOf[LabelValidationTable]

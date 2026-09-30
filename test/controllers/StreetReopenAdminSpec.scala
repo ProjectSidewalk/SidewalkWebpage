@@ -11,12 +11,12 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import slick.dbio.DBIO
 import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the regained-imagery reopen endpoints (#4929): the one state-changing surface on the admin
@@ -34,7 +34,7 @@ import scala.concurrent.duration._
 class StreetReopenAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
@@ -60,7 +60,7 @@ class StreetReopenAdminSpec extends SidewalkSpec with RoleSession with GuiceOneA
     )
 
   private def request(method: String, path: String, cookies: Seq[Cookie]) =
-    route(app, FakeRequest(method, path).withHeaders(XHR).withCookies(cookies: _*)).get
+    route(app, FakeRequest(method, path).withHeaders(XHR).withCookies(cookies*)).get
 
   "the reopen endpoints" should {
     "refuse a signed-in visitor by role" in {

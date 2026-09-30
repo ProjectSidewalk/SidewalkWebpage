@@ -1,6 +1,6 @@
 package modules
 
-import actor._
+import actor.*
 import com.google.inject.AbstractModule
 import play.api.libs.concurrent.PekkoGuiceSupport
 

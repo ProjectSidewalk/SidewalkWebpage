@@ -2,7 +2,7 @@ package service
 
 import models.place.PlaceTable
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.stream.Materializer
 import org.scalatest.OptionValues
@@ -13,13 +13,13 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.ws.WSClient
 import play.api.mvc.Results
-import play.api.routing.sird._
+import play.api.routing.sird.*
 import play.api.{Application, Configuration}
 import play.core.server.Server
 import util.SidewalkSpec
 
 import java.util.concurrent.atomic.AtomicInteger
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 /**
@@ -33,7 +33,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 class PlacesRefreshSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   given ec: ExecutionContext = app.injector.instanceOf[ExecutionContext]
   given mat: Materializer    = app.materializer
@@ -52,7 +52,7 @@ class PlacesRefreshSpec extends SidewalkSpec with GuiceOneAppPerSuite with Optio
    * the queries it saw. Retries are near-instant so the failing cases finish in milliseconds rather than minutes.
    */
   private def withOverpass[T](answer: JsValue)(body: (PlacesService, AtomicInteger) => T): T = {
-    val queries = new AtomicInteger(0)
+    val queries = AtomicInteger(0)
     Server.withRouterFromComponents() { components =>
       { case POST(p"/api/interpreter") =>
         components.defaultActionBuilder { _ =>
@@ -61,7 +61,7 @@ class PlacesRefreshSpec extends SidewalkSpec with GuiceOneAppPerSuite with Optio
         }
       }
     } { port =>
-      val service = new PlacesServiceImpl(
+      val service = PlacesServiceImpl(
         app.injector.instanceOf[DatabaseConfigProvider],
         app.injector.instanceOf[WSClient],
         app.injector.instanceOf[AsyncCacheApi],

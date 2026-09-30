@@ -9,8 +9,9 @@ class LabelContainer {
   static #MAX_TOP_UP_ROUNDS = 2;
 
   /**
-   * How many upcoming labels have their pano warmed while the current one is judged. Two covers a fast verdict on the
-   * next label without fetching thumbnails for a queue the validator may never reach.
+   * How many upcoming labels have their pano warmed while the current one is judged (#5581, #5562). Two covers a
+   * verdict cast the moment the current label appears and the one after it, and caps what a validator who quits
+   * mid-mission downloaded for nothing at two labels' worth.
    * @type {number}
    */
   static #PREFETCH_AHEAD = 2;
@@ -59,7 +60,19 @@ class LabelContainer {
 
   #properties = {
     validationTimestamp: new Date(),
+    // When the current label finished rendering, as a millisecond epoch; what the verdict menus measure a tap from.
+    renderedTimestamp: 0,
   };
+
+  /**
+   * How long a label has to have been on screen before a verdict on it counts, in milliseconds.
+   *
+   * Double-tap protection: the tap that advanced to this label is often still coming down as it appears, and with
+   * panos prefetched (#5562) it appears within tens of milliseconds. Measured from the render rather than from the
+   * previous verdict so that a validator working at a steady pace is never told no; a deliberate verdict on a label
+   * that has been up for less than this is not something a person does.
+   */
+  static VERDICT_GRACE_MS = 300;
 
   /**
    * @param {Array} labelList - Initial list of labels to be validated (generated when the page is loaded).
@@ -248,12 +261,9 @@ class LabelContainer {
       // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
       svv.labelVisibilityControl?.unhideLabel();
 
-      // Warm the next labels' panos while this one is being judged, since a jump to an unrelated pano never hits the
-      // provider's own neighbor cache (#5581). Two ahead, so a quick verdict on the next label still finds the one
-      // after it warm; the fetch is a thumbnail and metadata per label, cheap enough to sometimes waste.
-      const first = this.#currLabelIndex + 1;
-      const upcoming = this.#labels.slice(first, first + LabelContainer.#PREFETCH_AHEAD);
-      for (const label of upcoming) svv.panoManager.prefetchPano(label.getAuditProperty('panoId'));
+      this.setProperty('renderedTimestamp', Date.now());
+      // Now that this label's imagery is on screen and the connection is idle, start on the next ones' (#5562, #5581).
+      this.#prefetchUpcomingPanos();
     } catch (error) {
       // The only trace a render failure leaves. It used to announce itself by stranding the lock, which turned every
       // later tap and keypress into a ValidateInputDropped_Loading — unusable for the validator, but at least loud.
@@ -273,6 +283,31 @@ class LabelContainer {
       // a throw included — leaving #loading set would drop every tap and keypress for the rest of the session.
       if (this.#loading) this.#setUiBusy(false);
       svv.panoLoadingStatus?.end();
+    }
+  }
+
+  /**
+   * Starts fetching the imagery of the labels coming up, so that by the time each is the current label its load is
+   * quick. Two warm-ups per label, one for each viewer that might show it; fire and forget, since a prefetch that
+   * fails only means that load pays full price, which is what it would have done anyway.
+   *
+   * - The backup pano, for a label whose pano is known to have expired (#5562). Those go straight to the Pannellum
+   *   fallback (#5561), the one viewer that loads from a URL this page controls, so the image can be on the device
+   *   before the label is. A live label's backup would be bytes nobody looks at, so it is left alone.
+   * - The provider's own pano (#5581), since a jump to an unrelated pano never hits the provider's neighbor cache. On
+   *   Mapillary this warms the image's metadata and thumbnail; PanoManager.prefetchPano is a no-op for a provider
+   *   that can't be warmed. A label that goes to its backup is skipped here, as its load won't ask the provider.
+   * @returns {void}
+   */
+  #prefetchUpcomingPanos() {
+    const from = this.#currLabelIndex + 1;
+    const upcoming = this.#labels.slice(from, from + LabelContainer.#PREFETCH_AHEAD);
+    const goesToBackup = (label) => label.getAuditProperty('expired') === true && label.getAuditProperty('backupImage');
+    if (svv.panoImageCache) {
+      svv.panoImageCache.prefetchBackups(upcoming.filter(goesToBackup).map((l) => l.getAuditProperty('backupImage')));
+    }
+    for (const label of upcoming) {
+      if (!goesToBackup(label)) svv.panoManager.prefetchPano(label.getAuditProperty('panoId'));
     }
   }
 
@@ -330,7 +365,9 @@ class LabelContainer {
       const label = this.#currLabel;
       const panoId = label.getAuditProperty('panoId');
       label.setProperty('startTimestamp', new Date());
-      const { panoData, reason } = await svv.panoManager.setPanorama(panoId, label.getAuditProperty('backupImage'));
+      const { panoData, reason } = await svv.panoManager.setPanorama(
+        panoId, label.getAuditProperty('backupImage'), { expired: label.getAuditProperty('expired') === true },
+      );
       if (panoData) {
         this.#slowStreak = 0;
         return;
@@ -528,9 +565,9 @@ class LabelContainer {
    * @param {Record<string, any>} validation - The completed label validation, ready to be pushed to the list of labels.
    */
   pushUndoValidation(validation) {
-    validation.undone = true;
-    validation.redone = false;
-    this.#labelsToSubmit.push(validation);
+    // A copy: the object handed in is the verdict as it was buffered, and a POST that failed may be holding it for a
+    // resend. Marking that one undone would turn the resend into a retraction of whatever vote replaced it.
+    this.#labelsToSubmit.push({ ...validation, undone: true, redone: false });
   }
 
   /**

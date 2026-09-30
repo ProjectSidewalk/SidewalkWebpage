@@ -6,11 +6,11 @@ import models.label.{LabelLocation, LabelTable, LabelType}
 import models.mission.MissionTable
 import models.region.Region
 import models.street.StreetEdge
-import models.user._
+import models.user.*
 import models.userdashboard.{Trophy, TrophyTable}
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.utils.ProfanityGuard
 import models.validation.LabelValidationTable
 import play.api.Logger
@@ -21,7 +21,7 @@ import play.api.i18n.{Lang, Messages}
 import java.time.format.{DateTimeFormatter, FormatStyle}
 import java.time.{LocalDate, OffsetDateTime, ZoneId}
 import java.util.Locale
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -70,7 +70,7 @@ case class PublicProfile(
 case class TeamMemberStats(
     userId: String,
     username: String,
-    role: Role.Value,
+    role: Role,
     labels: Int,
     validations: Int,
     distanceMeters: Double,
@@ -99,7 +99,7 @@ case class TeamTotals(
  *
  * @param team The team they're already on, so the admin can see that adding them would move them.
  */
-case class UserSearchResult(userId: String, username: String, email: String, role: Role.Value, team: Option[String])
+case class UserSearchResult(userId: String, username: String, email: String, role: Role, team: Option[String])
 
 /**
  * Everything `/admin/team/:teamId` shows (#5381).
@@ -489,7 +489,7 @@ trait UserService {
   def setCommunityService(userId: String, enabled: Boolean): Future[Int]
 
   /** Saves the user's units for every city; None follows the site language. */
-  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem.Value]): Future[Int]
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int]
   def getPublicProfile(
       username: String,
       isOwner: Boolean,
@@ -693,7 +693,7 @@ class UserServiceImpl @Inject() (
   def setCommunityService(userId: String, enabled: Boolean): Future[Int] =
     db.run(userSettingsTable.setCommunityService(userId, enabled))
 
-  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem.Value]): Future[Int] =
+  def setMeasurementSystem(userId: String, system: Option[MeasurementSystem]): Future[Int] =
     db.run(userSettingsTable.setMeasurementSystem(userId, system))
 
   def getPublicProfile(
@@ -814,7 +814,7 @@ class UserServiceImpl @Inject() (
     if (query.trim.isEmpty) Future.successful(Seq())
     else {
       db.run(sidewalkUserTable.searchUsers(query, limit))
-        .map(_.map((UserSearchResult.apply _).tupled))
+        .map(_.map(UserSearchResult.apply.tupled))
     }
   }
 

@@ -22,10 +22,10 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import service.CropService.CropRunResult
 import service.PanoDataService.ImageryCheckResult
 import service.{
@@ -107,7 +107,7 @@ class AdminJobTriggerSpec
   @volatile private var placesRunning: Boolean = false
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
@@ -176,10 +176,10 @@ class AdminJobTriggerSpec
 
   // A POST carries the CSRF token the admin UI's fetch wrapper sends; on a GET the token is simply unused.
   private def asAdmin(path: String, method: String) =
-    route(app, FakeRequest(method, path).withCookies(adminCookies: _*).withCSRFToken).get
+    route(app, FakeRequest(method, path).withCookies(adminCookies*).withCSRFToken).get
 
   private def asVisitor(path: String, method: String) =
-    route(app, FakeRequest(method, path).withCookies(visitorCookies: _*).withCSRFToken).get
+    route(app, FakeRequest(method, path).withCookies(visitorCookies*).withCSRFToken).get
 
   private def highestRunId: Int =
     run(jobRunTable.backgroundJobRuns.map(_.backgroundJobRunId).max.result).getOrElse(0)
@@ -385,7 +385,7 @@ class AdminJobTriggerSpec
     "record a half-finished refresh as a failure, and say so rather than reporting a count" in {
       // This job runs for tens of minutes over a shared community API and can die partway. The run row is the only
       // durable account of that, and the caller is told progress is kept -- both are easy to lose to a refactor.
-      osmWayAnswer = Future.failed(new RuntimeException("overpass timed out"))
+      osmWayAnswer = Future.failed(RuntimeException("overpass timed out"))
       val (code, body, jobRun) = trigger("/adminapi/refreshOsmWayData", OsmWayRefreshActor.Name)
       code mustBe SERVICE_UNAVAILABLE
       body must include("trigger again to resume")

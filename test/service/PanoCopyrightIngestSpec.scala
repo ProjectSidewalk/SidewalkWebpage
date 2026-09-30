@@ -13,7 +13,7 @@ import slick.dbio.DBIO
 import util.SidewalkSpec
 
 import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for what a submission's copyright becomes in `pano_data.copyright` (#5360).
@@ -31,7 +31,7 @@ import scala.concurrent.duration._
 class PanoCopyrightIngestSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val exploreService = app.injector.instanceOf[ExploreService]
   private val panoDataTable  = app.injector.instanceOf[PanoDataTable]
@@ -43,7 +43,7 @@ class PanoCopyrightIngestSpec extends SidewalkSpec with BeforeAndAfterAll with G
   private val panoIds = Seq("test-5360-mapillary", "test-5360-panoramax", "test-5360-gsv")
 
   /** A pano block as the AI labeler sends it, with the copyright it composes. */
-  private def submission(panoId: String, source: PanoSource.Value, copyright: String): AiLabelsSubmission =
+  private def submission(panoId: String, source: PanoSource, copyright: String): AiLabelsSubmission =
     AiLabelsSubmission(
       labelType = models.label.LabelType.CurbRamp,
       modelId = "test",

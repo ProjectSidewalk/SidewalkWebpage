@@ -1,6 +1,6 @@
 package models.street
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -24,7 +24,7 @@ import java.time.OffsetDateTime
 class NoImageryReportsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val issueTable = app.injector.instanceOf[StreetEdgeIssueTable]
 
@@ -52,12 +52,12 @@ class NoImageryReportsSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
   }
 
   /** A street in a region, at a status. Each gets its own `street_edge_region` row, which is one-to-one. */
-  private def insertStreet(regionId: Int, status: StreetEdgeStatus.Value): DBIO[Int] = {
+  private def insertStreet(regionId: Int, status: StreetEdgeStatus): DBIO[Int] = {
     for {
       streetId <- sql"""INSERT INTO street_edge (street_edge_id, geom, x1, y1, x2, y2, way_type, status)
                         SELECT COALESCE(MAX(street_edge_id), 0) + 1,
                                ST_GeomFromText('LINESTRING(0 0, 0.001 0.001)', 4326), 0, 0, 0.001, 0.001,
-                               'residential'::way_type, ${status.toString}::street_edge_status
+                               'residential'::way_type, $status
                         FROM street_edge
                         RETURNING street_edge_id""".as[Int].head
       _ <- sqlu"""INSERT INTO street_edge_region (street_edge_region_id, street_edge_id, region_id)
@@ -69,7 +69,7 @@ class NoImageryReportsSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
   private def report(streetId: Int, userId: String, at: OffsetDateTime): DBIO[Int] = {
     sqlu"""INSERT INTO street_edge_issue (street_edge_issue_id, street_edge_id, issue, user_id, ip_address, timestamp)
            SELECT COALESCE(MAX(street_edge_issue_id), 0) + 1, $streetId,
-                  ${StreetEdgeIssueType.PanoNotAvailable.toString}::street_edge_issue_type, $userId, '0.0.0.0', $at
+                  ${StreetEdgeIssueType.PanoNotAvailable}, $userId, '0.0.0.0', $at
            FROM street_edge_issue"""
   }
 

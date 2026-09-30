@@ -1,20 +1,19 @@
 package service
 
 import com.google.inject.ImplementedBy
-import formats.json.ExploreFormats._
-import models.audit._
-import models.label.{Tag, _}
+import formats.json.ExploreFormats.*
+import models.audit.*
+import models.label.{Tag, *}
 import models.utils.CommonUtils.UiSource
 import models.mission.{Mission, MissionTable, MissionType}
-import models.pano.PanoSource.PanoSource
-import models.pano._
+import models.pano.*
 import models.region.{Region, RegionCompletionTable, RegionTable}
-import models.route._
-import models.street._
+import models.route.*
+import models.street.*
 import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.SidewalkUserTable.aiUserId
-import models.user._
-import models.utils.MyPostgresProfile.api._
+import models.user.*
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{ConfigTable, IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -22,7 +21,7 @@ import play.api.{Configuration, Logger}
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 case class ExplorePageData(
@@ -197,7 +196,7 @@ class ExploreServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
   // SRID 4326 is baked into the factory so points it creates match label_point.geom's lat/lng coordinate system.
-  val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+  val gf: GeometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
   def getDataForExplorePage(
       userId: String,
@@ -682,7 +681,7 @@ class ExploreServiceImpl @Inject() (
     val pointGeom: Option[Point]    = for {
       _lat <- point.lat
       _lng <- point.lng
-    } yield gf.createPoint(new Coordinate(_lng, _lat))
+    } yield gf.createPoint(Coordinate(_lng, _lat))
 
     warnIfRecordStale(label, userId)
 
@@ -877,7 +876,7 @@ class ExploreServiceImpl @Inject() (
         case _ =>
           streetEdgeTable.getStreet(streetEdgeId).flatMap {
             case None =>
-              DBIO.failed(new Exception(s"Street edge with ID $streetEdgeId not found."))
+              DBIO.failed(Exception(s"Street edge with ID $streetEdgeId not found."))
             case Some(street) =>
               // No existing task found, create a new one.
               auditTaskTable.insert(
@@ -957,12 +956,12 @@ class ExploreServiceImpl @Inject() (
     // means a label can never be committed without its pano_data row, and a failed pano write takes the whole
     // submission with it rather than quietly producing an orphan.
     val labeledPanos: Seq[PanoSubmission]  = data.labels.flatMap(_.pano).distinctBy(_.panoId).sortBy(_.panoId)
-    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now)): _*)
+    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now))*)
 
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)
       .flatMap { (auditTaskId: Int) =>
-        missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType.Value]) =>
+        missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
           // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
           // client; a free-exploration drop-in has no such client signal, so the server derives it from how far the
           // user walked (#4451). Deriving it also means a forged completed=true can't mark a drop-in street audited.

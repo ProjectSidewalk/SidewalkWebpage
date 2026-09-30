@@ -2,11 +2,11 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 
 case class UserUtm(
     userUtmId: Int,
@@ -32,10 +32,7 @@ class UserUtmTableDef(tag: Tag) extends Table[UserUtm](tag, "user_utm") {
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (userUtmId, userId, utmSource, utmMedium, utmCampaign, utmContent, utmTerm, cityId, timestamp) <> (
-    (UserUtm.apply _).tupled,
-    UserUtm.unapply
-  )
+  def * = (userUtmId, userId, utmSource, utmMedium, utmCampaign, utmContent, utmTerm, cityId, timestamp).mapTo[UserUtm]
 }
 
 @ImplementedBy(classOf[UserUtmTable])

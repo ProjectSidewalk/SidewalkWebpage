@@ -11,7 +11,7 @@ import play.api.cache.AsyncCacheApi
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.{LoggingService, SwrCache}
 import util.SidewalkSpec
 
@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, Future}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /**
  * A [[SwrCache]] whose cold path never resolves in time, so every full-city AccessScore read is a miss the compute
@@ -52,10 +52,10 @@ class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)
 class AccessScoreColdCacheApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   /** Every activity string the app tried to log, in order. */
-  private val logged = new ConcurrentLinkedQueue[String]()
+  private val logged = ConcurrentLinkedQueue[String]()
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .overrides(
         bind[SwrCache].to[ColdSwrCache],

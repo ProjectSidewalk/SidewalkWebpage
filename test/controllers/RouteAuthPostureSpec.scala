@@ -1,6 +1,6 @@
 package controllers
 
-import com.google.inject.{Injector => GuiceInjector, Key, TypeLiteral}
+import com.google.inject.{Injector as GuiceInjector, Key, TypeLiteral}
 import models.auth.DefaultEnv
 import models.user.Role
 import models.utils.MyPostgresProfile
@@ -12,17 +12,17 @@ import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.http.HttpEntity
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{Cookie, RequestHeader}
 import play.api.routing.Router
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.silhouette.api.{LoginInfo, Silhouette}
 import play.silhouette.impl.providers.CredentialsProvider
 import _root_.util.SidewalkSpec
 
 import scala.concurrent.{Await, ExecutionContext}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.matching.Regex
 
 /**
@@ -43,7 +43,7 @@ import scala.util.matching.Regex
 class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
@@ -115,7 +115,7 @@ class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
    * Reads rather than creates: minting a user would leave a fixture account behind in whatever database the suite is
    * pointed at, and `sidewalk_login` is shared across every city schema on the host.
    */
-  private def emailOfUserWithRole(role: Role.Value): Option[String] = {
+  private def emailOfUserWithRole(role: Role): Option[String] = {
     // Held as a local so its path-dependent Database type stays stable; a field would need an existential.
     val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
     Await.result(
@@ -123,7 +123,7 @@ class RouteAuthPostureSpec extends SidewalkSpec with GuiceOneAppPerSuite {
         sql"""SELECT sidewalk_user.email
               FROM sidewalk_login.sidewalk_user
               INNER JOIN sidewalk_login.user_role ON sidewalk_user.user_id = user_role.user_id
-              WHERE user_role.role = ${role.toString}::sidewalk_login.role
+              WHERE user_role.role = $role
               LIMIT 1""".as[String].headOption
       ),
       30.seconds

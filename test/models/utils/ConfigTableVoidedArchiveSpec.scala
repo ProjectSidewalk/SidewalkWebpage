@@ -17,7 +17,7 @@ import util.{RolledBackDb, SidewalkSpec}
 class ConfigTableVoidedArchiveSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val configTable = app.injector.instanceOf[ConfigTable]
 

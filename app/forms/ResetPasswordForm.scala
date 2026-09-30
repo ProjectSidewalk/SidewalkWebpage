@@ -1,7 +1,7 @@
 package forms
 
-import play.api.data.Forms._
-import play.api.data._
+import play.api.data.Forms.*
+import play.api.data.*
 
 /**
  * The `Reset Password` form.

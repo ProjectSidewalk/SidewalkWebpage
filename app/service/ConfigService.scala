@@ -4,14 +4,13 @@ import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
 import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
 import models.utils.MyPostgresProfile.api.given
-import models.utils._
+import models.utils.*
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
-import play.api.libs.ws.WSBodyWritables._
+import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
 import play.twirl.api.Html
 import slick.dbio.DBIO
@@ -19,7 +18,7 @@ import slick.dbio.DBIO
 import java.lang.management.ManagementFactory
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneId, ZoneOffset}
 import java.time.temporal.ChronoUnit
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
@@ -114,8 +113,7 @@ case class CommonPageData(
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
 
   /** Whether search engines may index this deployment (#5120); see [[models.utils.SeoUtils.isIndexable]]. */
-  def isIndexable: Boolean =
-    SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.toString)
+  def isIndexable: Boolean = SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.name)
 }
 
 /**
@@ -160,11 +158,13 @@ case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, acti
  * String values match the labels [[models.utils.ConfigTable]]'s `account_kinds` CTE emits, which is how a row is
  * parsed back into this type.
  */
-object ContributorKind extends Enumeration {
-  val Registered: ContributorKind.Value = Value("registered")
-  val Anonymous: ContributorKind.Value  = Value("anonymous")
-  val Ai: ContributorKind.Value         = Value("ai")
+enum ContributorKind(val name: String) extends NamedEnum {
+  case Registered extends ContributorKind("registered")
+  case Anonymous  extends ContributorKind("anonymous")
+  case Ai         extends ContributorKind("ai")
 }
+
+object ContributorKind extends NamedEnumCompanion[ContributorKind]
 
 /**
  * One person's contribution to one city on one day, the grain the "this week" bar charts are built from (#4931).
@@ -180,7 +180,7 @@ case class DailyContributorActivity(
     day: LocalDate,
     userId: String,
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels: Int,
     validations: Int
 )
@@ -199,7 +199,7 @@ case class DailyContributorActivity(
 case class ContributorWindowActivity(
     userId: String,
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels7d: Int,
     labelsPrior7d: Int,
     validations7d: Int,
@@ -275,7 +275,7 @@ case class CityDayTotals(cityId: String, labels: Int, validations: Int, contribu
  */
 case class DailyContributor(
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels: Int,
     validations: Int,
     cities: Seq[ContributorCityDay] = Seq.empty
@@ -609,7 +609,7 @@ object ConfigService {
     val cleanName  = name.trim
     val cleanUrl   = url.trim
     val urlIsHttps = Try {
-      val uri = new java.net.URI(cleanUrl)
+      val uri = java.net.URI(cleanUrl)
       Option(uri.getScheme).exists(_.equalsIgnoreCase("https")) && uri.getHost != null && uri.getRawUserInfo == null
     }.getOrElse(false)
     if (cleanUrl.isEmpty) Right(None)
@@ -622,7 +622,7 @@ object ConfigService {
       // java.net.URI finds no host in a non-ASCII domain, so name the fix where an admin who hit it will look.
       Left(
         "The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us." +
-          (if (Try(new java.net.URI(cleanUrl).getRawAuthority).toOption.flatMap(Option(_)).exists(_.exists(_ > 127)))
+          (if (Try(java.net.URI(cleanUrl).getRawAuthority).toOption.flatMap(Option(_)).exists(_.exists(_ > 127)))
              " For a domain with accented or non-Latin letters, paste its punycode (xn--) form."
            else "")
       )
@@ -756,8 +756,7 @@ object ConfigService {
       }
       .sortBy { case (userId, c) => (-(c.labels + c.validations), userId) }
       .map(_._2)
-    def activeOfKind(kind: ContributorKind.Value): Int =
-      merged.count(c => c.kind == kind && c.labels + c.validations > 0)
+    def activeOfKind(kind: ContributorKind): Int = merged.count(c => c.kind == kind && c.labels + c.validations > 0)
     // Anonymous contributors are counted (as sessions, on the point) but not listed: their usernames are generated
     // cookie ids, so naming them fills the card with hex and implies a person behind each one.
     val named = merged.filter(_.kind != ContributorKind.Anonymous)
@@ -2225,7 +2224,7 @@ class ConfigServiceImpl @Inject() (
   def sha256Hash(text: String): String =
     String.format(
       "%064x",
-      new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8")))
+      java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8")))
     )
 
   /**
@@ -2315,7 +2314,7 @@ class ConfigServiceImpl @Inject() (
         Future.successful(ImageryAccessToken(source, config.get[String]("mapillary-access-token"), None))
       // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
       case PanoSource.Panoramax => Future.successful(ImageryAccessToken(source, "", None))
-      case other                => Future.failed(new Exception(s"No valid imagery source specified: $other"))
+      case other                => Future.failed(Exception(s"No valid imagery source specified: $other"))
     }
   }
 

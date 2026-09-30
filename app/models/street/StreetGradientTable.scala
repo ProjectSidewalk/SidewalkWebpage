@@ -2,7 +2,8 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{NamedEnum, PgEnumCompanion}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -19,13 +20,14 @@ import scala.concurrent.ExecutionContext
  *
  * NOTE: if changing these values, update the `street_gradient_quality` Postgres enum type as well (see 399.sql).
  */
-object StreetGradientQuality extends Enumeration {
-  type StreetGradientQuality = Value
-  val Measured: Value  = Value("measured")
-  val Structure: Value = Value("structure")
-  val Suspect: Value   = Value("suspect")
-  val NoData: Value    = Value("no_data")
+enum StreetGradientQuality(val name: String) extends NamedEnum {
+  case Measured  extends StreetGradientQuality("measured")
+  case Structure extends StreetGradientQuality("structure")
+  case Suspect   extends StreetGradientQuality("suspect")
+  case NoData    extends StreetGradientQuality("no_data")
 }
+
+object StreetGradientQuality extends PgEnumCompanion[StreetGradientQuality]("street_gradient_quality")
 
 /**
  * How far a street's grade can be trusted, a function of the elevation model's grid size, backing the
@@ -33,12 +35,13 @@ object StreetGradientQuality extends Enumeration {
  *
  * NOTE: if changing these values, update the `street_gradient_confidence` Postgres enum type as well (see 399.sql).
  */
-object StreetGradientConfidence extends Enumeration {
-  type StreetGradientConfidence = Value
-  val High: Value   = Value("high")
-  val Medium: Value = Value("medium")
-  val Low: Value    = Value("low")
+enum StreetGradientConfidence(val name: String) extends NamedEnum {
+  case High   extends StreetGradientConfidence("high")
+  case Medium extends StreetGradientConfidence("medium")
+  case Low    extends StreetGradientConfidence("low")
 }
+
+object StreetGradientConfidence extends PgEnumCompanion[StreetGradientConfidence]("street_gradient_confidence")
 
 /**
  * A street's slope statistics without its elevation profile: what a city-wide payload carries per street (#5223).
@@ -63,8 +66,8 @@ object StreetGradientConfidence extends Enumeration {
  */
 case class StreetGradientStats(
     streetEdgeId: Int,
-    quality: StreetGradientQuality.Value,
-    confidence: StreetGradientConfidence.Value,
+    quality: StreetGradientQuality,
+    confidence: StreetGradientConfidence,
     netGrade: Option[Double],
     meanGrade: Option[Double],
     maxGrade: Option[Double],
@@ -128,22 +131,22 @@ case class StreetGradient(
 )
 
 class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "street_gradient") {
-  def streetEdgeId: Rep[Int]                          = column[Int]("street_edge_id", O.PrimaryKey)
-  def quality: Rep[StreetGradientQuality.Value]       = column[StreetGradientQuality.Value]("quality")
-  def confidence: Rep[StreetGradientConfidence.Value] = column[StreetGradientConfidence.Value]("confidence")
-  def netGrade: Rep[Option[Double]]                   = column[Option[Double]]("net_grade")
-  def meanGrade: Rep[Option[Double]]                  = column[Option[Double]]("mean_grade")
-  def maxGrade: Rep[Option[Double]]                   = column[Option[Double]]("max_grade")
-  def metersOver5pctGrade: Rep[Option[Double]]        = column[Option[Double]]("meters_over_5pct_grade")
-  def metersOver8pctGrade: Rep[Option[Double]]        = column[Option[Double]]("meters_over_8pct_grade")
-  def climbM: Rep[Option[Double]]                     = column[Option[Double]]("climb_m")
-  def descentM: Rep[Option[Double]]                   = column[Option[Double]]("descent_m")
-  def elevStartM: Rep[Option[Double]]                 = column[Option[Double]]("elev_start_m")
-  def elevEndM: Rep[Option[Double]]                   = column[Option[Double]]("elev_end_m")
-  def profileCm: Rep[Option[List[Int]]]               = column[Option[List[Int]]]("profile_cm")
-  def demSource: Rep[String]                          = column[String]("dem_source")
-  def demResolutionM: Rep[Double]                     = column[Double]("dem_resolution_m")
-  def geomMd5: Rep[String]                            = column[String]("geom_md5")
+  def streetEdgeId: Rep[Int]                    = column[Int]("street_edge_id", O.PrimaryKey)
+  def quality: Rep[StreetGradientQuality]       = column[StreetGradientQuality]("quality")
+  def confidence: Rep[StreetGradientConfidence] = column[StreetGradientConfidence]("confidence")
+  def netGrade: Rep[Option[Double]]             = column[Option[Double]]("net_grade")
+  def meanGrade: Rep[Option[Double]]            = column[Option[Double]]("mean_grade")
+  def maxGrade: Rep[Option[Double]]             = column[Option[Double]]("max_grade")
+  def metersOver5pctGrade: Rep[Option[Double]]  = column[Option[Double]]("meters_over_5pct_grade")
+  def metersOver8pctGrade: Rep[Option[Double]]  = column[Option[Double]]("meters_over_8pct_grade")
+  def climbM: Rep[Option[Double]]               = column[Option[Double]]("climb_m")
+  def descentM: Rep[Option[Double]]             = column[Option[Double]]("descent_m")
+  def elevStartM: Rep[Option[Double]]           = column[Option[Double]]("elev_start_m")
+  def elevEndM: Rep[Option[Double]]             = column[Option[Double]]("elev_end_m")
+  def profileCm: Rep[Option[List[Int]]]         = column[Option[List[Int]]]("profile_cm")
+  def demSource: Rep[String]                    = column[String]("dem_source")
+  def demResolutionM: Rep[Double]               = column[Double]("dem_resolution_m")
+  def geomMd5: Rep[String]                      = column[String]("geom_md5")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def sampledAt: Rep[OffsetDateTime]     = column[OffsetDateTime]("sampled_at")
   def maxGradeFromM: Rep[Option[Double]] = column[Option[Double]]("max_grade_from_m")
@@ -153,12 +156,9 @@ class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "stree
   def stats = (
     streetEdgeId, quality, confidence, netGrade, meanGrade, maxGrade, metersOver5pctGrade, metersOver8pctGrade, climbM,
     descentM, elevStartM, elevEndM, demSource, demResolutionM
-  ) <> ((StreetGradientStats.apply _).tupled, StreetGradientStats.unapply)
+  ).mapTo[StreetGradientStats]
 
-  def * = (stats, profileCm, geomMd5, sampledAt, maxGradeFromM, maxGradeToM) <> (
-    (StreetGradient.apply _).tupled,
-    StreetGradient.unapply
-  )
+  def * = (stats, profileCm, geomMd5, sampledAt, maxGradeFromM, maxGradeToM).mapTo[StreetGradient]
 
   def streetEdge =
     foreignKey("street_gradient_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -178,7 +178,7 @@ class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseCon
 ) extends StreetGradientTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  import profile.api._
+  import profile.api.*
   val streetGradients = TableQuery[StreetGradientTableDef]
 
   /**

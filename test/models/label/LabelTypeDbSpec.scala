@@ -14,11 +14,11 @@ import util.{RolledBackDb, SidewalkSpec}
 class LabelTypeDbSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   "LabelType.ordered" should {
     "list exactly the Postgres label_type enum's labels, in its declaration order" in {
-      run(sql"SELECT unnest(enum_range(NULL::label_type))::text".as[String]) mustBe LabelType.orderedNames
+      run(sql"SELECT unnest(enum_range(NULL::label_type))::text".as[String]) mustBe LabelType.names
     }
   }
 

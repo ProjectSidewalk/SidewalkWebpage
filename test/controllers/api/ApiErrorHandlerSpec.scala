@@ -6,7 +6,7 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, Mode}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 /**
@@ -20,7 +20,7 @@ import util.SidewalkSpec
 class ApiErrorHandlerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   given mat: Materializer                 = app.materializer
   private def handler: CustomErrorHandler = app.injector.instanceOf[CustomErrorHandler]
@@ -64,7 +64,7 @@ class ApiErrorHandlerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   "CustomErrorHandler.onServerError" should {
     "render a 500 on a /v3/api path as problem+json without leaking the exception detail" in {
       val resp =
-        handler.onServerError(FakeRequest(GET, "/v3/api/streets"), new RuntimeException("secret-internal-detail"))
+        handler.onServerError(FakeRequest(GET, "/v3/api/streets"), RuntimeException("secret-internal-detail"))
       status(resp) mustBe INTERNAL_SERVER_ERROR
       contentType(resp) mustBe Some("application/problem+json")
       val json = contentAsJson(resp)
@@ -77,7 +77,7 @@ class ApiErrorHandlerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       // prod-mode app. Prod refuses the default application secret, so one is set explicitly; evolutions are
       // disabled because the handler renders without touching the schema. StartupChecksModule is disabled because
       // prod mode arms PersistentMediaDirCheck, which would refuse this checkout's relative media dirs (#4925).
-      val prodApp = new GuiceApplicationBuilder()
+      val prodApp = GuiceApplicationBuilder()
         .in(Mode.Prod)
         .configure(
           "play.http.secret.key"    -> "prod-mode-test-secret-0123456789abcdef0123456789abcdef0123456789",
@@ -89,7 +89,7 @@ class ApiErrorHandlerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       try {
         val resp = prodApp.injector
           .instanceOf[CustomErrorHandler]
-          .onServerError(FakeRequest(GET, "/some-web-page"), new RuntimeException("secret-internal-detail"))
+          .onServerError(FakeRequest(GET, "/some-web-page"), RuntimeException("secret-internal-detail"))
         status(resp) mustBe INTERNAL_SERVER_ERROR
         contentType(resp) mustBe Some("text/html")
         val body = contentAsString(resp)

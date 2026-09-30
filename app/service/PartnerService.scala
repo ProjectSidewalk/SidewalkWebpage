@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import models.partner._
+import models.partner.*
 import models.utils.{ImageUtils, MyPostgresProfile}
 import play.api.Configuration
 import play.api.cache.AsyncCacheApi
@@ -12,7 +12,7 @@ import java.net.URI
 import java.time.OffsetDateTime
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
@@ -67,7 +67,7 @@ class PartnerServiceImpl @Inject() (
 )(using ec: ExecutionContext)
     extends PartnerService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import PartnerServiceImpl._
+  import PartnerServiceImpl.*
 
   val logoUploadMaxBytes: Long = config.get[Long]("partners.logo-upload-max-bytes")
 
@@ -214,7 +214,7 @@ class PartnerServiceImpl @Inject() (
 
   private def urlOk(url: String): Boolean = {
     url.length <= MAX_URL_LENGTH && Try {
-      val uri = new URI(url)
+      val uri = URI(url)
       Set("http", "https").contains(Option(uri.getScheme).getOrElse("").toLowerCase) && uri.getHost != null
     }.getOrElse(false)
   }

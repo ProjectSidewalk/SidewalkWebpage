@@ -48,10 +48,10 @@ class LabelEditApiController @Inject() (
 
     val parsedTimestamp = parseDateTimeParam(editTimestamp, "editTimestamp")
 
-    val parsedSource: Either[ApiError, Option[UiSource.Value]] = source match {
+    val parsedSource: Either[ApiError, Option[UiSource]] = source match {
       case None    => Right(None)
       case Some(s) =>
-        UiSource.values.find(_.toString == s) match {
+        UiSource.withNameOption(s) match {
           case Some(uiSource) => Right(Some(uiSource))
           case None           =>
             Left(
@@ -87,7 +87,7 @@ class LabelEditApiController @Inject() (
           editTimestamp = parsedTimestamp.toOption.flatten, source = parsedSource.toOption.flatten,
           withValidation = withValidation
         )
-        val dbDataStream: Source[LabelEditDataForApi, _] = apiService.getLabelEdits(filters, DEFAULT_BATCH_SIZE)
+        val dbDataStream: Source[LabelEditDataForApi, ?] = apiService.getLabelEdits(filters, DEFAULT_BATCH_SIZE)
         val baseFileName: String                         = timestampedFilename("label_edits")
 
         filetype match {

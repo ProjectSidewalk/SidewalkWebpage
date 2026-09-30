@@ -217,6 +217,8 @@ class Main {
     svv.labelCard = new LabelCard();
 
     svv.panoStore = new PanoStore();
+    // Backup panos fetched ahead of the label that needs them (#5562); the Pannellum fallback loads from it first.
+    svv.panoImageCache = new PanoImageCache();
 
     // Built before the first label renders because that render can need it: if none of the mission's labels have
     // usable imagery, LabelContainer drops all of them and shows this modal instead of an empty pano (#4810).
@@ -322,6 +324,15 @@ class Main {
 
     svv.modalMission = new ModalMission(svv.ui.modalMission);
     svv.missionContainer = new MissionContainer();
+
+    // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
+    // memory (#5561), which from in here is otherwise indistinguishable from a reload. Read before the first mission
+    // is created, which is what marks this life live; the tracker files the row under that mission when the buffer
+    // drains, so it still names this mission alongside the one that was cut short.
+    svv.missionLiveMarker = new MissionLiveMarker(window.sessionStorage);
+    const unexpectedUnload = svv.missionLiveMarker.takeUnexpectedUnload();
+    if (unexpectedUnload) svv.tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
+
     svv.missionContainer.createAMission(param.mission, param.progress);
     // Logged only now: the tracker stamps each row with the current mission, and without one this row, the only
     // record of a filter carried in from an earlier visit, could not be tied to a validator. Desktop builds the model.

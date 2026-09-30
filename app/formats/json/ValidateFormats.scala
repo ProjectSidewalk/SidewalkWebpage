@@ -2,17 +2,15 @@ package formats.json
 
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.ValidationCommentSubmission
-import formats.json.PanoFormats._
+import formats.json.PanoFormats.*
 import models.label.LabelType
-import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.CommonUtils.ViewerType.ViewerType
+import models.mission.MissionType
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
-import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsError, JsPath, JsSuccess, JsonValidationError, Reads}
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.{JsPath, JsonValidationError, Reads}
 
 import java.time.OffsetDateTime
-import scala.util.{Failure, Success, Try}
 
 object ValidateFormats {
   case class EnvironmentSubmission(
@@ -52,7 +50,7 @@ object ValidateFormats {
       missionId: Int,
       labelType: Option[LabelType],
       newLabelType: Option[LabelType],
-      validationResult: ValidationOption.Value,
+      validationResult: ValidationOption,
       severity: Option[Int],
       tags: List[String],
       comment: Option[ValidationCommentSubmission],
@@ -88,7 +86,7 @@ object ValidateFormats {
   // No `skipped`, unlike AuditMissionProgress: only Explore's onboarding can skip a mission.
   case class ValidationMissionProgress(
       missionId: Int,
-      missionType: String,
+      missionType: MissionType,
       labelsProgress: Int,
       labelsTotal: Int,
       labelType: LabelType,
@@ -113,7 +111,7 @@ object ValidateFormats {
       labelId: Int,
       labelType: LabelType,
       newLabelType: Option[LabelType],
-      validationResult: ValidationOption.Value,
+      validationResult: ValidationOption,
       severity: Option[Int],
       tags: List[String],
       canvasX: Option[Int],
@@ -145,39 +143,6 @@ object ValidateFormats {
       source: UiSource
   )
 
-  given uiSourceReads: Reads[UiSource.Value] = Reads { json =>
-    json.validate[String].flatMap { uiSource =>
-      Try(UiSource.withName(uiSource)) match {
-        case Success(source) => JsSuccess(source)
-        case Failure(_)      =>
-          JsError(s"Invalid ui_source: $uiSource. Valid types are: ${UiSource.values.mkString(", ")}.")
-      }
-    }
-  }
-
-  given viewerTypeReads: Reads[ViewerType.Value] = Reads { json =>
-    json.validate[String].flatMap { viewerType =>
-      Try(ViewerType.withName(viewerType)) match {
-        case Success(vt) => JsSuccess(vt)
-        case Failure(_)  =>
-          JsError(s"Invalid viewer_type: $viewerType. Valid types are: ${ViewerType.values.mkString(", ")}.")
-      }
-    }
-  }
-
-  given validationOptionReads: Reads[ValidationOption.Value] = Reads { json =>
-    json.validate[String].flatMap { validationResult =>
-      ValidationOption.fromString(validationResult) match {
-        case Some(result) => JsSuccess(result)
-        case None         =>
-          JsError(
-            s"Invalid validation_result: $validationResult. Valid values are: " +
-              s"${ValidationOption.values.mkString(", ")}."
-          )
-      }
-    }
-  }
-
   given environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "mission_id").readNullable[Int] and
       (JsPath \ "browser").readNullable[String] and
@@ -191,7 +156,7 @@ object ValidateFormats {
       (JsPath \ "operating_system").readNullable[String] and
       (JsPath \ "language").read[String] and
       (JsPath \ "css_zoom").read[Int]
-  )(EnvironmentSubmission.apply _)
+  )(EnvironmentSubmission.apply)
 
   given interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
@@ -204,14 +169,14 @@ object ValidateFormats {
       (JsPath \ "zoom").readNullable[Double] and
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-  )(InteractionSubmission.apply _)
+  )(InteractionSubmission.apply)
 
   given labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "label_type").readNullable[LabelType] and
       (JsPath \ "new_label_type").readNullable[LabelType] and
-      (JsPath \ "validation_result").read[ValidationOption.Value] and
+      (JsPath \ "validation_result").read[ValidationOption] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
       (JsPath \ "comment").readNullable[ValidationCommentSubmission] and
@@ -224,20 +189,20 @@ object ValidateFormats {
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[UiSource.Value] and
+      (JsPath \ "source").read[UiSource] and
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean] and
-      (JsPath \ "viewer_type").read[ViewerType.Value]
-  )(LabelValidationSubmission.apply _)
+      (JsPath \ "viewer_type").read[ViewerType]
+  )(LabelValidationSubmission.apply)
 
   given validationMissionReads: Reads[ValidationMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "mission_type").read[String] and
+      (JsPath \ "mission_type").read[MissionType] and
       (JsPath \ "labels_progress").read[Int] and
       (JsPath \ "labels_total").read[Int] and
       (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "completed").read[Boolean]
-  )(ValidationMissionProgress.apply _)
+  )(ValidationMissionProgress.apply)
 
   // The admin-only fields are checked before `ValidateParams` is built: its constructor rejects them without
   // `admin_version` too, but as an exception, which would answer a malformed body with a 500 instead of this 400.
@@ -265,15 +230,15 @@ object ValidateFormats {
       (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
       (JsPath \ "validate_params").read[ValidateParams] and
       (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
-      (JsPath \ "source").read[UiSource.Value] and
+      (JsPath \ "source").read[UiSource] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-  )(ValidationTaskSubmission.apply _)
+  )(ValidationTaskSubmission.apply)
 
   given labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "new_label_type").readNullable[LabelType] and
-      (JsPath \ "validation_result").read[ValidationOption.Value] and
+      (JsPath \ "validation_result").read[ValidationOption] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
       (JsPath \ "canvas_x").readNullable[Int] and
@@ -285,11 +250,11 @@ object ValidateFormats {
       (JsPath \ "canvas_height").read[Int] and
       (JsPath \ "start_timestamp").read[OffsetDateTime] and
       (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[UiSource.Value] and
+      (JsPath \ "source").read[UiSource] and
       (JsPath \ "undone").read[Boolean] and
       (JsPath \ "redone").read[Boolean] and
-      (JsPath \ "viewer_type").read[ViewerType.Value]
-  )(LabelMapValidationSubmission.apply _)
+      (JsPath \ "viewer_type").read[ViewerType]
+  )(LabelMapValidationSubmission.apply)
 
   given labelEditSubmissionReads: Reads[LabelEditSubmission] = (
     (JsPath \ "label_id").read[Int] and
@@ -297,13 +262,13 @@ object ValidateFormats {
       (JsPath \ "new_label_type").readNullable[LabelType] and
       (JsPath \ "severity").readNullable[Int] and
       (JsPath \ "tags").read[List[String]] and
-      (JsPath \ "source").read[UiSource.Value]
-  )(LabelEditSubmission.apply _)
+      (JsPath \ "source").read[UiSource]
+  )(LabelEditSubmission.apply)
 
   given moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
     (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "labels_needed").read[Int] and
       (JsPath \ "excluded_label_ids").read[Seq[Int]] and
       (JsPath \ "validate_params").read[ValidateParams]
-  )(MoreLabelsRequest.apply _)
+  )(MoreLabelsRequest.apply)
 }

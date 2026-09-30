@@ -45,6 +45,8 @@ file, and this table says which doc to read first:
 - **Never open a pull request, merge, tag, or release without the maintainer's explicit OK.** Do the work, run the
   checks, push the branch if useful, then stop and ask. Filing GitHub issues is fine. Maintainers: @jonfroehlich
   and @misaugstad.
+- End every issue, PR description, and comment you post on GitHub with `🤖 <model> · effort: <level>` (e.g.
+  `🤖 Claude Opus 5.5 · effort: high`), reading the level from `$CLAUDE_EFFORT` at post time.
 - Prod deploys are tag-triggered (`vX.Y.Z` on `master`); pushing `develop` redeploys the test stage.
 - Edit `src/` files only. Never run grunt or edit `build/` output: the developer's `npm start` runs `grunt watch`.
   A new `src/` file must match a glob in `Gruntfile.js`.
@@ -59,9 +61,11 @@ file, and this table says which doc to read first:
 - **Scala:** `make scalafmt-fix` (a blocking CI gate). Compile check: `make compile`. `-Werror` is on, so
   a success is warning-clean. It can't run in a checkout whose app is up (`~ run` holds sbt); it says so and stops.
 - **Frontend:** `make lint` (ESLint, Stylelint, HTMLHint, locale parity, CSS layout, asset paths, vendor versions,
-  JS types, spec base class, evolutions lint; all blocking CI gates), or scope it with `make eslint dir=…` /
-  `make stylelint dir=…`. `make lint-fix` handles the mechanical fixes. The tree is lint-clean, so any finding is
-  from your change.
+  JS types, spec base class, evolutions lint, ShellCheck; all blocking CI gates), or scope it with
+  `make eslint dir=…` / `make stylelint dir=…`. `make lint-fix` handles the mechanical fixes. The tree is
+  lint-clean, so any finding is from your change.
+- **Shell scripts:** `make shellcheck` (or `files=<script>` for one). Silence a finding only with a
+  `# shellcheck disable=SCxxxx` line that says why.
 - **Tests:** `make test-scala` (needs the db container; `only=<Spec>` scopes it), `make test-js` (jsdom unit suite),
   `make test-e2e` against a running app, `make test-python`. Details and what CI gates: `docs/testing-and-ci.md`.
 - **From a worktree,** every `make` target above checks that worktree, not the main checkout (`make lint` names the
@@ -121,6 +125,8 @@ share images and the API's `icon_url` fields only.
 - Most routes need a session: `curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"`
   once, then pass `-b /tmp/sidewalk_cookies.txt`. Admin-role QA and running a worktree's branch
   (`make qa-worktree wt=<name>`): `docs/dev-environment.md`.
+- Other sessions share :9000 and the test DB. If a command says another checkout holds :9000, rerun with `wait=1` or
+  message the holder it names; never `force=1` without the developer's OK.
 - Inspect the DB read-only: `docker exec projectsidewalk-db psql -U readonly_user -d sidewalk -c "…"` (never
   `-U sidewalk`). One schema per city (`sidewalk_seattle` is a safe default for schema questions), auth in
   `sidewalk_login`. The active schema is `$DATABASE_USER` in the web container; `readonly_user` may lack rights on

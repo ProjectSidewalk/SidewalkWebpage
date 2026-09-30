@@ -1,11 +1,11 @@
 package util
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Success, Try}
 
@@ -52,7 +52,7 @@ trait RolledBackDb { this: GuiceOneAppPerSuite =>
     Try(run(tx)) match {
       case Failure(RollbackSentinel) => result.get
       case Failure(other)            => throw other
-      case Success(_)                => throw new IllegalStateException("rollback sentinel did not propagate")
+      case Success(_)                => throw IllegalStateException("rollback sentinel did not propagate")
     }
   }
 }

@@ -4,9 +4,9 @@ import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.{SidewalkSpec, SignedUpAccounts}
 import models.auth.RememberMeSettings
 import models.utils.MyPostgresProfile.api.given
@@ -28,7 +28,7 @@ import java.util.UUID
 class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // All requests here share FakeRequest's default 127.0.0.1, so the suite's auth POSTs would eat into one shared
       // per-IP budget. Throttle behavior has its own dedicated coverage (UserAuthRateLimitSpec); keeping the limiter
@@ -68,7 +68,7 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
       val (u, e, p) = freshCreds()
       val req       = FakeRequest(POST, "/signUp")
         .withHeaders(XHR)
-        .withFormUrlEncodedBody(signUpBody(u, e, p, "DifferentPass9"): _*)
+        .withFormUrlEncodedBody(signUpBody(u, e, p, "DifferentPass9")*)
         .withCSRFToken
       val resp = route(app, req).get
       status(resp) mustBe BAD_REQUEST
@@ -79,7 +79,7 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
       val (_, e, p) = freshCreds()
       val req       = FakeRequest(POST, "/signUp")
         .withHeaders(XHR)
-        .withFormUrlEncodedBody(signUpBody("bad name!", e, p, p): _*)
+        .withFormUrlEncodedBody(signUpBody("bad name!", e, p, p)*)
         .withCSRFToken
       val resp = route(app, req).get
       status(resp) mustBe BAD_REQUEST
@@ -91,7 +91,7 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
       // Valid charset + length, so it clears form binding and is caught by the guard, not the regex.
       val req = FakeRequest(POST, "/signUp")
         .withHeaders(XHR)
-        .withFormUrlEncodedBody(signUpBody("shithead", e, p, p): _*)
+        .withFormUrlEncodedBody(signUpBody("shithead", e, p, p)*)
         .withCSRFToken
       val resp = route(app, req).get
       status(resp) mustBe BAD_REQUEST
@@ -101,7 +101,7 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
     "fall back to a full-page redirect (303) when the request is not an XHR" in {
       val (u, e, p) = freshCreds()
       val req       = FakeRequest(POST, "/signUp")
-        .withFormUrlEncodedBody(signUpBody(u, e, p, "Mismatch9"): _*)
+        .withFormUrlEncodedBody(signUpBody(u, e, p, "Mismatch9")*)
         .withCSRFToken
       status(route(app, req).get) mustBe SEE_OTHER
     }
@@ -152,7 +152,7 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
         app,
         FakeRequest(POST, "/signUp")
           .withHeaders(XHR)
-          .withFormUrlEncodedBody(signUpBody(otherUsername, email, password, password): _*)
+          .withFormUrlEncodedBody(signUpBody(otherUsername, email, password, password)*)
           .withCSRFToken
       ).get
       status(dup) mustBe CONFLICT
@@ -176,7 +176,7 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
         app,
         FakeRequest(POST, "/signUp")
           .withHeaders(XHR)
-          .withFormUrlEncodedBody(signUpBody(username, email, password, password): _*)
+          .withFormUrlEncodedBody(signUpBody(username, email, password, password)*)
           .withCSRFToken
       ).get
       status(signUp) mustBe OK
@@ -190,7 +190,7 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
         app,
         FakeRequest(POST, "/signUp")
           .withHeaders(XHR)
-          .withFormUrlEncodedBody(signUpBody(username, otherEmail, password, password): _*)
+          .withFormUrlEncodedBody(signUpBody(username, otherEmail, password, password)*)
           .withCSRFToken
       ).get
       status(dup) mustBe CONFLICT
@@ -244,8 +244,8 @@ class UserAuthControllerSpec extends SidewalkSpec with SignedUpAccounts with Gui
         app,
         FakeRequest(POST, "/signUp")
           .withHeaders(XHR)
-          .withCookies(cookies(firstVisit).toSeq: _*)
-          .withFormUrlEncodedBody(signUpBody(username, email, password, password): _*)
+          .withCookies(cookies(firstVisit).toSeq*)
+          .withFormUrlEncodedBody(signUpBody(username, email, password, password)*)
           .withCSRFToken
       ).get
       status(signUp) mustBe OK

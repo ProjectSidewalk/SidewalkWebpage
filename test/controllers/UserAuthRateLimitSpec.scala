@@ -5,9 +5,9 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.request.RemoteConnection
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 import java.util.UUID
@@ -25,7 +25,7 @@ import java.util.UUID
 class UserAuthRateLimitSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "rate-limit.enabled"                         -> true,
@@ -231,7 +231,7 @@ class UserAuthRateLimitSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 class LoginIpVolumeRateLimitSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "rate-limit.enabled"                        -> true,

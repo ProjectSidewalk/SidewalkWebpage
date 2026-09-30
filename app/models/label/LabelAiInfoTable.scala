@@ -1,12 +1,12 @@
 package models.label
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.utils.MyPostgresProfile
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 case class LabelAiInfo(
@@ -26,10 +26,7 @@ class LabelAiInfoTableDef(tag: Tag) extends Table[LabelAiInfo](tag, "label_ai_in
   def modelId: Rep[String]                   = column[String]("model_id")
   def modelTrainingDate: Rep[OffsetDateTime] = column[OffsetDateTime]("model_training_date")
 
-  def * = (labelAiInfoId, labelId, confidence, apiVersion, modelId, modelTrainingDate) <> (
-    (LabelAiInfo.apply _).tupled,
-    LabelAiInfo.unapply
-  )
+  def * = (labelAiInfoId, labelId, confidence, apiVersion, modelId, modelTrainingDate).mapTo[LabelAiInfo]
 
   def label       = foreignKey("label_ai_info_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def labelUnique = index("label_ai_info_label_id_key", labelId, unique = true)

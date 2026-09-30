@@ -14,7 +14,7 @@ import slick.dbio.DBIO
 import util.SidewalkSpec
 
 import java.time.OffsetDateTime
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 /**
@@ -38,7 +38,7 @@ import scala.concurrent.{Await, Future}
 class NightlyJobStatusSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val healthService = app.injector.instanceOf[HealthService]
   private val jobRunTable   = app.injector.instanceOf[BackgroundJobRunTable]
@@ -91,11 +91,7 @@ class NightlyJobStatusSpec extends SidewalkSpec with BeforeAndAfterAll with Guic
   }
 
   /** Seeds one finished run. */
-  private def seedFinished(
-      trigger: JobRunTrigger.Value,
-      status: JobRunStatus.Value,
-      startedAt: OffsetDateTime
-  ): Unit = {
+  private def seedFinished(trigger: JobRunTrigger, status: JobRunStatus, startedAt: OffsetDateTime): Unit = {
     val id = run(jobRunTable.insertRunning(jobName, trigger, startedAt))
     seededRunIds ::= id
     val error = if (status == JobRunStatus.Failed) Some("seeded failure") else None

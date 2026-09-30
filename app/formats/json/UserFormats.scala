@@ -1,13 +1,15 @@
 package formats.json
 
-import models.user._
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import models.user.*
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTotals, UserSearchResult}
 
 import java.time.OffsetDateTime
 
 object UserFormats {
+  // snake_case keys for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   /**
    * The Settings page's save (`POST /dashboard/settings`). The privacy flags are required so a body that omits one
@@ -30,47 +32,33 @@ object UserFormats {
       (JsPath \ "teamId").readNullable[Int] and
       (JsPath \ "communityService").readNullable[Boolean] and
       (JsPath \ "measurementSystem").readNullable[String]
-  )(SettingsSubmission.apply _)
-
-  /** The canonical JSON format for a role. Other format objects import these rather than defining their own. */
-  given roleReads: Reads[Role.Value] = Reads { json =>
-    json.validate[String].flatMap { role =>
-      Role.fromString(role) match {
-        case Some(parsed) => JsSuccess(parsed)
-        case None         => JsError(s"Invalid role: $role. Valid roles are: ${Role.values.mkString(", ")}.")
-      }
-    }
-  }
-  given roleWrites: Writes[Role.Value] = Writes(role => JsString(role.toString))
-
-  given measurementSystemReads: Reads[MeasurementSystem.Value]   = Reads.enumNameReads(MeasurementSystem)
-  given measurementSystemWrites: Writes[MeasurementSystem.Value] = Writes.enumNameWrites[MeasurementSystem.type]
+  )(SettingsSubmission.apply)
 
   given sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String] and
       (JsPath \ "email").read[String] and
-      (JsPath \ "role").read[Role.Value] and
+      (JsPath \ "role").read[Role] and
       (JsPath \ "community_service").read[Boolean] and
       (JsPath \ "infra3d_access").read[Boolean] and
-      (JsPath \ "measurement_system").readNullable[MeasurementSystem.Value]
-  )(SidewalkUserWithRole.apply _)
+      (JsPath \ "measurement_system").readNullable[MeasurementSystem]
+  )(SidewalkUserWithRole.apply)
 
   given sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = (
     (JsPath \ "user_id").write[String] and
       (JsPath \ "username").write[String] and
       (JsPath \ "email").write[String] and
-      (JsPath \ "role").write[Role.Value] and
+      (JsPath \ "role").write[Role] and
       (JsPath \ "community_service").write[Boolean] and
       (JsPath \ "infra3d_access").write[Boolean] and
-      (JsPath \ "measurement_system").writeNullable[MeasurementSystem.Value]
+      (JsPath \ "measurement_system").writeNullable[MeasurementSystem]
   )((o: SidewalkUserWithRole) => Tuple.fromProductTyped(o))
 
   given userStatsWrites: Writes[UserStatsForAdminPage] = (
     (__ \ "userId").write[String] and
       (__ \ "username").write[String] and
       (__ \ "email").write[String] and
-      (__ \ "role").write[Role.Value] and
+      (__ \ "role").write[Role] and
       (__ \ "team").writeNullable[String] and
       (__ \ "signUpTime").writeNullable[OffsetDateTime] and
       (__ \ "lastSignInTime").writeNullable[OffsetDateTime] and
@@ -97,28 +85,9 @@ object UserFormats {
    * (validated, agreed) counts, not a percentage, so the team's rate can pool its members' judged labels rather than
    * average rates that describe different amounts of work.
    */
-  given teamMemberStatsWrites: Writes[TeamMemberStats] = (
-    (__ \ "user_id").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "role").write[Role.Value] and
-      (__ \ "labels").write[Int] and
-      (__ \ "validations").write[Int] and
-      (__ \ "distance_meters").write[Double] and
-      (__ \ "labels_validated").write[Int] and
-      (__ \ "labels_agreed").write[Int] and
-      (__ \ "last_active").writeNullable[OffsetDateTime] and
-      (__ \ "high_quality").write[Boolean] and
-      (__ \ "excluded").write[Boolean]
-  )((o: TeamMemberStats) => Tuple.fromProductTyped(o))
+  given teamMemberStatsWrites: Writes[TeamMemberStats] = Json.writes[TeamMemberStats]
 
-  given teamTotalsWrites: Writes[TeamTotals] = (
-    (__ \ "members").write[Int] and
-      (__ \ "labels").write[Int] and
-      (__ \ "validations").write[Int] and
-      (__ \ "distance_meters").write[Double] and
-      (__ \ "labels_validated").write[Int] and
-      (__ \ "labels_agreed").write[Int]
-  )((o: TeamTotals) => Tuple.fromProductTyped(o))
+  given teamTotalsWrites: Writes[TeamTotals] = Json.writes[TeamTotals]
 
   given teamOverviewWrites: Writes[TeamOverview] = Writes { overview =>
     Json.obj(
@@ -134,13 +103,7 @@ object UserFormats {
     )
   }
 
-  given userSearchResultWrites: Writes[UserSearchResult] = (
-    (__ \ "user_id").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "email").write[String] and
-      (__ \ "role").write[Role.Value] and
-      (__ \ "team").writeNullable[String]
-  )((o: UserSearchResult) => Tuple.fromProductTyped(o))
+  given userSearchResultWrites: Writes[UserSearchResult] = Json.writes[UserSearchResult]
 
   given cityHoursWrites: Writes[CityHours] = (
     (JsPath \ "city_id").write[String] and

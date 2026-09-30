@@ -8,7 +8,7 @@ import models.pano.PanoDataTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.IpAddress
-import models.utils.MyPostgresProfile.api.{given, _}
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -54,7 +54,7 @@ class ValidationTaskCommentTableDef(tag: Tag) extends Table[ValidationTaskCommen
   def comment: Rep[String]              = column[String]("comment")
 
   def * = (validationTaskCommentId, missionId, labelId, labelType, userId, ipAddress, panoId, heading, pitch, zoom, lat,
-    lng, timestamp, comment) <> ((ValidationTaskComment.apply _).tupled, ValidationTaskComment.unapply)
+    lng, timestamp, comment).mapTo[ValidationTaskComment]
 
   def labelUserTypeUnique =
     index("validation_task_comment_label_id_user_id_label_type_key", (labelId, userId, labelType), unique = true)
@@ -106,7 +106,7 @@ class ValidationTaskCommentTable @Inject() (
       labelId: Int,
       userId: String,
       labelType: LabelType,
-      changeType: ValidationCommentChangeType.Value
+      changeType: ValidationCommentChangeType
   ): DBIO[Int] = {
     sqlu"""WITH superseded AS (
              DELETE FROM validation_task_comment
@@ -117,7 +117,7 @@ class ValidationTaskCommentTable @Inject() (
                                                         user_id, ip_address, pano_id, heading, pitch, zoom, lat, lng,
                                                         timestamp, comment, change_type)
            SELECT validation_task_comment_id, mission_id, label_id, label_type, user_id, ip_address, pano_id, heading,
-                  pitch, zoom, lat, lng, timestamp, comment, ${changeType.toString}::validation_comment_change_type
+                  pitch, zoom, lat, lng, timestamp, comment, $changeType
            FROM superseded"""
   }
 

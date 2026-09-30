@@ -12,7 +12,7 @@ import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for `pano_imagery_change`, the imagery-transition log (#4947, evolution 364).
@@ -34,7 +34,7 @@ import scala.concurrent.duration._
 class PanoImageryLogSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val panoDataTable      = app.injector.instanceOf[PanoDataTable]
   private val imageryChangeTable = app.injector.instanceOf[PanoImageryChangeTable]

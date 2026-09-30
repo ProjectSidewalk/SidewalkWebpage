@@ -233,7 +233,7 @@
 
       const userParam = {
         username: '@user.username',
-        role: '@user.role'
+        role: '@user.role.name'
       };
       svv.user = new User(userParam);
 
@@ -241,7 +241,7 @@
       param.hasNextMission = @validatePageData.hasNextMission;
       param.completedValidations = @validatePageData.completedValidations;
       param.language = "@messages.lang.code";
-      const imagerySrc = "@commonData.imagerySource.toString";
+      const imagerySrc = "@commonData.imagerySource.name";
       param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
         : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
       param.viewerAccessToken = "@commonData.imageryAccessToken";

@@ -2,11 +2,11 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.util.PasswordInfo
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.Future
 
 case class UserPasswordInfo(
@@ -24,10 +24,7 @@ class UserPasswordInfoTableDef(tag: Tag) extends Table[UserPasswordInfo](tag, "u
   def salt: Rep[Option[String]]    = column[Option[String]]("salt")
   def loginInfoId: Rep[Long]       = column[Long]("login_info_id")
   def *                            =
-    (userPasswordInfoId, hasher, password, salt, loginInfoId) <> (
-      UserPasswordInfo.apply.tupled,
-      UserPasswordInfo.unapply
-    )
+    (userPasswordInfoId, hasher, password, salt, loginInfoId).mapTo[UserPasswordInfo]
 
   def loginInfo =
     foreignKey("user_password_info_login_info_id_fkey", loginInfoId, TableQuery[LoginInfoTableDef])(_.loginInfoId)

@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.audit.AuditTaskTableDef
 import models.user.UserStatTableDef
 import models.utils.{FilteredTables, MyPostgresProfile}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json, Writes}
 import slick.jdbc.GetResult
@@ -85,7 +85,7 @@ class StreetEdgePriorityTableDef(tag: slick.lifted.Tag) extends Table[StreetEdge
   def priority: Rep[Double]          = column[Double]("priority", O.Default(0.0))
 
   def * =
-    (streetEdgePriorityId, streetEdgeId, priority) <> ((StreetEdgePriority.apply _).tupled, StreetEdgePriority.unapply)
+    (streetEdgePriorityId, streetEdgeId, priority).mapTo[StreetEdgePriority]
 
   def streetEdge =
     foreignKey("street_edge_priority_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -286,7 +286,7 @@ class StreetEdgePriorityTable @Inject() (
 
       // Create a map from each street edge to a default priority value of 0.
       streetIds <- streetEdgePriorities.map(_.streetEdgeId).result
-      edgePriorityMap = mutable.Map[Int, Double](streetIds.map(id => id -> 0.0): _*)
+      edgePriorityMap = mutable.Map[Int, Double](streetIds.map(id => id -> 0.0)*)
 
       // Compute weighted sum of priority based on the rankParameter generators.
       _ =
@@ -390,9 +390,9 @@ class StreetEdgePriorityTable @Inject() (
       allAuditCounts.result.map(_.map { case (streetEdgeId, freshGood, outdatedGood, bad) =>
         if (freshGood > 0 || outdatedGood > 0) {
           val outdatedHalf = if (outdatedGood > 0) 0.5 else 0.0
-          StreetEdgePriorityParameter.apply.tupled((streetEdgeId, freshGood + outdatedHalf + 0.25 * bad))
+          StreetEdgePriorityParameter(streetEdgeId, freshGood + outdatedHalf + 0.25 * bad)
         } else {
-          StreetEdgePriorityParameter.apply.tupled((streetEdgeId, 0.0))
+          StreetEdgePriorityParameter(streetEdgeId, 0.0)
         }
       })
 

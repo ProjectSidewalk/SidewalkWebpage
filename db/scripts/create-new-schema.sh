@@ -38,6 +38,7 @@
 # =====================================================================================================================
 set -euo pipefail
 
+# shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
 # 373.sql replaced the label_type table with an enum; earlier donors still carry the table and tag's FK to it.

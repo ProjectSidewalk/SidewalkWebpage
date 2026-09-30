@@ -7,7 +7,7 @@ import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import util.{AnonSession, RoleSession, SidewalkSpec}
 
 /**
@@ -18,7 +18,7 @@ import util.{AnonSession, RoleSession, SidewalkSpec}
 class ValidateTeamParamsSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   given mat: Materializer = app.materializer
 
@@ -28,7 +28,7 @@ class ValidateTeamParamsSpec extends SidewalkSpec with RoleSession with GuiceOne
         route(
           app,
           FakeRequest(GET, "/expertValidate?teams=spec-5342-no-such-team").withCookies(
-            sessionAs(Role.Administrator): _*
+            sessionAs(Role.Administrator)*
           )
         ).get
       status(resp) mustBe BAD_REQUEST

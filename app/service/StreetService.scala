@@ -11,13 +11,13 @@ import models.street.{
   StreetPriorityForAdmin
 }
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
 
 import java.time.{LocalDate, OffsetDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 

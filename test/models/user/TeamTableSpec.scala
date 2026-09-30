@@ -13,7 +13,7 @@ import util.{RolledBackDb, SidewalkSpec}
 class TeamTableSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val teamTable = app.injector.instanceOf[TeamTable]
 

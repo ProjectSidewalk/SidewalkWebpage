@@ -1,29 +1,12 @@
 package models.utils
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.github.tminglei.slickpg._
+import com.github.tminglei.slickpg.*
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
-import models.label.{AiImageSource, ComputationMethod, CropSource, LabelType, StreetSide}
-import models.mission.MissionType
-import models.pano.{PanoImageryChangeSource, PanoSource}
-import models.street.{
-  SidewalkPresenceBasis,
-  SidewalkPresenceStatus,
-  StreetEdgeIssueType,
-  StreetEdgeStatus,
-  StreetEdgeStatusChangeSource,
-  StreetGradientConfidence,
-  StreetGradientQuality,
-  StreetImagerySource,
-  WayType
-}
-import models.user.{MeasurementSystem, Role}
-import models.utils.CommonUtils.{UiSource, ViewerType}
-import models.validation.{ValidationCommentChangeType, ValidationOption}
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json._
+import play.api.libs.json.*
 import slick.jdbc.{JdbcType, PositionedResult}
 import slick.lifted.OptionMapperDSL
 
@@ -62,7 +45,7 @@ trait MyPostgresProfile
     val random: Rep[Double] = SimpleFunction.nullary[Double]("random")
 
     // Postgres won't save plain text into an inet column, so the value is sent untyped and Postgres reads it as an IP.
-    given ipAddressMapper: JdbcType[IpAddress] = new GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
+    given ipAddressMapper: JdbcType[IpAddress] = GenericJdbcType[IpAddress]("inet", IpAddress(_), _.value)
 
     // Built once and shared, because slick-pg looks an array's element type up by `tag.repr`: a bare
     // `nextArray[T]()` rebuilds the tag and re-renders that string per row, ~0.3 µs inside the `GetResult`.
@@ -76,8 +59,8 @@ trait MyPostgresProfile
     }
 
     // Adds conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
-    private val mapper = new ObjectMapper()
-    mapper.registerModule(new JtsModule())
+    private val mapper = ObjectMapper()
+    mapper.registerModule(JtsModule())
     given geometryWrites: Writes[Geometry] = Writes[Geometry] { geom => Json.parse(mapper.writeValueAsString(geom)) }
     given multiPolygonWrites: Writes[MultiPolygon] = geometryWrites.contramap(identity)
     given lineStringWrites: Writes[LineString]     = geometryWrites.contramap(identity)
@@ -125,7 +108,7 @@ trait MyPostgresProfile
 
     // New mapper for Seq[ExcludedTag] stored as JSONB.
     given excludedTagListMapper: DriverJdbcType[Seq[ExcludedTag]] =
-      new GenericJdbcType[Seq[ExcludedTag]](
+      GenericJdbcType[Seq[ExcludedTag]](
         pgjson,
         s => if (s == null) List.empty[ExcludedTag] else Json.parse(s).as[Seq[ExcludedTag]],
         v => Json.stringify(Json.toJson(v))
@@ -133,7 +116,7 @@ trait MyPostgresProfile
 
     // New mapper for Seq[AiTagConfidence] stored as JSONB.
     given aiTagConfidenceSeqMapper: DriverJdbcType[Seq[AiTagConfidence]] =
-      new GenericJdbcType[Seq[AiTagConfidence]](
+      GenericJdbcType[Seq[AiTagConfidence]](
         pgjson,
         s => if (s == null) List.empty[AiTagConfidence] else Json.parse(s).as[Seq[AiTagConfidence]],
         v => Json.stringify(Json.toJson(v))
@@ -141,173 +124,10 @@ trait MyPostgresProfile
 
     // New mapper for Seq[ClusteringThreshold] stored as JSONB.
     given clusteringThresholdSeqMapper: DriverJdbcType[Seq[ClusteringThreshold]] =
-      new GenericJdbcType[Seq[ClusteringThreshold]](
+      GenericJdbcType[Seq[ClusteringThreshold]](
         pgjson,
         s => if (s == null) List.empty[ClusteringThreshold] else Json.parse(s).as[Seq[ClusteringThreshold]],
         v => Json.stringify(Json.toJson(v))
-      )
-
-    // Mapper for pano_source enum type.
-    given panoSourceMapper: BaseColumnType[PanoSource.Value] =
-      createEnumJdbcType[PanoSource.Value]("pano_source", _.toString, PanoSource.withName, quoteName = false)
-
-    // Mapper for pano_imagery_change_source enum type.
-    given panoImageryChangeSourceMapper: BaseColumnType[PanoImageryChangeSource.Value] =
-      createEnumJdbcType[PanoImageryChangeSource.Value](
-        "pano_imagery_change_source",
-        _.toString,
-        PanoImageryChangeSource.withName,
-        quoteName = false
-      )
-
-    given cropSourceMapper: BaseColumnType[CropSource.Value] =
-      createEnumJdbcType[CropSource.Value]("crop_source", _.toString, CropSource.withName, quoteName = false)
-
-    // Mapper for ui_source enum type.
-    given uiSourceMapper: BaseColumnType[UiSource.Value] =
-      createEnumJdbcType[UiSource.Value]("ui_source", _.toString, UiSource.withName, quoteName = false)
-
-    // Mapper for ai_image_source enum type.
-    given aiImageSourceMapper: BaseColumnType[AiImageSource.Value] =
-      createEnumJdbcType[AiImageSource.Value]("ai_image_source", _.toString, AiImageSource.withName, quoteName = false)
-
-    // Mapper for viewer_type enum type.
-    given viewerTypeMapper: BaseColumnType[ViewerType.Value] =
-      createEnumJdbcType[ViewerType.Value]("viewer_type", _.toString, ViewerType.withName, quoteName = false)
-
-    // Mapper for validation_option enum type.
-    given validationOptionMapper: BaseColumnType[ValidationOption.Value] =
-      createEnumJdbcType[ValidationOption.Value](
-        "validation_option",
-        _.toString,
-        ValidationOption.withName,
-        quoteName = false
-      )
-
-    // Mapper for validation_comment_change_type enum type.
-    given validationCommentChangeTypeMapper: BaseColumnType[ValidationCommentChangeType.Value] =
-      createEnumJdbcType[ValidationCommentChangeType.Value](
-        "validation_comment_change_type",
-        _.toString,
-        ValidationCommentChangeType.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_edge_status enum type.
-    given streetEdgeStatusMapper: BaseColumnType[StreetEdgeStatus.Value] =
-      createEnumJdbcType[StreetEdgeStatus.Value](
-        "street_edge_status",
-        _.toString,
-        StreetEdgeStatus.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_edge_status_change_source enum type.
-    given streetEdgeStatusChangeSourceMapper: BaseColumnType[StreetEdgeStatusChangeSource.Value] =
-      createEnumJdbcType[StreetEdgeStatusChangeSource.Value](
-        "street_edge_status_change_source",
-        _.toString,
-        StreetEdgeStatusChangeSource.withName,
-        quoteName = false
-      )
-
-    // Mapper for job_run_status enum type.
-    given jobRunStatusMapper: BaseColumnType[JobRunStatus.Value] =
-      createEnumJdbcType[JobRunStatus.Value]("job_run_status", _.toString, JobRunStatus.withName, quoteName = false)
-
-    // Mapper for job_run_trigger enum type.
-    given jobRunTriggerMapper: BaseColumnType[JobRunTrigger.Value] =
-      createEnumJdbcType[JobRunTrigger.Value]("job_run_trigger", _.toString, JobRunTrigger.withName, quoteName = false)
-
-    // Mapper for mission_type enum type.
-    given missionTypeMapper: BaseColumnType[MissionType.Value] =
-      createEnumJdbcType[MissionType.Value]("mission_type", _.toString, MissionType.withName, quoteName = false)
-
-    // Mapper for way_type enum type.
-    given wayTypeMapper: BaseColumnType[WayType.Value] =
-      createEnumJdbcType[WayType.Value]("way_type", _.toString, WayType.withName, quoteName = false)
-
-    // Mapper for computation_method enum type.
-    given computationMethodMapper: BaseColumnType[ComputationMethod.Value] =
-      createEnumJdbcType[ComputationMethod.Value](
-        "computation_method",
-        _.toString,
-        ComputationMethod.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_side enum type.
-    given streetSideMapper: BaseColumnType[StreetSide.Value] =
-      createEnumJdbcType[StreetSide.Value]("street_side", _.toString, StreetSide.withName, quoteName = false)
-
-    // Mapper for sidewalk_presence_status enum type.
-    given sidewalkPresenceStatusMapper: BaseColumnType[SidewalkPresenceStatus.Value] =
-      createEnumJdbcType[SidewalkPresenceStatus.Value](
-        "sidewalk_presence_status",
-        _.toString,
-        SidewalkPresenceStatus.withName,
-        quoteName = false
-      )
-
-    // Mapper for sidewalk_presence_basis enum type.
-    given sidewalkPresenceBasisMapper: BaseColumnType[SidewalkPresenceBasis.Value] =
-      createEnumJdbcType[SidewalkPresenceBasis.Value](
-        "sidewalk_presence_basis",
-        _.toString,
-        SidewalkPresenceBasis.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_gradient_quality enum type.
-    given streetGradientQualityMapper: BaseColumnType[StreetGradientQuality.Value] =
-      createEnumJdbcType[StreetGradientQuality.Value](
-        "street_gradient_quality",
-        _.toString,
-        StreetGradientQuality.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_gradient_confidence enum type.
-    given streetGradientConfidenceMapper: BaseColumnType[StreetGradientConfidence.Value] =
-      createEnumJdbcType[StreetGradientConfidence.Value](
-        "street_gradient_confidence",
-        _.toString,
-        StreetGradientConfidence.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_edge_issue_type enum type.
-    given streetEdgeIssueTypeMapper: BaseColumnType[StreetEdgeIssueType.Value] =
-      createEnumJdbcType[StreetEdgeIssueType.Value](
-        "street_edge_issue_type",
-        _.toString,
-        StreetEdgeIssueType.withName,
-        quoteName = false
-      )
-
-    // Mapper for street_imagery_source enum type.
-    given streetImagerySourceMapper: BaseColumnType[StreetImagerySource.Value] =
-      createEnumJdbcType[StreetImagerySource.Value](
-        "street_imagery_source",
-        _.toString,
-        StreetImagerySource.withName,
-        quoteName = false
-      )
-
-    given labelTypeMapper: BaseColumnType[LabelType] =
-      createEnumJdbcType[LabelType]("label_type", _.name, LabelType.valueOf, quoteName = false)
-
-    // Mapper for the role enum type, which lives in the shared sidewalk_login schema rather than the city's.
-    given roleMapper: BaseColumnType[Role.Value] =
-      createEnumJdbcType[Role.Value]("role", _.toString, Role.withName, quoteName = false)
-
-    // Mapper for the measurement_system enum type, which also lives in the shared sidewalk_login schema.
-    given measurementSystemMapper: BaseColumnType[MeasurementSystem.Value] =
-      createEnumJdbcType[MeasurementSystem.Value](
-        "measurement_system",
-        _.toString,
-        MeasurementSystem.withName,
-        quoteName = false
       )
   }
 }
@@ -325,7 +145,7 @@ object ExcludedTag {
     val reads: Reads[ExcludedTag] = (
       (__ \ "label_type").read[String] and
         (__ \ "tag").read[String]
-    )(ExcludedTag.apply _)
+    )(ExcludedTag.apply)
 
     val writes: Writes[ExcludedTag] = (
       (__ \ "label_type").write[String] and
@@ -344,7 +164,7 @@ object AiTagConfidence {
     val reads: Reads[AiTagConfidence] = (
       (__ \ "tag").read[String] and
         (__ \ "confidence").read[Double]
-    )(AiTagConfidence.apply _)
+    )(AiTagConfidence.apply)
 
     val writes: Writes[AiTagConfidence] = (
       (__ \ "tag").write[String] and
@@ -363,7 +183,7 @@ object ClusteringThreshold {
     val reads: Reads[ClusteringThreshold] = (
       (__ \ "label_type").read[String] and
         (__ \ "threshold").read[Double]
-    )(ClusteringThreshold.apply _)
+    )(ClusteringThreshold.apply)
 
     val writes: Writes[ClusteringThreshold] = (
       (__ \ "label_type").write[String] and

@@ -2,8 +2,8 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.pano.PanoDataTable
-import models.utils.MyPostgresProfile.api.{given, _}
-import models.utils.{FilteredTables, MyPostgresProfile}
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{FilteredTables, MyPostgresProfile, NamedEnum, PgEnumCompanion}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -45,12 +45,13 @@ case class AttributedImagery(nPanos: Int, newestCapture: Option[LocalDate])
  * check_streets_for_imagery.py summary (ingested by db/scripts/import-street-imagery.sh), and `imagery_poll` the
  * nightly in-app provider poll.
  */
-object StreetImagerySource extends Enumeration {
-  type StreetImagerySource = Value
-  val PanoData    = Value("pano_data")
-  val ImageryScan = Value("imagery_scan")
-  val ImageryPoll = Value("imagery_poll")
+enum StreetImagerySource(val name: String) extends NamedEnum {
+  case PanoData    extends StreetImagerySource("pano_data")
+  case ImageryScan extends StreetImagerySource("imagery_scan")
+  case ImageryPoll extends StreetImagerySource("imagery_poll")
 }
+
+object StreetImagerySource extends PgEnumCompanion[StreetImagerySource]("street_imagery_source")
 
 /**
  * Per-street imagery age (#4348): the capture-date range of the street-view panos observed on one street.
@@ -74,7 +75,7 @@ case class StreetImagery(
     newestCapture: Option[LocalDate],
     medianNewestCapture: Option[LocalDate],
     nPanos: Int,
-    dataSource: StreetImagerySource.Value,
+    dataSource: StreetImagerySource,
     updatedAt: OffsetDateTime
 )
 
@@ -85,12 +86,12 @@ class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_
   def newestCapture: Rep[Option[LocalDate]]       = column[Option[LocalDate]]("newest_capture")
   def medianNewestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("median_newest_capture")
   def nPanos: Rep[Int]                            = column[Int]("n_panos") // DB CHECK (356.sql): n_panos >= 0.
-  def dataSource: Rep[StreetImagerySource.Value]  = column[StreetImagerySource.Value]("data_source")
+  def dataSource: Rep[StreetImagerySource]        = column[StreetImagerySource]("data_source")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
 
-  def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt) <>
-    ((StreetImagery.apply _).tupled, StreetImagery.unapply)
+  def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt)
+    .mapTo[StreetImagery]
 
   def streetEdge =
     foreignKey("street_imagery_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -128,7 +129,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
     extends StreetImageryTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  import profile.api._
+  import profile.api.*
   val streetImageryRecords = TableQuery[StreetImageryTableDef]
 
   /**

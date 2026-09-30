@@ -41,7 +41,7 @@ object StubService {
     // as a gap in the interface rather than as the typo it is.
     val declared = iface.getMethods.map(_.getName).toSet
     answers.keys.filterNot(declared).foreach { name =>
-      throw new IllegalArgumentException(s"${iface.getSimpleName} declares no method named $name.")
+      throw IllegalArgumentException(s"${iface.getSimpleName} declares no method named $name.")
     }
 
     val handler = new InvocationHandler {
@@ -53,7 +53,7 @@ object StubService {
               case "toString" => s"stub of ${iface.getSimpleName} answering ${answers.keys.mkString(", ")}"
               case "hashCode" => Int.box(System.identityHashCode(proxy))
               case "equals"   => Boolean.box(proxy eq args(0))
-              case other      => throw new NotImplementedError(s"${iface.getSimpleName}.$other is not stubbed.")
+              case other      => throw NotImplementedError(s"${iface.getSimpleName}.$other is not stubbed.")
             }
         }
       }

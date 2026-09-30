@@ -3,10 +3,10 @@ package controllers.base
 import modules.CustomMessagesApiProvider
 import play.api.http.FileMimeTypes
 import play.api.i18n.MessagesApi
-import play.api.mvc._
+import play.api.mvc.*
 import service.{CustomSecurityService, LoggingService}
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**

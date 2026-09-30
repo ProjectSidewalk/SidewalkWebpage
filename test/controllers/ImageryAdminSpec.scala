@@ -12,7 +12,7 @@ import play.api.cache.AsyncCacheApi
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.ImageryFreshnessReportService
 import slick.dbio.DBIO
 import util.{AnonSession, RoleSession, SidewalkSpec}
@@ -20,7 +20,7 @@ import util.{AnonSession, RoleSession, SidewalkSpec}
 import java.time.temporal.ChronoUnit
 import java.time.{LocalDate, OffsetDateTime}
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the admin Imagery surface (#4908): the page and the two endpoints behind it.
@@ -37,7 +37,7 @@ import scala.concurrent.duration._
 class ImageryAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
@@ -64,9 +64,9 @@ class ImageryAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
 
   /** Seeds one finished run of the imagery-age poll, giving the row's optional fields something to carry. */
   private def seedPollRun(
-      status: JobRunStatus.Value,
+      status: JobRunStatus,
       details: Option[JsValue],
-      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
+      trigger: JobRunTrigger = JobRunTrigger.Scheduled
   ): Unit = {
     // The run must land on today (the run_days assertions look for today's row) and successive seeds must stay
     // ordered (a job row reports its latest run). A flat hour back breaks the first between 00:00 and 01:00; pinning
@@ -111,10 +111,10 @@ class ImageryAdminSpec extends SidewalkSpec with RoleSession with GuiceOneAppPer
 
   /** Performs an admin GET. */
   private def asAdmin(path: String) =
-    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(adminCookies: _*)).get
+    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(adminCookies*)).get
 
   private def asVisitor(path: String) =
-    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(visitorCookies: _*)).get
+    route(app, FakeRequest(GET, path).withHeaders(XHR).withCookies(visitorCookies*)).get
 
   "the Imagery admin surface" should {
     "refuse a signed-in visitor, naming the role it wants" in {

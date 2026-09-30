@@ -74,7 +74,7 @@ class RegionApiController @Inject() (
             minLabelCount = minLabelCount
           )
 
-          val dbDataStream: Source[RegionDataForApi, _] = apiService.getRegions(filters, DEFAULT_BATCH_SIZE)
+          val dbDataStream: Source[RegionDataForApi, ?] = apiService.getRegions(filters, DEFAULT_BATCH_SIZE)
           val baseFileName: String                      = timestampedFilename("regions")
           cc.loggingService.insert(request.identity.map(_.userId), request.ipAddress, request.toString)
 

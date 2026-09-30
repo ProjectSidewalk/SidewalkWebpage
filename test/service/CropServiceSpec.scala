@@ -2,14 +2,14 @@ package service
 
 import models.label.{CropSource, LabelCrop, LabelCropTable}
 import models.utils.{ImageUtils, MyPostgresProfile}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
 import org.scalatest.{BeforeAndAfterAll, OptionValues}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.{Application, Configuration, Environment}
 import service.CropService.CropRunResult
 import util.SidewalkSpec
@@ -20,7 +20,7 @@ import java.nio.file.{Files, StandardCopyOption}
 import java.time.OffsetDateTime
 import java.util.UUID
 import javax.imageio.ImageIO
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Try}
 
@@ -42,12 +42,12 @@ class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionVal
   private val mediaRoot = Files.createTempDirectory("crop-service-spec").toFile
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .configure(
-        "cropped.image.directory" -> new File(mediaRoot, "crops").getPath,
-        "pano.images.directory"   -> new File(mediaRoot, "panos").getPath,
-        "share.image.directory"   -> new File(mediaRoot, "share").getPath
+        "cropped.image.directory" -> File(mediaRoot, "crops").getPath,
+        "pano.images.directory"   -> File(mediaRoot, "panos").getPath,
+        "share.image.directory"   -> File(mediaRoot, "share").getPath
       )
       .build()
 
@@ -66,7 +66,7 @@ class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionVal
 
   private def generate(): CropRunResult = Await.result(cropService.generateMissingCrops(), 5.minutes)
 
-  private val syntheticPano = new File("test/resources/crops/synthetic-pano.png")
+  private val syntheticPano = File("test/resources/crops/synthetic-pano.png")
 
   /** The synthetic pano's size, and the size the narrow variant is stored at — under the cap, so served as it is. */
   private val PanoW   = 1024
@@ -140,7 +140,7 @@ class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionVal
       app.injector.instanceOf[Environment],
       "pano.images.directory"
     )
-    val file = new File(new File(base, panoId.take(2)), name)
+    val file = File(File(base, panoId.take(2)), name)
     val _    = file.getParentFile.mkdirs()
     file
   }
@@ -155,7 +155,7 @@ class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionVal
   /** Puts a 256x128 rendering of the synthetic pano in the store: a pano the viewer can take as it is. */
   private def storeNarrowPano(panoId: String): File = {
     val file  = storeFile(panoId)
-    val small = new BufferedImage(NarrowW, NarrowH, BufferedImage.TYPE_INT_RGB)
+    val small = BufferedImage(NarrowW, NarrowH, BufferedImage.TYPE_INT_RGB)
     val g     = small.createGraphics()
     val _     = g.drawImage(ImageIO.read(syntheticPano), 0, 0, NarrowW, NarrowH, null)
     g.dispose()
@@ -248,7 +248,7 @@ class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionVal
   private def plantCrop(panoId: String, width: Int, height: Int): File = {
     val file = cropFile(panoId)
     val _    = file.getParentFile.mkdirs()
-    ImageUtils.writePng(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), file)
+    ImageUtils.writePng(BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), file)
     file
   }
 
@@ -264,7 +264,7 @@ class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionVal
   private val preexistingCropBytes: Array[Byte] = {
     val tmp = File.createTempFile("preexisting", ".png")
     try {
-      ImageUtils.writePng(new BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB), tmp)
+      ImageUtils.writePng(BufferedImage(10, 10, BufferedImage.TYPE_INT_RGB), tmp)
       Files.readAllBytes(tmp.toPath)
     } finally { val _ = tmp.delete() }
   }
@@ -591,7 +591,7 @@ class CropServiceSpec extends SidewalkSpec with BeforeAndAfterAll with OptionVal
         // The guard is taken synchronously, before any of the run's work is scheduled, so this is not a race.
         cropService.isRunning mustBe true
         val second = Try(Await.result(cropService.generateMissingCrops(), 10.seconds))
-        second mustBe a[Failure[_]]
+        second mustBe a[Failure[?]]
         second.failed.get mustBe an[IllegalStateException]
       } finally {
         val _ = Await.result(first, 5.minutes)
