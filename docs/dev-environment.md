@@ -586,7 +586,7 @@ the dump (`pg_restore -s -t <table> -f - db/<dump>`) before assuming your local 
 
 **Slick query errors while developing:**
 
-- `value transactionally is not a member of slick.dbio.DBIOAction...` → add `import models.utils.MyPostgresProfile.api._`.
+- `value transactionally is not a member of slick.dbio.DBIOAction...` → add `import models.utils.MyPostgresProfile.api.*`.
 - `type mismatch ... NoStream,Nothing ...` (often misleading) → try wrapping the queries in `.transactionally`, or
   use `DBIO.seq().andThen()`.
 

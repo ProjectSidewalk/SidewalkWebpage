@@ -1,12 +1,9 @@
 package controllers
 
 import controllers.base.*
-import models.auth.DefaultEnv
 import models.pano.PanoSource
 import models.utils.MapParams
 import play.api.libs.json.Json
-import play.api.mvc.AnyContent
-import play.silhouette.api.actions.UserAwareRequest
 
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
@@ -21,7 +18,7 @@ class ConfigController @Inject() (
   /**
    * Get the city-specific parameters used to pan/zoom maps to correct location.
    */
-  def getCityMapParams() = Action.async { _ =>
+  def getCityMapParams() = Action.async {
     val cityMapParams: Future[MapParams] = configService.getCityMapParams
     cityMapParams.map { params =>
       Ok(
@@ -41,7 +38,7 @@ class ConfigController @Inject() (
    * it needs no more protection than a page does. Other providers' keys are static and 404 here, so the route never
    * becomes a second place a key is served from.
    */
-  def getImageryAccessToken() = cc.securityService.UserAwareAction { (_: UserAwareRequest[DefaultEnv, AnyContent]) =>
+  def getImageryAccessToken() = cc.securityService.UserAwareAction { _ =>
     configService.getImageryAccessToken.map { access =>
       if (access.source != PanoSource.Infra3d) {
         NotFound(Json.obj("error" -> s"${access.source.name} uses a static key; nothing to renew"))

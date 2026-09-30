@@ -34,12 +34,10 @@ case class UserStat(
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
 object LabelTypeStat {
-  // snake_case keys for the Json.writes macros below.
-  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
-
   // snake_case JSON output per the v3 API convention (#3871). Lives in the companion so it is in implicit
   // scope wherever a LabelTypeStat is serialized (e.g. UserStatForApi).
-  given writes: Writes[LabelTypeStat] = Json.writes[LabelTypeStat]
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  given writes: Writes[LabelTypeStat]         = Json.writes[LabelTypeStat]
 }
 case class UserStatsForAdminPage(
     userId: String,

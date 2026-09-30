@@ -247,7 +247,7 @@ class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll wit
         run(sqlu"INSERT INTO street_reopen_candidate (street_edge_id, n_panos) VALUES ($streetId, 2)")
 
         Await.result(streetLifecycleService.reopenStreet(streetId), 120.seconds) mustBe
-          StreetLifecycleService.Reopened
+          StreetLifecycleService.ReopenOutcome.Reopened
 
         run(sql"SELECT status::text FROM street_edge WHERE street_edge_id = $streetId".as[String].head) mustBe "open"
         run(sql"""SELECT COUNT(*) FROM street_edge_status_change
@@ -279,14 +279,14 @@ class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll wit
       )
       assume(openStreet.isDefined, "no open street in the connected database")
       Await.result(streetLifecycleService.reopenStreet(openStreet.get), 120.seconds) mustBe
-        StreetLifecycleService.NotNoImagery("open")
+        StreetLifecycleService.ReopenOutcome.NotNoImagery("open")
       run(sql"""SELECT COUNT(*) FROM street_edge_status_change
                 WHERE street_edge_id = ${openStreet.get} AND source = 'admin_reopen'""".as[Int].head) mustBe 0
     }
 
     "answer StreetNotFound for an id that doesn't exist" in {
       Await.result(streetLifecycleService.reopenStreet(Int.MaxValue), 120.seconds) mustBe
-        StreetLifecycleService.StreetNotFound
+        StreetLifecycleService.ReopenOutcome.StreetNotFound
     }
   }
 

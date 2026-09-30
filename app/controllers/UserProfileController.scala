@@ -108,7 +108,7 @@ class UserProfileController @Inject() (
   /**
    * Get the list of all streets and whether they have been audited or not, regardless of user.
    */
-  def getAllStreets(filterLowQuality: Boolean, regions: Option[String], routes: Option[String]) = Action.async { _ =>
+  def getAllStreets(filterLowQuality: Boolean, regions: Option[String], routes: Option[String]) = Action.async {
     val regionIds: Seq[Int] = parseIntegerSeq(regions)
     val routeIds: Seq[Int]  = parseIntegerSeq(routes)
 
@@ -142,7 +142,7 @@ class UserProfileController @Inject() (
    * Kept off `/v3/api` on purpose, following the same call for per-street priority data (#4908): this shape is
    * expected to change as the re-audit UI develops, and publishing it would freeze it into the public contract.
    */
-  def getStreetReauditSummary(streetEdgeId: Int) = Action.async { _ =>
+  def getStreetReauditSummary(streetEdgeId: Int) = Action.async {
     streetService.getReauditSummary(streetEdgeId).map {
       case Some(summary) =>
         Ok(
@@ -316,7 +316,7 @@ class UserProfileController @Inject() (
   /**
    * Grabs a list of all the teams in the tables, regardless of open or closed status.
    */
-  def getTeams = Action.async { _ => userService.getAllTeams.map(teams => Ok(Json.toJson(teams))) }
+  def getTeams = Action.async { userService.getAllTeams.map(teams => Ok(Json.toJson(teams))) }
 
   /**
    * Gets some basic stats about the logged-in user that we show across the site: distance, label count, and accuracy.

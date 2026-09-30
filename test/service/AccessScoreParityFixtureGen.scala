@@ -212,7 +212,10 @@ object AccessScoreParityFixtureGen {
 
   /** The engine's weight on the mean grade: the statistic most of these cases are written against. */
   private val weighted: SlopeSettings =
-    AccessScoreCalculator.defaultSlopeSettings.copy(weight = 1.0, statistic = AccessScoreCalculator.MeanGrade)
+    AccessScoreCalculator.defaultSlopeSettings.copy(
+      weight = 1.0,
+      statistic = AccessScoreCalculator.SlopeStatistic.MeanGrade
+    )
 
   /**
    * The slope cases: a base street from the cases above (by name, so its clusters and length are not repeated), a
@@ -252,19 +255,23 @@ object AccessScoreParityFixtureGen {
         "the max-grade statistic reads the steepest stretch",
         ramp,
         Some(slope(0.03, 0.075, 0.02)),
-        weighted.copy(statistic = AccessScoreCalculator.MaxGrade)
+        weighted.copy(statistic = AccessScoreCalculator.SlopeStatistic.MaxGrade)
       ),
       (
         "meters over the limits is a share of the length, the ramp limit counted twice",
         hilly,
         Some(slope(0.06, 0.1, 0.05, over5 = 180, over8 = 60)),
-        weighted.copy(statistic = AccessScoreCalculator.MetersOverLimit)
+        weighted.copy(statistic = AccessScoreCalculator.SlopeStatistic.MetersOverLimit)
       ),
       (
         "meters over the limits ignores the reader's thresholds",
         hilly,
         Some(slope(0.06, 0.1, 0.05, over5 = 180, over8 = 60)),
-        weighted.copy(statistic = AccessScoreCalculator.MetersOverLimit, lowThreshold = 0.2, highThreshold = 0.3)
+        weighted.copy(
+          statistic = AccessScoreCalculator.SlopeStatistic.MetersOverLimit,
+          lowThreshold = 0.2,
+          highThreshold = 0.3
+        )
       ),
       (
         "custom thresholds move the ramp",
@@ -342,7 +349,7 @@ object AccessScoreParityFixtureGen {
         "the over-limit statistic finds no lengths on a coarse-model row",
         ramp,
         Some(netOnly(0.2)),
-        weighted.copy(statistic = AccessScoreCalculator.MetersOverLimit, includeApproximate = true)
+        weighted.copy(statistic = AccessScoreCalculator.SlopeStatistic.MetersOverLimit, includeApproximate = true)
       ),
       ("an unsampled street takes no slope term", hilly, None, weighted.copy(barrierEnabled = true)),
       (

@@ -66,7 +66,7 @@ object AccessScoreCalculator {
      */
     case StreetCondition
   }
-  export Scoring.*
+  import Scoring.*
 
   /**
    * Per-type scoring configuration.
@@ -499,9 +499,9 @@ object AccessScoreCalculator {
      */
     case MetersOverLimit
   }
-  export SlopeStatistic.*
+  import SlopeStatistic.*
 
-  /** The statistics in the order a control lists them. */
+  /** The statistics in the order a control lists them, which is the order the enum declares them in. */
   val slopeStatistics: Seq[SlopeStatistic] = SlopeStatistic.values.toSeq
 
   /** The API's snake_case name for a slope statistic, the one source for both the config and the tool's URL. */

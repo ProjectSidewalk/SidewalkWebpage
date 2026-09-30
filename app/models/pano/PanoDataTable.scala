@@ -101,7 +101,7 @@ case class PanoDataSlim(
 )
 
 object PanoDataSlim {
-  // snake_case keys for the Json.writes macros below.
+  // snake_case keys for the Json.writes macro below.
   private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   given panoDataSlimWrites: Writes[PanoDataSlim] = Json.writes[PanoDataSlim]

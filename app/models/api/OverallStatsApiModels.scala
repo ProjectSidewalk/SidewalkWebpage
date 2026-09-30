@@ -46,7 +46,7 @@ case class AiConcurrence(
 )
 
 object AiConcurrence {
-  // snake_case keys for the Json.writes macros below.
+  // snake_case keys for the Json.writes macro below.
   private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   private val voteTypeOrder: Seq[String] = Seq("human_majority_vote", "admin_majority_vote")

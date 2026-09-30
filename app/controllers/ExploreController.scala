@@ -239,7 +239,7 @@ class ExploreController @Inject() (
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
   }
 
-  def getTasksInARoute(userRouteId: Int) = Action.async { _ =>
+  def getTasksInARoute(userRouteId: Int) = Action.async {
     exploreService
       .selectTasksInRoute(userRouteId)
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))

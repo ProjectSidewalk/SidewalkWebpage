@@ -311,12 +311,12 @@ class AdminDashboardController @Inject() (
    */
   def reopenStreet(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     streetLifecycleService.reopenStreet(streetEdgeId).map {
-      case StreetLifecycleService.Reopened =>
+      case StreetLifecycleService.ReopenOutcome.Reopened =>
         cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ReopenStreet_Street=$streetEdgeId")
         Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId))
-      case StreetLifecycleService.NotNoImagery(current) =>
+      case StreetLifecycleService.ReopenOutcome.NotNoImagery(current) =>
         Conflict(Json.obj("status" -> "Error", "message" -> s"Street $streetEdgeId is '$current', not 'no_imagery'."))
-      case StreetLifecycleService.StreetNotFound =>
+      case StreetLifecycleService.ReopenOutcome.StreetNotFound =>
         NotFound(Json.obj("status" -> "Error", "message" -> s"No street with id $streetEdgeId."))
     }
   }

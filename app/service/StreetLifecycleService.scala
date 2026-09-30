@@ -95,7 +95,6 @@ object StreetLifecycleService {
     /** No street with the given id exists. */
     case StreetNotFound
   }
-  export ReopenOutcome.*
 
   /** Window the Street Status trend defaults to, in weeks. Half a year reads as a season-scale trend at chart width. */
   val DefaultTrendWeeks: Int = 26
@@ -260,8 +259,8 @@ class StreetLifecycleServiceImpl @Inject() (
       outcome <-
         if (flipped == 0) {
           sql"SELECT status::text FROM street_edge WHERE street_edge_id = $streetEdgeId".as[String].headOption.map {
-            case Some(status) => StreetLifecycleService.NotNoImagery(status)
-            case None         => StreetLifecycleService.StreetNotFound
+            case Some(status) => StreetLifecycleService.ReopenOutcome.NotNoImagery(status)
+            case None         => StreetLifecycleService.ReopenOutcome.StreetNotFound
           }
         } else {
           for {
@@ -274,12 +273,12 @@ class StreetLifecycleServiceImpl @Inject() (
             """
             _ <- streetReopenCandidateTable.delete(streetEdgeId)
             _ <- regionCompletionTable.truncateTable
-          } yield StreetLifecycleService.Reopened
+          } yield StreetLifecycleService.ReopenOutcome.Reopened
         }
     } yield outcome
 
     db.run(action.transactionally).flatMap {
-      case StreetLifecycleService.Reopened => cacheApi.removeAll().map(_ => StreetLifecycleService.Reopened)
+      case StreetLifecycleService.ReopenOutcome.Reopened => cacheApi.removeAll().map(_ => StreetLifecycleService.ReopenOutcome.Reopened)
       case other                           => Future.successful(other)
     }
   }
