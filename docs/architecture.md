@@ -153,8 +153,10 @@ every card that shows a crop — the Gallery card, the landing validation grid, 
 (`css/components/pano-attribution.css` is the shared look; each host positions the pill). A card that falls back to
 the Street View Static API still drops the overlay: Google bakes its own logo and copyright into that image. The
 providers' live viewers draw their own pill, and Mapillary's is left inside the SDK's DOM rather than moved into the
-control layer, because the SDK patches it in place per image (#5600). That keeps it accurate but under the transparent
-control layer, so its links don't take clicks; the pano info popover carries the view-in-Mapillary link.
+control layer, because the SDK patches it in place per image (#5600). That keeps it accurate but, on desktop, under
+the transparent control layer, so its links take no pointer clicks (they stay in the tab order); the pano info popover
+carries the view-in-Mapillary link. Mobile Validate's control layer is click-through, so taps reach it there. The
+image-adjustment filter sits on the mount, so it dims the pill along with the imagery, as it does Google's logo.
 
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.

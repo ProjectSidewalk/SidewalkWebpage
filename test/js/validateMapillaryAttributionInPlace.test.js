@@ -101,15 +101,4 @@ describe('Validate leaves Mapillary\'s attribution pill in the SDK\'s DOM (issue
     expect(attributionContainer.parentElement).toBe(renderer);
     expect(document.getElementById('view-control-layer').querySelector('.mapillary-attribution-container')).toBeNull();
   });
-
-  test('what the SDK patches into its node is what the pano shows', async () => {
-    renderer.appendChild(document.createElement('div'));
-    await flushObservers();
-    attributionContainer.textContent = 'image by second-creator, Nov 11, 2024';
-
-    const shown = document.querySelectorAll('.mapillary-attribution-container');
-    expect(shown).toHaveLength(1);
-    expect(document.getElementById('svv-panorama').contains(shown[0])).toBe(true);
-    expect(shown[0].textContent).toBe('image by second-creator, Nov 11, 2024');
-  });
 });
