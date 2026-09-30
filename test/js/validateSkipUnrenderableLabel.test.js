@@ -144,7 +144,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
   }
 
   test('creating the manager loads no pano, so the first label\'s setPanorama is its only load (#5581)', async () => {
-    // A load here as well had the first label pay two deadlines on a slow network before the validator saw anything.
+    // A load here as well would make the first label pay two deadlines on a slow network before anything shows.
     expect(fakeViewer.setPano).not.toHaveBeenCalled();
 
     await panoManager.setPanorama('pano1', null);

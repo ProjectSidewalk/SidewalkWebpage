@@ -67,9 +67,9 @@ class PanoManager {
   /**
    * Initializes panoViewer on the validate page, without loading a pano.
    *
-   * The first label's pano is loaded by the first setPanorama, like every other label's. Loading it here as well made
-   * the first label pay two load deadlines on a slow network, the first of them behind the page's loading overlay with
-   * its failure type thrown away (#5581); setPanorama has the Pannellum fallback and reports a slow load as slow.
+   * The first label's pano is loaded by the first setPanorama, like every other label's. Loading it here as well would
+   * make the first label pay two load deadlines on a slow network, the first of them behind the page's loading overlay
+   * with its failure type lost (#5581); setPanorama has the Pannellum fallback and reports a slow load as slow.
    *
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
