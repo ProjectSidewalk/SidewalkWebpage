@@ -1,9 +1,13 @@
 package models.utils
 
+import models.user.SidewalkUserTable
+import slick.dbio.DBIO
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import util.{RolledBackDb, SidewalkSpec}
+
+import java.time.{OffsetDateTime, ZoneOffset}
 
 /**
  * Integration tests for the v3 API analytics query methods on WebpageActivityTable.
@@ -94,6 +98,36 @@ class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with G
         row.uniqueIps must be >= 0L
       }
       results.map(_.source).distinct.size mustBe results.size // No duplicate source rows.
+    }
+  }
+
+  "The sign-up and sign-in queries" should {
+    // A day no real row falls on, so the per-day counts below only see the rows this test adds.
+    val day  = OffsetDateTime.of(2001, 1, 1, 12, 0, 0, 0, ZoneOffset.UTC)
+    val user = Some(SidewalkUserTable.aiUserId)
+    val rows = Seq(
+      WebpageActivity(0, user, IpAddress("10.0.0.1"), "SignUp", day),
+      WebpageActivity(0, user, IpAddress("10.0.0.1"), "AnonAutoSignUp_url=\"/explore\"", day),
+      WebpageActivity(0, user, IpAddress("10.0.0.1"), "SignInSuccess_Email=\"a@b.c\"", day),
+      WebpageActivity(0, user, IpAddress("10.0.0.1"), "SignInFailed_Email=\"a@b.c\"_Reason=\"invalid credentials\"",
+        day),
+      WebpageActivity(0, None, IpAddress("10.0.0.1"), "SignUp", day)
+    )
+
+    "count the logged activity strings and skip rows with no user" in {
+      val (signInsBefore, signUps, signInsAfter, byDate) = runRolledBack(for {
+        before <- table.getSignInTimesAndCounts
+        _      <- DBIO.sequence(rows.map(table.insert))
+        ups    <- table.getSignUpTimes
+        after  <- table.getSignInTimesAndCounts
+        daily  <- table.getSignInCountsByDate
+      } yield (before.toMap, ups.toMap, after.toMap, daily.filter(_.day.toLocalDate == day.toLocalDate)))
+
+      val aiUser = SidewalkUserTable.aiUserId
+      signUps.get(aiUser).flatten mustBe defined
+      // The anonymous sign-up and the successful sign-in count; the failed attempt doesn't.
+      signInsAfter(aiUser)._1 - signInsBefore.get(aiUser).map(_._1).getOrElse(0) mustBe 2
+      byDate.map(c => c.isAnonymous -> c.count).toMap mustBe Map(true -> 1, false -> 1)
     }
   }
 }

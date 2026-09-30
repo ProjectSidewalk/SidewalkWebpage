@@ -4,7 +4,8 @@
 ALTER TABLE webpage_activity ALTER COLUMN user_id DROP NOT NULL;
 
 # --- !Downs
+-- Older code can't read a row with no user, so give those rows back to the anonymous account. NOT NULL stays off,
+-- since restoring it scans and locks the whole table and older code never writes an empty user anyway.
 UPDATE webpage_activity
 SET user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username = 'anonymous')
 WHERE user_id IS NULL;
-ALTER TABLE webpage_activity ALTER COLUMN user_id SET NOT NULL;

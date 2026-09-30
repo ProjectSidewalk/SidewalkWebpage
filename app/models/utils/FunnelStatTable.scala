@@ -130,8 +130,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
     val b      = bounds(windowDays)
     val events =
       s"""
-        SELECT user_id, 1 AS step FROM "$schema".webpage_activity
-            WHERE activity IN ('Visit_Index', 'Visit_MobileLanding') ${b.wa}
+        SELECT user_id, 1 AS step FROM ${arrivals(schema)} ${b.wa}
         UNION ALL
         SELECT user_id, 2 AS step FROM "$schema".mission WHERE mission_type = 'auditOnboarding' ${b.mStart}
         UNION ALL
@@ -161,8 +160,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
     val b      = bounds(windowDays)
     val events =
       s"""
-        SELECT user_id, 1 AS step FROM "$schema".webpage_activity
-            WHERE activity IN ('Visit_Index', 'Visit_MobileLanding') ${b.wa}
+        SELECT user_id, 1 AS step FROM ${arrivals(schema)} ${b.wa}
         UNION ALL
         SELECT user_id, 2 AS step FROM ${realLabels(schema)} WHERE TRUE ${b.label}
         UNION ALL
@@ -173,6 +171,18 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       """
     computeFunnel(schema, events, numSteps = 3)
   }
+
+  /**
+   * Rows for the funnel's "visited" step: a landing-page visit or getting an account. A landing visit made before the
+   * visitor had a session is logged with no user, so most people who start mapping are only seen here through their
+   * sign-up.
+   *
+   * @return A FROM clause and the start of a WHERE, for `bounds` to extend with `AND`.
+   */
+  private def arrivals(schema: String): String =
+    s""""$schema".webpage_activity
+        WHERE user_id IS NOT NULL
+          AND (activity IN ('Visit_Index', 'Visit_MobileLanding', 'SignUp') OR activity LIKE 'AnonAutoSignUp%')"""
 
   /**
    * Labels for the funnel's "placed a label" step. Keeps excluded users, or they'd look like they quit there.
@@ -242,7 +252,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
                             ELSE NULL END AS dev,
                        1 AS prio
                 FROM "$schema".webpage_activity
-                WHERE activity IN ('Visit_Index', 'Visit_MobileLanding')
+                WHERE activity IN ('Visit_Index', 'Visit_MobileLanding') AND user_id IS NOT NULL
             ) hints
             WHERE dev IS NOT NULL
             ORDER BY user_id, prio DESC, (dev = 'desktop') DESC
@@ -255,8 +265,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
             FROM events
             LEFT JOIN sidewalk_login.user_role ON events.user_id = user_role.user_id
             LEFT JOIN device ON device.user_id = events.user_id
-            -- Visits with no session have no user to follow down the funnel.
-            WHERE events.user_id IS NOT NULL AND user_role.role IS DISTINCT FROM 'AI'
+            WHERE user_role.role IS DISTINCT FROM 'AI'
             GROUP BY events.user_id
             -- A funnel starts at step 1: only count users who actually have the step-1 (visit) event. Without this, a
             -- user with downstream activity but no logged visit (e.g. an auto-created tutorial mission) would be counted

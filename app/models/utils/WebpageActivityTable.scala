@@ -8,6 +8,7 @@ import slick.jdbc.GetResult
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.ExecutionContext
 
 case class WebpageActivity(
     webpageActivityId: Int,
@@ -49,8 +50,9 @@ class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "web
 trait WebpageActivityTableRepository {}
 
 @Singleton
-class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
-    extends WebpageActivityTableRepository
+class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
+    ec: ExecutionContext
+) extends WebpageActivityTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val activities = TableQuery[WebpageActivityTableDef]
@@ -60,15 +62,24 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
     (activities returning activities.map(_.webpageActivityId)) += activity
   }
 
+  // Each of these is logged with details appended (`AnonAutoSignUp_url="/explore"`, `SignInSuccess_Email="…"`), except
+  // `SignIn`, which is logged bare right after a `SignUp`.
+  private def isAnonSignUp(a: WebpageActivityTableDef): Rep[Boolean] = a.activity like "AnonAutoSignUp%"
+  private def isSignUp(a: WebpageActivityTableDef): Rep[Boolean]     = a.activity === "SignUp" || isAnonSignUp(a)
+  private def isRealSignIn(a: WebpageActivityTableDef): Rep[Boolean] =
+    a.activity === "SignIn" || (a.activity like "SignInSuccess%")
+  private def isAnySignIn(a: WebpageActivityTableDef): Rep[Boolean] = isRealSignIn(a) || isAnonSignUp(a)
+
   /**
    * Get the time that each user signed up (if we have it logged).
    */
   def getSignUpTimes: DBIO[Seq[(String, Option[OffsetDateTime])]] = {
     activities
-      .filter(a => (a.activity inSet Seq("AnonAutoSignUp", "SignUp")) && a.userId.isDefined)
-      .groupBy(_.userId.get)
+      .filter(isSignUp)
+      .groupBy(_.userId)
       .map { case (_userId, group) => (_userId, group.map(_.timestamp).max) }
       .result
+      .map(_.collect { case (Some(userId), time) => (userId, time) })
   }
 
   /**
@@ -76,27 +87,25 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def getSignInTimesAndCounts: DBIO[Seq[(String, (Int, Option[OffsetDateTime]))]] = {
     activities
-      .filter(row => (row.activity === "AnonAutoSignUp" || (row.activity like "SignIn%")) && row.userId.isDefined)
-      .groupBy(_.userId.get)
+      .filter(isAnySignIn)
+      .groupBy(_.userId)
       .map { case (_userId, rows) => (_userId, (rows.length, rows.map(_.timestamp).max)) }
       .result
+      .map(_.collect { case (Some(userId), countAndTime) => (userId, countAndTime) })
   }
 
   /**
    * Daily count of successful sign-in events, split by whether the signer is anonymous.
    *
-   * Registered logins log `SignIn` / `SignInSuccess`; anonymous sessions log `AnonAutoSignUp`. Failed attempts
-   * (`SignInAttempt`, `SignInFailed`) are excluded — they aren't sign-ins, and their activity strings embed the typed
-   * email address. The anon flag is derived from the activity name, which already distinguishes the two cases, so no
+   * Failed and throttled attempts are left out. The activity name already says whether the signer was anonymous, so no
    * role join is needed.
    *
    * @return One row per day and anon flag, sorted ascending; `day` is the timestamp truncated to the day.
    */
   def getSignInCountsByDate: DBIO[Seq[DailyCountByAnon]] = {
-    val successfulSignIns = Seq("SignIn", "SignInSuccess")
     activities
-      .filter(a => (a.activity inSet successfulSignIns) || a.activity === "AnonAutoSignUp")
-      .map(a => (a.timestamp.trunc("day"), a.activity === "AnonAutoSignUp", a.webpageActivityId))
+      .filter(isAnySignIn)
+      .map(a => (a.timestamp.trunc("day"), isAnonSignUp(a), a.webpageActivityId))
       .groupBy { case (day, isAnon, _) => (day, isAnon) }
       .map { case ((day, isAnon), group) => (day, isAnon, group.length) }
       .sortBy { case (day, _, _) => day }

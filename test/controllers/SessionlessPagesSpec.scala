@@ -106,19 +106,22 @@ class SessionlessPagesSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
     }
 
     "accept a cookie-less activity beacon (POST /userapi/logWebpageActivity) and log it with no user" in {
-      val activity = s"Test_SessionlessBeacon_${System.nanoTime}"
-      val resp     = route(
-        app,
-        FakeRequest(POST, "/userapi/logWebpageActivity").withJsonBody(Json.toJson(activity)).withCSRFToken
-      ).get
-      status(resp) mustBe OK
-      cookies(resp).get(authCookieName) mustBe None
-
-      // The beacon answers before its row is written.
       val activities = app.injector.instanceOf[WebpageActivityTable].activities
-      eventually {
-        run(activities.filter(_.activity === activity).map(_.userId).result) mustBe Seq(None)
-      }
+      val activity   = s"Test_SessionlessBeacon_${System.nanoTime}"
+      // Searching only rows newer than this keeps the lookup on the primary key instead of the whole table.
+      val lastId = run(activities.map(_.webpageActivityId).max.result).getOrElse(0)
+      val mine   = activities.filter(a => a.webpageActivityId > lastId && a.activity === activity)
+      try {
+        val resp = route(
+          app,
+          FakeRequest(POST, "/userapi/logWebpageActivity").withJsonBody(Json.toJson(activity)).withCSRFToken
+        ).get
+        status(resp) mustBe OK
+        cookies(resp).get(authCookieName) mustBe None
+
+        // The beacon answers before its row is written.
+        eventually { run(mine.map(_.userId).result) mustBe Seq(None) }
+      } finally { run(mine.delete): Unit }
     }
   }
 
