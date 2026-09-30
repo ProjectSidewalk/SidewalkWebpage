@@ -50,7 +50,7 @@ case class Config(
 )
 
 /** How much a city's typical contributor labels and validates, and how fast they validate; zeros when nobody has. */
-case class CityContributorOutput(
+type CityContributorOutput = (
     labelMedian: Double,
     labelP90: Double,
     numLabelers: Int,
@@ -915,8 +915,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityContributorOutputBySchema(schema: String): DBIO[CityContributorOutput] = {
     given getResult: GetResult[CityContributorOutput] = r =>
-      CityContributorOutput(r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(),
-        r.nextDouble())
+      (r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble())
 
     sql"""
       SELECT COALESCE(lbl.median, 0), COALESCE(lbl.p90, 0), COALESCE(lbl.n, 0),

@@ -63,19 +63,19 @@ case class ValidationCount(
 }
 
 /** How many agree, disagree, and unsure votes a validation mission has so far. */
-case class ValidationResultCounts(agreeCount: Int, disagreeCount: Int, unsureCount: Int)
+type ValidationResultCounts = (agreeCount: Int, disagreeCount: Int, unsureCount: Int)
 
 /** How many validations a user has given, and when they gave their most recent one. */
-case class UserValidationCount(userId: String, count: Int, latest: Option[OffsetDateTime])
+type UserValidationCount = (userId: String, count: Int, latest: Option[OffsetDateTime])
 
 /** How many votes with one result a user has cast. */
-case class UserValidationResultCount(userId: String, validationResult: ValidationOption, count: Int)
+type UserValidationResultCount = (userId: String, validationResult: ValidationOption, count: Int)
 
 /** How many votes with one result were cast by AI (or by humans). */
-case class ValidatorRoleResultCount(isAi: Boolean, validationResult: ValidationOption, count: Int)
+type ValidatorRoleResultCount = (isAi: Boolean, validationResult: ValidationOption, count: Int)
 
 /** One vote as the admin Activity stream shows it. */
-case class RecentValidation(
+type RecentValidation = (
     labelId: Int,
     labelType: String,
     username: String,
@@ -169,7 +169,7 @@ class LabelValidationTable @Inject() (
       .result
       .map { results =>
         val countByResult: Map[ValidationOption, Int] = results.toMap
-        ValidationResultCounts(
+        (
           agreeCount = countByResult.getOrElse(ValidationOption.Agree, 0),
           disagreeCount = countByResult.getOrElse(ValidationOption.Disagree, 0),
           unsureCount = countByResult.getOrElse(ValidationOption.Unsure, 0)
@@ -354,7 +354,7 @@ class LabelValidationTable @Inject() (
       // A user with only archived votes has no live row to join onto, so the union of both key sets drives the result.
       (liveByUser.keySet ++ archivedByUser.keySet).toSeq.map { userId =>
         val (liveCount, latest) = liveByUser.getOrElse(userId, (0, None))
-        UserValidationCount(userId, liveCount + archivedByUser.getOrElse(userId, 0), latest)
+        (userId, liveCount + archivedByUser.getOrElse(userId, 0), latest)
       }
     }
   }
@@ -435,7 +435,7 @@ class LabelValidationTable @Inject() (
     validations
       .filter(_.userId inSet userIds)
       .groupBy(v => (v.userId, v.validationResult))
-      .map { case ((userId, result), group) => (userId, result, group.length).mapTo[UserValidationResultCount] }
+      .map { case ((userId, result), group) => (userId, result, group.length) }
       .result
   }
 
@@ -452,7 +452,7 @@ class LabelValidationTable @Inject() (
       _userRole   <- userRoles if _validation.userId === _userRole.userId
     } yield (_userRole.role === Role.Ai, _validation.validationResult))
       .groupBy { case (isAi, result) => (isAi, result) }
-      .map { case ((isAi, result), group) => (isAi, result, group.length).mapTo[ValidatorRoleResultCount] }
+      .map { case ((isAi, result), group) => (isAi, result, group.length) }
       .result
   }
 
@@ -475,7 +475,7 @@ class LabelValidationTable @Inject() (
       .take(n)
       .map { case (_validation, _user, _label) =>
         (_validation.labelId, _label.labelTypeName, _user.username, _validation.validationResult,
-          _validation.endTimestamp).mapTo[RecentValidation]
+          _validation.endTimestamp)
       }
       .result
   }

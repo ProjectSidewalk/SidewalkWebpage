@@ -37,7 +37,7 @@ case class SidewalkUserWithRole(
 ) extends Identity
 
 /** A user's id, name, and role. */
-case class UserNameAndRole(userId: String, username: String, role: Role)
+type UserNameAndRole = (userId: String, username: String, role: Role)
 
 /** One account an admin's user search matched, with the name of the team they're on. */
 case class UserSearchResult(userId: String, username: String, email: String, role: Role, team: Option[String])
@@ -129,7 +129,7 @@ class SidewalkUserTable @Inject() (
   def getUserIdAndRoleByUsernames(usernames: Seq[String]): DBIO[Seq[UserNameAndRole]] = {
     sidewalkUserToRoleJoin
       .filter { case (user, _) => user.username inSet usernames }
-      .map { case (user, userRole) => (user.userId, user.username, userRole.role).mapTo[UserNameAndRole] }
+      .map { case (user, userRole) => (user.userId, user.username, userRole.role) }
       .result
   }
 

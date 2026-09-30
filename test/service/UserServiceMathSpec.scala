@@ -1,6 +1,5 @@
 package service
 
-import models.user.LabelTypeTally
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 
@@ -61,7 +60,7 @@ class UserServiceMathSpec extends AnyFunSuite with Matchers {
   }
 
   test("accuracy: only primary label types are kept, ordered canonically, with correct percentages") {
-    val rows = Seq(LabelTypeTally("Obstacle", 5, 5), LabelTypeTally("CurbRamp", 9, 1), LabelTypeTally("Other", 8, 2))
+    val rows = Seq(("Obstacle", 5, 5), ("CurbRamp", 9, 1), ("Other", 8, 2))
     val acc  = UserService.computeAccuracyByType(rows)
     acc.map(_.labelType) shouldBe Seq("CurbRamp", "Obstacle") // canonical order; "Other" dropped
     acc.head.pct shouldBe 90
@@ -71,12 +70,12 @@ class UserServiceMathSpec extends AnyFunSuite with Matchers {
   }
 
   test("accuracy: a type with no validated labels is excluded") {
-    UserService.computeAccuracyByType(Seq(LabelTypeTally("Signal", 0, 0))) shouldBe empty
+    UserService.computeAccuracyByType(Seq(("Signal", 0, 0))) shouldBe empty
   }
 
   test("accuracy: 'weakest' flags the lowest-percentage type, but only among those with >= 5 validations") {
     // Signal is lower (33%) but has only 3 validations, so CurbRamp (the only >= 5) is the weakest.
-    val acc = UserService.computeAccuracyByType(Seq(LabelTypeTally("CurbRamp", 9, 1), LabelTypeTally("Signal", 1, 2)))
+    val acc = UserService.computeAccuracyByType(Seq(("CurbRamp", 9, 1), ("Signal", 1, 2)))
     acc.find(_.labelType == "CurbRamp").get.weakest shouldBe true
     acc.find(_.labelType == "Signal").get.weakest shouldBe false
   }

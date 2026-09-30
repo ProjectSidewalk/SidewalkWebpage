@@ -17,7 +17,7 @@ import scala.concurrent.ExecutionContext
  * @param panoWidth  The pano's width as `pano_data` records it — the frame `panoX` is expressed in — or None.
  * @param panoHeight The pano's height as `pano_data` records it, or None.
  */
-case class CropCandidate(
+type CropCandidate = (
     labelId: Int,
     labelType: LabelType,
     panoId: String,
@@ -35,7 +35,7 @@ case class CropCandidate(
  *                     the canvas has the same aspect ratio.
  * @param aiGenerated  Whether an AI placed it, in which case no browser ever snapshotted a canvas for it.
  */
-case class ProvenanceCandidate(
+type ProvenanceCandidate = (
     labelId: Int,
     labelType: LabelType,
     timeCreated: OffsetDateTime,

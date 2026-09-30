@@ -18,7 +18,7 @@ case class WebpageActivity(
 )
 
 /** One day's count of sign-ins or active users, for either anonymous or registered users. */
-case class DailyCountByAnon(day: OffsetDateTime, isAnonymous: Boolean, count: Int)
+type DailyCountByAnon = (day: OffsetDateTime, isAnonymous: Boolean, count: Int)
 
 /** Analytics data types for the v3 API usage dashboard. */
 case class ApiEndpointCount(endpoint: String, count: Long)
@@ -100,7 +100,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
       .groupBy { case (day, isAnon, _) => (day, isAnon) }
       .map { case ((day, isAnon), group) => (day, isAnon, group.length) }
       .sortBy { case (day, _, _) => day }
-      .map { case (day, isAnon, count) => (day, isAnon, count).mapTo[DailyCountByAnon] }
+      .map { case (day, isAnon, count) => (day, isAnon, count) }
       .result
   }
 
@@ -122,7 +122,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
       .groupBy { case (day, isAnon, _) => (day, isAnon) }
       .map { case ((day, isAnon), group) => (day, isAnon, group.map { case (_, _, userId) => userId }.countDistinct) }
       .sortBy { case (day, _, _) => day }
-      .map { case (day, isAnon, count) => (day, isAnon, count).mapTo[DailyCountByAnon] }
+      .map { case (day, isAnon, count) => (day, isAnon, count) }
       .result
   }
 

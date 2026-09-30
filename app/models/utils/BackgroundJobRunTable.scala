@@ -60,7 +60,7 @@ case class BackgroundJobRun(
 )
 
 /** How many scheduled runs of a job ended a given way; see [[BackgroundJobRunTable.outcomeCountsSince]]. */
-case class JobOutcomeCount(jobName: String, status: JobRunStatus, abandoned: Boolean, count: Int)
+type JobOutcomeCount = (jobName: String, status: JobRunStatus, abandoned: Boolean, count: Int)
 
 class BackgroundJobRunTableDef(tag: Tag) extends Table[BackgroundJobRun](tag, "background_job_run") {
   def backgroundJobRunId: Rep[Int]    = column[Int]("background_job_run_id", O.PrimaryKey, O.AutoInc)
@@ -111,7 +111,7 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
   private given getJobSuccess: GetResult[(String, OffsetDateTime)] = r => (r.nextString(), r.nextOffsetDateTime())
 
   private given getOutcomeCount: GetResult[JobOutcomeCount] =
-    r => JobOutcomeCount(r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt())
+    r => (r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt())
 
   /**
    * Opens a run row, before the work starts, so a job that dies mid-run still leaves a trace.

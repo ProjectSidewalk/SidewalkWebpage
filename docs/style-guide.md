@@ -243,7 +243,11 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
   `implicit request =>` on an action block, which has no shorter Scala 3 spelling.
 - **Use Slick for database access**, not raw SQL, wherever possible — you get compile-time type checking. When you
   must write SQL, **avoid table aliases**.
-- **Read query results by name, not by position** — return a case class rather than a tuple, so nothing reads `row._3`.
+- **Read query results by name, not by position**, so nothing reads `row._3`. A row shape that exists for one query
+  and its consumer is a named tuple, `type UserLabelCount = (userId: String, count: Int, latest: Option[Instant])`:
+  a lifted query's plain tuple already conforms to it (no `mapTo`), a plain-SQL reader just returns the tuple, and
+  fields read as `row.count` or match as `case (userId = u, count = c)`. Anything with JSON writes, methods, a
+  companion, or several consumers is a case class.
 - **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
   extension method in Slick, turf.js on the frontend. Never measure by projecting to a fixed SRID: a projection is
   only accurate near its own meridian (measuring every city through UTM zone 18N overstated street distances by up
