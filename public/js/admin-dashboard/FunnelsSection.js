@@ -17,9 +17,9 @@ class FunnelsSection {
    * here but kept parallel to the Across Cities page for consistency. Covers both funnels.
    */
   static #STEP_LABELS = {
-    visited:                { full: 'Visited site' },
+    visited:                { full: 'New account, visited this city' },
     tutorial_started:       { full: 'Started tutorial' },
-    tutorial_finished:      { full: 'Finished or skipped tutorial' },
+    tutorial_finished:      { full: 'Finished or skipped tutorial, in any city' },
     took_step:              { full: 'Took a step' },
     labeled:                { full: 'Placed a label' },
     mission_completed:      { full: 'Completed a mapping mission' },

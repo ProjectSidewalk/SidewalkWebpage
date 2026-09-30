@@ -51,9 +51,9 @@ class AcrossCitiesPage {
    * for the comparison-table column headers. Covers both the mapping and contribution funnels.
    */
   static #FUNNEL_STEP_LABELS = {
-    visited:                { full: 'Visited site',                     short: 'Visited' },
+    visited:                { full: 'New account, visited this city',   short: 'New' },
     tutorial_started:       { full: 'Started tutorial',                short: 'Tutorial start' },
-    tutorial_finished:      { full: 'Finished or skipped tutorial',    short: 'Tutorial done' },
+    tutorial_finished:      { full: 'Finished or skipped tutorial, in any city', short: 'Tutorial done' },
     took_step:              { full: 'Took a step',                     short: 'Took a step' },
     labeled:                { full: 'Placed a label',                  short: 'Labeled' },
     mission_completed:      { full: 'Completed a mapping mission',     short: 'Mission done' },

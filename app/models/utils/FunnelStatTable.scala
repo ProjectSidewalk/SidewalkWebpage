@@ -122,29 +122,29 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    * mission" signals are omitted because they duplicate the tutorial-start and tutorial-finish steps (the missions are
    * auto-created).
    *
+   * The tutorial is done once per account, in whichever city, so finishing it counts from `user_account_state` rather
+   * than this city's missions. Someone who did it elsewhere and maps here shows every step here.
+   *
    * @param schema     The database schema to compute over.
    * @param windowDays The trailing window in days, or None for all-time.
    * @return           One [[FunnelSegmentCounts]] (6 steps) per non-empty segment.
    */
   def computeMappingFunnelBySchema(schema: String, windowDays: Option[Int]): DBIO[Seq[FunnelSegmentCounts]] = {
-    val b      = bounds(windowDays)
     val events =
       s"""
-        SELECT user_id, 1 AS step FROM ${arrivals(schema)} ${b.wa}
+        SELECT user_id, 2 AS step FROM "$schema".mission WHERE mission_type = 'auditOnboarding'
         UNION ALL
-        SELECT user_id, 2 AS step FROM "$schema".mission WHERE mission_type = 'auditOnboarding' ${b.mStart}
-        UNION ALL
-        SELECT user_id, 3 AS step FROM "$schema".mission
-            WHERE mission_type = 'auditOnboarding' AND completed = TRUE ${b.mEnd}
+        SELECT user_id, 3 AS step FROM sidewalk_login.user_account_state
+            WHERE explore_tutorial_completed_at IS NOT NULL
         UNION ALL
         SELECT user_id, 4 AS step FROM "$schema".mission
-            WHERE mission_type = 'audit' AND COALESCE(distance_progress, 0) > 0 ${b.mStart}
+            WHERE mission_type = 'audit' AND COALESCE(distance_progress, 0) > 0
         UNION ALL
-        SELECT user_id, 5 AS step FROM ${realLabels(schema)} WHERE TRUE ${b.label}
+        SELECT user_id, 5 AS step FROM ${realLabels(schema)}
         UNION ALL
-        SELECT user_id, 6 AS step FROM "$schema".mission WHERE mission_type = 'audit' AND completed = TRUE ${b.mEnd}
+        SELECT user_id, 6 AS step FROM "$schema".mission WHERE mission_type = 'audit' AND completed = TRUE
       """
-    computeFunnel(schema, events, numSteps = 6)
+    computeFunnel(schema, windowDays, events, numSteps = 6)
   }
 
   /**
@@ -157,32 +157,17 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    * @return           One [[FunnelSegmentCounts]] (3 steps) per non-empty segment.
    */
   def computeContributionFunnelBySchema(schema: String, windowDays: Option[Int]): DBIO[Seq[FunnelSegmentCounts]] = {
-    val b      = bounds(windowDays)
     val events =
       s"""
-        SELECT user_id, 1 AS step FROM ${arrivals(schema)} ${b.wa}
+        SELECT user_id, 2 AS step FROM ${realLabels(schema)}
         UNION ALL
-        SELECT user_id, 2 AS step FROM ${realLabels(schema)} WHERE TRUE ${b.label}
-        UNION ALL
-        SELECT user_id, 2 AS step FROM "$schema".label_validation WHERE TRUE ${b.validation}
+        SELECT user_id, 2 AS step FROM "$schema".label_validation
         UNION ALL
         SELECT user_id, 3 AS step FROM "$schema".mission
-            WHERE mission_type IN ('audit', 'validation') AND completed = TRUE ${b.mEnd}
+            WHERE mission_type IN ('audit', 'validation') AND completed = TRUE
       """
-    computeFunnel(schema, events, numSteps = 3)
+    computeFunnel(schema, windowDays, events, numSteps = 3)
   }
-
-  /**
-   * Rows for the funnel's "visited" step: a landing-page visit or getting an account. A landing visit made before the
-   * visitor had a session is logged with no user, so most people who start mapping are only seen here through their
-   * sign-up.
-   *
-   * @return A FROM clause and the start of a WHERE, for `bounds` to extend with `AND`.
-   */
-  private def arrivals(schema: String): String =
-    s""""$schema".webpage_activity
-        WHERE user_id IS NOT NULL
-          AND (activity IN ('Visit_Index', 'Visit_MobileLanding', 'SignUp') OR activity LIKE 'AnonAutoSignUp%')"""
 
   /**
    * Labels for the funnel's "placed a label" step. Keeps excluded users, or they'd look like they quit there.
@@ -191,20 +176,12 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    */
   private def realLabels(schema: String): String = FilteredTables.labels(Some(schema), Contributors.Everyone)
 
-  /** Per-source window-bound SQL fragments (empty for all-time). windowDays is an Int, so it is safe to interpolate. */
-  private case class Bounds(wa: String, mStart: String, mEnd: String, label: String, validation: String)
-  private def bounds(windowDays: Option[Int]): Bounds = {
-    def bound(col: String): String =
-      windowDays.map(d => s"AND $col >= NOW() - ($d * INTERVAL '1 day')").getOrElse("")
-    Bounds(
-      wa = bound("webpage_activity.timestamp"), mStart = bound("mission.mission_start"),
-      mEnd = bound("mission.mission_end"), label = bound("label.time_created"),
-      validation = bound("label_validation.end_timestamp")
-    )
-  }
-
   /**
-   * Runs a funnel: from a per-step `events` body (each row is a (user_id, step) for a step the user reached), reduce to
+   * Runs a funnel over the accounts made in the window that have visited this city (step 1, the `cohort`). Their
+   * later steps count whenever they happened, so a window only decides who is new. Accounts are shared across cities,
+   * so someone who signed up elsewhere earlier is left out here too, even on their first visit to this city.
+   *
+   * From a per-step `events` body (each row is a (user_id, step) for a step the user reached), reduce to
    * each user's DEEPEST step, classify role and device, then count per segment with `COUNT(*) FILTER (WHERE deepest >=
    * k)`. The max-reached-step method guarantees a monotonic, nested funnel even though the source events are not
    * naturally nested. Device is all-time (a user attribute), not windowed. The AI user is excluded; anonymous users are
@@ -217,19 +194,45 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    * `ControllerUtils.isMobile` — the product's single mobile definition, which gates live requests (#4887) — and must
    * never be treated as one: keep this regex out of product gates, and keep product gates out of here.
    *
-   * @param schema   The database schema (already validated as a configured city schema).
-   * @param events   The UNION ALL body producing (user_id, step) rows.
-   * @param numSteps How many step columns to aggregate (6 for mapping, 3 for contribution).
-   * @return         One [[FunnelSegmentCounts]] per non-empty segment.
+   * @param schema     The database schema (already validated as a configured city schema).
+   * @param windowDays The trailing window in days, or None for all-time.
+   * @param events     The UNION ALL body producing (user_id, step) rows for steps 2 and up.
+   * @param numSteps   How many step columns to aggregate (6 for mapping, 3 for contribution).
+   * @return           One [[FunnelSegmentCounts]] per non-empty segment.
    */
-  private def computeFunnel(schema: String, events: String, numSteps: Int): DBIO[Seq[FunnelSegmentCounts]] = {
+  private def computeFunnel(
+      schema: String,
+      windowDays: Option[Int],
+      events: String,
+      numSteps: Int
+  ): DBIO[Seq[FunnelSegmentCounts]] = {
     given getResult: GetResult[FunnelSegmentCounts] =
       GetResult(r => FunnelSegmentCounts(r.nextString(), Vector.fill(numSteps)(r.nextInt())))
     val filterCols =
       (1 to numSteps).map(k => s"COUNT(*) FILTER (WHERE deepest >= $k) AS s$k").mkString(",\n             ")
+    // windowDays is an Int, so it is safe to interpolate. A visit can't come before the account, so bounding the
+    // visits too only saves reading old rows.
+    val newSince = windowDays
+      .map(d =>
+        s"AND sidewalk_user.created_at >= NOW() - ($d * INTERVAL '1 day')" +
+          s" AND webpage_activity.timestamp >= NOW() - ($d * INTERVAL '1 day')"
+      )
+      .getOrElse("")
     val query =
       s"""
-        WITH events AS ( $events ),
+        WITH cohort AS (
+            SELECT DISTINCT webpage_activity.user_id
+            FROM "$schema".webpage_activity
+            INNER JOIN sidewalk_login.sidewalk_user ON sidewalk_user.user_id = webpage_activity.user_id
+            WHERE TRUE $newSince
+        ),
+        events AS (
+            SELECT user_id, 1 AS step FROM cohort
+            UNION ALL
+            SELECT later.user_id, later.step
+            FROM ( $events ) later
+            INNER JOIN cohort ON cohort.user_id = later.user_id
+        ),
         device AS (
             SELECT DISTINCT ON (user_id) user_id, dev
             FROM (
@@ -267,12 +270,6 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
             LEFT JOIN device ON device.user_id = events.user_id
             WHERE user_role.role IS DISTINCT FROM 'AI'
             GROUP BY events.user_id
-            -- A funnel starts at step 1: only count users who actually have the step-1 (visit) event. Without this, a
-            -- user with downstream activity but no logged visit (e.g. an auto-created tutorial mission) would be counted
-            -- in step 1 via deepest >= 1, inflating "visited" and making it differ between funnels that draw from
-            -- different downstream tables. Anchoring on step 1 makes step 1 = distinct visitors, identical across funnels
-            -- and a true superset of every later step (#288).
-            HAVING bool_or(events.step = 1)
         ),
         segmented AS (
             SELECT deepest, 'all' AS segment FROM per_user
