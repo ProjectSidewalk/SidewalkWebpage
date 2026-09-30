@@ -89,8 +89,10 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
 
 - **Scala: 3.9.0** — the 3.9 LTS line. Edit `scalaVersion` in `build.sbt`. Our libraries are published for 3.3,
   which a newer compiler consumes fine. A bump mostly surfaces new warnings, and the compiler can fix many of
-  them itself: `set scalacOptions ++= Seq("-rewrite", "-source", "3.x-migration")` then `compile; Test/compile`.
-  [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
+  them itself, but only in a build without `-Werror` (a failed compile writes no fixes):
+  `set scalacOptions := scalacOptions.value.filterNot(_ == "-Werror") ++ Seq("-rewrite", "-source", "3.x-migration")`
+  then `compile; Test/compile`.
+  [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala3/releases)
 - **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
   `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump
   (Compose won't rebuild on its own). sbt **2.x** is gated on Play: its `sbt-plugin` has no sbt 2 build outside the

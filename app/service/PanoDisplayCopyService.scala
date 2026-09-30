@@ -166,18 +166,15 @@ class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(us
   /**
    * Hands the cut to [[cutPool]], answering Unavailable rather than failing when there is no room for it.
    *
-   * The queue is bounded and the policy is abort, so `execute` throws here instead of growing without limit. That
-   * throw is synchronous, and it has to be caught here rather than recovered downstream: it would otherwise escape
-   * `computeIfAbsent` and reach the controller as an exception instead of an answer.
+   * The queue is bounded and the policy is abort, so a full pool rejects the task instead of growing without limit.
+   * `Future` catches that rejection and hands it back as a failed future, so it is recovered here, on the future,
+   * and never reaches the controller as an exception.
    */
-  private def submitCut(panoId: String, native: File, target: File, maxWidth: Int): Future[DisplayCopy] = {
-    try Future(cut(panoId, native, target, maxWidth))(using cutEc)
-    catch {
-      case _: RejectedExecutionException =>
-        logger.warn(s"No room to cut a ${maxWidth}px display copy of pano $panoId; refusing.")
-        Future.successful(DisplayCopy.Unavailable)
-    }
-  }
+  private def submitCut(panoId: String, native: File, target: File, maxWidth: Int): Future[DisplayCopy] =
+    Future(cut(panoId, native, target, maxWidth))(using cutEc).recover { case _: RejectedExecutionException =>
+      logger.warn(s"No room to cut a ${maxWidth}px display copy of pano $panoId; refusing.")
+      DisplayCopy.Unavailable
+    }(using ExecutionContext.parasitic)
 
   /**
    * Cuts the copy, or answers Unavailable if anything about it fails — an unreadable pano, a full disk, a raster the
