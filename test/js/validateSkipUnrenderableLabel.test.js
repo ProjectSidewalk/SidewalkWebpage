@@ -475,12 +475,14 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(svv.tracker.push).toHaveBeenCalledWith('PanoLoadingStatus_Shown', {labelId: 1, panoId: 'panoA'});
   });
 
-  test('the next label\'s pano is prefetched once a label is on screen', async () => {
+  test('the next two labels\' panos are prefetched once a label is on screen', async () => {
     const labelContainer = await buildContainer();
-    expect(svv.panoManager.prefetchPano).toHaveBeenLastCalledWith('panoB');
+    expect(svv.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId)).toEqual(['panoB', 'panoC']);
 
+    svv.panoManager.prefetchPano.mockClear();
     await labelContainer.moveToNextLabel();
-    expect(svv.panoManager.prefetchPano).toHaveBeenLastCalledWith('panoC');
+    // The queue ends at C, so only it is left to warm; nothing is fetched past the end.
+    expect(svv.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId)).toEqual(['panoC']);
   });
 });
 

@@ -82,6 +82,9 @@ class PanoManager {
       accessToken: viewerAccessToken,
       defaultNavigation: false,
       scrollwheel: util.isMobile(),
+      // Nothing in Validate follows a pano's links, and Mapillary reports them in a graph request that can trail the
+      // image by seconds; a load that waited for them kept the canvas hidden that much longer (#5581).
+      linkedPanos: false,
     };
     // Every move in Validate is a jump between unrelated panos, so Mapillary's default animated transition only adds
     // frames of the wrong place, turning from the old label's heading (#5582). Explore keeps it: walking between

@@ -344,10 +344,13 @@ corresponding Twirl view:
   on their first try and no replacements are requested, so a dead network reaches the imagery modal in minutes
   rather than a quarter of an hour. A failed load during an undo abandons the undo instead (the label is already
   validated, so it must not be deferred or owed): the label undone from is shown again and Back is disabled.
-  `PanoManager.create` loads no pano; the first label's `setPanorama` is its only load. The label after the current
-  one is prefetched through
-  `PanoViewer.prefetchPano`. `PanoLoadingStatus` shows "Loading imagery…" over the pano (`#svv-pano-loading`, a
-  polite live region in both views, so boxed, immersive and mobile share it): at once when the pano area is blank for
+  `PanoManager.create` loads no pano; the first label's `setPanorama` is its only load. The two labels after the
+  current one are prefetched through `PanoViewer.prefetchPano` (Mapillary caches the image's metadata and
+  thumbnail, which is what `moveTo` waits on). Validate and the label popup pass the `linkedPanos: false` pano
+  option, so a Mapillary load resolves as soon as the image is set instead of after the linked-pano graph request
+  that only Explore's navigation reads. `PanoLoadingStatus` shows "Loading imagery…" over the pano
+  (`#svv-pano-loading`, a polite live region in both views, so boxed, immersive and mobile share it): at once when
+  the pano area is blank for
   the load (`PanoManager.blanksPanoWhileLoading`, true for a paints-during-load primary or an empty pano area), after
   2 s when the outgoing pano stays up. The screen-reader announcement and the `PanoLoadingStatus_Shown` event always
   wait the 2 s, so neither fires for fast labels. It switches to "Still loading, trying the next label…" when a label

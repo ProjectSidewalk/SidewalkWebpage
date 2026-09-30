@@ -8,6 +8,13 @@ class LabelContainer {
   // luck — imagery is broadly unavailable (a provider outage or quota). Stop asking and tell the user (#4810).
   static #MAX_TOP_UP_ROUNDS = 2;
 
+  /**
+   * How many upcoming labels have their pano warmed while the current one is judged. Two covers a fast verdict on the
+   * next label without fetching thumbnails for a queue the validator may never reach.
+   * @type {number}
+   */
+  static #PREFETCH_AHEAD = 2;
+
   // Loads a label gets before a slow one is dropped (#5581). The first slow load sends it to the back of the queue,
   // since the pano exists and often loads on a second try once the CDN has warmed; a second one means this network
   // can't fetch it in time today, and holding the validator for a third deadline would cost more than the label.
@@ -235,10 +242,12 @@ class LabelContainer {
       // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
       svv.labelVisibilityControl?.unhideLabel();
 
-      // Warm the next label's pano while this one is being judged, since a jump to an unrelated pano never hits the
-      // provider's own neighbor cache (#5581). One ahead is enough: validators take seconds per label.
-      const nextLabel = this.#labels[this.#currLabelIndex + 1];
-      if (nextLabel) svv.panoManager.prefetchPano(nextLabel.getAuditProperty('panoId'));
+      // Warm the next labels' panos while this one is being judged, since a jump to an unrelated pano never hits the
+      // provider's own neighbor cache (#5581). Two ahead, so a quick verdict on the next label still finds the one
+      // after it warm; the fetch is a thumbnail and metadata per label, cheap enough to sometimes waste.
+      const first = this.#currLabelIndex + 1;
+      const upcoming = this.#labels.slice(first, first + LabelContainer.#PREFETCH_AHEAD);
+      for (const label of upcoming) svv.panoManager.prefetchPano(label.getAuditProperty('panoId'));
     } catch (error) {
       // The only trace a render failure leaves. It used to announce itself by stranding the lock, which turned every
       // later tap and keypress into a ValidateInputDropped_Loading — unusable for the validator, but at least loud.

@@ -369,6 +369,18 @@ describe('MapillaryViewer.setPano tells a missing pano from a slow one (issue #5
     expect(jest.getTimerCount()).toBe(0);
   });
 
+  test('a viewer that opted out of linked panos resolves as soon as the image is set, listening for nothing', async () => {
+    buildViewer(() => Promise.resolve(makeImage('pano1', false)));
+    viewer.wantsLinkedPanos = false;
+
+    const panoData = await viewer.setPano('pano1');
+
+    expect(panoData.getPanoId()).toBe('pano1');
+    expect(panoData.getProperty('linkedPanos')).toEqual([]);
+    expect(sdk.listeners.spatialedges ?? []).toEqual([]);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
   test('linked panos that arrive late are used, and the wait cleans up after itself', async () => {
     buildViewer(() => Promise.resolve(makeImage('pano1', false)));
 

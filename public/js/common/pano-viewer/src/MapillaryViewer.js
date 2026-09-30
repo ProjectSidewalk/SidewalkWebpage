@@ -65,6 +65,11 @@ class MapillaryViewer extends PanoViewer {
     // A function to update image metadata after a pano change; only used if move happens thru Mapillary nav arrows.
     this.updateImageData = undefined;
 
+    // Whether a load waits for the SDK's linked-pano graph before resolving. Only Explore's navigation reads the
+    // links, and the graph request can lag the image by seconds, so callers that only show a pano (Validate, the
+    // label popup) opt out through the `linkedPanos` pano option and get the pano the moment it is drawn.
+    this.wantsLinkedPanos = true;
+
     // Prefetched image search results, keyed by location. Each entry is { centerPoint, promise: Promise<Array> }.
     // Call prefetchLocation() to populate, clearPrefetchCache() to reset between streets.
     this.prefetchedSearches = [];
@@ -81,6 +86,8 @@ class MapillaryViewer extends PanoViewer {
     const disableDefaultUi = 'disableDefaultUi' in panoOptions ? panoOptions.disableDefaultUi : true;
     const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
     const preloadNeighbors = 'preloadNeighbors' in panoOptions ? panoOptions.preloadNeighbors : false;
+    const { linkedPanos = true, ...sdkOptions } = panoOptions; // Ours, not the SDK's; see wantsLinkedPanos.
+    this.wantsLinkedPanos = linkedPanos;
     let panoOpts = {
       dataProvider: createMapillaryChunkedDataProvider({ accessToken: panoOptions.accessToken }),
       container: canvasElem.id,
@@ -99,7 +106,7 @@ class MapillaryViewer extends PanoViewer {
         zoom: 'zoomControl' in panoOptions ? panoOptions.zoomControl : false,
       },
     };
-    panoOpts = { ...panoOpts, ...panoOptions };
+    panoOpts = { ...panoOpts, ...sdkOptions };
     this.viewer = new mapillary.Viewer(panoOpts);
 
     // Restrict to panoramas -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
@@ -169,6 +176,10 @@ class MapillaryViewer extends PanoViewer {
     // reports them in a separate graph request that can lag the image by seconds; a pano whose links never arrive in
     // time is still the right pano, so it resolves with none rather than failing the load (#5581).
     const edgesInitialized = new Promise((resolve) => {
+      if (!this.wantsLinkedPanos) {
+        resolve([]);
+        return;
+      }
       // Use links if they're already cached.
       if (newImage._cache._spatialEdges.cached) {
         resolve(newImage._cache._spatialEdges.edges);

@@ -221,6 +221,9 @@ class PopupPanoManager {
         accessToken: this.#viewerAccessToken,
         scrollwheel: true,
         defaultNavigation: !!this.#admin, // Only allow navigation on admin version, not on normal LabelMap.
+        // The popup never reads a pano's links (the admin arrows are the SDK's own), and waiting for Mapillary's
+        // linked-pano graph only delays the reveal (#5581).
+        linkedPanos: false,
       };
       // Paging through labels jumps between unrelated panos, where Mapillary's animated transition only shows the
       // wrong place turning toward the next label (#5582). The SDK global only exists on pages that load Mapillary.
