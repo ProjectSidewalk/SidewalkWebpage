@@ -307,10 +307,15 @@
   transform-origin: bottom left;
 }
 
-/* Scale Mapillary's attribution links with the UI. */
-#view-control-layer .mapillary-attribution-container {
-  bottom: calc(3px * var(--ui-scale)) !important;
-  right: calc(2px * var(--ui-scale)) !important;
+/* Scale Mapillary's attribution pill with the UI where the SDK renders it. It stays inside the SDK's DOM because the
+   SDK patches its creator and date in place per image, and a node moved out of that tree keeps whatever it last said
+   (#5600). That leaves it under the transparent control layer, so its links don't take clicks; the pano info popover
+   carries the view-in-Mapillary link instead. Lifting it with a z-index would only hold while #svv-panorama is not a
+   stacking context, and the isolation above and the image-adjustment filter (PanoImageAdjustments) both make it one.
+   The ID selector is what outranks the vendor's position. */
+#svv-panorama .mapillary-attribution-container {
+  bottom: calc(3px * var(--ui-scale));
+  right: calc(2px * var(--ui-scale));
   transform: scale(var(--ui-scale));
   transform-origin: bottom right;
 }
