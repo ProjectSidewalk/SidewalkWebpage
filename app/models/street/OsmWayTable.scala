@@ -83,11 +83,12 @@ class OsmWayTable @Inject() (
     val speedByStreet = osmWayStreetEdges
       .join(osmWays)
       .on(_.osmWayId === _.osmWayId)
-      .map(x => (x._1.streetEdgeId, x._2.maxspeed))
+      .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.maxspeed) }
 
-    streetEdgeTable.streetsWithTutorial.joinLeft(speedByStreet).on(_.streetEdgeId === _._1).map { case (_edge, _sp) =>
-      (_edge.streetEdgeId, _sp.flatMap(_._2))
-    }
+    streetEdgeTable.streetsWithTutorial
+      .joinLeft(speedByStreet)
+      .on { case (_edge, (speedEdgeId, _)) => _edge.streetEdgeId === speedEdgeId }
+      .map { case (_edge, _sp) => (_edge.streetEdgeId, _sp.flatMap { case (_, maxspeed) => maxspeed }) }
   }
 
   /**
@@ -100,7 +101,7 @@ class OsmWayTable @Inject() (
       .filter(_.streetEdgeId inSetBind streetEdgeIds)
       .join(osmWays)
       .on(_.osmWayId === _.osmWayId)
-      .map(x => (x._1.streetEdgeId, x._2.maxspeed))
+      .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.maxspeed) }
       .result
       .map(_.collect { case (streetEdgeId, Some(maxspeed)) => streetEdgeId -> maxspeed }.toMap)
   }
@@ -120,7 +121,7 @@ class OsmWayTable @Inject() (
         .filter(_.streetEdgeId inSet streetEdgeIds)
         .join(osmWays)
         .on(_.osmWayId === _.osmWayId)
-        .map(x => (x._1.streetEdgeId, x._2.tags.+>>("name").?))
+        .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.tags.+>>("name").?) }
         .result
         .map(_.collect { case (streetEdgeId, Some(name)) if name.trim.nonEmpty => streetEdgeId -> name.trim }.toMap)
   }
@@ -190,9 +191,9 @@ class OsmWayTable @Inject() (
     osmWays
       .filter(_.geom.isDefined)
       .map(way => (way, way.geom.distanceSphereD(makePoint(lng.bind, lat.bind).setSRID(4326))))
-      .filter(_._2 < radiusM)
-      .sortBy(_._2)
-      .map(_._1)
+      .filter { case (_, distanceM) => distanceM < radiusM }
+      .sortBy { case (_, distanceM) => distanceM }
+      .map { case (way, _) => way }
       .result
       .headOption
   }

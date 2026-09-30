@@ -182,8 +182,8 @@ class StoryTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .join(users)
       .on(_.userId === _.userId)
       .joinLeft(storyMedia)
-      .on(_._1.storyId === _.storyId)
-      .sortBy(_._1._1.createdAt.desc)
+      .on { case ((story, _), media) => story.storyId === media.storyId }
+      .sortBy { case ((story, _), _) => story.createdAt.desc }
       .result
       .map(_.map { case ((story, user), media) => (story, media, user.username) })
   }
@@ -195,8 +195,8 @@ class StoryTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .join(labels)
       .on(_.labelId === _.labelId)
       .joinLeft(storyMedia)
-      .on(_._1.storyId === _.storyId)
-      .sortBy(_._1._1.createdAt.desc)
+      .on { case ((story, _), media) => story.storyId === media.storyId }
+      .sortBy { case ((story, _), _) => story.createdAt.desc }
       .result
       .map(_.map { case ((story, label), media) => (story, media, label.labelType) })
   }
@@ -221,10 +221,10 @@ class StoryTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     } yield (story, user.username, label.labelType, label.panoId, region.regionId, region.name)
     visibleWithPlace
       .joinLeft(storyMedia)
-      .on(_._1.storyId === _.storyId)
+      .on { case ((story, _, _, _, _, _), media) => story.storyId === media.storyId }
       .joinLeft(panoData)
-      .on(_._1._4 === _.panoId)
-      .sortBy(_._1._1._1.createdAt.desc)
+      .on { case (((_, _, _, panoId, _, _), _), pano) => panoId === pano.panoId }
+      .sortBy { case (((story, _, _, _, _, _), _), _) => story.createdAt.desc }
       .take(n)
       .result
       .map(_.map { case (((story, username, labelType, _, regionId, regionName), media), pano) =>
@@ -238,10 +238,10 @@ class StoryTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .join(users)
       .on(_.userId === _.userId)
       .join(labels)
-      .on(_._1.labelId === _.labelId)
+      .on { case ((story, _), label) => story.labelId === label.labelId }
       .joinLeft(storyMedia)
-      .on(_._1._1.storyId === _.storyId)
-      .sortBy(_._1._1._1.createdAt.desc)
+      .on { case (((story, _), _), media) => story.storyId === media.storyId }
+      .sortBy { case (((story, _), _), _) => story.createdAt.desc }
       .take(n)
       .result
       .map(_.map { case (((story, user), label), media) => (story, media, user.username, label.labelType) })

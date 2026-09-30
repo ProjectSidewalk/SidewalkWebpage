@@ -196,9 +196,10 @@ class RouteServiceImpl @Inject() (
         usage      <- usageFuture
         geometries <- geometriesFuture
       } yield {
-        val polylines: Map[Int, String] = geometries.groupBy(_._1).map { case (routeId, streets) =>
-          routeId -> encodeRouteGeometry(streets.map { case (_, reverse, geom) => (reverse, geom) })
-        }
+        val polylines: Map[Int, String] =
+          geometries.groupBy { case (routeId, _, _) => routeId }.map { case (routeId, streets) =>
+            routeId -> encodeRouteGeometry(streets.map { case (_, reverse, geom) => (reverse, geom) })
+          }
         routes.map { route =>
           val (started, completed) = usage.getOrElse(route.routeId, (0, 0))
           val polyline: String     = polylines.getOrElse(route.routeId, "")

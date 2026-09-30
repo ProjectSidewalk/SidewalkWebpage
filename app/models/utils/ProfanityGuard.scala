@@ -51,7 +51,7 @@ object ProfanityGuard {
     'y' -> "у"
   ).flatMap { case (letter, chars) => chars.map(_ -> letter) }.toMap
 
-  private val symbolStandIns: Map[Char, Char] = standIns.filterNot(_._1.isDigit)
+  private val symbolStandIns: Map[Char, Char] = standIns.filterNot { case (standIn, _) => standIn.isDigit }
 
   // A "word" this short is more likely a piece of something split up than a word of its own.
   private val maxShortWordLength: Int = 2

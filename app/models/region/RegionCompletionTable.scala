@@ -56,9 +56,9 @@ class RegionCompletionTable @Inject() (
       _rc <- regionCompletions
       _r  <- regionsWithoutDeleted if _rc.regionId === _r.regionId
       if (_r.regionId inSetBind regionIds) || regionIds.isEmpty
-    } yield (_r.regionId, _r.name, _rc.totalDistance, _rc.auditedDistance)
+    } yield (_r.regionId, _r.name, _rc.totalDistance, _rc.auditedDistance).mapTo[NamedRegionCompletion]
 
-    namedRegionCompletions.result.map(_.map(NamedRegionCompletion.apply.tupled))
+    namedRegionCompletions.result
   }
 
   /**
@@ -83,8 +83,8 @@ class RegionCompletionTable @Inject() (
       regionId: Int <- streetEdgeRegion
         .join(regionsWithoutDeleted)
         .on(_.regionId === _.regionId)
-        .filter(_._1.streetEdgeId === streetEdgeId)
-        .map(_._2.regionId)
+        .filter { case (streetRegion, _) => streetRegion.streetEdgeId === streetEdgeId }
+        .map { case (_, region) => region.regionId }
         .result
         .head
 
@@ -94,9 +94,11 @@ class RegionCompletionTable @Inject() (
         .join(streetEdgeTable.streets)
         .on(_.streetEdgeId === _.streetEdgeId)
         .join(streetEdgePriorityTable)
-        .on(_._1.streetEdgeId === _.streetEdgeId)
-        .filter(x => x._1._1.regionId === regionId && x._2.priority === 1.0)
-        .filterNot(_._1._1.streetEdgeId === streetEdgeId)
+        .on { case ((streetRegion, _), priority) => streetRegion.streetEdgeId === priority.streetEdgeId }
+        .filter { case ((streetRegion, _), priority) =>
+          streetRegion.regionId === regionId && priority.priority === 1.0
+        }
+        .filterNot { case ((streetRegion, _), _) => streetRegion.streetEdgeId === streetEdgeId }
         .exists
         .result
 

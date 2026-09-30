@@ -277,7 +277,11 @@ class MissionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       if !(_mission.missionType inSet MissionType.onboardingTypes)
     } yield _mission.missionEnd.trunc("day")
 
-    completedMissions.groupBy(x => x).map { case (day, group) => (day, group.length) }.sortBy(_._1).result
+    completedMissions
+      .groupBy(day => day)
+      .map { case (day, group) => (day, group.length) }
+      .sortBy { case (day, _) => day }
+      .result
   }
 
   /**

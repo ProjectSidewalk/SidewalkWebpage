@@ -54,13 +54,13 @@ class RegionTable @Inject() (
       .filterNot(_.regionId inSetBind excludedRegionIds)
       .join(streetEdgePriorities)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._1.regionId)
-      .map { case (rId, group) => (rId, group.map(_._2.priority).avg) } // Get avg priority by region
+      .groupBy { case (streetRegion, _) => streetRegion.regionId }
+      .map { case (rId, group) => (rId, group.map { case (_, priority) => priority.priority }.avg) }
       .join(regionsWithoutDeleted)
-      .on(_._1 === _.regionId) // Get the full region instead of just the region_id
-      .sortBy(_._1._2.desc)
+      .on { case ((rId, _), region) => rId === region.regionId }
+      .sortBy { case ((_, avgPriority), _) => avgPriority.desc }
       .take(5)
-      .map(_._2) // Take the 5 with highest average priority
+      .map { case (_, region) => region }
       .sortBy(_ => random)
       .result
       .headOption // Randomly select one of the 5
@@ -106,16 +106,16 @@ class RegionTable @Inject() (
     val incompleteRegionsForUser = streetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
       .joinLeft(userTasks)
       .on(_.streetEdgeId === _.streetEdgeId) // LEFT JOIN audit_task
-      .filter(_._2.isEmpty)                  // WHERE audit_task.audit_task_id IS NULL
-      .groupBy(_._1.regionId)                // GROUP BY region_id
-      .map(_._1)                             // SELECT region_id
+      .filter { case (_, task) => task.isEmpty } // WHERE audit_task.audit_task_id IS NULL
+      .groupBy { case (streetRegion, _) => streetRegion.regionId } // GROUP BY region_id
+      .map { case (regionId, _) => regionId } // SELECT region_id
 
     // Left join all regions against the ones the user hasn't finished to record completion status.
     regionsWithoutDeleted
       .filter(_r => (_r.regionId inSetBind regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
       .joinLeft(incompleteRegionsForUser)
       .on(_.regionId === _)
-      .map(x => (x._1, x._2.isEmpty))
+      .map { case (region, incomplete) => (region, incomplete.isEmpty) }
       .result
   }
 

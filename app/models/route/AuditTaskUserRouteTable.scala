@@ -68,8 +68,8 @@ class AuditTaskUserRouteTable @Inject() (
           val streetsInRoute = userRoutes
             .join(routeStreets)
             .on(_.routeId === _.routeId)
-            .filter(_._1.userRouteId === userRouteId)
-            .map(_._2)
+            .filter { case (userRoute, _) => userRoute.userRouteId === userRouteId }
+            .map { case (_, routeStreet) => routeStreet }
           // Rows this walk has already linked. Excluding them keeps the fallback from handing every traversal of
           // a repeated street the same row, which would leave the later ones unlinked and the route never
           // completing.
@@ -87,8 +87,8 @@ class AuditTaskUserRouteTable @Inject() (
                   .filter(_.auditTaskId === auditTaskId)
                   .join(streetsInRoute.filterNot(_.routeStreetId in linked))
                   .on(_.streetEdgeId === _.streetEdgeId)
-                  .sortBy(_._2.position)
-                  .map(_._2.routeStreetId)
+                  .sortBy { case (_, routeStreet) => routeStreet.position }
+                  .map { case (_, routeStreet) => routeStreet.routeStreetId }
                   .result
                   .headOption
             }

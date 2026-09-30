@@ -403,12 +403,8 @@ class ApiServiceImpl @Inject() (
     db.run(backgroundJobRunTable.lastSuccessfulFinish(jobName))
 
   def getLabelCVMetadata(batchSize: Int): Source[LabelCVMetadata, ?] = {
-    // NOTE can't use `setUpStreamFromDb` here bc we need to call `mapResult` to convert tuples to `LabelCVMetadata`.
     Source.fromPublisher(
-      db.stream(
-        labelTable.getLabelCVMetadata.transactionally
-          .withStatementParameters(fetchSize = batchSize)
-      ).mapResult(LabelCVMetadata.apply.tupled)
+      db.stream(labelTable.getLabelCVMetadata.transactionally.withStatementParameters(fetchSize = batchSize))
     )
   }
 
@@ -505,7 +501,7 @@ class ApiServiceImpl @Inject() (
     db.run(streetEdgeTable.getStreetTypes).map { wayTypeCounts =>
       // Transform to StreetTypeForApi objects with descriptions.
       wayTypeCounts
-        .sortBy(_._1.name)
+        .sortBy { case (wayType, _) => wayType.name }
         .map { case (wayType, count) =>
           val description: String = messagesApi(s"way.type.${wayType.name.replace("_", ".")}")(lang)
           StreetTypeForApi(wayType.name, description, count)

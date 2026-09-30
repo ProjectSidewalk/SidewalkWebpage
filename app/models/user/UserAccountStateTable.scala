@@ -73,8 +73,8 @@ class UserAccountStateTable @Inject() (protected val dbConfigProvider: DatabaseC
     userAccountStates
       .join(TableQuery[SidewalkUserTableDef])
       .on(_.userId === _.userId)
-      .filter(_._2.email === email.toLowerCase)
-      .map(_._1.sessionsRevokedAt)
+      .filter { case (_, user) => user.email === email.toLowerCase }
+      .map { case (accountState, _) => accountState.sessionsRevokedAt }
       .result
       .headOption
       .map(_.flatten)

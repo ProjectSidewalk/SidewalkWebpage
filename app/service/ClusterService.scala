@@ -110,8 +110,8 @@ class ClusterServiceImpl @Inject() (
           "failed, see error above"
         }
       _ = logger.info(s"AccessScore Spotlight snapshot: $snapshotSummary")
-      counts <- apiService.getClusteringInfo // Gets the counts to show how many labels were clustered.
-    } yield ClusteringResults(labelCount = counts._1, clusterCount = counts._2)
+      (labelCount, clusterCount) <- apiService.getClusteringInfo // How many labels were clustered, into how many.
+    } yield ClusteringResults(labelCount = labelCount, clusterCount = clusterCount)
   }
 
   /**

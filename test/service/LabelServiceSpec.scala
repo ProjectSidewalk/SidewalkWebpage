@@ -51,8 +51,7 @@ class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPe
     )
 
     "order labels newest-first when recentFirst is set" in {
-      // Tuple position 7 is the label's timestamp (see LabelValidationMetadataTuple).
-      val timestamps = run(query(recentFirst = true).take(50).result).map(_._7)
+      val timestamps = run(query(recentFirst = true).take(50).result).map(_.timestamp)
       timestamps.zip(timestamps.drop(1)).foreach { case (newer, older) => newer.isBefore(older) mustBe false }
     }
 

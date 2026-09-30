@@ -3,8 +3,20 @@ package models.userdashboard
 import models.user.Role
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import slick.jdbc.GetResult
 
 import javax.inject.*
+
+/**
+ * One week the user placed in the top 3 by label count.
+ *
+ * @param weekOf The week's start date as ISO yyyy-MM-dd; the caller formats it for the viewer's locale.
+ * @param rank   1-3.
+ */
+case class WeeklyPodium(weekOf: String, rank: Int, labelCount: Int)
+
+/** A region where the user is the top labeler, with their label count there. */
+case class RegionChampion(regionName: String, regionId: Int, labelCount: Int)
 
 /**
  * Read-only queries that compute a user's trophies on the fly from label/region history — there is no stored trophy
@@ -23,6 +35,11 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
   import profile.api.*
 
+  private given weeklyPodiumConverter: GetResult[WeeklyPodium] =
+    GetResult(r => WeeklyPodium(r.nextString(), r.nextInt(), r.nextInt()))
+  private given regionChampionConverter: GetResult[RegionChampion] =
+    GetResult(r => RegionChampion(r.nextString(), r.nextInt(), r.nextInt()))
+
   // Start of the US/Pacific week (Sunday) containing a given date expression — matches the leaderboard's week math.
   private def weekStart(dateExpr: String): String =
     s"(($dateExpr)::date - (cast(extract(dow from ($dateExpr)::date) as int) % 7))"
@@ -32,10 +49,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * @param userId The user whose placements to find.
    * @param limit  Max rows to return.
-   * @return       (week-start date as ISO yyyy-MM-dd, rank 1-3, label count) per qualifying week; the caller
-   *               formats the date for the viewer's locale.
+   * @return       One row per qualifying week.
    */
-  def getWeeklyPodiums(userId: String, limit: Int): DBIO[Seq[(String, Int, Int)]] = {
+  def getWeeklyPodiums(userId: String, limit: Int): DBIO[Seq[WeeklyPodium]] = {
     val labelWeek = weekStart("label.time_created AT TIME ZONE 'US/Pacific'")
     val nowWeek   = weekStart("now() AT TIME ZONE 'US/Pacific'")
     sql"""
@@ -58,7 +74,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       WHERE uid = $userId AND rnk <= 3
       ORDER BY wk DESC
       LIMIT $limit;
-    """.as[(String, Int, Int)]
+    """.as[WeeklyPodium]
   }
 
   /**
@@ -67,9 +83,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @param userId   The user to check.
    * @param aiUserId The AI account id to exclude from the ranking.
    * @param limit    Max regions to return.
-   * @return         (region name, region id, the user's label count in that region).
+   * @return         One row per region the user leads.
    */
-  def getRegionChampions(userId: String, aiUserId: String, limit: Int): DBIO[Seq[(String, Int, Int)]] = {
+  def getRegionChampions(userId: String, aiUserId: String, limit: Int): DBIO[Seq[RegionChampion]] = {
     sql"""
       WITH region_counts AS (
           SELECT street_edge_region.region_id AS rid,
@@ -87,7 +103,7 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       WHERE region_counts.uid = $userId AND region_counts.rnk = 1 AND region.deleted = FALSE
       ORDER BY region_counts.lc DESC
       LIMIT $limit;
-    """.as[(String, Int, Int)]
+    """.as[RegionChampion]
   }
 
   /**

@@ -2,9 +2,11 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
+import models.utils.LiftedRow
 import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.Identity
+import slick.lifted.{FlatShapeLevel, Shape}
 
 import java.time.OffsetDateTime
 import javax.inject.*
@@ -33,6 +35,21 @@ case class SidewalkUserWithRole(
     infra3dAccess: Boolean,
     measurementSystem: Option[MeasurementSystem]
 ) extends Identity
+
+/** [[SidewalkUserWithRole]] while it is still part of a query, so filters can read its columns by name. */
+case class SidewalkUserWithRoleRep(
+    userId: Rep[String],
+    username: Rep[String],
+    email: Rep[String],
+    role: Rep[Role],
+    communityService: Rep[Boolean],
+    infra3dAccess: Rep[Boolean],
+    measurementSystem: Rep[Option[MeasurementSystem]]
+)
+object SidewalkUserWithRoleRep {
+  given Shape[FlatShapeLevel, SidewalkUserWithRoleRep, SidewalkUserWithRole, SidewalkUserWithRoleRep] =
+    LiftedRow.shape(SidewalkUserWithRoleRep.apply.tupled)(SidewalkUserWithRole.apply.tupled)
+}
 
 class SidewalkUserTableDef(tag: Tag) extends Table[SidewalkUser](tag, "sidewalk_user") {
   def userId: Rep[String]   = column[String]("user_id", O.PrimaryKey)
@@ -78,23 +95,24 @@ class SidewalkUserTable @Inject() (
   // A left join, because a user with no user_settings row has every setting at its default.
   val sidewalkUserWithRole = sidewalkUserToRoleJoin
     .joinLeft(userSettings)
-    .on(_._1.userId === _.userId)
+    .on { case ((user, _), settings) => user.userId === settings.userId }
     .map { case ((user, userRole), settings) =>
-      (
-        user.userId,
-        user.username,
-        user.email,
-        userRole.role,
-        settings.map(_.communityService).getOrElse(false),
-        userRoleTable.infra3dAccessForCurrentCity(userRole),
-        settings.flatMap(_.measurementSystem)
+      SidewalkUserWithRoleRep(
+        userId = user.userId,
+        username = user.username,
+        email = user.email,
+        role = userRole.role,
+        communityService = settings.map(_.communityService).getOrElse(false),
+        infra3dAccess = userRoleTable.infra3dAccessForCurrentCity(userRole),
+        measurementSystem = settings.flatMap(_.measurementSystem)
       )
     }
-  val aiUsers    = sidewalkUserToRoleJoin.filter(_._2.role === Role.Ai).map(_._1)
-  val humanUsers = sidewalkUserToRoleJoin.filter(_._2.role =!= Role.Ai).map(_._1)
+  val aiUsers = sidewalkUserToRoleJoin.filter { case (_, role) => role.role === Role.Ai }.map { case (user, _) => user }
+  val humanUsers =
+    sidewalkUserToRoleJoin.filter { case (_, role) => role.role =!= Role.Ai }.map { case (user, _) => user }
 
   def findByUserId(userId: String): Future[Option[SidewalkUserWithRole]] = {
-    db.run(sidewalkUserWithRole.filter(_._1 === userId).result.headOption).map(_.map(SidewalkUserWithRole.apply.tupled))
+    db.run(sidewalkUserWithRole.filter(_.userId === userId).result.headOption)
   }
 
   /**
@@ -105,7 +123,7 @@ class SidewalkUserTable @Inject() (
    */
   def getUserIdAndRoleByUsernames(usernames: Seq[String]): DBIO[Seq[(String, String, Role)]] = {
     sidewalkUserToRoleJoin
-      .filter(_._1.username inSet usernames)
+      .filter { case (user, _) => user.username inSet usernames }
       .map { case (user, userRole) => (user.username, user.userId, userRole.role) }
       .result
   }
@@ -132,7 +150,7 @@ class SidewalkUserTable @Inject() (
     val likeEscapeChar = '|'
 
     sidewalkUserToRoleJoin
-      .filter(_._2.role =!= Role.Anonymous)
+      .filter { case (_, userRole) => userRole.role =!= Role.Anonymous }
       .filter { case (user, _) =>
         user.username.toLowerCase.like(contains, likeEscapeChar) ||
         user.email.toLowerCase.like(contains, likeEscapeChar)
@@ -145,7 +163,7 @@ class SidewalkUserTable @Inject() (
           user.username,
           user.email,
           userRole.role,
-          teamRow.map(_._2.name),
+          teamRow.map { case (_, _team) => _team.name },
           user.username.toLowerCase.like(startsWith, likeEscapeChar)
         )
       }
@@ -156,14 +174,12 @@ class SidewalkUserTable @Inject() (
   }
 
   def findByUsername(username: String): Future[Option[SidewalkUserWithRole]] = {
-    db.run(sidewalkUserWithRole.filter(_._2 === username).result.headOption)
-      .map(_.map(SidewalkUserWithRole.apply.tupled))
+    db.run(sidewalkUserWithRole.filter(_.username === username).result.headOption)
   }
 
   // Emails are stored lower-cased (the schema checks it), so lookups and writes lower-case here, not in every caller.
   def findByEmail(email: String): Future[Option[SidewalkUserWithRole]] = {
-    db.run(sidewalkUserWithRole.filter(_._3 === email.toLowerCase).result.headOption)
-      .map(_.map(SidewalkUserWithRole.apply.tupled))
+    db.run(sidewalkUserWithRole.filter(_.email === email.toLowerCase).result.headOption)
   }
 
   /**

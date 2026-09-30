@@ -1,7 +1,7 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
-import models.api.{AggregateStats, LabelTypeStats}
+import models.api.{AggregateStats, DailyLabelStat, DailyValidationStat, LabelTypeStats}
 import models.label.LabelType
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile.api.{given, *}
@@ -47,6 +47,17 @@ case class Config(
     offsetHours: Int,
     makeCrops: Boolean,
     excludedTags: Seq[ExcludedTag]
+)
+
+/** How much a city's typical contributor labels and validates, and how fast they validate; zeros when nobody has. */
+case class CityContributorOutput(
+    labelMedian: Double,
+    labelP90: Double,
+    numLabelers: Int,
+    validationMedian: Double,
+    validationP90: Double,
+    numValidators: Int,
+    validationSecondsMedian: Double
 )
 
 class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
@@ -113,16 +124,22 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @throws NoSuchElementException if no map parameters are found in the specified schema
    */
   def getCityMapParamsBySchema(schema: String): DBIO[MapParams] = {
+    given getResult: GetResult[MapParams] = GetResult(r =>
+      MapParams(
+        centerLat = r.nextDouble(), centerLng = r.nextDouble(), zoom = r.nextDouble(), lat1 = r.nextDouble(),
+        lng1 = r.nextDouble(), lat2 = r.nextDouble(), lng2 = r.nextDouble()
+      )
+    )
+
     // SQL query with explicit schema reference using double quotes for proper PostgreSQL schema qualification.
     sql"""
       SELECT city_center_lat, city_center_lng, default_map_zoom,
              southwest_boundary_lat, southwest_boundary_lng, northeast_boundary_lat, northeast_boundary_lng
       FROM "#$schema".config
     """
-      .as[(Double, Double, Double, Double, Double, Double, Double)]
+      .as[MapParams]
       .map { rows =>
-        // Extract the first row from the result set (if any).
-        rows.headOption.map(MapParams.apply.tupled).getOrElse {
+        rows.headOption.getOrElse {
           // Throw an exception if no results were found.
           throw new NoSuchElementException(s"No map parameters found in schema: $schema")
         }
@@ -595,7 +612,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
       output      <- getCityContributorOutputBySchema(schema)
     } yield {
-      val (lblMedian, lblP90, nLabelers, valMedian, valP90, nValidators, valSecMedian) = output
       CityScorecard(
         cityId = schema, // Replaced with the real cityId at the service layer; schema is the only id known here.
         totalStreets = core.totalStreets,
@@ -625,13 +641,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         audits30d = core.audits30d,
         lastActivity = core.lastActivity,
         weeklyTrend = weeklyTrend,
-        labelsPerUserMedian = lblMedian,
-        labelsPerUserP90 = lblP90,
-        numLabelers = nLabelers,
-        validationsPerUserMedian = valMedian,
-        validationsPerUserP90 = valP90,
-        numValidators = nValidators,
-        validationSecondsMedian = valSecMedian
+        labelsPerUserMedian = output.labelMedian,
+        labelsPerUserP90 = output.labelP90,
+        numLabelers = output.numLabelers,
+        validationsPerUserMedian = output.validationMedian,
+        validationsPerUserP90 = output.validationP90,
+        numValidators = output.numValidators,
+        validationSecondsMedian = output.validationSecondsMedian
       )
     }
   }
@@ -866,14 +882,16 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * outliers (mirrors the 5-minute idle cap used by the contribution-time stats).
    *
    * @param schema The database schema to query.
-   * @return       (labelMedian, labelP90, numLabelers, valMedian, valP90, numValidators, validationSecondsMedian);
-   *               zeros when a population is empty.
+   * @return       The city's [[CityContributorOutput]]; zeros when a population is empty.
    */
-  def getCityContributorOutputBySchema(schema: String): DBIO[(Double, Double, Int, Double, Double, Int, Double)] = {
-    given getResult: GetResult[(Double, Double, Int, Double, Double, Int, Double)] =
-      GetResult(r =>
-        (r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble())
+  def getCityContributorOutputBySchema(schema: String): DBIO[CityContributorOutput] = {
+    given getResult: GetResult[CityContributorOutput] = GetResult(r =>
+      CityContributorOutput(
+        labelMedian = r.nextDouble(), labelP90 = r.nextDouble(), numLabelers = r.nextInt(),
+        validationMedian = r.nextDouble(), validationP90 = r.nextDouble(), numValidators = r.nextInt(),
+        validationSecondsMedian = r.nextDouble()
       )
+    )
 
     sql"""
       SELECT COALESCE(lbl.median, 0), COALESCE(lbl.p90, 0), COALESCE(lbl.n, 0),
@@ -913,7 +931,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                   AND EXTRACT(EPOCH FROM (label_validation.end_timestamp - label_validation.start_timestamp)) <= 300
           ) vd
       ) vdur;
-    """.as[(Double, Double, Int, Double, Double, Int, Double)].head
+    """.as[CityContributorOutput].head
   }
 
   /**
@@ -1044,16 +1062,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * @param schema           Database schema to query (e.g. "sidewalk_seattle").
    * @param filterLowQuality If true, restrict to user_stat.high_quality; otherwise exclude excluded users.
-   * @return                 Sequence of (date, labelType, humanLabels, aiLabels).
+   * @return                 One row per (date, label type), sorted by date then label type.
    */
   def getCityDailyLabelStatsBySchema(
       schema: String,
       filterLowQuality: Boolean
-  ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
+  ): DBIO[Seq[DailyLabelStat]] = {
     val contributors = Contributors(filterLowQuality)
-
-    given getResult: GetResult[(LocalDate, String, Int, Int)] =
-      GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
 
     schemaHasLabelTypeEnum(schema).flatMap { hasLabelTypeEnum =>
       val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
@@ -1067,7 +1082,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
       GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, #${labelTypeSql.name}
       ORDER BY date ASC, #${labelTypeSql.name}
-      """.as[(LocalDate, String, Int, Int)]
+      """.as[DailyLabelStat]
     }
   }
 
@@ -1082,20 +1097,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * @param schema           Database schema to query.
    * @param filterLowQuality If true, restrict to user_stat.high_quality; otherwise exclude excluded users.
-   * @return                 Sequence of (date, labelType, humanAgree, humanDisagree, humanUnsure,
-   *                         aiAgree, aiDisagree, aiUnsure).
+   * @return                 One row per (date, label type), sorted by date then label type.
    */
   def getCityDailyValidationStatsBySchema(
       schema: String,
       filterLowQuality: Boolean
-  ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
+  ): DBIO[Seq[DailyValidationStat]] = {
     val contributors = Contributors(filterLowQuality)
-
-    given getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
-      GetResult(r =>
-        (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
-          r.nextInt(), r.nextInt())
-      )
 
     schemaHasLabelTypeEnum(schema).zip(schemaHasValidationLabelType(schema)).flatMap {
       case (hasLabelTypeEnum, hasValidationLabelType) =>
@@ -1124,7 +1132,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       WHERE label.deleted = FALSE
       GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, #$typeName
       ORDER BY date ASC, #$typeName
-      """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+      """.as[DailyValidationStat]
     }
   }
 }

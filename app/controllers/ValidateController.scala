@@ -326,7 +326,9 @@ class ValidateController @Inject() (
     } yield {
       val missionJsObject: Option[JsValue] = mission.map(m => Json.toJson(m))
       val progressJsObject                 =
-        missionProgress.map(p => Json.obj("agree_count" -> p._1, "disagree_count" -> p._2, "unsure_count" -> p._3))
+        missionProgress.map { p =>
+          Json.obj("agree_count" -> p.agreeCount, "disagree_count" -> p.disagreeCount, "unsure_count" -> p.unsureCount)
+        }
       val hasDataForMission: Boolean          = labels.nonEmpty
       val labelMetadataJsonSeq: Seq[JsObject] = if (validateParams.adminVersion) {
         labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
@@ -428,8 +430,12 @@ class ValidateController @Inject() (
           "has_mission_available" -> returnValue.hasMissionAvailable,
           "mission"               -> returnValue.mission.map(m => Json.toJson(m)),
           "labels"                -> Json.toJson(labelMetadataJsonSeq),
-          "progress"              -> returnValue.progress.map { case (agreeCount, disagreeCount, unsureCount) =>
-            Json.obj("agree_count" -> agreeCount, "disagree_count" -> disagreeCount, "unsure_count" -> unsureCount)
+          "progress"              -> returnValue.progress.map { p =>
+            Json.obj(
+              "agree_count"    -> p.agreeCount,
+              "disagree_count" -> p.disagreeCount,
+              "unsure_count"   -> p.unsureCount
+            )
           }
         )
       )

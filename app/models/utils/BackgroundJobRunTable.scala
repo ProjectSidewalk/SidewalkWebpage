@@ -59,6 +59,13 @@ case class BackgroundJobRun(
     errorMessage: Option[String]
 )
 
+/**
+ * How many scheduled runs of a job ended a given way; see [[BackgroundJobRunTable.outcomeCountsSince]].
+ *
+ * @param abandoned The run started long enough ago that, if still open, the app never closed it.
+ */
+case class JobOutcomeCount(jobName: String, status: JobRunStatus, abandoned: Boolean, count: Int)
+
 class BackgroundJobRunTableDef(tag: Tag) extends Table[BackgroundJobRun](tag, "background_job_run") {
   def backgroundJobRunId: Rep[Int]    = column[Int]("background_job_run_id", O.PrimaryKey, O.AutoInc)
   def jobName: Rep[String]            = column[String]("job_name")
@@ -108,8 +115,8 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
   private given getJobSuccess: GetResult[(String, OffsetDateTime)] =
     GetResult(r => (r.nextString(), r.nextOffsetDateTime()))
 
-  private given getOutcomeCount: GetResult[(String, JobRunStatus, Boolean, Int)] =
-    GetResult(r => (r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt()))
+  private given getOutcomeCount: GetResult[JobOutcomeCount] =
+    GetResult(r => JobOutcomeCount(r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt()))
 
   /**
    * Opens a run row, before the work starts, so a job that dies mid-run still leaves a trace.
@@ -226,18 +233,18 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
    *
    * @param since          Runs that *started* at or after this instant, so a long run is counted on the night it began.
    * @param abandonedSince A still-open run that started before this instant is abandoned rather than in flight.
-   * @return               (job name, status, whether an open run is abandoned, count) tuples.
+   * @return               One count per (job, status, abandoned) combination that has runs.
    */
   def outcomeCountsSince(
       since: OffsetDateTime,
       abandonedSince: OffsetDateTime
-  ): DBIO[Seq[(String, JobRunStatus, Boolean, Int)]] = {
+  ): DBIO[Seq[JobOutcomeCount]] = {
     // Raw SQL because the staleness flag is a grouped *expression*: Slick emits it in the select list without
     // repeating it in GROUP BY, which Postgres rejects. The ordinal reference keeps the two in step by construction.
     sql"""SELECT job_name, status, started_at < $abandonedSince, COUNT(*)
           FROM background_job_run
           WHERE started_at >= $since
               AND triggered_by = 'scheduled'
-          GROUP BY job_name, status, 3""".as[(String, JobRunStatus, Boolean, Int)]
+          GROUP BY job_name, status, 3""".as[JobOutcomeCount]
   }
 }

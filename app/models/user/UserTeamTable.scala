@@ -41,7 +41,13 @@ class UserTeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
    * @return The team the given user is affiliated with.
    */
   def getTeam(userId: String): DBIO[Option[Team]] = {
-    teams.join(userTeams).on(_.teamId === _.teamId).filter(_._2.userId === userId).map(_._1).result.headOption
+    teams
+      .join(userTeams)
+      .on(_.teamId === _.teamId)
+      .filter { case (_, userTeam) => userTeam.userId === userId }
+      .map { case (team, _) => team }
+      .result
+      .headOption
   }
 
   /**
@@ -54,7 +60,7 @@ class UserTeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       .join(sidewalkUsers)
       .on(_.userId === _.userId)
       .join(userRoles)
-      .on(_._1.userId === _.userId)
+      .on { case ((_userTeam, _), _userRole) => _userTeam.userId === _userRole.userId }
       .map { case ((_userTeam, _user), _userRole) => (_user.userId, _user.username, _userRole.role) }
       .result
   }

@@ -149,7 +149,8 @@ object ImageryFreshnessService {
   /** Distance from the origin to the segment a-b, in the same planar units as the inputs. */
   private def originToSegmentMeters(a: (Double, Double), b: (Double, Double)): Double = {
     val (ax, ay)  = a
-    val (dx, dy)  = (b._1 - ax, b._2 - ay)
+    val (bx, by)  = b
+    val (dx, dy)  = (bx - ax, by - ay)
     val lengthSq  = dx * dx + dy * dy
     val t: Double = if (lengthSq == 0.0) 0.0 else math.max(0.0, math.min(1.0, -(ax * dx + ay * dy) / lengthSq))
     math.hypot(ax + t * dx, ay + t * dy)
@@ -419,7 +420,7 @@ class ImageryFreshnessServiceImpl @Inject() (
               metersToStreet(lat, lng, street.geom) <= StreetImageryTable.PanoStreetToleranceMeters
             })
             val (identified, anonymous) = nearThisStreet.partition(_.panoId.nonEmpty)
-            (identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous).collect {
+            (identified.groupBy(_.panoId).map { case (_, samePano) => samePano.head }.toSeq ++ anonymous).collect {
               case PanoObservation(_, capture, Some((lat, lng))) => PolledPano(lat, lng, capture, pointIndex)
             }
           }

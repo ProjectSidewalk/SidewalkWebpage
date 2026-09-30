@@ -327,7 +327,10 @@ class TrafficServiceImpl @Inject() (
   private def fetchSnapshot(creds: GaCredentials, byCity: Map[String, String]): Future[TrafficSnapshot] =
     accessToken(creds).flatMap { token =>
       // Cities can share a property (e.g. zurich / zurich-infra3d): fetch each property once, row every city.
-      val properties = byCity.toSeq.groupMap(_._2)(_._1).toSeq.sortBy(_._1)
+      val properties = byCity.toSeq
+        .groupMap { case (_, propertyId) => propertyId } { case (cityId, _) => cityId }
+        .toSeq
+        .sortBy { case (propertyId, _) => propertyId }
       Batching
         .inBatches(properties, FanOutParallelism) { case (propertyId, cityIds) =>
           fetchProperty(token, propertyId)
@@ -340,8 +343,8 @@ class TrafficServiceImpl @Inject() (
             }
         }
         .map { perProperty =>
-          val cities = perProperty.flatMap(_._1)
-          val failed = perProperty.flatMap(_._2)
+          val cities = perProperty.flatMap { case (fetched, _) => fetched }
+          val failed = perProperty.flatMap { case (_, failedCityIds) => failedCityIds }
           // Every property failing signals a systemic problem (auth, quota, outage): fail the refresh so nothing is
           // cached and the next request retries, instead of pinning an empty snapshot for the whole fresh window.
           if (cities.isEmpty) throw RuntimeException(s"All ${properties.size} GA property fetches failed")

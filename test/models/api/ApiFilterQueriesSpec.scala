@@ -239,10 +239,10 @@ class ApiFilterQueriesSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
       val (from, to)              = (LocalDate.parse("2020-01-01"), LocalDate.now())
       def inRange(day: LocalDate) = !day.isBefore(from.minusDays(1)) && !day.isAfter(to.plusDays(1))
       run(labelTable.getDailyLabelStats(Some(from), Some(to), filterLowQuality = false)).foreach(row =>
-        inRange(row._1) mustBe true
+        inRange(row.date) mustBe true
       )
       run(labelValidationTable.getDailyValidationStats(Some(from), Some(to), filterLowQuality = true)).foreach(row =>
-        inRange(row._1) mustBe true
+        inRange(row.date) mustBe true
       )
     }
   }

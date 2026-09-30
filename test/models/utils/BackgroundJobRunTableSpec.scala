@@ -169,8 +169,8 @@ class BackgroundJobRunTableSpec extends SidewalkSpec with BeforeAndAfterAll with
     /** The counts for `jobName`, keyed by (status, whether an open run is old enough to read as abandoned). */
     def counts(): Map[(JobRunStatus, Boolean), Int] = {
       run(jobRunTable.outcomeCountsSince(OffsetDateTime.now.minusDays(7), OffsetDateTime.now.minusHours(12)))
-        .filter(_._1 == jobName)
-        .map(count => (count._2, count._3) -> count._4)
+        .filter(_.jobName == jobName)
+        .map(outcome => (outcome.status, outcome.abandoned) -> outcome.count)
         .toMap
     }
 

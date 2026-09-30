@@ -2,7 +2,15 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.audit.*
-import models.label.{LabelAiAssessmentTable, LabelCount, LabelTable, TagCount}
+import models.label.{
+  LabelAiAssessmentTable,
+  LabelCount,
+  LabelTable,
+  SeverityCountByAuthorRole,
+  TagCount,
+  TagSeverityCountRow,
+  UserSeverityCount
+}
 import models.mission.MissionTable
 import models.pano.PanoSource
 import models.region.Region
@@ -406,10 +414,10 @@ class AdminServiceImpl @Inject() (
       newUsers    <- newUsersFut
     } yield {
       def toDayMap(rows: Seq[(OffsetDateTime, Int)]): Map[LocalDate, Int] =
-        rows.map(r => r._1.toLocalDate -> r._2).toMap
+        rows.map { case (day, count) => day.toLocalDate -> count }.toMap
       // The anon-split series carry an isAnonymous flag; partition into two single-valued maps keyed by day.
-      def splitMap(rows: Seq[(OffsetDateTime, Boolean, Int)], anon: Boolean): Map[LocalDate, Int] =
-        rows.filter(_._2 == anon).map(r => r._1.toLocalDate -> r._3).toMap
+      def splitMap(rows: Seq[models.utils.DailyCountByAnon], anon: Boolean): Map[LocalDate, Int] =
+        rows.filter(_.isAnonymous == anon).map(r => r.day.toLocalDate -> r.count).toMap
 
       val labelMap      = toDayMap(labels)
       val validationMap = toDayMap(validations)
@@ -451,10 +459,12 @@ class AdminServiceImpl @Inject() (
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]] = {
     db.run(labelTable.getTagSeverityCounts).map { rows =>
       rows
-        .collect { case (labelType, tag, Some(sev), count) => (labelType, tag, math.min(3, math.max(1, sev)), count) }
+        .collect { case TagSeverityCountRow(labelType, tag, Some(sev), count) =>
+          (labelType, tag, math.min(3, math.max(1, sev)), count)
+        }
         .groupBy { case (labelType, tag, severity, _) => (labelType, tag, severity) }
         .map { case ((labelType, tag, severity), group) =>
-          TagSeverityCount(labelType, tag, severity, group.map(_._4).sum)
+          TagSeverityCount(labelType, tag, severity, group.map { case (_, _, _, count) => count }.sum)
         }
         .toSeq
     }
@@ -540,11 +550,12 @@ class AdminServiceImpl @Inject() (
       vals     <- valsFut
       comments <- commentsFut
     } yield {
-      val labelItems = labels.map { case (labelId, labelType, username, ts) =>
-        RecentActivityItem("label", username, ts, Some(labelId), Some(labelType), None, None)
+      val labelItems = labels.map { l =>
+        RecentActivityItem("label", l.username, l.timeCreated, Some(l.labelId), Some(l.labelType), None, None)
       }
-      val validationItems = vals.map { case (labelId, labelType, username, result, ts) =>
-        RecentActivityItem("validation", username, ts, Some(labelId), Some(labelType), Some(result.name), None)
+      val validationItems = vals.map { v =>
+        val result = Some(v.validationResult.name)
+        RecentActivityItem("validation", v.username, v.endTimestamp, Some(v.labelId), Some(v.labelType), result, None)
       }
       val commentItems = comments.map { c =>
         RecentActivityItem("comment", c.username, c.timestamp, c.labelId, None, None, Some(c.comment))
@@ -564,8 +575,9 @@ class AdminServiceImpl @Inject() (
     if (labelIds.isEmpty) Future.successful(Map.empty)
     else
       db.run(labelTable.getPanoMetadataForLabels(labelIds)).map { rows =>
-        rows.map { case (id, panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight) =>
-          id -> LabelThumbnailMeta(panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight)
+        rows.map { m =>
+          m.labelId ->
+            LabelThumbnailMeta(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth, m.canvasHeight)
         }.toMap
       }
   }
@@ -583,14 +595,14 @@ class AdminServiceImpl @Inject() (
     if (distinct.isEmpty) Future.successful(Map.empty)
     else
       db.run(sidewalkUserTable.getUserIdAndRoleByUsernames(distinct)).flatMap { idRoles =>
-        val userIds = idRoles.map(_._2)
+        val userIds = idRoles.map { case (_, userId, _) => userId }
         db.run(
           labelTable.countLabelsForUsers(userIds) zip labelValidationTable.getValidationResultCountsForUsers(userIds)
         ).map { case (labelCounts, valCounts) =>
           val labelByUser: Map[String, Int] = labelCounts.toMap
           // getValidationResultCountsForUsers is split by verdict; sum the verdicts for each user's validation total.
           val valByUser: Map[String, Int] =
-            valCounts.groupBy(_._1).map { case (userId, rows) => userId -> rows.map(_._3).sum }
+            valCounts.groupBy(_.userId).map { case (userId, rows) => userId -> rows.map(_.count).sum }
           idRoles.map { case (username, userId, role) =>
             username -> UserSummary(role, labelByUser.getOrElse(userId, 0), valByUser.getOrElse(userId, 0))
           }.toMap
@@ -627,14 +639,16 @@ class AdminServiceImpl @Inject() (
       } yield {
         // Group each breakdown by user, sorting type counts by frequency (desc) and severities by rating (asc).
         val typesByUser: Map[String, Seq[(String, Int)]] =
-          typeCounts.groupBy(_._1).map { case (u, rows) => u -> rows.map(r => (r._2, r._3)).sortBy(-_._2) }
+          typeCounts.groupBy(_.userId).map { case (u, rows) =>
+            u -> rows.map(r => (r.labelType, r.count)).sortBy { case (_, count) => -count }
+          }
         val sevByUser: Map[String, Seq[(Int, Int)]] =
           sevCounts
-            .collect { case (u, Some(s), c) => (u, s, c) }
-            .groupBy(_._1)
-            .map { case (u, rows) => u -> rows.map(r => (r._2, r._3)).sortBy(_._1) }
+            .collect { case UserSeverityCount(u, Some(s), c) => (u, s, c) }
+            .groupBy { case (u, _, _) => u }
+            .map { case (u, rows) => u -> rows.map { case (_, s, c) => (s, c) }.sortBy { case (s, _) => s } }
         val resultsByUser: Map[String, Seq[(ValidationOption, Int)]] =
-          valCounts.groupBy(_._1).map { case (u, rows) => u -> rows.map(r => (r._2, r._3)) }
+          valCounts.groupBy(_.userId).map { case (u, rows) => u -> rows.map(r => (r.validationResult, r.count)) }
 
         val labelers = topLabelers.map { u =>
           LabelerLeaderboardEntry(
@@ -651,7 +665,7 @@ class AdminServiceImpl @Inject() (
         }
         val validators = topValidators.map { u =>
           val counts                       = resultsByUser.getOrElse(u.userId, Seq.empty)
-          def of(result: ValidationOption) = counts.find(_._1 == result).map(_._2).getOrElse(0)
+          def of(result: ValidationOption) = counts.collectFirst { case (`result`, count) => count }.getOrElse(0)
           ValidatorLeaderboardEntry(u.userId, u.username, u.role, u.othersValidated, of(ValidationOption.Agree),
             of(ValidationOption.Disagree), of(ValidationOption.Unsure), u.othersValidatedAgreedPct)
         }
@@ -693,16 +707,14 @@ class AdminServiceImpl @Inject() (
 
       def labelerGroup(isAi: Boolean, name: String): HumanAiLabelerStats = {
         val types = labelStats
-          .collect {
-            case (g, lt, total, validated, correct) if g == isAi => HumanAiTypeStat(lt, total, validated, correct)
-          }
+          .filter(_.isAi == isAi)
+          .map(s => HumanAiTypeStat(s.labelType, s.total, s.validated, s.correct))
           .sortBy(-_.count)
         val severityCounts: Seq[(Int, Int)] = sev
-          .collect { case (g, Some(s), c) if g == isAi => (clampSeverity(s), c) }
-          .groupBy(_._1)
-          .map { case (rating, rows) => (rating, rows.map(_._2).sum) }
+          .collect { case SeverityCountByAuthorRole(g, Some(s), c) if g == isAi => (clampSeverity(s), c) }
+          .groupMapReduce { case (rating, _) => rating } { case (_, count) => count }(_ + _)
           .toSeq
-          .sortBy(_._1)
+          .sortBy { case (rating, _) => rating }
         HumanAiLabelerStats(
           name,
           types.map(_.count).sum,
@@ -714,16 +726,17 @@ class AdminServiceImpl @Inject() (
       }
 
       def validatorGroup(isAi: Boolean, name: String): HumanAiValidatorStats = {
-        def of(result: ValidationOption): Int = vals.collect {
-          case (g, r, c) if g == isAi && r == result => c
-        }.sum
+        def of(result: ValidationOption): Int =
+          vals.filter(v => v.isAi == isAi && v.validationResult == result).map(_.count).sum
         val agree    = of(ValidationOption.Agree)
         val disagree = of(ValidationOption.Disagree)
         val unsure   = of(ValidationOption.Unsure)
         HumanAiValidatorStats(name, agree + disagree + unsure, agree, disagree, unsure)
       }
 
-      val tagger = HumanAiTaggerStats(taggerSummary._1, taggerSummary._2, aiTags.sortBy(-_._2), humanTags.sortBy(-_._2))
+      val (labelsAssessed, avgConfidence)              = taggerSummary
+      def mostUsedFirst(tagCounts: Seq[(String, Int)]) = tagCounts.sortBy { case (_, count) => -count }
+      val tagger = HumanAiTaggerStats(labelsAssessed, avgConfidence, mostUsedFirst(aiTags), mostUsedFirst(humanTags))
 
       HumanVsAiStats(
         labelers = Seq(labelerGroup(isAi = false, "human"), labelerGroup(isAi = true, "ai")),
@@ -842,18 +855,15 @@ class AdminServiceImpl @Inject() (
       othersValidatedCounts: Map[String, (Int, Int)] <- labelValidationTable.getValidatedCountsPerUser.map(_.toMap)
       // Map(user_id: String -> (high_quality: Boolean, high_quality_manual: Option[Boolean])).
       userHighQuality: Map[String, (Boolean, Option[Boolean])] <- userStatTable.getUserQuality
-        .map(_.map(t => t._1 -> (t._2, t._3)).toMap)
+        .map(_.map { case (userId, highQuality, manual) => userId -> (highQuality, manual) }.toMap)
       users: Seq[SidewalkUserWithRole] <- userStatTable.usersMinusAnonUsersWithNoLabelsAndNoValidations
     } yield {
       // Now left join them all together and put into UserStatsForAdminPage objects.
       users.map { user =>
-        val ownValidatedCounts = validatedCounts.getOrElse(user.userId, (0, 0))
-        val ownValidatedTotal  = ownValidatedCounts._1
-        val ownValidatedAgreed = ownValidatedCounts._2
-
-        val otherValidatedCounts = othersValidatedCounts.getOrElse(user.userId, (0, 0))
-        val otherValidatedTotal  = otherValidatedCounts._1
-        val otherValidatedAgreed = otherValidatedCounts._2
+        val (ownValidatedTotal, ownValidatedAgreed)     = validatedCounts.getOrElse(user.userId, (0, 0))
+        val (otherValidatedTotal, otherValidatedAgreed) = othersValidatedCounts.getOrElse(user.userId, (0, 0))
+        val (signInCount, lastSignInTime)               = signInTimesAndCounts.getOrElse(user.userId, (0, None))
+        val (highQuality, highQualityManual)            = userHighQuality.getOrElse(user.userId, (true, None))
 
         val ownValidatedAgreedPct =
           if (ownValidatedTotal == 0) 0d
@@ -870,15 +880,15 @@ class AdminServiceImpl @Inject() (
           role = user.role,
           team = userTeams.get(user.userId),
           signUpTime = signUpTimes.get(user.userId).flatten,
-          lastSignInTime = signInTimesAndCounts.get(user.userId).flatMap(_._2),
-          signInCount = signInTimesAndCounts.get(user.userId).map(_._1).getOrElse(0),
+          lastSignInTime = lastSignInTime,
+          signInCount = signInCount,
           labels = labelCounts.getOrElse(user.userId, 0),
           ownValidated = ownValidatedTotal,
           ownValidatedAgreedPct = ownValidatedAgreedPct,
           othersValidated = otherValidatedTotal,
           othersValidatedAgreedPct = otherValidatedAgreedPct,
-          highQuality = userHighQuality.get(user.userId).map(_._1).getOrElse(true),
-          highQualityManual = userHighQuality.get(user.userId).flatMap(_._2)
+          highQuality = highQuality,
+          highQualityManual = highQualityManual
         )
       }
     })

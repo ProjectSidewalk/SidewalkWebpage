@@ -451,7 +451,10 @@ object AccessScoreCalculator {
     val labelType: String                 = clusters.head.labelType
     val pooledLabelCount: Int             = clusters.iterator.map(_.labelCount).sum
     val pooledTagCounts: Map[String, Int] =
-      clusters.iterator.flatMap(_.tagCounts).toSeq.groupMapReduce(_._1)(_._2)(_ + _)
+      clusters.iterator
+        .flatMap(_.tagCounts)
+        .toSeq
+        .groupMapReduce { case (tag, _) => tag } { case (_, count) => count }(_ + _)
 
     tagAdjustments.iterator.collect {
       case ((lt, tag), delta) if lt == labelType =>
@@ -719,7 +722,7 @@ object AccessScoreCalculator {
    * @return               The weighted-mean score, or None when there are no audited streets / zero total length.
    */
   def scoreRegion(auditedStreets: Seq[(Double, Double)]): Option[Double] = {
-    val totalLength: Double = auditedStreets.iterator.map(_._2).sum
+    val totalLength: Double = auditedStreets.iterator.map { case (_, length) => length }.sum
     if (totalLength <= 0.0) None
     else Some(auditedStreets.iterator.map { case (score, length) => score * length }.sum / totalLength)
   }
