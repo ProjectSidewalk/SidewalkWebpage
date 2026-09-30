@@ -60,8 +60,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
     (activities returning activities.map(_.webpageActivityId)) += activity
   }
 
-  // Each of these is logged with details appended (`AnonAutoSignUp_url="/explore"`, `SignInSuccess_Email="…"`), except
-  // `SignIn`, which is logged bare right after a `SignUp`.
+  // Most of these have details tacked on (`AnonAutoSignUp_url="/explore"`), so they're matched by how they start.
   private def isAnonSignUp(a: WebpageActivityTableDef): Rep[Boolean] = a.activity like "AnonAutoSignUp%"
   private def isSignUp(a: WebpageActivityTableDef): Rep[Boolean]     = a.activity === "SignUp" || isAnonSignUp(a)
   private def isRealSignIn(a: WebpageActivityTableDef): Rep[Boolean] =
@@ -95,8 +94,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   /**
    * Daily count of successful sign-in events, split by whether the signer is anonymous.
    *
-   * Failed and throttled attempts are left out. The activity name already says whether the signer was anonymous, so no
-   * role join is needed.
+   * Failed and throttled attempts are left out.
    *
    * @return One row per day and anon flag, sorted ascending; `day` is the timestamp truncated to the day.
    */

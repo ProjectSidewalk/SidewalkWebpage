@@ -50,9 +50,7 @@ table (`app/models/utils/WebpageActivityTable.scala`) rather than the interactio
 - **Frontend** — `window.logWebpageActivity(activity)` (set up in `common/AppManager.js`) POSTs to
   `/userapi/logWebpageActivity` for client-side clicks.
 
-A visitor with no session (a public page opened without a cookie, e.g. a crawler) is logged with an empty `user_id`
-(#4643). Queries that join to a user drop those rows on their own. Rows from before that change sit on the shared
-`anonymous` account until `tools/one-off/4643-null-anonymous-activity.sql` has run.
+A visitor with no session (a crawler, say) is logged with no `user_id` (#4643).
 
 Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `Visit_UserDashboard`,
 `Visit_Leaderboard`, `Visit_Settings`, `Visit_PublicProfile` — the dashboard/leaderboard names carry over from the

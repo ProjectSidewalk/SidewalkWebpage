@@ -108,7 +108,7 @@ class SessionlessPagesSpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
     "accept a cookie-less activity beacon (POST /userapi/logWebpageActivity) and log it with no user" in {
       val activities = app.injector.instanceOf[WebpageActivityTable].activities
       val activity   = s"Test_SessionlessBeacon_${System.nanoTime}"
-      // Searching only rows newer than this keeps the lookup on the primary key instead of the whole table.
+      // Only rows added after this, so the lookup stays fast.
       val lastId = run(activities.map(_.webpageActivityId).max.result).getOrElse(0)
       val mine   = activities.filter(a => a.webpageActivityId > lastId && a.activity === activity)
       try {

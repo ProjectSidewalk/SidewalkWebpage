@@ -122,8 +122,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    * mission" signals are omitted because they duplicate the tutorial-start and tutorial-finish steps (the missions are
    * auto-created).
    *
-   * The tutorial is done once per account, in whichever city, so finishing it counts from `user_account_state` rather
-   * than this city's missions. Someone who did it elsewhere and maps here shows every step here.
+   * The tutorial is only done once per account, so finishing it in any city counts.
    *
    * @param schema     The database schema to compute over.
    * @param windowDays The trailing window in days, or None for all-time.
@@ -178,8 +177,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
 
   /**
    * Runs a funnel over the accounts made in the window that have visited this city (step 1, the `cohort`). Their
-   * later steps count whenever they happened, so a window only decides who is new. Accounts are shared across cities,
-   * so someone who signed up elsewhere earlier is left out here too, even on their first visit to this city.
+   * later steps count whenever they happened, so the window only decides who is new.
    *
    * From a per-step `events` body (each row is a (user_id, step) for a step the user reached), reduce to
    * each user's DEEPEST step, classify role and device, then count per segment with `COUNT(*) FILTER (WHERE deepest >=
@@ -210,8 +208,8 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       GetResult(r => FunnelSegmentCounts(r.nextString(), Vector.fill(numSteps)(r.nextInt())))
     val filterCols =
       (1 to numSteps).map(k => s"COUNT(*) FILTER (WHERE deepest >= $k) AS s$k").mkString(",\n             ")
-    // windowDays is an Int, so it is safe to interpolate. A visit can't come before the account, so bounding the
-    // visits too only saves reading old rows.
+    // windowDays is an Int, so it's safe to splice in. No visit comes before its account, so the visit bound only
+    // skips old rows.
     val newSince = windowDays
       .map(d =>
         s"AND sidewalk_user.created_at >= NOW() - ($d * INTERVAL '1 day')" +
