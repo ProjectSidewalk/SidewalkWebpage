@@ -8,10 +8,10 @@ import slick.jdbc.GetResult
 import javax.inject.*
 
 /** One week the user placed in the top 3 by label count; `weekOf` is the week's start date (yyyy-MM-dd). */
-type WeeklyPodium = (weekOf: String, rank: Int, labelCount: Int)
+case class WeeklyPodium(weekOf: String, rank: Int, labelCount: Int)
 
 /** A region where the user is the top labeler, with their label count there. */
-type RegionChampion = (regionName: String, regionId: Int, labelCount: Int)
+case class RegionChampion(regionName: String, regionId: Int, labelCount: Int)
 
 /**
  * Read-only queries that compute a user's trophies on the fly from label/region history — there is no stored trophy
@@ -31,9 +31,9 @@ class TrophyTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   import profile.api.*
 
   private given weeklyPodiumConverter: GetResult[WeeklyPodium] =
-    r => (r.nextString(), r.nextInt(), r.nextInt())
+    r => WeeklyPodium(r.nextString(), r.nextInt(), r.nextInt())
   private given regionChampionConverter: GetResult[RegionChampion] =
-    r => (r.nextString(), r.nextInt(), r.nextInt())
+    r => RegionChampion(r.nextString(), r.nextInt(), r.nextInt())
 
   // Start of the US/Pacific week (Sunday) containing a given date expression — matches the leaderboard's week math.
   private def weekStart(dateExpr: String): String =

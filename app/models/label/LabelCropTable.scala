@@ -12,10 +12,12 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
 /**
- * A label the crop job may cut a crop for. `panoWidth` and `panoHeight` are the pano's size as `pano_data` records
- * it, the frame `panoX` is expressed in, or None.
+ * A label the crop job may cut a crop for.
+ *
+ * @param panoWidth  The pano's width as `pano_data` records it — the frame `panoX` is expressed in — or None.
+ * @param panoHeight The pano's height as `pano_data` records it, or None.
  */
-type CropCandidate = (
+case class CropCandidate(
     labelId: Int,
     labelType: LabelType,
     panoId: String,
@@ -26,12 +28,14 @@ type CropCandidate = (
 )
 
 /**
- * A label whose crop is on disk with no `label_crop` row saying where the label is in it (#2660). `timeCreated` is
- * when the label was placed (an Explore-frame crop is uploaded within the same session); `canvasWidth` and
- * `canvasHeight` are the frame `canvasX`/`canvasY` are expressed in (#5085), and a snapshot of the canvas has the
- * same aspect ratio; `aiGenerated` means an AI placed it, so no browser ever snapshotted a canvas for it.
+ * A label whose crop is on disk with no `label_crop` row saying where the label is in it (#2660).
+ *
+ * @param timeCreated  When the label was placed; an Explore-frame crop is uploaded within the same session.
+ * @param canvasWidth  With `canvasHeight`, the frame `canvasX`/`canvasY` are expressed in (#5085); a snapshot of
+ *                     the canvas has the same aspect ratio.
+ * @param aiGenerated  Whether an AI placed it, in which case no browser ever snapshotted a canvas for it.
  */
-type ProvenanceCandidate = (
+case class ProvenanceCandidate(
     labelId: Int,
     labelType: LabelType,
     timeCreated: OffsetDateTime,

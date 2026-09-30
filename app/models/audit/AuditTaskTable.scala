@@ -133,7 +133,7 @@ object StreetAuditStateRep {
 }
 
 /** The open route task a labeler resumes on, and where its street falls in the route's walking order. */
-type ResumableRouteTask = (auditTaskId: Int, routeStreetId: Int, position: Int)
+case class ResumableRouteTask(auditTaskId: Int, routeStreetId: Int, position: Int)
 
 class AuditTaskTableDef(tag: slick.lifted.Tag) extends Table[AuditTask](tag, "audit_task") {
   def auditTaskId: Rep[Int]             = column[Int]("audit_task_id", O.PrimaryKey, O.AutoInc)
@@ -911,7 +911,7 @@ class AuditTaskTable @Inject() (
       }
       .sortBy { case (_, routeStreet) => routeStreet.position.desc }
       .map { case ((link, _), routeStreet) =>
-        (link.auditTaskId, routeStreet.routeStreetId, routeStreet.position)
+        (link.auditTaskId, routeStreet.routeStreetId, routeStreet.position).mapTo[ResumableRouteTask]
       }
       .result
       .headOption

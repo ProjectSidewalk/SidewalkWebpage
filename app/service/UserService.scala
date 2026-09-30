@@ -370,7 +370,7 @@ object UserService {
   def computeAccuracyByType(rows: Seq[LabelTypeTally]): Seq[AccuracyByType] = {
     val primary                       = PrimaryLabelTypes.toSet
     val pcts: Seq[(String, Int, Int)] = rows.collect {
-      case (t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
+      case LabelTypeTally(t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
         (t, math.round(correct.toDouble / (correct + incorrect) * 100).toInt, correct + incorrect)
     }
     val weakest: Option[String] = pcts
@@ -843,7 +843,7 @@ class UserServiceImpl @Inject() (
               val qualityByUser     = quality.map(q => q.userId -> (q.highQuality, q.excluded)).toMap
 
               val rows: Seq[TeamMemberStats] = members
-                .map { case (userId, username, role) =>
+                .map { case UserNameAndRole(userId, username, role) =>
                   val (labels, lastLabel)       = labelsByUser.getOrElse(userId, (0, None))
                   val (validations, lastVal)    = validationsByUser.getOrElse(userId, (0, None))
                   val (labelsValidated, agreed) = judgedByUser.getOrElse(userId, (0, 0))

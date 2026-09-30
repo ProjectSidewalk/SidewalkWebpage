@@ -62,7 +62,7 @@ class UserTeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       .join(userRoles)
       .on { case ((_userTeam, _), _userRole) => _userTeam.userId === _userRole.userId }
       .map { case ((_userTeam, _user), _userRole) =>
-        (_user.userId, _user.username, _userRole.role)
+        (_user.userId, _user.username, _userRole.role).mapTo[UserNameAndRole]
       }
       .result
   }

@@ -144,10 +144,10 @@ case class StandingRow(rank: Int, username: String, labelCount: Int, isYou: Bool
  * @param delta      Spots moved since the previous week (positive = climbed), or None if not comparable.
  */
 /** How many of a user's labels of one type were judged correct and incorrect. */
-type LabelTypeTally = (labelType: String, correct: Int, incorrect: Int)
+case class LabelTypeTally(labelType: String, correct: Int, incorrect: Int)
 
 /** Whether a user is rated high quality, and whether their work is left out of the city's stats. */
-type UserQualityFlags = (userId: String, highQuality: Boolean, excluded: Boolean)
+case class UserQualityFlags(userId: String, highQuality: Boolean, excluded: Boolean)
 
 case class UserStanding(rank: Int, cohortSize: Int, labelCount: Int, slice: Seq[StandingRow], delta: Option[Int] = None)
 
@@ -246,7 +246,7 @@ class UserStatTable @Inject() (
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
 
   private given labelTypeTallyConverter: GetResult[LabelTypeTally] =
-    r => (r.nextString(), r.nextInt(), r.nextInt())
+    r => LabelTypeTally(r.nextString(), r.nextInt(), r.nextInt())
 
   private given leaderboardStatConverter: GetResult[LeaderboardStat] = r =>
     LeaderboardStat(r.nextString(), r.nextInt(), r.nextInt(), r.nextDouble(), r.nextDoubleOption(), r.nextDouble())
@@ -1094,7 +1094,7 @@ class UserStatTable @Inject() (
   def getQualityAndExclusionForUsers(userIds: Seq[String]): DBIO[Seq[UserQualityFlags]] = {
     userStats
       .filter(_.userId inSet userIds)
-      .map(x => (x.userId, x.highQuality, x.excluded))
+      .map(x => (x.userId, x.highQuality, x.excluded).mapTo[UserQualityFlags])
       .result
   }
 

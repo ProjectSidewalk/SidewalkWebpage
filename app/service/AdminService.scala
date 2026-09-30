@@ -464,7 +464,7 @@ class AdminServiceImpl @Inject() (
   def getTagSeverityCounts: Future[Seq[TagSeverityCount]] = {
     db.run(labelTable.getTagSeverityCounts).map { rows =>
       rows
-        .collect { case (labelType, tag, Some(sev), count) =>
+        .collect { case TagSeverityCountRow(labelType, tag, Some(sev), count) =>
           (labelType, tag, math.min(3, math.max(1, sev)), count)
         }
         .groupBy { case (labelType, tag, severity, _) => (labelType, tag, severity) }
@@ -645,7 +645,7 @@ class AdminServiceImpl @Inject() (
           }
         val sevByUser: Map[String, Seq[(Int, Int)]] =
           sevCounts
-            .collect { case (u, Some(s), c) => (u, s, c) }
+            .collect { case UserSeverityCount(u, Some(s), c) => (u, s, c) }
             .groupBy { case (u, _, _) => u }
             .map { case (u, rows) => u -> rows.map { case (_, s, c) => (s, c) }.sortBy { case (s, _) => s } }
         val resultsByUser: Map[String, Seq[(ValidationOption, Int)]] =
@@ -712,7 +712,7 @@ class AdminServiceImpl @Inject() (
           .map(s => HumanAiTypeStat(s.labelType, s.total, s.validated, s.correct))
           .sortBy(-_.count)
         val severityCounts: Seq[(Int, Int)] = sev
-          .collect { case (g, Some(s), c) if g == isAi => (clampSeverity(s), c) }
+          .collect { case SeverityCountByAuthorRole(g, Some(s), c) if g == isAi => (clampSeverity(s), c) }
           .groupMapReduce { case (rating, _) => rating } { case (_, count) => count }(_ + _)
           .toSeq
           .sortBy { case (rating, _) => rating }

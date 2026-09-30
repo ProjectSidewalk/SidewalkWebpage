@@ -277,13 +277,13 @@ case class LabelComment(
 )
 
 // Extra data to include with validations for Expert Validate. Includes usernames and previous validators.
-type AdminValidationData = (labelId: Int, username: String, previousValidations: Seq[PreviousValidation])
+case class AdminValidationData(labelId: Int, username: String, previousValidations: Seq[PreviousValidation])
 
 /** One earlier vote on a label. */
-type PreviousValidation = (username: String, validation: ValidationOption)
+case class PreviousValidation(username: String, validation: ValidationOption)
 
 /** The admin-set flags on the audit task a label was placed during. */
-type AuditTaskFlags = (lowQuality: Boolean, incomplete: Boolean, stale: Boolean)
+case class AuditTaskFlags(lowQuality: Boolean, incomplete: Boolean, stale: Boolean)
 
 /**
  * One of the user's labels in a region, with what Explore needs to put it back on the canvas and the minimap.
@@ -637,34 +637,36 @@ object NoSidewalkFaceEvidenceRep {
 }
 
 /** One row of the admin Activity stream. */
-type RecentLabel = (labelId: Int, labelType: String, username: String, timeCreated: OffsetDateTime)
+case class RecentLabel(labelId: Int, labelType: String, username: String, timeCreated: OffsetDateTime)
 
 /** How many labels of one type a user has placed. */
-type UserLabelTypeCount = (userId: String, labelType: String, count: Int)
+case class UserLabelTypeCount(userId: String, labelType: String, count: Int)
 
 /** How many labels a user has placed at one severity rating. */
-type UserSeverityCount = (userId: String, severity: Option[Int], count: Int)
+case class UserSeverityCount(userId: String, severity: Option[Int], count: Int)
 
 /** A user's label count and when they placed their most recent one. */
-type UserLabelCount = (userId: String, count: Int, latest: Option[OffsetDateTime])
+case class UserLabelCount(userId: String, count: Int, latest: Option[OffsetDateTime])
 
 /**
- * Label counts for one label type, from either the AI or every human labeler: `validated` is how many have a
- * validation verdict (`correct` set) and `correct` how many were judged correct.
+ * Label counts for one label type, from either the AI or every human labeler.
+ *
+ * @param validated How many have a validation verdict (`correct` set).
+ * @param correct   How many were judged correct.
  */
-type LabelStatsByAuthorRole = (isAi: Boolean, labelType: String, total: Int, validated: Int, correct: Int)
+case class LabelStatsByAuthorRole(isAi: Boolean, labelType: String, total: Int, validated: Int, correct: Int)
 
 /** How many labels the AI (or humans) placed at one severity rating. */
-type SeverityCountByAuthorRole = (isAi: Boolean, severity: Option[Int], count: Int)
+case class SeverityCountByAuthorRole(isAi: Boolean, severity: Option[Int], count: Int)
 
 /** How many labels of one type carry a tag at one severity rating. */
-type TagSeverityCountRow = (labelType: String, tag: String, severity: Option[Int], count: Int)
+case class TagSeverityCountRow(labelType: String, tag: String, severity: Option[Int], count: Int)
 
 /** Which street, and which side of it, a label sits on. */
-type LabelFace = (labelId: Int, streetEdgeId: Int, streetSide: Option[StreetSide])
+case class LabelFace(labelId: Int, streetEdgeId: Int, streetSide: Option[StreetSide])
 
 /** The pano and camera angle a label was placed from, for building its preview image. */
-type LabelPanoMetadata = (
+case class LabelPanoMetadata(
     labelId: Int,
     panoId: String,
     panoSource: PanoSource,
@@ -997,10 +999,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextStringOption().map(ValidationOption.withName), // aiValidation
       Map("agree" -> r.nextInt(), "disagree" -> r.nextInt(), "unsure" -> r.nextInt()),
       r.nextStringArray().toList,
-      // taskFlags. Positional on purpose: written as `(lowQuality = r.nextBoolean(), …)`, the 3.9 coverage build reads
-      // the columns out of order and every share-page spec fails on CI (fine without coverage). #5605 has the CI
-      // evidence; it never reproduced in isolation, so there is no upstream issue to watch. Retry on a compiler bump.
-      (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
+      AuditTaskFlags(r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
         case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
@@ -1194,7 +1193,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     labelsWithExcludedUsers
       .filter(_.userId inSet userIds)
       .groupBy(_.userId)
-      .map { case (_userId, rows) => (_userId, rows.length, rows.map(_.timeCreated).max) }
+      .map { case (_userId, rows) => (_userId, rows.length, rows.map(_.timeCreated).max).mapTo[UserLabelCount] }
       .result
   }
 
@@ -1229,7 +1228,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .sortBy { case (_label, _) => _label.timeCreated.desc }
       .take(n)
       .map { case (_label, _user) =>
-        (_label.labelId, _label.labelTypeName, _user.username, _label.timeCreated)
+        (_label.labelId, _label.labelTypeName, _user.username, _label.timeCreated).mapTo[RecentLabel]
       }
       .result
   }
@@ -1265,7 +1264,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _label <- labels if _label.userId inSet userIds
     } yield (_label.userId, _label.labelTypeName))
       .groupBy(x => x)
-      .map { case ((userId, labelType), group) => (userId, labelType, group.length) }
+      .map { case ((userId, labelType), group) => (userId, labelType, group.length).mapTo[UserLabelTypeCount] }
       .result
   }
 
@@ -1281,7 +1280,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _label <- labels if (_label.userId inSet userIds) && _label.severity.isDefined
     } yield (_label.userId, _label.severity))
       .groupBy(x => x)
-      .map { case ((userId, severity), group) => (userId, severity, group.length) }
+      .map { case ((userId, severity), group) => (userId, severity, group.length).mapTo[UserSeverityCount] }
       .result
   }
 
@@ -1311,7 +1310,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
             .map { case (_, _, correct) => Case.If(correct.getOrElse(false) === true).Then(1).Else(0) }
             .sum
             .getOrElse(0)
-        )
+        ).mapTo[LabelStatsByAuthorRole]
       }
       .result
   }
@@ -1329,7 +1328,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _userRole <- userRoles if _label.userId === _userRole.userId
     } yield (_userRole.role === Role.Ai, _label.severity))
       .groupBy(isAiAndSeverity => isAiAndSeverity)
-      .map { case ((isAi, severity), group) => (isAi, severity, group.length) }
+      .map { case ((isAi, severity), group) => (isAi, severity, group.length).mapTo[SeverityCountByAuthorRole] }
       .result
   }
 
@@ -1708,7 +1707,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
         .join(labelPoints)
         .on(_.labelId === _.labelId)
         .filter { case (l, _) => l.labelId inSetBind labelIds }
-        .map { case (l, lp) => (l.labelId, l.streetEdgeId, lp.streetSide) }
+        .map { case (l, lp) => (l.labelId, l.streetEdgeId, lp.streetSide).mapTo[LabelFace] }
         .result
   }
 
@@ -1965,9 +1964,9 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
           .groupBy { case (labelId, username, _, _) => (labelId, username) }
           .map { case ((labelId, username), rows) =>
             val previousValidations = rows.collect { case (_, _, Some(validator), Some(result)) =>
-              (username = validator, validation = result)
+              PreviousValidation(validator, result)
             }
-            (labelId = labelId, username = username, previousValidations = previousValidations)
+            AdminValidationData(labelId, username, previousValidations)
           }
           .toSeq
       }
@@ -2404,7 +2403,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
     rows
       .groupBy(row => row)
       .map { case ((labelType, tag, severity), group) =>
-        (labelType, tag, severity, group.length)
+        (labelType, tag, severity, group.length).mapTo[TagSeverityCountRow]
       }
       .result
   }
@@ -3113,7 +3112,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _labelPoint <- labelPoints if _label.labelId === _labelPoint.labelId
       _panoData   <- panoData if _label.panoId === _panoData.panoId
     } yield (_label.labelId, _label.panoId, _panoData.source, _labelPoint.heading, _labelPoint.pitch, _labelPoint.zoom,
-      _labelPoint.canvasWidth, _labelPoint.canvasHeight)).result
+      _labelPoint.canvasWidth, _labelPoint.canvasHeight).mapTo[LabelPanoMetadata]).result
   }
 
   /**
@@ -3169,7 +3168,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _l  <- labelsWithExcludedUsers
       _lp <- labelPoints if _l.labelId === _lp.labelId
       _pd <- panoData if _l.panoId === _pd.panoId
-    } yield (_l.labelId, _l.labelType, _l.panoId, _lp.panoX, _lp.panoY, _pd.width, _pd.height)).result
+    } yield (_l.labelId, _l.labelType, _l.panoId, _lp.panoX, _lp.panoY, _pd.width, _pd.height)
+      .mapTo[CropCandidate]).result
   }
 
   /**
@@ -3201,7 +3201,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       _pd.width,
       _pd.height,
       _ur.map(_.role === Role.Ai).getOrElse(false)
-    )).result
+    ).mapTo[ProvenanceCandidate]).result
   }
 
   /**
