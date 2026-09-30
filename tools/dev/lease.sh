@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 #
-# Leases on the dev resources that checkouts and Claude sessions share, so one never pulls a resource out from under
-# another (#5586). A lease says who holds it: checkout, Claude session, purpose, since when.
+# Who holds the dev resources that checkouts and Claude sessions share (#5586). See docs/dev-environment.md.
 #
 #     bash tools/dev/lease.sh take <resource> [--checkout <dir>] [--pid <pid>] [--wait] [--force]
 #     bash tools/dev/lease.sh release <resource> [--checkout <dir>] [--pid <pid>]
@@ -10,16 +9,8 @@
 #     bash tools/dev/lease.sh release-session <session-id>
 #     bash tools/dev/lease.sh nudge <session-id>
 #
-# Runs inside the web container. The Makefile, qa-worktree.sh and sbt-run.sh call it, and .claude/hooks/lease-hook.sh
-# reaches it through docker exec. See docs/dev-environment.md -> "Sharing the app and the test database".
-#
-# A lease ends when it's released or the process it names (--pid) exits. One with no process ends when its Claude
-# session has been silent for LEASE_IDLE_MIN minutes. Sessions report in through the hooks, which touch sessions/<id>.
-#
-# A lease belongs to a checkout and a Claude session, so another session in the same checkout has to wait too. `check`
-# asks without taking: 0 when the resource is free or already this checkout's.
-#
-# Exit codes: 0 done, 1 busy, 2 usage.
+# Runs inside the web container. A lease belongs to a checkout plus Claude session, and ends when released, when its
+# --pid exits, or (with no pid) when its session is silent for LEASE_IDLE_MIN. Exit codes: 0 done, 1 busy, 2 usage.
 
 set -uo pipefail
 
@@ -32,7 +23,7 @@ SESSION="${CLAUDE_CODE_SESSION_ID:-}"
 PURPOSE=$(printf '%s' "${LEASE_PURPOSE:-}" | tr '|\n' '/ ')
 
 usage() {
-  sed -n '6,11p' "$0" | sed 's/^# *//'
+  sed -n 's/^#     //p' "$0"
   exit 2
 }
 
@@ -43,14 +34,14 @@ proc_start() { sed 's/.*) //' "/proc/$1/stat" 2>/dev/null | cut -d' ' -f20; }
 
 pid_alive() { [ -n "$1" ] && [ -r "/proc/$1/stat" ] && [ "$(proc_start "$1")" = "$2" ]; }
 
-# Minutes since the session last reported in, or nothing when it never has (its checkout may predate the hooks).
+# Minutes since the session last reported in, or nothing if it never has.
 session_idle_min() {
   local f="$LEASE_DIR/sessions/$1"
   [ -n "$1" ] && [ -f "$f" ] || return 0
   echo $((($(now) - $(stat -c %Y "$f")) / 60))
 }
 
-# A session's name as ListAgents shows it (what SendMessage takes), which the hooks copy into its session file.
+# The session's name, which SendMessage takes; the hooks record it.
 session_label() {
   local name
   name=$(field "$LEASE_DIR/sessions/$1" name)
@@ -94,7 +85,7 @@ ensure_dirs() {
   chown "$(stat -c %u:%g /home)" "$LEASE_DIR" "$LEASE_DIR/sessions" 2>/dev/null
 }
 
-# Why a lease is over, or nothing while it's live. A live process outranks a quiet session (hours of hands-on QA).
+# Why a lease is over, or nothing. A live process outranks a quiet session (hours of hands-on QA).
 lease_dead_reason() {
   local f="$1" pid idle
   pid=$(field "$f" pid)
@@ -106,8 +97,7 @@ lease_dead_reason() {
   [ -n "$idle" ] && [ "$idle" -ge "$LEASE_IDLE_MIN" ] && echo "its Claude session has been silent for $idle min"
 }
 
-# The queue file holds one waiter per line, first come first served: id|checkout|session|pid|pid_start|since|purpose.
-# A waiter stays in line only while its waiting process lives.
+# Queue lines, first come first served: id|checkout|session|pid|pid_start|since|purpose. Dead waiters drop out.
 prune() {
   local res="$1" f="$LEASE_DIR/$1.lease" q="$LEASE_DIR/$1.queue" why line pid pid_start out=""
   if [ -f "$f" ]; then
@@ -148,7 +138,7 @@ describe_queue() {
   done <"$1"
 }
 
-# The app is the one resource whose real state is visible, and it may be running without a lease (npm start).
+# The app may be running without a lease (npm start).
 running_app() {
   local p
   for p in $(pgrep -f '^java.*~ run' 2>/dev/null); do
@@ -184,7 +174,6 @@ status() {
   unlock
 }
 
-# Who has the resource and who's in line; with "advice", also what the caller can do about it.
 busy_message() {
   local res="$1" advice="${2:-}" f="$LEASE_DIR/$1.lease" q="$LEASE_DIR/$1.queue" session name
   if [ -f "$f" ]; then
@@ -196,7 +185,7 @@ busy_message() {
   [ -n "$advice" ] || return 0
   echo "Wait your turn with wait=1 (--wait), or take it anyway with force=1 (--force)."
   session=$(field "$f" session)
-  # Only a real name works as a SendMessage address, not session_label's id fallback.
+  # session_label's id fallback isn't a SendMessage address.
   name=$(field "$LEASE_DIR/sessions/$session" name)
   if [ -n "$name" ] && [ "$session" != "$SESSION" ]; then
     echo "To ask the holder to finish, message its Claude session: SendMessage to \"$name\"."
@@ -234,13 +223,13 @@ take() {
     lock
     prune "$res"
     head=$([ -f "$q" ] && head -1 "$q" | cut -d'|' -f1)
-    # Dropped from the line because its session ended, so what it was waiting to run shouldn't start.
+    # release-session dropped us: our session ended, so don't run for it.
     if [ -n "$my_id" ] && ! grep -qs "^$my_id|" "$q"; then
       echo "==> removed from the line for $(label "$res"), since the session waiting for it ended" >&2
       unlock
       return 1
     fi
-    # The same holder taking it again (restarting its app, say) keeps the lease, with the new process.
+    # The same holder re-taking it (restarting its app) keeps it.
     if { [ -f "$f" ] && holds "$f" "$me"; } || [ -n "$force" ] ||
       { [ ! -f "$f" ] && { [ -z "$head" ] || [ "$head" = "$my_id" ]; }; }; then
       [ -f "$f" ] && ! holds "$f" "$me" &&
@@ -272,7 +261,7 @@ take() {
 release() {
   local res="$1" f="$LEASE_DIR/$1.lease" pid="$3"
   lock
-  # Only the caller's own lease: a process that lost it to a later one mustn't release the later one's.
+  # A process that lost the lease to a later one mustn't release the later one's.
   if [ -f "$f" ] && [ "$(field "$f" checkout)" = "$(checkout_name "$2")" ] &&
     { [ -z "$pid" ] || [ "$(field "$f" pid)" = "$pid" ]; }; then
     rm -f "$f"
@@ -316,7 +305,7 @@ release_session() {
   unlock
 }
 
-# For the holder's Stop hook: each waiter on something this session holds, reported once.
+# For the Stop hook: each new waiter on what this session holds.
 nudge() {
   local sid="$1" f res q told new id checkout session since purpose
   lock

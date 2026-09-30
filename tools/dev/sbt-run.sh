@@ -72,10 +72,8 @@ refuse_if_watch_run_here() {
 refuse_if_watch_run_here "$@"
 
 # Every checkout's tests share one database, and most specs commit rather than roll back, so simultaneous runs
-# overwrite each other's rows. The lease (tools/dev/lease.sh) names who is testing while we wait, and lasts as long as
-# this process, which becomes the sbt client below.
+# overwrite each other's rows, hence the lease (tools/dev/lease.sh).
 if [ -n "$DB_LOCK" ]; then
-  # A lease failure shouldn't block the run, but an unnoticed overlap is what this exists to prevent, so say so.
   if ! bash "$LEASE_SH" take db-tests --checkout "$HERE" --pid $$ --wait; then
     echo "warning: could not take the db-tests lease — running WITHOUT the cross-checkout lock"
   fi

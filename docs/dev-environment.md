@@ -330,8 +330,7 @@ make test-scala only=controllers.api.PublicApiSpec
 
 Only one checkout tests at a time. They share one `db` container and one city schema, and most specs commit rather
 than roll back, so simultaneous runs overwrite each other's rows and stack two multi-GB JVMs — which is how
-`earlyoom` comes to kill one mid-run. A second `make test-scala` names the run it's waiting on, then starts when that
-one finishes (see [Sharing the app and the test database](#sharing-the-app-and-the-test-database)).
+`earlyoom` comes to kill one mid-run. A second `make test-scala` says who it's waiting on, then starts when they finish.
 
 The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
 new spec file is picked up with nothing to enroll it in. Still run the suite locally before you trust it — and read
@@ -371,21 +370,21 @@ http://localhost:9000 with one command:
 make qa-worktree wt=<worktree-name>
 ```
 
-A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and sbt's
-caches and config have to be pointed at the right places), so this target handles all of it: it links the main repo's
-`node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits rebuild
-automatically, takes `:9000` (see [below](#sharing-the-app-and-the-test-database)), kills any stray sbt server or hung
-sbt task sharing the worktree's `target/` (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against
-the worktree's own config while reusing the main repo's warm sbt caches. The first request triggers the dev compile;
-`Ctrl+C` stops it and reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>`
-(add `clean=1` to also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work
-runs inside the web container.
+A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
+sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
+repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
+rebuild automatically, takes `:9000`, kills any stray sbt server or hung sbt task sharing the worktree's `target/`
+(either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
+while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
+reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
+also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
+web container.
 
 Both targets run the **worktree's own** copy of `tools/dev/qa-worktree.sh` when it has one (falling back to the main
-checkout's, also for a copy too old to take the `:9000` lease), so the branch being QA'd supplies its own tooling.
-`make` itself still reads the **main checkout's** Makefile, so when that checkout sits on a branch without the target,
-make reports `No rule to make target`; either check out a branch that has it or run the script directly: `docker exec
--it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/dev/qa-worktree.sh <name>`.
+checkout's), so the branch being QA'd supplies its own tooling. `make` itself still reads the **main checkout's**
+Makefile, so when that checkout sits on a branch without the target, make reports `No rule to make target`; either
+check out a branch that has it or run the script directly:
+`docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/dev/qa-worktree.sh <name>`.
 
 **Every other container target checks the checkout you run it from.** The container mounts the main checkout at
 `/home` and so sees the worktrees inside it: `make lint`, `make test-js`, `make compile`, `make test-scala`,
@@ -394,39 +393,26 @@ at one from anywhere. `make lint` opens by naming the tree it checks. Make stops
 container can't see (one outside the main checkout). This takes the worktree's own Makefile, so a branch older than
 #5291 needs `develop` merged in first. The exceptions:
 
-- `make test-e2e` runs the worktree's specs against whatever app is on `:9000`. It stops when another checkout holds
-  `:9000` and warns when an unclaimed app there is another checkout's. Start the worktree's app with
-  `make qa-worktree wt=<name> wait=1` first, or add `force=1` to test the app that's there.
+- `make test-e2e` runs the worktree's specs against whatever app is on `:9000`, and stops if another checkout holds
+  it. Start the worktree's app with `make qa-worktree wt=<name>` first.
 - `make build-city-data` and `make check-imagery` always run in the main checkout, whose `db/` the db container reads.
 - A hand-typed `docker exec … "cd /home && …"` always runs in the main checkout.
 
 ### Sharing the app and the test database
 
-Checkouts (and the Claude Code sessions working in them) share a few things only one can use at a time: the app on
-`:9000`, the Scala test database, and so `make test-e2e`, which tests whatever app is on `:9000`. A **lease**
-([`tools/dev/lease.sh`](../tools/dev/lease.sh)) records who holds each one: the checkout, the Claude session if any,
-an optional purpose, and since when.
+Only one checkout at a time can use the app on `:9000` or the Scala test database. A lease
+([`tools/dev/lease.sh`](../tools/dev/lease.sh)) records who holds each, so a busy command names the holder instead of
+stopping their work.
 
-- `make qa-worktree` takes the lease on `:9000` and holds it until the app stops. When another checkout holds it, the
-  command stops and names the holder instead of killing that app. `wait=1` joins a first-come-first-served line and
-  starts once it's free; `force=1` takes it anyway. `purpose="…"` tells others why you have it.
-- `make test-scala` always waits its turn for the test database, naming who it's waiting on.
-- `make test-e2e` stops when another checkout holds `:9000`; `force=1` tests that app anyway.
-- `make lease-status` shows who holds what, who's in line, and which checkout's app is actually serving `:9000`.
-- `make lease-take res=<name>` and `make lease-release res=<name>` claim anything else by name, e.g. `res=browser`.
-  `lease-take` takes `wait=1`, `force=1` and `purpose="…"` too. Taken from your own terminal, such a lease never
-  expires, so release it when you're done.
+- `make qa-worktree` and `make test-e2e` stop when another checkout holds `:9000`. `wait=1` (qa-worktree) queues for
+  it; `force=1` takes it anyway.
+- `make test-scala` always waits its turn.
+- `make lease-status` shows holders and the queue. `make lease-take res=<name>` and `make lease-release res=<name>`
+  claim anything else; one taken from your own terminal lasts until you release it.
 
-A lease belongs to a checkout and a Claude session, so a second session in the same checkout waits its turn too. It ends
-when it's released or the process holding it exits (a running app keeps its lease however long you click around); one
-with no process ends once its Claude session has been quiet for an hour. An app started without a lease (`npm start` in
-the main checkout) is not protected: `qa-worktree` still stops it. Leases live in `.claude/leases/` (gitignored).
-
-**Claude Code hooks** (`.claude/hooks/lease-hook.sh`, wired in `.claude/settings.json`) do the session side: each
-prompt and tool call marks the session alive, a session about to curl or browse `:9000` or run `make test-e2e` is told
-once when the app there is another checkout's, a session that finishes a turn while someone waits on what it holds is
-asked to release it, and a session's leases are released when it ends. A busy message names the holding session as
-`SendMessage` addresses it, so a waiting session can ask it directly.
+A lease ends when it's released or its process exits. An app from plain `npm start` has no lease, so `qa-worktree`
+still stops it. Hooks in `.claude/settings.json` nudge a Claude session when someone waits on what it holds, and
+release its leases when it ends.
 
 The sbt server that `make compile`, `make test-scala`, or `make scalafmt` starts for a worktree stays up until it
 idles out after an hour, or until `make qa-worktree-stop wt=<name>` or `make worktree-remove wt=<name>` stops it.

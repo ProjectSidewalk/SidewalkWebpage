@@ -34,7 +34,7 @@ qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
 worktree-force-flag = $(if $(filter 1 true yes,$(force)),--force,)
 # Same idiom for a lease's `wait=1` and `force=1` (tools/dev/lease.sh).
 lease-flags = $(if $(filter 1 true yes,$(wait)),--wait,) $(if $(filter 1 true yes,$(force)),--force,)
-# Who is asking, for the lease: the Claude session (unset in a person's terminal) and an optional `purpose="…"`.
+# Who's asking, for the lease: the Claude session (unset in a terminal) and `purpose="…"`.
 lease-env = -e CLAUDE_CODE_SESSION_ID -e LEASE_PURPOSE="$(purpose)"
 # Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
 import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
@@ -42,8 +42,7 @@ import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
 # happens to be on — which may predate the script entirely (#4628). Prefer the worktree's own copy so the branch being
-# QA'd supplies its own tooling, and fall back to the main repo's for worktrees branched before the script existed or
-# before it took the lease on :9000 (#5586), since an older copy stops whatever app is running.
+# QA'd supplies its own tooling, and fall back to the main repo's for a copy that predates it or the :9000 lease.
 # Held in a variable rather than written inline in a recipe: make condenses a variable's backslash-continuations into
 # single spaces at parse time, so the container's shell receives one flat line — no reliance on how a given make version
 # passes continuations and leading tabs through to the shell (macOS still ships make 3.81, WSL/Linux run 4.x).
@@ -199,8 +198,7 @@ ssh:
 	@docker exec -it $($(target)-container) /bin/bash
 
 # Run an uncommitted git worktree's app on :9000 for QA (not the main repo). See tools/dev/qa-worktree.sh and CLAUDE.md
-# "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`. When another checkout holds
-# :9000, `wait=1` waits in line for it and `force=1` takes it anyway.
+# "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
 qa-worktree:
 	$(worktree-require-wt)
 	@docker exec -it $(lease-env) $(web-container) bash -c '$(call qa-worktree-exec,$(wt) $(lease-flags))'
@@ -219,9 +217,7 @@ worktree-remove:
 	$(worktree-require-wt)
 	@bash tools/dev/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
 
-# Leases on what checkouts share (tools/dev/lease.sh): the app on :9000 (`app`), the Scala test database (`db-tests`),
-# or anything else by name, e.g. `res=browser`. qa-worktree and test-scala take theirs on their own; these are for
-# looking, and for claiming something no target claims. `lease-take` accepts wait=1, force=1 and purpose="…".
+# Leases (tools/dev/lease.sh): `app` is :9000 and `db-tests` the Scala test DB, or claim anything else by name.
 lease-status:
 	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh status $(res)
 

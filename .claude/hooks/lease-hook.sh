@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 #
-# Claude Code's side of the dev-resource leases in tools/dev/lease.sh (#5586).
+# Claude Code's side of tools/dev/lease.sh (#5586).
 #
 #     lease-hook.sh heartbeat   # UserPromptSubmit: marks the session alive
-#     lease-hook.sh pre-tool    # PreToolUse: that, plus a note when :9000 is serving another checkout's app
-#     lease-hook.sh stop        # Stop: that, plus asks the session to let go when someone waits on what it holds
-#     lease-hook.sh end         # SessionEnd: releases everything the session holds
+#     lease-hook.sh pre-tool    # PreToolUse: also warns when :9000 serves another checkout's app
+#     lease-hook.sh stop        # Stop: also nudges when someone waits on what the session holds
+#     lease-hook.sh end         # SessionEnd: releases the session's leases
 #
-# Runs on the host and reads the hook's JSON on stdin. Leases live in the main checkout's .claude/leases/, which the
-# web container sees as /home/.claude/leases/; anything that changes one goes through lease.sh in the container. Every
-# failure is silent, since no hook here may get in the way of the session's real work.
+# Runs on the host; lease changes go through lease.sh in the container. Fails silently so it never blocks real work.
 
 set -uo pipefail
 
@@ -26,7 +24,6 @@ main=$(dirname "$main")
 LEASES="$main/.claude/leases"
 SESSION_FILE="$LEASES/sessions/$sid"
 
-# The copy of lease.sh from the checkout this session was started in, as the container sees it.
 lease() {
   local script="$project/tools/dev/lease.sh"
   [ -f "$script" ] || script="$main/tools/dev/lease.sh"
@@ -41,7 +38,7 @@ checkout_of() {
   esac
 }
 
-# The session's name is what other sessions pass to SendMessage, so lease.sh shows it to them.
+# Other sessions SendMessage by this name.
 heartbeat() {
   local name
   mkdir -p "$LEASES/sessions" 2>/dev/null || return 0
@@ -55,12 +52,12 @@ pre_tool() {
   grep -qE '(localhost|127\.0\.0\.1):9000|make[[:space:]]+([^;&|]*[[:space:]])?test-e2e' <<<"$target" || return 0
   status=$(lease status app) || return 0
   mine=$(checkout_of "$cwd")
-  # A session in one checkout can run another's app (`make qa-worktree wt=X`); that app is still its own.
+  # An app this session started for another checkout (qa-worktree wt=X) is still its own.
   grep -qsx "session=$sid" "$LEASES/app.lease" && mine=$(sed -n 's/^checkout=//p' "$LEASES/app.lease")
   held=$(sed -n 's/^the app on :9000: held by \([^ ,]*\).*/\1/p' <<<"$status")
   serving=$(sed -n 's/^  serving: //p' <<<"$status")
   if ! { [ -n "$held" ] && [ "$held" != "$mine" ]; } && ! { [ "$serving" != nothing ] && [ "$serving" != "$mine" ]; }; then
-    # Forgotten once it's resolved, so the same holder coming back is announced again.
+    # Reset, so the same holder returning is announced again.
     rm -f "$SESSION_FILE.seen"
     return 0
   fi
@@ -68,9 +65,9 @@ pre_tool() {
   key="$held|$serving"
   [ "$(cat "$SESSION_FILE.seen" 2>/dev/null)" = "$key" ] && return 0
   echo "$key" >"$SESSION_FILE.seen" 2>/dev/null
-  jq -n --arg c "Heads-up: the app on :9000 is not this checkout's ($mine), so it won't show your changes.
+  jq -n --arg c "Heads-up: the app on :9000 isn't this checkout's ($mine).
 $status
-To run your own branch's app, use \`make qa-worktree wt=<name> wait=1\`, which waits its turn instead of stopping an app someone is using." \
+Run yours with \`make qa-worktree wt=<name> wait=1\`." \
     '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: $c}}'
 }
 
@@ -81,11 +78,10 @@ stop() {
   grep -qsx "session=$sid" "$LEASES"/*.lease || return 0
   waiting=$(lease nudge "$sid") || return 0
   [ -n "$waiting" ] || return 0
-  jq -n --arg r "Another session is waiting for something you hold:
+  jq -n --arg r "Waiting on something you hold:
 $waiting
-If neither you nor the user still needs it, release it now: \`make qa-worktree-stop wt=<name>\` for the app, \
-\`make lease-release res=<name>\` for anything else. If the user may still be using it (say, clicking through the app), \
-leave it and tell them who is waiting." '{decision: "block", reason: $r}'
+If it's no longer needed, release it (\`make qa-worktree-stop wt=<name>\` or \`make lease-release res=<name>\`). \
+If the user may still be using it, tell them who's waiting." '{decision: "block", reason: $r}'
 }
 
 case "$EVENT" in
@@ -93,7 +89,7 @@ heartbeat) heartbeat ;;
 pre-tool) heartbeat; pre_tool ;;
 stop) heartbeat; stop ;;
 end)
-  # Kept when the release fails (the container is down, say), so the session's leases still expire once it goes quiet.
+  # Kept if the release fails, so the leases still expire by idleness.
   lease release-session "$sid" >/dev/null && rm -f "$SESSION_FILE"
   rm -f "$SESSION_FILE.seen"
   ;;

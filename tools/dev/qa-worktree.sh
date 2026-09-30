@@ -14,9 +14,8 @@
 #     docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/dev/qa-worktree.sh <name>
 #
 # Handles the worktree-specific setup the plain `npm start` flow doesn't (node_modules,
-# bundles, a backgrounded grunt watch, sbt caches, config.file, thin-client contention). Starting takes the lease on
-# :9000 (tools/dev/lease.sh), so it won't stop another checkout's app while that one is in use; --wait joins the line
-# for it and --force takes it anyway.
+# bundles, a backgrounded grunt watch, sbt caches, config.file, thin-client contention), and holds the
+# :9000 lease (tools/dev/lease.sh) while the app runs.
 # See docs/dev-environment.md -> "Running a branch from a git worktree".
 #
 set -euo pipefail
@@ -106,7 +105,7 @@ fi
 cd "$WT_DIR"
 echo "==> worktree: $WT_DIR"
 
-# Taken before any setup so a busy :9000 fails (or waits) fast; held until this script, and so the app, exits.
+# Before any setup, so a busy :9000 fails fast.
 lease take app --checkout "$WT_DIR" --pid $$ "${LEASE_FLAGS[@]}" || exit 1
 
 # 1. node_modules is gitignored (absent in worktrees) -> reuse the main repo's. Test for grunt rather than the folder,

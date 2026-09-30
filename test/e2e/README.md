@@ -14,9 +14,8 @@ community stat bands across widths and fails when one stat runs into the next (#
 
 The suite does **not** boot the app — it runs against whatever `BASE_URL` points at (default
 `http://localhost:9000`). So bring an app up first (`npm start` inside `make dev`, or `make qa-worktree
-wt=<name>` for a branch under QA); that occupies a terminal, so run the suite from a second one. `make test-e2e` stops
-when another checkout holds `:9000` (add `force=1` to test that app anyway); see
-[`docs/dev-environment.md`](../../docs/dev-environment.md#sharing-the-app-and-the-test-database).
+wt=<name>` for a branch under QA); that occupies a terminal, so run the suite from a second one. It stops if another
+checkout holds `:9000` (`force=1` overrides).
 
 ```bash
 make test-e2e                                  # the whole suite
