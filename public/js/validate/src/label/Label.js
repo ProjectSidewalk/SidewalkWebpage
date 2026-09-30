@@ -302,9 +302,11 @@ class Label {
       svv.labelContainer.pushToLabelsToSubmit(
         this.getAuditProperty('labelId'), this.getProperties(), this.#prepareCommentData(),
       );
-      svv.missionContainer.updateAMission();
       // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
+      // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
+      // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST.
       svv.tracker.flushSoon();
+      svv.missionContainer.updateAMission();
     }
 
     // If there are more labels left to validate, add a new label to the panorama. Otherwise, we will load a new

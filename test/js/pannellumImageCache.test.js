@@ -70,6 +70,7 @@ function installFakePannellum(failingUrls = new Set()) {
 function fakeCache(held) {
     return {
         resolve: jest.fn((url) => held[url]),
+        settle: jest.fn((url) => Promise.resolve(held[url])),
         release: jest.fn((url) => { delete held[url]; }),
     };
 }
@@ -154,11 +155,25 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
         const { attempted, loaded } = installFakePannellum(new Set(['blob:p1']));
         const cache = fakeCache({ [NATIVE_URL]: 'blob:p1' });
 
-        await viewerWith(cache);
+        const viewer = await viewerWith(cache);
 
         expect(attempted).toEqual(['blob:p1', `${NATIVE_URL}?maxWidth=8192`]);
         expect(loaded).toEqual([`${NATIVE_URL}?maxWidth=8192`]);
         expect(cache.release).toHaveBeenCalledWith(NATIVE_URL);
+        expect(viewer.lastLoadPrefetched).toBe(false); // The network was paid for after all.
+    });
+
+    test('a load waits for a prefetch still in flight rather than downloading beside it', async () => {
+        const { attempted } = installFakePannellum();
+        const cache = fakeCache({});
+        // Nothing held yet, but a download about to finish: settle() is what hands it over.
+        cache.settle = jest.fn(() => new Promise((resolve) => setTimeout(() => resolve('blob:p1'), 0)));
+
+        const viewer = await viewerWith(cache);
+
+        expect(cache.settle).toHaveBeenCalledWith(NATIVE_URL, PannellumViewer.PREFETCH_WAIT_MS);
+        expect(attempted).toEqual(['blob:p1']);
+        expect(viewer.lastLoadPrefetched).toBe(true);
     });
 
     test('the next pano is looked up the same way', async () => {

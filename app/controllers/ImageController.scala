@@ -146,6 +146,11 @@ class ImageController @Inject() (
    * copy cut to it, on demand and cached. Without the parameter — every device that can render the pano as stored —
    * this serves the native file.
    *
+   * A width that was asked for is a bound, never a preference: a copy that can't be cut right now (the cut pool is
+   * full, or the cut failed) is a 503 with Retry-After, not the native file. A phone asks for 8192 because the native
+   * file's decode is more memory than iOS lets a tab have (#5561), so handing it the native file "as a fallback"
+   * would be handing it the crash; the viewer's own ladder steps down to a smaller width on the refusal instead.
+   *
    * The pano's metadata (`width`/`height`) always describes the native file, since that is the frame label positions
    * are stored in; the viewer places markers by angle, so a smaller image is transparent to it.
    *
@@ -171,19 +176,27 @@ class ImageController @Inject() (
             // still yields something the device can render rather than a 400 it can't act on.
             val requested = request.getQueryString("maxWidth").flatMap(w => Try(w.toInt).toOption).filter(_ > 0)
             val chosen    = requested.map(service.PanoDisplayCopyService.snapToAllowed)
-            val fileF     = chosen match {
+            val fileF: Future[Option[File]] = chosen match {
               case Some(maxWidth) =>
-                // The service answers None rather than failing, but the fallback is the route's contract, so it is
-                // stated here too: no way for a copy to go wrong should cost the caller the file it asked for.
+                // The service answers Unavailable rather than failing, but the refusal is the route's contract, so
+                // it is stated here too: no way for a copy to go wrong may hand the caller more than it asked for.
                 displayCopyService
                   .displayCopy(panoId, native, maxWidth)
-                  .map(_.getOrElse(native))
-                  .recover { case NonFatal(_) => native }
-              case None => Future.successful(native)
+                  .recover { case NonFatal(_) => service.DisplayCopy.Unavailable }
+                  .map {
+                    case service.DisplayCopy.Ready(copy) => Some(copy)
+                    case service.DisplayCopy.NativeFits  => Some(native)
+                    case service.DisplayCopy.Unavailable => None
+                  }
+              case None => Future.successful(Some(native))
             }
-            fileF.map { file =>
-              val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
-              Ok.sendFile(file, inline = true).as(contentType)
+            fileF.map {
+              case Some(file) =>
+                val contentType = if (file.getName.toLowerCase.endsWith(".png")) "image/png" else "image/jpeg"
+                Ok.sendFile(file, inline = true).as(contentType)
+              case None =>
+                ServiceUnavailable(s"No display copy of pano $panoId could be cut right now.")
+                  .withHeaders(RETRY_AFTER -> "5")
             }
           case None =>
             Future.successful(NotFound(s"Pano image not found: $panoId"))

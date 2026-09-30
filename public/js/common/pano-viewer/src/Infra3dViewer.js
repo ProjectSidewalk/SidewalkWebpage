@@ -315,10 +315,13 @@ class Infra3dViewer extends PanoViewer {
   }
 
   getPanoId = () => {
-    return this.currPanoData.getPanoId();
+    // Null until the first pano's metadata has loaded: the tracker asks on every input event, including during init.
+    return this.currPanoData ? this.currPanoData.getPanoId() : null;
   };
 
   getPosition = () => {
+    // Null until the first pano's metadata has loaded.
+    if (!this.currPanoData) return null;
     return { lat: this.currPanoData.getProperty('lat'), lng: this.currPanoData.getProperty('lng') };
   };
 

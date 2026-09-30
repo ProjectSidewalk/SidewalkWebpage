@@ -155,15 +155,84 @@ describe('PanoImageCache (issue #5562)', () => {
         expect(urls.slice(1).every((url) => cache.has(url))).toBe(true);
     });
 
-    test('prefetchBackups asks for each backup at the URL the viewer would load it from', async () => {
+    test('prefetchBackups asks for each backup at the URL the viewer would load it from, nearest first', async () => {
         const backups = [{ imageUrl: '/backupImage/p1' }, { imageUrl: '/backupImage/p2' }];
 
-        cache.prefetchBackups(backups);
-        await Promise.resolve(); // Let the downloads start.
+        await cache.prefetchBackups(backups);
 
         expect(global.panoramaUrlFor).toHaveBeenCalledTimes(2);
-        expect(global.fetch).toHaveBeenCalledWith('/backupImage/p1?maxWidth=8192');
-        expect(global.fetch).toHaveBeenCalledWith('/backupImage/p2?maxWidth=8192');
+        expect(global.fetch.mock.calls.map(([url]) => url))
+            .toEqual(['/backupImage/p1?maxWidth=8192', '/backupImage/p2?maxWidth=8192']);
+    });
+
+    test('prefetchBackups downloads one at a time: the second starts once the first has settled', async () => {
+        let finishFirst;
+        global.fetch = jest.fn((url) => (url.includes('p1')
+            ? new Promise((resolve) => { finishFirst = resolve; })
+            : Promise.resolve({ ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p2'])) })));
+
+        const done = cache.prefetchBackups([{ imageUrl: '/backupImage/p1' }, { imageUrl: '/backupImage/p2' }]);
+        await Promise.resolve();
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+
+        finishFirst({ ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p1'])) });
+        await done;
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+    });
+
+    test('settle() waits for a download in flight and then hands over its bytes', async () => {
+        let finish;
+        global.fetch = jest.fn(() => new Promise((resolve) => { finish = resolve; }));
+        cache.prefetch('/backupImage/p1');
+
+        let settled;
+        const waiting = cache.settle('/backupImage/p1', 10000).then((url) => { settled = url; });
+        await Promise.resolve();
+        expect(settled).toBeUndefined(); // Still waiting, not answered "nothing held".
+
+        finish({ ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p1'])) });
+        await waiting;
+        expect(settled).toBe('blob:pano-0');
+    });
+
+    test('settle() gives up on a stalled download after the timeout', async () => {
+        jest.useFakeTimers();
+        try {
+            global.fetch = jest.fn(() => new Promise(() => {})); // Never answers.
+            cache.prefetch('/backupImage/p1');
+
+            const waiting = cache.settle('/backupImage/p1', 10000);
+            await jest.advanceTimersByTimeAsync(10000);
+
+            await expect(waiting).resolves.toBeUndefined();
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('settle() on a URL with nothing in flight answers at once', async () => {
+        await expect(cache.settle('/backupImage/p1', 10000)).resolves.toBeUndefined();
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    test('a URL released while its download is in flight is dropped on arrival, not held', async () => {
+        let finish;
+        global.fetch = jest.fn(() => new Promise((resolve) => { finish = resolve; }));
+        const download = cache.prefetch('/backupImage/p1');
+
+        cache.release('/backupImage/p1'); // The viewer loaded it from the network meanwhile and is done with it.
+        finish({ ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p1'])) });
+
+        await expect(download).resolves.toBe(false);
+        expect(cache.has('/backupImage/p1')).toBe(false);
+        expect(URL.createObjectURL).not.toHaveBeenCalled();
+    });
+
+    test('a release before the download starts does not poison a later prefetch of the same URL', async () => {
+        cache.release('/backupImage/p1');
+
+        await expect(cache.prefetch('/backupImage/p1')).resolves.toBe(true);
+        expect(cache.has('/backupImage/p1')).toBe(true);
     });
 
     test('clear() releases everything', async () => {

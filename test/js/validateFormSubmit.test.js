@@ -117,8 +117,9 @@ describe('Form.submit (issue #2745 resilience)', () => {
     test('408 and 429 are retried even though they are 4xx', async () => {
         for (const status of [408, 429]) {
             global.fetch = jest.fn(() => Promise.resolve({ ok: false, status, json: () => Promise.resolve({}) }));
+            const freshForm = new Form('/validationTask'); // Its own send queue, so the last status's retries don't hold it.
 
-            await form.submit({});
+            await freshForm.submit({});
             await jest.advanceTimersByTimeAsync(2000);
 
             expect(global.fetch).toHaveBeenCalledTimes(2);
@@ -241,8 +242,50 @@ describe('Form.submit (issue #2745 resilience)', () => {
         expect(global.fetch).toHaveBeenCalledWith('/validationTask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json; charset=utf-8' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
+            keepalive: false
         });
+    });
+
+    test('submits go out one at a time: a second payload waits behind the first one\'s retry', async () => {
+        global.fetch = jest.fn()
+            .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+            .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+        await form.submit({ validations: [{ label_id: 1 }] }, true);
+        form.submit({ validations: [{ label_id: 2 }] }, true);
+        await Promise.resolve();
+        expect(global.fetch).toHaveBeenCalledTimes(1); // The second is waiting behind the first's retry.
+
+        await jest.advanceTimersByTimeAsync(2000);
+        const labelIds = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).validations[0].label_id);
+        expect(labelIds).toEqual([1, 1, 2]);
+    });
+
+    test('a resend carries the latest progress compiled for its mission, so it cannot move progress backwards',
+        async () => {
+            global.fetch = jest.fn()
+                .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+                .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+            await form.submit({ mission_progress: { mission_id: 5, labels_progress: 4 }, validations: [] }, true);
+            form.submit({ mission_progress: { mission_id: 5, labels_progress: 3 }, validations: [] }, true); // An undo.
+            await jest.advanceTimersByTimeAsync(2000);
+
+            const progress = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).mission_progress);
+            expect(progress.map((p) => p.labels_progress)).toEqual([4, 3, 3]);
+        });
+
+    test('a resend sends the snapshot it was given, untouched by later edits to the buffered verdict', async () => {
+        global.fetch = jest.fn(() => Promise.reject(new Error('blip')));
+        const verdict = { label_id: 1, undone: false };
+
+        await form.submit({ validations: [verdict] }, true);
+        verdict.undone = true; // What an undo does to the buffered object.
+        await jest.advanceTimersByTimeAsync(2000);
+
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(JSON.parse(global.fetch.mock.calls[1][1].body).validations[0].undone).toBe(false);
     });
 
     test('never rejects, even when every attempt fails (callers do not catch)', async () => {

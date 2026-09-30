@@ -375,13 +375,13 @@ class MobileValidationMenu {
     }
     currLabel.setProperty('comment', comment);
 
-    // If enough time has passed between validations, log the new validation.
-    const sinceMs = timestamp.getTime() - svv.labelContainer.getProperty('validationTimestamp');
-    if (sinceMs > 800) {
+    // A verdict counts once the label has been on screen long enough to have been looked at (LabelContainer has the
+    // reasoning). Double-tap protection swallows the rest without a trace on screen, so the log is where it shows.
+    const sinceMs = timestamp.getTime() - svv.labelContainer.getProperty('renderedTimestamp');
+    if (sinceMs > LabelContainer.VERDICT_GRACE_MS) {
       MobileValidationMenu.#floatVerdict(action);
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
     } else {
-      // Double-tap protection swallows the verdict without a trace on screen; the log is the only place it shows.
       svv.tracker.push('ValidateInputDropped_Debounce', { source: `Submit=${action}`, sinceMs });
     }
   }

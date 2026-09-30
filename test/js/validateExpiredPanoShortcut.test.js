@@ -138,6 +138,30 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     expect(panoManager.getActiveViewerName()).toBe('Pannellum');
   });
 
+  test('a backup that fails under a stale expired flag still gets the provider as a last resort', async () => {
+    const panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1');
+    primaryViewer.setPano.mockClear();
+    global.PannellumViewer.create = jest.fn(() => Promise.reject(new Error('503: no copy could be cut')));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const loaded = await panoManager.setPanorama('pano2', backupImage, { expired: true });
+
+    expect(primaryViewer.setPano).toHaveBeenCalledWith('pano2');
+    expect(loaded).toBe(panoData);
+    expect(svv.panoViewer).toBe(primaryViewer);
+    expect(panoManager.getProperty('panoLoaded')).toBe(true);
+  });
+
+  test('a first label whose backup fails does not take Validate down with it', async () => {
+    global.PannellumViewer.create = jest.fn(() => Promise.reject(new Error('503: no copy could be cut')));
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1', backupImage, true);
+
+    expect(primaryViewer.setPano).toHaveBeenCalledWith('pano1');
+    expect(panoManager.getActiveViewerName()).not.toBe('Pannellum');
+  });
+
   test('a live label after an expired one hands the pano back to the provider', async () => {
     const panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1', backupImage, true);
 

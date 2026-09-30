@@ -122,4 +122,45 @@ describe('Form exit flushes (issue #5561)', () => {
 
         expect(locationStub.reload).not.toHaveBeenCalled();
     });
+
+    test('a hidden flush that fails is logged and retried, since the page usually comes back', async () => {
+        jest.useFakeTimers();
+        try {
+            global.fetch = jest.fn()
+                .mockImplementationOnce(() => Promise.reject(new Error('blip')))
+                .mockImplementation(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) }));
+
+            setVisibility('hidden');
+            await Promise.resolve();
+            await Promise.resolve();
+            expect(svv.tracker.push).toHaveBeenCalledWith('SubmitFailed', expect.objectContaining({ attempt: 0 }));
+
+            await jest.advanceTimersByTimeAsync(2000);
+            expect(global.fetch).toHaveBeenCalledTimes(2);
+            expect(global.fetch.mock.calls[1][1].body).toBe(JSON.stringify(payload));
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
+    test('a pagehide flush that fails is left alone: nothing is there to retry it', async () => {
+        global.fetch = jest.fn(() => Promise.reject(new Error('blip')));
+
+        window.dispatchEvent(new Event('pagehide'));
+        await Promise.resolve();
+        await Promise.resolve();
+
+        expect(global.fetch).toHaveBeenCalledTimes(1);
+        expect(svv.tracker.push).not.toHaveBeenCalledWith('SubmitFailed', expect.anything());
+    });
+
+    test('a flush too big for the keepalive budget goes out as an ordinary request', () => {
+        form.compileSubmissionData.mockReturnValue({
+            validations: [], interactions: [{ note: 'x'.repeat(70000) }],
+        });
+
+        setVisibility('hidden');
+
+        expect(exitPostOptions().keepalive).toBe(false);
+    });
 });

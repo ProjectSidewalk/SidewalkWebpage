@@ -35,7 +35,19 @@ class LabelContainer {
 
   #properties = {
     validationTimestamp: new Date(),
+    // When the current label finished rendering, as a millisecond epoch; what the verdict menus measure a tap from.
+    renderedTimestamp: 0,
   };
+
+  /**
+   * How long a label has to have been on screen before a verdict on it counts, in milliseconds.
+   *
+   * Double-tap protection: the tap that advanced to this label is often still coming down as it appears, and with
+   * panos prefetched (#5562) it appears within tens of milliseconds. Measured from the render rather than from the
+   * previous verdict so that a validator working at a steady pace is never told no; a deliberate verdict on a label
+   * that has been up for less than this is not something a person does.
+   */
+  static VERDICT_GRACE_MS = 300;
 
   /**
    * @param {Array} labelList - Initial list of labels to be validated (generated when the page is loaded).
@@ -198,6 +210,7 @@ class LabelContainer {
       // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
       // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
       svv.labelVisibilityControl?.unhideLabel();
+      this.setProperty('renderedTimestamp', Date.now());
       // Now that this label's imagery is on screen and the connection is idle, start on the next ones' (#5562).
       this.#prefetchUpcomingPanos();
     } catch (error) {
@@ -437,9 +450,9 @@ class LabelContainer {
    * @param {Record<string, any>} validation - The completed label validation, ready to be pushed to the list of labels.
    */
   pushUndoValidation(validation) {
-    validation.undone = true;
-    validation.redone = false;
-    this.#labelsToSubmit.push(validation);
+    // A copy: the object handed in is the verdict as it was buffered, and a POST that failed may be holding it for a
+    // resend. Marking that one undone would turn the resend into a retraction of whatever vote replaced it.
+    this.#labelsToSubmit.push({ ...validation, undone: true, redone: false });
   }
 
   /**

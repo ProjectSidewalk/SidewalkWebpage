@@ -10,6 +10,22 @@ class Form {
   static #MAX_SUBMIT_RETRIES = 5;
   static #RETRY_BACKOFF_MS = 2000;
 
+  // A browser refuses a keepalive request outright once the bodies of those in flight pass 64 KB, so a flush bigger
+  // than this goes out as an ordinary request, which at least sends if the page lives.
+  static #KEEPALIVE_MAX_BYTES = 60000;
+
+  // Submits go out one at a time (#5561). Every POST carries the mission's absolute `labels_progress`, and verdicts
+  // now flush within a second of each other, so two requests in flight at once could land in either order and the
+  // older one would move progress backwards. A retry holds the queue too, for the same reason.
+  #queue = Promise.resolve();
+
+  /**
+   * @type {Map<number, object>} The `mission_progress` most recently compiled for each mission. A retry carries the
+   * progress its payload was compiled with, which is stale once a later payload for the mission has gone out; it is
+   * replaced with this before the resend, so a retry that lands late can't undo a newer progress or an undo.
+   */
+  #latestProgress = new Map();
+
   /**
    * @param {string} url - URL to send validation/interaction data to.
    */
@@ -34,17 +50,67 @@ class Form {
    * `keepalive` is what lets it, while still routing through AppManager's fetch wrapper, which attaches the
    * `Csrf-Token` header Play's CSRF filter requires (#3935).
    *
+   * The two reasons get different treatment. On `pagehide` the page is going, so the request is fired and forgotten:
+   * nothing is left to log to or retry from. Going hidden is routine and the page usually comes back, so that flush
+   * is a real send: logged and retried on failure like any other, only sent ahead of the queue, because a retry
+   * backoff waiting in it would hold the flush past the moment the page could be killed.
+   *
    * @param {string} reason - The interaction recorded alongside, naming what prompted the flush.
    */
   #flushOnExit(reason) {
     svv.tracker.push(reason);
-    const data = this.compileSubmissionData(false);
-    fetch(this.#dataStoreUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify(data),
-      keepalive: true,
-    });
+    const data = Form.#snapshot(this.compileSubmissionData(false));
+    this.#noteProgress(data);
+    const body = JSON.stringify(data);
+    const keepalive = body.length <= Form.#KEEPALIVE_MAX_BYTES;
+    if (reason === 'Unload') {
+      fetch(this.#dataStoreUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body,
+        keepalive,
+      }).catch(() => {
+        // The page is gone: nothing can retry this, and nowhere is left to log it.
+      });
+      return;
+    }
+    this.#send(data, true, 0, keepalive);
+  }
+
+  /**
+   * A copy of a payload that later edits to the buffered objects can't reach.
+   *
+   * An undo edits the verdict object it takes back in place (`undone`), and that object may be the very one a
+   * failed POST is about to resend, so the resend would carry the retraction and delete the vote cast after it.
+   *
+   * @param {Record<string, any>} data - As compileSubmissionData built it.
+   * @returns {Record<string, any>} The same payload with its own verdict objects.
+   */
+  static #snapshot(data) {
+    return { ...data, validations: (data.validations ?? []).map((validation) => ({ ...validation })) };
+  }
+
+  /**
+   * Records a freshly compiled payload's mission progress as the latest for its mission.
+   * @param {Record<string, any>} data - The payload, as compiled, before any send.
+   */
+  #noteProgress(data) {
+    const progress = data.mission_progress;
+    if (progress) this.#latestProgress.set(progress.mission_id, { ...progress });
+  }
+
+  /**
+   * Gives a payload about to be resent the latest progress compiled for its mission.
+   *
+   * Only a resend is ever behind: a fresh payload is compiled from the mission as it is now, which makes it the
+   * latest by definition, undo and all. A resend still carries the verdicts it was compiled with.
+   *
+   * @param {Record<string, any>} data - The payload about to be resent.
+   */
+  #refreshProgress(data) {
+    const progress = data.mission_progress;
+    const latest = progress && this.#latestProgress.get(progress.mission_id);
+    if (latest) data.mission_progress = { ...latest };
   }
 
   /**
@@ -164,19 +230,41 @@ class Form {
    * resubmitting would duplicate it). See #2745 — the previous blanket `catch -> location.reload()` reset users to
    * the first label and caused a reload/crash loop on mobile.
    *
-   * @param {object}  data               - Data object (containing interactions, missions, etc.).
+   * Sends queue behind one another (see `#queue`); the returned promise settles once this payload's first attempt
+   * has, with any retries following on the queue.
+   *
+   * @param {Record<string, any>} data   - Data object (containing interactions, missions, etc.).
    * @param {boolean} [isIntermediateSubmit=false] - True for the Tracker's mid-mission buffer flush, which only
    *                                       persists logs/validations and must NOT process a mission transition.
-   * @param {number}  [retryCount=0]      - Internal: current retry attempt (callers leave this at the default).
    * @returns {Promise<void>}
    */
-  async submit(data, isIntermediateSubmit = false, retryCount = 0) {
+  submit(data, isIntermediateSubmit = false) {
+    const snapshot = Form.#snapshot(data);
+    this.#noteProgress(snapshot);
+    const turn = this.#queue.then(() => this.#send(snapshot, isIntermediateSubmit, 0, false));
+    this.#queue = turn.catch(() => {});
+    return turn;
+  }
+
+  /**
+   * One attempt to deliver a payload, and what follows it: a retry queued behind the current sends, or the mission
+   * transition the response carries.
+   *
+   * @param {Record<string, any>} data     - The payload, already snapshotted.
+   * @param {boolean} isIntermediateSubmit - True when the response carries no mission transition to act on.
+   * @param {number}  retryCount           - Which attempt this is; 0 for the first.
+   * @param {boolean} keepalive            - Whether the request may outlive the page.
+   * @returns {Promise<void>}
+   */
+  async #send(data, isIntermediateSubmit, retryCount, keepalive) {
+    if (retryCount > 0) this.#refreshProgress(data);
     let result;
     try {
       const response = await fetch(this.#dataStoreUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json; charset=utf-8' },
         body: JSON.stringify(data),
+        keepalive,
       });
       if (!response.ok) {
         throw Object.assign(new Error(`Validation submit failed with HTTP ${response.status}`), {
@@ -193,9 +281,13 @@ class Form {
       const retryable = !(status >= 400 && status < 500) || status === 408 || status === 429;
       if (svv.tracker) svv.tracker.push('SubmitFailed', { attempt: retryCount, status, error: submitError.message });
       if (retryable && retryCount < Form.#MAX_SUBMIT_RETRIES) {
-        setTimeout(() => {
-          this.submit(data, isIntermediateSubmit, retryCount + 1);
-        }, Form.#RETRY_BACKOFF_MS * (retryCount + 1));
+        // Queued rather than merely timed: everything submitted meanwhile waits behind the resend, so it can't be
+        // overtaken by it.
+        const wait = Form.#RETRY_BACKOFF_MS * (retryCount + 1);
+        const retry = this.#queue
+          .then(() => new Promise((resolve) => setTimeout(resolve, wait)))
+          .then(() => this.#send(data, isIntermediateSubmit, retryCount + 1, keepalive));
+        this.#queue = retry.catch(() => {});
       } else {
         if (!retryable) console.error('Validation submit rejected by the server:', submitError.message);
         if (svv.tracker) svv.tracker.push('SubmitFailedGaveUp', { attempts: retryCount, retryable });

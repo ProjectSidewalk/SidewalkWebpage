@@ -24,6 +24,12 @@ class MissionLiveMarker {
   /** @type {Storage} */
   #storage;
 
+  /** @type {?number} The mission last marked live, so a page restored from the back/forward cache can re-mark it. */
+  #missionId = null;
+
+  /** True once the page-lifecycle listeners are registered; markLive is called once per mission, not once. */
+  #listening = false;
+
   /**
    * @param {Storage} storage - Where the marker lives; `window.sessionStorage` in production.
    */
@@ -66,15 +72,27 @@ class MissionLiveMarker {
 
   /**
    * Marks this page life as mid-mission, and arranges for the mark to be cleared on an orderly exit.
+   *
+   * Called for every mission the page starts, so `ageSec` on the next life counts from the mission cut short rather
+   * than from the page load. The exit listener is registered once. A `pagehide` into the back/forward cache
+   * (`persisted`) clears the mark like any other exit, and the matching `pageshow` puts it back: the restored page
+   * is live again, and a kill of it afterwards is one the next life should hear about.
+   *
    * @param {number} missionId - The mission in progress, so the next life can name what was cut short.
    */
   markLive(missionId) {
+    this.#missionId = missionId;
     try {
       this.#storage.setItem(MissionLiveMarker.KEY, JSON.stringify({ missionId, since: Date.now() }));
     } catch {
       return; // Nothing recorded, so there is nothing to clear either.
     }
+    if (this.#listening) return;
+    this.#listening = true;
     window.addEventListener('pagehide', () => this.clear());
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted && this.#missionId !== null) this.markLive(this.#missionId);
+    });
   }
 
   /** Withdraws the marker: this page is ending the way pages are supposed to. */

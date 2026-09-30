@@ -121,4 +121,42 @@ describe('MissionLiveMarker (issue #5561)', () => {
 
         expect(new MissionLiveMarker(storage).takeUnexpectedUnload()).toBeNull();
     });
+
+    test('each mission re-marks the life, so a kill names the mission cut short and its own age', () => {
+        const marker = new MissionLiveMarker(storage);
+        marker.markLive(1);
+        jest.advanceTimersByTime(60 * 1000);
+        marker.markLive(2);
+        jest.advanceTimersByTime(30 * 1000);
+
+        expect(new MissionLiveMarker(storage).takeUnexpectedUnload()).toMatchObject({ missionId: 2, ageSec: 30 });
+    });
+
+    test('the exit listener is registered once however many missions a page runs', () => {
+        const listen = jest.spyOn(window, 'addEventListener');
+        const marker = new MissionLiveMarker(storage);
+        marker.markLive(1);
+        marker.markLive(2);
+
+        expect(listen.mock.calls.filter(([type]) => type === 'pagehide')).toHaveLength(1);
+        listen.mockRestore();
+    });
+
+    test('a page restored from the back/forward cache marks itself live again', () => {
+        new MissionLiveMarker(storage).markLive(42);
+        orderlyExit(); // Into the cache: pagehide fires with persisted = true.
+        const restored = new Event('pageshow');
+        Object.defineProperty(restored, 'persisted', { value: true });
+        window.dispatchEvent(restored);
+
+        expect(new MissionLiveMarker(storage).takeUnexpectedUnload()).toMatchObject({ missionId: 42 });
+    });
+
+    test('a pageshow that is a fresh load, not a restore, marks nothing', () => {
+        new MissionLiveMarker(storage).markLive(42);
+        orderlyExit();
+        window.dispatchEvent(new Event('pageshow'));
+
+        expect(new MissionLiveMarker(storage).takeUnexpectedUnload()).toBeNull();
+    });
 });

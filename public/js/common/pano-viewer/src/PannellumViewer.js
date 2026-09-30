@@ -123,6 +123,12 @@ class PannellumViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
   static SOURCE = 'pannellum';
 
+  /**
+   * How long a load waits for a prefetch of the same image that is still downloading, in milliseconds. Long enough
+   * to cover a backup pano on cellular; a prefetch stalled past this is abandoned in favour of a fresh request.
+   */
+  static PREFETCH_WAIT_MS = 10000;
+
   /** @type {pannellum.Viewer} The underlying pannellum viewer instance. */
   #viewer = undefined;
 
@@ -220,7 +226,7 @@ class PannellumViewer extends PanoViewer {
       },
     };
 
-    const { urls: candidates, cacheKey } = this.#attemptUrls(metadata);
+    const { urls: candidates, cacheKey, held } = await this.#attemptUrls(metadata);
     try {
       for (let attempt = 0; attempt < candidates.length; attempt++) {
         pannellumConfig.scenes[panoId].panorama = candidates[attempt];
@@ -240,6 +246,7 @@ class PannellumViewer extends PanoViewer {
             this.#viewer.on('load', onLoad);
             this.#viewer.on('error', onError);
           });
+          this.#recordPrefetchOutcome(held, attempt);
           break;
         } catch (e) {
           // The viewer holds a WebGL context and a half-built scene either way, so it goes before the next attempt.
@@ -314,7 +321,7 @@ class PannellumViewer extends PanoViewer {
     // Pause the rAF POV-tracking loop for the duration of the transition to avoid emitting pov_changed events
     // with values that mix the old scene's calibration with the new scene's yaw/pitch.
     this.#loading = true;
-    const { urls: candidates, cacheKey } = this.#attemptUrls(metadata);
+    const { urls: candidates, cacheKey, held } = await this.#attemptUrls(metadata);
     try {
       for (let attempt = 0; attempt < candidates.length; attempt++) {
         this.#viewer.addScene(panoId, {
@@ -340,6 +347,7 @@ class PannellumViewer extends PanoViewer {
             this.#viewer.on('error', onError);
             this.#viewer.loadScene(panoId, pitch, yaw, hfov);
           });
+          this.#recordPrefetchOutcome(held, attempt);
           break;
         } catch (e) {
           // No teardown between rungs: addScene overwrites the entry, and removeScene would refuse anyway, since
@@ -379,15 +387,34 @@ class PannellumViewer extends PanoViewer {
    * fails is the same bytes failing to decode or texture, so the next attempt should be a smaller copy, not the
    * download that produced them.
    *
+   * A download of rung 0 still in flight is waited for, up to `PREFETCH_WAIT_MS`: a second download of the same bytes
+   * beside it would only slow both down.
+   *
    * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
-   * @returns {{urls: string[], cacheKey: string}} The attempts in order, and the key to release afterwards.
+   * @returns {Promise<{urls: string[], cacheKey: string, held: boolean}>} The attempts in order, the key to release
+   *     afterwards, and whether rung 0 is a held copy.
    */
-  #attemptUrls(metadata) {
+  async #attemptUrls(metadata) {
     const candidates = panoramaUrlCandidates(metadata);
     const cacheKey = candidates[0];
-    const held = this.#imageCache?.resolve(cacheKey);
-    if (this.#imageCache) this.lastLoadPrefetched = held !== undefined;
-    return { urls: held ? [held, ...candidates.slice(1)] : candidates, cacheKey };
+    const held = this.#imageCache
+      ? await this.#imageCache.settle(cacheKey, PannellumViewer.PREFETCH_WAIT_MS)
+      : undefined;
+    return { urls: held ? [held, ...candidates.slice(1)] : candidates, cacheKey, held: held !== undefined };
+  }
+
+  /**
+   * Records what the load just made says about the prefetch: a hit only when the held copy itself rendered.
+   *
+   * A held copy that fails to decode or texture is followed by a smaller network copy, and that load paid for the
+   * network after all, so it is a miss however the bytes were obtained. Null without a cache: the question doesn't
+   * arise.
+   *
+   * @param {boolean} held - Whether rung 0 was a held copy.
+   * @param {number} attempt - The rung that rendered.
+   */
+  #recordPrefetchOutcome(held, attempt) {
+    this.lastLoadPrefetched = this.#imageCache ? held && attempt === 0 : null;
   }
 
   /**

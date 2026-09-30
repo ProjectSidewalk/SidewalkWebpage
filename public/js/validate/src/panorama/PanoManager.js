@@ -92,14 +92,31 @@ class PanoManager {
     // Load the first pano, falling back to Pannellum if the primary viewer fails — or without asking it, when the
     // pano is already known to be gone (#5561; setPanorama has the reasoning).
     let panoData = null;
-    if (!(startExpired && startBackupImage)) {
+    const skipPrimary = startExpired && Boolean(startBackupImage);
+    if (!skipPrimary) {
       try {
         panoData = await this.#primaryViewer.setPano(startPanoId);
       } catch {
         // The provider hasn't got it; the backup below is the next chance.
       }
     }
-    if (!panoData && startBackupImage) panoData = await this.#showPannellumPano(startBackupImage);
+    if (!panoData && startBackupImage) {
+      try {
+        panoData = await this.#showPannellumPano(startBackupImage);
+      } catch (err) {
+        // A failed backup must not take Validate's start-up down with it: with no pano the first render asks again
+        // through setPanorama, which drops the label if nothing can show it. Under a flag that may be stale, the
+        // provider that was skipped gets its turn first, as setPanorama gives it.
+        console.error('PannellumViewer failed to load the first pano for Validate:', err);
+        if (skipPrimary) {
+          try {
+            panoData = await this.#primaryViewer.setPano(startPanoId);
+          } catch {
+            // Nothing can show it; the first render's setPanorama handles an empty pano area.
+          }
+        }
+      }
+    }
     if (panoData) this.#setPanoCallback(panoData);
 
     // Subscribed after the first pano has loaded rather than beside the viewer's creation: that load sets the
@@ -370,30 +387,8 @@ class PanoManager {
     const skipPrimary = expired && backupImage !== null;
 
     if (!skipPrimary) {
-      // The fallback's invariant from #showPannellumPano, applied the other way round (#5453). While the fallback or
-      // an empty pano area is up, the primary canvas is out of the layout and holds whatever it last drew: the last
-      // live label's pano, however many labels back. A provider left out of the layout doesn't render, so revealing
-      // it once setPano resolved put that frame back on screen until it caught up. It rejoins the layout unpainted
-      // instead and switches panos underneath the outgoing one; #teardownPannellum reveals it. The resize is what
-      // makes it measure the box it rejoined: a window resize while the fallback was up only reached the fallback.
-      const primaryWasHidden = this.#panoCanvas.style.display === 'none';
-      if (primaryWasHidden) {
-        this.#panoCanvas.style.visibility = 'hidden';
-        this.#panoCanvas.style.display = '';
-        this.#primaryViewer.resize();
-      }
-
-      try {
-        const panoData = await this.#primaryViewer.setPano(panoId);
-        this.#teardownPannellum();
-        this.#setPanoCallback(panoData);
-        this.setProperty('panoLoaded', true);
-        svv.tracker.push('PanoId_Changed');
-        return panoData;
-      } catch {
-        // Put the primary canvas back the way this call found it, so it can't sit laid out under the fallback.
-        if (primaryWasHidden) this.#hidePrimaryCanvas();
-      }
+      const panoData = await this.#showPrimaryPano(panoId);
+      if (panoData) return panoData;
     }
 
     // The primary viewer failed, or wasn't asked — try Pannellum if we have local pano data.
@@ -407,10 +402,51 @@ class PanoManager {
       } catch (err) {
         console.error('PannellumViewer failed to load for Validate:', err);
       }
+      // A backup that won't load under a flag that may be stale: the provider it was skipped for is the last
+      // chance, and asking costs only the round trip the shortcut saved.
+      if (skipPrimary) {
+        const panoData = await this.#showPrimaryPano(panoId);
+        if (panoData) return panoData;
+      }
     }
 
     this.#clearViewer();
     return null;
+  }
+
+  /**
+   * Loads a pano in the primary viewer and makes that the active viewer, or leaves everything as it was.
+   *
+   * The fallback's invariant from #showPannellumPano, applied the other way round (#5453). While the fallback or an
+   * empty pano area is up, the primary canvas is out of the layout and holds whatever it last drew: the last live
+   * label's pano, however many labels back. A provider left out of the layout doesn't render, so revealing it once
+   * setPano resolved put that frame back on screen until it caught up. It rejoins the layout unpainted instead and
+   * switches panos underneath the outgoing one; #teardownPannellum reveals it. The resize is what makes it measure
+   * the box it rejoined: a window resize while the fallback was up only reached the fallback.
+   *
+   * @param {string} panoId - The pano to load.
+   * @returns {Promise<PanoData|null>} The loaded pano's metadata, or null when the provider hasn't got it.
+   */
+  async #showPrimaryPano(panoId) {
+    const primaryWasHidden = this.#panoCanvas.style.display === 'none';
+    if (primaryWasHidden) {
+      this.#panoCanvas.style.visibility = 'hidden';
+      this.#panoCanvas.style.display = '';
+      this.#primaryViewer.resize();
+    }
+
+    try {
+      const panoData = await this.#primaryViewer.setPano(panoId);
+      this.#teardownPannellum();
+      this.#setPanoCallback(panoData);
+      this.setProperty('panoLoaded', true);
+      svv.tracker.push('PanoId_Changed');
+      return panoData;
+    } catch {
+      // Put the primary canvas back the way this call found it, so it can't sit laid out under the fallback.
+      if (primaryWasHidden) this.#hidePrimaryCanvas();
+      return null;
+    }
   }
 
   /**

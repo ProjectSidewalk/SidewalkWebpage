@@ -304,20 +304,21 @@ class Main {
 
     svv.modalMission = new ModalMission(svv.ui.modalMission);
     svv.missionContainer = new MissionContainer();
+
+    // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
+    // memory (#5561), which from in here is otherwise indistinguishable from a reload. Read before the first mission
+    // is created, which is what marks this life live; the tracker files the row under that mission when the buffer
+    // drains, so it still names this mission alongside the one that was cut short.
+    svv.missionLiveMarker = new MissionLiveMarker(window.sessionStorage);
+    const unexpectedUnload = svv.missionLiveMarker.takeUnexpectedUnload();
+    if (unexpectedUnload) svv.tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
+
     svv.missionContainer.createAMission(param.mission, param.progress);
     // Logged only now: the tracker stamps each row with the current mission, and without one this row, the only
     // record of a filter carried in from an earlier visit, could not be tied to a validator. Desktop builds the model.
     if (svv.imageAdjustments && !svv.imageAdjustments.isDefault()) {
       svv.tracker.push('ImageAdjustments_Restored', svv.imageAdjustments.values());
     }
-
-    // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
-    // memory (#5561), which from in here is otherwise indistinguishable from a reload. Logged once the mission
-    // exists so the row carries this mission's id alongside the one that was cut short.
-    svv.missionLiveMarker = new MissionLiveMarker(window.sessionStorage);
-    const unexpectedUnload = svv.missionLiveMarker.takeUnexpectedUnload();
-    if (unexpectedUnload) svv.tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
-    svv.missionLiveMarker.markLive(param.mission.mission_id);
 
     if (!util.isMobile()) {
       // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the

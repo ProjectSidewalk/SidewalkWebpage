@@ -37,6 +37,13 @@ class PanoImageCache {
   #inFlight = new Map();
 
   /**
+   * @type {Set<string>} Downloads released while still in flight. The viewer releases a URL once its own load has
+   * settled, so a prefetch of it that finishes afterwards would hold bytes for a pano already shown, in a slot a
+   * coming pano should have; it is dropped on arrival instead.
+   */
+  #abandoned = new Set();
+
+  /**
    * Whether this connection wants imagery fetched that the user hasn't asked to see yet.
    *
    * A prefetch is only a waste when the validator quits before reaching the label, so on an ordinary connection it
@@ -63,11 +70,13 @@ class PanoImageCache {
     if (this.#inFlight.has(url)) return this.#inFlight.get(url);
     if (!PanoImageCache.prefetchAllowed()) return Promise.resolve(false);
 
+    this.#abandoned.delete(url);
     const download = (async () => {
       try {
         const response = await fetch(url);
         if (!response.ok) return false;
         const blob = await response.blob();
+        if (this.#abandoned.delete(url)) return false;
         this.#store(url, URL.createObjectURL(blob));
         return true;
       } catch {
@@ -83,12 +92,17 @@ class PanoImageCache {
   /**
    * Prefetches the backup panos for the given labels' metadata, at the width this device would load them at.
    *
+   * One at a time, in order: the nearest label's pano is the one most likely to be needed first, and a phone's
+   * bandwidth split between two downloads finishes neither sooner. The server cuts these copies on demand from a
+   * bounded pool, which serial requests also spare (#5561).
+   *
    * @param {Array<Record<string, any>>} backupImages - `backupImage` metadata objects, as `buildBackupImageData`
    *     builds them and `PannellumViewer` loads them.
+   * @returns {Promise<void>} Settles once every download has, for callers that want to wait; none need to.
    */
-  prefetchBackups(backupImages) {
+  async prefetchBackups(backupImages) {
     for (const backupImage of backupImages) {
-      this.prefetch(panoramaUrlFor(backupImage));
+      await this.prefetch(panoramaUrlFor(backupImage));
     }
   }
 
@@ -111,10 +125,36 @@ class PanoImageCache {
   }
 
   /**
-   * Drops a held pano and frees its bytes. Safe to call for a URL that was never held.
+   * Like resolve(), but gives a download still in flight for the URL a chance to finish first.
+   *
+   * A validator who reaches a label before its prefetch has landed would otherwise start a second download of the
+   * same bytes beside the first, and on cellular two half-speed downloads finish later than the one already under
+   * way. The wait is bounded so a stalled prefetch can't hold the viewer indefinitely.
+   *
+   * @param {string} url - The network URL the viewer is about to request.
+   * @param {number} timeoutMs - How long to wait for a download in flight.
+   * @returns {Promise<string|undefined>} A `blob:` URL to load instead, or undefined to load from the network.
+   */
+  async settle(url, timeoutMs) {
+    const download = this.#inFlight.get(url);
+    if (download) {
+      let timer;
+      const timeout = new Promise((resolve) => {
+        timer = setTimeout(resolve, timeoutMs);
+      });
+      await Promise.race([download, timeout]);
+      clearTimeout(timer);
+    }
+    return this.resolve(url);
+  }
+
+  /**
+   * Drops a held pano and frees its bytes, or marks one still downloading to be dropped on arrival. Safe to call for
+   * a URL that was never held.
    * @param {string} url - The network URL.
    */
   release(url) {
+    if (this.#inFlight.has(url)) this.#abandoned.add(url);
     const objectUrl = this.#entries.get(url);
     if (objectUrl === undefined) return;
     URL.revokeObjectURL(objectUrl);
