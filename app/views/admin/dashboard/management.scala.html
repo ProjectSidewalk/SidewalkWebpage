@@ -1,5 +1,6 @@
 @import service.CommonPageData
-@import models.user.SidewalkUserWithRole
+@import models.user.{Role, SidewalkUserWithRole}
+@import play.api.libs.json.Json
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -117,7 +118,7 @@
         rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence',
         refreshPlacesUrl: '/adminapi/refreshPlaces',
         recountGradientStalenessUrl: '/adminapi/recountStreetGradientStaleness'
-      }).init();
+      }, @Html(Json.toJson(Role.ADMIN_ASSIGNABLE_ROLES.map(_.name)).toString)).init();
     });
   </script>
 }

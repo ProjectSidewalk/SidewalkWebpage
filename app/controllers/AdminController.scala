@@ -160,7 +160,7 @@ class AdminController @Inject() (
   }
 
   /**
-   * Updates the role in the database for the given user.
+   * Updates a user's role from the Management page; only moves between `Role.ADMIN_ASSIGNABLE_ROLES` are allowed.
    */
   def setUserRole = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     val submission = request.body.validate[UserRoleSubmission]
@@ -172,12 +172,10 @@ class AdminController @Inject() (
 
         authenticationService.findByUserId(userId) flatMap {
           case Some(user) =>
-            if (user.role == Role.Owner) {
-              Future.successful(BadRequest("Owner's role cannot be changed"))
-            } else if (newRole.contains(Role.Owner)) {
-              Future.successful(BadRequest("Cannot set a new owner"))
-            } else if (newRole.isEmpty) {
-              Future.successful(BadRequest("Invalid role"))
+            if (!newRole.exists(Role.ADMIN_ASSIGNABLE_ROLES.contains)) {
+              Future.successful(BadRequest(s"Can't assign role ${submission.roleId}"))
+            } else if (!Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role)) {
+              Future.successful(BadRequest(s"A ${user.role.name} account's role can't be changed"))
             } else {
               authenticationService
                 .updateRole(userId, newRole.get)

@@ -14,11 +14,6 @@
  * optimistically-then-confirm: the request fires, and the row reverts with a message if it fails.
  */
 class ManagementPage {
-  /** Roles an admin may assign from this page. Owner is intentionally excluded (the backend forbids it); the system
-   *  roles (Anonymous, AI) aren't hand-assignable here either. A user already in an unassignable role is shown it as
-   *  a disabled, locked select. */
-  static #ASSIGNABLE_ROLES = ['Registered', 'Turker', 'Researcher', 'Administrator'];
-
   /** Page-size options for the directory; the first is the default. */
   static #PAGE_SIZES = [20, 50, 100, 250];
 
@@ -26,6 +21,8 @@ class ManagementPage {
   static #PAGINATION_IDS = ['mgmt-pagination-top', 'mgmt-pagination-bottom'];
 
   #urls;
+  /** Roles an admin may assign; a user already in any other role gets a locked select. */
+  #assignableRoles;
   #users = [];
   #teams = [];
   #teamsByName = new Map();
@@ -40,9 +37,11 @@ class ManagementPage {
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
    *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
    *          refreshPlacesUrl: string, recountGradientStalenessUrl: string}} urls
+   * @param {string[]} assignableRoles - Role names from the backend's `Role.ADMIN_ASSIGNABLE_ROLES`.
    */
-  constructor(urls) {
+  constructor(urls, assignableRoles) {
     this.#urls = urls;
+    this.#assignableRoles = assignableRoles;
   }
 
   async init() {
@@ -201,8 +200,8 @@ class ManagementPage {
   /** A role <select>. Locked (disabled) for users whose current role isn't admin-assignable (Owner, AI, Anonymous). */
   #roleSelect(u) {
     const current = u.role || '';
-    const assignable = ManagementPage.#ASSIGNABLE_ROLES.includes(current);
-    const opts = ManagementPage.#ASSIGNABLE_ROLES.map((r) =>
+    const assignable = this.#assignableRoles.includes(current);
+    const opts = this.#assignableRoles.map((r) =>
       `<option value="${r}"${r === current ? ' selected' : ''}>${r}</option>`).join('');
     if (assignable) {
       return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" `
