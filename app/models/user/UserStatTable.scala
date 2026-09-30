@@ -10,8 +10,7 @@ import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragmen
 import models.utils.MyPostgresProfile.api.{given, *}
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.functional.syntax.*
-import play.api.libs.json.{__, Writes}
+import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, Writes}
 import service.TimeInterval
 import slick.jdbc.{GetResult, SQLActionBuilder}
 
@@ -35,14 +34,12 @@ case class UserStat(
 
 case class LabelTypeStat(labels: Int, validatedCorrect: Int, validatedIncorrect: Int, notValidated: Int)
 object LabelTypeStat {
+  // snake_case keys for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
   // snake_case JSON output per the v3 API convention (#3871). Lives in the companion so it is in implicit
   // scope wherever a LabelTypeStat is serialized (e.g. UserStatForApi).
-  given writes: Writes[LabelTypeStat] = (
-    (__ \ "labels").write[Int] and
-      (__ \ "validated_correct").write[Int] and
-      (__ \ "validated_incorrect").write[Int] and
-      (__ \ "not_validated").write[Int]
-  )((o: LabelTypeStat) => Tuple.fromProductTyped(o))
+  given writes: Writes[LabelTypeStat] = Json.writes[LabelTypeStat]
 }
 case class UserStatsForAdminPage(
     userId: String,

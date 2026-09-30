@@ -12,6 +12,10 @@ import service.TimeInterval
 import java.time.OffsetDateTime
 
 object AdminFormats {
+  // snake_case keys, and a None written as null, for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration =
+    JsonConfiguration(JsonNaming.SnakeCase, optionHandlers = OptionHandlers.WritesNull)
+
   case class UserRoleSubmission(userId: String, roleId: String)
   case class TaskFlagsByDateSubmission(userId: String, date: OffsetDateTime, flag: String, state: Boolean)
   case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean) {
@@ -69,26 +73,11 @@ object AdminFormats {
       (JsPath \ "state").read[Boolean]
   )(TaskFlagSubmission.apply)
 
-  given userCountWrites: Writes[UserCount] = (
-    (__ \ "count").write[Int] and
-      (__ \ "tool_used").write[String] and
-      (__ \ "role").write[String] and
-      (__ \ "time_interval").write[TimeInterval] and
-      (__ \ "task_completed_only").write[Boolean] and
-      (__ \ "high_quality_only").write[Boolean]
-  )((o: UserCount) => Tuple.fromProductTyped(o))
+  given userCountWrites: Writes[UserCount] = Json.writes[UserCount]
 
-  given contributionTimeStatWrites: Writes[ContributionTimeStat] = (
-    (__ \ "time").write[Option[Double]] and
-      (__ \ "stat").write[String] and
-      (__ \ "time_interval").write[TimeInterval]
-  )((o: ContributionTimeStat) => Tuple.fromProductTyped(o))
+  given contributionTimeStatWrites: Writes[ContributionTimeStat] = Json.writes[ContributionTimeStat]
 
-  given labelCountWrites: Writes[LabelCount] = (
-    (__ \ "count").write[Int] and
-      (__ \ "time_interval").write[TimeInterval] and
-      (__ \ "label_type").write[String]
-  )((o: LabelCount) => Tuple.fromProductTyped(o))
+  given labelCountWrites: Writes[LabelCount] = Json.writes[LabelCount]
 
   given validationCountWrites: Writes[ValidationCount] = (
     (__ \ "count").write[Int] and
@@ -99,17 +88,7 @@ object AdminFormats {
       (__ \ "validator").write[String]
   )((o: ValidationCount) => Tuple.fromProductTyped(o))
 
-  given genericCommentWrites: Writes[GenericComment] = (
-    (__ \ "comment_type").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "pano_id").write[String] and
-      (__ \ "timestamp").write[OffsetDateTime] and
-      (__ \ "comment").write[String] and
-      (__ \ "heading").write[Double] and
-      (__ \ "pitch").write[Double] and
-      (__ \ "zoom").write[Double] and
-      (__ \ "label_id").write[Option[Int]]
-  )((o: GenericComment) => Tuple.fromProductTyped(o))
+  given genericCommentWrites: Writes[GenericComment] = Json.writes[GenericComment]
 
   def auditedStreetWithTimestampToGeoJSON(street: AuditedStreetWithTimestamp): JsObject = {
     Json.obj(

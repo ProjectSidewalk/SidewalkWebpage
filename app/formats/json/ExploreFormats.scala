@@ -15,6 +15,9 @@ import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 
 object ExploreFormats {
+  // snake_case keys for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
   case class EnvironmentSubmission(
       browser: Option[String],
       browserVersion: Option[String],
@@ -168,21 +171,7 @@ object ExploreFormats {
       (__ \ "outdated_imagery_at").writeNullable[OffsetDateTime]
   )((o: AuditTask) => Tuple.fromProductTyped(o))
 
-  given auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
-    (__ \ "audit_task_interaction_id").write[Long] and
-      (__ \ "audit_task_id").write[Int] and
-      (__ \ "mission_id").write[Int] and
-      (__ \ "action").write[String] and
-      (__ \ "pano_id").writeNullable[String] and
-      (__ \ "lat").writeNullable[Double] and
-      (__ \ "lng").writeNullable[Double] and
-      (__ \ "heading").writeNullable[Double] and
-      (__ \ "pitch").writeNullable[Double] and
-      (__ \ "zoom").writeNullable[Double] and
-      (__ \ "note").writeNullable[String] and
-      (__ \ "temporary_label_id").writeNullable[Int] and
-      (__ \ "timestamp").write[OffsetDateTime]
-  )((o: AuditTaskInteraction) => Tuple.fromProductTyped(o))
+  given auditTaskInteractionWrites: Writes[AuditTaskInteraction] = Json.writes[AuditTaskInteraction]
 
   given newTaskWrites: Writes[NewTask] = (task: NewTask) => {
     Json.obj(
@@ -222,10 +211,7 @@ object ExploreFormats {
     )
   }
 
-  given updatedStreetsWrites: Writes[UpdatedStreets] = (
-    (__ \ "last_priority_update_time").write[OffsetDateTime] and
-      (__ \ "updated_street_priorities").write[Seq[StreetEdgePriority]]
-  )((o: UpdatedStreets) => Tuple.fromProductTyped(o))
+  given updatedStreetsWrites: Writes[UpdatedStreets] = Json.writes[UpdatedStreets]
 
   given pointReads: Reads[Point] = (
     (JsPath \ "lat").read[Double] and

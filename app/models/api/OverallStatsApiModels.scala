@@ -46,6 +46,9 @@ case class AiConcurrence(
 )
 
 object AiConcurrence {
+  // snake_case keys for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
   private val voteTypeOrder: Seq[String] = Seq("human_majority_vote", "admin_majority_vote")
 
   /**
@@ -56,12 +59,7 @@ object AiConcurrence {
     if (i < 0) Int.MaxValue else i
   }
 
-  given aiConcurrenceWrites: Writes[AiConcurrence] = (
-    (__ \ "ai_yes_maj_vote_concurs").write[Int] and
-      (__ \ "ai_yes_maj_vote_differs").write[Int] and
-      (__ \ "ai_no_maj_vote_differs").write[Int] and
-      (__ \ "ai_no_maj_vote_concurs").write[Int]
-  )((o: AiConcurrence) => Tuple.fromProductTyped(o))
+  given aiConcurrenceWrites: Writes[AiConcurrence] = Json.writes[AiConcurrence]
 }
 
 /**

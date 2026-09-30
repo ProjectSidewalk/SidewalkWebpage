@@ -8,6 +8,8 @@ import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTo
 import java.time.OffsetDateTime
 
 object UserFormats {
+  // snake_case keys for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   /**
    * The Settings page's save (`POST /dashboard/settings`). The privacy flags are required so a body that omits one
@@ -83,28 +85,9 @@ object UserFormats {
    * (validated, agreed) counts, not a percentage, so the team's rate can pool its members' judged labels rather than
    * average rates that describe different amounts of work.
    */
-  given teamMemberStatsWrites: Writes[TeamMemberStats] = (
-    (__ \ "user_id").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "role").write[Role] and
-      (__ \ "labels").write[Int] and
-      (__ \ "validations").write[Int] and
-      (__ \ "distance_meters").write[Double] and
-      (__ \ "labels_validated").write[Int] and
-      (__ \ "labels_agreed").write[Int] and
-      (__ \ "last_active").writeNullable[OffsetDateTime] and
-      (__ \ "high_quality").write[Boolean] and
-      (__ \ "excluded").write[Boolean]
-  )((o: TeamMemberStats) => Tuple.fromProductTyped(o))
+  given teamMemberStatsWrites: Writes[TeamMemberStats] = Json.writes[TeamMemberStats]
 
-  given teamTotalsWrites: Writes[TeamTotals] = (
-    (__ \ "members").write[Int] and
-      (__ \ "labels").write[Int] and
-      (__ \ "validations").write[Int] and
-      (__ \ "distance_meters").write[Double] and
-      (__ \ "labels_validated").write[Int] and
-      (__ \ "labels_agreed").write[Int]
-  )((o: TeamTotals) => Tuple.fromProductTyped(o))
+  given teamTotalsWrites: Writes[TeamTotals] = Json.writes[TeamTotals]
 
   given teamOverviewWrites: Writes[TeamOverview] = Writes { overview =>
     Json.obj(
@@ -120,13 +103,7 @@ object UserFormats {
     )
   }
 
-  given userSearchResultWrites: Writes[UserSearchResult] = (
-    (__ \ "user_id").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "email").write[String] and
-      (__ \ "role").write[Role] and
-      (__ \ "team").writeNullable[String]
-  )((o: UserSearchResult) => Tuple.fromProductTyped(o))
+  given userSearchResultWrites: Writes[UserSearchResult] = Json.writes[UserSearchResult]
 
   given cityHoursWrites: Writes[CityHours] = (
     (JsPath \ "city_id").write[String] and
