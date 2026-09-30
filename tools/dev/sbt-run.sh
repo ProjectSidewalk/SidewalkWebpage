@@ -79,6 +79,11 @@ if [ -n "$DB_LOCK" ]; then
   if ! bash "$LEASE_SH" take db-tests --checkout "$HERE" --pid $$ --wait; then
     echo "warning: could not take the db-tests lease — running WITHOUT the cross-checkout lock"
   fi
+  # Branches older than the lease only know this lock, so hold it too until they've all merged develop.
+  if exec 9>/tmp/sidewalk-scala-tests.lock && ! flock -n 9; then
+    echo "==> waiting: a checkout on an older branch is running the Scala tests"
+    flock 9
+  fi
   # Somebody may have started an app here while we waited for our turn.
   refuse_if_watch_run_here "$@"
 

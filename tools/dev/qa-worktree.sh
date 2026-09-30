@@ -48,10 +48,9 @@ done
 command -v pgrep >/dev/null 2>&1 || { echo "error: pgrep not found — install procps in the web container"; exit 1; }
 
 WT_DIR="/home/.claude/worktrees/$WT"
-# A branch older than lease.sh falls back to the main checkout's copy, or leases nothing.
-LEASE_SH="$(dirname "$0")/lease.sh"
-[ -f "$LEASE_SH" ] || LEASE_SH=/home/tools/dev/lease.sh
-lease() { [ ! -f "$LEASE_SH" ] || bash "$LEASE_SH" "$@"; }
+# Absolute, since the script changes directory before its first lease call.
+LEASE_SH="$(cd "$(dirname "$0")" && pwd)/lease.sh"
+lease() { bash "$LEASE_SH" "$@"; }
 # grunt watch's log lives here (per-worktree) so `make qa-worktree-stop clean=1` can remove it.
 GRUNT_WATCH_LOG="/tmp/qa-worktree-grunt-watch-$WT.log"
 

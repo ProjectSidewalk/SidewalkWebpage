@@ -371,21 +371,21 @@ http://localhost:9000 with one command:
 make qa-worktree wt=<worktree-name>
 ```
 
-A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
-sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
-repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
-rebuild automatically, takes `:9000` (see [below](#sharing-the-app-and-the-test-database)), kills any stray sbt
-server or hung sbt task sharing the worktree's `target/` (either deadlocks `~ run` on compile locks), and launches
-`sbt ~ run` against the worktree's own config while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
-reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
-also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work runs inside the
-web container.
+A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and sbt's
+caches and config have to be pointed at the right places), so this target handles all of it: it links the main repo's
+`node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits rebuild
+automatically, takes `:9000` (see [below](#sharing-the-app-and-the-test-database)), kills any stray sbt server or hung
+sbt task sharing the worktree's `target/` (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against
+the worktree's own config while reusing the main repo's warm sbt caches. The first request triggers the dev compile;
+`Ctrl+C` stops it and reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>`
+(add `clean=1` to also drop the `node_modules` symlink). It behaves the same on macOS, Linux, and WSL because the work
+runs inside the web container.
 
 Both targets run the **worktree's own** copy of `tools/dev/qa-worktree.sh` when it has one (falling back to the main
-checkout's), so the branch being QA'd supplies its own tooling. `make` itself still reads the **main checkout's**
-Makefile, so when that checkout sits on a branch without the target, make reports `No rule to make target`; either
-check out a branch that has it or run the script directly:
-`docker exec -it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/dev/qa-worktree.sh <name>`.
+checkout's, also for a copy too old to take the `:9000` lease), so the branch being QA'd supplies its own tooling.
+`make` itself still reads the **main checkout's** Makefile, so when that checkout sits on a branch without the target,
+make reports `No rule to make target`; either check out a branch that has it or run the script directly: `docker exec
+-it projectsidewalk-web bash /home/.claude/worktrees/<name>/tools/dev/qa-worktree.sh <name>`.
 
 **Every other container target checks the checkout you run it from.** The container mounts the main checkout at
 `/home` and so sees the worktrees inside it: `make lint`, `make test-js`, `make compile`, `make test-scala`,
@@ -417,9 +417,10 @@ an optional purpose, and since when.
   `lease-take` takes `wait=1`, `force=1` and `purpose="…"` too. Taken from your own terminal, such a lease never
   expires, so release it when you're done.
 
-A lease ends when it's released, when the process holding it exits, or when the Claude session holding it has gone
-quiet for an hour. An app started without a lease (`npm start` in the main checkout) is not protected: `qa-worktree`
-still stops it. Leases live in `.claude/leases/` (gitignored).
+A lease belongs to a checkout and a Claude session, so a second session in the same checkout waits its turn too. It ends
+when it's released or the process holding it exits (a running app keeps its lease however long you click around); one
+with no process ends once its Claude session has been quiet for an hour. An app started without a lease (`npm start` in
+the main checkout) is not protected: `qa-worktree` still stops it. Leases live in `.claude/leases/` (gitignored).
 
 **Claude Code hooks** (`.claude/hooks/lease-hook.sh`, wired in `.claude/settings.json`) do the session side: each
 prompt and tool call marks the session alive, a session about to curl or browse `:9000` or run `make test-e2e` is told

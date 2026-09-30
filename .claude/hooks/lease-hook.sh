@@ -55,10 +55,15 @@ pre_tool() {
   grep -qE '(localhost|127\.0\.0\.1):9000|make[[:space:]]+([^;&|]*[[:space:]])?test-e2e' <<<"$target" || return 0
   status=$(lease status app) || return 0
   mine=$(checkout_of "$cwd")
+  # A session in one checkout can run another's app (`make qa-worktree wt=X`); that app is still its own.
+  grep -qsx "session=$sid" "$LEASES/app.lease" && mine=$(sed -n 's/^checkout=//p' "$LEASES/app.lease")
   held=$(sed -n 's/^the app on :9000: held by \([^ ,]*\).*/\1/p' <<<"$status")
   serving=$(sed -n 's/^  serving: //p' <<<"$status")
-  { [ -n "$held" ] && [ "$held" != "$mine" ]; } || { [ "$serving" != nothing ] && [ "$serving" != "$mine" ]; } ||
+  if ! { [ -n "$held" ] && [ "$held" != "$mine" ]; } && ! { [ "$serving" != nothing ] && [ "$serving" != "$mine" ]; }; then
+    # Forgotten once it's resolved, so the same holder coming back is announced again.
+    rm -f "$SESSION_FILE.seen"
     return 0
+  fi
   # Said once per change, not on every curl.
   key="$held|$serving"
   [ "$(cat "$SESSION_FILE.seen" 2>/dev/null)" = "$key" ] && return 0
@@ -88,8 +93,9 @@ heartbeat) heartbeat ;;
 pre-tool) heartbeat; pre_tool ;;
 stop) heartbeat; stop ;;
 end)
-  lease release-session "$sid" >/dev/null
-  rm -f "$SESSION_FILE" "$SESSION_FILE.seen"
+  # Kept when the release fails (the container is down, say), so the session's leases still expire once it goes quiet.
+  lease release-session "$sid" >/dev/null && rm -f "$SESSION_FILE"
+  rm -f "$SESSION_FILE.seen"
   ;;
 esac
 exit 0

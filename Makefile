@@ -42,12 +42,13 @@ import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
 # happens to be on — which may predate the script entirely (#4628). Prefer the worktree's own copy so the branch being
-# QA'd supplies its own tooling, and fall back to the main repo's for worktrees branched before the script existed.
+# QA'd supplies its own tooling, and fall back to the main repo's for worktrees branched before the script existed or
+# before it took the lease on :9000 (#5586), since an older copy stops whatever app is running.
 # Held in a variable rather than written inline in a recipe: make condenses a variable's backslash-continuations into
 # single spaces at parse time, so the container's shell receives one flat line — no reliance on how a given make version
 # passes continuations and leading tabs through to the shell (macOS still ships make 3.81, WSL/Linux run 4.x).
 qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/dev/qa-worktree.sh"; \
-  [ -f "$$script" ] || script=/home/tools/dev/qa-worktree.sh; \
+  grep -qs "lease take" "$$script" || script=/home/tools/dev/qa-worktree.sh; \
   [ -f "$$script" ] || { echo "error: no tools/dev/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
   exec bash "$$script" $(1)
 # Every wt= target fails fast on a missing name rather than passing an empty one along.
@@ -124,8 +125,6 @@ e2e-user   = $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
 # in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because
 # make condenses a variable's backslash-continuations to spaces at parse time and the container's shell would
 # otherwise receive them literally inside the single-quoted script (same reason as qa-worktree-exec).
-# Which checkout the app on :9000 is running from.
-e2e-app-dir = for p in $$(pgrep -f "[~] run"); do readlink /proc/$$p/cwd; done | head -1
 e2e-fix-artifact-owner = cd $(container-dir) 2>/dev/null || exit 0; \
   for d in test-results playwright-report; do \
     [ -d "$$d" ] || continue; \
@@ -356,11 +355,9 @@ test-e2e:
 	  || { echo "error: no @playwright/test version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -n "$(axe-version)" ] \
 	  || { echo "error: no @axe-core/playwright version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
-	@[ -n "$(filter 1 true yes,$(force))" ] \
-	  || docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh check app --checkout $(container-dir) \
-	  || { echo "Start this checkout's app with 'make qa-worktree wt=<name> wait=1', or add force=1 to test that app anyway."; exit 1; }
-	@app=$$(docker exec $(web-container) sh -c '$(e2e-app-dir)'); [ -z "$$app" ] || [ "$$app" = "$(container-dir)" ] \
-	  || echo "warning: the app on :9000 is $$app's, not $(container-dir)'s (make qa-worktree wt=<name> serves a worktree)"
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh check app --checkout $(container-dir) \
+	  || [ -n "$(filter 1 true yes,$(force))" ] \
+	  || { echo "Wait for :9000 (a worktree: make qa-worktree wt=<name> wait=1), or add force=1 to test that app anyway."; exit 1; }
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
 	@if docker image inspect $(e2e-image):$(e2e-tag) > /dev/null 2>&1; then \
 	  docker build --quiet --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e > /dev/null; \

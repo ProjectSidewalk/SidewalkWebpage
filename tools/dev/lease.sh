@@ -13,10 +13,11 @@
 # Runs inside the web container. The Makefile, qa-worktree.sh and sbt-run.sh call it, and .claude/hooks/lease-hook.sh
 # reaches it through docker exec. See docs/dev-environment.md -> "Sharing the app and the test database".
 #
-# A lease ends when it's released, when the process it names (--pid) exits, or when the Claude session holding it has
-# been silent for LEASE_IDLE_MIN minutes. Sessions report in through the hooks, which touch sessions/<id>.
+# A lease ends when it's released or the process it names (--pid) exits. One with no process ends when its Claude
+# session has been silent for LEASE_IDLE_MIN minutes. Sessions report in through the hooks, which touch sessions/<id>.
 #
-# `check` asks without taking: 0 when the resource is free or already this checkout's.
+# A lease belongs to a checkout and a Claude session, so another session in the same checkout has to wait too. `check`
+# asks without taking: 0 when the resource is free or already this checkout's.
 #
 # Exit codes: 0 done, 1 busy, 2 usage.
 
@@ -93,12 +94,12 @@ ensure_dirs() {
   chown "$(stat -c %u:%g /home)" "$LEASE_DIR" "$LEASE_DIR/sessions" 2>/dev/null
 }
 
-# Why a lease is over, or nothing while it's live.
+# Why a lease is over, or nothing while it's live. A live process outranks a quiet session (hours of hands-on QA).
 lease_dead_reason() {
   local f="$1" pid idle
   pid=$(field "$f" pid)
-  if [ -n "$pid" ] && ! pid_alive "$pid" "$(field "$f" pid_start)"; then
-    echo "its process exited"
+  if [ -n "$pid" ]; then
+    pid_alive "$pid" "$(field "$f" pid_start)" || echo "its process exited"
     return
   fi
   idle=$(session_idle_min "$(field "$f" session)")
@@ -222,6 +223,8 @@ drop_from_queue() {
   if [ -s "$q.tmp" ]; then mv "$q.tmp" "$q"; else rm -f "$q" "$q.tmp"; fi
 }
 
+holds() { [ "$(field "$1" checkout)" = "$2" ] && [ "$(field "$1" session)" = "$SESSION" ]; }
+
 take() {
   local res="$1" dir="$2" pid="$3" wait="$4" force="$5"
   local f="$LEASE_DIR/$res.lease" q="$LEASE_DIR/$res.queue" me my_id="" head announced=""
@@ -231,10 +234,16 @@ take() {
     lock
     prune "$res"
     head=$([ -f "$q" ] && head -1 "$q" | cut -d'|' -f1)
-    # The same checkout taking it again (restarting its app, say) keeps the lease, with the new process.
-    if { [ -f "$f" ] && [ "$(field "$f" checkout)" = "$me" ]; } || [ -n "$force" ] ||
+    # Dropped from the line because its session ended, so what it was waiting to run shouldn't start.
+    if [ -n "$my_id" ] && ! grep -qs "^$my_id|" "$q"; then
+      echo "==> removed from the line for $(label "$res"), since the session waiting for it ended" >&2
+      unlock
+      return 1
+    fi
+    # The same holder taking it again (restarting its app, say) keeps the lease, with the new process.
+    if { [ -f "$f" ] && holds "$f" "$me"; } || [ -n "$force" ] ||
       { [ ! -f "$f" ] && { [ -z "$head" ] || [ "$head" = "$my_id" ]; }; }; then
-      [ -f "$f" ] && [ "$(field "$f" checkout)" != "$me" ] &&
+      [ -f "$f" ] && ! holds "$f" "$me" &&
         echo "==> taking $(label "$res") from $(describe_holder "$f")" >&2
       write_lease "$res" "$me" "$pid"
       [ -n "$my_id" ] && drop_from_queue "$q" "$my_id"
@@ -267,18 +276,26 @@ release() {
   if [ -f "$f" ] && [ "$(field "$f" checkout)" = "$(checkout_name "$2")" ] &&
     { [ -z "$pid" ] || [ "$(field "$f" pid)" = "$pid" ]; }; then
     rm -f "$f"
+  elif [ -f "$f" ]; then
+    echo "==> left $(label "$res") alone: it's held by $(describe_holder "$f")" >&2
   fi
   unlock
 }
 
 check() {
-  local res="$1" f="$LEASE_DIR/$1.lease"
+  local res="$1" f="$LEASE_DIR/$1.lease" serving
   lock
   prune "$res" 2>/dev/null
   if [ -f "$f" ] && [ "$(field "$f" checkout)" != "$(checkout_name "$2")" ]; then
     busy_message "$res" >&2
     unlock
     return 1
+  fi
+  if [ "$res" = app ] && [ ! -f "$f" ]; then
+    serving=$(running_app)
+    serving=${serving#serving: }
+    [ "$serving" = nothing ] || [ "$serving" = "$(checkout_name "$2")" ] ||
+      echo "warning: the app on :9000 is $serving's, not $(checkout_name "$2")'s" >&2
   fi
   unlock
 }
@@ -347,8 +364,11 @@ case "$RES" in *[!a-z0-9-]*) echo "error: a resource name is lowercase letters, 
 DIR="$PWD" PID="" WAIT="" FORCE=""
 while [ $# -gt 0 ]; do
   case "$1" in
-  --checkout) DIR="${2:-}" && shift 2 ;;
-  --pid) PID="${2:-}" && shift 2 ;;
+  --checkout | --pid)
+    [ $# -ge 2 ] || usage
+    if [ "$1" = --checkout ]; then DIR="$2"; else PID="$2"; fi
+    shift 2
+    ;;
   --wait) WAIT=1 && shift ;;
   --force) FORCE=1 && shift ;;
   *) usage ;;
