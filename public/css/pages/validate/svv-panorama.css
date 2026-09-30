@@ -54,12 +54,14 @@
 
 /* The busy dim (.validate-disabled, svv-validation-menu.css) sits on the whole application holder, and a child cannot
    opt out of an ancestor's opacity, so the status would render washed out exactly when it is the one thing meant to be
-   read. The holder therefore dims its parts individually while busy, and the status is the one part left out. */
+   read. The holder therefore dims its parts individually while busy, and the status is the one part left out. The
+   mission modals are left out too: the next mission's first label loads behind "Great job!", and a dimmed modal is
+   both washed out and a stacking context of its own, which would drop its z-index 10 foreground under the status. */
 #svv-application-holder.validate-disabled {
   opacity: 1;
 }
 
-#svv-application-holder.validate-disabled > :not(#svv-panorama-holder),
+#svv-application-holder.validate-disabled > :not(#svv-panorama-holder, [id^="modal-mission"]),
 #svv-application-holder.validate-disabled > #svv-panorama-holder > :not(#svv-pano-loading) {
   opacity: 0.6;
 }

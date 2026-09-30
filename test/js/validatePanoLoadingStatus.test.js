@@ -223,6 +223,21 @@ describe('the pano loading status degrades quietly with its markup half there', 
 });
 
 describe('the pano loading status stylesheet', () => {
+  test('leaves the mission modals out of the busy dim, so they keep stacking above the status', () => {
+    // A dimmed element is a stacking context at z-index auto, which would put the modal's z-index 10 foreground under
+    // the status while the next mission's first label loads behind "Great job!".
+    const css = fs.readFileSync(CSS_PATH, 'utf8');
+    const dimRule = css.match(/#svv-application-holder\.validate-disabled > :not\(([^)]*)\)/);
+    expect(dimRule).not.toBeNull();
+    // Both mission modals' holders start with "modal-mission", which is what the exclusion keys on.
+    expect(dimRule[1]).toContain('[id^="modal-mission"]');
+    expect(dimRule[1]).toContain('#svv-panorama-holder');
+    for (const view of [DESKTOP_VIEW_PATH, MOBILE_VIEW_PATH]) {
+      const ids = [...fs.readFileSync(view, 'utf8').matchAll(/id="(modal-mission[^"]*-holder)"/g)].map((m) => m[1]);
+      expect(ids).toEqual(expect.arrayContaining(['modal-mission-holder', 'modal-mission-complete-holder']));
+    }
+  });
+
   test('leaves hiding to .ps-hidden, whose !important beats the box\'s flex display', () => {
     const css = fs.readFileSync(CSS_PATH, 'utf8');
     expect(css).not.toMatch(/\.svv-pano-loading__box\[hidden\]/);

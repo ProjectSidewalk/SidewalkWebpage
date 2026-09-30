@@ -356,7 +356,9 @@ corresponding Twirl view:
   wait the 2 s, so neither fires for fast labels. It switches to "Still loading, trying the next label…" when a label
   is deferred. The busy state leaves `aria-busy` off the region that contains that live region, since assistive tech
   may hold a busy subtree's announcements until it clears, and dims the application holder's parts individually so the
-  status itself is never under the 60 % opacity. `#svv-panorama-holder` carries the viewer's dark backdrop, so
+  status itself is never under the 60 % opacity; the mission modals are left out of that dim as well, so they keep
+  stacking above the status, and the status is not started at all while one of them covers the pano (the next
+  mission's first label loads behind "Great job!", whose disabled button is the loading state there). `#svv-panorama-holder` carries the viewer's dark backdrop, so
   the area stays dark while the canvas is hidden for a load.
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
   (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters

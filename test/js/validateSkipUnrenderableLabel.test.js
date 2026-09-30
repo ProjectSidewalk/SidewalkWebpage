@@ -475,6 +475,19 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     expect(svv.tracker.push).toHaveBeenCalledWith('PanoLoadingStatus_Shown', {labelId: 1, panoId: 'panoA'});
   });
 
+  test('no loading status starts while the mission-complete modal covers the pano', async () => {
+    svv.modalMissionComplete = {isShowing: () => true};
+    await buildContainer();
+    expect(svv.panoLoadingStatus.begin).not.toHaveBeenCalled();
+
+    // Once the modal is gone the next load gets its status again.
+    svv.modalMissionComplete.isShowing = () => false;
+    svv.panoLoadingStatus.begin.mockClear();
+    const labelContainer = await buildContainer();
+    await labelContainer.moveToNextLabel();
+    expect(svv.panoLoadingStatus.begin).toHaveBeenCalled();
+  });
+
   test('the next two labels\' panos are prefetched once a label is on screen', async () => {
     const labelContainer = await buildContainer();
     expect(svv.panoManager.prefetchPano.mock.calls.map(([panoId]) => panoId)).toEqual(['panoB', 'panoC']);

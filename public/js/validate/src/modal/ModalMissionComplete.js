@@ -170,6 +170,15 @@ class ModalMissionComplete {
   }
 
   /**
+   * Whether the modal is up. The next mission's first label loads behind it, and the pano-loading status defers to
+   * this modal's own disabled button as the loading state while it is (#5581).
+   * @returns {boolean}
+   */
+  isShowing() {
+    return this.#uiModalMissionComplete.holder.style.visibility === 'visible';
+  }
+
+  /**
    * Re-enables the start next mission button; called once a new mission has loaded from the back end.
    */
   nextMissionLoaded() {
