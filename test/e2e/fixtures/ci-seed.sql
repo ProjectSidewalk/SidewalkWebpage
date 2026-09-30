@@ -35,8 +35,7 @@
 --
 -- Cached columns (user_stat.meters_audited, labels_per_meter, high_quality, region_completion,
 -- route.distance_meters) are COMPUTED at the end by the same rules their runtime recomputes use, never hardcoded:
--- GeodesicDistanceSpec asserts that agreement for labels_per_meter, region_completion and route.distance_meters,
--- and a stale meters_audited would throw labels_per_meter off.
+-- GeodesicDistanceSpec asserts that agreement for labels_per_meter, region_completion and route.distance_meters.
 -- =====================================================================================================================
 
 -- With zero region rows /explore is a server error before any JS runs (#4748). With one, a fresh anonymous user
