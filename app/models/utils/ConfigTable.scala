@@ -125,10 +125,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityMapParamsBySchema(schema: String): DBIO[MapParams] = {
     given getResult: GetResult[MapParams] = GetResult(r =>
-      MapParams(
-        centerLat = r.nextDouble(), centerLng = r.nextDouble(), zoom = r.nextDouble(), lat1 = r.nextDouble(),
-        lng1 = r.nextDouble(), lat2 = r.nextDouble(), lng2 = r.nextDouble()
-      )
+      MapParams(r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(),
+        r.nextDouble())
     )
 
     // SQL query with explicit schema reference using double quotes for proper PostgreSQL schema qualification.
@@ -886,11 +884,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    */
   def getCityContributorOutputBySchema(schema: String): DBIO[CityContributorOutput] = {
     given getResult: GetResult[CityContributorOutput] = GetResult(r =>
-      CityContributorOutput(
-        labelMedian = r.nextDouble(), labelP90 = r.nextDouble(), numLabelers = r.nextInt(),
-        validationMedian = r.nextDouble(), validationP90 = r.nextDouble(), numValidators = r.nextInt(),
-        validationSecondsMedian = r.nextDouble()
-      )
+      CityContributorOutput(r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(),
+        r.nextDouble())
     )
 
     sql"""

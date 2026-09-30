@@ -7,7 +7,7 @@ import formats.json.LabelFormats.*
 import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.api.ApiModelUtils
-import models.label.{LabelDeletion, LabelType}
+import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -468,7 +468,7 @@ class AdminController @Inject() (
    * @param metaById Pano/POV metadata for the batch's label ids, keyed by label id.
    * @return A signed image URL, or None for items without a previewable label (e.g. comments).
    */
-  private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
+  private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelPanoMetadata]): Option[String] = {
     (item.labelId, item.labelType.flatMap(LabelType.withNameOption)) match {
       case (Some(id), Some(labelType)) =>
         panoDataService

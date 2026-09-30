@@ -99,8 +99,6 @@ case class TeamTotals(
  *
  * @param team The team they're already on, so the admin can see that adding them would move them.
  */
-case class UserSearchResult(userId: String, username: String, email: String, role: Role, team: Option[String])
-
 /**
  * Everything `/admin/team/:teamId` shows (#5381).
  *
@@ -364,15 +362,15 @@ object UserService {
     isOwner || privacy.exists { case (_, publicProfile) => publicProfile }
 
   /**
-   * Builds the per-type accuracy rows from raw (labelType, correct, incorrect) tallies. Pure/testable.
+   * Builds the per-type accuracy rows from raw per-type tallies. Pure/testable.
    *
    * Keeps only the primary (colored) label types the user has validated labels for, computes each type's accuracy,
    * flags the lowest-accuracy type (among those with enough validations) as `weakest`, and orders canonically.
    */
-  def computeAccuracyByType(rows: Seq[(String, Int, Int)]): Seq[AccuracyByType] = {
+  def computeAccuracyByType(rows: Seq[LabelTypeTally]): Seq[AccuracyByType] = {
     val primary                       = PrimaryLabelTypes.toSet
     val pcts: Seq[(String, Int, Int)] = rows.collect {
-      case (t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
+      case LabelTypeTally(t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
         (t, math.round(correct.toDouble / (correct + incorrect) * 100).toInt, correct + incorrect)
     }
     val weakest: Option[String] = pcts
@@ -818,9 +816,6 @@ class UserServiceImpl @Inject() (
     if (query.trim.isEmpty) Future.successful(Seq())
     else {
       db.run(sidewalkUserTable.searchUsers(query, limit))
-        .map(_.map { case (userId, username, email, role, team) =>
-          UserSearchResult(userId, username, email, role, team)
-        })
     }
   }
 
@@ -829,7 +824,7 @@ class UserServiceImpl @Inject() (
       case None       => DBIO.successful(None): DBIO[Option[TeamOverview]]
       case Some(team) =>
         userTeamTable.getMembers(teamId).flatMap { members =>
-          val userIds: Seq[String] = members.map { case (userId, _, _) => userId }
+          val userIds: Seq[String] = members.map(_.userId)
           // `inSet Nil` is a query that can only return nothing, so an empty team skips the five stat queries.
           if (userIds.isEmpty) {
             DBIO.successful(Some(TeamOverview(team, Seq(), TeamTotals(0, 0, 0, 0d, 0, 0)))): DBIO[Option[TeamOverview]]
@@ -842,17 +837,13 @@ class UserServiceImpl @Inject() (
               quality          <- userStatTable.getQualityAndExclusionForUsers(userIds)
             } yield {
               val labelsByUser      = labelCounts.map(c => c.userId -> (c.count, c.latest)).toMap
-              val validationsByUser = validationCounts.map { case (userId, count, latest) =>
-                userId -> (count, latest)
-              }.toMap
-              val distanceByUser = distances.toMap
-              val judgedByUser   = judged.toMap
-              val qualityByUser  = quality.map { case (userId, highQuality, excluded) =>
-                userId -> (highQuality, excluded)
-              }.toMap
+              val validationsByUser = validationCounts.map(c => c.userId -> (c.count, c.latest)).toMap
+              val distanceByUser    = distances.toMap
+              val judgedByUser      = judged.toMap
+              val qualityByUser     = quality.map(q => q.userId -> (q.highQuality, q.excluded)).toMap
 
               val rows: Seq[TeamMemberStats] = members
-                .map { case (userId, username, role) =>
+                .map { case UserNameAndRole(userId, username, role) =>
                   val (labels, lastLabel)       = labelsByUser.getOrElse(userId, (0, None))
                   val (validations, lastVal)    = validationsByUser.getOrElse(userId, (0, None))
                   val (labelsValidated, agreed) = judgedByUser.getOrElse(userId, (0, 0))

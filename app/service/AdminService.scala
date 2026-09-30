@@ -5,6 +5,7 @@ import models.audit.*
 import models.label.{
   LabelAiAssessmentTable,
   LabelCount,
+  LabelPanoMetadata,
   LabelTable,
   SeverityCountByAuthorRole,
   TagCount,
@@ -12,7 +13,6 @@ import models.label.{
   UserSeverityCount
 }
 import models.mission.MissionTable
-import models.pano.PanoSource
 import models.region.Region
 import models.street.StreetEdgeTable
 import models.user.*
@@ -153,20 +153,6 @@ case class RecentActivityItem(
     labelType: Option[String],
     validationResult: Option[String],
     comment: Option[String]
-)
-
-/**
- * The pano + point-of-view metadata needed to build a preview-image URL for one label (a saved crop or a Street View
- * Static thumbnail). Carried alongside a recent-activity item so the admin Activity feed can show a thumbnail.
- */
-case class LabelThumbnailMeta(
-    panoId: String,
-    panoSource: PanoSource,
-    heading: Double,
-    pitch: Double,
-    zoom: Double,
-    canvasWidth: Int,
-    canvasHeight: Int
 )
 
 /**
@@ -350,7 +336,7 @@ trait AdminService {
   def getContributionTimeStats: Future[Seq[ContributionTimeStat]]
   def getRecentExploreAndValidateComments: Future[Seq[GenericComment]]
   def getRecentActivity(n: Int): Future[Seq[RecentActivityItem]]
-  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelThumbnailMeta]]
+  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelPanoMetadata]]
   def getUserSummaries(usernames: Seq[String]): Future[Map[String, UserSummary]]
   def getContributorLeaderboards(n: Int): Future[ContributorLeaderboards]
   def getHumanVsAiStats: Future[HumanVsAiStats]
@@ -591,15 +577,9 @@ class AdminServiceImpl @Inject() (
    * @param labelIds Label ids to fetch metadata for (typically a recent-activity batch).
    * @return Map of label id to its thumbnail metadata; ids without point/pano rows are simply absent.
    */
-  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelThumbnailMeta]] = {
+  def getLabelThumbnailMeta(labelIds: Seq[Int]): Future[Map[Int, LabelPanoMetadata]] = {
     if (labelIds.isEmpty) Future.successful(Map.empty)
-    else
-      db.run(labelTable.getPanoMetadataForLabels(labelIds)).map { rows =>
-        rows.map { m =>
-          m.labelId ->
-            LabelThumbnailMeta(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth, m.canvasHeight)
-        }.toMap
-      }
+    else db.run(labelTable.getPanoMetadataForLabels(labelIds)).map(_.map(meta => meta.labelId -> meta).toMap)
   }
 
   /**
@@ -615,7 +595,7 @@ class AdminServiceImpl @Inject() (
     if (distinct.isEmpty) Future.successful(Map.empty)
     else
       db.run(sidewalkUserTable.getUserIdAndRoleByUsernames(distinct)).flatMap { idRoles =>
-        val userIds = idRoles.map { case (_, userId, _) => userId }
+        val userIds = idRoles.map(_.userId)
         db.run(
           labelTable.countLabelsForUsers(userIds) zip labelValidationTable.getValidationResultCountsForUsers(userIds)
         ).map { case (labelCounts, valCounts) =>
@@ -623,8 +603,8 @@ class AdminServiceImpl @Inject() (
           // getValidationResultCountsForUsers is split by verdict; sum the verdicts for each user's validation total.
           val valByUser: Map[String, Int] =
             valCounts.groupBy(_.userId).map { case (userId, rows) => userId -> rows.map(_.count).sum }
-          idRoles.map { case (username, userId, role) =>
-            username -> UserSummary(role, labelByUser.getOrElse(userId, 0), valByUser.getOrElse(userId, 0))
+          idRoles.map { u =>
+            u.username -> UserSummary(u.role, labelByUser.getOrElse(u.userId, 0), valByUser.getOrElse(u.userId, 0))
           }.toMap
         }
       }

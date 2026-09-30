@@ -65,6 +65,9 @@ case class ValidationCount(
 /** How many agree, disagree, and unsure votes a validation mission has so far. */
 case class ValidationResultCounts(agreeCount: Int, disagreeCount: Int, unsureCount: Int)
 
+/** How many validations a user has given, and when they gave their most recent one. */
+case class UserValidationCount(userId: String, count: Int, latest: Option[OffsetDateTime])
+
 /** How many votes with one result a user has cast. */
 case class UserValidationResultCount(userId: String, validationResult: ValidationOption, count: Int)
 
@@ -328,9 +331,9 @@ class LabelValidationTable @Inject() (
    * says when a repair ran, not when they were last at the tool (#5381).
    *
    * @param userIds The validators to count for.
-   * @return One entry per user who has validated: (user id, validations given, time of their most recent one).
+   * @return One entry per user who has validated.
    */
-  def countValidationsAndLatestByUsers(userIds: Seq[String]): DBIO[Seq[(String, Int, Option[OffsetDateTime])]] = {
+  def countValidationsAndLatestByUsers(userIds: Seq[String]): DBIO[Seq[UserValidationCount]] = {
     val liveCounts = validations
       .filter(_.userId inSet userIds)
       .groupBy(_.userId)
@@ -351,7 +354,7 @@ class LabelValidationTable @Inject() (
       // A user with only archived votes has no live row to join onto, so the union of both key sets drives the result.
       (liveByUser.keySet ++ archivedByUser.keySet).toSeq.map { userId =>
         val (liveCount, latest) = liveByUser.getOrElse(userId, (0, None))
-        (userId, liveCount + archivedByUser.getOrElse(userId, 0), latest)
+        UserValidationCount(userId, liveCount + archivedByUser.getOrElse(userId, 0), latest)
       }
     }
   }
@@ -500,9 +503,7 @@ class LabelValidationTable @Inject() (
   }
 
   /**
-   * Converts a tuple from the database query to ValidationDataForApi. A helper method to be used in the service layer.
-   *
-   * TODO try doing something like TupleConverter in LabelTable.scala. Need a more general solution.
+   * Converts a row of [[getValidationsForApi]] to ValidationDataForApi. A helper method to be used in the service layer.
    */
   def tupleToValidationDataForApi(tuple: (LabelValidation, Label, Role)): ValidationDataForApi = {
     val (validation, label, role) = tuple

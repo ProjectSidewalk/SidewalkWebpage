@@ -11,12 +11,12 @@ import models.label.{Label, LabelCount, LabelType, LocationXY, POV}
 import models.mission.{Mission, MissionType}
 import models.pano.{PanoDataSlim, PanoSource}
 import models.street.StreetEdgePriority
-import models.user.{LabelTypeStat, Role, UserCount}
+import models.user.{LabelTypeStat, Role, UserCount, UserSearchResult}
 import models.utils.CommonUtils.UiSource
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{Json, Writes}
-import service.{TeamMemberStats, TeamTotals, TimeInterval, UpdatedStreets, UserSearchResult}
+import service.{TeamMemberStats, TeamTotals, TimeInterval, UpdatedStreets}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 

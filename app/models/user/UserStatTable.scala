@@ -143,6 +143,16 @@ case class StandingRow(rank: Int, username: String, labelCount: Int, isYou: Bool
  * @param slice      The user's row ± a couple of neighbors, ordered by rank.
  * @param delta      Spots moved since the previous week (positive = climbed), or None if not comparable.
  */
+/** How many of a user's labels of one type were judged correct and incorrect by majority vote. */
+case class LabelTypeTally(labelType: String, correct: Int, incorrect: Int)
+
+/**
+ * A user's quality standing in this city.
+ *
+ * @param excluded Whether their work is left out of the city's stats.
+ */
+case class UserQualityFlags(userId: String, highQuality: Boolean, excluded: Boolean)
+
 case class UserStanding(rank: Int, cohortSize: Int, labelCount: Int, slice: Seq[StandingRow], delta: Option[Int] = None)
 
 /** One row of the standing query: a neighbor's [[StandingRow]] plus the requesting user's own totals, repeated. */
@@ -238,6 +248,9 @@ class UserStatTable @Inject() (
   private val auditMissions = missionTable.filter(_.missionType === MissionType.Audit)
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
+
+  private given labelTypeTallyConverter: GetResult[LabelTypeTally] =
+    GetResult(r => LabelTypeTally(r.nextString(), r.nextInt(), r.nextInt()))
 
   private given leaderboardStatConverter: GetResult[LeaderboardStat] = GetResult(r =>
     LeaderboardStat(r.nextString(), r.nextInt(), r.nextInt(), r.nextDouble(), r.nextDoubleOption(), r.nextDouble())
@@ -558,9 +571,9 @@ class UserStatTable @Inject() (
       (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct.result
 
     for {
-      lowQualUsers  <- lowQualUsersQuery
+      lowQualUsers  <- lowQualUsersQuery.map(_.toSet)
       userQual      <- userQualQuery
-      usersToUpdate <- usersToUpdateQuery
+      usersToUpdate <- usersToUpdateQuery.map(_.toSet)
 
       // Make separate lists for low vs. high quality users, then bulk update each.
       updateToHighQual: Seq[String] = userQual.collect {
@@ -570,6 +583,7 @@ class UserStatTable @Inject() (
       updateToLowQual: Seq[String] =
         (lowQualUsers ++ userQual.collect { case (userId, highQuality) if !highQuality => userId })
           .filter(usersToUpdate.contains)
+          .toSeq
 
       lowQualityUpdateQuery  = for { _u <- userStats if _u.userId inSetBind updateToLowQual } yield _u.highQuality
       highQualityUpdateQuery = for { _u <- userStats if _u.userId inSetBind updateToHighQual } yield _u.highQuality
@@ -1042,9 +1056,9 @@ class UserStatTable @Inject() (
    * accuracy bars.
    *
    * @param userId The user whose labels to tally.
-   * @return       One row per label type present: (label type name, correct count, incorrect count).
+   * @return       One row per label type present.
    */
-  def getLabelTypeAccuracy(userId: String): DBIO[Seq[(String, Int, Int)]] = {
+  def getLabelTypeAccuracy(userId: String): DBIO[Seq[LabelTypeTally]] = {
     sql"""
       SELECT label.label_type::text,
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
@@ -1052,7 +1066,7 @@ class UserStatTable @Inject() (
       FROM #${FilteredTables.accuracyLabels}
       WHERE label.user_id = $userId
       GROUP BY label.label_type::text;
-    """.as[(String, Int, Int)]
+    """.as[LabelTypeTally]
   }
 
   /**
@@ -1084,10 +1098,13 @@ class UserStatTable @Inject() (
 
   /**
    * @param userIds The users to look up.
-   * @return One entry per user with a `user_stat` row: (user id, high quality, excluded from the city's stats).
+   * @return One entry per user with a `user_stat` row.
    */
-  def getQualityAndExclusionForUsers(userIds: Seq[String]): DBIO[Seq[(String, Boolean, Boolean)]] = {
-    userStats.filter(_.userId inSet userIds).map(x => (x.userId, x.highQuality, x.excluded)).result
+  def getQualityAndExclusionForUsers(userIds: Seq[String]): DBIO[Seq[UserQualityFlags]] = {
+    userStats
+      .filter(_.userId inSet userIds)
+      .map(x => (x.userId, x.highQuality, x.excluded).mapTo[UserQualityFlags])
+      .result
   }
 
   def getUserQuality: DBIO[Seq[(String, Boolean, Option[Boolean])]] = {

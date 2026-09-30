@@ -45,7 +45,6 @@ import models.validation.{
 import org.geotools.geometry.jts.JTSFactoryFinder
 import org.locationtech.jts.geom.GeometryFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.CropService.{CropCandidate, ProvenanceCandidate}
 import service.TimeInterval
 import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.lifted.{FlatShapeLevel, Shape}
@@ -648,7 +647,12 @@ object NoSidewalkFaceEvidenceRep {
   given Shape[FlatShapeLevel, NoSidewalkFaceEvidenceRep, NoSidewalkFaceEvidence, NoSidewalkFaceEvidenceRep] =
     LiftedRow.shape(NoSidewalkFaceEvidenceRep.apply.tupled) {
       case (streetEdgeId, streetSide, labelerCount, support, labelCount) =>
-        NoSidewalkFaceEvidence(streetEdgeId, streetSide.get, labelerCount, support, labelCount)
+        val side = streetSide.getOrElse(
+          throw IllegalStateException(
+            s"NoSidewalk face on street $streetEdgeId has no side; unsided labels must be filtered out."
+          )
+        )
+        NoSidewalkFaceEvidence(streetEdgeId, side, labelerCount, support, labelCount)
     }
 }
 
@@ -1015,7 +1019,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       r.nextStringOption().map(ValidationOption.withName), // aiValidation
       Map("agree" -> r.nextInt(), "disagree" -> r.nextInt(), "unsure" -> r.nextInt()),
       r.nextStringArray().toList,
-      AuditTaskFlags(lowQuality = r.nextBoolean(), incomplete = r.nextBoolean(), stale = r.nextBoolean()),
+      AuditTaskFlags(r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
         case (Some(lat), Some(lng)) => Some(LatLng(lat, lng))
@@ -1273,6 +1277,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * labels are already excluded.
    *
    * @param userIds The users to break down.
+   * @return One row per (user, label type) pair that has labels.
    */
   def getLabelTypeCountsForUsers(userIds: Seq[String]): DBIO[Seq[UserLabelTypeCount]] = {
     (for {
@@ -1288,6 +1293,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * labelers). Labels with no severity are excluded.
    *
    * @param userIds The users to break down.
+   * @return One row per (user, severity) pair that has labels.
    */
   def getSeverityCountsForUsers(userIds: Seq[String]): DBIO[Seq[UserSeverityCount]] = {
     (for {
@@ -1306,6 +1312,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * Built on `labelsWithExcludedUsers` rather than `labels` on purpose: that base does not inner-join `user_stat`, so
    * AI-placed labels (whose AI user may have no `user_stat` row) are counted instead of silently dropped. The tradeoff
    * is that excluded human users' labels are included; for an aggregate human-vs-AI split that is acceptable.
+   * @return One row per (AI or human, label type) pair that has labels.
    */
   def getLabelStatsByAuthorRole: DBIO[Seq[LabelStatsByAuthorRole]] = {
     (for {
@@ -1333,6 +1340,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * severity-distribution comparison. Labels with no severity are excluded; the raw rating is returned (callers bucket
    * it to the canonical 1–3 scale). Uses `labelsWithExcludedUsers` for the same AI-safe reason as
    * [[getLabelStatsByAuthorRole]].
+   * @return One row per (AI or human, severity) pair that has labels.
    */
   def getSeverityCountsByAuthorRole: DBIO[Seq[SeverityCountByAuthorRole]] = {
     (for {
@@ -1633,6 +1641,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    *
    * Unsided labels (within 1 m of the centerline, about 3% of NoSidewalk labels) produce no row, so a left join on
    * this gives them NULL evidence.
+   * @return A query with one row per sided NoSidewalk block face.
    */
   def noSidewalkFaceEvidence: Query[NoSidewalkFaceEvidenceRep, NoSidewalkFaceEvidence, Seq] = {
     val sidedNoSidewalk = for {
@@ -2331,6 +2340,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    *
    * Tags are a label array column, so they're unnested — a label contributes to one row per tag it carries. Severity is
    * returned raw (callers bucket it to the 1–3 scale). Deleted/tutorial/excluded-user labels are excluded via `labels`.
+   * @return One row per (label type, tag, severity) combination in use.
    */
   def getTagSeverityCounts: DBIO[Seq[TagSeverityCountRow]] = {
     val rows = for {
@@ -3042,6 +3052,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
    * Street View Static thumbnail or to look up a saved crop.
    *
    * @param labelIds Label ids to fetch metadata for.
+   * @return One row per label that has point and pano data.
    */
   def getPanoMetadataForLabels(labelIds: Seq[Int]): DBIO[Seq[LabelPanoMetadata]] = {
     (for {

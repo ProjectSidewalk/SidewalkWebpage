@@ -2,7 +2,17 @@ package service
 
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import models.label.{CropMarker, CropSource, LabelCrop, LabelCropTable, LabelPointTable, LabelTable, LabelType}
+import models.label.{
+  CropCandidate,
+  CropMarker,
+  CropSource,
+  LabelCrop,
+  LabelCropTable,
+  LabelPointTable,
+  LabelTable,
+  LabelType,
+  ProvenanceCandidate
+}
 import models.pano.PanoDataTable
 import models.utils.MyPostgresProfile.api.given
 import models.utils.{ImageUtils, MyPostgresProfile}
@@ -27,46 +37,6 @@ import scala.util.Using
 import scala.util.control.NonFatal
 
 object CropService {
-
-  /**
-   * A label the crop job may cut a crop for.
-   *
-   * @param panoWidth  The pano's width as `pano_data` records it — the frame `panoX` is expressed in — or None.
-   * @param panoHeight The pano's height as `pano_data` records it, or None.
-   */
-  case class CropCandidate(
-      labelId: Int,
-      labelType: LabelType,
-      panoId: String,
-      panoX: Int,
-      panoY: Int,
-      panoWidth: Option[Int],
-      panoHeight: Option[Int]
-  )
-
-  /**
-   * A label whose crop is on disk with no `label_crop` row saying where the label is in it (#2660).
-   *
-   * @param timeCreated  When the label was placed; an Explore-frame crop is uploaded within the same session.
-   * @param canvasWidth  With `canvasHeight`, the frame `canvasX`/`canvasY` are expressed in (#5085); a snapshot of
-   *                     the canvas has the same aspect ratio.
-   * @param aiGenerated  Whether an AI placed it, in which case no browser ever snapshotted a canvas for it.
-   */
-  case class ProvenanceCandidate(
-      labelId: Int,
-      labelType: LabelType,
-      timeCreated: OffsetDateTime,
-      panoId: String,
-      panoX: Int,
-      panoY: Int,
-      canvasX: Int,
-      canvasY: Int,
-      canvasWidth: Int,
-      canvasHeight: Int,
-      panoWidth: Option[Int],
-      panoHeight: Option[Int],
-      aiGenerated: Boolean
-  )
 
   /**
    * What one run did. The disjoint outcomes for a label are: cropped, skipped for a pano with no self-hosted image,
@@ -487,10 +457,7 @@ class CropServiceImpl @Inject() (
   private def isFraction(f: Double): Boolean = f >= 0.0 && f <= 1.0
 
   /** The stored file's height is rounded by the resampler, so a unit of slack; the width cap is exact. */
-  private def sizesAgree(expected: (Int, Int), actual: (Int, Int)): Boolean = sizesAgree(expected, actual, slack = 1)
-
-  /** Whether two (width, height) sizes share a width and have heights within `slack` pixels of each other. */
-  private def sizesAgree(expected: (Int, Int), actual: (Int, Int), slack: Int): Boolean = {
+  private def sizesAgree(expected: (Int, Int), actual: (Int, Int), slack: Int = 1): Boolean = {
     val (expectedWidth, expectedHeight) = expected
     val (actualWidth, actualHeight)     = actual
     expectedWidth == actualWidth && math.abs(expectedHeight - actualHeight) <= slack

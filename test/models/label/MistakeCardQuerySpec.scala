@@ -46,7 +46,7 @@ class MistakeCardQuerySpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
       LabelType.primaryValidateLabelTypes.foreach { labelType =>
         busiestUser(labelType).foreach { userId =>
           val rows       = run(labelTable.getValidatedLabelsForUserQuery(userId, labelType).take(25).result)
-          val timestamps = rows.map(_._12)
+          val timestamps = rows.map(_.timeValidated)
           withClue(s"$labelType rows for $userId came back out of order: ") {
             timestamps mustBe timestamps.sortWith(_.isAfter(_))
           }
@@ -57,7 +57,8 @@ class MistakeCardQuerySpec extends SidewalkSpec with GuiceOneAppPerSuite with Ro
     "give each label exactly one row" in {
       LabelType.primaryValidateLabelTypes.foreach { labelType =>
         busiestUser(labelType).foreach { userId =>
-          val labelIds = run(labelTable.getValidatedLabelsForUserQuery(userId, labelType).take(25).result).map(_._1)
+          val labelIds =
+            run(labelTable.getValidatedLabelsForUserQuery(userId, labelType).take(25).result).map(_.labelId)
           labelIds.distinct mustBe labelIds
         }
       }

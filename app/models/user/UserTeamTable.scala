@@ -52,16 +52,18 @@ class UserTeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
 
   /**
    * @param teamId The id of the team.
-   * @return One entry per member: (user id, username, role).
+   * @return One entry per member.
    */
-  def getMembers(teamId: Int): DBIO[Seq[(String, String, Role)]] = {
+  def getMembers(teamId: Int): DBIO[Seq[UserNameAndRole]] = {
     userTeams
       .filter(_.teamId === teamId)
       .join(sidewalkUsers)
       .on(_.userId === _.userId)
       .join(userRoles)
       .on { case ((_userTeam, _), _userRole) => _userTeam.userId === _userRole.userId }
-      .map { case ((_userTeam, _user), _userRole) => (_user.userId, _user.username, _userRole.role) }
+      .map { case ((_userTeam, _user), _userRole) =>
+        (_user.userId, _user.username, _userRole.role).mapTo[UserNameAndRole]
+      }
       .result
   }
 

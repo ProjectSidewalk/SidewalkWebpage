@@ -3,7 +3,7 @@ package formats.json
 import models.user.*
 import play.api.libs.functional.syntax.*
 import play.api.libs.json.*
-import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTotals, UserSearchResult}
+import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTotals}
 
 import java.time.OffsetDateTime
 

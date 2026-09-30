@@ -11,6 +11,46 @@ import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
 
+/**
+ * A label the crop job may cut a crop for.
+ *
+ * @param panoWidth  The pano's width as `pano_data` records it — the frame `panoX` is expressed in — or None.
+ * @param panoHeight The pano's height as `pano_data` records it, or None.
+ */
+case class CropCandidate(
+    labelId: Int,
+    labelType: LabelType,
+    panoId: String,
+    panoX: Int,
+    panoY: Int,
+    panoWidth: Option[Int],
+    panoHeight: Option[Int]
+)
+
+/**
+ * A label whose crop is on disk with no `label_crop` row saying where the label is in it (#2660).
+ *
+ * @param timeCreated  When the label was placed; an Explore-frame crop is uploaded within the same session.
+ * @param canvasWidth  With `canvasHeight`, the frame `canvasX`/`canvasY` are expressed in (#5085); a snapshot of
+ *                     the canvas has the same aspect ratio.
+ * @param aiGenerated  Whether an AI placed it, in which case no browser ever snapshotted a canvas for it.
+ */
+case class ProvenanceCandidate(
+    labelId: Int,
+    labelType: LabelType,
+    timeCreated: OffsetDateTime,
+    panoId: String,
+    panoX: Int,
+    panoY: Int,
+    canvasX: Int,
+    canvasY: Int,
+    canvasWidth: Int,
+    canvasHeight: Int,
+    panoWidth: Option[Int],
+    panoHeight: Option[Int],
+    aiGenerated: Boolean
+)
+
 // NOTE need to update crop_source enum in postgres as well if changing this enum.
 enum CropSource(val name: String) extends NamedEnum {
 
