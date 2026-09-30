@@ -87,11 +87,14 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
 
 ### Core toolchain
 
-- **Scala: 3.9.0** — the 3.9 LTS line. Edit `scalaVersion` in `build.sbt`. Our libraries are published for 3.3,
-  which a newer compiler consumes fine. A bump mostly surfaces new warnings, and the compiler can fix many of
-  them itself, but only in a build without `-Werror` (a failed compile writes no fixes):
-  `set scalacOptions := scalacOptions.value.filterNot(_ == "-Werror") ++ Seq("-rewrite", "-source", "3.x-migration")`
-  then `compile; Test/compile`.
+- **Scala: 3.9.0** — the 3.9 LTS line, which `.scala-steward.conf` pins Steward to, so the next LTS is a deliberate
+  bump. Edit `scalaVersion` in `build.sbt`, and `runner.dialect` in `.scalafmt.conf` once scalafmt names the new
+  minor (it lags the compiler; #5609). Our libraries are published for 3.3, which a newer compiler consumes fine. A
+  bump mostly surfaces new warnings, and the compiler can fix many of them itself, but only in a build without
+  `-Werror` (a failed compile writes no fixes):
+  `set scalacOptions := scalacOptions.value.filterNot(_ == "-Werror") ++ Seq("-rewrite", "-source", "3.7-migration")`
+  then `compile; Test/compile`, once per minor whose language change you're crossing (3.3 → 3.9 needed
+  `3.7-migration`, which rewrote explicit implicit arguments to `using`).
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala3/releases)
 - **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
   `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump

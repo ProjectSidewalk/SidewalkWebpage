@@ -252,8 +252,10 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
 
     "write the same distance-derived user_stat.high_quality flag as evolution 347's backfill" in {
       // Same idea for the quality flag, whose heuristic reads labels_per_meter: the evolution's SQL sets every user's
-      // flag from the formula, and a runtime updateHighQuality pass over everyone (epoch cutoff) must then change
-      // nothing. Runs in one rolled-back transaction, so it holds however stale the flags were beforehand.
+      // flag from the formula, and a runtime updateHighQuality pass with an epoch cutoff (every user who has ever
+      // audited or been validated) must then change nothing. Runs in one rolled-back transaction, so it holds however
+      // stale the flags were beforehand. The WHERE is the evolution's too: without it the update rewrites, and locks
+      // until the rollback, every user_stat row in the city rather than the handful whose flag changes.
       val epoch               = OffsetDateTime.parse("1970-01-01T00:00:00Z")
       val (backfill, runtime) = runRolledBack(for {
         _ <- sqlu"""UPDATE user_stat
@@ -262,7 +264,13 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
                         AND COALESCE(high_quality_manual, TRUE)
                         AND (COALESCE(high_quality_manual, FALSE)
                              OR ((meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
-                                 AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50)))"""
+                                 AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50)))
+                    WHERE high_quality IS DISTINCT FROM (
+                        NOT excluded
+                        AND COALESCE(high_quality_manual, TRUE)
+                        AND (COALESCE(high_quality_manual, FALSE)
+                             OR ((meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
+                                 AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50))))"""
         backfill <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
         _        <- userStatTable.updateHighQuality(epoch)
         runtime  <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)

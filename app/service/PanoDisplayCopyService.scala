@@ -169,6 +169,7 @@ class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(us
    * The queue is bounded and the policy is abort, so a full pool rejects the task instead of growing without limit.
    * `Future` catches that rejection and hands it back as a failed future, so it is recovered here, on the future,
    * and never reaches the controller as an exception.
+   * @return What [[cut]] answers, or [[DisplayCopy.Unavailable]] when the pool had no room for it.
    */
   private def submitCut(panoId: String, native: File, target: File, maxWidth: Int): Future[DisplayCopy] =
     Future(cut(panoId, native, target, maxWidth))(using cutEc).recover { case _: RejectedExecutionException =>

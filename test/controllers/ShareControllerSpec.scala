@@ -1,9 +1,11 @@
 package controllers
 
 import models.label.AccessImpact
+import models.api.RawLabelFiltersForApi
 import models.label.{CropMarker, LabelMetadata, LabelType}
 import models.story.Story
 import org.apache.pekko.stream.Materializer
+import org.apache.pekko.stream.scaladsl.Sink
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.i18n.{Lang, MessagesApi}
@@ -11,7 +13,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
 import play.api.test.Helpers.*
-import service.{AuthenticationService, LabelService, PanoDataService, ShareImageCache, StoryService}
+import service.{ApiService, AuthenticationService, LabelService, PanoDataService, ShareImageCache, StoryService}
 import util.SidewalkSpec
 
 import java.awt.image.BufferedImage
@@ -46,6 +48,7 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   given mat: Materializer = app.materializer
 
   private val labelService: LabelService = app.injector.instanceOf[LabelService]
+  private val apiService: ApiService     = app.injector.instanceOf[ApiService]
   private val messagesApi: MessagesApi   = app.injector.instanceOf[MessagesApi]
   private given lang: Lang               = Lang("en") // Requests below send no Accept-Language, so Play serves English.
 
@@ -304,12 +307,16 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
 
     "serve nearby labels as GeoJSON from /v3/api/rawLabels with no auth cookie" in {
-      // Bounded to a small box around a real label, as the spotlight page asks. Unbounded, the endpoint streams the
-      // whole city, which on a big dev database runs the suite out of heap.
-      val location =
-        recentLabels.take(10).flatMap(l => Await.result(labelService.getLabelLatLng(l.labelId), 30.seconds))
-      assume(location.nonEmpty, "No located labels in the connected test DB; cannot exercise the nearby-labels path.")
-      val (lat, lng) = (location.head.lat, location.head.lng)
+      // Bounded to a small box around a label the endpoint itself serves, as the spotlight page asks. Unbounded, the
+      // endpoint streams the whole city, which on a big dev database runs the suite out of heap. The anchor comes from
+      // the endpoint's own stream (one row, then cancel) rather than from recentLabels, which ignores the filters
+      // rawLabels applies (excluded users, streets with no OSM way) and so could pick a label the box then lacks.
+      val anchor = Await.result(
+        apiService.getRawLabels(RawLabelFiltersForApi(), batchSize = 1).take(1).runWith(Sink.headOption),
+        60.seconds
+      )
+      assume(anchor.nonEmpty, "No servable labels in the connected test DB; cannot exercise the nearby-labels path.")
+      val (lat, lng) = (anchor.get.latitude, anchor.get.longitude)
       val bbox       = s"${lng - 0.002},${lat - 0.002},${lng + 0.002},${lat + 0.002}"
       val resp       = route(app, FakeRequest(GET, s"/v3/api/rawLabels?filetype=geojson&bbox=$bbox")).get
       status(resp) mustBe OK

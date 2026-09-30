@@ -649,10 +649,8 @@ type UserSeverityCount = (userId: String, severity: Option[Int], count: Int)
 type UserLabelCount = (userId: String, count: Int, latest: Option[OffsetDateTime])
 
 /**
- * Label counts for one label type, from either the AI or every human labeler.
- *
- * @param validated How many have a validation verdict (`correct` set).
- * @param correct   How many were judged correct.
+ * Label counts for one label type, from either the AI or every human labeler: `validated` is how many have a
+ * validation verdict (`correct` set) and `correct` how many were judged correct.
  */
 type LabelStatsByAuthorRole = (isAi: Boolean, labelType: String, total: Int, validated: Int, correct: Int)
 
@@ -1000,7 +998,8 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       Map("agree" -> r.nextInt(), "disagree" -> r.nextInt(), "unsure" -> r.nextInt()),
       r.nextStringArray().toList,
       // taskFlags. Positional on purpose: written as `(lowQuality = r.nextBoolean(), …)`, the 3.9 coverage build reads
-      // the columns out of order and every share-page spec fails on CI (fine without coverage).
+      // the columns out of order and every share-page spec fails on CI (fine without coverage). #5605 has the CI
+      // evidence; it never reproduced in isolation, so there is no upstream issue to watch. Retry on a compiler bump.
       (r.nextBoolean(), r.nextBoolean(), r.nextBoolean()),
       r.nextStringOption().map(LabelTable.parseCommentsJson).getOrElse(Seq.empty),
       (r.nextDoubleOption(), r.nextDoubleOption()) match {
