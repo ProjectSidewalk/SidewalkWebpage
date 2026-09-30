@@ -111,7 +111,7 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1');
+    panoManager = await PanoManager.create(FakeViewerType, 'token');
   });
 
   afterEach(() => {
@@ -142,6 +142,14 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
       getIconColor: () => '#abcdef', // arbitrary test value, not a real label-type color
     };
   }
+
+  test('creating the manager loads no pano, so the first label\'s setPanorama is its only load (#5581)', async () => {
+    // A load here as well had the first label pay two deadlines on a slow network before the validator saw anything.
+    expect(fakeViewer.setPano).not.toHaveBeenCalled();
+
+    await panoManager.setPanorama('pano1', null);
+    expect(fakeViewer.setPano).toHaveBeenCalledTimes(1);
+  });
 
   test('a load both viewers fail reports failure rather than passing off the pano that is still up', async () => {
     fakeViewer.setPano = jest.fn(() => Promise.reject(new Error('imagery unavailable')));
@@ -225,7 +233,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       tracker: {push: jest.fn()},
       labelCard: {render: jest.fn()},
       validationMenu: {resetMenu: jest.fn()},
-      undoValidation: {enableUndo: jest.fn()},
+      undoValidation: {enableUndo: jest.fn(), disableUndo: jest.fn()},
       labelVisibilityControl: {hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true},
       modalNoNewMission: {show: jest.fn()},
       form: {getValidateParams: () => ({admin_version: false, unvalidated_only: false})},
@@ -323,6 +331,11 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
 
     expect(await labelContainer.undoLabel()).toBe(false);
     expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
+    // Label 1 was validated, so it isn't a label the mission is short of: nothing is dropped or owed for it.
+    expect(svv.tracker.push)
+      .toHaveBeenCalledWith('ValidateUndo_ImageryUnavailable', {labelId: 1, panoId: 'panoA', reason: 'no-imagery'});
+    expect(svv.tracker.push).not.toHaveBeenCalledWith('LabelSkipped_NoImagery', expect.anything());
+    expect(svv.undoValidation.disableUndo).toHaveBeenCalled();
   });
 
   test('a dropped label is replaced, so the queue never runs short of what the mission needs', async () => {
@@ -482,7 +495,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
       tracker: {push: jest.fn()},
       labelCard: {render: jest.fn()},
       validationMenu: {resetMenu: jest.fn()},
-      undoValidation: {enableUndo: jest.fn()},
+      undoValidation: {enableUndo: jest.fn(), disableUndo: jest.fn()},
       labelVisibilityControl: {hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true},
       modalNoNewMission: {show: jest.fn()},
       form: {getValidateParams: () => ({admin_version: false, unvalidated_only: false})},
@@ -602,9 +615,64 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
 
     await buildContainer();
 
-    expect(events().filter((name) => name === 'LabelDeferred_SlowImagery')).toHaveLength(3);
+    // The third slow load in a row opens the breaker: from then on, slow labels are dropped on their first try.
+    expect(events().filter((name) => name === 'LabelDeferred_SlowImagery')).toHaveLength(2);
     expect(events().filter((name) => name === 'LabelSkipped_SlowImagery')).toHaveLength(3);
+    // Replacements would come from the network that just failed every load, so none are asked for.
+    expect(global.fetch).not.toHaveBeenCalled();
     expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: true});
     expect(svv.panoManager.renderPanoMarker).not.toHaveBeenCalled();
+  });
+
+  test('the third slow load in a row is dropped on its first try instead of deferred', async () => {
+    slowLoadsLeft.set('panoA', 1);
+    slowLoadsLeft.set('panoB', 1);
+    slowLoadsLeft.set('panoC', 1);
+
+    const labelContainer = await buildContainer();
+
+    // A and B are deferred; C, the third slow load with nothing loading in between, is dropped at once and owed.
+    expect(svv.tracker.push).toHaveBeenCalledWith('LabelSkipped_SlowImagery', {labelId: 3, panoId: 'panoC'});
+    expect(events().filter((name) => name === 'LabelDeferred_SlowImagery')).toHaveLength(2);
+    // Deferred labels still get their second try: A loads on it, which is the success that ends the streak.
+    expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(1);
+  });
+
+  test('a load that succeeds resets the slow streak, so the next slow label is deferred again', async () => {
+    slowLoadsLeft.set('panoB', 1);
+    slowLoadsLeft.set('panoC', 1);
+    slowLoadsLeft.set('panoE', 1);
+    const labelContainer = await LabelContainer.create([
+      {labelId: 1, panoId: 'panoA'}, {labelId: 2, panoId: 'panoB'}, {labelId: 3, panoId: 'panoC'},
+      {labelId: 4, panoId: 'panoD'}, {labelId: 5, panoId: 'panoE'},
+    ], LABEL_TYPE);
+
+    await labelContainer.moveToNextLabel(); // B and C are slow (a streak of two), then D loads and ends it.
+    expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(4);
+    await labelContainer.moveToNextLabel(); // E is slow: one in a row, so deferred rather than dropped.
+
+    expect(svv.tracker.push).toHaveBeenCalledWith('LabelDeferred_SlowImagery', {labelId: 5, panoId: 'panoE', attempt: 1});
+    expect(events()).not.toContain('LabelSkipped_SlowImagery');
+  });
+
+  test('an undo into a slow label is abandoned: the validated label is never deferred, owed or served again', async () => {
+    const labelContainer = await buildContainer();
+    await labelContainer.moveToNextLabel(); // Label 1 validated, label 2 on screen.
+    slowLoadsLeft.set('panoA', 1);
+
+    expect(await labelContainer.undoLabel()).toBe(false);
+
+    expect(labelContainer.getCurrentLabel().getAuditProperty('labelId')).toBe(2);
+    expect(svv.tracker.push)
+      .toHaveBeenCalledWith('ValidateUndo_ImageryUnavailable', {labelId: 1, panoId: 'panoA', reason: 'slow'});
+    expect(events()).not.toContain('LabelDeferred_SlowImagery');
+    expect(svv.panoLoadingStatus.setMessage).not.toHaveBeenCalledWith('validate:pano-loading.skipping');
+    expect(svv.undoValidation.disableUndo).toHaveBeenCalled();
+
+    await labelContainer.moveToNextLabel(); // Label 3.
+    await labelContainer.moveToNextLabel(); // The end: label 1 doesn't come back, and nothing was owed.
+    expect(renderedLabelIds()).toEqual([1, 2, 2, 3]);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(svv.modalNoNewMission.show).toHaveBeenCalledWith({imageryUnavailable: false});
   });
 });

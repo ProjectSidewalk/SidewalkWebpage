@@ -151,7 +151,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1');
+    panoManager = await PanoManager.create(FakeViewerType, 'token');
 
     primaryCanvas = document.getElementById('svv-panorama');
     pannellumCanvas = document.getElementById('svv-panorama-pannellum');
@@ -502,7 +502,7 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     };
 
     const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-    panoManager = await PanoManager.create(PaintingViewerType, 'token', 'pano1');
+    panoManager = await PanoManager.create(PaintingViewerType, 'token');
     primaryCanvas = document.getElementById('svv-panorama');
 
     // The first label is up and aimed, as it is by the time a validator moves on from it.

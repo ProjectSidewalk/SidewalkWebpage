@@ -127,7 +127,7 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         };
 
         const PanoManager = loadClassFromFile(PANO_MANAGER_PATH, 'PanoManager');
-        panoManager = await PanoManager.create(FakeViewerType, 'token', 'pano1');
+        panoManager = await PanoManager.create(FakeViewerType, 'token');
     });
 
     afterEach(() => {

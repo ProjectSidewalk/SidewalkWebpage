@@ -338,7 +338,12 @@ corresponding Twirl view:
   `{panoData, reason}` result says which kind: `'no-imagery'` drops it and asks `/validationTask/moreLabels` for a
   replacement (#4810); `'slow'` (the primary threw `PanoLoadTimeoutError` and there was no usable backup) moves it to
   the end of the queue once, and drops it only if it is slow again (#5581), so the validator waits out at most one
-  deadline before seeing another label. The label after the current one is prefetched through
+  deadline before seeing another label. After three slow loads in a row with none succeeding, slow labels are dropped
+  on their first try and no replacements are requested, so a dead network reaches the imagery modal in minutes
+  rather than a quarter of an hour. A failed load during an undo abandons the undo instead (the label is already
+  validated, so it must not be deferred or owed): the label undone from is shown again and Back is disabled.
+  `PanoManager.create` loads no pano; the first label's `setPanorama` is its only load. The label after the current
+  one is prefetched through
   `PanoViewer.prefetchPano`. Past 2 s of loading, `PanoLoadingStatus` shows "Loading imagery…" over the pano
   (`#svv-pano-loading`, a polite live region in both views, so boxed, immersive and mobile share it), switching to
   "Still loading, trying the next label…" when a label is deferred.

@@ -59,18 +59,17 @@ class PanoManager {
   #povWatchedViewers = new Set();
 
   /**
-   * Initializes panoViewer on the validate page and loads the first pano.
+   * Initializes panoViewer on the validate page, without loading a pano.
    *
-   * Tries the primary viewer first; if the first pano is expired and a backup image is available, falls back to
-   * Pannellum so that a pano is always loaded before this resolves.
+   * The first label's pano is loaded by the first setPanorama, like every other label's. Loading it here as well made
+   * the first label pay two load deadlines on a slow network, the first of them behind the page's loading overlay with
+   * its failure type thrown away (#5581); setPanorama has the Pannellum fallback and reports a slow load as slow.
    *
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
-   * @param {string} startPanoId - The ID of the panorama to load first
-   * @param {?BackupImage} startBackupImage - Self-hosted backup for the first pano, or null.
-   * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
+   * @returns {Promise<void>} A Promise that resolves once the viewer exists
    */
-  async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage) {
+  async #init(panoViewerType, viewerAccessToken) {
     // Create the primary viewer without a startPanoId so viewer construction never fails due to an expired pano.
     /** @type {Record<string, any>} */
     const panoOptions = {
@@ -105,27 +104,10 @@ class PanoManager {
     // no alert banner; its per-label Pannellum fallback is what the labeler sees when the primary viewer stops.
     this.#primaryViewer.addListener('diagnostic', (name, details) => svv.tracker.push(`PanoViewer_${name}`, details));
 
-    // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over below.
+    // Set up the imagery source logo. #showPannellumPano will override it if Pannellum takes over for a label.
     this.#logo = createPanoViewerLogo(this.#panoCanvas.parentElement, panoViewerType.SOURCE);
     this.#logo.showPrimaryLogo();
     this.#attribution = createPanoAttribution(this.#panoCanvas.parentElement);
-
-    // Load the first pano, falling back to Pannellum if the primary viewer fails.
-    try {
-      const panoData = await this.#primaryViewer.setPano(startPanoId);
-      this.#setPanoCallback(panoData);
-    } catch {
-      if (startBackupImage) {
-        const panoData = await this.#showPannellumPano(startBackupImage);
-        this.#setPanoCallback(panoData);
-      }
-    }
-
-    // Subscribed after the first pano has loaded rather than beside the viewer's creation: that load sets the
-    // viewer's initial POV, which fires pov_changed, and the throttle's leading edge would log it as a pan the
-    // user never made. (Pannellum, when the fallback above builds one, subscribes at its own creation instead —
-    // by then a POV change is a real one.)
-    this.#watchViewerPov(this.#primaryViewer);
 
     if (util.isMobile()) {
       this.sizePano();
@@ -409,8 +391,9 @@ class PanoManager {
    * @returns {Promise<{panoData: PanoData, reason?: undefined} | {panoData: null, reason: ('slow'|'no-imagery')}>}
    *      The loaded pano's metadata, or `panoData: null` when no viewer could render it. A null means the pano area is
    *      now empty, so the caller must not draw a label marker over it or ask for a validation of the label it was
-   *      loading (#4810). `reason` says whether trying again later could help: 'slow' when the primary viewer ran out
-   *      of time on a pano that still exists (PanoLoadTimeoutError, #5581), 'no-imagery' for everything else.
+   *      loading (#4810). `reason` says whether trying again later could help: 'slow' when the primary viewer threw
+   *      PanoLoadTimeoutError (out of time, or a network failure on a pano not known to be gone, #5581), 'no-imagery'
+   *      for everything else.
    */
   async setPanorama(panoId, backupImage = null) {
     this.setProperty('panoLoaded', false);
@@ -445,6 +428,10 @@ class PanoManager {
     let primaryError;
     try {
       const panoData = await this.#primaryViewer.setPano(panoId);
+      // Subscribed after the primary's first load rather than at its creation: that load sets the viewer's initial
+      // POV, which fires pov_changed, and the throttle's leading edge would log it as a pan the user never made.
+      // (Pannellum subscribes at its own creation instead: by then a POV change is a real one.)
+      this.#watchViewerPov(this.#primaryViewer);
       this.#teardownPannellum({ reveal: !this.#primaryPaintsDuringLoad });
       this.#primaryRevealPending = this.#primaryPaintsDuringLoad;
       this.#setPanoCallback(panoData);
@@ -708,16 +695,14 @@ class PanoManager {
   }
 
   /**
-   * Factory function that sets up the panorama viewer.
+   * Factory function that sets up the panorama viewer. No pano is loaded yet: the first label's setPanorama does that.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
-   * @param {string} startPanoId - The ID of the panorama to load first
-   * @param {?BackupImage} startBackupImage - Self-hosted backup for the first pano, or null.
-   * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
+   * @returns {Promise<PanoManager>} The panoManager instance.
    */
-  static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null) {
+  static async create(panoViewerType, viewerAccessToken) {
     const newPanoManager = new PanoManager();
-    await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage);
+    await newPanoManager.#init(panoViewerType, viewerAccessToken);
     return newPanoManager;
   }
 }

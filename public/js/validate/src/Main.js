@@ -225,10 +225,7 @@ class Main {
     // Built before the first label renders so that render can report a slow load too (#5581).
     svv.panoLoadingStatus = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
 
-    const firstLabel = param.labelList[0];
-    svv.panoManager = await PanoManager.create(
-      svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
-    );
+    svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken);
     svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type);
 
     // There are certain features that will only make sense on desktop vs mobile.

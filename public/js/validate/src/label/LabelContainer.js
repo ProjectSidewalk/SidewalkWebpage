@@ -13,6 +13,13 @@ class LabelContainer {
   // can't fetch it in time today, and holding the validator for a third deadline would cost more than the label.
   static #MAX_LOAD_ATTEMPTS = 2;
 
+  // Slow loads in a row, with no load succeeding in between, after which slow labels are dropped on their first try
+  // instead of deferred (#5581). Three says it is the network rather than a few unlucky panos. Deferring on a network
+  // that loads nothing only postpones the "Imagery couldn't be loaded" modal: every label, and every replacement label,
+  // would spend two deadlines of 12 s (plus the existence check) each before getting there, which is a quarter of an
+  // hour for a mission with two top-up rounds.
+  static #MAX_SLOW_STREAK = 3;
+
   // These are all set in resetLabelList.
   #labels;  // All labels in the mission.
   #currLabelIndex;
@@ -23,6 +30,13 @@ class LabelContainer {
   #topUpRounds;
   /** @type {Map<Label, number>} Loads tried per label that failed as slow, so a deferred label is deferred once. */
   #slowLoads;
+
+  /**
+   * Slow loads since the last load that succeeded. Kept across missions, since it measures the network, which a new
+   * mission doesn't fix; see #MAX_SLOW_STREAK.
+   * @type {number}
+   */
+  #slowStreak = 0;
 
   #labelsToSubmit = [];
   #submittedLabels = [];
@@ -117,9 +131,12 @@ class LabelContainer {
   /**
    * Goes back to the last label.
    *
-   * Imagery can fail on the way back (#4810), in which case that label is dropped like any other and the user stays
-   * on the one they undid from. Reporting that as a failed undo is what keeps mission progress in step: the caller
-   * only rolls back a validation the user can actually redo.
+   * Imagery can fail on the way back (#4810, #5581), in which case the undo is abandoned: the label the user undid
+   * from is shown again and Back is disabled, as it is after an undo that worked. The label being returned to has
+   * already been validated, so it can't be deferred or dropped like an unseen one: deferring it would serve it a
+   * second time at the end of the mission, and dropping it would ask the backend to replace a label that counts.
+   * Reporting the abandoned undo as a failed one is what keeps mission progress in step: the caller only rolls back a
+   * validation the user can actually redo.
    *
    * @returns {Promise<boolean>} True if the previous label is now showing. False also covers an undo dropped for
    * arriving mid-load, which is likewise an undo the caller must not count.
@@ -130,9 +147,12 @@ class LabelContainer {
     const previousLabel = this.#labels[this.#currLabelIndex - 1];
     this.#currLabelIndex -= 1;
     this.#currLabel = previousLabel;
-    await this.renderCurrentLabel();
+    await this.renderCurrentLabel({ undo: true });
 
-    return this.#currLabel === previousLabel;
+    const undone = this.#currLabel === previousLabel;
+    // renderCurrentLabel re-enabled Back for the label it fell back to; pressing it would only repeat the failure.
+    if (!undone) svv.undoValidation.disableUndo();
+    return undone;
   }
 
   /**
@@ -162,8 +182,11 @@ class LabelContainer {
 
   /**
    * Renders the current label on the pano, updating the UI accordingly.
+   * @param {{undo?: boolean}} [options] - `undo` when the current label is one the user already validated and is
+   *     stepping back to, so a failed load abandons the undo rather than passing the label over (see undoLabel).
+   * @returns {Promise<void>}
    */
-  async renderCurrentLabel() {
+  async renderCurrentLabel({ undo = false } = {}) {
     try {
       this.#setUiBusy(true);
       svv.panoLoadingStatus?.begin();
@@ -173,7 +196,7 @@ class LabelContainer {
       }
 
       // Render the new pano and the label on it, updating the surrounding UI given the new label's info.
-      await this.#loadPanoForCurrentLabel();
+      await this.#loadPanoForCurrentLabel({ undo });
 
       // Dropping labels emptied the queue, so ask the backend to replace what it can and carry on.
       while (!this.#currLabel && await this.#topUpLabelQueue()) {
@@ -265,23 +288,42 @@ class LabelContainer {
    *
    * A label whose pano is gone is dropped. One whose pano exists but loaded too slowly is moved to the back of the
    * queue the first time (#5581), so the validator waits out at most one deadline on it before seeing another label,
-   * and dropped the second. Either way it is spliced out of its place rather than stepped over, so that the indices
-   * the undo button walks back through only ever hold labels the user actually saw.
+   * and dropped the second. After #MAX_SLOW_STREAK slow loads in a row a slow label is dropped the first time too.
+   * Either way it is spliced out of its place rather than stepped over, so that the indices the undo button walks back
+   * through only ever hold labels the user actually saw. A label being returned to by an undo is the exception: it
+   * has been seen and validated, so it stays where it is and the undo is abandoned instead.
+   * @param {{undo?: boolean}} [options] - `undo` when the current label is the target of an undo.
+   * @returns {Promise<void>}
    */
-  async #loadPanoForCurrentLabel() {
+  async #loadPanoForCurrentLabel({ undo = false } = {}) {
+    let undoing = undo;
     while (this.#currLabel) {
       const label = this.#currLabel;
       const panoId = label.getAuditProperty('panoId');
       label.setProperty('startTimestamp', new Date());
       const { panoData, reason } = await svv.panoManager.setPanorama(panoId, label.getAuditProperty('backupImage'));
-      if (panoData) return;
+      if (panoData) {
+        this.#slowStreak = 0;
+        return;
+      }
+      if (reason === 'slow') this.#slowStreak += 1;
 
       const ids = { labelId: label.getAuditProperty('labelId'), panoId };
+      if (undoing) {
+        // Back to the label the user undid from. Nothing is owed and nothing is deferred: the label stays validated
+        // where it is, and the one being returned to hasn't been validated yet, so it loads like any other.
+        undoing = false;
+        svv.tracker.push('ValidateUndo_ImageryUnavailable', { ...ids, reason });
+        this.#currLabelIndex += 1;
+        this.#currLabel = this.#labels[this.#currLabelIndex];
+        continue;
+      }
+
       this.#labels.splice(this.#currLabelIndex, 1);
       if (reason === 'slow') {
         const attempt = (this.#slowLoads.get(label) ?? 0) + 1;
         this.#slowLoads.set(label, attempt);
-        if (attempt < LabelContainer.#MAX_LOAD_ATTEMPTS) {
+        if (attempt < LabelContainer.#MAX_LOAD_ATTEMPTS && !this.#slowImageryBreakerOpen()) {
           // Nothing is owed: the label is still in the mission, just later. The prefetch keeps the provider working on
           // its pano in the background, so the second attempt usually finds it cached.
           svv.tracker.push('LabelDeferred_SlowImagery', { ...ids, attempt });
@@ -304,6 +346,14 @@ class LabelContainer {
   }
 
   /**
+   * Whether enough loads in a row have been slow that more waiting is unlikely to help (see #MAX_SLOW_STREAK).
+   * @returns {boolean} True once the streak is long enough; any load that succeeds resets it.
+   */
+  #slowImageryBreakerOpen() {
+    return this.#slowStreak >= LabelContainer.#MAX_SLOW_STREAK;
+  }
+
+  /**
    * Asks the backend to replace the labels this mission dropped for unrenderable imagery (#4810).
    *
    * Validate is handed exactly as many labels as its mission still needs, so without this a dropped label would
@@ -313,6 +363,9 @@ class LabelContainer {
    */
   async #topUpLabelQueue() {
     if (this.#labelsOwed < 1 || this.#topUpRounds >= LabelContainer.#MAX_TOP_UP_ROUNDS) return false;
+    // Replacements would come from the same network that just failed #MAX_SLOW_STREAK loads in a row, each costing a
+    // full deadline before being dropped in turn, so the validator goes straight to the imagery modal instead.
+    if (this.#slowImageryBreakerOpen()) return false;
     this.#topUpRounds += 1;
 
     let labels;
