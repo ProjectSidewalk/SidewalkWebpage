@@ -146,8 +146,8 @@ stylelint-fix: | lint-fix-stylelint
 
 shellcheck: | lint-shellcheck
 
-# Runs every linter (the frontend set + evolutions + shell scripts) even if an earlier one fails, so all problems surface in one pass,
-# then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
+# Runs every linter (the frontend set + evolutions + shell scripts) even if an earlier one fails, so all problems
+# surface in one pass, then prints a ✓/✗ per linter and a colored summary. Exits non-zero if any failed.
 lint:
 	@printf "$(BOLD)Linting %s$(RESET)\n" "$(container-dir)"
 	@fail=0; \
@@ -384,7 +384,7 @@ reveal-or-hide-regions:
 
 # Static checks on conf/evolutions/default/*.sql. Host-side bash, no container needed. Also a blocking CI job.
 lint-evolutions:
-	@bash "$(host-dir)/db/scripts/lint-evolutions.sh"
+	@bash "$(check-host-dir)$(host-dir)/db/scripts/lint-evolutions.sh"
 
 # Cross-locale key parity and empty values for public/locales/ (the i18next plural/override handling a per-file JSON
 # rule can't do). Pure node, run in the web container so node is present. Also a blocking CI step.
@@ -430,11 +430,12 @@ lint-spec-base:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-spec-base.mjs"
 	@echo "Finished checking spec base classes";
 
-# ShellCheck over the repo's .sh files (#5589). Host-side, in ShellCheck's own Docker image, so the web container
-# doesn't need to be up. Scope it with files=, e.g. `make shellcheck files=tools/dev/lease.sh`. Also a blocking CI step.
+# ShellCheck over the repo's .sh files (#5589). Host-side, in ShellCheck's own Docker image (pinned in
+# docker/shellcheck/Dockerfile), so the web container doesn't need to be up. Scope it with files=, e.g.
+# `make shellcheck files=tools/dev/lease.sh`. Also a blocking CI step.
 lint-shellcheck:
 	@echo "Running ShellCheck...";
-	@bash "$(host-dir)/tools/lint/shellcheck.sh" $(files)
+	@bash "$(check-host-dir)$(host-dir)/tools/lint/shellcheck.sh" $(files)
 	@echo "Finished running ShellCheck";
 
 # The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.

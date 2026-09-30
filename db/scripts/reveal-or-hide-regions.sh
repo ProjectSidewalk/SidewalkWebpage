@@ -65,7 +65,7 @@ if [ "$REVEAL_OR_HIDE" = "reveal" ]; then
     # Reveal the regions. We only flip the regions' 'closed' streets back to 'open'; 'no_imagery' and 'disabled'
     # streets keep their status, so the old cross-toggle CSV bookkeeping (which existed to remember no-imagery streets)
     # is no longer needed. A one-time no-imagery CSV can still be applied for a first reveal -- see below.
-    psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U "$PSQL_USER" -p $PORT <<EOSQL
+    psql "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -v ON_ERROR_STOP=1 -U "$PSQL_USER" -p "$PORT" <<EOSQL
         BEGIN;
         -- Re-open the streets that were closed along with the region (leaves no_imagery/disabled streets alone), and
         -- record each transition (#4928). The status filter doubles as the guard that keeps the trail honest: only
@@ -110,7 +110,7 @@ EOSQL
     if [ "$no_imagery_csv" != "none" ]; then
         no_imagery_ids=$(read_street_ids_from_csv "$WORKING_DIR/$no_imagery_csv")
         echo "Marking streets without imagery: $no_imagery_ids"
-        mark_streets_no_imagery "$no_imagery_ids" reveal_regions "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -U "$PSQL_USER" -p $PORT
+        mark_streets_no_imagery "$no_imagery_ids" reveal_regions "dbname=$DB_NAME options=--search_path=$SCHEMA_NAME,sidewalk_login,public" -U "$PSQL_USER" -p "$PORT"
     fi
 
 # If hiding regions.

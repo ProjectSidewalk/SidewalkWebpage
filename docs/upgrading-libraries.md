@@ -31,6 +31,7 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
 | web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
 | db image | **`postgis/postgis:16-3.5`** | (see below) | **Aug 2026 — past** | `db/Dockerfile` |
+| ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)), and its glibc 2.31 is older than the
@@ -169,9 +170,6 @@ These are the JVM libraries we talk to the database *through*; the database serv
 - **sbt-digest: 2.1.0** — content-fingerprints assets during `stage`/`dist` (see `build.sbt`). Note the org: the
   sbt-web plugins moved from `com.typesafe.sbt` to `com.github.sbt`, and only the latter supports Play 3.
   [Releases](https://github.com/sbt/sbt-digest/releases)
-- **ShellCheck: 0.11.0** — lints the repo's shell scripts (`make shellcheck`, a blocking CI gate). Runs from the
-  `koalaman/shellcheck` Docker image, pinned in [`tools/lint/shellcheck.sh`](../tools/lint/shellcheck.sh).
-  [Releases](https://github.com/koalaman/shellcheck/releases)
 - **scalatestplus-play: 7.0.2** (test scope) — ScalaTest + Play test helpers; backs the API specs under `test/`.
   [Releases](https://mvnrepository.com/artifact/org.scalatestplus.play/scalatestplus-play)
 
