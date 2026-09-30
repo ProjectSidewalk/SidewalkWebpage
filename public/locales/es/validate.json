@@ -16,6 +16,9 @@
   },
   "validate-menu": {
     "remove-tag": "Eliminar etiqueta: {{tag}}",
+    "clear-verdict": "Borrar tu respuesta",
+    "tag-search-placeholder": "Añade más etiquetas aquí",
+    "tag-search-no-results": "No hay etiquetas coincidentes",
     "disagree-reason": {
       "common": {
         "wrong-type": "Este tipo de etiqueta es incorrecto",
@@ -102,6 +105,9 @@
     "title": "No se pudieron cargar las imágenes",
     "body": "No pudimos cargar las imágenes de calle de las etiquetas de esta misión, así que ahora mismo no hay nada que mostrarte. Tus validaciones completadas están guardadas. Esto suele resolverse solo; inténtalo de nuevo.",
     "retry": "Intentar de nuevo"
+  },
+  "pano-loading": {
+    "skipping": "Sigue cargando; pasamos a la siguiente etiqueta..."
   },
   "mission-complete": {
     "title": "¡Gran trabajo!",

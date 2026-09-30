@@ -13,7 +13,6 @@ class Main {
   #loadingMissionsCompleted = false;
   #loadLabelTags = false;
 
-  #onboardingHandAnimation = null;
   #onboardingStates = null;
 
   /**
@@ -123,7 +122,7 @@ class Main {
     svl.canvas = new Canvas(svl.ribbon);
     // The shared populator for the hover card's content; Label.#updateHoverCard re-points it per label (#4730).
     // Explore truncates the description because clicking the label reopens the full text in an editable field.
-    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard[0], { descriptionMaxLength: 90 });
+    svl.labelCardView = new LabelCardView(svl.ui.canvas.hoverCard, { descriptionMaxLength: 90 });
 
     // Warm the label-icon cache up front so canvas renders draw icons in the right order. See Label.preloadIcons.
     svl.iconsPreloaded = Label.preloadIcons();
@@ -133,7 +132,7 @@ class Main {
     svl.taskContainer = new TaskContainer(svl.regionModel, svl, svl.tracker);
     svl.taskContainer._tasks.push(newTask);
     svl.taskContainer.setCurrentTask(newTask);
-    svl.labelContainer = new LabelContainer($, params.nextTemporaryLabelId);
+    svl.labelContainer = new LabelContainer(params.nextTemporaryLabelId);
 
     // Set map parameters and instantiate it.
     svl.compass = new Compass(svl.navigationService, svl.taskContainer);
@@ -207,7 +206,55 @@ class Main {
       svl.keyboardShortcutAlert);
     // svl.relayout is assigned once the tool is laid out (below) and svl.urlSync once the URL is handed over
     // (#syncURL, #5480); the arrows look them up at toggle time.
-    svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout?.(), () => svl.urlSync?.request());
+    svl.immersiveMode = new ImmersiveMode({
+      tracker: svl.tracker,
+      bodyClass: 'svl-immersive',
+      relayout: () => svl.relayout?.(),
+      isDisabled: () => svl.isOnboarding(),
+      // The hover card and context menu are anchored against the frame that is about to change shape.
+      beforeToggle: () => {
+        if (svl.contextMenu.isOpen()) svl.contextMenu.hide();
+        svl.canvas.showLabelHoverInfo(undefined);
+      },
+      frame: () => svl.CANVAS_FRAME,
+      hintReference: () => document.getElementById('pano'),
+      urlParam: 'immersive',
+      onChange: () => svl.urlSync?.request(),
+    });
+
+    // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
+    // they never carry it. svl.keyboard is built later, hence the lookups at call time. Suspending the shortcuts
+    // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano; the suspension is
+    // only undone if the panel was what suspended them, since a pop-up can disable the keyboard while it is open.
+    svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    // Settings carried in from an earlier visit (or from Validate) change what the labeler sees before they touch the
+    // panel, so the load records them; ImageAdjustments_Change only covers edits made on this page.
+    if (!svl.imageAdjustments.isDefault()) {
+      svl.tracker.push('ImageAdjustments_Restored', svl.imageAdjustments.values());
+    }
+    let panelSuspendedKeyboard = false;
+    svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
+      document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
+        // The pills form a row, so opening to the right would cover Sound and Feedback; full screen stacks them in a
+        // column, where the right is clear and below would cover them instead.
+        placement: () => (svl.immersiveMode.isActive() ? 'right' : 'below'),
+        onOpen: () => {
+          svl.tracker.push('Click_ImageAdjustments_Open');
+          panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');
+          if (panelSuspendedKeyboard) svl.keyboard.disableKeyboard();
+        },
+        onClose: (via) => {
+          svl.tracker.push('Click_ImageAdjustments_Close', { via });
+          if (panelSuspendedKeyboard) svl.keyboard.enableKeyboard();
+          panelSuspendedKeyboard = false;
+        },
+        onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
+        onReset: () => svl.tracker.push('Click_ImageAdjustments_Reset'),
+      });
+    // The Image pill hides in the chevron's menu, so mirror its active state onto the chevron while the menu is closed.
+    svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault());
+    svl.imageAdjustments.onChange(() =>
+      svl.panoOverlayControls.setCollapsedIndicator(!svl.imageAdjustments.isDefault()));
 
     // Mounted inside the date pill rather than beside it: what the button explains is the imagery, so between the
     // capture date and the audit note is the one place it would read as belonging to neither (#5413).
@@ -229,13 +276,13 @@ class Main {
       },
     );
 
-    svl.panoDateNote = new PanoDateNote(svl.tracker, svl.ui.streetview.dateHolder[0],
-      svl.ui.streetview.datePill[0], svl.ui.streetview.date[0]);
+    svl.panoDateNote = new PanoDateNote(svl.tracker, svl.ui.streetview.dateHolder,
+      svl.ui.streetview.datePill, svl.ui.streetview.date);
     // The first pano and the first task both land before this line, so their own updates find no note to draw on and
     // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
     const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
     svl.panoDateNote.update(
-      initialCaptureDate ? initialCaptureDate.format('YYYY-MM-DD') : null,
+      initialCaptureDate ? util.localIsoDate(initialCaptureDate) : null,
       svl.taskContainer.getCurrentTask(),
     );
 
@@ -252,26 +299,20 @@ class Main {
     );
     this.#loadData(svl.taskContainer, svl.missionModel, svl.regionModel, svl.contextMenu);
 
-    $('#navbar-retake-tutorial-btn').on('click', () => {
+    document.getElementById('navbar-retake-tutorial-btn')?.addEventListener('click', () => {
       window.location.replace('/explore?retakeTutorial=true');
     });
 
     // The auth dialog is absent when signed in; dim the tool UI while it's open (events from common/Modal.js).
     const signInModal = document.getElementById('sign-in-modal-container');
+    const toolUi = document.querySelectorAll('.tool-ui');
     signInModal?.addEventListener('ps:modal:hidden', () => {
       svl.popUpMessage.enableInteractions();
-      $('.tool-ui').css('opacity', 1);
+      toolUi.forEach((el) => el.style.opacity = '1');
     });
     signInModal?.addEventListener('ps:modal:show', () => {
       svl.popUpMessage.disableInteractions();
-      $('.tool-ui').css('opacity', 0.5);
-    });
-
-    // Ribbon-button tooltip attributes are set in RibbonMenu (which owns those buttons); this just initializes them.
-    $('[data-toggle="tooltip"]').tooltip({
-      delay: { show: 500, hide: 100 },
-      html: true,
-      container: 'body',
+      toolUi.forEach((el) => el.style.opacity = '0.5');
     });
 
     // Hand the address bar to the labeler's position from here on (#5480).
@@ -377,22 +418,19 @@ class Main {
     // hide any alerts
     svl.alertController.hideAlert();
 
-    if (!this.#onboardingHandAnimation) {
-      this.#onboardingHandAnimation = new HandAnimation(svl.ui.onboarding);
+    if (!this.#onboardingStates) {
       this.#onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.panoManager);
     }
 
     if (!('onboarding' in svl && svl.onboarding)) {
-      svl.onboarding = new Onboarding(svl, svl.compass, this.#onboardingHandAnimation, svl.navigationService,
-        svl.missionContainer, svl.panoOverlayControls, this.#onboardingStates, svl.ribbon, svl.tracker, svl.canvas,
-        svl.ui.canvas, svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
+      svl.onboarding = new Onboarding(svl, svl.compass, svl.navigationService, svl.missionContainer,
+        svl.panoOverlayControls, this.#onboardingStates, svl.ribbon, svl.tracker, svl.canvas, svl.ui.canvas,
+        svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
     }
     svl.onboarding.start();
   }
 
   #startTheMission(mission, region) {
-    svl.ui.minimap.holder.css('backgroundColor', '#e5e3df');
-
     // Popup the message explaining the goal of the current mission.
     if (svl.missionContainer.isTheFirstMission()) {
       region = svl.regionModel.currentRegion();
@@ -455,8 +493,8 @@ class Main {
       svl.panoManager.resetNavArrows();
 
       // Remove the loading cover page and make the tool visible.
-      $('#page-loading').css({ visibility: 'hidden' });
-      $('.tool-ui').removeClass('ps-invisible');
+      document.getElementById('page-loading').style.visibility = 'hidden';
+      document.querySelectorAll('.tool-ui').forEach((el) => el.classList.remove('ps-invisible'));
 
       // Check if the user has completed the onboarding tutorial.
       const mission = svl.missionContainer.getCurrentMission();
@@ -679,71 +717,75 @@ class Main {
   }
 
   /**
-   * Store jQuery DOM elements under svl.ui.
+   * Store DOM elements under svl.ui.
    * Todo. Once we update all the modules to take ui elements as injected arguments, get rid of the svl.ui namespace.
    */
   #initUI() {
+    const byId = (id) => document.getElementById(id);
     svl.ui = {};
 
     // Minimap DOMs.
-    svl.ui.minimap = {};
-    svl.ui.minimap.holder = $('#minimap-holder');
-    svl.ui.minimap.overlay = $('#minimap-overlay');
-    svl.ui.minimap.fogOfWar = $('#minimap-fog-of-war-canvas');
-    svl.ui.minimap.fov = $('#minimap-fov-canvas');
-    svl.ui.minimap.progressCircle = $('#minimap-progress-circle-canvas');
-    svl.ui.minimap.percentObserved = $('#minimap-percent-observed');
-    svl.ui.minimap.missionProgress = $('#minimap-mission-progress');
-    svl.ui.minimap.missionProgressFill = $('#minimap-mission-progress-fill');
-    svl.ui.minimap.missionProgressPercent = $('#minimap-mission-progress-percent');
-    svl.ui.minimap.missionProgressDistance = $('#minimap-mission-progress-distance');
-    svl.ui.minimap.coach = $('#minimap-coach');
-    svl.ui.minimap.coachDismiss = $('#minimap-coach-dismiss');
-    svl.ui.minimap.legendToggle = $('#minimap-legend-toggle');
-    svl.ui.minimap.legendCard = $('#minimap-legend-card');
-    svl.ui.minimap.legendClose = $('#minimap-legend-close');
-    svl.ui.minimap.legendEarlierLabels = $('#minimap-legend-earlier-labels');
-    svl.ui.minimap.routeOverview = $('#minimap-route-overview');
-    svl.ui.minimap.routeOverviewCanvas = $('#minimap-route-overview-canvas');
+    svl.ui.minimap = {
+      holder: byId('minimap-holder'),
+      overlay: byId('minimap-overlay'),
+      fogOfWar: byId('minimap-fog-of-war-canvas'),
+      fov: byId('minimap-fov-canvas'),
+      progressCircle: byId('minimap-progress-circle-canvas'),
+      percentObserved: byId('minimap-percent-observed'),
+      missionProgress: byId('minimap-mission-progress'),
+      missionProgressFill: byId('minimap-mission-progress-fill'),
+      missionProgressPercent: byId('minimap-mission-progress-percent'),
+      missionProgressDistance: byId('minimap-mission-progress-distance'),
+      coach: byId('minimap-coach'),
+      coachDismiss: byId('minimap-coach-dismiss'),
+      legendToggle: byId('minimap-legend-toggle'),
+      legendCard: byId('minimap-legend-card'),
+      legendClose: byId('minimap-legend-close'),
+      legendEarlierLabels: byId('minimap-legend-earlier-labels'),
+      routeOverview: byId('minimap-route-overview'),
+      routeOverviewCanvas: byId('minimap-route-overview-canvas'),
+    };
 
     // Street view area DOM elements.
-    svl.ui.streetview = {};
-    svl.ui.streetview.drawingLayer = $('div#label-drawing-layer');
-    svl.ui.streetview.pano = $('div#pano');
-    svl.ui.streetview.viewControlLayer = $('div#view-control-layer');
-    svl.ui.streetview.modeSwitchWalk = $('#mode-switch-button-walk');
-    svl.ui.streetview.navArrows = $('#arrow-group');
-    svl.ui.streetview.dateHolder = $('#svl-panorama-date-holder');
-    svl.ui.streetview.datePill = $('#svl-panorama-date-pill');
-    svl.ui.streetview.date = $('#svl-panorama-date');
+    svl.ui.streetview = {
+      drawingLayer: byId('label-drawing-layer'),
+      pano: byId('pano'),
+      viewControlLayer: byId('view-control-layer'),
+      modeSwitchWalk: byId('mode-switch-button-walk'),
+      navArrows: byId('arrow-group'),
+      dateHolder: byId('svl-panorama-date-holder'),
+      datePill: byId('svl-panorama-date-pill'),
+      date: byId('svl-panorama-date'),
+    };
 
     // Canvas for the labeling area.
-    svl.ui.canvas = {};
-    svl.ui.canvas.drawingLayer = $('#label-drawing-layer');
-    svl.ui.canvas.hoverCard = $('#label-hover-card');
-    svl.ui.canvas.hoverCardDelete = $('#label-hover-card-delete');
-    svl.ui.canvas.hoverCardEdit = $('#label-hover-card-edit');
-    svl.ui.canvas.hoverCardShare = $('#label-hover-card-share');
+    svl.ui.canvas = {
+      drawingLayer: byId('label-drawing-layer'),
+      hoverCard: byId('label-hover-card'),
+      hoverCardDelete: byId('label-hover-card-delete'),
+      hoverCardEdit: byId('label-hover-card-edit'),
+      hoverCardShare: byId('label-hover-card-share'),
+    };
 
     // Context menu.
-    svl.ui.contextMenu = {};
-    svl.ui.contextMenu.holder = $('#context-menu-holder');
-    svl.ui.contextMenu.severityMenu = $('#severity-menu');
-    svl.ui.contextMenu.severityRadioHolder = $('#severity-radio-holder');
-    svl.ui.contextMenu.radioButtons = $('input[name=\'label-severity\']');
-    svl.ui.contextMenu.tagSection = $('#context-menu-tag-section');
-    svl.ui.contextMenu.tagHolder = $('#context-menu-tag-holder');
-    svl.ui.contextMenu.tags = $('button[name=\'tag\']');
-    svl.ui.contextMenu.textBox = $('#context-menu-description-text-box');
-    svl.ui.contextMenu.closeButton = $('#context-menu-close-button');
+    svl.ui.contextMenu = {
+      holder: byId('context-menu-holder'),
+      severityMenu: byId('severity-menu'),
+      severityRadioHolder: byId('severity-radio-holder'),
+      radioButtons: Array.from(document.querySelectorAll('input[name=\'label-severity\']')),
+      tagSection: byId('context-menu-tag-section'),
+      tagHolder: byId('context-menu-tag-holder'),
+      textBox: byId('context-menu-description-text-box'),
+      closeButton: byId('context-menu-close-button'),
+    };
 
     // Tutorial.
-    svl.ui.onboarding = {};
-    svl.ui.onboarding.holder = $('#onboarding-holder');
-    svl.ui.onboarding.messageHolder = $('#onboarding-message-holder');
-    svl.ui.onboarding.background = $('#onboarding-background');
-    svl.ui.onboarding.foreground = $('#onboarding-foreground');
-    svl.ui.onboarding.canvas = $('#onboarding-canvas');
-    svl.ui.onboarding.handGestureHolder = $('#hand-gesture-holder');
+    svl.ui.onboarding = {
+      holder: byId('onboarding-holder'),
+      messageHolder: byId('onboarding-message-holder'),
+      background: byId('onboarding-background'),
+      canvas: byId('onboarding-canvas'),
+      handGestureHolder: byId('hand-gesture-holder'),
+    };
   }
 }

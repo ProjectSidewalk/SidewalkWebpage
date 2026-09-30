@@ -161,7 +161,8 @@ Watch the fill's closing summary (streets, km, sub-20 m share, per-region km, ce
   language-neutral); the US state abbreviation goes in `messages.en`. `make lint-locales` must stay green.
 - **`config` row review.** The clone carries the donor's `excluded_tags` (a European city may want a different tag
   set), `update_offset_hours` (Mikey's load-spreading spreadsheet assigns these), and `make_crops`; the fill prints
-  all three and clears the donor's `mapathon_event_link`. Ask; don't guess.
+  all three and clears the donor's `mapathon_event_link` and official contact (#5462; a city that wants one sets it on
+  `/admin/partners`). Ask; don't guess.
 - **Optional flags** left unset on purpose: `private-profiles-by-default`, `global-leaderboard-excluded`,
   `ai-label-submission-enabled` (all false by default).
 - **GA.** If step 2 was skipped, `python3 tools/city/create_ga_properties.py <city-id>` fills both id maps later; new

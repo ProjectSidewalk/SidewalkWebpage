@@ -33,7 +33,7 @@ const PAGES = {
   'pages/admin-dashboard.css': {
     views: ['app/views/admin/dashboard/'],
     prefixes: ['ac-', 'ov-', 'dq-', 'hva-', 'mgmt-', 'contrib-', 'coverage-', 'activity-', 'deploy-strip',
-      'stories-queue-', 'street-status-', 'imagery-', 'health-kpi', 'partners-'],
+      'stories-queue-', 'street-status-', 'imagery-', 'health-kpi', 'partners-', 'admin-nav-'],
   },
   'pages/api-docs': { views: ['app/views/apiDocs/'] },
   'pages/auth.css': { views: ['app/views/common/main.scala.html'] },

@@ -6,10 +6,10 @@ import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, MyPo
 import play.api.Configuration
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json._
+import play.api.libs.json.*
 
 import java.time.{LocalDate, OffsetDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -78,7 +78,7 @@ case class ImageryFreshnessReport(
 object ImageryFreshnessReport {
 
   /** snake_case per the admin dashboard convention. Nights with no recorded run are absent; the client zero-fills. */
-  implicit val writes: Writes[ImageryFreshnessReport] = Writes { report =>
+  given writes: Writes[ImageryFreshnessReport] = Writes { report =>
     Json.obj(
       "days"     -> report.days,
       "since"    -> report.since.toString,
@@ -205,7 +205,7 @@ class ImageryFreshnessReportServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     healthService: HealthService,
     backgroundJobRunTable: BackgroundJobRunTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends ImageryFreshnessReportService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

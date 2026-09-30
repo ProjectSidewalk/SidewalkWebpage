@@ -65,9 +65,9 @@ class ActivityPage {
       // The contribution-time stats are a non-critical all-time summary, so a failure there shouldn't blank the
       // whole page — swallow it to null and leave its tiles as placeholders.
       const [seriesResp, recentResp, timeResp] = await Promise.all([
-        this.#fetchJson(this.#seriesUrl),
-        this.#fetchJson(this.#recentUrl),
-        this.#fetchJson(this.#contributionTimeUrl).catch((err) => {
+        util.fetchJson(this.#seriesUrl),
+        util.fetchJson(this.#recentUrl),
+        util.fetchJson(this.#contributionTimeUrl).catch((err) => {
           console.error('Activity page: contribution-time stats failed to load.', err);
           return null;
         }),
@@ -82,12 +82,6 @@ class ActivityPage {
       console.error('Activity page failed to load:', err);
       this.#setStatus('Could not load activity. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   /** Everything that depends on the range/bucket toggles — re-run on toggle without refetching. */
@@ -109,7 +103,7 @@ class ActivityPage {
     if (!el) return;
     const top = this.#recent && this.#recent[0];
     if (!top && !this.#series.length) {
-      el.innerHTML = 'No activity has been recorded for this deployment yet.';
+      el.innerHTML = 'No activity yet.';
       return;
     }
     let html;
@@ -273,8 +267,8 @@ class ActivityPage {
     const volFields = ['labels', 'validations', 'audits', 'missions',
       'signins_registered', 'signins_anon', 'new_users'];
     for (let cur = new Date(windowStart); cur <= today; cur = ActivityPage.#addDays(cur, 1)) {
-      const iso = ActivityPage.#isoDay(cur);
-      const key = this.#gran === 'week' ? ActivityPage.#isoDay(ActivityPage.#weekStart(cur)) : iso;
+      const iso = util.localIsoDate(cur);
+      const key = this.#gran === 'week' ? util.localIsoDate(ActivityPage.#weekStart(cur)) : iso;
       let acc = buckets.get(key);
       if (!acc) {
         acc = { key, label: ActivityPage.#dayLabel(key), days: 0, vol: {},
@@ -309,14 +303,14 @@ class ActivityPage {
   #windowRecords() {
     if (this.#range <= 0) return this.#series;
     const today = ActivityPage.#startOfToday();
-    const startIso = ActivityPage.#isoDay(ActivityPage.#addDays(today, -(this.#range - 1)));
+    const startIso = util.localIsoDate(ActivityPage.#addDays(today, -(this.#range - 1)));
     return this.#series.filter((r) => r.date >= startIso);
   }
 
   /** Earliest date present in the series as a local Date (series is sorted ascending), or null if empty. */
   #earliestDate() {
     if (!this.#series.length) return null;
-    return ActivityPage.#parseIso(this.#series[0].date);
+    return util.parseDate(this.#series[0].date);
   }
 
   // --- Recent-activity feed -----------------------------------------------------------------------------------
@@ -470,10 +464,10 @@ class ActivityPage {
     const buttons = document.querySelectorAll(selector);
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('active')) return;
+        if (btn.classList.contains('is-active')) return;
         buttons.forEach((b) => {
           const isTarget = b === btn;
-          b.classList.toggle('active', isTarget);
+          b.classList.toggle('is-active', isTarget);
           b.setAttribute('aria-pressed', String(isTarget));
         });
         updateState(btn);
@@ -492,8 +486,8 @@ class ActivityPage {
   /** Message shown when the window has fewer than two buckets, so there's no line to draw. */
   #tooSparseMsg() {
     return this.#series && this.#series.length
-      ? 'Not enough activity in this range to plot a trend. Try a longer range.'
-      : 'No activity has been recorded yet.';
+      ? 'Too little activity in this range to plot. Try a longer range.'
+      : 'No activity yet.';
   }
 
   static #startOfToday() {
@@ -511,31 +505,19 @@ class ActivityPage {
     return new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() - diff);
   }
 
-  /** ISO `YYYY-MM-DD` for a local Date (no UTC conversion, so no day-shift). */
-  static #isoDay(dt) {
-    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-  }
-
-  /** Parse an ISO `YYYY-MM-DD` into a local Date (parts parsed locally to avoid a UTC day-shift). */
-  static #parseIso(iso) {
-    const [y, m, d] = String(iso).split('-').map(Number);
-    return new Date(y, m - 1, d);
-  }
-
   /** Short day label, e.g. "Jun 1", from an ISO `YYYY-MM-DD`. */
   static #dayLabel(iso) {
-    return ActivityPage.#parseIso(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return util.parseDate(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   /** Long date label, e.g. "June 1, 2026", from an ISO `YYYY-MM-DD`. */
   static #fmtLongDate(iso) {
-    return ActivityPage.#parseIso(iso).toLocaleDateString(undefined,
-      { year: 'numeric', month: 'long', day: 'numeric' });
+    return util.parseDate(iso).toLocaleDateString(undefined, { dateStyle: 'long' });
   }
 
   /** Whole days between an ISO `YYYY-MM-DD` and today (local midnight to local midnight). */
   static #daysAgo(iso) {
-    const then = ActivityPage.#parseIso(iso);
+    const then = util.parseDate(iso);
     const today = ActivityPage.#startOfToday();
     return Math.max(0, Math.round((today.getTime() - then.getTime()) / 86400000));
   }
@@ -545,8 +527,7 @@ class ActivityPage {
     const d = new Date(ts);
     return isNaN(d.getTime())
       ? String(ts)
-      : d.toLocaleString(undefined,
-          { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      : d.toLocaleString(undefined, util.SHORT_DATE_TIME);
   }
 
   static #esc(s) {
@@ -563,6 +544,6 @@ class ActivityPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

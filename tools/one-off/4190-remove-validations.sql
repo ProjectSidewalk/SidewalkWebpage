@@ -1,5 +1,5 @@
 -- =====================================================================
--- Remove a set of label_validations from the DB (#4190). Written against evolution 401.
+-- Remove a set of label_validations from the DB (#4190). Written against evolution 409.
 --
 -- Tables with a FK to label_validation:
 --   label_edit              (label_validation_id nullable; the edit submitted with the validation, if it changed
@@ -79,6 +79,7 @@ SELECT 'matching_comment_versions', COUNT(*) FROM validation_task_comment_histor
         INNER JOIN validations_to_remove USING (label_validation_id)
         WHERE validation_task_comment.label_id = validation_task_comment_history.label_id
             AND validation_task_comment.user_id = validation_task_comment_history.user_id
+            AND validation_task_comment.label_type = validation_task_comment_history.label_type
     );
 
 -- ---------------------------------------------------------------------
@@ -110,10 +111,10 @@ WHERE label_edit_id IN (SELECT label_edit_id FROM edits_to_remove);
 --    was written under, which routinely differs from the validation's: scoping versions by mission would spare part
 --    of a doomed comment's history, and ignoring the mission would wipe the history of a comment this script keeps.
 -- ---------------------------------------------------------------------
-CREATE TEMP TABLE comments_to_remove (label_id INT NOT NULL, user_id TEXT NOT NULL,
-                                      PRIMARY KEY (label_id, user_id)) ON COMMIT DROP;
-INSERT INTO comments_to_remove (label_id, user_id)
-SELECT DISTINCT validation_task_comment.label_id, validation_task_comment.user_id
+CREATE TEMP TABLE comments_to_remove (label_id INT NOT NULL, user_id TEXT NOT NULL, label_type label_type NOT NULL,
+                                      PRIMARY KEY (label_id, user_id, label_type)) ON COMMIT DROP;
+INSERT INTO comments_to_remove (label_id, user_id, label_type)
+SELECT DISTINCT validation_task_comment.label_id, validation_task_comment.user_id, validation_task_comment.label_type
 FROM validation_task_comment
 INNER JOIN label_validation
     ON validation_task_comment.label_id = label_validation.label_id
@@ -122,10 +123,10 @@ INNER JOIN label_validation
 INNER JOIN validations_to_remove USING (label_validation_id);
 
 DELETE FROM validation_task_comment_history
-WHERE (label_id, user_id) IN (SELECT label_id, user_id FROM comments_to_remove);
+WHERE (label_id, user_id, label_type) IN (SELECT label_id, user_id, label_type FROM comments_to_remove);
 
 DELETE FROM validation_task_comment
-WHERE (label_id, user_id) IN (SELECT label_id, user_id FROM comments_to_remove);
+WHERE (label_id, user_id, label_type) IN (SELECT label_id, user_id, label_type FROM comments_to_remove);
 
 -- ---------------------------------------------------------------------
 -- 6. Delete the validations themselves.

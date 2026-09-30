@@ -1,18 +1,18 @@
 package controllers
 
 import controllers.helper.SubmissionSpecHelpers
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
 import org.scalatest.{Assertion, BeforeAndAfterAll}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsBoolean, JsValue, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * In-JVM functional tests for how /explore answers a ?routeId= it can't resolve (#5156).
@@ -31,18 +31,18 @@ import play.api.test.Helpers._
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
 class ExploreRouteRequestSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with SubmissionSpecHelpers
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
@@ -54,7 +54,7 @@ class ExploreRouteRequestSpec
 
   /** Loads /explore for the session and returns the rendered page. */
   private def exploreHtml(session: Seq[Cookie], query: String): String = {
-    val resp = route(app, FakeRequest(GET, s"/explore$query").withCookies(session: _*)).get
+    val resp = route(app, FakeRequest(GET, s"/explore$query").withCookies(session*)).get
     withClue(s"/explore$query: ") { status(resp) mustBe OK }
     contentAsString(resp)
   }
@@ -66,7 +66,7 @@ class ExploreRouteRequestSpec
   private def saveRoute(session: Seq[Cookie]): Int = {
     val streets = route(
       app,
-      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(session: _*)
+      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(session*)
     ).get
     status(streets) mustBe OK
     val feature = (contentAsJson(streets) \ "features")
@@ -82,7 +82,7 @@ class ExploreRouteRequestSpec
     )
     val saved = route(
       app,
-      FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(session: _*).withJsonBody(body).withCSRFToken
+      FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(session*).withJsonBody(body).withCSRFToken
     ).get
     status(saved) mustBe OK
     (contentAsJson(saved) \ "route_id").as[Int]
@@ -92,7 +92,7 @@ class ExploreRouteRequestSpec
   private def deleteRoute(session: Seq[Cookie], routeId: Int): Assertion = {
     val resp = route(
       app,
-      FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(session: _*).withCSRFToken
+      FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(session*).withCSRFToken
     ).get
     status(resp) mustBe OK
   }

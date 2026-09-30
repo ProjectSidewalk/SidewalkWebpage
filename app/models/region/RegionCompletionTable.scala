@@ -3,7 +3,7 @@ package models.region
 import com.google.inject.ImplementedBy
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.utils.{ConfigTableDef, MyPostgresProfile}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -17,7 +17,7 @@ class RegionCompletionTableDef(tag: Tag) extends Table[RegionCompletion](tag, "r
   def totalDistance: Rep[Double]   = column[Double]("total_distance")
   def auditedDistance: Rep[Double] = column[Double]("audited_distance")
 
-  def * = (regionId, totalDistance, auditedDistance) <> ((RegionCompletion.apply _).tupled, RegionCompletion.unapply)
+  def * = (regionId, totalDistance, auditedDistance).mapTo[RegionCompletion]
 
   def region =
     foreignKey("region_completion_region_id_fkey", regionId, TableQuery[RegionTableDef])(
@@ -33,9 +33,8 @@ trait RegionCompletionTableRepository {}
 class RegionCompletionTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     streetEdgeTable: StreetEdgeTable
-)(implicit
-    ec: ExecutionContext
-) extends RegionCompletionTableRepository
+)(using ec: ExecutionContext)
+    extends RegionCompletionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val regionCompletions       = TableQuery[RegionCompletionTableDef]
@@ -57,9 +56,9 @@ class RegionCompletionTable @Inject() (
       _rc <- regionCompletions
       _r  <- regionsWithoutDeleted if _rc.regionId === _r.regionId
       if (_r.regionId inSetBind regionIds) || regionIds.isEmpty
-    } yield (_r.regionId, _r.name, _rc.totalDistance, _rc.auditedDistance)
+    } yield (_r.regionId, _r.name, _rc.totalDistance, _rc.auditedDistance).mapTo[NamedRegionCompletion]
 
-    namedRegionCompletions.result.map(_.map(x => NamedRegionCompletion.tupled(x)))
+    namedRegionCompletions.result
   }
 
   /**
@@ -84,8 +83,8 @@ class RegionCompletionTable @Inject() (
       regionId: Int <- streetEdgeRegion
         .join(regionsWithoutDeleted)
         .on(_.regionId === _.regionId)
-        .filter(_._1.streetEdgeId === streetEdgeId)
-        .map(_._2.regionId)
+        .filter { case (streetRegion, _) => streetRegion.streetEdgeId === streetEdgeId }
+        .map { case (_, region) => region.regionId }
         .result
         .head
 
@@ -95,9 +94,11 @@ class RegionCompletionTable @Inject() (
         .join(streetEdgeTable.streets)
         .on(_.streetEdgeId === _.streetEdgeId)
         .join(streetEdgePriorityTable)
-        .on(_._1.streetEdgeId === _.streetEdgeId)
-        .filter(x => x._1._1.regionId === regionId && x._2.priority === 1.0)
-        .filterNot(_._1._1.streetEdgeId === streetEdgeId)
+        .on { case ((streetRegion, _), priority) => streetRegion.streetEdgeId === priority.streetEdgeId }
+        .filter { case ((streetRegion, _), priority) =>
+          streetRegion.regionId === regionId && priority.priority === 1.0
+        }
+        .filterNot { case ((streetRegion, _), _) => streetRegion.streetEdgeId === streetEdgeId }
         .exists
         .result
 
@@ -108,7 +109,7 @@ class RegionCompletionTable @Inject() (
       // error, while there is a single (very short) street segment left to be audited. That case shouldn't happen, but
       // we are just being safe, and setting audited_distance to be less than total_distance.
       rCQuery = regionCompletions.filter(_.regionId === regionId)
-      rowsUpdated: Int <- rCQuery.result.head.flatMap { rC: RegionCompletion =>
+      rowsUpdated: Int <- rCQuery.result.head.flatMap { (rC: RegionCompletion) =>
         if (!regionIncomplete) {
           rCQuery.map(_.auditedDistance).update(rC.totalDistance)
         } else if (rC.auditedDistance + distToAdd > rC.totalDistance) {

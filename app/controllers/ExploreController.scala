@@ -1,20 +1,20 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, isMobile}
-import formats.json.CommentSubmissionFormats._
-import formats.json.ExploreFormats._
-import formats.json.MissionFormats._
-import models.audit._
+import formats.json.CommentSubmissionFormats.*
+import formats.json.ExploreFormats.{given, *}
+import formats.json.MissionFormats.given
+import models.audit.*
 import models.auth.DefaultEnv
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
-import models.user._
+import models.user.*
 import models.utils.IpAddress
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Result
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
@@ -36,11 +36,11 @@ class ExploreController @Inject() (
     rateLimiter: service.RateLimiter,
     missionService: service.MissionService,
     aiService: service.AiService
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Drops a bound Double that is NaN or infinite; the query binder lets both through (#5480).
@@ -70,7 +70,7 @@ class ExploreController @Inject() (
     val user: SidewalkUserWithRole = request.identity
 
     // Labeling isn't supported on phones/tablets, so send mobile users to the mobile landing page instead.
-    if (isMobile(request)) {
+    if (isMobile) {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_RedirectMobileLanding")
       Future.successful(Redirect("/mobileLanding"))
     } else {
@@ -190,7 +190,7 @@ class ExploreController @Inject() (
               request.ipAddress, data.panoId, data.heading, data.pitch, data.zoom, data.lat, data.lng,
               OffsetDateTime.now, data.comment)
           )
-          .map { commentId: Int => Ok(Json.obj("comment_id" -> commentId)) }
+          .map { (commentId: Int) => Ok(Json.obj("comment_id" -> commentId)) }
       }
     )
   }
@@ -271,8 +271,7 @@ class ExploreController @Inject() (
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
   }
 
-  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getTasksInARoute(userRouteId: Int) = Action.async {
     exploreService
       .selectTasksInRoute(userRouteId)
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
@@ -357,7 +356,7 @@ class ExploreController @Inject() (
               .map { _ =>
                 // Send labels to SidewalkAI API for AI validation. Only available for some label types and imagery sources.
                 val labelsToSend = returnData.newLabels.filter { l =>
-                  LabelTypeEnum.aiLabelTypes.contains(l.labelType) && l.panoSource == PanoSource.Gsv && !l.tutorial
+                  LabelType.aiLabelTypes.contains(l.labelType) && l.panoSource == PanoSource.Gsv && !l.tutorial
                 }
                 aiService
                   .validateLabelsWithAi(labelsToSend.map(_.labelId))
@@ -376,7 +375,7 @@ class ExploreController @Inject() (
                       returnData.newLabels.map(_.labelId).min,
                       returnData.newLabels.map(_.timeCreated).max
                     )
-                    .flatMap { timeSpent: Double =>
+                    .flatMap { (timeSpent: Double) =>
                       configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
                     }
                     .failed

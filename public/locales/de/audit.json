@@ -134,10 +134,7 @@
     "feedback": "Rück­meldung",
     "feedback-tooltip": "Teilen Sie uns Ihre Gedanken mit",
     "feedback-submitted": "Rückmeldung gesendet",
-    "feedback-title": "Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!",
-    "immersive-enter": "Immersiven Modus starten",
-    "immersive-exit": "Immersiven Modus beenden",
-    "immersive-exit-hint": "Immersiver Modus. Drücken Sie F, um ihn zu beenden."
+    "feedback-title": "Weitere Ideen? War etwas verwirrend? Haben Sie einen Fehler gefunden?<br>Schicken Sie uns eine Rückmeldung!"
   },
   "right-ui": {
     "opens-new-tab": "(wird in einem neuen Tab geöffnet)",

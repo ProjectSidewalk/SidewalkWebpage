@@ -29,7 +29,7 @@ class CitiesApiController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[models.auth.DefaultEnv],
     configService: ConfigService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   private val logger = Logger(this.getClass)

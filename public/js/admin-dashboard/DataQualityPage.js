@@ -34,9 +34,9 @@ class DataQualityPage {
   async init() {
     try {
       const [stats, tags, labelTypes, byDay, tagSeverity] = await Promise.all([
-        this.#fetchJson(this.#statsUrl), this.#fetchJson(this.#tagsUrl),
-        this.#fetchJson(this.#labelTypesUrl), this.#fetchJson(this.#byDayUrl),
-        this.#fetchJson(this.#tagSeverityUrl),
+        util.fetchJson(this.#statsUrl), util.fetchJson(this.#tagsUrl),
+        util.fetchJson(this.#labelTypesUrl), util.fetchJson(this.#byDayUrl),
+        util.fetchJson(this.#tagSeverityUrl),
       ]);
 
       this.#buildMeta(labelTypes);
@@ -56,12 +56,6 @@ class DataQualityPage {
       console.error('Data Quality page failed to load:', err);
       this.#setStatus('Could not load data quality metrics. Please try again.', true);
     }
-  }
-
-  async #fetchJson(url) {
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!resp.ok) throw new Error(`Request failed (${resp.status}): ${url}`);
-    return resp.json();
   }
 
   /** Builds the canonical type order + color/icon/display lookup from /v3/api/labelTypes. */
@@ -201,7 +195,7 @@ class DataQualityPage {
 
     const container = document.getElementById('dq-validation');
     if (rows.length === 0) {
-      container.innerHTML = '<p class="dq-empty">No validations recorded for this validator group.</p>';
+      container.innerHTML = '<p class="dq-empty">No validations from this validator group.</p>';
       return;
     }
     container.innerHTML = rows.map((r) => {
@@ -283,8 +277,10 @@ class DataQualityPage {
             const n = c[s] || 0;
             const share = c.total ? Math.round((n / c.total) * 100) : 0;
             const opacity = (0.1 + 0.9 * (n / rowMax)).toFixed(2); // row-normalized intensity
-            const title = `${tag} · severity ${s}: ${n.toLocaleString()} (${share}% of this tag)`;
-            return `<div class="dq-heat-cell" title="${DataQualityPage.#esc(title)}"
+            const tip = `${tag} · severity ${s}: ${n.toLocaleString()} (${share}% of this tag)`;
+            // No tab stop per cell: a tag grid runs to hundreds of them, and the label covers screen readers.
+            return `<div class="dq-heat-cell" role="img" aria-label="${DataQualityPage.#esc(tip)}"
+                            data-ps-tooltip="${AdminShell.tooltipAttr(tip)}"
                             style="background:${color};opacity:${opacity}"></div>`;
           }).join('');
           return [
@@ -340,13 +336,13 @@ class DataQualityPage {
 
     const el = document.getElementById('dq-trend');
     if (dataMonths.length < 2) {
-      el.innerHTML = '<p class="dq-empty">Not enough validation history to chart a trend yet.</p>';
+      el.innerHTML = '<p class="dq-empty">Not enough validation history to chart yet.</p>';
       return;
     }
     // Span the axis from the first month with data through the *current* month, so the right edge always reads as
     // "now" and any gap since the last contribution is visible rather than the chart silently ending early. Months
     // with no validations render as line gaps (null), not zeros.
-    const months = DataQualityPage.#enumerateMonths(dataMonths[0], DataQualityPage.#currentMonth());
+    const months = DataQualityPage.#enumerateMonths(dataMonths[0], util.localIsoDate(new Date()).slice(0, 7));
     const agreementSeries = (name, key, agreeKey, disagreeKey) => {
       const values = months.map((m) => {
         const a = byMonth.get(m);
@@ -369,18 +365,12 @@ class DataQualityPage {
     const pct = (v) => `${Math.round(v * 100)}%`;
     const first = DataQualityPage.#monthLabel(dataMonths[0]);
     const last = DataQualityPage.#monthLabel(dataMonths[dataMonths.length - 1]);
-    const caption = `<p class="dq-trend-caption">Validation data spans <strong>${first}</strong> to `
-      + `<strong>${last}</strong>; the axis runs to the current month.</p>`;
+    const caption = `<p class="dq-trend-caption">Data runs <strong>${first}</strong> to `
+      + `<strong>${last}</strong>; the axis extends to this month.</p>`;
     el.innerHTML = `<div class="mini-host"></div>${caption}`;
     MiniLineChart.renderInto(el.querySelector('.mini-host'), months, series, {
       yMax: 1, tickFormat: pct, valueFormat: pct, ariaLabel: 'Validation agreement over time by validator',
     });
-  }
-
-  /** Current month as a `YYYY-MM` key (local time). */
-  static #currentMonth() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   }
 
   /** All `YYYY-MM` month keys from `start` through `end`, inclusive. */
@@ -400,18 +390,17 @@ class DataQualityPage {
 
   /** Short month label, e.g. "Sep 2023", from a `YYYY-MM` key. */
   static #monthLabel(ym) {
-    const [y, m] = ym.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    return util.parseDate(ym).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
   }
 
   #wireValidatorToggle() {
     const buttons = document.querySelectorAll('.dq-validator-btn');
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('active')) return;
+        if (btn.classList.contains('is-active')) return;
         buttons.forEach((b) => {
           const isTarget = b === btn;
-          b.classList.toggle('active', isTarget);
+          b.classList.toggle('is-active', isTarget);
           b.setAttribute('aria-pressed', String(isTarget));
         });
         this.#renderValidation(btn.dataset.validator);
@@ -493,6 +482,6 @@ class DataQualityPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

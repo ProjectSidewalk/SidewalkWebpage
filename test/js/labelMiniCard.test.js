@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, installUtilitiesMisc } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -57,6 +57,7 @@ describe('LabelMiniCard', () => {
         };
         // The real util.misc, so the marker helper under test is the shipped one and the palettes are the card's.
         installUtilitiesMisc();
+        installDateHelpers();
         window.Toast = {show: jest.fn()};
         window.BadgeAchievements = {recordValidation: jest.fn()};
         window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);

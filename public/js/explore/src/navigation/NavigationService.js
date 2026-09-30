@@ -13,9 +13,6 @@ class NavigationService {
   static DIST_INCREMENT = 0.01;
 
   #uiStreetview;
-  #properties = {
-    browser: 'unknown',
-  };
 
   #status = {
     disableWalking: false,
@@ -41,11 +38,10 @@ class NavigationService {
 
   /**
    * @param {object} regionModel - RegionModel module.
-   * @param {object} uiStreetview - jQuery-wrapped street view UI elements.
+   * @param {Record<string, HTMLElement>} uiStreetview - Street view UI elements.
    */
   constructor(regionModel, uiStreetview) {
     this.#uiStreetview = uiStreetview;
-    this.#properties.browser = util.getBrowser();
   }
 
   /**
@@ -88,7 +84,7 @@ class NavigationService {
     if (!this.#status.lockDisableWalking) {
       // Disable clicking links and changing POV.
       svl.panoManager.hideNavArrows();
-      this.#uiStreetview.modeSwitchWalk.css('opacity', 0.5);
+      this.#uiStreetview.modeSwitchWalk.style.opacity = '0.5';
       this.#status.disableWalking = true;
     }
     return this;
@@ -103,19 +99,10 @@ class NavigationService {
     if (!this.#status.lockDisableWalking) {
       // Enable clicking links and changing POV.
       svl.panoManager.showNavArrows();
-      this.#uiStreetview.modeSwitchWalk.css('opacity', 1);
+      this.#uiStreetview.modeSwitchWalk.style.opacity = '1';
       this.#status.disableWalking = false;
     }
     return this;
-  }
-
-  /**
-   * Returns a value of a specified property.
-   * @param {string} prop - The property you want to get.
-   * @returns {*}
-   */
-  getProperty(prop) {
-    return (prop in this.#properties) ? this.#properties[prop] : false;
   }
 
   getStatus(key) {
@@ -528,20 +515,15 @@ class NavigationService {
 
   // Moves label drawing layer to the top and hides navigation arrows.
   switchToLabelingMode() {
-    this.#uiStreetview.drawingLayer.css('z-index', '1');
-    this.#uiStreetview.viewControlLayer.css('z-index', '0');
-
-    // TODO test if this is still necessary.
-    if (this.#properties.browser === 'mozilla') {
-      this.#uiStreetview.drawingLayer.append(this.#uiStreetview.canvas);
-    }
+    this.#uiStreetview.drawingLayer.style.zIndex = '1';
+    this.#uiStreetview.viewControlLayer.style.zIndex = '0';
     svl.panoManager.hideNavArrows();
   }
 
   // Moves label drawing layer to the bottom. Shows navigation arrows if walk is enabled.
   switchToExploreMode() {
-    this.#uiStreetview.viewControlLayer.css('z-index', '1');
-    this.#uiStreetview.drawingLayer.css('z-index', '0');
+    this.#uiStreetview.viewControlLayer.style.zIndex = '1';
+    this.#uiStreetview.drawingLayer.style.zIndex = '0';
     if (!this.#status.disableWalking) {
       svl.panoManager.showNavArrows();
     }

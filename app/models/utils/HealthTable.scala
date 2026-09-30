@@ -1,11 +1,11 @@
 package models.utils
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service._
+import service.*
 import slick.jdbc.GetResult
 
-import javax.inject._
+import javax.inject.*
 
 /**
  * Read-only DAO of Postgres catalog queries backing the Owner-only Health dashboard (#4561).
@@ -20,38 +20,38 @@ import javax.inject._
 class HealthTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  implicit private val getBlockingSession: GetResult[BlockingSession] = GetResult { r =>
+  private given getBlockingSession: GetResult[BlockingSession] = GetResult { r =>
     BlockingSession(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(),
       r.nextLongOption(), r.nextStringOption(), r.nextInt(), r.nextLongOption(), r.nextStringOption())
   }
 
-  implicit private val getIdleTxnSession: GetResult[IdleTxnSession] = GetResult { r =>
+  private given getIdleTxnSession: GetResult[IdleTxnSession] = GetResult { r =>
     IdleTxnSession(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(),
       r.nextLongOption(), r.nextStringOption())
   }
 
-  implicit private val getActiveQuery: GetResult[ActiveQuery] = GetResult { r =>
+  private given getActiveQuery: GetResult[ActiveQuery] = GetResult { r =>
     ActiveQuery(r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextLongOption(), r.nextStringOption(),
       r.nextStringOption())
   }
 
-  implicit private val getStuckEvolution: GetResult[StuckEvolution] = GetResult { r =>
+  private given getStuckEvolution: GetResult[StuckEvolution] = GetResult { r =>
     StuckEvolution(r.nextString(), r.nextInt(), r.nextStringOption(), r.nextStringOption(), r.nextStringOption())
   }
 
-  implicit private val grTableBloat: GetResult[TableBloat] = GetResult { r =>
+  private given grTableBloat: GetResult[TableBloat] = GetResult { r =>
     TableBloat(r.nextString(), r.nextString(), r.nextLong(), r.nextLong(), r.nextDoubleOption(), r.nextLongOption(),
       r.nextLongOption(), r.nextStringOption())
   }
 
-  implicit private val getConnCount: GetResult[ConnCount] =
+  private given getConnCount: GetResult[ConnCount] =
     GetResult(r => ConnCount(r.nextStringOption(), r.nextStringOption(), r.nextInt()))
 
-  implicit private val grPanoBackupStats: GetResult[PanoBackupStats] = GetResult { r =>
+  private given grPanoBackupStats: GetResult[PanoBackupStats] = GetResult { r =>
     PanoBackupStats(r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong(), r.nextLong())
   }
 
-  implicit private val grDbEnvInfo: GetResult[DbEnvInfo] =
+  private given grDbEnvInfo: GetResult[DbEnvInfo] =
     GetResult(r => DbEnvInfo(r.nextString(), r.nextString(), r.nextBoolean()))
 
   /**

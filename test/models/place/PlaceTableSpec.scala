@@ -1,34 +1,38 @@
 package models.place
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, PrecisionModel}
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import util.{RolledBackDb, StreetFixtures}
+import util.{RolledBackDb, SidewalkSpec, StreetFixtures}
 
 import scala.io.Source
 
 /**
  * The `place` table's refresh merge (#5311), against the connected Postgres+PostGIS database, every case inside a
  * rolled-back transaction: which fetched objects it keeps, what it fills in for them, and that a place's id survives
- * a refresh. Also holds evolution 396's category CHECK to the Scala catalog, so a category added to one is missed by
+ * a refresh. Also holds evolution 405's category CHECK to the Scala catalog, so a category added to one is missed by
  * the spec rather than by the first refresh that writes it.
  *
  * The seeded world is [[util.StreetFixtures]]'s: a region that is the unit square and a street along its bottom edge,
  * both at the equator, so a place a fraction of a degree in sits in the region and a known distance from the street.
  */
-class PlaceTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb with StreetFixtures with OptionValues {
+class PlaceTableSpec
+    extends SidewalkSpec
+    with GuiceOneAppPerSuite
+    with RolledBackDb
+    with StreetFixtures
+    with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val table: PlaceTable = app.injector.instanceOf[PlaceTable]
 
-  private val gf = new GeometryFactory(new PrecisionModel(), 4326)
+  private val gf = GeometryFactory(PrecisionModel(), 4326)
 
   /** A fetched OSM node at (lng, lat). */
   private def fetched(
@@ -45,7 +49,7 @@ class PlaceTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
       osmType,
       id,
       Json.obj("name" -> name.getOrElse[String]("")),
-      gf.createPoint(new Coordinate(lng, lat))
+      gf.createPoint(Coordinate(lng, lat))
     )
 
   private def placeByOsm(osmType: String, osmId: Long): DBIO[Option[Place]] =
@@ -65,14 +69,15 @@ class PlaceTableSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb
           VALUES ('school', $name, 'city', '{}', ST_SetSRID(ST_MakePoint($lng, $lat), 4326), now())
           RETURNING place_id""".as[Int].head
 
-  "the category CHECK in evolution 396" should {
+  "the category CHECK in evolution 405" should {
     "list exactly the catalog's ids, in its order" in {
       val script = {
-        val source = Source.fromFile("conf/evolutions/default/396.sql", "UTF-8")
+        val source = Source.fromFile("conf/evolutions/default/405.sql", "UTF-8")
         try source.mkString
         finally source.close()
       }
-      val check  = "category TEXT NOT NULL CHECK \\(category IN \\(([^)]*)\\)\\)".r
+      // The Ups' ADD CONSTRAINT is the first CHECK in the file; the Downs' CHECK, later, holds the old list.
+      val check  = "CHECK \\(category IN \\(([^)]*)\\)\\)".r
       val listed =
         check.findFirstMatchIn(script).value.group(1).split(",").map(_.trim.stripPrefix("'").stripSuffix("'"))
       listed.toSeq mustBe PlaceCategory.ids

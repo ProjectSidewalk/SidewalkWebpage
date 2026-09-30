@@ -2,11 +2,10 @@
  * Styles for the redesigned admin dashboard (#4272).
  *
  * The three-column shell (sidebar / content / TOC), the KPI tiles, and the table add-ons come from components/
- * (page-shell.css, kpi.css, tables.css). This file only adds what those don't have: the "coming soon" nav treatment
- * and the Coverage page's map, legend, chart, and details panel. Type, color, and spacing come from
+ * (page-shell.css, kpi.css, tables.css). This file only adds what those don't have: the nav's scope badges and
+ * descriptions and the Coverage page's map, legend, chart, and details panel. Type, color, and spacing come from
  * the design-system tokens in main.css — avoid hardcoding values that already exist as tokens. Type is set with the
- * composite --text-* tokens (never a bare rem: Bootstrap 3 makes 1rem = 10px here, so a rem size renders at 62.5%
- * of what it says).
+ * composite --text-* tokens.
  *
  * Coverage sequential color scale (--coverage-*: ColorBrewer "Blues", colorblind-safe). Keep these in sync with
  * CoverageColors.STOPS in coverage-map.js so the map, legend, and bar chart all agree.
@@ -36,25 +35,39 @@
   --hva-ai: #d55e00;
 }
 
-/* --- Left nav: disabled "coming soon" items ------------------------------------------------------------------ */
-.page-nav-item.disabled {
-  color: var(--color-neutral-600);
-  cursor: default;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* --- Left nav: scope badge and per-link description ------------------------------------------------------------ */
+
+/* The description is neutral-700, not -600: -600 is under 4.5:1 on the blue-100 rail and the blue-300 active row. */
+.admin-nav-item {
+  padding-top: 6px;
+  padding-bottom: 6px;
 }
 
-.nav-soon-badge {
-  font: var(--text-tiny-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  background: var(--color-neutral-200);
+.admin-nav-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.admin-nav-desc {
+  display: block;
+  font: var(--text-caption-regular);
   color: var(--color-neutral-700);
+}
+
+.admin-nav-scope {
+  font: var(--text-tiny-semibold);
+  white-space: nowrap;
+  background: var(--color-blue-400);
+  color: var(--color-neutral-900);
   border-radius: 10px;
   padding: 1px 7px;
-  margin-left: var(--space-xs);
+}
+
+.admin-nav-scope-note {
+  font: var(--text-caption-regular);
+  color: var(--color-neutral-700);
+  margin: 0 var(--space-md) var(--space-sm);
 }
 
 /* --- Deployment-info strip (shared by overview, across-cities, management, health) ---------------------------- */
@@ -155,10 +168,6 @@
   color: var(--color-error-200);
 }
 
-.coverage-status.hidden {
-  display: none;
-}
-
 /* --- Map ----------------------------------------------------------------------------------------------------- */
 .coverage-map {
   width: 100%;
@@ -247,7 +256,7 @@
 }
 .coverage-sort-btn:hover { background: var(--color-neutral-100); }
 
-.coverage-sort-btn.active {
+.coverage-sort-btn.is-active {
   background: var(--color-asphalt-500);
   border-color: var(--color-asphalt-500);
   color: var(--color-neutral-white);
@@ -277,7 +286,7 @@
 }
 .coverage-toggle-btn:hover { background: var(--color-neutral-100); }
 
-.coverage-toggle-btn.active {
+.coverage-toggle-btn.is-active {
   background: var(--color-asphalt-500);
   border-color: var(--color-asphalt-500);
   color: var(--color-neutral-white);
@@ -731,7 +740,6 @@
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
 }
-.api-docs-legend.hidden { display: none; }
 
 /* Accessible switch: a visually-hidden checkbox drives a sliding track + knob. */
 .api-toggle {
@@ -742,8 +750,6 @@
   -webkit-user-select: none;
   user-select: none;
 
-  /* Reset the global Bootstrap `label` margin/weight so the switch centers in the flex row and the text isn't bold. */
-  margin: 0;
   font: var(--text-small-regular);
   color: var(--color-neutral-700);
 }
@@ -1647,7 +1653,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 
 .mgmt-run:disabled {
   opacity: 0.6;
-  cursor: default;
 }
 
 .mgmt-result {
@@ -1694,7 +1699,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 
 .mgmt-page-btn:disabled {
   opacity: 0.45;
-  cursor: default;
 }
 
 .mgmt-page-btn:focus-visible {
@@ -1825,7 +1829,9 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 /* The active sort column reads a shade darker than its neighbours; the caret alone is too small a cue. */
 .ac-table thead th.ac-sorted { color: var(--color-neutral-900); }
 
-.ac-table thead th[data-sort]:focus-visible {
+/* Inset, because the table's scroll wrapper clips anything drawn outside a cell. */
+.ac-table th[tabindex]:focus-visible,
+.ac-table td[tabindex]:focus-visible {
   outline: 2px solid var(--color-link-100);
   outline-offset: -2px;
 }
@@ -2093,7 +2099,7 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 }
 .ac-toggle-btn:hover { background: var(--color-neutral-100); }
 
-.ac-toggle-btn.active {
+.ac-toggle-btn.is-active {
   background: var(--color-asphalt-500);
   border-color: var(--color-asphalt-500);
   color: #ffffff;
@@ -2102,15 +2108,20 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 /* --- Across Cities: hero stat band + deployment map (#4329) ------------------------------------------------------ */
 .ac-hero { margin-top: var(--space-lg); }
 
+/* A grid, not a wrapping flex row: exact totals (1,712,345) wrap the row on narrower screens, and a wrapped flex
+   item would stretch to the full row width. A grid track can't grow to fit its content, so the 200px floor leaves
+   room for the widest unbroken value (an eight-digit total, or a top-city name like "Christchurch"), and other tile
+   text wraps rather than spilling into the next tile. */
 .ac-hero-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-md);
   margin-bottom: var(--space-md);
 }
 
 .ac-hero-stat {
-  flex: 1 1 120px;
+  min-width: 0;
+  overflow-wrap: break-word;
   border: 1px solid var(--color-neutral-200);
   border-radius: 8px;
   padding: var(--space-md);
@@ -2163,7 +2174,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   display: block;
   font: var(--text-caption-regular);
   color: var(--color-neutral-700);
-  white-space: nowrap;
 }
 
 .ac-hero-ai {
@@ -2175,15 +2185,23 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 .ac-hero-ai:empty,
 .ac-cell-ai:empty { display: none; }
 
-.ac-cell-ai { margin-top: 1px; }
+/* Table cells keep their chip on one line; a hero tile's grid track is fixed, so its line has to be free to wrap. */
+.ac-cell-ai {
+  margin-top: 1px;
+  white-space: nowrap;
+}
 
-/* A cell whose hover card is also keyboard reachable: it takes focus, so it needs a focus ring (WCAG 2.4.7) and a
-   cursor that says there is more here than the number. */
-.ac-table td[data-ps-tooltip] { cursor: help; }
+/* The button inside a "Most active cities" cell that carries its hover card. It takes focus, so it needs a focus ring
+   (WCAG 2.4.7), and a click pins its card open (#5495), hence the pointer. Block, so the whole cell content is the
+   target rather than just the number. */
+.ac-cell-trigger {
+  display: block;
+  cursor: pointer;
+}
 
-.ac-table td[data-ps-tooltip]:focus-visible {
+.ac-cell-trigger:focus-visible {
   outline: 2px solid var(--color-link-200);
-  outline-offset: -2px;
+  outline-offset: 2px;
 }
 
 /* Hover-card contents (#4931). The card itself is styled in main.css (.ps-tooltip); these are the rows inside it,
@@ -2234,6 +2252,34 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   opacity: 0.7;
   font-style: italic;
 }
+
+/* Where a person in a cross-city card did their work, right after their name (#5495). Muted so the name still leads. */
+.ac-tip-where { opacity: 0.75; }
+
+/* White on the card's dark fill, like the text around it; the underline alone says it is a link, and it goes solid
+   once the card is pinned and the link can actually be followed. */
+.ac-tip-link,
+.ac-tip-link:visited,
+.ac-tip-link:hover {
+  color: inherit;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.ps-tooltip--pinned .ac-tip-link { text-decoration-style: solid; }
+
+.ac-tip-link:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 1px;
+}
+
+.ac-tip-hint {
+  margin-top: 6px;
+  opacity: 0.7;
+  font-style: italic;
+}
+
+.ps-tooltip--pinned .ac-tip-hint { display: none; }
 
 /* Marks a contributor line as pipeline output rather than a person. */
 .ac-tip-tag {
@@ -2857,7 +2903,6 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
 
 .partners-form-label {
   font: var(--text-small-medium);
-  margin-bottom: 0; /* Bootstrap 3 gives every <label> a bottom margin. */
 }
 
 /* The logo picker is the one control on this page the browser draws itself: the field takes the .ps-input box like
@@ -2890,9 +2935,24 @@ img.activity-feed-thumb:hover { box-shadow: 0 2px 6px rgb(0 0 0 / 18%); }
   margin-top: var(--space-md);
 }
 
-/* .button-ps's display: inline-flex outranks the UA/Bootstrap [hidden] rule, so re-assert it. */
+/* .button's display: inline-flex outranks the browser's [hidden] rule, so re-assert it. */
 .partners-cancel-edit[hidden] {
   display: none;
+}
+
+/* The sentence the landing page will show (#5462), set off from the form so it reads as output, not a label. */
+.official-contact-preview {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+  margin: var(--space-md) 0 0;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-neutral-100);
+  border-radius: var(--border-radius-lg);
+}
+
+.official-contact-status {
+  font: var(--text-small-regular);
+  margin: var(--space-sm) 0 0;
 }
 
 .partners-form-error {

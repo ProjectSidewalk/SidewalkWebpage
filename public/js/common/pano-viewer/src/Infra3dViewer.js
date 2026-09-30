@@ -129,6 +129,9 @@ class Infra3dViewer extends PanoViewer {
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
+      // Let the keys through in a text field, where they move the cursor rather than the pano.
+      const t = e.target;
+      if (t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && t.type === 'text')) return;
       if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'Space'].indexOf(e.code) > -1) {
         e.stopPropagation();
       }
@@ -312,10 +315,13 @@ class Infra3dViewer extends PanoViewer {
   }
 
   getPanoId = () => {
-    return this.currPanoData.getPanoId();
+    // Null until the first pano's metadata has loaded: the tracker asks on every input event, including during init.
+    return this.currPanoData ? this.currPanoData.getPanoId() : null;
   };
 
   getPosition = () => {
+    // Null until the first pano's metadata has loaded.
+    if (!this.currPanoData) return null;
     return { lat: this.currPanoData.getProperty('lat'), lng: this.currPanoData.getProperty('lng') };
   };
 
@@ -515,7 +521,7 @@ class Infra3dViewer extends PanoViewer {
     const panoDataParams = {
       panoId: node.frame.id,
       source: this.getViewerType(),
-      captureDate: moment(node.frame.timestamp),
+      captureDate: new Date(node.frame.timestamp),
       width: 4 * node.frame.framedatameta.imagewidth, // width/height are for only one side of the cube map
       height: 2 * node.frame.framedatameta.imageheight,
       tileWidth: node.frame.framedatameta.tilesize,
@@ -539,8 +545,10 @@ class Infra3dViewer extends PanoViewer {
   };
 
   getPov = () => {
-    const currentView = this.viewer.getCameraView();
     const node = this.currNode || this.prevNode;
+    // Null until the first pano has loaded: the tracker asks on every input event, including during init.
+    if (!node) return null;
+    const currentView = this.viewer.getCameraView();
 
     // Calculate the orientation of the camera.
     const horizontalOrientation = this._getHeading(node.frame.omega, node.frame.phi);

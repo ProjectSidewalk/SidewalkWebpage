@@ -5,9 +5,9 @@
  */
 package models.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.label.LocationXY
-import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.UiSource
 import models.validation.ValidationOption
 import play.api.libs.json.{JsObject, Json, JsonConfiguration, JsonNaming, OFormat}
 
@@ -26,8 +26,8 @@ import java.time.OffsetDateTime
 case class ValidationFiltersForApi(
     labelId: Option[Int] = None,
     userId: Option[String] = None,
-    validationResult: Option[ValidationOption.Value] = None,
-    labelType: Option[LabelTypeEnum.Base] = None,
+    validationResult: Option[ValidationOption] = None,
+    labelType: Option[LabelType] = None,
     validationTimestamp: Option[OffsetDateTime] = None,
     source: Option[UiSource] = None
 )
@@ -68,7 +68,7 @@ case class ValidationDataForApi(
     labelId: Int,
     labelType: String,
     validatedLabelType: String,
-    validationResult: ValidationOption.Value,
+    validationResult: ValidationOption,
     userId: String,
     validatorType: String,
     missionId: Int,
@@ -139,6 +139,6 @@ case class ValidationResultTypeForApi(
  */
 object ValidationResultTypeForApi {
   // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration           = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val format: OFormat[ValidationResultTypeForApi] = Json.format[ValidationResultTypeForApi]
+  private given config: JsonConfiguration           = JsonConfiguration(JsonNaming.SnakeCase)
+  given format: OFormat[ValidationResultTypeForApi] = Json.format[ValidationResultTypeForApi]
 }

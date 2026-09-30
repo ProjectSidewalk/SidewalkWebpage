@@ -3,7 +3,7 @@ package service
 import com.google.inject.ImplementedBy
 import models.street.{SidewalkPresenceRebuildCounts, SidewalkPresenceTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, Json}
 
@@ -57,11 +57,11 @@ trait SidewalkPresenceService {
 class SidewalkPresenceServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     sidewalkPresenceTable: SidewalkPresenceTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends SidewalkPresenceService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  private val running = new AtomicBoolean(false)
+  private val running = AtomicBoolean(false)
 
   def isRunning: Boolean = running.get()
 
@@ -70,12 +70,12 @@ class SidewalkPresenceServiceImpl @Inject() (
   // panel then shows as a failed job. The nightly tick and the admin trigger are the two that can overlap.
   def rebuild(): Future[SidewalkPresenceRebuildResult] = {
     if (!running.compareAndSet(false, true)) {
-      Future.failed(new IllegalStateException("A sidewalk presence rebuild is already in progress."))
+      Future.failed(IllegalStateException("A sidewalk presence rebuild is already in progress."))
     } else {
       // Future.delegate so a synchronous throw while building the action still releases the guard.
       Future
         .delegate {
-          db.run(sidewalkPresenceTable.rebuild.transactionally).map { counts: SidewalkPresenceRebuildCounts =>
+          db.run(sidewalkPresenceTable.rebuild.transactionally).map { (counts: SidewalkPresenceRebuildCounts) =>
             SidewalkPresenceRebuildResult(counts.total, counts.inserted, counts.updated, counts.deleted)
           }
         }

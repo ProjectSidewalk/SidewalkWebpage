@@ -80,8 +80,6 @@ function labelMetadata(panoDataOverrides = {}) {
 
 beforeAll(() => {
   loadScript(UTILITIES_PATH, []);
-  // PanoData checks `captureDate instanceof moment`; a bare constructor is enough to satisfy it here.
-  global.moment = function Moment() {};
   loadScript(PANO_DATA_PATH, ['PanoData']);
 });
 
@@ -196,7 +194,7 @@ describe('coupling to PanoData', () => {
       cameraPitch: 0,
       width: 13312,
       height: 6656,
-      captureDate: new global.moment(),
+      captureDate: new Date(),
       linkedPanos: [],
       history: [],
     };

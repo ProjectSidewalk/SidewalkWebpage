@@ -2,27 +2,25 @@ package service
 
 import com.google.inject.ImplementedBy
 import models.cluster.ClusterLabelTable
-import models.label._
+import models.label.*
 import models.user.{Role, SidewalkUserWithRole, UserStatTable}
 import models.utils.CommonUtils.UiSource
-import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.{Duration, OffsetDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /** What came of a request to edit a label from the label popup. */
-sealed trait LabelEditOutcome
-object LabelEditOutcome {
-  case object NotFound             extends LabelEditOutcome
-  case object Forbidden            extends LabelEditOutcome
-  case class Applied(label: Label) extends LabelEditOutcome
+enum LabelEditOutcome {
+  case NotFound
+  case Forbidden
+  case Applied(label: Label)
 
   /** The label's type changed under the editor, so the edit they built on the old type was not applied. */
-  case class Conflict(label: Label) extends LabelEditOutcome
+  case Conflict(label: Label)
 }
 
 @ImplementedBy(classOf[LabelEditServiceImpl])
@@ -30,7 +28,7 @@ trait LabelEditService {
   def applyEdit(
       labelId: Int,
       userId: String,
-      labelType: Option[LabelTypeEnum.Base],
+      labelType: Option[LabelType],
       severity: Option[Int],
       tags: Seq[String],
       source: UiSource,
@@ -39,8 +37,8 @@ trait LabelEditService {
   def editLabel(
       labelId: Int,
       editor: SidewalkUserWithRole,
-      labelTypeSeen: Option[LabelTypeEnum.Base],
-      labelType: Option[LabelTypeEnum.Base],
+      labelTypeSeen: Option[LabelType],
+      labelType: Option[LabelType],
       severity: Option[Int],
       tags: Seq[String],
       source: UiSource
@@ -77,9 +75,9 @@ class LabelEditServiceImpl @Inject() (
     userStatTable: UserStatTable,
     clusterLabelTable: ClusterLabelTable,
     panoDataService: PanoDataService,
-    shareImageCache: ShareImageCache,
-    implicit val ec: ExecutionContext
-) extends LabelEditService
+    shareImageCache: ShareImageCache
+)(using ec: ExecutionContext)
+    extends LabelEditService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /**
@@ -92,7 +90,7 @@ class LabelEditServiceImpl @Inject() (
   private val labelsUnfiltered = TableQuery[LabelTableDef]
 
   /** The type, severity and tags a label has, or would have; tags compare as sets because their stored order is arbitrary. */
-  private case class State(labelType: LabelTypeEnum.Base, severity: Option[Int], tags: List[String]) {
+  private case class State(labelType: LabelType, severity: Option[Int], tags: List[String]) {
     def sameAs(other: State): Boolean =
       labelType == other.labelType && severity == other.severity && tags.toSet == other.tags.toSet
   }
@@ -117,7 +115,7 @@ class LabelEditServiceImpl @Inject() (
   def applyEdit(
       labelId: Int,
       userId: String,
-      labelType: Option[LabelTypeEnum.Base],
+      labelType: Option[LabelType],
       severity: Option[Int],
       tags: Seq[String],
       source: UiSource,
@@ -127,8 +125,8 @@ class LabelEditServiceImpl @Inject() (
     labelQuery.result.headOption.flatMap {
       case None        => DBIO.successful(None)
       case Some(label) =>
-        val newType: LabelTypeEnum.Base = labelType.getOrElse(label.labelType)
-        val newSeverity: Option[Int]    = labelService.severityFor(newType, severity)
+        val newType: LabelType       = labelType.getOrElse(label.labelType)
+        val newSeverity: Option[Int] = labelService.severityFor(newType, severity)
         labelService.cleanTagList(tags, newType).flatMap { cleaned =>
           val target = State(newType, newSeverity, cleaned.toList)
           if (target.sameAs(stateOf(label))) DBIO.successful(Some(label))
@@ -188,7 +186,7 @@ class LabelEditServiceImpl @Inject() (
    * The file moves happen inside the transaction; a rollback after them leaves nothing broken, since a crop is
    * looked up by the label's type and is re-cut by CropService when missing.
    */
-  private def afterTypeChange(label: Label, newType: LabelTypeEnum.Base): DBIO[Unit] = {
+  private def afterTypeChange(label: Label, newType: LabelType): DBIO[Unit] = {
     for {
       _ <- labelTable.recalculateValidationCountsForLabel(label.labelId)
       _ <- userStatTable.updateAccuracy(Seq(label.userId))
@@ -208,8 +206,8 @@ class LabelEditServiceImpl @Inject() (
   def editLabel(
       labelId: Int,
       editor: SidewalkUserWithRole,
-      labelTypeSeen: Option[LabelTypeEnum.Base],
-      labelType: Option[LabelTypeEnum.Base],
+      labelTypeSeen: Option[LabelType],
+      labelType: Option[LabelType],
       severity: Option[Int],
       tags: Seq[String],
       source: UiSource

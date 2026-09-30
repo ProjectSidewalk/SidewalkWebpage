@@ -12,10 +12,10 @@ move through panoramic street imagery and label accessibility features and probl
 aggregated, scored, and served back out through a public API and a set of dashboards.
 
 **Stack:**
-- **Backend** — Scala 2.13 + Play Framework 3.0 (Java 17).
+- **Backend** — Scala 3.3 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
 - **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenation only —
-  no transpilation/module system). Migrating off jQuery and Bootstrap.
+  no transpilation/module system), with no framework: native DOM and CSS on the `main.css` design tokens.
 - **Dev/runtime** — everything runs in Docker.
 
 ## System at a glance
@@ -68,6 +68,11 @@ The backend follows a consistent layering: **routes → Controller → Service �
   start from the named sets (`LabelTable.labels` and its variants, `StreetEdgeTable.streets`, `countedAuditTasks`,
   `completedAuditTasks`); raw SQL starts from the matching fragments in `app/models/utils/FilteredTables.scala`
   (#5287), e.g. `FilteredTables.streets()`, or `notTutorialStreet` for a query that keeps streets of every status.
+- **Values in raw SQL** — a value from a request goes into a `sql"..."` fragment as `$value`, so Postgres gets it
+  separately from the query text; `#$` pastes text in and is only for SQL written in code. Optional filters are
+  lists of fragments, combined with `SqlFragments.allOf` or `join` (#2756). `SqlFragments` also holds the bbox tests,
+  enum lists (`enumList`), the check a schema name must pass before it's pasted in (`requireSafeIdentifiers`), and
+  per-transaction Postgres settings (`withLocalSetting`).
 - **Evolutions** — schema changes are Play evolutions: numbered SQL files in `conf/evolutions/default/`, each with
   `# --- !Ups` / `# --- !Downs`, auto-applied at startup to every city schema. Numbers are gapless, a PR's changes go
   in one file, every new table gets `ALTER TABLE <name> OWNER TO sidewalk;` and its full set of constraints, and the
@@ -125,7 +130,15 @@ that in place of the native file without the viewer being able to tell, because 
 viewer decides when one is needed**, because only it knows the GPU: Pannellum uploads an equirect as two halves, so
 its limit is `2 x MAX_TEXTURE_SIZE` and a device advertising 8192 renders a 16384-wide pano — the widest GSV
 produces — untouched. When a device can't, it appends `?maxWidth=` and `PanoDisplayCopyService` cuts a copy at that
-width on demand, caching it under the crop store (#5256).
+width on demand, caching it under the crop store (#5256). A phone asks for 8192 whatever its GPU says, because the
+native file's decode and textures are more memory than iOS lets a tab have, and it answers by killing the tab (#5561).
+For the same reason a requested width is a bound, not a preference: a copy the server can't cut right now (its cut
+pool is full, or the cut failed) is a `503` with `Retry-After`, never the native file, and the viewer's own ladder
+steps down to a smaller width on that refusal. A pool with no room refuses every width alike, so a foreground load
+that meets one gives the label up (`LabelSkipped_NoImagery`, the #4810 path) rather than wait; a prefetch, with
+nothing waiting on it, retries once after `Retry-After`. Validate also fetches the backups of the next expired labels into
+`PanoImageCache` while the current one is judged, one at a time, and Pannellum loads the held `blob:` URL in place of
+the network one, waiting a bounded time for a prefetch still in flight rather than downloading beside it (#5562).
 
 The app used to precompute that copy for every wide pano nightly, which OOM-killed prod JVMs (#5239) — not because
 downscaling is beyond a city stage, but because doing it for a whole store, for copies almost nothing ever displays,
@@ -182,12 +195,12 @@ background; the AccessScore tool retries on that header and says so under its sp
 
 The **places refresh** (#5311) keeps the per-city `place` table current from OpenStreetMap: one Overpass query per
 run over the city's bounds for every tag in the `PlaceCategory` catalog (schools, health care, libraries, grocery,
-transit, parks, community centers), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its `place_id` across
-refreshes, with the containing region and the nearest open street within 250 m computed in SQL as it lands. It ticks
-nightly like every job but fetches only when the newest place is more than a week old, or the table is empty, which
-is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so the Health
-panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with `SwrCache`,
-cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
+transit, parks, community centers, government offices), merged by `PlaceTable.replaceOsmPlaces` so a place keeps its
+`place_id` across refreshes, with the containing region and the nearest open street within 250 m computed in SQL as
+it lands. It ticks nightly like every job but fetches only when the newest place is more than a week old, or the table
+is empty, which is how a city gets its places with nothing done at onboarding; the skipped ticks are recorded too, so
+the Health panel can tell "fresh" from "stuck". `/v3/api/places` serves the table (the whole-city read cached with
+`SwrCache`, cleared by a refresh), the AccessScore map draws it, and Admin > Management can run the fetch on demand.
 
 Every run is bracketed by `JobRunService.record`, which writes a `background_job_run` row — start, finish, outcome,
 and the job's own counts as JSONB (#4928). Without it, a job that silently stops firing is indistinguishable from one
@@ -299,12 +312,15 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
-  Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
-  browser window with the pano; the labeling frame it stores with every label, and why, is in
-  [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract". Its URL follows the
-  labeler (#5480, `src/navigation/ExploreUrlSync.js`): on pano and POV changes, at most one write per 500 ms with
-  the latest state winning, it is rewritten in place (`replaceState`, never a Back entry) with `panoId`, `lat`,
-  `lng`, `heading`, `pitch`, `zoom` and, in immersive mode, `immersive=1` — the same params
+  Its immersive mode (#5085, the shared `common/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills
+  the browser window with the pano; the labeling frame it stores with every label, and why, is in
+  [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract". Validate has the same mode
+  (#5560, `css/pages/validate/svv-immersive.css`): over the boxed DOM, CSS alone floats the menu column as a dock at
+  the bottom-centre and the mission title and progress bar as one pill at the top-centre. Expert Validate stays boxed
+  until its edit sections have an immersive placement.
+  Explore's URL follows the labeler (#5480, `src/navigation/ExploreUrlSync.js`): on pano and POV changes, at most one
+  write per 500 ms with the latest state winning, it is rewritten in place (`replaceState`, never a Back entry) with
+  `panoId`, `lat`, `lng`, `heading`, `pitch`, `zoom` and, in immersive mode, `immersive=1` — the same params
   `ExploreController.explore` reads, so the address bar is always a shareable link to that view. To anyone else the
   URL names a place, not a session: opening it lands in free exploration there (the `?lat&lng` drop-in of #4451),
   never in the sharer's mission or route, so `routeId`, `resumeRoute`, `regionId`, `streetEdgeId` and `placeName`
@@ -313,8 +329,60 @@ corresponding Twirl view:
   so a refresh, or one of Explore's own reloads (after an hour idle, on a submit failure), resumes the mission at
   the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
   path already resumes the user's own open drop-in mission.
+  The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
+  `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
+  display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's
+  raw canvas, so neither the label markers nor the stored imagery carry it. Its panel opens below the pill, clear of
+  the pills continuing the row, and to its right in full screen, where the pills form a column. Shadows is a gamma
+  curve (an SVG `feComponentTransfer` the model injects on first use) rather than brightness, because the dark
+  sidewalks people struggle with sit in otherwise well-exposed scenes and a brightness multiplier clips the sky before
+  it opens the shadows. Values persist in localStorage, shared with Validate, which mounts the same two classes (below).
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
+  Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
+  hide-label toggle (`validate/src/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
+  The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
+  swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
+  the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
+  that the modals and the loading lock also set, and the partial sits outside `#svv-application-holder` so the busy
+  state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
+  **A viewer canvas is painted only while it holds the current label's pano at that label's POV**
+  (`validate/src/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
+  the primary canvas rejoins the layout unpainted after a fallback label (#5453), and on a primary viewer that paints
+  during a load (`PanoViewer.PAINTS_DURING_LOAD`: Mapillary, Panoramax) the canvas and marker are hidden for every load
+  and revealed by `renderPanoMarker` two animation frames after it sets the label's POV (#5582), capped at 100 ms for
+  a background tab, which is also when `LabelContainer` unlocks the tool. The reveal runs even when aiming or drawing
+  the marker throws, a marker built while the canvas is hidden is hidden with it, and its pulse starts at the
+  reveal. GSV keeps the outgoing pano up during its ~50 ms swap. Mapillary moves
+  in Validate and the label popup use `TransitionMode.Instantaneous`; Explore keeps the animated walk.
+  **A label whose pano won't load** is passed over by `LabelContainer.#loadPanoForCurrentLabel`, and `setPanorama`'s
+  `{panoData, reason}` result says which kind: `'no-imagery'` drops it and asks `/validationTask/moreLabels` for a
+  replacement (#4810); `'slow'` (the primary threw `PanoLoadTimeoutError` and there was no usable backup) moves it to
+  the end of the queue once, and drops it only if it is slow again (#5581), so the validator waits out at most one
+  deadline before seeing another label. After three slow loads in a row with none succeeding, slow labels are dropped
+  on their first try and no replacements are requested, so a dead network reaches the imagery modal in minutes
+  rather than a quarter of an hour. A failed load during an undo abandons the undo instead (the label is already
+  validated, so it must not be deferred or owed): the label undone from is shown again and Back is disabled.
+  `PanoManager.create` loads no pano; the first label's `setPanorama` is its only load. A label the payload flags
+  `expired` that has a backup skips the primary and goes straight to Pannellum (#5561), trying the primary only if
+  the backup fails, so a slow `reason` there comes from that late attempt and a load that never asked the primary is
+  `'no-imagery'`. Once a label is on screen, `LabelContainer.#prefetchUpcomingPanos` warms the next two: an expired
+  label with a backup has that backup fetched into `PanoImageCache` (#5562), and any other has its pano warmed
+  through `PanoViewer.prefetchPano` (Mapillary caches the image's metadata and thumbnail, which is what `moveTo`
+  waits on; #5581). Validate and the label popup pass the `linkedPanos: false` pano
+  option, so a Mapillary load resolves as soon as the image is set instead of after the linked-pano graph request
+  that only Explore's navigation reads. `PanoLoadingStatus` shows "Loading imagery…" over the pano
+  (`#svv-pano-loading`, a polite live region in both views, so boxed, immersive and mobile share it): at once when
+  the pano area is blank for
+  the load (`PanoManager.blanksPanoWhileLoading`, true for a paints-during-load primary or an empty pano area), after
+  2 s when the outgoing pano stays up. The screen-reader announcement and the `PanoLoadingStatus_Shown` event always
+  wait the 2 s, so neither fires for fast labels. It switches to "Still loading, trying the next label…" when a label
+  is deferred. The busy state leaves `aria-busy` off the region that contains that live region, since assistive tech
+  may hold a busy subtree's announcements until it clears, and dims the application holder's parts individually so the
+  status itself is never under the 60 % opacity; the mission modals are left out of that dim as well, so they keep
+  stacking above the status, and the status is not started at all while one of them covers the pano (the next
+  mission's first label loads behind "Great job!", whose disabled button is the loading state there). `#svv-panorama-holder` carries the viewer's dark backdrop, so
+  the area stays dark while the canvas is hidden for a load.
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
   (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
   rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four
@@ -403,6 +471,18 @@ corresponding Twirl view:
   beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
   that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
   `setLocation`.
+  `PanoViewer.setPano` types its rejections, because callers decide from them whether to give up on what needed the
+  pano: `NoImageryError` means the provider no longer has it, `PanoLoadTimeoutError` means it didn't load in time or
+  the network failed and the provider didn't say it is gone, and anything else is a failure on a pano the provider
+  still has. `MapillaryViewer` holds only `moveTo` to its 12 s deadline, gives the linked-pano wait its own 4 s one
+  that degrades to no links, and classifies a failure with one Graph API read of the image, capped at 3 s (#5581):
+  only a 404 or Graph's "does not exist" error (code 100, subcode 33) makes it `NoImageryError`, since that verdict
+  drops a Validate label, and a check that can't be made makes it `PanoLoadTimeoutError` whatever the SDK said, since
+  offline or rate-limited the SDK fails fast rather than timing out. A move the SDK cancels for a newer one is
+  rethrown unclassified. A viewer whose SDK draws the incoming pano before `setPano` resolves declares
+  `static PAINTS_DURING_LOAD = true` (#5582). `setPov` returns nothing to wait on (MapillaryJS 4.1.2's `setCenter` and
+  `setFieldOfView` return `undefined`), so a caller that must not show the old heading waits animation frames instead,
+  as Validate's reveal does.
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
@@ -434,12 +514,12 @@ string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stage
 
 **Styling comes from the design-system tokens in `main.css` `:root`** — color ramps (`--color-*`), composite type
 tokens (`--text-*`, complete `font` shorthands that bake in the tool-UI zoom factor `--ui-scale`), spacing, radii,
-shadows, motion, and z-index layers — plus the component primitives `.button-ps`, `.ps-input`, `.ps-select`, and
+shadows, motion, and z-index layers — plus the component primitives `.button`, `.ps-input`, `.ps-select`, and
 `.ps-table`. They mirror the "Design System Tokens" Figma; the rules for using them are in
 [`style-guide.md`](style-guide.md). One coupling worth knowing: **`css/components/page-shell.css` is the shell
-(`.page-*` classes) that the API docs, the admin dashboard, and the user dashboard all build on** for the sidebar +
-content + TOC layout and the base type, so a change there reaches all three; `css/pages/api-docs/api-docs.css` holds only
-the docs' own components (`.preview-*`, `.map-toolbar`, status messages).
+(`.page-*` classes) that the API docs, the admin dashboard, the user dashboard, and the labeling guide all build on**
+for the sidebar + content + TOC layout and the base type, so a change there reaches all four;
+`css/pages/api-docs/api-docs.css` holds only the docs' own components (`.preview-*`, `.map-toolbar`, status messages).
 
 **Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that
 decides which UI a request is served (mobile visitors get `/mobileLanding`, the mobile Validate page at `/mobile`,
@@ -500,9 +580,9 @@ canonical color table and icon locations.
 
 Each type carries two independent domain facts, both published by that endpoint:
 
-- **access impact** (`LabelTypeEnum.AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
+- **access impact** (`AccessImpact`, `access_impact`) — `problem` (a barrier), `feature` (something
   that helps), or `neutral` (Occlusion and Other). This drives framing and copy.
-- **rating scale** (`LabelTypeEnum.RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
+- **rating scale** (`RatingScale`, `rating_scale`) — `quality` (1 is good, 3 is bad), `severity`
   (1 is low, 3 is high), or `unrated` for a type whose labels never carry a 1–3 rating. Anything that *reads* a
   label's severity branches on this.
 

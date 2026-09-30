@@ -6,7 +6,7 @@
  * a load outlive the label that started it. Every one of them mutates the single shared `.label-detail__pano`
  * holder, so a stale load reaching them paints over whatever replaced it.
  *
- * Like popupPanoManagerLazyViewer.test.js, the source is eval'd into jsdom with jQuery, since it is a top-level
+ * Like popupPanoManagerLazyViewer.test.js, the source is eval'd into jsdom, since it is a top-level
  * class written for Grunt concatenation.
  */
 
@@ -14,7 +14,6 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const JQUERY_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/jquery/jquery-1.12.2.min.js'), 'utf8');
 const MANAGER_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/label-detail/PopupPanoManager.js'), 'utf8');
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
@@ -71,7 +70,7 @@ describe('PopupPanoManager load lifecycle', () => {
         viewer = deferredViewer();
         viewerType = { create: jest.fn(() => Promise.resolve(viewer)), preloadLibrary: jest.fn() };
 
-        window.eval(`${JQUERY_SRC}\n${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
+        window.eval(`${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
         PopupPanoManager = window.PopupPanoManager;
     });
 

@@ -2,7 +2,7 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import service.{ConfigService, JobRunService, StreetService}
 
@@ -26,10 +26,8 @@ object StreetGradientStalenessActor {
 class StreetGradientStalenessActor @Inject() (
     streetService: StreetService,
     jobRunService: JobRunService
-)(implicit
-    ec: ExecutionContext,
-    configService: ConfigService
-) extends Actor {
+)(using ec: ExecutionContext, configService: ConfigService)
+    extends Actor {
 
   private var cancellable: Option[Cancellable] = None
   private val logger                           = Logger(this.getClass)
@@ -47,7 +45,7 @@ class StreetGradientStalenessActor @Inject() (
           24.hours,
           self,
           StreetGradientStalenessActor.Tick
-        )(context.dispatcher)
+        )(context.dispatcher, ActorRef.noSender)
       )
       logger.info("StreetGradientStalenessActor created")
     }

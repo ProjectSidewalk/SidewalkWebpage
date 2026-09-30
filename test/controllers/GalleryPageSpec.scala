@@ -1,14 +1,13 @@
 package controllers
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.UserAgents
+import play.api.test.Helpers.*
+import util.{SidewalkSpec, UserAgents}
 
 import java.net.URLEncoder
 
@@ -28,10 +27,10 @@ import java.net.URLEncoder
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class GalleryPageSpec extends PlaySpec with GuiceOneAppPerSuite {
+class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 

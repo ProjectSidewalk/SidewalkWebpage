@@ -57,7 +57,6 @@ describe('a Gallery card\'s label marker', () => {
 
     beforeAll(() => {
         window.i18next = { t: (key) => key, language: 'en' };
-        window.moment = (value) => value;
         window.util = {
             assetPath: assetPathStub,
             camelToKebab: (s) => s.toLowerCase(),
@@ -78,7 +77,6 @@ describe('a Gallery card\'s label marker', () => {
             show: () => { credit.attribution = 'shown'; },
             hide: () => { credit.attribution = 'hidden'; },
         });
-        window.$ = () => ({ tooltip: () => ({ tooltip: () => {} }) });
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });
 

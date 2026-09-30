@@ -10,15 +10,10 @@
  * downloaded once and then filtered/sorted/paginated entirely client-side — small enough to keep every column sortable
  * without a per-page server round-trip, but paginated in the DOM so we never render thousands of rows at once.
  *
- * Built as an accessible HTML/CSS table (no DataTables/jQuery), consistent with the rest of the redesign. Mutations
- * update local state optimistically-then-confirm: the request fires, and the row reverts with a message if it fails.
+ * Built as an accessible HTML/CSS table, consistent with the rest of the redesign. Mutations update local state
+ * optimistically-then-confirm: the request fires, and the row reverts with a message if it fails.
  */
 class ManagementPage {
-  /** Roles an admin may assign from this page. Owner is intentionally excluded (the backend forbids it); the system
-   *  roles (Anonymous, AI) aren't hand-assignable here either. A user already in an unassignable role is shown it as
-   *  a disabled, locked select. */
-  static #ASSIGNABLE_ROLES = ['Registered', 'Turker', 'Researcher', 'Administrator'];
-
   /** Page-size options for the directory; the first is the default. */
   static #PAGE_SIZES = [20, 50, 100, 250];
 
@@ -26,6 +21,8 @@ class ManagementPage {
   static #PAGINATION_IDS = ['mgmt-pagination-top', 'mgmt-pagination-bottom'];
 
   #urls;
+  /** Roles an admin may assign; a user already in any other role gets a locked select. */
+  #assignableRoles;
   #users = [];
   #teams = [];
   #teamsByName = new Map();
@@ -40,14 +37,16 @@ class ManagementPage {
    *          teamVisibilityUrl: string, clearCacheUrl: string, recalcStatsUrl: string, recalcPriorityUrl: string,
    *          recalcValidationCountsUrl: string, generateCropsUrl: string, rebuildSidewalkPresenceUrl: string,
    *          refreshPlacesUrl: string, recountGradientStalenessUrl: string}} urls
+   * @param {string[]} assignableRoles - Role names from the backend's `Role.ADMIN_ASSIGNABLE_ROLES`.
    */
-  constructor(urls) {
+  constructor(urls, assignableRoles) {
     this.#urls = urls;
+    this.#assignableRoles = assignableRoles;
   }
 
   async init() {
     try {
-      const data = await AdminShell.fetchJson(this.#urls.userStatsUrl);
+      const data = await util.fetchJson(this.#urls.userStatsUrl);
       this.#users = (data && data.user_stats) || [];
       this.#teams = (data && data.teams) || [];
       this.#teamsByName = new Map(this.#teams.map((t) => [t.name, t]));
@@ -81,11 +80,10 @@ class ManagementPage {
       { key: 'role', label: 'Role', align: 'left', sort: (u) => u.role || '' },
       { key: 'team', label: 'Team', align: 'left', sort: (u) => u.team || '' },
       { key: 'highQuality', label: 'Quality', align: 'left', sort: (u) => (u.highQuality ? 1 : 0),
-        help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it by hand.' },
+        help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it.' },
       { key: 'ownValidatedAgreedPct', label: 'Labeling accuracy', align: 'right',
         sort: (u) => u.ownValidatedAgreedPct || 0,
-        help: 'Share of this user’s own labels that other people agreed with when validating them '
-          + '(with how many were validated).' },
+        help: 'Share of this user’s validated labels that validators agreed with, and how many were validated.' },
       { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => AdminShell.ts(u.signUpTime) },
       { key: 'lastSignInTime', label: 'Last sign-in', align: 'right',
         sort: (u) => AdminShell.ts(u.lastSignInTime) },
@@ -124,9 +122,10 @@ class ManagementPage {
       const isSorted = c.key === this.#sort.key;
       const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
-      const title = c.help ? ` title="${ManagementPage.#esc(c.help)}"` : '';
-      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}"${title}>`
-        + `<button type="button" class="mgmt-sort" data-key="${c.key}">${ManagementPage.#esc(c.label)}`
+      // On the button, not the <th>: the button is what takes focus, so only it can carry the description.
+      const tip = c.help ? ` data-ps-tooltip="${ManagementPage.#esc(c.help)}"` : '';
+      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}">`
+        + `<button type="button" class="mgmt-sort" data-key="${c.key}"${tip}>${ManagementPage.#esc(c.label)}`
         + `<span class="mgmt-arrow">${arrow}</span></button></th>`;
     }).join('');
     const head = `<tr>${headCells}</tr>`;
@@ -201,9 +200,10 @@ class ManagementPage {
   /** A role <select>. Locked (disabled) for users whose current role isn't admin-assignable (Owner, AI, Anonymous). */
   #roleSelect(u) {
     const current = u.role || '';
-    const assignable = ManagementPage.#ASSIGNABLE_ROLES.includes(current);
-    const opts = ManagementPage.#ASSIGNABLE_ROLES.map((r) =>
-      `<option value="${r}"${r === current ? ' selected' : ''}>${r}</option>`).join('');
+    const assignable = this.#assignableRoles.includes(current);
+    const opts = this.#assignableRoles.map((r) =>
+      `<option value="${ManagementPage.#esc(r)}"${r === current ? ' selected' : ''}>${ManagementPage.#esc(r)}</option>`)
+      .join('');
     if (assignable) {
       return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" `
         + `aria-label="Role for ${ManagementPage.#esc(u.username)}">${opts}</select>`;
@@ -315,7 +315,7 @@ class ManagementPage {
   #renderTeams() {
     const el = document.getElementById('mgmt-teams');
     if (!this.#teams.length) {
-      el.innerHTML = '<p class="dq-empty">No teams on this deployment.</p>';
+      el.innerHTML = '<p class="dq-empty">No teams in this city.</p>';
       return;
     }
     const head = `<tr>
@@ -403,15 +403,15 @@ class ManagementPage {
     run('mgmt-recalc-validation-counts', this.#urls.recalcValidationCountsUrl, 'POST',
       'recalculate validation counts');
     run('mgmt-generate-crops', this.#urls.generateCropsUrl, 'POST', 'generate crops',
-      'Started: generate crops. It runs in the background — the Health panel reports how it ended.');
+      'Started: generate crops. It runs in the background; Health (Owners) reports the result.');
     run('mgmt-rebuild-sidewalk-presence', this.#urls.rebuildSidewalkPresenceUrl, 'POST',
       'rebuild sidewalk presence');
     run('mgmt-refresh-places', this.#urls.refreshPlacesUrl, 'POST', 'refresh places',
-      'Started: refresh places. It runs in the background — the Health panel reports how it ended.');
+      'Started: refresh places. It runs in the background; Health (Owners) reports the result.');
     run('mgmt-recount-gradient-staleness', this.#urls.recountGradientStalenessUrl, 'POST',
       'recount street gradient staleness',
       (counts) => `Done: ${AdminShell.num(counts.streets_unsampled)} street(s) with no grade, `
-        + `${AdminShell.num(counts.streets_stale)} sampled on an older geometry. The Health panel shows the same.`);
+        + `${AdminShell.num(counts.streets_stale)} sampled on an older geometry.`);
     run('mgmt-clear-cache', this.#urls.clearCacheUrl, 'PUT', 'clear server cache');
   }
 
@@ -438,7 +438,7 @@ class ManagementPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   #maintResult(message, isError = false) {
@@ -478,9 +478,9 @@ class ManagementPage {
       ? '<span class="contrib-badge contrib-badge--high">High</span>'
       : '<span class="contrib-badge contrib-badge--low">Low</span>';
     const manual = u.highQualityManual !== null && u.highQualityManual !== undefined;
-    return manual
-      ? `${badge} <span class="mgmt-manual-tag" title="Quality set manually by an admin">manual</span>`
-      : badge;
+    if (!manual) return badge;
+    return `${badge} <span class="mgmt-manual-tag" tabindex="0"
+      data-ps-tooltip="Quality set manually by an admin">manual</span>`;
   }
 
   /** "92% of 120", or "—" when there's nothing validated to base the rate on. */

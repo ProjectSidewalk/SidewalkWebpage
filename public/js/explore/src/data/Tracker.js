@@ -29,26 +29,22 @@ class Tracker {
   trackWindowEvents() {
     const prefix = 'LowLevelEvent_';
 
-    // track all mouse related events
-    $(document).on('mousedown mouseup mouseover mouseout mousemove click contextmenu dblclick', (e, extra) => {
-      if (extra) {
-        if (typeof extra.lowLevelLogging !== 'undefined' && !extra.lowLevelLogging) { // {lowLevelLogging: false}
-          return;
-        }
-      }
-
-      this.push(prefix + e.type, {
-        cursorX: 'pageX' in e ? e.pageX : null,
-        cursorY: 'pageY' in e ? e.pageY : null,
+    const mouseEvents = [
+      'mousedown', 'mouseup', 'mouseover', 'mouseout', 'mousemove', 'click', 'contextmenu', 'dblclick',
+    ];
+    for (const type of mouseEvents) {
+      document.addEventListener(type, (/** @type {MouseEvent} */ e) => {
+        // A keyboard shortcut's scripted click has no cursor; logging 0/0 would look like a real click in the corner.
+        this.push(prefix + e.type, { cursorX: e.isTrusted ? e.pageX : null, cursorY: e.isTrusted ? e.pageY : null });
       });
-    });
+    }
 
-    // keyboard related events
-    $(document).on('keydown keyup', (e) => {
-      this.push(prefix + e.type, {
-        keyCode: 'keyCode' in e ? e.keyCode : null,
+    // Keyboard related events.
+    for (const type of ['keydown', 'keyup']) {
+      document.addEventListener(type, (/** @type {KeyboardEvent} */ e) => {
+        this.push(prefix + e.type, { keyCode: e.keyCode });
       });
-    });
+    }
   }
 
   #isCanvasInteraction(action) {

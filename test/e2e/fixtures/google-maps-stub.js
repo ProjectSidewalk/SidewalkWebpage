@@ -18,9 +18,10 @@
  * an id this stub has seen (minted by a search, or vouched for by the panorama's registered provider), and any other
  * id answers `ZERO_RESULTS` the way an expired pano does in production. That lets the server's own expiry verdict
  * drive the app's fallback chain (Pannellum + committed backups) on the CI seed, whose panoramas are all expired. A
- * spec that wants the primary-viewer path instead sets `window.googleMapsStubOptions = { serveAnyPano: true }`
+ * spec that wants the provider to answer instead sets `window.googleMapsStubOptions = { serveAnyPano: true }`
  * before the page loads (fixtures.js exports `serveAnyPano(context)`), and every id resolves the way Google keeps
- * serving panoramas our metadata check has retired.
+ * serving panoramas our metadata check has retired — which a page that trusts the flag (Validate, #5561) must
+ * ignore, and a page that asks the provider first renders through the primary viewer.
  *
  * Contract with the app's inline loader (app/views/common/main.scala.html): that snippet appends this script with
  * `?callback=google.maps.__ib__`, then re-invokes `google.maps.importLibrary(name)` expecting the loaded script to

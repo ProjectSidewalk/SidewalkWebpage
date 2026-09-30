@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.audit.{AuditTaskTable, NewTask}
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -23,12 +23,12 @@ class UserRouteTableDef(tag: slick.lifted.Tag) extends Table[UserRoute](tag, "us
   def userRouteId: Rep[Int]   = column[Int]("user_route_id", O.PrimaryKey, O.AutoInc)
   def routeId: Rep[Int]       = column[Int]("route_id")
   def userId: Rep[String]     = column[String]("user_id")
-  def completed: Rep[Boolean] = column[Boolean]("completed")
-  def discarded: Rep[Boolean] = column[Boolean]("discarded")
+  def completed: Rep[Boolean] = column[Boolean]("completed", O.Default(false))
+  def discarded: Rep[Boolean] = column[Boolean]("discarded", O.Default(false))
   def paused: Rep[Boolean]    = column[Boolean]("paused", O.Default(false))
 
   def * =
-    (userRouteId, routeId, userId, completed, discarded, paused) <> ((UserRoute.apply _).tupled, UserRoute.unapply)
+    (userRouteId, routeId, userId, completed, discarded, paused).mapTo[UserRoute]
 
   def route = foreignKey("user_route_route_id_fkey", routeId, TableQuery[RouteTableDef])(_.routeId)
   def user  = foreignKey("user_route_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -40,9 +40,9 @@ trait UserRouteTableRepository {}
 @Singleton
 class UserRouteTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    auditTaskTable: AuditTaskTable,
-    implicit val ec: ExecutionContext
-) extends UserRouteTableRepository
+    auditTaskTable: AuditTaskTable
+)(using ec: ExecutionContext)
+    extends UserRouteTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userRoutes          = TableQuery[UserRouteTableDef]
@@ -67,7 +67,7 @@ class UserRouteTable @Inject() (
       .filter(ur => ur.userId === userId && !ur.paused)
       .join(routes.filter(!_.deleted))
       .on(_.routeId === _.routeId)
-      .map(_._1)
+      .map { case (userRoute, _) => userRoute }
       .result
       .headOption
   }
@@ -131,8 +131,9 @@ class UserRouteTable @Inject() (
     val possibleTask: DBIO[Option[NewTask]] = auditTaskTable
       .resumableRouteTask(currRoute.userRouteId)
       .flatMap {
-        case Some((currTaskId, currRouteStreetId, currPosition)) =>
-          auditTaskTable.selectTaskFromTaskId(currTaskId, currRoute.userId, Some(currRouteStreetId), Some(currPosition))
+        case Some(curr) =>
+          auditTaskTable
+            .selectTaskFromTaskId(curr.auditTaskId, currRoute.userId, Some(curr.routeStreetId), Some(curr.position))
         case None => DBIO.successful(None)
       }
 
@@ -144,9 +145,11 @@ class UserRouteTable @Inject() (
         routeStreets
           .joinLeft(userTasks)
           .on(_.routeStreetId === _.routeStreetId)
-          .filter(x => x._1.routeId === currRoute.routeId && x._2.isEmpty)
-          .sortBy(_._1.position)
-          .map(x => (x._1.streetEdgeId, x._1.routeStreetId, x._1.reverse, x._1.position))
+          .filter { case (routeStreet, userTask) => routeStreet.routeId === currRoute.routeId && userTask.isEmpty }
+          .sortBy { case (routeStreet, _) => routeStreet.position }
+          .map { case (routeStreet, _) =>
+            (routeStreet.streetEdgeId, routeStreet.routeStreetId, routeStreet.reverse, routeStreet.position)
+          }
           .result
           .headOption
           .flatMap {
@@ -175,7 +178,7 @@ class UserRouteTable @Inject() (
     val userAudits = auditTaskUserRoutes
       .join(auditTaskTable.completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
-      .filter(_._1.userRouteId === userRouteId)
+      .filter { case (link, _) => link.userRouteId === userRouteId }
     val reportedStreets = auditTaskTable.streetsReportedNoImageryDuringRoute(userRouteId)
 
     // Check if all streets in the route have a completed audit using an outer join. If so, mark as complete in db.
@@ -183,8 +186,10 @@ class UserRouteTable @Inject() (
       .join(routeStreets)
       .on(_.routeId === _.routeId)
       .joinLeft(userAudits)
-      .on(_._2.routeStreetId === _._1.routeStreetId)
-      .filter(x => x._1._1.userRouteId === userRouteId && x._2.isEmpty && !(x._1._2.streetEdgeId in reportedStreets))
+      .on { case ((_, routeStreet), (link, _)) => routeStreet.routeStreetId === link.routeStreetId }
+      .filter { case ((userRoute, routeStreet), userAudit) =>
+        userRoute.userRouteId === userRouteId && userAudit.isEmpty && !(routeStreet.streetEdgeId in reportedStreets)
+      }
       .exists
       .result
       .flatMap {

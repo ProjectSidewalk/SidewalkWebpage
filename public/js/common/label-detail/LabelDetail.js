@@ -78,6 +78,7 @@ class LabelDetail {
   #currUsername;
   #onVote;
   #onEdit;
+  #onComments;
   #onDelete;
   #panoOverlaySource;
   #voteColumnSource;
@@ -138,6 +139,8 @@ class LabelDetail {
   #myCommentIdx;
   #commentStatusTimer = null;
   #editingComment = false;
+  // Bumped by each comment save or delete, so a refresh fetched before one doesn't overwrite it.
+  #commentWrites = 0;
   #escapeCancelledEdit = false;  // Set on an Escape keydown that ended an edit; read by the matching keyup.
   #shareWidget;
   #storySection;
@@ -157,6 +160,8 @@ class LabelDetail {
    * @param {(meta: Record<string, any>) => void} [opts.onEdit] - Fired with the updated metadata after an edit to
    *      the label's type, severity or tags is saved (#2575, #3671), so hosts that cache label data (Gallery's
    *      cards, the LabelMap's layers) can stay in sync.
+   * @param {(meta: Record<string, any>) => void} [opts.onComments] - Fired when the comment list changes, so hosts
+   *      that cache it (Gallery's cards) stay in sync.
    * @param {(meta: Record<string, any>) => void} [opts.onDelete] - Fired after a delete or restore from the card
    *      (#3591), `meta.deleted` saying which, so a host that draws the label itself can sync its marker.
    * @param {string} [opts.panoOverlaySource] - Source recorded when voting via the pano overlay buttons.
@@ -180,6 +185,7 @@ class LabelDetail {
     this.#currUsername = opts.currUsername;
     this.#onVote = opts.onVote;
     this.#onEdit = opts.onEdit;
+    this.#onComments = opts.onComments;
     this.#onDelete = opts.onDelete;
     this.#panoOverlaySource = opts.panoOverlaySource;
     this.#voteColumnSource = opts.voteColumnSource;
@@ -246,7 +252,7 @@ class LabelDetail {
 
     // Static section-header tooltip; per-control tooltips are set as content renders.
     const tagsTitle = this.#q('.label-detail__col--tags .label-detail__col-title');
-    if (tagsTitle) tagsTitle.title = i18next.t('labelmap:tags-tooltip');
+    LabelDetail.#setTooltip(tagsTitle, i18next.t('labelmap:tags-tooltip'));
 
     // Re-fit the meta strip whenever the card's width changes (mobile, rotation, window resize). Toggling the
     // strip's own child visibility never changes the observed row's width, so this can't feed back on itself.
@@ -326,7 +332,7 @@ class LabelDetail {
       () => this.#currentLabelMeta && this.#currentLabelMeta.pano_id,
       () => this.#currentLabelMeta && this.#currentLabelMeta.street_edge_id,
       () => this.#currentLabelMeta && this.#currentLabelMeta.region_id,
-      () => this.#currentLabelMeta && moment(new Date(this.#currentLabelMeta.image_capture_date)),
+      () => this.#currentLabelMeta && util.parseDate(this.#currentLabelMeta.image_capture_date),
       () => panoViewer()?.currPanoData?.getProperty('address') ?? null,
       () => this.#currentLabelMeta && {
         heading: this.#currentLabelMeta.heading, pitch: this.#currentLabelMeta.pitch, zoom: this.#currentLabelMeta.zoom,
@@ -497,6 +503,9 @@ class LabelDetail {
     for (const action of Object.keys(els.panoOverlayButtons)) {
       els.panoOverlayButtons[action].addEventListener('click', voteHandler(action, this.#panoOverlaySource));
       els.voteButtons[action].addEventListener('click', voteHandler(action, this.#voteColumnSource));
+      els.panoOverlayButtons[action].addEventListener('mouseleave', (e) => {
+        e.currentTarget.classList.remove('is-just-voted');
+      });
 
       // Hover preview of what clicking would do: the filled icon variant for a vote, and — on the option already
       // voted — the outline variant, previewing the vote being cleared.
@@ -876,7 +885,7 @@ class LabelDetail {
 
     this.#typeDropdown?.setOpen(false);
     this.#renderTitle(meta.label_type);
-    const labelTypeName = i18next.t(`common:${camelToKebab(meta.label_type)}`);
+    const labelTypeName = util.misc.labelTypeName(meta.label_type);
 
     // Cross-surface hop to the LabelMap, which opens this label's popup and pulses its map location.
     if (this.#showLabelMapLink && els.labelMapLink) {
@@ -930,36 +939,24 @@ class LabelDetail {
     // Description text; #updateCommentRow shows or hides the section based on whether the labeler wrote one.
     els.description.textContent = meta.description ?? '';
 
-    // Dates. Short month names ('ll' / 'MMM', locale-aware) keep the meta chips on one line (#4572). The clock
-    // time lives in its own span so #fitMetaRow can drop it first when the row gets cramped.
-    const labeled = moment(new Date(meta.timestamp));
-    els.timestamp.textContent = labeled.format('ll');
+    // Dates. Short month names keep the meta chips on one line (#4572). The clock time lives in its own span so
+    // #fitMetaRow can drop it first when the row gets cramped.
+    const labeled = new Date(meta.timestamp);
+    els.timestamp.textContent = labeled.toLocaleDateString(i18next.language, util.SHORT_DATE);
     const timePart = document.createElement('span');
     timePart.className = 'label-detail__timestamp-time';
-    timePart.textContent = `, ${labeled.format('LT')}`;
+    timePart.textContent = `, ${labeled.toLocaleTimeString(i18next.language, { timeStyle: 'short' })}`;
     els.timestamp.appendChild(timePart);
-    els.imageDate.textContent = moment(new Date(meta.image_capture_date)).format('MMM YYYY');
+    els.imageDate.textContent = util.monthYear(meta.image_capture_date, { short: true }) ?? '';
 
     // Address (#4489): seed from the stored pano address; the setPano() callback above upgrades to the live
     // imagery's value once it loads, which covers panos whose address hasn't been captured server-side yet.
     this.#showAddress(meta.pano_data?.address ?? meta.backup_image?.address ?? null);
 
-    // Validator comments. Admin endpoint returns objects {username, comment}; non-admin returns bare
-    // strings. Stash them so #submitComment() can append after a successful POST.
-    this.#comments = meta.comments || [];
-    // Index of the current user's comment in #comments, if any. The backend replaces comments rather than adding
-    // new ones, so we mirror that here.
-    this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
-    // An edit session belongs to the label it was opened on, so paging to the next label ends it. Cleared before
-    // the render so the new label's own comment draws its Edit/Delete rather than an inherited open-box state.
-    this.#editingComment = false;
-    this.#renderComments();
+    this.#loadComments(meta.comments);
 
-    // A typed-but-unsent comment belongs to the label it was typed on, so it doesn't ride along to the next one
-    // (Gallery pages between labels without ever tearing the card down). The status message is per-label for the
-    // same reason: without this, paging within its 1.5s leaves the last label's "Comment Submitted" over this one.
-    els.commentInput.value = '';
-    els.commentButton.classList.remove('is-active');
+    // The status message is per-label: without this, paging within its 1.5s leaves the last label's "Comment
+    // Submitted" over this one.
     clearTimeout(this.#commentStatusTimer);
     if (els.commentConfirm) els.commentConfirm.hidden = true;
 
@@ -1133,8 +1130,9 @@ class LabelDetail {
   #submitValidation(action, source, undone = false, viaKeyboard = false) {
     const isNewValidation = !undone && !this.#prevAction;
     const validationTimestamp = new Date();
-    const canvasWidth = this.panoManager.svHolder.width();
-    const canvasHeight = this.panoManager.svHolder.height();
+    // Whole pixels; the backend rejects a fraction.
+    const canvasWidth = this.panoManager.svHolder.clientWidth;
+    const canvasHeight = this.panoManager.svHolder.clientHeight;
     const panoMarkerPov = this.panoManager.getOriginalPosition();
     // Where the validator was looking. On the static-crop fallback that's the label's stored POV — what the crop is
     // a screenshot of — rather than whatever the idle pano viewer happens to report (#4711). canvas_x/canvas_y are
@@ -1193,6 +1191,9 @@ class LabelDetail {
       if (undone) this.#logAction(`ClearVote_result=${action}`, viaKeyboard);
       this.#updateVoteCount(newAction);
       this.#highlightVote(newAction);
+      // Show the vote's result until the mouse leaves, rather than instantly previewing an undo.
+      const overlayButton = this.#els.panoOverlayButtons[action];
+      if (overlayButton?.matches(':hover')) overlayButton.classList.add('is-just-voted');
       // Only for a vote cast from the keyboard: a pointer already has the button it pressed as feedback, and a
       // vote being *cleared* is the opposite of what a rising icon says.
       if (viaKeyboard && !undone) this.#flashVoteEcho(action);
@@ -1202,7 +1203,7 @@ class LabelDetail {
       this.#updateCommentRow();
       if (commentDropped) this.#flashCommentStatus('labelmap:comment-cleared', 'removed');
       this.#setVoteButtonsDisabled(false);
-      if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder[0]);
+      if (isNewValidation) BadgeAchievements.recordValidation(this.panoManager.svHolder);
       if (typeof this.#onVote === 'function') this.#onVote(newAction, this.#currentLabelMeta);
     }).catch((err) => {
       console.error(err);
@@ -1227,7 +1228,7 @@ class LabelDetail {
    *
    * Filters by identity rather than trusting the stored #myCommentIdx, since that index is only valid for the list as
    * it stood when it was computed and this runs a network round-trip later. Filtering also matches the breadth of
-   * `ValidationTaskCommentTable.archive`, which clears by (label, user) rather than by row id.
+   * `ValidationTaskCommentTable.archive`, which clears by (label, user, type) rather than by row id.
    *
    * @returns {boolean} Whether anything was actually removed.
    */
@@ -1238,6 +1239,7 @@ class LabelDetail {
     this.#comments = remaining;
     this.#myCommentIdx = -1;
     this.#renderComments();
+    if (this.#currentLabelMeta) this.#commentsChanged(this.#currentLabelMeta);
     return true;
   }
 
@@ -1301,10 +1303,13 @@ class LabelDetail {
       confirmIconSrc: util.assetPath('images/icons/trash-2-white-feather.svg'),
     });
     if (!confirmed) return;
-    const labelId = this.panoManager.label.labelId;
+    const { labelId, label_type: labelType } = this.panoManager.label;
     try {
-      const res = await fetch(`/labelmap/comment/${labelId}`, { method: 'DELETE' });
+      // The type the card shows, so a card behind a type change deletes the comment the user is looking at.
+      const url = `/labelmap/comment/${labelId}?labelType=${encodeURIComponent(labelType)}`;
+      const res = await fetch(url, { method: 'DELETE' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.#commentWrites++;
       this.#editingComment = false;
       this.#dropOwnComment();
       this.#updateCommentRow();
@@ -1435,7 +1440,7 @@ class LabelDetail {
     // never voted on, which is the one thing an affordance that reports a vote must never say.
     for (const ghost of this.#root.querySelectorAll('.label-detail__vote-pop')) ghost.remove();
     for (const btn of Object.values(this.#els.panoOverlayButtons)) {
-      btn.classList.remove('is-selected');
+      btn.classList.remove('is-selected', 'is-just-voted');
       btn.setAttribute('aria-pressed', 'false');
       if (!this.#interactionBlocked) btn.disabled = false;
     }
@@ -1950,7 +1955,7 @@ class LabelDetail {
       this.#typeDropdown.setType(labelType);
       return;
     }
-    const name = i18next.t(`common:${camelToKebab(labelType)}`).replaceAll('&shy;', '\u00AD');
+    const name = util.misc.labelTypeName(labelType);
     for (const el of this.#els.title?.querySelectorAll('.label-type-trigger__name') ?? []) el.textContent = name;
   }
 
@@ -1989,16 +1994,17 @@ class LabelDetail {
     // A face that can't be clicked because the imagery didn't load explains that instead of naming its own level:
     // "Severity: Low" reads like an offer, and the lock is the more useful thing to say (#5047).
     const lockTip = this.#editLockReason();
+    const scaleName = i18next.t(`common:${titleKey}`);
 
     els.severity.querySelectorAll('.severity-button').forEach((face) => {
       const faceSev = Number(face.dataset.severity);
       const selected = faceSev === Number(severity);
       face.classList.toggle('is-selected', selected);
       face.querySelector('.severity-button__icon').src = util.misc.getSmileyIconPath(faceSev, labelType, selected);
-      face.title = lockTip ? '' : `${i18next.t(`common:${titleKey}`)}: ${i18next.t(`common:${levelKeys[faceSev]}`)}`;
-      LabelDetail.#setTooltip(face, lockTip ?? '');
+      const levelName = i18next.t(`common:${levelKeys[faceSev]}`);
+      LabelDetail.#setTooltip(face, lockTip ?? `${scaleName}: ${levelName}`);
       const labelSpan = face.querySelector('.severity-button__label');
-      if (labelSpan) labelSpan.textContent = i18next.t(`common:${levelKeys[faceSev]}`);
+      if (labelSpan) labelSpan.textContent = levelName;
 
       // Editable faces are a focusable pick-one control (#2575); read-only ones stay out of the tab order.
       face.classList.toggle('severity-button--static', !editable);
@@ -2294,7 +2300,7 @@ class LabelDetail {
         return;
       }
       if (typeChange && !change.undo) {
-        const name = i18next.t(`common:${camelToKebab(meta.label_type)}`).replace('&shy;', '');
+        const name = util.misc.labelTypeName(meta.label_type);
         this.#showEditStatus(i18next.t('labelmap:edit-type-changed', { labelType: name }), {
           columns: ['type'],
           action: {
@@ -2328,12 +2334,13 @@ class LabelDetail {
   }
 
   /**
-   * Re-reads the vote counts after a change only the server can count: a type change (votes on the old type stop
-   * counting) or an admin's delete (which files their Disagree, #3591). A failure leaves them as they were.
+   * Re-reads votes and comments after a change only the server can resolve: a type change (the old type's stop
+   * showing, #5510) or an admin's delete (which files their Disagree, #3591). A failure leaves them as they were.
    * @param {Record<string, any>} meta - The metadata of the label that changed.
    */
   async #refreshVotes(meta) {
     const url = this.#admin ? `/adminapi/label/id/${meta.label_id}` : `/label/id/${meta.label_id}`;
+    const commentWrites = this.#commentWrites;
     try {
       const response = await fetch(url, { method: 'GET', headers: { 'Content-Type': 'application/json' } });
       if (!response.ok) return;
@@ -2349,6 +2356,11 @@ class LabelDetail {
       this.#aiValidation = meta.ai_validation;
       this.#renderVoteCounts();
       this.#renderVoteIcons();
+      if (this.#commentWrites === commentWrites) {
+        this.#loadComments(fresh.comments);
+        this.#commentsChanged(meta);
+      }
+      this.#updateCommentRow();
     } catch (err) {
       console.error('Could not refresh the vote counts:', err);
     }
@@ -2357,6 +2369,25 @@ class LabelDetail {
   // ───────────────────────────────────────────────────────────────────
   // Comment submission
   // ───────────────────────────────────────────────────────────────────
+
+  /**
+   * Shows a fresh comment list, dropping any edit or unsent text, which was about the label (or type) it replaces.
+   * @param {Array<Record<string, any>|string>} [comments] - Admin endpoints send objects, others bare strings.
+   */
+  #loadComments(comments) {
+    this.#comments = comments || [];
+    this.#myCommentIdx = this.#comments.findIndex((c) => this.#isOwnComment(c));
+    this.#editingComment = false;
+    this.#renderComments();
+    this.#els.commentInput.value = '';
+    this.#els.commentButton.classList.remove('is-active');
+  }
+
+  /** @param {Record<string, any>} meta - The metadata of the label whose comments changed. */
+  #commentsChanged(meta) {
+    meta.comments = this.#comments;
+    if (typeof this.#onComments === 'function') this.#onComments(meta);
+  }
 
   /**
    * The thumbs-up / thumbs-down / question glyphs the vote chip draws, keyed by vote. These are the path data from
@@ -2480,8 +2511,8 @@ class LabelDetail {
       const whenPill = () => {
         const when = document.createElement('span');
         when.className = 'label-detail__comment-when';
-        when.textContent = moment(timeCreated).fromNow();
-        when.title = moment(timeCreated).format('ll, LT');
+        when.textContent = util.timeAgo(new Date(timeCreated));
+        when.title = new Date(timeCreated).toLocaleString(i18next.language, util.SHORT_DATE_TIME);
         return when;
       };
 
@@ -2564,8 +2595,18 @@ class LabelDetail {
       lng: context.lng,
     };
 
+    const commentedLabelMeta = this.#currentLabelMeta;
     this.#postJson('/labelmap/comment', data).then(async (res) => {
+      if (res.status === 409) {
+        // The type changed under this card (#5510): reload so the user sees the right comments, keeping their text.
+        if (this.#currentLabelMeta !== commentedLabelMeta) return;
+        await this.showLabel(commentedLabelMeta.label_id, this.#source);
+        els.commentInput.value = comment;
+        this.#showTypeConflictToast();
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this.#commentWrites++;
       const body = await res.json();
       const wasEdit = this.#editingComment;
       els.commentInput.value = '';
@@ -2596,6 +2637,7 @@ class LabelDetail {
       this.#editingComment = false;
       this.#updateCommentRow();
       this.#renderComments();
+      if (this.#currentLabelMeta === commentedLabelMeta) this.#commentsChanged(commentedLabelMeta);
       // Announced after the row has settled — the live region sits outside it, so the collapse doesn't take the
       // message with it, and the reader hears the outcome of a card that is already in its final state.
       this.#flashCommentStatus(wasEdit ? 'labelmap:comment-updated' : 'labelmap:comment-submitted');

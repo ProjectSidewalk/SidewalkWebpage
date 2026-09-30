@@ -1,28 +1,26 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.{fieldErrorJson, formErrorsJson, parseURL, safeLocalPath}
-import forms._
-import models.auth.DefaultEnv
+import forms.*
+import models.auth.{DefaultEnv, RememberMeSettings}
 import models.user.{Role, SidewalkUserWithRole, UserUtm}
 import models.utils.{IpAddress, ProfanityGuard}
-import net.ceedubs.ficus.Ficus._
 import play.api.i18n.Messages
 import play.api.libs.json.{JsError, Json}
 import play.api.libs.mailer.{Email, MailerClient}
+import play.api.mvc.{AnyContent, Request}
 import play.api.{Configuration, Logger}
-import play.silhouette.api.Authenticator.Implicits._
-import play.silhouette.api._
+import play.silhouette.api.*
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.silhouette.api.exceptions.ProviderException
-import play.silhouette.api.util.{Clock, PasswordHasher}
+import play.silhouette.api.util.PasswordHasher
 import play.silhouette.impl.exceptions.IdentityNotFoundException
 import play.silhouette.impl.providers.CredentialsProvider
 
 import java.util.UUID
-import javax.inject._
-import scala.concurrent.duration.FiniteDuration
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Random
 
@@ -35,18 +33,18 @@ class UserController @Inject() (
     authenticationService: service.AuthenticationService,
     userService: service.UserService,
     passwordHasher: PasswordHasher,
-    clock: Clock,
+    rememberMeSettings: RememberMeSettings,
     mailerClient: MailerClient,
     rateLimiter: service.RateLimiter
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * True when the auth dialog submitted via fetch and wants JSON back instead of a redirect/page.
    */
-  private def wantsJson(implicit request: play.api.mvc.RequestHeader): Boolean =
+  private def wantsJson(using request: play.api.mvc.RequestHeader): Boolean =
     request.headers.get("X-Requested-With").contains("XMLHttpRequest")
 
   /**
@@ -62,7 +60,7 @@ class UserController @Inject() (
    * @param redirect Where the no-JS fallback should bounce to when throttled.
    * @return `Some(result)` if throttled, `None` if the attempt is allowed.
    */
-  private def rateLimited(name: String, keys: Seq[String], redirect: String)(implicit
+  private def rateLimited(name: String, keys: Seq[String], redirect: String)(using
       request: play.api.mvc.RequestHeader
   ): Option[play.api.mvc.Result] = {
     val limit       = rateLimiter.limit(name)
@@ -82,7 +80,7 @@ class UserController @Inject() (
    * @param redirect Where the no-JS fallback should bounce to when throttled.
    * @return `Some(result)` if already over budget, `None` if there is room.
    */
-  private def failureThrottled(name: String, key: String, redirect: String)(implicit
+  private def failureThrottled(name: String, key: String, redirect: String)(using
       request: play.api.mvc.RequestHeader
   ): Option[play.api.mvc.Result] = {
     val limit = rateLimiter.limit(name)
@@ -97,7 +95,7 @@ class UserController @Inject() (
    * @param limit       The limit they tripped; its window is the fallback when a key has no live window.
    * @param redirect    Where the no-JS fallback should bounce to.
    */
-  private def throttledResponse(blockedKeys: Seq[String], limit: service.RateLimiter.Limit, redirect: String)(implicit
+  private def throttledResponse(blockedKeys: Seq[String], limit: service.RateLimiter.Limit, redirect: String)(using
       request: play.api.mvc.RequestHeader
   ): play.api.mvc.Result = {
     // Quote the longest wait among the tripped scopes, from when its window actually clears (#4740).
@@ -126,7 +124,7 @@ class UserController @Inject() (
    *
    * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signInMobile() = Action { request =>
+  def signInMobile() = Action { (request: Request[AnyContent]) =>
     Redirect(routes.UserController.signIn().url, request.queryString, MOVED_PERMANENTLY)
   }
 
@@ -147,7 +145,7 @@ class UserController @Inject() (
    *
    * The query string (e.g. the `url` return-to parameter) is carried over so old bookmarks and links keep working.
    */
-  def signUpMobile() = Action { request =>
+  def signUpMobile() = Action { (request: Request[AnyContent]) =>
     Redirect(routes.UserController.signUp().url, request.queryString, MOVED_PERMANENTLY)
   }
 
@@ -310,22 +308,12 @@ class UserController @Inject() (
                           // Correct credentials: refund the account's budget so a run of typos doesn't follow the
                           // user into their next session.
                           rateLimiter.clear(idKey)
-                          val c = config.underlying
                           silhouette.env.authenticatorService
                             .create(loginInfo)
-                            .map {
-                              case authenticator if data.rememberMe =>
-                                // Set up the remember me cookie.
-                                authenticator.copy(
-                                  expirationDateTime = clock.now + c
-                                    .as[FiniteDuration]("silhouette.authenticator.rememberMe.authenticatorExpiry"),
-                                  idleTimeout = c.getAs[FiniteDuration](
-                                    "silhouette.authenticator.rememberMe.authenticatorIdleTimeout"
-                                  ),
-                                  cookieMaxAge =
-                                    c.getAs[FiniteDuration]("silhouette.authenticator.rememberMe.cookieMaxAge")
-                                )
-                              case authenticator => authenticator
+                            .map { authenticator =>
+                              if (data.rememberMe)
+                                authenticator.copy(cookieMaxAge = Some(rememberMeSettings.cookieMaxAge))
+                              else authenticator
                             }
                             .flatMap { authenticator =>
                               // Log successful sign in attempt.
@@ -342,7 +330,7 @@ class UserController @Inject() (
                           // Log failed sign-in due to a database issue.
                           val activity: String = s"""SignInFailed_Email="$email"_Reason="user not found in db""""
                           cc.loggingService.insert(currUserId, ipAddress, activity)
-                          Future.failed(new IdentityNotFoundException("Couldn't find the user in db"))
+                          Future.failed(IdentityNotFoundException("Couldn't find the user in db"))
                       }
                     }
                     .recover {
@@ -548,7 +536,7 @@ class UserController @Inject() (
   }
 
   /** Creates an anon user with a randomly generated username/password, signs them in, and redirects to `url`. */
-  private def signUpAnonUser(url: String, qString: Map[String, Seq[String]])(implicit
+  private def signUpAnonUser(url: String, qString: Map[String, Seq[String]])(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     val randomPassword: String = Random.alphanumeric take 16 mkString ""
@@ -625,7 +613,7 @@ class UserController @Inject() (
   }
 
   /** Emails password reset instructions to `email` if it belongs to an account, responding identically either way. */
-  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: IpAddress)(implicit
+  private def submitForgottenPasswordForEmail(email: String, userId: Option[String], ipAddress: IpAddress)(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     val result = Redirect(routes.UserController.forgotPassword)
@@ -684,7 +672,7 @@ class UserController @Inject() (
   }
 
   /** Validates the reset `token` and updates the account's password from the submitted form. */
-  private def resetPasswordWithToken(token: String)(implicit
+  private def resetPasswordWithToken(token: String)(using
       request: play.silhouette.api.actions.UserAwareRequest[DefaultEnv, play.api.mvc.AnyContent]
   ): Future[play.api.mvc.Result] = {
     authenticationService.validateToken(token).flatMap {

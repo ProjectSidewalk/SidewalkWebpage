@@ -14,7 +14,7 @@ import play.api.{Configuration, Logger}
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -149,7 +149,8 @@ object ImageryFreshnessService {
   /** Distance from the origin to the segment a-b, in the same planar units as the inputs. */
   private def originToSegmentMeters(a: (Double, Double), b: (Double, Double)): Double = {
     val (ax, ay)  = a
-    val (dx, dy)  = (b._1 - ax, b._2 - ay)
+    val (bx, by)  = b
+    val (dx, dy)  = (bx - ax, by - ay)
     val lengthSq  = dx * dx + dy * dy
     val t: Double = if (lengthSq == 0.0) 0.0 else math.max(0.0, math.min(1.0, -(ax * dx + ay * dy) / lengthSq))
     math.hypot(ax + t * dx, ay + t * dy)
@@ -211,12 +212,12 @@ class ImageryFreshnessServiceImpl @Inject() (
     panoDataService: PanoDataService,
     streetImageryTable: StreetImageryTable,
     streetReopenCandidateTable: StreetReopenCandidateTable,
-    auditTaskTable: AuditTaskTable,
-    implicit val ec: ExecutionContext
-) extends ImageryFreshnessService
+    auditTaskTable: AuditTaskTable
+)(using ec: ExecutionContext)
+    extends ImageryFreshnessService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import ImageryFreshnessService._
-  import models.utils.MyPostgresProfile.api._
+  import ImageryFreshnessService.*
+  import models.utils.MyPostgresProfile.api.given
 
   private val logger = Logger(this.getClass)
 
@@ -272,14 +273,14 @@ class ImageryFreshnessServiceImpl @Inject() (
         config.getOptional[String]("google-maps-api-key") match {
           case Some(key) => pollStreets("GSV")(fetchGsvPointObservations(key))
           case None      =>
-            Future.failed(new MissingImageryCredentialException("No google-maps-api-key configured for a GSV city."))
+            Future.failed(MissingImageryCredentialException("No google-maps-api-key configured for a GSV city."))
         }
       case PanoSource.Mapillary =>
         config.getOptional[String]("mapillary-access-token") match {
           case Some(token) => pollStreets("Mapillary")(fetchMapillaryPointObservations(token))
           case None        =>
             Future.failed(
-              new MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
+              MissingImageryCredentialException("No mapillary-access-token configured for a Mapillary city.")
             )
         }
       // Panoramax's API is public, so there is no credential to resolve (#5185).
@@ -419,7 +420,7 @@ class ImageryFreshnessServiceImpl @Inject() (
               metersToStreet(lat, lng, street.geom) <= StreetImageryTable.PanoStreetToleranceMeters
             })
             val (identified, anonymous) = nearThisStreet.partition(_.panoId.nonEmpty)
-            (identified.groupBy(_.panoId).map(_._2.head).toSeq ++ anonymous).collect {
+            (identified.groupBy(_.panoId).map { case (_, samePano) => samePano.head }.toSeq ++ anonymous).collect {
               case PanoObservation(_, capture, Some((lat, lng))) => PolledPano(lat, lng, capture, pointIndex)
             }
           }

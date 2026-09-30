@@ -1,4 +1,4 @@
-@import models.label.{LabelTypeEnum, Tag}
+@import models.label.Tag
 @*
  * The shared filter sidebar (#4585): the same controls on the map pages and in the Gallery, driven by the
  * FilterSidebar controller in `public/js/common/filter-sidebar/`.
@@ -29,7 +29,7 @@
   checkedValidations: Seq[String] = Seq("correct", "unsure", "unvalidated"),
   checkedSeverities: Seq[String] = Seq("0", "1", "2", "3"),
   activeTags: Seq[String] = Seq.empty
-)(implicit messages: Messages, assets: AssetsFinder)
+)(using messages: Messages, assets: AssetsFinder)
 
 @tagsByLabelType = @{tags.groupBy(_.labelType.name)}
 

@@ -7,16 +7,14 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.JsObject
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success, Try}
 
 @ImplementedBy(classOf[JobRunServiceImpl])
 trait JobRunService {
-  def record[T](jobName: String, trigger: JobRunTrigger.Value)(work: => Future[T])(
-      details: T => JsObject
-  ): Future[T]
+  def record[T](jobName: String, trigger: JobRunTrigger)(work: => Future[T])(details: T => JsObject): Future[T]
 }
 
 /**
@@ -33,7 +31,7 @@ trait JobRunService {
 class JobRunServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     backgroundJobRunTable: BackgroundJobRunTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends JobRunService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -51,9 +49,7 @@ class JobRunServiceImpl @Inject() (
    * @param details Per-job counts to store against a successful run. An empty object records no details.
    * @return        Exactly what `work` returned, or its original failure.
    */
-  def record[T](jobName: String, trigger: JobRunTrigger.Value)(work: => Future[T])(
-      details: T => JsObject
-  ): Future[T] = {
+  def record[T](jobName: String, trigger: JobRunTrigger)(work: => Future[T])(details: T => JsObject): Future[T] = {
     openRun(jobName, trigger).flatMap { runId =>
       // Future.delegate so that a `work` that throws synchronously is recorded as a failed run rather than escaping
       // past the bracket -- the actors' calls resolve config and API keys eagerly, which is exactly where that throw
@@ -90,7 +86,7 @@ class JobRunServiceImpl @Inject() (
    *
    * @return The row's id, or None if the write failed — bookkeeping must never keep a job from running.
    */
-  private def openRun(jobName: String, trigger: JobRunTrigger.Value): Future[Option[Int]] = {
+  private def openRun(jobName: String, trigger: JobRunTrigger): Future[Option[Int]] = {
     db.run(backgroundJobRunTable.insertRunning(jobName, trigger, OffsetDateTime.now))
       .map(Option(_))
       .recover { case NonFatal(e) =>
@@ -103,7 +99,7 @@ class JobRunServiceImpl @Inject() (
   private def closeRun(
       jobName: String,
       runId: Option[Int],
-      status: JobRunStatus.Value,
+      status: JobRunStatus,
       details: Option[JsObject],
       errorMessage: Option[String]
   ): Future[Unit] = {

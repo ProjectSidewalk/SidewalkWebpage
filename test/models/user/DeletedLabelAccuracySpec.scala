@@ -1,23 +1,22 @@
 package models.user
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import models.validation.LabelValidationTable
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import service.LabelEditService
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Pins the accuracy rule for deleted labels (#3591) in the stored user_stat accuracy and the dashboard's per-type
  * tallies, and that an Explore-session delete is stamped as such. Runs in a rolled-back transaction; cancels without
  * a labeler who has three live labels.
  */
-class DeletedLabelAccuracySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class DeletedLabelAccuracySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val userStatTable    = app.injector.instanceOf[UserStatTable]
   private lazy val validationTable  = app.injector.instanceOf[LabelValidationTable]
@@ -57,7 +56,7 @@ class DeletedLabelAccuracySpec extends PlaySpec with GuiceOneAppPerSuite with Ro
 
   /** The per-type tallies summed over types: (correct, incorrect). */
   private def talliesOf(userId: String): DBIO[(Int, Int)] =
-    userStatTable.getLabelTypeAccuracy(userId).map(rows => (rows.map(_._2).sum, rows.map(_._3).sum))
+    userStatTable.getLabelTypeAccuracy(userId).map(rows => (rows.map(_.correct).sum, rows.map(_.incorrect).sum))
 
   /** The admin tables' (labels validated, agreed) for the user. */
   private def adminCountsOf(userId: String): DBIO[(Int, Int)] =

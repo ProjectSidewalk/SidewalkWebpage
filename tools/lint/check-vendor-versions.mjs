@@ -12,9 +12,9 @@
 // filename alone would satisfy a library whose entry had been deleted outright.
 //
 // It deliberately does *not* ask npm what the newest release is. Half these libraries aren't plain npm packages (the
-// photo-sphere-viewer bundle is ours, bootstrap-accessibility vendors two other libraries inside itself, several
-// come from a project's own CDN) and a third of the list is frozen on purpose, so such a report would need a hand-kept map
-// of npm names and freeze reasons — a second copy of the doc — and would nag monthly about decisions already made.
+// photo-sphere-viewer bundle is ours, several come from a project's own CDN) and a third of the list is frozen on
+// purpose, so such a report would need a hand-kept map of npm names and freeze reasons — a second copy of the doc —
+// and would nag monthly about decisions already made.
 
 import { readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
@@ -24,7 +24,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const VENDOR_DIR = join(ROOT, 'public', 'vendor');
 const DOC = 'docs/upgrading-libraries.md';
 
-// A version in a filename ('turf-7.3.4.min.js', 'kinetic-v4.4.3.min.js'). The leading separator is what keeps this
+// A version in a filename ('turf-7.3.4.min.js'). The leading separator is what keeps this
 // from reading the '2' out of a '.min.js' or off the end of a library name.
 const VERSION_IN_FILENAME = /[-_.]v?(\d+(?:\.\d+)+)/g;
 
@@ -72,7 +72,7 @@ const files = walkVendor(VENDOR_DIR);
 // --- The doc's entries --------------------------------------------------------------------------------------------
 
 // One per bullet, carrying both the versions its bold head claims (what we're on *now*) and every version in its text
-// — the Bootstrap and jQuery copies split out of the bootstrap-accessibility bundle are named only in prose.
+// — a library that ships inside another's bundle is named only in prose.
 const starts = [...section.matchAll(DOC_ENTRY)];
 const entries = starts.map((match, i) => {
   const body = section.slice(match.index, starts[i + 1]?.index ?? section.length);
@@ -83,7 +83,7 @@ const entries = starts.map((match, i) => {
  * The vendor folder a doc entry describes, ignoring punctuation ('chart.js' → chart-js, 'infra3dapi' → infra3d).
  *
  * An exact name wins first, so 'i18next' takes its own folder rather than i18next-http-backend's; failing that the
- * longest contained folder name wins, which picks magnific-popup over jquery for an entry naming both. An entry whose
+ * longest contained folder name wins, so an entry naming two folders picks the more specific one. An entry whose
  * name lines up with no folder — its library ships inside another one's, or under a different name — says so by
  * naming that folder's path in its text.
  *

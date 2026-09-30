@@ -316,7 +316,6 @@
 #route-name-label,
 #route-description-label {
   font: var(--text-small-bold);
-  margin-bottom: 0;
 }
 
 /* De-emphasizes the "(optional)" tag inside the description label. */

@@ -1,13 +1,12 @@
 package controllers
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import play.api.libs.json.Json
-import util.UserAgents
+import util.{SidewalkSpec, UserAgents}
 
 /**
  * The single-mobile-definition contract (#4887): `ControllerUtils.isMobile` is the one mobile verdict, and the shared
@@ -19,10 +18,10 @@ import util.UserAgents
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class MobileDetectionSpec extends PlaySpec with GuiceOneAppPerSuite {
+class MobileDetectionSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 

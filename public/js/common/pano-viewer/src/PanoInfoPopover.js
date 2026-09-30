@@ -21,7 +21,7 @@ class PanoInfoPopover {
   #streetEdgeId;
   /** @type {() => number} */
   #regionId;
-  /** @type {() => moment.Moment} */
+  /** @type {() => Date} */
   #panoDate;
   /** @type {() => string|null} */
   #panoAddress;
@@ -37,7 +37,7 @@ class PanoInfoPopover {
   #viewPanoLogging;
   /** @type {() => number|undefined} Optional — returns the Label ID. */
   #labelId;
-  /** @type {(() => moment.Moment)|undefined} Optional — returns the label's timestamp. */
+  /** @type {(() => Date)|undefined} Optional — returns the label's timestamp. */
   #labelDate;
   /** @type {Set<PanoViewer>} Viewers already subscribed to by #watchViewer(). */
   #watchedViewers = new Set();
@@ -49,7 +49,7 @@ class PanoInfoPopover {
    * @param {() => string} panoId - Returns the current panorama/image ID
    * @param {() => number} streetEdgeId - Returns the current Street Edge ID
    * @param {() => number} regionId - Returns the current Region ID
-   * @param {() => moment.Moment} panoDate - Returns the current pano's capture date
+   * @param {() => Date} panoDate - Returns the current pano's capture date
    * @param {() => string|null} panoAddress - Returns the current pano's address string, or null
    * @param {() => {heading: number, pitch: number}} pov - Returns the current heading and pitch
    * @param {boolean} whiteIcon - True for the white icon variant, false for blue
@@ -57,7 +57,7 @@ class PanoInfoPopover {
    * @param {() => void} clipboardLogging - Called when the clipboard button is clicked
    * @param {() => void} viewPanoLogging - Called when the view-in-pano link is clicked
    * @param {() => number|undefined} [labelId] - Optional — returns the Label ID
-   * @param {() => moment.Moment} [labelDate] - Optional — returns the label's timestamp
+   * @param {() => Date} [labelDate] - Optional — returns the label's timestamp
    */
   constructor(container, panoViewer, coords, panoId, streetEdgeId, regionId, panoDate, panoAddress, pov, whiteIcon,
     infoLogging, clipboardLogging, viewPanoLogging, labelId, labelDate) {
@@ -155,7 +155,8 @@ class PanoInfoPopover {
   }
 
   /**
-   * Positions the popover above the info button, centered horizontally, clamped to the viewport.
+   * Positions the popover above the info button. Near a screen edge the popover is nudged back on screen, so the arrow
+   * moves too, to keep pointing at the button.
    */
   #positionPopover() {
     const btnRect = this.#infoButton.getBoundingClientRect();
@@ -172,6 +173,11 @@ class PanoInfoPopover {
 
     this.#popoverEl.style.left = `${Math.round(left)}px`;
     this.#popoverEl.style.top = `${Math.round(top)}px`;
+    // Kept clear of the popover's rounded corners.
+    const arrowInset = 20 * uiScale;
+    const btnCenter = btnRect.left + btnRect.width / 2 - left;
+    const arrowLeft = Math.max(arrowInset, Math.min(btnCenter, popRect.width - arrowInset));
+    this.#popoverEl.style.setProperty('--pano-info-arrow-left', `${Math.round(arrowLeft)}px`);
   }
 
   /**
@@ -185,11 +191,17 @@ class PanoInfoPopover {
     const currPanoId = this.#panoId ? this.#panoId() : null;
     const currStreetEdgeId = this.#streetEdgeId ? this.#streetEdgeId() : null;
     const currRegionId = this.#regionId ? this.#regionId() : null;
-    const currPanoDate = this.#panoDate ? this.#panoDate().format('MMM YYYY') : null;
+    const panoDate = this.#panoDate?.();
+    const currPanoDate = panoDate && !Number.isNaN(panoDate.getTime())
+      ? panoDate.toLocaleDateString(i18next.language, { month: 'short', year: 'numeric' })
+      : null;
     const currPanoAddress = this.#panoAddress ? this.#panoAddress() : null;
     const currPov = this.#pov ? this.#pov() : { heading: 0, pitch: 0 };
     const currLabelId = this.#labelId ? this.#labelId() : null;
-    const currLabelDate = this.#labelDate ? this.#labelDate().format('LL, LT') : null;
+    const labelDate = this.#labelDate?.();
+    const currLabelDate = labelDate && !Number.isNaN(labelDate.getTime())
+      ? labelDate.toLocaleString(i18next.language, { dateStyle: 'long', timeStyle: 'short' })
+      : null;
 
     /**
      * Sets the text content of a value span identified by [data-field].

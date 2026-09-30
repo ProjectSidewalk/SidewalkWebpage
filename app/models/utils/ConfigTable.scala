@@ -1,17 +1,33 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
-import models.api.{AggregateStats, LabelTypeStats}
-import models.label.LabelTypeEnum
+import models.api.{AggregateStats, DailyLabelStat, DailyValidationStat, LabelTypeStats}
+import models.label.LabelType
 import models.street.StreetEdgeTableDef
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import service.{CityScorecard, ContributorKind, ContributorWindowActivity, DailyContributorActivity, WeeklyPoint}
+import service.{
+  CityScorecard,
+  CityStoryStats,
+  ContributorKind,
+  ContributorWindowActivity,
+  DailyContributorActivity,
+  WeeklyPoint
+}
 import slick.jdbc.GetResult
 
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
+
+/**
+ * Who a city's residents should contact for repairs and service requests (#5462). The landing page names it so
+ * nobody mistakes Project Sidewalk for an official reporting channel.
+ *
+ * @param name How the landing page names the agency, as it reads mid-sentence (e.g. "the City of Burnaby").
+ * @param url  The agency's own contact page, always https.
+ */
+case class OfficialContact(name: String, url: String)
 
 case class MapParams(
     centerLat: Double,
@@ -33,6 +49,17 @@ case class Config(
     excludedTags: Seq[ExcludedTag]
 )
 
+/** How much a city's typical contributor labels and validates, and how fast they validate; zeros when nobody has. */
+case class CityContributorOutput(
+    labelMedian: Double,
+    labelP90: Double,
+    numLabelers: Int,
+    validationMedian: Double,
+    validationP90: Double,
+    numValidators: Int,
+    validationSecondsMedian: Double
+)
+
 class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   // CHECK (open_status IN ('fully', 'partially')) in the DB (no Slick DSL for CHECK constraints).
   def openStatus: Rep[String]                = column[String]("open_status")
@@ -47,31 +74,24 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   def tutorialStreetEdgeID: Rep[Int]         = column[Int]("tutorial_street_edge_id")
   def offsetHours: Rep[Int]                  = column[Int]("update_offset_hours")
   def makeCrops: Rep[Boolean]                = column[Boolean]("make_crops", O.Default(true))
-  // CHECK (jsonb_typeof(excluded_tags) = 'array') in the DB, so an empty value must be '[]' and not '{}'.
-  def excludedTags: Rep[Seq[ExcludedTag]] = column[Seq[ExcludedTag]]("excluded_tags")
+  // CHECK (jsonb_typeof(excluded_tags) = 'array') in the DB, so the empty default is '[]' and not '{}'.
+  def excludedTags: Rep[Seq[ExcludedTag]] = column[Seq[ExcludedTag]]("excluded_tags", O.Default(Seq.empty))
+  // Left out of `*` so the Config mapping stays as is. CHECKs in the DB: both columns are NULL or both are set, the
+  // name is 1-100 characters once trimmed, and the URL starts with https:// and is at most 500 characters. The caps match
+  // ConfigService.OfficialContactMaxNameLength / OfficialContactMaxUrlLength.
+  def officialContactName: Rep[Option[String]] = column[Option[String]]("official_contact_name")
+  def officialContactUrl: Rep[Option[String]]  = column[Option[String]]("official_contact_url")
 
   override def * = (
     openStatus,
     mapathonEventLink,
     (cityCenterLat, cityCenterLng, defaultMapZoom, southwestBoundaryLat, southwestBoundaryLng, northeastBoundaryLat,
-      northeastBoundaryLng),
+      northeastBoundaryLng).mapTo[MapParams],
     tutorialStreetEdgeID,
     offsetHours,
     makeCrops,
     excludedTags
-  ).shaped <> (
-    { case (openStatus, mapathonEventLink, cityMapParams, tutorialStreetEdgeID, offsetHours, makeCrops, excludedTags) =>
-      Config(openStatus, mapathonEventLink, MapParams.tupled.apply(cityMapParams), tutorialStreetEdgeID, offsetHours,
-        makeCrops, excludedTags)
-    },
-    { c: Config =>
-      def f1(i: MapParams) = MapParams.unapply(i).get
-      Some(
-        (c.openStatus, c.mapathonEventLink, f1(c.cityMapParams), c.tutorialStreetEdgeID, c.offsetHours, c.makeCrops,
-          c.excludedTags)
-      )
-    }
-  )
+  ).mapTo[Config]
 
   def tutorialStreetEdge =
     foreignKey("config_tutorial_street_edge_id_fkey", tutorialStreetEdgeID, TableQuery[StreetEdgeTableDef])(
@@ -83,26 +103,11 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
 trait ConfigTableRepository {}
 
 @Singleton
-class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends ConfigTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val config = TableQuery[ConfigTableDef]
-
-  /**
-   * Runs `action` in a transaction with JIT disabled for the duration of that transaction.
-   *
-   * Interim workaround for #4376: the projectsidewalk/db image ships a broken Postgres JIT (PostGIS bitcode built with
-   * LLVM 16, runtime llvmjit linked against LLVM 11). An expensive query that JIT-inlines PostGIS function bitcode
-   * (e.g. ST_LENGTH) segfaults the backend, surfacing as a dropped connection (SQLSTATE 08006). The cross-city
-   * scorecard and labeling-speed queries cross the JIT cost thresholds and call those functions, so they trip it.
-   * `SET LOCAL` scopes the setting to this one transaction. Remove once #4376 disables JIT at the DB config level.
-   *
-   * @param action The DBIO to run with JIT off.
-   * @return       The same action, wrapped so JIT is disabled for its transaction.
-   */
-  private def withJitOff[T](action: DBIO[T]): DBIO[T] =
-    (sqlu"SET LOCAL jit = off" >> action).transactionally
 
   def getCityMapParams: DBIO[MapParams] = {
     config.result.head.map(_.cityMapParams)
@@ -119,16 +124,20 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @throws NoSuchElementException if no map parameters are found in the specified schema
    */
   def getCityMapParamsBySchema(schema: String): DBIO[MapParams] = {
+    given getResult: GetResult[MapParams] = GetResult(r =>
+      MapParams(r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(), r.nextDouble(),
+        r.nextDouble())
+    )
+
     // SQL query with explicit schema reference using double quotes for proper PostgreSQL schema qualification.
     sql"""
       SELECT city_center_lat, city_center_lng, default_map_zoom,
              southwest_boundary_lat, southwest_boundary_lng, northeast_boundary_lat, northeast_boundary_lng
       FROM "#$schema".config
     """
-      .as[(Double, Double, Double, Double, Double, Double, Double)]
+      .as[MapParams]
       .map { rows =>
-        // Extract the first row from the result set (if any).
-        rows.headOption.map { row => MapParams.tupled(row) }.getOrElse {
+        rows.headOption.getOrElse {
           // Throw an exception if no results were found.
           throw new NoSuchElementException(s"No map parameters found in schema: $schema")
         }
@@ -149,7 +158,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     if (schemasOnLabelTypeEnum.contains(schema)) DBIO.successful(true)
     else
       sql"""SELECT to_regclass('"#$schema".label_type') IS NULL""".as[Boolean].head.map { hasEnum =>
-        if (hasEnum) schemasOnLabelTypeEnum.add(schema)
+        if (hasEnum) { val _ = schemasOnLabelTypeEnum.add(schema) }
         hasEnum
       }
 
@@ -169,7 +178,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     if (schemasWithValidationLabelType.contains(schema)) DBIO.successful(true)
     else
       columnExists(schema, "label_validation", "label_type").map { hasColumn =>
-        if (hasColumn) schemasWithValidationLabelType.add(schema)
+        if (hasColumn) { val _ = schemasWithValidationLabelType.add(schema) }
         hasColumn
       }
 
@@ -401,8 +410,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * the service layer and the rows are rendered as a comparison page. Rows are picked by the same [[FilteredTables]]
    * fragments as `getCityAggregateDataBySchema`, so a city's totals here reconcile with its single-city stats.
    *
-   * Composed from three queries on the same connection: the single-row core metrics, the per-label-type breakdown
-   * (reusing [[getLabelTypeStatsBySchema]]), and the weekly trend (`getCityWeeklyTrendBySchema`).
+   * Composed from the single-row core metrics, the per-label-type breakdown (reusing [[getLabelTypeStatsBySchema]]),
+   * the weekly trend (`getCityWeeklyTrendBySchema`), and the per-user output stats.
    *
    * AI is determined by the shared `sidewalk_login` role (`user_role.role = 'AI'`), not anything in the city schema — so
    * those joins are intentionally not schema-qualified, matching `getCityDailyLabelStatsBySchema`. `user_role` has one
@@ -415,7 +424,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   def getCityScorecardBySchema(schema: String): DBIO[CityScorecard] = {
     // The nullable last-activity timestamp can be NULL on an empty schema, so it is read as an Option and normalized to
     // UTC (we only need the instant, for "days since last activity").
-    implicit val getResult: GetResult[ScorecardCore] = GetResult { r =>
+    given getResult: GetResult[ScorecardCore] = GetResult { r =>
       ScorecardCore(
         totalStreets = r.nextInt(),
         auditedStreets = r.nextInt(),
@@ -500,9 +509,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           SELECT COUNT(DISTINCT label.label_id) AS label_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE user_role.role = 'AI') AS ai_count,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE label.severity IS NOT NULL) AS with_severity,
-                 -- Denominator for "% with severity": only types that CAN take a rating, per LabelTypeEnum.
+                 -- Denominator for "% with severity": only types that CAN take a rating, per LabelType.
                  COUNT(DISTINCT label.label_id) FILTER (
-                     WHERE #${labelTypeSql.labelIsOneOf(LabelTypeEnum.ratedTypeNames)}
+                     WHERE #${labelTypeSql.labelIsOneOf(LabelType.ratedTypeNames)}
                  ) AS severity_eligible,
                  COUNT(DISTINCT label.label_id) FILTER (WHERE cardinality(label.tags) > 0) AS with_tags,
                  -- Denominator for "% with tags": only types that CAN take tags, i.e. types that have any tag defined
@@ -584,11 +593,10 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     """.as[ScorecardCore].head
     }
 
-    // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats (same
-    // connection), then assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on
-    // a separate long-cached path (getCrossCityLabelingSpeed). Wrapped in withJitOff because coreQuery's km calc uses
-    // PostGIS (#4376).
-    withJitOff(for {
+    // Fold in the per-label-type breakdown, the weekly trend, and the (cheap) per-user output/speed stats, then
+    // assemble the full scorecard. The expensive labeling-speed query is NOT here — it is computed on a separate
+    // long-cached path (getCrossCityLabelingSpeed).
+    for {
       hasOutdatedImageryCol  <- upToDateFilterQuery
       hasLabelTypeEnum       <- schemaHasLabelTypeEnum(schema)
       hasValidationLabelType <- schemaHasValidationLabelType(schema)
@@ -602,7 +610,6 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       weeklyTrend <- getCityWeeklyTrendBySchema(schema, Some(ScorecardTrendWeeks))
       output      <- getCityContributorOutputBySchema(schema)
     } yield {
-      val (lblMedian, lblP90, nLabelers, valMedian, valP90, nValidators, valSecMedian) = output
       CityScorecard(
         cityId = schema, // Replaced with the real cityId at the service layer; schema is the only id known here.
         totalStreets = core.totalStreets,
@@ -632,15 +639,15 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
         audits30d = core.audits30d,
         lastActivity = core.lastActivity,
         weeklyTrend = weeklyTrend,
-        labelsPerUserMedian = lblMedian,
-        labelsPerUserP90 = lblP90,
-        numLabelers = nLabelers,
-        validationsPerUserMedian = valMedian,
-        validationsPerUserP90 = valP90,
-        numValidators = nValidators,
-        validationSecondsMedian = valSecMedian
+        labelsPerUserMedian = output.labelMedian,
+        labelsPerUserP90 = output.labelP90,
+        numLabelers = output.numLabelers,
+        validationsPerUserMedian = output.validationMedian,
+        validationsPerUserP90 = output.validationP90,
+        numValidators = output.numValidators,
+        validationSecondsMedian = output.validationSecondsMedian
       )
-    })
+    }
   }
 
   /**
@@ -655,7 +662,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *               is 0 whenever `weeks` is bounded (see the inline note).
    */
   def getCityWeeklyTrendBySchema(schema: String, weeks: Option[Int]): DBIO[Seq[WeeklyPoint]] = {
-    implicit val getResult: GetResult[WeeklyPoint] =
+    given getResult: GetResult[WeeklyPoint] =
       GetResult(r => WeeklyPoint(LocalDate.parse(r.nextString()), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()))
 
     // weeks is an Int (safe to interpolate); None drops the lower bound to return the city's full history.
@@ -770,7 +777,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       DBIO yielding one row per (day, person), ascending by day.
    */
   def getCityDailyActivityByUserBySchema(schema: String, days: Int): DBIO[Seq[DailyContributorActivity]] = {
-    implicit val getResult: GetResult[DailyContributorActivity] =
+    given getResult: GetResult[DailyContributorActivity] =
       GetResult(r =>
         DailyContributorActivity(
           LocalDate.parse(r.nextString()), r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()),
@@ -827,7 +834,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       DBIO yielding one row per person with activity in either window, busiest first.
    */
   def getCityWindowActivityByUserBySchema(schema: String): DBIO[Seq[ContributorWindowActivity]] = {
-    implicit val getResult: GetResult[ContributorWindowActivity] =
+    given getResult: GetResult[ContributorWindowActivity] =
       GetResult(r =>
         ContributorWindowActivity(
           r.nextString(), r.nextString(), ContributorKind.withName(r.nextString()), r.nextInt(), r.nextInt(),
@@ -873,14 +880,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * outliers (mirrors the 5-minute idle cap used by the contribution-time stats).
    *
    * @param schema The database schema to query.
-   * @return       (labelMedian, labelP90, numLabelers, valMedian, valP90, numValidators, validationSecondsMedian);
-   *               zeros when a population is empty.
+   * @return       The city's [[CityContributorOutput]]; zeros when a population is empty.
    */
-  def getCityContributorOutputBySchema(schema: String): DBIO[(Double, Double, Int, Double, Double, Int, Double)] = {
-    implicit val getResult: GetResult[(Double, Double, Int, Double, Double, Int, Double)] =
-      GetResult(r =>
-        (r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble())
-      )
+  def getCityContributorOutputBySchema(schema: String): DBIO[CityContributorOutput] = {
+    given getResult: GetResult[CityContributorOutput] = GetResult(r =>
+      CityContributorOutput(r.nextDouble(), r.nextDouble(), r.nextInt(), r.nextDouble(), r.nextDouble(), r.nextInt(),
+        r.nextDouble())
+    )
 
     sql"""
       SELECT COALESCE(lbl.median, 0), COALESCE(lbl.p90, 0), COALESCE(lbl.n, 0),
@@ -920,7 +926,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                   AND EXTRACT(EPOCH FROM (label_validation.end_timestamp - label_validation.start_timestamp)) <= 300
           ) vd
       ) vdur;
-    """.as[(Double, Double, Int, Double, Double, Int, Double)].head
+    """.as[CityContributorOutput].head
   }
 
   /**
@@ -936,10 +942,9 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * @return       (activeAuditHours, auditedKmWithOverlap); hours is 0 when there is no interaction data.
    */
   def getCityLabelingSpeedBySchema(schema: String): DBIO[(Double, Double)] = {
-    implicit val getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
+    given getResult: GetResult[(Double, Double)] = GetResult(r => (r.nextDouble(), r.nextDouble()))
 
-    // Wrapped in withJitOff because the audited-km subquery uses PostGIS (#4376).
-    withJitOff(sql"""
+    sql"""
       SELECT COALESCE(audit_time.hours, 0) AS hours,
              COALESCE(audited.km, 0)       AS km
       FROM (
@@ -958,7 +963,41 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
           INNER JOIN #${FilteredTables.completedAudits(Some(schema))}
               ON street_edge.street_edge_id = audit_task.street_edge_id
       ) AS audited;
-    """.as[(Double, Double)].head)
+    """.as[(Double, Double)].head
+  }
+
+  /**
+   * A city's story counts for the Across Cities Stories section (#5543). Every story counts, hidden ones included,
+   * because moderation needs to see all of them.
+   *
+   * @param schema The database schema to query.
+   * @return       DBIO yielding the city's [[CityStoryStats]]; all zeros and no `newest` when it has no stories.
+   */
+  def getCityStoryStatsBySchema(schema: String): DBIO[CityStoryStats] = {
+    given getResult: GetResult[CityStoryStats] = GetResult(r =>
+      CityStoryStats(
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextInt(),
+        r.nextTimestampOption().map(_.toInstant.atOffset(ZoneOffset.UTC))
+      )
+    )
+    sql"""
+      SELECT COUNT(*),
+             COUNT(*) FILTER (WHERE NOT story.visible),
+             COUNT(*) FILTER (WHERE EXISTS (
+                 SELECT 1 FROM "#$schema".story_media
+                 WHERE story_media.story_id = story.story_id AND story_media.media_type = 'photo'
+             )),
+             COUNT(*) FILTER (WHERE story.created_at >= NOW() - INTERVAL '7 days'),
+             COUNT(*) FILTER (WHERE story.created_at >= NOW() - INTERVAL '7 days' AND story.visible),
+             COUNT(*) FILTER (WHERE story.created_at >= NOW() - INTERVAL '30 days'),
+             MAX(story.created_at)
+      FROM "#$schema".story;
+    """.as[CityStoryStats].head
   }
 
   def getTutorialStreetId: DBIO[Int] = {
@@ -986,6 +1025,30 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
   }
 
   /**
+   * The city's official contact for the landing-page notice, if one is set.
+   *
+   * @return DBIO yielding the contact, or None when the city has no notice.
+   */
+  def getOfficialContact: DBIO[Option[OfficialContact]] = {
+    config.map(c => (c.officialContactName, c.officialContactUrl)).result.head.map {
+      case (Some(name), Some(url)) => Some(OfficialContact(name, url))
+      case _                       => None
+    }
+  }
+
+  /**
+   * Sets or clears the city's official contact.
+   *
+   * @param contact The new contact, or None to turn the landing-page notice off.
+   * @return        DBIO yielding the number of config rows updated.
+   */
+  def setOfficialContact(contact: Option[OfficialContact]): DBIO[Int] = {
+    config
+      .map(c => (c.officialContactName, c.officialContactUrl))
+      .update((contact.map(_.name), contact.map(_.url)))
+  }
+
+  /**
    * Returns daily label counts split by human vs AI creator and label type for a specific city schema.
    *
    * This is the cross-schema variant of LabelTable.getDailyLabelStats, used by the aggregate endpoint to query each
@@ -994,16 +1057,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * @param schema           Database schema to query (e.g. "sidewalk_seattle").
    * @param filterLowQuality If true, restrict to user_stat.high_quality; otherwise exclude excluded users.
-   * @return                 Sequence of (date, labelType, humanLabels, aiLabels).
+   * @return                 One row per (date, label type), sorted by date then label type.
    */
   def getCityDailyLabelStatsBySchema(
       schema: String,
       filterLowQuality: Boolean
-  ): DBIO[Seq[(LocalDate, String, Int, Int)]] = {
+  ): DBIO[Seq[DailyLabelStat]] = {
     val contributors = Contributors(filterLowQuality)
-
-    implicit val getResult: GetResult[(LocalDate, String, Int, Int)] =
-      GetResult(r => (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt()))
 
     schemaHasLabelTypeEnum(schema).flatMap { hasLabelTypeEnum =>
       val labelTypeSql = LabelTypeSql(schema, hasLabelTypeEnum)
@@ -1017,7 +1077,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       LEFT  JOIN sidewalk_login.user_role ON label.user_id     = user_role.user_id
       GROUP BY (label.time_created AT TIME ZONE 'US/Pacific')::date, #${labelTypeSql.name}
       ORDER BY date ASC, #${labelTypeSql.name}
-      """.as[(LocalDate, String, Int, Int)]
+      """.as[DailyLabelStat]
     }
   }
 
@@ -1032,20 +1092,13 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    *
    * @param schema           Database schema to query.
    * @param filterLowQuality If true, restrict to user_stat.high_quality; otherwise exclude excluded users.
-   * @return                 Sequence of (date, labelType, humanAgree, humanDisagree, humanUnsure,
-   *                         aiAgree, aiDisagree, aiUnsure).
+   * @return                 One row per (date, label type), sorted by date then label type.
    */
   def getCityDailyValidationStatsBySchema(
       schema: String,
       filterLowQuality: Boolean
-  ): DBIO[Seq[(LocalDate, String, Int, Int, Int, Int, Int, Int)]] = {
+  ): DBIO[Seq[DailyValidationStat]] = {
     val contributors = Contributors(filterLowQuality)
-
-    implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
-      GetResult(r =>
-        (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
-          r.nextInt(), r.nextInt())
-      )
 
     schemaHasLabelTypeEnum(schema).zip(schemaHasValidationLabelType(schema)).flatMap {
       case (hasLabelTypeEnum, hasValidationLabelType) =>
@@ -1074,7 +1127,7 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       WHERE label.deleted = FALSE
       GROUP BY (label_validation.end_timestamp AT TIME ZONE 'US/Pacific')::date, #$typeName
       ORDER BY date ASC, #$typeName
-      """.as[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+      """.as[DailyValidationStat]
     }
   }
 }

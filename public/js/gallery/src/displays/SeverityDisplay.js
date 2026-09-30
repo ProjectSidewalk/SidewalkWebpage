@@ -3,6 +3,7 @@
  */
 class SeverityDisplay {
   #positive;
+  #labelType;
   #circles = [];
 
   /**
@@ -13,6 +14,7 @@ class SeverityDisplay {
   constructor(container, severity, labelType) {
     this.severity = severity;
     this.severityContainer = container;
+    this.#labelType = labelType;
     this.#positive = util.misc.isPositiveLabelType(labelType);
 
     this.#init();
@@ -28,7 +30,8 @@ class SeverityDisplay {
     const title = document.createElement('div');
     title.className = 'label-severity-header';
 
-    title.innerText = i18next.t(this.#positive ? 'quality' : 'severity');
+    const titleText = i18next.t(this.#positive ? 'quality' : 'severity');
+    title.innerText = titleText;
     // If no severity rating, gray out title.
     if (severity === null) {
       title.classList.add('no-severity-header');
@@ -39,31 +42,35 @@ class SeverityDisplay {
     // We do so by darkening a number of circles from the left equal to the severity. For example, if the severity
     // is 2, we will darken the left 2 circles.
     for (let i = 1; i <= 3; i++) {
-      const $severityCircle = $('<div></div>');
-      $severityCircle.addClass('severity-circle');
+      const severityCircle = document.createElement('div');
+      severityCircle.className = 'severity-circle';
 
       if (severity === null) {
         // Create grayed out empty circles.
-        $severityCircle.addClass('no-severity-circle');
+        severityCircle.classList.add('no-severity-circle');
       } else if (i <= severity) {
         // Fill in a number of circles from the left equal to the severity.
-        $severityCircle.attr('id', 'current-severity');
+        severityCircle.classList.add('current-severity');
       }
-      this.#circles.push($severityCircle);
+      this.#circles.push(severityCircle);
     }
 
+    const noRating = i18next.t(this.#positive ? 'no-quality' : 'no-severity');
     if (severity === null) {
       // Add tooltip indicating the user didn't add a severity rating for this label.
-      holder.setAttribute('data-toggle', 'tooltip');
-      holder.setAttribute('data-placement', 'top');
-      holder.setAttribute('title', i18next.t(this.#positive ? 'no-quality' : 'no-severity'));
-      $(holder).tooltip('hide');
+      holder.setAttribute('data-ps-tooltip', noRating);
     }
 
+    // The circles are purely visual, so screen readers get the rating as words instead ("Severity: High"). The
+    // heading is hidden from them since that label already starts with it.
+    const levelKey = severity === null ? undefined : util.misc.getRatingLevelKeys(this.#labelType)[severity];
+    const spokenRating = levelKey ? `${titleText}: ${i18next.t(`common:${levelKey}`)}` : noRating;
+    holder.setAttribute('role', 'img');
+    holder.setAttribute('aria-label', spokenRating);
+    if (levelKey) title.setAttribute('aria-hidden', 'true');
+
     // Add all of the severity circles to the DOM.
-    for (let i = 0; i < this.#circles.length; i++) {
-      $(holder).append($(this.#circles[i]));
-    }
+    holder.append(...this.#circles);
     container.append(holder);
   }
 }

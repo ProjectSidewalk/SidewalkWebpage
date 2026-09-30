@@ -2,9 +2,8 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.PanoFormats.PanoHistorySubmission
-import models.label.{LabelPointTable, LabelTypeEnum, POV}
-import models.pano.PanoSource.PanoSource
-import models.pano._
+import models.label.{LabelPointTable, LabelType, POV}
+import models.pano.*
 import models.street.StreetEdge
 import models.utils.{CommonUtils, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
@@ -15,6 +14,8 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.http.ContentTypes
 import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables.*
+import play.api.libs.ws.WSBodyReadables.*
 import play.api.{Configuration, Environment, Logger}
 import service.PanoDataService.{
   infra3dTokenNeedsRemint,
@@ -36,7 +37,7 @@ import java.time.OffsetDateTime
 import java.util.Base64
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -545,9 +546,9 @@ trait PanoDataService {
   def markHasBackup(panoId: String): Future[Int]
   def getCropDirectory: String
   def cropFile(labelId: Int, labelType: String): File
-  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean
-  def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String]
-  def moveCrop(labelId: Int, from: LabelTypeEnum.Base, to: LabelTypeEnum.Base): Boolean
+  def cropExists(labelId: Int, labelType: LabelType): Boolean
+  def cropUrl(labelId: Int, labelType: LabelType): Option[String]
+  def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean
   def localBackupImageFile(panoId: String): Option[File]
   def getLocalBackupImage(panoId: String): Future[Option[PanoData]]
 }
@@ -559,13 +560,12 @@ class PanoDataServiceImpl @Inject() (
     environment: Environment,
     cacheApi: AsyncCacheApi,
     ws: WSClient,
-    implicit val ec: ExecutionContext,
     panoDataTable: PanoDataTable,
     panoHistoryTable: PanoHistoryTable,
     panoImageryChangeTable: PanoImageryChangeTable,
     streetEdgeTable: models.street.StreetEdgeTable,
     signingService: ImageSigningService
-)(implicit mat: Materializer)
+)(using ec: ExecutionContext, mat: Materializer)
     extends PanoDataService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -579,7 +579,7 @@ class PanoDataServiceImpl @Inject() (
   val secretKey: Array[Byte] = Base64.getDecoder().decode(secretKeyString.replace('-', '+').replace('_', '/'))
 
   // Get an HMAC-SHA1 signing key from the raw key bytes.
-  val sha1Key: SecretKeySpec = new SecretKeySpec(secretKey, "HmacSHA1")
+  val sha1Key: SecretKeySpec = SecretKeySpec(secretKey, "HmacSHA1")
 
   // Both resolved through MediaDirs, the same resolver PersistentMediaDirCheck models the write paths with (#4925).
   private val cropsDir: File     = MediaDirs.cityDir(config, environment, "cropped.image.directory")
@@ -627,7 +627,7 @@ class PanoDataServiceImpl @Inject() (
           logger.info(s"Minted Infra3d token for $cityName; expires ${token.expiresAt}.")
           token
         } else {
-          throw new RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
+          throw RuntimeException(s"Token request failed with status ${response.status}: ${response.body}")
         }
       }
   }
@@ -772,7 +772,9 @@ class PanoDataServiceImpl @Inject() (
               .map(_ => Some(false))
           case other =>
             // Inconclusive (rate limit, 5xx, unexpected body). Don't assume the picture is gone.
-            logger.info(s"Panoramax existence check inconclusive ($other) for $panoId: ${response.body.take(200)}")
+            logger.info(
+              s"Panoramax existence check inconclusive ($other) for $panoId: ${response.body[String].take(200)}"
+            )
             Future.successful(None)
         }
       }
@@ -792,7 +794,7 @@ class PanoDataServiceImpl @Inject() (
    */
   def signUrl(urlString: String): String = {
     // Convert to Java URL for easy parsing of URL parts.
-    val url: URL = new URL(urlString)
+    val url: URL = URL(urlString)
 
     // Gets everything but URL protocol and host that we want to sign.
     val resource: String = url.getPath() + '?' + url.getQuery()
@@ -985,14 +987,14 @@ class PanoDataServiceImpl @Inject() (
 
   /** Returns the on-disk file where a label's crop image is (or would be) stored. */
   def cropFile(labelId: Int, labelType: String): File =
-    new File(new File(cropsDir, labelType), s"crop_$labelId.png")
+    File(File(cropsDir, labelType), s"crop_$labelId.png")
 
   /** Checks whether a crop image file exists for the given label. */
-  def cropExists(labelId: Int, labelType: LabelTypeEnum.Base): Boolean =
+  def cropExists(labelId: Int, labelType: LabelType): Boolean =
     cropFile(labelId, labelType.name).exists()
 
   /** Returns a signed crop image URL if a crop file exists for the given label, or None otherwise. */
-  def cropUrl(labelId: Int, labelType: LabelTypeEnum.Base): Option[String] =
+  def cropUrl(labelId: Int, labelType: LabelType): Option[String] =
     if (cropExists(labelId, labelType)) Some(signingService.signedUrl(s"/cropImage/${labelType.name}/$labelId"))
     else None
 
@@ -1002,7 +1004,7 @@ class PanoDataServiceImpl @Inject() (
    * fresh crop under the new type on its next run either way.
    * @return Whether a file was moved.
    */
-  def moveCrop(labelId: Int, from: LabelTypeEnum.Base, to: LabelTypeEnum.Base): Boolean = {
+  def moveCrop(labelId: Int, from: LabelType, to: LabelType): Boolean = {
     val source = cropFile(labelId, from.name)
     val target = cropFile(labelId, to.name)
     if (from == to || !source.isFile) false
@@ -1024,9 +1026,9 @@ class PanoDataServiceImpl @Inject() (
    * `<pano.images.directory>/<city-id>/<panoId[0:2]>/<panoId>.<ext>`. Tries jpg/jpeg/png in order.
    */
   def localBackupImageFile(panoId: String): Option[File] = {
-    val dir = new File(panosBaseDir, panoId.take(2))
+    val dir = File(panosBaseDir, panoId.take(2))
     Seq("jpg", "jpeg", "png").iterator
-      .map(ext => new File(dir, s"$panoId.$ext"))
+      .map(ext => File(dir, s"$panoId.$ext"))
       .find(_.exists())
   }
 

@@ -16,10 +16,10 @@ import java.time.OffsetDateTime
  */
 class SidewalkPresenceApiModelsSpec extends AnyFunSuite with Matchers {
 
-  private val gf = new GeometryFactory(new PrecisionModel(), 4326)
+  private val gf = GeometryFactory(PrecisionModel(), 4326)
 
   private val line =
-    gf.createLineString(Array(new Coordinate(-122.3546715, 47.5309889), new Coordinate(-122.3546693, 47.5319025)))
+    gf.createLineString(Array(Coordinate(-122.3546715, 47.5309889), Coordinate(-122.3546693, 47.5319025)))
 
   /** A face called absent, so every property is populated. */
   private def absentFace: SidewalkPresenceForApi = SidewalkPresenceForApi(

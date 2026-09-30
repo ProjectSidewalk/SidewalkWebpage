@@ -1,9 +1,14 @@
-/* Container for the panorama and its overlay controls (zoom, date, speed limit, etc.). */
+/* Container for the panorama and its overlay controls (zoom, date, speed limit, etc.). It carries the viewer's dark
+   backdrop and shape as well, because PanoManager holds #svv-panorama at visibility: hidden (or out of the layout)
+   while a pano loads (#5582), which hides that element's own background with it; without this the area would flash
+   the page's white for the length of every load, on boxed desktop and on mobile. */
 #svv-panorama-holder {
   position: absolute;
   top: var(--header-height);
   width: var(--pano-width);
   height: var(--pano-height);
+  border-radius: calc(4px * var(--ui-scale));
+  background-color: var(--color-asphalt-400);
 }
 
 /* The panorama viewport. It fills the full pano area (no border) so the marker layer, which is the same size,
@@ -24,18 +29,69 @@
   isolation: isolate;
 }
 
-/* Pannellum's own progress box, desktop only. The fallback viewer's canvas is painted only once it holds the
-   current label's pano (PanoManager.#showPannellumPano, #5206), so this box can surface in one case: a fallback
-   label following another, where the outgoing pano stays up during the load. There it reads as a second provider's
-   progress UI, in its own styling, reporting megabytes, over a picture it does not belong to — and desktop already
-   says the tool is busy in its own voice, via the controls LabelContainer.#setUiBusy dims and the wait cursor.
-
-   Scoped to the desktop wrapper because mobile says it differently: its busy state dims the controls laid over the
-   pano (Main.js VALIDATE_BUSY_SELECTORS) and deliberately spares the imagery, since dimming the holder they share
-   would take the pano down with them. That leaves the picture itself the one part of a mobile load with nothing to
-   show for it, so the box stays and covers exactly what the busy state gave up. */
-#svv-application-holder #svv-panorama-pannellum .pnlm-load-box {
+/* Pannellum's own progress box. The fallback viewer's canvas is painted only once it holds the current label's pano
+   (PanoManager.#showPannellumPano, #5206), so this box can surface in one case: a fallback label following another,
+   where the outgoing pano stays up during the load. There it reads as a second provider's progress UI, in its own
+   styling, reporting megabytes, over a picture it does not belong to, and it would stack with the Validate loading
+   status below (#5581), which says the same thing in the tool's own voice in every layout, mobile included. */
+#svv-panorama-pannellum .pnlm-load-box {
   display: none !important;
+}
+
+/* The loading status over the pano (#5581, PanoLoadingStatus.js), shared by boxed, immersive and mobile Validate. The
+   live region fills the holder so its box centers over whichever viewer canvas is up, but only the box paints, and
+   nothing takes the pointer: a drag that starts over it still reaches the pano. Stacked with the corner controls (3)
+   and before them in the markup, so those and the label card (4) stay on top of it. */
+.svv-pano-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+/* The busy dim (.validate-disabled, svv-validation-menu.css) sits on the whole application holder, and a child cannot
+   opt out of an ancestor's opacity, so the status would render washed out exactly when it is the one thing meant to be
+   read. The holder therefore dims its parts individually while busy, and the status is the one part left out. The
+   mission modals are left out too: the next mission's first label loads behind "Great job!", and a dimmed modal is
+   both washed out and a stacking context of its own, which would drop its z-index 10 foreground under the status. */
+#svv-application-holder.validate-disabled {
+  opacity: 1;
+}
+
+#svv-application-holder.validate-disabled > :not(#svv-panorama-holder, [id^="modal-mission"]),
+#svv-application-holder.validate-disabled > #svv-panorama-holder > :not(#svv-pano-loading) {
+  opacity: 0.6;
+}
+
+/* Solid, not a translucent scrim: over the boxed page's white a translucent backdrop took the text under 4.5:1, and
+   the darkest asphalt keeps white text far past it on every layout and over imagery. */
+.svv-pano-loading__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xxs);
+  max-width: calc(100% - 32px * var(--ui-scale, 1));
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--border-radius-lg);
+  background: var(--color-asphalt-800);
+  box-shadow: var(--box-shadow-lg);
+  color: var(--color-neutral-white);
+  font: var(--text-small-medium);
+  text-align: center;
+}
+
+.svv-pano-loading__img {
+  width: calc(64px * var(--ui-scale, 1));
+  height: calc(64px * var(--ui-scale, 1));
+}
+
+/* The .webp animates on its own and cannot be paused, so drop it entirely and let the text carry the message, as the
+   label popup's loading overlay does (css/components/label-detail.css). */
+@media (prefers-reduced-motion: reduce) {
+  .svv-pano-loading__img { display: none; }
 }
 
 /* Colored frame on top of the pano and marker layers. Drawing it above the marker (rather than as the pano's own
@@ -183,6 +239,21 @@
   right: calc(7px * var(--ui-scale));
 }
 
+/* The immersive-mode toggle (#5560) sits under the zoom stack (7 + 22 + 2 + 22 = 53px tall, plus a 6px gap), in the
+   corner users already scan for view controls, as on Explore. */
+#immersive-toggle-holder {
+  position: absolute;
+  z-index: 3;
+  top: calc(59px * var(--ui-scale));
+  right: calc(7px * var(--ui-scale));
+}
+
+/* The arrows reach their icon's corners, so a smaller icon keeps them off the button's edge. */
+#immersive-toggle-icon {
+  width: calc(15px * var(--ui-scale));
+  height: calc(15px * var(--ui-scale));
+}
+
 #svv-panorama-date-holder {
   display: flex;
   justify-content: flex-start;
@@ -253,6 +324,22 @@
   z-index: 2;
   top: calc(7px * var(--ui-scale));
   left: calc(7px * var(--ui-scale));
+}
+
+/* Continues the pill row to the right, as Explore's menu does. Immersive mode (svv-immersive.css) keeps the row: its
+   top-centre holds only the mission chip, so nothing sits to the right of this corner for the row to slide under. */
+#validate-control-menu {
+  display: none;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+#validate-control-buttons-toggle[aria-expanded="true"] + #validate-control-menu {
+  display: flex;
+}
+
+#validate-control-buttons-toggle[aria-expanded="true"] .pano-overlay-button-icon {
+  transform: rotate(180deg);
 }
 
 /* A notch smaller than the shared base size (main.css) for the label card's tiny footer button. */

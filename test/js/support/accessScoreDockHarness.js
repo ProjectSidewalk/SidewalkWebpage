@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { installUtilitiesMisc } = require('../loadGlobalScript');
+const { installDateHelpers, installUtilitiesMisc } = require('../loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -45,6 +45,7 @@ function installUtil() {
         EXPLORE_CANVAS_HEIGHT: 480,
     };
     installUtilitiesMisc();
+    installDateHelpers();
     // The mini-card's side channels: a toast on a refused vote, a badge tick on a first one.
     window.Toast = {show: jest.fn()};
     window.BadgeAchievements = {recordValidation: jest.fn()};

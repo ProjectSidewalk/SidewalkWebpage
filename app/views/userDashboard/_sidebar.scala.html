@@ -1,4 +1,5 @@
-@(activePage: String, isSignedIn: Boolean = true, adminSubject: Option[String] = None)(implicit messages: Messages)
+@(activePage: String, isSignedIn: Boolean = true, adminSubject: Option[String] = None,
+    adminLinkFor: Option[String] = None)(using messages: Messages)
 
 @*
 * Left navigation for the redesigned User Dashboard surface. Mirrors the API-docs/admin sidebar markup/classes so the
@@ -12,28 +13,39 @@
 *
 * With `adminSubject` set (an admin viewing that user, #4964), the nav is instead the viewed user's Dashboard and
 * Manage user pages plus a way back to the admin dashboard's Management page. Admin-only, so English-only.
+*
+* With `adminLinkFor` set (an admin on that user's public profile, #5564), the normal nav gets an extra section
+* linking to that user's admin pages. It sits on a public page, so unlike the admin-view nav it is translated.
 *@
 
 @adminSection(username: String) = {
   <div class="page-nav-header">@username</div>
   <a href="@routes.UserDashboardController.adminDashboard(username)"
-   class="page-nav-item @if(activePage == "dashboard"){active}"
+   class="page-nav-item @if(activePage == "dashboard"){is-active}"
    @if(activePage == "dashboard"){aria-current="page"}>Dashboard</a>
   <a href="@routes.UserDashboardController.manageUser(username)"
-   class="page-nav-item @if(activePage == "admin-user"){active}"
+   class="page-nav-item @if(activePage == "admin-user"){is-active}"
    @if(activePage == "admin-user"){aria-current="page"}>Manage user</a>
   <div class="page-nav-header">Admin dashboard</div>
   <a href="@routes.AdminDashboardController.management" class="page-nav-item">All users</a>
+}
+
+@adminLinkSection(username: String) = {
+  <div class="page-nav-header">@Messages("navbar.tools.admin")</div>
+  <a href="@routes.UserDashboardController.adminDashboard(username)"
+   class="page-nav-item">@Messages("dashboard.nav.dashboard")</a>
+  <a href="@routes.UserDashboardController.manageUser(username)"
+   class="page-nav-item">@Messages("dashboard.nav.manageuser")</a>
 }
 
 @youSection = {
   @if(isSignedIn) {
     <div class="page-nav-header">@Messages("dashboard.nav.you")</div>
     <a href="@routes.UserDashboardController.dashboard"
-     class="page-nav-item @if(activePage == "dashboard"){active}"
+     class="page-nav-item @if(activePage == "dashboard"){is-active}"
      @if(activePage == "dashboard"){aria-current="page"}>@Messages("dashboard.nav.dashboard")</a>
     <a href="@routes.UserDashboardController.settings"
-     class="page-nav-item @if(activePage == "settings"){active}"
+     class="page-nav-item @if(activePage == "settings"){is-active}"
      @if(activePage == "settings"){aria-current="page"}>@Messages("dashboard.nav.settings")</a>
   }
 }
@@ -41,7 +53,7 @@
 @communitySection = {
   <div class="page-nav-header">@Messages("dashboard.nav.community")</div>
   <a href="@routes.UserDashboardController.leaderboard"
-   class="page-nav-item @if(activePage == "leaderboard"){active}"
+   class="page-nav-item @if(activePage == "leaderboard"){is-active}"
    @if(activePage == "leaderboard"){aria-current="page"}>@Messages("navbar.leaderboard")</a>
 }
 
@@ -55,6 +67,7 @@
     } else {
       @communitySection
       @youSection
+      @adminLinkFor.map(adminLinkSection)
     }
   </nav>
 </div>

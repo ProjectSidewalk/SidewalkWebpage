@@ -189,7 +189,7 @@ util.sizeCanvasToDisplay = function (el, ctx) {
  * already positioned in on-screen pixels divides by the same `scale` before calling. The default `frameHeight` is
  * Explore's displayed pano height, measured (its aspect follows the window in immersive mode, #5085).
  *
- * @param {JQuery} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
+ * @param {HTMLElement} panel - The panel to position. Must be .label-anchored-panel and a child of `opts.originEl`.
  * @param {{x: number, y: number}} labelCanvasXY - The label icon's center in the logical canvas frame.
  * @param {number} iconRadius - The label icon's radius, in that same logical frame.
  * @param {object} [opts] - Frame overrides. Omit them entirely for Explore, whose frame is the default.
@@ -209,8 +209,8 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
   const centerX = labelCanvasXY.x * scale;
   const centerY = labelCanvasXY.y * scale;
   const radius = iconRadius * scale;
-  const width = panel.outerWidth();
-  const height = panel.outerHeight();
+  const width = panel.offsetWidth;
+  const height = panel.offsetHeight;
   const panoHeight = opts.frameHeight
     ?? (document.getElementById('label-drawing-layer')?.getBoundingClientRect().height
       || util.EXPLORE_CANVAS_HEIGHT * scale);
@@ -238,9 +238,10 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
   const top = Math.min(Math.max(centerY - height / 2, EDGE), maxTop);
   const tailTop = Math.min(Math.max(centerY - top, TAIL_MARGIN), height - TAIL_MARGIN);
 
-  panel.toggleClass('label-anchored-panel--flipped', flipped);
-  panel[0].style.setProperty('--panel-tail-top', `${tailTop}px`);
-  panel.css({ left: Math.min(Math.max(left, minLeft), maxLeft), top });
+  panel.classList.toggle('label-anchored-panel--flipped', flipped);
+  panel.style.setProperty('--panel-tail-top', `${tailTop}px`);
+  panel.style.left = `${Math.min(Math.max(left, minLeft), maxLeft)}px`;
+  panel.style.top = `${top}px`;
 };
 
 /**
@@ -309,6 +310,35 @@ util.applyToolScale = function (widthVarNames, heightVarNames, opts = {}) {
  */
 util.uiScale = function () {
   return parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+};
+
+/**
+ * Parks a `popover` element under its anchor (above it when there is no room below), kept inside the window. The
+ * browser centers a popover in the window by default, so every one we anchor to a button goes through here.
+ *
+ * Call it from the popover's `beforetoggle` handler, or right after `showPopover()` in the same task: `toggle`
+ * fires only after the popover has painted at the default spot, so placing there flashes it in a corner first.
+ * A popover that is not open yet has no size, so it is laid out out of sight for an instant to measure it; nothing
+ * paints mid-handler, so none of that reaches the screen.
+ *
+ * @param {HTMLElement} popover - The element carrying the `popover` attribute, with `margin: 0` in its CSS.
+ * @param {Element} anchor - The button it opens from.
+ * @param {number} [gapPx=6] - Space between the two, before UI scaling.
+ */
+util.placePopover = function (popover, anchor, gapPx = 6) {
+  let { offsetWidth: width, offsetHeight: height } = popover;
+  if (!width) {
+    const style = popover.style;
+    Object.assign(style, { display: 'block', visibility: 'hidden', left: '0px', top: '0px' });
+    ({ offsetWidth: width, offsetHeight: height } = popover);
+    Object.assign(style, { display: '', visibility: '' });
+  }
+  const rect = anchor.getBoundingClientRect();
+  const gap = gapPx * util.uiScale();
+  const above = rect.top - gap - height;
+  const below = rect.bottom + gap;
+  popover.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - width - 8))}px`;
+  popover.style.top = `${below + height + 8 > window.innerHeight && above >= 8 ? above : below}px`;
 };
 
 // Browser detection helpers backed by Bowser 2.x. The vendor script loads deferred (this file does not), so the
@@ -450,12 +480,61 @@ util.monthYear = function (iso, { short = false } = {}) {
     .toLocaleDateString(i18next.language, { month: short ? 'short' : 'long', year: 'numeric' });
 };
 
-// A cross-browser function to capture a mouse position, relative to the given DOM element. The UI is scaled through
-// real layout sizes (var(--ui-scale)), so offset() already reflects the scaled position and no compensation is needed.
+/** Short date ("Mar 5, 2026"), spelled out because `dateStyle: 'medium'` is all digits in German. */
+util.SHORT_DATE = Object.freeze({ day: 'numeric', month: 'short', year: 'numeric' });
+util.SHORT_DATE_TIME = Object.freeze({ ...util.SHORT_DATE, hour: 'numeric', minute: '2-digit' });
+
+/**
+ * Like `new Date()`, but reads a bare `2024`, `2024-10` or `2024-10-01` as local midnight rather than UTC midnight,
+ * which is still the previous month anywhere west of London.
+ * @param {string|number|Date} value - A month, date, or timestamp string, epoch milliseconds, or a `Date`.
+ * @returns {Date} The date, which is invalid (`NaN` time) if the value couldn't be read.
+ */
+util.parseDate = function (value) {
+  const calendar = typeof value === 'string' ? /^(\d{4})(?:-(\d{2}))?(?:-(\d{2}))?$/.exec(value) : null;
+  if (calendar === null) return new Date(value);
+  const [year, month, day] = [Number(calendar[1]), Number(calendar[2] ?? 1), Number(calendar[3] ?? 1)];
+  const date = new Date(year, month - 1, day);
+  // `Date` rolls 2024-13 over into January 2025, so reject anything that didn't land where it was asked to.
+  return date.getMonth() === month - 1 && date.getDate() === day ? date : new Date(NaN);
+};
+
+/**
+ * "3 days ago" in the largest whole unit, since `Intl.RelativeTimeFormat` won't pick one, or "now" under a minute.
+ * Rounds down, so it never says "60 minutes ago", and never says "yesterday", which names a calendar day rather than
+ * a span of time.
+ * @param {Date} date - A past date.
+ * @returns {string}
+ */
+util.timeAgo = function (date) {
+  const seconds = Math.max(0, (Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return new Intl.RelativeTimeFormat(i18next.language, { numeric: 'auto' }).format(0, 'second');
+  /** @type {Array<[Intl.RelativeTimeFormatUnit, number]>} Each unit and its average length in seconds. */
+  const units = [['year', 31557600], ['month', 2629800], ['day', 86400], ['hour', 3600], ['minute', 60]];
+  const [unit, size] = units.find(([, length]) => seconds >= length);
+  return new Intl.RelativeTimeFormat(i18next.language).format(-Math.floor(seconds / size), unit);
+};
+
+/**
+ * The reader's local calendar day as `YYYY-MM-DD` ('' if invalid); `toISOString()` would give the UTC day.
+ * @param {Date} date
+ * @returns {string}
+ */
+util.localIsoDate = function (date) {
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+};
+
+/**
+ * Where a mouse event landed, in whole pixels from the element's top-left corner.
+ * @param {MouseEvent} e
+ * @param {Element|EventTarget} dom - Usually the event's currentTarget.
+ * @returns {{x: number, y: number}}
+ */
 function mousePosition(e, dom) {
-  const mx = e.pageX - $(dom).offset().left;
-  const my = e.pageY - $(dom).offset().top;
-  return { x: Math.trunc(mx), y: Math.trunc(my) };
+  const rect = /** @type {Element} */ (dom).getBoundingClientRect();
+  return { x: Math.trunc(e.clientX - rect.left), y: Math.trunc(e.clientY - rect.top) };
 }
 
 util.mousePosition = mousePosition;
@@ -613,6 +692,29 @@ function afterLoadIdle(fn) {
 }
 
 util.afterLoadIdle = afterLoadIdle;
+
+/**
+ * Runs fn once the page's HTML is parsed, or right away if it already is.
+ * @param {() => void} fn
+ */
+function onDomReady(fn) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn, { once: true });
+  else fn();
+}
+
+util.onDomReady = onDomReady;
+
+/**
+ * Fetches a JSON endpoint, rejecting on a non-2xx status so a failed request doesn't surface as a parse error.
+ * @param {string|URL} url - The endpoint to fetch.
+ * @param {RequestInit} [init] - Extra fetch options; headers are merged over the JSON `Accept` header.
+ * @returns {Promise<any>} The parsed response body.
+ */
+util.fetchJson = async function (url, init = {}) {
+  const response = await fetch(url, { ...init, headers: { Accept: 'application/json', ...init.headers } });
+  if (!response.ok) throw new Error(`Request failed (${response.status}): ${url}`);
+  return response.json();
+};
 
 // Any of these means a human is present. pointermove is the earliest of them by a wide margin — a single mouse
 // twitch — which is the point: the gate has to clear long before the visitor could scroll to the deferred content.

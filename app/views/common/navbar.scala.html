@@ -5,13 +5,13 @@
 @* renderAuthDialog: a page whose body carries the full-page auth forms (signIn/signUp views, whatever path they
    render from) passes false so the dialog's identical form ids aren't duplicated (see authDialog.scala.html). *@
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole] = None, renderAuthDialog: Boolean = true
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @cityInfo = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId || c.isPublic || (currentCityInfo.countryId == "taiwan" && c.countryId == "taiwan"))}
 @* Every switch-target city (i.e. not the current one), grouped by country and sorted within each group; the current
    city is pinned separately at the top of the switcher. Country order is alphabetical by country id. *@
-@otherCitiesByCountry = @{cityInfo.filter(_.cityId != commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId)).groupBy(_.countryId).toSeq.sortBy(_._1)}
+@otherCitiesByCountry = @{cityInfo.filter(_.cityId != commonData.cityId).sortBy(c => (c.countryId, c.stateId, c.cityId)).groupBy(_.countryId).toSeq.sortBy { case (countryId, _) => countryId }}
 @isAdmin = @{user.isDefined && (user.get.role == Role.Administrator || user.get.role == Role.Owner)}
 @* Destinations that redirect a mobile visitor to /mobileLanding (Explore, Route Builder) or to /mobile
    (Expert Validate) are left out of the menu on those devices: a link that can only bounce you somewhere else is
@@ -41,53 +41,53 @@
       @* Filled by Navbar.js at collapsed widths with as many `data-nav-quick` items as fit. The items are moved here,
          not cloned: their ids are what the click logging and the auth dialog key on, so a second copy would break
          both. Empty in the inline bar, where those items sit in their own groups. *@
-      <ul class="navbar-nav navbar-quick" id="navbar-quick"></ul>
-      <button type="button" class="navbar-toggle" data-nav-toggle aria-controls="navbar" aria-expanded="false" aria-label="@Messages("navbar.menu.toggle")">
-        <img class="navbar-toggle-icon" src='@assets.path("images/icons/menu-feather.svg")' alt="" aria-hidden="true">
+      <ul class="navbar-list navbar-quick" id="navbar-quick"></ul>
+      <button type="button" class="navbar-menu-toggle" data-nav-toggle aria-controls="navbar" aria-expanded="false" aria-label="@Messages("navbar.menu.toggle")">
+        <img class="navbar-menu-toggle-icon" src='@assets.path("images/icons/menu-feather.svg")' alt="" aria-hidden="true">
       </button>
     </div>
     <div id="navbar">
       @* Primary navigation: contribution actions + tools. *@
-      <ul class="navbar-nav navbar-nav--primary" id="topbuttons">
+      <ul class="navbar-list navbar-list--primary" id="topbuttons">
         @* Explore is the single dominant call to action. It stays visible and is marked active on /explore (rather
            than being hidden), so the link set is stable page to page. *@
         @if(!isMobileDevice) {
-          <li class="navbar-lnk">
-            <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore()"@if(isExplore){ aria-current="page"}>@common.navbarLnkIcon("compass")@Messages("navbar.explore")</a>
+          <li class="navbar-item">
+            <a class="navbar-button@if(isExplore){ is-active}" id="navbar-start-btn" href="@routes.ExploreController.explore()"@if(isExplore){ aria-current="page"}>@common.navbarItemIcon("compass")@Messages("navbar.explore")</a>
           </li>
         }
         @* `data-nav-quick` marks an item the collapsed bar shows as an icon beside the hamburger, lowest number first;
            whatever doesn't fit stays in the panel. See #applyQuickStrip in Navbar.js. *@
-        <li class="navbar-lnk" data-nav-quick="2">
-          <a class="navbar-button@if(request.path == "/validate"){ is-active}" id="navbar-validate-btn" href="@routes.ValidateController.validate()"@if(request.path == "/validate"){ aria-current="page"}>@common.navbarLnkIcon("check-circle")<span class="navbar-lnk-label">@Messages("navbar.validate")</span></a>
+        <li class="navbar-item" data-nav-quick="2">
+          <a class="navbar-button@if(request.path == "/validate"){ is-active}" id="navbar-validate-btn" href="@routes.ValidateController.validate()"@if(request.path == "/validate"){ aria-current="page"}>@common.navbarItemIcon("check-circle")<span class="navbar-item-label">@Messages("navbar.validate")</span></a>
         </li>
         @* Label Map is the results/output view — a top-level peer of the Explore (contribute) + Validate (verify) loop.
            `data-nav-shed` marks it droppable when the bar runs out of room (it stays reachable under Tools ▸ Analyze);
            see the shed order in Navbar.js. *@
-        <li class="navbar-lnk" data-nav-shed="4">
-          <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@common.navbarLnkIcon("map")@Messages("navbar.labelmap")</a>
+        <li class="navbar-item" data-nav-shed="4">
+          <a class="navbar-button@if(request.path.toLowerCase == "/labelmap"){ is-active}" id="navbar-labelmap-btn" href="@routes.ApplicationController.labelMap(None)"@if(request.path.toLowerCase == "/labelmap"){ aria-current="page"}>@common.navbarItemIcon("map")@Messages("navbar.labelmap")</a>
         </li>
         @* Retake Tutorial is a genuine /explore-only feature, not the current page hidden. *@
         @if(isExplore) {
-          <li class="navbar-lnk">
-            <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@common.navbarLnkIcon("play-circle")@Messages("navbar.retake.tutorial")</a>
+          <li class="navbar-item">
+            <a class="navbar-button" href="#" id="navbar-retake-tutorial-btn">@common.navbarItemIcon("play-circle")@Messages("navbar.retake.tutorial")</a>
           </li>
         }
-        <li class="navbar-lnk" data-nav-shed="2">
+        <li class="navbar-item" data-nav-shed="2">
         @if(currentCityInfo.countryId == "taiwan") {
-          <a class="navbar-button" id="navbar-guide-btn" href="@assets.path("documents/labeling-guide-Taiwan.pdf")" target="_blank" rel="noopener">@common.navbarLnkIcon("book-open")@Messages("navbar.howto")</a>
+          <a class="navbar-button" id="navbar-guide-btn" href="@assets.path("documents/labeling-guide-Taiwan.pdf")" target="_blank" rel="noopener">@common.navbarItemIcon("book-open")@Messages("navbar.howto")</a>
         } else {
-          <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener">@common.navbarLnkIcon("book-open")@Messages("navbar.howto")</a>
+          <a class="navbar-button" id="navbar-guide-btn" href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener">@common.navbarItemIcon("book-open")@Messages("navbar.howto")</a>
         }
         </li>
 
         @* Tools: grouped into labeled sections so the menu stays scannable as tools are added. *@
-        <li class="dropdown navbar-lnk" id="navbar-tools-dropdown-list">
-          <button type="button" id="nav-tools-dropdown" class="navbar-button navbar-dropdown-toggle@if(toolsToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-tools-menu">
-            @common.navbarLnkIcon("tool")@Messages("navbar.tools")<b class="caret" aria-hidden="true"></b>
+        <li class="navbar-item" id="navbar-tools-dropdown-list">
+          <button type="button" id="nav-tools-dropdown" class="navbar-button@if(toolsToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-tools-menu">
+            @common.navbarItemIcon("tool")@Messages("navbar.tools")<b class="navbar-caret" aria-hidden="true"></b>
           </button>
-          <ul id="nav-tools-menu" class="dropdown-menu" aria-label="@Messages("navbar.tools")">
-            <li class="dropdown-section">@Messages("navbar.tools.analyze")</li>
+          <ul id="nav-tools-menu" class="navbar-menu" aria-label="@Messages("navbar.tools")">
+            <li class="navbar-menu-section">@Messages("navbar.tools.analyze")</li>
             <li><a id="navbar-gallery-btn" href="@routes.GalleryController.gallery()"@if(curPath == "/gallery"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("grid")@Messages("gallery")</a></li>
             @* Label Map has a top-level row of its own, and the stacked panel shows every row, so on a phone this
                copy would be the same destination listed twice — under two different click-analytics ids. *@
@@ -98,39 +98,39 @@
             @if(!isMobileDevice) {
               <li><a id="navbar-accessscore-btn" href="@routes.ApplicationController.accessScore"@if(curPath == "/accessscore"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("bar-chart-2")@Messages("navbar.accessscore")</a></li>
             }
-            <li class="dropdown-section">@Messages("navbar.tools.community")</li>
+            <li class="navbar-menu-section">@Messages("navbar.tools.community")</li>
             <li><a id="navbar-leaderboard-btn" href='@routes.UserDashboardController.leaderboard'@if(curPath == "/leaderboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("award")@Messages("navbar.leaderboard")</a></li>
             <li><a id="navbar-stories-btn" href='@routes.StoryController.storiesPage'@if(curPath == "/stories"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("message-circle")@Messages("navbar.stories")</a></li>
             <li><a id="navbar-routes-btn" href='@routes.RouteBuilderController.routesPage'@if(curPath == "/routes"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("flag")@Messages("navbar.routes")</a></li>
             @if(!isMobileDevice) {
-              <li class="dropdown-section">@Messages("navbar.tools.build")</li>
+              <li class="navbar-menu-section">@Messages("navbar.tools.build")</li>
               <li><a id="navbar-route-builder-btn" href='@routes.ApplicationController.routeBuilder'@if(curPath == "/routebuilder"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("navigation")@Messages("routebuilder.name")</a></li>
               @if(isAdmin) {
-                <li class="dropdown-section">@Messages("navbar.tools.admin")</li>
+                <li class="navbar-menu-section">@Messages("navbar.tools.admin")</li>
                 <li><a id="navbar-expert-validate-btn-tools" href='@routes.ValidateController.expertValidate()'@if(curPath == "/expertvalidate" || curPath == "/adminvalidate"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("check-square")@Messages("navbar.expert.validate")</a></li>
               }
             }
           </ul>
         </li>
 
-        <li class="navbar-lnk" data-nav-shed="3" data-nav-quick="4">
-          <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@common.navbarLnkIcon("code")<span class="navbar-lnk-label">@Messages("navbar.api")</span></a>
+        <li class="navbar-item" data-nav-shed="3" data-nav-quick="4">
+          <a class="navbar-button" id="navbar-api-btn" href="@routes.ApiDocsController.index" aria-label="Developer API">@common.navbarItemIcon("code")<span class="navbar-item-label">@Messages("navbar.api")</span></a>
         </li>
         @* About is the first item shed when the bar runs out of room: it's the only non-task link up here, and it
            stays reachable from the footer on every page. *@
-        <li class="navbar-lnk" data-nav-shed="1" data-nav-quick="3">
-          <a class="navbar-button@if(curPath == "/about"){ is-active}" id="navbar-about-btn" href="@routes.ApplicationController.about"@if(curPath == "/about"){ aria-current="page"}>@common.navbarLnkIcon("info")<span class="navbar-lnk-label">@Messages("navbar.about")</span></a>
+        <li class="navbar-item" data-nav-shed="1" data-nav-quick="3">
+          <a class="navbar-button@if(curPath == "/about"){ is-active}" id="navbar-about-btn" href="@routes.ApplicationController.about"@if(curPath == "/about"){ aria-current="page"}>@common.navbarItemIcon("info")<span class="navbar-item-label">@Messages("navbar.about")</span></a>
         </li>
       </ul>
 
       @* Utility navigation: site (city) context + account + language. *@
-      <ul class="navbar-nav navbar-nav--utility">
+      <ul class="navbar-list navbar-list--utility">
         @* City switcher: a searchable disclosure. Scales past the flat list that overflowed the viewport (#3892). *@
-        <li id="navbar-city-dropdown" class="dropdown navbar-lnk">
-          <button type="button" id="nav-city-dropdown" class="navbar-button navbar-dropdown-toggle" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-city-panel">
-            <img class="navbar-select-icon" src='@assets.path("images/icons/map-pin-feather.svg")' alt="" aria-hidden="true">@currentCityInfo.cityNameShort<b class="caret" aria-hidden="true"></b>
+        <li id="navbar-city-dropdown" class="navbar-item">
+          <button type="button" id="nav-city-dropdown" class="navbar-button" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-city-panel">
+            <img class="navbar-select-icon" src='@assets.path("images/icons/map-pin-feather.svg")' alt="" aria-hidden="true">@currentCityInfo.cityNameShort<b class="navbar-caret" aria-hidden="true"></b>
           </button>
-          <div id="nav-city-panel" class="dropdown-menu nav-city-panel" aria-label="@Messages("navbar.city")">
+          <div id="nav-city-panel" class="navbar-menu nav-city-panel" aria-label="@Messages("navbar.city")">
             <div class="nav-city-search-wrap">
               <input type="search" id="nav-city-search" class="nav-city-search" autocomplete="off" placeholder="@Messages("navbar.city.search")" aria-label="@Messages("navbar.city.search")">
             </div>
@@ -164,16 +164,16 @@
 
         @* Highest quick-strip priority: signed-in or not is the one thing the collapsed bar should never hide, and
            it is the entry point to everything personal. *@
-        <li class="dropdown navbar-lnk" id="navbar-user-dropdown-list" data-nav-quick="1">
+        <li class="navbar-item" id="navbar-user-dropdown-list" data-nav-quick="1">
         @if(user.isDefined && user.get.role != Role.Anonymous) {
-          <button type="button" id="nav-user-dropdown" class="navbar-button navbar-dropdown-toggle@if(userToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-user-menu" aria-label="User options for @user.get.username">
-            <img class="navbar-select-icon" src='@assets.path("images/icons/user-feather.svg")' alt="" aria-hidden="true"><span class="navbar-user-name">@user.get.username</span><b class="caret" aria-hidden="true"></b>
+          <button type="button" id="nav-user-dropdown" class="navbar-button@if(userToggleActive){ is-active}" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-user-menu" aria-label="User options for @user.get.username">
+            <img class="navbar-select-icon" src='@assets.path("images/icons/user-feather.svg")' alt="" aria-hidden="true"><span class="navbar-user-name">@user.get.username</span><b class="navbar-caret" aria-hidden="true"></b>
           </button>
           @* Section headers only appear for admins: their menu carries a second, unrelated group of links, while a
              contributor's handful of account links reads better as one flat list. *@
-          <ul id="nav-user-menu" class="dropdown-menu" aria-label="User options for @user.get.username">
+          <ul id="nav-user-menu" class="navbar-menu" aria-label="User options for @user.get.username">
             @if(isAdmin) {
-              <li class="dropdown-section">@Messages("navbar.user.account")</li>
+              <li class="navbar-menu-section">@Messages("navbar.user.account")</li>
             }
             <li>
               <a id="navbar-dashboard-btn" href='@routes.UserDashboardController.dashboard'@if(curPath == "/dashboard"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("bar-chart-2")@Messages("navbar.dashboard")</a>
@@ -202,7 +202,7 @@
               </li>
             }
             @if(isAdmin) {
-              <li class="dropdown-section">@Messages("navbar.tools.admin")</li>
+              <li class="navbar-menu-section">@Messages("navbar.tools.admin")</li>
               <li>
                 <a id="navbar-admin-btn" href='@routes.AdminDashboardController.overview'@if(curPath == "/admin" || curPath == "/admin/overview"){ class="is-active" aria-current="page"}>@common.navbarMenuIcon("shield")@Messages("navbar.admin")</a>
               </li>
@@ -212,7 +212,7 @@
                 </li>
               }
             }
-            <li class="dropdown-divider" role="separator"></li>
+            <li class="navbar-menu-divider" role="separator"></li>
             <li>
               <a id="navbar-sign-out-btn" href='@routes.UserController.signOut(request.uri)'>@common.navbarMenuIcon("log-out")@Messages("navbar.signout")</a>
             </li>
@@ -220,16 +220,16 @@
         } else {
           @* Real href so it works on pages without the dialog (e.g. /signIn itself); AuthModal intercepts the
              click to open the dialog everywhere else. *@
-          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button">@common.navbarLnkIcon("log-in")<span class="navbar-lnk-label">@Messages("navbar.signin")</span></a>
+          <a id="navbar-sign-in-btn" href="@routes.UserController.signIn()" data-au-open="signIn" class="navbar-button">@common.navbarItemIcon("log-in")<span class="navbar-item-label">@Messages("navbar.signin")</span></a>
         }
         </li>
 
-        <li class="dropdown navbar-lnk" id="language-dropdown">
-          <button type="button" class="navbar-button navbar-dropdown-toggle" id="language-button" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-language-menu" aria-label="@Messages("navbar.lang.aria")">
+        <li class="navbar-item" id="language-dropdown">
+          <button type="button" class="navbar-button" id="language-button" data-nav-dropdown aria-haspopup="true" aria-expanded="false" aria-controls="nav-language-menu" aria-label="@Messages("navbar.lang.aria")">
             <img id="language-icon" src='@assets.path("images/icons/globe-feather.svg")' alt="@Messages("navbar.lang.icon.alt")">
-            <span class="navbar-lang-label">@Messages(s"lang.name.${messages.lang.code}")</span><b class="caret" aria-hidden="true"></b>
+            <span class="navbar-lang-label">@Messages(s"lang.name.${messages.lang.code}")</span><b class="navbar-caret" aria-hidden="true"></b>
           </button>
-          <ul id="nav-language-menu" class="dropdown-menu" aria-label="@Messages("navbar.lang.aria")">
+          <ul id="nav-language-menu" class="navbar-menu" aria-label="@Messages("navbar.lang.aria")">
           @for(language <- config.get[Seq[String]]("play.i18n.langs")) {
             @if(language != messages.lang.code) {
               <li>

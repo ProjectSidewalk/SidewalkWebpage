@@ -51,7 +51,6 @@ declare const FloatingUIDOM: any;
 declare const i18next: any;
 declare const i18nextHttpBackend: any;
 declare const infra3dapi: any;
-declare const Kinetic: any;
 declare const mapboxgl: any;
 declare namespace mapboxgl {
   type GeoJSONSource = any;
@@ -67,10 +66,6 @@ declare const MapboxLanguage: any;
 declare const MapboxSearchBox: any;
 // GraphDataProvider is spelled out because a class extending an `any` base gets a constructor that takes nothing.
 declare const mapillary: { GraphDataProvider: new (options?: object) => any; [name: string]: any };
-declare const moment: any;
-declare namespace moment {
-  type Moment = any;
-}
 declare const pannellum: any;
 declare namespace pannellum {
   type Viewer = any;
@@ -82,6 +77,7 @@ declare namespace PhotoSphereViewer {
 }
 declare const proj4: any;
 declare const THREE: any;
+declare const TomSelect: any;
 declare const turf: any;
 declare namespace turf {
   type Feature<G = any> = any;
@@ -95,22 +91,6 @@ declare namespace GeoJSON {
   type FeatureCollection<G = any> = any;
   type Geometry = any;
   type LineString = any;
-}
-
-// jQuery plugins from Bootstrap, Magnific Popup, and Selectize.
-interface JQuery {
-  magnificPopup(...args: any[]): JQuery;
-  modal(...args: any[]): JQuery;
-  popover(...args: any[]): JQuery;
-  selectize(...args: any[]): JQuery;
-  tooltip(...args: any[]): JQuery;
-}
-
-declare namespace JQuery {
-  interface TriggeredEvent<TDelegateTarget = any, TData = any, TCurrentTarget = any, TTarget = any> {
-    // jQuery sets this on events fired from code with .trigger() or .click(), but its type package leaves it out.
-    isTrigger?: number;
-  }
 }
 
 // The Network Information API, which only Chromium browsers have, so TypeScript's DOM types leave it out.
@@ -145,11 +125,9 @@ interface Window {
   choropleth?: mapboxgl.Map;
   // The deployment sites map, kept here so the resize handler can reach it.
   citiesMap?: mapboxgl.Map;
-  // Set by the jQuery script; @types/jquery only declares the bare `$` and `jQuery` globals.
-  jQuery: JQueryStatic;
   // Explore's rasterized label icons, by icon path. Set up by Label.js.
   labelIconCache: Record<string, HTMLCanvasElement>;
-  // Stamped from LabelTypeEnum.pageStampJson.
+  // Stamped from LabelType.pageStampJson.
   labelTypes: Array<{
     name: string;
     color: string;

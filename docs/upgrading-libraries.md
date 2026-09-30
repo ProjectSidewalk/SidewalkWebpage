@@ -7,7 +7,7 @@ a glance whether something has a newer release available, or has gone end-of-lif
 
 **Keep the versions here in sync with the code, and keep this the only _doc_ that carries full versions.** Other docs
 ([`CLAUDE.md`](../CLAUDE.md), [`docs/architecture.md`](architecture.md), the README) mention only stable *major*
-versions (Scala 2.13, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
+versions (Scala 3.3, Play 3.0, Java 17) and point here for the exact numbers — so a patch bump only has to be
 recorded once. When you upgrade something, bump its version number below in the same change.
 
 > Many entries carry a **note** explaining *why* we're pinned where we are (a known incompatibility, an abandoned
@@ -31,6 +31,7 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 | Python (tooling) | **3.13.15** | 3.14.7 | Oct 2029 | `Dockerfile`, via uv |
 | web image | **`eclipse-temurin:17-jdk-focal`** | jammy / noble | **May 2025 — past** | `Dockerfile` |
 | db image | **`postgis/postgis:16-3.5`** | (see below) | **Aug 2026 — past** | `db/Dockerfile` |
+| ShellCheck image | **`koalaman/shellcheck:v0.11.0`** | 0.11.0 | — | `docker/shellcheck/Dockerfile` (never built; the pin `make shellcheck` and CI run, kept where Dependabot looks) |
 
 - **Focal does more than it looks.** It's what makes `python3` mean 3.8 (retiring that is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396)), and its glibc 2.31 is older than the
@@ -40,9 +41,9 @@ listed separately and are *expected* to differ; the goal is skew that's written 
 - **The `16-3.5` image line is a dead end.** apt.postgresql.org's bullseye pool stops at PostGIS 3.5.2, and
   docker-postgis publishes no `16-3.6` tag (3.6 images start at Postgres 17) or bookworm variant for 16 — so newer
   geospatial libraries in dev means moving the Postgres major *and* the base OS together, not a version bump.
-- **Java 17** is two LTS lines behind but patched through 2027, so it's a planned migration rather than an exposure;
-  prod's JVM version has never been collected (#4398 captured its OS and DB stack only). Dependabot deliberately
-  ignores major `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
+- **Java 17** in dev and CI, **21** on prod; moving dev to 21 is
+  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396). Dependabot deliberately ignores major
+  `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
 
 ### Database server
 
@@ -63,12 +64,20 @@ readonly_user -d sidewalk`).
   against prod's hand-built ones. Geometry output can genuinely differ across that GEOS gap, so a spatial result that
   reproduces in only one environment starts here. The same skew breaks dev's JIT — PostGIS bitcode built with LLVM 16
   against a runtime linked to LLVM 11, so an expensive spatial query segfaults the backend
-  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — hence `withJitOff` in `ConfigTable`.
+  ([#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)) — so `docker-compose.yml` starts the db
+  with `jit=off`, matching prod.
+- **Prod server settings dev lacks** (set by CSE IT in its `postgresql.conf` after
+  [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)):
+  `idle_in_transaction_session_timeout = 2min` and `log_lock_waits = on`.
+- **Prod's `psql` on the PATH is 13.23**, older than the 16.14 server. A 13 `pg_dump` refuses a 16 server, so
+  check `pg_dump --version` before dumping there.
 - **Dev's Postgres is what a fresh build gets:** the base image ships 16.4 and `db/Dockerfile` upgrades it, so an old
   container reports an older patch. The geospatial libraries are fixed by the base image and that upgrade never moves
-  them. **Prod's PostGIS is half-upgraded** — library 3.4.6, SQL functions still 3.4.1, which is the `need upgrade`
-  at the end of its `PostGIS_Full_Version()`; it wants an `ALTER EXTENSION postgis UPDATE`. **GDAL** isn't reported
-  by that function in either place (no raster support), so dev's comes from the installed package.
+  them. **When CSE IT updates prod's PostGIS library**, the SQL functions stay behind until someone updates them
+  (`PostGIS_Full_Version()` ends in `need upgrade`; last done 2026-09-28). In each database, run `ALTER EXTENSION
+  postgis UPDATE TO '<lib version>'`, not `postgis_extensions_upgrade()`, which trips on leftover unpackaged raster
+  functions. Then hand any functions the update created back to `sidewalk`. **GDAL** isn't reported by that function
+  in either place (no raster support), so dev's comes from the installed package.
 
 ## Scala / sbt / Play
 
@@ -78,9 +87,7 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
 
 ### Core toolchain
 
-- **Scala: 2.13.18** — we're staying on 2.13 for now; the move to Scala 3 is a major lift tracked in
-  [#3936](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3936) (unclear if all our libraries support it
-  yet). Edit `scalaVersion` in `build.sbt`.
+- **Scala: 3.3.8** — the 3.3 LTS line. Edit `scalaVersion` in `build.sbt`.
   [Releases](https://www.scala-lang.org/download/all.html) · [Changelog](https://github.com/scala/scala/releases)
 - **sbt: 1.13.0** — set in `project/build.properties`; downloaded automatically on the next `npm start`. The
   `Dockerfile` pins the apt `sbt` launcher to that same version, so also `docker compose build web` after a bump
@@ -109,8 +116,6 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
   migrates (watch the [Play changelog](https://www.playframework.com/changelog)).
   [Releases](https://mvnrepository.com/artifact/net.codingwell/scala-guice) ·
   [Changelog](https://github.com/codingwell/scala-guice/blob/develop/CHANGELOG.md)
-- **ficus: 1.5.2** — typed config reading.
-  [Releases](https://mvnrepository.com/artifact/com.iheart/ficus)
 
 ### Database (Slick + Postgres + PostGIS)
 
@@ -153,11 +158,6 @@ These are the JVM libraries we talk to the database *through*; the database serv
   recency/proximity buckets are stored, the precise values discarded.
   [Releases](https://mvnrepository.com/artifact/com.drewnoakes/metadata-extractor) ·
   [Changelog](https://github.com/drewnoakes/metadata-extractor/releases)
-- **play-bootstrap: 1.6.1-P28-B3** — Twirl helpers for the sign-in/up views. **Note:** the `P28-B3` suffix means
-  "Play 2.8, Bootstrap 3"; 1.6.1 is the newest and there have been no releases since April 2020. It still works, only
-  a few pages use it (mostly auth), and we don't expect further updates — we'd rather move off Bootstrap entirely.
-  [Releases](https://mvnrepository.com/artifact/com.adrianhurt/play-bootstrap) ·
-  [Docs](https://playframework.github.io/play-bootstrap/)
 
 ### Build plugins & test (`project/plugins.sbt`, `.scalafmt.conf`, test deps)
 
@@ -199,12 +199,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **betterknown: 1.2.0** — [Download](https://unpkg.com/betterknown) ·
   [Versions](https://www.npmjs.com/package/betterknown?activeTab=versions) ·
   [Changelog](https://github.com/placemark/betterknown/releases)
-- **bootstrap: 3.3.5** — **note:** upgrading Bootstrap is a huge undertaking, deferred indefinitely — the goal is to
-  remove the dependency entirely (a slow, ongoing transition). (A separate copy of Bootstrap 3.1.1 ships inside the
-  `bootstrap-accessibility-plugin/` bundle below.)
-- **bootstrap-accessibility-plugin** (bundles Bootstrap 3.1.1 + jQuery 1.12.2) — accessibility patches for our
-  Bootstrap 3 UI; lives in `public/vendor/bootstrap-accessibility/` (with the bundled Bootstrap 3.1.1 JS and jQuery
-  1.12.2 split out into `public/vendor/bootstrap/` and `public/vendor/jquery/`). Tied to the Bootstrap-removal effort.
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)
@@ -217,11 +211,12 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·
   [Download dom](https://cdn.jsdelivr.net/npm/@floating-ui/dom@1.8.0) ·
   [Download core](https://cdn.jsdelivr.net/npm/@floating-ui/core@1.8.0)
-- **i18next: 23.16.8** — **note:** v24+ has breaking changes we haven't worked through (the changelog links a
-  migration guide); take minor bumps meanwhile.
+- **i18next: 26.4.2** — frontend translations. **Note:** `test/js/i18nextLocales.test.js` runs this file and
+  i18next-http-backend over our real locale files in every language, so `make test-js args=i18nextLocales` is the
+  check after a bump of either.
   [Download](https://unpkg.com/i18next/dist/umd/i18next.min.js) ·
   [Changelog](https://github.com/i18next/i18next/blob/master/CHANGELOG.md)
-- **i18next-http-backend: 3.0.6** — loads translation files (`i18nextHttpBackend-3.0.6.min.js`).
+- **i18next-http-backend: 4.0.2** — loads translation files (`i18nextHttpBackend-4.0.2.min.js`).
   [Project + downloads](https://github.com/i18next/i18next-http-backend) ·
   [Changelog](https://github.com/i18next/i18next-http-backend/blob/master/CHANGELOG.md)
 - **infra3dapi: 1.12.1** — Infra3d imagery provider. **Note:** `Infra3dViewer.js` reaches past the documented API into
@@ -230,8 +225,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   bump grep the new file for each name.
   [Download](https://cdn.jsdelivr.net/npm/@inovitas/infra3dapi@1.12.1/infra3dapi.js) ·
   [Changelog](https://developers.infra3d.com/javascript-api/reference/index.html#md:changelog)
-- **kinetic: 4.4.3** — **note:** only used for the hand animation in the Explore tutorial;
-  [no longer maintained](https://github.com/ericdrowell/KineticJS). Could bump to 5.1.0 and leave it.
 - **mapbox-gl (js & css): 3.24.1** — check with `mapboxgl.version`. **Note:** held below 3.25 on purpose. From 3.25.0 a
   symbol layer that shares a source with feature-state paint (Route Builder's region labels, AccessScore's) crashes
   the map with `Cannot read properties of undefined (reading 'paint')` once that state changes
@@ -248,12 +241,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **mapillary: 4.1.2** — Mapillary imagery provider.
   [Downloads](https://mapillary.github.io/mapillary-js/docs/intro/try/#using-a-cdn) ·
   [Changelog](https://github.com/mapillary/mapillary-js/releases)
-- **moment.js: 2.31.0** — vendored alongside one locale file per supported language. Only `en` and `en-US` need none,
-  since moment has US English built in; other English variants do have their own file (`en-NZ` formats dates
-  differently). **Adding a language means adding its locale file too**, or its dates silently render in English;
-  `common/main.scala.html` picks the file by lowercased language code. [Download](https://momentjs.com/) ·
-  [Locale files](https://github.com/moment/moment/tree/develop/locale) ·
-  [Changelog](https://github.com/moment/moment/blob/develop/CHANGELOG.md)
 - **pannellum: 2.5.7** — Pannellum panorama viewer. [Download](https://pannellum.org/download/) ·
   [Changelog](https://github.com/mpetroff/pannellum/blob/2.5.7/changelog.md)
 - **panzoom: 9.4.4** — zoom/pan for static images in LabelMap/Gallery.
@@ -274,14 +261,15 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/PrismJS/prism/releases)
 - **proj4js: 2.22.0** — [Download](https://cdnjs.com/libraries/proj4js) ·
   [Changelog](https://github.com/proj4js/proj4js/releases)
-- **selectize.js: 0.15.2** — **note:** unmaintained (last release 2022). The suggested successor is
-  [tom-select](https://github.com/orchidjs/tom-select), a maintained fork that drops jQuery — a good fit as we move
-  off jQuery. [Download](https://selectize.dev/docs/intro) · [Changelog](https://github.com/selectize/selectize.js/releases)
 - **three.js: 0.160.1** — **note:** only used to compute camera pitch/roll for Mapillary imagery. Mapillary bundles
   three.js but doesn't expose it on `window`. After 0.160.1 upstream stopped shipping a standalone `three.min.js`
   (bundler-only), so upgrading isn't worth it soon.
   [Download](https://cdn.jsdelivr.net/npm/three@0.160.1/build/three.min.js) ·
   [Changelog](https://github.com/mrdoob/three.js/releases)
+- **tom-select: 2.6.2** — the tag picker on Validate. We ship the `base` build, which has no plugins, plus the
+  unthemed `tom-select.min.css`; the picker's look comes from `svv-validation-menu.css`.
+  [Download (set version in URL)](https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/) ·
+  [Changelog](https://github.com/orchidjs/tom-select/releases)
 - **turf.js: 7.4.0** — [Download (set version in URL)](https://unpkg.com/@turf/turf@7.4.0/turf.min.js) ·
   [Changelog](https://github.com/Turfjs/turf/releases)
 - **vega: 5.33.1, vega-lite: 5.23.0, vega-embed: 6.29.0** — the coverage charts on the admin dashboard. We
@@ -289,11 +277,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   together. **Note:** each has a major out (6 / 6 / 7) that we haven't looked at.
   [Download](https://github.com/vega/vega-embed?tab=readme-ov-file#directly-in-the-browser) ·
   [Changelog](https://github.com/vega/vega-lite/releases)
-- **jquery.magnific-popup** — **TODO:** unclear status; resolve the jQuery situation first. Tied to jQuery removal.
-
-> **jQuery / Bootstrap removal:** several entries above (Bootstrap, magnific-popup, selectize) are part of
-> a slow, deliberate transition *off* jQuery and Bootstrap toward native JS/CSS. Prefer native alternatives in new
-> code rather than leaning further on these. See the coding guidance in [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
 ## Python
 

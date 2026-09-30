@@ -140,8 +140,6 @@ describe('GsvViewer location searches hold replies to the radius', () => {
                 StreetViewSource: { OUTDOOR: 'outdoor' },
             },
         };
-        // #updateCurrPanoData wraps dates in moment and builds a PanoData; neither matters to the decision under test.
-        window.moment = (value) => value;
         window.PanoData = class {
             constructor(params) {
                 this.params = params;

@@ -2,7 +2,7 @@ package forms
 
 import play.api.data.Forms.nonEmptyText
 import play.api.data.Mapping
-import play.api.data.validation.Constraints.{minLength => minLengthRule, pattern => patternRule}
+import play.api.data.validation.Constraints.{minLength as minLengthRule, pattern as patternRule}
 
 import scala.util.matching.Regex
 

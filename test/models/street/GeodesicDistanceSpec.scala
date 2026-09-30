@@ -3,19 +3,19 @@ package models.street
 import models.route.RouteTable
 import models.user.{UserStatTable, UserStatTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.RegionService
 import slick.basic.DatabaseConfig
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
@@ -48,18 +48,18 @@ import scala.concurrent.duration.DurationInt
  * runtime cannot maintain would decay back out of agreement on its own (#4774). That test seeds every row it reads,
  * so it runs everywhere the synthetic-fixture layer does, empty schemas included.
  */
-class GeodesicDistanceSpec extends PlaySpec with GuiceOneAppPerSuite with OptionValues {
+class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val streetEdgeTable = app.injector.instanceOf[StreetEdgeTable]
   private val userStatTable   = app.injector.instanceOf[UserStatTable]
   private val routeTable      = app.injector.instanceOf[RouteTable]
   private val regionService   = app.injector.instanceOf[RegionService]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
+  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 

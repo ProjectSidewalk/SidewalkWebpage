@@ -332,7 +332,7 @@ class TaskContainer {
       // Indicates region is complete.
       if (this.getIncompleteTasksAcrossAllUsersUsingPriority().length === 0) {
         regionModel.setRegionCompleteAcrossAllUsers();
-        $('#area-completion-overlay-wrapper').show();
+        document.getElementById('area-completion-overlay-wrapper').style.display = 'block';
         const currentRegion = this.#svl.regionModel.currentRegion();
         const currentRegionId = currentRegion.getRegionId();
         this.#tracker.push('NeighborhoodComplete_AcrossAllUsers', { RegionId: currentRegionId });

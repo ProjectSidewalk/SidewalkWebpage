@@ -1,10 +1,10 @@
 package controllers
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.routing.Router
+import util.SidewalkSpec
 
 import scala.collection.mutable
 import scala.util.matching.Regex
@@ -29,10 +29,10 @@ import scala.util.matching.Regex
  *
  * Boots the app like the sibling controller specs (see ShareControllerSpec); requires the dev/CI Postgres+PostGIS DB.
  */
-class RouteReachabilitySpec extends PlaySpec with GuiceOneAppPerSuite {
+class RouteReachabilitySpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors; we only read the route table.
       .build()
 
@@ -66,7 +66,7 @@ class RouteReachabilitySpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /** Turns a documentation path pattern into an anchored regex over request paths. */
   private def patternToRegex(pattern: String): Regex = {
-    val sb  = new StringBuilder("^")
+    val sb  = StringBuilder("^")
     var idx = 0
     for (m <- DynTok.findAllMatchIn(pattern)) {
       sb.append(Regex.quote(pattern.substring(idx, m.start)))
@@ -99,7 +99,7 @@ class RouteReachabilitySpec extends PlaySpec with GuiceOneAppPerSuite {
 
     val k       = if (dynCands.isEmpty) 1 else math.min(2, dynCands.map(_.size).max)
     val samples = (0 until k).map { i =>
-      val sb = new StringBuilder
+      val sb = StringBuilder()
       for (p <- dynCands.indices) {
         sb.append(literals(p))
         val cs = dynCands(p)

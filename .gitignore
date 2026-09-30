@@ -151,6 +151,8 @@ htmlcov/
 
 # Claude
 .claude/settings.local.json
+# Who holds the shared dev resources right now (tools/dev/lease.sh).
+.claude/leases/
 CLAUDE.local.md
 
 

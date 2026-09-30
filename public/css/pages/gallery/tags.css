@@ -21,11 +21,10 @@
   color: var(--color-asphalt-500);
 }
 
+/* Shown in the shared tooltip card, not the gallery card, so the card-relative sizing above doesn't apply. */
 .not-added {
   background-color: var(--color-neutral-white);
-
-  /* Card-relative like .card-data: the popover renders inside the card (see TagDisplay). */
-  font-size: max(11px, 2.4cqw);
+  font: var(--text-caption-regular);
   margin: 1px;
 }
 
@@ -35,13 +34,4 @@
   font-weight: bold;
   cursor: pointer;
   background-color: inherit;
-}
-
-.additional-tag-popover {
-  width: fit-content;
-  max-width: 250px;
-}
-
-.additional-tag-popover-content {
-  padding: 5px 10px;
 }

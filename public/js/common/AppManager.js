@@ -26,7 +26,7 @@ class AppManager {
 
   /**
    * Initialize all registered tasks and built-in page setup.
-   * @param {string} csrfToken - The CSRF token to attach to outgoing AJAX/fetch requests.
+   * @param {string} csrfToken - The CSRF token to attach to outgoing fetch requests.
    * @param {Parameters<AppManager['_setupI18next']>[0]} i18nextParams - Parameters for i18next initialization.
    * @param {object} [globals] - Map of variable names to values to attach to `window` for global access.
    * @returns {Promise} Promise that resolves when all initialization is complete.
@@ -40,7 +40,7 @@ class AppManager {
     // Attach globals to `window` synchronously so they're available to subsequent init tasks and page scripts.
     this._setupGlobals(globals);
 
-    // CSRF token setup for AJAX and fetch requests.
+    // CSRF token setup for fetch requests.
     this.addInitTask('csrf-setup', () => {
       return this._setupCSRF(csrfToken);
     });
@@ -99,17 +99,11 @@ class AppManager {
   }
 
   /**
-   * Set up CSRF token for all AJAX and fetch requests.
+   * Set up CSRF token for all fetch requests.
+   * @param {string} csrfToken - The token Play's CSRF filter expects in the `Csrf-Token` header.
    * @private
    */
   _setupCSRF(csrfToken) {
-    // Set up CSRF token for all AJAX requests.
-    $.ajaxSetup({
-      headers: {
-        'Csrf-Token': csrfToken,
-      },
-    });
-
     // Set up CSRF token for fetch requests by overwriting the fetch function. The token is only attached to
     // same-origin requests: Play's CSRF filter only checks requests to our own server, and a token signed by this
     // server is meaningless to anyone else. Attaching it to cross-origin requests (Mapbox, Mapillary, Infra3d,
@@ -155,6 +149,8 @@ class AppManager {
    *
    * @param {object} params - Properties that determine which translations should be loaded.
    * @param {string} params.language - The language to use for translations, e.g., "en", "en-US", "es", etc.
+   * @param {Array<string>} params.supportedLanguages - Every language the site offers, e.g., ["en", "pt-BR"]
+   * @param {Array<string>} params.localeFiles - Every translation file there is, e.g., ["locales/en/common.json"]
    * @param {string} params.defaultNS - The default namespace to use if no specific ns is provided, e.g., "common"
    * @param {Array<string>} params.namespaces - An array of namespaces to load, e.g., ["common", "explore"]
    * @param {string} params.countryId - The server's country ID to determine if we load country-specific overrides
@@ -172,21 +168,23 @@ class AppManager {
       namespaces = [...namespaces, ...namespaces.map((str) => `${str}-zurich`)];
     }
 
+    const localeFiles = new Set(params.localeFiles);
+    // With no list, every file is skipped and the page silently shows raw keys, so make that loud.
+    if (localeFiles.size === 0) console.error('AppManager: no locale files listed, so nothing will be translated');
     return i18next.use(i18nextHttpBackend).init({
       backend: {
-        // The one hardcoded '/assets/' URL in the codebase, allowlisted in tools/lint/check-asset-paths.mjs: this is a
-        // template i18next-http-backend interpolates itself (and joins several namespaces into with
-        // allowMultiLoading), not a URL we build, so it can't go through util.assetPath. The 404s an absent
-        // country-override namespace produces are load-bearing — test/e2e/fixtures.js allowlists them (#4893).
-        loadPath: '/assets/locales/{{lng}}/{{ns}}.json',
-        allowMultiLoading: true,
+        // i18next asks for every namespace in every language, but most country overrides exist only in English, so
+        // skip the files that aren't there (an empty path loads nothing) rather than request a 404 (#5570). The ones
+        // that are go through util.assetPath, so a deploy never pairs new JS with stale cached translations (#5336).
+        loadPath: ([lng], [ns]) =>
+          (localeFiles.has(`locales/${lng}/${ns}.json`) ? util.assetPath(`locales/${lng}/${ns}.json`) : ''),
       },
       fallbackLng: 'en',
+      // Stops i18next asking for languages we don't have: for pt-BR it would otherwise also try plain "pt".
+      supportedLngs: params.supportedLanguages,
       ns: namespaces,
       defaultNS: params.defaultNS,
       lng: params.language,
-      partialBundledLanguages: true,
-      debug: false,
       interpolation: {
         // Every string may write {{unitName}}, {{unitAbbr}}, … and get this reader's units with no argument at the
         // call site, so there is nothing a caller can forget and no metric/imperial pair of keys to keep in sync.
@@ -205,10 +203,8 @@ class AppManager {
       // whose namespaces failed should still render its distances converted and labeled rather than as raw meters.
       this._addDistanceFormatter();
 
-      // Ignore errors loading translations, but log any other errors.
-      if (err && err.filter((e) => !e.includes('status code: 404')).length > 0) {
-        return console.error(err.filter((e) => !e.includes('status code: 404')));
-      }
+      // Keep going: one file failing shouldn't leave the rest of the page untranslated.
+      if (err?.length > 0) console.error(err);
 
       // After loading, merge the country-specific override namespaces into the base ones.
       // Going through list of languages so that we still get the en translations when using en-US.
@@ -271,19 +267,16 @@ class AppManager {
    * @private
    */
   _setupLogging() {
-    // NOTE We are setting async as false by default since this is primarily used before a redirect.
-    window.logWebpageActivity = function (activity, async = false) {
-      $.ajax({
-        async,
-        contentType: 'application/json; charset=utf-8',
-        url: '/userapi/logWebpageActivity',
+    // Mostly called right before a redirect; `keepalive` lets the request outlive the page.
+    window.logWebpageActivity = function (activity) {
+      fetch('/userapi/logWebpageActivity', {
         method: 'POST',
-        data: JSON.stringify(activity),
-        dataType: 'json',
-        error(result) {
-          console.error(result);
-        },
-      });
+        keepalive: true,
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(activity),
+      }).then((response) => {
+        if (!response.ok) console.error(`logWebpageActivity failed: ${response.status}`);
+      }).catch((err) => console.error(err));
     };
   }
 

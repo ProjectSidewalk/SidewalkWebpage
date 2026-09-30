@@ -135,7 +135,10 @@ function addCitiesToMap(map, citiesData, params) {
       className: 'deployment-popup',
     });
 
+    // Counts clicks so a slow stats fetch for one city can't overwrite the popup of a city clicked after it.
+    let latestClick = 0;
     map.on('click', CITIES_LAYER_NAME, async (e) => {
+      const thisClick = ++latestClick;
       const feature = e.features[0];
       const properties = feature.properties;
       const coordinates = feature.geometry.coordinates.slice();
@@ -193,15 +196,14 @@ function addCitiesToMap(map, citiesData, params) {
       }
 
       // Finally, update the popup with the content, which will have stats if they loaded.
+      if (thisClick !== latestClick) return;
       cityPopup.setDOMContent(popupContent);
     });
 
     // Logging functionality.
     if (params.logClicks) {
-      $(`#${params.mapName}`).on('click', '.city-selection-trigger', function () {
-        const activity = `Click_module=${params.mapName}_cityId=${$(this).attr('cityId')}`;
-        window.logWebpageActivity(activity);
-      });
+      logPopupLinkClicks(map, '.city-selection-trigger',
+        (link) => `Click_module=${params.mapName}_cityId=${link.getAttribute('cityId')}`);
     }
   }
 
@@ -245,17 +247,6 @@ function addCitiesToMap(map, citiesData, params) {
     // mid-scroll ask for the world view outright rather than flying out to it from the city's own center.
     map.fitBounds(bounds, { padding: 50, animate: params.animateCityFit !== false });
   }
-
-  /**
-   * Handle window resize events. Ensures map resizes properly with the browser window.
-   */
-  function handleResize() {
-    if (map) {
-      fitMapToCities();
-    }
-  }
-
-  window.addEventListener('resize', handleResize);
 
   // Return promise that is resolved once all the layers have been added to the map.
   return new Promise((resolve) => {

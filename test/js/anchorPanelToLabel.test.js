@@ -6,9 +6,9 @@
  * the kind of thing that is painful to verify by eye in a browser and cheap to pin here — the flip, the clamps, and
  * the tail offset only misbehave at the edges, which is where a manual pass is least likely to look.
  *
- * The panel is a jQuery object in production. jsdom has no layout engine, so a real jQuery panel would measure
- * 0x0 and every assertion below would be about the wrong numbers; the tests pass a stub whose dimensions are stated
- * outright, which is what a geometry test wants anyway. The bounding elements are stubbed the same way.
+ * jsdom has no layout engine, so a real panel element would measure 0x0 and every assertion below would be about the
+ * wrong numbers; the tests pass a stub whose dimensions are stated outright, which is what a geometry test wants
+ * anyway. The bounding elements are stubbed the same way.
  */
 
 const fs = require('fs');
@@ -23,18 +23,14 @@ const UTILITIES_SRC = fs.readFileSync(
 const PANO_LEFT = 100;
 const APP_RIGHT = 1136;
 
-/** A stand-in for the jQuery panel, recording what the routine sets on it. */
+/** A panel of a fixed size (jsdom lays nothing out); `placed` reads back where it was put. */
 function makePanel(width, height) {
-    const el = document.createElement('div');
-    const panel = {
-        0: el,
-        classes: {},
-        placed: null,
-        outerWidth: () => width,
-        outerHeight: () => height,
-        toggleClass: (name, on) => { panel.classes[name] = on; },
-        css: (props) => { panel.placed = props; },
-    };
+    const panel = document.createElement('div');
+    Object.defineProperties(panel, {
+        offsetWidth: { value: width },
+        offsetHeight: { value: height },
+        placed: { get: () => ({ left: parseFloat(panel.style.left), top: parseFloat(panel.style.top) }) },
+    });
     return panel;
 }
 
@@ -48,8 +44,8 @@ function makeRectEl(rect, id) {
 }
 
 /** The tail offset the routine wrote, in px. */
-const tailTop = (panel) => parseFloat(panel[0].style.getPropertyValue('--panel-tail-top'));
-const flipped = (panel) => panel.classes['label-anchored-panel--flipped'];
+const tailTop = (panel) => parseFloat(panel.style.getPropertyValue('--panel-tail-top'));
+const flipped = (panel) => panel.classList.contains('label-anchored-panel--flipped');
 
 describe('util.anchorPanelToLabel', () => {
     let util;

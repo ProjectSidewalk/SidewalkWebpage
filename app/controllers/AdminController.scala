@@ -1,23 +1,24 @@
 package controllers
 
-import actor._
-import controllers.base._
-import formats.json.AdminFormats._
-import formats.json.LabelFormats._
-import formats.json.UserFormats._
+import actor.*
+import controllers.base.*
+import formats.json.AdminFormats.{given, *}
+import formats.json.LabelFormats.*
+import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
-import models.label.{LabelDeletion, LabelTypeEnum}
+import models.api.ApiModelUtils
+import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.dispatch.Dispatcher
 import play.api.cache.AsyncCacheApi
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
 import play.silhouette.impl.exceptions.IdentityNotFoundException
-import service._
+import service.*
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
@@ -48,11 +49,11 @@ class AdminController @Inject() (
     sidewalkPresenceService: SidewalkPresenceService,
     placesService: PlacesService,
     actorSystem: ActorSystem
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Get a list of all labels for the admin page, as a GeoJSON FeatureCollection of points.
@@ -89,8 +90,7 @@ class AdminController @Inject() (
    * Tag-by-severity counts for the Data Quality tag-severity heatmap (#4272): how each label type's tags distribute
    * across the 1–3 severity scale. snake_case per the dashboard convention.
    */
-  def getTagSeverityCounts = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getTagSeverityCounts = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getTagSeverityCounts.map { counts =>
       Ok(Json.obj("tag_severity" -> JsArray(counts.map { c =>
         Json.obj("label_type" -> c.labelType, "tag" -> c.tag, "severity" -> c.severity, "count" -> c.count)
@@ -98,8 +98,7 @@ class AdminController @Inject() (
     }
   }
 
-  def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getAuditedStreetsWithTimestamps = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getAuditedStreetsWithTimestamps.map { streets =>
       Ok(Json.obj("type" -> "FeatureCollection", "features" -> streets.map(auditedStreetWithTimestampToGeoJSON)))
     }
@@ -138,8 +137,7 @@ class AdminController @Inject() (
    * sign-ins and active users split registered-vs-anonymous, and new registered accounts. Only days with activity are
    * emitted; the client zero-fills and rolls up by range/granularity. snake_case output per the dashboard convention.
    */
-  def getActivityByDay = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getActivityByDay = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getActivityByDay.map { series =>
       Ok(Json.obj("series" -> JsArray(series.map { r =>
         Json.obj(
@@ -159,32 +157,38 @@ class AdminController @Inject() (
   }
 
   /**
-   * Updates the role in the database for the given user.
+   * Checks that an admin may move a user from `current` to the role named `requested`: both must be admin-assignable.
+   * @return The new role, or the reason the change is refused.
+   */
+  private def checkRoleChange(current: Role, requested: String): Either[String, Role] =
+    Role.withNameOption(requested).filter(Role.ADMIN_ASSIGNABLE_ROLES.contains) match {
+      case None                                                      => Left(s"Can't assign role $requested")
+      case Some(_) if !Role.ADMIN_ASSIGNABLE_ROLES.contains(current) =>
+        Left(s"${current.name} accounts can't have their role changed")
+      case Some(newRole) => Right(newRole)
+    }
+
+  /**
+   * Updates a user's role from the Management page; only moves between `Role.ADMIN_ASSIGNABLE_ROLES` are allowed.
    */
   def setUserRole = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     val submission = request.body.validate[UserRoleSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: String              = submission.userId
-        val newRole: Option[Role.Value] = Role.fromString(submission.roleId)
-
+        val userId: String = submission.userId
         authenticationService.findByUserId(userId) flatMap {
           case Some(user) =>
-            if (user.role == Role.Owner) {
-              Future.successful(BadRequest("Owner's role cannot be changed"))
-            } else if (newRole.contains(Role.Owner)) {
-              Future.successful(BadRequest("Cannot set a new owner"))
-            } else if (newRole.isEmpty) {
-              Future.successful(BadRequest("Invalid role"))
-            } else {
-              authenticationService
-                .updateRole(userId, newRole.get)
-                .map(_ => {
-                  val logText = s"UpdateRole_User=${userId}_Old=${user.role}_New=${newRole.get}"
-                  cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
-                  Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole.get.toString))
-                })
+            checkRoleChange(user.role, submission.roleId) match {
+              case Left(error)    => Future.successful(BadRequest(error))
+              case Right(newRole) =>
+                authenticationService
+                  .updateRole(userId, newRole)
+                  .map(_ => {
+                    val logText = s"UpdateRole_User=${userId}_Old=${user.role.name}_New=${newRole.name}"
+                    cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
+                    Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole.name))
+                  })
             }
           case None =>
             Future.successful(BadRequest("No user has this user ID"))
@@ -225,12 +229,12 @@ class AdminController @Inject() (
               currTeam <- userService.getUserTeam(userId)
               response <- {
                 // None for a role the enum doesn't know, which the assignable-roles check below refuses by name.
-                val newRole: Option[Role.Value] = Role.fromString(s.role)
-                val usernameChanged             = s.username != user.username
-                val roleChanged                 = !newRole.contains(user.role)
-                val teamChanged                 = currTeam.map(_.teamId) != teamId
-                val serviceChanged              = s.communityService != user.communityService
-                val privacyChanged              =
+                val newRole: Option[Role] = Role.withNameOption(s.role)
+                val usernameChanged       = s.username != user.username
+                val roleChanged           = !newRole.contains(user.role)
+                val teamChanged           = currTeam.map(_.teamId) != teamId
+                val serviceChanged        = s.communityService != user.communityService
+                val privacyChanged        =
                   stats.exists(st => st.onLeaderboard != s.onLeaderboard || st.publicProfile != s.publicProfile)
                 // An excluded user's quality is set by the exclusion, so the quality field is ignored for them.
                 val qualityChanged  = !s.excluded && stats.exists(_.highQualityManual != s.highQualityManual)
@@ -239,13 +243,13 @@ class AdminController @Inject() (
                 val anyChanged      = usernameChanged || roleChanged || teamChanged || serviceChanged ||
                   privacyChanged || qualityChanged || excludedChanged || infra3dChanged
 
+                val roleError: Option[String] =
+                  if (roleChanged) checkRoleChange(user.role, s.role).left.toOption else None
+
                 // Ordered from the broadest refusal to the narrowest.
                 val firstError: Option[String] =
                   if (anyChanged && user.role == Role.Owner) Some("An Owner's settings can't be changed")
-                  else if (roleChanged && !newRole.exists(Role.ADMIN_ASSIGNABLE_ROLES.contains))
-                    Some(s"Can't assign role ${s.role}")
-                  else if (roleChanged && !Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
-                    Some(s"A ${user.role} account's role can't be changed")
+                  else if (roleError.isDefined) roleError
                   else if (excludedChanged && user.role == Role.Administrator && admin.role != Role.Owner)
                     Some("An admin can only be excluded by an Owner")
                   else if (qualityChanged && user.role == Role.Administrator && admin.role != Role.Owner)
@@ -298,21 +302,21 @@ class AdminController @Inject() (
                         s"Click_module=AdminSaveUserSettings_User=$userId"
                       )
                       if (roleChanged) {
-                        cc.loggingService.insert(
+                        val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
-                          s"UpdateRole_User=${userId}_Old=${user.role}_New=${s.role}"
+                          s"UpdateRole_User=${userId}_Old=${user.role.name}_New=${s.role}"
                         )
                       }
                       if (qualityChanged) {
-                        cc.loggingService.insert(
+                        val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
                           s"UpdateUserManualQuality_User=${userId}_Manual=${s.highQualityManual}_New=$newQuality"
                         )
                       }
                       if (excludedChanged) {
-                        cc.loggingService.insert(
+                        val _ = cc.loggingService.insert(
                           admin.userId,
                           request.ipAddress,
                           s"UpdateUserExcluded_User=${userId}_New=${s.excluded}"
@@ -337,8 +341,7 @@ class AdminController @Inject() (
   }
 
   /* Clears all cached values. Should only be called from the Admin page. */
-  def clearPlayCache() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def clearPlayCache() = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     cacheApi.removeAll().map(_ => Ok("success"))
   }
 
@@ -348,8 +351,7 @@ class AdminController @Inject() (
    * Recorded in `background_job_run` under the nightly job's name but tagged `Manual`, so the run leaves the same
    * counts and error trail the scheduler's would without being able to stand in for it (#4928).
    */
-  def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def updateUserStats(hoursCutoff: Option[Int]) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     val cutoffTime: OffsetDateTime = hoursCutoff match {
       case Some(hours) => OffsetDateTime.now().minusHours(hours.toLong)
       case None        => OffsetDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC)
@@ -359,7 +361,7 @@ class AdminController @Inject() (
       .record(UserStatActor.Name, JobRunTrigger.Manual)(adminService.updateUserStatTable(cutoffTime))(
         UserStatActor.runDetails
       )
-      .map { usersUpdated: Int => Ok(s"User stats updated for $usersUpdated users!") }
+      .map { (usersUpdated: Int) => Ok(s"User stats updated for $usersUpdated users!") }
   }
 
   /**
@@ -387,7 +389,7 @@ class AdminController @Inject() (
       submission => {
         userService
           .updateTaskFlag(submission.auditTaskId, submission.flag, submission.state)
-          .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
+          .map { (tasksUpdated: Int) => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
       }
     )
   }
@@ -405,15 +407,14 @@ class AdminController @Inject() (
           case Some(user) =>
             userService
               .updateTaskFlagsBeforeDate(userId, submission.date, submission.flag, submission.state)
-              .map { tasksUpdated: Int => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
-          case _ => Future.failed(new IdentityNotFoundException("Username not found."))
+              .map { (tasksUpdated: Int) => Ok(Json.obj("tasks_updated" -> tasksUpdated)) }
+          case _ => Future.failed(IdentityNotFoundException("Username not found."))
         }
       }
     )
   }
 
-  def getContributionTimeStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getContributionTimeStats = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getContributionTimeStats.map(timeStat => Ok(Json.toJson(timeStat)))
   }
 
@@ -421,9 +422,10 @@ class AdminController @Inject() (
    * Recent-activity stream for the redesigned admin dashboard's Activity page (#4272): the latest labels, validations,
    * and comments interleaved by recency, each tagged with who did it and (where applicable) the label it points at.
    * snake_case output per the dashboard convention.
+   *
+   * @param n Number of feed items; kept within 1 to [[service.AdminService.MaxRecentActivity]].
    */
-  def getRecentActivity(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getRecentActivity(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getRecentActivity(n).flatMap { items =>
       // Enrich the feed batch with two cheap scoped lookups, run in parallel: a preview thumbnail per labelled item,
       // and a "who is this contributor" summary (role + totals) per distinct user.
@@ -466,11 +468,11 @@ class AdminController @Inject() (
    * @param metaById Pano/POV metadata for the batch's label ids, keyed by label id.
    * @return A signed image URL, or None for items without a previewable label (e.g. comments).
    */
-  private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
-    (item.labelId, item.labelType) match {
-      case (Some(id), Some(labelType)) if LabelTypeEnum.labelTypeNames.contains(labelType) =>
+  private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelPanoMetadata]): Option[String] = {
+    (item.labelId, item.labelType.flatMap(LabelType.withNameOption)) match {
+      case (Some(id), Some(labelType)) =>
         panoDataService
-          .cropUrl(id, LabelTypeEnum.byName(labelType))
+          .cropUrl(id, labelType)
           .orElse(metaById.get(id).flatMap { m =>
             panoDataService.getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth,
               m.canvasHeight)
@@ -482,9 +484,10 @@ class AdminController @Inject() (
   /**
    * Contributors-page leaderboards for the redesigned admin dashboard (#4272): top labelers (with label-type mix and
    * severity distribution) and top validators (with agree/disagree/unsure split). snake_case per the dashboard convention.
+   *
+   * @param n Rows per leaderboard; kept within 1 to [[service.AdminService.MaxLeaderboardRows]].
    */
-  def getContributorLeaderboards(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getContributorLeaderboards(n: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getContributorLeaderboards(n).map { boards =>
       Ok(
         Json.obj(
@@ -527,8 +530,7 @@ class AdminController @Inject() (
    * Output is snake_case per the v3 naming convention; the AI group is always present (all-zero where there's no AI
    * activity) so the page can render consistent empty states.
    */
-  def getHumanVsAiStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getHumanVsAiStats = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getHumanVsAiStats.map { stats =>
       def labelerJson(l: service.HumanAiLabelerStats): JsObject = Json.obj(
         "group"      -> l.group,
@@ -571,8 +573,7 @@ class AdminController @Inject() (
    * (coverage, data quality, contributors, activity pulse, humans-vs-AI share, API usage). snake_case per the dashboard
    * convention. Every percentage's denominator is included so the page can show its N.
    */
-  def getOverviewSummary = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getOverviewSummary = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getOverviewSummary.map { s =>
       val lastActivity = s.lastActivity.map { i =>
         Json.obj(
@@ -655,7 +656,7 @@ class AdminController @Inject() (
     "contributors"      -> JsArray(w.contributors.map { c =>
       Json.obj(
         "username"             -> c.username,
-        "kind"                 -> c.kind.toString,
+        "kind"                 -> c.kind.name,
         "labels_7d"            -> c.labels7d,
         "labels_prior_7d"      -> c.labelsPrior7d,
         "validations_7d"       -> c.validations7d,
@@ -686,6 +687,7 @@ class AdminController @Inject() (
     val dailyF         = configService.getCrossCityDailyTrend(7)
     val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
+    val storyStatsF    = configService.getCrossCityStoryStats()
 
     for {
       withFlags     <- scorecardsF
@@ -693,6 +695,7 @@ class AdminController @Inject() (
       dailyTrend    <- dailyF
       windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
+      storyStats    <- storyStatsF
     } yield {
       val now        = OffsetDateTime.now()
       val scorecards = withFlags.map(_.scorecard)
@@ -702,9 +705,7 @@ class AdminController @Inject() (
         // Per-label-type breakdown (the data-pattern lens), keyed by label type with snake_case stat names.
         val byLabelType = JsObject(
           sc.byLabelType.toSeq
-            .sortBy { case (labelType, _) =>
-              LabelTypeEnum.orderedNames.indexOf(labelType)
-            }
+            .sorted(ApiModelUtils.labelTypeOrdering)
             .map { case (labelType, s) =>
               labelType -> Json.obj(
                 "labels"    -> s.labels,
@@ -823,6 +824,7 @@ class AdminController @Inject() (
             Json.obj(
               "city_id"      -> city.cityId,
               "city_name"    -> cityName,
+              "url"          -> cityInfoById.get(city.cityId).map(_.URL),
               "labels"       -> city.labels,
               "validations"  -> city.validations,
               "contributors" -> city.contributors
@@ -831,9 +833,21 @@ class AdminController @Inject() (
           "contributor_list" -> JsArray(d.contributors.map { c =>
             Json.obj(
               "username"    -> c.username,
-              "kind"        -> c.kind.toString,
+              "kind"        -> c.kind.name,
               "labels"      -> c.labels,
-              "validations" -> c.validations
+              "validations" -> c.validations,
+              // Each city's URL rides along so the pinned card can link a name to that person's admin page on the
+              // deployment that holds their work (#5495).
+              "cities" -> JsArray(c.cities.map { city =>
+                val info = cityInfoById.get(city.cityId)
+                Json.obj(
+                  "city_id"     -> city.cityId,
+                  "city_name"   -> info.map(_.cityNameShort).getOrElse[String](city.cityId),
+                  "url"         -> info.map(_.URL),
+                  "labels"      -> city.labels,
+                  "validations" -> city.validations
+                )
+              })
             )
           })
         )
@@ -853,9 +867,32 @@ class AdminController @Inject() (
       val sumDisagree       = scorecards.map(_.validationsDisagree).sum
       val globalAgreement   = if (sumAgree + sumDisagree > 0) sumAgree.toDouble / (sumAgree + sumDisagree) else 0.0
 
+      // Story counts per city (#5543), kept apart from `cities` so a city whose scorecard failed still reports its
+      // stories; `counts` is null where the count itself failed, which the page shows as unavailable, not zero.
+      val stories = JsArray(storyStats.toSeq.sortBy { case (cityId, _) => cityId }.map { case (cityId, stats) =>
+        val info = cityInfoById.get(cityId)
+        Json.obj(
+          "city_id"   -> cityId,
+          "city_name" -> info.map(_.cityNameShort),
+          "url"       -> info.map(_.URL),
+          "counts"    -> stats.map { st =>
+            Json.obj(
+              "total"      -> st.total,
+              "hidden"     -> st.hidden,
+              "with_photo" -> st.withPhoto,
+              "last_7d"    -> st.last7d,
+              "visible_7d" -> st.visible7d,
+              "last_30d"   -> st.last30d,
+              "newest"     -> st.newest
+            )
+          }
+        )
+      })
+
       Ok(
         Json.obj(
           "cities"             -> cities,
+          "stories"            -> stories,
           "over_time_all_time" -> overTimeAllTime,
           "over_time_daily"    -> overTimeDaily,
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
@@ -1004,8 +1041,7 @@ class AdminController @Inject() (
       }
   }
 
-  def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getUserStats = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     for {
       userStats <- adminService.getUserStatsForAdminPage
       teams     <- userService.getAllTeams
@@ -1021,8 +1057,7 @@ class AdminController @Inject() (
    * imagery-freshness sync and region_completion rebuild the nightly sequence wraps around it, which is why the run
    * records a null `regions_seeded` rather than a count.
    */
-  def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def recalculateStreetPriority = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     runStreetPriorityRecalc().map(_ => Ok("Successfully recalculated street priorities"))
   }
 
@@ -1075,8 +1110,7 @@ class AdminController @Inject() (
    * Recorded in `background_job_run` like the nightly sweep, but tagged `Manual` so a run someone kicked off by hand
    * can't stand in for one the scheduler never fired (#4928).
    */
-  def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def checkImagery() = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     jobRunService
       .record(CheckImageExpiryActor.Name, JobRunTrigger.Manual)(panoDataService.checkForImagery)(_.runDetails)
       .map { results => Ok(results.summary) }
@@ -1176,8 +1210,7 @@ class AdminController @Inject() (
    * Recorded as a `Manual` run of that nightly job (#4928). This one runs for tens of minutes and can half-fail, so
    * the recorded counts and error are the only durable account of what a given trigger did.
    */
-  def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def refreshOsmWayData() = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     jobRunService
       .record(OsmWayRefreshActor.Name, JobRunTrigger.Manual)(osmWayService.refreshOsmWayData())(
         OsmWayRefreshActor.runDetails
@@ -1200,8 +1233,7 @@ class AdminController @Inject() (
    *
    * @param days Number of past days to include (0 = all time).
    */
-  def getApiAnalyticsBySource(days: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getApiAnalyticsBySource(days: Int) = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     adminService.getApiAnalyticsBySource(days).map { data =>
       def split(rows: Seq[(String, Long)]): (Long, Long) = (
         rows.collect { case (s, c) if s == "external" => c }.sum,
@@ -1213,20 +1245,20 @@ class AdminController @Inject() (
         .groupBy(_.endpoint)
         .map { case (ep, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (ep, e, d) }
         .toSeq
-        .sortBy(-_._2)
+        .sortBy { case (_, external, _) => -external }
       val daily = data.dailyCounts
         .groupBy(_.date)
         .map { case (date, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (date, e, d) }
         .toSeq
-        .sortBy(_._1)
+        .sortBy { case (date, _, _) => date }
       val formats = data.formatCounts
         .groupBy(_.format)
         .map { case (fmt, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (fmt, e, d) }
         .toSeq
-        .sortBy(-_._2)
+        .sortBy { case (_, external, _) => -external }
 
-      val extCalls  = endpoints.map(_._2).sum
-      val docsCalls = endpoints.map(_._3).sum
+      val extCalls  = endpoints.map { case (_, external, _) => external }.sum
+      val docsCalls = endpoints.map { case (_, _, apiDocs) => apiDocs }.sum
       val extIps    = data.ipCounts.find(_.source == "external").map(_.uniqueIps).getOrElse(0L)
       val docsIps   = data.ipCounts.find(_.source == "apiDocs").map(_.uniqueIps).getOrElse(0L)
 
@@ -1254,11 +1286,10 @@ class AdminController @Inject() (
     }
   }
 
-  def getThreadPoolStats = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getThreadPoolStats = cc.securityService.SecuredAction(WithAdmin()) { _ =>
     val dispatcherNames = List("database-operations", "cpu-intensive", "pekko.actor.default-dispatcher")
 
-    val info = new StringBuilder()
+    val info = StringBuilder()
     info.append("=== Custom Dispatchers ===\n")
     info.append(
       dispatcherNames
@@ -1306,12 +1337,15 @@ class AdminController @Inject() (
     val stackTraces = Thread.getAllStackTraces.asScala
     val threadCpu   = java.lang.management.ManagementFactory.getThreadMXBean
     info.append("\n=== cpu-intensive threads ===\n")
-    stackTraces.filter { case (t, _) => t.getName.contains("cpu-intensive") }.toSeq.sortBy(_._1.getName).foreach {
-      case (thread, frames) =>
+    stackTraces
+      .filter { case (t, _) => t.getName.contains("cpu-intensive") }
+      .toSeq
+      .sortBy { case (thread, _) => thread.getName }
+      .foreach { case (thread, frames) =>
         val cpuSeconds = threadCpu.getThreadCpuTime(thread.getId) / 1e9
         info.append(f"${thread.getName} - State: ${thread.getState}, CPU time: $cpuSeconds%.0fs\n")
         frames.take(15).foreach(frame => info.append(s"    at $frame\n"))
-    }
+      }
 
     // Add Slick thread monitoring
     info.append("\n=== All JVM Threads (looking for Slick) ===\n")

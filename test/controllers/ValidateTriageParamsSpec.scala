@@ -2,15 +2,14 @@ package controllers
 
 import models.user.Role
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.{AnonSession, RoleSession}
+import play.api.test.Helpers.*
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 /**
  * Functional tests for the `triage` flag that decides which queue a Validate page draws from (#4715).
@@ -22,23 +21,23 @@ import util.{AnonSession, RoleSession}
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class ValidateTriageParamsSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class ValidateTriageParamsSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // This suite mints a session per test, and /anonSignUp is capped per IP per hour.
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /** The Twirl views embed `param.validateParams` as a JS object literal, so the flag is read back as text. */
   private def embeddedTriage(body: String): Option[Boolean] =
     """triage:\s*(true|false)""".r.findFirstMatchIn(body).map(_.group(1).toBoolean)
 
   private def getPage(path: String, cookies: Seq[Cookie]): (Int, String) = {
-    val resp = route(app, FakeRequest(GET, path).withCookies(cookies: _*)).get
+    val resp = route(app, FakeRequest(GET, path).withCookies(cookies*)).get
     (status(resp), contentAsString(resp))
   }
 

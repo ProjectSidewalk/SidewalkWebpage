@@ -1,9 +1,8 @@
 package views
 
 import controllers.AssetsFinder
-import formats.json.UserFormats._
+import formats.json.UserFormats.given
 import models.user.{Role, SidewalkUserWithRole, UserStat}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.i18n.{Lang, Messages, MessagesApi}
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -12,6 +11,7 @@ import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.api.{Application, Configuration}
 import service.{AdminUserProfileData, CityHours, CommonPageData, ConfigService, CrossCityHours}
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
@@ -25,15 +25,15 @@ import scala.concurrent.duration.DurationInt
  * pinned between that payload and what the volunteer's page displays, and separately that the page ships the ids and
  * URL its script needs. What the script does with the payload is `test/js/adminUserHours.test.js`.
  */
-class AdminUserViewSpec extends PlaySpec with GuiceOneAppPerSuite {
+class AdminUserViewSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit private val request: RequestHeader = FakeRequest()
-  implicit private val messages: Messages     = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("en")))
-  implicit private val assets: AssetsFinder   = app.injector.instanceOf[AssetsFinder]
-  implicit private val config: Configuration  = app.injector.instanceOf[Configuration]
+  private given request: RequestHeader = FakeRequest()
+  private given messages: Messages     = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("en")))
+  private given assets: AssetsFinder   = app.injector.instanceOf[AssetsFinder]
+  private given config: Configuration  = app.injector.instanceOf[Configuration]
 
   private val commonData: CommonPageData =
     Await.result(app.injector.instanceOf[ConfigService].getCommonPageData(Lang("en")), 60.seconds)

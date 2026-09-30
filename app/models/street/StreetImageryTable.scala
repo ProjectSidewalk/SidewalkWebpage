@@ -1,8 +1,9 @@
 package models.street
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile.api._
-import models.utils.{FilteredTables, MyPostgresProfile}
+import models.pano.PanoDataTable
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{FilteredTables, MyPostgresProfile, NamedEnum, PgEnumCompanion}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
@@ -44,12 +45,13 @@ case class AttributedImagery(nPanos: Int, newestCapture: Option[LocalDate])
  * check_streets_for_imagery.py summary (ingested by db/scripts/import-street-imagery.sh), and `imagery_poll` the
  * nightly in-app provider poll.
  */
-object StreetImagerySource extends Enumeration {
-  type StreetImagerySource = Value
-  val PanoData    = Value("pano_data")
-  val ImageryScan = Value("imagery_scan")
-  val ImageryPoll = Value("imagery_poll")
+enum StreetImagerySource(val name: String) extends NamedEnum {
+  case PanoData    extends StreetImagerySource("pano_data")
+  case ImageryScan extends StreetImagerySource("imagery_scan")
+  case ImageryPoll extends StreetImagerySource("imagery_poll")
 }
+
+object StreetImagerySource extends PgEnumCompanion[StreetImagerySource]("street_imagery_source")
 
 /**
  * Per-street imagery age (#4348): the capture-date range of the street-view panos observed on one street.
@@ -73,7 +75,7 @@ case class StreetImagery(
     newestCapture: Option[LocalDate],
     medianNewestCapture: Option[LocalDate],
     nPanos: Int,
-    dataSource: StreetImagerySource.Value,
+    dataSource: StreetImagerySource,
     updatedAt: OffsetDateTime
 )
 
@@ -84,11 +86,12 @@ class StreetImageryTableDef(tag: Tag) extends Table[StreetImagery](tag, "street_
   def newestCapture: Rep[Option[LocalDate]]       = column[Option[LocalDate]]("newest_capture")
   def medianNewestCapture: Rep[Option[LocalDate]] = column[Option[LocalDate]]("median_newest_capture")
   def nPanos: Rep[Int]                            = column[Int]("n_panos") // DB CHECK (356.sql): n_panos >= 0.
-  def dataSource: Rep[StreetImagerySource.Value]  = column[StreetImagerySource.Value]("data_source")
-  def updatedAt: Rep[OffsetDateTime]              = column[OffsetDateTime]("updated_at")
+  def dataSource: Rep[StreetImagerySource]        = column[StreetImagerySource]("data_source")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
+  def updatedAt: Rep[OffsetDateTime] = column[OffsetDateTime]("updated_at")
 
-  def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt) <>
-    ((StreetImagery.apply _).tupled, StreetImagery.unapply)
+  def * = (streetEdgeId, oldestCapture, newestCapture, medianNewestCapture, nPanos, dataSource, updatedAt)
+    .mapTo[StreetImagery]
 
   def streetEdge =
     foreignKey("street_imagery_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -126,7 +129,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
     extends StreetImageryTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  import profile.api._
+  import profile.api.*
   val streetImageryRecords = TableQuery[StreetImageryTableDef]
 
   /**
@@ -163,7 +166,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * @param limit Maximum number of streets to return.
    */
   def streetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
-    implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+    given getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
       val id     = r.nextInt()
       val points = Seq.fill(3)((r.nextDouble(), r.nextDouble())) // Each ST_LineInterpolatePoint pair is (lat, lng).
       StreetToPoll(id, points, r.nextGeometry[LineString]())
@@ -205,7 +208,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
    * @param limit Maximum number of streets to return.
    */
   def noImageryStreetsToPoll(limit: Int): DBIO[Seq[StreetToPoll]] = {
-    implicit val getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
+    given getStreetToPoll: GetResult[StreetToPoll] = GetResult { r =>
       val id     = r.nextInt()
       val points = Seq.fill(3)((r.nextDouble(), r.nextDouble())) // Each ST_LineInterpolatePoint pair is (lat, lng).
       StreetToPoll(id, points, r.nextGeometry[LineString]())
@@ -366,7 +369,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
   def attributedImagery(streetEdgeId: Int, panos: Seq[PolledPano]): DBIO[AttributedImagery] = {
     if (panos.isEmpty) DBIO.successful(AttributedImagery(0, None))
     else {
-      implicit val getAttributedImagery: GetResult[AttributedImagery] =
+      given getAttributedImagery: GetResult[AttributedImagery] =
         GetResult(r => AttributedImagery(r.nextInt(), r.nextDateOption().map(_.toLocalDate)))
       sql"""
         #${observedAndKeptCte(streetEdgeId, panos)}
@@ -408,14 +411,7 @@ class StreetImageryTable @Inject() (protected val dbConfigProvider: DatabaseConf
           SELECT DISTINCT ON (pano_data.pano_id)
                  street_edge.street_edge_id AS street_edge_id,
                  pano_data.pano_id          AS pano_id,
-                 CASE
-                     WHEN pano_data.capture_date ~ '^[0-9]{4}$$'
-                         THEN to_date(pano_data.capture_date, 'YYYY')
-                     WHEN pano_data.capture_date ~ '^[0-9]{4}-[0-9]{2}$$'
-                         THEN to_date(pano_data.capture_date, 'YYYY-MM')
-                     WHEN pano_data.capture_date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$$'
-                         THEN to_date(pano_data.capture_date, 'YYYY-MM-DD')
-                 END AS capture
+                 #${PanoDataTable.captureDateSql("pano_data.capture_date")} AS capture
           FROM pano_data
           -- Geometry-space ST_DWithin runs first so the street_edge GiST index prunes candidates (0.001 deg is
           -- comfortably wider than 15 m at any real-city latitude); the geography-space check applies the exact

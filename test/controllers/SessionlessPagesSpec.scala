@@ -1,15 +1,14 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.UserAgents
+import play.api.test.Helpers.*
+import util.{SidewalkSpec, UserAgents}
 
 /**
  * Public pages must render for cookie-less requests WITHOUT minting an anonymous account (issue #4643).
@@ -22,14 +21,14 @@ import util.UserAgents
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class SessionlessPagesSpec extends PlaySpec with GuiceOneAppPerSuite {
+class SessionlessPagesSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /** The Silhouette authenticator cookie name ("test-authenticator" here); setting it means a session was minted. */
   private lazy val authCookieName: String = app.configuration.get[String]("silhouette.authenticator.cookieName")

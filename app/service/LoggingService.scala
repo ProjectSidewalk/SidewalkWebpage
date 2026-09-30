@@ -5,7 +5,7 @@ import models.utils.{IpAddress, MyPostgresProfile, WebpageActivity, WebpageActiv
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @ImplementedBy(classOf[LoggingServiceImpl])
@@ -20,9 +20,9 @@ trait LoggingService {
 class LoggingServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     webpageActivityTable: WebpageActivityTable,
-    authenticationService: AuthenticationService,
-    implicit val ec: ExecutionContext
-) extends LoggingService
+    authenticationService: AuthenticationService
+)(using ec: ExecutionContext)
+    extends LoggingService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   def insert(userId: String, ipAddress: IpAddress, activity: String, timestamp: OffsetDateTime): Future[Int] =

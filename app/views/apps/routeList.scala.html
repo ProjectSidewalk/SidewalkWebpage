@@ -14,7 +14,7 @@
  * @param cityRoutes The city's routes, newest first, capped at RouteBuilderController.ListingMax.
  *@
 @(commonData: CommonPageData, user: SidewalkUserWithRole, cityRoutes: Seq[RouteWithStats]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @isMetric = @{ControllerUtils.isMetric}
 @* Named once because every route in the table uses it. Twirl compiles this to a def, so it is not memoized. *@
@@ -37,7 +37,7 @@
     <header class="community-head">
       <div class="community-head__row">
         <h1 class="community-title">@Messages("routes.page.title")</h1>
-        <a class="button-ps button--primary button--medium community-head__cta" href="/routeBuilder">
+        <a class="button button--primary button--medium community-head__cta" href="/routeBuilder">
           @Messages("routes.page.build.cta")
         </a>
       </div>
@@ -47,7 +47,7 @@
     @if(cityRoutes.isEmpty) {
       <div class="community-empty">
         <p>@Messages("routes.page.none")</p>
-        <a class="button-ps button--primary button--medium" href="/routeBuilder">@Messages("routes.page.none.cta")</a>
+        <a class="button button--primary button--medium" href="/routeBuilder">@Messages("routes.page.none.cta")</a>
       </div>
     } else {
       <div class="community-toolbar">
@@ -84,15 +84,15 @@
                 @r.regionName · @distanceLabel(r.distanceMeters) ·
                 <time class="community-date" datetime="@r.createdAt.toInstant.toString">@dateLabel(r.createdAt)</time>
               </p>
-              <p class="route-card__usage" title="@Messages("dashboard.routes.stats.tooltip")">
+              <p class="route-card__usage" tabindex="0" data-ps-tooltip="@Messages("dashboard.routes.stats.tooltip")">
                 @Messages("dashboard.routes.stats", r.startedCount, r.completedCount)
               </p>
               <div class="route-card__actions">
-                <a class="button-ps button--primary button--small route-card__explore" data-route-id="@r.routeId"
+                <a class="button button--primary button--small route-card__explore" data-route-id="@r.routeId"
                    href="/explore?routeId=@r.routeId">@Messages("dashboard.routes.explore")</a>
-                <a class="button-ps button--secondary button--small route-card__labelmap" data-route-id="@r.routeId"
+                <a class="button button--secondary button--small route-card__labelmap" data-route-id="@r.routeId"
                    href="/labelMap?routes=@r.routeId" target="_blank" rel="noopener">@Messages("dashboard.routes.labelmap")</a>
-                <button type="button" class="button-ps button--secondary button--small route-card__copy" data-route-id="@r.routeId">
+                <button type="button" class="button button--secondary button--small route-card__copy" data-route-id="@r.routeId">
                   @Messages("dashboard.routes.copy")
                 </button>
               </div>

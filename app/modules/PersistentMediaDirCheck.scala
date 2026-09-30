@@ -39,7 +39,7 @@ class PersistentMediaDirCheck @Inject() (config: Configuration, environment: Env
 
     val fatal = unsafe.map(_.dir).filter(_.irreplaceable)
     if (fatal.nonEmpty) {
-      throw new IllegalStateException(
+      throw IllegalStateException(
         s"Refusing to start: ${fatal.map(_.key).mkString(", ")} cannot safely hold irreplaceable content (see " +
           s"errors above). Set ${fatal.map(_.envVar).mkString(", ")} to a path outside the build output tree."
       )

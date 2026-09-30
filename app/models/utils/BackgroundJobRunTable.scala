@@ -1,7 +1,7 @@
 package models.utils
 
 import com.google.inject.ImplementedBy
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json}
 import slick.jdbc.GetResult
@@ -18,15 +18,13 @@ import javax.inject.{Inject, Singleton}
  *
  * NOTE: if changing these values, update the `job_run_status` Postgres enum type as well (see 358.sql).
  */
-object JobRunStatus extends Enumeration {
-  type JobRunStatus = Value
-  val Running: Value   = Value("running")
-  val Succeeded: Value = Value("succeeded")
-  val Failed: Value    = Value("failed")
-
-  /** Parses a string into a job run status, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum JobRunStatus(val name: String) extends NamedEnum {
+  case Running   extends JobRunStatus("running")
+  case Succeeded extends JobRunStatus("succeeded")
+  case Failed    extends JobRunStatus("failed")
 }
+
+object JobRunStatus extends PgEnumCompanion[JobRunStatus]("job_run_status")
 
 /**
  * What set a background-job run going, backing the `job_run_trigger` Postgres enum type.
@@ -36,14 +34,12 @@ object JobRunStatus extends Enumeration {
  *
  * NOTE: if changing these values, update the `job_run_trigger` Postgres enum type as well (see 358.sql).
  */
-object JobRunTrigger extends Enumeration {
-  type JobRunTrigger = Value
-  val Scheduled: Value = Value("scheduled")
-  val Manual: Value    = Value("manual")
-
-  /** Parses a string into a job run trigger, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum JobRunTrigger(val name: String) extends NamedEnum {
+  case Scheduled extends JobRunTrigger("scheduled")
+  case Manual    extends JobRunTrigger("manual")
 }
+
+object JobRunTrigger extends PgEnumCompanion[JobRunTrigger]("job_run_trigger")
 
 /**
  * One run of one background job.
@@ -55,30 +51,32 @@ object JobRunTrigger extends Enumeration {
 case class BackgroundJobRun(
     backgroundJobRunId: Int,
     jobName: String,
-    triggeredBy: JobRunTrigger.Value,
+    triggeredBy: JobRunTrigger,
     startedAt: OffsetDateTime,
     finishedAt: Option[OffsetDateTime],
-    status: JobRunStatus.Value,
+    status: JobRunStatus,
     details: Option[JsValue],
     errorMessage: Option[String]
 )
 
+/** How many scheduled runs of a job ended a given way; see [[BackgroundJobRunTable.outcomeCountsSince]]. */
+case class JobOutcomeCount(jobName: String, status: JobRunStatus, abandoned: Boolean, count: Int)
+
 class BackgroundJobRunTableDef(tag: Tag) extends Table[BackgroundJobRun](tag, "background_job_run") {
-  def backgroundJobRunId: Rep[Int]            = column[Int]("background_job_run_id", O.PrimaryKey, O.AutoInc)
-  def jobName: Rep[String]                    = column[String]("job_name")
-  def triggeredBy: Rep[JobRunTrigger.Value]   = column[JobRunTrigger.Value]("triggered_by")
+  def backgroundJobRunId: Rep[Int]    = column[Int]("background_job_run_id", O.PrimaryKey, O.AutoInc)
+  def jobName: Rep[String]            = column[String]("job_name")
+  def triggeredBy: Rep[JobRunTrigger] = column[JobRunTrigger]("triggered_by")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def startedAt: Rep[OffsetDateTime]          = column[OffsetDateTime]("started_at")
   def finishedAt: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("finished_at")
-  def status: Rep[JobRunStatus.Value]         = column[JobRunStatus.Value]("status")
+  def status: Rep[JobRunStatus]               = column[JobRunStatus]("status")
   def details: Rep[Option[JsValue]]           = column[Option[JsValue]]("details")
   def errorMessage: Rep[Option[String]]       = column[Option[String]]("error_message")
 
   // CHECK constraints, which Slick can't express: finished_at >= started_at, error_message only on a failed run, and
   // status = 'running' exactly while finished_at is NULL.
-  def * = (backgroundJobRunId, jobName, triggeredBy, startedAt, finishedAt, status, details, errorMessage) <> (
-    (BackgroundJobRun.apply _).tupled,
-    BackgroundJobRun.unapply
-  )
+  def * = (backgroundJobRunId, jobName, triggeredBy, startedAt, finishedAt, status, details, errorMessage)
+    .mapTo[BackgroundJobRun]
 }
 
 @ImplementedBy(classOf[BackgroundJobRunTable])
@@ -97,7 +95,7 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val backgroundJobRuns = TableQuery[BackgroundJobRunTableDef]
 
-  implicit private val getBackgroundJobRun: GetResult[BackgroundJobRun] = GetResult { r =>
+  private given getBackgroundJobRun: GetResult[BackgroundJobRun] = GetResult { r =>
     BackgroundJobRun(
       r.nextInt(),
       r.nextString(),
@@ -110,18 +108,18 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
     )
   }
 
-  implicit private val getJobSuccess: GetResult[(String, OffsetDateTime)] =
+  private given getJobSuccess: GetResult[(String, OffsetDateTime)] =
     GetResult(r => (r.nextString(), r.nextOffsetDateTime()))
 
-  implicit private val getOutcomeCount: GetResult[(String, JobRunStatus.Value, Boolean, Int)] =
-    GetResult(r => (r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt()))
+  private given getOutcomeCount: GetResult[JobOutcomeCount] =
+    GetResult(r => JobOutcomeCount(r.nextString(), JobRunStatus.withName(r.nextString()), r.nextBoolean(), r.nextInt()))
 
   /**
    * Opens a run row, before the work starts, so a job that dies mid-run still leaves a trace.
    *
    * @return The new row's id, which `finish` needs to close it.
    */
-  def insertRunning(jobName: String, triggeredBy: JobRunTrigger.Value, startedAt: OffsetDateTime): DBIO[Int] = {
+  def insertRunning(jobName: String, triggeredBy: JobRunTrigger, startedAt: OffsetDateTime): DBIO[Int] = {
     (backgroundJobRuns returning backgroundJobRuns.map(_.backgroundJobRunId)) +=
       BackgroundJobRun(0, jobName, triggeredBy, startedAt, None, JobRunStatus.Running, None, None)
   }
@@ -135,7 +133,7 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
    */
   def finish(
       runId: Int,
-      status: JobRunStatus.Value,
+      status: JobRunStatus,
       finishedAt: OffsetDateTime,
       details: Option[JsValue],
       errorMessage: Option[String]
@@ -231,18 +229,18 @@ class BackgroundJobRunTable @Inject() (protected val dbConfigProvider: DatabaseC
    *
    * @param since          Runs that *started* at or after this instant, so a long run is counted on the night it began.
    * @param abandonedSince A still-open run that started before this instant is abandoned rather than in flight.
-   * @return               (job name, status, whether an open run is abandoned, count) tuples.
+   * @return               One count per (job, status, abandoned) combination that has runs.
    */
   def outcomeCountsSince(
       since: OffsetDateTime,
       abandonedSince: OffsetDateTime
-  ): DBIO[Seq[(String, JobRunStatus.Value, Boolean, Int)]] = {
+  ): DBIO[Seq[JobOutcomeCount]] = {
     // Raw SQL because the staleness flag is a grouped *expression*: Slick emits it in the select list without
     // repeating it in GROUP BY, which Postgres rejects. The ordinal reference keeps the two in step by construction.
     sql"""SELECT job_name, status, started_at < $abandonedSince, COUNT(*)
           FROM background_job_run
           WHERE started_at >= $since
               AND triggered_by = 'scheduled'
-          GROUP BY job_name, status, 3""".as[(String, JobRunStatus.Value, Boolean, Int)]
+          GROUP BY job_name, status, 3""".as[JobOutcomeCount]
   }
 }

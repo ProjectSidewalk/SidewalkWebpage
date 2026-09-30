@@ -44,8 +44,8 @@ describe('a Gallery card\'s location line', () => {
     }
 
     beforeAll(() => {
+        window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
         window.i18next = { t: (key) => key, language: 'en' };
-        window.moment = (value) => value;
         window.util = {
             assetPath: assetPathStub,
             camelToKebab: (s) => s.toLowerCase(),
@@ -60,7 +60,6 @@ describe('a Gallery card\'s location line', () => {
         window.TagDisplay = class {};
         window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
         window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
-        window.$ = () => ({ tooltip: () => ({ tooltip: () => {} }) });
         window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
     });
 
@@ -77,7 +76,7 @@ describe('a Gallery card\'s location line', () => {
     it('promises on hover where the click leads', () => {
         renderCard();
 
-        expect(locationLine().title).toBe('labelmap:open-label-on-labelmap');
+        expect(locationLine().getAttribute('data-ps-tooltip')).toBe('labelmap:open-label-on-labelmap');
     });
 
     it('links out to this label on the LabelMap, and says so to a screen reader', () => {
@@ -113,5 +112,14 @@ describe('a Gallery card\'s location line', () => {
         const name = locationLine().querySelector('.card-location__name');
         expect(name.querySelector('img')).toBeNull();
         expect(name.textContent).toBe('<img src=x onerror="alert(1)">Park');
+    });
+
+    describe('its properties', () => {
+        it('hands its dates on exactly as the server sent them, even ones that are not dates (#5549)', () => {
+            const card = renderCard({ image_capture_date: 'Invalid date', label_timestamp: '2024-10-01T03:00:00Z' });
+
+            expect(card.getProperties()).toMatchObject(
+                { image_capture_date: 'Invalid date', label_timestamp: '2024-10-01T03:00:00Z' });
+        });
     });
 });

@@ -67,8 +67,8 @@ function makeMission(missionId, { distanceM, progressM = 0 }) {
     };
 }
 
-/** A jQuery-shaped stub for the progress-bar elements the reset touches; nothing here is under test. */
-const uiStub = () => ({ css: jest.fn(), text: jest.fn(), attr: jest.fn(), hasClass: () => false });
+/** A throwaway element for each progress-bar part the reset touches; nothing here is under test. */
+const uiStub = () => document.createElement('div');
 
 describe('Minimap mission flags across a mission boundary', () => {
     let minimap;

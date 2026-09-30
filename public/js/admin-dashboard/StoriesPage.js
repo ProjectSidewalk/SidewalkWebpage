@@ -42,7 +42,7 @@ class StoriesPage {
       this.#render(data.stories);
     } catch (err) {
       console.error('Stories page: feed failed to load.', err);
-      this.#setStatus('Failed to load stories — try reloading the page.');
+      this.#setStatus('Could not load stories. Reload to try again.');
     }
   }
 
@@ -121,7 +121,7 @@ class StoriesPage {
       img.className = 'stories-queue-thumb';
       img.loading = 'lazy';
       img.src = story.media.url;
-      img.alt = story.media.alt_text || 'Story photo (no description provided)';
+      img.alt = story.media.alt_text || 'Story photo (no description)';
       media.appendChild(img);
     }
 
@@ -173,8 +173,8 @@ class StoriesPage {
 
   async #deleteStory(story, row) {
     const ok = await ConfirmDialog.confirm({
-      message: 'Permanently delete this story (and its photo, if any)? This cannot be undone — '
-        + 'use Hide instead if the content may be needed as evidence.',
+      message: 'Permanently delete this story and any photo? This can’t be undone. Use Hide instead if the '
+        + 'content may be needed as evidence.',
       confirmText: 'Delete',
       cancelText: 'Cancel',
       danger: true,

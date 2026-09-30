@@ -2,7 +2,8 @@ package models.pano
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{NamedEnum, PgEnumCompanion}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -14,24 +15,22 @@ import javax.inject.{Inject, Singleton}
  *
  * NOTE: if changing these values, update the `pano_imagery_change_source` Postgres enum type as well (see 364.sql).
  */
-object PanoImageryChangeSource extends Enumeration {
-  type PanoImageryChangeSource = Value
+enum PanoImageryChangeSource(val name: String) extends NamedEnum {
 
   /** An imagery-provider existence check, whether the nightly sweep's or an on-demand one. */
-  val ProviderCheck: Value = Value("provider_check")
+  case ProviderCheck extends PanoImageryChangeSource("provider_check")
 
   /** A labeler loaded the pano, which is itself proof the imagery is there. */
-  val PanoView: Value = Value("pano_view")
+  case PanoView extends PanoImageryChangeSource("pano_view")
 
   /**
    * A healed event from the nightly reconciliation pass (#5007): the newest log row disagreed with
    * `pano_data.expired`, so a writer missed a transition. Carries detection time, not the real transition time.
    */
-  val Reconciliation: Value = Value("reconciliation")
-
-  /** Parses a string into a change source, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+  case Reconciliation extends PanoImageryChangeSource("reconciliation")
 }
+
+object PanoImageryChangeSource extends PgEnumCompanion[PanoImageryChangeSource]("pano_imagery_change_source")
 
 /**
  * One recorded crossing of the expired boundary for one pano.
@@ -43,23 +42,20 @@ case class PanoImageryChange(
     panoId: String,
     expired: Boolean,
     changedAt: OffsetDateTime,
-    source: PanoImageryChangeSource.Value
+    source: PanoImageryChangeSource
 )
 
 /** Panos whose imagery went away, and whose imagery came back, during one week. */
 case class PanoImageryWeek(weekStart: LocalDate, expiredCount: Int, returnedCount: Int)
 
 class PanoImageryChangeTableDef(tag: Tag) extends Table[PanoImageryChange](tag, "pano_imagery_change") {
-  def panoImageryChangeId: Rep[Int]              = column[Int]("pano_imagery_change_id", O.PrimaryKey, O.AutoInc)
-  def panoId: Rep[String]                        = column[String]("pano_id")
-  def expired: Rep[Boolean]                      = column[Boolean]("expired")
-  def changedAt: Rep[OffsetDateTime]             = column[OffsetDateTime]("changed_at") // DEFAULT now() in the DB.
-  def source: Rep[PanoImageryChangeSource.Value] = column[PanoImageryChangeSource.Value]("source")
+  def panoImageryChangeId: Rep[Int]        = column[Int]("pano_imagery_change_id", O.PrimaryKey, O.AutoInc)
+  def panoId: Rep[String]                  = column[String]("pano_id")
+  def expired: Rep[Boolean]                = column[Boolean]("expired")
+  def changedAt: Rep[OffsetDateTime]       = column[OffsetDateTime]("changed_at") // DEFAULT now() in the DB.
+  def source: Rep[PanoImageryChangeSource] = column[PanoImageryChangeSource]("source")
 
-  def * = (panoImageryChangeId, panoId, expired, changedAt, source) <> (
-    (PanoImageryChange.apply _).tupled,
-    PanoImageryChange.unapply
-  )
+  def * = (panoImageryChangeId, panoId, expired, changedAt, source).mapTo[PanoImageryChange]
 
   // ON DELETE CASCADE: once the pano row is gone, its imagery history describes nothing.
   def pano =
@@ -87,7 +83,7 @@ class PanoImageryChangeTable @Inject() (protected val dbConfigProvider: Database
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val imageryChanges = TableQuery[PanoImageryChangeTableDef]
 
-  implicit private val getPanoImageryWeek: GetResult[PanoImageryWeek] =
+  private given getPanoImageryWeek: GetResult[PanoImageryWeek] =
     GetResult(r => PanoImageryWeek(r.nextDate().toLocalDate, r.nextInt(), r.nextInt()))
 
   /**
@@ -104,13 +100,13 @@ class PanoImageryChangeTable @Inject() (protected val dbConfigProvider: Database
    * @param since Only transitions at or after this instant.
    */
   def transitionsByWeek(since: OffsetDateTime): DBIO[Seq[PanoImageryWeek]] = {
-    val healed = PanoImageryChangeSource.Reconciliation.toString
+    val healed = PanoImageryChangeSource.Reconciliation
     sql"""SELECT date_trunc('week', changed_at)::date,
                  COUNT(DISTINCT pano_id) FILTER (WHERE expired),
                  COUNT(DISTINCT pano_id) FILTER (WHERE NOT expired)
           FROM pano_imagery_change
           WHERE changed_at >= $since
-              AND source <> $healed::pano_imagery_change_source
+              AND source <> $healed
           GROUP BY date_trunc('week', changed_at)::date
           ORDER BY date_trunc('week', changed_at)::date""".as[PanoImageryWeek]
   }
@@ -123,11 +119,11 @@ class PanoImageryChangeTable @Inject() (protected val dbConfigProvider: Database
    * @param since Only healed rows at or after this instant.
    */
   def healedSince(since: OffsetDateTime): DBIO[Int] = {
-    val healed = PanoImageryChangeSource.Reconciliation.toString
+    val healed = PanoImageryChangeSource.Reconciliation
     sql"""SELECT COUNT(DISTINCT pano_id)
           FROM pano_imagery_change
           WHERE changed_at >= $since
-              AND source = $healed::pano_imagery_change_source""".as[Int].head
+              AND source = $healed""".as[Int].head
   }
 
   /**
@@ -156,14 +152,14 @@ class PanoImageryChangeTable @Inject() (protected val dbConfigProvider: Database
    * @return The ids of the panos healed. Non-empty means a writer skipped the log or the snapshot race fired.
    */
   def reconcile(): DBIO[Seq[String]] = {
-    val source = PanoImageryChangeSource.Reconciliation.toString
+    val source = PanoImageryChangeSource.Reconciliation
     sql"""WITH latest AS (
             SELECT DISTINCT ON (pano_id) pano_id, expired
             FROM pano_imagery_change
             ORDER BY pano_id, changed_at DESC, pano_imagery_change_id DESC
           )
           INSERT INTO pano_imagery_change (pano_id, expired, source)
-          SELECT pano_data.pano_id, pano_data.expired, $source::pano_imagery_change_source
+          SELECT pano_data.pano_id, pano_data.expired, $source
           FROM pano_data
           LEFT JOIN latest ON pano_data.pano_id = latest.pano_id
           WHERE (latest.pano_id IS NOT NULL AND latest.expired <> pano_data.expired)

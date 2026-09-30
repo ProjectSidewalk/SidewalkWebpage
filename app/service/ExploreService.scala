@@ -1,20 +1,19 @@
 package service
 
 import com.google.inject.ImplementedBy
-import formats.json.ExploreFormats._
-import models.audit._
-import models.label.{Tag, _}
+import formats.json.ExploreFormats.*
+import models.audit.*
+import models.label.{Tag, *}
 import models.utils.CommonUtils.UiSource
 import models.mission.{Mission, MissionTable, MissionType}
-import models.pano.PanoSource.PanoSource
-import models.pano._
+import models.pano.*
 import models.region.{Region, RegionCompletionTable, RegionTable}
-import models.route._
-import models.street._
+import models.route.*
+import models.street.*
 import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.SidewalkUserTable.aiUserId
-import models.user._
-import models.utils.MyPostgresProfile.api._
+import models.user.*
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{ConfigTable, IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -22,7 +21,7 @@ import play.api.{Configuration, Logger}
 
 import java.time.format.DateTimeFormatter
 import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 case class ExplorePageData(
@@ -44,7 +43,7 @@ case class ExplorePageData(
 case class NewLabelData(
     labelId: Int,
     temporaryLabelId: Int,
-    labelType: LabelTypeEnum.Base,
+    labelType: LabelType,
     panoSource: PanoSource,
     tutorial: Boolean,
     timeCreated: OffsetDateTime
@@ -190,14 +189,14 @@ class ExploreServiceImpl @Inject() (
     webpageActivityTable: WebpageActivityTable,
     surveyQuestionTable: SurveyQuestionTable,
     userSurveyOptionSubmissionTable: UserSurveyOptionSubmissionTable,
-    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable,
-    implicit val ec: ExecutionContext
-) extends ExploreService
+    userSurveyTextSubmissionTable: UserSurveyTextSubmissionTable
+)(using ec: ExecutionContext)
+    extends ExploreService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
   // SRID 4326 is baked into the factory so points it creates match label_point.geom's lat/lng coordinate system.
-  val gf: GeometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+  val gf: GeometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
   def getDataForExplorePage(
       userId: String,
@@ -439,7 +438,7 @@ class ExploreServiceImpl @Inject() (
               WHERE street_edge.street_edge_id = $streetEdgeId"""
           .as[Double]
           .headOption
-          .flatMap { startOffsetM: Option[Double] =>
+          .flatMap { (startOffsetM: Option[Double]) =>
             auditTaskTable.insert(
               AuditTask(0, None, userId, streetEdgeId, OffsetDateTime.now, OffsetDateTime.now, completed = false, lat,
                 lng, startPointReversed = false, Some(missionId), None, lowQuality = false, incomplete = false,
@@ -484,17 +483,17 @@ class ExploreServiceImpl @Inject() (
         // Pause routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
         case (Some(rId), true) =>
           for {
-            _      <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
-            result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-            walked <-
-              if (result._2) userRouteTable.hasBeenWalked(result._1.userRouteId) else DBIO.successful(false)
-          } yield RouteWalkSetup(Some(result._1), resumed = walked)
+            _                           <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
+            (userRoute, alreadyExisted) <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
+            walked                      <-
+              if (alreadyExisted) userRouteTable.hasBeenWalked(userRoute.userRouteId) else DBIO.successful(false)
+          } yield RouteWalkSetup(Some(userRoute), resumed = walked)
         // Explicit restart: discard old walks (including any of this route), save a new one with given routeId.
         case (Some(rId), false) =>
           for {
-            _      <- userRouteTable.discardAllActiveRoutes(userId)
-            result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield RouteWalkSetup(Some(result._1), resumed = false)
+            _              <- userRouteTable.discardAllActiveRoutes(userId)
+            (userRoute, _) <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
+          } yield RouteWalkSetup(Some(userRoute), resumed = false)
         // Get an in progress route (with any routeId) if it exists, otherwise return None.
         case (None, true) =>
           userRouteTable.getInProgressRoute(userId).flatMap {
@@ -618,7 +617,7 @@ class ExploreServiceImpl @Inject() (
               WHERE street_edge.street_edge_id = $streetEdgeId"""
           .as[(Double, Option[Double])]
           .headOption
-          .map { row: Option[(Double, Option[Double])] =>
+          .map { (row: Option[(Double, Option[Double])]) =>
             row.exists { case (len, startOffsetM) =>
               len > 0d && walkedM - startOffsetM.getOrElse(0d) >= len * ExploreService.streetWalkedThreshold
             }
@@ -682,7 +681,7 @@ class ExploreServiceImpl @Inject() (
     val pointGeom: Option[Point]    = for {
       _lat <- point.lat
       _lng <- point.lng
-    } yield gf.createPoint(new Coordinate(_lng, _lat))
+    } yield gf.createPoint(Coordinate(_lng, _lat))
 
     warnIfRecordStale(label, userId)
 
@@ -703,7 +702,7 @@ class ExploreServiceImpl @Inject() (
           missionId = missionId,
           userId = userId,
           panoId = label.panoId,
-          labelType = LabelTypeEnum.withName(label.labelType),
+          labelType = label.labelType,
           deleted = label.deleted,
           temporaryLabelId = label.temporaryLabelId,
           timeCreated = timeCreated,
@@ -731,8 +730,7 @@ class ExploreServiceImpl @Inject() (
       )
       _ <- labelPointTable.computeCenterlineOffset(newLabelPointId, calculatedStreetEdgeId)
     } yield {
-      NewLabelData(newLabelId, label.temporaryLabelId, LabelTypeEnum.byName(label.labelType), label.panoSource,
-        label.tutorial, timeCreated)
+      NewLabelData(newLabelId, label.temporaryLabelId, label.labelType, label.panoSource, label.tutorial, timeCreated)
     }
   }
 
@@ -822,7 +820,7 @@ class ExploreServiceImpl @Inject() (
   def savePanoInfo(panos: Seq[PanoSubmission]): Future[Boolean] = {
     val currTime: OffsetDateTime = OffsetDateTime.now
     // asTry so one pano's failure can't abort the rest of the batch; failures are logged below.
-    val panoSubmissionActions = panos.map { pano: PanoSubmission => savePanoAction(pano, currTime).asTry }
+    val panoSubmissionActions = panos.map { (pano: PanoSubmission) => savePanoAction(pano, currTime).asTry }
 
     db.run(DBIO.sequence(panoSubmissionActions))
       .map { results =>
@@ -878,7 +876,7 @@ class ExploreServiceImpl @Inject() (
         case _ =>
           streetEdgeTable.getStreet(streetEdgeId).flatMap {
             case None =>
-              DBIO.failed(new Exception(s"Street edge with ID $streetEdgeId not found."))
+              DBIO.failed(Exception(s"Street edge with ID $streetEdgeId not found."))
             case Some(street) =>
               // No existing task found, create a new one.
               auditTaskTable.insert(
@@ -906,13 +904,13 @@ class ExploreServiceImpl @Inject() (
           pano.cameraHeading.get)
         // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
         // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
-        val canvasX = LabelPointTable.canvasWidth / 2
-        val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY, pano.width.get,
-          pano.height.get, pano.cameraHeading.get)
+        val canvasX              = LabelPointTable.canvasWidth / 2
+        val canvasY              = LabelPointTable.canvasHeight / 2
+        val (labelLat, labelLng) = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY,
+          pano.width.get, pano.height.get, pano.cameraHeading.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
-          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2)
+          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(labelLat, labelLng)
           regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
           missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
           auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
@@ -921,7 +919,7 @@ class ExploreServiceImpl @Inject() (
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
             LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, heading = pov.heading, pitch = pov.pitch,
-            pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
+            pov.zoom, lat = Some(labelLat), lng = Some(labelLng),
             computationMethod = Some(ComputationMethod.Approximation3))
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,
@@ -958,12 +956,12 @@ class ExploreServiceImpl @Inject() (
     // means a label can never be committed without its pano_data row, and a failed pano write takes the whole
     // submission with it rather than quietly producing an orphan.
     val labeledPanos: Seq[PanoSubmission]  = data.labels.flatMap(_.pano).distinctBy(_.panoId).sortBy(_.panoId)
-    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now)): _*)
+    val saveLabeledPanosAction: DBIO[Unit] = DBIO.seq(labeledPanos.map(savePanoAction(_, OffsetDateTime.now))*)
 
     // Update the audit_task table and get the audit_task_id. This is needed to submit all other data.
     val submitAction: DBIO[ExploreTaskPostReturnValue] = updateAuditTaskTable(userId, data.auditTask, missionId)
-      .flatMap { auditTaskId: Int =>
-        missionTable.getMissionType(missionId).flatMap { missionType: Option[MissionType.Value] =>
+      .flatMap { (auditTaskId: Int) =>
+        missionTable.getMissionType(missionId).flatMap { (missionType: Option[MissionType]) =>
           // If task is complete, mark it in the db and update the street priority. A normal audit is completed by the
           // client; a free-exploration drop-in has no such client signal, so the server derives it from how far the
           // user walked (#4451). Deriving it also means a forged completed=true can't mark a drop-in street audited.
@@ -979,7 +977,7 @@ class ExploreServiceImpl @Inject() (
             case Some(MissionType.Audit) if data.auditTask.completed.getOrElse(false) => completeTaskAction
             case Some(MissionType.ExploreAddress)                                     =>
               streetWalkedFarEnough(auditTaskId, streetEdgeId, data.auditTask.auditedDistanceM).flatMap {
-                farEnough: Boolean => if (farEnough) completeTaskAction else DBIO.successful(0)
+                (farEnough: Boolean) => if (farEnough) completeTaskAction else DBIO.successful(0)
               }
             case _ => DBIO.successful(0)
           }
@@ -1003,13 +1001,12 @@ class ExploreServiceImpl @Inject() (
 
           // Insert any labels.
           val labelSubmitActions: Seq[DBIO[Option[NewLabelData]]] =
-            data.labels.map { label: LabelSubmission =>
-              val labelType: LabelTypeEnum.Base = LabelTypeEnum.withName(label.labelType)
+            data.labels.map { (label: LabelSubmission) =>
               labelTable.find(label.temporaryLabelId, userId).flatMap {
                 case Some(existingLabel) =>
                   // If there is already a label with this temp id but a mismatched label type, the user probably has the
                   // Explore page open in multiple browsers. Don't add the label; tell the front-end to refresh the page.
-                  if (existingLabel.labelType != labelType) {
+                  if (existingLabel.labelType != label.labelType) {
                     refreshPage = true
                     DBIO.successful(None)
                   } else {

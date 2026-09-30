@@ -1,18 +1,19 @@
 package models.utils
 
 /** Which contributors' work a [[FilteredTables]] fragment keeps. */
-sealed trait Contributors
-
-object Contributors {
+enum Contributors {
 
   /** Everyone an admin hasn't excluded. The default everywhere. */
-  case object NotExcluded extends Contributors
+  case NotExcluded
 
   /** Only high-quality users, for the public API's `filterLowQuality` option. */
-  case object HighQualityOnly extends Contributors
+  case HighQualityOnly
 
   /** Everyone, excluded users included, e.g. a user's own dashboard. */
-  case object Everyone extends Contributors
+  case Everyone
+}
+
+object Contributors {
 
   /** For a high-quality-only toggle like the API's `filterLowQuality`. */
   def apply(highQualityOnly: Boolean): Contributors = if (highQualityOnly) HighQualityOnly else NotExcluded

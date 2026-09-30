@@ -1,10 +1,9 @@
 package models.utils
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Integration tests for the v3 API analytics query methods on WebpageActivityTable.
@@ -16,10 +15,10 @@ import util.RolledBackDb
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env).
  */
-class WebpageActivityAnalyticsSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSuite {
+class WebpageActivityAnalyticsSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
@@ -28,7 +27,7 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with RolledBackDb with Guice
   "WebpageActivityTable.getApiEndpointCounts" should {
     "execute without error and return a Seq[ApiEndpointCount] when excluding apiDocs (last 30 days)" in {
       val results = run(table.getApiEndpointCounts(excludeApiDocs = true, days = 30))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       // All entries must have non-empty endpoint strings and non-negative counts.
       results.foreach { row =>
         row.endpoint must not be empty
@@ -38,7 +37,7 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with RolledBackDb with Guice
 
     "execute without error when including apiDocs traffic (all time)" in {
       val results = run(table.getApiEndpointCounts(excludeApiDocs = false, days = 0))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
     }
   }
 
@@ -56,7 +55,7 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with RolledBackDb with Guice
   "WebpageActivityTable.getApiEndpointCountsBySource" should {
     "execute and tag every row with a known source and non-negative count" in {
       val results = run(table.getApiEndpointCountsBySource(days = 0))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       results.foreach { row =>
         row.endpoint must not be empty
         validSources must contain(row.source)
@@ -68,7 +67,7 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with RolledBackDb with Guice
   "WebpageActivityTable.getApiDailyCountsBySource" should {
     "execute, tag every row with a known source, and return dates in ascending order" in {
       val results = run(table.getApiDailyCountsBySource(days = 90))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       results.foreach(row => validSources must contain(row.source))
       val dates = results.map(_.date)
       dates mustBe dates.sorted
@@ -78,7 +77,7 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with RolledBackDb with Guice
   "WebpageActivityTable.getApiFormatCountsBySource" should {
     "execute and tag every row with a known source" in {
       val results = run(table.getApiFormatCountsBySource(days = 30))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       results.foreach { row =>
         row.format must not be empty
         validSources must contain(row.source)
@@ -89,7 +88,7 @@ class WebpageActivityAnalyticsSpec extends PlaySpec with RolledBackDb with Guice
   "WebpageActivityTable.getApiUniqueIpCountsBySource" should {
     "execute, return at most one row per source, with non-negative distinct counts" in {
       val results = run(table.getApiUniqueIpCountsBySource(days = 0))
-      results mustBe a[Seq[_]]
+      results mustBe a[Seq[?]]
       results.foreach { row =>
         validSources must contain(row.source)
         row.uniqueIps must be >= 0L

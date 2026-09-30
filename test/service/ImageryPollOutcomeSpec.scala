@@ -3,7 +3,6 @@ package service
 import models.audit.AuditTaskTable
 import models.pano.PanoSource
 import models.street.{StreetImageryTable, StreetReopenCandidateTable}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -12,8 +11,9 @@ import play.api.libs.ws.WSClient
 import play.api.{Application, Configuration}
 import service.ImageryFreshnessService.{MissingImageryCredentialException, PollResult}
 import service.PanoDataService.ImageryCheckResult
+import util.SidewalkSpec
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, ExecutionContext, Future}
 
 /**
@@ -26,10 +26,10 @@ import scala.concurrent.{Await, ExecutionContext, Future}
  * Requires a Postgres database (the app boots to supply the service's collaborators); the poll itself makes no
  * provider calls in these cases, since it fails or short-circuits before reaching one.
  */
-class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
+class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private def await[T](f: Future[T]): T = Await.result(f, 60.seconds)
 
@@ -45,7 +45,7 @@ class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   /** The real service, rebuilt against a configuration with one key removed. */
   private def serviceWithout(key: String): ImageryFreshnessService = {
-    new ImageryFreshnessServiceImpl(
+    ImageryFreshnessServiceImpl(
       app.injector.instanceOf[DatabaseConfigProvider],
       Configuration(baseConfig.underlying.withoutPath(key)),
       app.injector.instanceOf[WSClient],
@@ -53,9 +53,8 @@ class ImageryPollOutcomeSpec extends PlaySpec with GuiceOneAppPerSuite {
       app.injector.instanceOf[PanoDataService],
       app.injector.instanceOf[StreetImageryTable],
       app.injector.instanceOf[StreetReopenCandidateTable],
-      app.injector.instanceOf[AuditTaskTable],
-      app.injector.instanceOf[ExecutionContext]
-    )
+      app.injector.instanceOf[AuditTaskTable]
+    )(using app.injector.instanceOf[ExecutionContext])
   }
 
   "pollImageryAges" should {

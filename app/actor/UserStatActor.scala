@@ -1,16 +1,16 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import models.utils.JobRunTrigger
 import play.api.libs.json.{JsObject, Json}
 import service.{AdminService, ConfigService, JobRunService}
 
 import java.time.{Instant, OffsetDateTime}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object UserStatActor {
@@ -30,7 +30,7 @@ object UserStatActor {
 }
 
 @Singleton
-class UserStatActor @Inject() (adminService: AdminService, jobRunService: JobRunService)(implicit
+class UserStatActor @Inject() (adminService: AdminService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -53,7 +53,7 @@ class UserStatActor @Inject() (adminService: AdminService, jobRunService: JobRun
           24.hours,
           self,
           UserStatActor.Tick
-        )(context.dispatcher)
+        )(context.dispatcher, ActorRef.noSender)
       )
       logger.info("UserStatActor created")
     }

@@ -99,12 +99,7 @@ class Card {
     const panoImage = this.#panoImage;
 
     for (const attrName in param) {
-      // Add all the properties. Format the timestamps using the moment library.
-      if (attrName === 'label_timestamp' || attrName === 'image_capture_date') {
-        properties[attrName] = moment(param[attrName]);
-      } else if (Object.hasOwn(param, attrName) && Object.hasOwn(properties, attrName)) {
-        properties[attrName] = param[attrName];
-      }
+      if (Object.hasOwn(param, attrName) && Object.hasOwn(properties, attrName)) properties[attrName] = param[attrName];
     }
     properties.pov = { heading: param.heading, pitch: param.pitch, zoom: param.zoom };
     properties.original_canvas_x = param.canvas_x;
@@ -122,7 +117,7 @@ class Card {
     else if (param.agree_count + param.disagree_count + param.unsure_count > 0) properties.correctness = 'unsure';
     else properties.correctness = 'unvalidated';
 
-    const labelTypeName = i18next.t(util.camelToKebab(this.getLabelType()));
+    const labelTypeName = util.misc.labelTypeName(this.getLabelType());
 
     labelIcon.src = util.misc.getIconImagePaths(this.getLabelType()).iconImagePath;
     labelIcon.classList.add('label-icon', 'label-icon-gallery');
@@ -158,7 +153,7 @@ class Card {
       const location = document.createElement('a');
       location.className = 'card-location';
       location.href = `/labelMap?labelId=${properties.label_id}`;
-      location.title = i18next.t('labelmap:open-label-on-labelmap');
+      location.setAttribute('data-ps-tooltip', i18next.t('labelmap:open-label-on-labelmap'));
       // The visible text is the region, so the accessible name leads with it (WCAG 2.5.3) and the promise
       // the sighted user gets on hover follows.
       location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
@@ -216,15 +211,7 @@ class Card {
     this.#positionMarker();
     markerWrapper.appendChild(labelIcon);
     if (properties.ai_generated) {
-      const aiIndicator = aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']);
-      markerWrapper.appendChild(aiIndicator);
-      $(aiIndicator)
-        .tooltip({
-          template: '<div class="tooltip ai-tooltip" role="tooltip"><div class="tooltip-arrow"></div>'
-            + '<div class="tooltip-inner"></div></div>',
-          container: 'body',
-        })
-        .tooltip('hide');
+      markerWrapper.appendChild(aiLabelIndicator(['ai-icon', 'ai-icon-marker', 'ai-icon-marker-card']));
     }
     imageHolder.appendChild(markerWrapper);
     imageHolder.appendChild(panoImage);
@@ -234,7 +221,7 @@ class Card {
     this.#creditImage(this.#status.imageSource);
 
     this.#card.appendChild(cardInfo);
-    this.validationMenu = new ValidationMenu(this, $(imageHolder));
+    this.validationMenu = new ValidationMenu(this, imageHolder);
   }
 
   /**
@@ -256,12 +243,11 @@ class Card {
   }
 
   /**
-   * Return the deep copy of the properties object, so the caller can only modify properties from setProperty().
-   * JavaScript Deepcopy:
-   * http://stackoverflow.com/questions/122102/what-is-the-most-efficient-way-to-clone-a-javascript-object
+   * Return a deep copy of the properties object, so the caller can only modify properties from setProperty().
+   * @returns {Record<string, any>}
    */
   getProperties() {
-    return $.extend(true, {}, this.#properties);
+    return structuredClone(this.#properties);
   }
 
   /**
@@ -404,7 +390,7 @@ class Card {
    * Renders the card.
    * TODO: should there be a safety check here to make sure pano is loaded?
    *
-   * @param {JQuery} cardContainer - UI element to render card in.
+   * @param {HTMLElement} cardContainer - UI element to render card in.
    */
   render(cardContainer) {
     // If the card had transparent background from the expanded view opening earlier, remove transparency on rerender.
@@ -454,6 +440,11 @@ class Card {
     this.#card.classList.toggle('gallery-card--deleted', deleted);
   }
 
+  /** @param {Array<Record<string, any>|string>} comments - What the expanded view opens with. */
+  updateComments(comments) {
+    this.#properties.comments = comments;
+  }
+
   /**
    * Applies a type change made in the expanded view (#3671). The card stays even if the new type no longer matches
    * the Gallery's filter; the next load sorts that out.
@@ -462,7 +453,7 @@ class Card {
   updateLabelType(labelType) {
     if (labelType === this.getLabelType()) return;
     this.#properties.label_type = labelType;
-    const labelTypeName = i18next.t(util.camelToKebab(labelType));
+    const labelTypeName = util.misc.labelTypeName(labelType);
     const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
     if (icon) icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     const header = this.#card.querySelector('.card-header__type');

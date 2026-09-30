@@ -62,7 +62,7 @@ class LabelCardView {
    * @returns {string} The localized type name shown in the header, for callers that reuse it (share text).
    */
   render({ labelType, severity = null, tagNames = [], description = null, aiGenerated = false }) {
-    const typeName = i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '');
+    const typeName = util.misc.labelTypeName(labelType);
     // Both absent when the header is a type dropdown, which its owner draws instead.
     if (this.#icon) this.#icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     if (this.#type) this.#type.textContent = typeName;

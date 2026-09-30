@@ -266,7 +266,6 @@ module.exports = [
         svv: 'writable',
         sg: 'writable',
         util: 'writable',
-        $: 'writable',
       },
     },
     rules: {

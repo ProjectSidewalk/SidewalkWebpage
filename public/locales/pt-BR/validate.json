@@ -16,6 +16,9 @@
   },
   "validate-menu": {
     "remove-tag": "Remover etiqueta: {{tag}}",
+    "clear-verdict": "Limpar sua resposta",
+    "tag-search-placeholder": "Adicione mais etiquetas aqui",
+    "tag-search-no-results": "Nenhuma etiqueta correspondente",
     "disagree-reason": {
       "common": {
         "wrong-type": "Este é o tipo de rótulo errado",
@@ -102,6 +105,9 @@
     "title": "Não foi possível carregar as imagens",
     "body": "Não conseguimos carregar as imagens de rua dos rótulos desta missão, então não há nada para mostrar agora. Suas validações concluídas estão salvas. Isso costuma se resolver sozinho — tente novamente.",
     "retry": "Tentar novamente"
+  },
+  "pano-loading": {
+    "skipping": "Ainda carregando, tentando o próximo rótulo..."
   },
   "mission-complete": {
     "title": "Ótimo trabalho!",

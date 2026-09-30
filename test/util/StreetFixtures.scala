@@ -2,7 +2,7 @@ package util
 
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.user.{SidewalkUser, SidewalkUserTableDef}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 
 import java.time.OffsetDateTime
@@ -18,9 +18,9 @@ import java.util.UUID
  * exactly ("these three streets, in this order").
  *
  * Every helper writes real rows, so a spec must either wrap them in [[RolledBackDb.runRolledBack]] or delete what it
- * seeded in an `afterAll`. Mix into a `PlaySpec with GuiceOneAppPerSuite with RolledBackDb`.
+ * seeded in an `afterAll`. Mix into a `SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb`.
  */
-trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
+trait StreetFixtures { this: GuiceOneAppPerSuite & RolledBackDb =>
 
   // Plain defs, deliberately: a `lazy val` here would be initialized under the spec instance's monitor, and these
   // helpers' later steps run on a Slick thread. A spec that blocks on `run(...)` from inside its own lazy val would
@@ -41,7 +41,7 @@ trait StreetFixtures { this: GuiceOneAppPerSuite with RolledBackDb =>
   protected def insertUser(): DBIO[String] = {
     val userId = UUID.randomUUID.toString
     for {
-      _ <- sidewalkUsersForFixtures += SidewalkUser(userId, s"spec-$userId", s"spec-$userId@example.com")
+      _ <- sidewalkUsersForFixtures += SidewalkUser(userId, s"spec-$userId", s"spec-$userId@example.com", now)
       _ <- sqlu"""INSERT INTO user_stat (user_stat_id, user_id)
                   VALUES ((SELECT COALESCE(MAX(user_stat_id), 0) + 1 FROM user_stat), $userId)"""
     } yield userId

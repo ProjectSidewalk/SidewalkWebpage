@@ -4,16 +4,16 @@ import com.google.inject.ImplementedBy
 import models.api.{RegionDataForApi, RegionFiltersForApi}
 import models.audit.AuditTaskTableDef
 import models.street.{StreetEdgePriorityTableDef, StreetEdgeRegionTable}
-import models.utils.MyPostgresProfile.api._
-import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile}
+import models.utils.MyPostgresProfile.api.*
+import models.utils.{FilteredTables, LatLngBBox, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.MultiPolygon
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.Effect
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 case class Region(regionId: Int, dataSource: String, name: String, geom: MultiPolygon, deleted: Boolean)
@@ -25,7 +25,7 @@ class RegionTableDef(tag: Tag) extends Table[Region](tag, "region") {
   def geom: Rep[MultiPolygon] = column[MultiPolygon]("geom")
   def deleted: Rep[Boolean]   = column[Boolean]("deleted", O.Default(false))
 
-  def * = (regionId, dataSource, name, geom, deleted) <> ((Region.apply _).tupled, Region.unapply)
+  def * = (regionId, dataSource, name, geom, deleted).mapTo[Region]
 }
 
 @ImplementedBy(classOf[RegionTable])
@@ -35,7 +35,7 @@ trait RegionTableRepository {}
 class RegionTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     streetEdgeRegionTable: StreetEdgeRegionTable
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends RegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -54,13 +54,13 @@ class RegionTable @Inject() (
       .filterNot(_.regionId inSetBind excludedRegionIds)
       .join(streetEdgePriorities)
       .on(_.streetEdgeId === _.streetEdgeId)
-      .groupBy(_._1.regionId)
-      .map { case (rId, group) => (rId, group.map(_._2.priority).avg) } // Get avg priority by region
+      .groupBy { case (streetRegion, _) => streetRegion.regionId }
+      .map { case (rId, group) => (rId, group.map { case (_, priority) => priority.priority }.avg) }
       .join(regionsWithoutDeleted)
-      .on(_._1 === _.regionId) // Get the full region instead of just the region_id
-      .sortBy(_._1._2.desc)
+      .on { case ((rId, _), region) => rId === region.regionId }
+      .sortBy { case ((_, avgPriority), _) => avgPriority.desc }
       .take(5)
-      .map(_._2) // Take the 5 with highest average priority
+      .map { case (_, region) => region }
       .sortBy(_ => random)
       .result
       .headOption // Randomly select one of the 5
@@ -106,16 +106,16 @@ class RegionTable @Inject() (
     val incompleteRegionsForUser = streetEdgeRegionTable.nonDeletedStreetEdgeRegions // FROM street_edge_region
       .joinLeft(userTasks)
       .on(_.streetEdgeId === _.streetEdgeId) // LEFT JOIN audit_task
-      .filter(_._2.isEmpty)                  // WHERE audit_task.audit_task_id IS NULL
-      .groupBy(_._1.regionId)                // GROUP BY region_id
-      .map(_._1)                             // SELECT region_id
+      .filter { case (_, task) => task.isEmpty } // WHERE audit_task.audit_task_id IS NULL
+      .groupBy { case (streetRegion, _) => streetRegion.regionId } // GROUP BY region_id
+      .map { case (regionId, _) => regionId } // SELECT region_id
 
     // Left join all regions against the ones the user hasn't finished to record completion status.
     regionsWithoutDeleted
       .filter(_r => (_r.regionId inSetBind regionIds) || regionIds.isEmpty) // WHERE region_id IN regionIds
       .joinLeft(incompleteRegionsForUser)
       .on(_.regionId === _)
-      .map(x => (x._1, x._2.isEmpty))
+      .map { case (region, incomplete) => (region, incomplete.isEmpty) }
       .result
   }
 
@@ -152,39 +152,29 @@ class RegionTable @Inject() (
       orderBy: String,
       limit: Option[Int]
   ): SqlStreamingAction[Vector[RegionDataForApi], RegionDataForApi, Effect.Read] = {
-    // Set up query filters. User-supplied string values (regionName) are single-quote-escaped and numeric filters are
-    // safe; see #2756 for migrating these raw builders to bound parameters.
-    val bboxFilter = filters.bbox
-      .map { bbox =>
-        s"AND ST_Intersects(region.geom, " +
-          s"ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      }
-      .getOrElse("")
+    val regionFilters: Seq[SQLActionBuilder] = Seq(
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("region.geom", bbox) },
+      filters.regionId.map { regionId => sql"region.region_id = $regionId" },
+      filters.regionName.map { regionName => sql"LOWER(region.name) = LOWER($regionName)" }
+    ).flatten
 
-    val regionIdFilter = filters.regionId.map { regionId => s"AND region.region_id = $regionId" }.getOrElse("")
+    val countFilters: Seq[SQLActionBuilder] =
+      filters.minLabelCount.map { count => sql"COALESCE(region_labels.label_count, 0) >= $count" }.toSeq
 
-    val regionNameFilter =
-      filters.regionName
-        .map { regionName => s"AND LOWER(region.name) = LOWER('${regionName.replace("'", "''")}')" }
-        .getOrElse("")
-
-    val minLabelCountFilter =
-      filters.minLabelCount.map { count => s"AND COALESCE(region_labels.label_count, 0) >= $count" }.getOrElse("")
-
-    val queryStr = s"""
+    val query: SQLActionBuilder = sql"""
       WITH filtered_regions AS (
         SELECT region.region_id, region.name, region.geom
         FROM region
         WHERE region.deleted = FALSE
-            $bboxFilter
-            $regionIdFilter
-            $regionNameFilter
+            AND """
+      .concat(SqlFragments.allOf(regionFilters))
+      .concat(sql"""
       ),
       -- Get the number of streets that count in each region.
       region_streets AS (
         SELECT street_edge_region.region_id, COUNT(DISTINCT street_edge.street_edge_id) AS street_count
         FROM street_edge_region
-        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
@@ -192,8 +182,8 @@ class RegionTable @Inject() (
       region_audits AS (
         SELECT street_edge_region.region_id, COUNT(audit_task.audit_task_id) AS audit_count
         FROM street_edge_region
-        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        JOIN ${FilteredTables.completedAudits()} ON street_edge_region.street_edge_id = audit_task.street_edge_id
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.completedAudits()} ON street_edge_region.street_edge_id = audit_task.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       ),
@@ -206,9 +196,9 @@ class RegionTable @Inject() (
         SELECT street_edge_region.region_id,
                SUM(ST_Length(street_edge.geom::geography)) AS outdated_distance
         FROM street_edge_region
-        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
-            AND $needsReauditSql
+            AND #$needsReauditSql
         GROUP BY street_edge_region.region_id
       ),
       -- Get label counts, distinct user counts, and label timestamps for each region.
@@ -219,8 +209,8 @@ class RegionTable @Inject() (
                MIN(label.time_created) AS first_label_date,
                MAX(label.time_created) AS last_label_date
         FROM street_edge_region
-        JOIN ${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
-        JOIN ${FilteredTables.labels()} ON street_edge_region.street_edge_id = label.street_edge_id
+        JOIN #${FilteredTables.streets()} ON street_edge_region.street_edge_id = street_edge.street_edge_id
+        JOIN #${FilteredTables.labels()} ON street_edge_region.street_edge_id = label.street_edge_id
         WHERE street_edge_region.region_id IN (SELECT region_id FROM filtered_regions)
         GROUP BY street_edge_region.region_id
       )
@@ -247,13 +237,14 @@ class RegionTable @Inject() (
       LEFT JOIN region_outdated ON filtered_regions.region_id = region_outdated.region_id
       LEFT JOIN region_labels ON filtered_regions.region_id = region_labels.region_id
       LEFT JOIN region_completion ON filtered_regions.region_id = region_completion.region_id
-      WHERE 1=1
-        $minLabelCountFilter
-      ORDER BY $orderBy
-      ${limit.map(n => s"LIMIT $n").getOrElse("")}
-    """
+      WHERE """)
+      .concat(SqlFragments.allOf(countFilters))
+      .concat(sql"""
+      ORDER BY #$orderBy
+      #${limit.map(n => s"LIMIT $n").getOrElse("")}
+    """)
 
-    implicit val getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>
+    given getRegionDataForApi: GetResult[RegionDataForApi] = GetResult { r =>
       RegionDataForApi(
         regionId = r.nextInt(),
         name = r.nextString(),
@@ -271,7 +262,7 @@ class RegionTable @Inject() (
       )
     }
 
-    sql"""#$queryStr""".as[RegionDataForApi]
+    query.as[RegionDataForApi]
   }
 
   /**

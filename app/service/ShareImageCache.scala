@@ -59,10 +59,10 @@ class ShareImageCache @Inject() (config: Configuration, environment: Environment
    * Directory where cached share preview images live: `<share.image.directory>/<city-id>/`. Resolution goes through
    * `MediaDirs` — the one resolver every media path and the boot check share (#4925).
    */
-  def dir: File = new File(MediaDirs.baseDir(config, environment, "share.image.directory"), configService.getCityId)
+  def dir: File = File(MediaDirs.baseDir(config, environment, "share.image.directory"), configService.getCityId)
 
   /** The cached preview for a label, which may or may not exist. */
-  def fileFor(labelId: Int): File = new File(dir, ShareImageCache.fileName(labelId))
+  def fileFor(labelId: Int): File = File(dir, ShareImageCache.fileName(labelId))
 
   /**
    * Makes the label's newest earlier-generation preview its current one, when nothing better can be built: a
@@ -101,7 +101,7 @@ class ShareImageCache @Inject() (config: Configuration, environment: Environment
   }
 
   private def legacyFiles(labelId: Int): Seq[File] =
-    (1 until ShareImageCache.Generation).map(g => new File(dir, ShareImageCache.fileName(labelId, g)))
+    (1 until ShareImageCache.Generation).map(g => File(dir, ShareImageCache.fileName(labelId, g)))
 
   private def delete(file: File): Unit =
     if (file.exists() && !file.delete()) logger.warn(s"Could not delete cached share image: ${file.getPath}")

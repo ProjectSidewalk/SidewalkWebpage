@@ -3,22 +3,21 @@ package controllers
 import actor.RecalculateStreetPriorityActor
 import models.user.Role
 import models.utils.BackgroundJobRunTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.stream.Materializer
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.StreetService
-import util.{AnonSession, RoleSession, RolledBackDb, StubService}
+import util.{AnonSession, RoleSession, RolledBackDb, SidewalkSpec, StubService}
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.Future
@@ -31,17 +30,17 @@ import scala.concurrent.Future
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
 class AdminExcludeUserSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with RoleSession
     with GuiceOneAppPerSuite
     with AnonSession
     with RolledBackDb
     with Eventually {
 
-  private val priorityRecalcs = new AtomicInteger(0)
+  private val priorityRecalcs = AtomicInteger(0)
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // AnonSession mints one session per call and the limiter is per-IP; every suite in a run shares loopback.
       .configure("rate-limit.anon-signup.enabled" -> false)
@@ -57,9 +56,9 @@ class AdminExcludeUserSpec
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
-  implicit override val patienceConfig: PatienceConfig =
+  override given patienceConfig: PatienceConfig =
     PatienceConfig(timeout = Span(10, Seconds), interval = Span(100, Millis))
 
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
@@ -74,7 +73,7 @@ class AdminExcludeUserSpec
   private val runIdFloor: Int =
     run(jobRunTable.backgroundJobRuns.map(_.backgroundJobRunId).max.result).getOrElse(0)
 
-  private def targetUser(role: Role.Value): String = {
+  private def targetUser(role: Role): String = {
     val userId = userIdOf(sessionAs(role))
     touchedUserIds += userId
     userId
@@ -109,7 +108,7 @@ class AdminExcludeUserSpec
       app,
       FakeRequest(PUT, "/adminapi/saveUserSettings")
         .withHeaders("X-Requested-With" -> "XMLHttpRequest")
-        .withCookies(cookies: _*)
+        .withCookies(cookies*)
         .withJsonBody(body)
         .withCSRFToken
     ).get
@@ -130,7 +129,8 @@ class AdminExcludeUserSpec
         )
       }
       val suiteRuns = jobRunTable.backgroundJobRuns
-        .filter(r => r.jobName === RecalculateStreetPriorityActor.Name && r.backgroundJobRunId > runIdFloor)
+        .filter(r => r.jobName === RecalculateStreetPriorityActor.Name)
+        .filter(r => r.backgroundJobRunId > runIdFloor)
       // The recalculations aren't awaited by the save, so one may still be closing its row.
       eventually(run(suiteRuns.filter(_.finishedAt.isEmpty).length.result) mustBe 0)
       val _ = run(suiteRuns.delete)

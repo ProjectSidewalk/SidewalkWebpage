@@ -2,7 +2,7 @@ package models.utils
 
 import com.google.inject.ImplementedBy
 import models.user.{Role, SidewalkUserTableDef, UserRoleTableDef}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -17,6 +17,9 @@ case class WebpageActivity(
     timestamp: OffsetDateTime
 )
 
+/** One day's count of sign-ins or active users, for either anonymous or registered users. */
+case class DailyCountByAnon(day: OffsetDateTime, isAnonymous: Boolean, count: Int)
+
 /** Analytics data types for the v3 API usage dashboard. */
 case class ApiEndpointCount(endpoint: String, count: Long)
 
@@ -30,16 +33,14 @@ case class ApiFormatSourceCount(format: String, source: String, count: Long)
 case class ApiSourceIpCount(source: String, uniqueIps: Long)
 
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
-  def webpageActivityId: Rep[Int]    = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String]            = column[String]("user_id")
-  def ipAddress: Rep[IpAddress]      = column[IpAddress]("ip_address")
-  def activity: Rep[String]          = column[String]("activity")
+  def webpageActivityId: Rep[Int] = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
+  def userId: Rep[String]         = column[String]("user_id")
+  def ipAddress: Rep[IpAddress]   = column[IpAddress]("ip_address")
+  def activity: Rep[String]       = column[String]("activity")
+  // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (webpageActivityId, userId, ipAddress, activity, timestamp) <> (
-    (WebpageActivity.apply _).tupled,
-    WebpageActivity.unapply
-  )
+  def * = (webpageActivityId, userId, ipAddress, activity, timestamp).mapTo[WebpageActivity]
 
   def user = foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
 }
@@ -89,16 +90,17 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * email address. The anon flag is derived from the activity name, which already distinguishes the two cases, so no
    * role join is needed.
    *
-   * @return DBIO[Seq[(day, isAnonymous, count)]] — `day` is the timestamp truncated to the day; sorted ascending.
+   * @return One row per day and anon flag, sorted ascending; `day` is the timestamp truncated to the day.
    */
-  def getSignInCountsByDate: DBIO[Seq[(OffsetDateTime, Boolean, Int)]] = {
+  def getSignInCountsByDate: DBIO[Seq[DailyCountByAnon]] = {
     val successfulSignIns = Seq("SignIn", "SignInSuccess")
     activities
       .filter(a => (a.activity inSet successfulSignIns) || a.activity === "AnonAutoSignUp")
       .map(a => (a.timestamp.trunc("day"), a.activity === "AnonAutoSignUp", a.webpageActivityId))
-      .groupBy(x => (x._1, x._2))
+      .groupBy { case (day, isAnon, _) => (day, isAnon) }
       .map { case ((day, isAnon), group) => (day, isAnon, group.length) }
-      .sortBy(_._1)
+      .sortBy { case (day, _, _) => day }
+      .map { case (day, isAnon, count) => (day, isAnon, count).mapTo[DailyCountByAnon] }
       .result
   }
 
@@ -108,18 +110,19 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * "Active" is intentionally broad — any logged activity counts — so this measures how many people showed up, not how
    * much they did. Split on role "Anonymous" so registered engagement can be read separately from drive-by anon traffic.
    *
-   * @return DBIO[Seq[(day, isAnonymous, distinctUserCount)]] — sorted ascending by day.
+   * @return One row per day and anon flag, counting distinct users; sorted ascending by day.
    */
-  def getActiveUserCountsByDate: DBIO[Seq[(OffsetDateTime, Boolean, Int)]] = {
+  def getActiveUserCountsByDate: DBIO[Seq[DailyCountByAnon]] = {
     val activeUsers = for {
       _activity <- activities
       _userRole <- userRoles if _activity.userId === _userRole.userId
     } yield (_activity.timestamp.trunc("day"), _userRole.role === Role.Anonymous, _activity.userId)
 
     activeUsers
-      .groupBy(x => (x._1, x._2))
-      .map { case ((day, isAnon), group) => (day, isAnon, group.map(_._3).countDistinct) }
-      .sortBy(_._1)
+      .groupBy { case (day, isAnon, _) => (day, isAnon) }
+      .map { case ((day, isAnon), group) => (day, isAnon, group.map { case (_, _, userId) => userId }.countDistinct) }
+      .sortBy { case (day, _, _) => day }
+      .map { case (day, isAnon, count) => (day, isAnon, count).mapTo[DailyCountByAnon] }
       .result
   }
 
@@ -137,7 +140,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
       .map(_.timestamp.trunc("day"))
       .groupBy(x => x)
       .map { case (day, group) => (day, group.length) }
-      .sortBy(_._1)
+      .sortBy { case (day, _) => day }
       .result
   }
 
@@ -147,6 +150,16 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
   def findUserActivity(activity: String, userId: String): DBIO[Seq[WebpageActivity]] = {
     activities.filter(a => a.userId === userId && a.activity === activity).result
   }
+
+  /**
+   * The v3 API calls in the window, the rows every API analytics query below counts.
+   *
+   * @param days Number of past days to include (0 = all time).
+   * @return A SQL condition on webpage_activity.
+   */
+  private def v3ApiCallsSince(days: Int): String =
+    if (days > 0) s"activity LIKE 'GET /v3/api/%' AND timestamp >= NOW() - INTERVAL '$days days'"
+    else "activity LIKE 'GET /v3/api/%'"
 
   /**
    * Returns per-endpoint call counts for v3 API requests.
@@ -160,14 +173,12 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @return DBIO with a sequence of (endpoint, count) tuples, ordered by count descending.
    */
   def getApiEndpointCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiEndpointCount]] = {
-    implicit val gr: GetResult[ApiEndpointCount] = GetResult(r => ApiEndpointCount(r.nextString(), r.nextLong()))
-    val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
-    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
+    given gr: GetResult[ApiEndpointCount] = GetResult(r => ApiEndpointCount(r.nextString(), r.nextLong()))
+    val apiDocsFilter                     = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint, COUNT(*) AS call_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
         #$apiDocsFilter
       GROUP BY endpoint
       ORDER BY call_count DESC
@@ -182,13 +193,11 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @return DBIO with the unique IP count.
    */
   def getApiUniqueIpCount(excludeApiDocs: Boolean, days: Int): DBIO[Long] = {
-    val dateFilter    = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT COUNT(DISTINCT ip_address)
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
         #$apiDocsFilter
     """.as[Long].head
   }
@@ -201,16 +210,14 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiEndpointCountsBySource(days: Int): DBIO[Seq[ApiEndpointSourceCount]] = {
-    implicit val gr: GetResult[ApiEndpointSourceCount] =
+    given gr: GetResult[ApiEndpointSourceCount] =
       GetResult(r => ApiEndpointSourceCount(r.nextString(), r.nextString(), r.nextLong()))
-    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     sql"""
       SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint,
              #$sourceCase AS source,
              COUNT(*) AS call_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
       GROUP BY endpoint, source
       ORDER BY call_count DESC
     """.as[ApiEndpointSourceCount]
@@ -221,16 +228,14 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiDailyCountsBySource(days: Int): DBIO[Seq[ApiDailySourceCount]] = {
-    implicit val gr: GetResult[ApiDailySourceCount] =
+    given gr: GetResult[ApiDailySourceCount] =
       GetResult(r => ApiDailySourceCount(r.nextString(), r.nextString(), r.nextLong()))
-    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     sql"""
       SELECT DATE(timestamp)::text AS date,
              #$sourceCase AS source,
              COUNT(*) AS call_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
       GROUP BY date, source
       ORDER BY date ASC
     """.as[ApiDailySourceCount]
@@ -241,16 +246,14 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiFormatCountsBySource(days: Int): DBIO[Seq[ApiFormatSourceCount]] = {
-    implicit val gr: GetResult[ApiFormatSourceCount] =
+    given gr: GetResult[ApiFormatSourceCount] =
       GetResult(r => ApiFormatSourceCount(r.nextString(), r.nextString(), r.nextLong()))
-    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
     sql"""
       SELECT COALESCE((REGEXP_MATCH(activity, '[?&]filetype=([^&\s]+)'))[1], 'json') AS format,
              #$sourceCase AS source,
              COUNT(*) AS call_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
       GROUP BY format, source
       ORDER BY call_count DESC
     """.as[ApiFormatSourceCount]
@@ -263,13 +266,11 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiUniqueIpCountsBySource(days: Int): DBIO[Seq[ApiSourceIpCount]] = {
-    implicit val gr: GetResult[ApiSourceIpCount] = GetResult(r => ApiSourceIpCount(r.nextString(), r.nextLong()))
-    val dateFilter = if (days > 0) s"AND timestamp >= NOW() - INTERVAL '$days days'" else ""
+    given gr: GetResult[ApiSourceIpCount] = GetResult(r => ApiSourceIpCount(r.nextString(), r.nextLong()))
     sql"""
       SELECT #$sourceCase AS source, COUNT(DISTINCT ip_address) AS ip_count
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
-        #$dateFilter
+      WHERE #${v3ApiCallsSince(days)}
       GROUP BY source
     """.as[ApiSourceIpCount]
   }
@@ -284,7 +285,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
     sql"""
       SELECT MAX(date(timestamp))::TEXT
       FROM webpage_activity
-      WHERE activity LIKE 'GET /v3/api/%'
+      WHERE #${v3ApiCallsSince(0)}
     """.as[Option[String]].head
   }
 }

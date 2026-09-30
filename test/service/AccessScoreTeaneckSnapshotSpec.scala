@@ -41,7 +41,7 @@ class AccessScoreTeaneckSnapshotSpec extends AnyFunSuite with Matchers {
   private def fixtureLines(name: String): Seq[String] = {
     val stream = getClass.getResourceAsStream(s"/access-score/$name")
     require(stream != null, s"fixture $name is missing from the test classpath")
-    val source = Source.fromInputStream(new GZIPInputStream(stream), "UTF-8")
+    val source = Source.fromInputStream(GZIPInputStream(stream), "UTF-8")
     try source.getLines().drop(1).toVector
     finally source.close()
   }

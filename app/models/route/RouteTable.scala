@@ -5,7 +5,7 @@ import models.region.RegionTableDef
 import models.street.StreetEdgeTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.lifted.Case
@@ -101,18 +101,16 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
   def name: Rep[String]                = column[String]("name")
   def slug: Rep[String]                = column[String]("slug")
   def description: Rep[Option[String]] = column[Option[String]]("description")
-  def public: Rep[Boolean]             = column[Boolean]("public")
-  def deleted: Rep[Boolean]            = column[Boolean]("deleted")
+  def public: Rep[Boolean]             = column[Boolean]("public", O.Default(true))
+  def deleted: Rep[Boolean]            = column[Boolean]("deleted", O.Default(false))
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def createdAt: Rep[OffsetDateTime] = column[OffsetDateTime]("created_at")
   def distanceMeters: Rep[Double]    = column[Double]("distance_meters")
   def streetCount: Rep[Int]          = column[Int]("street_count")
 
   def * =
-    (routeId, userId, regionId, name, slug, description, public, deleted, createdAt, distanceMeters, streetCount) <> (
-      (Route.apply _).tupled,
-      Route.unapply
-    )
+    (routeId, userId, regionId, name, slug, description, public, deleted, createdAt, distanceMeters, streetCount)
+      .mapTo[Route]
 
   def user   = foreignKey("route_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def region = foreignKey("route_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
@@ -124,7 +122,7 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
 trait RouteTableRepository {}
 
 @Singleton
-class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends RouteTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

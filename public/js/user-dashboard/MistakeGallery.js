@@ -132,7 +132,7 @@ class MistakeGallery {
       const openButton = document.createElement('button');
       openButton.type = 'button';
       openButton.className = 'ud-card-open';
-      openButton.title = i18next.t('dashboard:mistake-cards.open-title');
+      openButton.setAttribute('data-ps-tooltip', i18next.t('dashboard:mistake-cards.open-title'));
       openButton.setAttribute('aria-label', i18next.t('dashboard:mistake-cards.open-title'));
       openButton.addEventListener('click', () => this.#openPopup(m));
       const hint = document.createElement('span');
@@ -166,7 +166,7 @@ class MistakeGallery {
 
     const title = document.createElement('span');
     title.className = 'ud-card-title';
-    title.textContent = MistakeGallery.#typeName(type);
+    title.textContent = util.misc.labelTypeName(type);
     body.appendChild(title);
 
     const valNote = document.createElement('span');
@@ -431,18 +431,7 @@ class MistakeGallery {
     b.type = 'button';
     b.className = `ud-chip ${cls}`;
     b.textContent = label;
-    b.title = title;
+    b.setAttribute('data-ps-tooltip', title);
     return b;
-  }
-
-  /**
-   * The localized display name for a label type, via the shared common-namespace keys ("NoCurbRamp" ->
-   * t('common:no-curb-ramp')).
-   * @param {string} type - LabelTypeEnum name.
-   * @returns {string}
-   */
-  static #typeName(type) {
-    const key = String(type).replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
-    return i18next.t(`common:${key}`);
   }
 }

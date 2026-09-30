@@ -316,7 +316,7 @@
           <p><strong>Other side:</strong> ${other ? presenceLabel(other.presence) : 'N/A'}</p>
           <p><strong>Type:</strong> ${props.way_type || 'Unknown'}</p>
           <p><strong>OSM ID:</strong> ${osmLink}</p>
-          <a href="/explore?streetEdgeId=${props.street_edge_id}" class="button-ps button--primary button--tiny"
+          <a href="/explore?streetEdgeId=${props.street_edge_id}" class="button button--primary button--tiny"
             target="_blank">
             Explore Street in Project Sidewalk
           </a>

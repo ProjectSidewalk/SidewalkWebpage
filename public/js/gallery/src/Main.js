@@ -25,19 +25,19 @@ class Main {
 
     // Initialize card container component.
     sg.ui.cardContainer = {};
-    sg.ui.cardContainer.holder = $('#image-card-container');
-    sg.ui.cardContainer.prevPage = $('#prev-page');
-    sg.ui.cardContainer.pageNumber = $('#page-number');
-    sg.ui.cardContainer.nextPage = $('#next-page');
+    sg.ui.cardContainer.holder = document.getElementById('image-card-container');
+    sg.ui.cardContainer.prevPage = document.getElementById('prev-page');
+    sg.ui.cardContainer.pageNumber = document.getElementById('page-number');
+    sg.ui.cardContainer.nextPage = document.getElementById('next-page');
 
     // Initialize expanded view component.
     sg.ui.expandedView = {};
-    sg.ui.expandedView.container = $('.gallery-expanded-view');
+    sg.ui.expandedView.container = document.querySelector('.gallery-expanded-view');
 
     // Keep track of some other elements whose status or dimensions are useful.
-    sg.ui.pageControl = $('.page-control');
-    sg.pageLoading = $('#page-loading');
-    sg.labelsNotFound = $('#labels-not-found-text');
+    sg.ui.pageControl = document.querySelector('.page-control');
+    sg.pageLoading = document.getElementById('page-loading');
+    sg.labelsNotFound = document.getElementById('labels-not-found-text');
   }
 
   async #init(params) {

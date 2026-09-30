@@ -5,18 +5,17 @@ import models.api.{StreetDataForApi, StreetFiltersForApi}
 import models.audit.{AuditTask, AuditTaskTableDef}
 import models.region.RegionTableDef
 import models.user.UserStatTableDef
-import models.utils.MyPostgresProfile.api._
-import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{ConfigTableDef, FilteredTables, LatLngBBox, MyPostgresProfile, SpatialQueryType}
+import models.utils.MyPostgresProfile.api.{given, *}
+import models.utils.{ConfigTableDef, FilteredTables, LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import org.postgresql.jdbc.PgArray
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.dbio.Effect
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 import slick.sql.SqlStreamingAction
 
 import java.time.{OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
@@ -46,41 +45,36 @@ case class StreetEdge(
     y1: Double,
     x2: Double,
     y2: Double,
-    wayType: WayType.Value,
-    status: StreetEdgeStatus.Value,
+    wayType: WayType,
+    status: StreetEdgeStatus,
     timestamp: OffsetDateTime
 )
 case class StreetEdgeInfo(val street: StreetEdge, osmId: Long, regionId: Int, val auditCount: Int)
 
 class StreetEdgeTableDef(tag: Tag) extends Table[StreetEdge](tag, "street_edge") {
-  def streetEdgeId: Rep[Int]              = column[Int]("street_edge_id", O.PrimaryKey)
-  def geom                                = column[LineString]("geom")
-  def x1: Rep[Double]                     = column[Double]("x1")
-  def y1: Rep[Double]                     = column[Double]("y1")
-  def x2: Rep[Double]                     = column[Double]("x2")
-  def y2: Rep[Double]                     = column[Double]("y2")
-  def wayType: Rep[WayType.Value]         = column[WayType.Value]("way_type")
-  def status: Rep[StreetEdgeStatus.Value] = column[StreetEdgeStatus.Value]("status")
+  def streetEdgeId: Rep[Int]        = column[Int]("street_edge_id", O.PrimaryKey)
+  def geom                          = column[LineString]("geom")
+  def x1: Rep[Double]               = column[Double]("x1")
+  def y1: Rep[Double]               = column[Double]("y1")
+  def x2: Rep[Double]               = column[Double]("x2")
+  def y2: Rep[Double]               = column[Double]("y2")
+  def wayType: Rep[WayType]         = column[WayType]("way_type")
+  def status: Rep[StreetEdgeStatus] = column[StreetEdgeStatus]("status")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, status, timestamp) <> (
-    (StreetEdge.apply _).tupled,
-    StreetEdge.unapply
-  )
+  def * = (streetEdgeId, geom, x1, y1, x2, y2, wayType, status, timestamp).mapTo[StreetEdge]
 }
 
 @ImplementedBy(classOf[StreetEdgeTable])
 trait StreetEdgeTableRepository {}
 
 @Singleton
-class StreetEdgeTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends StreetEdgeTableRepository
+class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
+    extends StreetEdgeTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
-  implicit val streetEdgeInfoConverter: GetResult[StreetEdgeInfo] = GetResult[StreetEdgeInfo](r => {
+  given streetEdgeInfoConverter: GetResult[StreetEdgeInfo] = GetResult[StreetEdgeInfo](r => {
     StreetEdgeInfo(
       StreetEdge(
         r.nextInt(),
@@ -128,9 +122,13 @@ class StreetEdgeTable @Inject() (
   val countedAuditTasks =
     auditTasks.filter(t => t.completed && !userStats.filter(u => u.userId === t.userId && u.excluded).exists)
 
-  val completedAuditTasksWithUsers = countedAuditTasksWithUsers.join(streets).on(_._1.streetEdgeId === _.streetEdgeId)
-  val completedAuditTasks          = completedAuditTasksWithUsers.map(_._1._1)
-  val highQualityCompletedTasks    = completedAuditTasksWithUsers.filter(_._1._2.highQuality).map(_._1._1)
+  val completedAuditTasksWithUsers = countedAuditTasksWithUsers.join(streets).on { case ((task, _), street) =>
+    task.streetEdgeId === street.streetEdgeId
+  }
+  val completedAuditTasks       = completedAuditTasksWithUsers.map { case ((task, _), _) => task }
+  val highQualityCompletedTasks = completedAuditTasksWithUsers
+    .filter { case ((_, userStat), _) => userStat.highQuality }
+    .map { case ((task, _), _) => task }
 
   /** When upToDateOnly, drops audits performed on since-replaced imagery (audit_task.outdated_imagery, #4384). */
   private def auditFreshnessFilter(
@@ -200,44 +198,47 @@ class StreetEdgeTable @Inject() (
       .join(osmWayStreetEdge)
       .on(_.streetEdgeId === _.streetEdgeId)
       .join(streetEdgeRegion)
-      .on(_._1.streetEdgeId === _.streetEdgeId)
+      .on { case ((street, _), streetRegion) => street.streetEdgeId === streetRegion.streetEdgeId }
       .join(regions)
-      .on(_._2.regionId === _.regionId)
+      .on { case ((_, streetRegion), region) => streetRegion.regionId === region.regionId }
       .joinLeft(auditTasks)
-      .on(_._1._1._1.streetEdgeId === _.streetEdgeId)
+      .on { case ((((street, _), _), _), task) => street.streetEdgeId === task.streetEdgeId }
       .joinLeft(userStats)
-      .on(_._2.map(_.userId) === _.userId)
-      .map(row => (row._1._1._1._1._1, row._1._1._1._1._2, row._1._1._1._2, row._1._1._2, row._1._2, row._2))
+      .on { case ((_, task), userStat) => task.map(_.userId) === userStat.userId }
+      .map { case (((((street, osmWay), _), region), task), userStat) => (street, osmWay, region, task, userStat) }
 
     // Either user bounding box filter on region or street boundaries.
     val filteredQuery = spatialQueryType match {
       case SpatialQueryType.Region =>
-        baseQuery.filter(_._4.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
+        baseQuery.filter { case (_, _, region, _, _) =>
+          region.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326)))
+        }
       case _ =>
-        baseQuery
-          .filter(_._1.geom.intersects(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
+        baseQuery.filter { case (street, _, _, _, _) =>
+          street.geom.intersects(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326)))
+        }
     }
 
     // Group by street and sum the number of audits completed audits. Then package into the StreetEdgeInfo case class.
     filteredQuery
-      .groupBy(row => (row._1, row._2.osmWayId, row._4.regionId))
+      .groupBy { case (street, osmWay, region, _, _) => (street, osmWay.osmWayId, region.regionId) }
       .map { case ((street, osmWayId, regionId), group) =>
         (
           street,
           osmWayId,
           regionId,
-          group
-            .map(r =>
-              Case
-                .If(r._6.map(_.highQuality).getOrElse(false) && r._5.map(_.completed).getOrElse(false))
-                .Then(1)
-                .Else(0)
-            )
-            .sum
+          group.map { case (_, _, _, task, userStat) =>
+            Case
+              .If(userStat.map(_.highQuality).getOrElse(false) && task.map(_.completed).getOrElse(false))
+              .Then(1)
+              .Else(0)
+          }.sum
         )
       }
       .result
-      .map(_.map(tuple => StreetEdgeInfo(tuple._1, tuple._2, tuple._3, tuple._4.getOrElse(0))))
+      .map(_.map { case (street, osmWayId, regionId, auditCount) =>
+        StreetEdgeInfo(street, osmWayId, regionId, auditCount.getOrElse(0))
+      })
   }
 
   /**
@@ -278,38 +279,23 @@ class StreetEdgeTable @Inject() (
   def getStreetsForApi(
       filters: StreetFiltersForApi
   ): SqlStreamingAction[Vector[StreetDataForApi], StreetDataForApi, Effect.Read] = {
-    // Set up query filters.
-    val bboxFilter = filters.bbox
-      .map { bbox =>
-        s"AND ST_Intersects(s.geom, ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326))"
-      }
-      .getOrElse("")
+    // Filters on the streets themselves.
+    val streetFilters: Seq[SQLActionBuilder] = Seq(
+      filters.bbox.map { bbox => SqlFragments.intersectsBBox("s.geom", bbox) },
+      filters.wayTypes.map { wayTypes => sql"s.way_type = ANY(${SqlFragments.enumList(wayTypes)}::way_type[])" },
+      filters.regionId.map { regionId => sql"r.region_id = $regionId" },
+      filters.regionName.map { regionName => sql"LOWER(reg.name) = LOWER($regionName)" },
+      filters.statuses.map { statuses => sql"s.status = ANY(${SqlFragments.enumList(statuses)}::street_edge_status[])" }
+    ).flatten
 
-    val wayTypeFilter = filters.wayTypes
-      .map { wayTypes => s"AND s.way_type IN (${wayTypes.map(wt => s"'${wt.replace("'", "''")}'").mkString(",")})" }
-      .getOrElse("")
+    // Filters on the per-street counts, which only exist once the streets are chosen.
+    val countFilters: Seq[SQLActionBuilder] = Seq(
+      filters.minLabelCount.map { count => sql"l.label_count >= $count" },
+      filters.minAuditCount.map { count => sql"a.audit_count >= $count" },
+      filters.minUserCount.map { count => sql"array_length(l.user_ids, 1) >= $count" }
+    ).flatten
 
-    val regionIdFilter = filters.regionId.map { regionId => s"AND r.region_id = $regionId" }.getOrElse("")
-
-    val regionNameFilter =
-      filters.regionName
-        .map { regionName => s"AND LOWER(reg.name) = LOWER('${regionName.replace("'", "''")}')" }
-        .getOrElse("")
-
-    val statusFilter = filters.statuses
-      .map { statuses => s"AND s.status IN (${statuses.map(st => s"'${st.replace("'", "''")}'").mkString(",")})" }
-      .getOrElse("")
-
-    val minLabelCountFilter = filters.minLabelCount.map { count => s"AND label_count >= $count" }.getOrElse("")
-
-    val minAuditCountFilter = filters.minAuditCount.map { count => s"AND audit_count >= $count" }.getOrElse("")
-
-    val minUserCountFilter =
-      filters.minUserCount.map { count => s"AND array_length(user_ids, 1) >= $count" }.getOrElse("")
-
-    // Build the query string. User-supplied string values (wayType, regionName) are single-quote-escaped above and
-    // numeric filters are safe; see #2756 for migrating these raw builders to bound parameters.
-    val queryStr = s"""
+    val query: SQLActionBuilder = sql"""
       WITH filtered_streets AS (
         SELECT s.street_edge_id, s.geom, s.way_type, s.status, o.osm_way_id, osm_way.maxspeed AS max_speed,
                r.region_id, reg.name as region_name
@@ -319,20 +305,18 @@ class StreetEdgeTable @Inject() (
         JOIN street_edge_region r ON s.street_edge_id = r.street_edge_id
         JOIN region reg ON r.region_id = reg.region_id
         -- The API returns all streets (open, no_imagery, disabled) tagged with their status (#3888); only the tutorial
-        -- street is excluded. Availability filtering is opt-in via the `status` query param ($statusFilter).
-        WHERE ${FilteredTables.notTutorialStreet("s.street_edge_id")}
-            $bboxFilter
-            $wayTypeFilter
-            $regionIdFilter
-            $regionNameFilter
-            $statusFilter
+        -- street is excluded. Availability filtering is opt-in via the `status` query param.
+        WHERE #${FilteredTables.notTutorialStreet("s.street_edge_id")}
+            AND """
+      .concat(SqlFragments.allOf(streetFilters))
+      .concat(sql"""
       ),
       -- Get audit counts.
       audit_counts AS (
         SELECT s.street_edge_id, COUNT(audit_task.audit_task_id) as audit_count,
                COUNT(audit_task.audit_task_id) FILTER (WHERE NOT audit_task.outdated_imagery) as up_to_date_audit_count
         FROM filtered_streets s
-        LEFT JOIN ${FilteredTables.completedAudits()} ON s.street_edge_id = audit_task.street_edge_id
+        LEFT JOIN #${FilteredTables.completedAudits()} ON s.street_edge_id = audit_task.street_edge_id
         GROUP BY s.street_edge_id
       ),
       -- Get label counts, users, and timestamps.
@@ -348,7 +332,7 @@ class StreetEdgeTable @Inject() (
                MIN(label.time_created) as first_label_date,
                MAX(label.time_created) as last_label_date
         FROM filtered_streets s
-        LEFT JOIN ${FilteredTables.labels()} ON s.street_edge_id = label.street_edge_id
+        LEFT JOIN #${FilteredTables.labels()} ON s.street_edge_id = label.street_edge_id
         GROUP BY s.street_edge_id
       )
       -- Final selection with all filters applied.
@@ -365,14 +349,11 @@ class StreetEdgeTable @Inject() (
       FROM filtered_streets s
       LEFT JOIN audit_counts a ON s.street_edge_id = a.street_edge_id
       LEFT JOIN label_stats l ON s.street_edge_id = l.street_edge_id
-      WHERE 1=1
-        $minLabelCountFilter
-        $minAuditCountFilter
-        $minUserCountFilter
-    """
+      WHERE """)
+      .concat(SqlFragments.allOf(countFilters))
 
-    // Use the plainSQL function with GetResult implicit for StreetDataForApi.
-    implicit val getStreetDataForApi: GetResult[StreetDataForApi] = GetResult { r =>
+    // Use the plainSQL function with given GetResult for StreetDataForApi.
+    given getStreetDataForApi: GetResult[StreetDataForApi] = GetResult { r =>
       StreetDataForApi(
         streetEdgeId = r.nextInt(),
         osmWayId = r.nextLong(),
@@ -397,7 +378,7 @@ class StreetEdgeTable @Inject() (
     }
 
     // Return a Query that can be used with db.stream.
-    sql"""#$queryStr""".as[StreetDataForApi]
+    query.as[StreetDataForApi]
   }
 
   /**
@@ -405,7 +386,7 @@ class StreetEdgeTable @Inject() (
    *
    * @return A database action that yields a sequence of (wayType, count) tuples.
    */
-  def getStreetTypes: DBIO[Seq[(WayType.Value, Int)]] = {
+  def getStreetTypes: DBIO[Seq[(WayType, Int)]] = {
     streets
       .groupBy(_.wayType)
       .map { case (wayType, group) => (wayType, group.length) }

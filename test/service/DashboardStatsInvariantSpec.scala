@@ -3,9 +3,8 @@ package service
 import forms.UsernamePolicy
 import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStatTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.ProfanityGuard
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import slick.basic.DatabaseConfig
@@ -13,6 +12,7 @@ import slick.dbio.DBIO
 import play.api.i18n.Lang
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, Configuration}
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,10 +34,10 @@ import scala.concurrent.duration.DurationInt
  *     The #4533 regression synthesizes a label-only mapper and runs the board query in one transaction that is always
  *     rolled back (`runRolledBack`). Both leave the shared dev DB exactly as found, even on assertion failure.
  */
-class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
+class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val userService               = app.injector.instanceOf[UserService]
   private val messages                  = play.api.test.Helpers.stubMessages()
@@ -46,7 +46,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val config                    = app.injector.instanceOf[Configuration]
   private val userStatTable             = app.injector.instanceOf[UserStatTable]
   private val auditTaskInteractionTable = app.injector.instanceOf[models.audit.AuditTaskInteractionTable]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
+  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 

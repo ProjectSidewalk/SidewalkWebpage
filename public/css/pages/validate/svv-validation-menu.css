@@ -41,6 +41,14 @@
   justify-content: space-between;
 }
 
+/* The verdict thumbs, Back's arrow and the dock's close control are immersive mode's (svv-immersive.css); the
+   column keeps its plain text buttons. */
+.validate-page-button__icon,
+.validate-undo-button__icon,
+#validate-verdict-clear {
+  display: none;
+}
+
 /* Overriding some of our design system tokens, though we could likely bring them more in line with DST. */
 .validate-page-button {
   display: inline-block;
@@ -57,20 +65,20 @@
   border: none;
 }
 
-.validate-button.chosen {
+.validate-button.is-chosen {
   border: none;
 }
 
-#validate-yes-button.chosen {
+#validate-yes-button.is-chosen {
   background: var(--color-pine-500);
 }
 
-#validate-no-button.chosen {
+#validate-no-button.is-chosen {
   background: var(--color-orange-400);
 }
 
 /* Unsure is the pale asphalt it is in Gallery, the label card, and mobile Validate. */
-#validate-unsure-button.chosen {
+#validate-unsure-button.is-chosen {
   background: var(--color-asphalt-200);
 }
 
@@ -80,7 +88,7 @@
     background: var(--color-pine-300);
   }
 
-  #validate-yes-button.chosen:hover {
+  #validate-yes-button.is-chosen:hover {
     background: var(--color-pine-500);
   }
 
@@ -88,7 +96,7 @@
     background: var(--color-orange-300);
   }
 
-  #validate-no-button.chosen:hover {
+  #validate-no-button.is-chosen:hover {
     background: var(--color-orange-400);
   }
 
@@ -96,7 +104,7 @@
     background: var(--color-asphalt-100);
   }
 
-  #validate-unsure-button.chosen:hover {
+  #validate-unsure-button.is-chosen:hover {
     background: var(--color-asphalt-200);
   }
 }
@@ -127,7 +135,7 @@
 .sidewalk-ai-suggested-tag {
   font: var(--text-tiny-semibold);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: background 0.3s; /* Animating the outline too makes it flash as hover leaves. */
 }
 
 .sidewalk-ai-suggested-tag.to-add {
@@ -155,34 +163,41 @@
   margin-top: calc(10px * var(--ui-scale));
 }
 
-/* Bootstrap is getting loaded after this file hence overriding this. To avoid it, I am adding important but ideally the
-  order of inclusion should be flipped. */
-.validate-text-input input, .selectize-input {
-  display: flex !important;
-  width: 100% !important;
-  height: calc(36px * var(--ui-scale)) !important;
-  padding: calc(8px * var(--ui-scale)) calc(18px * var(--ui-scale)) !important;
-  align-items: center !important;
-  gap: calc(4px * var(--ui-scale)) !important;
-  flex-shrink: 0 !important;
-  border-radius: calc(6px * var(--ui-scale)) !important;
-  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-500) !important;
-  background: var(--color-neutral-white) !important;
-  font: var(--text-tiny-semibold) !important;
-
-}
-
-.selectize-input.focus.input-active.has-options {
-  border-radius: calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) 0 0;
-}
-
-.selectize-dropdown {
-  border-radius: 0 0 calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) !important;
-}
-
-.selectize-input input {
+.validate-text-input input, .ts-control {
+  display: flex;
+  width: 100%;
+  height: calc(36px * var(--ui-scale));
+  padding: calc(8px * var(--ui-scale)) calc(18px * var(--ui-scale));
+  align-items: center;
+  gap: calc(4px * var(--ui-scale));
+  flex-shrink: 0;
+  border-radius: calc(6px * var(--ui-scale));
+  border: calc(1px * var(--ui-scale)) solid var(--color-neutral-500);
+  background: var(--color-neutral-white);
   font: var(--text-tiny-semibold);
-  width: 100% !important; /* Text was getting cut off by default. */
+}
+
+/* Tom Select sets its own right padding from this variable, overriding the padding above. */
+.ts-wrapper {
+  --ts-pr-min: calc(18px * var(--ui-scale));
+}
+
+.ts-wrapper.dropdown-active .ts-control {
+  border-radius: calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale)) 0 0 !important;
+}
+
+.ts-dropdown {
+  margin-top: 0;
+  border-radius: 0 0 calc(6px * var(--ui-scale)) calc(6px * var(--ui-scale));
+}
+
+.ts-control input {
+  font: var(--text-tiny-semibold);
+}
+
+/* Tom Select gives the typing box a pointer cursor by default. */
+.ts-wrapper.single .ts-control input {
+  cursor: text;
 }
 
 #current-tags-list {
@@ -214,11 +229,11 @@
   mask-image: url("../../../images/icons/cross.svg");
 }
 
-.selectize-dropdown-content {
+.ts-dropdown-content {
   display: flex;
   width: calc(285px * var(--ui-scale));
   height: fit-content;
-  max-height: calc(200px * var(--ui-scale)); /* Selectize's own stylesheet caps this at a fixed 200px. */
+  max-height: calc(200px * var(--ui-scale)); /* Overrides the fixed 200px cap in Tom Select's stylesheet. */
   padding: calc(12px * var(--ui-scale));
   align-items: center;
   align-content: center;
@@ -226,28 +241,22 @@
   flex-wrap: wrap;
 }
 
-/* Selectize renders its own .option nodes; DesktopValidationMenu adds the tag-pill classes so they pick up the
-   shared pill look. These rules out-rank selectize's own stylesheet, which is more specific than .tag-pill. */
-.selectize-dropdown .option.tag-pill {
+/* The dropdown options are styled as tag pills. These selectors need to out-rank Tom Select's own stylesheet. */
+.ts-dropdown .option.tag-pill {
   padding: calc(5px * var(--ui-scale)) calc(10px * var(--ui-scale));
   font: var(--text-tiny-semibold);
   text-align: center;
-  transition: all 0.3s;
+  transition: background 0.3s; /* Animating the outline too makes it flash as hover leaves. */
 
-  /* Selectize wraps the matched search substring in a <span class="highlight">, splitting the option's text into
-     separate children. The shared .tag-pill class is an inline-flex container with a gap, which would then insert a
-     visible space around the highlight span (#4523). Zero the gap here to fix the issue. */
+  /* Tom Select wraps the matched text in a <span>, so .tag-pill's flex gap would show as a space around it (#4523). */
   gap: 0;
 }
 
-/* Removing default styling for "active" options in dropdown. Would be left over after hover. */
-.selectize-dropdown .option.active {
-  background: inherit;
-  color: inherit;
-}
-
-.selectize-dropdown .option.tag-pill:hover {
+/* The arrow-key selection looks like hover. It stays on the last pill hovered, which is the one Enter picks. */
+.ts-dropdown .option.tag-pill.active,
+.ts-dropdown .option.tag-pill:hover {
   background: var(--color-pine-200);
+  color: inherit;
   outline: none;
 }
 
@@ -277,23 +286,23 @@
 }
 
 /* Matching style of 'No' and 'Unsure' button for now. */
-#no-reason-options .validation-reason-button.chosen {
+#no-reason-options .validation-reason-button.is-chosen {
   background: var(--color-orange-400);
   border: none;
   color: var(--color-neutral-white);
 }
 
-#add-disagree-comment.chosen {
-  border-color: var(--color-orange-400) !important;
+#add-disagree-comment.is-chosen {
+  border-color: var(--color-orange-400);
 }
 
-#unsure-reason-options .validation-reason-button.chosen {
+#unsure-reason-options .validation-reason-button.is-chosen {
   background: var(--color-asphalt-200);
   border: none;
 }
 
-#add-unsure-comment.chosen {
-  border-color: var(--color-asphalt-300) !important;
+#add-unsure-comment.is-chosen {
+  border-color: var(--color-asphalt-300);
 }
 
 /* Only show hover states on non-touch devices. Same CSS as for chosen state. */
@@ -304,16 +313,16 @@
     color: var(--color-neutral-white);
   }
 
-  #no-reason-options .validation-reason-button.chosen:hover {
+  #no-reason-options .validation-reason-button.is-chosen:hover {
     background: var(--color-orange-400);
   }
 
   #add-disagree-comment:hover {
-    border-color: var(--color-orange-300) !important;
+    border-color: var(--color-orange-300);
   }
 
-  #add-disagree-comment.chosen:hover {
-    border-color: var(--color-orange-400) !important;
+  #add-disagree-comment.is-chosen:hover {
+    border-color: var(--color-orange-400);
   }
 
   #unsure-reason-options .validation-reason-button:hover {
@@ -321,20 +330,28 @@
     border: none;
   }
 
-  #unsure-reason-options .validation-reason-button.chosen:hover {
+  #unsure-reason-options .validation-reason-button.is-chosen:hover {
     background: var(--color-asphalt-200);
   }
 
   #add-unsure-comment:hover {
-    border-color: var(--color-asphalt-200) !important;
+    border-color: var(--color-asphalt-200);
   }
 
-  #add-unsure-comment.chosen:hover {
-    border-color: var(--color-asphalt-300) !important;
+  #add-unsure-comment.is-chosen:hover {
+    border-color: var(--color-asphalt-300);
   }
 }
 
-/* Tooltip example images (reason buttons, tags, severity) are sized by JS via this class so they scale with the UI. */
+/* One 5:4 box for every example image; the odd one out is cropped to it rather than reshaping the card. */
 .validate-tooltip-img {
-  height: calc(140px * var(--ui-scale));
+  width: calc(200px * var(--ui-scale));
+  aspect-ratio: 5 / 4;
+  object-fit: cover;
+}
+
+/* A card holding one narrows to the image plus the card's 9px side padding (main.css), so the text wraps to the
+   picture. */
+.ps-tooltip:has(.validate-tooltip-img) {
+  max-width: calc((200px + 2 * 9px) * var(--ui-scale));
 }

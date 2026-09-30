@@ -35,8 +35,8 @@ class Form {
     data.environment = {
       browser: util.getBrowser(),
       browser_version: util.getBrowserVersion(),
-      browser_width: $(window).width(),
-      browser_height: $(window).height(),
+      browser_width: document.documentElement.clientWidth,
+      browser_height: document.documentElement.clientHeight,
       screen_width: screen.width,
       screen_height: screen.height,
       avail_width: screen.availWidth,

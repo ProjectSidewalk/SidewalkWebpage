@@ -7,15 +7,15 @@ class KeyboardManager {
   #addingComment = false;
 
   /**
-   * @param {Record<string, JQuery>} validationMenuUi - Validation menu UI elements.
+   * @param {Record<string, HTMLElement>} validationMenuUi - Validation menu UI elements.
    */
   constructor(validationMenuUi) {
     this.#validationMenuUi = validationMenuUi;
 
     // Add keydown listeners to the text boxes because esc key press is not being recognized when selected input text.
-    validationMenuUi.optionalCommentTextBox.on('keydown', this.#handleEscapeKey);
-    validationMenuUi.disagreeReasonTextBox.on('keydown', this.#handleEscapeKey);
-    validationMenuUi.unsureReasonTextBox.on('keydown', this.#handleEscapeKey);
+    validationMenuUi.optionalCommentTextBox.addEventListener('keydown', this.#handleEscapeKey);
+    validationMenuUi.disagreeReasonTextBox.addEventListener('keydown', this.#handleEscapeKey);
+    validationMenuUi.unsureReasonTextBox.addEventListener('keydown', this.#handleEscapeKey);
 
     // Add the keyboard event listeners. We need { capture: true } for keydown to overwrite pano's shortcuts.
     window.addEventListener('keydown', this.#documentKeyDown, { capture: true });
@@ -42,14 +42,19 @@ class KeyboardManager {
   #checkIfTextAreaSelected() {
     const validationMenuUi = this.#validationMenuUi;
     // Check if expertValidate text boxes are focused.
-    if (document.activeElement === validationMenuUi.optionalCommentTextBox[0]
-      || document.activeElement === validationMenuUi.disagreeReasonTextBox[0]
-      || document.activeElement === validationMenuUi.unsureReasonTextBox[0]
-      || document.activeElement === document.getElementById('select-tag-selectized')) {
+    if (document.activeElement === validationMenuUi.optionalCommentTextBox
+      || document.activeElement === validationMenuUi.disagreeReasonTextBox
+      || document.activeElement === validationMenuUi.unsureReasonTextBox
+      || this.#inTagPicker()) {
       this.#addingComment = true;
     } else {
       this.#addingComment = false;
     }
+  }
+
+  /** @returns {boolean} Whether the tag picker's text box has focus. */
+  #inTagPicker() {
+    return document.activeElement === document.getElementById('select-tag-ts-control');
   }
 
   /**
@@ -62,29 +67,59 @@ class KeyboardManager {
    */
   #handleNumberKeyShortcut(n, e) {
     const validationMenuUi = this.#validationMenuUi;
-    if (validationMenuUi.yesButton.hasClass('chosen')) {
+    if (validationMenuUi.yesButton.classList.contains('is-chosen')) {
       if (svv.adminVersion) this.#clickSeverity(n);
     } else if (this.#inWrongTypeView()) {
       // Severity only once its section is showing, or a rating typed before a type is picked rides along unseen.
       if (document.getElementById('validate-severity-section')?.style.display === 'block') this.#clickSeverity(n);
-    } else if (validationMenuUi.noButton.hasClass('chosen')) {
-      const buttonId = `#no-button-${n}`;
-      // If there's no default disagree option for this key, focus on the comment box, otherwise click the button.
-      if (!$(buttonId).hasClass('defaultOption')) {
-        e.preventDefault();
-        validationMenuUi.disagreeReasonTextBox.click();
-      } else {
-        $(buttonId).click();
-      }
-    } else if (validationMenuUi.unsureButton.hasClass('chosen')) {
-      const buttonId = `#unsure-button-${n}`;
-      // If there's no default unsure option for key 2 or 3, focus on the comment box, otherwise click the button.
-      if (!$(buttonId).hasClass('defaultOption')) {
-        e.preventDefault();
-        validationMenuUi.unsureReasonTextBox.click();
-      } else {
-        $(buttonId).click();
-      }
+    } else if (validationMenuUi.noButton.classList.contains('is-chosen')) {
+      const button = document.getElementById(`no-button-${n}`);
+      KeyboardManager.#pickReason(button, validationMenuUi.disagreeReasonTextBox, e);
+    } else if (validationMenuUi.unsureButton.classList.contains('is-chosen')) {
+      const button = document.getElementById(`unsure-button-${n}`);
+      KeyboardManager.#pickReason(button, validationMenuUi.unsureReasonTextBox, e);
+    }
+  }
+
+  /**
+   * Clicks the numbered reason button, or the comment box where the label type offers no reason under that number.
+   * @param {HTMLElement|null} button - The reason button the number names, if the menu has one.
+   * @param {HTMLElement} textBox - The menu's free-text reason box.
+   * @param {KeyboardEvent} e - The keypress event.
+   */
+  static #pickReason(button, textBox, e) {
+    if (button?.classList.contains('defaultOption')) {
+      button.click();
+    } else {
+      e.preventDefault();
+      textBox.click();
+    }
+  }
+
+  /**
+   * From the physical key, not `e.key`: Shift, an AZERTY layout, or NumLock off all change what `e.key` says.
+   * @param {KeyboardEvent} e - A keydown whose code is `Digit<n>` or `Numpad<n>`.
+   * @returns {number} The digit.
+   */
+  static #digitOf(e) {
+    return Number(e.code.at(-1));
+  }
+
+  /**
+   * Whether Enter should open the pano's chevron menu rather than submit. Only when the chevron was reached by
+   * keyboard: a validator who Tabbed there means "open the menu", while one who clicked it and then pressed Enter
+   * means "submit", as from any other button a click left focused (Chrome, Edge, and Firefox outside macOS focus a
+   * clicked button). `:focus-visible` tells the two apart, since a mouse click leaves it false. A browser that
+   * rejects the selector falls through to submit, the page-wide default.
+   * @param {Element} target - The keydown's target.
+   * @returns {boolean}
+   */
+  static #isKeyboardFocusedChevron(target) {
+    if (target?.id !== 'validate-control-buttons-toggle') return false;
+    try {
+      return target.matches(':focus-visible');
+    } catch {
+      return false;
     }
   }
 
@@ -98,7 +133,7 @@ class KeyboardManager {
    * @param {number} n - The severity to pick, 1-3.
    */
   #clickSeverity(n) {
-    $(`#validate-severity-radio-${n}`).click();
+    document.getElementById(`validate-severity-radio-${n}`).click();
   }
 
   /**
@@ -109,11 +144,11 @@ class KeyboardManager {
   #handleCommentBoxShortcut(e) {
     const validationMenuUi = this.#validationMenuUi;
     e.preventDefault();
-    if (validationMenuUi.yesButton.hasClass('chosen') || this.#inWrongTypeView()) {
+    if (validationMenuUi.yesButton.classList.contains('is-chosen') || this.#inWrongTypeView()) {
       validationMenuUi.optionalCommentTextBox.click();
-    } else if (validationMenuUi.noButton.hasClass('chosen')) {
+    } else if (validationMenuUi.noButton.classList.contains('is-chosen')) {
       validationMenuUi.disagreeReasonTextBox.click();
-    } else if (validationMenuUi.unsureButton.hasClass('chosen')) {
+    } else if (validationMenuUi.unsureButton.classList.contains('is-chosen')) {
       validationMenuUi.unsureReasonTextBox.click();
     }
   }
@@ -125,6 +160,28 @@ class KeyboardManager {
    */
   #documentKeyDown = (e) => {
     const validationMenuUi = this.#validationMenuUi;
+
+    // The image adjustments panel is a keyboard scope of its own (#5501): a key on a focused slider nudges it rather
+    // than firing a shortcut, and the panel's own document-level listener takes Escape. An open panel counts wherever
+    // the key came from, since a click on the panel's whitespace leaves focus on the body. Checked before the card's
+    // scope so an open panel takes Escape even with the card showing. Scoped here rather than with disableKeyboard():
+    // that flag is one boolean shared with the modals and the loading state, and re-enabling it on close could release
+    // a lock the panel never took.
+    const imagePanel = document.getElementById('pano-image-adjustments');
+    const target = /** @type {Element} */ (e.target);
+    if (imagePanel?.contains(target) || svv.imageAdjustmentsPopover?.isOpen()) return;
+
+    // Space on a focused control in the pano's top-left group (Hide label, the chevron, the Image pill in its menu) is
+    // left to the browser, which activates the button on keyup; that is the keyboard route to opening the panel. Enter
+    // is not exempt on the pills: on Validate it submits from any focused button, and closing the panel puts focus back
+    // on the Image pill, so an exempt Enter there would reopen the panel for a validator pressing Enter to submit. The
+    // letter shortcuts stay live throughout, since a mouse click leaves focus on the control.
+    if (e.code === 'Space' && target.closest?.('#label-visibility-control-holder')) return;
+    if ((e.code === 'Enter' || e.code === 'NumpadEnter') && KeyboardManager.#isKeyboardFocusedChevron(target)) return;
+    // The dock's X and the immersive toggle mean "take the answer back" and "change the layout": Enter on either has to
+    // activate it, as it does every other button of that kind, not submit the answer the X was pressed to undo.
+    if ((e.code === 'Enter' || e.code === 'NumpadEnter')
+      && target.closest?.('#validate-verdict-clear, #immersive-toggle-button')) return;
 
     // The marker and its card are their own keyboard scope (#4729): none of the shortcuts below may fire from
     // inside, Enter especially, which would submit from a button that means "open". An open popover counts as being
@@ -153,9 +210,22 @@ class KeyboardManager {
     // When the user is typing in a comment box, disable keyboard shortcuts that validate a label.
     this.#checkIfTextAreaSelected();
 
+    // Immersive mode on/off (#5560), the same key as Explore's. An f typed into a comment box or the tag picker is
+    // text, and F with a modifier belongs to the browser. The physical key, like Z for zoom, so the toggle sits where
+    // the hint's "F" is on a QWERTY layout. Not gated on #disableKeyboard: the layout may change under a modal.
+    const editing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+      || /** @type {?HTMLElement} */ (document.activeElement)?.isContentEditable;
+    if (e.code === 'KeyF' && !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && !editing
+      && svv.immersiveMode) {
+      // Keydown repeats while the key is held, and each repeat would flip the layout again.
+      if (!e.repeat) svv.immersiveMode.toggle('KeyboardShortcut');
+      return;
+    }
+
     // Handle the various keyboard shortcuts.
-    // Enter submits validation regardless of whether a text box is focused.
-    if (!this.#disableKeyboard && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
+    // Enter submits the validation even from a comment box. The tag picker is the exception: there it adds the
+    // highlighted tag, and submitting would move on to the next label before the tag is added.
+    if (!this.#disableKeyboard && !this.#inTagPicker() && (e.code === 'Enter' || e.code === 'NumpadEnter')) {
       e.preventDefault();
       validationMenuUi.submitButton.click();
     }
@@ -223,7 +293,7 @@ class KeyboardManager {
         case 'Numpad1':
         case 'Numpad2':
         case 'Numpad3':
-          this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
+          this.#handleNumberKeyShortcut(KeyboardManager.#digitOf(e), e);
           break;
           // '4' and '5' keys (Pick the fourth disagree reason, or focus the comment box).
         case 'Digit4':
@@ -233,8 +303,8 @@ class KeyboardManager {
           // The comment box is always the key one past the menu's last reason, so it moves from 4 to 5 on any label
           // type that offers a fourth reason, handled through #handleNumberKeyShortcut. Routed separately from 1-3 only
           // because of the Agree verdict, where it would reach for a severity button 4 or 5 that doesn't exist.
-          if (validationMenuUi.noButton.hasClass('chosen') && !this.#inWrongTypeView()) {
-            this.#handleNumberKeyShortcut(parseInt(e.key, 10), e);
+          if (validationMenuUi.noButton.classList.contains('is-chosen') && !this.#inWrongTypeView()) {
+            this.#handleNumberKeyShortcut(KeyboardManager.#digitOf(e), e);
           } else {
             this.#handleCommentBoxShortcut(e);
           }

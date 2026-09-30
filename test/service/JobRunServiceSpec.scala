@@ -1,19 +1,19 @@
 package service
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.OptionValues
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{Await, Future}
 
 /**
@@ -26,10 +26,10 @@ import scala.concurrent.{Await, Future}
  * Requires a Postgres database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors
  * are disabled so no real job writes rows mid-test.
  */
-class JobRunServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite with OptionValues {
+class JobRunServiceSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite with OptionValues {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val jobRunService = app.injector.instanceOf[JobRunService]
   private val jobRunTable   = app.injector.instanceOf[BackgroundJobRunTable]
@@ -73,7 +73,7 @@ class JobRunServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneApp
 
     "propagate the job's failure unchanged and record it" in {
       cleanUp()
-      val boom   = new IllegalStateException("boom")
+      val boom   = IllegalStateException("boom")
       val thrown = the[IllegalStateException] thrownBy {
         await(jobRunService.record(jobName, JobRunTrigger.Scheduled)(Future.failed[Int](boom))(_ => Json.obj()))
       }
@@ -91,7 +91,7 @@ class JobRunServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneApp
       // rather than a hypothetical one: without the deferral, the throw would escape past the bracket unrecorded.
       the[RuntimeException] thrownBy {
         await(
-          jobRunService.record[Int](jobName, JobRunTrigger.Scheduled)(throw new RuntimeException("eager boom"))(_ =>
+          jobRunService.record[Int](jobName, JobRunTrigger.Scheduled)(throw RuntimeException("eager boom"))(_ =>
             Json.obj()
           )
         )
@@ -112,7 +112,7 @@ class JobRunServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneApp
       cleanUp()
       val result = await(
         jobRunService.record(jobName, JobRunTrigger.Scheduled)(Future.successful(3)) { _ =>
-          throw new RuntimeException("details boom")
+          throw RuntimeException("details boom")
         }
       )
       result mustBe 3

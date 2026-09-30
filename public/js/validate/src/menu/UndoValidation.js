@@ -7,11 +7,11 @@ class UndoValidation {
   #uiUndo;
 
   /**
-   * @param {Record<string, JQuery>} uiUndo - Undo button UI elements.
+   * @param {Record<string, HTMLButtonElement>} uiUndo - Undo button UI elements.
    */
   constructor(uiUndo) {
     this.#uiUndo = uiUndo;
-    uiUndo.undoButton.on('click', this.#undo);
+    uiUndo.undoButton.addEventListener('click', this.#undo);
   }
 
   /**
@@ -19,7 +19,7 @@ class UndoValidation {
    */
   enableUndo() {
     this.#disableUndo = false;
-    this.#uiUndo.undoButton.prop('disabled', false);
+    this.#uiUndo.undoButton.disabled = false;
   }
 
   /**
@@ -27,7 +27,7 @@ class UndoValidation {
    */
   disableUndo() {
     this.#disableUndo = true;
-    this.#uiUndo.undoButton.prop('disabled', true);
+    this.#uiUndo.undoButton.disabled = true;
   }
 
   /**
@@ -46,6 +46,10 @@ class UndoValidation {
     if (await svv.labelContainer.undoLabel()) {
       svv.missionContainer.updateAMissionUndoValidation();
       this.disableUndo();
+      // The verdict being undone has usually reached the server already (verdicts flush within a second, #5561), so
+      // the retraction is a row of its own and is worth the same hurry: a tab killed before it goes out keeps a
+      // verdict the validator took back, and the mission's progress a label ahead of the truth.
+      svv.tracker.flushSoon();
     }
   };
 

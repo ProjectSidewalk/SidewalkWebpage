@@ -1,11 +1,10 @@
 package models.utils
 
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.io.File
 
@@ -21,13 +20,13 @@ import java.io.File
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class EvolutionsApplySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class EvolutionsApplySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val headRevision: Int = {
-    val files = Option(new File("conf/evolutions/default").listFiles()).getOrElse(Array.empty[File])
+    val files = Option(File("conf/evolutions/default").listFiles()).getOrElse(Array.empty[File])
     files
       .map(_.getName)
       .collect { case name if name.endsWith(".sql") => name.stripSuffix(".sql") }

@@ -426,10 +426,10 @@ ON CONFLICT (label_validation_id) DO NOTHING;
 
 INSERT INTO sidewalk_teaneck.validation_task_comment (validation_task_comment_id, mission_id, label_id, user_id,
                                                       ip_address, pano_id, heading, pitch, zoom, lat, lng,
-                                                      timestamp, comment)
+                                                      timestamp, comment, label_type)
 VALUES (900001, 900004, 900002, '00000000-5115-4000-8000-000000000002', '127.0.0.1', 'gQIxyDH1bxP1In5JOau-mg',
         120.0, -10.0, 1.0, 40.90629255696513, -73.99868476842572, now() - INTERVAL '5 days',
-        'Agreed, the ramp is there and usable.')
+        'Agreed, the ramp is there and usable.', 'CurbRamp')
 ON CONFLICT (validation_task_comment_id) DO NOTHING;
 
 -- A second Agree from the SidewalkAI account (SidewalkUserTable.aiUserId, which the evolutions create), so a label

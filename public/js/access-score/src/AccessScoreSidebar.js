@@ -167,7 +167,7 @@ class AccessScoreSidebar {
     const weights = root.querySelector('#acs-weights');
     weights.innerHTML = this.#config.scored_types.map((type) => {
       const problem = this.#config.type_weights[type].base_weight < 0;
-      const name = AccessScoreChart.typeName(type);
+      const name = util.misc.labelTypeName(type);
       const role = i18next.t(problem ? 'accessscore:row-hurts' : 'accessscore:row-helps');
       const roleTitle = i18next.t(problem ? 'accessscore:weight-problem' : 'accessscore:weight-feature');
       return `
@@ -176,10 +176,10 @@ class AccessScoreSidebar {
             <img class="acs-weight__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
             <label class="acs-weight__label" for="acs-weight-${type}">${name}</label>
             <span class="acs-weight__role acs-weight__role--${problem ? 'problem' : 'feature'}"
-                  title="${roleTitle}">${role}</span>
+                  tabindex="0" data-ps-tooltip="${roleTitle}">${role}</span>
             <output class="acs-weight__value" for="acs-weight-${type}"></output>
           </div>
-          <input type="range" class="acs-range" id="acs-weight-${type}" min="0" max="${this.#maxWeight()}"
+          <input type="range" class="ps-range" id="acs-weight-${type}" min="0" max="${this.#maxWeight()}"
                  step="0.05" data-type="${type}">
           <div class="acs-weight__contrib" aria-hidden="true">
             <span class="acs-weight__bar"></span><span class="acs-weight__bar-label"></span>
@@ -190,8 +190,7 @@ class AccessScoreSidebar {
     const categories = this.#config.place_categories ?? [];
     const placeRows = root.querySelector('#acs-place-categories');
     placeRows.innerHTML = categories.map((category) => {
-      const key = `accessscore:place-${category}`;
-      const name = i18next.exists(key) ? i18next.t(key) : category;
+      const name = i18next.t(`accessscore:place-${category}`, { defaultValue: category });
       const icon = util.assetPath(`images/icons/${AccessScorePlacesLayer.presentation(category).icon}`);
       // "Only" is the shared filter sidebar's exclusive select; its visible text gets the row's name for a screen
       // reader, since the button swaps in for the count on hover and focus and reads as a bare "Only" otherwise.

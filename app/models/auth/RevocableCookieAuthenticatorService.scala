@@ -19,7 +19,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * signed-in browser signed in until its cookie expired.
  *
  * A cookie doesn't record when it was issued, so that's worked out as its expiry minus `authenticatorExpiry`, which
- * `SilhouetteModule` makes sure every cookie shares.
+ * every cookie shares ("remember me" only changes how long the browser keeps the cookie).
  */
 class RevocableCookieAuthenticatorService(
     settings: CookieAuthenticatorSettings,
@@ -30,7 +30,7 @@ class RevocableCookieAuthenticatorService(
     idGenerator: IDGenerator,
     clock: Clock,
     authenticationService: AuthenticationService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CookieAuthenticatorService(settings, None, signer, cookieHeaderEncoding, authenticatorEncoder,
       fingerprintGenerator, idGenerator, clock) {
 
@@ -39,7 +39,7 @@ class RevocableCookieAuthenticatorService(
    *
    * @return The request's authenticator, or None if it has no readable cookie.
    */
-  override def retrieve[B](implicit request: ExtractableRequest[B]): Future[Option[CookieAuthenticator]] = {
+  override def retrieve[B](using request: ExtractableRequest[B]): Future[Option[CookieAuthenticator]] = {
     super.retrieve.flatMap {
       case Some(authenticator) if authenticator.isValid =>
         authenticationService.sessionsRevokedAt(authenticator.loginInfo.providerKey).map {
@@ -58,7 +58,7 @@ class RevocableCookieAuthenticatorService(
    * @return The authenticator on the right when nothing needs rewriting, as Silhouette expects.
    */
   override def touch(authenticator: CookieAuthenticator): Either[CookieAuthenticator, CookieAuthenticator] = {
-    // The minute absorbs sign-in setting a "remember me" expiry a few milliseconds after the last-used time.
+    // The minute covers "remember me" cookies issued before #5571, whose expiry was set a few ms after last-used.
     val idleCantExpireFirst = authenticator.idleTimeout.forall { timeout =>
       !authenticator.lastUsedDateTime.plusSeconds(timeout.toSeconds + 60).isBefore(authenticator.expirationDateTime)
     }
@@ -70,9 +70,9 @@ class RevocableCookieAuthenticatorService(
    *
    * @return The new cookie.
    */
-  override def renew(authenticator: CookieAuthenticator)(implicit request: RequestHeader): Future[Cookie] = {
+  override def renew(authenticator: CookieAuthenticator)(using request: RequestHeader): Future[Cookie] = {
     create(authenticator.loginInfo)
-      .map(_.copy(idleTimeout = authenticator.idleTimeout, cookieMaxAge = authenticator.cookieMaxAge))
+      .map(_.copy(cookieMaxAge = authenticator.cookieMaxAge))
       .flatMap(init)
   }
 

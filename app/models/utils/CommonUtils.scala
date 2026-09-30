@@ -5,49 +5,51 @@ object CommonUtils {
   val EARTH_RADIUS_KM: Double = 6371.0
 
   // NOTE: if adding values here, also update the ui_source PostgreSQL enum (add via ALTER TYPE).
-  object UiSource extends Enumeration {
-    type UiSource = Value
-    val Explore                         = Value("Explore")
-    val Validate                        = Value("Validate")
-    val ExpertValidate                  = Value("ExpertValidate")
-    val ValidateMobile                  = Value("ValidateMobile")
-    val AdminValidate                   = Value("AdminValidate")
-    val LabelMap                        = Value("LabelMap")
-    val GalleryImage                    = Value("GalleryImage")
-    val GalleryExpandedImage            = Value("GalleryExpandedImage")
-    val GalleryThumbs                   = Value("GalleryThumbs")
-    val GalleryExpandedThumbs           = Value("GalleryExpandedThumbs")
-    val UserMap                         = Value("UserMap")
-    val LabelSearchPage                 = Value("LabelSearchPage")
-    val AdminUserDashboard              = Value("AdminUserDashboard")
-    val AdminMapTab                     = Value("AdminMapTab")
-    val AdminContributionsTab           = Value("AdminContributionsTab")
-    val AdminLabelSearchTab             = Value("AdminLabelSearchTab")
-    val SidewalkAI                      = Value("SidewalkAI")
-    val ExternalTagValidationASSETS2024 = Value("ExternalTagValidationASSETS2024")
-    val LandingPage                     = Value("LandingPage")
-    val SharedLabel                     = Value("SharedLabel")
-    val SharedLabelImage                = Value("SharedLabelImage")
-    val SharedLabelThumbs               = Value("SharedLabelThumbs")
-    val DashboardStories                = Value("DashboardStories")
-    val AdminStories                    = Value("AdminStories")
-    val GalleryExpanded                 = Value("GalleryExpanded")
-    val AdminLabelMap                   = Value("AdminLabelMap")
-    val AdminActivity                   = Value("AdminActivity")
-    val StoryListPage                   = Value("StoryListPage")
-    val UserDashboard                   = Value("UserDashboard")
-    val AccessScore                     = Value("AccessScore")
-    val OldDataUnknownSource            = Value("Old data, unknown source")
+  enum UiSource(val name: String) extends NamedEnum {
+    case Explore                         extends UiSource("Explore")
+    case Validate                        extends UiSource("Validate")
+    case ExpertValidate                  extends UiSource("ExpertValidate")
+    case ValidateMobile                  extends UiSource("ValidateMobile")
+    case AdminValidate                   extends UiSource("AdminValidate")
+    case LabelMap                        extends UiSource("LabelMap")
+    case GalleryImage                    extends UiSource("GalleryImage")
+    case GalleryExpandedImage            extends UiSource("GalleryExpandedImage")
+    case GalleryThumbs                   extends UiSource("GalleryThumbs")
+    case GalleryExpandedThumbs           extends UiSource("GalleryExpandedThumbs")
+    case UserMap                         extends UiSource("UserMap")
+    case LabelSearchPage                 extends UiSource("LabelSearchPage")
+    case AdminUserDashboard              extends UiSource("AdminUserDashboard")
+    case AdminMapTab                     extends UiSource("AdminMapTab")
+    case AdminContributionsTab           extends UiSource("AdminContributionsTab")
+    case AdminLabelSearchTab             extends UiSource("AdminLabelSearchTab")
+    case SidewalkAI                      extends UiSource("SidewalkAI")
+    case ExternalTagValidationASSETS2024 extends UiSource("ExternalTagValidationASSETS2024")
+    case LandingPage                     extends UiSource("LandingPage")
+    case SharedLabel                     extends UiSource("SharedLabel")
+    case SharedLabelImage                extends UiSource("SharedLabelImage")
+    case SharedLabelThumbs               extends UiSource("SharedLabelThumbs")
+    case DashboardStories                extends UiSource("DashboardStories")
+    case AdminStories                    extends UiSource("AdminStories")
+    case GalleryExpanded                 extends UiSource("GalleryExpanded")
+    case AdminLabelMap                   extends UiSource("AdminLabelMap")
+    case AdminActivity                   extends UiSource("AdminActivity")
+    case StoryListPage                   extends UiSource("StoryListPage")
+    case UserDashboard                   extends UiSource("UserDashboard")
+    case AccessScore                     extends UiSource("AccessScore")
+    case OldDataUnknownSource            extends UiSource("Old data, unknown source")
   }
 
+  object UiSource extends PgEnumCompanion[UiSource]("ui_source")
+
   // NOTE: if adding values here, also update the viewer_type PostgreSQL enum (add via ALTER TYPE).
-  object ViewerType extends Enumeration {
-    type ViewerType = Value
-    val Default    = Value("Default")    // Live primary viewer (GSV/Mapillary/Infra3d).
-    val Pannellum  = Value("Pannellum")  // Self-hosted Pannellum fallback for expired panos.
-    val StaticApi  = Value("StaticApi")  // Static image fetched from the imagery provider's API.
-    val StaticCrop = Value("StaticCrop") // Locally-saved crop image.
+  enum ViewerType(val name: String) extends NamedEnum {
+    case Default    extends ViewerType("Default")    // Live primary viewer (GSV/Mapillary/Infra3d).
+    case Pannellum  extends ViewerType("Pannellum")  // Self-hosted Pannellum fallback for expired panos.
+    case StaticApi  extends ViewerType("StaticApi")  // Static image fetched from the imagery provider's API.
+    case StaticCrop extends ViewerType("StaticCrop") // Locally-saved crop image.
   }
+
+  object ViewerType extends PgEnumCompanion[ViewerType]("viewer_type")
 
   /**
    * Truncates a value to `decimals` decimal places rather than rounding it.

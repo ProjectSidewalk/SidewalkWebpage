@@ -3,7 +3,7 @@ package models.region
 import com.google.inject.ImplementedBy
 import models.api.RegionSpotlightRowForApi
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -52,10 +52,7 @@ class RegionAccessScoreTableDef(tag: Tag) extends Table[RegionAccessScore](tag, 
 
   def * = (
     regionAccessScoreId, regionId, score, completionRate, auditedDistanceM, totalDistanceM, clusterCount, computedAt
-  ) <> (
-    (RegionAccessScore.apply _).tupled,
-    RegionAccessScore.unapply
-  )
+  ).mapTo[RegionAccessScore]
 
   def region = foreignKey("region_access_score_region_id_fkey", regionId, TableQuery[RegionTableDef])(
     _.regionId,
@@ -103,14 +100,14 @@ trait RegionAccessScoreTableRepository {
  * in; it comes from `city-params`, never from a request.
  */
 @Singleton
-class RegionAccessScoreTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class RegionAccessScoreTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends RegionAccessScoreTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val regionAccessScores = TableQuery[RegionAccessScoreTableDef]
 
-  implicit private val rowResult: GetResult[RegionSpotlightRowForApi] = GetResult { r =>
+  private given rowResult: GetResult[RegionSpotlightRowForApi] = GetResult { r =>
     RegionSpotlightRowForApi(
       regionId = r.nextInt(), name = r.nextString(), score = r.nextDoubleOption(), completionRate = r.nextDouble(),
       auditedDistanceM = r.nextDouble(), totalDistanceM = r.nextDouble(), clusterCount = r.nextInt()

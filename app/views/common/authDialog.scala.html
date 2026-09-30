@@ -1,7 +1,7 @@
 @import models.user.{Role, SidewalkUserWithRole}
 @import views.html.helper.{form, CSRF => htmlCSRF}
 @(user: Option[SidewalkUserWithRole]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
 @* The shared sign-in / sign-up <dialog> (#4375), opened by any element carrying data-au-open="signIn"|"signUp"
    (AuthModal.js wires the openers). Rendered by the navbar and by navbar-less pages with their own sign-in
@@ -23,7 +23,7 @@
           </div>
           <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
         </div>
-        @form(action = routes.UserController.authenticate(), args = 'id -> "sign-in-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+        @form(action = routes.UserController.authenticate(), args = Symbol("id") -> "sign-in-form", Symbol("class") -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @htmlCSRF.formField
           <input type="hidden" name="returnUrl" value="@request.uri">
           <div class="au-field">
@@ -41,7 +41,7 @@
             </div>
           </div>
           <label class="au-check" for="sign-in-remember"><input type="checkbox" id="sign-in-remember" name="rememberMe" value="true" checked> @Messages("authenticate.remember.me")</label>
-          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("navbar.signin")</button>
+          <button type="submit" class="button button--primary button--large au-submit">@Messages("navbar.signin")</button>
         }
         <div class="au-footer">@Html(Messages("authenticate.new.detail"))</div>
       </div>
@@ -56,7 +56,7 @@
           </div>
           <button type="button" class="au-close" aria-label="@Messages("authenticate.close")">&#10005;</button>
         </div>
-        @form(action = routes.UserController.signUpPost(), args = 'id -> "sign-up-form", 'class -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
+        @form(action = routes.UserController.signUpPost(), args = Symbol("id") -> "sign-up-form", Symbol("class") -> "au-form", Symbol("data-error-generic") -> Messages("authenticate.error.generic")) {
           @htmlCSRF.formField
           <input type="hidden" name="returnUrl" value="@request.uri">
           <div class="au-field">
@@ -74,7 +74,7 @@
           </div>
           @common.authPasswordFields("sign-up", "password", "passwordConfirm")
           <label class="au-check" for="sign-up-terms"><input type="checkbox" id="sign-up-terms" name="terms" value="true" required> <span>@Html(Messages("authenticate.terms"))</span></label>
-          <button type="submit" class="button-ps button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
+          <button type="submit" class="button button--primary button--large au-submit">@Messages("authenticate.create.account")</button>
         }
         <div class="au-footer">@Html(Messages("authenticate.has.account"))</div>
       </div>

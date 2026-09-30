@@ -77,16 +77,16 @@ that's the single source of truth, and most rules are enforced for you by the li
 PR:
 
 - **New JavaScript targets ES2022** (`const`/`let`, arrow functions, `#private` fields, native `fetch`). We're
-  actively migrating *off* ES5/jQuery/Bootstrap — don't add to them.
+  actively migrating *off* ES5 — don't add to it.
 - **Format Scala with scalafmt** before pushing (`make scalafmt-fix`, or format-on-save) — CI blocks the merge on it.
 - **Keep the frontend linters passing on what you change** before pushing. Run `make lint-fix` for the mechanical
   ESLint/Stylelint fixes, hand-fix the rest, then confirm the relevant linter is clean — `make eslint` (JS + translation
   JSON), `make stylelint` (CSS), `make htmlhint` (HTML), `make lint-locales` (cross-locale key parity),
-  `make lint-css-layout` (the `public/css/` layout), `make lint-asset-paths` (asset URLs in `public/js/`), or
-  `make lint` for all of them (it also runs the evolutions lint). The trees are kept fully lint-clean
-  ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any finding is from your change.
-  **All of them are blocking CI checks** now (they run in the `Frontend (build)` job), so a lint failure blocks the
-  merge — just like scalafmt.
+  `make lint-css-layout` (the `public/css/` layout), `make lint-asset-paths` (asset URLs in `public/js/`),
+  `make shellcheck` (the `.sh` files), or `make lint` for all of them (it also runs the evolutions lint). The trees
+  are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)), so any
+  finding is from your change. **All of them are blocking CI checks** now (in the `Frontend (build)` job; ShellCheck
+  is its own `Shell script lint` job), so a lint failure blocks the merge — just like scalafmt.
 - **UI work** must meet WCAG 2.1/2.2 Level AA and use the `main.css` `:root` design tokens — type via the composite
   `--text-*` tokens (see the [style guide](docs/style-guide.md)). The target, the axe-core gate in the browser suite,
   and the manual checklist are in **[`docs/accessibility.md`](docs/accessibility.md)**.

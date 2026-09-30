@@ -19,7 +19,7 @@ object StubService {
   /**
    * @param answers Return value per method name. A value is reused across calls, so it must not be a one-shot.
    */
-  def answering[T](answers: Map[String, Any])(implicit ct: ClassTag[T]): T = {
+  def answering[T](answers: Map[String, Any])(using ct: ClassTag[T]): T = {
     // Map is covariant in its value type, so an `answeringWith` map of thunks type-checks here too -- and the stub
     // would then answer with the function itself, surfacing as a ClassCastException inside the code under test.
     answers.foreach { case (name, answer) =>
@@ -33,7 +33,7 @@ object StubService {
    *
    * @param answers Supplier of the return value, per method name.
    */
-  def answeringWith[T](answers: Map[String, () => Any])(implicit ct: ClassTag[T]): T = {
+  def answeringWith[T](answers: Map[String, () => Any])(using ct: ClassTag[T]): T = {
     val iface = ct.runtimeClass
     require(iface.isInterface, s"${iface.getName} is not an interface, so it cannot be proxied.")
 
@@ -41,7 +41,7 @@ object StubService {
     // as a gap in the interface rather than as the typo it is.
     val declared = iface.getMethods.map(_.getName).toSet
     answers.keys.filterNot(declared).foreach { name =>
-      throw new IllegalArgumentException(s"${iface.getSimpleName} declares no method named $name.")
+      throw IllegalArgumentException(s"${iface.getSimpleName} declares no method named $name.")
     }
 
     val handler = new InvocationHandler {
@@ -53,7 +53,7 @@ object StubService {
               case "toString" => s"stub of ${iface.getSimpleName} answering ${answers.keys.mkString(", ")}"
               case "hashCode" => Int.box(System.identityHashCode(proxy))
               case "equals"   => Boolean.box(proxy eq args(0))
-              case other      => throw new NotImplementedError(s"${iface.getSimpleName}.$other is not stubbed.")
+              case other      => throw NotImplementedError(s"${iface.getSimpleName}.$other is not stubbed.")
             }
         }
       }

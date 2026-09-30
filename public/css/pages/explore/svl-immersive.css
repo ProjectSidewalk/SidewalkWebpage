@@ -106,7 +106,7 @@ body.svl-immersive #ribbon-menu-other-subcategory-holder {
    strip leaves them free on any window wider than the strip plus the controls. Over imagery rather than the boxed
    layout's asphalt frame, each gets a single light stroke so it reads on a bright or dark sky alike. */
 body.svl-immersive .pano-overlay-button,
-body.svl-immersive .zoom-button,
+body.svl-immersive .ps-icon-button,
 body.svl-immersive .speed-limit-sign {
   box-shadow: 0 0 0 1px var(--color-neutral-600);
 }
@@ -149,4 +149,29 @@ body.svl-immersive #minimap-holder {
 /* The route-guidance message shares the bottom-right corner with the card in the boxed layout, so step it left. */
 body.svl-immersive #compass-message-holder {
   right: calc(var(--sidebar-width) + 36px * var(--ui-scale));
+}
+
+/* Drops below the Stuck row instead of continuing it (svl-canvas.css): in full screen the label-type buttons sit to
+   the right of this corner, and a row would slide under them. */
+body.svl-immersive #explore-control-menu {
+  position: absolute;
+  top: calc(100% + 3px * var(--ui-scale, 1));
+  left: 0;
+  flex-direction: column;
+  align-items: flex-start;
+
+  /* Only the buttons take clicks, so the space beside a short button in the column still reaches the pano. */
+  pointer-events: none;
+}
+
+body.svl-immersive #explore-control-menu > .pano-overlay-button {
+  pointer-events: auto;
+}
+
+body.svl-immersive #explore-control-buttons-toggle .pano-overlay-button-icon {
+  transform: rotate(90deg);
+}
+
+body.svl-immersive #explore-control-buttons-toggle[aria-expanded="true"] .pano-overlay-button-icon {
+  transform: rotate(-90deg);
 }

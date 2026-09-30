@@ -2,14 +2,14 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import service.{ConfigService, CropService, JobRunService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object CropGenerationActor {
@@ -23,7 +23,7 @@ object CropGenerationActor {
  * fetches after this job's slot is picked up the following night.
  */
 @Singleton
-class CropGenerationActor @Inject() (cropService: CropService, jobRunService: JobRunService)(implicit
+class CropGenerationActor @Inject() (cropService: CropService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -46,7 +46,7 @@ class CropGenerationActor @Inject() (cropService: CropService, jobRunService: Jo
           24.hours,
           self,
           CropGenerationActor.Tick
-        )(context.dispatcher)
+        )(context.dispatcher, ActorRef.noSender)
       )
       logger.info("CropGenerationActor created")
     }

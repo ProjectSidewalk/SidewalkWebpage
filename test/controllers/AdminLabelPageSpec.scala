@@ -2,18 +2,17 @@ package controllers
 
 import models.label.LabelMetadata
 import models.user.Role
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.LabelService
-import util.{AnonSession, RoleSession}
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the admin's view of a label, GET /admin/label/:labelId (#4633): the public /label/:labelId
@@ -25,10 +24,10 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class AdminLabelPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class AdminLabelPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
@@ -42,7 +41,7 @@ class AdminLabelPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSu
   private lazy val visitorCookies: Seq[Cookie] = sessionAs(Role.Registered)
   private lazy val adminCookies: Seq[Cookie]   = sessionAs(Role.Administrator)
 
-  private def as(cookies: Seq[Cookie], path: String) = route(app, FakeRequest(GET, path).withCookies(cookies: _*)).get
+  private def as(cookies: Seq[Cookie], path: String) = route(app, FakeRequest(GET, path).withCookies(cookies*)).get
 
   "GET /admin/label/:labelId" should {
     "refuse a signed-in visitor, naming the role it wants" in {

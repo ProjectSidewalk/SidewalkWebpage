@@ -1,6 +1,6 @@
 package formats.json
 
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, Reads}
 
 import java.time.OffsetDateTime
@@ -46,7 +46,7 @@ object GalleryFormats {
       labelIds: Option[Seq[Int]]
   )
 
-  implicit val galleryEnvironmentSubmissionReads: Reads[GalleryEnvironmentSubmission] = (
+  given galleryEnvironmentSubmissionReads: Reads[GalleryEnvironmentSubmission] = (
     (JsPath \ "browser").readNullable[String] and
       (JsPath \ "browser_version").readNullable[String] and
       (JsPath \ "browser_width").readNullable[Int] and
@@ -57,21 +57,21 @@ object GalleryFormats {
       (JsPath \ "avail_height").readNullable[Int] and
       (JsPath \ "operating_system").readNullable[String] and
       (JsPath \ "language").read[String]
-  )(GalleryEnvironmentSubmission.apply _)
+  )(GalleryEnvironmentSubmission.apply)
 
-  implicit val galleryInteractionSubmissionReads: Reads[GalleryInteractionSubmission] = (
+  given galleryInteractionSubmissionReads: Reads[GalleryInteractionSubmission] = (
     (JsPath \ "action").read[String] and
       (JsPath \ "pano_id").readNullable[String] and
       (JsPath \ "note").readNullable[String] and
       (JsPath \ "timestamp").read[OffsetDateTime]
-  )(GalleryInteractionSubmission.apply _)
+  )(GalleryInteractionSubmission.apply)
 
-  implicit val galleryTaskSubmissionReads: Reads[GalleryTaskSubmission] = (
+  given galleryTaskSubmissionReads: Reads[GalleryTaskSubmission] = (
     (JsPath \ "environment").read[GalleryEnvironmentSubmission] and
       (JsPath \ "interactions").read[Seq[GalleryInteractionSubmission]]
-  )(GalleryTaskSubmission.apply _)
+  )(GalleryTaskSubmission.apply)
 
-  implicit val galleryLabelsRequestReads: Reads[GalleryLabelsRequest] = (
+  given galleryLabelsRequestReads: Reads[GalleryLabelsRequest] = (
     (JsPath \ "n").read[Int] and
       (JsPath \ "label_types").readNullable[Seq[String]] and
       (JsPath \ "validation_options").readNullable[Seq[String]] and
@@ -83,5 +83,5 @@ object GalleryFormats {
       (JsPath \ "sort").readNullable[String] and
       (JsPath \ "static_imagery_only").readNullable[Boolean] and
       (JsPath \ "label_ids").readNullable[Seq[Int]]
-  )(GalleryLabelsRequest.apply _)
+  )(GalleryLabelsRequest.apply)
 }

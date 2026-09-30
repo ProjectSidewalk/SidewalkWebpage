@@ -9,7 +9,6 @@
 /* ---- Full-window map, mirroring the public LabelMap's rules in components/choropleth.css ---- */
 
 #acs-map-container {
-  max-width: none; /* Override the Bootstrap .container max-width so the map spans the window. */
   width: 100%;
   flex: 1 1 auto; /* Fill the space #wrap leaves below the navbar and any test-server banner. */
   min-height: 0;
@@ -244,64 +243,7 @@
 
 /* ---- Sliders ---- */
 
-/* Quiet sliders: a hairline neutral track and a small neutral thumb, so seven of them in a column read as one
-   calm block and the colored contribution bars underneath carry the meaning. Themed through the vendor
-   pseudo-elements (the standard `accent-color` is outside the Baseline set the stylelint config allows), and the
-   thumb keeps a visible focus ring. */
-.acs-range {
-  width: 100%;
-  height: 20px;
-  margin: 0;
-  background: transparent;
-  cursor: pointer;
-  appearance: none;
-}
-
-.acs-range::-webkit-slider-runnable-track {
-  height: 3px;
-  border-radius: 2px;
-  background: var(--color-neutral-300);
-}
-
-.acs-range::-moz-range-track {
-  height: 3px;
-  border-radius: 2px;
-  background: var(--color-neutral-300);
-}
-
-.acs-range::-webkit-slider-thumb {
-  width: 14px;
-  height: 14px;
-  margin-top: -5.5px;
-  border: 2px solid var(--color-neutral-white);
-  border-radius: 50%;
-  background: var(--color-asphalt-300);
-  box-shadow: var(--box-shadow-sm);
-  appearance: none;
-}
-
-.acs-range::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  border: 2px solid var(--color-neutral-white);
-  border-radius: 50%;
-  background: var(--color-asphalt-300);
-  box-shadow: var(--box-shadow-sm);
-}
-
-.acs-range:focus-visible {
-  outline: none;
-}
-
-.acs-range:focus-visible::-webkit-slider-thumb {
-  outline: 2px solid var(--color-link-200);
-  outline-offset: 2px;
-}
-
-.acs-range:focus-visible::-moz-range-thumb {
-  outline: 2px solid var(--color-link-200);
-  outline-offset: 2px;
-}
+/* The sliders themselves are the shared .ps-range primitive (main.css); only the rows around them live here. */
 
 .acs-weight {
   margin-top: var(--space-sm);
@@ -322,7 +264,6 @@
 
 .acs-weight__label {
   flex: 1 1 auto;
-  margin: 0;
   font: var(--text-small-medium);
   color: var(--color-neutral-900);
   cursor: pointer;
@@ -684,9 +625,7 @@
   display: none;
 }
 
-/* The page's base label style is bold with a bottom margin; these labels sit beside their control as plain text. */
 .acs-field label {
-  margin: 0;
   font: var(--text-caption-regular);
 }
 
@@ -1465,8 +1404,8 @@
   background: var(--color-neutral-500);
 }
 
-/* The panel measures itself: under ~340px the full type names would truncate or leave the bars no room, so the short ones take
-   over. Both are in the markup; the query only swaps which is shown. */
+/* The panel measures itself: under ~340px the full type names would truncate or leave the bars no room, so the short
+   ones take over. Both are in the markup; the query only swaps which is shown. */
 .acs-dock__panel--whats-here {
   container-type: inline-size;
 }

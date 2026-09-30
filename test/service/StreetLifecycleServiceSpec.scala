@@ -2,19 +2,19 @@ package service
 
 import models.street.{StreetEdgeStatus, StreetEdgeStatusChangeSource, StreetEdgeStatusChangeTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import slick.dbio.DBIO
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed contract test for the street status-change log (#4928, evolution 358), the trend it feeds, and the
@@ -27,10 +27,10 @@ import scala.concurrent.duration._
  * Seeds its own transitions against a real street and removes them afterwards. Requires a Postgres+PostGIS database
  * (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); the scheduling actors are disabled.
  */
-class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
+class StreetLifecycleServiceSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val statusChangeTable      = app.injector.instanceOf[StreetEdgeStatusChangeTable]
   private val streetLifecycleService = app.injector.instanceOf[StreetLifecycleService]
@@ -43,20 +43,15 @@ class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with Gu
   private lazy val streetEdgeId: Option[Int] =
     run(sql"SELECT street_edge_id FROM street_edge ORDER BY street_edge_id LIMIT 1".as[Int].headOption)
 
-  private def seedChange(
-      oldStatus: StreetEdgeStatus.Value,
-      newStatus: StreetEdgeStatus.Value,
-      changedAt: OffsetDateTime
-  ): Unit = {
+  private def seedChange(oldStatus: StreetEdgeStatus, newStatus: StreetEdgeStatus, changedAt: OffsetDateTime): Unit = {
     val streetId = streetEdgeId.get
     val _        = run(
       sqlu"""INSERT INTO street_edge_status_change (street_edge_id, old_status, new_status, changed_at, source)
                VALUES ($streetId,
-                       ${oldStatus.toString}::street_edge_status,
-                       ${newStatus.toString}::street_edge_status,
+                       $oldStatus,
+                       $newStatus,
                        $changedAt,
-                       ${StreetEdgeStatusChangeSource.HideStreetsWithoutImagery.toString}
-                         ::street_edge_status_change_source)"""
+                       ${StreetEdgeStatusChangeSource.HideStreetsWithoutImagery})"""
     )
   }
 
@@ -252,7 +247,7 @@ class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with Gu
         run(sqlu"INSERT INTO street_reopen_candidate (street_edge_id, n_panos) VALUES ($streetId, 2)")
 
         Await.result(streetLifecycleService.reopenStreet(streetId), 120.seconds) mustBe
-          StreetLifecycleService.Reopened
+          StreetLifecycleService.ReopenOutcome.Reopened
 
         run(sql"SELECT status::text FROM street_edge WHERE street_edge_id = $streetId".as[String].head) mustBe "open"
         run(sql"""SELECT COUNT(*) FROM street_edge_status_change
@@ -284,14 +279,14 @@ class StreetLifecycleServiceSpec extends PlaySpec with BeforeAndAfterAll with Gu
       )
       assume(openStreet.isDefined, "no open street in the connected database")
       Await.result(streetLifecycleService.reopenStreet(openStreet.get), 120.seconds) mustBe
-        StreetLifecycleService.NotNoImagery("open")
+        StreetLifecycleService.ReopenOutcome.NotNoImagery("open")
       run(sql"""SELECT COUNT(*) FROM street_edge_status_change
                 WHERE street_edge_id = ${openStreet.get} AND source = 'admin_reopen'""".as[Int].head) mustBe 0
     }
 
     "answer StreetNotFound for an id that doesn't exist" in {
       Await.result(streetLifecycleService.reopenStreet(Int.MaxValue), 120.seconds) mustBe
-        StreetLifecycleService.StreetNotFound
+        StreetLifecycleService.ReopenOutcome.StreetNotFound
     }
   }
 

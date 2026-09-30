@@ -2,7 +2,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @common.main(commonData, title) {
   @common.navbar(commonData, Some(user))
@@ -11,7 +11,7 @@
     .all-regions-help { max-width: 60em; }
   </style>
   <div id="content">
-    <div class="container">
+    <div class="ps-container">
       <h1>Clustering labels</h1>
       <button type="button" id="btn-run-clustering">Run Clustering</button>
       <label for="chk-all-regions" class="all-regions-toggle">
@@ -29,35 +29,33 @@
 
   <script>
     // Add onclick to the run clustering button and extracts results from the response.
-    $(document).ready(function () {
-      let clusterStatusEl = document.getElementById('clustering-status');
+    const clusterStatusEl = document.getElementById('clustering-status');
 
-      // Handles the event stream. Updates the clustering-status element as clustering progresses.
-      function clusteringEventOnMessage(event) {
-        const data = JSON.parse(event.data);
-        clusterStatusEl.textContent = data.status;
+    // Handles the event stream. Updates the clustering-status element as clustering progresses.
+    function clusteringEventOnMessage(event) {
+      const data = JSON.parse(event.data);
+      clusterStatusEl.textContent = data.status;
 
-        // If processing is complete, show final results and close the connection.
-        if (data.status === 'Complete') {
-          clusterStatusEl.textContent = `Labels: ${data.results.labels}, Clusters: ${data.results.clusters}`;
-          this.close();
-        }
-      }
-
-      // Handles errors in the clustering event stream.
-      function clusteringEventOnError(event) {
-        console.error('EventSource error:', event);
-        clusterStatusEl.textContent = 'Error occurred.';
+      // If processing is complete, show final results and close the connection.
+      if (data.status === 'Complete') {
+        clusterStatusEl.textContent = `Labels: ${data.results.labels}, Clusters: ${data.results.clusters}`;
         this.close();
       }
+    }
 
-      // Creates a new EventSource for the run clustering button click and sets up the event handlers.
-      document.getElementById('btn-run-clustering').onclick = function() {
-        const allRegions = document.getElementById('chk-all-regions').checked;
-        const eventSource = new EventSource(allRegions ? '/runClustering?allRegions=true' : '/runClustering');
-        eventSource.onmessage = clusteringEventOnMessage;
-        eventSource.onerror = clusteringEventOnError;
-      };
-    });
+    // Handles errors in the clustering event stream.
+    function clusteringEventOnError(event) {
+      console.error('EventSource error:', event);
+      clusterStatusEl.textContent = 'Error occurred.';
+      this.close();
+    }
+
+    // Creates a new EventSource for the run clustering button click and sets up the event handlers.
+    document.getElementById('btn-run-clustering').onclick = function() {
+      const allRegions = document.getElementById('chk-all-regions').checked;
+      const eventSource = new EventSource(allRegions ? '/runClustering?allRegions=true' : '/runClustering');
+      eventSource.onmessage = clusteringEventOnMessage;
+      eventSource.onerror = clusteringEventOnError;
+    };
   </script>
 }

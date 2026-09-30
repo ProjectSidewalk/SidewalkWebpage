@@ -9,21 +9,19 @@
 class ExpandedView {
   static #unselectedCardClassName = 'expanded-view-background-card';
 
-  #uiModal;
   #root;
   #panoViewerType;
   #viewerAccessToken;
   #currUsername;
 
   /**
-   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {HTMLElement} root - The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    */
-  constructor(uiModal, panoViewerType, viewerAccessToken, currUsername) {
-    this.#uiModal = uiModal;
-    this.#root = uiModal[0]; // Unwrap jQuery to get the DOM element for LabelDetail.
+  constructor(root, panoViewerType, viewerAccessToken, currUsername) {
+    this.#root = root;
     this.#panoViewerType = panoViewerType;
     this.#viewerAccessToken = viewerAccessToken;
     this.#currUsername = currUsername;
@@ -31,14 +29,14 @@ class ExpandedView {
 
   /**
    * Creates an ExpandedView and initializes its LabelDetail controller.
-   * @param {JQuery} uiModal - The `.gallery-expanded-view` container element.
+   * @param {HTMLElement} root - The `.gallery-expanded-view` container element.
    * @param {typeof PanoViewer} panoViewerType - The type of pano viewer to initialize.
    * @param {string} viewerAccessToken - An access token that authorizes image requests for the pano viewer.
    * @param {?string} currUsername - The viewer's username when signed in to a real account, else null.
    * @returns {Promise<ExpandedView>}
    */
-  static async create(uiModal, panoViewerType, viewerAccessToken, currUsername) {
-    const expandedView = new ExpandedView(uiModal, panoViewerType, viewerAccessToken, currUsername);
+  static async create(root, panoViewerType, viewerAccessToken, currUsername) {
+    const expandedView = new ExpandedView(root, panoViewerType, viewerAccessToken, currUsername);
     await expandedView.#init();
     return expandedView;
   }
@@ -61,6 +59,7 @@ class ExpandedView {
       currUsername: this.#currUsername,
       onVote: this.#handleVote,
       onEdit: this.#handleEdit,
+      onComments: this.#handleComments,
       onDelete: this.#handleDelete,
       panoOverlaySource: 'GalleryExpandedImage',
       voteColumnSource: 'GalleryExpandedThumbs',
@@ -112,7 +111,7 @@ class ExpandedView {
     // falls through to the by-id path below.
     if (sg.cardContainer.isListMode() && sg.cardContainer.jumpToLabel(labelId)) return;
 
-    this.#uiModal.css('visibility', 'visible');
+    this.#root.style.visibility = 'visible';
     this.open = true;
     // With no reference card, paging picks up from the first card (Next), so there is nothing to page back to;
     // an enabled Prev here would drive cardIndex below -1 and break the paging state machine.
@@ -136,9 +135,8 @@ class ExpandedView {
       lng: p.lng,
       camera_lat: p.camera_lat,
       camera_lng: p.camera_lng,
-      // Moment objects → raw date strings so LabelDetail can reparse them uniformly.
-      image_capture_date: p.image_capture_date.toISOString(),
-      timestamp: p.label_timestamp.toISOString(),
+      image_capture_date: p.image_capture_date,
+      timestamp: p.label_timestamp,
       heading: p.heading,
       pitch: p.pitch,
       zoom: p.zoom,
@@ -193,13 +191,21 @@ class ExpandedView {
   };
 
   /**
+   * Syncs the small card's comments so reopening the label shows them. Looked up by id, like #handleDelete.
+   * @param {{label_id: number, comments: Array<Record<string, any>|string>}} meta - The label's metadata.
+   */
+  #handleComments = (meta) => {
+    sg.cardContainer.findCardByLabelId(meta.label_id)?.updateComments(meta.comments);
+  };
+
+  /**
    * Called by LabelDetail after a delete or restore (#3591); syncs the small card, incl. an admin delete's Disagree.
    * Looked up by id, since paging while the request was in flight may have moved refCard on to a neighbor.
    * @param {{label_id: number, deleted: boolean, can_restore: boolean, user_validation: ?string}} meta - The
    *     label's metadata as it now stands.
    */
   #handleDelete = (meta) => {
-    const card = sg.cardContainer.getCards().find((c) => c.getLabelId() === meta.label_id);
+    const card = sg.cardContainer.findCardByLabelId(meta.label_id);
     if (!card) return;
     card.setDeleted(!!meta.deleted, !!meta.can_restore);
     card.updateUserValidation(meta.user_validation ?? null);
@@ -227,7 +233,7 @@ class ExpandedView {
    * NOTE: does not remove card transparency. For that, use closeExpandedViewAndRemoveCardTransparency().
    */
   closeExpandedView() {
-    this.#uiModal.css('visibility', 'hidden');
+    this.#root.style.visibility = 'hidden';
     LabelDetail.syncUrlLabelId(null);
     // Clear the inline visibility set by PopupPanoManager.setPano() so the parent's visibility:hidden cascades.
     // Also set a data flag so that if a pano load is still in-flight, it won't reveal itself when it finishes.
@@ -344,7 +350,7 @@ class ExpandedView {
     } else {
       this.cardIndex += 1;
       this.pendingCardIndex = this.cardIndex;
-      sg.ui.cardContainer.nextPage.click();
+      sg.cardContainer.nextPage();
     }
   }
 
@@ -360,7 +366,7 @@ class ExpandedView {
     } else {
       this.cardIndex -= 1;
       this.pendingCardIndex = this.cardIndex;
-      sg.ui.cardContainer.prevPage.click();
+      sg.cardContainer.prevPage();
     }
   }
 
@@ -411,7 +417,7 @@ class ExpandedView {
     if (this.pendingCardIndex === undefined) return;
     const idx = this.pendingCardIndex;
     this.pendingCardIndex = undefined;
-    this.#uiModal.css('visibility', 'visible');
+    this.#root.style.visibility = 'visible';
     this.#updateExpandedViewCardByIndex(idx);
   }
 }

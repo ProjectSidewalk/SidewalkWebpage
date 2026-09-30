@@ -1,11 +1,10 @@
 package models.label
 
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * Pins the `/label/resumeMission` query, which Explore loads on every page load and reads for two things: the
@@ -16,10 +15,10 @@ import util.RolledBackDb
  * (a different task of the same user, say) would fail rather than agree by construction. The count is checked
  * against a raw SQL rewrite of the same filters, since narrowing the query would silently change the modal's stat.
  */
-class ResumeLabelsQuerySpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class ResumeLabelsQuerySpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val labelTable = app.injector.instanceOf[LabelTable]
 

@@ -5,11 +5,12 @@
  * moderators) must degrade silently to the plain label page.
  *
  * StorySection is a page-global `class` (Grunt-concatenation world), so the source is eval'd into jsdom with its
- * collaborators (fetch, i18next, moment, StoryComposer) stubbed.
+ * collaborators (fetch, i18next, StoryComposer) stubbed.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { installDateHelpers } = require('./loadGlobalScript');
 
 const SECTION_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/common/label-detail/StorySection.js'), 'utf8'
@@ -65,7 +66,7 @@ describe("StorySection's linked-story reveal (#4722)", () => {
             setLabelType(name) { composerCalls.setLabelType.push(name); }
         };
         window.i18next = { t: (key) => key };
-        window.moment = jest.fn(() => ({ format: () => 'DATE' }));
+        installDateHelpers();
         window.matchMedia = jest.fn().mockReturnValue({ matches: false }); // No reduced-motion preference.
         window.HTMLElement.prototype.scrollIntoView = jest.fn(); // jsdom doesn't implement it.
         window.logWebpageActivity = jest.fn();

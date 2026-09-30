@@ -1,11 +1,11 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import formats.json.RouteBuilderFormats.{routeWithStatsWrites, NewRoute, RouteUpdate}
 import models.route.{RouteRejection, SavedRoute}
 import play.api.Configuration
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent, Result}
 import service.{ConfigService, RouteService}
 
@@ -15,11 +15,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class RouteBuilderController @Inject() (
     cc: CustomControllerComponents,
-    implicit val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService,
     routeService: RouteService
-)(implicit ec: ExecutionContext)
+)(using config: Configuration, assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
   /**
@@ -52,7 +50,7 @@ class RouteBuilderController @Inject() (
   )
 
   /** Turns a service-layer rejection into a 400 carrying the message localized for this request. */
-  private def rejected(rejection: RouteRejection)(implicit messages: Messages): Result =
+  private def rejected(rejection: RouteRejection)(using messages: Messages): Result =
     BadRequest(Json.obj("status" -> "Error", "message" -> Messages(rejection.messageKey, rejection.maxLength)))
 
   def saveRoute = cc.securityService.SecuredAction(parse.json) { implicit request =>

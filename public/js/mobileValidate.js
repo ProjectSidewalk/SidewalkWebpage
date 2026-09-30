@@ -1,4 +1,4 @@
-$(document).ready(() => {
+util.onDomReady(() => {
   // Add the 'animate-button' class to all validation buttons so an animation is performed to confirm click.
   document.getElementById('validate-no-button').classList.add('animate-button');
   document.getElementById('validate-unsure-button').classList.add('animate-button');

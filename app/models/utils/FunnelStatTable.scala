@@ -1,11 +1,11 @@
 package models.utils
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
 import java.time.{OffsetDateTime, ZoneOffset}
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
@@ -68,7 +68,7 @@ class FunnelStatTableDef(tag: Tag) extends Table[FunnelStat](tag, "funnel_stat")
  * write the local table; [[getFunnelStatsBySchema]] reads any schema's precomputed table.
  */
 @Singleton
-class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val funnelStats = TableQuery[FunnelStatTableDef]
@@ -100,7 +100,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    * @return       The rows for that window across all funnel types; empty if the schema has no funnel_stat yet.
    */
   def getFunnelStatsBySchema(schema: String, window: String): DBIO[Seq[FunnelStat]] = {
-    implicit val getResult: GetResult[FunnelStat] = GetResult { r =>
+    given getResult: GetResult[FunnelStat] = GetResult { r =>
       FunnelStat(
         r.nextString(),
         r.nextString(),
@@ -213,7 +213,7 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
    * @return         One [[FunnelSegmentCounts]] per non-empty segment.
    */
   private def computeFunnel(schema: String, events: String, numSteps: Int): DBIO[Seq[FunnelSegmentCounts]] = {
-    implicit val getResult: GetResult[FunnelSegmentCounts] =
+    given getResult: GetResult[FunnelSegmentCounts] =
       GetResult(r => FunnelSegmentCounts(r.nextString(), Vector.fill(numSteps)(r.nextInt())))
     val filterCols =
       (1 to numSteps).map(k => s"COUNT(*) FILTER (WHERE deepest >= $k) AS s$k").mkString(",\n             ")

@@ -134,7 +134,7 @@ class SavedRoutesPanel {
         ? `<img class="saved-route-thumb" src="${route.thumbnailUrl}" alt="" loading="lazy">`
         : '';
       const usage = typeof route.startedCount === 'number'
-        ? `<span class="saved-route-usage" title="${i18next.t('route-usage-tooltip')}">
+        ? `<span class="saved-route-usage" tabindex="0" data-ps-tooltip="${i18next.t('route-usage-tooltip')}">
              ${i18next.t('route-usage', {
                 started: route.startedCount, completed: route.completedCount, interpolation: { escapeValue: true },
               })}
@@ -143,7 +143,7 @@ class SavedRoutesPanel {
       return `
       <li class="${cardClasses}" data-route-id="${route.routeId}">
         <button type="button" class="saved-route-view" data-route-id="${route.routeId}"
-                title="${i18next.t('saved-view-title')}">
+                data-ps-tooltip="${i18next.t('saved-view-title')}">
           ${thumb}
           <span class="saved-route-name"></span>
           <span class="saved-route-desc" hidden></span>
@@ -151,9 +151,9 @@ class SavedRoutesPanel {
           ${usage}
         </button>
         <div class="saved-route-actions">
-          <a class="button-ps button--primary button--tiny saved-route-explore" href="/explore?routeId=${route.routeId}"
+          <a class="button button--primary button--tiny saved-route-explore" href="/explore?routeId=${route.routeId}"
              data-route-id="${route.routeId}">${i18next.t('saved-explore')}</a>
-          <button type="button" class="button-ps button--secondary button--tiny saved-route-copy"
+          <button type="button" class="button button--secondary button--tiny saved-route-copy"
                   data-route-id="${route.routeId}">${i18next.t('recent-copy-link')}</button>
         </div>
       </li>`;

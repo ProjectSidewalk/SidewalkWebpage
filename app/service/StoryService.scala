@@ -4,10 +4,10 @@ import com.drew.imaging.ImageMetadataReader
 import com.drew.metadata.exif.{ExifSubIFDDirectory, GpsDirectory}
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import models.label.LabelTypeEnum.AccessImpact
-import models.label.{LabelTypeEnum, LatLng}
-import models.story._
-import models.utils.MyPostgresProfile.api._
+import models.label.AccessImpact
+import models.label.{LabelType, LatLng}
+import models.story.*
+import models.utils.MyPostgresProfile.api.*
 import models.utils.{CommonUtils, ImageUtils, MyPostgresProfile, ProfanityGuard}
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -76,9 +76,9 @@ class StoryServiceImpl @Inject() (
     labelService: LabelService,
     panoDataService: PanoDataService,
     signingService: ImageSigningService,
-    cpuEc: CpuIntensiveExecutionContext,
-    implicit val ec: ExecutionContext
-) extends StoryService
+    cpuEc: CpuIntensiveExecutionContext
+)(using ec: ExecutionContext)
+    extends StoryService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
 
@@ -132,7 +132,7 @@ class StoryServiceImpl @Inject() (
       meta: PhotoMetadata
   )
 
-  def storyMediaFile(storyMediaId: Int): File = new File(mediaBaseDir, s"story_$storyMediaId.jpg")
+  def storyMediaFile(storyMediaId: Int): File = File(mediaBaseDir, s"story_$storyMediaId.jpg")
 
   def getStoriesForLabel(labelId: Int, viewerUserId: Option[String], isAdmin: Boolean): Future[Seq[StoryForView]] = {
     db.run(storyTable.getForLabel(labelId, viewerUserId, isAdmin))
@@ -357,18 +357,17 @@ class StoryServiceImpl @Inject() (
    * @param labelTypesById The label type of each label needing a preview, keyed by label id.
    * @return               Preview URL per label id; labels with no saved crop and no usable pano are absent.
    */
-  private def labelPreviewUrls(labelTypesById: Map[Int, LabelTypeEnum.Base]): Future[Map[Int, String]] = {
+  private def labelPreviewUrls(labelTypesById: Map[Int, LabelType]): Future[Map[Int, String]] = {
     if (labelTypesById.isEmpty) Future.successful(Map.empty)
     else
       db.run(labelTable.getPanoMetadataForLabels(labelTypesById.keys.toSeq)).map { metas =>
-        val metaById = metas.map { case (labelId, panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight) =>
-          labelId -> ((panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight))
-        }.toMap
+        val metaById = metas.map(meta => meta.labelId -> meta).toMap
         labelTypesById.flatMap { case (labelId, labelType) =>
           panoDataService
             .cropUrl(labelId, labelType)
-            .orElse(metaById.get(labelId).flatMap { case (panoId, source, heading, pitch, zoom, cw, ch) =>
-              panoDataService.getImageUrl(panoId, source, heading, pitch, zoom, cw, ch)
+            .orElse(metaById.get(labelId).flatMap { m =>
+              panoDataService
+                .getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth, m.canvasHeight)
             })
             .map(labelId -> _)
         }
@@ -604,7 +603,7 @@ class StoryServiceImpl @Inject() (
    * atomic rename; a crash can only leave junk under staging/, never a half-written serving file.
    */
   private def stageJpeg(img: BufferedImage): File = {
-    val stagingDir = new File(mediaBaseDir, "staging")
+    val stagingDir = File(mediaBaseDir, "staging")
     stagingDir.mkdirs()
     val staged = File.createTempFile("story_staged_", ".jpg", stagingDir)
     try {

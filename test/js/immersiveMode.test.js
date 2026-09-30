@@ -1,13 +1,14 @@
 /**
- * Tests for Explore's immersive-mode toggle (public/js/explore/src/controls/ImmersiveMode.js, #5085).
+ * Tests for the immersive-mode toggle shared by Explore and Validate (public/js/common/ImmersiveMode.js, #5085,
+ * #5560), built here with Explore's wiring; validateImmersiveKey.test.js covers Validate's key path.
  *
  * The layout is CSS keyed on two classes, so what the module has to get right is the bookkeeping around a toggle:
  * both classes flip together, the tool is re-laid out synchronously, anchored panels are closed first, the button
  * describes the action it now offers, the paired Click_/KeyboardShortcut_ events carry the frame, the exit hint
  * shows once per session, and none of it is reachable during the tutorial.
  *
- * ImmersiveMode is a Grunt-concatenated `class` reaching for page globals (svl, util, i18next, Toast), so the source
- * is eval'd into jsdom with those stubbed.
+ * ImmersiveMode is a Grunt-concatenated `class` reaching for page globals (util, i18next, Toast), so the source is
+ * eval'd into jsdom with those stubbed; the tool-specific collaborators arrive through its options.
  */
 
 const fs = require('fs');
@@ -16,7 +17,7 @@ const path = require('path');
 const { assetPathStub } = require('./loadGlobalScript');
 
 const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/controls/ImmersiveMode.js'), 'utf8'
+    path.resolve(__dirname, '..', '..', 'public/js/common/ImmersiveMode.js'), 'utf8'
 );
 
 describe('ImmersiveMode', () => {
@@ -25,15 +26,28 @@ describe('ImmersiveMode', () => {
     let relayout;
     let onboarding;
 
-    /** Builds the module against a fresh page. */
-    function build() {
-        return new ImmersiveMode(tracker, relayout);
+    /** Builds the module against a fresh page, wired the way Explore's Main.js wires it. */
+    function build(extra = {}) {
+        return new ImmersiveMode({
+            tracker,
+            bodyClass: 'svl-immersive',
+            relayout,
+            isDisabled: () => window.svl.isOnboarding(),
+            beforeToggle: () => {
+                if (window.svl.contextMenu.isOpen()) window.svl.contextMenu.hide();
+                window.svl.canvas.showLabelHoverInfo(undefined);
+            },
+            frame: () => window.svl.CANVAS_FRAME,
+            hintReference: () => document.getElementById('pano'),
+            urlParam: 'immersive',
+            ...extra,
+        });
     }
 
     beforeEach(() => {
         document.body.innerHTML = `
-            <div id="immersive-toggle-holder" class="zoom-buttons-holder">
-              <button type="button" id="immersive-toggle-button" class="zoom-button">
+            <div id="immersive-toggle-holder" class="ps-icon-button-stack">
+              <button type="button" id="immersive-toggle-button" class="ps-icon-button">
                 <img id="immersive-toggle-icon" src="/assets/images/icons/maximize-2-white-feather.svg" alt="">
               </button>
             </div>`;
@@ -66,7 +80,7 @@ describe('ImmersiveMode', () => {
         expect(document.body.classList.contains('svl-immersive')).toBe(true);
         expect(document.documentElement.classList.contains('chromeless')).toBe(true);
         expect(relayout).toHaveBeenCalledTimes(1);
-        expect(button.getAttribute('aria-label')).toBe('controls.immersive-exit');
+        expect(button.getAttribute('aria-label')).toBe('common:immersive-exit');
         expect(document.getElementById('immersive-toggle-icon').getAttribute('src')).toContain('minimize-2');
 
         button.click();
@@ -74,7 +88,7 @@ describe('ImmersiveMode', () => {
         expect(document.body.classList.contains('svl-immersive')).toBe(false);
         expect(document.documentElement.classList.contains('chromeless')).toBe(false);
         expect(relayout).toHaveBeenCalledTimes(2);
-        expect(button.getAttribute('aria-label')).toBe('controls.immersive-enter');
+        expect(button.getAttribute('aria-label')).toBe('common:immersive-enter');
         expect(document.getElementById('immersive-toggle-icon').getAttribute('src')).toContain('maximize-2');
     });
 
@@ -150,7 +164,7 @@ describe('ImmersiveMode', () => {
         expect(document.body.classList.contains('svl-immersive')).toBe(true);
         expect(document.documentElement.classList.contains('chromeless')).toBe(true);
         expect(document.getElementById('immersive-toggle-button').getAttribute('aria-label'))
-            .toBe('controls.immersive-exit');
+            .toBe('common:immersive-exit');
         expect(relayout).not.toHaveBeenCalled();
         expect(tracker.push).toHaveBeenCalledTimes(1);
         expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored', expect.objectContaining({
@@ -158,6 +172,33 @@ describe('ImmersiveMode', () => {
         }));
 
         // Leaving the mode forgets it, so the next load is boxed.
+        restored.toggle('Click');
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+        expect(build().isActive()).toBe(false);
+    });
+
+    // Validate's tracker can only attribute a row once the mission exists, which is after the mode is built.
+    it('holds the restore event for a deferring tool until logRestored() asks for it', () => {
+        build().toggle('Click');
+        tracker.push.mockClear();
+        const restored = build({ deferRestoreLog: true });
+        expect(restored.isActive()).toBe(true);
+        expect(tracker.push).not.toHaveBeenCalled();
+
+        restored.logRestored();
+        expect(tracker.push).toHaveBeenCalledTimes(1);
+        expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored', expect.anything());
+
+        // A load that did not come back into the mode has nothing to report.
+        restored.toggle('Click');
+        tracker.push.mockClear();
+        build({ deferRestoreLog: true }).logRestored();
+        expect(tracker.push).not.toHaveBeenCalled();
+    });
+
+    it('forgets the mode once left, even for a deferring tool', () => {
+        const restored = build({ deferRestoreLog: true });
+        restored.toggle('Click');
         restored.toggle('Click');
         expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
         expect(build().isActive()).toBe(false);
@@ -198,7 +239,7 @@ describe('ImmersiveMode', () => {
 
     it('tells its onChange hook after every toggle, once the tool is laid out (#5480)', () => {
         const onChange = jest.fn();
-        const mode = new ImmersiveMode(tracker, relayout, onChange);
+        const mode = build({ onChange });
         mode.toggle('Click');
         expect(onChange).toHaveBeenCalledTimes(1);
         expect(relayout.mock.invocationCallOrder[0]).toBeLessThan(onChange.mock.invocationCallOrder[0]);
@@ -207,8 +248,14 @@ describe('ImmersiveMode', () => {
         // A build without the hook, and a toggle during the tutorial, stay quiet.
         expect(() => build().toggle('Click')).not.toThrow();
         onboarding = true;
-        new ImmersiveMode(tracker, relayout, onChange).toggle('Click');
+        build({ onChange }).toggle('Click');
         expect(onChange).toHaveBeenCalledTimes(2);
+    });
+
+    it('ignores immersive=1 for a tool that names no URL param (Validate)', () => {
+        window.history.replaceState(null, '', '/validate?immersive=1');
+        expect(build({ urlParam: undefined }).isActive()).toBe(false);
+        expect(tracker.push).not.toHaveBeenCalled();
     });
 
     it('does not restore the mode into the tutorial', () => {
@@ -221,5 +268,17 @@ describe('ImmersiveMode', () => {
     it('is inert on a page without the toggle markup', () => {
         document.body.innerHTML = '';
         expect(() => build()).not.toThrow();
+    });
+
+    it('keeps each tool\'s mode and hint under its own body class', () => {
+        const validate = new ImmersiveMode({ tracker, bodyClass: 'svv-immersive', relayout });
+        validate.toggle('Click');
+        expect(document.body.classList.contains('svv-immersive')).toBe(true);
+        expect(document.body.classList.contains('svl-immersive')).toBe(false);
+        expect(window.sessionStorage.getItem('svv-immersive-active')).toBe('1');
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+        // No frame given, so the event carries the window only.
+        expect(tracker.push).toHaveBeenLastCalledWith('Click_ImmersiveMode_Enter',
+            { innerWidth: window.innerWidth, innerHeight: window.innerHeight });
     });
 });

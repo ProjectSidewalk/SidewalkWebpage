@@ -183,7 +183,6 @@ describe('AboutPage', () => {
     delete window.appManager;
     delete window.__aboutReady;
     delete window.createPSMap;
-    delete window.jQuery;
     jest.restoreAllMocks();
   });
 
@@ -987,7 +986,6 @@ describe('AboutPage', () => {
       document.body.innerHTML = `<main id="about-page"><div id="about-deployment-map" ${attrs}></div></main>`;
       stubFetch({});
       window.createPSMap = jest.fn(() => Promise.resolve([{}]));
-      window.jQuery = { getJSON: jest.fn() };
       jest.spyOn(console, 'warn').mockImplementation(() => {});
     });
 
@@ -1015,7 +1013,7 @@ describe('AboutPage', () => {
       expect([...document.head.querySelectorAll('link[rel="stylesheet"]')].map((el) => el.getAttribute('href')))
         .toContain(ASSETS['data-mapbox-css']);
       expect(window.createPSMap).toHaveBeenCalledTimes(1);
-      expect(window.createPSMap.mock.calls[0][1]).toMatchObject({
+      expect(window.createPSMap.mock.calls[0][0]).toMatchObject({
         mapName: 'about-deployment-map',
         mapboxApiKey: 'pk.test',
         loadCities: true,

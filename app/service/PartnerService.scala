@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
-import models.partner._
+import models.partner.*
 import models.utils.{ImageUtils, MyPostgresProfile}
 import play.api.Configuration
 import play.api.cache.AsyncCacheApi
@@ -12,7 +12,7 @@ import java.net.URI
 import java.time.OffsetDateTime
 import javax.imageio.ImageIO
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
@@ -63,11 +63,11 @@ class PartnerServiceImpl @Inject() (
     configService: ConfigService,
     cacheApi: AsyncCacheApi,
     partnerTable: PartnerTable,
-    cpuEc: CpuIntensiveExecutionContext,
-    implicit val ec: ExecutionContext
-) extends PartnerService
+    cpuEc: CpuIntensiveExecutionContext
+)(using ec: ExecutionContext)
+    extends PartnerService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import PartnerServiceImpl._
+  import PartnerServiceImpl.*
 
   val logoUploadMaxBytes: Long = config.get[Long]("partners.logo-upload-max-bytes")
 
@@ -95,7 +95,7 @@ class PartnerServiceImpl @Inject() (
       version: Option[String]
   ): Future[Option[(Array[Byte], String, OffsetDateTime)]] = {
     cacheApi.get[(Array[Byte], String, OffsetDateTime)](logoCacheKey(partnerId)).flatMap {
-      case Some(cached) if version.contains(PartnerMetadata.logoVersionOf(cached._3).toString) =>
+      case Some(cached @ (_, _, updatedAt)) if version.contains(PartnerMetadata.logoVersionOf(updatedAt).toString) =>
         Future.successful(Some(cached))
       case _ =>
         db.run(partnerTable.getLogo(partnerId)).map { fresh =>
@@ -214,7 +214,7 @@ class PartnerServiceImpl @Inject() (
 
   private def urlOk(url: String): Boolean = {
     url.length <= MAX_URL_LENGTH && Try {
-      val uri = new URI(url)
+      val uri = URI(url)
       Set("http", "https").contains(Option(uri.getScheme).getOrElse("").toLowerCase) && uri.getHost != null
     }.getOrElse(false)
   }
@@ -248,7 +248,10 @@ class PartnerServiceImpl @Inject() (
             .toRight(PartnerRejection.LogoInvalid: PartnerRejection)
             // At <= 800px even a lossless PNG stays far under the cap, but the DB CHECK is the invariant, so
             // enforce it here rather than letting the insert blow up.
-            .filterOrElse(_._1.length <= MAX_LOGO_BYTES, PartnerRejection.LogoEncodedTooLarge)
+            .filterOrElse(
+              { case (bytes, _, _, _) => bytes.length <= MAX_LOGO_BYTES },
+              PartnerRejection.LogoEncodedTooLarge
+            )
       }
     }
   }(cpuEc)

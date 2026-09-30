@@ -13,6 +13,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { installDateHelpers } = require('./loadGlobalScript');
 
 const FORM_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/explore/src/data/Form.js'), 'utf8'
@@ -29,7 +30,7 @@ function panoStub(panoId) {
     const props = {
         panoId,
         source: 'gsv',
-        captureDate: { format: () => '2024-06' },
+        captureDate: new Date(2024, 5),
         width: 8192,
         height: 4096,
         tileWidth: 512,
@@ -148,7 +149,7 @@ describe('Form pano submission staging', () => {
             math: { kmsToMeters: (km) => km * 1000 },
             pano: { TUTORIAL_PANO_IDS: new Set(['tutorial', 'afterWalkTutorial']) },
         };
-        window.$ = jest.fn(() => ({ width: () => 1920, height: () => 1080 }));
+        installDateHelpers();
         window.i18next = { language: 'en' };
 
         panos = [panoStub('pano-A'), panoStub('pano-B')];

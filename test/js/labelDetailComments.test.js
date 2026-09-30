@@ -5,8 +5,9 @@
  * dispute, Agree invites an optional note — and a vote that moves takes its comment with it, because the server
  * deletes the comment on a cleared or changed vote and the list has to say so without a reload.
  *
- * A comment is also unique per (label, user): validation_task_comment_label_id_user_id_unique, added by evolution
- * 359 for #4942, which `ValidationService.replaceComment` enforces by deleting before inserting. So the card
+ * A comment is also unique per (label, user, type): validation_task_comment_label_id_user_id_label_type_key (409.sql,
+ * #5510), which `ValidationService.replaceComment` enforces by deleting before inserting. The card only ever sees the
+ * current type's comments, so to it there is one per (label, user). So the card
  * mirrors what a story of your own already does (`StorySection`): once yours exists the compose box closes and the
  * comment carries Edit/Delete instead, which is what keeps a second submission from silently destroying the first.
  * Cancel and Escape are the two ways out that keep the box from being a one-way door.
@@ -20,7 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
 
 const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
 const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
@@ -135,7 +136,7 @@ function buildCard() {
               <label class="sr-only" for="label-detail-comment-input">Why?</label>
               <input type="text" id="label-detail-comment-input" class="label-detail__comment-input">
               <button type="button" class="label-detail__comment-submit" data-action="submit-comment">Comment</button>
-              <button type="button" class="button-ps button--small button--secondary label-detail__comment-cancel" data-action="cancel-comment-edit" hidden>Cancel</button>
+              <button type="button" class="button button--small button--secondary label-detail__comment-cancel" data-action="cancel-comment-edit" hidden>Cancel</button>
             </div>
             <span class="label-detail__comment-confirmation" role="status" aria-live="polite" hidden></span>
             <div class="label-detail__validator-comments"></div>
@@ -249,7 +250,6 @@ describe('the validator comment box (#5015)', () => {
         card = buildCard();
 
         window.i18next = { t: (key) => key };
-        window.moment = () => ({ format: () => '', fromNow: () => 'a while ago' });
         window.logWebpageActivity = jest.fn();
         window.buildBackupImageData = () => null;
         // The card reaches for this both bare and through `util`, so both spellings have to answer.
@@ -264,6 +264,7 @@ describe('the validator comment box (#5015)', () => {
             )),
             camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase(),
             misc: {
+                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
                 getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
                 getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
                 isPositiveLabelType: () => false,
@@ -272,6 +273,7 @@ describe('the validator comment box (#5015)', () => {
             pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }), renderedHFov: () => 90 },
             url: { replaceQuery: () => {} },
         };
+        installDateHelpers();
         window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
         window.LabelVisibilityToggle = class { constructor() {} };
         window.PanoInfoPopover = class { constructor() {} };
@@ -293,8 +295,10 @@ describe('the validator comment box (#5015)', () => {
             },
             getPov: () => ({ heading: 250.5, pitch: -12, zoom: 2 }),
             getOriginalPosition: () => ({ heading: 250.5, pitch: -12 }),
-            // A jQuery object in the real card: indexable, and asked for its size when a vote is submitted.
-            svHolder: Object.assign([document.createElement('div')], { width: () => 720, height: () => 480 }),
+            // Measured when a vote is submitted; jsdom lays nothing out.
+            svHolder: Object.defineProperties(document.createElement('div'), {
+                clientWidth: { value: 720 }, clientHeight: { value: 480 },
+            }),
             label: { labelId: 42, label_type: 'Obstacle' },
         };
         window.PopupPanoManager = { create: async () => panoManager };
@@ -542,7 +546,7 @@ describe('the validator comment box (#5015)', () => {
             deleteBtn().click();
             await flush();
 
-            expect(window.fetch).toHaveBeenCalledWith('/labelmap/comment/42', { method: 'DELETE' });
+            expect(window.fetch).toHaveBeenCalledWith('/labelmap/comment/42?labelType=Obstacle', { method: 'DELETE' });
             expect(q('.label-detail__validator-comments').textContent).not.toContain('regrettable');
             // With nothing of theirs left, commenting is on offer again.
             expect(boxOpen()).toBe(true);
@@ -555,7 +559,7 @@ describe('the validator comment box (#5015)', () => {
             deleteBtn().click();
             await flush();
 
-            expect(window.fetch).not.toHaveBeenCalledWith('/labelmap/comment/42', { method: 'DELETE' });
+            expect(window.fetch).not.toHaveBeenCalledWith('/labelmap/comment/42?labelType=Obstacle', { method: 'DELETE' });
             expect(q('.label-detail__validator-comments').textContent).toContain('kept');
         });
 

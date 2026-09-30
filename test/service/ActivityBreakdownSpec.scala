@@ -1,6 +1,6 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.time.LocalDate
 
@@ -14,7 +14,7 @@ import java.time.LocalDate
  * hold — a dev or CI database with no AI-role accounts would pass every AI assertion without exercising one. No DB, no
  * app boot.
  */
-class ActivityBreakdownSpec extends PlaySpec {
+class ActivityBreakdownSpec extends SidewalkSpec {
 
   private val day = LocalDate.of(2026, 8, 12)
 
@@ -48,7 +48,7 @@ class ActivityBreakdownSpec extends PlaySpec {
       id: String,
       labels: Int,
       validations: Int,
-      kind: ContributorKind.Value = ContributorKind.Registered
+      kind: ContributorKind = ContributorKind.Registered
   ) = {
     val name = kind match {
       case ContributorKind.Ai        => s"ai-$id"
@@ -225,6 +225,27 @@ class ActivityBreakdownSpec extends PlaySpec {
       summary.contributors.map(_.username) mustBe Seq("user-a")
       summary.contributors.head.labels mustBe 12
       summary.contributors.head.validations mustBe 3
+    }
+
+    "keep where a merged person worked, busiest city first, so the card can say where and link there" in {
+      // #5495: the merge above makes one line per person, and without this split the card could name DW but not say
+      // the 57 labels were in St. Louis — nor link to the only deployment that has DW's admin page for them.
+      val summary = ConfigService.summarizeDay(
+        day,
+        Seq(dayRow("seattle-wa", "a", 5, 1), dayRow("chicago-il", "a", 7, 2), dayRow("seattle-wa", "a", 0, 1))
+      )
+
+      summary.contributors.head.cities mustBe
+        Seq(ContributorCityDay("chicago-il", 7, 2), ContributorCityDay("seattle-wa", 5, 2))
+    }
+
+    "break a person's city ties on city id, so their line reads the same on every cache refresh" in {
+      val rows   = Seq(dayRow("b-city", "a", 3, 0), dayRow("a-city", "a", 3, 0))
+      val first  = ConfigService.summarizeDay(day, rows).contributors.head.cities.map(_.cityId)
+      val second = ConfigService.summarizeDay(day, rows.reverse).contributors.head.cities.map(_.cityId)
+
+      first mustBe Seq("a-city", "b-city")
+      second mustBe first
     }
 
     "count anonymous visitors as sessions and keep their volume in the human totals" in {

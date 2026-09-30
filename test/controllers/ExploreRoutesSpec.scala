@@ -1,20 +1,19 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import models.user.UserAccountStateTable
 import models.utils.MyPostgresProfile
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.mvc.Cookie
-import util.{AnonSession, RoleSession}
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Route-wiring smoke tests for the Explore page's address-drop-in entry (#4451). Boots the real app and hits
@@ -22,15 +21,15 @@ import scala.concurrent.duration._
  * preserves the lat/lng query params — that round-trip is what lets a brand-new visitor coming from the LabelMap's
  * "Explore the sidewalks here" button land at their searched address after the anonymous account is minted.
  */
-class ExploreRoutesSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class ExploreRoutesSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private lazy val dbConfig = app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
@@ -44,7 +43,7 @@ class ExploreRoutesSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
     "resume the owner's own mission with the pano seed, dropping seed values that are not finite" in {
       val cookies = freshAnonSession()
       completeTutorial(cookies)
-      val first = route(app, FakeRequest(GET, "/explore").withCookies(cookies: _*)).get
+      val first = route(app, FakeRequest(GET, "/explore").withCookies(cookies*)).get
       status(first) mustBe OK
       val firstHtml = contentAsString(first)
       firstHtml must include(""""mission_type":"audit"""")
@@ -55,7 +54,7 @@ class ExploreRoutesSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
         FakeRequest(
           GET,
           s"/explore?lat=47.615&lng=-122.332&panoId=abc-123&heading=NaN&pitch=1&zoom=Infinity&missionId=$missionId"
-        ).withCookies(cookies: _*)
+        ).withCookies(cookies*)
       ).get
       status(own) mustBe OK
       val html = contentAsString(own)
@@ -71,7 +70,7 @@ class ExploreRoutesSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
       val refined = route(
         app,
         FakeRequest(GET, s"/explore?lat=47.615&lng=-122.332&heading=90&pitch=NaN&zoom=Infinity&missionId=$missionId")
-          .withCookies(cookies: _*)
+          .withCookies(cookies*)
       ).get
       status(refined) mustBe OK
       contentAsString(refined) must include("mainParam.startPov = { heading: 90.0, pitch: 0.0, zoom: 1.0 }")
@@ -80,14 +79,14 @@ class ExploreRoutesSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
     "treat another user's missionId as inert: the recipient never enters that mission" in {
       val owner = freshAnonSession()
       completeTutorial(owner)
-      val ownerPage = contentAsString(route(app, FakeRequest(GET, "/explore").withCookies(owner: _*)).get)
+      val ownerPage = contentAsString(route(app, FakeRequest(GET, "/explore").withCookies(owner*)).get)
       val missionId = """"mission_id":(\d+)""".r.findFirstMatchIn(ownerPage).value.group(1)
 
       val recipient = freshAnonSession()
       val result    = route(
         app,
         FakeRequest(GET, s"/explore?lat=47.615&lng=-122.332&panoId=abc-123&missionId=$missionId")
-          .withCookies(recipient: _*)
+          .withCookies(recipient*)
       ).get
       status(result) mustBe OK
       val html = contentAsString(result)
@@ -98,14 +97,14 @@ class ExploreRoutesSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
 
     "never seed the tutorial, even for the owner of its onboarding mission" in {
       val cookies = freshAnonSession()
-      val first   = contentAsString(route(app, FakeRequest(GET, "/explore").withCookies(cookies: _*)).get)
+      val first   = contentAsString(route(app, FakeRequest(GET, "/explore").withCookies(cookies*)).get)
       first must include(""""mission_type":"auditOnboarding"""")
       val missionId = """"mission_id":(\d+)""".r.findFirstMatchIn(first).value.group(1)
 
       val result = route(
         app,
         FakeRequest(GET, s"/explore?lat=47.615&lng=-122.332&panoId=abc-123&heading=90&missionId=$missionId")
-          .withCookies(cookies: _*)
+          .withCookies(cookies*)
       ).get
       status(result) mustBe OK
       val html = contentAsString(result)

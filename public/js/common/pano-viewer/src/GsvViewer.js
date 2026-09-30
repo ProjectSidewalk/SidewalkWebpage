@@ -111,6 +111,9 @@ class GsvViewer extends PanoViewer {
 
     // Prevent keyboard shortcuts from moving the pano.
     const preventShortcuts = (e) => {
+      // Let the keys through in a text field, where they move the cursor rather than the pano.
+      const t = e.target;
+      if (t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && t.type === 'text')) return;
       if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
         e.stopPropagation();
       }
@@ -170,7 +173,7 @@ class GsvViewer extends PanoViewer {
       if (prevPanoDate) {
         history.push({
           panoId: prevPano.pano,
-          captureDate: moment(prevPanoDate),
+          captureDate: prevPanoDate,
         });
       } else {
         console.error('Could not find date in pano history object:', prevPano);
@@ -181,7 +184,7 @@ class GsvViewer extends PanoViewer {
     const panoDataParams = {
       panoId: newPanoData.data.location.pano,
       source: this.getViewerType(),
-      captureDate: moment(newPanoData.data.imageDate),
+      captureDate: util.parseDate(newPanoData.data.imageDate),
       width: newPanoData.data.tiles.worldSize.width,
       height: newPanoData.data.tiles.worldSize.height,
       tileWidth: newPanoData.data.tiles.tileSize.width,

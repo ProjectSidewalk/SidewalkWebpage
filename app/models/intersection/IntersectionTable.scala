@@ -4,12 +4,11 @@ import com.google.inject.ImplementedBy
 import models.region.RegionTableDef
 import models.street.StreetEdgeTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import models.utils.SpatialQueryType.SpatialQueryType
-import models.utils.{FilteredTables, LatLngBBox, SpatialQueryType}
+import models.utils.MyPostgresProfile.api.*
+import models.utils.{FilteredTables, LatLngBBox, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import slick.jdbc.GetResult
+import slick.jdbc.{GetResult, SQLActionBuilder}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.ExecutionContext
@@ -77,10 +76,7 @@ class IntersectionTableDef(tag: Tag) extends Table[Intersection](tag, "intersect
   def gradeSeparated: Rep[Boolean] = column[Boolean]("grade_separated", O.Default(false))
   def regionId: Rep[Option[Int]]   = column[Option[Int]]("region_id")
 
-  def * = (intersectionId, geom, degree, gradeSeparated, regionId) <> (
-    (Intersection.apply _).tupled,
-    Intersection.unapply
-  )
+  def * = (intersectionId, geom, degree, gradeSeparated, regionId).mapTo[Intersection]
 
   def region = foreignKey("intersection_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId.?)
 }
@@ -91,10 +87,7 @@ class IntersectionStreetEdgeTableDef(tag: Tag) extends Table[IntersectionStreetE
   def streetEdgeId: Rep[Int]             = column[Int]("street_edge_id")
   def streetEnd: Rep[String] = column[String]("street_end") // CHECK (street_end IN ('start', 'end')) in the DB.
 
-  def * = (intersectionStreetEdgeId, intersectionId, streetEdgeId, streetEnd) <> (
-    (IntersectionStreetEdge.apply _).tupled,
-    IntersectionStreetEdge.unapply
-  )
+  def * = (intersectionStreetEdgeId, intersectionId, streetEdgeId, streetEnd).mapTo[IntersectionStreetEdge]
 
   def intersection =
     foreignKey("intersection_street_edge_intersection_id_fkey", intersectionId, TableQuery[IntersectionTableDef])(
@@ -152,7 +145,7 @@ trait IntersectionTableRepository {
  * the one-time population of existing cities, and `IntersectionTableSpec` checks the two still agree.
  */
 @Singleton
-class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends IntersectionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -160,20 +153,20 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   val intersections: TableQuery[IntersectionTableDef]                     = TableQuery[IntersectionTableDef]
   val intersectionStreetEdges: TableQuery[IntersectionStreetEdgeTableDef] = TableQuery[IntersectionStreetEdgeTableDef]
 
-  implicit val intersectionInfoConverter: GetResult[IntersectionInfo] = GetResult[IntersectionInfo] { r =>
+  given intersectionInfoConverter: GetResult[IntersectionInfo] = GetResult[IntersectionInfo] { r =>
     IntersectionInfo(
       intersectionId = r.nextInt(),
       geom = r.nextGeometry[Point](),
       degree = r.nextInt(),
       gradeSeparated = r.nextBoolean(),
       regionId = r.nextIntOption(),
-      streetEdgeIds = r.nextArray[Int](),
+      streetEdgeIds = r.nextIntArray(),
       auditCount = r.nextInt()
     )
   }
 
-  implicit val intersectionStreetEndConverter: GetResult[IntersectionStreetEnd] = GetResult[IntersectionStreetEnd] {
-    r => IntersectionStreetEnd(r.nextInt(), r.nextString(), r.nextInt())
+  given intersectionStreetEndConverter: GetResult[IntersectionStreetEnd] = GetResult[IntersectionStreetEnd] { r =>
+    IntersectionStreetEnd(r.nextInt(), r.nextString(), r.nextInt())
   }
 
   def rebuild: DBIO[IntersectionRebuildCounts] = {
@@ -234,7 +227,6 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   def attributeClusters(labelTypes: Set[String], radiusMeters: Double, sessionId: Option[Int]): DBIO[Int] = {
     if (labelTypes.isEmpty) DBIO.successful(0)
     else {
-      val typeFilter: String    = labelTypes.toSeq.sorted.map(t => s"'${t.replace("'", "''")}'").mkString(", ")
       val sessionFilter: String = sessionId.fold("")(id => s"AND cluster.clustering_session_id = $id")
       // The degree box is the index prefilter and must contain the geodesic radius anywhere a city sits: 0.0005 deg
       // covers 25 m up to ~63 deg latitude, so scale it with the radius from that same footing.
@@ -253,7 +245,9 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
                      ORDER BY ST_Distance(intersection.geom::geography, cluster.geom::geography)
                      LIMIT 1
                  ) candidate ON TRUE
-                 WHERE cluster.label_type IN (#$typeFilter) #$sessionFilter
+                 WHERE cluster.label_type = ANY(${SqlFragments.enumList(
+          labelTypes.toSeq.sorted
+        )}::label_type[]) #$sessionFilter
              ) nearest
              WHERE cluster.cluster_id = nearest.cluster_id
                AND cluster.intersection_id IS DISTINCT FROM nearest.intersection_id"""
@@ -268,20 +262,20 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
    * would score nothing. `ClusterTable.getClusterScoreRows` scopes clusters more widely (any status); its extra rows
    * belong to no scored unit and are dropped.
    */
-  private def inScopeStreetsSql(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): String = {
-    val envelope: String = s"ST_MakeEnvelope(${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}, 4326)"
-    val locationFilter: String =
-      if (spatialQueryType == SpatialQueryType.Region) s"ST_Within(region.geom, $envelope)"
-      else s"ST_Intersects(street_edge.geom, $envelope)"
-    s"""SELECT street_edge.street_edge_id
-       |FROM ${FilteredTables.streets()}
-       |INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
-       |INNER JOIN region ON street_edge_region.region_id = region.region_id
-       |WHERE $locationFilter""".stripMargin
+  private def inScopeStreetsSql(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): SQLActionBuilder = {
+    val locationFilter: SQLActionBuilder =
+      if (spatialQueryType == SpatialQueryType.Region) SqlFragments.withinBBox("region.geom", bbox)
+      else SqlFragments.intersectsBBox("street_edge.geom", bbox)
+    sql"""
+      SELECT street_edge.street_edge_id
+      FROM #${FilteredTables.streets()}
+      INNER JOIN street_edge_region ON street_edge.street_edge_id = street_edge_region.street_edge_id
+      INNER JOIN region ON street_edge_region.region_id = region.region_id
+      WHERE """.concat(locationFilter)
   }
 
   def getIntersectionsForStreets(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): DBIO[Seq[IntersectionInfo]] = {
-    val inScope: String = inScopeStreetsSql(spatialQueryType, bbox)
+    val inScope: SQLActionBuilder = inScopeStreetsSql(spatialQueryType, bbox)
     // Audits are counted per incident street, and each street links to a node once (the derivation drops any edge
     // with both ends in one node), so the DISTINCT is a guard on that invariant rather than a working de-duplication.
     sql"""SELECT intersection.intersection_id,
@@ -305,17 +299,22 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
           WHERE intersection.intersection_id IN (
               SELECT intersection_street_edge.intersection_id
               FROM intersection_street_edge
-              WHERE intersection_street_edge.street_edge_id IN (#$inScope)
+              WHERE intersection_street_edge.street_edge_id IN ("""
+      .concat(inScope)
+      .concat(sql""")
           )
           GROUP BY intersection.intersection_id
-          ORDER BY intersection.intersection_id""".as[IntersectionInfo]
+          ORDER BY intersection.intersection_id""")
+      .as[IntersectionInfo]
   }
 
   def getStreetEnds(spatialQueryType: SpatialQueryType, bbox: LatLngBBox): DBIO[Seq[IntersectionStreetEnd]] = {
-    val inScope: String = inScopeStreetsSql(spatialQueryType, bbox)
     sql"""SELECT street_edge_id, street_end, intersection_id
           FROM intersection_street_edge
-          WHERE street_edge_id IN (#$inScope)""".as[IntersectionStreetEnd]
+          WHERE street_edge_id IN ("""
+      .concat(inScopeStreetsSql(spatialQueryType, bbox))
+      .concat(sql")")
+      .as[IntersectionStreetEnd]
   }
 }
 
