@@ -82,7 +82,7 @@ class AuthenticationServiceImpl @Inject() (
     sidewalkUserTable.findByEmail(loginInfo.providerKey)
 
   /**
-   * Retrieves the default anonymous user. Only used for logging in rare cases at this point.
+   * Retrieves the default anonymous user, shown as the viewer on pages opened with no session.
    */
   def getDefaultAnonUser: Future[SidewalkUserWithRole] = {
     cacheApi.getOrElseUpdate[SidewalkUserWithRole]("getDefaultAnonUser") {

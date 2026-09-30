@@ -11,7 +11,7 @@ import javax.inject.{Inject, Singleton}
 
 case class WebpageActivity(
     webpageActivityId: Int,
-    userId: String,
+    userId: Option[String], // None for a visitor with no session.
     ipAddress: IpAddress,
     description: String,
     timestamp: OffsetDateTime
@@ -34,7 +34,7 @@ case class ApiSourceIpCount(source: String, uniqueIps: Long)
 
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
   def webpageActivityId: Rep[Int] = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String]         = column[String]("user_id")
+  def userId: Rep[Option[String]] = column[Option[String]]("user_id")
   def ipAddress: Rep[IpAddress]   = column[IpAddress]("ip_address")
   def activity: Rep[String]       = column[String]("activity")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
@@ -42,7 +42,7 @@ class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "web
 
   def * = (webpageActivityId, userId, ipAddress, activity, timestamp).mapTo[WebpageActivity]
 
-  def user = foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def user = foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId.?)
 }
 
 @ImplementedBy(classOf[WebpageActivityTable])
@@ -65,8 +65,8 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def getSignUpTimes: DBIO[Seq[(String, Option[OffsetDateTime])]] = {
     activities
-      .filter(_.activity inSet Seq("AnonAutoSignUp", "SignUp"))
-      .groupBy(_.userId)
+      .filter(a => (a.activity inSet Seq("AnonAutoSignUp", "SignUp")) && a.userId.isDefined)
+      .groupBy(_.userId.get)
       .map { case (_userId, group) => (_userId, group.map(_.timestamp).max) }
       .result
   }
@@ -76,8 +76,8 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    */
   def getSignInTimesAndCounts: DBIO[Seq[(String, (Int, Option[OffsetDateTime]))]] = {
     activities
-      .filter(row => row.activity === "AnonAutoSignUp" || (row.activity like "SignIn%"))
-      .groupBy(_.userId)
+      .filter(row => (row.activity === "AnonAutoSignUp" || (row.activity like "SignIn%")) && row.userId.isDefined)
+      .groupBy(_.userId.get)
       .map { case (_userId, rows) => (_userId, (rows.length, rows.map(_.timestamp).max)) }
       .result
   }

@@ -255,7 +255,8 @@ class FunnelStatTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
             FROM events
             LEFT JOIN sidewalk_login.user_role ON events.user_id = user_role.user_id
             LEFT JOIN device ON device.user_id = events.user_id
-            WHERE user_role.role IS DISTINCT FROM 'AI'
+            -- Visits with no session have no user to follow down the funnel.
+            WHERE events.user_id IS NOT NULL AND user_role.role IS DISTINCT FROM 'AI'
             GROUP BY events.user_id
             -- A funnel starts at step 1: only count users who actually have the step-1 (visit) event. Without this, a
             -- user with downstream activity but no logged visit (e.g. an auto-created tutorial mission) would be counted
