@@ -361,14 +361,13 @@ class StoryServiceImpl @Inject() (
     if (labelTypesById.isEmpty) Future.successful(Map.empty)
     else
       db.run(labelTable.getPanoMetadataForLabels(labelTypesById.keys.toSeq)).map { metas =>
-        val metaById = metas.map { case (labelId, panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight) =>
-          labelId -> ((panoId, source, heading, pitch, zoom, canvasWidth, canvasHeight))
-        }.toMap
+        val metaById = metas.map(meta => meta.labelId -> meta).toMap
         labelTypesById.flatMap { case (labelId, labelType) =>
           panoDataService
             .cropUrl(labelId, labelType)
-            .orElse(metaById.get(labelId).flatMap { case (panoId, source, heading, pitch, zoom, cw, ch) =>
-              panoDataService.getImageUrl(panoId, source, heading, pitch, zoom, cw, ch)
+            .orElse(metaById.get(labelId).flatMap { m =>
+              panoDataService
+                .getImageUrl(m.panoId, m.panoSource, m.heading, m.pitch, m.zoom, m.canvasWidth, m.canvasHeight)
             })
             .map(labelId -> _)
         }

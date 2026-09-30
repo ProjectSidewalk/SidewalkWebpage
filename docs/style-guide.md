@@ -243,6 +243,7 @@ is a blocking CI gate). Conventions scalafmt doesn't cover:
   `implicit request =>` on an action block, which has no shorter Scala 3 spelling.
 - **Use Slick for database access**, not raw SQL, wherever possible — you get compile-time type checking. When you
   must write SQL, **avoid table aliases**.
+- **Read query results by name, not by position** — return a case class rather than a tuple, so nothing reads `row._3`.
 - **Measure geographic distances geodesically** — `ST_Length(geom::geography)` in raw SQL, the `lengthGeodesic`
   extension method in Slick, turf.js on the frontend. Never measure by projecting to a fixed SRID: a projection is
   only accurate near its own meridian (measuring every city through UTM zone 18N overstated street distances by up

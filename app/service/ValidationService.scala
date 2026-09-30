@@ -100,29 +100,17 @@ class ValidationServiceImpl @Inject() (
       .find(labelId)
       .flatMap {
         case Some(label) =>
-          // Get the validation counts that are in the database right now.
-          val oldCounts: (Int, Int, Int) = (label.agreeCount, label.disagreeCount, label.unsureCount)
-
-          // Add 1 to the correct count for the new validation. In case of delete, no match is found.
-          val countsWithNewVal: (Int, Int, Int) = newResult match {
-            case Some(ValidationOption.Agree)    => (oldCounts._1 + 1, oldCounts._2, oldCounts._3)
-            case Some(ValidationOption.Disagree) => (oldCounts._1, oldCounts._2 + 1, oldCounts._3)
-            case Some(ValidationOption.Unsure)   => (oldCounts._1, oldCounts._2, oldCounts._3 + 1)
-            case _                               => oldCounts
-          }
-
-          // If there was a previous validation from this user, subtract 1 for that old validation. O/w use previous result.
-          val countsWithoutOldVal: (Int, Int, Int) = oldResult match {
-            case Some(ValidationOption.Agree)    => (countsWithNewVal._1 - 1, countsWithNewVal._2, countsWithNewVal._3)
-            case Some(ValidationOption.Disagree) => (countsWithNewVal._1, countsWithNewVal._2 - 1, countsWithNewVal._3)
-            case Some(ValidationOption.Unsure)   => (countsWithNewVal._1, countsWithNewVal._2, countsWithNewVal._3 - 1)
-            case _                               => countsWithNewVal
-          }
+          // Each count gains 1 if the new vote is that option and loses 1 if the user's old vote was.
+          def change(option: ValidationOption): Int =
+            (if (newResult.contains(option)) 1 else 0) - (if (oldResult.contains(option)) 1 else 0)
+          val agreeCount: Int    = label.agreeCount + change(ValidationOption.Agree)
+          val disagreeCount: Int = label.disagreeCount + change(ValidationOption.Disagree)
+          val unsureCount: Int   = label.unsureCount + change(ValidationOption.Unsure)
 
           // Determine whether the label is correct. Agree > disagree = correct; disagree > agree = incorrect; o/w null.
           val labelCorrect: Option[Boolean] = {
-            if (countsWithoutOldVal._1 > countsWithoutOldVal._2) Some(true)
-            else if (countsWithoutOldVal._2 > countsWithoutOldVal._1) Some(false)
+            if (agreeCount > disagreeCount) Some(true)
+            else if (disagreeCount > agreeCount) Some(false)
             else None
           }
 
@@ -130,7 +118,7 @@ class ValidationServiceImpl @Inject() (
           labelsUnfiltered
             .filter(_.labelId === labelId)
             .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct))
-            .update((countsWithoutOldVal._1, countsWithoutOldVal._2, countsWithoutOldVal._3, labelCorrect))
+            .update((agreeCount, disagreeCount, unsureCount, labelCorrect))
 
         case None =>
           DBIO.successful(0)

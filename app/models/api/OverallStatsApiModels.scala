@@ -73,7 +73,9 @@ case class ValidationSourceStats(nValidations: Int, accuracyByLabelType: Map[Str
   def toJson: JsObject = JsObject(
     Seq("total_validations" -> JsNumber(nValidations)) ++
       // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
-      accuracyByLabelType.toSeq.sorted(labelTypeOrdering).map(s => s._1 -> Json.toJson(s._2))
+      accuracyByLabelType.toSeq.sorted(labelTypeOrdering).map { case (labelType, accuracy) =>
+        labelType -> Json.toJson(accuracy)
+      }
   )
 }
 
@@ -162,7 +164,9 @@ case class ProjectSidewalkStats(
           )
         ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.
-          severityByLabelType.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
+          severityByLabelType.toSeq.sorted(labelTypeOrdering).map { case (labelType, stats) =>
+            labelType -> Json.toJson(stats)
+          }
       ),
       // Validation stats are split three ways. "combined" includes both human and AI votes (AI votes are baked into
       // the label table's agree/disagree/correct counts); "human" and "ai" isolate each source via the validator role.
@@ -175,7 +179,9 @@ case class ProjectSidewalkStats(
         // { "Overall" -> "human_maj_vote" -> { "ai_yes_maj_vote_concurs": ###, ... }, ... }, "CurbRamp" -> {...},...}.
         aiPerformance.toSeq.sorted(labelTypeOrdering).map { case (lType, statsMap) =>
           lType -> JsObject(
-            statsMap.toSeq.sorted(AiConcurrence.voteTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
+            statsMap.toSeq.sorted(AiConcurrence.voteTypeOrdering).map { case (voteType, stats) =>
+              voteType -> Json.toJson(stats)
+            }
           )
         }
       )

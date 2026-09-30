@@ -167,13 +167,13 @@ class OsmWayServiceImpl @Inject() (
                   s"The OSM API has never held mapped way ids ${fetched.neverHeld.mkString(", ")}; marked missing."
                 )
               }
-              split = chunk.partition(fetched.live.contains)
-              rows  = split._1.map { wayId =>
+              (liveIds, deadIds) = chunk.partition(fetched.live.contains)
+              rows               = liveIds.map { wayId =>
                 val tags = fetched.live(wayId)
                 (wayId, tags: JsValue, maxspeedFrom(tags))
               }
-              n <- db.run(osmWayTable.upsertBatch(rows, split._2, OffsetDateTime.now))
-            } yield acc + OsmWayRefreshResult(n, split._2.size, 0, 0)
+              n <- db.run(osmWayTable.upsertBatch(rows, deadIds, OffsetDateTime.now))
+            } yield acc + OsmWayRefreshResult(n, deadIds.size, 0, 0)
           }
           .map { result =>
             // A dead way id is normal OSM churn, but a jump in this count means a re-match (#5244) is overdue.
@@ -475,7 +475,7 @@ object OsmWayService {
         } yield (version, tags)
       }
     val roads = tagged.filter { case (_, tags) => tags.keys.contains("highway") }
-    (if (roads.nonEmpty) roads else tagged).maxByOption(_._1).map(_._2)
+    (if (roads.nonEmpty) roads else tagged).maxByOption { case (version, _) => version }.map { case (_, tags) => tags }
   }
 
   /**
@@ -522,6 +522,6 @@ object OsmWayService {
         }
       }
 
-    if (roads.isEmpty) None else Some(roads.minBy(_._3.distance(point)))
+    if (roads.isEmpty) None else Some(roads.minBy { case (_, _, line) => line.distance(point) })
   }
 }

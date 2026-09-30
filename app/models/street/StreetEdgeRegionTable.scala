@@ -50,7 +50,7 @@ class StreetEdgeRegionTable @Inject() (
       .filter(_.streetEdgeId === streetEdgeId)
       .join(regionsWithoutDeleted)
       .on(_.regionId === _.regionId)
-      .map(_._2)
+      .map { case (_, region) => region }
       .result
       .headOption
   }

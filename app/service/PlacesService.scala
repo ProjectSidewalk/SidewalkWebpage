@@ -306,17 +306,17 @@ object PlacesService {
         } yield (lat, lon))
       }
       for {
-        osmType  <- (element \ "type").asOpt[String]
-        osmId    <- (element \ "id").asOpt[Long]
-        latLon   <- position
-        category <- PlaceCategory.resolve(tags)
+        osmType    <- (element \ "type").asOpt[String]
+        osmId      <- (element \ "id").asOpt[Long]
+        (lat, lon) <- position
+        category   <- PlaceCategory.resolve(tags)
       } yield FetchedPlace(
         category = category.id,
         name = tags.get("name").map(_.trim).filter(_.nonEmpty),
         osmType = osmType,
         osmId = osmId,
         tags = Json.toJson(tags),
-        geom = geometryFactory.createPoint(Coordinate(latLon._2, latLon._1))
+        geom = geometryFactory.createPoint(Coordinate(lon, lat))
       )
     }
   }

@@ -93,11 +93,12 @@ object RawLabelInClusterDataForApi {
   /** The same labels as their own CSV file or GeoPackage layer, each naming its parent cluster in a column of its own. */
   object InCluster extends ApiFields[(Int, RawLabelInClusterDataForApi)] {
     override val fields: Seq[ApiField[(Int, RawLabelInClusterDataForApi)]] =
-      ApiFields.field[(Int, RawLabelInClusterDataForApi), Int]("label_cluster_id")(_._1) +:
-        RawLabelFields.fields.map(_.on[(Int, RawLabelInClusterDataForApi)](_._2))
+      ApiFields.field[(Int, RawLabelInClusterDataForApi), Int]("label_cluster_id") { case (clusterId, _) =>
+        clusterId
+      } +: RawLabelFields.fields.map(_.on[(Int, RawLabelInClusterDataForApi)] { case (_, label) => label })
 
     override val csvOnlyFields: Seq[ApiField[(Int, RawLabelInClusterDataForApi)]] =
-      RawLabelFields.csvOnlyFields.map(_.on[(Int, RawLabelInClusterDataForApi)](_._2))
+      RawLabelFields.csvOnlyFields.map(_.on[(Int, RawLabelInClusterDataForApi)] { case (_, label) => label })
   }
 }
 

@@ -33,6 +33,14 @@ import scala.util.Random
  */
 case class SpotlightSnapshotResult(regions: Int, streets: Int)
 
+/** One city's contribution to the cross-city Spotlight. */
+private case class CitySpotlight(
+    candidates: Seq[SpotlightRowForApi],
+    qualifying: Int,
+    total: Int,
+    computedAt: Option[OffsetDateTime]
+)
+
 /**
  * The rules behind the AccessScore Spotlight, with no database or application attached (#5215).
  *
@@ -197,7 +205,7 @@ object AccessScoreSpotlight {
     val onStreets: Seq[(Int, Int)] = streets.map(s => s.regionId -> s.clusterCounts.values.sum)
     val atCorners: Seq[(Int, Int)] =
       intersections.filterNot(_.gradeSeparated).flatMap(i => i.regionId.map(_ -> i.clusterCounts.values.sum))
-    (onStreets ++ atCorners).groupMapReduce(_._1)(_._2)(_ + _)
+    (onStreets ++ atCorners).groupMapReduce { case (regionId, _) => regionId } { case (_, count) => count }(_ + _)
   }
 
   /**
@@ -230,7 +238,7 @@ object AccessScoreSpotlight {
       .sortBy { case ((osmWayId, regionId), _) => (osmWayId, regionId) }
       .map { case ((osmWayId, regionId), edges) =>
         val scored: Seq[(Double, Double)] = edges.flatMap(e => e.score.map(s => (s, math.max(0.0, e.lengthMeters))))
-        val weight: Double                = scored.map(_._2).sum
+        val weight: Double                = scored.map { case (_, length) => length }.sum
         StreetAccessScore(
           streetAccessScoreId = 0, // Assigned by the serial on insert.
           osmWayId = osmWayId,
@@ -242,7 +250,7 @@ object AccessScoreSpotlight {
           score =
             if (scored.isEmpty) None
             else if (weight > 0) Some(scored.map { case (s, l) => s * l }.sum / weight)
-            else Some(scored.map(_._1).sum / scored.size),
+            else Some(scored.map { case (score, _) => score }.sum / scored.size),
           lengthM = edges.map(e => math.max(0.0, e.lengthMeters)).sum,
           auditCount = edges.map(_.auditCount).sum,
           clusterCount = edges.map(_.clusterCounts.values.sum).sum,
@@ -359,15 +367,15 @@ class AccessScoreSpotlightService @Inject() (
         // tomorrow), and nothing else about a run is both unique to it and reproducible from its rows.
         Random(computedAt.toInstant.toEpochMilli)
       )
-      written <- db.run(
+      (regionRowCount, streetRowCount) <- db.run(
         regionAccessScoreTable
           .insertSnapshot(regionRows)
           .zip(streetAccessScoreTable.replaceSnapshot(streetRows))
           .transactionally
       )
     } yield {
-      logger.info(s"AccessScore Spotlight snapshot: ${written._1} region rows, ${written._2} street rows")
-      SpotlightSnapshotResult(regions = written._1, streets = written._2)
+      logger.info(s"AccessScore Spotlight snapshot: $regionRowCount region rows, $streetRowCount street rows")
+      SpotlightSnapshotResult(regions = regionRowCount, streets = streetRowCount)
     }
   }
 
@@ -379,7 +387,8 @@ class AccessScoreSpotlightService @Inject() (
    * @return     The response the endpoint publishes.
    */
   def getSpotlight(unit: String, n: Int): Future[AccessScoreSpotlightForApi] =
-    if (unit == SpotlightUnit.Streets) streetSpotlight(n, None, None).map(_._1) else regionSpotlight(n)
+    if (unit == SpotlightUnit.Streets) streetSpotlight(n, None, None).map { case (response, _) => response }
+    else regionSpotlight(n)
 
   /**
    * The Spotlight feed across every public deployment, cached like the other cross-city fan-outs.
@@ -409,37 +418,36 @@ class AccessScoreSpotlightService @Inject() (
       CrossCityMaxAge
     ) {
       configService.getAccessScoreSpotlightScope(lang).flatMap { cities =>
-        val perCity: Seq[Future[Option[(Seq[SpotlightRowForApi], Int, Int, Option[OffsetDateTime])]]] = cities.map {
-          case (city, schema) =>
-            val spotlightCity = SpotlightCityForApi(city.cityId, city.cityNameShort, city.URL)
-            val rows: Future[(Seq[SpotlightRowForApi], Int, Int, Option[OffsetDateTime])] =
-              if (unit == SpotlightUnit.Streets) {
-                // Each city's two lists are disjoint (one is at or above the highest floor, the other under the
-                // lowest ceiling), so their union is a clean candidate set for the global ranking.
-                streetSpotlight(n, Some(schema), Some(spotlightCity), sparseRule = false).map { case (response, _) =>
-                  (response.top ++ response.bottom, response.qualifying, response.total, response.computedAt)
-                }
-              } else {
-                db.run(regionAccessScoreTable.getLatestSnapshot(Some(schema)))
-                  .zip(
-                    db.run(regionAccessScoreTable.latestComputedAt(Some(schema)))
-                  )
-                  .map { case (snapshot, computedAt) =>
-                    val withCity   = snapshot.map(_.copy(city = Some(spotlightCity)))
-                    val qualifying = withCity.filter(row => AccessScoreSpotlight.regionQualifies(row))
-                    (qualifying, qualifying.size, withCity.size, computedAt)
-                  }
+        val perCity: Seq[Future[Option[CitySpotlight]]] = cities.map { case (city, schema) =>
+          val spotlightCity               = SpotlightCityForApi(city.cityId, city.cityNameShort, city.URL)
+          val rows: Future[CitySpotlight] =
+            if (unit == SpotlightUnit.Streets) {
+              // Each city's two lists are disjoint (one is at or above the highest floor, the other under the
+              // lowest ceiling), so their union is a clean candidate set for the global ranking.
+              streetSpotlight(n, Some(schema), Some(spotlightCity), sparseRule = false).map { case (response, _) =>
+                CitySpotlight(response.top ++ response.bottom, response.qualifying, response.total, response.computedAt)
               }
-            rows.map(Some(_)).recover { case e: Exception =>
-              logger.warn(s"AccessScore Spotlight skipped city ${city.cityId} (schema $schema): ${e.getMessage}")
-              None
+            } else {
+              db.run(regionAccessScoreTable.getLatestSnapshot(Some(schema)))
+                .zip(
+                  db.run(regionAccessScoreTable.latestComputedAt(Some(schema)))
+                )
+                .map { case (snapshot, computedAt) =>
+                  val withCity   = snapshot.map(_.copy(city = Some(spotlightCity)))
+                  val qualifying = withCity.filter(row => AccessScoreSpotlight.regionQualifies(row))
+                  CitySpotlight(qualifying, qualifying.size, withCity.size, computedAt)
+                }
             }
+          rows.map(Some(_)).recover { case e: Exception =>
+            logger.warn(s"AccessScore Spotlight skipped city ${city.cityId} (schema $schema): ${e.getMessage}")
+            None
+          }
         }
 
         Future.sequence(perCity).map { results =>
           val contributing = results.flatten
-          val candidates   = contributing.flatMap(_._1)
-          val qualifying   = contributing.map(_._2).sum
+          val candidates   = contributing.flatMap(_.candidates)
+          val qualifying   = contributing.map(_.qualifying).sum
           // The sparse rule is judged on the merged count. For streets the candidates are each city's two
           // threshold lists, so a merged count under n (fewer than n ranked stretches across every public city)
           // would list only those; no real set of deployments produces that state.
@@ -451,8 +459,8 @@ class AccessScoreSpotlightService @Inject() (
             highestMinScore = AccessScoreSpotlight.HighestMinScore,
             lowestMaxScore = AccessScoreSpotlight.LowestMaxScore,
             qualifying = qualifying,
-            total = contributing.map(_._3).sum,
-            computedAt = contributing.flatMap(_._4).sortBy(_.toInstant).headOption,
+            total = contributing.map(_.total).sum,
+            computedAt = contributing.flatMap(_.computedAt).sortBy(_.toInstant).headOption,
             top = top,
             bottom = bottom,
             nearest = Seq.empty

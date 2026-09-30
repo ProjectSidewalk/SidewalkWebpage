@@ -17,6 +17,9 @@ case class WebpageActivity(
     timestamp: OffsetDateTime
 )
 
+/** One day's count of sign-ins or active users, for either anonymous or registered users. */
+case class DailyCountByAnon(day: OffsetDateTime, isAnonymous: Boolean, count: Int)
+
 /** Analytics data types for the v3 API usage dashboard. */
 case class ApiEndpointCount(endpoint: String, count: Long)
 
@@ -87,16 +90,17 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * email address. The anon flag is derived from the activity name, which already distinguishes the two cases, so no
    * role join is needed.
    *
-   * @return DBIO[Seq[(day, isAnonymous, count)]] — `day` is the timestamp truncated to the day; sorted ascending.
+   * @return One row per day and anon flag, sorted ascending; `day` is the timestamp truncated to the day.
    */
-  def getSignInCountsByDate: DBIO[Seq[(OffsetDateTime, Boolean, Int)]] = {
+  def getSignInCountsByDate: DBIO[Seq[DailyCountByAnon]] = {
     val successfulSignIns = Seq("SignIn", "SignInSuccess")
     activities
       .filter(a => (a.activity inSet successfulSignIns) || a.activity === "AnonAutoSignUp")
       .map(a => (a.timestamp.trunc("day"), a.activity === "AnonAutoSignUp", a.webpageActivityId))
-      .groupBy(x => (x._1, x._2))
+      .groupBy { case (day, isAnon, _) => (day, isAnon) }
       .map { case ((day, isAnon), group) => (day, isAnon, group.length) }
-      .sortBy(_._1)
+      .sortBy { case (day, _, _) => day }
+      .map { case (day, isAnon, count) => (day, isAnon, count).mapTo[DailyCountByAnon] }
       .result
   }
 
@@ -106,18 +110,19 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * "Active" is intentionally broad — any logged activity counts — so this measures how many people showed up, not how
    * much they did. Split on role "Anonymous" so registered engagement can be read separately from drive-by anon traffic.
    *
-   * @return DBIO[Seq[(day, isAnonymous, distinctUserCount)]] — sorted ascending by day.
+   * @return One row per day and anon flag, counting distinct users; sorted ascending by day.
    */
-  def getActiveUserCountsByDate: DBIO[Seq[(OffsetDateTime, Boolean, Int)]] = {
+  def getActiveUserCountsByDate: DBIO[Seq[DailyCountByAnon]] = {
     val activeUsers = for {
       _activity <- activities
       _userRole <- userRoles if _activity.userId === _userRole.userId
     } yield (_activity.timestamp.trunc("day"), _userRole.role === Role.Anonymous, _activity.userId)
 
     activeUsers
-      .groupBy(x => (x._1, x._2))
-      .map { case ((day, isAnon), group) => (day, isAnon, group.map(_._3).countDistinct) }
-      .sortBy(_._1)
+      .groupBy { case (day, isAnon, _) => (day, isAnon) }
+      .map { case ((day, isAnon), group) => (day, isAnon, group.map { case (_, _, userId) => userId }.countDistinct) }
+      .sortBy { case (day, _, _) => day }
+      .map { case (day, isAnon, count) => (day, isAnon, count).mapTo[DailyCountByAnon] }
       .result
   }
 
@@ -135,7 +140,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
       .map(_.timestamp.trunc("day"))
       .groupBy(x => x)
       .map { case (day, group) => (day, group.length) }
-      .sortBy(_._1)
+      .sortBy { case (day, _) => day }
       .result
   }
 

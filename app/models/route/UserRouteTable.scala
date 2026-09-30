@@ -67,7 +67,7 @@ class UserRouteTable @Inject() (
       .filter(ur => ur.userId === userId && !ur.paused)
       .join(routes.filter(!_.deleted))
       .on(_.routeId === _.routeId)
-      .map(_._1)
+      .map { case (userRoute, _) => userRoute }
       .result
       .headOption
   }
@@ -131,8 +131,9 @@ class UserRouteTable @Inject() (
     val possibleTask: DBIO[Option[NewTask]] = auditTaskTable
       .resumableRouteTask(currRoute.userRouteId)
       .flatMap {
-        case Some((currTaskId, currRouteStreetId, currPosition)) =>
-          auditTaskTable.selectTaskFromTaskId(currTaskId, currRoute.userId, Some(currRouteStreetId), Some(currPosition))
+        case Some(curr) =>
+          auditTaskTable
+            .selectTaskFromTaskId(curr.auditTaskId, currRoute.userId, Some(curr.routeStreetId), Some(curr.position))
         case None => DBIO.successful(None)
       }
 
@@ -144,9 +145,11 @@ class UserRouteTable @Inject() (
         routeStreets
           .joinLeft(userTasks)
           .on(_.routeStreetId === _.routeStreetId)
-          .filter(x => x._1.routeId === currRoute.routeId && x._2.isEmpty)
-          .sortBy(_._1.position)
-          .map(x => (x._1.streetEdgeId, x._1.routeStreetId, x._1.reverse, x._1.position))
+          .filter { case (routeStreet, userTask) => routeStreet.routeId === currRoute.routeId && userTask.isEmpty }
+          .sortBy { case (routeStreet, _) => routeStreet.position }
+          .map { case (routeStreet, _) =>
+            (routeStreet.streetEdgeId, routeStreet.routeStreetId, routeStreet.reverse, routeStreet.position)
+          }
           .result
           .headOption
           .flatMap {
@@ -175,7 +178,7 @@ class UserRouteTable @Inject() (
     val userAudits = auditTaskUserRoutes
       .join(auditTaskTable.completedTasks)
       .on(_.auditTaskId === _.auditTaskId)
-      .filter(_._1.userRouteId === userRouteId)
+      .filter { case (link, _) => link.userRouteId === userRouteId }
     val reportedStreets = auditTaskTable.streetsReportedNoImageryDuringRoute(userRouteId)
 
     // Check if all streets in the route have a completed audit using an outer join. If so, mark as complete in db.
@@ -183,8 +186,10 @@ class UserRouteTable @Inject() (
       .join(routeStreets)
       .on(_.routeId === _.routeId)
       .joinLeft(userAudits)
-      .on(_._2.routeStreetId === _._1.routeStreetId)
-      .filter(x => x._1._1.userRouteId === userRouteId && x._2.isEmpty && !(x._1._2.streetEdgeId in reportedStreets))
+      .on { case ((_, routeStreet), (link, _)) => routeStreet.routeStreetId === link.routeStreetId }
+      .filter { case ((userRoute, routeStreet), userAudit) =>
+        userRoute.userRouteId === userRouteId && userAudit.isEmpty && !(routeStreet.streetEdgeId in reportedStreets)
+      }
       .exists
       .result
       .flatMap {

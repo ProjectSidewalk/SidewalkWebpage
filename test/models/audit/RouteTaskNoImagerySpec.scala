@@ -232,7 +232,7 @@ class RouteTaskNoImagerySpec extends SidewalkSpec with GuiceOneAppPerSuite with 
         resumable   <- auditTaskTable.resumableRouteTask(userRouteId)
       } yield (resumable, liveTask))
 
-      resumed.value._1 mustBe liveTaskId
+      resumed.value.auditTaskId mustBe liveTaskId
     }
 
     "have nothing left to resume once the only open tasks are given-up streets" in {
@@ -274,7 +274,7 @@ class RouteTaskNoImagerySpec extends SidewalkSpec with GuiceOneAppPerSuite with 
         resumable   <- auditTaskTable.resumableRouteTask(userRouteId)
       } yield (resumable, lateTask))
 
-      resumed.value._1 mustBe furthestTaskId
+      resumed.value.auditTaskId mustBe furthestTaskId
     }
   }
 

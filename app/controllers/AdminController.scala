@@ -7,7 +7,7 @@ import formats.json.LabelFormats.*
 import formats.json.UserFormats.given
 import models.auth.{DefaultEnv, WithAdmin, WithOwner}
 import models.api.ApiModelUtils
-import models.label.{LabelDeletion, LabelType}
+import models.label.{LabelDeletion, LabelPanoMetadata, LabelType}
 import models.user.Role
 import models.utils.JobRunTrigger
 import org.apache.pekko.actor.ActorSystem
@@ -468,7 +468,7 @@ class AdminController @Inject() (
    * @param metaById Pano/POV metadata for the batch's label ids, keyed by label id.
    * @return A signed image URL, or None for items without a previewable label (e.g. comments).
    */
-  private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelThumbnailMeta]): Option[String] = {
+  private def thumbnailUrl(item: RecentActivityItem, metaById: Map[Int, LabelPanoMetadata]): Option[String] = {
     (item.labelId, item.labelType.flatMap(LabelType.withNameOption)) match {
       case (Some(id), Some(labelType)) =>
         panoDataService
@@ -869,7 +869,7 @@ class AdminController @Inject() (
 
       // Story counts per city (#5543), kept apart from `cities` so a city whose scorecard failed still reports its
       // stories; `counts` is null where the count itself failed, which the page shows as unavailable, not zero.
-      val stories = JsArray(storyStats.toSeq.sortBy(_._1).map { case (cityId, stats) =>
+      val stories = JsArray(storyStats.toSeq.sortBy { case (cityId, _) => cityId }.map { case (cityId, stats) =>
         val info = cityInfoById.get(cityId)
         Json.obj(
           "city_id"   -> cityId,
@@ -1245,20 +1245,20 @@ class AdminController @Inject() (
         .groupBy(_.endpoint)
         .map { case (ep, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (ep, e, d) }
         .toSeq
-        .sortBy(-_._2)
+        .sortBy { case (_, external, _) => -external }
       val daily = data.dailyCounts
         .groupBy(_.date)
         .map { case (date, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (date, e, d) }
         .toSeq
-        .sortBy(_._1)
+        .sortBy { case (date, _, _) => date }
       val formats = data.formatCounts
         .groupBy(_.format)
         .map { case (fmt, rows) => val (e, d) = split(rows.map(r => (r.source, r.count))); (fmt, e, d) }
         .toSeq
-        .sortBy(-_._2)
+        .sortBy { case (_, external, _) => -external }
 
-      val extCalls  = endpoints.map(_._2).sum
-      val docsCalls = endpoints.map(_._3).sum
+      val extCalls  = endpoints.map { case (_, external, _) => external }.sum
+      val docsCalls = endpoints.map { case (_, _, apiDocs) => apiDocs }.sum
       val extIps    = data.ipCounts.find(_.source == "external").map(_.uniqueIps).getOrElse(0L)
       val docsIps   = data.ipCounts.find(_.source == "apiDocs").map(_.uniqueIps).getOrElse(0L)
 
@@ -1337,12 +1337,15 @@ class AdminController @Inject() (
     val stackTraces = Thread.getAllStackTraces.asScala
     val threadCpu   = java.lang.management.ManagementFactory.getThreadMXBean
     info.append("\n=== cpu-intensive threads ===\n")
-    stackTraces.filter { case (t, _) => t.getName.contains("cpu-intensive") }.toSeq.sortBy(_._1.getName).foreach {
-      case (thread, frames) =>
+    stackTraces
+      .filter { case (t, _) => t.getName.contains("cpu-intensive") }
+      .toSeq
+      .sortBy { case (thread, _) => thread.getName }
+      .foreach { case (thread, frames) =>
         val cpuSeconds = threadCpu.getThreadCpuTime(thread.getId) / 1e9
         info.append(f"${thread.getName} - State: ${thread.getState}, CPU time: $cpuSeconds%.0fs\n")
         frames.take(15).foreach(frame => info.append(s"    at $frame\n"))
-    }
+      }
 
     // Add Slick thread monitoring
     info.append("\n=== All JVM Threads (looking for Slick) ===\n")

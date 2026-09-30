@@ -99,8 +99,6 @@ case class TeamTotals(
  *
  * @param team The team they're already on, so the admin can see that adding them would move them.
  */
-case class UserSearchResult(userId: String, username: String, email: String, role: Role, team: Option[String])
-
 /**
  * Everything `/admin/team/:teamId` shows (#5381).
  *
@@ -361,22 +359,26 @@ object UserService {
    * @return        True if the profile's accomplishments may be shown to this viewer.
    */
   def profileVisible(privacy: Option[(Boolean, Boolean)], isOwner: Boolean): Boolean =
-    isOwner || privacy.exists(_._2)
+    isOwner || privacy.exists { case (_, publicProfile) => publicProfile }
 
   /**
-   * Builds the per-type accuracy rows from raw (labelType, correct, incorrect) tallies. Pure/testable.
+   * Builds the per-type accuracy rows from raw per-type tallies. Pure/testable.
    *
    * Keeps only the primary (colored) label types the user has validated labels for, computes each type's accuracy,
    * flags the lowest-accuracy type (among those with enough validations) as `weakest`, and orders canonically.
    */
-  def computeAccuracyByType(rows: Seq[(String, Int, Int)]): Seq[AccuracyByType] = {
+  def computeAccuracyByType(rows: Seq[LabelTypeTally]): Seq[AccuracyByType] = {
     val primary                       = PrimaryLabelTypes.toSet
     val pcts: Seq[(String, Int, Int)] = rows.collect {
-      case (t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
+      case LabelTypeTally(t, correct, incorrect) if primary.contains(t) && (correct + incorrect) > 0 =>
         (t, math.round(correct.toDouble / (correct + incorrect) * 100).toInt, correct + incorrect)
     }
-    val weakest: Option[String] = pcts.filter(_._3 >= MinValidatedForWeakest).sortBy(_._2).headOption.map(_._1)
-    pcts.sortBy(p => PrimaryLabelTypes.indexOf(p._1)).map { case (t, pct, total) =>
+    val weakest: Option[String] = pcts
+      .filter { case (_, _, total) => total >= MinValidatedForWeakest }
+      .sortBy { case (_, pct, _) => pct }
+      .headOption
+      .map { case (t, _, _) => t }
+    pcts.sortBy { case (t, _, _) => PrimaryLabelTypes.indexOf(t) }.map { case (t, pct, total) =>
       AccuracyByType(t, kebabCase(t), spacedCase(t), pct, total, weakest.contains(t))
     }
   }
@@ -814,7 +816,6 @@ class UserServiceImpl @Inject() (
     if (query.trim.isEmpty) Future.successful(Seq())
     else {
       db.run(sidewalkUserTable.searchUsers(query, limit))
-        .map(_.map(UserSearchResult.apply.tupled))
     }
   }
 
@@ -823,7 +824,7 @@ class UserServiceImpl @Inject() (
       case None       => DBIO.successful(None): DBIO[Option[TeamOverview]]
       case Some(team) =>
         userTeamTable.getMembers(teamId).flatMap { members =>
-          val userIds: Seq[String] = members.map(_._1)
+          val userIds: Seq[String] = members.map(_.userId)
           // `inSet Nil` is a query that can only return nothing, so an empty team skips the five stat queries.
           if (userIds.isEmpty) {
             DBIO.successful(Some(TeamOverview(team, Seq(), TeamTotals(0, 0, 0, 0d, 0, 0)))): DBIO[Option[TeamOverview]]
@@ -835,14 +836,14 @@ class UserServiceImpl @Inject() (
               judged           <- labelValidationTable.getValidationCountsForUsers(userIds)
               quality          <- userStatTable.getQualityAndExclusionForUsers(userIds)
             } yield {
-              val labelsByUser      = labelCounts.map(row => row._1 -> (row._2, row._3)).toMap
-              val validationsByUser = validationCounts.map(row => row._1 -> (row._2, row._3)).toMap
+              val labelsByUser      = labelCounts.map(c => c.userId -> (c.count, c.latest)).toMap
+              val validationsByUser = validationCounts.map(c => c.userId -> (c.count, c.latest)).toMap
               val distanceByUser    = distances.toMap
               val judgedByUser      = judged.toMap
-              val qualityByUser     = quality.map(row => row._1 -> (row._2, row._3)).toMap
+              val qualityByUser     = quality.map(q => q.userId -> (q.highQuality, q.excluded)).toMap
 
               val rows: Seq[TeamMemberStats] = members
-                .map { case (userId, username, role) =>
+                .map { case UserNameAndRole(userId, username, role) =>
                   val (labels, lastLabel)       = labelsByUser.getOrElse(userId, (0, None))
                   val (validations, lastVal)    = validationsByUser.getOrElse(userId, (0, None))
                   val (labelsValidated, agreed) = judgedByUser.getOrElse(userId, (0, 0))
@@ -916,16 +917,18 @@ class UserServiceImpl @Inject() (
             val cityIdBySchema: Map[String, String] = scope.cities.map { case (cityId, schema) =>
               schema -> cityId
             }.toMap
-            db.run(userStatTable.getGlobalLeaderboardStats(scope.cities.map(_._2), scope.optOutSchemas, n)).flatMap {
-              stats =>
-                // Profile visibility is per city, so it's resolved against *this* deployment's user_stat rows: a row
-                // earned entirely in another city has no profile to link to here.
-                db.run(userStatTable.usersWithPublicProfile(stats.map(_.userId))).map { linkable =>
-                  Some(stats.map { stat =>
-                    GlobalLeaderboardEntry(stat.username, stat.labelCount, stat.missionCount, stat.distanceMeters,
-                      stat.accuracy, cityIdBySchema.get(stat.topCitySchema), linkable.contains(stat.userId))
-                  })
-                }
+            db.run(
+              userStatTable
+                .getGlobalLeaderboardStats(scope.cities.map { case (_, schema) => schema }, scope.optOutSchemas, n)
+            ).flatMap { stats =>
+              // Profile visibility is per city, so it's resolved against *this* deployment's user_stat rows: a row
+              // earned entirely in another city has no profile to link to here.
+              db.run(userStatTable.usersWithPublicProfile(stats.map(_.userId))).map { linkable =>
+                Some(stats.map { stat =>
+                  GlobalLeaderboardEntry(stat.username, stat.labelCount, stat.missionCount, stat.distanceMeters,
+                    stat.accuracy, cityIdBySchema.get(stat.topCitySchema), linkable.contains(stat.userId))
+                })
+              }
             }
           }
         }
@@ -962,7 +965,7 @@ class UserServiceImpl @Inject() (
               // matches the hero KPI exactly. Other cities keep the nightly value — recomputing geodesic lengths in a
               // 50-way union is what the cross-schema query exists to avoid.
               liveMeters <- db.run(auditTaskTable.getDistanceAudited(userId))
-              rows       <- db.run(userStatTable.getCrossCityUserStats(scope.map(_._2), userId))
+              rows <- db.run(userStatTable.getCrossCityUserStats(scope.map { case (_, schema) => schema }, userId))
             } yield CrossCityFanOut(rows, currentSchema, liveMeters)
           }
           .map { fanOut =>
@@ -1074,23 +1077,23 @@ class UserServiceImpl @Inject() (
           link = Some(exploreRegionLink(regionId))
         )
       }
-      val championTrophies = champions.map { case (name, regionId, count) =>
+      val championTrophies = champions.map { champion =>
         Trophy(
           "👑",
-          s"$name champion",
-          messages("dashboard.trophy.sub.champion", "%,d".format(count)),
+          s"${champion.regionName} champion",
+          messages("dashboard.trophy.sub.champion", "%,d".format(champion.labelCount)),
           "region",
-          link = Some(exploreRegionLink(regionId))
+          link = Some(exploreRegionLink(champion.regionId))
         )
       }
-      val weeklyTrophies = weekly.map { case (weekOf, rank, _) =>
-        val weekLabel = LocalDate.parse(weekOf).format(weekOfFmt)
+      val weeklyTrophies = weekly.map { podium =>
+        val weekLabel = LocalDate.parse(podium.weekOf).format(weekOfFmt)
         Trophy(
-          medals.getOrElse(rank, "🏅"),
+          medals.getOrElse(podium.rank, "🏅"),
           "Top labeler",
           messages("dashboard.trophy.sub.weekly", weekLabel),
           "podium",
-          rank
+          podium.rank
         )
       }
       // Participation trophies rather than rankings, so they sit last — after everything that had to be earned
@@ -1147,7 +1150,8 @@ class UserServiceImpl @Inject() (
             // unreadable schema does — and has to be counted the same way too.
             val (nameable, unnameable) = worked.partition { case (cityId, _) => cityInfoById.contains(cityId) }
             if (unnameable.nonEmpty) {
-              logger.warn(s"No city info for ${unnameable.map(_._1).mkString(", ")}, omitting from the hours breakdown")
+              val unnamedCityIds = unnameable.map { case (cityId, _) => cityId }.mkString(", ")
+              logger.warn(s"No city info for $unnamedCityIds, omitting from the hours breakdown")
             }
 
             // Sorted on full precision, so the order reflects the real amounts rather than whichever way a tie rounded.

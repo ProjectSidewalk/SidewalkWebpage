@@ -143,7 +143,24 @@ case class StandingRow(rank: Int, username: String, labelCount: Int, isYou: Bool
  * @param slice      The user's row ± a couple of neighbors, ordered by rank.
  * @param delta      Spots moved since the previous week (positive = climbed), or None if not comparable.
  */
+/** How many of a user's labels of one type were judged correct and incorrect. */
+case class LabelTypeTally(labelType: String, correct: Int, incorrect: Int)
+
+/** Whether a user is rated high quality, and whether their work is left out of the city's stats. */
+case class UserQualityFlags(userId: String, highQuality: Boolean, excluded: Boolean)
+
 case class UserStanding(rank: Int, cohortSize: Int, labelCount: Int, slice: Seq[StandingRow], delta: Option[Int] = None)
+
+/** One row of the standing query: a [[StandingRow]] plus the requesting user's own totals. */
+private case class StandingQueryRow(
+    rank: Int,
+    username: String,
+    labelCount: Int,
+    isYou: Boolean,
+    cohortSize: Int,
+    yourRank: Int,
+    yourLabelCount: Int
+)
 
 /**
  * One cell of the activity heatmap. The view assembles the localized tooltip from these parts.
@@ -227,6 +244,27 @@ class UserStatTable @Inject() (
   private val auditMissions = missionTable.filter(_.missionType === MissionType.Audit)
 
   private val LABEL_PER_METER_THRESHOLD: Double = 0.0375
+
+  private given labelTypeTallyConverter: GetResult[LabelTypeTally] =
+    GetResult(r => LabelTypeTally(r.nextString(), r.nextInt(), r.nextInt()))
+
+  private given leaderboardStatConverter: GetResult[LeaderboardStat] = GetResult(r =>
+    LeaderboardStat(r.nextString(), r.nextInt(), r.nextInt(), r.nextDouble(), r.nextDoubleOption(), r.nextDouble())
+  )
+
+  private given globalLeaderboardStatConverter: GetResult[GlobalLeaderboardStat] = GetResult(r =>
+    GlobalLeaderboardStat(r.nextString(), r.nextString(), r.nextInt(), r.nextInt(), r.nextDouble(),
+      r.nextDoubleOption(), r.nextString())
+  )
+
+  private given crossCityUserStatConverter: GetResult[CrossCityUserStat] = GetResult(r =>
+    CrossCityUserStat(r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextDoubleOption(),
+      r.nextOffsetDateTimeOption())
+  )
+
+  private given standingQueryRowConverter: GetResult[StandingQueryRow] = GetResult(r =>
+    StandingQueryRow(r.nextInt(), r.nextString(), r.nextInt(), r.nextBoolean(), r.nextInt(), r.nextInt(), r.nextInt())
+  )
 
   given userStatApiConverter: GetResult[UserStatForApi] = GetResult[UserStatForApi](r =>
     UserStatForApi(
@@ -347,19 +385,24 @@ class UserStatTable @Inject() (
       _mission       <- auditMissions
       _label         <- labelTable.labelsWithExcludedUsers if _mission.missionId === _label.missionId
       _usersToUpdate <- usersToUpdate if _mission.userId === _usersToUpdate
-    } yield (_mission.userId, _label.labelId)).groupBy(_._1).map(x => (x._1, x._2.length))
+    } yield (_mission.userId, _label.labelId))
+      .groupBy { case (userId, _) => userId }
+      .map { case (userId, group) => (userId, group.length) }
 
     // Compute labeling frequency using the label counts above and the meters_audited column in the user_stat table.
     userStats
       .join(usersToUpdate)
       .on(_.userId === _)
       .joinLeft(labelCounts)
-      .on(_._1.userId === _._1)
+      .on { case ((_stat, _), (_countUserId, _)) => _stat.userId === _countUserId }
       .map { case ((_stat, _userId), _count) =>
         // Calculate labels_per_meter. If no meters audited, just set to NULL.
         val newLabelsPerMeter = Case
           .If(_stat.metersAudited > 0d)
-          .Then(_count.map(_._2).ifNull(0.asColumnOf[Int]).asColumnOf[Option[Double]] / _stat.metersAudited)
+          .Then(
+            _count.map { case (_, _labelCount) => _labelCount }.ifNull(0.asColumnOf[Int]).asColumnOf[Option[Double]] /
+              _stat.metersAudited
+          )
           .Else(Option.empty[Double].bind)
 
         (_userId, newLabelsPerMeter)
@@ -471,7 +514,7 @@ class UserStatTable @Inject() (
       .filter(_.userId === validatorId)
       .join(labelTable.labelsUnfiltered)
       .on(_.labelId === _.labelId)
-      .map(_._2.userId)
+      .map { case (_, label) => label.userId }
     val toUpdate = userStats.filter(u => u.userId.in(labelers) && !u.excluded)
     for {
       numHigh <- toUpdate.filter(u => computedHighQuality(u) && !u.highQuality).map(_.highQuality).update(true)
@@ -506,11 +549,8 @@ class UserStatTable @Inject() (
   def updateHighQuality(cutoffTime: OffsetDateTime): DBIO[Int] = {
 
     // First, get users manually marked as low quality or marked to be excluded for other reasons.
-    val lowQualUsersQuery: DBIO[Seq[(String, Boolean)]] =
-      userStats
-        .filter(u => u.excluded || !u.highQualityManual.getOrElse(true))
-        .map(x => (x.userId, false))
-        .result
+    val lowQualUsersQuery: DBIO[Seq[String]] =
+      userStats.filter(u => u.excluded || !u.highQualityManual.getOrElse(true)).map(_.userId).result
 
     // Decide if each user is high quality. Conditions in the method comment. Users manually marked for exclusion or
     // low quality are filtered out later (using results from the previous query).
@@ -527,15 +567,19 @@ class UserStatTable @Inject() (
       (usersThatAuditedSinceCutoffTime(cutoffTime) ++ usersValidatedSinceCutoffTime(cutoffTime)).distinct.result
 
     for {
-      lowQualUsers  <- lowQualUsersQuery
+      lowQualUsers  <- lowQualUsersQuery.map(_.toSet)
       userQual      <- userQualQuery
-      usersToUpdate <- usersToUpdateQuery
+      usersToUpdate <- usersToUpdateQuery.map(_.toSet)
 
       // Make separate lists for low vs. high quality users, then bulk update each.
-      updateToHighQual: Seq[String] =
-        userQual.filter(x => x._2 && !lowQualUsers.map(_._1).contains(x._1) && usersToUpdate.contains(x._1)).map(_._1)
+      updateToHighQual: Seq[String] = userQual.collect {
+        case (userId, highQuality) if highQuality && !lowQualUsers.contains(userId) && usersToUpdate.contains(userId) =>
+          userId
+      }
       updateToLowQual: Seq[String] =
-        (lowQualUsers ++ userQual.filterNot(_._2)).map(_._1).filter(x => usersToUpdate.contains(x))
+        (lowQualUsers ++ userQual.collect { case (userId, highQuality) if !highQuality => userId })
+          .filter(usersToUpdate.contains)
+          .toSeq
 
       lowQualityUpdateQuery  = for { _u <- userStats if _u.userId inSetBind updateToLowQual } yield _u.highQuality
       highQualityUpdateQuery = for { _u <- userStats if _u.userId inSetBind updateToHighQual } yield _u.highQuality
@@ -576,7 +620,7 @@ class UserStatTable @Inject() (
       _labelVal <- labelValidationTable
       _label    <- labelTable.labels if _labelVal.labelId === _label.labelId
       if _labelVal.endTimestamp > cutoffTime
-    } yield _label.userId).groupBy(x => x).map(_._1)
+    } yield _label.userId).groupBy(userId => userId).map { case (userId, _) => userId }
   }
 
   /**
@@ -689,8 +733,7 @@ class UserStatTable @Inject() (
       ) "accuracy" ON label_counts.#$groupingColName = accuracy.#$groupingColName
       ORDER BY score DESC, label_counts.label_count DESC;
     """
-      .as[(String, Int, Int, Double, Option[Double], Double)]
-      .map(_.map(LeaderboardStat.apply.tupled))
+      .as[LeaderboardStat]
   }
 
   /**
@@ -822,8 +865,7 @@ class UserStatTable @Inject() (
         ) AS mission_totals
         ORDER BY top_n.label_count DESC, top_n.user_id;
       """
-        .as[(String, String, Int, Int, Double, Option[Double], String)]
-        .map(_.map(GlobalLeaderboardStat.apply.tupled))
+        .as[GlobalLeaderboardStat]
     }
   }
 
@@ -897,8 +939,7 @@ class UserStatTable @Inject() (
         #$blocks
         ORDER BY labels DESC, city_schema;
       """
-          .as[(String, Int, Int, Int, Option[Double], Option[OffsetDateTime])]
-          .map(_.map(CrossCityUserStat.apply.tupled))
+          .as[CrossCityUserStat]
 
       // Bounded because this fires on every dashboard load, holds one of the app's 25 pooled connections for its whole
       // run, and is the one query here whose plan can't be predicted from dev: the arm count is however many cities are
@@ -954,10 +995,15 @@ class UserStatTable @Inject() (
       FROM ranked CROSS JOIN me
       WHERE ranked.rnk BETWEEN me.rnk - $n AND me.rnk + $n
       ORDER BY ranked.rnk, ranked.uname;
-    """.as[(Int, String, Int, Boolean, Int, Int, Int)].map { rows =>
+    """.as[StandingQueryRow].map { rows =>
       rows.headOption.map { head =>
-        val slice = rows.map(r => StandingRow(r._1, r._2, r._3, r._4))
-        UserStanding(rank = head._6, cohortSize = head._5, labelCount = head._7, slice = slice)
+        val slice = rows.map(r => StandingRow(r.rank, r.username, r.labelCount, r.isYou))
+        UserStanding(
+          rank = head.yourRank,
+          cohortSize = head.cohortSize,
+          labelCount = head.yourLabelCount,
+          slice = slice
+        )
       }
     }
   }
@@ -1006,9 +1052,9 @@ class UserStatTable @Inject() (
    * accuracy bars.
    *
    * @param userId The user whose labels to tally.
-   * @return       One row per label type present: (label type name, correct count, incorrect count).
+   * @return       One row per label type present.
    */
-  def getLabelTypeAccuracy(userId: String): DBIO[Seq[(String, Int, Int)]] = {
+  def getLabelTypeAccuracy(userId: String): DBIO[Seq[LabelTypeTally]] = {
     sql"""
       SELECT label.label_type::text,
              COUNT(*) FILTER (WHERE label.correct IS TRUE)::int AS correct,
@@ -1016,18 +1062,18 @@ class UserStatTable @Inject() (
       FROM #${FilteredTables.accuracyLabels}
       WHERE label.user_id = $userId
       GROUP BY label.label_type::text;
-    """.as[(String, Int, Int)]
+    """.as[LabelTypeTally]
   }
 
   /**
    * Get all users, excluding anon users who haven't placed any labels or done any validations (to limit table size).
    */
   def usersMinusAnonUsersWithNoLabelsAndNoValidations: DBIO[Seq[SidewalkUserWithRole]] = {
-    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_._4 =!= Role.Anonymous)
+    val otherUsers = sidewalkUserTable.sidewalkUserWithRole.filter(_.role =!= Role.Anonymous)
 
     // TODO Only returning non-anonymous users temporarily:
     // https://github.com/ProjectSidewalk/SidewalkWebpage/issues/3802
-    otherUsers.result.map(_.map(SidewalkUserWithRole.apply.tupled))
+    otherUsers.result
   }
 
   /**
@@ -1040,18 +1086,21 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.role =!= Role.Anonymous)
-      .filter(!_._1.highQuality)
+      .filter { case (_, userRole) => userRole.role =!= Role.Anonymous }
+      .filter { case (userStat, _) => !userStat.highQuality }
       .length
       .result
   }
 
   /**
    * @param userIds The users to look up.
-   * @return One entry per user with a `user_stat` row: (user id, high quality, excluded from the city's stats).
+   * @return One entry per user with a `user_stat` row.
    */
-  def getQualityAndExclusionForUsers(userIds: Seq[String]): DBIO[Seq[(String, Boolean, Boolean)]] = {
-    userStats.filter(_.userId inSet userIds).map(x => (x.userId, x.highQuality, x.excluded)).result
+  def getQualityAndExclusionForUsers(userIds: Seq[String]): DBIO[Seq[UserQualityFlags]] = {
+    userStats
+      .filter(_.userId inSet userIds)
+      .map(x => (x.userId, x.highQuality, x.excluded).mapTo[UserQualityFlags])
+      .result
   }
 
   def getUserQuality: DBIO[Seq[(String, Boolean, Option[Boolean])]] = {
@@ -1062,8 +1111,8 @@ class UserStatTable @Inject() (
     userStats
       .join(userRoleTable)
       .on(_.userId === _.userId)
-      .filter(_._2.role =!= Role.Anonymous)
-      .map(x => (x._1.userId, x._1.highQuality, x._1.highQualityManual))
+      .filter { case (_, userRole) => userRole.role =!= Role.Anonymous }
+      .map { case (userStat, _) => (userStat.userId, userStat.highQuality, userStat.highQualityManual) }
       .result
   }
 

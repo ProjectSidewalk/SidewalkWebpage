@@ -95,9 +95,8 @@ class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   /** The metadata projection shared by every list query, so `logo_image` is never selected outside `getLogo`. */
   private def metadataOf(query: Query[PartnerTableDef, Partner, Seq]) = query.map { p =>
     (p.partnerId, p.cityId, p.name, p.url, p.altText, p.displayOrder, p.logoWidth, p.logoHeight, p.updatedAt)
+      .mapTo[PartnerMetadata]
   }
-
-  private val toMetadata = PartnerMetadata.apply.tupled
 
   /** The partners a city's landing page shows: global partners first, then the city's own, each in display order. */
   def getForLanding(cityId: String): DBIO[Seq[PartnerMetadata]] = {
@@ -105,16 +104,16 @@ class PartnerTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
       partners
         .filter(p => p.cityId.isEmpty || p.cityId === cityId)
         .sortBy(p => (p.cityId.isDefined, p.displayOrder))
-    ).result.map(_.map(toMetadata))
+    ).result
   }
 
   /** All partners in one scope (None = global), in display order. */
   def getByScope(cityId: Option[String]): DBIO[Seq[PartnerMetadata]] = {
-    metadataOf(scopeQuery(cityId).sortBy(_.displayOrder)).result.map(_.map(toMetadata))
+    metadataOf(scopeQuery(cityId).sortBy(_.displayOrder)).result
   }
 
   def get(partnerId: Int): DBIO[Option[PartnerMetadata]] = {
-    metadataOf(partners.filter(_.partnerId === partnerId)).result.headOption.map(_.map(toMetadata))
+    metadataOf(partners.filter(_.partnerId === partnerId)).result.headOption
   }
 
   def getLogo(partnerId: Int): DBIO[Option[(Array[Byte], String, OffsetDateTime)]] = {

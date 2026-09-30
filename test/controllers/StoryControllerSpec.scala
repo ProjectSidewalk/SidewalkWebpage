@@ -182,7 +182,7 @@ class StoryControllerSpec extends SidewalkSpec with RolledBackDb with AnonSessio
             listed.get.media mustBe None
             // The GSV-static fallback needs pano/POV metadata; cancel (not fail) on a DB whose label lacks it.
             val meta = run(labelTable.getPanoMetadataForLabels(Seq(id)))
-            if (meta.isEmpty || meta.head._3 != PanoSource.Gsv) {
+            if (meta.isEmpty || meta.head.panoSource != PanoSource.Gsv) {
               cancel(s"Label $id has no GSV pano metadata in the connected test DB.")
             }
             listed.get.labelImageUrl mustBe defined

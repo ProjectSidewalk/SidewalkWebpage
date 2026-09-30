@@ -63,9 +63,9 @@ class SurveyQuestionTable @Inject() (protected val dbConfigProvider: DatabaseCon
     } yield (question, option)
     query.result.map { rows =>
       rows
-        .groupBy(_._1)
-        .map { case (question, tuples) =>
-          val options: Seq[SurveyOption] = tuples.flatMap(_._2)
+        .groupBy { case (question, _) => question }
+        .map { case (question, questionRows) =>
+          val options: Seq[SurveyOption] = questionRows.flatMap { case (_, option) => option }
           SurveyQuestionWithOptions(question.surveyQuestionId, question.surveyQuestionTextId, question.surveyInputType,
             question.surveyDisplayRank, question.deleted, question.surveyUserRole, question.required, options)
         }

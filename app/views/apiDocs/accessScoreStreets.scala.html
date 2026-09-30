@@ -25,7 +25,7 @@
 @sigmoid(t: Double) = @{f"${1.0 / (1.0 + math.exp(-t))}%.2f"}
 @signed(x: Double) = @{f"$x%+.2f"}
 @tagAdjustmentsFor(labelType: String) = @{
-  AccessScoreCalculator.tagAdjustments.collect { case ((lt, tag), delta) if lt == labelType => (tag, delta) }.toSeq.sortBy(_._1)
+  AccessScoreCalculator.tagAdjustments.collect { case ((lt, tag), delta) if lt == labelType => (tag, delta) }.toSeq.sortBy { case (tag, _) => tag }
 }
 
 @content = {

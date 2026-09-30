@@ -95,7 +95,7 @@ class PartnerServiceImpl @Inject() (
       version: Option[String]
   ): Future[Option[(Array[Byte], String, OffsetDateTime)]] = {
     cacheApi.get[(Array[Byte], String, OffsetDateTime)](logoCacheKey(partnerId)).flatMap {
-      case Some(cached) if version.contains(PartnerMetadata.logoVersionOf(cached._3).toString) =>
+      case Some(cached @ (_, _, updatedAt)) if version.contains(PartnerMetadata.logoVersionOf(updatedAt).toString) =>
         Future.successful(Some(cached))
       case _ =>
         db.run(partnerTable.getLogo(partnerId)).map { fresh =>
@@ -248,7 +248,10 @@ class PartnerServiceImpl @Inject() (
             .toRight(PartnerRejection.LogoInvalid: PartnerRejection)
             // At <= 800px even a lossless PNG stays far under the cap, but the DB CHECK is the invariant, so
             // enforce it here rather than letting the insert blow up.
-            .filterOrElse(_._1.length <= MAX_LOGO_BYTES, PartnerRejection.LogoEncodedTooLarge)
+            .filterOrElse(
+              { case (bytes, _, _, _) => bytes.length <= MAX_LOGO_BYTES },
+              PartnerRejection.LogoEncodedTooLarge
+            )
       }
     }
   }(cpuEc)

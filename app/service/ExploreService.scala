@@ -483,17 +483,17 @@ class ExploreServiceImpl @Inject() (
         // Pause routes that don't match routeId, resume route with given routeId if it exists, o/w make a new one.
         case (Some(rId), true) =>
           for {
-            _      <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
-            result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-            walked <-
-              if (result._2) userRouteTable.hasBeenWalked(result._1.userRouteId) else DBIO.successful(false)
-          } yield RouteWalkSetup(Some(result._1), resumed = walked)
+            _                           <- userRouteTable.pauseOtherActiveRoutes(rId, userId)
+            (userRoute, alreadyExisted) <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
+            walked                      <-
+              if (alreadyExisted) userRouteTable.hasBeenWalked(userRoute.userRouteId) else DBIO.successful(false)
+          } yield RouteWalkSetup(Some(userRoute), resumed = walked)
         // Explicit restart: discard old walks (including any of this route), save a new one with given routeId.
         case (Some(rId), false) =>
           for {
-            _      <- userRouteTable.discardAllActiveRoutes(userId)
-            result <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
-          } yield RouteWalkSetup(Some(result._1), resumed = false)
+            _              <- userRouteTable.discardAllActiveRoutes(userId)
+            (userRoute, _) <- userRouteTable.getActiveRouteOrCreateNew(rId, userId)
+          } yield RouteWalkSetup(Some(userRoute), resumed = false)
         // Get an in progress route (with any routeId) if it exists, otherwise return None.
         case (None, true) =>
           userRouteTable.getInProgressRoute(userId).flatMap {
@@ -904,13 +904,13 @@ class ExploreServiceImpl @Inject() (
           pano.cameraHeading.get)
         // label_point.canvas_x/y are NOT NULL, but an AI label was never drawn on a canvas. The center is the one
         // value consistent with the heading/pitch stored beside it, which is the POV that centers the label.
-        val canvasX = LabelPointTable.canvasWidth / 2
-        val canvasY = LabelPointTable.canvasHeight / 2
-        val latLng  = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY, pano.width.get,
-          pano.height.get, pano.cameraHeading.get)
+        val canvasX              = LabelPointTable.canvasWidth / 2
+        val canvasY              = LabelPointTable.canvasHeight / 2
+        val (labelLat, labelLng) = PanoDataService.toLatLng(pano.lat.get, pano.lng.get, label.panoX, label.panoY,
+          pano.width.get, pano.height.get, pano.cameraHeading.get)
         for {
           // Create necessary associated data for the label to fit in PS (mission, audit_task, etc.).
-          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(latLng._1, latLng._2)
+          streetEdgeId <- labelTable.getStreetEdgeIdClosestToLatLng(labelLat, labelLng)
           regionId     <- streetEdgeRegionTable.getNonDeletedRegionFromStreetId(streetEdgeId).map(_.get.regionId)
           missionId    <- missionService.resumeOrCreateNewAiExploreMission(regionId).map(_.missionId)
           auditTaskId  <- resumeOrCreateNewAiAuditTask(missionId, streetEdgeId)
@@ -919,7 +919,7 @@ class ExploreServiceImpl @Inject() (
           // Create and insert the label and label_point entries.
           labelPoint: LabelPointSubmission = LabelPointSubmission(label.panoX, label.panoY, canvasX, canvasY,
             LabelPointTable.canvasWidth, LabelPointTable.canvasHeight, heading = pov.heading, pitch = pov.pitch,
-            pov.zoom, lat = Some(latLng._1), lng = Some(latLng._2),
+            pov.zoom, lat = Some(labelLat), lng = Some(labelLng),
             computationMethod = Some(ComputationMethod.Approximation3))
           labelSubmission: LabelSubmission = LabelSubmission(
             panoId = pano.panoId,

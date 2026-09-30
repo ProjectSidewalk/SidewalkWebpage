@@ -11,7 +11,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
 case class AuditTaskComment(
     auditTaskCommentId: Int,
@@ -74,8 +73,7 @@ trait AuditTaskCommentTableRepository {}
 @Singleton
 class AuditTaskCommentTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider
-)(using ec: ExecutionContext)
-    extends AuditTaskCommentTableRepository
+) extends AuditTaskCommentTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val auditTaskComments = TableQuery[AuditTaskCommentTableDef]
@@ -84,10 +82,13 @@ class AuditTaskCommentTable @Inject() (
   /** Every Explore comment the given user has left, newest first. */
   def forUser(userId: String): DBIO[Seq[AuditTaskComment]] = {
     (for {
-      (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
+      (c, u) <- auditTaskComments
+        .join(users)
+        .on(_.userId === _.userId)
+        .sortBy { case (comment, _) => comment.timestamp.desc }
       if c.userId === userId
     } yield (c.auditTaskCommentId, c.auditTaskId, c.missionId, c.edgeId, u.username, c.ipAddress, c.panoId, c.heading,
-      c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment)).result.map(_.map(AuditTaskComment.apply.tupled))
+      c.pitch, c.zoom, c.lat, c.lng, c.timestamp, c.comment).mapTo[AuditTaskComment]).result
   }
 
   def insert(comment: AuditTaskComment): DBIO[Int] = {
@@ -99,7 +100,10 @@ class AuditTaskCommentTable @Inject() (
    */
   def getRecentExploreComments(n: Int): DBIO[Seq[GenericComment]] = {
     (for {
-      (c, u) <- auditTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
+      (c, u) <- auditTaskComments
+        .join(users)
+        .on(_.userId === _.userId)
+        .sortBy { case (comment, _) => comment.timestamp.desc }
     } yield (
       "audit",
       u.username,
@@ -110,9 +114,8 @@ class AuditTaskCommentTable @Inject() (
       c.pitch,
       c.zoom,
       None: Option[Int]
-    ))
+    ).mapTo[GenericComment])
       .take(n)
       .result
-      .map(_.map(GenericComment.apply.tupled))
   }
 }

@@ -56,7 +56,7 @@ class DeletedLabelAccuracySpec extends SidewalkSpec with GuiceOneAppPerSuite wit
 
   /** The per-type tallies summed over types: (correct, incorrect). */
   private def talliesOf(userId: String): DBIO[(Int, Int)] =
-    userStatTable.getLabelTypeAccuracy(userId).map(rows => (rows.map(_._2).sum, rows.map(_._3).sum))
+    userStatTable.getLabelTypeAccuracy(userId).map(rows => (rows.map(_.correct).sum, rows.map(_.incorrect).sum))
 
   /** The admin tables' (labels validated, agreed) for the user. */
   private def adminCountsOf(userId: String): DBIO[(Int, Int)] =

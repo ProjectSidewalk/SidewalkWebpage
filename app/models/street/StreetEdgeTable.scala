@@ -122,9 +122,13 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
   val countedAuditTasks =
     auditTasks.filter(t => t.completed && !userStats.filter(u => u.userId === t.userId && u.excluded).exists)
 
-  val completedAuditTasksWithUsers = countedAuditTasksWithUsers.join(streets).on(_._1.streetEdgeId === _.streetEdgeId)
-  val completedAuditTasks          = completedAuditTasksWithUsers.map(_._1._1)
-  val highQualityCompletedTasks    = completedAuditTasksWithUsers.filter(_._1._2.highQuality).map(_._1._1)
+  val completedAuditTasksWithUsers = countedAuditTasksWithUsers.join(streets).on { case ((task, _), street) =>
+    task.streetEdgeId === street.streetEdgeId
+  }
+  val completedAuditTasks       = completedAuditTasksWithUsers.map { case ((task, _), _) => task }
+  val highQualityCompletedTasks = completedAuditTasksWithUsers
+    .filter { case ((_, userStat), _) => userStat.highQuality }
+    .map { case ((task, _), _) => task }
 
   /** When upToDateOnly, drops audits performed on since-replaced imagery (audit_task.outdated_imagery, #4384). */
   private def auditFreshnessFilter(
@@ -194,44 +198,47 @@ class StreetEdgeTable @Inject() (protected val dbConfigProvider: DatabaseConfigP
       .join(osmWayStreetEdge)
       .on(_.streetEdgeId === _.streetEdgeId)
       .join(streetEdgeRegion)
-      .on(_._1.streetEdgeId === _.streetEdgeId)
+      .on { case ((street, _), streetRegion) => street.streetEdgeId === streetRegion.streetEdgeId }
       .join(regions)
-      .on(_._2.regionId === _.regionId)
+      .on { case ((_, streetRegion), region) => streetRegion.regionId === region.regionId }
       .joinLeft(auditTasks)
-      .on(_._1._1._1.streetEdgeId === _.streetEdgeId)
+      .on { case ((((street, _), _), _), task) => street.streetEdgeId === task.streetEdgeId }
       .joinLeft(userStats)
-      .on(_._2.map(_.userId) === _.userId)
-      .map(row => (row._1._1._1._1._1, row._1._1._1._1._2, row._1._1._1._2, row._1._1._2, row._1._2, row._2))
+      .on { case ((_, task), userStat) => task.map(_.userId) === userStat.userId }
+      .map { case (((((street, osmWay), _), region), task), userStat) => (street, osmWay, region, task, userStat) }
 
     // Either user bounding box filter on region or street boundaries.
     val filteredQuery = spatialQueryType match {
       case SpatialQueryType.Region =>
-        baseQuery.filter(_._4.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
+        baseQuery.filter { case (_, _, region, _, _) =>
+          region.geom.within(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326)))
+        }
       case _ =>
-        baseQuery
-          .filter(_._1.geom.intersects(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326))))
+        baseQuery.filter { case (street, _, _, _, _) =>
+          street.geom.intersects(makeEnvelope(bbox.minLng, bbox.minLat, bbox.maxLng, bbox.maxLat, Some(4326)))
+        }
     }
 
     // Group by street and sum the number of audits completed audits. Then package into the StreetEdgeInfo case class.
     filteredQuery
-      .groupBy(row => (row._1, row._2.osmWayId, row._4.regionId))
+      .groupBy { case (street, osmWay, region, _, _) => (street, osmWay.osmWayId, region.regionId) }
       .map { case ((street, osmWayId, regionId), group) =>
         (
           street,
           osmWayId,
           regionId,
-          group
-            .map(r =>
-              Case
-                .If(r._6.map(_.highQuality).getOrElse(false) && r._5.map(_.completed).getOrElse(false))
-                .Then(1)
-                .Else(0)
-            )
-            .sum
+          group.map { case (_, _, _, task, userStat) =>
+            Case
+              .If(userStat.map(_.highQuality).getOrElse(false) && task.map(_.completed).getOrElse(false))
+              .Then(1)
+              .Else(0)
+          }.sum
         )
       }
       .result
-      .map(_.map(tuple => StreetEdgeInfo(tuple._1, tuple._2, tuple._3, tuple._4.getOrElse(0))))
+      .map(_.map { case (street, osmWayId, regionId, auditCount) =>
+        StreetEdgeInfo(street, osmWayId, regionId, auditCount.getOrElse(0))
+      })
   }
 
   /**

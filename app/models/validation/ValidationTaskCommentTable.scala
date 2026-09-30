@@ -13,7 +13,6 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
 /**
  * A validator's comment on a label.
@@ -72,8 +71,7 @@ trait ValidationTaskCommentTableRepository {}
 @Singleton
 class ValidationTaskCommentTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider
-)(using ec: ExecutionContext)
-    extends ValidationTaskCommentTableRepository
+) extends ValidationTaskCommentTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validationTaskComments = TableQuery[ValidationTaskCommentTableDef]
@@ -126,10 +124,13 @@ class ValidationTaskCommentTable @Inject() (
    */
   def getRecentValidateComments(n: Int): DBIO[Seq[GenericComment]] = {
     (for {
-      (c, u) <- validationTaskComments.join(users).on(_.userId === _.userId).sortBy(_._1.timestamp.desc)
-    } yield ("validation", u.username, c.panoId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId))
+      (c, u) <- validationTaskComments
+        .join(users)
+        .on(_.userId === _.userId)
+        .sortBy { case (comment, _) => comment.timestamp.desc }
+    } yield ("validation", u.username, c.panoId, c.timestamp, c.comment, c.heading, c.pitch, c.zoom, c.labelId.?)
+      .mapTo[GenericComment])
       .take(n)
       .result
-      .map(_.map(c => GenericComment(c._1, c._2, c._3, c._4, c._5, c._6, c._7, c._8, Some(c._9))))
   }
 }

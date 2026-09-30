@@ -41,12 +41,13 @@ object LabelFormats {
       "ai_validation"                      -> m.aiValidation.map(_.name),
       "validations"                        -> m.validations,
       "tags"                               -> m.tags,
-      "low_quality_incomplete_stale_flags" -> m.lowQualityIncompleteStaleFlags,
-      "comments"                           -> m.comments.map(_.comment),
-      "camera_lat"                         -> m.cameraLocation.map(_.lat),
-      "camera_lng"                         -> m.cameraLocation.map(_.lng),
-      "ai_generated"                       -> m.aiGenerated,
-      "expired"                            -> m.expired
+      "low_quality_incomplete_stale_flags" -> Json
+        .arr(m.taskFlags.lowQuality, m.taskFlags.incomplete, m.taskFlags.stale),
+      "comments"     -> m.comments.map(_.comment),
+      "camera_lat"   -> m.cameraLocation.map(_.lat),
+      "camera_lng"   -> m.cameraLocation.map(_.lng),
+      "ai_generated" -> m.aiGenerated,
+      "expired"      -> m.expired
     )
   }
 
@@ -103,8 +104,8 @@ object LabelFormats {
           "username"             -> ad.username,
           "previous_validations" -> ad.previousValidations.map(prevVal =>
             Json.obj(
-              "username"   -> prevVal._1,
-              "validation" -> prevVal._2.name
+              "username"   -> prevVal.username,
+              "validation" -> prevVal.validation.name
             )
           )
         )
@@ -196,16 +197,16 @@ object LabelFormats {
       "audit_task_id" -> labelMetadata.auditTaskId,
       "user_id"       -> labelMetadata.userId,
       "username"      -> labelMetadata.username,
-      "low_quality"   -> labelMetadata.lowQualityIncompleteStaleFlags._1,
-      "incomplete"    -> labelMetadata.lowQualityIncompleteStaleFlags._2,
-      "stale"         -> labelMetadata.lowQualityIncompleteStaleFlags._3,
+      "low_quality"   -> labelMetadata.taskFlags.lowQuality,
+      "incomplete"    -> labelMetadata.taskFlags.incomplete,
+      "stale"         -> labelMetadata.taskFlags.stale,
       // The part below is just lifted straight from Expert Validate without much care.
       "admin_data" -> Json.obj(
         "username"             -> adminData.username,
         "previous_validations" -> adminData.previousValidations.map(prevVal =>
           Json.obj(
-            "username"   -> prevVal._1,
-            "validation" -> prevVal._2.name
+            "username"   -> prevVal.username,
+            "validation" -> prevVal.validation.name
           )
         )
       )

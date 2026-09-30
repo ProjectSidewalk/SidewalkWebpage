@@ -319,13 +319,13 @@ class HealthServiceImpl @Inject() (
       ScheduledJobs.All.map { job =>
         val latest       = byJobAndTrigger.get((job.name, JobRunTrigger.Scheduled))
         val lastManual   = byJobAndTrigger.get((job.name, JobRunTrigger.Manual))
-        val jobCounts    = counts.filter(_._1 == job.name)
-        val runsInWindow = jobCounts.map(_._4).sum
+        val jobCounts    = counts.filter(_.jobName == job.name)
+        val runsInWindow = jobCounts.map(_.count).sum
         // An abandoned run — still open long past any plausible duration — is a failure the row never got to record,
         // so counting only `failed` here would read a job the JVM dies inside every night as a spotless record.
         val failures = jobCounts.collect {
-          case (_, JobRunStatus.Failed, _, count)     => count
-          case (_, JobRunStatus.Running, true, count) => count
+          case outcome if outcome.status == JobRunStatus.Failed                       => outcome.count
+          case outcome if outcome.status == JobRunStatus.Running && outcome.abandoned => outcome.count
         }.sum
         val hoursSince = latest.map(run => ChronoUnit.HOURS.between(run.startedAt, now))
         NightlyJobStatus(

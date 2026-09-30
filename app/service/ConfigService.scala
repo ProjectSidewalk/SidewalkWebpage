@@ -2,7 +2,7 @@ package service
 
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
-import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
+import models.api.{AggregateStats, DailyLabelStat, DailyStatRecord, DailyValidationStat, LabelTypeStats}
 import models.pano.PanoSource
 import models.utils.MyPostgresProfile.api.given
 import models.utils.*
@@ -725,22 +725,27 @@ object ConfigService {
    * @return     The day's totals, its busiest cities, and its busiest contributors.
    */
   def summarizeDay(day: LocalDate, rows: Seq[(String, DailyContributorActivity)]): DailyActivity = {
-    val byKind     = rows.groupBy(_._2.kind).withDefaultValue(Seq.empty)
-    val aiRows     = byKind(ContributorKind.Ai)
+    def activityOf(cityRows: Seq[(String, DailyContributorActivity)]): Seq[DailyContributorActivity] =
+      cityRows.map { case (_, activity) => activity }
+    val byKind     = rows.groupBy { case (_, activity) => activity.kind }.withDefaultValue(Seq.empty)
+    val aiRows     = activityOf(byKind(ContributorKind.Ai))
     val peopleRows = byKind(ContributorKind.Registered) ++ byKind(ContributorKind.Anonymous)
+    val people     = activityOf(peopleRows)
     // Ranked and truncated below, so ties break on a stable key rather than on HashMap iteration order.
     val merged = rows
-      .groupBy(_._2.userId)
+      .groupBy { case (_, activity) => activity.userId }
       .toSeq
       .map { case (userId, userRows) =>
-        val first = userRows.head._2
+        val userActivity = activityOf(userRows)
+        val first        = userActivity.head
         // A person can have several rows in one city, so the split sums by city before ranking; ties break on city
         // id for the same reproducibility reason as the list itself.
         val cities = userRows
-          .groupBy(_._1)
+          .groupBy { case (cityId, _) => cityId }
           .toSeq
           .map { case (cityId, cityRows) =>
-            ContributorCityDay(cityId, cityRows.map(_._2.labels).sum, cityRows.map(_._2.validations).sum)
+            val cityActivity = activityOf(cityRows)
+            ContributorCityDay(cityId, cityActivity.map(_.labels).sum, cityActivity.map(_.validations).sum)
           }
           .sortBy(c => (-(c.labels + c.validations), c.cityId))
         (
@@ -748,38 +753,39 @@ object ConfigService {
           DailyContributor(
             first.username,
             first.kind,
-            userRows.map(_._2.labels).sum,
-            userRows.map(_._2.validations).sum,
+            userActivity.map(_.labels).sum,
+            userActivity.map(_.validations).sum,
             cities
           )
         )
       }
       .sortBy { case (userId, c) => (-(c.labels + c.validations), userId) }
-      .map(_._2)
+      .map { case (_, contributor) => contributor }
     def activeOfKind(kind: ContributorKind): Int = merged.count(c => c.kind == kind && c.labels + c.validations > 0)
     // Anonymous contributors are counted (as sessions, on the point) but not listed: their usernames are generated
     // cookie ids, so naming them fills the card with hex and implies a person behind each one.
     val named = merged.filter(_.kind != ContributorKind.Anonymous)
     val point = DailyPoint(
       day = day,
-      labels = peopleRows.map(_._2.labels).sum,
-      validations = peopleRows.map(_._2.validations).sum,
+      labels = people.map(_.labels).sum,
+      validations = people.map(_.validations).sum,
       contributors = activeOfKind(ContributorKind.Registered),
       anonSessions = activeOfKind(ContributorKind.Anonymous),
-      aiLabels = aiRows.map(_._2.labels).sum,
-      aiValidations = aiRows.map(_._2.validations).sum,
+      aiLabels = aiRows.map(_.labels).sum,
+      aiValidations = aiRows.map(_.validations).sum,
       aiAgents = activeOfKind(ContributorKind.Ai)
     )
     // Cities are ranked and listed by what people did there; AI output belongs to the pipeline, not to a community.
     val topCities = peopleRows
-      .groupBy(_._1)
+      .groupBy { case (cityId, _) => cityId }
       .toSeq
       .map { case (cityId, cityRows) =>
+        val cityActivity = activityOf(cityRows)
         CityDayTotals(
           cityId,
-          cityRows.map(_._2.labels).sum,
-          cityRows.map(_._2.validations).sum,
-          cityRows.map(_._2.userId).distinct.size
+          cityActivity.map(_.labels).sum,
+          cityActivity.map(_.validations).sum,
+          cityActivity.map(_.userId).distinct.size
         )
       }
       .sortBy(city => (-(city.labels + city.validations), city.cityId))
@@ -943,7 +949,7 @@ object ConfigService {
   def funnelStepKeys(funnelType: String): Seq[String] = FunnelDefs.toMap.getOrElse(funnelType, Seq.empty)
 
   /** The longest funnel's step count (the mapping funnel), derived from [[FunnelDefs]] rather than hardcoded. */
-  val MaxFunnelSteps: Int = FunnelDefs.map(_._2.length).max
+  val MaxFunnelSteps: Int = FunnelDefs.map { case (_, steps) => steps.length }.max
 
   /** An all-zero funnel of the maximum length — the empty/identity input for the conversion helpers. */
   val ZeroFunnelSteps: Seq[Int] = Seq.fill(MaxFunnelSteps)(0)
@@ -1340,7 +1346,7 @@ class ConfigServiceImpl @Inject() (
         val (readyDeployments, skipped) = deployments.partition { case (_, schema) => ready.getOrElse(schema, false) }
         // A schema with *some* of the columns exists but is behind on evolutions — real, actionable drift, unlike a
         // schema that is simply absent (every dev box and single-city deployment has ~50 of those).
-        val behind = skipped.map(_._2).filter(ready.contains)
+        val behind = skipped.map { case (_, schema) => schema }.filter(ready.contains)
         if (behind.nonEmpty) {
           logger.warn(
             s"Global leaderboard excluding ${behind.size} city schema(s) missing columns it reads " +
@@ -1349,7 +1355,7 @@ class ConfigServiceImpl @Inject() (
         }
 
         val cities       = readyDeployments.filterNot { case (cityId, _) => isExcludedFromGlobalLeaderboard(cityId) }
-        val contributing = cities.map(_._2).toSet
+        val contributing = cities.map { case (_, schema) => schema }.toSet
         // Everything ready but not contributing, minus the private-by-default cities where a FALSE flag is just the
         // signup default rather than a choice. Rereading those as opt-outs would silently unlist most of their mappers.
         val optOutSchemas = readyDeployments.collect {
@@ -1418,15 +1424,16 @@ class ConfigServiceImpl @Inject() (
           val (readyDeployments, skipped) = deployments.partition { case (_, schema) =>
             ready.getOrElse(schema, false)
           }
+          val skippedSchemas = skipped.map { case (_, schema) => schema }
           // A schema with *some* of the columns is behind on evolutions — real drift, unlike a schema that is simply
           // absent. availableCityIds already dropped those, so anything here is worth a warning.
           if (skipped.nonEmpty) {
             logger.warn(
               s"Cross-city $label excluding ${skipped.size} city schema(s) missing columns they read " +
-                s"(evolutions likely not yet applied there): ${skipped.map(_._2).mkString(", ")}"
+                s"(evolutions likely not yet applied there): ${skippedSchemas.mkString(", ")}"
             )
           }
-          SelfViewScope(readyDeployments, skipped.map(_._2))
+          SelfViewScope(readyDeployments, skippedSchemas)
         }
       }
     }
@@ -1477,7 +1484,7 @@ class ConfigServiceImpl @Inject() (
    */
   private def schemasWithColumns(required: Set[(String, String)]): Future[Map[String, Boolean]] = {
     // Table names come from a hardcoded required-column set, never from a request, so splicing them is safe.
-    val tables: Set[String] = required.map(_._1)
+    val tables: Set[String] = required.map { case (table, _) => table }
     db.run(
       sql"""
         SELECT table_schema, table_name, column_name
@@ -1486,7 +1493,7 @@ class ConfigServiceImpl @Inject() (
       """.as[(String, String, String)]
     ).map { rows =>
       rows
-        .groupBy(_._1)
+        .groupBy { case (schema, _, _) => schema }
         .view
         .mapValues { schemaRows =>
           val present = schemaRows.map { case (_, table, column) => (table, column) }.toSet
@@ -1518,7 +1525,7 @@ class ConfigServiceImpl @Inject() (
         case _: Exception => Future.successful(cityId -> false)
       }
     }
-    Future.sequence(schemaExistenceChecks).map(_.filter(_._2).map(_._1))
+    Future.sequence(schemaExistenceChecks).map(_.collect { case (cityId, true) => cityId })
   }
 
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
@@ -1564,7 +1571,7 @@ class ConfigServiceImpl @Inject() (
           perCity.flatten
             .groupBy(_.weekStart)
             .toSeq
-            .sortBy(_._1)
+            .sortBy { case (week, _) => week }
             .map { case (week, pts) =>
               WeeklyPoint(
                 week,
@@ -1597,7 +1604,7 @@ class ConfigServiceImpl @Inject() (
         Future.sequence(perCityFutures).map { perCity =>
           val rowsByDay: Map[LocalDate, Seq[(String, DailyContributorActivity)]] = perCity
             .flatMap { case (cityId, rows) => rows.map(cityId -> _) }
-            .groupBy(_._2.day)
+            .groupBy { case (_, activity) => activity.day }
           // Zero-fill the exact trailing window so the page always gets `days` bars. Iterating the window (rather
           // than the query results) also drops any extra day the DAO's index-friendly coarse bound let through.
           val today = LocalDate.now(ZoneId.of("US/Pacific"))
@@ -1876,7 +1883,7 @@ class ConfigServiceImpl @Inject() (
         Future.sequence(cityStatsFutures).zip(contributorIdsFut).map { case (cityStats, contributorIds) =>
           // Distinct contributors across all cities, deduped by the global `user_id` (#3976): a union of per-city
           // contributor-id sets rather than a sum of per-city counts, so a user active in multiple cities counts once.
-          val totalUsers: Int = contributorIds.flatMap(_._2).foldLeft(Set.empty[String])(_ ++ _).size
+          val totalUsers: Int = contributorIds.flatMap { case (_, ids) => ids }.foldLeft(Set.empty[String])(_ ++ _).size
 
           // A city gets a hero slice only when both of its queries succeeded, so every tile in the band is real.
           val contributorCounts: Map[String, Int] = contributorIds.collect { case (cityId, Some(ids)) =>
@@ -1893,7 +1900,7 @@ class ConfigServiceImpl @Inject() (
           }.toMap
 
           // Filter out failed requests and aggregate the successful ones.
-          val validCityStats = cityStats.flatMap(_._2)
+          val validCityStats = cityStats.flatMap { case (_, stats) => stats }
 
           if (validCityStats.isEmpty) {
             logger.warn("No valid city statistics found for aggregate calculation")
@@ -1959,7 +1966,7 @@ class ConfigServiceImpl @Inject() (
     }
 
     Future.sequence(schemaChecks).flatMap { results =>
-      val availableCities = results.filter(_._2).map(_._1)
+      val availableCities = results.collect { case (cityId, true) => cityId }
 
       if (availableCities.isEmpty) {
         Future.successful(Seq.empty)
@@ -1970,13 +1977,13 @@ class ConfigServiceImpl @Inject() (
             .run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily label stats for city $cityId: ${e.getMessage}")
-              Seq.empty[(LocalDate, String, Int, Int)]
+              Seq.empty[DailyLabelStat]
             }
           val valsFuture = db
             .run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily validation stats for city $cityId: ${e.getMessage}")
-              Seq.empty[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+              Seq.empty[DailyValidationStat]
             }
           for {
             labels      <- labelsFuture

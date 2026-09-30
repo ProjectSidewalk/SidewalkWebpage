@@ -198,12 +198,12 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
       .filter(_.source =!= PanoSource.Tutorial)
       .joinLeft(labelTable)
       .on(_.panoId === _.panoId)
-      .distinctOn(_._1.panoId)
+      .distinctOn { case (g, _) => g.panoId }
       .map { case (g, l) =>
         (g.panoId, l.isDefined, g.width, g.height, g.lat, g.lng, g.cameraHeading, g.cameraPitch, g.cameraRoll, g.source)
+          .mapTo[PanoDataSlim]
       }
       .result
-      .map(_.map(PanoDataSlim.apply.tupled))
   }
 
   /**
@@ -215,8 +215,8 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
     labelTable
       .join(panoDataRecords)
       .on(_.panoId === _.panoId)
-      .filter(_._2.source inSet PanoSource.providerCheckedSources)
-      .map(_._2.panoId)
+      .filter { case (_, pano) => pano.source inSet PanoSource.providerCheckedSources }
+      .map { case (_, pano) => pano.panoId }
       .countDistinct
       .result
   }
@@ -360,15 +360,15 @@ class PanoDataTable @Inject() (protected val dbConfigProvider: DatabaseConfigPro
     panoDataRecords
       .join(labelTable)
       .on(_.panoId === _.panoId)
-      .filter(pano =>
-        (pano._1.source inSet PanoSource.providerCheckedSources)
-          && pano._1.expired === expired
-          && pano._1.lastChecked < OffsetDateTime.now().minusMonths(3)
-      )
-      .map(pano => (pano._1.panoId, pano._1.source, pano._1.lastChecked))
+      .filter { case (pano, _) =>
+        (pano.source inSet PanoSource.providerCheckedSources)
+        && pano.expired === expired
+        && pano.lastChecked < OffsetDateTime.now().minusMonths(3)
+      }
+      .map { case (pano, _) => (pano.panoId, pano.source, pano.lastChecked) }
       .distinct
-      .sortBy(_._3.asc)
-      .map(pano => (pano._1, pano._2))
+      .sortBy { case (_, _, lastChecked) => lastChecked.asc }
+      .map { case (panoId, source, _) => (panoId, source) }
       .take(n)
       .result
   }
