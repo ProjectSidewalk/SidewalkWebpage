@@ -327,6 +327,21 @@ corresponding Twirl view:
   the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
   that the modals and the loading lock also set, and the partial sits outside `#svv-application-holder` so the busy
   state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
+  **A viewer canvas is painted only while it holds the current label's pano at that label's POV**
+  (`validate/src/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
+  the primary canvas rejoins the layout unpainted after a fallback label (#5453), and on a primary viewer that paints
+  during a load (`PanoViewer.PAINTS_DURING_LOAD`: Mapillary, Panoramax) the canvas and marker are hidden for every load
+  and revealed by `renderPanoMarker` two animation frames after the SDK has applied the label's POV (#5582), which is
+  also when `LabelContainer` unlocks the tool. GSV keeps the outgoing pano up during its ~50 ms swap. Mapillary moves
+  in Validate and the label popup use `TransitionMode.Instantaneous`; Explore keeps the animated walk.
+  **A label whose pano won't load** is passed over by `LabelContainer.#loadPanoForCurrentLabel`, and `setPanorama`'s
+  `{panoData, reason}` result says which kind: `'no-imagery'` drops it and asks `/validationTask/moreLabels` for a
+  replacement (#4810); `'slow'` (the primary threw `PanoLoadTimeoutError` and there was no usable backup) moves it to
+  the end of the queue once, and drops it only if it is slow again (#5581), so the validator waits out at most one
+  deadline before seeing another label. The label after the current one is prefetched through
+  `PanoViewer.prefetchPano`. Past 2 s of loading, `PanoLoadingStatus` shows "Loading imagery…" over the pano
+  (`#svv-pano-loading`, a polite live region in both views, so boxed, immersive and mobile share it), switching to
+  "Still loading, trying the next label…" when a label is deferred.
 - **`gallery/`** — browsable, filterable gallery of labels. `?labelIds=1,2,3` puts it in **review-list mode**
   (#5444): the page shows exactly those labels, in that order, as a review queue. The list replaces the filters
   rather than intersecting with them — **no sidebar is rendered at all**, so the grid runs the full width (four
@@ -415,6 +430,14 @@ corresponding Twirl view:
   beyond `svl.STREETVIEW_MAX_DISTANCE` exactly like `ZERO_RESULTS`. Mapillary and Panoramax search a square box of
   that half-width, so their corners reach about 35 m; Infra3d checks the radius in `findPanoNear` but not yet in
   `setLocation`.
+  `PanoViewer.setPano` types its rejections, because callers decide from them whether to give up on what needed the
+  pano: `NoImageryError` means the provider no longer has it, `PanoLoadTimeoutError` means it exists (or its existence
+  couldn't be checked) but didn't load in time, and anything else is a load failure of unknown cause. `MapillaryViewer`
+  holds only `moveTo` to its 12 s deadline, gives the linked-pano wait its own 4 s one that degrades to no links, and
+  classifies a failure with one Graph API read of the image (#5581): only a 404 or Graph's "does not exist" code makes
+  it `NoImageryError`, since that verdict drops a Validate label. A viewer whose SDK draws the incoming pano before
+  `setPano` resolves declares `static PAINTS_DURING_LOAD = true`, and its `setPov` returns a promise that settles once
+  the POV is applied, which is what Validate's reveal waits on (#5582).
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
 libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
