@@ -4,9 +4,9 @@
  *
  * MapillaryJS renders the pill through virtual-dom and patches it by walking child indices down from its own
  * `div.mapillary-dom-renderer` root. A pill moved out of that root never receives another patch, so it kept showing an
- * earlier pano's creator and capture date for as long as the session went without a resize. The pill is clickable in
- * place because svv-panorama.css lifts it above the control layer; test/e2e/mapillary-attribution-stacking.spec.js
- * guards that half. This suite exists so the move cannot quietly come back.
+ * earlier pano's creator and capture date for as long as the session went without a resize. In place it sits under
+ * the transparent control layer, accurate but not clickable, which is the trade the maintainer chose. This suite
+ * exists so the move cannot quietly come back.
  *
  * Drives the REAL PanoManager against a fake viewer and an SDK-shaped DOM; no imagery is involved.
  */

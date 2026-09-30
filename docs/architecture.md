@@ -153,7 +153,8 @@ every card that shows a crop — the Gallery card, the landing validation grid, 
 (`css/components/pano-attribution.css` is the shared look; each host positions the pill). A card that falls back to
 the Street View Static API still drops the overlay: Google bakes its own logo and copyright into that image. The
 providers' live viewers draw their own pill, and Mapillary's is left inside the SDK's DOM rather than moved into the
-control layer, because the SDK patches it in place per image (#5600); the page CSS lifts it above the control layer.
+control layer, because the SDK patches it in place per image (#5600). That keeps it accurate but under the transparent
+control layer, so its links don't take clicks; the pano info popover carries the view-in-Mapillary link.
 
 If either category outgrows its lane — thousands of files, multi-MB originals, a CDN or on-the-fly transforms in
 front — the move is to object storage (S3/MinIO), never the local filesystem.

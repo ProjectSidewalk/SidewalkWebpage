@@ -127,7 +127,7 @@ class PanoManager {
         .addListener('links_changed', this.#makeGsvAttributionClickable.bind(this));
     }
     // Mapillary's attribution pill stays in the SDK's DOM, where the SDK patches its creator and date per image;
-    // svv-panorama.css lifts it above the control layer instead. Moving it would cut it off from those patches (#5600).
+    // svv-panorama.css positions it there. Moving it would cut it off from those patches (#5600).
   }
 
   /**

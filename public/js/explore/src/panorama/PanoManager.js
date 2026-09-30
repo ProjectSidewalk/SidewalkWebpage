@@ -408,8 +408,8 @@ class PanoManager {
   /**
    * Hands Mapillary's attribution pill to #liftBottomLeftAboveLinks, so the bottom-left overlays sit above it.
    *
-   * The pill is left inside the SDK's DOM, where the SDK patches its creator and date per image, and svl.css lifts it
-   * above the control layer (#5600). The SDK only renders it once the first image is up, which may be after this
+   * The pill is left inside the SDK's DOM, where the SDK patches its creator and date per image, and svl.css positions
+   * it there (#5600). The SDK only renders it once the first image is up, which may be after this
    * runs, so a MutationObserver waits for it. One sighting is enough: the SDK creates the container once and patches
    * it in place from then on, even for the compact flip, and the ResizeObserver in #liftBottomLeftAboveLinks follows
    * its height through that.

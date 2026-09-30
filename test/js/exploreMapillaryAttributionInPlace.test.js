@@ -5,8 +5,7 @@
  * MapillaryJS patches the pill in place from its own render root, so a pill moved out of it goes stale. Explore still
  * needs the pill's height, as --bottom-left-links-clearance, so the date, info button and logo sit above it. The SDK
  * renders the pill only once its first image is up, which can be after PanoManager is set up, so the hand-off has to
- * wait for the in-place node rather than find it at creation. The clickability half lives in svl.css and is guarded by
- * test/e2e/mapillary-attribution-stacking.spec.js.
+ * wait for the in-place node rather than find it at creation.
  *
  * Drives the REAL PanoManager against a fake viewer and an SDK-shaped DOM; no imagery is involved. jsdom has no
  * ResizeObserver, so a recording stub stands in for it.
