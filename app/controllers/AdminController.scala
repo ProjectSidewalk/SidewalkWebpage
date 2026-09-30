@@ -157,32 +157,38 @@ class AdminController @Inject() (
   }
 
   /**
-   * Updates the role in the database for the given user.
+   * Checks that an admin may move a user from `current` to the role named `requested`: both must be admin-assignable.
+   * @return The new role, or the reason the change is refused.
+   */
+  private def checkRoleChange(current: Role, requested: String): Either[String, Role] =
+    Role.withNameOption(requested).filter(Role.ADMIN_ASSIGNABLE_ROLES.contains) match {
+      case None                                                      => Left(s"Can't assign role $requested")
+      case Some(_) if !Role.ADMIN_ASSIGNABLE_ROLES.contains(current) =>
+        Left(s"${current.name} accounts can't have their role changed")
+      case Some(newRole) => Right(newRole)
+    }
+
+  /**
+   * Updates a user's role from the Management page; only moves between `Role.ADMIN_ASSIGNABLE_ROLES` are allowed.
    */
   def setUserRole = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     val submission = request.body.validate[UserRoleSubmission]
     submission.fold(
       errors => { Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> JsError.toJson(errors)))) },
       submission => {
-        val userId: String        = submission.userId
-        val newRole: Option[Role] = Role.withNameOption(submission.roleId)
-
+        val userId: String = submission.userId
         authenticationService.findByUserId(userId) flatMap {
           case Some(user) =>
-            if (user.role == Role.Owner) {
-              Future.successful(BadRequest("Owner's role cannot be changed"))
-            } else if (newRole.contains(Role.Owner)) {
-              Future.successful(BadRequest("Cannot set a new owner"))
-            } else if (newRole.isEmpty) {
-              Future.successful(BadRequest("Invalid role"))
-            } else {
-              authenticationService
-                .updateRole(userId, newRole.get)
-                .map(_ => {
-                  val logText = s"UpdateRole_User=${userId}_Old=${user.role.name}_New=${newRole.get.name}"
-                  cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
-                  Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole.get.name))
-                })
+            checkRoleChange(user.role, submission.roleId) match {
+              case Left(error)    => Future.successful(BadRequest(error))
+              case Right(newRole) =>
+                authenticationService
+                  .updateRole(userId, newRole)
+                  .map(_ => {
+                    val logText = s"UpdateRole_User=${userId}_Old=${user.role.name}_New=${newRole.name}"
+                    cc.loggingService.insert(request.identity.userId, request.ipAddress, logText)
+                    Ok(Json.obj("username" -> user.username, "user_id" -> userId, "role" -> newRole.name))
+                  })
             }
           case None =>
             Future.successful(BadRequest("No user has this user ID"))
@@ -237,13 +243,13 @@ class AdminController @Inject() (
                 val anyChanged      = usernameChanged || roleChanged || teamChanged || serviceChanged ||
                   privacyChanged || qualityChanged || excludedChanged || infra3dChanged
 
+                val roleError: Option[String] =
+                  if (roleChanged) checkRoleChange(user.role, s.role).left.toOption else None
+
                 // Ordered from the broadest refusal to the narrowest.
                 val firstError: Option[String] =
                   if (anyChanged && user.role == Role.Owner) Some("An Owner's settings can't be changed")
-                  else if (roleChanged && !newRole.exists(Role.ADMIN_ASSIGNABLE_ROLES.contains))
-                    Some(s"Can't assign role ${s.role}")
-                  else if (roleChanged && !Role.ADMIN_ASSIGNABLE_ROLES.contains(user.role))
-                    Some(s"A ${user.role.name} account's role can't be changed")
+                  else if (roleError.isDefined) roleError
                   else if (excludedChanged && user.role == Role.Administrator && admin.role != Role.Owner)
                     Some("An admin can only be excluded by an Owner")
                   else if (qualityChanged && user.role == Role.Administrator && admin.role != Role.Owner)

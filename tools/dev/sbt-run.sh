@@ -31,6 +31,7 @@ done
 [ -n "$DIR" ] || usage
 [ $# -ge 1 ] || usage
 
+LEASE_SH="$(cd "$(dirname "$0")" && pwd)/lease.sh"
 cd "$DIR" || {
   echo "error: no checkout at $DIR"
   exit 1
@@ -71,26 +72,20 @@ refuse_if_watch_run_here() {
 refuse_if_watch_run_here "$@"
 
 # Every checkout's tests share one database, and most specs commit rather than roll back, so simultaneous runs
-# overwrite each other's rows. Container-local, since one container serves every checkout and a bind mount is not
-# something to rely on for locking.
+# overwrite each other's rows, hence the lease (tools/dev/lease.sh).
 if [ -n "$DB_LOCK" ]; then
-  lock="${SBT_DB_TEST_LOCK:-/tmp/sidewalk-scala-tests.lock}"
-  mkdir -p "$(dirname "$lock")" 2>/dev/null
-  # Never fail the run over the lock — a filesystem that can't do flock should still be able to run tests — but
-  # never fall through quietly either, since an unnoticed overlap is what this exists to prevent.
-  if ! exec 9>"$lock"; then
-    echo "warning: could not open $lock — running WITHOUT the cross-checkout lock"
-  elif ! flock -n 9; then
-    echo "==> waiting: another checkout is running the Scala tests (they all share one database)"
-    if flock 9; then
-      # Somebody may have started an app here while we waited for our turn.
-      refuse_if_watch_run_here "$@"
-    else
-      echo "warning: $lock could not be locked — running WITHOUT the cross-checkout lock"
-    fi
+  if ! bash "$LEASE_SH" take db-tests --checkout "$HERE" --pid $$ --wait; then
+    echo "warning: could not take the db-tests lease — running WITHOUT the cross-checkout lock"
   fi
+  # Branches older than the lease only know this lock, so hold it too until they've all merged develop.
+  if exec 9>/tmp/sidewalk-scala-tests.lock && ! flock -n 9; then
+    echo "==> waiting: a checkout on an older branch is running the Scala tests"
+    flock 9
+  fi
+  # Somebody may have started an app here while we waited for our turn.
+  refuse_if_watch_run_here "$@"
 
-  # The lock dies with this process, but the *server* runs the tests: kill the client and the suite carries on
+  # The lease dies with this process, but the *server* runs the tests: kill the client and the suite carries on
   # unlocked. Forked test JVMs take their options from an @-file named sbt-args…, so one of those is a suite on the
   # database whoever owns it. Bounded, so a wedged JVM can't block testing forever.
   waited=0

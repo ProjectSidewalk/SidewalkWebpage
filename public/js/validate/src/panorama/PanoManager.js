@@ -54,9 +54,10 @@ class PanoManager {
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
    * @param {string} startPanoId - The ID of the panorama to load first
    * @param {?BackupImage} startBackupImage - Self-hosted backup for the first pano, or null.
+   * @param {boolean} startExpired - True when the backend's imagery sweep found the provider without the first pano.
    * @returns {Promise<void>} A Promise that resolves once the first pano has loaded
    */
-  async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage) {
+  async #init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage, startExpired) {
     // Create the primary viewer without a startPanoId so viewer construction never fails due to an expired pano.
     const panoOptions = {
       accessToken: viewerAccessToken,
@@ -88,16 +89,35 @@ class PanoManager {
     this.#logo.showPrimaryLogo();
     this.#attribution = createPanoAttribution(this.#panoCanvas.parentElement);
 
-    // Load the first pano, falling back to Pannellum if the primary viewer fails.
-    try {
-      const panoData = await this.#primaryViewer.setPano(startPanoId);
-      this.#setPanoCallback(panoData);
-    } catch {
-      if (startBackupImage) {
-        const panoData = await this.#showPannellumPano(startBackupImage);
-        this.#setPanoCallback(panoData);
+    // Load the first pano, falling back to Pannellum if the primary viewer fails — or without asking it, when the
+    // pano is already known to be gone (#5561; setPanorama has the reasoning).
+    let panoData = null;
+    const skipPrimary = startExpired && Boolean(startBackupImage);
+    if (!skipPrimary) {
+      try {
+        panoData = await this.#primaryViewer.setPano(startPanoId);
+      } catch {
+        // The provider hasn't got it; the backup below is the next chance.
       }
     }
+    if (!panoData && startBackupImage) {
+      try {
+        panoData = await this.#showPannellumPano(startBackupImage);
+      } catch (err) {
+        // A failed backup must not take Validate's start-up down with it: with no pano the first render asks again
+        // through setPanorama, which drops the label if nothing can show it. Under a flag that may be stale, the
+        // provider that was skipped gets its turn first, as setPanorama gives it.
+        console.error('PannellumViewer failed to load the first pano for Validate:', err);
+        if (skipPrimary) {
+          try {
+            panoData = await this.#primaryViewer.setPano(startPanoId);
+          } catch {
+            // Nothing can show it; the first render's setPanorama handles an empty pano area.
+          }
+        }
+      }
+    }
+    if (panoData) this.#setPanoCallback(panoData);
 
     // Subscribed after the first pano has loaded rather than beside the viewer's creation: that load sets the
     // viewer's initial POV, which fires pov_changed, and the throttle's leading edge would log it as a pan the
@@ -349,19 +369,65 @@ class PanoManager {
    *
    * @param {string} panoId - The ID for the panorama that we want to move to.
    * @param {?{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano, or null.
+   * @param {object} [opts]
+   * @param {boolean} [opts.expired=false] - True when the backend's imagery sweep found the provider without this pano.
    * @returns {Promise<PanoData|null>} The loaded pano's metadata, or `null` when no viewer could render it. A null
    *      return means the pano area is now empty, so the caller must not draw a label marker over it or ask for a
    *      validation of the label it was loading (#4810).
    */
-  async setPanorama(panoId, backupImage = null) {
+  async setPanorama(panoId, backupImage = null, { expired = false } = {}) {
     this.setProperty('panoLoaded', false);
 
-    // The fallback's invariant from #showPannellumPano, applied the other way round (#5453). While the fallback or an
-    // empty pano area is up, the primary canvas is out of the layout and holds whatever it last drew: the last live
-    // label's pano, however many labels back. A provider left out of the layout doesn't render, so revealing it once
-    // setPano resolved put that frame back on screen until it caught up. It rejoins the layout unpainted instead and
-    // switches panos underneath the outgoing one; #teardownPannellum reveals it. The resize is what makes it measure
-    // the box it rejoined: a window resize while the fallback was up only reached the fallback.
+    // A pano the nightly imagery sweep already found gone goes straight to the fallback (#5561). Asking the provider
+    // anyway costs a metadata round trip that ends in the rejection the flag predicted, on every such label, and on
+    // a phone that is seconds of dead time between the tap and the next pano — as well as the only chance the next
+    // label's backup had of being fetched ahead of time going unused. If the flag is stale and the pano is back, the
+    // backup is still the right imagery, just older than it needed to be. A label flagged expired but holding no
+    // backup takes the ordinary path, since the provider is its only chance.
+    const skipPrimary = expired && backupImage !== null;
+
+    if (!skipPrimary) {
+      const panoData = await this.#showPrimaryPano(panoId);
+      if (panoData) return panoData;
+    }
+
+    // The primary viewer failed, or wasn't asked — try Pannellum if we have local pano data.
+    if (backupImage) {
+      try {
+        const panoData = await this.#showPannellumPano(backupImage);
+        this.#setPanoCallback(panoData);
+        this.setProperty('panoLoaded', true);
+        svv.tracker.push('PanoId_Changed');
+        return panoData;
+      } catch (err) {
+        console.error('PannellumViewer failed to load for Validate:', err);
+      }
+      // A backup that won't load under a flag that may be stale: the provider it was skipped for is the last
+      // chance, and asking costs only the round trip the shortcut saved.
+      if (skipPrimary) {
+        const panoData = await this.#showPrimaryPano(panoId);
+        if (panoData) return panoData;
+      }
+    }
+
+    this.#clearViewer();
+    return null;
+  }
+
+  /**
+   * Loads a pano in the primary viewer and makes that the active viewer, or leaves everything as it was.
+   *
+   * The fallback's invariant from #showPannellumPano, applied the other way round (#5453). While the fallback or an
+   * empty pano area is up, the primary canvas is out of the layout and holds whatever it last drew: the last live
+   * label's pano, however many labels back. A provider left out of the layout doesn't render, so revealing it once
+   * setPano resolved put that frame back on screen until it caught up. It rejoins the layout unpainted instead and
+   * switches panos underneath the outgoing one; #teardownPannellum reveals it. The resize is what makes it measure
+   * the box it rejoined: a window resize while the fallback was up only reached the fallback.
+   *
+   * @param {string} panoId - The pano to load.
+   * @returns {Promise<PanoData|null>} The loaded pano's metadata, or null when the provider hasn't got it.
+   */
+  async #showPrimaryPano(panoId) {
     const primaryWasHidden = this.#panoCanvas.style.display === 'none';
     if (primaryWasHidden) {
       this.#panoCanvas.style.visibility = 'hidden';
@@ -369,7 +435,6 @@ class PanoManager {
       this.#primaryViewer.resize();
     }
 
-    // Try the primary viewer first.
     try {
       const panoData = await this.#primaryViewer.setPano(panoId);
       this.#teardownPannellum();
@@ -380,22 +445,8 @@ class PanoManager {
     } catch {
       // Put the primary canvas back the way this call found it, so it can't sit laid out under the fallback.
       if (primaryWasHidden) this.#hidePrimaryCanvas();
-      // Primary viewer failed — try Pannellum if we have local pano data.
-      if (backupImage) {
-        try {
-          const panoData = await this.#showPannellumPano(backupImage);
-          this.#setPanoCallback(panoData);
-          this.setProperty('panoLoaded', true);
-          svv.tracker.push('PanoId_Changed');
-          return panoData;
-        } catch (err) {
-          console.error('PannellumViewer failed to load for Validate:', err);
-        }
-      }
+      return null;
     }
-
-    this.#clearViewer();
-    return null;
   }
 
   /**
@@ -476,6 +527,7 @@ class PanoManager {
           startHeading: neutralPov.heading,
           startPitch: neutralPov.pitch,
           startZoom: neutralPov.zoom,
+          imageCache: svv.panoImageCache ?? null,
         });
       }
     } catch (err) {
@@ -487,6 +539,13 @@ class PanoManager {
 
     this.#watchViewerPov(this.#pannellumViewer);
     svv.panoViewer = this.#pannellumViewer;
+
+    // Whether the image was already on the device (#5562): the measure of the prefetch, and of the wait it saved.
+    // Logged once this viewer is the active one, so the row carries the pano it just loaded rather than the
+    // outgoing viewer's — or, on the first load of a page, no pano at all.
+    if (typeof this.#pannellumViewer.lastLoadPrefetched === 'boolean') {
+      svv.tracker.push('PanoPrefetch', { hit: this.#pannellumViewer.lastLoadPrefetched });
+    }
     // As #teardownPannellum does on the way back: a viewer only measures its container when told to, and this one
     // has been sitting hidden — since a rotation, in the mobile case, which resized every canvas underneath it.
     svv.panoViewer.resize();
@@ -615,11 +674,12 @@ class PanoManager {
    * @param {string} viewerAccessToken - An access token used to request images for the pano viewer
    * @param {string} startPanoId - The ID of the panorama to load first
    * @param {?BackupImage} startBackupImage - Self-hosted backup for the first pano, or null.
+   * @param {boolean} [startExpired=false] - True when the backend's imagery sweep found the provider without it.
    * @returns {Promise<PanoManager>} The panoManager instance, with the first pano already loaded.
    */
-  static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null) {
+  static async create(panoViewerType, viewerAccessToken, startPanoId, startBackupImage = null, startExpired = false) {
     const newPanoManager = new PanoManager();
-    await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage);
+    await newPanoManager.#init(panoViewerType, viewerAccessToken, startPanoId, startBackupImage, startExpired);
     return newPanoManager;
   }
 }

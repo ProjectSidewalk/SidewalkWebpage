@@ -31,6 +31,7 @@ class Label {
     aiTagsNotPresent: undefined,
     isMobile: undefined,
     aiGenerated: false,
+    expired: false,
     backupImage: null,
   };
 
@@ -112,6 +113,9 @@ class Label {
       if ('ai_tags' in params) this.setAuditProperty('aiTags', params.ai_tags);
       if ('ai_tags_not_present' in params) this.setAuditProperty('aiTagsNotPresent', params.ai_tags_not_present);
       if ('ai_generated' in params) this.setAuditProperty('aiGenerated', params.ai_generated);
+      // The nightly imagery sweep's verdict: true means the provider has dropped this pano, so the backup is the
+      // imagery to show and asking the provider first is a wasted round trip (#5561).
+      if ('expired' in params) this.setAuditProperty('expired', params.expired === true);
       this.setAuditProperty('backupImage', buildBackupImageData(params));
       // Properties only used on the Admin version of Validate.
       if ('admin_data' in params && params.admin_data !== null) {
@@ -298,6 +302,10 @@ class Label {
       svv.labelContainer.pushToLabelsToSubmit(
         this.getAuditProperty('labelId'), this.getProperties(), this.#prepareCommentData(),
       );
+      // A verdict is the thing worth not losing: get it to the server now rather than at the next deadline (#5561).
+      // Armed before the mission's progress moves: a verdict that completes the mission drains everything in the
+      // mission-complete submit, whose drain cancels this timer, so that last verdict costs no extra POST.
+      svv.tracker.flushSoon();
       svv.missionContainer.updateAMission();
     }
 

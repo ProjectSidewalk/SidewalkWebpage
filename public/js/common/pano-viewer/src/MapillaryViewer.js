@@ -125,11 +125,13 @@ class MapillaryViewer extends PanoViewer {
   }
 
   getPanoId = () => {
-    return this.currImage.id;
+    // Null until the first image has loaded: the tracker asks on every input event, including during init.
+    return this.currImage ? this.currImage.id : null;
   };
 
   getPosition = () => {
-    return this.currImage.lngLat;
+    // Null until the first image has loaded.
+    return this.currImage ? this.currImage.lngLat : null;
   };
 
   _getPanoramaCallback = async (newImage) => {

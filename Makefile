@@ -1,4 +1,5 @@
 .PHONY: dev docker-up docker-up-db docker-run docker-stop npm-sync ssh qa-worktree qa-worktree-stop worktree-remove \
+        lease-status lease-take lease-release \
         test-js test-e2e test-e2e-host \
         test-python test-python-app test-python-tools \
         import-users import-dump create-new-schema fill-new-schema onboard-city build-city-data check-imagery \
@@ -23,23 +24,30 @@ only ?=
 clean ?=
 force ?=
 replace ?=
+wait ?=
+purpose ?=
+res ?=
 
 # `clean=1` (or true/yes) expands to the qa-worktree-stop --clean flag; anything else (incl. empty) expands to nothing.
 qa-stop-clean-flag = $(if $(filter 1 true yes,$(clean)),--clean,)
 # Same idiom for worktree-remove's `force=1`.
 worktree-force-flag = $(if $(filter 1 true yes,$(force)),--force,)
+# Same idiom for a lease's `wait=1` and `force=1` (tools/dev/lease.sh).
+lease-flags = $(if $(filter 1 true yes,$(wait)),--wait,) $(if $(filter 1 true yes,$(force)),--force,)
+# Who's asking, for the lease: the Claude session (unset in a terminal) and `purpose="…"`.
+lease-env = -e CLAUDE_CODE_SESSION_ID -e LEASE_PURPOSE="$(purpose)"
 # Same idiom for import-users' `replace=1`, which wipes the login schema instead of merging into it.
 import-users-replace-flag = $(if $(filter 1 true yes,$(replace)),--replace,)
 
 # Resolve which copy of qa-worktree.sh to run, then exec it with the args in $(1). The main repo is mounted at the
 # container's /home, so /home/tools/dev/qa-worktree.sh is the script as it exists on whatever branch the MAIN checkout
 # happens to be on — which may predate the script entirely (#4628). Prefer the worktree's own copy so the branch being
-# QA'd supplies its own tooling, and fall back to the main repo's for worktrees branched before the script existed.
+# QA'd supplies its own tooling, and fall back to the main repo's for a copy that predates it or the :9000 lease.
 # Held in a variable rather than written inline in a recipe: make condenses a variable's backslash-continuations into
 # single spaces at parse time, so the container's shell receives one flat line — no reliance on how a given make version
 # passes continuations and leading tabs through to the shell (macOS still ships make 3.81, WSL/Linux run 4.x).
 qa-worktree-exec = script="/home/.claude/worktrees/$(wt)/tools/dev/qa-worktree.sh"; \
-  [ -f "$$script" ] || script=/home/tools/dev/qa-worktree.sh; \
+  grep -qs "lease take" "$$script" || script=/home/tools/dev/qa-worktree.sh; \
   [ -f "$$script" ] || { echo "error: no tools/dev/qa-worktree.sh in worktree $(wt) or in the main checkout"; exit 1; }; \
   exec bash "$$script" $(1)
 # Every wt= target fails fast on a missing name rather than passing an empty one along.
@@ -116,8 +124,6 @@ e2e-user   = $(e2e-uid):$(if $(filter 0,$(docker-rootless)),$(shell id -g),0)
 # in place instead of sending the developer to sudo. Held in a variable, not written inline in the recipe, because
 # make condenses a variable's backslash-continuations to spaces at parse time and the container's shell would
 # otherwise receive them literally inside the single-quoted script (same reason as qa-worktree-exec).
-# Which checkout the app on :9000 is running from.
-e2e-app-dir = for p in $$(pgrep -f "[~] run"); do readlink /proc/$$p/cwd; done | head -1
 e2e-fix-artifact-owner = cd $(container-dir) 2>/dev/null || exit 0; \
   for d in test-results playwright-report; do \
     [ -d "$$d" ] || continue; \
@@ -195,7 +201,7 @@ ssh:
 # "Running a worktree's app for QA". e.g. `make qa-worktree wt=remove-admin-classic`.
 qa-worktree:
 	$(worktree-require-wt)
-	@docker exec -it $(web-container) bash -c '$(call qa-worktree-exec,$(wt))'
+	@docker exec -it $(lease-env) $(web-container) bash -c '$(call qa-worktree-exec,$(wt) $(lease-flags))'
 
 # End a qa-worktree session: stop its app, its grunt watch, and any sbt left running there. Add `clean=1` to also
 # drop the node_modules symlink. e.g. `make qa-worktree-stop wt=remove-admin-classic` or
@@ -210,6 +216,18 @@ qa-worktree-stop:
 worktree-remove:
 	$(worktree-require-wt)
 	@bash tools/dev/worktree-remove.sh $(wt) --container $(web-container) $(worktree-force-flag)
+
+# Leases (tools/dev/lease.sh): `app` is :9000 and `db-tests` the Scala test DB, or claim anything else by name.
+lease-status:
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh status $(res)
+
+lease-take:
+	@[ -n "$(res)" ] || { echo "usage: make lease-take res=<name> [wait=1] [force=1] [purpose=\"…\"]"; exit 2; }
+	@docker exec $(tty-flags) $(lease-env) $(web-container) bash $(self-container-dir)/tools/dev/lease.sh take $(res) --checkout $(container-dir) $(lease-flags)
+
+lease-release:
+	@[ -n "$(res)" ] || { echo "usage: make lease-release res=<name>"; exit 2; }
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh release $(res) --checkout $(container-dir)
 
 import-users:
 	@docker exec -it $(db-container) sh -c "/opt/scripts/import-users.sh $(import-users-replace-flag)"
@@ -333,8 +351,9 @@ test-e2e:
 	  || { echo "error: no @playwright/test version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
 	@[ -n "$(axe-version)" ] \
 	  || { echo "error: no @axe-core/playwright version found in package-lock.json — is it still listed as a devDependency?"; exit 2; }
-	@app=$$(docker exec $(web-container) sh -c '$(e2e-app-dir)'); [ -z "$$app" ] || [ "$$app" = "$(container-dir)" ] \
-	  || echo "warning: the app on :9000 is $$app's, not $(container-dir)'s (make qa-worktree wt=<name> serves a worktree)"
+	@docker exec $(web-container) bash $(self-container-dir)/tools/dev/lease.sh check app --checkout $(container-dir) \
+	  || [ -n "$(filter 1 true yes,$(force))" ] \
+	  || { echo "Wait for :9000 (a worktree: make qa-worktree wt=<name> wait=1), or add force=1 to test that app anyway."; exit 1; }
 	@docker exec $(web-container) sh -c '$(e2e-fix-artifact-owner)'
 	@if docker image inspect $(e2e-image):$(e2e-tag) > /dev/null 2>&1; then \
 	  docker build --quiet --build-arg PW_VERSION=$(pw-version) --build-arg AXE_VERSION=$(axe-version) -t $(e2e-image):$(e2e-tag) docker/e2e > /dev/null; \
@@ -424,7 +443,7 @@ compile:
 	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) compile"
 
 test-scala:
-	@docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
+	@docker exec $(tty-flags) $(lease-env) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) --db-lock $(if $(only),'testOnly $(only)',test)"
 
 # Each release build leaves ~1GB of jars named after its version and removes none of the older ones. Drops those,
 # keeping compiled classes so the next `make compile` is still incremental.
