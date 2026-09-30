@@ -3,7 +3,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* The types that carry no rating, named from LabelType so the "% w/ severity" caveats below can't outlive a
    change to it — they are the same types ConfigTable excludes from that column's denominator. *@

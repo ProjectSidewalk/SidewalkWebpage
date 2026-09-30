@@ -1,7 +1,7 @@
 package views
 
 import controllers.AssetsFinder
-import formats.json.UserFormats._
+import formats.json.UserFormats.given
 import models.user.{Role, SidewalkUserWithRole, UserStat}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.i18n.{Lang, Messages, MessagesApi}
@@ -30,10 +30,10 @@ class AdminUserViewSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit private val request: RequestHeader = FakeRequest()
-  implicit private val messages: Messages     = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("en")))
-  implicit private val assets: AssetsFinder   = app.injector.instanceOf[AssetsFinder]
-  implicit private val config: Configuration  = app.injector.instanceOf[Configuration]
+  private given request: RequestHeader = FakeRequest()
+  private given messages: Messages     = app.injector.instanceOf[MessagesApi].preferred(Seq(Lang("en")))
+  private given assets: AssetsFinder   = app.injector.instanceOf[AssetsFinder]
+  private given config: Configuration  = app.injector.instanceOf[Configuration]
 
   private val commonData: CommonPageData =
     Await.result(app.injector.instanceOf[ConfigService].getCommonPageData(Lang("en")), 60.seconds)

@@ -16,7 +16,7 @@ import util.{AnonSession, SidewalkSpec, UserAgents}
  */
 trait SeoSpecHelpers extends AnonSession { this: SidewalkSpec with GuiceOneAppPerSuite =>
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /** Cookies from the anonymous-signup flow, giving subsequent requests an authenticated session. */
   private lazy val anonCookies: Seq[Cookie] = freshAnonSession()
@@ -252,7 +252,7 @@ class SeoSignInWalledSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /sitemap.xml on a sign-in-walled prod city" should {
     "404 rather than promote pages that bounce a crawler to the disallowed /signIn" in {

@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
@@ -173,7 +173,7 @@ class StreetGradientTableDef(tag: Tag) extends Table[StreetGradient](tag, "stree
  * (tools/city/street_gradient.py) samples them and db/scripts/import-street-gradient.sh upserts the result.
  */
 @Singleton
-class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class StreetGradientTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends StreetGradientTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

@@ -42,7 +42,7 @@ class UserAuthRateLimitSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /** A sign-in that can't succeed, from a caller-chosen source address so each test owns its own per-IP bucket. */
   private def badLogin(email: String, ip: String) = {
@@ -242,7 +242,7 @@ class LoginIpVolumeRateLimitSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "The per-IP hourly login volume limiter" should {
     "throttle one address working through a series of different accounts" in {

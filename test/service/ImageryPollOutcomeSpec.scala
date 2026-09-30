@@ -53,9 +53,8 @@ class ImageryPollOutcomeSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       app.injector.instanceOf[PanoDataService],
       app.injector.instanceOf[StreetImageryTable],
       app.injector.instanceOf[StreetReopenCandidateTable],
-      app.injector.instanceOf[AuditTaskTable],
-      app.injector.instanceOf[ExecutionContext]
-    )
+      app.injector.instanceOf[AuditTaskTable]
+    )(using app.injector.instanceOf[ExecutionContext])
   }
 
   "pollImageryAges" should {

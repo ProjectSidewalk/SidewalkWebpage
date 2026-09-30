@@ -4,7 +4,7 @@
 @import service.CommonPageData
 @import views.html.helper.{CSRF, form}
 @(signInForm: Form[forms.SignInForm.SignInData], commonData: CommonPageData, user: Option[SidewalkUserWithRole]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Full-page sign-in: the no-JS fallback and the target of a direct /signIn visit. Same auth card and fields as the
    navbar dialog; AuthModal.js progressively enhances it (eye toggle, async submit) but a plain POST still works. *@

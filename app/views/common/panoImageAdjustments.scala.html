@@ -5,7 +5,7 @@
 * id="pano-image-adjustments", sets each slider's range from PanoImageAdjustments.SPECS, wires the trigger, the close
 * and reset buttons, and positions it with JS. Include once per page that mounts the control (explore, validate).
 *@
-@()(implicit assets: AssetsFinder)
+@()(using assets: AssetsFinder)
 
 <div id="pano-image-adjustments" class="pano-image-adjustments" popover="manual" role="dialog"
 aria-labelledby="pano-image-adjustments-title" aria-describedby="pano-image-adjustments-note">

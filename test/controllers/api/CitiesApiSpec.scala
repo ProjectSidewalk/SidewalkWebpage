@@ -26,7 +26,7 @@ class CitiesApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .disable[modules.ActorModule]
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /**
    * Splits a CSV row on commas outside quotes, so a quoted city name like "Washington, DC" stays one cell.

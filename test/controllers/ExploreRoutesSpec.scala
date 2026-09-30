@@ -19,7 +19,7 @@ class ExploreRoutesSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /explore?lat&lng" should {
     "redirect an unauthenticated visitor to /anonSignUp with the address params and return url preserved" in {

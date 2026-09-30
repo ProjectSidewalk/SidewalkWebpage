@@ -6,7 +6,7 @@
 @(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], openStatus: String,
   mapathonLink: Option[String], streetDistance: Double, auditedDistance: Double, labelCount: Int, valCount: Int,
   partners: Seq[models.partner.PartnerMetadata], officialContact: Option[models.utils.OfficialContact]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @skylineImg = @{config.get[String]("city-params.skyline-img." + currentCity.cityId)}

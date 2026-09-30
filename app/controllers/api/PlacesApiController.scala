@@ -30,7 +30,7 @@ class PlacesApiController @Inject() (
     shapefileCreator: ShapefilesCreatorHelper,
     placesService: PlacesService,
     apiService: ApiService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   /**

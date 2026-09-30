@@ -45,7 +45,7 @@ object VersionTable {
 }
 
 @Singleton
-class VersionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class VersionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends VersionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

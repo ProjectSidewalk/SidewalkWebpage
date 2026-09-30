@@ -7,7 +7,7 @@
 @import formats.json.LabelFormats.tagWrites
 @import views.ViewHelpers.jsonForScript
 @(commonData: CommonPageData, url: String, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, validatePageData: ValidatePageData
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
@@ -88,12 +88,16 @@
     </template>
 
     <div id="svv-application-holder">
-      <div id="mission-title"></div>
-      @components.progressBar(
-        rootId = "mission-progress-bar-section",
-        fillId = "mission-progress-bar-complete",
-        labelId = "mission-progress-bar-text"
-      )
+      @* A layout-free wrapper in the boxed page (svv-upper-row.css); immersive mode makes it the one pill at the top. *@
+      <div id="mission-status">
+        <img id="mission-title-icon" class="mission-title-icon" alt="">
+        <div id="mission-title"></div>
+        @components.progressBar(
+          rootId = "mission-progress-bar-section",
+          fillId = "mission-progress-bar-complete",
+          labelId = "mission-progress-bar-text"
+        )
+      </div>
       <div id="admin-info-section">
         <button type="button" id="admin-info-button" class="button button--secondary button--small" popovertarget="admin-info-popover">Admin info</button>
         @* Filled from #admin-info-template by AdminInfo.js, which also parks it under the button. *@
@@ -147,6 +151,15 @@
             <img class="ps-icon-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
           </button>
         </div>
+        @* Immersive mode toggle (#5560), under the zoom stack as on Explore, in its own holder so the zoom pair keeps
+           its rounded bottom corner. Not on Expert Validate: its edit sections have no immersive placement yet. *@
+        @if(!validateParams.adminVersion) {
+          <div id="immersive-toggle-holder" class="ps-icon-button-stack">
+            <button type="button" id="immersive-toggle-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.key", "F")" aria-label="Enter immersive mode" data-i18n-aria-label="common:immersive-enter" data-ps-tooltip-placement="left">
+              <img id="immersive-toggle-icon" class="ps-icon-button-icon" src='@assets.path("images/icons/maximize-2-white-feather.svg")' alt="">
+            </button>
+          </div>
+        }
       </div>
       <div id="modal-mission-holder" class="ps-hidden">
         <div id="modal-mission-background" class="modal-background"></div>
@@ -189,12 +202,26 @@
         </div>
       </div>
       <div id="validation-menu-holder">
+        @* Immersive mode only (svv-immersive.css): takes the verdict back so the dock folds to the three buttons. *@
+        <button type="button" id="validate-verdict-clear" class="validate-verdict-clear" aria-label="Clear your answer" data-i18n-aria-label="validate:validate-menu.clear-verdict">
+          <span class="ps-mask-icon validate-verdict-clear__icon" aria-hidden="true"></span>
+        </button>
         <div id="main-validate-section" class="validation-menu-section button-section">
           <div id="main-validate-header" class="validation-menu-section-header">Is this a curb ramp?</div>
+          @* The same thumbs mobile Validate and the mission-complete counts carry; the boxed column hides them. *@
           <div id="validation-button-holder">
-            <button type="button" id="validate-yes-button"class="validate-page-button validate-button button button--small">@Html(Messages("yes.caps.shortcut"))</button>
-            <button type="button" id="validate-no-button"class="validate-page-button validate-button button button--small">@Html(Messages("no.caps.shortcut"))</button>
-            <button type="button" id="validate-unsure-button"class="validate-page-button validate-button button button--small">@Html(Messages("unsure.caps.shortcut"))</button>
+            <button type="button" id="validate-yes-button"class="validate-page-button validate-button button button--small">
+              <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="validate-page-button__icon" alt="">
+              <span>@Html(Messages("yes.caps.shortcut"))</span>
+            </button>
+            <button type="button" id="validate-no-button"class="validate-page-button validate-button button button--small">
+              <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="validate-page-button__icon" alt="">
+              <span>@Html(Messages("no.caps.shortcut"))</span>
+            </button>
+            <button type="button" id="validate-unsure-button"class="validate-page-button validate-button button button--small">
+              <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="validate-page-button__icon" alt="">
+              <span>@Html(Messages("unsure.caps.shortcut"))</span>
+            </button>
           </div>
         </div>
         @if(validateParams.adminVersion) {
@@ -271,7 +298,10 @@
           </div>
         </div>
         <div id="validate-submit-section" class="validation-menu-section button-section">
-          <button type="button" id="validate-undo-button"class="button button--secondary button--small">@Html(Messages("back.shortcut"))</button>
+          <button type="button" id="validate-undo-button"class="button button--secondary button--small">
+            <span class="ps-mask-icon validate-undo-button__icon" aria-hidden="true"></span>
+            <span>@Html(Messages("back.shortcut"))</span>
+          </button>
           <button type="button" id="validate-submit-button"class="button button--primary button--small">@Html(Messages("submit.shortcut"))</button>
         </div>
       </div>

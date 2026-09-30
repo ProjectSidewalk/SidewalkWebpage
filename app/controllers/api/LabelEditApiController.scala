@@ -19,7 +19,7 @@ class LabelEditApiController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[models.auth.DefaultEnv],
     apiService: ApiService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   /**

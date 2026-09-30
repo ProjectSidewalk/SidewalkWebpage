@@ -49,9 +49,9 @@ class RouteServiceImpl @Inject() (
     routeStreetTable: RouteStreetTable,
     routeSlugAliasTable: RouteSlugAliasTable,
     auditTaskUserRouteTable: AuditTaskUserRouteTable,
-    config: Configuration,
-    implicit val ec: ExecutionContext
-) extends RouteService
+    config: Configuration
+)(using ec: ExecutionContext)
+    extends RouteService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /** SQLState for a Postgres unique-constraint violation, the backstop for concurrent slug generation. */

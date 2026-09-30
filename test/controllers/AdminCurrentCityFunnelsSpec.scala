@@ -23,7 +23,7 @@ class AdminCurrentCityFunnelsSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       .disable[modules.ActorModule]
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /adminapi/funnels" should {
     "redirect unauthenticated users to the sign-in page (not 404)" in {

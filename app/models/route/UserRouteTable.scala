@@ -40,9 +40,9 @@ trait UserRouteTableRepository {}
 @Singleton
 class UserRouteTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    auditTaskTable: AuditTaskTable,
-    implicit val ec: ExecutionContext
-) extends UserRouteTableRepository
+    auditTaskTable: AuditTaskTable
+)(using ec: ExecutionContext)
+    extends UserRouteTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userRoutes          = TableQuery[UserRouteTableDef]

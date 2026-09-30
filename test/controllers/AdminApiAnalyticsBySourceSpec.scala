@@ -24,7 +24,7 @@ class AdminApiAnalyticsBySourceSpec extends SidewalkSpec with GuiceOneAppPerSuit
       .disable[modules.ActorModule]
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /adminapi/apiAnalyticsBySource" should {
     "redirect unauthenticated users to the sign-in page (not 404)" in {

@@ -169,7 +169,7 @@ trait PlaceTableRepository {
  * The `place` table (#5311) and the merge that keeps it current from OpenStreetMap.
  */
 @Singleton
-class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends PlaceTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -314,7 +314,7 @@ class PlaceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       ORDER BY place.category, place.place_id
     """)
 
-    implicit val getPlaceForApi: GetResult[PlaceForApi] = GetResult { r =>
+    given getPlaceForApi: GetResult[PlaceForApi] = GetResult { r =>
       PlaceForApi(
         placeId = r.nextInt(),
         category = r.nextString(),

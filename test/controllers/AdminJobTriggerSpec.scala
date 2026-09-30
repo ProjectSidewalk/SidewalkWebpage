@@ -13,7 +13,7 @@ import actor.{
   UserStatActor
 }
 import models.user.Role
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
 import org.apache.pekko.stream.Materializer
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -164,7 +164,7 @@ class AdminJobTriggerSpec
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val jobRunTable = app.injector.instanceOf[BackgroundJobRunTable]
 

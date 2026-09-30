@@ -16,6 +16,7 @@
   },
   "validate-menu": {
     "remove-tag": "Retirer le tag : {{tag}}",
+    "clear-verdict": "Effacer votre réponse",
     "tag-search-placeholder": "Ajoutez d'autres tags ici",
     "tag-search-no-results": "Aucun tag correspondant",
     "disagree-reason": {

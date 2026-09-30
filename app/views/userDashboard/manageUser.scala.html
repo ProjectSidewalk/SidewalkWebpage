@@ -5,7 +5,7 @@
 @import service.{AdminUserProfileData, CommonPageData}
 @(commonData: CommonPageData, viewer: SidewalkUserWithRole, user: SidewalkUserWithRole, adminData: AdminUserProfileData,
     currTeam: Option[Team], teams: Seq[Team]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * The Manage user page beside a user's dashboard (`/admin/user/:username/manage`, #4964): the account settings an admin may

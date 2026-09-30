@@ -58,7 +58,7 @@ object StreetPriorityForAdmin {
    * joins these rows onto street geometry by `street_edge_id` and reads every other field by name, so a field renamed
    * on one side and not the other is a blank column rather than an error.
    */
-  implicit val writes: Writes[StreetPriorityForAdmin] = Writes { street =>
+  given writes: Writes[StreetPriorityForAdmin] = Writes { street =>
     Json.obj(
       "street_edge_id"        -> street.streetEdgeId,
       "region_id"             -> street.regionId,
@@ -98,9 +98,9 @@ trait StreetEdgePriorityTableRepository {}
 @Singleton
 class StreetEdgePriorityTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
-    streetEdgeTable: StreetEdgeTable,
-    implicit val ec: ExecutionContext
-) extends StreetEdgePriorityTableRepository
+    streetEdgeTable: StreetEdgeTable
+)(using ec: ExecutionContext)
+    extends StreetEdgePriorityTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userStats             = TableQuery[UserStatTableDef]
@@ -139,7 +139,7 @@ class StreetEdgePriorityTable @Inject() (
    * mislabeling the map.
    */
   def getPriorityWithInputs: DBIO[Seq[StreetPriorityForAdmin]] = {
-    implicit val getStreetPriorityForAdmin: GetResult[StreetPriorityForAdmin] = GetResult { r =>
+    given getStreetPriorityForAdmin: GetResult[StreetPriorityForAdmin] = GetResult { r =>
       StreetPriorityForAdmin(
         r.nextInt(),
         r.nextInt(),

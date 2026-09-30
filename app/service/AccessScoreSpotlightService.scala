@@ -324,9 +324,9 @@ class AccessScoreSpotlightService @Inject() (
     regionAccessScoreTable: RegionAccessScoreTable,
     streetAccessScoreTable: StreetAccessScoreTable,
     swrCache: SwrCache
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends HasDatabaseConfigProvider[MyPostgresProfile] {
-  import profile.api._
+  import profile.api.given
 
   private val logger = Logger(this.getClass)
 

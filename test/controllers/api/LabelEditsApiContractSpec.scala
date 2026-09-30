@@ -24,7 +24,7 @@ class LabelEditsApiContractSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       .build()
 
   // File-streamed responses (chunked JSON/CSV) need a real Materializer to consume.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /v3/api/labelEdits" should {
     "return 200 with a JSON array of edit objects using snake_case keys" in {

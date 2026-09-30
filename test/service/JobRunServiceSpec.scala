@@ -1,7 +1,7 @@
 package service
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, JobRunStatus, JobRunTrigger}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.OptionValues

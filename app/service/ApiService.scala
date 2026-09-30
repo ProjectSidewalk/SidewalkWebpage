@@ -268,9 +268,9 @@ class ApiServiceImpl @Inject() (
     intersectionTable: IntersectionTable,
     backgroundJobRunTable: BackgroundJobRunTable,
     labelValidationTable: LabelValidationTable,
-    labelEditTable: LabelEditTable,
-    implicit val ec: ExecutionContext
-) extends ApiService
+    labelEditTable: LabelEditTable
+)(using ec: ExecutionContext)
+    extends ApiService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val gf: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 

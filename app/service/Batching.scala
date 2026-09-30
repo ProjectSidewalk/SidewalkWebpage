@@ -20,7 +20,7 @@ object Batching {
    * @param work      What to run per item.
    * @return          One result per item, in the order given.
    */
-  def inBatches[A, B](items: Seq[A], batchSize: Int)(work: A => Future[B])(implicit
+  def inBatches[A, B](items: Seq[A], batchSize: Int)(work: A => Future[B])(using
       ec: ExecutionContext
   ): Future[Seq[B]] = {
     require(batchSize > 0, s"Batch size must be positive, got $batchSize")

@@ -6,7 +6,7 @@ import models.intersection.IntersectionTableDef
 import models.label.LabelType
 import models.pano.PanoDataTable
 import models.street.StreetEdgeTableDef
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.utils.{LatLngBBox, MyPostgresProfile, SpatialQueryType, SqlFragments}
 import org.locationtech.jts.geom.Point
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -127,11 +127,10 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
   val clusters: TableQuery[ClusterTableDef] = TableQuery[ClusterTableDef]
 
   // Built once at class level: the raw-labels JSON parse runs per streamed row, so the Reads must not be rebuilt there.
-  implicit private val panoSourceReads: Reads[models.pano.PanoSource.Value] = formats.json.PanoFormats.panoSourceReads
-  implicit private val rawLabelReads: Reads[RawLabelInClusterDataForApi]    = Json.reads[RawLabelInClusterDataForApi]
+  private given panoSourceReads: Reads[models.pano.PanoSource.Value] = formats.json.PanoFormats.panoSourceReads
+  private given rawLabelReads: Reads[RawLabelInClusterDataForApi]    = Json.reads[RawLabelInClusterDataForApi]
 
-  // Create an implicit converter for LabelClusterForApi
-  implicit val labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
+  given labelClusterForApiConverter: GetResult[LabelClusterForApi] = GetResult[LabelClusterForApi] { r =>
     val labelClusterId = r.nextInt()
     val labelType      = r.nextString()
     val streetEdgeId   = r.nextInt()
@@ -150,8 +149,8 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     val unsureCount    = r.nextInt()
     val clusterSize    = r.nextInt()
 
-    val labelIds = r.nextArray[Int]()
-    val userIds  = r.nextArray[String]()
+    val labelIds = r.nextIntArray()
+    val userIds  = r.nextStringArray()
 
     val avgLatitude  = r.nextDouble()
     val avgLongitude = r.nextDouble()
@@ -177,7 +176,7 @@ class ClusterTable @Inject() (protected val dbConfigProvider: DatabaseConfigProv
     )
   }
 
-  implicit val clusterScoreRowConverter: GetResult[ClusterScoreRow] = GetResult[ClusterScoreRow] { r =>
+  given clusterScoreRowConverter: GetResult[ClusterScoreRow] = GetResult[ClusterScoreRow] { r =>
     ClusterScoreRow(
       streetEdgeId = r.nextInt(),
       intersectionId = r.nextIntOption(),

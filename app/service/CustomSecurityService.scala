@@ -14,7 +14,7 @@ class CustomSecurityService @Inject() (
     silhouette: Silhouette[DefaultEnv],
     authenticationService: AuthenticationService,
     configService: ConfigService
-)(implicit ec: ExecutionContext) {
+)(using ec: ExecutionContext) {
 
   // Basic authentication without checking for role. Overriding each of the SecuredAction methods w/ different params.
   def SecuredAction(block: SecuredRequest[DefaultEnv, AnyContent] => Future[Result]): Action[AnyContent] = {

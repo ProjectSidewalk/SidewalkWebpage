@@ -402,5 +402,8 @@
     "region-sub-pending": "{{length}} aan straten · {{percent}}% onderzocht",
     "street-in-city": "{{region}}, {{city}}",
     "unnamed": "Naamloze straat"
-  }
+  },
+  "immersive-enter": "Immersieve modus openen",
+  "immersive-exit": "Immersieve modus verlaten",
+  "immersive-exit-hint": "Immersieve modus. Druk op F om te verlaten."
 }

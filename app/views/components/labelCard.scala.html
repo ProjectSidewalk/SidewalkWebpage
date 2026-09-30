@@ -28,7 +28,7 @@
 * @param actions      The card's action buttons, supplied by the caller.
 *@
 @(idPrefix: String, showNotRated: Boolean = false, noInfoKey: Option[String] = None,
-  typeEditable: Boolean = false)(actions: Html)(implicit assets: AssetsFinder)
+  typeEditable: Boolean = false)(actions: Html)(using assets: AssetsFinder)
 
 <div id="@idPrefix" class="label-anchored-panel label-hover-card" role="dialog" aria-labelledby="@{idPrefix}-type">
   <div class="label-hover-card__header">

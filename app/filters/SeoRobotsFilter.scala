@@ -24,7 +24,7 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param config Application configuration; the indexability predicate is static, so it is evaluated once here.
  */
 @Singleton
-class SeoRobotsFilter @Inject() (config: Configuration)(implicit val mat: Materializer, ec: ExecutionContext)
+class SeoRobotsFilter @Inject() (config: Configuration)(using val mat: Materializer, ec: ExecutionContext)
     extends Filter {
 
   /** Static per-deployment config, so this is decided once at startup rather than per request. */

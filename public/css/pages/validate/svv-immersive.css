@@ -1,0 +1,309 @@
+/* Immersive mode (#5560): the pano fills the browser window and the surviving controls float over it.
+   body.svv-immersive is toggled by the shared ImmersiveMode (public/js/common/ImmersiveMode.js), which also sets
+   html.chromeless (main.css) to hide the navbar and the test-server banner. Everything here overrides the boxed
+   layout's CSS variables on the same element, so #svv-application-holder, #svv-panorama-holder and the viewer follow
+   (see the derivations in svv-general.css) without touching their own rules. The pano's size is CSS-driven here;
+   --ui-scale, which JS still sets (Main.applyValidateScale), only sizes the controls floating over it.
+
+   The DOM is the boxed page's: the menu column becomes the dock at the bottom-centre and the mission title and
+   progress bar become one pill at the top-centre (#mission-status, layout-free in the boxed page) by position alone,
+   so DesktopValidationMenu and StatusField know nothing about the mode. Expert Validate never enters it (Main.js),
+   so the edit sections have no rules here yet. */
+body.svv-immersive .tool-ui {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  margin: 0;
+  --pano-width: 100vw;
+  --pano-height: 100dvh;
+  --app-width: 100vw;
+
+  /* The pill floats over the pano, so the pano starts at the very top: override the derived variable rather than
+     zeroing --header-base-height, which applyValidateScale still reads for the fit. */
+  --header-height: 0px;
+
+  /* Every floating surface: the boxed page's asphalt at a translucency that keeps white text past 9:1 on any
+     imagery while the streetscape still shows through the edges. */
+  --svv-scrim: rgb(from var(--color-asphalt-500) r g b / 88%);
+}
+
+body.svv-immersive #svv-application-holder {
+  width: 100vw;
+  height: 100dvh;
+  margin: 0;
+  background: var(--color-asphalt-400); /* The viewer's own backdrop, for the frame before imagery paints. */
+}
+
+/* The screen edge is the frame. */
+body.svv-immersive #svv-panorama {
+  border-radius: 0;
+}
+
+body.svv-immersive #pano-border-frame {
+  display: none;
+}
+
+/* The title, its type icon and the progress bar share one pill at the top-centre: the place the corner controls never
+   reach and sky in nearly every pano. The count is worth its pixels, since a validator paces a mission by it. */
+body.svv-immersive #mission-status {
+  position: absolute;
+  top: calc(8px * var(--ui-scale));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: calc(8px * var(--ui-scale));
+  max-width: calc(100vw - 260px * var(--ui-scale)); /* Clears the corner controls on a narrow window. */
+  padding: calc(5px * var(--ui-scale)) calc(14px * var(--ui-scale)) calc(5px * var(--ui-scale))
+    calc(8px * var(--ui-scale));
+  color: var(--color-neutral-white);
+  background: var(--svv-scrim);
+  border-radius: calc(999px * var(--ui-scale));
+  z-index: 4;
+}
+
+body.svv-immersive .mission-title-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: calc(22px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
+}
+
+/* Sentence case, not the boxed page's letter-spaced capitals: over imagery it is a caption, not a banner. */
+body.svv-immersive #mission-title {
+  position: static;
+  width: auto;
+  overflow: hidden;
+  font: var(--text-small-bold);
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+body.svv-immersive #mission-progress-bar-section {
+  position: static;
+  flex: 0 0 auto;
+  width: calc(100px * var(--ui-scale));
+  --ps-progress-bar-height: calc(5px * var(--ui-scale));
+  gap: calc(8px * var(--ui-scale));
+}
+
+body.svv-immersive #mission-progress-bar-section .ps-progress-bar__track {
+  background: rgb(from var(--color-neutral-white) r g b / 25%);
+}
+
+body.svv-immersive #mission-progress-bar-text {
+  padding-bottom: 0;
+  white-space: nowrap;
+}
+
+/* The menu column becomes the dock: the same column, its boxed width, floated at the bottom-centre on the scrim.
+   The verdict is the core loop, so it stays always-on; the reason sections and Back / Submit grow the dock upward
+   when a verdict shows them, exactly as they grew the column. Above the view-control layer (2) and below the label
+   card (4), which is the transient one of the two. */
+body.svv-immersive #validation-menu-holder {
+  top: auto;
+  bottom: calc(14px * var(--ui-scale));
+  left: 50%;
+  transform: translateX(-50%);
+  height: auto;
+  max-height: calc(100dvh - 110px * var(--ui-scale)); /* Clears the pill at the top. */
+  overflow-y: auto;
+  padding: calc(10px * var(--ui-scale)) calc(14px * var(--ui-scale)) calc(12px * var(--ui-scale));
+  gap: calc(12px * var(--ui-scale));
+  color: var(--color-neutral-white);
+  background: var(--svv-scrim);
+  border-radius: calc(10px * var(--ui-scale));
+  box-shadow: var(--box-shadow-lg);
+  z-index: 3;
+}
+
+/* The dock is sized to its content, so the boxed column's push-to-bottom has nothing to push against. */
+body.svv-immersive #validate-submit-section {
+  align-items: center;
+  margin-top: 0;
+}
+
+/* The buttons and fields keep their white fills on the scrim, so their text must not inherit the dock's white. The
+   chosen states keep their own colours (svv-validation-menu.css). */
+body.svv-immersive .validate-page-button,
+body.svv-immersive .validation-reason-button,
+body.svv-immersive .validate-text-input input {
+  color: var(--color-neutral-900);
+}
+
+/* The verdict buttons carry the same thumbs mobile Validate does, beside the underlined shortcut letter. */
+body.svv-immersive .validate-page-button {
+  display: inline-flex; /* The boxed rule sets inline-block, which cannot centre the thumb beside the text. */
+  align-items: center;
+  justify-content: center;
+  gap: calc(6px * var(--ui-scale));
+}
+
+body.svv-immersive .validate-page-button__icon {
+  display: inline-block;
+  width: calc(16px * var(--ui-scale));
+  height: calc(16px * var(--ui-scale));
+}
+
+/* A chosen verdict's fill is the thumb's own colour, so the thumb goes dark rather than vanish into it. */
+body.svv-immersive .validate-page-button.is-chosen .validate-page-button__icon {
+  filter: brightness(0);
+  opacity: 0.85;
+}
+
+/* Back and Submit move between labels rather than answer this one, so neither may look like a fourth verdict. */
+body.svv-immersive #validate-undo-button {
+  gap: calc(2px * var(--ui-scale));
+  padding: calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale)) calc(2px * var(--ui-scale)) 0;
+  color: var(--color-neutral-white);
+  background: none;
+  outline: none;
+  font: var(--text-small-regular);
+}
+
+body.svv-immersive #validate-undo-button:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+body.svv-immersive #validate-undo-button:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
+/* The boxed disabled grey is set for a white fill; on the scrim it needs the white itself, faded. */
+body.svv-immersive #validate-undo-button:disabled {
+  color: rgb(from var(--color-neutral-white) r g b / 45%);
+}
+
+body.svv-immersive #validate-submit-button {
+  display: none;
+  min-width: calc(140px * var(--ui-scale));
+}
+
+body.svv-immersive #validation-menu-holder.has-verdict #validate-submit-button {
+  display: inline-block;
+}
+
+/* A mask, not an <img>, so the arrow takes the text colour and fades out with it when Back is disabled. */
+body.svv-immersive .validate-undo-button__icon {
+  display: inline-block;
+  width: calc(18px * var(--ui-scale));
+  height: calc(18px * var(--ui-scale));
+  -webkit-mask-image: url("../../../images/icons/chevron-left-feather.svg");
+  mask-image: url("../../../images/icons/chevron-left-feather.svg");
+}
+
+/* The close control in the dock's top-right corner, once a verdict has opened it: an X takes the answer back so the
+   dock folds to the three buttons again. Shown by the has-verdict class DesktopValidationMenu keeps on the holder. */
+body.svv-immersive #validation-menu-holder.has-verdict #validate-verdict-clear {
+  display: inline-flex;
+}
+
+body.svv-immersive #validate-verdict-clear {
+  position: absolute;
+  top: calc(8px * var(--ui-scale));
+  right: calc(8px * var(--ui-scale));
+  align-items: center;
+  justify-content: center;
+  width: calc(24px * var(--ui-scale));
+  height: calc(24px * var(--ui-scale));
+  padding: 0;
+  border: none;
+  border-radius: calc(4px * var(--ui-scale));
+  background: none;
+  color: var(--color-neutral-white);
+  cursor: pointer;
+}
+
+/* The default rings are drawn for a white page: Submit's banana ring and the browser's blue both fall under 3:1 on the
+   scrim, and the verdict buttons have none at all (svv-validation-menu.css), so the dock's controls get Back's. */
+body.svv-immersive #validate-verdict-clear:focus-visible,
+body.svv-immersive #validate-submit-button:focus-visible,
+body.svv-immersive .validate-page-button:focus-visible,
+body.svv-immersive .validation-reason-button:focus-visible {
+  outline: 2px solid var(--color-neutral-white);
+  outline-offset: 2px;
+}
+
+body.svv-immersive #validate-verdict-clear:hover {
+  background: rgb(from var(--color-neutral-white) r g b / 15%);
+}
+
+body.svv-immersive .validate-verdict-clear__icon {
+  width: calc(14px * var(--ui-scale));
+  height: calc(14px * var(--ui-scale));
+  -webkit-mask-image: url("../../../images/icons/cross.svg");
+  mask-image: url("../../../images/icons/cross.svg");
+}
+
+/* The question keeps clear of the close control. */
+body.svv-immersive #main-validate-header {
+  padding-right: calc(28px * var(--ui-scale));
+}
+
+body.svv-immersive .validation-menu-section-header {
+  margin-bottom: calc(8px * var(--ui-scale));
+}
+
+/* The Hide-label, chevron, zoom and immersive controls keep the boxed layout's top corners (svv-panorama.css). Over
+   imagery rather than the boxed layout's asphalt frame, each gets a single light stroke so it reads on a bright or
+   dark sky alike, as Explore's do. */
+body.svv-immersive .pano-overlay-button,
+body.svv-immersive .ps-icon-button,
+body.svv-immersive .speed-limit-sign {
+  box-shadow: 0 0 0 1px var(--color-neutral-600);
+}
+
+/* The mission-start screen is sized to the page under the navbar, which immersive mode hides (html.chromeless), so it
+   has to cover the whole window on a page that loads straight into the mode. */
+body.svv-immersive .mission-start-tutorial-overlay {
+  height: 100%;
+}
+
+/* The modals are sized to the boxed pano (svv-modal.css): keep them that size and centre them over the window rather
+   than stretching a mission summary across a whole monitor. The ids out-rank the class, so both are named. */
+body.svv-immersive .modal-foreground,
+body.svv-immersive #modal-mission-complete-foreground {
+  top: 50%;
+  left: 50%;
+  right: auto;
+  transform: translate(-50%, -50%);
+  width: calc(var(--pano-base-width) * var(--ui-scale));
+  height: calc(var(--pano-base-height) * var(--ui-scale));
+}
+
+/* The boxed backdrop overshoots its holder to cover the page margins; the holder is now the window. It also has to
+   cover the pill, the corner controls and the dock, which float above an unstacked backdrop (z-index 3 and 4). */
+body.svv-immersive .modal-background {
+  left: 0;
+  width: 100%;
+  z-index: 5;
+}
+
+/* The pano's footprint is nearly the whole window here, far too big for a few counts, so this is sized to content. */
+body.svv-immersive #modal-mission-complete-foreground {
+  width: min(calc(440px * var(--ui-scale)), calc(100vw - 32px));
+  height: auto;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: calc(28px * var(--ui-scale)) calc(32px * var(--ui-scale));
+  border: none;
+  border-radius: calc(12px * var(--ui-scale));
+  box-shadow: var(--box-shadow-lg);
+}
+
+body.svv-immersive #modal-mission-complete-title {
+  margin-top: 0;
+}
+
+body.svv-immersive #modal-mission-complete-table {
+  height: auto;
+  padding-left: 0;
+  margin-top: calc(20px * var(--ui-scale));
+}
+
+body.svv-immersive .modal-mission-complete-counts {
+  width: 100%;
+}

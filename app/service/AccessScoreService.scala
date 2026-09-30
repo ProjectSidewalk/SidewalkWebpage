@@ -69,9 +69,8 @@ class AccessScoreService @Inject() (
     apiService: ApiService,
     configService: ConfigService,
     swrCache: SwrCache,
-    implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
-)(implicit mat: Materializer) {
+)(using ec: ExecutionContext, mat: Materializer) {
 
   /**
    * Computes v3 AccessScores for every street intersecting the bbox and every intersection at their ends (#3855,

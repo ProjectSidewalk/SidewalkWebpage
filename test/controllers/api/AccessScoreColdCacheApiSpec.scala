@@ -28,7 +28,7 @@ import scala.jdk.CollectionConverters._
  * behave normally.
  */
 @Singleton
-class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(implicit context: ExecutionContext)
+class ColdSwrCache @Inject() (cacheApi: AsyncCacheApi, actorSystem: ActorSystem)(using context: ExecutionContext)
     extends SwrCache(cacheApi, actorSystem) {
 
   override def staleWhileRevalidateWithin[T](
@@ -71,7 +71,7 @@ class AccessScoreColdCacheApiSpec extends SidewalkSpec with GuiceOneAppPerSuite 
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val fullCityPaths = Seq(
     "/v3/api/accessScoreStreets",

@@ -5,7 +5,7 @@ import controllers.helper.ControllerUtils.{isAdmin, isMobile, regionsParam}
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
 import formats.json.LabelFormats
-import formats.json.MissionFormats._
+import formats.json.MissionFormats.given
 import formats.json.ValidateFormats.{
   EnvironmentSubmission,
   LabelMapValidationSubmission,
@@ -50,7 +50,6 @@ case class ValidatePageData(
 @Singleton
 class ValidateController @Inject() (
     cc: CustomControllerComponents,
-    implicit val ec: ExecutionContext,
     val config: Configuration,
     configService: service.ConfigService,
     labelService: service.LabelService,
@@ -62,10 +61,10 @@ class ValidateController @Inject() (
     osmWayService: service.OsmWayService,
     missionService: service.MissionService,
     aiService: service.AiService
-)(implicit assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Returns the validation page.
@@ -75,7 +74,7 @@ class ValidateController @Inject() (
    */
   def validate(regions: Option[String], unvalidatedOnly: Option[Boolean], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      if (isMobile(request)) {
+      if (isMobile) {
         // mobileValidate takes the same query params, so forward them along with the redirect.
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
         Future.successful(Redirect("/mobile", request.queryString))
@@ -128,7 +127,7 @@ class ValidateController @Inject() (
       teams: Option[String]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      if (isMobile(request)) {
+      if (isMobile) {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ExpertValidate_RedirectMobile")
         Future.successful(Redirect("/mobile"))
       } else {
@@ -183,7 +182,7 @@ class ValidateController @Inject() (
             validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
             commonPageData   <- configService.getCommonPageData(request2Messages.lang)
           } yield {
-            if (!isMobile(request)) {
+            if (!isMobile) {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
               Redirect("/")
             } else {

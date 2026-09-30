@@ -20,7 +20,7 @@ class ValidateTeamParamsSpec extends SidewalkSpec with RoleSession with GuiceOne
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /expertValidate" should {
     "reject a team that doesn't exist" in {

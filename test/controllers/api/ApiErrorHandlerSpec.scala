@@ -22,7 +22,7 @@ class ApiErrorHandlerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer     = app.materializer
+  given mat: Materializer                 = app.materializer
   private def handler: CustomErrorHandler = app.injector.instanceOf[CustomErrorHandler]
 
   "CustomErrorHandler.onClientError" should {

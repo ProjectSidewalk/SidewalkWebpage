@@ -30,7 +30,7 @@ object UserStatActor {
 }
 
 @Singleton
-class UserStatActor @Inject() (adminService: AdminService, jobRunService: JobRunService)(implicit
+class UserStatActor @Inject() (adminService: AdminService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {

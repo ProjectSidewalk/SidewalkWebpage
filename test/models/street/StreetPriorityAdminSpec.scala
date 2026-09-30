@@ -2,7 +2,7 @@ package models.street
 
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.user.UserStatTableDef
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder

@@ -29,10 +29,8 @@ object SidewalkPresenceActor {
 class SidewalkPresenceActor @Inject() (
     sidewalkPresenceService: SidewalkPresenceService,
     jobRunService: JobRunService
-)(implicit
-    ec: ExecutionContext,
-    configService: ConfigService
-) extends Actor {
+)(using ec: ExecutionContext, configService: ConfigService)
+    extends Actor {
 
   private var cancellable: Option[Cancellable] = None
   private val logger                           = Logger(this.getClass)

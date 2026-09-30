@@ -6,7 +6,7 @@ import models.label.{ComputationMethod, LabelPointTable, LabelType}
 import models.pano.PanoSource
 import models.pano.PanoSource.PanoSource
 import models.street.StreetEdgePriority
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -140,14 +140,14 @@ object ExploreFormats {
   )
   case class AiLabelDetection(panoX: Int, panoY: Int, confidence: Double)
 
-  implicit val pointWrites: Writes[Point] = Writes { point =>
+  given pointWrites: Writes[Point] = Writes { point =>
     Json.obj(
       "lat" -> point.getX,
       "lng" -> point.getY
     )
   }
 
-  implicit val auditTaskWrites: Writes[AuditTask] = (
+  given auditTaskWrites: Writes[AuditTask] = (
     (__ \ "audit_task_id").write[Int] and
       (__ \ "amt_assignment_id").writeNullable[Int] and
       (__ \ "user_id").write[String] and
@@ -169,7 +169,7 @@ object ExploreFormats {
       (__ \ "outdated_imagery_at").writeNullable[OffsetDateTime]
   )((o: AuditTask) => Tuple.fromProductTyped(o))
 
-  implicit val auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
+  given auditTaskInteractionWrites: Writes[AuditTaskInteraction] = (
     (__ \ "audit_task_interaction_id").write[Long] and
       (__ \ "audit_task_id").write[Int] and
       (__ \ "mission_id").write[Int] and
@@ -185,7 +185,7 @@ object ExploreFormats {
       (__ \ "timestamp").write[OffsetDateTime]
   )((o: AuditTaskInteraction) => Tuple.fromProductTyped(o))
 
-  implicit val newTaskWrites: Writes[NewTask] = (task: NewTask) => {
+  given newTaskWrites: Writes[NewTask] = (task: NewTask) => {
     Json.obj(
       "type"       -> "Feature",
       "geometry"   -> task.geom,
@@ -216,24 +216,24 @@ object ExploreFormats {
     )
   }
 
-  implicit val streetEdgePriorityWrites: Writes[StreetEdgePriority] = (streetPriority: StreetEdgePriority) => {
+  given streetEdgePriorityWrites: Writes[StreetEdgePriority] = (streetPriority: StreetEdgePriority) => {
     Json.obj(
       "street_edge_id" -> streetPriority.streetEdgeId,
       "priority"       -> streetPriority.priority
     )
   }
 
-  implicit val updatedStreetsWrites: Writes[UpdatedStreets] = (
+  given updatedStreetsWrites: Writes[UpdatedStreets] = (
     (__ \ "last_priority_update_time").write[OffsetDateTime] and
       (__ \ "updated_street_priorities").write[Seq[StreetEdgePriority]]
   )((o: UpdatedStreets) => Tuple.fromProductTyped(o))
 
-  implicit val pointReads: Reads[Point] = (
+  given pointReads: Reads[Point] = (
     (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
   )((lat, lng) => new GeometryFactory().createPoint(new Coordinate(lat, lng)))
 
-  implicit val environmentSubmissionReads: Reads[EnvironmentSubmission] = (
+  given environmentSubmissionReads: Reads[EnvironmentSubmission] = (
     (JsPath \ "browser").readNullable[String] and
       (JsPath \ "browser_version").readNullable[String] and
       (JsPath \ "browser_width").readNullable[Int] and
@@ -247,7 +247,7 @@ object ExploreFormats {
       (JsPath \ "css_zoom").read[Int]
   )(EnvironmentSubmission.apply _)
 
-  implicit val interactionSubmissionReads: Reads[InteractionSubmission] = (
+  given interactionSubmissionReads: Reads[InteractionSubmission] = (
     (JsPath \ "action").read[String] and
       (JsPath \ "pano_id").readNullable[String] and
       (JsPath \ "lat").readNullable[Double] and
@@ -260,7 +260,7 @@ object ExploreFormats {
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(InteractionSubmission.apply _)
 
-  implicit val computationMethodReads: Reads[ComputationMethod.Value] = Reads { json =>
+  given computationMethodReads: Reads[ComputationMethod.Value] = Reads { json =>
     json.validate[String].flatMap { method =>
       ComputationMethod.fromString(method) match {
         case Some(computationMethod) => JsSuccess(computationMethod)
@@ -274,7 +274,7 @@ object ExploreFormats {
 
   private val positiveFrameError = JsonValidationError("canvas_width and canvas_height must be positive")
 
-  implicit val labelPointSubmissionReads: Reads[LabelPointSubmission] = (
+  given labelPointSubmissionReads: Reads[LabelPointSubmission] = (
     (JsPath \ "pano_x").read[Int] and
       (JsPath \ "pano_y").read[Int] and
       (JsPath \ "canvas_x").read[Int] and
@@ -294,7 +294,7 @@ object ExploreFormats {
       (JsPath \ "computation_method").readNullable[ComputationMethod.Value]
   )(LabelPointSubmission.apply _)
 
-  implicit val panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
+  given panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
     (JsPath \ "target_pano_id").read[String] and
       (JsPath \ "yaw_deg").read[Double] and
       (JsPath \ "description").readNullable[String]
@@ -313,7 +313,7 @@ object ExploreFormats {
     JsonValidationError(s"source_metadata must be a JSON object of at most $maxSourceMetadataBytes bytes")
   )(blob => Json.stringify(blob).getBytes(StandardCharsets.UTF_8).length <= maxSourceMetadataBytes)
 
-  implicit val panoSubmissionReads: Reads[PanoSubmission] = (
+  given panoSubmissionReads: Reads[PanoSubmission] = (
     (JsPath \ "pano_id").read[String] and
       (JsPath \ "source").read[PanoSource.Value] and
       (JsPath \ "capture_date").read[String] and
@@ -334,7 +334,7 @@ object ExploreFormats {
       (JsPath \ "source_metadata").readNullable[JsObject](sourceMetadataReads)
   )(PanoSubmission.apply _)
 
-  implicit val labelSubmissionReads: Reads[LabelSubmission] = (
+  given labelSubmissionReads: Reads[LabelSubmission] = (
     (JsPath \ "pano_id").read[String] and
       (JsPath \ "pano_source").read[PanoSource.Value] and
       (JsPath \ "label_type").read[LabelType] and
@@ -354,7 +354,7 @@ object ExploreFormats {
       label.pano.forall(_.panoId == label.panoId)
     )
 
-  implicit val auditTaskReads: Reads[TaskSubmission] = (
+  given auditTaskReads: Reads[TaskSubmission] = (
     (JsPath \ "street_edge_id").read[Int] and
       (JsPath \ "task_start").read[OffsetDateTime] and
       (JsPath \ "audit_task_id").readNullable[Int] and
@@ -369,12 +369,12 @@ object ExploreFormats {
       (JsPath \ "route_street_id").readNullable[Int]
   )(TaskSubmission.apply _)
 
-  implicit val noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (
+  given noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (
     (JsPath \ "audit_task").read[TaskSubmission] and
       (JsPath \ "mission_id").read[Int]
   )(NoStreetViewSubmission.apply _)
 
-  implicit val auditMissionProgressReads: Reads[AuditMissionProgress] = (
+  given auditMissionProgressReads: Reads[AuditMissionProgress] = (
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "distance_progress").readNullable[Double] and
       (JsPath \ "region_id").read[Int] and
@@ -383,7 +383,7 @@ object ExploreFormats {
       (JsPath \ "skipped").read[Boolean]
   )(AuditMissionProgress.apply _)
 
-  implicit val auditTaskSubmissionReads: Reads[AuditTaskSubmission] = (
+  given auditTaskSubmissionReads: Reads[AuditTaskSubmission] = (
     (JsPath \ "mission").read[AuditMissionProgress] and
       (JsPath \ "audit_task").read[TaskSubmission] and
       (JsPath \ "labels").read[Seq[LabelSubmission]] and
@@ -394,18 +394,18 @@ object ExploreFormats {
       (JsPath \ "timestamp").read[OffsetDateTime]
   )(AuditTaskSubmission.apply _)
 
-  implicit val surveySingleSubmissionReads: Reads[SurveySingleSubmission] = (
+  given surveySingleSubmissionReads: Reads[SurveySingleSubmission] = (
     (JsPath \ "name").read[String] and
       (JsPath \ "value").read[String]
   )(SurveySingleSubmission.apply _)
 
-  implicit val aiLabelDetectionReads: Reads[AiLabelDetection] = (
+  given aiLabelDetectionReads: Reads[AiLabelDetection] = (
     (JsPath \ "pano_x").read[Int] and
       (JsPath \ "pano_y").read[Int] and
       (JsPath \ "confidence").read[Double]
   )(AiLabelDetection.apply _)
 
-  implicit val aiLabelSubmissionReads: Reads[AiLabelsSubmission] = (
+  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = (
     (JsPath \ "label_type").read[LabelType] and
       (JsPath \ "model_id").read[String] and
       (JsPath \ "model_training_date").read[String] and

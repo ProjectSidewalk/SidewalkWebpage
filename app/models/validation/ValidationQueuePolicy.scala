@@ -3,7 +3,7 @@ package models.validation
 import models.audit.AuditTaskTableDef
 import models.label.LabelTableDef
 import models.user.{UserStatTable, UserStatTableDef}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 
 import java.time.{Duration, OffsetDateTime}
 

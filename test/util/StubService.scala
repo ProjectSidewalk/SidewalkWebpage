@@ -19,7 +19,7 @@ object StubService {
   /**
    * @param answers Return value per method name. A value is reused across calls, so it must not be a one-shot.
    */
-  def answering[T](answers: Map[String, Any])(implicit ct: ClassTag[T]): T = {
+  def answering[T](answers: Map[String, Any])(using ct: ClassTag[T]): T = {
     // Map is covariant in its value type, so an `answeringWith` map of thunks type-checks here too -- and the stub
     // would then answer with the function itself, surfacing as a ClassCastException inside the code under test.
     answers.foreach { case (name, answer) =>
@@ -33,7 +33,7 @@ object StubService {
    *
    * @param answers Supplier of the return value, per method name.
    */
-  def answeringWith[T](answers: Map[String, () => Any])(implicit ct: ClassTag[T]): T = {
+  def answeringWith[T](answers: Map[String, () => Any])(using ct: ClassTag[T]): T = {
     val iface = ct.runtimeClass
     require(iface.isInterface, s"${iface.getName} is not an interface, so it cannot be proxied.")
 

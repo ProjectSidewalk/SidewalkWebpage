@@ -3,7 +3,7 @@ package controllers
 import controllers.base._
 import controllers.helper.ControllerUtils.{parseIntegerSeq, NoUserId}
 import models.auth.DefaultEnv
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.mvc._
 import play.silhouette.api.Silhouette
@@ -18,7 +18,7 @@ class RegionController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
     regionService: RegionService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
   /**

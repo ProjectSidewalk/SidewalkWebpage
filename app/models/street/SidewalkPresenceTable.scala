@@ -3,7 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.api.{SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
 import models.label.StreetSide
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.utils.{FilteredTables, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -116,7 +116,7 @@ trait SidewalkPresenceTableRepository {
  * the two still agree.
  */
 @Singleton
-class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends SidewalkPresenceTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -228,7 +228,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       ORDER BY sidewalk_presence.street_edge_id, sidewalk_presence.street_side
     """)
 
-    implicit val getSidewalkPresenceForApi: GetResult[SidewalkPresenceForApi] = GetResult { r =>
+    given getSidewalkPresenceForApi: GetResult[SidewalkPresenceForApi] = GetResult { r =>
       SidewalkPresenceForApi(
         streetEdgeId = r.nextInt(),
         streetSide = r.nextString(),

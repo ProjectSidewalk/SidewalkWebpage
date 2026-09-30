@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import executors.CpuIntensiveExecutionContext
 import models.label.{CropMarker, CropSource, LabelCrop, LabelCropTable, LabelPointTable, LabelTable, LabelType}
 import models.pano.PanoDataTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.{ImageUtils, MyPostgresProfile}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
@@ -286,7 +286,7 @@ class CropServiceImpl @Inject() (
     panoDataTable: PanoDataTable,
     shareImageCache: ShareImageCache,
     cpuEc: CpuIntensiveExecutionContext
-)(implicit ec: ExecutionContext, mat: Materializer)
+)(using ec: ExecutionContext, mat: Materializer)
     extends CropService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

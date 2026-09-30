@@ -2,7 +2,7 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.silhouette.api.Identity
 
@@ -65,7 +65,7 @@ trait SidewalkUserTableRepository {}
 class SidewalkUserTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     userRoleTable: UserRoleTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends SidewalkUserTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

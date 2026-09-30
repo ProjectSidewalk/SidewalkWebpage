@@ -71,7 +71,7 @@ class ClusterServiceImpl @Inject() (
     jobRunService: JobRunService,
     accessScoreSpotlightService: AccessScoreSpotlightService,
     cpuEc: CpuIntensiveExecutionContext
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends ClusterService {
   private val logger = Logger(this.getClass)
 

@@ -5,7 +5,7 @@ import models.mission.MissionTableDef
 import models.user.SidewalkUserTableDef
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.CommonUtils.ViewerType.ViewerType
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 
 import java.time.OffsetDateTime
 

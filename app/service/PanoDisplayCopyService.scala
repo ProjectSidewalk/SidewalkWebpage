@@ -104,9 +104,7 @@ trait PanoDisplayCopyService {
 }
 
 @Singleton
-class PanoDisplayCopyServiceImpl @Inject() (
-    panoDataService: PanoDataService
-)(implicit ec: ExecutionContext)
+class PanoDisplayCopyServiceImpl @Inject() (panoDataService: PanoDataService)(using ec: ExecutionContext)
     extends PanoDisplayCopyService {
 
   import PanoDisplayCopyService._

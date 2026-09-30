@@ -5,14 +5,14 @@ import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import executors.CpuIntensiveExecutionContext
 import formats.json.LabelFormats.labelMetadataUserDashToJson
-import formats.json.UserFormats._
+import formats.json.UserFormats.given
 import models.auth._
 import models.label.LabelType
 import models.user.Role
 import models.utils.CommonUtils.METERS_TO_MILES
 import models.utils.ProfanityGuard
 import org.postgresql.util.{PSQLException, PSQLState}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.AnyContent
@@ -35,12 +35,12 @@ class UserProfileController @Inject() (
     streetService: service.StreetService,
     panoDataService: service.PanoDataService,
     cropService: service.CropService,
-    implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
-) extends CustomBaseController(cc) {
+)(using ec: ExecutionContext)
+    extends CustomBaseController(cc) {
 
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Builds the choropleth GeoJSON FeatureCollection for a set of a user's audited streets.
@@ -397,7 +397,7 @@ class UserProfileController @Inject() (
   }
 
   /** The cross-city payload for one user, in the requester's units and language. */
-  private def crossCityStatsJson(userId: String)(implicit request: SecuredRequest[DefaultEnv, AnyContent]) = {
+  private def crossCityStatsJson(userId: String)(using request: SecuredRequest[DefaultEnv, AnyContent]) = {
     userService
       .getCrossCityUserStats(userId, ControllerUtils.isMetric, request2Messages.lang)
       .map {

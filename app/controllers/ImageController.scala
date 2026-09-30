@@ -31,7 +31,7 @@ class ImageController @Inject() (
     shareImageCache: service.ShareImageCache,
     config: Configuration,
     cpuEc: CpuIntensiveExecutionContext
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 

@@ -25,7 +25,7 @@ import scala.util.control.NonFatal
 /**
  * Base controller for API endpoints with common utility methods.
  */
-abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: ExecutionContext)
+abstract class BaseApiController(cc: CustomControllerComponents)(using ec: ExecutionContext)
     extends CustomBaseController(cc) {
 
   private val logger = Logger(this.getClass)
@@ -157,7 +157,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * that work (#4161), so the retry gets a 429 instead. Only for file downloads: the site's own pages fetch the same
    * CSV/GeoJSON URLs in parallel, and those are cheap to repeat. `serve` must wrap its body with [[releasing]].
    */
-  private def oneAtATime(serve: BaseApiController.InFlight => Future[Result])(implicit
+  private def oneAtATime(serve: BaseApiController.InFlight => Future[Result])(using
       request: RequestHeader
   ): Future[Result] = {
     val key   = request.uri
@@ -194,7 +194,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
   }
 
   /** Ties the URL's hold to the response body: alive while chunks flow, freed when the body ends for any reason. */
-  private def releasing[T](body: Source[T, _], entry: BaseApiController.InFlight)(implicit
+  private def releasing[T](body: Source[T, _], entry: BaseApiController.InFlight)(using
       request: RequestHeader
   ): Source[T, _] =
     body
@@ -242,7 +242,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       contentType: String,
       disposition: String,
       entry: BaseApiController.InFlight
-  )(implicit request: RequestHeader): Result = {
+  )(using request: RequestHeader): Result = {
     val fileSource = StreamConverters
       .fromInputStream(() => new BufferedInputStream(Files.newInputStream(file)))
       .mapMaterializedValue(_.andThen { case _ => deleteDownloadDir(dir) })
@@ -285,7 +285,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
    * @param writeCsvs Writes the CSV files into the given folder and returns (file path, zip entry name) pairs.
    * @return A Result containing the zipped CSV files as a downloadable response.
    */
-  protected def outputZippedCsvs(baseFileName: String)(writeCsvs: Path => Future[Seq[(Path, String)]])(implicit
+  protected def outputZippedCsvs(baseFileName: String)(writeCsvs: Path => Future[Seq[(Path, String)]])(using
       request: RequestHeader
   ): Future[Result] = oneAtATime { entry =>
     val dir     = newDownloadDir()
@@ -362,7 +362,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       baseFileName: String,
       createShapefile: (Source[A, _], String, Int) => Future[Option[Path]],
       shapefileCreator: ShapefilesCreatorHelper
-  )(implicit request: RequestHeader): Future[Result] =
+  )(using request: RequestHeader): Future[Result] =
     outputShapefiles(
       dbDataStream,
       baseFileName,
@@ -382,7 +382,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       baseFileName: String,
       createShapefiles: (Source[A, _], String, Int) => Future[Option[Seq[Path]]],
       shapefileCreator: ShapefilesCreatorHelper
-  )(implicit request: RequestHeader): Future[Result] = oneAtATime { entry =>
+  )(using request: RequestHeader): Future[Result] = oneAtATime { entry =>
     val dir        = newDownloadDir()
     val outputFile = dir.resolve(baseFileName).toString
     createShapefiles(dbDataStream, outputFile, DEFAULT_BATCH_SIZE)
@@ -415,7 +415,7 @@ abstract class BaseApiController(cc: CustomControllerComponents)(implicit ec: Ex
       baseFileName: String,
       createGeopackageMethod: (Source[T, _], String, Int) => Future[Option[Path]],
       inline: Option[Boolean]
-  )(implicit request: RequestHeader): Future[Result] = oneAtATime { entry =>
+  )(using request: RequestHeader): Future[Result] = oneAtATime { entry =>
     val dir = newDownloadDir()
     // Going through `flatMap` means a builder that throws is handled by the same `recover` as one that fails later.
     Future.unit

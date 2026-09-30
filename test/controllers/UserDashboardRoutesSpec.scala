@@ -22,7 +22,7 @@ class UserDashboardRoutesSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private def redirectsToSignIn(sc: Int): Boolean = sc >= 300 && sc < 400
 

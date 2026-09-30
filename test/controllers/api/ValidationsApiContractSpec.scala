@@ -30,7 +30,7 @@ class ValidationsApiContractSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   // File-streamed responses (chunked JSON) need a real Materializer to consume; the test default is NoMaterializer,
   // which only works for strict bodies like JSON.
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val validResults = Set("Agree", "Disagree", "Unsure")
 

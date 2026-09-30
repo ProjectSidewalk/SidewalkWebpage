@@ -33,7 +33,7 @@ trait JobRunService {
 class JobRunServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     backgroundJobRunTable: BackgroundJobRunTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends JobRunService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

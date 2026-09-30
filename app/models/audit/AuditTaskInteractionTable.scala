@@ -94,7 +94,7 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag)
 trait AuditTaskInteractionTableRepository {}
 
 @Singleton
-class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends AuditTaskInteractionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

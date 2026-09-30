@@ -124,7 +124,7 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
 trait RouteTableRepository {}
 
 @Singleton
-class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends RouteTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

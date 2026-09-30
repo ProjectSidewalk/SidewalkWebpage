@@ -310,9 +310,12 @@ Each major UI is a self-contained app under `public/js/`, bundled separately by 
 corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
-  Its immersive mode (#5085, `src/controls/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills the
-  browser window with the pano; the labeling frame it stores with every label, and why, is in
-  [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract".
+  Its immersive mode (#5085, the shared `common/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills
+  the browser window with the pano; the labeling frame it stores with every label, and why, is in
+  [`label-latlng-estimation.md`](label-latlng-estimation.md) under "The frame contract". Validate has the same mode
+  (#5560, `css/pages/validate/svv-immersive.css`): over the boxed DOM, CSS alone floats the menu column as a dock at
+  the bottom-centre and the mission title and progress bar as one pill at the top-centre. Expert Validate stays boxed
+  until its edit sections have an immersive placement.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
   `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
   display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's

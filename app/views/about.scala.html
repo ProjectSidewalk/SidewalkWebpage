@@ -17,7 +17,7 @@
  * @param user       The signed-in or anonymous display user (for the navbar).
  *@
 @(commonData: CommonPageData, title: String, user: Option[SidewalkUserWithRole]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Deployment counts span every configured city, not just the publicly listed ones, so these no-JS fallbacks line up
    with the /v3/api/aggregateStats numbers that replace them on load — the same counts the landing and /cities pages

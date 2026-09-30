@@ -11,7 +11,7 @@
  * @param pageMeta    Per-page SEO overrides; the all-defaults instance yields sensible site-wide values.
  *@
 @(commonData: CommonPageData, title: String, pageMeta: PageMeta
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder)
 
 @canonicalUrl = @{SeoUtils.canonicalUrl(commonData.prodUrl, pageMeta.canonicalPath.getOrElse(request.path))}
 @description = @{pageMeta.description.getOrElse(Messages("seo.description.default", commonData.currentCity.cityNameShort))}

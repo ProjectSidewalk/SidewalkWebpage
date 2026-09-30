@@ -29,7 +29,7 @@
  *@
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, meta: LabelMetadata,
     labelLatLng: Option[LatLng], cityName: String, shareMeta: Html, isAdmin: Boolean = false
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Config for SharedLabel.js, serialized once so the bundle carries no Twirl interpolation. *@
 @configJson = @{

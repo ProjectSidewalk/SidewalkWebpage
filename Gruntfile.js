@@ -21,7 +21,9 @@ module.exports = function (grunt) {
           'public/js/common/share/ShareWidget.js',
           // The pano image adjustments: the model, then the popover that drives it.
           'public/js/common/PanoImageAdjustments.js',
-          'public/js/common/PanoImageAdjustmentsPopover.js'
+          'public/js/common/PanoImageAdjustmentsPopover.js',
+          // Immersive mode (#5085, #5560): shared by Explore and Validate.
+          'public/js/common/ImmersiveMode.js'
         ],
         dest: 'public/js/explore/build/explore.js'
       },
@@ -55,7 +57,8 @@ module.exports = function (grunt) {
           'public/js/common/share/ShareWidget.js',
           // The pano image adjustments: the model, then the popover that drives it.
           'public/js/common/PanoImageAdjustments.js',
-          'public/js/common/PanoImageAdjustmentsPopover.js'
+          'public/js/common/PanoImageAdjustmentsPopover.js',
+          'public/js/common/ImmersiveMode.js'
         ],
         dest: 'public/js/validate/build/validate.js'
       },

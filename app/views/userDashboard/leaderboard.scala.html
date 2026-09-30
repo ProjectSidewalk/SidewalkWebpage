@@ -8,7 +8,7 @@
     aggregate: AggregateStats, impact: Option[CityImpact], overall: Seq[LeaderboardStat],
     weekly: Seq[LeaderboardStat], teams: Seq[LeaderboardStat], standing: Option[UserStanding],
     global: Option[Seq[GlobalLeaderboardEntry]]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * Redesigned Leaderboard, all real data. Sections run this-city first, then all-cities: the hero impact band

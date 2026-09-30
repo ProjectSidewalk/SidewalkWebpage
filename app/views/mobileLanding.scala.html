@@ -3,7 +3,7 @@
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], labelCount: Int, valCount: Int,
   partners: Seq[models.partner.PartnerMetadata], officialContact: Option[models.utils.OfficialContact]
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @formatNumber(n: Int) = @{java.text.NumberFormat.getInstance(messages.lang.toLocale).format(n)}

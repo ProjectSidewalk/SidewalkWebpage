@@ -2,7 +2,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* Owner-only Health page for the redesigned admin dashboard (#4561). At-a-glance database & application
    operational-health signals — blocking locks, idle-in-transaction sessions, stuck evolutions, table bloat, and

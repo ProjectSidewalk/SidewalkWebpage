@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -85,7 +85,7 @@ class StreetEdgeStatusChangeTable @Inject() (protected val dbConfigProvider: Dat
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val statusChanges = TableQuery[StreetEdgeStatusChangeTableDef]
 
-  implicit private val getStatusChangeWeek: GetResult[StatusChangeWeek] = GetResult { r =>
+  private given getStatusChangeWeek: GetResult[StatusChangeWeek] = GetResult { r =>
     StatusChangeWeek(r.nextDate().toLocalDate, StreetEdgeStatus.withName(r.nextString()), r.nextInt())
   }
 

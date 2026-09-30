@@ -151,7 +151,7 @@ trait IntersectionTableRepository {
  * the one-time population of existing cities, and `IntersectionTableSpec` checks the two still agree.
  */
 @Singleton
-class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends IntersectionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -159,20 +159,20 @@ class IntersectionTable @Inject() (protected val dbConfigProvider: DatabaseConfi
   val intersections: TableQuery[IntersectionTableDef]                     = TableQuery[IntersectionTableDef]
   val intersectionStreetEdges: TableQuery[IntersectionStreetEdgeTableDef] = TableQuery[IntersectionStreetEdgeTableDef]
 
-  implicit val intersectionInfoConverter: GetResult[IntersectionInfo] = GetResult[IntersectionInfo] { r =>
+  given intersectionInfoConverter: GetResult[IntersectionInfo] = GetResult[IntersectionInfo] { r =>
     IntersectionInfo(
       intersectionId = r.nextInt(),
       geom = r.nextGeometry[Point](),
       degree = r.nextInt(),
       gradeSeparated = r.nextBoolean(),
       regionId = r.nextIntOption(),
-      streetEdgeIds = r.nextArray[Int](),
+      streetEdgeIds = r.nextIntArray(),
       auditCount = r.nextInt()
     )
   }
 
-  implicit val intersectionStreetEndConverter: GetResult[IntersectionStreetEnd] = GetResult[IntersectionStreetEnd] {
-    r => IntersectionStreetEnd(r.nextInt(), r.nextString(), r.nextInt())
+  given intersectionStreetEndConverter: GetResult[IntersectionStreetEnd] = GetResult[IntersectionStreetEnd] { r =>
+    IntersectionStreetEnd(r.nextInt(), r.nextString(), r.nextInt())
   }
 
   def rebuild: DBIO[IntersectionRebuildCounts] = {

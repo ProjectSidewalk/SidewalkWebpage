@@ -2,7 +2,7 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: CommonPageData, user: SidewalkUserWithRole, isMobile: Boolean, cityHours: service.CrossCityHours
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * Time Check (#4375): shows the hours Project Sidewalk has logged for the signed-in user, framed to be encouraging and

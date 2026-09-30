@@ -139,6 +139,6 @@ case class ValidationResultTypeForApi(
  */
 object ValidationResultTypeForApi {
   // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration           = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val format: OFormat[ValidationResultTypeForApi] = Json.format[ValidationResultTypeForApi]
+  private given config: JsonConfiguration           = JsonConfiguration(JsonNaming.SnakeCase)
+  given format: OFormat[ValidationResultTypeForApi] = Json.format[ValidationResultTypeForApi]
 }

@@ -43,7 +43,7 @@ class StoryControllerSpec extends SidewalkSpec with RolledBackDb with AnonSessio
       .configure("rate-limit.story-submit.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val labelService: LabelService = app.injector.instanceOf[LabelService]
   private val storyService: StoryService = app.injector.instanceOf[StoryService]
@@ -684,7 +684,7 @@ class StoryControllerIpLimitSpec extends SidewalkSpec with AnonSession with Guic
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "POST /userapi/stories under the IP burst limit" should {
     "429 with the network-scoped error and the time left in the window" in {

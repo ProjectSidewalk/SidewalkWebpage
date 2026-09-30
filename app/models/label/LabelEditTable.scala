@@ -5,13 +5,12 @@ import models.api.{LabelEditDataForApi, LabelEditFiltersForApi}
 import models.user.SidewalkUserTableDef
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
 /**
  * One change to a label's type, severity and/or tags after its creation (#2575, #3671): who made it, from what, to
@@ -69,10 +68,8 @@ class LabelEditTableDef(tag: slick.lifted.Tag) extends Table[LabelEdit](tag, "la
 trait LabelEditTableRepository {}
 
 @Singleton
-class LabelEditTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends LabelEditTableRepository
+class LabelEditTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends LabelEditTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val labelEdits       = TableQuery[LabelEditTableDef]

@@ -105,7 +105,7 @@ class OsmWayServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     actorSystem: ActorSystem,
     osmWayTable: OsmWayTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends OsmWayService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   import OsmWayService._
@@ -438,7 +438,7 @@ object OsmWayService {
   def fetchSplittingOnNotFound(wayIds: Seq[Long])(
       fetch: Seq[Long] => Future[Option[Map[Long, JsObject]]],
       pause: () => Future[Unit] = () => Future.unit
-  )(implicit ec: ExecutionContext): Future[ChunkFetch] = {
+  )(using ec: ExecutionContext): Future[ChunkFetch] = {
     fetch(wayIds).flatMap {
       case Some(found)              => Future.successful(ChunkFetch(found, Nil))
       case None if wayIds.size <= 1 => Future.successful(ChunkFetch(Map.empty, wayIds))

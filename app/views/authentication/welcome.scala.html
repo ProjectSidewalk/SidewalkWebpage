@@ -4,7 +4,7 @@
 @import views.html.helper.CSRF
 @(commonData: CommonPageData, user: SidewalkUserWithRole, resumeUrl: String, resumed: Boolean,
   onLeaderboard: Boolean, publicProfile: Boolean, privateByDefault: Boolean
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * Post-registration welcome page (#4375): confirms the new account and shows what it unlocks (dashboard, badges,

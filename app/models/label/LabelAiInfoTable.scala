@@ -39,7 +39,7 @@ class LabelAiInfoTableDef(tag: Tag) extends Table[LabelAiInfo](tag, "label_ai_in
 trait LabelAiInfoTableRepository {}
 
 @Singleton
-class LabelAiInfoTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class LabelAiInfoTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     val ec: ExecutionContext
 ) extends LabelAiInfoTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

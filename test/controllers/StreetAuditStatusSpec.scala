@@ -21,7 +21,7 @@ class StreetAuditStatusSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /contribution/streets/all" should {
     "expose boolean audited and outdated properties on every feature, never both true" in {

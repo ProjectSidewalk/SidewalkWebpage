@@ -39,7 +39,7 @@ class ImageControllerSpec extends SidewalkSpec with AnonSession with GuiceOneApp
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val panoDataService: PanoDataService = app.injector.instanceOf[PanoDataService]
   private val shareImageCache: ShareImageCache = app.injector.instanceOf[ShareImageCache]

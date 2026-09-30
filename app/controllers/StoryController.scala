@@ -30,14 +30,12 @@ import scala.util.Try
 class StoryController @Inject() (
     cc: CustomControllerComponents,
     val silhouette: Silhouette[DefaultEnv],
-    implicit val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService,
     storyService: StoryService,
     signingService: ImageSigningService,
-    rateLimiter: RateLimiter,
-    implicit val ec: ExecutionContext
-) extends CustomBaseController(cc) {
+    rateLimiter: RateLimiter
+)(using config: Configuration, assets: AssetsFinder, ec: ExecutionContext)
+    extends CustomBaseController(cc) {
   private val logger = Logger(this.getClass)
 
   private val photoMaxBytes: Long = config.get[Long]("stories.photo-max-bytes")
@@ -174,7 +172,7 @@ class StoryController @Inject() (
    */
   private def updateStory(storyId: Int, event: String, body: MultipartFormData[TemporaryFile])(
       save: StoryEdit => Future[Either[StoryRejection, Unit]]
-  )(implicit request: SecuredRequest[DefaultEnv, _]): Future[Result] = {
+  )(using request: SecuredRequest[DefaultEnv, _]): Future[Result] = {
     def dataPart(name: String): Option[String] = body.dataParts.get(name).flatMap(_.headOption)
 
     val ipKey   = s"story-submit:ip:${request.ipAddress}"

@@ -16,6 +16,7 @@
   },
   "validate-menu": {
     "remove-tag": "Tag verwijderen: {{tag}}",
+    "clear-verdict": "Antwoord wissen",
     "tag-search-placeholder": "Voeg hier meer tags toe",
     "tag-search-no-results": "Geen overeenkomende tags",
     "disagree-reason": {

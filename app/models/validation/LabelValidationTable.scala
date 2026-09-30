@@ -9,7 +9,7 @@ import models.user._
 import models.utils.CommonUtils.UiSource.UiSource
 import models.utils.CommonUtils.ViewerType.ViewerType
 import models.utils.{Contributors, FilteredTables, MyPostgresProfile, SqlFragments}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, _}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
 import slick.jdbc.GetResult
@@ -109,9 +109,9 @@ trait LabelValidationTableRepository {}
 class LabelValidationTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     labelTable: LabelTable,
-    sidewalkUserTable: SidewalkUserTable,
-    implicit val ec: ExecutionContext
-) extends LabelValidationTableRepository
+    sidewalkUserTable: SidewalkUserTable
+)(using ec: ExecutionContext)
+    extends LabelValidationTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validations       = TableQuery[LabelValidationTableDef]
@@ -554,7 +554,7 @@ class LabelValidationTable @Inject() (
       endDate.map(d => sql"label_validation.end_timestamp < ($d::date + INTERVAL '1 day')")
     ).flatten
 
-    implicit val getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
+    given getResult: GetResult[(LocalDate, String, Int, Int, Int, Int, Int, Int)] =
       GetResult(r =>
         (LocalDate.parse(r.nextString()), r.nextString(), r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt(),
           r.nextInt(), r.nextInt())

@@ -47,7 +47,7 @@ import scala.util.{Failure, Success, Try, Using}
  * https://docs.geotools.org/stable/tutorials/feature/csv2shp.html
  */
 @Singleton
-class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: Materializer) {
+class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Materializer) {
   private val logger = Logger(this.getClass)
 
   private val shapefilePartExtensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")

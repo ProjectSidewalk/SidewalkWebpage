@@ -91,5 +91,5 @@ object UserStatForApi extends ApiFields[UserStatForApi] {
     )
   }
 
-  implicit val userStatWrites: Writes[UserStatForApi] = (userStat: UserStatForApi) => userStat.toJson
+  given userStatWrites: Writes[UserStatForApi] = (userStat: UserStatForApi) => userStat.toJson
 }
