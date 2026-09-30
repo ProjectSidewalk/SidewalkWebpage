@@ -160,12 +160,12 @@ recompute would produce, so changing a distance query means recomputing its cach
 nightly refresh that maintains them has to reach every row a full recompute would touch (#4774).
 `GeodesicDistanceSpec` checks both (for `meters_audited` and `high_quality` it compares evolution 347's backfill SQL
 with the runtime recompute, since the two must stay one formula). It needs a *seeded* database, since its
-cache-freshness tests cancel on empty tables. `centerline_offset_m` is the odd one out: nothing refreshes it nightly, so an evolution
-that moves `label_point.geom`, changes `label.street_edge_id`, or edits `street_edge.geom` must recompute it in the
-same statement with `label_centerline_offset_m(label_point.geom, street_edge.geom)` (377.sql's backfill is the
-template); `StreetSideSpec` fails if a stored value differs from a fresh call. The `street_edge.geom` case is the
-easiest to miss and the worst to get wrong: a street re-import that **reverses** an edge's digitization flips the
-sign of every offset on it, so labels silently swap sides while every value still looks plausible.
+cache-freshness tests cancel on empty tables. `centerline_offset_m` is the odd one out: nothing refreshes it nightly,
+so an evolution that moves `label_point.geom`, changes `label.street_edge_id`, or edits `street_edge.geom` must
+recompute it in the same statement with `label_centerline_offset_m(label_point.geom, street_edge.geom)` (377.sql's
+backfill is the template); `StreetSideSpec` fails if a stored value differs from a fresh call. The `street_edge.geom`
+case is the easiest to miss and the worst to get wrong: a street re-import that **reverses** an edge's digitization
+flips the sign of every offset on it, so labels silently swap sides while every value still looks plausible.
 
 ## A new table that cross-schema queries read
 
