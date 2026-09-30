@@ -202,7 +202,8 @@ class ManagementPage {
     const current = u.role || '';
     const assignable = this.#assignableRoles.includes(current);
     const opts = this.#assignableRoles.map((r) =>
-      `<option value="${r}"${r === current ? ' selected' : ''}>${r}</option>`).join('');
+      `<option value="${ManagementPage.#esc(r)}"${r === current ? ' selected' : ''}>${ManagementPage.#esc(r)}</option>`)
+      .join('');
     if (assignable) {
       return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" `
         + `aria-label="Role for ${ManagementPage.#esc(u.username)}">${opts}</select>`;
