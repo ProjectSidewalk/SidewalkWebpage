@@ -24,6 +24,15 @@
   z-index: 0;
 }
 
+/* MapillaryJS adds this class to its container. Under our component config the only visible z-indexed node it renders
+   is the attribution pill, which has to reach the pointer from where the SDK renders it, since the SDK patches it in
+   place per image (#5600), so the stacking context above has nothing to keep in. If a Mapillary component with DOM
+   chrome is ever enabled (bearing, sequence, direction, zoom), it will paint above the label layers, and this rule is
+   where to look. */
+#pano.mapillary-viewer {
+  z-index: auto;
+}
+
 /* Interaction layers stacked over the pano; the view-control layer (z-index: 1) sits above these. */
 #user-control-layer,
 #label-drawing-layer {

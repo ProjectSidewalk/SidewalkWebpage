@@ -137,11 +137,16 @@ input[type="radio"] {
   transform-origin: bottom left;
 }
 
-/* Move Mapillary's attribution links to the bottom-left of the pano, scaling them with the UI. */
-#view-control-layer .mapillary-attribution-container {
-  bottom: calc(3px * var(--ui-scale)) !important;
-  left: calc(1px * var(--ui-scale)) !important;
-  right: auto !important;
+/* Put Mapillary's attribution links at the bottom-left of the pano, scaling them with the UI, and lift them above the
+   control layers so they take clicks where the SDK renders them (#5600). One above the view-control layer (1) and no
+   higher: the border frame (2) comes later in the markup and still paints over the pill. The ID selector is what
+   outranks the vendor's position and z-index. A z-index, transform, opacity, filter or isolation on #pano or an
+   ancestor traps it under the control layers again, and mapillary-attribution-stacking.spec.js is what catches that. */
+#pano .mapillary-attribution-container {
+  z-index: 2;
+  bottom: calc(3px * var(--ui-scale));
+  left: calc(1px * var(--ui-scale));
+  right: auto;
   transform: scale(var(--ui-scale));
   transform-origin: bottom left;
 }

@@ -238,7 +238,10 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **mapbox-search-js: 1.6.0** — ships in `public/vendor/mapbox-gl/` with the rest of the Mapbox stack.
   [Install/download](https://docs.mapbox.com/mapbox-search-js/guides/install/) ·
   [Changelog](https://docs.mapbox.com/mapbox-search-js/guides/changelog/)
-- **mapillary: 4.1.2** — Mapillary imagery provider.
+- **mapillary: 4.1.2** — Mapillary imagery provider. **Note:** Explore and Validate leave the SDK's
+  `.mapillary-attribution-container` where it renders it and override its position and z-index from `svl.css` and
+  `svv-panorama.css` (#5600), keyed on that class and on `.mapillary-viewer`; on upgrade, re-check that the class names
+  and DOM shape still match and run `make test-e2e args="-g attribution --no-deps"`.
   [Downloads](https://mapillary.github.io/mapillary-js/docs/intro/try/#using-a-cdn) ·
   [Changelog](https://github.com/mapillary/mapillary-js/releases)
 - **pannellum: 2.5.7** — Pannellum panorama viewer. [Download](https://pannellum.org/download/) ·
