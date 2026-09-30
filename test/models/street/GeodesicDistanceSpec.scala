@@ -154,19 +154,32 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
   }
 
   "cached distances" should {
-    "match a fresh runtime recompute of user_stat.meters_audited" in {
-      // Runs the REAL runtime recompute (updateAuditedDistanceHelper) over every user inside a rolled-back
-      // transaction: cached values must already equal what it writes. Also evolution 347's backfill postcondition.
-      val allUserIds      = TableQuery[UserStatTableDef].map(_.userId)
-      val (before, after) = runRolledBack(for {
-        before <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
-        _      <- userStatTable.updateAuditedDistanceHelper(allUserIds)
-        after  <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
-      } yield (before, after))
+    "write the same user_stat.meters_audited as evolution 347's backfill" in {
+      // The evolution's SQL and the runtime recompute (updateAuditedDistanceHelper) are two spellings of one formula,
+      // so on the same data they must agree for every user. Both run inside one rolled-back transaction, so the check
+      // holds on any database, however stale its cached values were when the run started.
+      val allUserIds          = TableQuery[UserStatTableDef].map(_.userId)
+      val (backfill, runtime) = runRolledBack(for {
+        _ <- sqlu"""UPDATE user_stat
+                    SET meters_audited = recomputed.meters_audited
+                    FROM (
+                        SELECT audit_task.user_id, SUM(ST_Length(street_edge.geom::geography)) AS meters_audited
+                        FROM audit_task
+                        INNER JOIN street_edge ON audit_task.street_edge_id = street_edge.street_edge_id
+                        WHERE audit_task.completed
+                            AND street_edge.status = 'open'
+                            AND street_edge.street_edge_id <> (SELECT tutorial_street_edge_id FROM config)
+                        GROUP BY audit_task.user_id
+                    ) recomputed
+                    WHERE user_stat.user_id = recomputed.user_id"""
+        backfill <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
+        _        <- userStatTable.updateAuditedDistanceHelper(allUserIds)
+        runtime  <- sql"SELECT user_id, meters_audited FROM user_stat".as[(String, Double)].map(_.toMap)
+      } yield (backfill, runtime))
 
-      assume(after.nonEmpty, "no users in this schema; cache freshness needs a seeded DB")
+      assume(runtime.nonEmpty, "no users in this schema; comparing the two recomputes needs a seeded DB")
       // `.get` rather than `apply` so a user vanishing between the two reads reports as a failed assertion.
-      after.foreach { case (userId, recomputed) => assertClose(before.get(userId).value, recomputed) }
+      runtime.foreach { case (userId, recomputed) => assertClose(backfill.get(userId).value, recomputed) }
     }
 
     "credit a mission-less audit task through the nightly refresh (#4774)" in {
@@ -237,18 +250,26 @@ class GeodesicDistanceSpec extends SidewalkSpec with GuiceOneAppPerSuite with Op
       }
     }
 
-    "match a fresh runtime recompute of the distance-derived user_stat.high_quality flag" in {
-      // labels_per_meter is an input to the quality heuristic, so the cached flag must agree with a fresh
-      // updateHighQuality run. Epoch cutoff = every user the runtime recompute would ever touch.
-      val epoch           = OffsetDateTime.parse("1970-01-01T00:00:00Z")
-      val (before, after) = runRolledBack(for {
-        before <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
-        _      <- userStatTable.updateHighQuality(epoch)
-        after  <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
-      } yield (before, after))
+    "write the same distance-derived user_stat.high_quality flag as evolution 347's backfill" in {
+      // Same idea for the quality flag, whose heuristic reads labels_per_meter: the evolution's SQL sets every user's
+      // flag from the formula, and a runtime updateHighQuality pass over everyone (epoch cutoff) must then change
+      // nothing. Runs in one rolled-back transaction, so it holds however stale the flags were beforehand.
+      val epoch               = OffsetDateTime.parse("1970-01-01T00:00:00Z")
+      val (backfill, runtime) = runRolledBack(for {
+        _ <- sqlu"""UPDATE user_stat
+                    SET high_quality =
+                        NOT excluded
+                        AND COALESCE(high_quality_manual, TRUE)
+                        AND (COALESCE(high_quality_manual, FALSE)
+                             OR ((meters_audited = 0 OR COALESCE(labels_per_meter, 5) > 0.0375)
+                                 AND (COALESCE(accuracy, 1.0) > 0.6 OR own_labels_validated < 50)))"""
+        backfill <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
+        _        <- userStatTable.updateHighQuality(epoch)
+        runtime  <- sql"SELECT user_id, high_quality FROM user_stat".as[(String, Boolean)].map(_.toMap)
+      } yield (backfill, runtime))
 
-      assume(after.nonEmpty, "no users in this schema; cache freshness needs a seeded DB")
-      after.foreach { case (userId, recomputed) => before.get(userId).value mustBe recomputed }
+      assume(runtime.nonEmpty, "no users in this schema; comparing the two recomputes needs a seeded DB")
+      runtime.foreach { case (userId, recomputed) => backfill.get(userId).value mustBe recomputed }
     }
 
     "match a fresh runtime recompute of region_completion.total_distance, with audited_distance in bounds" in {

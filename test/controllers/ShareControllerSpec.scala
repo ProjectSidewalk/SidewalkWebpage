@@ -304,9 +304,18 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
 
     "serve nearby labels as GeoJSON from /v3/api/rawLabels with no auth cookie" in {
-      val resp = route(app, FakeRequest(GET, "/v3/api/rawLabels?filetype=geojson")).get
+      // Bounded to a small box around a real label, as the spotlight page asks. Unbounded, the endpoint streams the
+      // whole city, which on a big dev database runs the suite out of heap.
+      val location =
+        recentLabels.take(10).flatMap(l => Await.result(labelService.getLabelLatLng(l.labelId), 30.seconds))
+      assume(location.nonEmpty, "No located labels in the connected test DB; cannot exercise the nearby-labels path.")
+      val (lat, lng) = (location.head.lat, location.head.lng)
+      val bbox       = s"${lng - 0.002},${lat - 0.002},${lng + 0.002},${lat + 0.002}"
+      val resp       = route(app, FakeRequest(GET, s"/v3/api/rawLabels?filetype=geojson&bbox=$bbox")).get
       status(resp) mustBe OK
-      contentAsString(resp) must include("FeatureCollection")
+      val json = contentAsJson(resp)
+      (json \ "type").as[String] mustBe "FeatureCollection"
+      (json \ "features").as[Seq[JsObject]] must not be empty
     }
   }
 
