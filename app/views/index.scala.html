@@ -11,7 +11,9 @@
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @skylineImg = @{config.get[String]("city-params.skyline-img." + currentCity.cityId)}
 @newsRibbonLink = @{config.get[Option[String]]("custom.news.ribbon.link")}
-@streetCompletionRate = @{100 * auditedDistance / streetDistance}
+@* A city with no streets loaded yet counts as 0% rather than dividing by zero. *@
+@streetCompletionRate = @{if (streetDistance > 0) 100 * auditedDistance / streetDistance else 0.0}
+@locale = @{messages.lang.toLocale}
 
 @* Organization + WebSite JSON-LD (#4237), built with the JSON library so quoting is always valid; escaping `<`
    blocks a `</script>` breakout from any interpolated string. *@
@@ -188,10 +190,13 @@
         <img loading="lazy" src="@assets.path("images/generic_cloud_overlay.png")" class="skyline-cloud-overlay" alt="@Messages("landing.clouds.alt")">
       </div>
       <div class="ps-skyline-stats-holder">
-        <span class="ps-skyline-stats-holder-stat-number" id="percentage">NA</span>
-        <span class="ps-skyline-stats-holder-stat-number" id="distance">NA</span>
-        <span class="ps-skyline-stats-holder-stat-number" id="numlabels">NA</span>
-        <span class="ps-skyline-stats-holder-stat-number" id="numvalidation">NA</span>
+        @* homepage.js counts these up from zero; the numbers written here show if it can't. *@
+        <span class="ps-skyline-stats-holder-stat-number">
+          <span data-count-to="@streetCompletionRate" data-count-decimals="1">@("%.1f".formatLocal(locale, streetCompletionRate))</span>%
+        </span>
+        <span class="ps-skyline-stats-holder-stat-number" data-count-to="@auditedDistance" data-count-decimals="1">@("%,.1f".formatLocal(locale, auditedDistance))</span>
+        <span class="ps-skyline-stats-holder-stat-number" data-count-to="@labelCount">@("%,d".formatLocal(locale, labelCount))</span>
+        <span class="ps-skyline-stats-holder-stat-number" data-count-to="@valCount">@("%,d".formatLocal(locale, valCount))</span>
         @if(openStatus == "partially") {
           <span class="ps-skyline-stats-holder-stat-label">@Messages("landing.stats.percent.partial")</span>
         } else {
@@ -207,22 +212,16 @@
           <p id="conditional-text">Keep Mapping!</p>
         </div>
       </div>
-      @* countUp is only used by this inline stats script, so it loads here rather than in the global <head>. *@
-      <script src='@assets.path("vendor/countup/countUp-1.9.3.min.js")'></script>
       <script language="javascript">
         if ("@openStatus" === "partially" && @("%.0f".format(streetCompletionRate)) >= 100) {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
         } else if ("@openStatus" === "partially") {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate), distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, " % .1f".formatLocal(locale, streetCompletionRate), distanceUnitWords.name)";
         } else if (@("%.0f".format(streetCompletionRate)) < 100) {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate), distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, " % .1f".formatLocal(locale, streetCompletionRate), distanceUnitWords.name)";
         } else {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
         }
-        var percentageAnim = new CountUp("percentage", 0, @("%.1f".format(streetCompletionRate)), 1, 2.5, {suffix: '%'});
-        var distanceAnim = new CountUp("distance", 0, @("%.1f".format(auditedDistance)), 1, 2.5, {suffix: ''});
-        var labelsAnim = new CountUp("numlabels", 0, @labelCount, 0, 2.5, {suffix: ''});
-        var validationsAnim = new CountUp("numvalidation", 0, @valCount, 0, 2.5, {suffix: ''});
       </script>
     </div>
 
