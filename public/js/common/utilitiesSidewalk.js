@@ -810,7 +810,7 @@ util.misc = UtilitiesMisc(JSON);
  * A property rather than a top-level `const` because some views load this file directly on a page whose bundle
  * already concatenates it. Re-running it must stay harmless, and a repeated `const` is a fatal redeclaration.
  */
-util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'];
+util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'];
 
 /**
  * Whether a backup pano carries the metadata PannellumViewer needs to render it.
@@ -818,7 +818,7 @@ util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'came
  * Old pano_data rows carry nulls for these and PanoData rejects them (#4804). Guards the buildBackupImageData path
  * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `getLocalBackupImage`.
  *
- * @param {?object} data - Backup pano metadata in the camelCase shape buildBackupImageData produces, or null.
+ * @param {?object} data - Backup pano metadata in the shape buildBackupImageData produces, or null.
  * @returns {boolean} True when every field the viewer needs is present and numeric.
  */
 function backupImageDataIsComplete(data) {
@@ -829,18 +829,18 @@ function backupImageDataIsComplete(data) {
 /**
  * A self-hosted backup pano, in the shape PannellumViewer takes.
  * @typedef {object} BackupImage
- * @property {string} panoId
- * @property {string} imageUrl
+ * @property {string} pano_id
+ * @property {string} image_url
  * @property {number} width
  * @property {number} height
- * @property {number} tileWidth
- * @property {number} tileHeight
+ * @property {number} tile_width
+ * @property {number} tile_height
  * @property {number} lat
  * @property {number} lng
- * @property {number} cameraHeading
- * @property {number} cameraPitch
- * @property {number} cameraRoll
- * @property {string} captureDate
+ * @property {number} camera_heading
+ * @property {number} camera_pitch
+ * @property {number} camera_roll
+ * @property {string} capture_date
  * @property {string} copyright
  * @property {object} attribution
  * @property {string} address
@@ -864,18 +864,18 @@ function buildBackupImageData(meta) {
   if (!meta.backup_image_url || !meta.pano_data) return null;
   const pd = meta.pano_data;
   const backupImageData = {
-    panoId: meta.pano_id,
-    imageUrl: meta.backup_image_url,
+    pano_id: meta.pano_id,
+    image_url: meta.backup_image_url,
     width: pd.width,
     height: pd.height,
-    tileWidth: pd.tile_width,
-    tileHeight: pd.tile_height,
+    tile_width: pd.tile_width,
+    tile_height: pd.tile_height,
     lat: meta.camera_lat,
     lng: meta.camera_lng,
-    cameraHeading: pd.camera_heading,
-    cameraPitch: pd.camera_pitch,
-    cameraRoll: pd.camera_roll,
-    captureDate: meta.image_capture_date,
+    camera_heading: pd.camera_heading,
+    camera_pitch: pd.camera_pitch,
+    camera_roll: pd.camera_roll,
+    capture_date: meta.image_capture_date,
     copyright: pd.copyright,
     attribution: pd.attribution,
     address: pd.address,

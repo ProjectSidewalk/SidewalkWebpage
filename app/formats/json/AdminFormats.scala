@@ -12,7 +12,6 @@ import service.TimeInterval
 import java.time.OffsetDateTime
 
 object AdminFormats {
-  // snake_case keys, and a None written as null, for the Json.writes macros below.
   private given jsonConfig: JsonConfiguration =
     JsonConfiguration(JsonNaming.SnakeCase, optionHandlers = OptionHandlers.WritesNull)
 
@@ -42,36 +41,14 @@ object AdminFormats {
       infra3dAccess: Option[Boolean]
   )
 
-  given userRoleSubmissionReads: Reads[UserRoleSubmission] = (
-    (JsPath \ "user_id").read[String] and
-      (JsPath \ "role_id").read[String]
-  )(UserRoleSubmission.apply)
+  given userRoleSubmissionReads: Reads[UserRoleSubmission] = Json.reads[UserRoleSubmission]
 
-  given taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
-    (JsPath \ "userId").read[String] and
-      (JsPath \ "date").read[OffsetDateTime] and
-      (JsPath \ "flag").read[String] and
-      (JsPath \ "state").read[Boolean]
-  )(TaskFlagsByDateSubmission.apply)
+  given taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = Json.reads[TaskFlagsByDateSubmission]
 
-  given adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] = (
-    (JsPath \ "userId").read[String] and
-      (JsPath \ "username").read[String].map(_.trim) and
-      (JsPath \ "role").read[String] and
-      (JsPath \ "teamId").readNullable[Int] and
-      (JsPath \ "highQualityManual").readNullable[Boolean] and
-      (JsPath \ "excluded").read[Boolean] and
-      (JsPath \ "communityService").read[Boolean] and
-      (JsPath \ "onLeaderboard").read[Boolean] and
-      (JsPath \ "publicProfile").read[Boolean] and
-      (JsPath \ "infra3dAccess").readNullable[Boolean]
-  )(AdminUserSettingsSubmission.apply)
+  given adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] =
+    Json.reads[AdminUserSettingsSubmission].map(s => s.copy(username = s.username.trim))
 
-  given taskFlagSubmissionReads: Reads[TaskFlagSubmission] = (
-    (JsPath \ "auditTaskId").read[Int] and
-      (JsPath \ "flag").read[String] and
-      (JsPath \ "state").read[Boolean]
-  )(TaskFlagSubmission.apply)
+  given taskFlagSubmissionReads: Reads[TaskFlagSubmission] = Json.reads[TaskFlagSubmission]
 
   given userCountWrites: Writes[UserCount] = Json.writes[UserCount]
 

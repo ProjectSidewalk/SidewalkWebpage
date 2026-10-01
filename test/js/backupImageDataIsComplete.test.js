@@ -38,18 +38,18 @@ function loadScript(filePath, names) {
 /** A backup pano whose metadata is complete — the shape buildBackupImageData produces. */
 function completeBackupImageData() {
   return {
-    panoId: 'abc123',
-    imageUrl: '/backupImage/abc123?exp=1&sig=x',
+    pano_id: 'abc123',
+    image_url: '/backupImage/abc123?exp=1&sig=x',
     width: 13312,
     height: 6656,
-    tileWidth: 512,
-    tileHeight: 512,
+    tile_width: 512,
+    tile_height: 512,
     lat: 47.6,
     lng: -122.3,
-    cameraHeading: 180.5,
-    cameraPitch: 0,
-    cameraRoll: 0,
-    captureDate: '2011-05',
+    camera_heading: 180.5,
+    camera_pitch: 0,
+    camera_roll: 0,
+    capture_date: '2011-05',
     copyright: '© 2011 Google',
     address: '123 Fake St',
   };
@@ -110,13 +110,13 @@ describe('backupImageDataIsComplete', () => {
     expect(backupImageDataIsComplete(completeBackupImageData())).toBe(true);
   });
 
-  test.each(['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'])('rejects null %s', (field) => {
+  test.each(['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'])('rejects null %s', (field) => {
     const data = completeBackupImageData();
     data[field] = null; // What the server sends for a NULL pano_data column.
     expect(backupImageDataIsComplete(data)).toBe(false);
   });
 
-  test.each(['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'])('rejects missing %s', (field) => {
+  test.each(['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'])('rejects missing %s', (field) => {
     const data = completeBackupImageData();
     delete data[field];
     expect(backupImageDataIsComplete(data)).toBe(false);
@@ -128,7 +128,7 @@ describe('backupImageDataIsComplete', () => {
   });
 
   test('accepts zero values, which are legitimate for the camera angles', () => {
-    const data = { ...completeBackupImageData(), cameraHeading: 0, cameraPitch: 0 };
+    const data = { ...completeBackupImageData(), camera_heading: 0, camera_pitch: 0 };
     expect(backupImageDataIsComplete(data)).toBe(true);
   });
 
@@ -139,9 +139,9 @@ describe('backupImageDataIsComplete', () => {
 
   test('does not require the optional fields', () => {
     const data = completeBackupImageData();
-    delete data.cameraRoll;
-    delete data.tileWidth;
-    delete data.tileHeight;
+    delete data.camera_roll;
+    delete data.tile_width;
+    delete data.tile_height;
     delete data.address;
     delete data.copyright;
     expect(backupImageDataIsComplete(data)).toBe(true);
@@ -153,9 +153,9 @@ describe('buildBackupImageData', () => {
     const built = buildBackupImageData(labelMetadata());
 
     expect(built).not.toBeNull();
-    expect(built.panoId).toBe('abc123');
+    expect(built.pano_id).toBe('abc123');
     expect(built.width).toBe(13312);
-    expect(built.cameraHeading).toBe(180.5);
+    expect(built.camera_heading).toBe(180.5);
     // Camera position comes off the label metadata, not the nested pano_data.
     expect(built.lat).toBe(47.6);
     expect(built.lng).toBe(-122.3);
@@ -183,6 +183,9 @@ describe('buildBackupImageData', () => {
 });
 
 describe('coupling to PanoData', () => {
+  /** PanoData's params are camelCase; the backup data the guard checks is snake_case. */
+  const snakeCase = (field) => field.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+
   /** The params PannellumViewer hands PanoData for a complete backup pano. */
   function panoDataParams() {
     return {
@@ -213,7 +216,7 @@ describe('coupling to PanoData', () => {
       delete params[field];
 
       expect(() => new PanoData(params)).toThrow(`Missing required parameter: ${field}`);
-      expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(field);
+      expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(snakeCase(field));
     },
   );
 
@@ -222,7 +225,7 @@ describe('coupling to PanoData', () => {
     const suppliedByViewer = ['panoId', 'source', 'captureDate', 'linkedPanos', 'history'];
     for (const field of Object.keys(panoDataParams())) {
       if (!suppliedByViewer.includes(field)) {
-        expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(field);
+        expect(util.misc.BACKUP_IMAGE_REQUIRED_FIELDS).toContain(snakeCase(field));
       }
     }
   });

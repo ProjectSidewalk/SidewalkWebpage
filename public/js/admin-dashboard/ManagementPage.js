@@ -26,7 +26,7 @@ class ManagementPage {
   #users = [];
   #teams = [];
   #teamsByName = new Map();
-  #sort = { key: 'lastSignInTime', dir: 'desc' };
+  #sort = { key: 'last_sign_in_time', dir: 'desc' };
   #filter = '';
   #page = 1;
   #pageSize = ManagementPage.#PAGE_SIZES[0];
@@ -50,7 +50,7 @@ class ManagementPage {
       this.#users = (data && data.user_stats) || [];
       this.#teams = (data && data.teams) || [];
       this.#teamsByName = new Map(this.#teams.map((t) => [t.name, t]));
-      this.#accuracyFactor = ManagementPage.#pctFactor(this.#users, 'ownValidatedAgreedPct');
+      this.#accuracyFactor = ManagementPage.#pctFactor(this.#users, 'own_validated_agreed_pct');
 
       this.#renderUsers();
       this.#renderTeams();
@@ -79,15 +79,15 @@ class ManagementPage {
       { key: 'email', label: 'Email', align: 'left', sort: (u) => (u.email || '').toLowerCase() },
       { key: 'role', label: 'Role', align: 'left', sort: (u) => u.role || '' },
       { key: 'team', label: 'Team', align: 'left', sort: (u) => u.team || '' },
-      { key: 'highQuality', label: 'Quality', align: 'left', sort: (u) => (u.highQuality ? 1 : 0),
+      { key: 'high_quality', label: 'Quality', align: 'left', sort: (u) => (u.high_quality ? 1 : 0),
         help: 'Whether this contributor is flagged high-quality. "manual" means an admin set it.' },
-      { key: 'ownValidatedAgreedPct', label: 'Labeling accuracy', align: 'right',
-        sort: (u) => u.ownValidatedAgreedPct || 0,
+      { key: 'own_validated_agreed_pct', label: 'Labeling accuracy', align: 'right',
+        sort: (u) => u.own_validated_agreed_pct || 0,
         help: 'Share of this user’s validated labels that validators agreed with, and how many were validated.' },
-      { key: 'signUpTime', label: 'Signed up', align: 'right', sort: (u) => AdminShell.ts(u.signUpTime) },
-      { key: 'lastSignInTime', label: 'Last sign-in', align: 'right',
-        sort: (u) => AdminShell.ts(u.lastSignInTime) },
-      { key: 'signInCount', label: 'Sign-ins', align: 'right', sort: (u) => u.signInCount || 0 },
+      { key: 'sign_up_time', label: 'Signed up', align: 'right', sort: (u) => AdminShell.ts(u.sign_up_time) },
+      { key: 'last_sign_in_time', label: 'Last sign-in', align: 'right',
+        sort: (u) => AdminShell.ts(u.last_sign_in_time) },
+      { key: 'sign_in_count', label: 'Sign-ins', align: 'right', sort: (u) => u.sign_in_count || 0 },
     ];
   }
 
@@ -134,16 +134,16 @@ class ManagementPage {
     const body = rows.map((u) => {
       const cell = (html, align) => `<td${align === 'right' ? ' class="num"' : ''}>${html}</td>`;
       return [
-        `<tr data-user-id="${util.escapeHTML(u.userId)}">`,
+        `<tr data-user-id="${util.escapeHTML(u.user_id)}">`,
         cell(ManagementPage.#userLink(u), 'left'),
         cell(util.escapeHTML(u.email || ''), 'left'),
         cell(this.#roleSelect(u), 'left'),
         cell(this.#teamSelect(u), 'left'),
         cell(ManagementPage.#qualityBadge(u), 'left'),
-        cell(ManagementPage.#pctCell(u.ownValidatedAgreedPct, u.ownValidated, this.#accuracyFactor), 'right'),
-        cell(ManagementPage.#date(u.signUpTime), 'right'),
-        cell(ManagementPage.#date(u.lastSignInTime), 'right'),
-        cell((u.signInCount || 0).toLocaleString(), 'right'),
+        cell(ManagementPage.#pctCell(u.own_validated_agreed_pct, u.own_validated, this.#accuracyFactor), 'right'),
+        cell(ManagementPage.#date(u.sign_up_time), 'right'),
+        cell(ManagementPage.#date(u.last_sign_in_time), 'right'),
+        cell((u.sign_in_count || 0).toLocaleString(), 'right'),
         '</tr>',
       ].join('');
     }).join('');
@@ -206,7 +206,7 @@ class ManagementPage {
       `<option value="${util.escapeHTML(r)}"${r === current ? ' selected' : ''}>${util.escapeHTML(r)}</option>`)
       .join('');
     if (assignable) {
-      return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${util.escapeHTML(u.userId)}" `
+      return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${util.escapeHTML(u.user_id)}" `
         + `aria-label="Role for ${util.escapeHTML(u.username)}">${opts}</select>`;
     }
     // Show the locked role as a disabled, selected option so the column still reads clearly.
@@ -220,10 +220,10 @@ class ManagementPage {
     const hasTeam = u.team && this.#teamsByName.has(u.team);
     const placeholder = `<option value=""${hasTeam ? '' : ' selected'} disabled>— none —</option>`;
     const opts = this.#teams.map((t) =>
-      `<option value="${util.escapeHTML(t.teamId)}"${hasTeam && t.name === u.team ? ' selected' : ''}>`
+      `<option value="${util.escapeHTML(t.team_id)}"${hasTeam && t.name === u.team ? ' selected' : ''}>`
       + `${util.escapeHTML(t.name)}</option>`,
     ).join('');
-    return `<select class="ps-select mgmt-select" data-kind="team" data-user-id="${util.escapeHTML(u.userId)}" `
+    return `<select class="ps-select mgmt-select" data-kind="team" data-user-id="${util.escapeHTML(u.user_id)}" `
       + `aria-label="Team for ${util.escapeHTML(u.username)}">${placeholder}${opts}</select>`;
   }
 
@@ -279,7 +279,7 @@ class ManagementPage {
   }
 
   async #changeRole(userId, sel) {
-    const user = this.#users.find((u) => u.userId === userId);
+    const user = this.#users.find((u) => u.user_id === userId);
     const previous = user ? user.role : null;
     const newRole = sel.value;
     try {
@@ -294,10 +294,10 @@ class ManagementPage {
   }
 
   async #changeTeam(userId, sel) {
-    const user = this.#users.find((u) => u.userId === userId);
+    const user = this.#users.find((u) => u.user_id === userId);
     const previousName = user ? user.team : null;
     const teamId = parseInt(sel.value, 10);
-    const team = this.#teams.find((t) => t.teamId === teamId);
+    const team = this.#teams.find((t) => t.team_id === teamId);
     try {
       await AdminShell.mutate(`${this.#urls.setTeamUrl}?userId=${encodeURIComponent(userId)}&teamId=${teamId}`, 'PUT');
       if (user) user.team = team ? team.name : user.team;
@@ -305,7 +305,7 @@ class ManagementPage {
     } catch (err) {
       // Revert to the previously selected team (or the placeholder).
       sel.value = previousName && this.#teamsByName.has(previousName)
-        ? String(this.#teamsByName.get(previousName).teamId)
+        ? String(this.#teamsByName.get(previousName).team_id)
         : '';
       this.#flash(`Could not change team: ${err.message}`, true);
     }
@@ -324,12 +324,12 @@ class ManagementPage {
       <th scope="col">Status</th><th scope="col">Visibility</th><th scope="col">Labels</th>
     </tr>`;
     const body = this.#teams.map((t) => `
-      <tr data-team-id="${util.escapeHTML(t.teamId)}">
-        <td><a href="/admin/team/${util.escapeHTML(t.teamId)}">${util.escapeHTML(t.name)}</a></td>
+      <tr data-team-id="${util.escapeHTML(t.team_id)}">
+        <td><a href="/admin/team/${util.escapeHTML(t.team_id)}">${util.escapeHTML(t.name)}</a></td>
         <td>${util.escapeHTML(t.description || '')}</td>
-        <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
-        <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
-        <td><a class="dq-validate-btn" href="/expertValidate?teams=${util.escapeHTML(t.teamId)}"
+        <td>${ManagementPage.#toggle('status', t.team_id, t.open, 'Open', 'Closed')}</td>
+        <td>${ManagementPage.#toggle('visibility', t.team_id, t.visible, 'Visible', 'Hidden')}</td>
+        <td><a class="dq-validate-btn" href="/expertValidate?teams=${util.escapeHTML(t.team_id)}"
           aria-label="Validate labels from ${util.escapeHTML(t.name)}">Validate</a></td>
       </tr>`).join('');
     el.innerHTML = `
@@ -354,7 +354,7 @@ class ManagementPage {
   async #toggleTeam(btn, teamId, baseUrl, field, next, onLabel, offLabel) {
     try {
       await AdminShell.mutate(`${baseUrl}/${teamId}`, 'PUT', { [field]: next });
-      const team = this.#teams.find((t) => t.teamId === teamId);
+      const team = this.#teams.find((t) => t.team_id === teamId);
       if (team) team[field === 'open' ? 'open' : 'visible'] = next;
       ManagementPage.#setToggle(btn, next, onLabel, offLabel);
       this.#flash(`Team ${teamId}: ${field} → ${next ? onLabel : offLabel}.`);
@@ -470,16 +470,16 @@ class ManagementPage {
   }
 
   static #userLink(u) {
-    const name = u.username || u.userId || 'Unknown';
+    const name = u.username || u.user_id || 'Unknown';
     return `<a href="/admin/user/${encodeURIComponent(name)}">${util.escapeHTML(name)}</a>`;
   }
 
   /** A High/Low quality pill, tagged "manual" when an admin set the quality by hand (high_quality_manual is set). */
   static #qualityBadge(u) {
-    const badge = u.highQuality
+    const badge = u.high_quality
       ? '<span class="contrib-badge contrib-badge--high">High</span>'
       : '<span class="contrib-badge contrib-badge--low">Low</span>';
-    const manual = u.highQualityManual !== null && u.highQualityManual !== undefined;
+    const manual = u.high_quality_manual !== null && u.high_quality_manual !== undefined;
     if (!manual) return badge;
     return `${badge} <span class="mgmt-manual-tag" tabindex="0"
       data-ps-tooltip="Quality set manually by an admin">manual</span>`;

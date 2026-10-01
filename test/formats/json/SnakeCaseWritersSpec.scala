@@ -1,36 +1,40 @@
 package formats.json
 
 import formats.json.AdminFormats.given
+import formats.json.ClusterFormats.given
 import formats.json.ExploreFormats.given
 import formats.json.LabelFormats.given
 import formats.json.MissionFormats.given
+import formats.json.RouteBuilderFormats.given
 import formats.json.UserFormats.given
 import models.api.AiConcurrence
-import models.audit.{AuditTaskInteraction, ContributionTimeStat, GenericComment}
+import models.audit.{AuditTask, AuditTaskInteraction, ContributionTimeStat, GenericComment}
+import models.cluster.LabelToCluster
 import models.label.{Label, LabelCount, LabelType, LocationXY, POV}
 import models.mission.{Mission, MissionType}
 import models.pano.{PanoDataSlim, PanoSource}
 import models.street.StreetEdgePriority
-import models.user.{LabelTypeStat, Role, UserCount, UserSearchResult}
+import models.route.RouteWithStats
+import models.user.*
+import models.utils.{AiTagConfidence, ClusteringThreshold, ExcludedTag}
 import models.utils.CommonUtils.UiSource
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{Json, Writes}
-import service.{TeamMemberStats, TeamTotals, TimeInterval, UpdatedStreets}
+import service.{CityHours, TeamMemberStats, TeamOverview, TeamTotals, TimeInterval, UpdatedStreets}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
 /**
- * Pins the JSON of every writer derived with `Json.writes` under a snake_case `JsonConfiguration`. Those writers take
- * their keys from the Scala field names, so renaming a field would silently rename a key that pages and API clients
- * read; the expected strings are the output of the hand-listed writers they replaced (#5567). The `None` cases pin
- * which writers drop the key and which write `null`.
+ * Pins the keys every `Json.writes`-derived writer produces. Keys come from Scala field names, so renaming a field
+ * would silently rename a key the frontend reads. The `None` cases pin which writers drop the key and which write null.
  */
 class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
   private val t = OffsetDateTime.of(2026, 9, 29, 12, 30, 0, 0, ZoneOffset.UTC)
   private def check[A: Writes](a: A, expected: String): Unit = Json.stringify(Json.toJson(a)) shouldBe expected
 
-  test("derived snake_case writers keep the keys the hand-listed writers produced") {
+  test("derived writers produce the expected snake_case keys") {
     check(
       AiConcurrence(1, 2, 3, 4),
       """{"ai_yes_maj_vote_concurs":1,"ai_yes_maj_vote_differs":2,"ai_no_maj_vote_differs":3,"ai_no_maj_vote_concurs":4}"""
@@ -64,6 +68,10 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
     check(
       TeamTotals(1, 2, 3, 4.5, 5, 6),
       """{"members":1,"labels":2,"validations":3,"distance_meters":4.5,"labels_validated":5,"labels_agreed":6}"""
+    )
+    check(
+      TeamOverview(Team(1, "n", "d", true, false), Seq.empty, TeamTotals(0, 0, 0, 0.0, 0, 0)),
+      """{"team":{"team_id":1,"name":"n","description":"d","open":true,"visible":false},"members":[],"totals":{"members":0,"labels":0,"validations":0,"distance_meters":0,"labels_validated":0,"labels_agreed":0}}"""
     )
     check(
       UserSearchResult("u", "n", "e", Role.Registered, Some("t")),
@@ -142,5 +150,74 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
       UpdatedStreets(t, Seq(StreetEdgePriority(1, 2, 3.5))),
       """{"last_priority_update_time":"2026-09-29T12:30:00Z","updated_street_priorities":[{"street_edge_id":2,"priority":3.5}]}"""
     )
+    check(
+      AuditTask(
+        1,
+        Some(2),
+        "u",
+        3,
+        t,
+        t,
+        true,
+        1.5,
+        2.5,
+        false,
+        Some(4),
+        Some(GeometryFactory().createPoint(Coordinate(3.5, 4.5))),
+        false,
+        true,
+        false,
+        Some(5.5),
+        Some(6.5),
+        true,
+        Some(t)
+      ),
+      """{"audit_task_id":1,"amt_assignment_id":2,"user_id":"u","street_edge_id":3,"task_start":"2026-09-29T12:30:00Z","task_end":"2026-09-29T12:30:00Z","completed":true,"current_lat":1.5,"current_lng":2.5,"start_point_reversed":false,"current_mission_id":4,"current_mission_start":{"lat":3.5,"lng":4.5},"low_quality":false,"incomplete":true,"stale":false,"audited_distance_m":5.5,"start_offset_m":6.5,"outdated_imagery":true,"outdated_imagery_at":"2026-09-29T12:30:00Z"}"""
+    )
+    check(
+      AuditTask(1, None, "u", 3, t, t, true, 1.5, 2.5, false, None, None, false, true, false, None),
+      """{"audit_task_id":1,"user_id":"u","street_edge_id":3,"task_start":"2026-09-29T12:30:00Z","task_end":"2026-09-29T12:30:00Z","completed":true,"current_lat":1.5,"current_lng":2.5,"start_point_reversed":false,"low_quality":false,"incomplete":true,"stale":false,"outdated_imagery":false}"""
+    )
+    check(
+      LabelToCluster(1, "u", "p", 2, "CurbRamp", 1.5, 2.5, Some(3)),
+      """{"region_id":1,"user_id":"u","pano_id":"p","label_id":2,"label_type":"CurbRamp","lat":1.5,"lng":2.5,"severity":3}"""
+    )
+    check(
+      LabelToCluster(1, "u", "p", 2, "CurbRamp", 1.5, 2.5, None),
+      """{"region_id":1,"user_id":"u","pano_id":"p","label_id":2,"label_type":"CurbRamp","lat":1.5,"lng":2.5,"severity":null}"""
+    )
+    check(ClusteringThreshold("CurbRamp", 1.5), """{"label_type":"CurbRamp","threshold":1.5}""")
+    check(ExcludedTag("CurbRamp", "t"), """{"label_type":"CurbRamp","tag":"t"}""")
+    check(AiTagConfidence("t", 0.5), """{"tag":"t","confidence":0.5}""")
+    check(
+      RouteWithStats(1, 2, "r", 3, "n", "s", Some("d"), 1.5, 4, t, 5, 6, "e", "th"),
+      """{"route_id":1,"region_id":2,"region_name":"r","region_count":3,"name":"n","slug":"s","description":"d","distance_meters":1.5,"street_count":4,"created_at":"2026-09-29T12:30:00Z","started_count":5,"completed_count":6,"encoded_polyline":"e","thumbnail_url":"th"}"""
+    )
+    check(
+      RouteWithStats(1, 2, "r", 3, "n", "s", None, 1.5, 4, t),
+      """{"route_id":1,"region_id":2,"region_name":"r","region_count":3,"name":"n","slug":"s","distance_meters":1.5,"street_count":4,"created_at":"2026-09-29T12:30:00Z","started_count":0,"completed_count":0,"encoded_polyline":"","thumbnail_url":""}"""
+    )
+    check(
+      SidewalkUserWithRole("u", "n", "e", Role.Researcher, true, false, Some(MeasurementSystem.Metric)),
+      """{"user_id":"u","username":"n","email":"e","role":"Researcher","community_service":true,"infra3d_access":false,"measurement_system":"metric"}"""
+    )
+    check(
+      SidewalkUserWithRole("u", "n", "e", Role.Researcher, true, false, None),
+      """{"user_id":"u","username":"n","email":"e","role":"Researcher","community_service":true,"infra3d_access":false}"""
+    )
+    check(
+      CityHours("c", "City", 1.5, true),
+      """{"city_id":"c","city_name":"City","hours":1.5,"is_current_city":true}"""
+    )
+    check(
+      UserStatsForAdminPage("u", "n", "e", Role.Registered, Some("t"), Some(t), Some(t), 1, 2, 3, 4.5, 5, 6.5, true,
+        Some(false)),
+      """{"user_id":"u","username":"n","email":"e","role":"Registered","team":"t","sign_up_time":"2026-09-29T12:30:00Z","last_sign_in_time":"2026-09-29T12:30:00Z","sign_in_count":1,"labels":2,"own_validated":3,"own_validated_agreed_pct":4.5,"others_validated":5,"others_validated_agreed_pct":6.5,"high_quality":true,"high_quality_manual":false}"""
+    )
+    check(
+      UserStatsForAdminPage("u", "n", "e", Role.Registered, None, None, None, 1, 2, 3, 4.5, 5, 6.5, true, None),
+      """{"user_id":"u","username":"n","email":"e","role":"Registered","sign_in_count":1,"labels":2,"own_validated":3,"own_validated_agreed_pct":4.5,"others_validated":5,"others_validated_agreed_pct":6.5,"high_quality":true}"""
+    )
+    check(Team(1, "n", "d", true, false), """{"team_id":1,"name":"n","description":"d","open":true,"visible":false}""")
   }
 }

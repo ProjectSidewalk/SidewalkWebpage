@@ -1,11 +1,12 @@
 package formats.json
 
-import play.api.libs.functional.syntax.*
-import play.api.libs.json.{JsPath, Reads}
+import play.api.libs.json.{Json, JsonConfiguration, JsonNaming, Reads}
 
 import java.time.OffsetDateTime
 
 object GalleryFormats {
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
   case class GalleryEnvironmentSubmission(
       browser: Option[String],
       browserVersion: Option[String],
@@ -46,42 +47,13 @@ object GalleryFormats {
       labelIds: Option[Seq[Int]]
   )
 
-  given galleryEnvironmentSubmissionReads: Reads[GalleryEnvironmentSubmission] = (
-    (JsPath \ "browser").readNullable[String] and
-      (JsPath \ "browser_version").readNullable[String] and
-      (JsPath \ "browser_width").readNullable[Int] and
-      (JsPath \ "browser_height").readNullable[Int] and
-      (JsPath \ "screen_width").readNullable[Int] and
-      (JsPath \ "screen_height").readNullable[Int] and
-      (JsPath \ "avail_width").readNullable[Int] and
-      (JsPath \ "avail_height").readNullable[Int] and
-      (JsPath \ "operating_system").readNullable[String] and
-      (JsPath \ "language").read[String]
-  )(GalleryEnvironmentSubmission.apply)
+  given galleryEnvironmentSubmissionReads: Reads[GalleryEnvironmentSubmission] =
+    Json.reads[GalleryEnvironmentSubmission]
 
-  given galleryInteractionSubmissionReads: Reads[GalleryInteractionSubmission] = (
-    (JsPath \ "action").read[String] and
-      (JsPath \ "pano_id").readNullable[String] and
-      (JsPath \ "note").readNullable[String] and
-      (JsPath \ "timestamp").read[OffsetDateTime]
-  )(GalleryInteractionSubmission.apply)
+  given galleryInteractionSubmissionReads: Reads[GalleryInteractionSubmission] =
+    Json.reads[GalleryInteractionSubmission]
 
-  given galleryTaskSubmissionReads: Reads[GalleryTaskSubmission] = (
-    (JsPath \ "environment").read[GalleryEnvironmentSubmission] and
-      (JsPath \ "interactions").read[Seq[GalleryInteractionSubmission]]
-  )(GalleryTaskSubmission.apply)
+  given galleryTaskSubmissionReads: Reads[GalleryTaskSubmission] = Json.reads[GalleryTaskSubmission]
 
-  given galleryLabelsRequestReads: Reads[GalleryLabelsRequest] = (
-    (JsPath \ "n").read[Int] and
-      (JsPath \ "label_types").readNullable[Seq[String]] and
-      (JsPath \ "validation_options").readNullable[Seq[String]] and
-      (JsPath \ "region_ids").readNullable[Seq[Int]] and
-      (JsPath \ "severities").readNullable[Seq[String]] and
-      (JsPath \ "tags_by_label_type").readNullable[Map[String, Seq[String]]] and
-      (JsPath \ "ai_validation_options").readNullable[Seq[String]] and
-      (JsPath \ "loaded_labels").read[Seq[Int]] and
-      (JsPath \ "sort").readNullable[String] and
-      (JsPath \ "static_imagery_only").readNullable[Boolean] and
-      (JsPath \ "label_ids").readNullable[Seq[Int]]
-  )(GalleryLabelsRequest.apply)
+  given galleryLabelsRequestReads: Reads[GalleryLabelsRequest] = Json.reads[GalleryLabelsRequest]
 }

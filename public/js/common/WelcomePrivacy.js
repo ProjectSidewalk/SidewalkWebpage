@@ -36,8 +36,8 @@ class WelcomePrivacy {
     this.#setStatus(i18next.t('dashboard:settings-form.saving'), null);
 
     const { ok, error } = await saveUserSettings(this.saveUrl, {
-      onLeaderboard: this.leaderboard.checked,
-      publicProfile: this.profile.checked,
+      on_leaderboard: this.leaderboard.checked,
+      public_profile: this.profile.checked,
     });
     if (ok) {
       this.#setStatus(i18next.t('dashboard:settings-form.saved'), true);
