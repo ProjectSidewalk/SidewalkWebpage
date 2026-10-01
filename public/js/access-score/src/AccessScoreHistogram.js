@@ -53,7 +53,7 @@ class AccessScoreHistogram extends AccessScoreChart {
         <div class="acs-histogram__area">
           <div class="acs-histogram__bars" role="group" aria-label="${barsLabel}">
             ${data.bins.map((b, k) => `
-              <button type="button" class="acs-histogram__bin" data-bin="${util.escapeHTML(k)}" aria-pressed="false"
+              <button type="button" class="acs-histogram__bin" data-bin="${k}" aria-pressed="false"
                       tabindex="${k === 0 ? 0 : -1}">
                 <span class="acs-histogram__bar"></span>
               </button>`).join('')}

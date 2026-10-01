@@ -7,8 +7,10 @@
  * or any of those reached through a template literal, a concatenation, a ternary, a pass-through string method, a
  * joined array or `map`/`flatMap` callback, or a local variable.
  *
- * It follows syntax only, so a string returned from an ordinary function, parked on an object property or handed to
- * a helper that inserts HTML goes unseen.
+ * Helpers count too: an argument to one of MARKUP_HELPERS (project functions in other files that render their
+ * argument as HTML), or to a function or method of this file whose matching parameter itself reaches markup.
+ *
+ * It follows syntax only, so a string returned from an ordinary function or parked on an object property goes unseen.
  */
 
 'use strict';
@@ -19,6 +21,17 @@
  * fixed.
  */
 const MARKUP_METHODS = new Set(['insertAdjacentHTML', 'setHTML']);
+
+/**
+ * Project helpers, defined in other files, that render one of their arguments as HTML: the call's source text (or,
+ * for an instance method, just its name) and which arguments.
+ */
+const MARKUP_HELPERS = new Map([
+  ['AdminShell.setHtml', [1]],
+  ['ApiDocsMap.popup', [2]],
+  ['showAlert', [0]],
+  ['notify', [0, 1]],
+]);
 
 /** Element properties whose assigned value is parsed as HTML. */
 const MARKUP_PROPERTIES = new Set(['innerHTML', 'outerHTML']);
@@ -115,6 +128,10 @@ function createMarkupFlow(sourceCode) {
       case 'CallExpression': {
         if (parent.callee === node) return false;
         const callee = parent.callee;
+        const index = parent.arguments.indexOf(node);
+        if (isMarkupHelperArgument(callee, index)) return true;
+        const param = localParameter(callee, index);
+        if (param) return variableReachesMarkup(param, depth, seen);
         if (callee.type !== 'MemberExpression' || callee.computed || callee.property.type !== 'Identifier') {
           return false;
         }
@@ -190,6 +207,57 @@ function createMarkupFlow(sourceCode) {
     if (!variable || seen.has(variable)) return false;
     seen.add(variable);
     return variable.references.some((ref) => ref.isRead() && reachesMarkup(ref.identifier, depth + 1, seen));
+  }
+
+  /**
+   * Whether argument `index` of a call goes to a MARKUP_HELPERS helper.
+   *
+   * @param {object} callee - The call's callee.
+   * @param {number} index - Which argument.
+   * @returns {boolean} True when that argument is rendered as HTML.
+   */
+  function isMarkupHelperArgument(callee, index) {
+    const byName = MARKUP_HELPERS.get(sourceCode.getText(callee));
+    const method = callee.type === 'MemberExpression' && !callee.computed ? callee.property.name : null;
+    const byMethod = method ? MARKUP_HELPERS.get(method) : null;
+    return !!(byName?.includes(index) || byMethod?.includes(index));
+  }
+
+  /**
+   * The parameter a call's argument lands in, when the callee is a function or method of this file: a local
+   * function or `const` arrow, or a method of the enclosing class called through `this` or the class name.
+   *
+   * @param {object} callee - The call's callee.
+   * @param {number} index - Which argument.
+   * @returns {?object} The parameter's Identifier node, or null when it can't be found.
+   */
+  function localParameter(callee, index) {
+    let fn = null;
+    if (callee.type === 'Identifier') {
+      const scope = sourceCode.getScope(callee);
+      const variable = scope.references.find((r) => r.identifier === callee)?.resolved
+        ?? sourceCode.scopeManager.globalScope.set.get(callee.name);
+      const def = variable?.defs.length === 1 ? variable.defs[0] : null;
+      if (def?.type === 'FunctionName') fn = def.node;
+      else if (def?.type === 'Variable' && /Function/.test(def.node.init?.type ?? '')) fn = def.node.init;
+    } else if (callee.type === 'MemberExpression' && !callee.computed) {
+      let body = callee.parent;
+      while (body && body.type !== 'ClassBody') body = body.parent;
+      if (!body) return null;
+      const className = body.parent.id?.name;
+      const onThisClass = callee.object.type === 'ThisExpression'
+        || (callee.object.type === 'Identifier' && callee.object.name === className);
+      const name = callee.property.name;
+      const method = onThisClass
+        ? body.body.find((el) => el.type === 'MethodDefinition' && el.key.name === name
+          && (el.key.type === 'PrivateIdentifier') === (callee.property.type === 'PrivateIdentifier'))
+        : null;
+      fn = method?.value ?? null;
+    }
+    if (!fn || index < 0) return null;
+    const param = fn.params[index];
+    const id = param?.type === 'AssignmentPattern' ? param.left : param;
+    return id?.type === 'Identifier' ? id : null;
   }
 
   return (node) => reachesMarkup(node, 0, new Set());

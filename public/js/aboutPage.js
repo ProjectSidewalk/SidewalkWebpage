@@ -21,6 +21,9 @@ class AboutPage {
   // #sanitizeCitation for why the allowlist is this narrow.
   static #CITATION_TAGS = new Set(['A', 'B', 'EM', 'I', 'STRONG', 'SPAN', 'BR', 'SUB', 'SUP']);
 
+  /** The only links this page takes from the ML API: anything else, `javascript:` above all, could run code. */
+  static #HTTP_URL = /^https?:\/\//i;
+
   // Every ML API `position_title` that means "student", at any level. Designers, coordinators, research staff, and
   // faculty hold the other titles: they count as contributors but not toward the student figure.
   static #STUDENT_TITLES = ['High School Student', 'Undergrad', 'MS Student', 'PhD Student'];
@@ -49,6 +52,18 @@ class AboutPage {
   }
 
   /**
+   * An ML API link, escaped for an `href`, or `#` when it isn't http(s): escaping keeps a URL inside its attribute
+   * but doesn't stop a `javascript:` link from running.
+   *
+   * @param {?string} url - The link from the API.
+   * @returns {string} The escaped link, or `#`.
+   */
+  static #safeHref(url) {
+    const trimmed = String(url ?? '').trim();
+    return AboutPage.#HTTP_URL.test(trimmed) ? util.escapeHTML(trimmed) : '#';
+  }
+
+  /**
    * Reduces a citation string to the inline formatting a citation actually needs, dropping every other element and
    * every attribute but an http(s) `href`.
    *
@@ -72,7 +87,7 @@ class AboutPage {
         return;
       }
       for (const attr of [...node.attributes]) {
-        const isSafeHref = node.tagName === 'A' && attr.name === 'href' && /^https?:\/\//i.test(attr.value.trim());
+        const isSafeHref = node.tagName === 'A' && attr.name === 'href' && AboutPage.#HTTP_URL.test(attr.value.trim());
         if (!isSafeHref) node.removeAttribute(attr.name);
       }
     };
@@ -259,7 +274,7 @@ class AboutPage {
       (text ? `<span class="${className}">${util.escapeHTML(text)}</span>` : '');
     document.getElementById('about-team-current').innerHTML = current.map((p) => `
         <li class="about-team-member">
-          <a href="${util.escapeHTML(p.person.url)}">
+          <a href="${AboutPage.#safeHref(p.person.url)}">
             ${photoTag(p)}
             <span class="about-team-name">${util.escapeHTML(p.person.name)}</span>
           </a>
@@ -284,7 +299,7 @@ class AboutPage {
       const blurb = blurbFor(p);
       return `
         <li class="about-team-member">
-          <a href="${util.escapeHTML(p.person.url)}">
+          <a href="${AboutPage.#safeHref(p.person.url)}">
             ${photoTag(p)}
             <span class="about-team-name">${util.escapeHTML(p.person.name)}</span>
           </a>
@@ -305,7 +320,7 @@ class AboutPage {
         .filter(Boolean).join(', ');
       return `
         <li>
-          <a href="${util.escapeHTML(p.person.url)}">${util.escapeHTML(p.person.name)}</a>${credential
+          <a href="${AboutPage.#safeHref(p.person.url)}">${util.escapeHTML(p.person.name)}</a>${credential
             ? `, <span class="about-team-credential">${util.escapeHTML(credential)}</span>`
             : ''}
         </li>`;
@@ -337,7 +352,7 @@ class AboutPage {
         ['DOI', pub.official_url, 'link'],
         ['Code', pub.code_repo_url, 'code'],
       ].filter(([, url]) => url).map(([label, url, icon]) => `
-              <a class="about-pub-link" href="${util.escapeHTML(url)}">
+              <a class="about-pub-link" href="${AboutPage.#safeHref(url)}">
                 <img class="about-pub-link-icon" src="${util.assetPath(`images/icons/${icon}-feather.svg`)}" alt=""
                      aria-hidden="true">
                 ${util.escapeHTML(label)}
@@ -351,11 +366,11 @@ class AboutPage {
       return `
         <article class="about-pub"${initiallyVisible ? '' : ' hidden'}>
           ${thumb && titleUrl
-            ? `<a href="${util.escapeHTML(titleUrl)}" tabindex="-1" aria-hidden="true">${thumb}</a>`
+            ? `<a href="${AboutPage.#safeHref(titleUrl)}" tabindex="-1" aria-hidden="true">${thumb}</a>`
             : thumb}
           <div>
             <h3>${titleUrl
-              ? `<a href="${util.escapeHTML(titleUrl)}">${util.escapeHTML(pub.title)}</a>`
+              ? `<a href="${AboutPage.#safeHref(titleUrl)}">${util.escapeHTML(pub.title)}</a>`
               : util.escapeHTML(pub.title)}</h3>
             <p class="about-pub-authors">${pub.authors.map((a) => util.escapeHTML(a.name)).join(', ')}</p>
             <p class="about-pub-venue">${util.escapeHTML(venue)}${pub.award
@@ -439,7 +454,7 @@ class AboutPage {
       const grantId = hasId ? ` (#${util.escapeHTML(grant.grant_id)})` : '';
       return `
         <li>
-          ${grant.grant_url ? `<a href="${util.escapeHTML(grant.grant_url)}">${title}</a>` : title}
+          ${grant.grant_url ? `<a href="${AboutPage.#safeHref(grant.grant_url)}">${title}</a>` : title}
           — ${util.escapeHTML(grant.sponsor.name)}${grantId}
         </li>`;
     }).join('');

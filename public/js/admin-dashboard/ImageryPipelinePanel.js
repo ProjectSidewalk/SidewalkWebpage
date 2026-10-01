@@ -108,12 +108,12 @@ class ImageryPipelinePanel {
     const nights = (report.run_days || []).filter((day) => day.poll_failures > 0 || day.sync_failures > 0);
     if (nights.length === 0) {
       AdminShell.setHtml('imagery-failure-note',
-        `No run of either job failed in the last ${report.days} days.`);
+        `No run of either job failed in the last ${util.escapeHTML(report.days)} days.`);
       return;
     }
     const dates = nights.map((night) => night.day).join(', ');
     AdminShell.setHtml('imagery-failure-note',
-      `${nights.length} of the last ${report.days} nights recorded a failed run, with empty bars `
+      `${nights.length} of the last ${util.escapeHTML(report.days)} nights recorded a failed run, with empty bars `
       + `(${util.escapeHTML(dates)}).`);
   }
 

@@ -135,15 +135,18 @@
       map.on('click', PLACE_LAYER, (e) => {
         const feature = e.features[0];
         const p = feature.properties;
-        const name = p.name ? util.escapeHTML(p.name) : `Unnamed ${p.category}`;
+        const name = p.name ? util.escapeHTML(p.name) : `Unnamed ${util.escapeHTML(p.category)}`;
         const street = (p.nearest_street_edge_id === null || p.nearest_street_edge_id === undefined)
           ? 'no street within 250 m'
-          : `street ${p.nearest_street_edge_id}, ${Math.round(p.nearest_street_distance_m)} m away`;
-        const osm = p.osm_url ? `<a href="${p.osm_url}" target="_blank" rel="noopener">View on OpenStreetMap</a>` : '';
+          : `street ${util.escapeHTML(p.nearest_street_edge_id)}, ${Math.round(p.nearest_street_distance_m)} m away`;
+        const osm = p.osm_url
+          ? `<a href="${util.escapeHTML(p.osm_url)}" target="_blank" rel="noopener">View on OpenStreetMap</a>`
+          : '';
 
         ApiDocsMap.popup(map, e.lngLat, `
           <h4>${name}</h4>
-          <p><strong>Category:</strong> ${p.category} &nbsp; <strong>Place ID:</strong> ${p.place_id}</p>
+          <p><strong>Category:</strong> ${util.escapeHTML(p.category)} &nbsp;
+            <strong>Place ID:</strong> ${util.escapeHTML(p.place_id)}</p>
           <p><strong>Nearest street:</strong> ${street}</p>
           <p>${osm}</p>
         `);

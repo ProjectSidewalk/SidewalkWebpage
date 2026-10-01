@@ -192,7 +192,7 @@ class AcrossCitiesPage {
     for (const c of this.#cities) counts[c.lifecycle] = (counts[c.lifecycle] || 0) + 1;
     const order = ['active', 'wrapped_up', 'stalled', 'low_traction'];
     const parts = order.filter((k) => counts[k]).map((k) =>
-      `<strong>${counts[k]}</strong> ${AcrossCitiesPage.#LIFECYCLE[k].label.toLowerCase()}`);
+      `<strong>${util.escapeHTML(counts[k])}</strong> ${AcrossCitiesPage.#LIFECYCLE[k].label.toLowerCase()}`);
     const breakdown = parts.length ? ` · ${parts.join(' · ')}` : '';
     this.#setHtml('ac-pulse', `Comparing <strong>${n}</strong> ${n === 1 ? 'city' : 'cities'}${breakdown}.`);
   }

@@ -2,13 +2,18 @@
  * ESLint rule: a value interpolated into a template literal that ends up as HTML must be escaped, or be something
  * that can't carry markup (#5615).
  *
- * "Ends up as HTML" is worked out by markup-flow.js: `innerHTML`, `insertAdjacentHTML()` and friends, directly or
- * through a variable, a joined `map()`, a ternary and so on. Each `${…}` in such a template has to be one of:
+ * "Ends up as HTML" is worked out by markup-flow.js: `innerHTML`, `insertAdjacentHTML()`, an HTML-rendering helper
+ * and friends, directly or through a variable, a joined `map()`, a ternary and so on. Each `${…}` in such a template
+ * has to be one of:
  * - wrapped in `util.escapeHTML(…)`, or another call SAFE_CALLS trusts (asset paths, label-type data, translations);
  * - a number, a boolean, or arithmetic;
  * - a template, ternary, `&&`/`||`/`??` or `map(…).join()` whose parts all pass;
  * - a `const`, or a parameter or private field of this file, whose every value passes;
  * - a call to a function or private method of this file whose every return value passes.
+ *
+ * Inside a `data-ps-tooltip="…"` attribute written in markup, text is unescaped twice (once when the attribute is
+ * parsed, once when psTooltip puts it into the tooltip's innerHTML), so there `util.escapeHTML(x)` passes only when
+ * x is itself safe markup; plain text needs `AdminShell.tooltipAttr(…)`.
  *
  * Anything else (a property read off API data, a call into another file) is reported. When the value really is safe,
  * say why with an `eslint-disable-next-line ps/escape-in-markup -- <why>` comment.
@@ -34,7 +39,17 @@ const SAFE_CALLS = new Set([
 /** Callee prefixes whose results are safe: number math, and label-type data that comes from our own backend. */
 const SAFE_CALL_PREFIXES = ['Math.', 'util.misc.'];
 
-/** Methods that format a number or a date, which can't contain markup. */
+/** Calls that escape their argument once, which is one level short inside a tooltip attribute. */
+const ESCAPE_CALLS = new Set(['util.escapeHTML']);
+
+/** Calls that escape their argument for a tooltip attribute, both levels. */
+const TOOLTIP_ESCAPE_CALLS = new Set(['AdminShell.tooltipAttr']);
+
+/**
+ * Methods that format a number or a date, which prints no markup. `toLocaleString` is here although a string has
+ * one too (handing the string back unchanged): in this codebase it is called on counts, and treating every
+ * `count.toLocaleString()` as suspect would bury the real findings.
+ */
 const FORMAT_METHODS = new Set([
   'toFixed', 'toPrecision', 'toLocaleString', 'toLocaleDateString', 'toLocaleTimeString', 'toISOString',
   'toDateString',
@@ -48,10 +63,10 @@ const PASS_THROUGH_METHODS = new Set([
 
 /** Methods that also put (some of) their arguments into the result, by the index the arguments start at. */
 const ARG_CARRYING_METHODS = new Map([
-  ['replace', 1], ['replaceAll', 1], ['padStart', 1], ['padEnd', 1], ['concat', 0],
+  ['replace', 1], ['replaceAll', 1], ['padStart', 1], ['padEnd', 1], ['concat', 0], ['join', 0],
 ]);
 
-/** Array methods whose callback's first parameter is an element of the array they are called on. */
+/** Array methods whose callback gets an element of the array they are called on, then its index. */
 const ELEMENT_CALLBACK_METHODS = new Set(['map', 'flatMap', 'forEach', 'filter', 'find', 'some', 'every']);
 
 /** Array and Map/Set methods that change the collection they are called on. */
@@ -68,8 +83,23 @@ const NON_STRING_OPERATORS = new Set([
   'instanceof',
 ]);
 
+/** Parents a read of a collection can sit in without the collection being handed to other code. */
+const PLAIN_READ_PARENTS = new Set([
+  'TemplateLiteral', 'BinaryExpression', 'LogicalExpression', 'ConditionalExpression', 'UnaryExpression',
+  'ChainExpression', 'IfStatement', 'ForOfStatement', 'ForInStatement', 'SwitchStatement', 'ExpressionStatement',
+]);
+
+/** Functions that read a collection passed to them without changing it. */
+const READ_ONLY_FUNCTIONS = new Set([
+  'Object.keys', 'Object.values', 'Object.entries', 'Array.isArray', 'Array.from', 'JSON.stringify', 'Math.max',
+  'Math.min',
+]);
+
 /** How deep to follow variables, parameters and calls before giving up and calling the value unsafe. */
 const MAX_DEPTH = 12;
+
+/** Text before a `${…}` that leaves it inside a `data-ps-tooltip` attribute's quoted value. */
+const IN_TOOLTIP_ATTRIBUTE = /data-ps-tooltip\s*=\s*(?:"[^"]*|'[^']*)$/;
 
 /**
  * Calls `visit` on every node under `node`, without crossing into nested functions when `stopAtFunctions` is set.
@@ -101,6 +131,16 @@ function isFunction(node) {
   return !!node && /^(FunctionDeclaration|FunctionExpression|ArrowFunctionExpression)$/.test(node.type);
 }
 
+/**
+ * Whether a variable's initial value is an array, object or `new` collection, whose contents can change later.
+ *
+ * @param {?object} init - The declaration's initial value.
+ * @returns {boolean} True for a collection.
+ */
+function isCollection(init) {
+  return !!init && /^(ArrayExpression|ObjectExpression|NewExpression)$/.test(init.type);
+}
+
 module.exports = {
   meta: {
     type: 'problem',
@@ -111,6 +151,9 @@ module.exports = {
     messages: {
       unescaped: 'This value goes into HTML unescaped. Wrap it in util.escapeHTML(…), or if it is markup of ours '
         + 'or can never hold markup, add `// eslint-disable-next-line ps/escape-in-markup -- <why>`.',
+      tooltip: 'This text goes into a data-ps-tooltip attribute, which is unescaped twice. Use '
+        + 'AdminShell.tooltipAttr(…) (or util.escapeHTML twice), or util.escapeHTML(…) once around markup whose own '
+        + 'values are escaped.',
     },
   },
 
@@ -118,9 +161,12 @@ module.exports = {
     const sourceCode = context.sourceCode;
     const reachesMarkup = createMarkupFlow(sourceCode);
     const reported = new Set();
-    // Per-function results, so a helper called from twenty templates is analyzed once. `null` marks "in progress",
-    // which a recursive helper reads as safe rather than looping.
-    const returnsCache = new Map();
+    // Per-function results, so a helper called from twenty templates is analyzed once, kept apart for the two
+    // escaping levels. `null` marks "in progress", which a recursive helper reads as safe for the moment.
+    const returnsCache = [new Map(), new Map()];
+    // Set when a result leaned on an in-progress helper; such a result isn't cached, so it can't depend on which
+    // helper happened to be analyzed first.
+    let leanedOnCycle = false;
     const classMemberCache = new Map();
 
     /**
@@ -128,9 +174,10 @@ module.exports = {
      *
      * @param {object} node - The expression.
      * @param {number} depth - Hops spent so far.
+     * @param {boolean} tip - Whether the value lands in a tooltip attribute, where it is unescaped twice.
      * @returns {object[]} The offending nodes, which is where the report goes.
      */
-    function unsafeParts(node, depth) {
+    function unsafeParts(node, depth, tip) {
       if (depth > MAX_DEPTH) return [node];
       switch (node.type) {
         case 'Literal':
@@ -138,29 +185,29 @@ module.exports = {
         case 'UpdateExpression':
           return [];
         case 'TemplateLiteral':
-          return node.expressions.flatMap((e) => unsafeParts(e, depth));
+          return node.expressions.flatMap((e) => unsafeParts(e, depth, tip));
         case 'ConditionalExpression':
-          return [...unsafeParts(node.consequent, depth), ...unsafeParts(node.alternate, depth)];
+          return [...unsafeParts(node.consequent, depth, tip), ...unsafeParts(node.alternate, depth, tip)];
         case 'LogicalExpression':
           // `a && b` only ever yields `a` when it is falsy (empty, null, 0…), which can't hold markup.
-          if (node.operator === '&&') return unsafeParts(node.right, depth);
-          return [...unsafeParts(node.left, depth), ...unsafeParts(node.right, depth)];
+          if (node.operator === '&&') return unsafeParts(node.right, depth, tip);
+          return [...unsafeParts(node.left, depth, tip), ...unsafeParts(node.right, depth, tip)];
         case 'BinaryExpression':
           if (NON_STRING_OPERATORS.has(node.operator)) return [];
-          return [...unsafeParts(node.left, depth), ...unsafeParts(node.right, depth)];
+          return [...unsafeParts(node.left, depth, tip), ...unsafeParts(node.right, depth, tip)];
         case 'ChainExpression':
-          return unsafeParts(node.expression, depth);
+          return unsafeParts(node.expression, depth, tip);
         case 'ArrayExpression':
           return node.elements.flatMap((e) => {
             if (!e) return [];
-            return unsafeParts(e.type === 'SpreadElement' ? e.argument : e, depth);
+            return unsafeParts(e.type === 'SpreadElement' ? e.argument : e, depth, tip);
           });
         case 'MemberExpression':
-          return memberParts(node, depth);
+          return memberParts(node, depth, tip);
         case 'CallExpression':
-          return callParts(node, depth);
+          return callParts(node, depth, tip);
         case 'Identifier':
-          return identifierParts(node, depth);
+          return identifierParts(node, depth, tip);
         default:
           return [node];
       }
@@ -168,28 +215,29 @@ module.exports = {
 
     /**
      * Moves each report to where the fix belongs. A value found by following a variable, parameter, field or return
-     * value back to its source is reported where it was read, so the fix is a wrap at the HTML, not a change to
-     * the variable that other code may use as plain text. A part that sits inside a template stays put: that
-     * template is HTML being built, and escaping there is the fix.
+     * value back to its source is reported where it was read, so the fix is a wrap at the HTML rather than a change
+     * to a value other code may use as plain text. A part that sits in a template building HTML stays put, since
+     * escaping there is the fix.
      *
      * @param {object[]} parts - The offending nodes found at the source.
      * @param {object} read - The node that brought the value into this template.
      * @returns {object[]} The nodes to report.
      */
     function anchor(parts, read) {
-      const out = new Set(parts.map((p) => (inTemplate(p) ? p : read)));
+      const out = new Set(parts.map((p) => (inHtmlTemplate(p) ? p : read)));
       return [...out];
     }
 
     /**
-     * Whether a node's value is what a template literal's `${…}` prints, directly or through a ternary branch,
-     * `&&`/`||`, a `+`, or a method called on it. An argument to a call doesn't count: the call's result is printed,
-     * not the argument.
+     * Whether a node's value is what a `${…}` prints (directly or through a ternary branch, `&&`/`||`, a `+`, or a
+     * method called on it) in a template that builds HTML: one with a tag in its text, or one that is itself
+     * checked because it reaches markup. A template of plain text, like `${count} ${unit}`, doesn't count: what it
+     * builds may be shown as text too, so the escape belongs where it enters HTML.
      *
      * @param {object} node - Any expression.
-     * @returns {boolean} True when it is interpolated into a template.
+     * @returns {boolean} True when the escape belongs on this node.
      */
-    function inTemplate(node) {
+    function inHtmlTemplate(node) {
       let n = node;
       for (;;) {
         const p = n.parent;
@@ -198,7 +246,10 @@ module.exports = {
           || (p.type === 'BinaryExpression' && p.operator === '+')
           || (p.type === 'MemberExpression' && p.object === n)
           || (p.type === 'CallExpression' && p.callee === n));
-        if (!carried) return p?.type === 'TemplateLiteral';
+        if (!carried) {
+          if (p?.type !== 'TemplateLiteral') return false;
+          return p.quasis.some((q) => q.value.cooked?.includes('<')) || reachesMarkup(p);
+        }
         n = p;
       }
     }
@@ -209,40 +260,38 @@ module.exports = {
      *
      * @param {object} node - The MemberExpression.
      * @param {number} depth - Hops spent so far.
+     * @param {boolean} tip - Whether the value lands in a tooltip attribute.
      * @returns {object[]} The offending nodes.
      */
-    function memberParts(node, depth) {
+    function memberParts(node, depth, tip) {
       if (!node.computed && SAFE_PROPERTIES.has(node.property.name)) return [];
       // `util.misc.getLabelDescriptions(t).tagInfo[tag].text`: data from a trusted call, however deep.
       let base = node.object;
       while (base.type === 'MemberExpression') base = base.object;
-      if (base.type === 'CallExpression' && isTrustedCall(base)) return [];
+      if (base.type === 'CallExpression' && trustedCallParts(base, depth, tip)?.length === 0) return [];
       // `s[0]`: a character of a safe string.
       if (node.computed && node.property.type === 'Literal' && typeof node.property.value === 'number') {
-        const parts = unsafeParts(node.object, depth);
-        if (parts.length === 0) return [];
+        if (unsafeParts(node.object, depth, tip).length === 0) return [];
       }
       const values = literalValues(node, depth);
-      if (values) return anchor(values.flatMap((v) => unsafeParts(v, depth + 1)), node);
+      if (values) return anchor(values.flatMap((v) => unsafeParts(v, depth + 1, tip)), node);
       if (node.property.type === 'PrivateIdentifier') {
         const member = classMember(node, node.property.name);
-        if (member && member.kind === 'field') {
-          const values = [...member.writes];
-          return values.length === 0 ? [] : anchor(values.flatMap((v) => unsafeParts(v, depth + 1)), node);
+        if (member?.kind === 'field' && member.writes) {
+          return anchor(member.writes.flatMap((v) => unsafeParts(v, depth + 1, tip)), node);
         }
       }
       return [node];
     }
 
     /**
-     * Whether a call is one SAFE_CALLS / SAFE_CALL_PREFIXES vouches for.
+     * The callee a call names, seen through a `const esc = util.escapeHTML;` alias.
      *
      * @param {object} node - The CallExpression.
-     * @returns {boolean} True for a trusted helper.
+     * @returns {?string} The callee's source text, or null when it isn't a plain dotted name like `util.misc.x`.
      */
-    function isTrustedCall(node) {
+    function calleeName(node) {
       let callee = node.callee;
-      // `const esc = util.escapeHTML;` then `esc(x)`: judge the alias by what it points at.
       if (callee.type === 'Identifier') {
         const variable = resolveVariable(callee);
         const def = variable?.defs.length === 1 ? variable.defs[0] : null;
@@ -251,7 +300,33 @@ module.exports = {
         }
       }
       const name = sourceCode.getText(callee);
-      return SAFE_CALLS.has(name) || SAFE_CALL_PREFIXES.some((prefix) => name.startsWith(prefix));
+      return /^[\w$]+(\.[\w$]+)*$/.test(name) ? name : null;
+    }
+
+    /**
+     * The unsafe parts of a call SAFE_CALLS / SAFE_CALL_PREFIXES vouches for, or null when it isn't one. A trusted
+     * call is mostly safe outright; the exceptions are a translation's `defaultValue`, which is printed when the
+     * key is missing, and an escape that is one level short inside a tooltip attribute.
+     *
+     * @param {object} node - The CallExpression.
+     * @param {number} depth - Hops spent so far.
+     * @param {boolean} tip - Whether the value lands in a tooltip attribute.
+     * @returns {?object[]} The offending nodes, or null for an untrusted call.
+     */
+    function trustedCallParts(node, depth, tip) {
+      const name = calleeName(node);
+      if (!name || !(SAFE_CALLS.has(name) || SAFE_CALL_PREFIXES.some((prefix) => name.startsWith(prefix)))) {
+        return null;
+      }
+      if (tip && ESCAPE_CALLS.has(name)) {
+        return anchor(node.arguments.flatMap((a) => unsafeParts(a, depth, false)), node);
+      }
+      if (name === 'i18next.t' && node.arguments[1]?.type === 'ObjectExpression') {
+        const fallback = node.arguments[1].properties
+          .find((p) => p.type === 'Property' && !p.computed && p.key.name === 'defaultValue');
+        if (fallback) return anchor(unsafeParts(fallback.value, depth, tip), node);
+      }
+      return [];
     }
 
     /**
@@ -260,34 +335,35 @@ module.exports = {
      *
      * @param {object} node - The CallExpression.
      * @param {number} depth - Hops spent so far.
+     * @param {boolean} tip - Whether the value lands in a tooltip attribute.
      * @returns {object[]} The offending nodes.
      */
-    function callParts(node, depth) {
-      if (isTrustedCall(node)) return [];
+    function callParts(node, depth, tip) {
+      const trusted = trustedCallParts(node, depth, tip);
+      if (trusted) return trusted;
       const callee = node.callee;
       if (callee.type === 'Identifier' && callee.name === 'String' && !resolveVariable(callee)) {
-        return node.arguments.flatMap((a) => unsafeParts(a, depth));
+        return node.arguments.flatMap((a) => unsafeParts(a, depth, tip));
       }
       if (callee.type === 'MemberExpression' && !callee.computed) {
         const method = callee.property.name;
         if (FORMAT_METHODS.has(method)) return [];
-        if (method === 'join') return unsafeParts(callee.object, depth);
         if (PASS_THROUGH_METHODS.has(method) || ARG_CARRYING_METHODS.has(method)) {
           const carried = ARG_CARRYING_METHODS.has(method) ? node.arguments.slice(ARG_CARRYING_METHODS.get(method)) : [];
           return [callee.object, ...carried].flatMap((a) => {
-            if (isFunction(a)) return returnParts(a, depth);
-            return unsafeParts(a.type === 'SpreadElement' ? a.argument : a, depth);
+            if (isFunction(a)) return returnParts(a, depth, tip);
+            return unsafeParts(a.type === 'SpreadElement' ? a.argument : a, depth, tip);
           });
         }
         if ((method === 'map' || method === 'flatMap') && isFunction(node.arguments[0])) {
-          return anchor(returnParts(node.arguments[0], depth), node);
+          return anchor(returnParts(node.arguments[0], depth, tip), node);
         }
       }
       const fn = resolveFunction(callee);
-      if (fn) return anchor(returnParts(fn, depth), node);
+      if (fn) return anchor(returnParts(fn, depth, tip), node);
       // `COLUMNS[i].format(v)`: a function stored in an object literal of this file.
       const fns = callee.type === 'MemberExpression' ? literalValues(callee, depth + 1) : null;
-      if (fns?.length && fns.every(isFunction)) return anchor(fns.flatMap((f) => returnParts(f, depth)), node);
+      if (fns?.length && fns.every(isFunction)) return anchor(fns.flatMap((f) => returnParts(f, depth, tip)), node);
       return [node];
     }
 
@@ -296,21 +372,31 @@ module.exports = {
      *
      * @param {object} fn - The function node.
      * @param {number} depth - Hops spent so far.
+     * @param {boolean} tip - Whether the value lands in a tooltip attribute.
      * @returns {object[]} The offending nodes.
      */
-    function returnParts(fn, depth) {
-      if (returnsCache.has(fn)) return returnsCache.get(fn) || [];
-      returnsCache.set(fn, null);
+    function returnParts(fn, depth, tip) {
+      const cache = returnsCache[tip ? 1 : 0];
+      if (cache.has(fn)) {
+        const cached = cache.get(fn);
+        if (cached === null) leanedOnCycle = true;
+        return cached || [];
+      }
+      const outerLeaned = leanedOnCycle;
+      leanedOnCycle = false;
+      cache.set(fn, null);
       let parts;
       if (fn.body.type !== 'BlockStatement') {
-        parts = unsafeParts(fn.body, depth + 1);
+        parts = unsafeParts(fn.body, depth + 1, tip);
       } else {
         parts = [];
         walk(fn.body, (n) => {
-          if (n.type === 'ReturnStatement' && n.argument) parts.push(...unsafeParts(n.argument, depth + 1));
+          if (n.type === 'ReturnStatement' && n.argument) parts.push(...unsafeParts(n.argument, depth + 1, tip));
         }, true);
       }
-      returnsCache.set(fn, parts);
+      if (leanedOnCycle) cache.delete(fn);
+      else cache.set(fn, parts);
+      leanedOnCycle = outerLeaned || leanedOnCycle;
       return parts;
     }
 
@@ -338,7 +424,7 @@ module.exports = {
       if (node.type !== 'MemberExpression') return null;
       if (node.property.type === 'PrivateIdentifier') {
         const member = classMember(node, node.property.name);
-        if (member?.kind !== 'field' || member.writes.length !== 1) return null;
+        if (member?.kind !== 'field' || member.writes?.length !== 1 || member.changed) return null;
         return literalValues(member.writes[0], depth + 1);
       }
       const containers = literalValues(node.object, depth + 1);
@@ -363,31 +449,51 @@ module.exports = {
     }
 
     /**
-     * Whether an object or array held in a variable is changed after it is made (`xs.push(…)`, `o.k = …`), so its
-     * literal no longer lists every value it holds.
+     * What one read of a collection does to it: nothing (an empty list), adds values to it (`xs.push(a)`,
+     * `xs[i] = v`, `m.set(k, v)`: the added values), or something this rule can't follow (null): a nested change
+     * like `META.a.label = v`, or handing the collection to other code, which could change it.
+     *
+     * @param {object} use - The read: an Identifier, or a `this.#field` MemberExpression.
+     * @returns {?object[]} The added value nodes, or null.
+     */
+    function collectionChange(use) {
+      const parent = use.parent;
+      if (parent.type === 'MemberExpression' && parent.object === use) {
+        let top = parent;
+        while (top.parent.type === 'MemberExpression' && top.parent.object === top) top = top.parent;
+        const direct = top === parent;
+        const outer = top.parent;
+        if (outer.type === 'AssignmentExpression' && outer.left === top) return direct ? [outer.right] : null;
+        if (outer.type === 'UpdateExpression' || (outer.type === 'UnaryExpression' && outer.operator === 'delete')) {
+          return null;
+        }
+        if (outer.type !== 'CallExpression' || outer.callee !== top || top.computed) return [];
+        const method = top.property.name;
+        if (!MUTATING_METHODS.has(method)) return [];
+        if (!direct || outer.arguments.some((a) => a.type === 'SpreadElement')) return null;
+        switch (method) {
+          case 'push': case 'unshift': case 'add': return outer.arguments;
+          case 'splice': return outer.arguments.slice(2);
+          case 'fill': return outer.arguments.slice(0, 1);
+          case 'set': return outer.arguments.slice(1, 2);
+          default: return [];
+        }
+      }
+      if (parent.type === 'CallExpression' && parent.callee === use) return [];
+      const call = parent.type === 'SpreadElement' ? parent.parent : parent;
+      if (call.type === 'CallExpression' && READ_ONLY_FUNCTIONS.has(sourceCode.getText(call.callee))) return [];
+      return PLAIN_READ_PARENTS.has(parent.type) ? [] : null;
+    }
+
+    /**
+     * Whether an object or array held in a variable is changed or handed to other code after it is made, so its
+     * literal is not the whole list of values it holds.
      *
      * @param {object} variable - The Variable.
-     * @returns {boolean} True when some reference changes its contents or hands it to other code.
+     * @returns {boolean} True when some reference changes it or lets it go.
      */
     function isMutated(variable) {
-      return variable.references.some((ref) => {
-        const use = ref.identifier;
-        const parent = use.parent;
-        if (ref.init) return false;
-        if (parent.type === 'MemberExpression' && parent.object === use) {
-          const outer = parent.parent;
-          if (outer.type === 'AssignmentExpression' && outer.left === parent) return true;
-          if (outer.type === 'UpdateExpression' || (outer.type === 'UnaryExpression' && outer.operator === 'delete')) {
-            return true;
-          }
-          if (outer.type === 'CallExpression' && outer.callee === parent) {
-            return !parent.computed && MUTATING_METHODS.has(parent.property.name);
-          }
-          return false;
-        }
-        // Passed to a function, which could change it.
-        return parent.type === 'CallExpression' && parent.arguments.includes(use);
-      });
+      return variable.references.some((ref) => !ref.init && collectionChange(ref.identifier)?.length !== 0);
     }
 
     /**
@@ -414,44 +520,47 @@ module.exports = {
     }
 
     /**
-     * A variable read: a `const` (or a never-reassigned `let`) is as safe as its value; a parameter is as safe as
-     * every argument this file passes for it.
+     * A variable read: a `const` (or a `let` written only by `=`) is as safe as its values; a parameter is as safe
+     * as every argument this file passes for it.
      *
      * @param {object} node - The Identifier.
      * @param {number} depth - Hops spent so far.
+     * @param {boolean} tip - Whether the value lands in a tooltip attribute.
      * @returns {object[]} The offending nodes.
      */
-    function identifierParts(node, depth) {
+    function identifierParts(node, depth, tip) {
       if (node.name === 'undefined') return [];
       const variable = resolveVariable(node);
       if (!variable || variable.defs.length !== 1) return [node];
       const def = variable.defs[0];
       if (def.type === 'Variable') {
-        // `for (const x of [...])`: x is one of the literal's elements.
         const loop = def.parent.parent;
-        if (loop?.type === 'ForOfStatement' && loop.left === def.parent && def.node.id.type === 'Identifier') {
+        if (/^For(Of|In)Statement$/.test(loop?.type ?? '') && loop.left === def.parent) {
+          // `for (const x of [...])`: x is one of the literal's elements. Anything else a loop hands out is unknown.
+          if (loop.type !== 'ForOfStatement' || def.node.id.type !== 'Identifier') return [node];
           const arrays = literalValues(loop.right, depth + 1);
           if (!arrays || arrays.some((a) => a.type !== 'ArrayExpression')) return [node];
-          return anchor(arrays.flatMap((a) => unsafeParts(a, depth + 1)), node);
+          return anchor(arrays.flatMap((a) => unsafeParts(a, depth + 1, tip)), node);
         }
         if (def.node.id.type !== 'Identifier') return [node];
         const values = writtenValues(variable, def);
-        return values ? anchor(values.flatMap((v) => unsafeParts(v, depth + 1)), node) : [node];
+        return values ? anchor(values.flatMap((v) => unsafeParts(v, depth + 1, tip)), node) : [node];
       }
       if (def.type === 'Parameter') {
         if (isReassigned(variable, def)) return [node];
+        if (isIndexParam(def.node, node.name)) return [];
         const elements = elementParam(def.node, node.name, depth);
-        if (elements) return anchor(elements.flatMap((e) => unsafeParts(e, depth + 1)), node);
+        if (elements) return anchor(elements.flatMap((e) => unsafeParts(e, depth + 1, tip)), node);
         const args = argumentsFor(def.node, node.name);
-        return args ? anchor(args.flatMap((a) => unsafeParts(a, depth + 1)), node) : [node];
+        return args ? anchor(args.flatMap((a) => unsafeParts(a, depth + 1, tip)), node) : [node];
       }
       return [node];
     }
 
     /**
-     * Every value a variable is ever given: its initial value, each `=` or `+=` after it, and, for an array, Map or
-     * Set, whatever is added to it (`push`, `xs[i] = …`, `set`). Null when it is written some other way
-     * (destructuring, `++`, a loop), which this rule doesn't follow.
+     * Every value a variable is ever given: its initial value, each `=` or `+=` after it, and, for a collection,
+     * whatever is added to it. Null when it is written some other way (destructuring, `++`), or is a collection
+     * that is changed in a way this rule can't follow or handed to other code.
      *
      * @param {object} variable - The Variable.
      * @param {object} def - Its one definition.
@@ -459,6 +568,8 @@ module.exports = {
      */
     function writtenValues(variable, def) {
       const values = def.node.init ? [def.node.init] : [];
+      // A string can't be changed through another name or by a function it is passed to; a collection can.
+      const collection = isCollection(def.node.init);
       for (const ref of variable.references) {
         if (ref.identifier === def.name) continue;
         const use = ref.identifier;
@@ -469,38 +580,14 @@ module.exports = {
           values.push(write.right);
           continue;
         }
-        const added = addedValues(use);
-        if (added === null) return null;
-        values.push(...added);
+        const change = collectionChange(use);
+        if (change === null) {
+          if (collection) return null;
+          continue;
+        }
+        values.push(...change);
       }
       return values;
-    }
-
-    /**
-     * What one read of a collection adds to it: `xs.push(a, b)` adds a and b, `xs[i] = v` adds v, `m.set(k, v)`
-     * adds v. A read that adds nothing gives an empty list.
-     *
-     * @param {object} use - The Identifier being read.
-     * @returns {?object[]} The added value nodes, or null for a change this rule can't follow.
-     */
-    function addedValues(use) {
-      const member = use.parent;
-      if (member.type !== 'MemberExpression' || member.object !== use) return [];
-      const outer = member.parent;
-      if (outer.type === 'AssignmentExpression' && outer.left === member) return [outer.right];
-      if (outer.type === 'UpdateExpression') return null;
-      if (outer.type !== 'CallExpression' || outer.callee !== member || member.computed) return [];
-      const args = outer.arguments;
-      if (args.some((a) => a.type === 'SpreadElement')) {
-        return MUTATING_METHODS.has(member.property.name) ? null : [];
-      }
-      switch (member.property.name) {
-        case 'push': case 'unshift': case 'add': return args;
-        case 'splice': return args.slice(2);
-        case 'fill': return args.slice(0, 1);
-        case 'set': return args.slice(1, 2);
-        default: return [];
-      }
     }
 
     /**
@@ -511,7 +598,8 @@ module.exports = {
      */
     function resolveVariable(identifier) {
       const ref = sourceCode.getScope(identifier).references.find((r) => r.identifier === identifier);
-      if (ref?.resolved) return ref.resolved;
+      // ESLint resolves built-ins like `String` to a variable with no declaration; those count as globals here.
+      if (ref?.resolved?.defs.length) return ref.resolved;
       // A script's top-level names stay unresolved, since another script could redefine them; this file's own
       // declarations are still the best guess.
       const global = sourceCode.scopeManager.globalScope.set.get(identifier.name);
@@ -530,25 +618,69 @@ module.exports = {
     }
 
     /**
-     * When `fn` is the callback of `[...].map(...)` (or forEach, filter, …) on an array literal and `paramName` is its
-     * first parameter, the literal's elements; otherwise null.
+     * The array-method call `fn` is the callback of (`xs.map(fn)` and friends), or null.
      *
      * @param {object} fn - The function node.
-     * @param {string} paramName - The parameter's name.
-     * @param {number} depth - Hops spent so far.
-     * @returns {?object[]} The element nodes.
+     * @returns {?object} The MemberExpression callee, e.g. `xs.map`.
      */
-    function elementParam(fn, paramName, depth) {
-      if (fn.params[0]?.type !== 'Identifier' || fn.params[0].name !== paramName) return null;
+    function elementCallback(fn) {
       const call = fn.parent;
       if (call?.type !== 'CallExpression' || call.arguments[0] !== fn) return null;
       const callee = call.callee;
       if (callee.type !== 'MemberExpression' || callee.computed) return null;
-      if (!ELEMENT_CALLBACK_METHODS.has(callee.property.name)) return null;
-      const arrays = literalValues(callee.object, depth + 1);
+      return ELEMENT_CALLBACK_METHODS.has(callee.property.name) ? callee : null;
+    }
+
+    /**
+     * Whether a parameter is the index an array method hands its callback (`xs.map((x, i) => …)`), a number.
+     *
+     * @param {object} fn - The function node.
+     * @param {string} paramName - The parameter's name.
+     * @returns {boolean} True for the index.
+     */
+    function isIndexParam(fn, paramName) {
+      return fn.params[1]?.type === 'Identifier' && fn.params[1].name === paramName && !!elementCallback(fn);
+    }
+
+    /**
+     * When `fn` is the callback of `[...].map(...)` (or forEach, filter, …) on an array literal and `paramName` is its
+     * element (`(x) =>` or a destructured `({ x }) =>`), the values it can take; otherwise null. Keys of an object
+     * literal (`Object.keys(LITERAL).map((k) => …)`) are names written in this file, so they come back as no values.
+     *
+     * @param {object} fn - The function node.
+     * @param {string} paramName - The parameter's name.
+     * @param {number} depth - Hops spent so far.
+     * @returns {?object[]} The value nodes.
+     */
+    function elementParam(fn, paramName, depth) {
+      const first = fn.params[0];
+      const destructured = first?.type === 'ObjectPattern'
+        ? first.properties.find((p) => p.type === 'Property' && !p.computed && p.value.type === 'Identifier'
+          && p.value.name === paramName)
+        : null;
+      if (!destructured && (first?.type !== 'Identifier' || first.name !== paramName)) return null;
+      const callee = elementCallback(fn);
+      if (!callee) return null;
+      const receiver = callee.object;
+      if (!destructured && receiver.type === 'CallExpression' && sourceCode.getText(receiver.callee) === 'Object.keys') {
+        const objects = receiver.arguments[0] ? literalValues(receiver.arguments[0], depth + 1) : null;
+        const plainKeys = objects?.every((o) => o.type === 'ObjectExpression'
+          && o.properties.every((p) => p.type === 'Property' && !p.computed));
+        return plainKeys ? [] : null;
+      }
+      const arrays = literalValues(receiver, depth + 1);
       if (!arrays || arrays.some((a) => a.type !== 'ArrayExpression')) return null;
-      if (arrays.some((a) => a.elements.some((e) => !e || e.type === 'SpreadElement'))) return null;
-      return arrays.flatMap((a) => a.elements);
+      const elements = arrays.flatMap((a) => a.elements);
+      if (elements.some((e) => !e || e.type === 'SpreadElement')) return null;
+      if (!destructured) return elements;
+      const key = destructured.key.name ?? destructured.key.value;
+      const values = [];
+      for (const e of elements) {
+        if (e.type !== 'ObjectExpression' || e.properties.some((p) => p.type !== 'Property')) return null;
+        const prop = e.properties.find((p) => !p.computed && (p.key.name ?? p.key.value) === key);
+        if (prop) values.push(prop.value);
+      }
+      return values;
     }
 
     /**
@@ -629,11 +761,11 @@ module.exports = {
 
     /**
      * A private member of the class enclosing `node`: a method (with its function), or a field (with every value it
-     * is ever given).
+     * is ever given, or null writes when it changes in a way this rule can't follow).
      *
      * @param {object} node - Any node inside the class.
      * @param {string} name - The private name, without the `#`.
-     * @returns {?{kind: string, fn?: object, writes?: object[]}} The member, or null when it can't be found.
+     * @returns {?{kind: string, fn?: object, writes?: ?object[], changed?: boolean}} The member, or null.
      */
     function classMember(node, name) {
       let body = node.parent;
@@ -644,7 +776,9 @@ module.exports = {
     }
 
     /**
-     * Indexes a class body's private members by name.
+     * Indexes a class body's private members by name, with every value each field is given: assigned with `=`,
+     * added to it as a collection (`this.#rows.push(v)`), or unknown (null) when it is changed some other way or,
+     * holding a collection, handed to other code (`Object.assign(this.#o, d)`).
      *
      * @param {object} body - The ClassBody.
      * @returns {Map<string, object>} The members, as classMember describes them.
@@ -656,30 +790,67 @@ module.exports = {
         if (el.type === 'MethodDefinition' && el.kind === 'method') {
           members.set(el.key.name, { kind: 'method', fn: el.value });
         } else if (el.type === 'PropertyDefinition') {
-          members.set(el.key.name, { kind: 'field', writes: el.value ? [el.value] : [] });
+          members.set(el.key.name, { kind: 'field', writes: el.value ? [el.value] : [], reads: [], changed: false });
         }
       }
       walk(body, (n) => {
-        if (n.type !== 'AssignmentExpression' && n.type !== 'UpdateExpression') return;
-        const target = n.type === 'AssignmentExpression' ? n.left : n.argument;
-        if (target.type !== 'MemberExpression' || target.property.type !== 'PrivateIdentifier') return;
-        const member = members.get(target.property.name);
-        if (member?.kind !== 'field') return;
-        // `+=` keeps the old value and adds the new one, so the new one is what has to be checked.
-        if (n.type === 'AssignmentExpression') member.writes.push(n.right);
+        if (n.type !== 'MemberExpression' || n.property.type !== 'PrivateIdentifier') return;
+        const member = members.get(n.property.name);
+        if (member?.kind !== 'field' || !member.writes) return;
+        const parent = n.parent;
+        if (parent.type === 'AssignmentExpression' && parent.left === n) {
+          if (parent.operator === '=' || parent.operator === '+=') member.writes.push(parent.right);
+          else member.writes = null;
+        } else if (parent.type === 'UpdateExpression' && parent.argument === n) {
+          // `this.#n++` keeps a number a number.
+        } else {
+          member.reads.push(n);
+        }
       }, false);
+      for (const member of members.values()) {
+        if (member.kind !== 'field' || !member.writes) continue;
+        const collection = member.writes.some(isCollection);
+        for (const read of member.reads) {
+          const change = collectionChange(read);
+          if (change === null && collection) {
+            member.writes = null;
+            break;
+          }
+          if (change?.length) {
+            member.writes.push(...change);
+            member.changed = true;
+          }
+        }
+      }
       return members;
+    }
+
+    /**
+     * For each `${…}` of a template, whether it sits inside a `data-ps-tooltip="…"` attribute value.
+     *
+     * @param {object} node - The TemplateLiteral.
+     * @returns {boolean[]} One flag per expression.
+     */
+    function tooltipPositions(node) {
+      let text = '';
+      return node.expressions.map((_, i) => {
+        text += node.quasis[i].value.cooked ?? '';
+        const inside = IN_TOOLTIP_ATTRIBUTE.test(text);
+        text += 'X';
+        return inside;
+      });
     }
 
     return {
       TemplateLiteral(node) {
         if (node.parent.type === 'TaggedTemplateExpression' || node.expressions.length === 0) return;
-        const parts = unsafeParts(node, 0).filter((p) => !reported.has(p));
-        if (parts.length === 0 || !reachesMarkup(node)) return;
-        for (const part of parts) {
+        const tips = tooltipPositions(node);
+        const found = node.expressions.flatMap((e, i) => unsafeParts(e, 0, tips[i]).map((part) => [part, tips[i]]));
+        if (found.length === 0 || !reachesMarkup(node)) return;
+        for (const [part, tip] of found) {
           if (reported.has(part)) continue;
           reported.add(part);
-          context.report({ node: part, messageId: 'unescaped' });
+          context.report({ node: part, messageId: tip ? 'tooltip' : 'unescaped' });
         }
       },
     };

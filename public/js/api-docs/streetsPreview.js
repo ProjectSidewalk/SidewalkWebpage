@@ -396,23 +396,23 @@
           : 'No labels';
         const auditStatus = userCount === 0
           ? 'Unaudited'
-          : `Labeled by ${userCount} user${userCount > 1 ? 's' : ''}`;
+          : `Labeled by ${util.escapeHTML(userCount)} user${userCount > 1 ? 's' : ''}`;
         const osmLink = props.osm_way_id
-          ? `<a href="https://www.openstreetmap.org/way/${props.osm_way_id}" target="_blank"
-              rel="noopener noreferrer">${props.osm_way_id}</a>`
+          ? `<a href="https://www.openstreetmap.org/way/${util.escapeHTML(props.osm_way_id)}" target="_blank"
+              rel="noopener noreferrer">${util.escapeHTML(props.osm_way_id)}</a>`
           : 'N/A';
 
         ApiDocsMap.popup(map, e.lngLat, `
-          <h4>Street Segment ${props.street_edge_id}</h4>
-          <p><strong>Type:</strong> ${props.way_type || 'Unknown'}</p>
+          <h4>Street Segment ${util.escapeHTML(props.street_edge_id)}</h4>
+          <p><strong>Type:</strong> ${util.escapeHTML(props.way_type || 'Unknown')}</p>
           <p><strong>Status:</strong> ${auditStatus}</p>
-          <p><strong>Labels:</strong> ${props.label_count || 0}</p>
+          <p><strong>Labels:</strong> ${util.escapeHTML(props.label_count || 0)}</p>
           <p><strong>First Label:</strong> ${firstLabelDate}</p>
           <p><strong>Last Label:</strong> ${lastLabelDate}</p>
           <p><strong>Audit Age:</strong> ${formatAuditAge(props.last_label_date)}</p>
           <p><strong>OSM ID:</strong> ${osmLink}</p>
-          <a href="/explore?streetEdgeId=${props.street_edge_id}" class="button button--primary button--tiny"
-            target="_blank">
+          <a href="/explore?streetEdgeId=${util.escapeHTML(props.street_edge_id)}"
+            class="button button--primary button--tiny" target="_blank">
             Explore Street in Project Sidewalk
           </a>
         `);

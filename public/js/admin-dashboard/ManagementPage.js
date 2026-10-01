@@ -456,10 +456,9 @@ class ManagementPage {
   }
 
   static #toggle(kind, teamId, on, onLabel, offLabel) {
-    return `<button type="button" class="mgmt-toggle ${on ? 'is-on' : 'is-off'}" data-kind="${kind}" `
-      + `data-team-id="${util.escapeHTML(teamId)}" data-on="${util.escapeHTML(on)}"`
-      + ` aria-pressed="${util.escapeHTML(on)}">`
-      + `${on ? onLabel : offLabel}</button>`;
+    return `<button type="button" class="mgmt-toggle ${on ? 'is-on' : 'is-off'}" data-kind="${kind}"
+      data-team-id="${util.escapeHTML(teamId)}" data-on="${util.escapeHTML(on)}"
+      aria-pressed="${util.escapeHTML(on)}">${on ? onLabel : offLabel}</button>`;
   }
 
   static #setToggle(btn, on, onLabel, offLabel) {

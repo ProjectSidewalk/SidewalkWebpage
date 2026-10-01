@@ -201,12 +201,14 @@ class AccessScoreSidebar {
           <label class="acs-check acs-place" for="acs-place-${categoryAttr}">
             <input type="checkbox" id="acs-place-${categoryAttr}" data-category="${categoryAttr}" checked>
             <span class="acs-place__icon" aria-hidden="true"><img src="${icon}" alt=""></span>
-            <span class="acs-place__name">${name}</span>
+            <span class="acs-place__name">${util.escapeHTML(name)}</span>
           </label>
           <span class="acs-place__slot">
             <span class="acs-place__count"></span>
             <button type="button" class="filter-sidebar__only" data-category="${categoryAttr}"
-                    aria-label="${i18next.t('common:only')}: ${name}">${i18next.t('common:only')}</button>
+                    aria-label="${i18next.t('common:only')}: ${util.escapeHTML(name)}">
+              ${i18next.t('common:only')}
+            </button>
           </span>
         </div>`;
     }).join('');

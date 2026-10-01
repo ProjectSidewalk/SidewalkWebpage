@@ -96,7 +96,8 @@ call that interpolates values and reaches one of those sinks without stating `in
 directly or through a template literal, a concatenation, a string method, a `map(…).join('')`, or a local variable.
 
 **It is a tripwire, not a proof.** It follows syntax only: a value returned from a function, stored on an object
-property, or handed to a helper that renders HTML is invisible to it, and so is a `t()` call behind an alias or a
+property, or handed to an HTML-rendering helper it doesn't know (it knows `AdminShell.setHtml`, `ApiDocsMap.popup`,
+`showAlert`, `notify`, and any function of the same file that puts its argument into HTML) is invisible to it, and so is a `t()` call behind an alias or a
 wrapper (don't wrap `i18next.t`, and write `el.innerHTML`, never `el['innerHTML']`). Those flows are on the author
 and the reviewer.
 

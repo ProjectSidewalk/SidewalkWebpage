@@ -10,8 +10,8 @@
  * "Lands in an HTML sink" is worked out by markup-flow.js, shared with the escape-in-markup rule.
  *
  * It is a tripwire, not a proof. It follows syntax only, so a string returned from a function, parked on an object
- * property, handed to a helper that inserts HTML (`showAlert()`), or produced by an alias of `i18next.t` goes
- * unseen. Those flows are reviewed by hand (docs/internationalization.md, "Interpolated values and HTML"); widening
+ * property, handed to an HTML-rendering helper markup-flow.js doesn't know, or produced by an alias of `i18next.t`
+ * goes unseen. Those flows are reviewed by hand (docs/internationalization.md, "Interpolated values and HTML"); widening
  * the rule to guess at them would need cross-file inference or an allowlist that drifts.
  */
 

@@ -159,7 +159,7 @@ class HealthPage {
       return `
         <tr>
           <td class="ac-num">${r.pid}</td>
-          <td>${util.escapeHTML(r.usename) || '—'}</td>
+          <td>${util.escapeHTML(r.usename || '—')}</td>
           <td>${this.#stateBadge(r.state)}</td>
           <td class="ac-num">${AdminShell.dur(r.xact_seconds)}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${r.blocking_count}</span></td>
@@ -184,10 +184,10 @@ class HealthPage {
       return `
         <tr>
           <td class="ac-num">${r.pid}</td>
-          <td>${util.escapeHTML(r.usename) || '—'}</td>
-          <td>${util.escapeHTML(r.application_name) || '—'}</td>
+          <td>${util.escapeHTML(r.usename || '—')}</td>
+          <td>${util.escapeHTML(r.application_name || '—')}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${AdminShell.dur(r.query_seconds)}</span></td>
-          <td>${util.escapeHTML(r.wait_event_type) || '—'}</td>
+          <td>${util.escapeHTML(r.wait_event_type || '—')}</td>
           <td class="ac-muted">${this.#queryCell(r.query)}</td>
         </tr>`;
     }).join('');
@@ -206,8 +206,8 @@ class HealthPage {
       return `
         <tr>
           <td class="ac-num">${r.pid}</td>
-          <td>${util.escapeHTML(r.usename) || '—'}</td>
-          <td>${util.escapeHTML(r.application_name) || '—'}</td>
+          <td>${util.escapeHTML(r.usename || '—')}</td>
+          <td>${util.escapeHTML(r.application_name || '—')}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${AdminShell.dur(r.idle_seconds)}</span></td>
           <td class="ac-num">${AdminShell.dur(r.xact_seconds)}</td>
           <td class="ac-muted">${this.#queryCell(r.query)}</td>
@@ -225,9 +225,9 @@ class HealthPage {
         <tr class="ac-row--flagged">
           <td>${util.escapeHTML(r.schema)}</td>
           <td class="ac-num">${r.id}</td>
-          <td><span class="ac-badge ac-badge--bad">${util.escapeHTML(r.state) || 'unknown'}</span></td>
+          <td><span class="ac-badge ac-badge--bad">${util.escapeHTML(r.state || 'unknown')}</span></td>
           <td class="ac-muted">${util.escapeHTML((r.applied_at || '').slice(0, 19)) || '—'}</td>
-          <td class="ac-muted">${util.escapeHTML(r.last_problem) || '—'}</td>
+          <td class="ac-muted">${util.escapeHTML(r.last_problem || '—')}</td>
         </tr>`).join('');
     this.#table('health-evolutions', ['Schema', ['Evolution', true], 'State', 'Applied at', 'Problem'], body);
   }
@@ -379,9 +379,9 @@ class HealthPage {
     this.#table('health-jobs', headers, body);
     const overdue = jobs.filter((job) => job.overdue).length;
     AdminShell.setHtml('health-jobs-note', overdue === 0
-      ? `Every job has succeeded on schedule within the last ${t.job_overdue_hours} hours.`
+      ? `Every job has succeeded on schedule within the last ${util.escapeHTML(t.job_overdue_hours)} hours.`
       : `${overdue} job${overdue === 1 ? ' has' : 's have'} not succeeded on schedule in the last `
-        + `${t.job_overdue_hours} hours.`);
+        + `${util.escapeHTML(t.job_overdue_hours)} hours.`);
   }
 
   // ---- Small helpers ---------------------------------------------------------------------------------------------

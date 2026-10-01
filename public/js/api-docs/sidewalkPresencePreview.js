@@ -302,24 +302,25 @@
           ? new Date(props.last_no_sidewalk_label_date).toLocaleDateString()
           : null;
         const osmLink = props.osm_way_id
-          ? `<a href="https://www.openstreetmap.org/way/${props.osm_way_id}" target="_blank"
-              rel="noopener noreferrer">${props.osm_way_id}</a>`
+          ? `<a href="https://www.openstreetmap.org/way/${util.escapeHTML(props.osm_way_id)}" target="_blank"
+              rel="noopener noreferrer">${util.escapeHTML(props.osm_way_id)}</a>`
           : 'N/A';
 
         ApiDocsMap.popup(map, e.lngLat, `
-          <h4>Street ${props.street_edge_id}, ${props.street_side} side</h4>
-          <p><strong>Verdict:</strong> ${presenceLabel(props.presence)}</p>
-          <p><strong>Basis:</strong> ${describeBasis(props)}</p>
+          <h4>Street ${util.escapeHTML(props.street_edge_id)}, ${util.escapeHTML(props.street_side)} side</h4>
+          <p><strong>Verdict:</strong> ${util.escapeHTML(presenceLabel(props.presence))}</p>
+          <p><strong>Basis:</strong> ${util.escapeHTML(describeBasis(props))}</p>
           ${firstLabel ? `<p><strong>NoSidewalk labels placed:</strong> ${firstLabel} to ${lastLabel}</p>` : ''}
           ${props.rejected_no_sidewalk_count
-    ? `<p><strong>Rejected by validators:</strong> ${plural(props.rejected_no_sidewalk_count, 'NoSidewalk label')}</p>`
+    ? `<p><strong>Rejected by validators:</strong>
+        ${util.escapeHTML(plural(props.rejected_no_sidewalk_count, 'NoSidewalk label'))}</p>`
     : ''}
-          <p><strong>Labels on this side:</strong> ${props.label_count || 0}</p>
-          <p><strong>Other side:</strong> ${other ? presenceLabel(other.presence) : 'N/A'}</p>
-          <p><strong>Type:</strong> ${props.way_type || 'Unknown'}</p>
+          <p><strong>Labels on this side:</strong> ${util.escapeHTML(props.label_count || 0)}</p>
+          <p><strong>Other side:</strong> ${other ? util.escapeHTML(presenceLabel(other.presence)) : 'N/A'}</p>
+          <p><strong>Type:</strong> ${util.escapeHTML(props.way_type || 'Unknown')}</p>
           <p><strong>OSM ID:</strong> ${osmLink}</p>
-          <a href="/explore?streetEdgeId=${props.street_edge_id}" class="button button--primary button--tiny"
-            target="_blank">
+          <a href="/explore?streetEdgeId=${util.escapeHTML(props.street_edge_id)}"
+            class="button button--primary button--tiny" target="_blank">
             Explore Street in Project Sidewalk
           </a>
         `);
