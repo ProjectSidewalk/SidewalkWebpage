@@ -35,7 +35,7 @@ function makeLabel(labelType, tutorialLabelNumber) {
 }
 
 function pressKey(key) {
-  window.dispatchEvent(new KeyboardEvent('keyup', { key }));
+  window.dispatchEvent(new KeyboardEvent('keyup', { key, code: `Digit${key}` }));
 }
 
 describe('Explore severity shortcuts', () => {

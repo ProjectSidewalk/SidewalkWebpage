@@ -35,7 +35,7 @@ describe('Explore spacebar shortcut and focused form controls', () => {
 
     /** Dispatches a cancelable Space keydown on an element and returns the event. */
     function pressSpaceOn(el) {
-        const e = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+        const e = new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true });
         el.dispatchEvent(e);
         return e;
     }

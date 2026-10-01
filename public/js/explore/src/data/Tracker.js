@@ -42,7 +42,7 @@ class Tracker {
     // Keyboard related events.
     for (const type of ['keydown', 'keyup']) {
       document.addEventListener(type, (/** @type {KeyboardEvent} */ e) => {
-        this.push(prefix + e.type, { keyCode: e.keyCode });
+        this.push(prefix + e.type, { key: e.key, code: e.code });
       });
     }
   }

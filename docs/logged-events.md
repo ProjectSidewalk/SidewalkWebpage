@@ -25,7 +25,7 @@ Each interactive tool has its own `Tracker` that buffers events and periodically
 The core call is **`tracker.push(action, note)`** (see `Tracker.push` in each Tracker file):
 
 - `action` — the event name (a string; see [naming](#event-naming)).
-- `note` — an optional object of extra fields (e.g. `{labelType}`, `{cursorX, cursorY}`, `{keyCode}`) stored with the
+- `note` — an optional object of extra fields (e.g. `{labelType}`, `{cursorX, cursorY}`, `{code}`) stored with the
   event.
 
 Each pushed event is buffered with a timestamp and context (pano, task, lat/lng, …) and flushed to the backend
@@ -176,7 +176,7 @@ worth knowing about are the **families assembled at runtime**, which you won't f
 - **`LowLevelEvent_<domType>`** — raw DOM events. `Tracker.trackWindowEvents()` (in
   `explore/src/data/Tracker.js`) binds `mousedown`, `mouseup`, `mouseover`, `mouseout`, `mousemove`, `click`,
   `contextmenu`, `dblclick`, `keydown`, `keyup` and pushes `"LowLevelEvent_" + e.type`, with `cursorX`/`cursorY` or
-  `keyCode` in the note. A click made by a keyboard shortcut logs `cursorX`/`cursorY` as `null`, since no pointer
+  `key`/`code` in the note. A click made by a keyboard shortcut logs `cursorX`/`cursorY` as `null`, since no pointer
   was involved.
 - **`ModeSwitch_<LabelType>`**, **`Click_ModeSwitch_<LabelType>`**, **`KeyboardShortcut_ModeSwitch_<LabelType>`** —
   labeling-mode changes; suffix is the label type (`CurbRamp`, `NoSidewalk`, …) or `Walk`. The prefix encodes *how*
@@ -204,6 +204,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `SubmitFailed` / `SubmitFailedGaveUp` (Validate) | Not user actions. `SubmitFailed` fires once per failed data POST to `/validationTask` (`attempt`, `status` — absent for a network error — and `error`); it counts failed attempts, not retries, so the last one before a `SubmitFailedGaveUp` was not retried. `SubmitFailedGaveUp` marks abandonment, `retryable` separating the retry cap from a 4xx dropped immediately (#4377). Surfaces flaky-network submission trouble, esp. on mobile (#2745). |
 | `POV_Changed` (Validate) | The user panned/zoomed the pano. Throttled to at most one per ~500ms (with a trailing sample) so a continuous drag no longer floods the buffer (#2745) — counts undercount raw movement by design. Programmatic changes count too: every label load sets the POV to the label's stored heading, and on desktop a window resize's repaint nudge moves it by 0.01° (#5367, see `Window_Resized`), so expect roughly one `POV_Changed` per label and per 500 ms of window-dragging that no validator performed. |
 | `LowLevelEvent_<domType>` | A runtime family, not a single event (see [naming](#event-naming)); these are by far the highest-volume rows. |
+| `LowLevelEvent_keydown` / `_keyup`, and `KeyboardShortcut_…` notes | Which key was pressed. Since #5618 the low-level events note `key` (the character or key name typed, e.g. `"a"`, `"Escape"`) and `code` (the physical key, e.g. `"KeyA"`, `"Numpad1"`), and the shortcut events note `code` alone. Before, both noted the deprecated numeric `keyCode` (`65` for A). The shortcuts themselves match on `code`, so on a non-US layout `key` and `code` can disagree: a French keyboard's A key logs `key: "a"`, `code: "KeyQ"`. |
 | `ModeSwitch_<…>` vs `Click_ModeSwitch_<…>` vs `KeyboardShortcut_ModeSwitch_<…>` | Same logical action via three input paths; don't double-count them as separate behaviors. |
 | `LabelingCanvas_MouseOut` | Explore: the pointer left the pano area (`#interaction-area-holder`), whatever the mode. Since #5496 a toast floating over the pano counts as inside it: moving from the pano onto a toast logs nothing, and the event fires when the pointer then leaves that toast for somewhere off the pano. Outside the tutorial it is followed by `ModeSwitch_Walk`, which cancels an armed label type. |
 | `LabelingCanvas_FinishLabeling` | A label was *placed* (severity/tags not yet set, and it can still be removed) — not a finalized label. |

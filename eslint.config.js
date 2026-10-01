@@ -96,6 +96,11 @@ module.exports = [
       'no-eval': 'error',
       'no-implied-eval': 'error',
       'no-new-func': 'error',
+      // Deprecated, and they disagree with `key`/`code` on non-US layouts (#5618).
+      'no-restricted-properties': ['error', ...['keyCode', 'which', 'charCode'].map((property) => ({
+        property,
+        message: 'Use KeyboardEvent.code for a shortcut key, or KeyboardEvent.key for the character typed.',
+      }))],
 
       // --- Modern-idiom cleanup (all auto-fixable) ---
       'prefer-object-spread': 'error',
