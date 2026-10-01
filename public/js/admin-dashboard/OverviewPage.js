@@ -266,13 +266,15 @@ class OverviewPage {
       el.innerHTML = '<p class="ov-attention-clear">Nothing needs attention. ✅</p>';
       return;
     }
+    /* eslint-disable ps/escape-in-markup -- each item's html is built above from counts and fixed text. */
     el.innerHTML = items.map((it) => `
-      <a class="ov-attention-item ov-attention--${it.sev}" href="${OverviewPage.#esc(it.href)}">
+      <a class="ov-attention-item ov-attention--${util.escapeHTML(it.sev)}" href="${util.escapeHTML(it.href)}">
         <span class="ov-attention-dot" aria-hidden="true"></span>
         <span class="ov-attention-text">${it.html}</span>
-        <span class="ov-attention-go">${OverviewPage.#esc(it.action)} →</span>
+        <span class="ov-attention-go">${util.escapeHTML(it.action)} →</span>
       </a>`,
     ).join('');
+    /* eslint-enable ps/escape-in-markup */
   }
 
   // --- Recent-activity strip --------------------------------------------------------------------------------------
@@ -291,10 +293,10 @@ class OverviewPage {
     }
     el.innerHTML = items.map((it) => {
       const thumb = it.thumbnail_url
-        ? `<img class="ov-recent-thumb" loading="lazy" alt="" src="${OverviewPage.#esc(it.thumbnail_url)}">`
+        ? `<img class="ov-recent-thumb" loading="lazy" alt="" src="${util.escapeHTML(it.thumbnail_url)}">`
         : '<span class="ov-recent-thumb ov-recent-thumb--none" aria-hidden="true"></span>';
-      const who = OverviewPage.#esc(it.username || 'someone');
-      const when = OverviewPage.#esc(AdminShell.relativeTime(it.timestamp));
+      const who = util.escapeHTML(it.username || 'someone');
+      const when = util.escapeHTML(AdminShell.relativeTime(it.timestamp));
       return [
         '<div class="ov-recent-item">',
         thumb,
@@ -311,14 +313,14 @@ class OverviewPage {
 
   /** The action phrase for a recent item, with the label type bolded. */
   #recentText(it) {
-    const type = it.label_type ? `<strong>${OverviewPage.#esc(this.#typeName(it.label_type))}</strong>` : 'a label';
+    const type = it.label_type ? `<strong>${util.escapeHTML(this.#typeName(it.label_type))}</strong>` : 'a label';
     if (it.activity_type === 'label') return `Placed ${type}`;
     if (it.activity_type === 'validation') {
       const verdict = { Agree: 'agreed', Disagree: 'disagreed', Unsure: 'unsure' }[it.validation_result]
-        || OverviewPage.#esc((it.validation_result || '').toLowerCase());
+        || util.escapeHTML((it.validation_result || '').toLowerCase());
       return `Validated ${type} — ${verdict}`;
     }
-    return `“${OverviewPage.#esc(it.comment || '')}”`;
+    return `“${util.escapeHTML(it.comment || '')}”`;
   }
 
   // --- Pulse ------------------------------------------------------------------------------------------------------
@@ -335,20 +337,20 @@ class OverviewPage {
       el.textContent = 'No recent activity.';
       return;
     }
-    const who = OverviewPage.#esc(item.username || 'someone');
-    const when = OverviewPage.#esc(AdminShell.relativeTime(item.timestamp));
+    const who = util.escapeHTML(item.username || 'someone');
+    const when = util.escapeHTML(AdminShell.relativeTime(item.timestamp));
     const type = item.label_type ? this.#typeName(item.label_type) : null;
     let dot = '';
     if (type && this.#colorByType.has(item.label_type)) {
       dot = `<span class="ov-pulse-dot" `
-        + `style="background:${OverviewPage.#esc(this.#colorByType.get(item.label_type))}" aria-hidden="true"></span>`;
+        + `style="background:${util.escapeHTML(this.#colorByType.get(item.label_type))}" aria-hidden="true"></span>`;
     }
     let what;
     if (item.activity_type === 'label') {
-      what = `placed a <strong>${OverviewPage.#esc(type || 'label')}</strong> label`;
+      what = `placed a <strong>${util.escapeHTML(type || 'label')}</strong> label`;
     } else if (item.activity_type === 'validation') {
-      const verdict = item.validation_result ? ` (${OverviewPage.#esc(item.validation_result.toLowerCase())})` : '';
-      what = `validated a <strong>${OverviewPage.#esc(type || 'label')}</strong>${verdict}`;
+      const verdict = item.validation_result ? ` (${util.escapeHTML(item.validation_result.toLowerCase())})` : '';
+      what = `validated a <strong>${util.escapeHTML(type || 'label')}</strong>${verdict}`;
     } else {
       what = 'left a comment';
     }
@@ -418,10 +420,5 @@ class OverviewPage {
     const x = new Date(d);
     x.setDate(x.getDate() + n);
     return x;
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   }
 }

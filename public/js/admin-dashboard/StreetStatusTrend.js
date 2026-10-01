@@ -121,10 +121,10 @@ class StreetStatusTrend {
       return `
       <tr data-street-id="${id}">
         <td>${StreetStatusTrend.#streetCell(id, !!this.#onShowStreet)}</td>
-        <td>${AdminShell.esc(r.region_name)}</td>
+        <td>${util.escapeHTML(r.region_name)}</td>
         <td>${AdminShell.num(r.n_panos)}</td>
-        <td class="ac-muted">${AdminShell.esc(r.newest_capture || '—')}</td>
-        <td class="ac-muted">${AdminShell.esc((r.last_detected_at || '').slice(0, 10))}</td>
+        <td class="ac-muted">${util.escapeHTML(r.newest_capture || '—')}</td>
+        <td class="ac-muted">${util.escapeHTML((r.last_detected_at || '').slice(0, 10))}</td>
         <td class="reopen-queue-actions">
           <button type="button" class="reopen-queue-btn" data-action="reopen"
                   aria-label="Reopen street ${id}">Reopen</button>
@@ -382,10 +382,10 @@ class StreetStatusTrend {
             ${AdminShell.num(r.street_edge_id)}
           </a>
         </td>
-        <td>${AdminShell.esc(r.region_name)}</td>
+        <td>${util.escapeHTML(r.region_name)}</td>
         <td>${AdminShell.num(r.reporter_count)}</td>
         <td>${AdminShell.num(r.report_count)}</td>
-        <td class="ac-muted">${AdminShell.esc((r.last_reported_at || '').slice(0, 10))}</td>
+        <td class="ac-muted">${util.escapeHTML((r.last_reported_at || '').slice(0, 10))}</td>
       </tr>`).join('');
     AdminShell.setHtml('trend-corroborated', AdminShell.tableHtml(
       [['Street', true], 'Region', ['Labelers', true], ['Reports', true], 'Last reported'], body));
@@ -400,7 +400,7 @@ class StreetStatusTrend {
     }
     const body = rows.map((r) => `
       <tr>
-        <td>${AdminShell.esc(r.region_name)}</td>
+        <td>${util.escapeHTML(r.region_name)}</td>
         <td>${AdminShell.num(r.street_count)}</td>
         <td>${AdminShell.num(r.report_count)}</td>
       </tr>`).join('');

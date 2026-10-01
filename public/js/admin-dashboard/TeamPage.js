@@ -119,33 +119,34 @@ class TeamPage {
     }
     const cols = this.#columns();
     const headCells = cols.map((c) => {
-      if (!c.sort) return `<th scope="col">${AdminShell.esc(c.label)}</th>`;
+      if (!c.sort) return `<th scope="col">${util.escapeHTML(c.label)}</th>`;
       // On the button, not the <th>: the button is what takes focus, so only it can carry the description.
-      const tip = c.help ? ` data-ps-tooltip="${AdminShell.esc(c.help)}"` : '';
+      const tip = c.help ? ` data-ps-tooltip="${util.escapeHTML(c.help)}"` : '';
       const isSorted = c.key === this.#sort.key;
       const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
       return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}">`
-        + `<button type="button" class="mgmt-sort" data-key="${c.key}"${tip}>${AdminShell.esc(c.label)}`
+        + `<button type="button" class="mgmt-sort" data-key="${util.escapeHTML(c.key)}"${tip}>`
+        + `${util.escapeHTML(c.label)}`
         + `<span class="mgmt-arrow">${arrow}</span></button></th>`;
     }).join('');
 
     const body = this.#sortedMembers().map((m) => {
       const cell = (html, align) => `<td${align === 'right' ? ' class="num"' : ''}>${html}</td>`;
-      const name = AdminShell.esc(m.username);
+      const name = util.escapeHTML(m.username);
       return [
-        `<tr data-user-id="${AdminShell.esc(m.user_id)}">`,
+        `<tr data-user-id="${util.escapeHTML(m.user_id)}">`,
         cell(`<a href="/admin/user/${encodeURIComponent(m.username)}">${name}</a>`, 'left'),
-        cell(AdminShell.esc(m.role), 'left'),
+        cell(util.escapeHTML(m.role), 'left'),
         cell(AdminShell.num(m.labels || 0), 'right'),
         cell(AdminShell.num(m.validations || 0), 'right'),
         cell(TeamPage.#km(m.distance_meters), 'right'),
         cell(TeamPage.#accuracyCell(m), 'right'),
-        cell(m.last_active ? AdminShell.esc(AdminShell.relativeTime(m.last_active)) : '<span class="dq-sub">—</span>',
+        cell(m.last_active ? util.escapeHTML(AdminShell.relativeTime(m.last_active)) : '<span class="dq-sub">—</span>',
           'right'),
         cell(TeamPage.#qualityBadge(m), 'left'),
         cell(`<button type="button" class="mgmt-toggle is-off team-remove" data-user-id="`
-          + `${AdminShell.esc(m.user_id)}" data-username="${name}">Remove</button>`, 'left'),
+          + `${util.escapeHTML(m.user_id)}" data-username="${name}">Remove</button>`, 'left'),
         '</tr>',
       ].join('');
     }).join('');
@@ -232,7 +233,7 @@ class TeamPage {
       this.#renderSearchResults(matches || []);
     } catch (err) {
       if (seq !== this.#searchSeq) return;
-      results.innerHTML = `<p class="dq-empty">Search failed: ${AdminShell.esc(err.message)}</p>`;
+      results.innerHTML = `<p class="dq-empty">Search failed: ${util.escapeHTML(err.message)}</p>`;
     }
   }
 
@@ -245,20 +246,20 @@ class TeamPage {
     }
     const onTeam = new Set(this.#members.map((m) => m.user_id));
     const rows = matches.map((m) => {
-      const name = AdminShell.esc(m.username);
+      const name = util.escapeHTML(m.username);
       const already = onTeam.has(m.user_id);
       const note = already
         ? '<span class="dq-sub">already on this team</span>'
-        : (m.team ? `<span class="team-current">on ${AdminShell.esc(m.team)}</span>` : '');
+        : (m.team ? `<span class="team-current">on ${util.escapeHTML(m.team)}</span>` : '');
       const action = already
         ? ''
-        : `<button type="button" class="mgmt-toggle is-on team-add" data-user-id="${AdminShell.esc(m.user_id)}" `
-          + `data-username="${name}" data-current-team="${AdminShell.esc(m.team || '')}">Add</button>`;
+        : `<button type="button" class="mgmt-toggle is-on team-add" data-user-id="${util.escapeHTML(m.user_id)}" `
+          + `data-username="${name}" data-current-team="${util.escapeHTML(m.team || '')}">Add</button>`;
       return `
         <tr>
           <td>${name}</td>
-          <td>${AdminShell.esc(m.email || '')}</td>
-          <td>${AdminShell.esc(m.role)}</td>
+          <td>${util.escapeHTML(m.email || '')}</td>
+          <td>${util.escapeHTML(m.role)}</td>
           <td>${note}</td>
           <td>${action}</td>
         </tr>`;

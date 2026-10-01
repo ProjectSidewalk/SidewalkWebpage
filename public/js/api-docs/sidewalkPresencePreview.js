@@ -160,7 +160,7 @@
     showError(container, error) {
       console.error('Sidewalk presence preview error:', error);
       container.innerHTML = `<div class="message message-error" role="alert">Failed to load sidewalk presence: `
-        + `${error.message}</div>`;
+        + `${util.escapeHTML(error.message)}</div>`;
     },
 
     /**
@@ -228,7 +228,8 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
+      const regionName = regionData.properties.name || 'Sample Region';
+      regionTitle.innerHTML = `<strong>Region:</strong> ${util.escapeHTML(regionName)}`;
 
       if (!faces.features.length) {
         const message = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
@@ -269,13 +270,14 @@
       const absent = stats.byPresence.absent || 0;
       summary.innerHTML = `
         <h4>Summary</h4>
-        <div><strong>Street sides:</strong> ${stats.faces}</div>
+        <div><strong>Street sides:</strong> ${util.escapeHTML(stats.faces)}</div>
         <div><strong>No sidewalk:</strong> ${percent(absent, stats.faces)}%</div>
         <div><strong>Sidewalk:</strong> ${percent(stats.byPresence.present, stats.faces)}%</div>
         <div><strong>Unknown:</strong> ${percent(stats.byPresence.unknown, stats.faces)}%</div>
         <div><strong>Streets missing a side:</strong> ${stats.streetsAbsent.size}</div>
-        <div><strong>By label count (1 / 2 / 3+):</strong> ${stats.tier1} / ${stats.tier2} / ${stats.tier3}</div>
-        <div><strong>Validator-confirmed:</strong> ${stats.validated}</div>
+        <div><strong>By label count (1 / 2 / 3+):</strong>
+          ${util.escapeHTML(stats.tier1)} / ${util.escapeHTML(stats.tier2)} / ${util.escapeHTML(stats.tier3)}</div>
+        <div><strong>Validator-confirmed:</strong> ${util.escapeHTML(stats.validated)}</div>
       `;
     },
 

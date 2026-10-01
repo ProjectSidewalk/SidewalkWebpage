@@ -14,6 +14,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { installEscapeHTML } = require('./loadGlobalScript');
+
+// The markup is escaped through util.escapeHTML.
+installEscapeHTML();
 
 const SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/labelMapLocationSearch.js'), 'utf8'

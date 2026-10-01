@@ -182,7 +182,7 @@ class StreetStatusPage {
   #renderLegend() {
     document.getElementById('street-status-legend').innerHTML = StreetStatusColors.STATUSES.map((s) =>
       `<span class="street-status-legend-item"><span class="street-status-swatch" `
-      + `style="background:${s.color}" aria-hidden="true"></span>${s.label}</span>`,
+      + `style="background:${util.escapeHTML(s.color)}" aria-hidden="true"></span>${util.escapeHTML(s.label)}</span>`,
     ).join('');
   }
 

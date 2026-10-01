@@ -166,7 +166,10 @@
       const toolbar = document.createElement('div');
       toolbar.className = 'map-toolbar';
       const optionsHtml = Object.keys(METRICS)
-        .map((metric) => `<option value="${metric}">${METRICS[metric].label}</option>`)
+        .map((metric) => {
+          const label = util.escapeHTML(METRICS[metric].label);
+          return `<option value="${util.escapeHTML(metric)}">${label}</option>`;
+        })
         .join('');
       toolbar.innerHTML = `<label for="region-metric-select">Color by</label>
         <select id="region-metric-select" class="ps-select">${optionsHtml}</select>`;

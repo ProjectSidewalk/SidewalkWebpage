@@ -185,7 +185,7 @@ class StreetReauditCard {
       </dl>
       ${this.#labelsHtml(summary.label_counts)}
       <a class="button button--primary button--small street-reaudit__explore"
-         href="/explore?streetEdgeId=${summary.street_edge_id}">
+         href="/explore?streetEdgeId=${util.escapeHTML(summary.street_edge_id)}">
         ${i18next.t('labelmap:reaudit-card-explore')}
       </a>`;
 

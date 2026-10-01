@@ -261,7 +261,7 @@
     showError(container, error) {
       console.error('Streets preview error:', error);
       container.innerHTML = `<div class="message message-error" role="alert">Failed to load streets: `
-        + `${error.message}</div>`;
+        + `${util.escapeHTML(error.message)}</div>`;
     },
 
     /**
@@ -336,7 +336,8 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
+      const regionName = regionData.properties.name || 'Sample Region';
+      regionTitle.innerHTML = `<strong>Region:</strong> ${util.escapeHTML(regionName)}`;
 
       if (!streets.features.length) {
         const message = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
@@ -373,7 +374,9 @@
       const summary = ApiDocsMap.addOverlay(map, 'top-right', 'map-stats');
       summary.innerHTML = `
         <h4>Summary</h4>
-        ${metric.statRows(stats).map(([label, value]) => `<div><strong>${label}:</strong> ${value}</div>`).join('')}
+        ${metric.statRows(stats)
+    .map(([label, value]) => `<div><strong>${util.escapeHTML(label)}:</strong> ${util.escapeHTML(value)}</div>`)
+    .join('')}
       `;
     },
 

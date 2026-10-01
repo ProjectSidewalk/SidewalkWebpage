@@ -13,7 +13,10 @@
 
 const fs = require('fs');
 const path = require('path');
-const { installDateHelpers } = require('./loadGlobalScript');
+const { installDateHelpers, loadGlobalScript } = require('./loadGlobalScript');
+
+// The markup is escaped through util.escapeHTML.
+loadGlobalScript('public/js/common/utilities.js');
 
 const ADMIN_USER_SRC = fs.readFileSync(
   path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/AdminUser.js'), 'utf8');

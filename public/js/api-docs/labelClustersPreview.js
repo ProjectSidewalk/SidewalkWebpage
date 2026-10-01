@@ -69,7 +69,7 @@
         this.displayClustersOnMap(map, clusters);
       } catch (error) {
         container.innerHTML = `<div class="message message-error" role="alert">Failed to load label clusters: `
-          + `${error.message}</div>`;
+          + `${util.escapeHTML(error.message)}</div>`;
         console.error('Label clusters preview error:', error);
         // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
         // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -134,7 +134,8 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
+      const regionName = regionData.properties.name || 'Sample Region';
+      regionTitle.innerHTML = `<strong>Region:</strong> ${util.escapeHTML(regionName)}`;
 
       return map;
     },

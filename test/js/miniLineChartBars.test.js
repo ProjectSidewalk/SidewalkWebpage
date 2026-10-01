@@ -12,6 +12,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadGlobalScript } = require('./loadGlobalScript');
+
+// The markup is escaped through util.escapeHTML.
+loadGlobalScript('public/js/common/utilities.js');
 
 const CHART_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/MiniLineChart.js');
 

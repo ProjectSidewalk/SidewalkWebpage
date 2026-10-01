@@ -227,7 +227,7 @@ class HumanVsAiPage {
       : '';
     return `
       <div class="hva-verdict-row">
-        <span class="hva-verdict-name">${HumanVsAiPage.#esc(name)}</span>
+        <span class="hva-verdict-name">${util.escapeHTML(name)}</span>
         <span class="contrib-verdictwrap">${bar}${pcts}</span>
         <span class="hva-verdict-n dq-sub">${total.toLocaleString()}</span>
       </div>`;
@@ -254,20 +254,20 @@ class HumanVsAiPage {
     if (!tags.length) {
       return `
         <div class="hva-taglist">
-          <h4 class="hva-taglist-title">${HumanVsAiPage.#esc(title)}</h4>
+          <h4 class="hva-taglist-title">${util.escapeHTML(title)}</h4>
           <p class="dq-sub">No tags.</p>
         </div>`;
     }
     const max = Math.max(1, ...tags.map((t) => t.count || 0));
     const rows = tags.map((t) => `
       <div class="contrib-row">
-        <span class="contrib-row-label">${HumanVsAiPage.#esc(t.tag)}</span>
+        <span class="contrib-row-label">${util.escapeHTML(t.tag)}</span>
         <div class="dq-bar-track">
           <div class="dq-bar" style="width:${((t.count || 0) / max) * 100}%;background:${color}"></div>
         </div>
         <span class="contrib-row-count">${(t.count || 0).toLocaleString()}</span>
       </div>`).join('');
-    return `<div class="hva-taglist"><h4 class="hva-taglist-title">${HumanVsAiPage.#esc(title)}</h4>${rows}</div>`;
+    return `<div class="hva-taglist"><h4 class="hva-taglist-title">${util.escapeHTML(title)}</h4>${rows}</div>`;
   }
 
   // --- Shared paired-bar rendering (human bar above AI bar per row). ---
@@ -302,7 +302,7 @@ class HumanVsAiPage {
     const hasValue = value !== null && value !== undefined;
     const width = hasValue ? (value / max) * 100 : 0;
     const valueText = !hasValue ? '—' : (isRate ? `${value}%` : value.toLocaleString());
-    const note = datum.note ? ` <span class="dq-sub">${HumanVsAiPage.#esc(datum.note)}</span>` : '';
+    const note = datum.note ? ` <span class="dq-sub">${util.escapeHTML(datum.note)}</span>` : '';
     const muted = datum.muted ? ' hva-bar--muted' : '';
     return `
       <div class="hva-bar hva-bar--${side}${muted}">
@@ -346,7 +346,7 @@ class HumanVsAiPage {
     const icon = m.icon
       ? `<img class="dq-icon" src="${m.icon}" alt="" width="18" height="18">`
       : `<span class="hva-dot" style="background:${m.color}"></span>`;
-    return `<span class="hva-type">${icon}<span>${HumanVsAiPage.#esc(m.display)}</span></span>`;
+    return `<span class="hva-type">${icon}<span>${util.escapeHTML(m.display)}</span></span>`;
   }
 
   // --- Small utilities. ---
@@ -359,10 +359,6 @@ class HumanVsAiPage {
 
   static #pct(frac) {
     return `${Math.round((frac || 0) * 100)}%`;
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
   #toggle(id, show) {

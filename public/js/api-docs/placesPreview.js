@@ -123,8 +123,8 @@
       features.forEach((f) => counts.set(f.properties.category, (counts.get(f.properties.category) || 0) + 1));
       const rows = [...counts.entries()].map(([category, n]) => `
         <div class="map-legend-item">
-          <span class="map-legend-swatch" style="background-color: ${MARKER_COLOR};"></span>
-          ${category} (${n})
+          <span class="map-legend-swatch" style="background-color: ${util.escapeHTML(MARKER_COLOR)};"></span>
+          ${util.escapeHTML(category)} (${util.escapeHTML(n)})
         </div>
       `).join('');
       element.innerHTML = `<h4>Places by category</h4>${rows}`;
@@ -135,7 +135,7 @@
       map.on('click', PLACE_LAYER, (e) => {
         const feature = e.features[0];
         const p = feature.properties;
-        const name = p.name ? this.escapeHtml(p.name) : `Unnamed ${p.category}`;
+        const name = p.name ? util.escapeHTML(p.name) : `Unnamed ${p.category}`;
         const street = (p.nearest_street_edge_id === null || p.nearest_street_edge_id === undefined)
           ? 'no street within 250 m'
           : `street ${p.nearest_street_edge_id}, ${Math.round(p.nearest_street_distance_m)} m away`;
@@ -148,16 +148,6 @@
           <p>${osm}</p>
         `);
       });
-    },
-
-    /**
-     * Escapes a value for an HTML sink: place names are OSM contributors' text.
-     *
-     * @param {string} value - The raw text.
-     * @returns {string} The text with HTML metacharacters escaped.
-     */
-    escapeHtml(value) {
-      return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     },
 
     /** Show an on-map message (e.g. when there is no data). */

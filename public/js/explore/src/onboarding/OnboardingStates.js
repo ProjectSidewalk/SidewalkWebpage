@@ -1908,8 +1908,8 @@ function OnboardingStates(contextMenu, compass, panoManager) {
       transition() {
         // Set Compass Message
         const uiCompassMessageHolder = compass.getCompassMessageHolder();
-        const image = `<img src='${compass.directionToImagePath('straight')}' class='compass-turn-images'`
-          + ` alt='Turn icon' />`;
+        const image = `<img src='${util.escapeHTML(compass.directionToImagePath('straight'))}'`
+          + ` class='compass-turn-images' alt='Turn icon' />`;
         const message = `<div class='compass-message-small'>${i18next.t('center-ui.compass.unlabeled-problems')
         }</div>${image}<span class='compass-message-large'>${i18next.t('center-ui.compass.straight')}</span>`;
         uiCompassMessageHolder.message.innerHTML = message;

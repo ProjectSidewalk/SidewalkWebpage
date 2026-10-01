@@ -146,7 +146,7 @@ class SavedRoutesPanel {
         route.routeId === highlightRouteId ? 'saved-route-card--new' : '',
         route.routeId === this.#activeRouteId ? 'saved-route-card--active' : ''].filter(Boolean).join(' ');
       const thumb = route.thumbnailUrl
-        ? `<img class="saved-route-thumb" src="${route.thumbnailUrl}" alt="" loading="lazy">`
+        ? `<img class="saved-route-thumb" src="${util.escapeHTML(route.thumbnailUrl)}" alt="" loading="lazy">`
         : '';
       const usage = typeof route.startedCount === 'number'
         ? `<span class="saved-route-usage" tabindex="0" data-ps-tooltip="${i18next.t('route-usage-tooltip')}">
@@ -156,8 +156,8 @@ class SavedRoutesPanel {
            </span>`
         : '';
       return `
-      <li class="${cardClasses}" data-route-id="${route.routeId}">
-        <button type="button" class="saved-route-view" data-route-id="${route.routeId}"
+      <li class="${cardClasses}" data-route-id="${util.escapeHTML(route.routeId)}">
+        <button type="button" class="saved-route-view" data-route-id="${util.escapeHTML(route.routeId)}"
                 data-ps-tooltip="${i18next.t('saved-view-title')}">
           ${thumb}
           <span class="saved-route-name"></span>
@@ -166,10 +166,11 @@ class SavedRoutesPanel {
           ${usage}
         </button>
         <div class="saved-route-actions">
-          <a class="button button--primary button--tiny saved-route-explore" href="/explore?routeId=${route.routeId}"
-             data-route-id="${route.routeId}">${i18next.t('saved-explore')}</a>
+          <a class="button button--primary button--tiny saved-route-explore"
+             href="/explore?routeId=${util.escapeHTML(route.routeId)}"
+             data-route-id="${util.escapeHTML(route.routeId)}">${i18next.t('saved-explore')}</a>
           <button type="button" class="button button--secondary button--tiny saved-route-copy"
-                  data-route-id="${route.routeId}">${i18next.t('recent-copy-link')}</button>
+                  data-route-id="${util.escapeHTML(route.routeId)}">${i18next.t('recent-copy-link')}</button>
         </div>
       </li>`;
     }).join('');

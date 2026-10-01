@@ -142,7 +142,8 @@ class ApiAnalyticsPage {
       if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
       const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
       const agoText = ago === null || ago === undefined ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
-      return `No API calls in ${range}. The last was on ${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. `
+      const lastDate = util.escapeHTML(ApiAnalyticsPage.#fmtDate(lastApiCall));
+      return `No API calls in ${range}. The last was on ${lastDate}${agoText}. `
         + 'Try a longer range.';
     }
     // total > 0 but a single bucket: all activity lands in one month (only reachable for the All time range), so
@@ -280,7 +281,7 @@ class ApiAnalyticsPage {
         + `<div class="dq-bar" style="width:${w(extVal)};background:var(--api-external, #2171b5)"></div></div>`;
     return [
       '<div class="api-ep-row">',
-      `<span class="api-ep-label" title="${ApiAnalyticsPage.#esc(label)}">${ApiAnalyticsPage.#esc(label)}</span>`,
+      `<span class="api-ep-label" title="${util.escapeHTML(label)}">${util.escapeHTML(label)}</span>`,
       track,
       `<span class="api-ep-value">${valueHtml}</span>`,
       '</div>',
@@ -329,10 +330,6 @@ class ApiAnalyticsPage {
 
   static #pct(frac) {
     return `${Math.round((frac || 0) * 100)}%`;
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
   #setText(id, text) {

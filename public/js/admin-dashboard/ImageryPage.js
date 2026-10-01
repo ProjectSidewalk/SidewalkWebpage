@@ -221,13 +221,13 @@ class ImageryPage {
           key: 'last_audit_date',
           label: 'Last audited',
           numeric: false,
-          format: (r) => AdminShell.esc(r.last_audit_date || 'never'),
+          format: (r) => util.escapeHTML(r.last_audit_date || 'never'),
         },
         {
           key: 'median_newest_capture',
           label: 'Imagery (median)',
           numeric: false,
-          format: (r) => AdminShell.esc(r.median_newest_capture || 'not polled'),
+          format: (r) => util.escapeHTML(r.median_newest_capture || 'not polled'),
         },
       ],
     });
@@ -345,15 +345,15 @@ class ImageryPage {
     const total = this.#streets.length;
     const rows = StreetPriorityTiers.TIERS.map((tier) => {
       const stat = stats[tier.key];
-      const swatch = `<span class="imagery-tier-swatch imagery-swatch--${tier.key.replace(/_/g, '-')}"`
+      const swatch = `<span class="imagery-tier-swatch imagery-swatch--${util.escapeHTML(tier.key.replace(/_/g, '-'))}"`
         + ' aria-hidden="true"></span>';
       const range = stat.count === 0
         ? '—'
         : (stat.min === stat.max ? stat.min.toFixed(3) : `${stat.min.toFixed(3)} – ${stat.max.toFixed(3)}`);
       return `
         <tr>
-          <td><span class="imagery-tier-name">${swatch}${AdminShell.esc(tier.label)}</span></td>
-          <td class="imagery-tier-what">${AdminShell.esc(tier.description)}</td>
+          <td><span class="imagery-tier-name">${swatch}${util.escapeHTML(tier.label)}</span></td>
+          <td class="imagery-tier-what">${util.escapeHTML(tier.description)}</td>
           <td class="imagery-tier-num">${range}</td>
           <td class="imagery-tier-num">${AdminShell.num(stat.count)}</td>
           <td class="imagery-tier-num">${ImageryPage.#share(stat.count, total)}</td>
@@ -503,7 +503,7 @@ class ImageryPage {
                 ? `at ${perNight.toLocaleString()} streets a night (batch size ${
                   (batchSize || 0).toLocaleString()})`
                 : 'no street polled in this window; the rotation is stalled')}
-            ${row('Oldest imagery record', oldest ? oldest.slice(0, 10) : '—',
+            ${row('Oldest imagery record', oldest ? util.escapeHTML(oldest.slice(0, 10)) : '—',
               'the street checked longest ago')}
           </tbody>
         </table>
@@ -582,7 +582,7 @@ class ImageryPage {
   static #tierCell(value, tierKey) {
     const swatch = `<span class="street-status-swatch imagery-swatch--${tierKey.replace(/_/g, '-')}"`
       + ' aria-hidden="true"></span>';
-    const text = typeof value === 'number' ? AdminShell.num(value) : AdminShell.esc(value);
+    const text = typeof value === 'number' ? AdminShell.num(value) : util.escapeHTML(value);
     return `${swatch}${text}`;
   }
 

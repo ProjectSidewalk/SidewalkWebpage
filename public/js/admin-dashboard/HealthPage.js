@@ -64,7 +64,7 @@ class HealthPage {
       this.#renderPanos(data.pano_backups || null);
       this.#renderNightlyJobs(data.nightly_jobs || []);
     } catch (e) {
-      AdminShell.setHtml('health-pulse', `<strong>Could not load health data.</strong> ${AdminShell.esc(e.message)}`);
+      AdminShell.setHtml('health-pulse', `<strong>Could not load health data.</strong> ${util.escapeHTML(e.message)}`);
     } finally {
       this.#loading = false;
     }
@@ -106,7 +106,7 @@ class HealthPage {
     }
     const label = tone === 'good' ? 'All clear' : 'Needs attention';
     const detail = problems.length
-      ? ` — ${problems.map((p) => AdminShell.esc(p)).join(', ')}`
+      ? ` — ${problems.map((p) => util.escapeHTML(p)).join(', ')}`
       : ' — nothing blocking, stuck, or idle too long.';
     AdminShell.setHtml('health-pulse', `<span class="ac-badge ac-badge--${tone}">${label}</span>${detail}`);
   }
@@ -137,8 +137,8 @@ class HealthPage {
   /** Renders the "updated Ns ago · db · role" meta line, including whether other sessions' query text is visible. */
   #renderMeta(data) {
     const parts = [`updated <span id="health-meta-age">${this.#ageText()}</span>`];
-    if (data.current_database) parts.push(`db <code>${AdminShell.esc(data.current_database)}</code>`);
-    if (data.current_role) parts.push(`role <code>${AdminShell.esc(data.current_role)}</code>`);
+    if (data.current_database) parts.push(`db <code>${util.escapeHTML(data.current_database)}</code>`);
+    if (data.current_role) parts.push(`role <code>${util.escapeHTML(data.current_role)}</code>`);
     if (data.can_see_all_queries === false) {
       // Without pg_read_all_stats Postgres nulls out other sessions' state/wait/query, so those rows drop out of the
       // state-filtered panels entirely — say so, rather than implying only the query text is missing.
@@ -159,12 +159,12 @@ class HealthPage {
       return `
         <tr>
           <td class="ac-num">${r.pid}</td>
-          <td>${AdminShell.esc(r.usename) || '—'}</td>
+          <td>${util.escapeHTML(r.usename) || '—'}</td>
           <td>${this.#stateBadge(r.state)}</td>
           <td class="ac-num">${AdminShell.dur(r.xact_seconds)}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${r.blocking_count}</span></td>
           <td class="ac-num">${AdminShell.dur(r.max_wait_seconds)}</td>
-          <td class="ac-muted">${AdminShell.esc(r.held_locks) || '—'}</td>
+          <td class="ac-muted">${util.escapeHTML(r.held_locks) || '—'}</td>
           <td class="ac-muted">${this.#queryCell(r.query)}</td>
         </tr>`;
     }).join('');
@@ -184,10 +184,10 @@ class HealthPage {
       return `
         <tr>
           <td class="ac-num">${r.pid}</td>
-          <td>${AdminShell.esc(r.usename) || '—'}</td>
-          <td>${AdminShell.esc(r.application_name) || '—'}</td>
+          <td>${util.escapeHTML(r.usename) || '—'}</td>
+          <td>${util.escapeHTML(r.application_name) || '—'}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${AdminShell.dur(r.query_seconds)}</span></td>
-          <td>${AdminShell.esc(r.wait_event_type) || '—'}</td>
+          <td>${util.escapeHTML(r.wait_event_type) || '—'}</td>
           <td class="ac-muted">${this.#queryCell(r.query)}</td>
         </tr>`;
     }).join('');
@@ -206,8 +206,8 @@ class HealthPage {
       return `
         <tr>
           <td class="ac-num">${r.pid}</td>
-          <td>${AdminShell.esc(r.usename) || '—'}</td>
-          <td>${AdminShell.esc(r.application_name) || '—'}</td>
+          <td>${util.escapeHTML(r.usename) || '—'}</td>
+          <td>${util.escapeHTML(r.application_name) || '—'}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${AdminShell.dur(r.idle_seconds)}</span></td>
           <td class="ac-num">${AdminShell.dur(r.xact_seconds)}</td>
           <td class="ac-muted">${this.#queryCell(r.query)}</td>
@@ -223,11 +223,11 @@ class HealthPage {
     if (!rows.length) return this.#renderEmpty('health-evolutions', 'All evolutions are applied cleanly.');
     const body = rows.map((r) => `
         <tr class="ac-row--flagged">
-          <td>${AdminShell.esc(r.schema)}</td>
+          <td>${util.escapeHTML(r.schema)}</td>
           <td class="ac-num">${r.id}</td>
-          <td><span class="ac-badge ac-badge--bad">${AdminShell.esc(r.state) || 'unknown'}</span></td>
-          <td class="ac-muted">${AdminShell.esc((r.applied_at || '').slice(0, 19)) || '—'}</td>
-          <td class="ac-muted">${AdminShell.esc(r.last_problem) || '—'}</td>
+          <td><span class="ac-badge ac-badge--bad">${util.escapeHTML(r.state) || 'unknown'}</span></td>
+          <td class="ac-muted">${util.escapeHTML((r.applied_at || '').slice(0, 19)) || '—'}</td>
+          <td class="ac-muted">${util.escapeHTML(r.last_problem) || '—'}</td>
         </tr>`).join('');
     this.#table('health-evolutions', ['Schema', ['Evolution', true], 'State', 'Applied at', 'Problem'], body);
   }
@@ -242,8 +242,8 @@ class HealthPage {
       const vacuumed = AdminShell.nil(r.vacuum_age_seconds) ? 'never' : `${AdminShell.dur(r.vacuum_age_seconds)} ago`;
       return `
         <tr${tone !== 'good' ? ' class="ac-row--flagged"' : ''}>
-          <td>${AdminShell.esc(r.schema_name)}</td>
-          <td>${AdminShell.esc(r.rel_name)}</td>
+          <td>${util.escapeHTML(r.schema_name)}</td>
+          <td>${util.escapeHTML(r.rel_name)}</td>
           <td class="ac-num">${HealthPage.#compact(r.live_tuples)}</td>
           <td class="ac-num">${HealthPage.#compact(r.dead_tuples)}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone === 'good' ? 'good' : tone}">${ratioPct}</span></td>
@@ -286,7 +286,7 @@ class HealthPage {
         const tone = e.active >= t.conn_bad_active ? 'bad' : e.active >= t.conn_warn_active ? 'warn' : 'ok';
         return `
         <tr>
-          <td>${AdminShell.esc(role)}</td>
+          <td>${util.escapeHTML(role)}</td>
           <td class="ac-num"><span class="ac-badge ac-badge--${tone}">${e.active}</span></td>
           <td class="ac-num">${e.idle}</td>
           <td class="ac-num">${e.total}</td>
@@ -323,7 +323,7 @@ class HealthPage {
         title: 'Source imagery expired and no local backup exists, so these labels can’t be shown.' },
     ];
     const html = cards.map((c) => `
-        <div class="ps-kpi" tabindex="0" data-ps-tooltip="${AdminShell.esc(c.title)}">
+        <div class="ps-kpi" tabindex="0" data-ps-tooltip="${util.escapeHTML(c.title)}">
           <span class="ps-kpi-value">${c.value}</span>
           <span class="ps-kpi-label">${c.label}</span>
         </div>`).join('');
@@ -363,12 +363,12 @@ class HealthPage {
 
     const body = sorted.map((job) => `
       <tr>
-        <td>${AdminShell.esc(job.label)}</td>
-        <td class="ac-muted">${AdminShell.esc(job.scheduled_at)}</td>
+        <td>${util.escapeHTML(job.label)}</td>
+        <td class="ac-muted">${util.escapeHTML(job.scheduled_at)}</td>
         <td>${AdminShell.jobStatusBadge(job)}</td>
         <td>${AdminShell.jobLastRun(job)}</td>
         <td class="ac-num">${AdminShell.dur(job.last_duration_seconds)}</td>
-        <td class="ac-muted">${AdminShell.esc(AdminShell.jobDetails(job))}</td>
+        <td class="ac-muted">${util.escapeHTML(AdminShell.jobDetails(job))}</td>
         <td class="ac-num">${job.failures_in_window > 0
           ? `<span class="ac-badge ac-badge--warn">${job.failures_in_window}/${job.runs_in_window}</span>`
           : `${AdminShell.num(job.failures_in_window)}/${AdminShell.num(job.runs_in_window)}`}</td>
@@ -400,14 +400,14 @@ class HealthPage {
   /** Renders an "all clear" line for an empty panel. */
   #renderEmpty(id, msg) {
     AdminShell.setHtml(id, `<p class="coverage-status">
-      <span class="ac-badge ac-badge--good">✓</span> ${AdminShell.esc(msg)}
+      <span class="ac-badge ac-badge--good">✓</span> ${util.escapeHTML(msg)}
     </p>`);
   }
 
   /** The counterpart to #renderEmpty for a panel with nothing to show *because the read failed*. */
   #renderProblem(id, msg) {
     AdminShell.setHtml(id, `<p class="coverage-status">
-      <span class="ac-badge ac-badge--bad">!</span> ${AdminShell.esc(msg)}
+      <span class="ac-badge ac-badge--bad">!</span> ${util.escapeHTML(msg)}
     </p>`);
   }
 
@@ -415,14 +415,14 @@ class HealthPage {
   #stateBadge(state) {
     if (!state) return '—';
     const tone = state.startsWith('idle in transaction') ? 'warn' : state === 'active' ? 'ok' : 'good';
-    return `<span class="ac-badge ac-badge--${tone}">${AdminShell.esc(state)}</span>`;
+    return `<span class="ac-badge ac-badge--${tone}">${util.escapeHTML(state)}</span>`;
   }
 
   /** A query cell: the statement, or a note when the role can't read another session's statement text. */
   #queryCell(query) {
     if (AdminShell.nil(query)) return '<em>hidden</em>';
     const q = query.length > 160 ? `${query.slice(0, 160)}…` : query;
-    return `<code>${AdminShell.esc(q)}</code>`;
+    return `<code>${util.escapeHTML(q)}</code>`;
   }
 
   #setKpi(id, value, tone) {

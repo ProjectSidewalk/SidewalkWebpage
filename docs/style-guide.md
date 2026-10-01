@@ -100,10 +100,18 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
     value: a newline in `title="..."` renders literally in the tooltip.
   - `eslint --fix` can't do this conversion for you (`prefer-template` only fires when a variable is involved, not on
     literal-plus-literal chains), so convert concatenated HTML by hand as you touch it.
-  - Anything interpolated into that markup must be escaped exactly once — `util.escapeHTML(value)`, or, for a
-    translated string, `interpolation: { escapeValue: true }` on the `i18next.t()` call (the
-    `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values verbatim by default,
-    since most of them land in a text node: `docs/internationalization.md` → "Interpolated values and HTML".
+  - Anything interpolated into that markup must be escaped exactly once — `util.escapeHTML(value)` (the one escape
+    helper; don't write another), or, for a translated string, `interpolation: { escapeValue: true }` on the
+    `i18next.t()` call (the `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values
+    verbatim by default, since most of them land in a text node: `docs/internationalization.md` → "Interpolated
+    values and HTML".
+  - The `ps/escape-in-markup` rule (`tools/lint/eslint-rules/escape-in-markup.js`) blocks a `${…}` in an HTML-bound
+    template that isn't escaped and can't be shown safe: a number, a translation, an asset path, label-type data,
+    or a value of this file it can trace back to one of those. A parameter, field or helper of the same file is
+    followed to its callers or its return values; anything from another file or off API data needs the wrap.
+    Escape where the value enters the HTML, not where it's computed, so a helper's text callers don't get
+    `&amp;`. When the value really is markup of ours (a translation with `<b>`, a cell a column formatter built),
+    say why with `// eslint-disable-next-line ps/escape-in-markup -- <why>`.
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).

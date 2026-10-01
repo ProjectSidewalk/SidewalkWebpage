@@ -491,9 +491,10 @@ class ContextMenu {
               const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {
                 c: keyChar, interpolation: { escapeValue: true },
               });
-              const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`;
+              const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${util.escapeHTML(img)}"/>`;
 
               button.setAttribute(
+                // eslint-disable-next-line ps/escape-in-markup -- the header is our tag text, underline markup and all.
                 'data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
               );
             });
@@ -517,7 +518,7 @@ class ContextMenu {
         const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
         const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`;
         // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
-        const tooltipImage = `<img class="context-menu-tooltip__img--severity" src="${img}"/>`;
+        const tooltipImage = `<img class="context-menu-tooltip__img--severity" src="${util.escapeHTML(img)}"/>`;
         for (const button of document.querySelectorAll(`.severity-button[data-severity="${sev}"]`)) {
           button.setAttribute('data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/>${tooltipFooter}`);
         }

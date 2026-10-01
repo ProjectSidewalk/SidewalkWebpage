@@ -309,7 +309,7 @@ class AcrossCitiesPage {
     const people = humanCount || 0;
     el.textContent = ai ? `+ ${this.#num(ai)} by AI` : '';
     if (ai) {
-      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc(`People made ${this.#num(people)} of the `
+      el.setAttribute('data-ps-tooltip', util.escapeHTML(`People made ${this.#num(people)} of the `
         + `${this.#num(people + ai)} ${noun} ${period}; ${this.#num(ai)} came from AI accounts.`));
     } else {
       el.removeAttribute('data-ps-tooltip');
@@ -334,7 +334,7 @@ class AcrossCitiesPage {
     const anon = anonCount || 0;
     el.textContent = anon ? `+ ${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'}` : '';
     if (anon) {
-      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc('Contributors are registered accounts. '
+      el.setAttribute('data-ps-tooltip', util.escapeHTML('Contributors are registered accounts. '
         + `${this.#num(anon)} anonymous ${anon === 1 ? 'session' : 'sessions'} also contributed ${period}; each is a `
         + 'browser cookie, not a known person.'));
     } else {
@@ -355,7 +355,7 @@ class AcrossCitiesPage {
     const agents = agentCount || 0;
     el.textContent = agents ? `+ ${this.#num(agents)} AI ${agents === 1 ? 'account' : 'accounts'}` : '';
     if (agents) {
-      el.setAttribute('data-ps-tooltip', AcrossCitiesPage.#esc(`Contributors are people. `
+      el.setAttribute('data-ps-tooltip', util.escapeHTML(`Contributors are people. `
         + `${this.#num(agents)} AI ${agents === 1 ? 'account was' : 'accounts were'} also active ${period}.`));
     } else {
       el.removeAttribute('data-ps-tooltip');
@@ -450,14 +450,16 @@ class AcrossCitiesPage {
     const { current, prior, ai } = this.#metricCounts(city.activity_window || {}, metric);
     // A city with no activity in either window gets the bare count, since "→ 0%" is noise.
     const d = showDelta && (current || prior) ? this.#deltaParts(current, prior) : null;
-    const delta = d ? `<span class="ac-cell-delta ac-cell-delta--${d.dir}">${d.short}</span>` : '';
+    const delta = d
+      ? `<span class="ac-cell-delta ac-cell-delta--${util.escapeHTML(d.dir)}">${util.escapeHTML(d.short)}</span>`
+      : '';
     const aiChip = ai ? `<span class="ac-cell-ai">+${this.#compact(ai)} AI</span>` : '';
     const heading = { labels: 'Labels', validations: 'Validations', contributors: 'Contributors' }[metric]
       ?? 'Activity';
     const label = `${city.city_name || city.city_id} · ${heading}, last 7 days: ${this.#num(current)}`;
     return `<td class="ac-num"><span class="ac-cell-trigger" role="button" tabindex="0" aria-haspopup="dialog" `
-      + `aria-expanded="false" aria-label="${AcrossCitiesPage.#esc(label)}" data-ps-tooltip-pinnable `
-      + `data-ps-tooltip="${AcrossCitiesPage.#esc(this.#cityTipHtml(city, metric))}">`
+      + `aria-expanded="false" aria-label="${util.escapeHTML(label)}" data-ps-tooltip-pinnable `
+      + `data-ps-tooltip="${util.escapeHTML(this.#cityTipHtml(city, metric))}">`
       + `${this.#num(current)}${delta}${aiChip}</span></td>`;
   }
 
@@ -560,7 +562,7 @@ class AcrossCitiesPage {
 
   /** Popup HTML for one city on the map. */
   #mapPopupHtml(geo, sc) {
-    const name = AcrossCitiesPage.#esc(geo.city_name_formatted || geo.city_name_short || geo.city_id);
+    const name = util.escapeHTML(geo.city_name_formatted || geo.city_name_short || geo.city_id);
     if (!sc) {
       return `<div class="coverage-popup-name">${name}</div><div>No stats available.</div>`;
     }
@@ -572,7 +574,7 @@ class AcrossCitiesPage {
       ['Validations', this.#num(sc.total_validations)],
       ['Contributors', this.#num(sc.active_contributors)],
       ['Last activity', sc.last_activity ? AdminShell.relativeTime(sc.last_activity) : 'never'],
-    ].map(([k, v]) => `<tr><td>${k}</td><td>${AcrossCitiesPage.#esc(v)}</td></tr>`).join('');
+    ].map(([k, v]) => `<tr><td>${k}</td><td>${util.escapeHTML(v)}</td></tr>`).join('');
     return `<div class="coverage-popup-name">${name}</div>`
       + `<table class="coverage-popup-dl">${rows}</table>`;
   }
@@ -624,15 +626,16 @@ class AcrossCitiesPage {
       return;
     }
     el.innerHTML = items.map((it) => {
-      const name = AcrossCitiesPage.#esc(it.city.city_name || it.city.city_id);
+      const name = util.escapeHTML(it.city.city_name || it.city.city_id);
       const rawHref = it.href || it.city.url;
-      const href = rawHref ? AcrossCitiesPage.#esc(rawHref) : '#';
+      const href = rawHref ? util.escapeHTML(rawHref) : '#';
       return [
-        `<a class="ov-attention-item ov-attention--${it.sev === 'bad' ? 'warn' : it.sev}" href="${href}"`,
+        `<a class="ov-attention-item ov-attention--${util.escapeHTML(it.sev === 'bad' ? 'warn' : it.sev)}"`,
+        ` href="${href}"`,
         rawHref ? ' target="_blank" rel="noopener">' : '>',
         '<span class="ov-attention-dot" aria-hidden="true"></span>',
-        `<span class="ov-attention-text"><strong>${name}</strong> — ${AcrossCitiesPage.#esc(it.reason)}</span>`,
-        `<span class="ov-attention-go">${AcrossCitiesPage.#esc(it.label)} →</span>`,
+        `<span class="ov-attention-text"><strong>${name}</strong> — ${util.escapeHTML(it.reason)}</span>`,
+        `<span class="ov-attention-go">${util.escapeHTML(it.label)} →</span>`,
         '</a>',
       ].join('');
     }).join('');
@@ -666,7 +669,7 @@ class AcrossCitiesPage {
   /** A colored lifecycle badge. */
   #lifecycleBadge(state) {
     const lc = AcrossCitiesPage.#LIFECYCLE[state] || { label: state, tone: 'ok' };
-    return `<span class="ac-badge ac-badge--${lc.tone}">${AcrossCitiesPage.#esc(lc.label)}</span>`;
+    return `<span class="ac-badge ac-badge--${util.escapeHTML(lc.tone)}">${util.escapeHTML(lc.label)}</span>`;
   }
 
   // --- Over-time charts -------------------------------------------------------------------------------------------
@@ -827,11 +830,11 @@ class AcrossCitiesPage {
       const needsAttention = (lc && lc.attention) || (c.anomalies || []).length > 0;
       const chips = (c.anomalies || []).map((f) => {
         const meta = AcrossCitiesPage.#ANOMALY[f] || { label: f, sev: 'info' };
-        return `<span class="ac-chip ac-chip--${meta.sev}">${AcrossCitiesPage.#esc(meta.label)}</span>`;
+        return `<span class="ac-chip ac-chip--${util.escapeHTML(meta.sev)}">${util.escapeHTML(meta.label)}</span>`;
       }).join('');
       const chipsHtml = chips ? ` <span class="ac-chips">${chips}</span>` : '';
       const lastActivity = c.last_activity
-        ? AcrossCitiesPage.#esc(AdminShell.relativeTime(c.last_activity))
+        ? util.escapeHTML(AdminShell.relativeTime(c.last_activity))
         : '<span class="ac-muted">never</span>';
       return `
         <tr class="${needsAttention ? 'ac-row--flagged' : ''}">
@@ -978,7 +981,7 @@ class AcrossCitiesPage {
     const rows = this.#sortedCities(state.key, state.dir);
     tbody.innerHTML = rows.map((c) => {
       const last = c.last_activity
-        ? AcrossCitiesPage.#esc(AdminShell.relativeTime(c.last_activity))
+        ? util.escapeHTML(AdminShell.relativeTime(c.last_activity))
         : '<span class="ac-muted">never</span>';
       const spark = this.#sparkline((c.weekly_trend || []).map((w) => w.labels || 0));
       const flagged = c.lifecycle === 'stalled' || c.lifecycle === 'low_traction';
@@ -1048,8 +1051,8 @@ class AcrossCitiesPage {
       let chips = '';
       if (t.anomaly) {
         const meta = AcrossCitiesPage.#ANOMALY[t.anomaly] || { label: t.anomaly, sev: 'info' };
-        chips = ` <span class="ac-chips"><span class="ac-chip ac-chip--${meta.sev}">`
-          + `${AcrossCitiesPage.#esc(meta.label)}</span></span>`;
+        chips = ` <span class="ac-chips"><span class="ac-chip ac-chip--${util.escapeHTML(meta.sev)}">`
+          + `${util.escapeHTML(meta.label)}</span></span>`;
       }
       const engagementTitle = `${this.#num(t.engaged_sessions_7d)} of ${this.#num(t.sessions_7d)} sessions engaged`;
       const sinceTip = AdminShell.tooltipAttr(AcrossCitiesPage.#gaSinceTip(t.ga_since));
@@ -1099,7 +1102,9 @@ class AcrossCitiesPage {
     const pri = prior || 0;
     // A city with nothing in either window gets the bare zero, since "→ 0%" is noise.
     const d = (cur || pri) ? this.#deltaParts(cur, pri) : null;
-    const delta = d ? `<span class="ac-cell-delta ac-cell-delta--${d.dir}">${d.short}</span>` : '';
+    const delta = d
+      ? `<span class="ac-cell-delta ac-cell-delta--${util.escapeHTML(d.dir)}">${util.escapeHTML(d.short)}</span>`
+      : '';
     const title = `${this.#num(cur)} ${noun} in the last 7 days vs ${this.#num(pri)} in the 7 days before`;
     return `<td class="ac-num" title="${title}">${this.#num(cur)}${delta}</td>`;
   }
@@ -1164,7 +1169,7 @@ class AcrossCitiesPage {
       legendEl.innerHTML = present.map(([key, name]) => `
         <span class="ac-legend-item">
           <span class="ac-legend-swatch" style="background:${this.#color(key)}"></span>
-          ${AcrossCitiesPage.#esc(name)}
+          ${util.escapeHTML(name)}
         </span>`).join('');
     }
 
@@ -1192,7 +1197,7 @@ class AcrossCitiesPage {
           <div class="ac-pattern-city">
             ${this.#cityLink(c)} <span class="ac-muted">${this.#compact(c.total_labels)}</span>
           </div>
-          <div class="ac-stack" role="img" aria-label="${AcrossCitiesPage.#esc(tips.join(', ') || 'No labels')}">
+          <div class="ac-stack" role="img" aria-label="${util.escapeHTML(tips.join(', ') || 'No labels')}">
             ${segments}</div>
         </div>`;
     }).join('');
@@ -1275,9 +1280,9 @@ class AcrossCitiesPage {
       + `<strong>${cities(withStories.length)}</strong>${noneNote}.${unknownNote}`;
     tbody.innerHTML = withStories.map((e) => {
       const st = e.counts;
-      const name = AcrossCitiesPage.#esc(e.city_name || e.city_id);
+      const name = util.escapeHTML(e.city_name || e.city_id);
       const href = this.#storiesHref(e);
-      const link = href && `<a href="${AcrossCitiesPage.#esc(href)}" target="_blank" rel="noopener">${name}</a>`;
+      const link = href && `<a href="${util.escapeHTML(href)}" target="_blank" rel="noopener">${name}</a>`;
       const cityCell = link || name;
       // total > 0 guarantees a newest date.
       const newest = new Date(st.newest).toLocaleDateString(undefined, util.SHORT_DATE);
@@ -1289,7 +1294,7 @@ class AcrossCitiesPage {
           <td class="ac-num">${this.#num(st.with_photo)}</td>
           <td class="ac-num">${this.#num(st.last_7d)}</td>
           <td class="ac-num">${this.#num(st.last_30d)}</td>
-          <td>${AcrossCitiesPage.#esc(newest)}</td>
+          <td>${util.escapeHTML(newest)}</td>
         </tr>`;
     }).join('');
   }
@@ -1368,8 +1373,8 @@ class AcrossCitiesPage {
     const cities = funnel.cities || [];
     return `
       <div class="ac-funnel-block">
-        <h3 class="ac-funnel-block-title">${AcrossCitiesPage.#esc(meta.title)}</h3>
-        <p class="ac-note">${AcrossCitiesPage.#esc(meta.desc)}</p>
+        <h3 class="ac-funnel-block-title">${util.escapeHTML(meta.title)}</h3>
+        <p class="ac-note">${util.escapeHTML(meta.desc)}</p>
         <div class="ac-table-wrap">${this.#funnelTableHtml(steps, cities, segs)}</div>
         <div class="ac-funnel-grid">${this.#funnelBarsHtml(steps, cities, segs)}</div>
       </div>`;
@@ -1389,7 +1394,7 @@ class AcrossCitiesPage {
       multi ? '<th class="ac-th-text">Group</th>' : '',
       ...steps.map((k) => {
         const l = labels[k] || { full: k, short: k };
-        const short = AcrossCitiesPage.#esc(l.short);
+        const short = util.escapeHTML(l.short);
         // A card that only repeats the header would be a tab stop with nothing to say.
         if (l.full === l.short) return `<th>${short}</th>`;
         return `<th tabindex="0" data-ps-tooltip="${AdminShell.tooltipAttr(l.full)}">${short}</th>`;
@@ -1421,7 +1426,7 @@ class AcrossCitiesPage {
         return [
           '<tr>',
           `<td class="ac-td-city">${this.#cityLink(c)}</td>`,
-          multi ? `<td>${AcrossCitiesPage.#esc(seg.label)}</td>` : '',
+          multi ? `<td>${util.escapeHTML(seg.label)}</td>` : '',
           stepCells,
           `<td class="ac-num">${this.#pct(d.overall_conversion)}</td>`,
           '</tr>',
@@ -1449,7 +1454,7 @@ class AcrossCitiesPage {
     const legendItems = segs.map((s, i) =>
       `<span class="ac-funnel-legend-item">`
       + `<span class="ac-funnel-swatch" style="background:${palette[i] || palette[0]}"></span>`
-      + `${AcrossCitiesPage.#esc(s.label)}</span>`).join('');
+      + `${util.escapeHTML(s.label)}</span>`).join('');
     const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
     const stepRows = steps.map((k, i) => {
       const full = (labels[k] || { full: k }).full;
@@ -1468,7 +1473,7 @@ class AcrossCitiesPage {
           + `style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>`
           + `<span class="ac-funnel-bar-val">${valText}</span></div>`;
       }).join('');
-      return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${AcrossCitiesPage.#esc(full)}</div>`
+      return `<div class="ac-funnel-step"><div class="ac-funnel-step-label">${util.escapeHTML(full)}</div>`
         + `<div class="ac-funnel-bars">${bars}</div></div>`;
     }).join('');
     return `<div class="ac-funnel-panel"><div class="ac-funnel-panel-title">${this.#cityLink(c)}</div>`
@@ -1537,7 +1542,7 @@ class AcrossCitiesPage {
     if (!people.length) return '';
     const shown = people.slice(0, limit).map((p) => {
       const cities = p.cities || [];
-      const name = p.username ? AcrossCitiesPage.#esc(p.username) : 'unknown user';
+      const name = p.username ? util.escapeHTML(p.username) : 'unknown user';
       const href = p.username ? AcrossCitiesPage.#adminUrl(cityUrl ?? cities[0]?.url, p.username) : null;
       const linked = href ? this.#tipLink(href, name) : name;
       const tag = p.kind === 'ai' ? '<span class="ac-tip-tag">AI</span>' : '';
@@ -1564,7 +1569,7 @@ class AcrossCitiesPage {
     if (!cities.length) return '';
     const MAX_CITIES = 2; // An AI account can touch dozens of cities in a day; inline, more than two crowds the row.
     const parts = cities.slice(0, MAX_CITIES).map((c) => {
-      const name = AcrossCitiesPage.#esc(c.city_name || c.city_id);
+      const name = util.escapeHTML(c.city_name || c.city_id);
       if (cities.length === 1) return name;
       const href = username ? AcrossCitiesPage.#adminUrl(c.url, username) : null;
       const share = `${this.#num(c.labels)} labels · ${this.#num(c.validations)} validations`;
@@ -1585,8 +1590,8 @@ class AcrossCitiesPage {
    */
   #tipLink(href, text, title = null) {
     this.#tipLinkCount += 1;
-    const t = title ? ` title="${AcrossCitiesPage.#esc(title)}"` : '';
-    return `<a class="ac-tip-link" href="${AcrossCitiesPage.#esc(href)}"${t} target="_blank" rel="noopener">`
+    const t = title ? ` title="${util.escapeHTML(title)}"` : '';
+    return `<a class="ac-tip-link" href="${util.escapeHTML(href)}"${t} target="_blank" rel="noopener">`
       + `${text}</a>`;
   }
 
@@ -1638,7 +1643,7 @@ class AcrossCitiesPage {
       card = this.#buildDayTip(d);
       this.#dayTipCards.set(d.day, card);
     }
-    return emphasisKey ? card.replace('data-emph=""', `data-emph="${AcrossCitiesPage.#esc(emphasisKey)}"`) : card;
+    return emphasisKey ? card.replace('data-emph=""', `data-emph="${util.escapeHTML(emphasisKey)}"`) : card;
   }
 
   /**
@@ -1649,7 +1654,7 @@ class AcrossCitiesPage {
    */
   #buildDayTip(d) {
     this.#tipLinkCount = 0; // Counted per card, so the pin hint only goes on a card that has links to pin for.
-    const title = `<div class="ac-tip-title">${AcrossCitiesPage.#esc(AcrossCitiesPage.#longDate(d.day))}</div>`;
+    const title = `<div class="ac-tip-title">${util.escapeHTML(AcrossCitiesPage.#longDate(d.day))}</div>`;
     // A day with no human work can still have plenty to report — the AI pipeline runs on its own schedule — so the
     // quiet case is "nothing at all happened", not "the bar this chart draws is zero".
     const quiet = !d.labels && !d.validations && !d.contributors && !d.anon_sessions
@@ -1672,7 +1677,7 @@ class AcrossCitiesPage {
       // total: a lone number under a "busiest" heading reads as whichever row above it happens to match that day.
       out += AcrossCitiesPage.#tipHead('Busiest cities (labels · validations)');
       out += cities.map((city) => {
-        const name = AcrossCitiesPage.#esc(city.city_name || city.city_id);
+        const name = util.escapeHTML(city.city_name || city.city_id);
         const href = AcrossCitiesPage.#adminUrl(city.url);
         return AcrossCitiesPage.#tipRow(
           href ? this.#tipLink(href, name) : name,
@@ -1707,7 +1712,7 @@ class AcrossCitiesPage {
     const { current, prior, ai } = this.#metricCounts(w, metric);
     const heading = { labels: 'labels', validations: 'validations', contributors: 'contributors' }[metric]
       ?? 'labels + validations';
-    const title = `${AcrossCitiesPage.#esc(city.city_name || city.city_id)} · ${AcrossCitiesPage.#esc(heading)}`;
+    const title = `${util.escapeHTML(city.city_name || city.city_id)} · ${util.escapeHTML(heading)}`;
     let out = `<div class="ac-tip-title">${title}</div>`;
     out += AcrossCitiesPage.#tipRow('Last 7 days', this.#num(current));
     out += AcrossCitiesPage.#tipRow('7 days before', this.#num(prior));
@@ -1747,8 +1752,8 @@ class AcrossCitiesPage {
   // --- Shared cell builders ---------------------------------------------------------------------------------------
 
   #cityLink(c) {
-    const name = AcrossCitiesPage.#esc(c.city_name || c.city_id);
-    return c.url ? `<a href="${AcrossCitiesPage.#esc(c.url)}" target="_blank" rel="noopener">${name}</a>` : name;
+    const name = util.escapeHTML(c.city_name || c.city_id);
+    return c.url ? `<a href="${util.escapeHTML(c.url)}" target="_blank" rel="noopener">${name}</a>` : name;
   }
 
   #coverageBar(coverage) {
@@ -1841,11 +1846,6 @@ class AcrossCitiesPage {
     if (isNaN(d.getTime())) return 'Covers this property\'s whole GA4 history.';
     const when = d.toLocaleDateString(undefined, util.SHORT_DATE);
     return `GA4 data starts ${when}; earlier traffic isn't counted.`;
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   }
 
   /** "Jun 9"-style short date from an ISO date string. */

@@ -275,7 +275,9 @@ class MobileValidationMenu {
    */
   static #addTooltip(elem, tooltipText, img) {
     if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
-    elem.setAttribute('data-ps-tooltip', img ? `${tooltipText}<br/><img src="${img}" height="140"/>` : tooltipText);
+    const imgHtml = img ? `<br/><img src="${util.escapeHTML(img)}" height="140"/>` : '';
+    // eslint-disable-next-line ps/escape-in-markup -- the text is a translation, some with <b> markup.
+    elem.setAttribute('data-ps-tooltip', `${tooltipText}${imgHtml}`);
   }
 
   // VALIDATING 'NO' SECTION.

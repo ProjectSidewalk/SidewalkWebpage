@@ -297,7 +297,7 @@
           render(container, trimToRecentDays(json.data || [], 90));
         })
         .catch((err) => {
-          showError(container, `Failed to load preview: ${err.message}`);
+          showError(container, `Failed to load preview: ${util.escapeHTML(err.message)}`);
           console.error('AggregateStatsByDayPreview error:', err);
         });
     },

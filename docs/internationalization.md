@@ -101,8 +101,8 @@ wrapper (don't wrap `i18next.t`, and write `el.innerHTML`, never `el['innerHTML'
 and the reviewer.
 
 So when a string you build ends up as HTML somewhere the rule can't follow, escape it there or say
-`escapeValue: true` here. Values we computed ourselves — a count, an id, an asset path — carry nothing to escape and
-need neither. And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with
+`escapeValue: true` here. The sibling `ps/escape-in-markup` rule (`docs/style-guide.md`) covers every other value
+interpolated into HTML, and lets a count or an asset path through unescaped. And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with
 a comment, never `true`: turning escaping on at a text sink is the bug #5389 fixed.
 
 Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
