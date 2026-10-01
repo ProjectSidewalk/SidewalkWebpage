@@ -492,7 +492,7 @@ instead, which fingerprints for no benefit and roughly triples `target/web`.
 Health checks treat an instance as up when an anonymous request to **`/anonSignUp`** returns a valid session cookie
 (`PLAY_SESSION`) — i.e. the app can boot into an anonymous session. This is the same anonymous-session trick used to
 exercise authenticated routes in local dev (see [`docs/dev-environment.md`](dev-environment.md)). Instances that
-return server errors are automatically restarted, and application logs are archived on each rebuild.
+return server errors are automatically restarted.
 
 ## Logs
 
@@ -501,7 +501,8 @@ Each running city instance writes a **rolling file log** (configured in [`conf/l
 - **File name:** `application-<SIDEWALK_CITY_ID>.log` in the instance's `logs/` directory — e.g.
   `application-newberg-or.log`. `application.home` resolves to that city's staged app directory, so **every city has its
   own `logs/` subdirectory**; the app also mirrors output to stdout.
-- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap; logs are archived on each rebuild.
+- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. A deploy deletes these files;
+  older lines survive only in the stdout copy (`container-<city>.log`), which the deploy tooling archives on each rebuild.
 - **Levels:** root is `INFO`, and **successful requests are not access-logged** — a working page produces *no* log
   line. Only warnings and errors appear (client 4xx via the error handler, server-side exceptions, etc.).
 
