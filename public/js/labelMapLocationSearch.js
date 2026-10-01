@@ -128,7 +128,7 @@ function buildExploreHereContent(map, lat, lng, placeName, address, exploreHref)
       </p>
       <div class="explore-here__track"><div class="explore-here__fill" style="width:${percent}%"></div></div>`
       : ''}
-    <a class="explore-here-button button button--primary button--small" href="${exploreHref}">
+    <a class="explore-here-button button button--primary button--small" href="${util.escapeHTML(exploreHref)}">
       ${i18next.t('labelmap:explore-here')}
     </a>`;
   if (placeName) wrapper.querySelector('.explore-here__place').textContent = placeName;

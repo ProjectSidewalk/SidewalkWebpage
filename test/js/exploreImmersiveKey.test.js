@@ -8,6 +8,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const SHORTCUTS_SRC = fs.readFileSync(
+    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
+);
 
 const KEYBOARD_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/explore/src/keyboard/KeyboardManager.js'), 'utf8'
@@ -20,7 +23,7 @@ describe('Explore F shortcut for immersive mode', () => {
 
     beforeAll(() => {
         window.util = { misc: { VALID_LABEL_TYPES_WITHOUT_OTHER: [], getLabelDescriptions: () => ({}) } };
-        window.eval(`${KEYBOARD_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        window.eval(`${SHORTCUTS_SRC}\n${KEYBOARD_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
         contextMenuOpen = false;
         // One instance for the file: the constructor adds window listeners that are never removed.
         const contextMenu = { isOpen: () => contextMenuOpen, getTargetLabel: () => null, hide: jest.fn() };

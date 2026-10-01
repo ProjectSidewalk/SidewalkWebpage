@@ -7,6 +7,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const SHORTCUTS_SRC = fs.readFileSync(
+    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
+);
 const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
 const { makeContextMenuUi } = require('./contextMenuUiStub');
 
@@ -35,7 +38,7 @@ function makeLabel(labelType, tutorialLabelNumber) {
 }
 
 function pressKey(key) {
-  window.dispatchEvent(new KeyboardEvent('keyup', { key }));
+  window.dispatchEvent(new KeyboardEvent('keyup', { key, code: `Digit${key}` }));
 }
 
 describe('Explore severity shortcuts', () => {
@@ -58,7 +61,7 @@ describe('Explore severity shortcuts', () => {
       isOnboarding: () => false, LABEL_ICON_RADIUS: 17,
     };
 
-    window.eval(`${CONTEXT_MENU_SRC}\n${KEYBOARD_MANAGER_SRC}\n`
+    window.eval(`${SHORTCUTS_SRC}\n${CONTEXT_MENU_SRC}\n${KEYBOARD_MANAGER_SRC}\n`
       + 'window.ContextMenu = ContextMenu; window.KeyboardManager = KeyboardManager;');
     menu = new window.ContextMenu(makeContextMenuUi());
     menu.labelTags = [];

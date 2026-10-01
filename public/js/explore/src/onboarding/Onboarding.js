@@ -691,17 +691,12 @@ class Onboarding {
     }
 
     // Reset positioning state so each message starts clean.
-    messageHolder.classList.remove('animated', 'fadeIn', 'fadeInLeft', 'fadeInRight', 'fadeInDown', 'fadeInUp',
-      'callout-floating', 'onboarding-message-takeover', 'onboarding-message-fullpage', 'onboarding-message-top-right',
-      'onboarding-message-pano-anchored', 'onboarding-message-pass-through');
+    messageHolder.classList.remove('callout-floating', 'onboarding-message-takeover', 'onboarding-message-fullpage',
+      'onboarding-message-top-right', 'onboarding-message-pano-anchored', 'onboarding-message-pass-through');
     Object.assign(messageHolder.style, { position: '', top: '', left: '', transform: '', width: '', maxWidth: '' });
     this.#uiOnboarding.background.style.visibility = 'hidden';
 
     messageHolder.style.display = '';
-
-    if ('fade-direction' in parameters) {
-      messageHolder.classList.add('animated', parameters['fade-direction']);
-    }
 
     // Width is authored in logical (pre-scale) pixels; scale it to on-screen pixels.
     if ('width' in parameters) {
@@ -1033,7 +1028,7 @@ class Onboarding {
 
     if (!('okButton' in state) || state.okButton) {
       // Insert an ok button.
-      const okButtonText = state.okButtonText || 'Ok';
+      const okButtonText = util.escapeHTML(state.okButtonText || 'Ok');
       this.#uiOnboarding.messageHolder.insertAdjacentHTML('beforeend',
         `<div class='onboarding-ok-button-holder'>
           <button id='onboarding-ok-button' class='button button--medium button--secondary'>${okButtonText}</button>

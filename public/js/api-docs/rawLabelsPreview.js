@@ -69,7 +69,7 @@
         this.displayLabelsOnMap(map, labels);
       } catch (error) {
         container.innerHTML = `<div class="message message-error" role="alert">Failed to load raw labels: `
-          + `${error.message}</div>`;
+          + `${util.escapeHTML(error.message)}</div>`;
         console.error('Raw labels preview error:', error);
         // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
         // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -134,7 +134,8 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
+      const regionName = regionData.properties.name || 'Sample Region';
+      regionTitle.innerHTML = `<strong>Region:</strong> ${util.escapeHTML(regionName)}`;
 
       return map;
     },
@@ -189,31 +190,34 @@
         const feature = e.features[0];
         const props = feature.properties;
 
-        const severity = props.severity ? `Severity: ${props.severity}` : 'No severity rating';
+        const severity = props.severity ? `Severity: ${util.escapeHTML(props.severity)}` : 'No severity rating';
         const tagList = ApiDocsMap.featureProp(props, 'tags');
-        const tags = tagList && tagList.length ? `Tags: ${tagList.join(', ')}` : 'No tags';
+        const tags = tagList && tagList.length ? `Tags: ${util.escapeHTML(tagList.join(', '))}` : 'No tags';
         const timeCreated = props.time_created ? new Date(props.time_created).toLocaleDateString() : 'Unknown date';
 
+        const votes = `${util.escapeHTML(props.agree_count)} agree, ${util.escapeHTML(props.disagree_count)} disagree`;
         let validationStatus = 'Not validated';
         if (props.correct === true) {
-          validationStatus = `Validated (${props.agree_count} agree, ${props.disagree_count} disagree)`;
+          validationStatus = `Validated (${votes})`;
         } else if (props.correct === false) {
-          validationStatus = `Invalidated (${props.agree_count} agree, ${props.disagree_count} disagree)`;
+          validationStatus = `Invalidated (${votes})`;
         }
 
         // Absent for providers without a public viewer (e.g. infra3d).
         const panoLink = props.pano_url
-          ? `<p><a href="${props.pano_url}" target="_blank" rel="noopener noreferrer">View panorama</a></p>`
+          ? `<p><a href="${util.escapeHTML(props.pano_url)}" target="_blank" rel="noopener noreferrer">
+              View panorama
+            </a></p>`
           : '';
 
         ApiDocsMap.popup(map, feature.geometry.coordinates.slice(), `
-          <h4>${labelTypeInfo[props.label_type]?.display || props.label_type}</h4>
-          <p>${labelTypeInfo[props.label_type]?.description || ''}</p>
+          <h4>${util.escapeHTML(labelTypeInfo[props.label_type]?.display) || util.escapeHTML(props.label_type)}</h4>
+          <p>${util.escapeHTML(labelTypeInfo[props.label_type]?.description || '')}</p>
           <p>${severity}</p>
           <p>${tags}</p>
           <p>Created: ${timeCreated}</p>
           <p>${validationStatus}</p>
-          <p>Label ID: ${props.label_id}</p>
+          <p>Label ID: ${util.escapeHTML(props.label_id)}</p>
           ${panoLink}
         `);
       });

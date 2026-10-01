@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML } = require('./loadGlobalScript');
 
 /**
  * Loads bare top-level declarations out of a production file into window scope.
@@ -37,6 +37,7 @@ beforeAll(() => {
     camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
   };
   installUtilitiesMisc();
+  installEscapeHTML();
   // i18next echoes its key so assertions can name the key they expect rather than an English string.
   window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
   loadClass('public/js/common/LabelTypePicker.js', 'LabelTypePicker', 'LabelTypeDropdown');

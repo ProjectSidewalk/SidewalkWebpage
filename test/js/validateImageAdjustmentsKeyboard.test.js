@@ -25,6 +25,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const SHORTCUTS_SRC = fs.readFileSync(
+    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
+);
 
 const ROOT = path.resolve(__dirname, '..', '..');
 const MANAGER_SRC = fs.readFileSync(path.join(ROOT, 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8');
@@ -39,10 +42,10 @@ function makeControl() {
 }
 
 /**
- * Dispatches a keydown on a target, returning the event for defaultPrevented checks. `key` matters only to the real
- * popover, which reads `e.key`; KeyboardManager reads `e.code`.
+ * Dispatches a keydown on a target, returning the event for defaultPrevented checks. A numpad Enter's `key` is
+ * `Enter`, as a real keyboard's is.
  */
-function key(code, target, keyName = code) {
+function key(code, target, keyName = code === 'NumpadEnter' ? 'Enter' : code) {
     const ev = new KeyboardEvent('keydown', { code, key: keyName, bubbles: true, cancelable: true });
     target.dispatchEvent(ev);
     return ev;
@@ -64,7 +67,7 @@ describe('KeyboardManager image adjustments scope', () => {
             unsureButton: makeControl(),
         });
         // Registered first, as on the page, so its window-capture listener sees every key before the popover's.
-        window.eval(`${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        window.eval(`${SHORTCUTS_SRC}\n${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
         new window.KeyboardManager(validationMenuUi);
         (0, eval)(`${MODEL_SRC}\nwindow.PanoImageAdjustments = PanoImageAdjustments;`);
         (0, eval)(`${POPOVER_SRC}\nwindow.PanoImageAdjustmentsPopover = PanoImageAdjustmentsPopover;`);

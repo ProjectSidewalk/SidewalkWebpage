@@ -2,6 +2,7 @@ package models.label
 
 import models.user.UserStatTable
 import models.utils.MyPostgresProfile.api.*
+import models.validation.ValidationOption
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -10,7 +11,8 @@ import util.{RolledBackDb, SidewalkSpec}
 /**
  * Pins the validation recount behind excluding a user (#3956), which must agree with the live counting in
  * `ValidationService`. Votes are inserted straight into label_validation, skipping live counting, so every count the
- * assertions read came from the recount. Runs in a rolled-back transaction; cancels without enough data.
+ * assertions read came from the recount. Also checks that Expert Validate's vote list skips votes on an earlier label
+ * type (#5613). Runs in a rolled-back transaction; cancels without enough data.
  */
 class ValidationRecountSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
@@ -122,6 +124,23 @@ class ValidationRecountSpec extends SidewalkSpec with GuiceOneAppPerSuite with R
         everywhere2 <- countsOf(label2)
       } yield (scoped1, scoped2, everywhere2))
       result mustBe (((1, 0, 0, Some(true)), (0, 0, 0, None), (1, 0, 0, Some(true))))
+    }
+  }
+
+  "getExtraAdminValidateData" should {
+    "list only the votes cast on the label's current type" in {
+      val (labelId, _) = targets.head
+      val (v1, v2)     = (validators(0), validators(1))
+      val result       = runRolledBack(for {
+        currentType <- sql"SELECT label_type::text FROM label WHERE label_id = $labelId".as[String].head
+        earlierType = if (currentType == "CurbRamp") "NoCurbRamp" else "CurbRamp"
+        _          <- vote(labelId, v1, "Agree", Some(earlierType))
+        _          <- vote(labelId, v2, "Disagree")
+        v2Username <- sql"SELECT username FROM sidewalk_login.sidewalk_user WHERE user_id = $v2".as[String].head
+        data       <- labelTable.getExtraAdminValidateData(Seq(labelId))
+      } yield (v2Username, data.flatMap(_.previousValidations)))
+      val (v2Username, previous) = result
+      previous mustBe Seq(PreviousValidation(v2Username, ValidationOption.Disagree))
     }
   }
 

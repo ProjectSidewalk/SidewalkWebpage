@@ -36,7 +36,9 @@ class Tracker {
 
     for (const type of ['keydown', 'keyup']) {
       document.addEventListener(type, (/** @type {KeyboardEvent} */ e) => {
-        this.push(prefix + e.type, { keyCode: e.keyCode });
+        // Don't log which keys went into a password (e.g. the navbar's sign-in dialog).
+        const isPassword = e.target instanceof HTMLInputElement && e.target.type === 'password';
+        this.push(prefix + e.type, isPassword ? {} : { code: e.code });
       });
     }
   }

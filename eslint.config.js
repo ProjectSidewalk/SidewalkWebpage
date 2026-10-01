@@ -13,7 +13,8 @@ const jsdoc = require('eslint-plugin-jsdoc');
 // Our own rules, as an inline plugin: flat config takes a plugin object directly, so a one-rule plugin needs no
 // package, no build step and no npm publish. See tools/lint/eslint-rules/ for what each rule guards.
 const i18nEscapeInMarkup = require('./tools/lint/eslint-rules/i18n-escape-in-markup');
-const psPlugin = {rules: {'i18n-escape-in-markup': i18nEscapeInMarkup}};
+const escapeInMarkup = require('./tools/lint/eslint-rules/escape-in-markup');
+const psPlugin = {rules: {'i18n-escape-in-markup': i18nEscapeInMarkup, 'escape-in-markup': escapeInMarkup}};
 
 module.exports = [
   // ESLint core "recommended" -- ~45 correctness rules. Listed first so the explicit block below overrides it.
@@ -46,6 +47,7 @@ module.exports = [
       // --- Project Sidewalk's own rules ---
       // An `error`, so CI blocks on it: what it guards is an XSS, not a style preference (#5389).
       'ps/i18n-escape-in-markup': 'error',
+      'ps/escape-in-markup': 'error',
 
       // --- Code-quality / ES6 rules (ESLint core) ---
       'curly': ['error', 'multi-line', 'consistent'],
@@ -94,6 +96,11 @@ module.exports = [
       'no-eval': 'error',
       'no-implied-eval': 'error',
       'no-new-func': 'error',
+      // Deprecated, and they disagree with `key`/`code` on non-US layouts (#5618).
+      'no-restricted-properties': ['error', ...['keyCode', 'which', 'charCode'].map((property) => ({
+        property,
+        message: 'Use KeyboardEvent.code for a shortcut key, or KeyboardEvent.key for the character typed.',
+      }))],
 
       // --- Modern-idiom cleanup (all auto-fixable) ---
       'prefer-object-spread': 'error',

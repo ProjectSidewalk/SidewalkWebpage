@@ -75,8 +75,8 @@ class CoverageTable {
       });
 
     tbody.innerHTML = visible.map((r) => {
-      const cells = CoverageTable.#COLS.map((c) => `<td>${c.fmt(r[c.key])}</td>`).join('');
-      return `<tr data-region-id="${r.region_id}">${cells}</tr>`;
+      const cells = CoverageTable.#COLS.map((c) => `<td>${util.escapeHTML(c.fmt(r[c.key]))}</td>`).join('');
+      return `<tr data-region-id="${util.escapeHTML(r.region_id)}">${cells}</tr>`;
     }).join('');
   }
 

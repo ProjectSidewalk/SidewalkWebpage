@@ -10,6 +10,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const SHORTCUTS_SRC = fs.readFileSync(
+    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
+);
 
 const MANAGER_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
@@ -35,7 +38,7 @@ describe('Validate F shortcut for immersive mode', () => {
             noButton: makeControl(),
             unsureButton: makeControl(),
         });
-        window.eval(`${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        window.eval(`${SHORTCUTS_SRC}\n${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
         new window.KeyboardManager(validationMenuUi);
     });
 

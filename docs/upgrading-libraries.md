@@ -194,11 +194,6 @@ the frontend — it names in the URL what a reader would otherwise have to diff 
 side mid-upgrade — keep this list matching it. `make lint-vendor-versions` (part of `make lint`, and a
 blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn't listed here at all.
 
-- **animate.css: unversioned (a 3.x from 2015)** — CSS keyframe animations, used by Explore's compass message
-  and the tutorial's fades (`Onboarding.js`). **Note:** this copy predates our filename rule and carries no version
-  in its name or header, so which 3.x it is can't be recovered. v4 renamed every class to an `animate__` prefix, so
-  an upgrade means editing the markup that uses it, not just swapping the file.
-  [Changelog](https://github.com/animate-css/animate.css/releases)
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
   [Versions](https://github.com/rogierschouten/async-lock/releases)
@@ -210,8 +205,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/bowser-js/bowser/releases)
 - **chart.js: 4.5.1** — check the running version with `Chart.version`.
   [Download](https://unpkg.com/chart.js) · [Changelog](https://github.com/chartjs/Chart.js/releases)
-- **countUp.js: 1.9.3** — animates the counting-up of stats on the landing page; lightly used. (Several libraries
-  share this name — be careful which you grab.)
 - **floating-ui: 1.8.0 (`@floating-ui/dom`), 1.8.0 (`@floating-ui/core`)** — **note:** start from the newest `dom`
   version, then pick a `core` version that satisfies its dependency.
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·

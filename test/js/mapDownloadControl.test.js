@@ -12,6 +12,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const { installEscapeHTML } = require('./loadGlobalScript');
+
+installEscapeHTML();
 
 const CONTROL_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/ps-map/MapDownloadControl.js'), 'utf8'

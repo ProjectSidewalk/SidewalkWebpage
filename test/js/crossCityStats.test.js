@@ -13,6 +13,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadGlobalScript } = require('./loadGlobalScript');
+
+loadGlobalScript('public/js/common/utilities.js');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const STATS_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/user-dashboard/CrossCityStats.js'), 'utf8');

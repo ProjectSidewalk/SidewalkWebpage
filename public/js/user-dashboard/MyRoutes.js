@@ -99,7 +99,7 @@ class MyRoutes {
     const saveText = i18next.t('dashboard:routes-rename-save');
     const cancelText = i18next.t('dashboard:routes-rename-cancel');
     form.innerHTML = `
-      <input type="text" class="ps-input ud-route-rename-input" maxlength="${maxLength}"
+      <input type="text" class="ps-input ud-route-rename-input" maxlength="${util.escapeHTML(maxLength)}"
              aria-label="${i18next.t('dashboard:routes-rename-aria')}">
       <button type="button" class="ud-btn-primary ud-route-rename-save">${saveText}</button>
       <button type="button" class="ud-btn-secondary ud-route-rename-cancel">${cancelText}</button>`;
