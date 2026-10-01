@@ -27,7 +27,7 @@
 
     <!--
       Both async appenders make the app wait rather than drop a line when a queue fills. A dropped line is silent,
-      and the logs are how we work out what went wrong; the cost is that a stalled disk can stall requests (#5241).
+      and the logs are how we work out what went wrong; the cost is that a stalled disk can stall requests.
     -->
     <appender name="ASYNCFILE" class="AsyncAppender">
         <queueSize>512</queueSize>
@@ -36,10 +36,10 @@
         <appender-ref ref="FILE"/>
     </appender>
 
-    <!-- On a deployed stage stdout is the only log that outlives a deploy (#5636), so it carries the date too. -->
+    <!-- On a deployed stage stdout is the only log that outlives a deploy (#5636), so it carries the date and zone. -->
     <appender name="STDOUT" class="ConsoleAppender">
         <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss} %highlight(%-5level) %logger{15} - %message%n%xException{10}</pattern>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss ZZZZ} %highlight(%-5level) %logger{15} - %message%n%xException{10}</pattern>
         </encoder>
     </appender>
 

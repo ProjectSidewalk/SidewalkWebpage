@@ -1,22 +1,17 @@
 package controllers.base
 
-import ch.qos.logback.classic.Logger as LogbackLogger
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.read.ListAppender
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.{Sink, Source}
 import org.scalatest.Assertion
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import org.slf4j.LoggerFactory
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.SidewalkSpec
+import util.{LogCapture, SidewalkSpec}
 
 import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.*
 
 /**
  * Pins what a streamed response logs when it ends early: to Pekko a client that stops reading looks like a normal
@@ -38,16 +33,11 @@ class StreamLoggingSpec extends SidewalkSpec with GuiceOneAppPerSuite with Event
   private val rows: Source[String, ?] = Source(1 to 100).map(_.toString)
 
   /** Runs `body` with the probe's log captured, then retries `check` on it: the logging runs on another thread. */
-  private def logged(body: Probe => Any)(check: Seq[String] => Assertion): Unit = {
-    val logger   = LoggerFactory.getLogger(classOf[Probe]).asInstanceOf[LogbackLogger]
-    val appender = ListAppender[ILoggingEvent]()
-    appender.start()
-    logger.addAppender(appender)
-    try {
+  private def logged(body: Probe => Any)(check: Seq[String] => Assertion): Unit =
+    LogCapture.capturing(classOf[Probe].getName) { messages =>
       body(Probe())
-      val _ = eventually(timeout(Span(5, Seconds)))(check(appender.list.asScala.map(_.getFormattedMessage).toSeq))
-    } finally { val _ = logger.detachAppender(appender) }
-  }
+      val _ = eventually(timeout(Span(5, Seconds)))(check(messages()))
+    }
 
   "logStreamFailures" should {
     "log nothing for a full send, and the row count for a cut-off" in {
