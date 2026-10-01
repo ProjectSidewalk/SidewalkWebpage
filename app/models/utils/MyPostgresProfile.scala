@@ -1,14 +1,13 @@
 package models.utils
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import com.github.tminglei.slickpg.*
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
-import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
-import org.n52.jackson.datatype.jts.JtsModule
+import org.locationtech.jts.geom.{Coordinate, Geometry, LineString, MultiPolygon, Point, Polygon}
 import play.api.libs.json.*
 import slick.jdbc.{JdbcType, PositionedResult}
 import slick.lifted.OptionMapperDSL
 
+import java.math.RoundingMode
 import scala.annotation.targetName
 
 trait MyPostgresProfile
@@ -57,13 +56,32 @@ trait MyPostgresProfile
       def nextIntArray(): Seq[Int]       = r.nextArray[Int]()(using intElementTag)
     }
 
-    // Adds conversion from JTS Geometry types to Play JSON JsValue. Need to explicitly add each geom type.
-    private val mapper = ObjectMapper()
-    mapper.registerModule(JtsModule())
-    given geometryWrites: Writes[Geometry] = Writes[Geometry] { geom => Json.parse(mapper.writeValueAsString(geom)) }
-    given multiPolygonWrites: Writes[MultiPolygon] = geometryWrites.contramap(identity)
-    given lineStringWrites: Writes[LineString]     = geometryWrites.contramap(identity)
-    given pointWrites: Writes[Point]               = geometryWrites.contramap(identity)
+    /** One coordinate value, rounded to 8 decimal places (about a millimeter) so responses stay small. */
+    private def geoJsonNumber(value: Double): JsNumber =
+      JsNumber(BigDecimal(java.math.BigDecimal(value).setScale(8, RoundingMode.HALF_UP).stripTrailingZeros))
+
+    /** One GeoJSON position: `[lng, lat]`. */
+    private def geoJsonPosition(coord: Coordinate): JsArray =
+      JsArray(Seq(geoJsonNumber(coord.getX), geoJsonNumber(coord.getY)))
+
+    private def geoJsonLine(line: LineString): JsArray = JsArray(line.getCoordinates.toSeq.map(geoJsonPosition))
+
+    /** A polygon's rings: the outline first, then any holes. */
+    private def geoJsonRings(polygon: Polygon): JsArray = {
+      val holes: Seq[LineString] = (0 until polygon.getNumInteriorRing).map(polygon.getInteriorRingN)
+      JsArray((polygon.getExteriorRing +: holes).map(geoJsonLine))
+    }
+
+    private def geoJson(geometryType: String, coordinates: JsArray): JsObject =
+      Json.obj("type" -> geometryType, "coordinates" -> coordinates)
+
+    // A geometry type can only go into JSON once it has a line here.
+    given pointWrites: Writes[Point]           = Writes(point => geoJson("Point", geoJsonPosition(point.getCoordinate)))
+    given lineStringWrites: Writes[LineString] = Writes(line => geoJson("LineString", geoJsonLine(line)))
+    given multiPolygonWrites: Writes[MultiPolygon] = Writes { multiPolygon =>
+      val polygons = (0 until multiPolygon.getNumGeometries).map(multiPolygon.getGeometryN(_).asInstanceOf[Polygon])
+      geoJson("MultiPolygon", JsArray(polygons.map(geoJsonRings)))
+    }
 
     /**
      * Spatial measurements that return Double, matching PostGIS's `double precision`, where slick-pg's return Float.

@@ -139,14 +139,9 @@ These are the JVM libraries we talk to the database *through*; the database serv
 
 ### Geospatial
 
-- **jts: 1.20.0** — geometry types.
-  [Releases](https://mvnrepository.com/artifact/org.locationtech.jts/jts) ·
+- **jts-core: 1.20.0** — geometry types.
+  [Releases](https://mvnrepository.com/artifact/org.locationtech.jts/jts-core) ·
   [Changelog](https://projects.eclipse.org/projects/locationtech.jts)
-- **jackson-datatype-jts: 1.2.10** — automatic WKT → GeoJSON/Shapefile conversion with slick-pg. **Note:** finding a
-  version compatible with our slick-pg/jts has been finicky; newer versions exist (from
-  [other repos](https://mvnrepository.com/search?q=jackson-datatype-jts)) but may not work. Take minor bumps from the
-  link below; a full upgrade needs dedicated investigation.
-  [Releases](https://mvnrepository.com/artifact/org.n52.jackson/jackson-datatype-jts)
 - **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 35.1** — Shapefile/GeoPackage generation. Served by the
   OSGeo resolver in `build.sbt`, not Maven Central. Needs Java 17. We use a tiny corner of the API, so bumps are
   usually mechanical; check both exports afterward (#4393). Brings Eclipse ImageN, sqlite-jdbc, and Jackson 3's
