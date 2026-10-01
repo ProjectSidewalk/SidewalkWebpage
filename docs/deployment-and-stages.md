@@ -500,23 +500,11 @@ Each running city instance writes a **rolling file log** (configured in [`conf/l
 
 - **File name:** `application-<SIDEWALK_CITY_ID>.log` in the instance's `logs/` directory — e.g.
   `application-newberg-or.log`. `application.home` resolves to that city's staged app directory, so **every city has its
-  own `logs/` subdirectory**.
-- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. On a deployed stage these files
-  **only cover the time since the last deploy**: they sit in the build tree, which every deploy deletes (see
-  [Directories that must survive a deploy](#directories-that-must-survive-a-deploy)).
-- **The copy that survives a deploy:** the app mirrors the same lines to stdout, which the deploy tooling appends to a
-  per-city `container-<city>.log` (alongside anything the JVM itself prints). Each rebuild moves that file's contents
-  into a dated archive and starts it empty again, so anything older than the last deploy is in the archives (#5636).
+  own `logs/` subdirectory**; the app also mirrors output to stdout.
+- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. A deploy deletes these files;
+  older lines survive only in the stdout copy (`container-<city>.log`), which the deploy tooling archives on each rebuild.
 - **Levels:** root is `INFO`, and **successful requests are not access-logged** — a working page produces *no* log
   line. Only warnings and errors appear (client 4xx via the error handler, server-side exceptions, etc.).
-- **Scanner noise:** a request Pekko rejects before Play sees it is **not logged**
-  (`pekko.http.server.parsing.error-logging-verbosity = off` in `application.conf`). That is mostly the broken
-  requests security scanners send (a TLS handshake on the plain port, a made-up method), but it also covers a URL or
-  header over our size limits (`414`/`431`), which a real user can hit; look for those in the proxy's access log.
-  Pekko's other warnings still log.
-- **Waits rather than drops:** if the disk can't keep up and the 512-line queue fills, the app waits rather than lose
-  a line. A stalled disk can therefore stall requests; that trade is deliberate, since the logs are the forensic
-  record. Lines still in the queue when the JVM is killed are lost, and a clean shutdown gives them one second.
 
 Finding them on a server without hardcoding paths:
 
