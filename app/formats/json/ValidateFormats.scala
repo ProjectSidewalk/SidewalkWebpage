@@ -8,11 +8,13 @@ import models.mission.MissionType
 import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.validation.ValidationOption
 import play.api.libs.functional.syntax.*
-import play.api.libs.json.{JsPath, JsonValidationError, Reads}
+import play.api.libs.json.*
 
 import java.time.OffsetDateTime
 
 object ValidateFormats {
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
   case class EnvironmentSubmission(
       missionId: Option[Int],
       browser: Option[String],
@@ -143,66 +145,13 @@ object ValidateFormats {
       source: UiSource
   )
 
-  given environmentSubmissionReads: Reads[EnvironmentSubmission] = (
-    (JsPath \ "mission_id").readNullable[Int] and
-      (JsPath \ "browser").readNullable[String] and
-      (JsPath \ "browser_version").readNullable[String] and
-      (JsPath \ "browser_width").readNullable[Int] and
-      (JsPath \ "browser_height").readNullable[Int] and
-      (JsPath \ "avail_width").readNullable[Int] and
-      (JsPath \ "avail_height").readNullable[Int] and
-      (JsPath \ "screen_width").readNullable[Int] and
-      (JsPath \ "screen_height").readNullable[Int] and
-      (JsPath \ "operating_system").readNullable[String] and
-      (JsPath \ "language").read[String] and
-      (JsPath \ "css_zoom").read[Int]
-  )(EnvironmentSubmission.apply)
+  given environmentSubmissionReads: Reads[EnvironmentSubmission] = Json.reads[EnvironmentSubmission]
 
-  given interactionSubmissionReads: Reads[InteractionSubmission] = (
-    (JsPath \ "action").read[String] and
-      (JsPath \ "mission_id").readNullable[Int] and
-      (JsPath \ "pano_id").readNullable[String] and
-      (JsPath \ "lat").readNullable[Double] and
-      (JsPath \ "lng").readNullable[Double] and
-      (JsPath \ "heading").readNullable[Double] and
-      (JsPath \ "pitch").readNullable[Double] and
-      (JsPath \ "zoom").readNullable[Double] and
-      (JsPath \ "note").readNullable[String] and
-      (JsPath \ "timestamp").read[OffsetDateTime]
-  )(InteractionSubmission.apply)
+  given interactionSubmissionReads: Reads[InteractionSubmission] = Json.reads[InteractionSubmission]
 
-  given labelValidationSubmissionReads: Reads[LabelValidationSubmission] = (
-    (JsPath \ "label_id").read[Int] and
-      (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "label_type").readNullable[LabelType] and
-      (JsPath \ "new_label_type").readNullable[LabelType] and
-      (JsPath \ "validation_result").read[ValidationOption] and
-      (JsPath \ "severity").readNullable[Int] and
-      (JsPath \ "tags").read[List[String]] and
-      (JsPath \ "comment").readNullable[ValidationCommentSubmission] and
-      (JsPath \ "canvas_x").readNullable[Int] and
-      (JsPath \ "canvas_y").readNullable[Int] and
-      (JsPath \ "heading").read[Double] and
-      (JsPath \ "pitch").read[Double] and
-      (JsPath \ "zoom").read[Double] and
-      (JsPath \ "canvas_width").read[Int] and
-      (JsPath \ "canvas_height").read[Int] and
-      (JsPath \ "start_timestamp").read[OffsetDateTime] and
-      (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[UiSource] and
-      (JsPath \ "undone").read[Boolean] and
-      (JsPath \ "redone").read[Boolean] and
-      (JsPath \ "viewer_type").read[ViewerType]
-  )(LabelValidationSubmission.apply)
+  given labelValidationSubmissionReads: Reads[LabelValidationSubmission] = Json.reads[LabelValidationSubmission]
 
-  given validationMissionReads: Reads[ValidationMissionProgress] = (
-    (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "mission_type").read[MissionType] and
-      (JsPath \ "labels_progress").read[Int] and
-      (JsPath \ "labels_total").read[Int] and
-      (JsPath \ "label_type").read[LabelType] and
-      (JsPath \ "completed").read[Boolean]
-  )(ValidationMissionProgress.apply)
+  given validationMissionReads: Reads[ValidationMissionProgress] = Json.reads[ValidationMissionProgress]
 
   // The admin-only fields are checked before `ValidateParams` is built: its constructor rejects them without
   // `admin_version` too, but as an exception, which would answer a malformed body with a 500 instead of this 400.
@@ -223,52 +172,12 @@ object ValidateFormats {
       ValidateParams(adminVersion, labelType, userIds, regionIds, unvalidatedOnly, triage, teamIds)
   }
 
-  given validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = (
-    (JsPath \ "interactions").read[Seq[InteractionSubmission]] and
-      (JsPath \ "environment").read[EnvironmentSubmission] and
-      (JsPath \ "validations").read[Seq[LabelValidationSubmission]] and
-      (JsPath \ "mission_progress").readNullable[ValidationMissionProgress] and
-      (JsPath \ "validate_params").read[ValidateParams] and
-      (JsPath \ "pano_histories").read[Seq[PanoHistorySubmission]] and
-      (JsPath \ "source").read[UiSource] and
-      (JsPath \ "timestamp").read[OffsetDateTime]
-  )(ValidationTaskSubmission.apply)
+  given validationTaskSubmissionReads: Reads[ValidationTaskSubmission] = Json.reads[ValidationTaskSubmission]
 
-  given labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] = (
-    (JsPath \ "label_id").read[Int] and
-      (JsPath \ "label_type").read[LabelType] and
-      (JsPath \ "new_label_type").readNullable[LabelType] and
-      (JsPath \ "validation_result").read[ValidationOption] and
-      (JsPath \ "severity").readNullable[Int] and
-      (JsPath \ "tags").read[List[String]] and
-      (JsPath \ "canvas_x").readNullable[Int] and
-      (JsPath \ "canvas_y").readNullable[Int] and
-      (JsPath \ "heading").read[Double] and
-      (JsPath \ "pitch").read[Double] and
-      (JsPath \ "zoom").read[Double] and
-      (JsPath \ "canvas_width").read[Int] and
-      (JsPath \ "canvas_height").read[Int] and
-      (JsPath \ "start_timestamp").read[OffsetDateTime] and
-      (JsPath \ "end_timestamp").read[OffsetDateTime] and
-      (JsPath \ "source").read[UiSource] and
-      (JsPath \ "undone").read[Boolean] and
-      (JsPath \ "redone").read[Boolean] and
-      (JsPath \ "viewer_type").read[ViewerType]
-  )(LabelMapValidationSubmission.apply)
+  given labelMapValidationSubmissionReads: Reads[LabelMapValidationSubmission] =
+    Json.reads[LabelMapValidationSubmission]
 
-  given labelEditSubmissionReads: Reads[LabelEditSubmission] = (
-    (JsPath \ "label_id").read[Int] and
-      (JsPath \ "label_type").readNullable[LabelType] and
-      (JsPath \ "new_label_type").readNullable[LabelType] and
-      (JsPath \ "severity").readNullable[Int] and
-      (JsPath \ "tags").read[List[String]] and
-      (JsPath \ "source").read[UiSource]
-  )(LabelEditSubmission.apply)
+  given labelEditSubmissionReads: Reads[LabelEditSubmission] = Json.reads[LabelEditSubmission]
 
-  given moreLabelsRequestReads: Reads[MoreLabelsRequest] = (
-    (JsPath \ "label_type").read[LabelType] and
-      (JsPath \ "labels_needed").read[Int] and
-      (JsPath \ "excluded_label_ids").read[Seq[Int]] and
-      (JsPath \ "validate_params").read[ValidateParams]
-  )(MoreLabelsRequest.apply)
+  given moreLabelsRequestReads: Reads[MoreLabelsRequest] = Json.reads[MoreLabelsRequest]
 }

@@ -314,7 +314,9 @@ home: a `*Table.scala` DAO *produces* its DTOs but never *defines* them (issue #
   `csvCell`, …) rather than re-rolling CSV/GeoJSON logic.
 - **Every `/v3` DTO's serialization lives in `models.api`.** There is no shared formats object for API output and no
   API serialization inline in a controller. The `app/formats/json/*Formats.scala` files serve the internal (non-`/v3`)
-  endpoints only (issue #3891).
+  endpoints only (issue #3891). They derive `Json.reads`/`Json.writes` under a `JsonNaming.SnakeCase`
+  `JsonConfiguration`, hand-writing only a format that does more than rename keys; `SnakeCaseReadersSpec` and
+  `SnakeCaseWritersSpec` pin the derived keys, so add a case there for each new one.
 
 **Internal-key routes need `+ nocsrf`.** Any server-to-server POST authenticated by the internal key
 (`ControllerUtils.internalKeyValid`) needs a `+ nocsrf` modifier line above its `conf/routes` entry. Play's CSRF

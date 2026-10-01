@@ -149,27 +149,7 @@ object ExploreFormats {
     )
   }
 
-  given auditTaskWrites: Writes[AuditTask] = (
-    (__ \ "audit_task_id").write[Int] and
-      (__ \ "amt_assignment_id").writeNullable[Int] and
-      (__ \ "user_id").write[String] and
-      (__ \ "street_edge_id").write[Int] and
-      (__ \ "task_start").write[OffsetDateTime] and
-      (__ \ "task_end").write[OffsetDateTime] and
-      (__ \ "completed").write[Boolean] and
-      (__ \ "current_lat").write[Double] and
-      (__ \ "current_lng").write[Double] and
-      (__ \ "start_point_reversed").write[Boolean] and
-      (__ \ "current_mission_id").writeNullable[Int] and
-      (__ \ "current_mission_start").writeNullable[Point] and
-      (__ \ "low_quality").write[Boolean] and
-      (__ \ "incomplete").write[Boolean] and
-      (__ \ "stale").write[Boolean] and
-      (__ \ "audited_distance_m").writeNullable[Double] and
-      (__ \ "start_offset_m").writeNullable[Double] and
-      (__ \ "outdated_imagery").write[Boolean] and
-      (__ \ "outdated_imagery_at").writeNullable[OffsetDateTime]
-  )((o: AuditTask) => Tuple.fromProductTyped(o))
+  given auditTaskWrites: Writes[AuditTask] = Json.writes[AuditTask]
 
   given auditTaskInteractionWrites: Writes[AuditTaskInteraction] = Json.writes[AuditTaskInteraction]
 
@@ -218,32 +198,9 @@ object ExploreFormats {
       (JsPath \ "lng").read[Double]
   )((lat, lng) => GeometryFactory().createPoint(Coordinate(lat, lng)))
 
-  given environmentSubmissionReads: Reads[EnvironmentSubmission] = (
-    (JsPath \ "browser").readNullable[String] and
-      (JsPath \ "browser_version").readNullable[String] and
-      (JsPath \ "browser_width").readNullable[Int] and
-      (JsPath \ "browser_height").readNullable[Int] and
-      (JsPath \ "avail_width").readNullable[Int] and
-      (JsPath \ "avail_height").readNullable[Int] and
-      (JsPath \ "screen_width").readNullable[Int] and
-      (JsPath \ "screen_height").readNullable[Int] and
-      (JsPath \ "operating_system").readNullable[String] and
-      (JsPath \ "language").read[String] and
-      (JsPath \ "css_zoom").read[Int]
-  )(EnvironmentSubmission.apply)
+  given environmentSubmissionReads: Reads[EnvironmentSubmission] = Json.reads[EnvironmentSubmission]
 
-  given interactionSubmissionReads: Reads[InteractionSubmission] = (
-    (JsPath \ "action").read[String] and
-      (JsPath \ "pano_id").readNullable[String] and
-      (JsPath \ "lat").readNullable[Double] and
-      (JsPath \ "lng").readNullable[Double] and
-      (JsPath \ "heading").readNullable[Double] and
-      (JsPath \ "pitch").readNullable[Double] and
-      (JsPath \ "zoom").readNullable[Double] and
-      (JsPath \ "note").readNullable[String] and
-      (JsPath \ "temporary_label_id").readNullable[Int] and
-      (JsPath \ "timestamp").read[OffsetDateTime]
-  )(InteractionSubmission.apply)
+  given interactionSubmissionReads: Reads[InteractionSubmission] = Json.reads[InteractionSubmission]
 
   private val positiveFrameError = JsonValidationError("canvas_width and canvas_height must be positive")
 
@@ -267,11 +224,7 @@ object ExploreFormats {
       (JsPath \ "computation_method").readNullable[ComputationMethod]
   )(LabelPointSubmission.apply)
 
-  given panoLinkSubmissionReads: Reads[PanoLinkSubmission] = (
-    (JsPath \ "target_pano_id").read[String] and
-      (JsPath \ "yaw_deg").read[Double] and
-      (JsPath \ "description").readNullable[String]
-  )(PanoLinkSubmission.apply)
+  given panoLinkSubmissionReads: Reads[PanoLinkSubmission] = Json.reads[PanoLinkSubmission]
 
   // Ceiling on the provider blob a single submission may persist (#4806). It is stored verbatim, the JSON body parser
   // accepts up to play.http.parser.maxMemoryBuffer (100M), and the column rides pano_data's default projection, so
@@ -327,34 +280,14 @@ object ExploreFormats {
       label.pano.forall(_.panoId == label.panoId)
     )
 
-  given auditTaskReads: Reads[TaskSubmission] = (
-    (JsPath \ "street_edge_id").read[Int] and
-      (JsPath \ "task_start").read[OffsetDateTime] and
-      (JsPath \ "audit_task_id").readNullable[Int] and
-      (JsPath \ "completed").readNullable[Boolean] and
-      (JsPath \ "current_lat").read[Double] and
-      (JsPath \ "current_lng").read[Double] and
-      (JsPath \ "start_point_reversed").read[Boolean] and
-      (JsPath \ "current_mission_start").readNullable[Point] and
-      (JsPath \ "last_priority_update_time").read[OffsetDateTime] and
-      (JsPath \ "request_updated_street_priority").read[Boolean] and
-      (JsPath \ "audited_distance_m").readNullable[Double] and
-      (JsPath \ "route_street_id").readNullable[Int]
-  )(TaskSubmission.apply)
+  given auditTaskReads: Reads[TaskSubmission] = Json.reads[TaskSubmission]
 
   given noStreetViewSubmissionReads: Reads[NoStreetViewSubmission] = (
     (JsPath \ "audit_task").read[TaskSubmission] and
       (JsPath \ "mission_id").read[Int]
   )(NoStreetViewSubmission.apply)
 
-  given auditMissionProgressReads: Reads[AuditMissionProgress] = (
-    (JsPath \ "mission_id").read[Int] and
-      (JsPath \ "distance_progress").readNullable[Double] and
-      (JsPath \ "region_id").read[Int] and
-      (JsPath \ "completed").read[Boolean] and
-      (JsPath \ "audit_task_id").readNullable[Int] and
-      (JsPath \ "skipped").read[Boolean]
-  )(AuditMissionProgress.apply)
+  given auditMissionProgressReads: Reads[AuditMissionProgress] = Json.reads[AuditMissionProgress]
 
   given auditTaskSubmissionReads: Reads[AuditTaskSubmission] = (
     (JsPath \ "mission").read[AuditMissionProgress] and
@@ -372,18 +305,7 @@ object ExploreFormats {
       (JsPath \ "value").read[String]
   )(SurveySingleSubmission.apply)
 
-  given aiLabelDetectionReads: Reads[AiLabelDetection] = (
-    (JsPath \ "pano_x").read[Int] and
-      (JsPath \ "pano_y").read[Int] and
-      (JsPath \ "confidence").read[Double]
-  )(AiLabelDetection.apply)
+  given aiLabelDetectionReads: Reads[AiLabelDetection] = Json.reads[AiLabelDetection]
 
-  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = (
-    (JsPath \ "label_type").read[LabelType] and
-      (JsPath \ "model_id").read[String] and
-      (JsPath \ "model_training_date").read[String] and
-      (JsPath \ "api_version").read[String] and
-      (JsPath \ "pano").read[PanoSubmission] and
-      (JsPath \ "labels").read[Seq[AiLabelDetection]]
-  )(AiLabelsSubmission.apply)
+  given aiLabelSubmissionReads: Reads[AiLabelsSubmission] = Json.reads[AiLabelsSubmission]
 }

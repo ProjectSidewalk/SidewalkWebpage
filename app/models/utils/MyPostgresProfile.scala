@@ -5,7 +5,6 @@ import com.github.tminglei.slickpg.*
 import com.github.tminglei.slickpg.geom.PgPostGISExtensions
 import org.locationtech.jts.geom.{Geometry, LineString, MultiPolygon, Point}
 import org.n52.jackson.datatype.jts.JtsModule
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.*
 import slick.jdbc.{JdbcType, PositionedResult}
 import slick.lifted.OptionMapperDSL
@@ -141,57 +140,27 @@ case class IpAddress(value: String) {
 // Would like to use a composite type in the future once there is more support in Slick for them.
 case class ExcludedTag(labelType: String, tag: String)
 object ExcludedTag {
-  given excludedTagFormat: Format[ExcludedTag] = {
-    val reads: Reads[ExcludedTag] = (
-      (__ \ "label_type").read[String] and
-        (__ \ "tag").read[String]
-    )(ExcludedTag.apply)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-    val writes: Writes[ExcludedTag] = (
-      (__ \ "label_type").write[String] and
-        (__ \ "tag").write[String]
-    )((o: ExcludedTag) => Tuple.fromProductTyped(o))
-
-    Format(reads, writes)
-  }
+  given excludedTagFormat: Format[ExcludedTag] = Json.format[ExcludedTag]
 }
 
 // Define AiTag and it's formatter. Stored in the database as JSONB.
 // Would like to use a composite type in the future once there is more support in Slick for them.
 case class AiTagConfidence(tag: String, confidence: Double)
 object AiTagConfidence {
-  given aiTagConfidenceFormat: Format[AiTagConfidence] = {
-    val reads: Reads[AiTagConfidence] = (
-      (__ \ "tag").read[String] and
-        (__ \ "confidence").read[Double]
-    )(AiTagConfidence.apply)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-    val writes: Writes[AiTagConfidence] = (
-      (__ \ "tag").write[String] and
-        (__ \ "confidence").write[Double]
-    )((o: AiTagConfidence) => Tuple.fromProductTyped(o))
-
-    Format(reads, writes)
-  }
+  given aiTagConfidenceFormat: Format[AiTagConfidence] = Json.format[AiTagConfidence]
 }
 
 // Define ClusteringThreshold and it's formatter. Stored in the database as JSONB.
 // Would like to use a composite type in the future once there is more support in Slick for them.
 case class ClusteringThreshold(labelType: String, threshold: Double)
 object ClusteringThreshold {
-  given clusteringThresholdFormat: Format[ClusteringThreshold] = {
-    val reads: Reads[ClusteringThreshold] = (
-      (__ \ "label_type").read[String] and
-        (__ \ "threshold").read[Double]
-    )(ClusteringThreshold.apply)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-    val writes: Writes[ClusteringThreshold] = (
-      (__ \ "label_type").write[String] and
-        (__ \ "threshold").write[Double]
-    )((o: ClusteringThreshold) => Tuple.fromProductTyped(o))
-
-    Format(reads, writes)
-  }
+  given clusteringThresholdFormat: Format[ClusteringThreshold] = Json.format[ClusteringThreshold]
 }
 
 object MyPostgresProfile extends MyPostgresProfile
