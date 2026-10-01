@@ -86,47 +86,6 @@ class ValidationServiceImpl @Inject() (
   def countValidations(userId: String): Future[Int] = db.run(labelValidationTable.countValidations(userId))
 
   /**
-   * Updates the validation counts and correctness columns in the label table given a new incoming validation.
-   * @param labelId label_id of the label with a new validation
-   * @param newResult the new validation if there is one (Agree, Disagree, or Unsure)
-   * @param oldResult the old validation if the user had validated this label in the past
-   */
-  def updateValidationCounts(
-      labelId: Int,
-      newResult: Option[ValidationOption],
-      oldResult: Option[ValidationOption]
-  ): DBIO[Int] = {
-    labelTable
-      .find(labelId)
-      .flatMap {
-        case Some(label) =>
-          // Each count gains 1 if the new vote is that option and loses 1 if the user's old vote was.
-          def change(option: ValidationOption): Int =
-            (if (newResult.contains(option)) 1 else 0) - (if (oldResult.contains(option)) 1 else 0)
-          val agreeCount: Int    = label.agreeCount + change(ValidationOption.Agree)
-          val disagreeCount: Int = label.disagreeCount + change(ValidationOption.Disagree)
-          val unsureCount: Int   = label.unsureCount + change(ValidationOption.Unsure)
-
-          // Determine whether the label is correct. Agree > disagree = correct; disagree > agree = incorrect; o/w null.
-          val labelCorrect: Option[Boolean] = {
-            if (agreeCount > disagreeCount) Some(true)
-            else if (disagreeCount > agreeCount) Some(false)
-            else None
-          }
-
-          // Update the agree_count, disagree_count, unsure_count, and correct columns in the label table.
-          labelsUnfiltered
-            .filter(_.labelId === labelId)
-            .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct))
-            .update((agreeCount, disagreeCount, unsureCount, labelCorrect))
-
-        case None =>
-          DBIO.successful(0)
-      }
-      .transactionally
-  }
-
-  /**
    * Whether a vote goes into the label's counts: not the labeler's own, not from an excluded user, and cast on the
    * type the label has now (#3671). Must match `FilteredTables.isVerdictVote`.
    */
@@ -149,12 +108,14 @@ class ValidationServiceImpl @Inject() (
         else DBIO.successful(false)
       }
       excludedUser <- userStatTable.isExcludedUser(oldVal.userId)
-      // Read after the revert: unwinding a type change puts the label back on the type this vote was cast on.
-      label        <- labelTable.find(oldVal.labelId).map(_.get)
+      // Read after the revert: unwinding a type change puts the label back on the type this vote was cast on. Locked so
+      // a type change can't land between this check and the count update.
+      label        <- labelsUnfiltered.filter(_.labelId === oldVal.labelId).forUpdate.result.head
       rowsAffected <- validationLabels.filter(_.labelValidationId === oldVal.labelValidationId).delete
       _            <- {
-        if (counts(oldVal, label, excludedUser))
-          updateValidationCounts(oldVal.labelId, None, Some(oldVal.validationResult))
+        // A duplicate undo request finds the vote already gone, and must not take it off the counts a second time.
+        if (rowsAffected > 0 && counts(oldVal, label, excludedUser))
+          labelTable.addValidationVote(oldVal.labelId, oldVal.validationResult, -1)
         else DBIO.successful(0)
       }
     } yield {
@@ -169,10 +130,11 @@ class ValidationServiceImpl @Inject() (
   def insert(labelVal: LabelValidation): DBIO[Int] = {
     for {
       isExcludedUser <- userStatTable.isExcludedUser(labelVal.userId)
-      label          <- labelsUnfiltered.filter(_.labelId === labelVal.labelId).result.head
-      _              <- {
+      // Locked so a type change can't land between this check and the count update.
+      label <- labelsUnfiltered.filter(_.labelId === labelVal.labelId).forUpdate.result.head
+      _     <- {
         if (counts(labelVal, label, isExcludedUser))
-          updateValidationCounts(labelVal.labelId, Some(labelVal.validationResult), None)
+          labelTable.addValidationVote(labelVal.labelId, labelVal.validationResult, 1)
         else DBIO.successful(0)
       }
       newValId <- (validationLabels returning validationLabels.map(_.labelValidationId)) += labelVal

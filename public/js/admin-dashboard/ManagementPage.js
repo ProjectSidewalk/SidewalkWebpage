@@ -198,7 +198,7 @@ class ManagementPage {
     }
   }
 
-  /** A role <select>. Locked (disabled) for users whose current role isn't admin-assignable (Owner, AI, Anonymous). */
+  /** A role <select>, locked for users whose current role isn't admin-assignable. */
   #roleSelect(u) {
     const current = u.role || '';
     const assignable = this.#assignableRoles.includes(current);
@@ -209,7 +209,7 @@ class ManagementPage {
       return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${util.escapeHTML(u.userId)}" `
         + `aria-label="Role for ${util.escapeHTML(u.username)}">${opts}</select>`;
     }
-    // Show the locked system role as a disabled, selected option so the column still reads clearly.
+    // Show the locked role as a disabled, selected option so the column still reads clearly.
     return `<select class="ps-select mgmt-select" disabled `
       + `aria-label="Role for ${util.escapeHTML(u.username)} (locked)">`
       + `<option selected>${util.escapeHTML(current)}</option></select>`;

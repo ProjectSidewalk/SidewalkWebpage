@@ -38,9 +38,9 @@ listed separately and are *expected* to differ; the goal is skew that's written 
   2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all and everything uses
   `sbt --jvm-client` instead (#5268). Jammy (glibc 2.35, `python3` 3.10) or noble (2.39, 3.12) fixes both, but a
   move has to say what happens to 3.8 first.
-- **The `16-3.5` image line is a dead end.** apt.postgresql.org's bullseye pool stops at PostGIS 3.5.2, and
-  docker-postgis publishes no `16-3.6` tag (3.6 images start at Postgres 17) or bookworm variant for 16 — so newer
-  geospatial libraries in dev means moving the Postgres major *and* the base OS together, not a version bump.
+- **The `16-3.5` image line is a dead end.** Its Debian version (bullseye) gets no more Postgres or PostGIS
+  releases (stuck at 16.15 and 3.5.2, #5626), and there's no newer image for Postgres 16. Newer versions in dev
+  mean moving to a new Postgres major version and base image together (#3955).
 - **Java 17** in dev and CI, **21** on prod; moving dev to 21 is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396). Dependabot deliberately ignores major
   `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.
@@ -71,13 +71,13 @@ readonly_user -d sidewalk`).
   `idle_in_transaction_session_timeout = 2min` and `log_lock_waits = on`.
 - **Prod's `psql` on the PATH is 13.23**, older than the 16.14 server. A 13 `pg_dump` refuses a 16 server, so
   check `pg_dump --version` before dumping there.
-- **Dev's Postgres is what a fresh build gets:** the base image ships 16.4 and `db/Dockerfile` upgrades it, so an old
-  container reports an older patch. The geospatial libraries are fixed by the base image and that upgrade never moves
-  them. **When CSE IT updates prod's PostGIS library**, the SQL functions stay behind until someone updates them
-  (`PostGIS_Full_Version()` ends in `need upgrade`; last done 2026-09-28). In each database, run `ALTER EXTENSION
-  postgis UPDATE TO '<lib version>'`, not `postgis_extensions_upgrade()`, which trips on leftover unpackaged raster
-  functions. Then hand any functions the update created back to `sidewalk`. **GDAL** isn't reported by that function
-  in either place (no raster support), so dev's comes from the installed package.
+- **Dev's Postgres is stuck at 16.15** (#5626) while prod keeps getting updates. An old container may report an older
+  version; rebuild it. PostGIS and the other map libraries come from the base image and never change. **When CSE IT
+  updates prod's PostGIS library**, the SQL functions stay behind until someone updates them (`PostGIS_Full_Version()`
+  ends in `need upgrade`; last done 2026-09-28). In each database, run `ALTER EXTENSION postgis UPDATE TO '<lib
+  version>'`, not `postgis_extensions_upgrade()`, which trips on leftover unpackaged raster functions. Then hand any
+  functions the update created back to `sidewalk`. **GDAL** isn't reported by that function in either place (no raster
+  support), so dev's comes from the installed package.
 
 ## Scala / sbt / Play
 
