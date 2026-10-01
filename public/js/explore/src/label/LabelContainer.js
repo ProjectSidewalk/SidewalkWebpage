@@ -78,10 +78,14 @@ class LabelContainer {
   /**
    * Query server for previous labels placed by this user and create label objects for them.
    * @param {number} regionId
+   * @param {?number} userRouteId - The route walk the user is on, if any. A route can run through several regions,
+   *   so the server gathers the labels from all of them rather than from regionId alone.
    * @param {(result: object) => void} [callback]
    */
-  fetchLabelsToResumeMission(regionId, callback) {
-    fetch(`/label/resumeMission?regionId=${regionId}`).then((res) => res.json()).then((result) => {
+  fetchLabelsToResumeMission(regionId, userRouteId, callback) {
+    const query = new URLSearchParams({ regionId: String(regionId) });
+    if (userRouteId) query.set('userRouteId', String(userRouteId));
+    fetch(`/label/resumeMission?${query}`).then((res) => res.json()).then((result) => {
       const labelArr = result.labels;
       for (let i = 0; i < labelArr.length; i++) {
         const originalCanvasXY = {

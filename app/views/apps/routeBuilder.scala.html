@@ -7,7 +7,6 @@
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 @* A cookie-less visitor (None) gets the same treatment as an anonymous account. *@
 @isAnon = @{user.forall(_.role == Role.Anonymous)}
-@paceRounded = @{f"$minutesPer100m%.1f"}
 
 @common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common"), url = "/routeBuilder") {
   @common.navbar(commonData, user)
@@ -28,7 +27,6 @@
      MapboxSearchBox controls into the slots once. Modals live outside the map wrapper. *@
   <div id="routebuilder-map-area">
     <div id="routebuilder-map"></div>
-    <div id="routebuilder-cta" role="status" aria-live="polite" hidden></div>
     <div id="routebuilder-panel" data-state="empty">
       <div class="routebuilder-panel__empty">
         <span id="routebuilder-intro-title" class="routebuilder-h1">@Messages("routebuilder.welcome")</span>
@@ -51,7 +49,8 @@
             <span aria-hidden="true">·</span>
             <span id="route-time-wrap">
               <span id="route-time-val" tabindex="0" role="button" aria-describedby="route-time-tip"></span>
-              <span id="route-time-tip" role="tooltip" hidden>@Messages("routebuilder.stat.time.tooltip", paceRounded)</span>
+              @* Filled by RouteBuilder.js on every stats update: the text names the route's own estimate. *@
+              <span id="route-time-tip" role="tooltip" hidden></span>
             </span>
           </div>
           <span id="route-stats-caption"></span>

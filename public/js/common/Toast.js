@@ -30,10 +30,12 @@ class Toast {
 
   #el;
   #reference;
+  #top;
   #duration;
   #timerId = null;
   #dismissed = false;
   #repositionHandler = null;
+  #resizeObserver = null;
   #pauseOnHover;
   #onClose;
   #hovered = false;
@@ -49,6 +51,9 @@ class Toast {
    * @param {{label: string, href?: string, newTab?: boolean, onClick?: (e: MouseEvent) => void}} [opts.button] - An
    *     optional action button: a link with `href`, or a callback with `onClick`.
    * @param {HTMLElement} [opts.reference] - Element the toast floats over (defaults to the viewport).
+   * @param {number} [opts.top] - Distance in px from the top of the reference to the toast's top edge. Without
+   *      it the toast sits 10% of the way down, which suits a passing note over a pano; a standing instruction over
+   *      a map wants the edge, in line with the page's other floating controls.
    * @param {number} [opts.duration] - Milliseconds before auto-dismiss (defaults to 5000).
    * @param {boolean} [opts.dark] - Dark surface instead of white — for toasts that float over photography, where a
    *      white card glares against the imagery and reads as part of the UI chrome rather than a passing note.
@@ -59,6 +64,7 @@ class Toast {
    */
   constructor(opts = {}) {
     this.#reference = opts.reference || null;
+    this.#top = opts.top ?? null;
     this.#duration = opts.duration ?? 5000;
     this.#onClose = opts.onClose || null;
     // A toast anchored to a small control — a dashboard "Copy link" button — opens under the cursor that just
@@ -234,9 +240,15 @@ class Toast {
     this.#host().appendChild(this.#el);
     this.#position();
 
-    // The toast is fixed-positioned over the reference, so keep it aligned as the viewport changes.
+    // The toast is fixed-positioned over the reference, so keep it aligned as the viewport changes — and as the
+    // reference itself is re-laid out without one (a panel opening beside a map, a font swapping in). A toast held
+    // open for a whole stage of a page (RouteBuilder's instructions) drifts off-center otherwise.
     this.#repositionHandler = () => this.#position();
     window.addEventListener('resize', this.#repositionHandler);
+    if (this.#reference && typeof ResizeObserver !== 'undefined') {
+      this.#resizeObserver = new ResizeObserver(this.#repositionHandler);
+      this.#resizeObserver.observe(this.#reference);
+    }
 
     // Force a reflow so the entry transition runs from the initial (hidden) state.
     void this.#el.offsetWidth;
@@ -258,10 +270,10 @@ class Toast {
   }
 
   /**
-   * Positions the toast horizontally centered over the reference element. Vertically it sits 10% down from the top,
-   * or at the reference's inline `--toast-min-top` (a px length the page's layout code sets) when that is lower:
-   * Explore's immersive mode floats its label-type strip over the top of the pano, and a toast 10% down a full-window
-   * pano lands on it.
+   * Positions the toast horizontally centered over the reference element. Vertically it sits at the caller's `top`
+   * offset, or else 10% down from the top, or at the reference's inline `--toast-min-top` (a px length the page's
+   * layout code sets) when that is lower: Explore's immersive mode floats its label-type strip over the top of the
+   * pano, and a toast 10% down a full-window pano lands on it.
    *
    * The center is then pulled back inside the viewport if half the toast would hang past either edge. The toast is
    * fixed-positioned, so an overhang is not scrollable — whatever lands outside is simply unreachable — and a
@@ -282,7 +294,8 @@ class Toast {
 
     this.#el.style.left = `${center}px`;
     const minTop = parseFloat(this.#reference?.style?.getPropertyValue('--toast-min-top')) || 0;
-    this.#el.style.top = `${Math.max(rect.top + rect.height * VERTICAL_FRACTION, minTop)}px`;
+    const offset = this.#top ?? rect.height * VERTICAL_FRACTION;
+    this.#el.style.top = `${Math.max(rect.top + offset, minTop)}px`;
   }
 
   /** Fades the toast out and removes it from the DOM. Safe to call more than once. */
@@ -300,6 +313,7 @@ class Toast {
       return;
     }
     if (this.#repositionHandler) window.removeEventListener('resize', this.#repositionHandler);
+    this.#resizeObserver?.disconnect();
     this.#el.classList.remove('ps-toast--visible');
     setTimeout(() => {
       this.#el.remove();

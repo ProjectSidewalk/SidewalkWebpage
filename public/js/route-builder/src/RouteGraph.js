@@ -2,7 +2,6 @@
  * The street nearest a point, as RouteGraph.snapToStreet finds it.
  * @typedef {object} StreetSnap
  * @property {number} streetId
- * @property {number} regionId
  * @property {string} nodeKey - Key of the street's endpoint node nearer the point.
  * @property {number[]} nodeLngLat - [lng, lat] of that endpoint, where a route starts or joins.
  * @property {number} distanceM - Distance from the point to the street's nearest vertex.
@@ -14,20 +13,23 @@
  * contiguous-section logic uses) and answers shortest-walking-path queries with A*.
  *
  * All geometry math is self-contained (haversine / equirectangular approximations) so the class stays fast and
- * unit-testable without the map or turf. Routing is restricted to a single region, matching the current
- * one-region-per-route constraint (#3488 tracks lifting it).
+ * unit-testable without the map or turf. Routing runs over the whole city's network: regions organize missions, not
+ * routes, so a path is free to cross from one region into the next (#3488).
  */
 class RouteGraph {
   // Endpoints within this distance are considered the same intersection (mirrors #computeContiguousRoutes).
   static NODE_TOLERANCE_M = 10;
   static EARTH_RADIUS_M = 6371008.8;
+  static M_PER_DEG_LAT = (Math.PI / 180) * RouteGraph.EARTH_RADIUS_M;
 
-  #nodes = new Map(); // key -> { lng, lat, edges: [{ streetId, regionId, weightM, otherKey }] }
+  #nodes = new Map(); // key -> { lng, lat, edges: [{ streetId, weightM, otherKey }] }
+  #cells = new Map(); // "cellLng,cellLat" -> keys of the nodes whose coordinate falls in that quantized cell
+  #streetEnds = new Map(); // streetId -> [key, key] of the nodes its two endpoints merged into at build time
   #features = new Map(); // streetId -> live GeoJSON feature (geometry may be reversed in place by editing)
   #featureLengths = new Map(); // streetId -> geometry length in meters (for the snap prefilter)
 
   /**
-   * @param {GeoJSON.Feature[]} streetFeatures - GeoJSON LineString features with street_edge_id + region_id properties.
+   * @param {GeoJSON.Feature[]} streetFeatures - GeoJSON LineString features with a street_edge_id property.
    */
   constructor(streetFeatures) {
     streetFeatures.forEach((feature) => {
@@ -40,12 +42,9 @@ class RouteGraph {
 
       const keyA = this.#nodeKeyFor(coords[0]);
       const keyB = this.#nodeKeyFor(coords[coords.length - 1]);
+      this.#streetEnds.set(streetId, [keyA, keyB]);
       if (keyA === keyB) return; // Degenerate loop/stub: no usable connectivity.
-      const edge = {
-        streetId,
-        regionId: feature.properties.region_id,
-        weightM: lengthM,
-      };
+      const edge = { streetId, weightM: lengthM };
       this.#nodes.get(keyA).edges.push({ ...edge, otherKey: keyB });
       this.#nodes.get(keyB).edges.push({ ...edge, otherKey: keyA });
     });
@@ -96,52 +95,81 @@ class RouteGraph {
   }
 
   /**
-   * Returns the node key for a coordinate, merging with any existing node within NODE_TOLERANCE_M
-   * (scans the neighboring quantized cells so near-boundary endpoints still merge).
+   * Returns the node key for a coordinate, merging with any existing node within NODE_TOLERANCE_M and creating a
+   * node otherwise.
+   *
+   * A cell is ~11 m across, wider than the tolerance, so two endpoints 10–13 m apart can share a cell without
+   * merging. Each cell therefore holds a list of nodes rather than one, or the second would replace the first and
+   * silently cut every street already attached to it out of the graph.
    *
    * @param {Array<number>} coord - [lng, lat].
    * @returns {string} The (possibly newly created) node's key.
    */
   #nodeKeyFor(coord) {
+    const existing = this.#findNodeKey(coord);
+    if (existing !== null) return existing;
+    const cellKey = RouteGraph.#cellKey(coord);
+    const cell = this.#cells.get(cellKey) ?? [];
+    const key = cell.length === 0 ? cellKey : `${cellKey}#${cell.length}`;
+    cell.push(key);
+    this.#cells.set(cellKey, cell);
+    this.#nodes.set(key, { lng: coord[0], lat: coord[1], edges: [] });
+    return key;
+  }
+
+  /**
+   * Finds the node within NODE_TOLERANCE_M of a coordinate, without ever creating one.
+   *
+   * @param {Array<number>} coord - [lng, lat].
+   * @returns {?string} The node's key, or null when no node is that close.
+   */
+  #findNodeKey(coord) {
     // Cells are ~11 m N-S, but longitude cells shrink with latitude (~7.6 m at 47°N), so the scan reaches
     // ±2 cells east-west to keep covering the 10 m tolerance away from the equator.
     const cellLng = Math.round(coord[0] * 10000);
     const cellLat = Math.round(coord[1] * 10000);
     for (let dx = -2; dx <= 2; dx++) {
       for (let dy = -1; dy <= 1; dy++) {
-        const key = `${cellLng + dx},${cellLat + dy}`;
-        const node = this.#nodes.get(key);
-        if (node && RouteGraph.distanceM(coord, [node.lng, node.lat]) < RouteGraph.NODE_TOLERANCE_M) {
-          return key;
+        for (const key of this.#cells.get(`${cellLng + dx},${cellLat + dy}`) ?? []) {
+          const node = this.#nodes.get(key);
+          if (RouteGraph.distanceM(coord, [node.lng, node.lat]) < RouteGraph.NODE_TOLERANCE_M) return key;
         }
       }
     }
-    const key = `${cellLng},${cellLat}`;
-    this.#nodes.set(key, { lng: coord[0], lat: coord[1], edges: [] });
-    return key;
+    return null;
+  }
+
+  /**
+   * The quantized ~11 m cell a coordinate falls in.
+   *
+   * @param {Array<number>} coord - [lng, lat].
+   * @returns {string}
+   */
+  static #cellKey(coord) {
+    return `${Math.round(coord[0] * 10000)},${Math.round(coord[1] * 10000)}`;
   }
 
   /**
    * Finds the street nearest to a point, and which of its endpoint nodes is closer.
    *
    * @param {{lng: number, lat: number}} point
-   * @param {?number} [regionId] - When given, only streets in this region are considered (e.g. so the start-point
-   *   preview near a boundary can't snap into a neighboring region).
    * @param {number} [maxDistanceM] - When given, a point further than this from every candidate snaps to none.
    *   Without it a far-away point still snaps to *something*, however distant.
    * @returns {?StreetSnap} Null when there are no streets, or none within maxDistanceM.
    */
-  snapToStreet(point, regionId = null, maxDistanceM = Infinity) {
+  snapToStreet(point, maxDistanceM = Infinity) {
     const p = [point.lng, point.lat];
     let best = null;
     this.#features.forEach((feature, streetId) => {
-      if (regionId !== null && feature.properties.region_id !== regionId) return;
       const coords = feature.geometry.coordinates;
       // Prefilter: no vertex can be closer than (distance to the first vertex - geometry length), so the
-      // per-vertex scan is skipped for the vast majority of streets that are nowhere near the point.
-      if (best !== null
-        && RouteGraph.distanceM(p, coords[0]) - this.#featureLengths.get(streetId) > best.distanceM) {
-        return;
+      // per-vertex scan is skipped for the vast majority of streets that are nowhere near the point. The
+      // north-south offset alone is already a lower bound on that distance, and it costs no trigonometry — which
+      // matters because this runs over every street in the city on each pointer move.
+      if (best !== null) {
+        const reachM = best.distanceM + this.#featureLengths.get(streetId);
+        if (Math.abs(coords[0][1] - p[1]) * RouteGraph.M_PER_DEG_LAT > reachM) return;
+        if (RouteGraph.distanceM(p, coords[0]) > reachM) return;
       }
       // Nearest vertex is a good-enough proxy for nearest point on the line at street-segment scale.
       let minD = Infinity;
@@ -155,8 +183,7 @@ class RouteGraph {
         const nearerEnd = dStart <= dEnd ? coords[0] : coords[coords.length - 1];
         best = {
           streetId,
-          regionId: feature.properties.region_id,
-          nodeKey: this.#findExistingNodeKey(nearerEnd),
+          nodeKey: this.#endNodeKey(streetId, nearerEnd),
           nodeLngLat: nearerEnd,
           distanceM: minD,
         };
@@ -166,59 +193,21 @@ class RouteGraph {
   }
 
   /**
-   * Point-to-segment distance in meters, computed in a local equirectangular frame centered on the point —
-   * accurate to well under a meter at the sub-kilometer scales this is used at.
+   * The node one of a street's endpoints merged into at build time. Looked up from the street itself rather than
+   * by position, since another node can sit within tolerance of the same endpoint, and read-only, since this runs
+   * on every pointer move.
    *
-   * @param {Array<number>} p - [lng, lat] of the point.
-   * @param {Array<number>} a - [lng, lat] of one segment endpoint.
-   * @param {Array<number>} b - [lng, lat] of the other segment endpoint.
-   * @returns {number}
+   * @param {number} streetId
+   * @param {Array<number>} endCoord - [lng, lat] of one of the street's endpoints, in either orientation.
+   * @returns {string}
    */
-  static #pointToSegmentM(p, a, b) {
-    const toRad = Math.PI / 180;
-    const mPerDegLat = toRad * RouteGraph.EARTH_RADIUS_M;
-    const mPerDegLng = mPerDegLat * Math.cos(p[1] * toRad);
-    const ax = (a[0] - p[0]) * mPerDegLng;
-    const ay = (a[1] - p[1]) * mPerDegLat;
-    const bx = (b[0] - p[0]) * mPerDegLng;
-    const by = (b[1] - p[1]) * mPerDegLat;
-    const dx = bx - ax;
-    const dy = by - ay;
-    const lenSq = dx * dx + dy * dy;
-    const t = lenSq === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / lenSq));
-    return Math.hypot(ax + t * dx, ay + t * dy);
-  }
-
-  /**
-   * Whether the point lies within maxDistanceM of a street's line (optionally only streets of one region).
-   *
-   * Unlike snapToStreet's nearest-vertex proxy — which mid-block on a long straight street overshoots by up to
-   * half the street's length — this measures true distance to the street's segments, so it reliably answers
-   * "is this point ON a street".
-   *
-   * @param {{lng: number, lat: number}} point
-   * @param {?number} regionId - When given, only streets in this region are considered.
-   * @param {number} maxDistanceM
-   * @returns {boolean}
-   */
-  isNearStreet(point, regionId, maxDistanceM) {
-    const p = [point.lng, point.lat];
-    for (const [streetId, feature] of this.#features) {
-      if (regionId !== null && feature.properties.region_id !== regionId) continue;
-      const coords = feature.geometry.coordinates;
-      // Same prefilter as snapToStreet: no part of the street is closer than (distance to the first vertex
-      // minus the geometry's length).
-      if (RouteGraph.distanceM(p, coords[0]) - this.#featureLengths.get(streetId) > maxDistanceM) continue;
-      for (let i = 1; i < coords.length; i++) {
-        if (RouteGraph.#pointToSegmentM(p, coords[i - 1], coords[i]) <= maxDistanceM) return true;
-      }
-    }
-    return false;
-  }
-
-  /** Returns the existing node key for a coordinate (which was inserted during construction). */
-  #findExistingNodeKey(coord) {
-    return this.#nodeKeyFor(coord); // Always merges with the node created at build time.
+  #endNodeKey(streetId, endCoord) {
+    const [keyA, keyB] = this.#streetEnds.get(streetId);
+    const nodeA = this.#nodes.get(keyA);
+    const nodeB = this.#nodes.get(keyB);
+    const dA = RouteGraph.distanceM(endCoord, [nodeA.lng, nodeA.lat]);
+    const dB = RouteGraph.distanceM(endCoord, [nodeB.lng, nodeB.lat]);
+    return dA <= dB ? keyA : keyB;
   }
 
   /**
@@ -226,62 +215,96 @@ class RouteGraph {
    *
    * @param {{lng: number, lat: number}} start
    * @param {{lng: number, lat: number}} end
-   * @param {?number} [snapRegionId=null] - When set, both endpoints snap only to streets in this region. A route is
-   *   locked to one region, so passing its region keeps the snap deterministic at a boundary node where streets
-   *   from two regions share the exact same endpoint (0 m). Without it, the unfiltered nearest-street tie can
-   *   resolve to the other region, making an already-placed start read as a different region than every end.
    * @returns {{streets?: {streetId: number, flip: boolean}[], error?: string}} One of:
    *   {streets: [{streetId, flip}]} — the ordered streets; flip means "traverse against the feature's current
    *     coordinate order" so the caller can orient each street for the route;
-   *   {error: 'different-region'} — the pins snap to streets in different regions;
    *   {error: 'no-path'} — no connected path exists (or a pin found no street).
    */
-  route(start, end, snapRegionId = null) {
-    const from = this.snapToStreet(start, snapRegionId);
-    const to = this.snapToStreet(end, snapRegionId);
+  route(start, end) {
+    const from = this.snapToStreet(start);
+    const to = this.snapToStreet(end);
     if (!from || !to) return { error: 'no-path' };
-    if (from.regionId !== to.regionId) return { error: 'different-region' };
-    const regionId = from.regionId;
-
     if (from.nodeKey === to.nodeKey) return { error: 'no-path' }; // Start and end at the same intersection.
 
-    // A* over the region's subgraph: g = meters walked, h = straight-line meters to the goal.
+    // A*: g = meters walked, h = straight-line meters to the goal. A node's first pop is taken as final and stale
+    // heap entries (left behind when a cheaper path re-queues a node) are skipped. That is exact for a consistent
+    // heuristic; h is measured from merged node positions while edge weights follow real geometry, so it can be off
+    // by up to 2 × NODE_TOLERANCE_M per edge, and in rare cases the path found is a few meters longer than the
+    // shortest — an accepted trade for never reopening a node.
     const goal = this.#nodes.get(to.nodeKey);
     const goalCoord = [goal.lng, goal.lat];
     const g = new Map([[from.nodeKey, 0]]);
     const cameFrom = new Map(); // nodeKey -> { prevKey, streetId }
-    const open = new Map(); // nodeKey -> f score
-    const startNode = this.#nodes.get(from.nodeKey);
-    open.set(from.nodeKey, RouteGraph.distanceM([startNode.lng, startNode.lat], goalCoord));
     const closed = new Set();
+    const startNode = this.#nodes.get(from.nodeKey);
+    const open = [{ key: from.nodeKey, f: RouteGraph.distanceM([startNode.lng, startNode.lat], goalCoord) }];
 
-    while (open.size > 0) {
-      // Extract the open node with the lowest f. Linear scan is fine at region scale (hundreds of nodes).
-      let currentKey = null;
-      let bestF = Infinity;
-      open.forEach((f, key) => {
-        if (f < bestF) {
-          bestF = f;
-          currentKey = key;
-        }
-      });
-      open.delete(currentKey);
+    while (open.length > 0) {
+      const currentKey = RouteGraph.#heapPop(open).key;
+      if (closed.has(currentKey)) continue;
       if (currentKey === to.nodeKey) return { streets: this.#reconstructPath(cameFrom, from.nodeKey, to.nodeKey) };
       closed.add(currentKey);
 
       const current = this.#nodes.get(currentKey);
       for (const edge of current.edges) {
-        if (edge.regionId !== regionId || closed.has(edge.otherKey)) continue;
+        if (closed.has(edge.otherKey)) continue;
         const tentativeG = g.get(currentKey) + edge.weightM;
         if (tentativeG < (g.get(edge.otherKey) ?? Infinity)) {
           g.set(edge.otherKey, tentativeG);
           cameFrom.set(edge.otherKey, { prevKey: currentKey, streetId: edge.streetId });
           const other = this.#nodes.get(edge.otherKey);
-          open.set(edge.otherKey, tentativeG + RouteGraph.distanceM([other.lng, other.lat], goalCoord));
+          RouteGraph.#heapPush(open, {
+            key: edge.otherKey,
+            f: tentativeG + RouteGraph.distanceM([other.lng, other.lat], goalCoord),
+          });
         }
       }
     }
     return { error: 'no-path' };
+  }
+
+  /**
+   * Pushes an entry onto a binary min-heap ordered by f. The search spans the whole city's network (a big city has
+   * on the order of 100k streets), where rescanning the open set for its minimum on every step would be quadratic.
+   *
+   * @param {{key: string, f: number}[]} heap
+   * @param {{key: string, f: number}} entry
+   */
+  static #heapPush(heap, entry) {
+    heap.push(entry);
+    let i = heap.length - 1;
+    while (i > 0) {
+      const parent = (i - 1) >> 1;
+      if (heap[parent].f <= heap[i].f) break;
+      [heap[parent], heap[i]] = [heap[i], heap[parent]];
+      i = parent;
+    }
+  }
+
+  /**
+   * Removes and returns the lowest-f entry of a non-empty binary min-heap.
+   *
+   * @param {{key: string, f: number}[]} heap
+   * @returns {{key: string, f: number}}
+   */
+  static #heapPop(heap) {
+    const top = heap[0];
+    const last = heap.pop();
+    if (heap.length > 0) {
+      heap[0] = last;
+      let i = 0;
+      for (;;) {
+        const left = 2 * i + 1;
+        const right = left + 1;
+        let smallest = i;
+        if (left < heap.length && heap[left].f < heap[smallest].f) smallest = left;
+        if (right < heap.length && heap[right].f < heap[smallest].f) smallest = right;
+        if (smallest === i) break;
+        [heap[smallest], heap[i]] = [heap[i], heap[smallest]];
+        i = smallest;
+      }
+    }
+    return top;
   }
 
   /**

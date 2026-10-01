@@ -80,6 +80,36 @@ The backend follows a consistent layering: **routes → Controller → Service �
   seeded from a dump rather than built up from evolutions; the scripts that do that seeding (and other DB
   lifecycle/maintenance tasks) live in [`db/scripts/`](../db/scripts/README.md).
 
+### Streets, regions, and routes
+
+Regions (neighborhoods) organize the work: a mission is filed under one, the dashboard and LabelMap filter by one,
+and `region_completion` reports progress per region. They are **not** a boundary the streets or a route have to stay
+inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission routes
+proposed in #5526, is walks that make sense on the ground: routes that end at intersections rather than at an
+arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the tool can show where a walk is going.
+
+- **`street_edge_region` is an assignment, not geometry.** Every street belongs to exactly one region (UNIQUE on
+  `street_edge_id`, evolution 338); that is what files a street's missions and credits its completion. Nothing in
+  the app relies on the street lying inside the region's polygon, and Explore never reads the polygon at all.
+  Historically the city build cut streets at region borders so the two coincided; new cities are no longer meant to
+  be cut that way (see [`docs/onboarding-a-city.md`](onboarding-a-city.md)), and existing cuts are to be merged
+  back in a later, staged data repair. Until then a street that was cut at a border is simply two streets.
+- **A route may run through any number of regions.** `route.region_id` is the region the route **starts** in: the
+  first street's region, derived by the server on save and re-derived by `RouteTable.updateStats` whenever the
+  street list changes, never taken from the client. Listings carry `region_count` beside it, so a route that leaves
+  its start region reads "Start region + N more". RouteBuilder's A* runs over the whole city's street graph.
+- **A route walk is filed under the start region.** Explore sets the walker's `user_current_region` to it and files
+  the walk's mission there, which is also where the walker carries on exploring once the route ends. The streets a
+  walk hands out come from the route (`selectTasksInRoute`), not from the region, so no region-scoped query on the
+  Explore path applies to a walk: a walk does not ask for the region's live street priorities (the route fixes the
+  next street), and `region_completion` is credited street by street, so a border crossing credits both regions.
+- **A user's earlier labels are gathered by mission region OR street region.** Explore redraws them on every page
+  load (`LabelTable.getLabelsFromUserInRegions`), for the page's region plus every region the current walk runs
+  through (`UserRouteTable.getRegionIds`). A label counts when its mission is filed under one of those regions *or*
+  its street is: going by the mission alone would hide a route's labels from a later visit to the neighborhood they
+  are actually in, and going by the street alone would drop a label placed just across a border from its mission's
+  region. It is a UNION of two indexed branches on purpose; an OR across the two joins can't use either index.
+
 ### Media storage
 
 Uploaded media has two homes, chosen by its profile — and neither is the app-local filesystem, which a

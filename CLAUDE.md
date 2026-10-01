@@ -28,6 +28,7 @@ file, and this table says which doc to read first:
 | A new or changed user interaction | `docs/logged-events.md` |
 | Which labels Validate serves (`ValidationQueuePolicy`, the Validate queries) | `docs/validation-queue.md` |
 | Releases, deploys, asset caching, persistent media dirs | `docs/deployment-and-stages.md` |
+| Routes, regions, or which streets a mission or walk may contain | `docs/architecture.md` → "Streets, regions, and routes" |
 | Storing uploaded media (DB row vs. media dir) | `docs/architecture.md` → "Media storage" |
 | Label crops, or a marker drawn on one (`label_crop` provenance, #2660) | `docs/architecture.md` → "Media storage" |
 | Tests or CI | `docs/testing-and-ci.md`, `test/e2e/README.md` |

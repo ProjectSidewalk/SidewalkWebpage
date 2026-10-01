@@ -1,5 +1,5 @@
 /* Full-window map area: the flex-growing child of #wrap.wrap--full-window (mirrors LabelMap's choropleth holder).
-   The map fills it; the planner card, on-map CTA, and legend are its absolutely-positioned children. */
+   The map fills it; the planner card and legend are its absolutely-positioned children. */
 #routebuilder-map-area {
   position: relative;
   flex: 1 1 auto;
@@ -54,44 +54,18 @@
   display: none;
 }
 
+/* The on-map instruction toast (RouteBuilder.#updateCta). The shared toast caps its width for a 720 px pano; over a
+   full-width map the one-sentence instruction fits on a line at a slightly wider cap, which reads better than a
+   two-line block. The viewport bound keeps the map's 16 px gutter on a narrow window. */
+.ps-toast[data-anchor="routebuilder-map"] {
+  max-width: min(calc(640px * var(--ui-scale, 1)), calc(100vw - 32px));
+}
+
 /* While building, the intro and saved-route cards get out of the way — but once the route on the map is a saved
    one (just saved, or loaded for editing), its card stays visible in the panel. */
 #routebuilder-panel[data-state="building"] .routebuilder-panel__empty,
 #routebuilder-panel[data-state="building"]:not([data-editing="true"]) .routebuilder-panel__saved {
   display: none;
-}
-
-/* On-map call-to-action: a floating pill, top-center, telling the user what a click will do. Non-interactive so
-   it never intercepts a map click. */
-#routebuilder-cta {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-  max-width: calc(100% - 32px);
-  padding: 12px 22px;
-  border-radius: 999px;
-  background: var(--color-neutral-white);
-  box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
-  font: var(--text-body-bold);
-  color: var(--color-asphalt-500);
-  text-align: center;
-  pointer-events: none;
-}
-
-#routebuilder-cta[hidden] {
-  display: none;
-}
-
-.cta-flag {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
 }
 
 .flex-div-col {
