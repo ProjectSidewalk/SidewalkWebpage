@@ -59,14 +59,14 @@ class AdminSetRoleSpec
 
     "refuse a role outside the admin-assignable ones" in {
       val userId = userIdOf(sessionAs(Role.Registered))
-      Seq("AI", "Anonymous", "Owner", "NotARole").foreach { roleId =>
+      Seq("AI", "Anonymous", "Owner", "Turker", "NotARole").foreach { roleId =>
         status(setRoleRequest(userId, roleId)) mustBe BAD_REQUEST
       }
       roleOf(userId) mustBe "Registered"
     }
 
     "refuse changing a user whose current role isn't admin-assignable" in {
-      Seq(Role.Ai, Role.Anonymous, Role.Owner).foreach { role =>
+      Seq(Role.Ai, Role.Anonymous, Role.Owner, Role.Turker).foreach { role =>
         val userId = userIdOf(sessionAs(role))
         val resp   = setRoleRequest(userId, "Registered")
         status(resp) mustBe BAD_REQUEST
