@@ -26,8 +26,11 @@ object Role extends PgEnumCompanion[Role]("role") {
   /** Roles that grant access to admin-only pages and data. */
   val ADMIN_ROLES: Set[Role] = Set(Administrator, Owner)
 
-  /** Roles an admin may move a user into or out of. Owner is fixed, and Anonymous/AI are system-assigned. */
-  val ADMIN_ASSIGNABLE_ROLES: Seq[Role] = Seq(Registered, Turker, Researcher, Administrator)
+  /**
+   * Roles an admin may move a user into or out of. Owner is fixed, Anonymous/AI are system-assigned, and Turker is
+   * kept only for the old MTurk studies' accounts.
+   */
+  val ADMIN_ASSIGNABLE_ROLES: Seq[Role] = Seq(Registered, Researcher, Administrator)
 
   /** The roles the admin user table's role filter offers, with the admin-ish roles collapsed into Researcher. */
   val ROLES_RESEARCHER_COLLAPSED: Seq[Role] = Seq(Registered, Turker, Researcher, Anonymous, Ai)

@@ -197,7 +197,7 @@ class ManagementPage {
     }
   }
 
-  /** A role <select>. Locked (disabled) for users whose current role isn't admin-assignable (Owner, AI, Anonymous). */
+  /** A role <select>, locked for users whose current role isn't admin-assignable (Owner, AI, Anonymous, Turker). */
   #roleSelect(u) {
     const current = u.role || '';
     const assignable = this.#assignableRoles.includes(current);
