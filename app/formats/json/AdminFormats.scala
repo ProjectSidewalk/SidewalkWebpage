@@ -12,7 +12,6 @@ import service.TimeInterval
 import java.time.OffsetDateTime
 
 object AdminFormats {
-  // snake_case keys, and a None written as null, for the Json.writes macros below.
   private given jsonConfig: JsonConfiguration =
     JsonConfiguration(JsonNaming.SnakeCase, optionHandlers = OptionHandlers.WritesNull)
 

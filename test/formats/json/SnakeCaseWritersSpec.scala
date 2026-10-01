@@ -27,16 +27,14 @@ import service.{CityHours, TeamMemberStats, TeamOverview, TeamTotals, TimeInterv
 import java.time.{OffsetDateTime, ZoneOffset}
 
 /**
- * Pins the JSON of every writer derived with `Json.writes` under a snake_case `JsonConfiguration`. Those writers take
- * their keys from the Scala field names, so renaming a field would silently rename a key that pages and API clients
- * read; the expected strings are the output of the hand-listed writers they replaced (#5567, #5622). The `None` cases pin
- * which writers drop the key and which write `null`.
+ * Pins the keys every `Json.writes`-derived writer produces. Keys come from Scala field names, so renaming a field
+ * would silently rename a key the frontend reads. The `None` cases pin which writers drop the key and which write null.
  */
 class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
   private val t = OffsetDateTime.of(2026, 9, 29, 12, 30, 0, 0, ZoneOffset.UTC)
   private def check[A: Writes](a: A, expected: String): Unit = Json.stringify(Json.toJson(a)) shouldBe expected
 
-  test("derived snake_case writers keep the keys the hand-listed writers produced") {
+  test("derived writers produce the expected snake_case keys") {
     check(
       AiConcurrence(1, 2, 3, 4),
       """{"ai_yes_maj_vote_concurs":1,"ai_yes_maj_vote_differs":2,"ai_no_maj_vote_differs":3,"ai_no_maj_vote_concurs":4}"""

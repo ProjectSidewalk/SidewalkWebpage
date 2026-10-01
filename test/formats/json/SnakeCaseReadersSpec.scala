@@ -15,8 +15,8 @@ import play.api.libs.json.{Json, Reads}
 import java.time.{OffsetDateTime, ZoneOffset}
 
 /**
- * Pins the keys every `Json.reads`-derived reader accepts: they come from the Scala field names, so a field rename
- * would silently stop reading what the frontend sends. Bodies with only required keys must read the rest as `None`.
+ * Pins the keys every `Json.reads`-derived reader accepts. Keys come from Scala field names, so renaming a field would
+ * silently stop reading what the frontend sends.
  */
 class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
   private val t  = OffsetDateTime.of(2026, 9, 29, 12, 30, 0, 0, ZoneOffset.UTC)

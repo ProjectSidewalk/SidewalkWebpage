@@ -5,7 +5,6 @@ import play.api.libs.json.*
 import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTotals}
 
 object UserFormats {
-  // snake_case keys for the Json.writes macros below.
   private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   /**
@@ -32,9 +31,8 @@ object UserFormats {
   given teamWrites: Writes[Team] = Json.writes[Team]
 
   /**
-   * The admin team page's payload (`/adminapi/team/:teamId`, #5381), snake_case throughout. Accuracy travels as raw
-   * (validated, agreed) counts, not a percentage, so the team's rate can pool its members' judged labels rather than
-   * average rates that describe different amounts of work.
+   * Accuracy is sent as raw (validated, agreed) counts, not a percentage, so the team page can add up its members'
+   * labels instead of averaging rates based on different amounts of work.
    */
   given teamMemberStatsWrites: Writes[TeamMemberStats] = Json.writes[TeamMemberStats]
 

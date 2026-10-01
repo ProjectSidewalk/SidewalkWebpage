@@ -2,8 +2,7 @@
  * Renders the admin Contributors page (#4272). Aggregates the per-user admin stats into a picture of who produces the
  * deployment's data and how trustworthy it is: counts by quality flag and role, the share of labels coming from high-
  * vs low-quality users, and the distribution of contributor accuracy. Rendered as an accessible HTML/CSS scorecard
- * (no charting library). Data is /adminapi/getUserStats (per-user high_quality, labels, own_validated_agreed_pct,
- * role).
+ * (no charting library). Data is /adminapi/getUserStats.
  */
 class ContributorsPage {
   /** Accuracy buckets (upper bounds, percent) for the contributor-accuracy distribution. */

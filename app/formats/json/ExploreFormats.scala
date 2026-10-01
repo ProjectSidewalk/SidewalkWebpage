@@ -15,7 +15,6 @@ import java.nio.charset.StandardCharsets
 import java.time.OffsetDateTime
 
 object ExploreFormats {
-  // snake_case keys for the Json.writes macros below.
   private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   case class EnvironmentSubmission(
