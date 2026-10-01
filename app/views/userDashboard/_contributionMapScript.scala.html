@@ -56,9 +56,6 @@
         showLabel: async (labelId, uiSource) => {
           const popup = await window.udLabelPopupReady;
           if (!popup) return;
-          // A mistake card may have left its vote/note panel inside the shared dialog, and a map-clicked
-          // label isn't necessarily that card's — clear it so the popup shows only this label's details.
-          document.querySelector('#label-modal .ud-mistake-response')?.remove();
           await popup.showLabel(labelId, uiSource);
         }
       };

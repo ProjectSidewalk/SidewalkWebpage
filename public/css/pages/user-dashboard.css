@@ -955,9 +955,6 @@
 .ud-mistake-response .ud-card-vote,
 .ud-mistake-response .ud-card-note-section { margin-top: 0; }
 
-/* A mistake card's popup is the user's own label, so the response panel's note replaces the add-a-comment row. */
-#label-modal:has(.ud-mistake-response) .label-detail__comment-row { display: none; }
-
 .ud-card-voted-msg {
   margin: 0;
   font: var(--text-small-bold);
