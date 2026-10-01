@@ -1,20 +1,14 @@
 /**
  * Explore's keyboard shortcuts.
  *
- * Every shortcut is a row in one of the tables at the top of the class, which differ only in when they're live. A row
- * names its keys by where they sit on the keyboard (`KeyboardEvent.code`: `KeyC`, `Digit1`, `ArrowLeft`), so a shortcut
- * works the same on any keyboard layout or input method. The label-type and tag keys aren't in the tables: they're the
- * letters the UI shows, so they're read from `util.misc.getLabelDescriptions`.
+ * Every shortcut is a row in one of the tables at the top of the class, which differ only in when they're live. Rows
+ * name keys the way `KeyboardShortcuts.keyOf` does (`KeyC`, `Digit1`, `ArrowLeft`). The label-type and tag keys aren't
+ * in the tables: they're the letters the UI shows, so they're read from `util.misc.getLabelDescriptions`.
  */
-
-/**
- * @typedef {object} ExploreShortcut - One row of a shortcut table.
- * @property {string[]} keys - Any of these fires it.
- * @property {(e: KeyboardEvent) => boolean} [when] - Only fires when this is true.
- * @property {(e: KeyboardEvent) => void} action - What it does.
- */
-
 class KeyboardManager {
+  /** @type {?KeyboardShortcut[]} */
+  #labelTypeRows = null;
+
   #svl;
   #contextMenu;
   #navigationService;
@@ -38,18 +32,18 @@ class KeyboardManager {
 
   /** Closing the context menu. These also work while typing in its description box. */
   #closeMenuShortcuts = [
-    { keys: ['Enter', 'NumpadEnter'], action: () => this.#saveAndCloseContextMenu() },
+    { keys: ['Enter'], action: () => this.#saveAndCloseContextMenu() },
     { keys: ['Escape'], action: (e) => this.#cancelContextMenu(e) },
   ];
 
-  /** Everywhere outside a text box. The label-type keys are added to these on each key press. */
+  /** Everywhere outside a text box. The label-type keys are added to these. */
   #generalShortcuts = [
     { keys: ['Escape'], action: (e) => this.#backToExploreMode(e) },
     { keys: ['KeyF'], when: (e) => this.#canToggleImmersiveMode(e), action: () => this.#toggleImmersiveMode() },
     { keys: ['KeyZ'], action: (e) => this.#zoom(e) }, // Shift+Z zooms out.
   ];
 
-  /** Rating the label whose context menu is open. Its tag keys are added to these on each key press. */
+  /** Rating the label whose context menu is open. Its tag keys run after these. */
   #contextMenuShortcuts = [
     { keys: ['Digit1', 'Numpad1'], when: () => this.#canRateSeverity(), action: (e) => this.#rateSeverity(1, e) },
     { keys: ['Digit2', 'Numpad2'], when: () => this.#canRateSeverity(), action: (e) => this.#rateSeverity(2, e) },
@@ -69,28 +63,11 @@ class KeyboardManager {
   }
 
   /**
-   * Runs every shortcut in the list that the key press matches.
-   * @param {ExploreShortcut[]} shortcuts - Rows from the tables above.
-   * @param {KeyboardEvent} e
-   * @returns {boolean} Whether any shortcut ran.
-   */
-  static #run(shortcuts, e) {
-    let ran = false;
-    for (const shortcut of shortcuts) {
-      if (shortcut.keys.includes(e.code) && (shortcut.when?.(e) ?? true)) {
-        shortcut.action(e);
-        ran = true;
-      }
-    }
-    return ran;
-  }
-
-  /**
    * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
     if (this.#status.disableKeyboard || this.#status.focusOnTextField) return;
-    if (!this.#contextMenu.isOpen()) KeyboardManager.#run(this.#walkingShortcuts, e);
+    if (!this.#contextMenu.isOpen()) KeyboardShortcuts.run(this.#walkingShortcuts, e);
   };
 
   /**
@@ -99,16 +76,22 @@ class KeyboardManager {
    */
   #documentKeyUp = (e) => {
     if (this.#status.disableKeyboard) return;
-    if (this.#contextMenu.isOpen() && KeyboardManager.#run(this.#closeMenuShortcuts, e)) return;
+    if (this.#contextMenu.isOpen() && KeyboardShortcuts.run(this.#closeMenuShortcuts, e)) return;
 
-    if (this.#status.focusOnTextField || e.ctrlKey) return;
-    KeyboardManager.#run([...this.#labelTypeShortcuts(), ...this.#generalShortcuts], e);
-    if (this.#contextMenu.isOpen()) KeyboardManager.#run([...this.#contextMenuShortcuts, ...this.#tagShortcuts()], e);
+    // A modifier makes it the browser's or the OS's shortcut (Option+C types ç on a Mac). Shift is ours: Shift+Z.
+    if (this.#status.focusOnTextField || e.ctrlKey || e.altKey || e.metaKey) return;
+    this.#labelTypeRows ??= this.#labelTypeShortcuts();
+    KeyboardShortcuts.run([...this.#labelTypeRows, ...this.#generalShortcuts], e);
+    if (this.#contextMenu.isOpen()) {
+      KeyboardShortcuts.run(this.#contextMenuShortcuts, e);
+      KeyboardShortcuts.run(this.#tagShortcuts(), e);
+    }
   };
 
   /**
-   * One row per labeling mode, from the letter the ribbon menu shows for it.
-   * @returns {ExploreShortcut[]}
+   * One row per labeling mode, from the letter the ribbon menu shows for it. Walk's E is also a tag key, so it only
+   * means Walk with the context menu closed.
+   * @returns {KeyboardShortcut[]}
    */
   #labelTypeShortcuts() {
     // The type list is backend-sourced but getLabelDescriptions is a local table, so a label type added to LabelType
@@ -116,22 +99,28 @@ class KeyboardManager {
     return ['Walk', ...util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER]
       .map((mode) => ({ mode, key: KeyboardManager.#keyFor(util.misc.getLabelDescriptions(mode)?.keyChar) }))
       .filter(({ key }) => key)
-      .map(({ mode, key }) => ({ keys: [key], action: (e) => this.#switchMode(mode, e) }));
+      .map(({ mode, key }) => ({
+        keys: [key],
+        when: mode === 'Walk' ? () => !this.#contextMenu.isOpen() : undefined,
+        action: (e) => this.#switchMode(mode, e),
+      }));
   }
 
   /**
    * One row per tag of the open label's type, from the letter underlined in the tag's name.
-   * @returns {ExploreShortcut[]}
+   * @returns {KeyboardShortcut[]}
    */
   #tagShortcuts() {
     const targetLabel = this.#contextMenu.getTargetLabel();
     if (!targetLabel || this.#contextMenu.isTaggingDisabled()) return [];
     const labelType = targetLabel.getProperty('labelType');
-    const tagInfo = util.misc.getLabelDescriptions(labelType).tagInfo;
+    const tagInfo = util.misc.getLabelDescriptions(labelType)?.tagInfo;
     return this.#contextMenu.labelTags
       .filter((tag) => tag.label_type === labelType)
-      .map((tag) => ({
-        keys: [KeyboardManager.#keyFor(tagInfo[tag.tag]?.keyChar)],
+      .map((tag) => ({ tag, key: KeyboardManager.#keyFor(tagInfo?.[tag.tag]?.keyChar) }))
+      .filter(({ key }) => key)
+      .map(({ tag, key }) => ({
+        keys: [key],
         action: () => document.querySelector(`[data-tag-id="${tag.tag_id}"]`)?.click(),
       }));
   }
@@ -240,6 +229,7 @@ class KeyboardManager {
     return target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio');
   }
 
+  /** Enter closes the menu, keeping what was entered. */
   #saveAndCloseContextMenu() {
     this.#svl.tracker.push('KeyboardShortcut_CloseContextMenu');
     this.#contextMenu.handleSeverityPopup();
@@ -253,6 +243,7 @@ class KeyboardManager {
   #cancelContextMenu(e) {
     this.#closeContextMenu(e);
     this.#ribbon.backToWalk();
+    this.#svl.canvas.showLabelHoverInfo(undefined);
   }
 
   /**
@@ -270,7 +261,7 @@ class KeyboardManager {
    * @param {KeyboardEvent} e
    */
   #switchMode(mode, e) {
-    if (mode !== 'Walk') this.#closeContextMenu(e);
+    this.#closeContextMenu(e);
     this.#ribbon.modeSwitch(mode);
     this.#svl.tracker.push(`KeyboardShortcut_ModeSwitch_${mode}`, { code: e.code });
   }

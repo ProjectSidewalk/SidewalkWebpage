@@ -9,6 +9,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const SHORTCUTS_SRC = fs.readFileSync(
+    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
+);
 
 const KEYBOARD_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/explore/src/keyboard/KeyboardManager.js'), 'utf8'
@@ -18,7 +21,7 @@ describe('Explore spacebar shortcut and focused form controls', () => {
     let navigationService;
 
     beforeAll(() => {
-        window.eval(`${KEYBOARD_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        window.eval(`${SHORTCUTS_SRC}\n${KEYBOARD_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
         navigationService = {
             // Walking disabled makes the route advance a no-op, so the test sees only whether it was attempted.
             getStatus: jest.fn(() => true),

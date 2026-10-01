@@ -42,7 +42,9 @@ class Tracker {
     // Keyboard related events.
     for (const type of ['keydown', 'keyup']) {
       document.addEventListener(type, (/** @type {KeyboardEvent} */ e) => {
-        this.push(prefix + e.type, { key: e.key, code: e.code });
+        // Never which key went into a password, e.g. in the navbar's sign-in dialog.
+        const isPassword = e.target instanceof HTMLInputElement && e.target.type === 'password';
+        this.push(prefix + e.type, isPassword ? {} : { code: e.code });
       });
     }
   }

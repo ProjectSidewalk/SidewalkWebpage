@@ -1,24 +1,15 @@
 /**
  * Validate's keyboard shortcuts.
  *
- * Every shortcut is a row in one of the tables at the top of the class, which differ only in when they're live. A row
- * names its keys by where they sit on the keyboard (`KeyboardEvent.code`: `KeyA`, `Digit1`, `Enter`), so a shortcut
- * works the same on any keyboard layout or input method.
+ * Every shortcut is a row in one of the tables at the top of the class, which differ only in when they're live. Rows
+ * name keys the way `KeyboardShortcuts.keyOf` does (`KeyA`, `Digit1`, `Enter`).
  */
-
-/**
- * @typedef {object} ValidateShortcut - One row of a shortcut table.
- * @property {string[]} keys - Any of these fires it.
- * @property {(e: KeyboardEvent) => boolean} [when] - Only fires when this is true.
- * @property {(e: KeyboardEvent) => void} action - What it does.
- */
-
 class KeyboardManager {
   #validationMenuUi;
   #disableKeyboard = false;
   #addingComment = false;
 
-  /** The main shortcuts. Off while a modal is up, while typing in a comment box, and with Ctrl or Cmd held. */
+  /** The main shortcuts. Off while a modal is up, while typing in a comment box, and with Ctrl, Alt or Cmd held. */
   #shortcuts = [
     { keys: ['KeyY', 'KeyA'], action: () => this.#validationMenuUi.yesButton.click() },
     { keys: ['KeyN', 'KeyD'], action: () => this.#validationMenuUi.noButton.click() },
@@ -46,7 +37,7 @@ class KeyboardManager {
    * submitting would move on to the next label before the tag is added.
    */
   #whileTypingShortcuts = [
-    { keys: ['Enter', 'NumpadEnter'], when: () => !this.#inTagPicker(), action: (e) => this.#submit(e) },
+    { keys: ['Enter'], when: () => !this.#inTagPicker(), action: (e) => this.#submit(e) },
   ];
 
   /** These also work while a modal is up, since the layout may change under one. */
@@ -57,7 +48,7 @@ class KeyboardManager {
   /** On the label's marker or inside its card (#4729), where none of the shortcuts above fire. */
   #labelCardShortcuts = [
     { keys: ['Escape'], action: (e) => this.#escapeLabelCard(e) },
-    { keys: ['Enter', 'NumpadEnter', 'Space'], when: KeyboardManager.#onMarker, action: (e) => this.#toggleCard(e) },
+    { keys: ['Enter', 'Space'], when: KeyboardManager.#onMarker, action: (e) => this.#toggleCard(e) },
   ];
 
   /**
@@ -76,49 +67,32 @@ class KeyboardManager {
   }
 
   /**
-   * Runs every shortcut in the list that the key press matches.
-   * @param {ValidateShortcut[]} shortcuts - Rows from the tables above.
-   * @param {KeyboardEvent} e
-   * @returns {boolean} Whether any shortcut ran.
-   */
-  static #run(shortcuts, e) {
-    let ran = false;
-    for (const shortcut of shortcuts) {
-      if (shortcut.keys.includes(e.code) && (shortcut.when?.(e) ?? true)) {
-        shortcut.action(e);
-        ran = true;
-      }
-    }
-    return ran;
-  }
-
-  /**
    * The groups run from the narrowest scope outward, and a group that takes the key stops it there.
    * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
     if (KeyboardManager.#belongsToFocusedControl(e)) return;
     if (KeyboardManager.#inLabelCard(e)) {
-      KeyboardManager.#run(this.#labelCardShortcuts, e);
+      KeyboardShortcuts.run(this.#labelCardShortcuts, e);
       return;
     }
 
     this.#checkIfTextAreaSelected();
-    if (KeyboardManager.#run(this.#alwaysOnShortcuts, e)) return;
+    if (KeyboardShortcuts.run(this.#alwaysOnShortcuts, e)) return;
     if (this.#disableKeyboard) return;
-    KeyboardManager.#run(this.#whileTypingShortcuts, e);
+    KeyboardShortcuts.run(this.#whileTypingShortcuts, e);
     if (this.#addingComment) return;
 
     if (e.ctrlKey || e.metaKey) {
-      KeyboardManager.#run(this.#ctrlShortcuts, e);
-    } else {
+      KeyboardShortcuts.run(this.#ctrlShortcuts, e);
+    } else if (!e.altKey) { // Alt+D is the browser's address bar, not Disagree.
       svv.labelVisibilityControl.hideLabelCard();
-      KeyboardManager.#run(this.#shortcuts, e);
+      KeyboardShortcuts.run(this.#shortcuts, e);
     }
   };
 
   #handleEscapeKey = (e) => {
-    if (e.code === 'Escape') {
+    if (e.key === 'Escape') {
       e.preventDefault();
       e.stopImmediatePropagation();
       e.currentTarget.blur();
@@ -262,8 +236,9 @@ class KeyboardManager {
     // is not exempt on the pills: on Validate it submits from any focused button, and closing the panel puts focus back
     // on the Image pill, so an exempt Enter there would reopen the panel for a validator pressing Enter to submit. The
     // letter shortcuts stay live throughout, since a mouse click leaves focus on the control.
-    if (e.code === 'Space' && target.closest?.('#label-visibility-control-holder')) return true;
-    const enter = e.code === 'Enter' || e.code === 'NumpadEnter';
+    const key = KeyboardShortcuts.keyOf(e);
+    if (key === 'Space' && target.closest?.('#label-visibility-control-holder')) return true;
+    const enter = key === 'Enter';
     if (enter && KeyboardManager.#isKeyboardFocusedChevron(target)) return true;
     // The dock's X and the immersive toggle mean "take the answer back" and "change the layout": Enter on either has to
     // activate it, as it does every other button of that kind, not submit the answer the X was pressed to undo.

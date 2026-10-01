@@ -1,11 +1,14 @@
 /**
- * Explore's label-type shortcuts match the physical key (`KeyboardEvent.code`), not the character typed (#5618), so a
- * non-Latin layout or input method still reaches them, and the logged note names the key. Escape with the context
- * menu open closes only the menu.
+ * Explore's label-type shortcuts (#5618): a Latin letter goes by what's printed on the key, so an AZERTY keyboard gets
+ * the letter the UI shows, and anything else by where the key sits, so a non-Latin layout still reaches them. Escape
+ * with the context menu open closes only the menu, and E there is a tag key, not Walk.
  */
 
 const fs = require('fs');
 const path = require('path');
+const SHORTCUTS_SRC = fs.readFileSync(
+    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
+);
 
 const KEYBOARD_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/explore/src/keyboard/KeyboardManager.js'), 'utf8'
@@ -24,7 +27,7 @@ describe('Explore shortcut keys', () => {
                 getLabelDescriptions: (type) => ({ keyChar: keyChars[type] }),
             },
         };
-        window.eval(`${KEYBOARD_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        window.eval(`${SHORTCUTS_SRC}\n${KEYBOARD_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
         // One instance for the file: the constructor adds window listeners that are never removed.
         const contextMenu = { isOpen: () => menuOpen, getTargetLabel: () => null, hide: () => { menuOpen = false; } };
         new window.KeyboardManager(svl, {}, contextMenu, { getStatus: () => true }, ribbon, {});
@@ -50,13 +53,19 @@ describe('Explore shortcut keys', () => {
         expect(svl.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ModeSwitch_CurbRamp', { code: 'KeyC' });
     });
 
-    it('ignores a C typed from a different key', () => {
+    it('goes by the printed letter on a Latin layout, wherever the key sits', () => {
         release({ key: 'c', code: 'KeyJ' });
+        expect(ribbon.modeSwitch).toHaveBeenCalledWith('CurbRamp');
+    });
+
+    it.each(['ctrlKey', 'altKey', 'metaKey'])('leaves C to the browser with %s held', (modifier) => {
+        release({ key: 'c', code: 'KeyC', [modifier]: true });
         expect(ribbon.modeSwitch).not.toHaveBeenCalled();
     });
 
-    it('leaves Ctrl+C to the browser', () => {
-        release({ key: 'c', code: 'KeyC', ctrlKey: true });
+    it('leaves E to the tags while the context menu is open', () => {
+        menuOpen = true;
+        release({ key: 'e', code: 'KeyE' });
         expect(ribbon.modeSwitch).not.toHaveBeenCalled();
     });
 

@@ -16,6 +16,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const SHORTCUTS_SRC = fs.readFileSync(
+    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
+);
 
 const MANAGER_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
@@ -67,7 +70,7 @@ describe('KeyboardManager number-key shortcuts', () => {
         // The manager looks the reason buttons and severity radios up by id and clicks them natively.
         document.addEventListener('click', (e) => clicks.push(/** @type {Element} */ (e.target).id));
 
-        window.eval(`${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        window.eval(`${SHORTCUTS_SRC}\n${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
         new window.KeyboardManager(validationMenuUi);
     });
 
