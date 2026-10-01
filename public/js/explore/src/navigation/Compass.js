@@ -200,9 +200,7 @@ class Compass {
    * Hide a message.
    */
   hideMessage() {
-    this.#uiCompass.messageHolder.classList.remove('fadeInUp');
-    this.#uiCompass.messageHolder.classList.add('fadeOutDown');
-    this.#uiCompass.messageHolder.style.pointerEvents = 'none';
+    this.#uiCompass.messageHolder.hidden = true;
   }
 
   /**
@@ -237,9 +235,7 @@ class Compass {
    * Show a message.
    */
   showMessage() {
-    this.#uiCompass.messageHolder.classList.remove('fadeOutDown');
-    this.#uiCompass.messageHolder.classList.add('fadeInUp');
-    this.#uiCompass.messageHolder.style.pointerEvents = 'auto';
+    this.#uiCompass.messageHolder.hidden = false;
   }
 
   /**
