@@ -61,7 +61,7 @@ describe('ExploreUrlSync', () => {
 
     test('writes the pano, its position, the view and nothing of the mission, as the read side names them', () => {
         new ExploreUrlSync(viewer, () => immersive).start();
-        expect(currentUrl()).toBe('/explore?panoId=abc123&lat=47.606209&lng=-122.332071&heading=91.3&pitch=-3&zoom=1.5');
+        expect(currentUrl()).toBe('/explore?lat=47.606209&lng=-122.332071&heading=91.3&pitch=-3&zoom=1.5&panoId=abc123');
         expect(window.location.search).not.toMatch(/routeId|resumeRoute|placeName/);
     });
 
@@ -69,7 +69,7 @@ describe('ExploreUrlSync', () => {
         immersive = true;
         const sync = new ExploreUrlSync(viewer, () => immersive);
         sync.start();
-        expect(window.location.search).toMatch(/&immersive=1$/);
+        expect(window.location.search).toMatch(/&immersive=1&panoId=abc123$/);
 
         immersive = false;
         jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
@@ -125,7 +125,7 @@ describe('ExploreUrlSync', () => {
         viewer.state.position = { lat: 47.61, lng: -122.33 };
         fire('pano_changed');
         expect(replaceState).toHaveBeenCalledTimes(2);
-        expect(window.location.search).toMatch(/^\?panoId=next456&lat=47.61&lng=-122.33&/);
+        expect(window.location.search).toMatch(/^\?lat=47.61&lng=-122.33&.*&panoId=next456$/);
     });
 
     test('skips a write that would change nothing', () => {
@@ -161,13 +161,13 @@ describe('ExploreUrlSync', () => {
         let missionId = 42;
         const sync = new ExploreUrlSync(viewer, () => immersive, () => ({ missionId }));
         sync.start();
-        expect(window.location.search).toMatch(/&zoom=1.5&missionId=42$/);
+        expect(window.location.search).toMatch(/&zoom=1.5&missionId=42&panoId=abc123$/);
         // The mission rolled over in-page: the next write names the new one.
         missionId = 43;
         viewer.state.pov = { heading: 10, pitch: 0, zoom: 1 };
         jest.advanceTimersByTime(ExploreUrlSync.WRITE_INTERVAL_MS);
         sync.request();
-        expect(window.location.search).toMatch(/&heading=10&pitch=0&zoom=1&missionId=43$/);
+        expect(window.location.search).toMatch(/&heading=10&pitch=0&zoom=1&missionId=43&panoId=abc123$/);
         // Free exploration passes none, and the default is none.
         expect(ExploreUrlSync.paramsFor(viewer, false, {}).has('missionId')).toBe(false);
         expect(ExploreUrlSync.paramsFor(viewer, false).has('missionId')).toBe(false);

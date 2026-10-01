@@ -116,7 +116,6 @@ class ExploreUrlSync {
 
     const round = (value, decimals) => String(Number(value.toFixed(decimals)));
     const params = new URLSearchParams();
-    params.set('panoId', panoId);
     params.set('lat', round(position.lat, ExploreUrlSync.#COORD_DECIMALS));
     params.set('lng', round(position.lng, ExploreUrlSync.#COORD_DECIMALS));
     // Viewers report a heading as they please (GSV goes past 360 on a long drag); the URL says it once, in [0, 360),
@@ -127,6 +126,8 @@ class ExploreUrlSync {
     params.set('zoom', round(pov.zoom, ExploreUrlSync.#ZOOM_DECIMALS));
     if (immersive) params.set('immersive', '1');
     for (const [name, value] of Object.entries(sessionParams)) params.set(name, String(value));
+    // Last, so the human-readable view settings lead and the long opaque id trails where it's easiest to ignore.
+    params.set('panoId', panoId);
     return params;
   }
 
