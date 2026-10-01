@@ -223,7 +223,6 @@ POST    /userapi/logWebpageActivity                     controllers.UserControll
 PUT     /userapi/setUserTeam                            controllers.UserProfileController.setUserTeam(userId: String, teamId: Int)
 PUT     /userapi/leaveTeam                              controllers.UserProfileController.leaveTeam(userId: String)
 POST    /userapi/createTeam                             controllers.UserProfileController.createTeam()
-GET     /userapi/getTeams                               controllers.UserProfileController.getTeams
 
 # Map resources from the /public folder to the /assets URL path. Prefix must match `play.assets.urlPrefix`
 GET     /assets/*file                                   controllers.Assets.versioned(file)

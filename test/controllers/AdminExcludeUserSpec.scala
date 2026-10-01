@@ -91,15 +91,15 @@ class AdminExcludeUserSpec
       sql"SELECT on_leaderboard, public_profile FROM user_stat WHERE user_id = $userId".as[(Boolean, Boolean)]
     ).headOption.getOrElse((true, true))
     Json.obj(
-      "userId"            -> userId,
-      "username"          -> username,
-      "role"              -> role,
-      "teamId"            -> Option.empty[Int],
-      "highQualityManual" -> highQualityManual,
-      "excluded"          -> excluded,
-      "communityService"  -> false,
-      "onLeaderboard"     -> onLeaderboard,
-      "publicProfile"     -> publicProfile
+      "user_id"             -> userId,
+      "username"            -> username,
+      "role"                -> role,
+      "team_id"             -> Option.empty[Int],
+      "high_quality_manual" -> highQualityManual,
+      "excluded"            -> excluded,
+      "community_service"   -> false,
+      "on_leaderboard"      -> onLeaderboard,
+      "public_profile"      -> publicProfile
     )
   }
 

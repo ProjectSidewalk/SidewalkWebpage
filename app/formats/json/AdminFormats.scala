@@ -16,9 +16,6 @@ object AdminFormats {
   private given jsonConfig: JsonConfiguration =
     JsonConfiguration(JsonNaming.SnakeCase, optionHandlers = OptionHandlers.WritesNull)
 
-  // For the request bodies whose keys are the camelCase field names as-is.
-  private val camelCaseJson = Json.configured(using JsonConfiguration.default)
-
   case class UserRoleSubmission(userId: String, roleId: String)
   case class TaskFlagsByDateSubmission(userId: String, date: OffsetDateTime, flag: String, state: Boolean)
   case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean) {
@@ -47,13 +44,12 @@ object AdminFormats {
 
   given userRoleSubmissionReads: Reads[UserRoleSubmission] = Json.reads[UserRoleSubmission]
 
-  given taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] =
-    camelCaseJson.reads[TaskFlagsByDateSubmission]
+  given taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = Json.reads[TaskFlagsByDateSubmission]
 
   given adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] =
-    camelCaseJson.reads[AdminUserSettingsSubmission].map(s => s.copy(username = s.username.trim))
+    Json.reads[AdminUserSettingsSubmission].map(s => s.copy(username = s.username.trim))
 
-  given taskFlagSubmissionReads: Reads[TaskFlagSubmission] = camelCaseJson.reads[TaskFlagSubmission]
+  given taskFlagSubmissionReads: Reads[TaskFlagSubmission] = Json.reads[TaskFlagSubmission]
 
   given userCountWrites: Writes[UserCount] = Json.writes[UserCount]
 

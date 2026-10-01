@@ -8,9 +8,6 @@ object UserFormats {
   // snake_case keys for the Json.writes macros below.
   private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-  // For the bodies whose keys are the camelCase field names as-is.
-  private val camelCaseJson = Json.configured(using JsonConfiguration.default)
-
   /**
    * The Settings page's save (`POST /dashboard/settings`). The privacy flags are required so a body that omits one
    * can't silently reset it, and every optional field means "not touching it" — `teamId` included, since leaving a
@@ -26,13 +23,13 @@ object UserFormats {
   )
 
   given settingsSubmissionReads: Reads[SettingsSubmission] =
-    camelCaseJson.reads[SettingsSubmission].map(s => s.copy(username = s.username.map(_.trim)))
+    Json.reads[SettingsSubmission].map(s => s.copy(username = s.username.map(_.trim)))
 
   given sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = Json.writes[SidewalkUserWithRole]
 
-  given userStatsWrites: Writes[UserStatsForAdminPage] = camelCaseJson.writes[UserStatsForAdminPage]
+  given userStatsWrites: Writes[UserStatsForAdminPage] = Json.writes[UserStatsForAdminPage]
 
-  given teamWrites: Writes[Team] = camelCaseJson.writes[Team]
+  given teamWrites: Writes[Team] = Json.writes[Team]
 
   /**
    * The admin team page's payload (`/adminapi/team/:teamId`, #5381), snake_case throughout. Accuracy travels as raw
@@ -45,13 +42,7 @@ object UserFormats {
 
   given teamOverviewWrites: Writes[TeamOverview] = Writes { overview =>
     Json.obj(
-      "team" -> Json.obj(
-        "team_id"     -> overview.team.teamId,
-        "name"        -> overview.team.name,
-        "description" -> overview.team.description,
-        "open"        -> overview.team.open,
-        "visible"     -> overview.team.visible
-      ),
+      "team"    -> Json.toJson(overview.team),
       "members" -> Json.toJson(overview.members),
       "totals"  -> Json.toJson(overview.totals)
     )

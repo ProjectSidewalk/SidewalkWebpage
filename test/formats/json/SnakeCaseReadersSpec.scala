@@ -27,18 +27,18 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
     import AdminFormats.{*, given}
     check("""{"user_id":"u","role_id":"Researcher"}""", UserRoleSubmission("u", "Researcher"))
     check(
-      s"""{"userId":"u","date":$ts,"flag":"stale","state":true}""",
+      s"""{"user_id":"u","date":$ts,"flag":"stale","state":true}""",
       TaskFlagsByDateSubmission("u", t, "stale", true)
     )
-    check("""{"auditTaskId":1,"flag":"incomplete","state":false}""", TaskFlagSubmission(1, "incomplete", false))
+    check("""{"audit_task_id":1,"flag":"incomplete","state":false}""", TaskFlagSubmission(1, "incomplete", false))
     check(
-      """{"userId":"u","username":"  n  ","role":"Researcher","teamId":3,"highQualityManual":true,"excluded":false,
-        |"communityService":true,"onLeaderboard":false,"publicProfile":true,"infra3dAccess":false}""".stripMargin,
+      """{"user_id":"u","username":"  n  ","role":"Researcher","team_id":3,"high_quality_manual":true,"excluded":false,
+        |"community_service":true,"on_leaderboard":false,"public_profile":true,"infra3d_access":false}""".stripMargin,
       AdminUserSettingsSubmission("u", "n", "Researcher", Some(3), Some(true), false, true, false, true, Some(false))
     )
     check(
-      """{"userId":"u","username":"n","role":"Researcher","excluded":true,"communityService":false,
-        |"onLeaderboard":true,"publicProfile":false}""".stripMargin,
+      """{"user_id":"u","username":"n","role":"Researcher","excluded":true,"community_service":false,
+        |"on_leaderboard":true,"public_profile":false}""".stripMargin,
       AdminUserSettingsSubmission("u", "n", "Researcher", None, None, true, false, true, false, None)
     )
   }
@@ -201,12 +201,12 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
   test("UserFormats readers") {
     import UserFormats.{*, given}
     check(
-      """{"username":" n ","onLeaderboard":true,"publicProfile":false,"teamId":3,"communityService":true,
-        |"measurementSystem":"metric"}""".stripMargin,
+      """{"username":" n ","on_leaderboard":true,"public_profile":false,"team_id":3,"community_service":true,
+        |"measurement_system":"metric"}""".stripMargin,
       SettingsSubmission(Some("n"), true, false, Some(3), Some(true), Some("metric"))
     )
     check(
-      """{"onLeaderboard":false,"publicProfile":true}""",
+      """{"on_leaderboard":false,"public_profile":true}""",
       SettingsSubmission(None, false, true, None, None, None)
     )
   }

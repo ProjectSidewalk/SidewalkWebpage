@@ -2,7 +2,8 @@
  * Renders the admin Contributors page (#4272). Aggregates the per-user admin stats into a picture of who produces the
  * deployment's data and how trustworthy it is: counts by quality flag and role, the share of labels coming from high-
  * vs low-quality users, and the distribution of contributor accuracy. Rendered as an accessible HTML/CSS scorecard
- * (no charting library). Data is /adminapi/getUserStats (per-user highQuality, labels, ownValidatedAgreedPct, role).
+ * (no charting library). Data is /adminapi/getUserStats (per-user high_quality, labels, own_validated_agreed_pct,
+ * role).
  */
 class ContributorsPage {
   /** Accuracy buckets (upper bounds, percent) for the contributor-accuracy distribution. */
@@ -65,9 +66,9 @@ class ContributorsPage {
   }
 
   #renderKpis(labelers) {
-    const highQ = labelers.filter((u) => u.highQuality).length;
+    const highQ = labelers.filter((u) => u.high_quality).length;
     const totalLabels = labelers.reduce((s, u) => s + (u.labels || 0), 0);
-    const labelsHighQ = labelers.reduce((s, u) => s + (u.highQuality ? (u.labels || 0) : 0), 0);
+    const labelsHighQ = labelers.reduce((s, u) => s + (u.high_quality ? (u.labels || 0) : 0), 0);
 
     this.#setText('kpi-contributors', labelers.length.toLocaleString());
     this.#setText('kpi-high-quality', highQ.toLocaleString());
@@ -80,7 +81,7 @@ class ContributorsPage {
 
   /** Stacked bar of high- vs low-quality contributor counts. */
   #renderQualitySplit(labelers) {
-    const high = labelers.filter((u) => u.highQuality).length;
+    const high = labelers.filter((u) => u.high_quality).length;
     const low = labelers.length - high;
     document.getElementById('contrib-quality').innerHTML = ContributorsPage.#stackedBar([
       { label: 'High-quality', value: high, cls: 'contrib-seg--high' },
@@ -90,8 +91,8 @@ class ContributorsPage {
 
   /** Stacked bar of how many labels come from high- vs low-quality contributors. */
   #renderLabelSource(labelers) {
-    const high = labelers.reduce((s, u) => s + (u.highQuality ? (u.labels || 0) : 0), 0);
-    const low = labelers.reduce((s, u) => s + (!u.highQuality ? (u.labels || 0) : 0), 0);
+    const high = labelers.reduce((s, u) => s + (u.high_quality ? (u.labels || 0) : 0), 0);
+    const low = labelers.reduce((s, u) => s + (!u.high_quality ? (u.labels || 0) : 0), 0);
     document.getElementById('contrib-label-source').innerHTML = ContributorsPage.#stackedBar([
       { label: 'From high-quality users', value: high, cls: 'contrib-seg--high' },
       { label: 'From low-quality users', value: low, cls: 'contrib-seg--low' },
@@ -178,14 +179,14 @@ class ContributorsPage {
 
   /** Histogram of contributors by the agreement rate of their own labels (only those with validated labels). */
   #renderAccuracy(labelers) {
-    const rated = labelers.filter((u) => (u.ownValidated || 0) > 0);
-    // ownValidatedAgreedPct may be a fraction (0–1) or a percent (0–100); normalize from the observed max.
-    const maxVal = rated.reduce((m, u) => Math.max(m, u.ownValidatedAgreedPct || 0), 0);
+    const rated = labelers.filter((u) => (u.own_validated || 0) > 0);
+    // own_validated_agreed_pct may be a fraction (0–1) or a percent (0–100); normalize from the observed max.
+    const maxVal = rated.reduce((m, u) => Math.max(m, u.own_validated_agreed_pct || 0), 0);
     const factor = maxVal <= 1 ? 100 : 1;
 
     const counts = ContributorsPage.#ACCURACY_BUCKETS.map(() => 0);
     for (const u of rated) {
-      const acc = (u.ownValidatedAgreedPct || 0) * factor;
+      const acc = (u.own_validated_agreed_pct || 0) * factor;
       const idx = ContributorsPage.#ACCURACY_BUCKETS.findIndex((b) => acc < b.max);
       counts[idx >= 0 ? idx : counts.length - 1]++;
     }
@@ -354,7 +355,7 @@ class ContributorsPage {
 
   /** A username linking to the user's admin profile (username escaped; both the text and the URL path). */
   static #userCell(u) {
-    const name = u.username || u.userId || 'Unknown';
+    const name = u.username || u.user_id || 'Unknown';
     return `<a href="/admin/user/${encodeURIComponent(name)}">${ContributorsPage.#esc(name)}</a>`;
   }
 

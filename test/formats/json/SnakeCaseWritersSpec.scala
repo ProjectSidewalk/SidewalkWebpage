@@ -207,18 +207,15 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
       CityHours("c", "City", 1.5, true),
       """{"city_id":"c","city_name":"City","hours":1.5,"is_current_city":true}"""
     )
-  }
-
-  test("derived camelCase writers keep the keys the hand-listed writers produced") {
     check(
       UserStatsForAdminPage("u", "n", "e", Role.Registered, Some("t"), Some(t), Some(t), 1, 2, 3, 4.5, 5, 6.5, true,
         Some(false)),
-      """{"userId":"u","username":"n","email":"e","role":"Registered","team":"t","signUpTime":"2026-09-29T12:30:00Z","lastSignInTime":"2026-09-29T12:30:00Z","signInCount":1,"labels":2,"ownValidated":3,"ownValidatedAgreedPct":4.5,"othersValidated":5,"othersValidatedAgreedPct":6.5,"highQuality":true,"highQualityManual":false}"""
+      """{"user_id":"u","username":"n","email":"e","role":"Registered","team":"t","sign_up_time":"2026-09-29T12:30:00Z","last_sign_in_time":"2026-09-29T12:30:00Z","sign_in_count":1,"labels":2,"own_validated":3,"own_validated_agreed_pct":4.5,"others_validated":5,"others_validated_agreed_pct":6.5,"high_quality":true,"high_quality_manual":false}"""
     )
     check(
       UserStatsForAdminPage("u", "n", "e", Role.Registered, None, None, None, 1, 2, 3, 4.5, 5, 6.5, true, None),
-      """{"userId":"u","username":"n","email":"e","role":"Registered","signInCount":1,"labels":2,"ownValidated":3,"ownValidatedAgreedPct":4.5,"othersValidated":5,"othersValidatedAgreedPct":6.5,"highQuality":true}"""
+      """{"user_id":"u","username":"n","email":"e","role":"Registered","sign_in_count":1,"labels":2,"own_validated":3,"own_validated_agreed_pct":4.5,"others_validated":5,"others_validated_agreed_pct":6.5,"high_quality":true}"""
     )
-    check(Team(1, "n", "d", true, false), """{"teamId":1,"name":"n","description":"d","open":true,"visible":false}""")
+    check(Team(1, "n", "d", true, false), """{"team_id":1,"name":"n","description":"d","open":true,"visible":false}""")
   }
 }
