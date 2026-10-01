@@ -52,6 +52,13 @@ table (`app/models/utils/WebpageActivityTable.scala`) rather than the interactio
 
 A visitor with no session (a crawler, say) is logged with no `user_id` (#4643).
 
+**Campaign links (`user_utm`).** A link's `utm_*` params are saved to `sidewalk_login.user_utm`, one row per visit,
+timestamped when the visit happened. A signed-in visitor's row is written as they land on `/`. A visitor without an
+account gets their visits held in a `sidewalk_utm` cookie (kept a week, shared across cities like the session cookie)
+instead, and the rows are written when `/anonSignUp` or `/signUp` creates their account or they sign in to an existing
+one, which then clears the cookie (#5611). A campaign link straight to a page that needs an account is saved by
+`/anonSignUp` from the link itself. Campaign links to other pages (`/gallery`, `/signUp`, …) aren't captured.
+
 Two naming conventions dominate here: **`Visit_<Page>`** for a page view (e.g. `Visit_UserDashboard`,
 `Visit_Leaderboard`, `Visit_Settings`, `Visit_PublicProfile` — the dashboard/leaderboard names carry over from the
 pre-redesign pages, so per-page analytics stay continuous across the #4474 cutover) and **`Click_module=<Action>`** for

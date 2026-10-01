@@ -18,7 +18,26 @@ case class UserUtm(
     utmTerm: Option[String],
     cityId: String,
     timestamp: OffsetDateTime
-)
+) {
+
+  /** @return The set UTM fields; the inverse of [[UserUtm.fromParams]]. */
+  def params: Map[String, String] =
+    Seq(
+      "utm_source"   -> utmSource,
+      "utm_medium"   -> utmMedium,
+      "utm_campaign" -> utmCampaign,
+      "utm_content"  -> utmContent,
+      "utm_term"     -> utmTerm
+    ).collect { case (k, Some(v)) => k -> v }.toMap
+}
+
+object UserUtm {
+
+  /** @return An uninserted row from params keyed by their query-string names (`utm_source` etc.). */
+  def fromParams(userId: String, params: Map[String, String], cityId: String, timestamp: OffsetDateTime): UserUtm =
+    UserUtm(0, userId, params.get("utm_source"), params.get("utm_medium"), params.get("utm_campaign"),
+      params.get("utm_content"), params.get("utm_term"), cityId, timestamp)
+}
 
 class UserUtmTableDef(tag: Tag) extends Table[UserUtm](tag, "user_utm") {
   def userUtmId: Rep[Int]              = column[Int]("user_utm_id", O.PrimaryKey, O.AutoInc)

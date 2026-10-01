@@ -1,15 +1,18 @@
 package controllers.helper
 
-import models.user.{MeasurementSystem, Role, SidewalkUserWithRole}
+import models.user.{MeasurementSystem, Role, SidewalkUserWithRole, UserUtm}
+import play.api.Configuration
 import play.api.data.Form
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.Results.{Redirect, Unauthorized}
-import play.api.mvc.{RequestHeader, Result}
+import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
 import play.silhouette.api.actions.{SecuredRequestHeader, UserAwareRequestHeader}
 
+import java.net.{URLDecoder, URLEncoder}
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+import java.time.OffsetDateTime
 import scala.util.Try
 import scala.util.matching.Regex
 
@@ -271,19 +274,61 @@ object ControllerUtils {
     else Unauthorized("Not authenticated")
   }
 
-  /**
-   * Checks if a query string map contains any UTM parameters.
-   */
-  def hasUtmParams(qString: Map[String, Seq[String]]): Boolean = {
-    qString.keys.exists(_.startsWith("utm_"))
+  private val UtmKeys: Set[String] = Set("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term")
+
+  /** Holds a visitor's campaign visits until they have an account to save them to; landing makes none (#5611). */
+  val UtmCookieName: String = "sidewalk_utm"
+
+  private val UtmCookieMaxAgeSeconds: Int = 7 * 24 * 60 * 60
+
+  /** Keeps the cookie well under browsers' 4 KB limit. */
+  private val MaxUtmVisits: Int = 10
+
+  /** @return The UTM params `user_utm` has columns for, first value each, minus the NUL bytes Postgres rejects. */
+  def utmParams(qString: Map[String, Seq[String]]): Map[String, String] =
+    qString.collect { case (k, v +: _) if UtmKeys.contains(k) => k -> v.replace("\u0000", "") }
+
+  /** @return The campaign visits held in the cookie, oldest first, with no user yet; anything unreadable is skipped. */
+  def utmVisitsFromCookie(request: RequestHeader): Seq[UserUtm] = {
+    val visits: Seq[Map[String, String]] = request.cookies
+      .get(UtmCookieName)
+      .flatMap(c => Try(Json.parse(URLDecoder.decode(c.value, StandardCharsets.UTF_8))).toOption)
+      .flatMap(_.asOpt[Seq[Map[String, String]]])
+      .getOrElse(Seq.empty)
+    for {
+      visit     <- visits
+      cityId    <- visit.get("city_id")
+      timestamp <- visit.get("timestamp").flatMap(t => Try(OffsetDateTime.parse(t)).toOption)
+    } yield UserUtm.fromParams(NoUserId, utmParams(visit.map((k, v) => k -> Seq(v))), cityId, timestamp)
   }
 
-  /**
-   * Checks if a flattened query string map contains any UTM parameters.
-   */
-  def hasUtmParamsFlat(qString: Map[String, String]): Boolean = {
-    qString.keys.exists(_.startsWith("utm_"))
+  /** @return A cookie of the newest visits, on the session cookie's domain so it follows a visitor across cities. */
+  def utmCookie(visits: Seq[UserUtm], config: Configuration): Cookie = {
+    val json = Json.toJson(visits.takeRight(MaxUtmVisits).map { v =>
+      v.params ++ Map("city_id" -> v.cityId, "timestamp" -> v.timestamp.toString)
+    })
+    Cookie(
+      UtmCookieName,
+      URLEncoder.encode(Json.stringify(json), StandardCharsets.UTF_8),
+      maxAge = Some(UtmCookieMaxAgeSeconds),
+      domain = config.getOptional[String]("play.http.session.domain"),
+      secure = config.get[Boolean]("play.http.session.secure"),
+      httpOnly = true,
+      sameSite = Some(Cookie.SameSite.Lax)
+    )
   }
+
+  /** Deletes the campaign cookie once saved, so a later account in the same browser isn't credited too. */
+  def clearUtmCookie(result: Result, config: Configuration)(using request: RequestHeader): Result =
+    if (request.cookies.get(UtmCookieName).isEmpty) result
+    else
+      result.discardingCookies(
+        DiscardingCookie(
+          UtmCookieName,
+          domain = config.getOptional[String]("play.http.session.domain"),
+          secure = config.get[Boolean]("play.http.session.secure")
+        )
+      )
 
   /**
    * Form binding errors as the JSON `AuthModal.js`'s `renderAuthErrors` draws: `{"errors": {field -> message}}`, with
