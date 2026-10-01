@@ -57,9 +57,9 @@ class AccessScoreRankBars extends AccessScoreChart {
     for (const r of data.rows) {
       const li = document.createElement('li');
       li.innerHTML = `
-        <button type="button" class="acs-rank__row" data-row-id="${r.id}">
+        <button type="button" class="acs-rank__row" data-row-id="${util.escapeHTML(r.id)}">
           <span class="acs-rank__pos"></span>
-          <span class="acs-rank__name">${AccessScoreChart.esc(r.name)}</span>
+          <span class="acs-rank__name">${util.escapeHTML(r.name)}</span>
           <span class="acs-rank__track"><span class="acs-rank__bar"></span></span>
           <span class="acs-rank__score"></span>
         </button>`;
@@ -91,7 +91,7 @@ class AccessScoreRankBars extends AccessScoreChart {
       // sink) escaped exactly once.
       row.button.setAttribute('aria-label', r.label);
       // The name column is narrow enough to clip a long name; the tooltip carries the whole line.
-      row.button.setAttribute('data-ps-tooltip', AccessScoreChart.esc(r.label));
+      row.button.setAttribute('data-ps-tooltip', util.escapeHTML(r.label));
     });
     this.#markSelected(data.selectedId);
     this.#els.note.hidden = data.note === '';

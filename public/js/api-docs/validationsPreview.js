@@ -107,7 +107,7 @@
     showErrorState(container, error) {
       container.innerHTML = `
         <div class="validation-error" role="alert">
-          Failed to load validation data: ${error.message}
+          Failed to load validation data: ${util.escapeHTML(error.message)}
         </div>
       `;
     },

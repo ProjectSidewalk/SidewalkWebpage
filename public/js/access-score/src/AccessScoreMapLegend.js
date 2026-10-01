@@ -147,7 +147,8 @@ class AccessScoreMapLegend {
     const classes = AccessScoreGradeRamp.classes(this.#gradeBreaks, this.#mode);
     const row = (index, swatchClass, label) => `
       <li>
-        <button type="button" class="acs-map-legend__class" data-class="${index}" aria-pressed="false" tabindex="-1">
+        <button type="button" class="acs-map-legend__class" data-class="${util.escapeHTML(index)}" aria-pressed="false"
+                tabindex="-1">
           <span class="${swatchClass}" aria-hidden="true"></span><span>${label}</span>
         </button>
       </li>`;

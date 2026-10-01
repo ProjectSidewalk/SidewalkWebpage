@@ -210,7 +210,8 @@ class Compass {
     const angle = this.#getCompassAngle();
     const direction = this.#angleToDirection(angle);
 
-    const image = `<img src="${this.directionToImagePath(direction)}" class="compass-turn-images" alt="Turn icon"/>`;
+    const src = util.escapeHTML(this.directionToImagePath(direction));
+    const image = `<img src="${src}" class="compass-turn-images" alt="Turn icon"/>`;
     const message
       = `<div class="compass-message-small">${i18next.t('center-ui.compass.unlabeled-problems')}</div>`
         + `${image}<span class="compass-message-large">${this.#directionToDirectionMessage(direction)}</span>`;

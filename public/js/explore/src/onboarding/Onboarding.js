@@ -1028,7 +1028,7 @@ class Onboarding {
 
     if (!('okButton' in state) || state.okButton) {
       // Insert an ok button.
-      const okButtonText = state.okButtonText || 'Ok';
+      const okButtonText = util.escapeHTML(state.okButtonText || 'Ok');
       this.#uiOnboarding.messageHolder.insertAdjacentHTML('beforeend',
         `<div class='onboarding-ok-button-holder'>
           <button id='onboarding-ok-button' class='button button--medium button--secondary'>${okButtonText}</button>

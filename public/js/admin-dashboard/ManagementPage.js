@@ -123,9 +123,10 @@ class ManagementPage {
       const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
       // On the button, not the <th>: the button is what takes focus, so only it can carry the description.
-      const tip = c.help ? ` data-ps-tooltip="${ManagementPage.#esc(c.help)}"` : '';
+      const tip = c.help ? ` data-ps-tooltip="${util.escapeHTML(c.help)}"` : '';
       return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}">`
-        + `<button type="button" class="mgmt-sort" data-key="${c.key}"${tip}>${ManagementPage.#esc(c.label)}`
+        + `<button type="button" class="mgmt-sort" data-key="${util.escapeHTML(c.key)}"${tip}>`
+        + `${util.escapeHTML(c.label)}`
         + `<span class="mgmt-arrow">${arrow}</span></button></th>`;
     }).join('');
     const head = `<tr>${headCells}</tr>`;
@@ -133,9 +134,9 @@ class ManagementPage {
     const body = rows.map((u) => {
       const cell = (html, align) => `<td${align === 'right' ? ' class="num"' : ''}>${html}</td>`;
       return [
-        `<tr data-user-id="${ManagementPage.#esc(u.userId)}">`,
+        `<tr data-user-id="${util.escapeHTML(u.userId)}">`,
         cell(ManagementPage.#userLink(u), 'left'),
-        cell(ManagementPage.#esc(u.email || ''), 'left'),
+        cell(util.escapeHTML(u.email || ''), 'left'),
         cell(this.#roleSelect(u), 'left'),
         cell(this.#teamSelect(u), 'left'),
         cell(ManagementPage.#qualityBadge(u), 'left'),
@@ -202,16 +203,16 @@ class ManagementPage {
     const current = u.role || '';
     const assignable = this.#assignableRoles.includes(current);
     const opts = this.#assignableRoles.map((r) =>
-      `<option value="${ManagementPage.#esc(r)}"${r === current ? ' selected' : ''}>${ManagementPage.#esc(r)}</option>`)
+      `<option value="${util.escapeHTML(r)}"${r === current ? ' selected' : ''}>${util.escapeHTML(r)}</option>`)
       .join('');
     if (assignable) {
-      return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${ManagementPage.#esc(u.userId)}" `
-        + `aria-label="Role for ${ManagementPage.#esc(u.username)}">${opts}</select>`;
+      return `<select class="ps-select mgmt-select" data-kind="role" data-user-id="${util.escapeHTML(u.userId)}" `
+        + `aria-label="Role for ${util.escapeHTML(u.username)}">${opts}</select>`;
     }
     // Show the locked role as a disabled, selected option so the column still reads clearly.
     return `<select class="ps-select mgmt-select" disabled `
-      + `aria-label="Role for ${ManagementPage.#esc(u.username)} (locked)">`
-      + `<option selected>${ManagementPage.#esc(current)}</option></select>`;
+      + `aria-label="Role for ${util.escapeHTML(u.username)} (locked)">`
+      + `<option selected>${util.escapeHTML(current)}</option></select>`;
   }
 
   /** A team <select>. Preselects the user's current team (matched by name); first option assigns/clears nothing. */
@@ -219,11 +220,11 @@ class ManagementPage {
     const hasTeam = u.team && this.#teamsByName.has(u.team);
     const placeholder = `<option value=""${hasTeam ? '' : ' selected'} disabled>— none —</option>`;
     const opts = this.#teams.map((t) =>
-      `<option value="${t.teamId}"${hasTeam && t.name === u.team ? ' selected' : ''}>`
-      + `${ManagementPage.#esc(t.name)}</option>`,
+      `<option value="${util.escapeHTML(t.teamId)}"${hasTeam && t.name === u.team ? ' selected' : ''}>`
+      + `${util.escapeHTML(t.name)}</option>`,
     ).join('');
-    return `<select class="ps-select mgmt-select" data-kind="team" data-user-id="${ManagementPage.#esc(u.userId)}" `
-      + `aria-label="Team for ${ManagementPage.#esc(u.username)}">${placeholder}${opts}</select>`;
+    return `<select class="ps-select mgmt-select" data-kind="team" data-user-id="${util.escapeHTML(u.userId)}" `
+      + `aria-label="Team for ${util.escapeHTML(u.username)}">${placeholder}${opts}</select>`;
   }
 
   #wireUsers() {
@@ -323,13 +324,13 @@ class ManagementPage {
       <th scope="col">Status</th><th scope="col">Visibility</th><th scope="col">Labels</th>
     </tr>`;
     const body = this.#teams.map((t) => `
-      <tr data-team-id="${t.teamId}">
-        <td><a href="/admin/team/${t.teamId}">${ManagementPage.#esc(t.name)}</a></td>
-        <td>${ManagementPage.#esc(t.description || '')}</td>
+      <tr data-team-id="${util.escapeHTML(t.teamId)}">
+        <td><a href="/admin/team/${util.escapeHTML(t.teamId)}">${util.escapeHTML(t.name)}</a></td>
+        <td>${util.escapeHTML(t.description || '')}</td>
         <td>${ManagementPage.#toggle('status', t.teamId, t.open, 'Open', 'Closed')}</td>
         <td>${ManagementPage.#toggle('visibility', t.teamId, t.visible, 'Visible', 'Hidden')}</td>
-        <td><a class="dq-validate-btn" href="/expertValidate?teams=${t.teamId}"
-          aria-label="Validate labels from ${ManagementPage.#esc(t.name)}">Validate</a></td>
+        <td><a class="dq-validate-btn" href="/expertValidate?teams=${util.escapeHTML(t.teamId)}"
+          aria-label="Validate labels from ${util.escapeHTML(t.name)}">Validate</a></td>
       </tr>`).join('');
     el.innerHTML = `
       <table class="ps-table ps-table--compact contrib-table mgmt-table">
@@ -455,8 +456,9 @@ class ManagementPage {
   }
 
   static #toggle(kind, teamId, on, onLabel, offLabel) {
-    return `<button type="button" class="mgmt-toggle ${on ? 'is-on' : 'is-off'}" data-kind="${kind}" `
-      + `data-team-id="${teamId}" data-on="${on}" aria-pressed="${on}">${on ? onLabel : offLabel}</button>`;
+    return `<button type="button" class="mgmt-toggle ${on ? 'is-on' : 'is-off'}" data-kind="${kind}"
+      data-team-id="${util.escapeHTML(teamId)}" data-on="${util.escapeHTML(on)}"
+      aria-pressed="${util.escapeHTML(on)}">${on ? onLabel : offLabel}</button>`;
   }
 
   static #setToggle(btn, on, onLabel, offLabel) {
@@ -469,7 +471,7 @@ class ManagementPage {
 
   static #userLink(u) {
     const name = u.username || u.userId || 'Unknown';
-    return `<a href="/admin/user/${encodeURIComponent(name)}">${ManagementPage.#esc(name)}</a>`;
+    return `<a href="/admin/user/${encodeURIComponent(name)}">${util.escapeHTML(name)}</a>`;
   }
 
   /** A High/Low quality pill, tagged "manual" when an admin set the quality by hand (high_quality_manual is set). */
@@ -499,9 +501,5 @@ class ManagementPage {
     const t = Date.parse(iso);
     if (isNaN(t)) return '<span class="dq-sub">—</span>';
     return new Date(t).toLocaleDateString();
-  }
-
-  static #esc(s) {
-    return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 }

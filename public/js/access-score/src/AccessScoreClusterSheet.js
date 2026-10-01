@@ -34,7 +34,7 @@ class AccessScoreClusterSheet {
           <h2 class="acs-sheet__title" id="acs-sheet-title"></h2>
           <p class="acs-sheet__meta"></p>
         </div>
-        <button type="button" class="acs-sheet__close" aria-label="${AccessScoreChart.esc(i18next.t('common:close'))}">
+        <button type="button" class="acs-sheet__close" aria-label="${util.escapeHTML(i18next.t('common:close'))}">
           <img src="${util.assetPath('images/icons/cross.svg')}" alt="">
         </button>
       </div>

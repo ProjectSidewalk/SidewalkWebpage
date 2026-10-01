@@ -129,17 +129,18 @@
         const p = feature.properties;
         const score = (p.score === null || p.score === undefined) ? 'N/A (unscored)' : p.score.toFixed(3);
         const counts = ApiDocsMap.featureProp(p, 'cluster_counts') || {};
-        const breakdown = Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${k}: ${counts[k]}`).join(', ')
-          || 'no scored features';
+        const breakdown = Object.keys(counts).filter((k) => counts[k] > 0)
+          .map((k) => `${util.escapeHTML(k)}: ${util.escapeHTML(counts[k])}`).join(', ') || 'no scored features';
         const kind = p.grade_separated ? ' (grade-separated crossing)' : '';
 
         ApiDocsMap.popup(map, e.lngLat, `
-          <h4>Intersection ${p.intersection_id}${kind}</h4>
+          <h4>Intersection ${util.escapeHTML(p.intersection_id)}${kind}</h4>
           <p><span class="as-score">${score}</span> AccessScore</p>
-          <p><strong>Streets:</strong> ${p.degree} &nbsp; <strong>Audits:</strong> ${p.audit_count} &nbsp;
-            <strong>Labels:</strong> ${p.label_count}</p>
+          <p><strong>Streets:</strong> ${util.escapeHTML(p.degree)} &nbsp;
+            <strong>Audits:</strong> ${util.escapeHTML(p.audit_count)} &nbsp;
+            <strong>Labels:</strong> ${util.escapeHTML(p.label_count)}</p>
           <p class="as-breakdown"><strong>Clusters:</strong> ${breakdown}</p>
-          ${this.exploreHereLink(feature)}
+          ${this.exploreHereLink(feature) /* eslint-disable-line ps/escape-in-markup -- built from coordinates. */}
         `);
       });
     },

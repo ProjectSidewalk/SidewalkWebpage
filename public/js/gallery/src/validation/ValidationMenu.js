@@ -29,13 +29,12 @@ class ValidationMenu {
     this.#refCard = referenceCard;
     this.#gsvImage = gsvImage;
 
-    const buttonHTML = (option) => `
-      <button class="validation-button gallery-card-${option}-button" aria-pressed="false">
-        ${i18next.t(`common:${option}`)}
-      </button>`;
     const cardOverlayHTML = `
       <div class="gallery-validation-button-holder">
-        ${['agree', 'disagree', 'unsure'].map(buttonHTML).join('')}
+        ${['agree', 'disagree', 'unsure'].map((option) => `
+          <button class="validation-button gallery-card-${option}-button" aria-pressed="false">
+            ${i18next.t(`common:${option}`)}
+          </button>`).join('')}
       </div>`;
     const template = document.createElement('template');
     template.innerHTML = cardOverlayHTML;

@@ -145,7 +145,7 @@ class FunnelsSection {
 
     const legendItems = segs.map((s, i) =>
       `<span class="ac-funnel-legend-item"><span class="ac-funnel-swatch" `
-      + `style="background:${palette[i] || palette[0]}"></span>${FunnelsSection.#esc(s.label)}</span>`).join('');
+      + `style="background:${palette[i] || palette[0]}"></span>${util.escapeHTML(s.label)}</span>`).join('');
     const legend = segs.length > 1 ? `<div class="ac-funnel-legend">${legendItems}</div>` : '';
 
     const stepRows = steps.map((k, i) => {
@@ -169,15 +169,15 @@ class FunnelsSection {
       }).join('');
       return `
         <div class="ac-funnel-step">
-          <div class="ac-funnel-step-label">${FunnelsSection.#esc(full)}</div>
+          <div class="ac-funnel-step-label">${util.escapeHTML(full)}</div>
           <div class="ac-funnel-bars">${bars}</div>
         </div>`;
     }).join('');
 
     return `
       <div class="ac-funnel-block">
-        <h3 class="ac-funnel-block-title">${FunnelsSection.#esc(meta.title)}</h3>
-        <p class="ac-note">${FunnelsSection.#esc(meta.desc)}</p>
+        <h3 class="ac-funnel-block-title">${util.escapeHTML(meta.title)}</h3>
+        <p class="ac-note">${util.escapeHTML(meta.desc)}</p>
         <div class="ac-funnel-panel">${legend}${stepRows}</div>
       </div>`;
   }
@@ -209,10 +209,5 @@ class FunnelsSection {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, util.SHORT_DATE);
-  }
-
-  static #esc(s) {
-    return String(s ?? '')
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 }

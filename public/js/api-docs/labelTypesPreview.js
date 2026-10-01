@@ -59,7 +59,7 @@
         .then((data) => this.renderLabelTypes(data, container))
         .catch((error) => {
           container.innerHTML = `<div class="message message-error" role="alert">Failed to load label types: `
-            + `${error.message}</div>`;
+            + `${util.escapeHTML(error.message)}</div>`;
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
         });

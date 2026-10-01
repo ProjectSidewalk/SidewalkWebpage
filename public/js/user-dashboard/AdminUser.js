@@ -126,7 +126,7 @@ class AdminUser {
 
     const rows = cities.map((city) => `
       <tr>
-        <th scope="row">${AdminUser.#esc(city.city_name)}${city.is_current_city ? ' (this deployment)' : ''}</th>
+        <th scope="row">${util.escapeHTML(city.city_name)}${city.is_current_city ? ' (this deployment)' : ''}</th>
         <td class="num">${Number(city.hours).toFixed(1)}</td>
       </tr>`).join('');
     holder.innerHTML = `
@@ -145,15 +145,6 @@ class AdminUser {
     if (!note) return;
     note.textContent = text;
     note.hidden = false;
-  }
-
-  /**
-   * @param {string} s - Text going into an HTML string.
-   * @returns {string} The text with HTML metacharacters escaped.
-   */
-  static #esc(s) {
-    return String(s).replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   }
 
   /**

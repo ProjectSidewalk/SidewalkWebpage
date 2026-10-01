@@ -96,14 +96,4 @@ class AccessScoreChart {
   static score(score) {
     return AccessScoreChart.number(Math.round(score * 100));
   }
-
-  /**
-   * Escapes text for an HTML attribute or element body. Region names come from the database, so they take this
-   * path rather than being trusted into markup.
-   * @param {*} value - The text.
-   * @returns {string} The escaped text.
-   */
-  static esc(value) {
-    return util.escapeHTML(String(value));
-  }
 }

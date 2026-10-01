@@ -843,7 +843,7 @@ class AccessScoreDock {
     if (this.#els.kpis.dataset.tiles !== key) {
       this.#els.kpis.dataset.tiles = key;
       this.#els.kpis.innerHTML = tiles.map(([id]) => `
-        <div class="acs-kpi" data-kpi="${id}">
+        <div class="acs-kpi" data-kpi="${util.escapeHTML(id)}">
           <span class="acs-kpi__value"></span>
           <span class="acs-kpi__label">${i18next.t(`accessscore:${id}`)}</span>
         </div>`).join('');

@@ -236,19 +236,6 @@ class AdminShell {
   }
 
   /**
-   * Escapes a value for safe insertion as HTML text.
-   *
-   * @param {*} value - Anything; null and undefined render as the empty string.
-   * @returns {string} The value with HTML metacharacters replaced by entities.
-   */
-  static esc(value) {
-    if (AdminShell.nil(value)) return '';
-    return String(value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
-  /**
    * Escapes plain text for a `data-ps-tooltip` attribute. psTooltip renders the attribute as HTML, so text escaped only
    * once would come back out as live markup; see psTooltip.js for why it takes two levels.
    *
@@ -256,7 +243,7 @@ class AdminShell {
    * @returns {string} The value escaped twice.
    */
   static tooltipAttr(value) {
-    return AdminShell.esc(AdminShell.esc(value));
+    return util.escapeHTML(util.escapeHTML(value));
   }
 
   /**
@@ -356,7 +343,7 @@ class AdminShell {
     const label = job.overdue && job.last_status === 'succeeded'
       ? 'overdue'
       : (labels[job.last_status] || job.last_status);
-    return `<span class="ac-badge ac-badge--${tone}">${AdminShell.esc(label)}</span>`;
+    return `<span class="ac-badge ac-badge--${tone}">${util.escapeHTML(label)}</span>`;
   }
 
   /**
@@ -371,9 +358,9 @@ class AdminShell {
    */
   static jobLastRun(job) {
     const scheduled = job.last_started_at ? AdminShell.relativeTime(job.last_started_at) : 'never';
-    if (!job.last_manual_run_at) return AdminShell.esc(scheduled);
+    if (!job.last_manual_run_at) return util.escapeHTML(scheduled);
     const manual = `manual ${AdminShell.relativeTime(job.last_manual_run_at)}: ${job.last_manual_status}`;
-    return `${AdminShell.esc(scheduled)}<span class="ac-muted"> · ${AdminShell.esc(manual)}</span>`;
+    return `${util.escapeHTML(scheduled)}<span class="ac-muted"> · ${util.escapeHTML(manual)}</span>`;
   }
 
   /**

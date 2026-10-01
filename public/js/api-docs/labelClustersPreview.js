@@ -69,7 +69,7 @@
         this.displayClustersOnMap(map, clusters);
       } catch (error) {
         container.innerHTML = `<div class="message message-error" role="alert">Failed to load label clusters: `
-          + `${error.message}</div>`;
+          + `${util.escapeHTML(error.message)}</div>`;
         console.error('Label clusters preview error:', error);
         // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
         // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -134,7 +134,8 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
+      const regionName = regionData.properties.name || 'Sample Region';
+      regionTitle.innerHTML = `<strong>Region:</strong> ${util.escapeHTML(regionName)}`;
 
       return map;
     },
@@ -191,23 +192,23 @@
         const props = feature.properties;
 
         const severity = props.median_severity
-          ? `Median Severity: ${props.median_severity}`
+          ? `Median Severity: ${util.escapeHTML(props.median_severity)}`
           : 'No severity rating';
         const avgLabelDate = props.avg_label_date
           ? `Avg. Label Date: ${new Date(props.avg_label_date).toLocaleDateString()}`
           : 'Unknown date';
-        const clusterSize = `Cluster Size: ${props.cluster_size} labels`;
-        const validation = `Validation: ${props.agree_count} agree, ${props.disagree_count} disagree, `
-          + `${props.unsure_count} unsure`;
+        const clusterSize = `Cluster Size: ${util.escapeHTML(props.cluster_size)} labels`;
+        const validation = `Validation: ${util.escapeHTML(props.agree_count)} agree, `
+          + `${util.escapeHTML(props.disagree_count)} disagree, ${util.escapeHTML(props.unsure_count)} unsure`;
 
         ApiDocsMap.popup(map, feature.geometry.coordinates.slice(), `
-          <h4>${labelTypeInfo[props.label_type]?.display || props.label_type}</h4>
-          <p>${labelTypeInfo[props.label_type]?.description || ''}</p>
+          <h4>${util.escapeHTML(labelTypeInfo[props.label_type]?.display) || util.escapeHTML(props.label_type)}</h4>
+          <p>${util.escapeHTML(labelTypeInfo[props.label_type]?.description || '')}</p>
           <p>${severity}</p>
           <p>${clusterSize}</p>
           <p>${avgLabelDate}</p>
           <p>${validation}</p>
-          <p>Cluster ID: ${props.label_cluster_id}</p>
+          <p>Cluster ID: ${util.escapeHTML(props.label_cluster_id)}</p>
         `);
       });
 

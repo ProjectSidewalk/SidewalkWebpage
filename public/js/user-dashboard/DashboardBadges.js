@@ -62,7 +62,8 @@ class DashboardBadges {
       return;
     }
     const remainingText = this.#formatRemaining(type, remaining);
-    next.innerHTML = `${remainingText} → <strong>${trackName} ${roman[level]}: ${names[level]}</strong>`;
+    const badgeName = `${trackName} ${roman[level]}: ${names[level]}`;
+    next.innerHTML = `${remainingText} → <strong>${util.escapeHTML(badgeName)}</strong>`;
   }
 
   /**
