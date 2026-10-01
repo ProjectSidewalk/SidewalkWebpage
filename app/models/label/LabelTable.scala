@@ -3262,6 +3262,32 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .as[DailyLabelStat]
   }
 
+  /** SQL for `correct`: true if agrees outnumber disagrees, false if the reverse, empty on a tie. */
+  private def majorityCorrect(agree: String, disagree: String): String =
+    s"CASE WHEN $agree > $disagree THEN TRUE WHEN $disagree > $agree THEN FALSE END"
+
+  /**
+   * Adds a vote to (or, with a delta of -1, takes one from) a label's counts and updates `correct` to match.
+   *
+   * The math happens inside one UPDATE so that two votes landing on the same label at once can't both start from the
+   * same old counts and overwrite each other (#5604).
+   * @param delta 1 to add the vote, -1 to take it back.
+   * @return The number of labels updated, either 0 or 1.
+   */
+  def addValidationVote(labelId: Int, option: ValidationOption, delta: Int): DBIO[Int] = {
+    def change(o: ValidationOption): Int = if (option == o) delta else 0
+    val (agree, disagree, unsure)        =
+      (change(ValidationOption.Agree), change(ValidationOption.Disagree), change(ValidationOption.Unsure))
+    // Each line reads the counts from before this UPDATE, so `correct` adds the change in again.
+    sqlu"""
+      UPDATE label
+      SET agree_count = agree_count + $agree,
+          disagree_count = disagree_count + $disagree,
+          unsure_count = unsure_count + $unsure,
+          correct = #${majorityCorrect(s"agree_count + $agree", s"disagree_count + $disagree")}
+      WHERE label_id = $labelId"""
+  }
+
   /**
    * Recounts agree/disagree/unsure counts and `correct` on labels from their validations.
    *
@@ -3288,7 +3314,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       )
       FROM (
           SELECT label_id, n_agree, n_disagree, n_unsure,
-                 CASE WHEN n_agree > n_disagree THEN TRUE WHEN n_disagree > n_agree THEN FALSE END AS is_correct
+                 #${majorityCorrect("n_agree", "n_disagree")} AS is_correct
           FROM (
               SELECT label.label_id,
                      COUNT(*) FILTER (WHERE label_validation.validation_result = 'Agree') AS n_agree,
