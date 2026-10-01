@@ -206,9 +206,11 @@ class MistakeGallery {
    * @param {Record<string, any>} m - The label record.
    */
   #mountPopupPanel(m) {
-    const dialog = document.getElementById('label-modal');
-    if (!dialog) return;
+    const dialog = /** @type {?HTMLDialogElement} */ (document.getElementById('label-modal'));
     if (this.popupPanel) this.popupPanel.remove();
+    // The dialog is shared with the map and stories, whose labels aren't this card's; a panel left behind would post
+    // this card's response from under them.
+    if (!dialog?.open) return;
     const panel = document.createElement('div');
     panel.className = 'ud-mistake-response';
     const heading = document.createElement('p');
@@ -217,6 +219,7 @@ class MistakeGallery {
     panel.append(heading, this.#voteSection(m), this.#noteSection(m));
     dialog.appendChild(panel);
     this.popupPanel = panel;
+    dialog.addEventListener('close', () => panel.remove(), { once: true });
   }
 
   /**
