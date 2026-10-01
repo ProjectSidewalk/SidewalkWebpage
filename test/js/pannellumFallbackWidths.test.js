@@ -27,10 +27,13 @@ const IMAGE_URL = '/backupImage/pano1';
  *
  * @param {number|null} maxTextureSize The GPU limit, or null for a browser with no WebGL context at all.
  * @param {object} metadata Pano metadata (`imageUrl`, `width`).
+ * @param {object} [opts]
+ * @param {boolean} [opts.mobile=false] Whether the page is the mobile one (`util.isMobile()`).
  * @returns {string[]}
  */
-function candidatesFor(maxTextureSize, metadata) {
+function candidatesFor(maxTextureSize, metadata, { mobile = false } = {}) {
     window.PanoViewer = class {}; // PannellumViewer extends it at definition time.
+    window.util = { isMobile: () => mobile };
     window.HTMLCanvasElement.prototype.getContext = () => maxTextureSize === null ? null : {
         MAX_TEXTURE_SIZE: 0x0d33,
         getParameter: () => maxTextureSize,
@@ -85,5 +88,36 @@ describe('panoramaUrlCandidates', () => {
         const urls = candidatesFor(null, { imageUrl: IMAGE_URL });
         expect(urls).toEqual([IMAGE_URL]);
         expect(urls.join()).not.toContain('Infinity');
+    });
+});
+
+// A phone's GPU says the native 16384-wide file can be textured, and it can; what it can't survive is the memory
+// the load costs, which iOS answers by killing the tab (#5561). Nothing tells the ladder about that, so the cap has
+// to be lowered up front rather than found by failing.
+describe('panoramaUrlCandidates on a phone (issue #5561)', () => {
+    const mobile = { mobile: true };
+
+    it('asks for an 8192 copy of a native-width pano even though the GPU could texture the native file', () => {
+        expect(widthsOf(candidatesFor(16384, { imageUrl: IMAGE_URL, width: 16384 }, mobile)))
+            .toEqual([8192, 4096, 2048]);
+    });
+
+    it('leaves a pano that already fits the phone cap untouched', () => {
+        expect(widthsOf(candidatesFor(16384, { imageUrl: IMAGE_URL, width: 8192 }, mobile)))
+            .toEqual([null, 4096, 2048]);
+    });
+
+    it('takes the lower of the GPU cap and the phone cap', () => {
+        // MAX_TEXTURE_SIZE 2048 -> a 4096 ceiling, under the phone's 8192: the GPU is the tighter bound here.
+        expect(widthsOf(candidatesFor(2048, { imageUrl: IMAGE_URL, width: 16384 }, mobile))).toEqual([4096, 2048]);
+    });
+
+    it('applies the phone cap when the GPU cannot be read at all', () => {
+        expect(widthsOf(candidatesFor(null, { imageUrl: IMAGE_URL, width: 16384 }, mobile)))
+            .toEqual([8192, 4096, 2048]);
+    });
+
+    it('changes nothing for a desktop browser', () => {
+        expect(widthsOf(candidatesFor(16384, { imageUrl: IMAGE_URL, width: 16384 }))).toEqual([null, 8192, 4096]);
     });
 });

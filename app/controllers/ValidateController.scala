@@ -1,11 +1,11 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, isMobile, regionsParam}
 import controllers.helper.ValidateHelper.ValidateParams
 import formats.json.CommentSubmissionFormats.LabelMapValidationCommentSubmission
 import formats.json.LabelFormats
-import formats.json.MissionFormats._
+import formats.json.MissionFormats.given
 import formats.json.ValidateFormats.{
   EnvironmentSubmission,
   LabelMapValidationSubmission,
@@ -14,9 +14,9 @@ import formats.json.ValidateFormats.{
   ValidationTaskSubmission
 }
 import models.auth.WithAdmin
-import models.label.{LabelTypeEnum, Tag}
+import models.label.{LabelType, Tag}
 import models.mission.MissionType
-import models.user._
+import models.user.*
 import models.utils.IpAddress
 import models.validation.{
   LabelValidation,
@@ -27,7 +27,7 @@ import models.validation.{
 }
 import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Result
 import service.ValidationSubmission
 
@@ -50,7 +50,6 @@ case class ValidatePageData(
 @Singleton
 class ValidateController @Inject() (
     cc: CustomControllerComponents,
-    implicit val ec: ExecutionContext,
     val config: Configuration,
     configService: service.ConfigService,
     labelService: service.LabelService,
@@ -62,10 +61,10 @@ class ValidateController @Inject() (
     osmWayService: service.OsmWayService,
     missionService: service.MissionService,
     aiService: service.AiService
-)(implicit assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Returns the validation page.
@@ -75,7 +74,7 @@ class ValidateController @Inject() (
    */
   def validate(regions: Option[String], unvalidatedOnly: Option[Boolean], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      if (isMobile(request)) {
+      if (isMobile) {
         // mobileValidate takes the same query params, so forward them along with the redirect.
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
         Future.successful(Redirect("/mobile", request.queryString))
@@ -128,7 +127,7 @@ class ValidateController @Inject() (
       teams: Option[String]
   ) =
     cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
-      if (isMobile(request)) {
+      if (isMobile) {
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ExpertValidate_RedirectMobile")
         Future.successful(Redirect("/mobile"))
       } else {
@@ -183,7 +182,7 @@ class ValidateController @Inject() (
             validatePageData <- getDataForValidatePages(user, labelCount = 10, validateParams)
             commonPageData   <- configService.getCommonPageData(request2Messages.lang)
           } yield {
-            if (!isMobile(request)) {
+            if (!isMobile) {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate_RedirectHome")
               Redirect("/")
             } else {
@@ -220,8 +219,8 @@ class ValidateController @Inject() (
       teams: Option[String]
   ): Future[(ValidateParams, Result)] = {
     // Users and regions may be given by id or by name, so each is resolved both ways before deciding it is invalid.
-    val parsedLabelType: Option[Option[LabelTypeEnum.Base]] = labelType.map(LabelTypeEnum.byName.get)
-    val userIdsList: Option[Seq[Future[Option[String]]]]    = users.map(
+    val parsedLabelType: Option[Option[LabelType]]       = labelType.map(LabelType.withNameOption)
+    val userIdsList: Option[Seq[Future[Option[String]]]] = users.map(
       _.split(',')
         .map(_.trim)
         .map { userStr =>
@@ -274,7 +273,7 @@ class ValidateController @Inject() (
       if (parsedLabelType.isDefined && parsedLabelType.get.isEmpty) {
         (
           ValidateParams(adminVersion),
-          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelTypeEnum.primaryLabelTypeNames.mkString(", ")}.")
+          BadRequest(s"Invalid label type provided: ${labelType.get}. Valid label types are: ${LabelType.primaryLabelTypeNames.mkString(", ")}.")
         )
       } else if (userIds.isDefined && userIds.get.length != userIds.get.flatten.length) {
         (
@@ -327,7 +326,9 @@ class ValidateController @Inject() (
     } yield {
       val missionJsObject: Option[JsValue] = mission.map(m => Json.toJson(m))
       val progressJsObject                 =
-        missionProgress.map(p => Json.obj("agree_count" -> p._1, "disagree_count" -> p._2, "unsure_count" -> p._3))
+        missionProgress.map { p =>
+          Json.obj("agree_count" -> p.agreeCount, "disagree_count" -> p.disagreeCount, "unsure_count" -> p.unsureCount)
+        }
       val hasDataForMission: Boolean          = labels.nonEmpty
       val labelMetadataJsonSeq: Seq[JsObject] = if (validateParams.adminVersion) {
         labels.sortBy(_.labelId).zip(adminData.sortBy(_.labelId)).map { case (l, admin) =>
@@ -364,7 +365,7 @@ class ValidateController @Inject() (
     val currTime: OffsetDateTime = data.timestamp
 
     // The type each vote was cast on: what the tool showed, or the mission's type for a client that doesn't say.
-    def labelTypeSeen(newVal: LabelValidationSubmission): LabelTypeEnum.Base =
+    def labelTypeSeen(newVal: LabelValidationSubmission): LabelType =
       newVal.labelType.orElse(data.missionProgress.map(_.labelType)).get
     if (data.validations.exists(_.labelType.isEmpty) && data.missionProgress.isEmpty) {
       return Future.successful(
@@ -429,8 +430,12 @@ class ValidateController @Inject() (
           "has_mission_available" -> returnValue.hasMissionAvailable,
           "mission"               -> returnValue.mission.map(m => Json.toJson(m)),
           "labels"                -> Json.toJson(labelMetadataJsonSeq),
-          "progress"              -> returnValue.progress.map { case (agreeCount, disagreeCount, unsureCount) =>
-            Json.obj("agree_count" -> agreeCount, "disagree_count" -> disagreeCount, "unsure_count" -> unsureCount)
+          "progress"              -> returnValue.progress.map { p =>
+            Json.obj(
+              "agree_count"    -> p.agreeCount,
+              "disagree_count" -> p.disagreeCount,
+              "unsure_count"   -> p.unsureCount
+            )
           }
         )
       )
@@ -464,7 +469,7 @@ class ValidateController @Inject() (
       val timeSpent: Double = data.validations.map { l =>
         Math.min(ChronoUnit.MILLIS.between(l.startTimestamp, l.endTimestamp), 60000)
       }.sum / 1000d
-      configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
+      val _ = configService.sendSciStarterContributions(user.email, data.validations.length, timeSpent)
     }
 
     response
@@ -601,7 +606,7 @@ class ValidateController @Inject() (
                 newVal.newLabelType.isDefined && newVal.validationResult == ValidationOption.Agree && !newVal.undone &&
                 isAdmin(request.identity)
               ) {
-                aiService.reassessAfterTypeChange(newVal.labelId)
+                val _ = aiService.reassessAfterTypeChange(newVal.labelId)
               }
               Ok(Json.obj("status" -> "Success"))
             }
@@ -656,7 +661,7 @@ class ValidateController @Inject() (
    * @return `Ok` with the number deleted (0 if they had not commented), so a double-click is not an error.
    */
   def deleteLabelMapComment(labelId: Int, labelType: String) = cc.securityService.SecuredAction { implicit request =>
-    LabelTypeEnum.byName.get(labelType) match {
+    LabelType.withNameOption(labelType) match {
       case None     => Future.successful(BadRequest(Json.obj("status" -> "Error", "message" -> "Unknown label type")))
       case Some(lt) =>
         validationService.deleteComment(labelId, request.identity.userId, lt).map { deleted =>

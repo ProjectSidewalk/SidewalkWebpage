@@ -65,11 +65,6 @@ window.AccessScoreApp = (function () {
     return i18next.t('accessscore:elevation', { meters, interpolation: { escapeValue: escape } });
   }
 
-  /** The display name of a label type; one implementation for the whole tool. */
-  function typeName(type) {
-    return AccessScoreChart.typeName(type);
-  }
-
   /** Records an interaction under the tool's own module name. */
   function log(kind, value) {
     const suffix = value === undefined ? '' : `_value=${value}`;
@@ -430,7 +425,9 @@ window.AccessScoreApp = (function () {
           const street = model.explainStreet(props.street_edge_id);
           const term = street?.audited ? street.terms[props.label_type] : null;
           const effect = term
-            ? i18next.t('accessscore:cluster-effect', { type: typeName(props.label_type), value: signed(term.term) })
+            ? i18next.t('accessscore:cluster-effect', {
+                type: util.misc.labelTypeName(props.label_type), value: signed(term.term),
+              })
             : '';
           sheet.open(props, effect);
         },
@@ -581,8 +578,7 @@ window.AccessScoreApp = (function () {
 
     /** A category's translated name, or its id for one the locale does not know yet. */
     function placeCategoryName(category) {
-      const key = `accessscore:place-${category}`;
-      return i18next.exists(key) ? i18next.t(key) : category;
+      return i18next.t(`accessscore:place-${category}`, { defaultValue: category });
     }
 
     /**
@@ -661,12 +657,13 @@ window.AccessScoreApp = (function () {
       const term = street?.audited ? street.terms[type] : null;
       // The term is this type's whole contribution to the street, not this one cluster's, so the wording says
       // "on this street" rather than pinning the number to the dot under the pointer.
+      const typeName = util.misc.labelTypeName(type);
       const effect = term
         ? `<div class="acs-tooltip__meta">${i18next.t('accessscore:cluster-effect', {
-          type: typeName(type), value: signed(term.term), interpolation: { escapeValue: true } })}</div>`
+          type: typeName, value: signed(term.term), interpolation: { escapeValue: true } })}</div>`
         : '';
       return `<strong><span class="acs-popup__swatch" style="background-color: ${
-        util.misc.getLabelColors(type)};"></span>${typeName(type)}</strong>
+        util.misc.getLabelColors(type)};"></span>${typeName}</strong>
         <div class="acs-tooltip__meta">${meta}</div>
         ${effect}
         <div class="acs-tooltip__hint">${i18next.t('accessscore:cluster-open')}</div>`;
@@ -680,7 +677,7 @@ window.AccessScoreApp = (function () {
         el.textContent = i18next.t('accessscore:updated-never');
         return;
       }
-      const date = new Intl.DateTimeFormat(i18next.language, { dateStyle: 'medium' }).format(new Date(iso));
+      const date = new Date(iso).toLocaleDateString(i18next.language, util.SHORT_DATE);
       el.textContent = i18next.t('accessscore:updated-at', { date });
     }
 
@@ -700,18 +697,19 @@ window.AccessScoreApp = (function () {
         const kind = config.type_weights[n.standout.type].base_weight < 0 ? 'problem' : 'feature';
         lines.push(`<li class="acs-tooltip__standout acs-tooltip__standout--${tone}">${
           i18next.t(`accessscore:tip-standout-${kind}-${tone}`, {
-            type: typeName(n.standout.type), value: signed(n.standout.value), city: signed(n.standout.cityValue),
+            type: util.misc.labelTypeName(n.standout.type), value: signed(n.standout.value),
+            city: signed(n.standout.cityValue),
             interpolation: { escapeValue: true },
           })}</li>`);
       }
       if (n.helped) {
         lines.push(`<li>${i18next.t('accessscore:tip-helped', {
-          type: typeName(n.helped.type), value: signed(n.helped.value),
+          type: util.misc.labelTypeName(n.helped.type), value: signed(n.helped.value),
           interpolation: { escapeValue: true } })}</li>`);
       }
       if (n.hurt) {
         lines.push(`<li>${i18next.t('accessscore:tip-hurt', {
-          type: typeName(n.hurt.type), value: signed(n.hurt.value),
+          type: util.misc.labelTypeName(n.hurt.type), value: signed(n.hurt.value),
           interpolation: { escapeValue: true } })}</li>`);
       }
       return lines.length ? `<ul class="acs-tooltip__why">${lines.join('')}</ul>` : '';
@@ -834,7 +832,7 @@ window.AccessScoreApp = (function () {
         const count = Number.isInteger(t.clusterCount) ? t.clusterCount : t.clusterCount.toFixed(1);
         return `<tr>
           <td><span class="acs-popup__swatch" style="background-color: ${util.misc.getLabelColors(type)};"></span>${
-    typeName(type)}</td>
+    util.misc.labelTypeName(type)}</td>
           <td class="acs-popup__num">${count}</td>
           <td class="acs-popup__num acs-popup__term--${t.term >= 0 ? 'feature' : 'problem'}">${sign}${
     Math.abs(t.term).toFixed(2)}</td>
@@ -857,7 +855,7 @@ window.AccessScoreApp = (function () {
       const lat = lngLat.lat.toFixed(5);
       const lng = lngLat.lng.toFixed(5);
       return `<div class="acs-popup__links">
-        <a href="/explore?lat=${lat}&lng=${lng}" class="button-ps button--small button--primary"
+        <a href="/explore?lat=${lat}&lng=${lng}" class="button button--small button--primary"
            data-acs-hop="ExploreHere">${i18next.t('accessscore:explore-here')}</a>
       </div>`;
     }

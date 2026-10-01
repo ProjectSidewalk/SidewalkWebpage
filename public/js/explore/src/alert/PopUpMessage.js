@@ -77,7 +77,7 @@ class PopUpMessage {
     const task = this.#taskContainer.getCurrentTask();
 
     // Add the 'Sign up' button.
-    this.#appendButton('pop-up-message-sign-up-button', 'button-ps button--primary button--small',
+    this.#appendButton('pop-up-message-sign-up-button', 'button button--primary button--small',
       i18next.t('common:sign-up'), () => {
         this.#tracker.push('PopUpMessage_SignUpClickYes', {
           auditTaskId: task.getAuditTaskId(),
@@ -88,7 +88,7 @@ class PopUpMessage {
       });
 
     // Add the 'Sign in' button.
-    this.#appendButton('pop-up-message-sign-in-button', 'button-ps button--secondary button--small',
+    this.#appendButton('pop-up-message-sign-in-button', 'button button--secondary button--small',
       i18next.t('common:sign-in'), () => {
         this.#tracker.push('PopUpMessage_SignInClick', {
           auditTaskId: task.getAuditTaskId(),
@@ -98,7 +98,7 @@ class PopUpMessage {
       });
 
     // Add the 'No' button.
-    this.#appendButton('pop-up-message-cancel-button', 'button-ps button--secondary button--small',
+    this.#appendButton('pop-up-message-cancel-button', 'button button--secondary button--small',
       i18next.t('common:no'), () => {
         this.#tracker.push('PopUpMessage_SignUpClickNo', {
           auditTaskId: task.getAuditTaskId(),
@@ -160,7 +160,7 @@ class PopUpMessage {
   #show() {
     this.disableInteractions();
     this.#showBackground();
-    this.#ui.holder.classList.remove('hidden');
+    this.#ui.holder.classList.remove('ps-hidden');
     this.#ui.holder.classList.add('visible');
     this.#status.isVisible = true;
   }
@@ -170,7 +170,7 @@ class PopUpMessage {
    */
   #hide() {
     this.#ui.holder.classList.remove('visible');
-    this.#ui.holder.classList.add('hidden');
+    this.#ui.holder.classList.add('ps-hidden');
     if (!this.#status.signUp) {
       this.enableInteractions();
     }
@@ -271,7 +271,7 @@ class PopUpMessage {
       document.getElementById('pop-up-message-image')?.remove();
     };
     const okButton = this.#appendButton(
-      'pop-up-message-ok-button', 'button-ps button--medium button--primary', 'OK', handleClickOk,
+      'pop-up-message-ok-button', 'button button--medium button--primary', 'OK', handleClickOk,
     );
     if (callback) okButton.addEventListener('click', callback, { once: true });
 

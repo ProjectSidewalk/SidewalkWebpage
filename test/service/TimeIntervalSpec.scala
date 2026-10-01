@@ -3,13 +3,12 @@ package service
 import models.audit.{AuditTaskInteractionTable, AuditTaskTable}
 import models.label.LabelTable
 import models.user.UserStatTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.validation.LabelValidationTable
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
@@ -18,10 +17,10 @@ import java.time.temporal.ChronoUnit
  * The admin page's today/week/all-time windows. [[TimeInterval.start]] and [[TimeInterval.sqlFilter]] say the same
  * thing in two places (Scala and SQL), so this checks they agree, and runs every query that uses them.
  */
-class TimeIntervalSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class TimeIntervalSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val labelTable: LabelTable                               = app.injector.instanceOf[LabelTable]
   private lazy val labelValidationTable: LabelValidationTable           = app.injector.instanceOf[LabelValidationTable]

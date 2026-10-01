@@ -1,11 +1,11 @@
 package controllers
 
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * The `window.assetDigests` stamp must be on the page, ahead of utilities.js (#4893).
@@ -18,10 +18,10 @@ import play.api.test.Helpers._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class AssetManifestWiringSpec extends PlaySpec with GuiceOneAppPerSuite {
+class AssetManifestWiringSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
@@ -42,6 +42,13 @@ class AssetManifestWiringSpec extends PlaySpec with GuiceOneAppPerSuite {
       withClue("the manifest stamp is not on the page: ")(stampAt must be >= 0)
       withClue("utilities.js is not loaded at all: ")(utilitiesAt must be >= 0)
       withClue("the stamp comes after utilities.js: ")(stampAt must be < utilitiesAt)
+    }
+
+    "hand i18next the list of locale files, so it asks only for ones that exist (#5570)" in {
+      val resp = route(app, FakeRequest(GET, "/")).get
+      status(resp) mustBe OK
+      contentAsString(resp) must include("localeFiles: [")
+      contentAsString(resp) must include("\"locales/en/common.json\"")
     }
   }
 }

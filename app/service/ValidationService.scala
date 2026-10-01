@@ -1,19 +1,18 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.label._
+import models.label.*
 import models.mission.MissionType
 import models.user.{Role, SidewalkUserWithRole, UserStatTable}
-import models.utils.CommonUtils.UiSource.UiSource
-import models.utils.CommonUtils.ViewerType
+import models.utils.CommonUtils.{UiSource, ViewerType}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
-import models.validation._
+import models.utils.MyPostgresProfile.api.*
+import models.validation.*
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -26,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future}
  */
 case class ValidationSubmission(
     validation: LabelValidation,
-    newLabelType: Option[LabelTypeEnum.Base],
+    newLabelType: Option[LabelType],
     severity: Option[Int],
     tags: List[String],
     comment: Option[ValidationTaskComment],
@@ -43,7 +42,7 @@ trait ValidationService {
   def insertEnvironment(env: ValidationTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[ValidationTaskInteraction]): Future[Seq[Int]]
   def replaceComment(comment: ValidationTaskComment): Future[Int]
-  def deleteComment(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Int]
+  def deleteComment(labelId: Int, userId: String, labelType: LabelType): Future[Int]
   def submitValidations(validationSubmissions: Seq[ValidationSubmission]): Future[Seq[Int]]
   def submitValidationsDbio(validationSubmissions: Seq[ValidationSubmission]): DBIO[Seq[Int]]
   def deleteLabel(labelId: Int, editor: SidewalkUserWithRole, source: UiSource): Future[LabelEditOutcome]
@@ -60,9 +59,9 @@ class ValidationServiceImpl @Inject() (
     labelPointTable: LabelPointTable,
     labelEditService: LabelEditService,
     missionService: MissionService,
-    userStatTable: UserStatTable,
-    implicit val ec: ExecutionContext
-) extends ValidationService
+    userStatTable: UserStatTable
+)(using ec: ExecutionContext)
+    extends ValidationService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val validationLabels = TableQuery[LabelValidationTableDef]
@@ -94,36 +93,24 @@ class ValidationServiceImpl @Inject() (
    */
   def updateValidationCounts(
       labelId: Int,
-      newResult: Option[ValidationOption.Value],
-      oldResult: Option[ValidationOption.Value]
+      newResult: Option[ValidationOption],
+      oldResult: Option[ValidationOption]
   ): DBIO[Int] = {
     labelTable
       .find(labelId)
       .flatMap {
         case Some(label) =>
-          // Get the validation counts that are in the database right now.
-          val oldCounts: (Int, Int, Int) = (label.agreeCount, label.disagreeCount, label.unsureCount)
-
-          // Add 1 to the correct count for the new validation. In case of delete, no match is found.
-          val countsWithNewVal: (Int, Int, Int) = newResult match {
-            case Some(ValidationOption.Agree)    => (oldCounts._1 + 1, oldCounts._2, oldCounts._3)
-            case Some(ValidationOption.Disagree) => (oldCounts._1, oldCounts._2 + 1, oldCounts._3)
-            case Some(ValidationOption.Unsure)   => (oldCounts._1, oldCounts._2, oldCounts._3 + 1)
-            case _                               => oldCounts
-          }
-
-          // If there was a previous validation from this user, subtract 1 for that old validation. O/w use previous result.
-          val countsWithoutOldVal: (Int, Int, Int) = oldResult match {
-            case Some(ValidationOption.Agree)    => (countsWithNewVal._1 - 1, countsWithNewVal._2, countsWithNewVal._3)
-            case Some(ValidationOption.Disagree) => (countsWithNewVal._1, countsWithNewVal._2 - 1, countsWithNewVal._3)
-            case Some(ValidationOption.Unsure)   => (countsWithNewVal._1, countsWithNewVal._2, countsWithNewVal._3 - 1)
-            case _                               => countsWithNewVal
-          }
+          // Each count gains 1 if the new vote is that option and loses 1 if the user's old vote was.
+          def change(option: ValidationOption): Int =
+            (if (newResult.contains(option)) 1 else 0) - (if (oldResult.contains(option)) 1 else 0)
+          val agreeCount: Int    = label.agreeCount + change(ValidationOption.Agree)
+          val disagreeCount: Int = label.disagreeCount + change(ValidationOption.Disagree)
+          val unsureCount: Int   = label.unsureCount + change(ValidationOption.Unsure)
 
           // Determine whether the label is correct. Agree > disagree = correct; disagree > agree = incorrect; o/w null.
           val labelCorrect: Option[Boolean] = {
-            if (countsWithoutOldVal._1 > countsWithoutOldVal._2) Some(true)
-            else if (countsWithoutOldVal._2 > countsWithoutOldVal._1) Some(false)
+            if (agreeCount > disagreeCount) Some(true)
+            else if (disagreeCount > agreeCount) Some(false)
             else None
           }
 
@@ -131,7 +118,7 @@ class ValidationServiceImpl @Inject() (
           labelsUnfiltered
             .filter(_.labelId === labelId)
             .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct))
-            .update((countsWithoutOldVal._1, countsWithoutOldVal._2, countsWithoutOldVal._3, labelCorrect))
+            .update((agreeCount, disagreeCount, unsureCount, labelCorrect))
 
         case None =>
           DBIO.successful(0)
@@ -227,7 +214,7 @@ class ValidationServiceImpl @Inject() (
    * @param labelType The type the comment is about. Comments on the label's other types stay.
    * @return Count of comments deleted, 0 or 1.
    */
-  def deleteComment(labelId: Int, userId: String, labelType: LabelTypeEnum.Base): Future[Int] =
+  def deleteComment(labelId: Int, userId: String, labelType: LabelType): Future[Int] =
     db.run(validationTaskCommentTable.archive(labelId, userId, labelType, ValidationCommentChangeType.Delete))
 
   /**
@@ -296,7 +283,7 @@ class ValidationServiceImpl @Inject() (
     val valSubmitActions: Seq[DBIO[Int]] = for (valSubmission <- validationSubmissions) yield {
       // An Agree that changes the label's type is a vote on the new type (#3671): it is what the validator asserts,
       // and it starts the re-typed label's count at one agree while every earlier vote drops out as stale.
-      val typeChange: Option[LabelTypeEnum.Base] = valSubmission.newLabelType.filter(_ =>
+      val typeChange: Option[LabelType] = valSubmission.newLabelType.filter(_ =>
         valSubmission.validation.validationResult == ValidationOption.Agree && valSubmission.canEdit
       )
       val validation: LabelValidation =

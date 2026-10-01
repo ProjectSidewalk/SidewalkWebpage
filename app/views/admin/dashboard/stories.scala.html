@@ -3,12 +3,13 @@
 @import models.pano.PanoSource
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
   <div class="page-section" id="stories-intro-section">
     <h1 class="page-heading" id="stories">Stories <a href="#stories" class="permalink">#</a></h1>
-    <p>The moderation queue for lived-experience stories (#4054): personal accounts, with optional photos, that community members attach to labels. Stories are <strong>public the moment they're submitted</strong>, so this page is the safety net — every story appears here newest first, hidden ones included. <strong>Hide</strong> quarantines a story (reversible; the author still sees it flagged and can delete it). <strong>Delete permanently</strong> removes the story and its photo bytes for good — reserve it for content that must not survive even as quarantined evidence.</p>
+    <p>Stories people attach to labels, newest first; they are <strong>public as soon as they're submitted</strong>.</p>
+    <p><strong>Hide</strong> can be undone (the author still sees it, flagged); <strong>Delete permanently</strong> erases the story and its photo for good.</p>
     <div class="coverage-status" id="stories-status" role="status" aria-live="polite">Loading stories…</div>
   </div>
 
@@ -25,7 +26,6 @@
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
 
-  <script src='@assets.path("js/common/timestampLocalization.js")'></script>
 @if(commonData.imagerySource == PanoSource.Infra3d) {
   <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
   <script src='@assets.path("vendor/infra3d/infra3dapi-1.12.1.js")'></script>
@@ -62,7 +62,7 @@
       // The pano viewer initializes asynchronously; once it's ready, hand the popup to the page so label links open
       // inline. If this fails, the links keep their href fallback (navigate to /admin/label/:id).
       try {
-        const imagerySrc = "@commonData.imagerySource.toString";
+        const imagerySrc = "@commonData.imagerySource.name";
         const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer
           : imagerySrc === 'infra3d' ? Infra3dViewer : GsvViewer;
         const accessToken = "@commonData.imageryAccessToken";

@@ -7,7 +7,8 @@ version: 2
 # than a weekly trickle. This throttles *version* noise only — Dependabot *security* updates (GHSA/CVE-driven)
 # are a separate channel and still fire immediately (enable them in Settings → Code security). Green patch &
 # minor bumps auto-merge via `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need
-# a human. See issue #4385 for the standing dependency/platform maintenance strategy.
+# a human. Each ecosystem gets two groups so a red major can't hold the safe patch & minor bumps hostage in the
+# same PR (#4395). See issue #4385 for the standing dependency/platform maintenance strategy.
 updates:
   - package-ecosystem: npm
     directory: "/"
@@ -15,8 +16,12 @@ updates:
       interval: monthly
     open-pull-requests-limit: 5
     groups:
-      npm-dependencies:
+      npm-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      npm-major:
+        patterns: ["*"]
+        update-types: ["major"]
     ignore:
       # Everything that supplies `error`-severity rules to a blocking `frontend` step, plus the jsdom suite: a
       # *major* here turns the build red rather than merely nagging, so majors stay a human decision while minors
@@ -59,16 +64,25 @@ updates:
     schedule:
       interval: monthly
     groups:
-      github-actions:
+      github-actions-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      github-actions-major:
+        patterns: ["*"]
+        update-types: ["major"]
 
   - package-ecosystem: docker
-    directory: "/"
+    # docker/shellcheck/ holds only the ShellCheck image pin that `make shellcheck` and CI run (#5589).
+    directories: ["/", "/docker/shellcheck"]
     schedule:
       interval: monthly
     groups:
-      docker:
+      docker-patch-minor:
         patterns: ["*"]
+        update-types: ["patch", "minor"]
+      docker-major:
+        patterns: ["*"]
+        update-types: ["major"]
     ignore:
       # Stay on JDK 17 (an LTS). Dependabot keeps re-proposing odd, non-LTS temurin majors (19, 21-preview…);
       # 19 was already rejected as EOL (#4247). The Java 17→21 LTS move is a deliberate, tracked migration
@@ -83,15 +97,13 @@ updates:
     schedule:
       interval: monthly
     groups:
-      pip-dependencies:
+      pip-patch-minor:
         patterns: ["*"]
-    ignore:
-      # requirements.txt is frozen at the last releases that install on Python 3.8 — the interpreter the deployed app
-      # shells out to for in-band clustering (docs/upgrading-libraries.md). scipy and haversine appear *only* in that
-      # file, so a bump is always wrong and always fails CI (#5108). pandas and requests stay watched despite being
-      # frozen there too: they're shared with requirements-offline-tools.txt (3.13), Dependabot's pip updater can't
-      # scope an ignore to one requirements file, and an ignore would suppress that file's security PRs as well.
-      # Retiring 3.8 (#4385) is what actually ends the monthly noise — and is the only way to clear
-      # GHSA-gc5v-m9x4-r6x2, whose fix (requests 2.33.0) declares requires_python >= 3.10.
-      - dependency-name: "scipy"
-      - dependency-name: "haversine"
+        update-types: ["patch", "minor"]
+      pip-major:
+        patterns: ["*"]
+        update-types: ["major"]
+    # requirements.txt is frozen for the app's Python 3.8 (docs/upgrading-libraries.md): every bump fails CI and no
+    # security fix can install there either. Retiring 3.8 (#4385) brings it back.
+    exclude-paths:
+      - "requirements.txt"

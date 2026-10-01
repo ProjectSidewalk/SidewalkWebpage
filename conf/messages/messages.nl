@@ -763,6 +763,7 @@ dashboard.nav.you = Jij
 dashboard.nav.community = Gemeenschap
 dashboard.nav.dashboard = Dashboard
 dashboard.nav.settings = Instellingen
+dashboard.nav.manageuser = Gebruiker beheren
 dashboard.toc.header = Op deze pagina
 dashboard.settings.title = Instellingen
 dashboard.settings.intro = Beheer je account, je team en wat je met de gemeenschap deelt.

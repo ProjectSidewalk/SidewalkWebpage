@@ -1,12 +1,12 @@
 package models.utils
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 /**
  * Unit tests for the pure `LatLngBBox.fromString` parser (the "minLng,minLat,maxLng,maxLat" v3 bbox convention),
  * used by the LabelMap's viewport-scoped feed (#5002). No DI or DB.
  */
-class LatLngBBoxSpec extends PlaySpec {
+class LatLngBBoxSpec extends SidewalkSpec {
 
   "LatLngBBox.fromString" should {
     "parse a well-formed bbox in minLng,minLat,maxLng,maxLat order" in {

@@ -39,7 +39,6 @@ beforeAll(() => {
   installUtilitiesMisc();
   // i18next echoes its key so assertions can name the key they expect rather than an English string.
   window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-  window.moment = (v) => v;
   loadClass('public/js/common/LabelTypePicker.js', 'LabelTypePicker', 'LabelTypeDropdown');
   loadClass('public/js/validate/src/label/Label.js', 'Label');
   loadClass('public/js/validate/src/label/LabelContainer.js', 'LabelContainer');
@@ -512,10 +511,10 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       <button id="validate-no-button"></button>
       <button id="validate-unsure-button"></button>
       <div id="validate-label-type-section"><div id="label-type-picker"></div></div>
-      <div class="current-tag template"><div class="tag-name"></div><button class="remove-tag-x"></button></div>
+      <template id="current-tag-template"><div class="current-tag"><div class="tag-name"></div><button class="remove-tag-x"></button></div></template>
       <div id="validate-tags-section">
         <div id="current-tags-list"></div>
-        <div id="sidewalk-ai-suggestions-block"><div class="sidewalk-ai-suggested-tag template"></div></div>
+        <div id="sidewalk-ai-suggestions-block"><template id="sidewalk-ai-suggested-tag-template"><div class="sidewalk-ai-suggested-tag"></div></template></div>
         <select id="select-tag"></select>
       </div>
       <div id="validate-severity-section"><div id="validate-severity-header"></div>
@@ -566,7 +565,8 @@ describe('DesktopValidationMenu on Expert Validate', () => {
       submitButton: byId('validate-submit-button'),
       currentTags: byId('current-tags-list'),
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
-      aiSuggestedTagTemplate: document.querySelector('.sidewalk-ai-suggested-tag.template'),
+      currentTagTemplate: document.getElementById('current-tag-template'),
+      aiSuggestedTagTemplate: document.getElementById('sidewalk-ai-suggested-tag-template'),
     });
     menu.resetMenu(label);
   });
@@ -581,7 +581,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     document.getElementById('validate-yes-button').click();
 
     expect(label.getProperty('validationResult')).toBe('Agree');
-    expect(document.querySelectorAll('.sidewalk-ai-suggested-tag:not(.template)')).toHaveLength(2);
+    expect(document.querySelectorAll('.sidewalk-ai-suggested-tag')).toHaveLength(2);
     expect(submitDisabled()).toBe(false);
   });
 
@@ -602,7 +602,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     document.getElementById('validate-no-button').click();
     document.getElementById('no-button-1').click();
 
-    expect(document.getElementById('validate-no-button').classList.contains('chosen')).toBe(true);
+    expect(document.getElementById('validate-no-button').classList.contains('is-chosen')).toBe(true);
     expect(shown('validate-label-type-section')).toBe(true);
     expect(shown('validate-why-no-section')).toBe(false);
     expect(label.getProperty('validationResult')).toBe('Agree');
@@ -615,7 +615,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
 
     expect(label.getProperty('newLabelType')).toBe('SurfaceProblem');
     expect(label.getProperty('validationResult')).toBe('Agree');
-    expect(document.getElementById('validate-no-button').classList.contains('chosen')).toBe(true);
+    expect(document.getElementById('validate-no-button').classList.contains('is-chosen')).toBe(true);
     expect(shown('validate-tags-section')).toBe(true);
     expect(submitDisabled()).toBe(false);
     expect(window.svv.panoManager.styleMarkerForLabel).toHaveBeenCalledWith(label);

@@ -841,6 +841,7 @@ dashboard.nav.you = 您
 dashboard.nav.community = 社群
 dashboard.nav.dashboard = 儀表板
 dashboard.nav.settings = 設定
+dashboard.nav.manageuser = 管理使用者
 dashboard.toc.header = 本頁內容
 dashboard.settings.title = 設定
 dashboard.settings.intro = 管理您的帳號、團隊，以及您與社群分享的內容。

@@ -113,6 +113,70 @@ describe('Tracker timed flush (issue #4429)', () => {
         expect(svv.form.submit).not.toHaveBeenCalled();
     });
 
+    // A verdict is worth more than the interactions around it, and on a phone the page can be killed without any
+    // exit event firing (#5561), so Label.validate() asks for the flush now rather than at the deadline.
+    describe('flushSoon() (issue #5561)', () => {
+        const VERDICT_FLUSH_DELAY_MS = 1000;
+
+        test('sends the buffer about a second later instead of at the 60 s deadline', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
+            expect(svv.form.submit).not.toHaveBeenCalled();
+
+            jest.advanceTimersByTime(1);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+            expect(svv.form.submit).toHaveBeenCalledWith(compiledPayload, true);
+        });
+
+        test('a quick run of verdicts becomes one flush, timed from the last of them', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS / 2);
+            tracker.push('ValidationButtonClick_Disagree');
+            tracker.flushSoon();
+
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS - 1);
+            expect(svv.form.submit).not.toHaveBeenCalled();
+
+            jest.advanceTimersByTime(1);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+        });
+
+        test('replaces the pending deadline rather than adding a second flush after it', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+
+            // Only the post-flush marker is buffered now; the original 60 s deadline must not fire on it.
+            jest.advanceTimersByTime(10 * 60 * 1000);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+        });
+
+        test('an external drain in the meantime cancels it', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+            tracker.refresh(); // Mission complete or pagehide got there first.
+
+            jest.advanceTimersByTime(10 * 60 * 1000);
+            expect(svv.form.submit).not.toHaveBeenCalled();
+        });
+
+        test('the next push after it arms an ordinary deadline again', () => {
+            tracker.push('ValidationButtonClick_Agree');
+            tracker.flushSoon();
+            jest.advanceTimersByTime(VERDICT_FLUSH_DELAY_MS);
+
+            tracker.push('LowLevelEvent_mousemove');
+            jest.advanceTimersByTime(FLUSH_INTERVAL_MS - 1);
+            expect(svv.form.submit).toHaveBeenCalledTimes(1);
+            jest.advanceTimersByTime(1);
+            expect(svv.form.submit).toHaveBeenCalledTimes(2);
+        });
+    });
+
     test('an external drain (mission complete / pagehide) cancels the pending deadline', () => {
         tracker.push('ValidationButtonClick_Agree');
         jest.advanceTimersByTime(FLUSH_INTERVAL_MS / 2);

@@ -71,7 +71,7 @@ describe('refreshTableOfContents', () => {
     shell.refreshTableOfContents();
     await scrollAndSettle();
 
-    expect(tocLinks().filter((a) => a.classList.contains('active'))).toHaveLength(1);
+    expect(tocLinks().filter((a) => a.classList.contains('is-active'))).toHaveLength(1);
   });
 
   test('does not stack a second scroll listener on every rebuild', () => {

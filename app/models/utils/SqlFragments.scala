@@ -1,6 +1,6 @@
 package models.utils
 
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import slick.dbio.{DBIOAction, Effect, NoStream}
 import slick.jdbc.{SQLActionBuilder, SetParameter}
 
@@ -86,22 +86,8 @@ object SqlFragments {
    */
   def withLocalSetting[R, S <: NoStream, E <: Effect](name: String, value: String)(
       action: DBIOAction[R, S, E]
-  ): DBIOAction[R, S, E with Effect.Transactional] =
+  ): DBIOAction[R, S, E & Effect.Transactional] =
     (sqlu"SET LOCAL #$name = #$value" >> action).transactionally
-
-  /**
-   * Runs `action` with Postgres's JIT compiler off, as a workaround for #4376 until JIT is disabled in the DB config.
-   *
-   * The projectsidewalk/db image ships a broken JIT (PostGIS bitcode built with LLVM 16, runtime llvmjit linked against
-   * LLVM 11). A query expensive enough to JIT-inline PostGIS functions such as ST_Length crashes its backend, which
-   * drops the connection (SQLSTATE 08006) and forces Postgres into crash recovery: a site-wide 502 (#4545).
-   *
-   * @return The same action, run in a transaction with JIT off.
-   */
-  def withJitOff[R, S <: NoStream, E <: Effect](
-      action: DBIOAction[R, S, E]
-  ): DBIOAction[R, S, E with Effect.Transactional] =
-    withLocalSetting("jit", "off")(action)
 
   /**
    * A list of values for an enum column, written `= ANY(${SqlFragments.enumList(values)}::label_type[])`.
@@ -119,7 +105,7 @@ object SqlFragments {
 
   object EnumList {
     // Quotes every element so a comma or quote in a value stays inside it.
-    implicit val setEnumList: SetParameter[EnumList] = SetParameter { (list, pp) =>
+    given setEnumList: SetParameter[EnumList] = { (list, pp) =>
       val elements = list.values.map(v => "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\"")
       pp.setObject(elements.mkString("{", ",", "}"), Types.OTHER)
     }

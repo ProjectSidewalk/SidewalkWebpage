@@ -1,20 +1,30 @@
 /**
  * The Image adjustments panel: a pill button that opens a popover of sliders bound to a {@link PanoImageAdjustments}
- * model (#3136).
+ * model (#3136), on Explore and desktop Validate (#5501).
  *
  * The markup lives in app/views/common/panoImageAdjustments.scala.html (id="pano-image-adjustments") so its text
  * goes through i18n; this class only wires it. Slider ranges come from the model's SPECS rather than the markup, so
  * there is one place that knows what "100" means. The popover uses the native Popover API like PanoInfoPopover,
- * positioned by JS beside the button, and falls back to the `hidden` attribute where the API is missing.
+ * positioned by JS beside the button, and falls back to the `hidden` attribute where the API is missing. Where it
+ * opens is the page's call (`hooks.placement`): below the pill when other pills continue the row to its right, to the
+ * right when the pills form a column, as in Explore's full screen.
  *
- * Page-specific concerns — what to log, and suspending the page's keyboard shortcuts so Arrow keys nudge a slider
- * instead of panning the pano — are injected as callbacks, which keeps the class mountable on any page with a pano.
+ * Page-specific concerns — what to log, and keeping the page's keyboard shortcuts off the sliders so Arrow keys
+ * nudge a slider instead of panning the pano — are injected as callbacks, which keeps the class mountable on any
+ * page with a pano. A page whose shortcut handler can scope the panel itself needs no keyboard hooks at all.
  *
- * Usage (Explore):
+ * Usage (Explore suspends its shortcuts while the panel is open):
  *   new PanoImageAdjustmentsPopover(svl.imageAdjustments, button, popoverEl, {
+ *     placement: () => (svl.immersiveMode.isActive() ? 'right' : 'below'),
  *     onOpen: () => svl.keyboard.disableKeyboard(),
  *     onClose: (via) => svl.keyboard.enableKeyboard(),
  *     onChange: (values) => svl.tracker.push('ImageAdjustments_Change', values),
+ *   });
+ *
+ * Usage (Validate's KeyboardManager treats the panel as its own scope, so only logging is injected):
+ *   new PanoImageAdjustmentsPopover(svv.imageAdjustments, button, popoverEl, {
+ *     placement: 'below',
+ *     onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
  *   });
  */
 class PanoImageAdjustmentsPopover {
@@ -39,7 +49,17 @@ class PanoImageAdjustmentsPopover {
   /** @type {HTMLButtonElement|null} */
   #resetButton;
 
-  /** @type {{onOpen: Function, onClose: Function, onChange: Function, onReset: Function}} */
+  /**
+   * Visually hidden text inside the trigger that says a filter is in force. The active dot is a pseudo-element, which
+   * assistive tech never announces, so without this a screen reader user has no way to learn the imagery is altered.
+   * @type {HTMLSpanElement|null}
+   */
+  #activeText = null;
+
+  /**
+   * @type {{onOpen: Function, onClose: Function, onChange: Function, onReset: Function,
+   *   placement: 'right'|'below'|(() => 'right'|'below')}}
+   */
   #hooks;
 
   /**
@@ -61,6 +81,9 @@ class PanoImageAdjustmentsPopover {
    * @param {(values: Record<string, number>) => void} [hooks.onChange] - Called once per committed slider change
    *     (the `change` event, i.e. on release), with the resulting values. Not called per pixel of drag.
    * @param {() => void} [hooks.onReset] - Called when the Reset button is used.
+   * @param {'right'|'below'|(() => 'right'|'below')} [hooks.placement] - Which side of the trigger the panel opens
+   *     on, or a function asked on every open and resize for a page whose layout changes (Explore's full screen).
+   *     Defaults to 'right'. Either side falls back to the other when the viewport has no room for it.
    */
   constructor(model, button, popover, hooks = {}) {
     this.#model = model;
@@ -71,6 +94,7 @@ class PanoImageAdjustmentsPopover {
       onClose: hooks.onClose || (() => {}),
       onChange: hooks.onChange || (() => {}),
       onReset: hooks.onReset || (() => {}),
+      placement: hooks.placement || 'right',
     };
 
     if (!this.#button || !this.#popover) {
@@ -82,6 +106,13 @@ class PanoImageAdjustmentsPopover {
     this.#button.setAttribute('aria-expanded', 'false');
     this.#button.setAttribute('aria-controls', this.#popover.id);
     this.#button.setAttribute('aria-haspopup', 'dialog');
+    this.#activeText = this.#button.querySelector('.pano-image-adjustments-active-text');
+    if (!this.#activeText) {
+      this.#activeText = document.createElement('span');
+      this.#activeText.className = 'sr-only pano-image-adjustments-active-text';
+      this.#activeText.hidden = true;
+      this.#button.appendChild(this.#activeText);
+    }
     // Without the Popover API the panel is an ordinary off-screen element, which Tab and screen readers would still
     // reach; `hidden` keeps it out of both until opened.
     if (typeof this.#popover.showPopover !== 'function') this.#popover.setAttribute('hidden', '');
@@ -103,13 +134,10 @@ class PanoImageAdjustmentsPopover {
       if (this.isOpen() && !this.#popover.contains(target) && !this.#button.contains(target)) this.close('outside');
     });
     // Tabbing out of the panel closes it too, so the page's shortcuts don't stay suspended behind an open panel
-    // the keyboard user has moved on from.
-    this.#popover.addEventListener('focusout', (e) => {
-      const next = /** @type {Node|null} */ (e.relatedTarget);
-      if (this.isOpen() && next && !this.#popover.contains(next) && !this.#button.contains(next)) {
-        this.close('focusout');
-      }
-    });
+    // the keyboard user has moved on from. The trigger listens as well: with the trigger as the popover's source,
+    // Shift+Tab from the first slider lands on the trigger, and the next Shift+Tab leaves from there.
+    this.#popover.addEventListener('focusout', this.#closeIfFocusLeft);
+    this.#button.addEventListener('focusout', this.#closeIfFocusLeft);
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && this.isOpen()) {
         e.stopPropagation();
@@ -132,17 +160,24 @@ class PanoImageAdjustmentsPopover {
     this.#render();
   }
 
-  /** @returns {boolean} */
+  /**
+   * Optional-chained because KeyboardManager asks on every keydown, and a page missing the trigger still constructs
+   * this object (the constructor logs and returns early); throwing there would kill every shortcut.
+   * @returns {boolean}
+   */
   isOpen() {
-    return this.#button.getAttribute('aria-expanded') === 'true';
+    return this.#button?.getAttribute('aria-expanded') === 'true';
   }
 
-  /** Opens the panel below the trigger and moves focus to the first slider. */
+  /** Opens the panel on the side of the trigger the placement hook names and moves focus to the first slider. */
   open() {
     if (this.isOpen()) return;
     this.#button.setAttribute('aria-expanded', 'true');
     if (typeof this.#popover.showPopover === 'function') {
-      this.#popover.showPopover();
+      // Naming the trigger as the source puts the popover right after it in sequential focus order, so Tab or
+      // Shift+Tab out of the panel lands beside the pill instead of wherever the partial sits in the page. Browsers
+      // that predate the options dictionary ignore it.
+      this.#popover.showPopover({ source: this.#button });
     } else {
       this.#popover.removeAttribute('hidden');
     }
@@ -168,6 +203,18 @@ class PanoImageAdjustmentsPopover {
     this.#hooks.onClose(via);
     if (hadFocus) this.#button.focus();
   }
+
+  /**
+   * Closes the panel when focus moves somewhere outside both it and its trigger. A null `relatedTarget` (focus going
+   * to the body, or the window losing focus) is ignored, so switching tabs doesn't dismiss the panel.
+   * @param {FocusEvent} e
+   */
+  #closeIfFocusLeft = (e) => {
+    const next = /** @type {Node|null} */ (e.relatedTarget);
+    if (this.isOpen() && next && !this.#popover.contains(next) && !this.#button.contains(next)) {
+      this.close('focusout');
+    }
+  };
 
   /** Binds each `[data-adjust]` slider to its control: range from SPECS, `input` applies, `change` logs. */
   #wireSliders() {
@@ -199,6 +246,14 @@ class PanoImageAdjustmentsPopover {
     }
     if (this.#resetButton) this.#resetButton.disabled = atDefault;
     this.#button.classList.toggle(PanoImageAdjustmentsPopover.ACTIVE_CLASS, !atDefault);
+    if (this.#activeText) {
+      // Read at render time rather than once at construction, so the text follows i18next however late it is ready.
+      // The leading space keeps the pill's accessible name from running "Image" and this text together.
+      if (!atDefault && typeof i18next !== 'undefined') {
+        this.#activeText.textContent = ` ${i18next.t('common:image-adjustments.active-sr')}`;
+      }
+      this.#activeText.hidden = atDefault;
+    }
   }
 
   /**
@@ -212,7 +267,11 @@ class PanoImageAdjustmentsPopover {
     return `${value}%`;
   }
 
-  /** Places the panel to the right of the trigger, so it doesn't cover the menu buttons under it. */
+  /**
+   * Places the panel on the side of the trigger the placement hook names, keeping it off the pills that continue the
+   * trigger's row or column. When that side has no room it falls back to the other, and the result is clamped to
+   * the viewport either way.
+   */
   #position() {
     const uiScale = typeof util !== 'undefined' && util.uiScale
       ? util.uiScale()
@@ -221,13 +280,17 @@ class PanoImageAdjustmentsPopover {
     const margin = 8;
     const btn = this.#button.getBoundingClientRect();
     const pop = this.#popover.getBoundingClientRect();
-    let left = btn.right + gap;
-    let top = btn.top;
-    // No room on the right: fall back to below the button.
-    if (left + pop.width > window.innerWidth - margin) {
-      left = Math.max(margin, Math.min(btn.left, window.innerWidth - pop.width - margin));
-      top = btn.bottom + gap;
+    const { placement } = this.#hooks;
+    const side = typeof placement === 'function' ? placement() : placement;
+    const right = { left: btn.right + gap, top: btn.top };
+    const below = { left: btn.left, top: btn.bottom + gap };
+    let { left, top } = side === 'below' ? below : right;
+    if (side === 'below' && top + pop.height > window.innerHeight - margin) {
+      ({ left, top } = right);
+    } else if (side !== 'below' && left + pop.width > window.innerWidth - margin) {
+      ({ left, top } = below);
     }
+    left = Math.max(margin, Math.min(left, window.innerWidth - pop.width - margin));
     top = Math.max(margin, Math.min(top, window.innerHeight - pop.height - margin));
     this.#popover.style.left = `${Math.round(left)}px`;
     this.#popover.style.top = `${Math.round(top)}px`;

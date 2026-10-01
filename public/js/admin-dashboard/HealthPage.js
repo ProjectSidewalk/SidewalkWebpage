@@ -11,6 +11,7 @@ class HealthPage {
   #thresholds = null;
   #loading = false;
   #lastUpdatedMs = null;
+  #panosHtml = null; // Last pano markup drawn, so a poll with nothing new leaves the focusable cards alone.
 
   /**
    * @param {object} opts
@@ -106,7 +107,7 @@ class HealthPage {
     const label = tone === 'good' ? 'All clear' : 'Needs attention';
     const detail = problems.length
       ? ` — ${problems.map((p) => AdminShell.esc(p)).join(', ')}`
-      : ' — no blocking locks, stuck evolutions, or long idle transactions right now.';
+      : ' — nothing blocking, stuck, or idle too long.';
     AdminShell.setHtml('health-pulse', `<span class="ac-badge ac-badge--${tone}">${label}</span>${detail}`);
   }
 
@@ -141,9 +142,8 @@ class HealthPage {
     if (data.can_see_all_queries === false) {
       // Without pg_read_all_stats Postgres nulls out other sessions' state/wait/query, so those rows drop out of the
       // state-filtered panels entirely — say so, rather than implying only the query text is missing.
-      parts.push(`role lacks <code>pg_read_all_stats</code> (usually granted via <code>pg_monitor</code>): other
-        sessions' state and query are hidden, so the idle-transaction and long-query panels show only this app's own
-        sessions`);
+      parts.push(`role lacks <code>pg_read_all_stats</code> (usually via <code>pg_monitor</code>), so the
+        idle-transaction and long-query panels show only this app's own sessions`);
     }
     AdminShell.setHtml('health-meta', parts.join(' · '));
   }
@@ -235,7 +235,7 @@ class HealthPage {
   // ---- Panel: table bloat ----------------------------------------------------------------------------------------
 
   #renderBloat(rows) {
-    if (!rows.length) return this.#renderEmpty('health-bloat', 'No stats for the heavyweight tables.');
+    if (!rows.length) return this.#renderEmpty('health-bloat', 'No stats for the largest tables.');
     const body = rows.map((r) => {
       const tone = this.#bloatTone(r);
       const ratioPct = AdminShell.nil(r.dead_ratio) ? '—' : `${(r.dead_ratio * 100).toFixed(1)}%`;
@@ -301,7 +301,10 @@ class HealthPage {
   // ---- Panel: pano downloads -------------------------------------------------------------------------------------
 
   #renderPanos(p) {
-    if (!p) return this.#renderEmpty('health-panos', 'Pano backup stats are unavailable.');
+    if (!p) {
+      this.#panosHtml = null;
+      return this.#renderEmpty('health-panos', 'Pano backup stats are unavailable.');
+    }
     // Every count is a share of labeled panos, so show its percentage alongside the raw number.
     const share = (n) => (p.labeled_panos > 0 ? Math.round((n / p.labeled_panos) * 100) : 0);
     const atRiskValue = p.at_risk > 0
@@ -311,23 +314,24 @@ class HealthPage {
       { value: HealthPage.#compact(p.labeled_panos), label: 'Labeled panos',
         title: 'Distinct panos that have at least one label.' },
       { value: HealthPage.#compact(p.backed_up), label: `Backed up (${share(p.backed_up)}%)`,
-        title: 'Have a locally-hosted backup image.' },
+        title: 'Has a local backup image.' },
       { value: HealthPage.#compact(p.unchecked), label: `Unchecked (${share(p.unchecked)}%)`,
-        title: 'Backup status not yet determined — refreshed lazily by the nightly imagery job.' },
+        title: 'Backup status not checked yet.' },
       { value: HealthPage.#compact(p.no_backup), label: `No backup (${share(p.no_backup)}%)`,
-        title: 'Checked, but no local backup exists.' },
+        title: 'Checked; no local backup exists.' },
       { value: atRiskValue, label: `At risk (${share(p.at_risk)}%)`,
-        title: 'Source imagery has expired and there is no local backup, so these labels can no longer be shown.' },
+        title: 'Source imagery expired and no local backup exists, so these labels can’t be shown.' },
     ];
     const html = cards.map((c) => `
-        <div class="ps-kpi" title="${AdminShell.esc(c.title)}">
+        <div class="ps-kpi" tabindex="0" data-ps-tooltip="${AdminShell.esc(c.title)}">
           <span class="ps-kpi-value">${c.value}</span>
           <span class="ps-kpi-label">${c.label}</span>
         </div>`).join('');
-    AdminShell.setHtml('health-panos', `<div class="ps-kpis">${html}</div>`);
+    // Redrawing would destroy a card that has keyboard focus and drop the reader back to the top of the page.
+    if (html !== this.#panosHtml) AdminShell.setHtml('health-panos', `<div class="ps-kpis">${html}</div>`);
+    this.#panosHtml = html;
     AdminShell.setHtml('health-panos-note',
-      'Backup status is refreshed lazily by the nightly imagery check, so a large "unchecked" count is normal '
-      + 'and these figures approximate what is actually on disk.');
+      'Backup status fills in nightly, so a large "unchecked" count is normal.');
   }
 
   // ---- Panel: nightly jobs ---------------------------------------------------------------------------------------
@@ -346,7 +350,7 @@ class HealthPage {
     // healthy "nothing scheduled" — rendering it as the latter would be the exact blind spot this panel exists for.
     if (jobs.length === 0) {
       return this.#renderProblem('health-jobs',
-        'Could not read the nightly-job history — this panel is blind, not clear.');
+        'Could not read the nightly-job history. This panel is blind, not clear.');
     }
     const t = this.#thresholds;
     // A status this page has not been taught sorts most-urgent (AdminShell.jobStatusBadge tones it to match):

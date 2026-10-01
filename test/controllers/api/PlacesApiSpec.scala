@@ -1,19 +1,19 @@
 package controllers.api
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsNull, JsObject}
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Locks the response contract of the v3 Places API (#5311): GET /v3/api/places returns a GeoJSON FeatureCollection by
@@ -25,15 +25,15 @@ import scala.concurrent.duration._
  * Boots the real application (real Slick/PostGIS) and exercises the routes end to end. The endpoint is
  * `UserAwareAction` (no auth needed); the eager scheduling actors are disabled so they don't fire background work.
  */
-class PlacesApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class PlacesApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .build()
 
   // Chunked GeoJSON/CSV bodies need a real Materializer to consume (the test default NoMaterializer only does strict).
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   // A tiny near-empty bbox keeps the streamed body cheap regardless of how much data the connected DB holds.
   private val tinyBbox = "bbox=0,0,0.001,0.001"

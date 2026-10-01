@@ -26,6 +26,7 @@ class ZoomControl {
    * Logs interaction when the zoom in button is clicked.
    */
   #clickZoomIn = () => {
+    if (this.#zoomInButton.getAttribute('aria-disabled') === 'true') return;
     svv.tracker.push('Click_ZoomIn');
     this.zoomIn();
   };
@@ -34,6 +35,7 @@ class ZoomControl {
    * Logs interaction when the zoom out button is clicked.
    */
   #clickZoomOut = () => {
+    if (this.#zoomOutButton.getAttribute('aria-disabled') === 'true') return;
     svv.tracker.push('Click_ZoomOut');
     this.zoomOut();
   };
@@ -96,8 +98,8 @@ class ZoomControl {
    */
   updateZoomAvailability() {
     const zoomLevel = svv.panoViewer.getPov().zoom;
-    // The `disabled` class greys the button out; see pano-overlay-buttons.css.
-    this.#zoomInButton.classList.toggle('disabled', zoomLevel >= 3);
-    this.#zoomOutButton.classList.toggle('disabled', zoomLevel <= 1);
+    // `aria-disabled` greys the button out but lets it keep keyboard focus; see pano-overlay-buttons.css.
+    this.#zoomInButton.setAttribute('aria-disabled', String(zoomLevel >= 3));
+    this.#zoomOutButton.setAttribute('aria-disabled', String(zoomLevel <= 1));
   }
 }

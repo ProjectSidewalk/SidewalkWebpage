@@ -1,7 +1,7 @@
 package formats.json
 
 import models.route.RouteWithStats
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, Reads, Writes}
 
 import java.time.OffsetDateTime
@@ -21,26 +21,26 @@ object RouteBuilderFormats {
    */
   case class RouteUpdate(name: Option[String], description: Option[String], streets: Option[Seq[NewRouteStreet]])
 
-  implicit val newRouteStreetReads: Reads[NewRouteStreet] = (
+  given newRouteStreetReads: Reads[NewRouteStreet] = (
     (JsPath \ "street_id").read[Int] and
       (JsPath \ "reverse").read[Boolean]
-  )(NewRouteStreet.apply _)
+  )(NewRouteStreet.apply)
 
   // A zero-street route can't be explored: its mission has no distance, so opening its share link 500s Explore.
   // It's also invisible in listings (they inner-join route_street), so its owner couldn't delete it either.
-  implicit val newRouteReads: Reads[NewRoute] = (
-    (JsPath \ "streets").read[Seq[NewRouteStreet]](Reads.minLength[Seq[NewRouteStreet]](1)) and
+  given newRouteReads: Reads[NewRoute] = (
+    (JsPath \ "streets").read[Seq[NewRouteStreet]](using Reads.minLength[Seq[NewRouteStreet]](1)) and
       (JsPath \ "name").readNullable[String] and
       (JsPath \ "description").readNullable[String]
-  )(NewRoute.apply _)
+  )(NewRoute.apply)
 
-  implicit val routeUpdateReads: Reads[RouteUpdate] = (
+  given routeUpdateReads: Reads[RouteUpdate] = (
     (JsPath \ "name").readNullable[String] and
       (JsPath \ "description").readNullable[String] and
       (JsPath \ "streets").readNullable[Seq[NewRouteStreet]]
-  )(RouteUpdate.apply _)
+  )(RouteUpdate.apply)
 
-  implicit val routeWithStatsWrites: Writes[RouteWithStats] = (
+  given routeWithStatsWrites: Writes[RouteWithStats] = (
     (JsPath \ "route_id").write[Int] and
       (JsPath \ "region_id").write[Int] and
       (JsPath \ "region_name").write[String] and
@@ -55,5 +55,5 @@ object RouteBuilderFormats {
       (JsPath \ "completed_count").write[Int] and
       (JsPath \ "encoded_polyline").write[String] and
       (JsPath \ "thumbnail_url").write[String]
-  )(unlift(RouteWithStats.unapply))
+  )((o: RouteWithStats) => Tuple.fromProductTyped(o))
 }

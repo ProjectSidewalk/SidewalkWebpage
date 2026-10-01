@@ -45,7 +45,7 @@ class AccessScoreWhatsHere extends AccessScoreChart {
       const segments = rated
         ? Object.keys(buckets).map((b) => `<span class="acs-whats-here__segment" data-bucket="${b}"></span>`)
         : ['<span class="acs-whats-here__segment acs-whats-here__segment--unrated" data-bucket="all"></span>'];
-      const longName = AccessScoreChart.esc(AccessScoreChart.typeName(type));
+      const longName = AccessScoreChart.esc(util.misc.labelTypeName(type));
       const shortName = AccessScoreChart.esc(AccessScoreWhatsHere.#shortName(type));
       li.innerHTML = `
         <span class="acs-whats-here__type">
@@ -87,7 +87,7 @@ class AccessScoreWhatsHere extends AccessScoreChart {
     const max = Math.max(1, ...data.rows.map((r) => r.count));
     for (const r of data.rows) {
       const row = this.#rows.get(r.type);
-      const name = AccessScoreChart.typeName(r.type);
+      const name = util.misc.labelTypeName(r.type);
       row.li.classList.toggle('acs-whats-here__row--none', r.count === 0);
       row.bar.style.width = `${(r.count / max) * 100}%`;
       if (r.rated) {

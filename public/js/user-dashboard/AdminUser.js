@@ -58,9 +58,11 @@ class AdminUser {
       block.querySelector('.ud-admin-flag-remove').addEventListener('click', () => this.#setFlags(block, false));
     });
 
+    const shortDateTime = new Intl.DateTimeFormat(i18next.language, util.SHORT_DATE_TIME);
     document.querySelectorAll('time.ud-admin-ts').forEach((el) => {
       const at = new Date(el.getAttribute('datetime'));
-      if (!Number.isNaN(at.getTime())) el.textContent = moment(at).format('lll');
+      if (Number.isNaN(at.getTime())) return;
+      el.textContent = shortDateTime.format(at);
     });
 
     this.#loadHours();

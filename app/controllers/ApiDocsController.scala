@@ -4,7 +4,7 @@ import controllers.base.{CustomBaseController, CustomControllerComponents}
 import play.api.Configuration
 import service.ConfigService
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
 
 /**
@@ -14,11 +14,10 @@ import scala.concurrent.ExecutionContext
 class ApiDocsController @Inject() (
     cc: CustomControllerComponents,
     val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService
-)(implicit ec: ExecutionContext)
+)(using assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   /**
    * Displays API documentation index/introduction page.

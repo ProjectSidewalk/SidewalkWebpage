@@ -364,13 +364,27 @@
   font-display: swap;
 }
 
-html,
-body {
-  font-family: var(--font-primary);
-  color: var(--color-neutral-black);
+/* Base element styles. Keep this short; a page's own look belongs in its own stylesheet. */
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+/* Phone Safari otherwise enlarges text when the phone turns to landscape, and flashes a grey box on every tap. */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
+  margin: 0;
+
+  /* Not --text-body-regular: that token scales with --ui-scale, which the tools set on <html>, and the chrome around
+     a tool must not. The leading is a ratio so text that only sets a font-size doesn't inherit a fixed 22px. */
+  font: 400 16px/1.375 var(--font-primary);
+  color: var(--color-neutral-black);
+  background-color: var(--color-neutral-white);
   overflow-x: clip; /* Prevent horizontal scroll on narrow devices */
 
   /* Offsets content below the fixed navbar, plus the test-server banner when present. --test-banner-height is
@@ -395,32 +409,127 @@ html.chromeless body {
   padding-top: 0;
 }
 
-.spacer10 { height: 10px; }
-.spacer20 { height: 20px; }
+/* No color: headings inherit it so they read on dark overlays and tinted sections. */
+h1, h2, h3, h4, h5, h6 {
+  margin: var(--space-xl) 0 var(--space-md);
+  scroll-margin-top: 85px; /* Clears the fixed navbar, so an anchor jump lands with its heading visible. */
+}
 
-/*
- * Accessibility styling updates.
- */
+h1 { font: var(--text-h1-bold); }
+h2 { font: var(--text-h2-bold); }
+h3 { font: var(--text-h3-bold); }
+h4 { font: var(--text-title-medium); }
+h5 { font: var(--text-subtitle-medium); }
+h6 { font: var(--text-body-medium); }
+
+p,
+ul,
+ol {
+  margin: 0 0 var(--space-md);
+}
+
+ul ul,
+ul ol,
+ol ul,
+ol ol {
+  margin-bottom: 0;
+}
+
+figure {
+  margin: 0;
+}
+
+/* The browser's `bolder` would step a 700 parent up to 900. */
+b,
+strong {
+  font-weight: 700;
+}
+
+img {
+  vertical-align: middle;
+}
 
 /* A hairline sitting clear of the descenders, rather than the browser's thick baseline-hugging default. */
 a {
   color: var(--color-link-200);
+  text-decoration: none;
   text-decoration-thickness: calc(1px * var(--ui-scale, 1));
   text-underline-offset: calc(2px * var(--ui-scale, 1));
 }
 
-/* Replacing bootstrap 3 colors with bootstrap 5, which have a better color contrast. */
-.btn-primary {
-  background-color: var(--color-link-200);
-  border: var(--color-link-200);
+a:hover {
+  text-decoration: underline;
 }
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  margin: 0;
+}
+
+/* Safari draws a search box as a rounded pill with its own clear button; ours are styled like every other input. */
+input[type="search"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input[type="search"]::-webkit-search-decoration,
+input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Anything switched off shows the "not allowed" cursor. Buttons and inputs take the `disabled` attribute, a control
+   that has to keep keyboard focus takes `aria-disabled="true"`, and anything else takes `.is-disabled`. */
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* !important so the cursor beats the `cursor: pointer` of whatever component the element belongs to. */
+.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+/* The mouse passes through to the switched-off element itself, so its children neither react nor hide the cursor. */
+.is-disabled > * {
+  pointer-events: none;
+}
+
+/* Visually hidden, still read by screen readers. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Centered page column. */
+.ps-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-md);
+}
+
 
 /*
  * Custom styles
  */
 
-/* TODO when we get rid of bootstrap, can rename this to just "button". */
-.button-ps {
+.button {
   border: none;
   display: inline-flex;
   align-items: center;
@@ -431,21 +540,8 @@ a {
   cursor: pointer;
 }
 
-.button-ps:hover {
+.button:hover {
   text-decoration: none;
-}
-
-.button-ps:disabled {
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-/* TODO This one is used in the navbar, which we aren't scaling with --ui-scale. Need to address this another way. */
-.button__static--tiny {
-  font-size: 12px;
-  font-style: var(--font-primary);
-  padding: 3px 10px;
-  border-radius: 8px;
 }
 
 .button--tiny {
@@ -510,6 +606,7 @@ a {
 }
 
 .button--secondary:disabled {
+  background-color: var(--color-neutral-white);
   color: var(--color-neutral-500);
   outline: 1px solid var(--color-neutral-500);
 }
@@ -560,6 +657,10 @@ textarea.ps-input {
 .ps-select:disabled {
   background-color: var(--color-neutral-100);
   color: var(--color-neutral-600);
+}
+
+/* A locked field can still be read and copied from, so only a switched-off one gets the "not allowed" cursor. */
+.ps-input:read-only:not([type="file"], :disabled) {
   cursor: default;
 }
 
@@ -739,7 +840,7 @@ textarea.ps-input {
   padding: 0 4.5%;
 }
 
-.navbar-lnk {
+.navbar-item {
   display: inline;
   margin-left: 8px;
   position: relative; /* Anchor each dropdown panel beneath its own trigger. */
@@ -747,13 +848,13 @@ textarea.ps-input {
 
 #navbar {
   flex: 1;
-  display: flex !important;
+  display: flex;
   align-items: center;
   justify-content: space-between; /* Primary nav left, utility (city/account/language) right. */
   gap: 4px;
 }
 
-.navbar-toggle {
+.navbar-menu-toggle {
   display: none; /* Shown only at the mobile breakpoint below. */
   border: none;
   background: transparent;
@@ -763,7 +864,7 @@ textarea.ps-input {
   color: var(--color-asphalt-500);
 }
 
-.navbar-toggle-icon {
+.navbar-menu-toggle-icon {
   display: block;
   width: 24px;
   height: 24px;
@@ -782,7 +883,7 @@ textarea.ps-input {
   width: 16px;
 }
 
-.navbar-nav > li > .navbar-button {
+.navbar-list > li > .navbar-button {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -803,7 +904,7 @@ textarea.ps-input {
   transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.navbar-nav > li > .navbar-button#language-button {
+.navbar-list > li > .navbar-button#language-button {
   padding: 4px 12px;
 }
 
@@ -811,19 +912,19 @@ textarea.ps-input {
  * The bar splits into two semantic groups: left = text-link destinations, right = bordered-pill state selectors
  * (city / account / language). The styling backs that split so yellow is reserved for the active indicator and CTAs.
  */
-.navbar-nav > li > .navbar-button:hover {
+.navbar-list > li > .navbar-button:hover {
   color: var(--color-asphalt-700);
   background-color: var(--color-asphalt-100);
 }
 
 /* Active destination: weight + a gold underline (never color-only), paired with aria-current in the markup. */
-.navbar-nav--primary > li > .navbar-button.is-active {
+.navbar-list--primary > li > .navbar-button.is-active {
   position: relative;
   color: var(--color-asphalt-700);
   font-weight: 700;
 }
 
-.navbar-nav--primary > li > .navbar-button.is-active::after {
+.navbar-list--primary > li > .navbar-button.is-active::after {
   content: "";
   position: absolute;
   left: 10px;
@@ -835,7 +936,7 @@ textarea.ps-input {
 }
 
 /* Divider between the brand lockup and the primary destinations. */
-.navbar-nav--primary::before {
+.navbar-list--primary::before {
   content: "";
   align-self: center;
   width: 1px;
@@ -846,7 +947,7 @@ textarea.ps-input {
 
 /* Leading icon on a top-level destination. The inline bar keeps its destinations as plain text links, so this shows
    only in the stacked hamburger panel (see the breakpoint below). */
-.navbar-lnk-icon {
+.navbar-item-icon {
   display: none;
   width: 16px;
   height: 16px;
@@ -861,51 +962,58 @@ textarea.ps-input {
 }
 
 /* Right group: state selectors read as bordered pills, grouped tighter than the destinations. */
-.navbar-nav--utility {
+.navbar-list--utility {
   gap: 6px;
 }
 
-.navbar-nav--utility .navbar-lnk {
+.navbar-list--utility .navbar-item {
   margin-left: 0;
 }
 
-.navbar-nav--utility > li > .navbar-button {
+.navbar-list--utility > li > .navbar-button {
   border: 1px solid var(--color-neutral-300);
   border-radius: 99px;
   padding: 4px 12px;
 }
 
-.navbar-nav--utility > li > .navbar-button:hover {
+.navbar-list--utility > li > .navbar-button:hover {
   background-color: var(--color-asphalt-100);
   border-color: var(--color-neutral-400);
 }
 
 /* Active selector pill (a page from its menu is current): a filled brand-yellow pill clearly marks the section. */
-.navbar-nav--utility > li > .navbar-button.is-active {
+.navbar-list--utility > li > .navbar-button.is-active {
   background-color: var(--color-banana-300);
   border-color: var(--color-banana-300);
   color: var(--color-neutral-black);
   font-weight: 700;
 }
 
-.navbar-nav--utility > li > .navbar-button.is-active:hover {
+.navbar-list--utility > li > .navbar-button.is-active:hover {
   background-color: var(--color-banana-500);
   border-color: var(--color-banana-500);
 }
 
-.navbar-nav > li > .navbar-button:focus {
+.navbar-list > li > .navbar-button:focus {
   outline: none;
 }
 
-.navbar-nav > li > .navbar-button:focus-visible,
-.navbar-toggle:focus-visible,
+.navbar-list > li > .navbar-button:focus-visible,
+.navbar-menu-toggle:focus-visible,
 .nav-city-search:focus-visible {
   outline: 2px solid var(--color-banana-800);
   outline-offset: 2px;
 }
 
-.caret {
+.navbar-caret {
+  display: inline-block;
+  width: 0;
+  height: 0;
   margin-left: 2px;
+  vertical-align: middle;
+  border-top: 4px solid;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
 }
 
 /* Taller navbar variant used on the landing page (and removed on scroll). */
@@ -916,7 +1024,7 @@ textarea.ps-input {
 /* In the taller landing bar the row inherits the base .navbar-container centering, so brand + nav + divider sit
    vertically centered in the 50px bar. The divider is lengthened to suit the taller bar; the compact scrolled bar
    keeps the base 22px. */
-#header.header--tall .navbar-nav--primary::before {
+#header.header--tall .navbar-list--primary::before {
   height: 30px;
 }
 
@@ -974,8 +1082,6 @@ textarea.ps-input {
   background-position: center;
   background-repeat: no-repeat;
   background-size: cover;
-  display: flex;
-  justify-content: center;
   color: var(--color-asphalt-500);
   font-size: 12px;
   line-height: 1.8em;
@@ -985,10 +1091,6 @@ textarea.ps-input {
 #footer-container a {
   color: var(--color-asphalt-500);
   cursor: pointer;
-}
-
-.footer-link {
-  color: var(--color-asphalt-500);
 }
 
 /* Brand marks in the "Connect" links (markup in common/socialIcon.scala.html). They fill with the link's own text
@@ -1004,6 +1106,7 @@ textarea.ps-input {
   position: relative;
   width: 100%;
   min-height: 220px;
+  padding: var(--space-lg) 0;
   background-color: var(--color-asphalt-500);
   text-align: center;
   font-family: var(--font-accent);
@@ -1021,50 +1124,53 @@ textarea.ps-input {
   text-decoration:underline;
 }
 
-/* The three columns don't fill the 900px evenly, so centering the row alone leaves the group visibly left of centre;
-   the offset is what makes the *content* read as centered. */
-#footer-container .footer-links-row {
-  width: 900px;
-  position: relative;
-  left: 80px;
+/* Sized to the columns' own widths rather than thirds of the page: their contents aren't equally wide, so equal
+   thirds read as off-center. */
+.footer-links-row {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-xxl);
+  padding: 0 var(--space-md);
 }
 
-/*
- * Below the width that fits 900px plus that 80px offset, both turn into overflow: the row is laid out past the right
- * edge, which widens the page. Every page carries this footer, so every page scrolled sideways on a phone — and since
- * the navbar is fixed to the initial containing block that the overflow widens, the navbar was laid out wider than
- * the screen too, pushing the hamburger off it (#4857).
- *
- * Bootstrap's gutters have to go with it: .row pulls itself 15px wider on each side expecting a block container to
- * absorb the difference, and #footer-container is a flex container, so that width lands outside the viewport instead.
- * The columns keep their own padding, which is what still indents the text once the row stops overhanging.
- */
-@media (width <= 1060px) {
-  #footer-container .footer-links-row {
-    width: 100%;
-    left: 0;
-    margin-left: 0;
-    margin-right: 0;
+.footer-link {
+  min-width: 160px;
+  color: var(--color-asphalt-500);
+}
+
+/* var(--breakpoint-sm) */
+@media (width <= 767px) {
+  .footer-links-row {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+    text-align: center;
   }
 }
 
-#info-footer .footer-logos-row {
+.footer-logos-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xl);
   max-width: 1000px;
-  margin: 0 auto;
+  margin: 0 auto var(--space-lg);
+  padding: 0 var(--space-md);
 }
 
-#google-link img {
-  margin-top: 20px;
+.footer-logo-nsf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 #sloan-link img {
   width: 200px;
-  margin-top: 20px;
 }
 
 #create-link img {
   width: 160px;
-  margin-top: 10px;
 }
 
 /* Pano Info Popover styling. */
@@ -1241,27 +1347,10 @@ textarea.ps-input {
   outline-offset: 2px;
 }
 
-/* Sized as a multiple of its own column because the award text is far wider than the narrow .col-sm-1 it sits under,
-   and pulled back left by the matching offset so it stays under the NSF logo. */
 #award-num {
-  font-size:10px;
-  color:#c0becf;
-  width: 220%;
-  right: 35%;
-}
-
-/*
- * Below Bootstrap's sm breakpoint the columns stop floating and stack full-width, so a percentage picked for a narrow
- * column becomes multiples of the viewport — 220% of 737px is 1621px of page, and the fixed navbar is sized from the
- * containing block that widens with it (#4857). Keyed on `width` because the viewport is what the columns lay out
- * against: `device-width` is the physical screen, which ignores a resized desktop window entirely and reports the
- * wrong dimension on a rotated tablet.
- */
-@media (width <= 767px) {
-  #award-num {
-    width: 100%;
-    right: 0;
-  }
+  font-size: 10px;
+  color: var(--color-asphalt-100);
+  white-space: nowrap;
 }
 
 #funding-title {
@@ -1269,7 +1358,6 @@ textarea.ps-input {
 }
 
 kbd {
-  /* overriding bootstraps's ugly kbd tag */
   background-color: var(--color-neutral-white);
   box-shadow: 0 1px 0 rgb(0 0 0 / 20%);
   border: 1px solid rgb(0 0 0 / 20%);
@@ -1507,7 +1595,7 @@ kbd {
   }
 }
 
-.navbar-nav {
+.navbar-list {
   display: flex;
   align-items: center;
   list-style: none;
@@ -1519,13 +1607,13 @@ kbd {
   flex: none;
 }
 
-.navbar-nav > li {
+.navbar-list > li {
   flex: none;
 }
 
 /* Applied by Navbar.js to items dropped from the inline bar; each one stays reachable elsewhere (site footer, or
    the Tools menu for Label Map), and all of them return in the stacked hamburger panel. */
-.navbar-nav > li.is-shed {
+.navbar-list > li.is-shed {
   display: none;
 }
 
@@ -1543,12 +1631,12 @@ kbd {
   text-overflow: ellipsis;
 }
 
-/* Dropdown panels are hidden until Navbar.js adds .is-open to the wrapping .navbar-lnk. */
-.navbar-lnk > .dropdown-menu {
+/* Dropdown panels are hidden until Navbar.js adds .is-open to the wrapping .navbar-item. */
+.navbar-item > .navbar-menu {
   display: none;
 }
 
-.navbar-lnk.is-open > .dropdown-menu {
+.navbar-item.is-open > .navbar-menu {
   position: absolute;
   top: 100%;
   right: 0;
@@ -1567,11 +1655,11 @@ kbd {
   box-shadow: 0 6px 16px rgb(0 0 0 / 17.5%);
 }
 
-.dropdown-menu li {
+.navbar-menu li {
   list-style: none;
 }
 
-.dropdown-menu li > a {
+.navbar-menu li > a {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -1583,47 +1671,47 @@ kbd {
 }
 
 /* Leading icon on a menu item; sized to the 13px item text, never shrinking as labels get long. */
-.dropdown-icon {
+.navbar-menu-icon {
   width: 16px;
   height: 16px;
   flex: none;
   opacity: 0.75;
 }
 
-.dropdown-menu li > a:hover .dropdown-icon,
-.dropdown-menu li > a:focus .dropdown-icon,
-.dropdown-menu li > a.is-active .dropdown-icon {
+.navbar-menu li > a:hover .navbar-menu-icon,
+.navbar-menu li > a:focus .navbar-menu-icon,
+.navbar-menu li > a.is-active .navbar-menu-icon {
   opacity: 1;
 }
 
 /* Rule setting Sign out apart from the destinations above it. */
-.dropdown-divider {
+.navbar-menu-divider {
   height: 1px;
   margin: 6px 0;
   background-color: var(--color-neutral-200);
 }
 
-.dropdown-menu li > a:hover,
-.dropdown-menu li > a:focus {
+.navbar-menu li > a:hover,
+.navbar-menu li > a:focus {
   background-color: #FCECBE;
   color: var(--color-asphalt-700);
   outline: none;
 }
 
-.dropdown-menu li > a:focus-visible {
+.navbar-menu li > a:focus-visible {
   outline: 2px solid var(--color-banana-800);
   outline-offset: -2px;
 }
 
 /* Active menu item (its page is current): weight + a gold rail, echoing the top-level underline. */
-.dropdown-menu li > a.is-active {
+.navbar-menu li > a.is-active {
   font-weight: 700;
   color: var(--color-asphalt-700);
   box-shadow: inset 3px 0 0 var(--color-banana-600);
 }
 
 /* Non-interactive section labels grouping a menu's items. */
-.dropdown-section {
+.navbar-menu-section {
   padding: 12px 16px 2px;
   font-size: 10px;
   font-weight: 700;
@@ -1633,7 +1721,7 @@ kbd {
   pointer-events: none;
 }
 
-.dropdown-section:first-child {
+.navbar-menu-section:first-child {
   padding-top: 2px;
 }
 
@@ -1642,7 +1730,7 @@ kbd {
   width: 260px;
 }
 
-.navbar-lnk.is-open > .dropdown-menu.nav-city-panel {
+.navbar-item.is-open > .navbar-menu.nav-city-panel {
   padding: 0;
   overflow: hidden;
 }
@@ -1733,10 +1821,7 @@ kbd {
 
 .tool-ui {
   position: relative;
-}
-
-.dropdown-toggle {
-  margin-top: 0;
+  margin: 0 auto;
 }
 
 /* Overlay box - start */
@@ -1818,10 +1903,6 @@ kbd {
   font-size: 14px;
   font-weight: normal;
   width: 175px;
-}
-
-#your-overall-total {
-  border-top: 3px solid #999999;
 }
 
 #validation-button-holder {
@@ -2026,18 +2107,18 @@ kbd {
      the row, and a shrunk child would always measure as fitting. */
   .navbar-logo,
   .navbar-quick,
-  .navbar-toggle {
+  .navbar-menu-toggle {
     flex: none;
   }
 
-  .navbar-toggle {
+  .navbar-menu-toggle {
     display: block;
     margin: 0;
     padding: 6px 10px;
   }
 
-  .navbar-toggle:hover,
-  .navbar-toggle:focus {
+  .navbar-menu-toggle:hover,
+  .navbar-menu-toggle:focus {
     background-color: #dddddd;
   }
 
@@ -2072,17 +2153,17 @@ kbd {
   }
 
   #navbar:not(.is-open) {
-    display: none !important;
+    display: none;
   }
 
   #navbar.is-open {
-    display: block !important;
-    overflow: hidden !important;
+    display: block;
+    overflow: hidden;
   }
 
-  /* Scoped to the panel: the quick strip is a .navbar-nav too, and it stays a horizontal row in the bar. */
-  #navbar .navbar-nav {
-    display: block !important;
+  /* Scoped to the panel: the quick strip is a .navbar-list too, and it stays a horizontal row in the bar. */
+  #navbar .navbar-list {
+    display: block;
     width: 100%;
     margin: 0;
     padding: 0;
@@ -2091,16 +2172,12 @@ kbd {
     border-radius: 0;
   }
 
-  .navbar-nav > li {
-    float: none;
-  }
-
-  .navbar-lnk {
+  .navbar-item {
     display: block;
     margin-left: 0;
   }
 
-  .navbar-nav > li > .navbar-button {
+  .navbar-list > li > .navbar-button {
     border-radius: 0;
     border: none;
     outline: none;
@@ -2119,21 +2196,21 @@ kbd {
   }
 
   /* Carries its own padding in the inline bar, at a higher specificity than the rule above. */
-  .navbar-nav > li > .navbar-button#language-button {
+  .navbar-list > li > .navbar-button#language-button {
     padding: 6px 16px;
   }
 
   /* Destination icons are the stacked menu's reason for existing: with them the panel reads as one icon column
      top to bottom, matching the selector pills that show theirs at every width. */
-  .navbar-lnk-icon {
+  .navbar-item-icon {
     display: block;
   }
 
-  .navbar-nav--primary::before {
+  .navbar-list--primary::before {
     display: none; /* No brand divider in the stacked menu. */
   }
 
-  .navbar-lnk.is-open > .dropdown-menu {
+  .navbar-item.is-open > .navbar-menu {
     position: relative;
     border: none;
     border-radius: 0;
@@ -2141,7 +2218,7 @@ kbd {
     box-shadow: none;
   }
 
-  .navbar-lnk.is-open > .dropdown-menu.nav-city-panel {
+  .navbar-item.is-open > .navbar-menu.nav-city-panel {
     width: 100%;
   }
 
@@ -2158,7 +2235,7 @@ kbd {
     list-style: none;
   }
 
-  .navbar-quick > .navbar-lnk {
+  .navbar-quick > .navbar-item {
     display: block;
     margin-left: 0;
   }
@@ -2168,7 +2245,7 @@ kbd {
    * "About" and "API" aren't among them. Labelling costs width, which is why Navbar.js measures — fewer items reach
    * the bar on a small phone, and the rest stay one tap away in the panel.
    */
-  .navbar-nav.navbar-quick > li > .navbar-button {
+  .navbar-list.navbar-quick > li > .navbar-button {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2184,7 +2261,7 @@ kbd {
     white-space: nowrap;
   }
 
-  .navbar-quick .navbar-lnk-icon,
+  .navbar-quick .navbar-item-icon,
   .navbar-quick .navbar-select-icon {
     display: block;
     width: 18px;
@@ -2218,19 +2295,19 @@ kbd {
     border: 0;
   }
 
-  .navbar-quick .caret {
+  .navbar-quick .navbar-caret {
     display: none;
   }
 
   /* Current page: a filled pill, since the underline the inline bar uses has no room under a 20px icon. */
-  .navbar-nav.navbar-quick > li > .navbar-button.is-active {
+  .navbar-list.navbar-quick > li > .navbar-button.is-active {
     background-color: var(--color-banana-300);
     color: var(--color-neutral-black);
   }
 
   /* The panel's rules above flatten dropdowns into the stacked list; a strip dropdown is a real popover again,
      anchored to its icon and kept inside the viewport. */
-  .navbar-quick .navbar-lnk.is-open > .dropdown-menu {
+  .navbar-quick .navbar-item.is-open > .navbar-menu {
     position: absolute;
     width: max-content;
     max-width: min(320px, calc(100vw - 24px));
@@ -2238,11 +2315,6 @@ kbd {
     border-radius: 8px;
     box-shadow: 0 6px 16px rgb(0 0 0 / 17.5%);
   }
-}
-
-/* Common class used to hide template elements. */
-.template {
-  display: none !important;
 }
 
 .ai-icon-marker {
@@ -2340,7 +2412,7 @@ kbd {
 
 /* The single fixed-position card that psTooltip.js shows for the active [data-ps-tooltip] trigger. Parked off-screen
    until positioned; pointer-events stays off so the card never steals the hover that opened it. Sits above the navbar
-   and Bootstrap modals (~1050) since a tooltip is always the most transient thing on screen.
+   and modals since a tooltip is always the most transient thing on screen.
 
    Dark fill, not a white card: a tooltip is a transient aside over whatever it explains, and the panels it opens over
    (the label card, the context menu, the pano overlays) are themselves white cards — a fourth white surface stacked on

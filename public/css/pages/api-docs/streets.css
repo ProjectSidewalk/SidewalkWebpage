@@ -26,7 +26,7 @@
 
 /* ---- Download Section Enhancements ---- */
 
-.download-buttons .download-btn[data-format="geopackage"]:hover {
+.download-buttons .download-btn[data-format="geopackage"]:not([aria-disabled="true"]):hover {
   background-color: var(--color-blue-300);
   border-color: var(--color-link-200);
 }

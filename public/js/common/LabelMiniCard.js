@@ -108,7 +108,7 @@ class LabelMiniCard {
     const label = this.#label;
     const type = label.label_type;
     const esc = LabelMiniCard.esc;
-    const typeName = i18next.t(`common:${util.camelToKebab(type)}`).replace('&shy;', '');
+    const typeName = util.misc.labelTypeName(type);
     const rating = this.#ratingWord();
     const name = [typeName, rating].filter(Boolean).join(', ');
     const src = label.crop_url || label.backup_image_url;
@@ -124,7 +124,7 @@ class LabelMiniCard {
     const tags = (label.tags || []).map((tag) =>
       `<span class="lmc__tag">${esc(i18next.t(`common:tag.${tag}`, { defaultValue: tag }))}</span>`).join('');
     const date = label.timestamp
-      ? new Intl.DateTimeFormat(i18next.language, { dateStyle: 'medium' }).format(new Date(label.timestamp))
+      ? new Date(label.timestamp).toLocaleDateString(i18next.language, util.SHORT_DATE)
       : '';
     // "Quality: Good" rather than a bare "Good": which scale a rating is on is the label card's wording too.
     const ratingHeader = rating

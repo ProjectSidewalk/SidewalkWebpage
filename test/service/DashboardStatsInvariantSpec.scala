@@ -3,9 +3,8 @@ package service
 import forms.UsernamePolicy
 import models.user.{LeaderboardStat, SidewalkUserWithRole, UserStatTable}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.utils.ProfanityGuard
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.db.slick.DatabaseConfigProvider
 import slick.basic.DatabaseConfig
@@ -13,6 +12,7 @@ import slick.dbio.DBIO
 import play.api.i18n.Lang
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.{Application, Configuration}
+import util.SidewalkSpec
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,10 +34,10 @@ import scala.concurrent.duration.DurationInt
  *     The #4533 regression synthesizes a label-only mapper and runs the board query in one transaction that is always
  *     rolled back (`runRolledBack`). Both leave the shared dev DB exactly as found, even on assertion failure.
  */
-class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
+class DashboardStatsInvariantSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val userService               = app.injector.instanceOf[UserService]
   private val messages                  = play.api.test.Helpers.stubMessages()
@@ -46,7 +46,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
   private val config                    = app.injector.instanceOf[Configuration]
   private val userStatTable             = app.injector.instanceOf[UserStatTable]
   private val auditTaskInteractionTable = app.injector.instanceOf[models.audit.AuditTaskInteractionTable]
-  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Xfatal-warnings.
+  // Typed explicitly: letting `.db` infer here yields an existential type the compiler rejects under -Werror.
   private val dbConfig: DatabaseConfig[MyPostgresProfile] =
     app.injector.instanceOf[DatabaseConfigProvider].get[MyPostgresProfile]
 
@@ -134,7 +134,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
     board.map(_.username).distinct.length mustBe board.length // no user listed twice
     board.map(_.score).sliding(2).foreach {
       case Seq(higher, lower) => higher must be >= lower // ranked by score, descending
-      case _                  => ()
+      case _                  => succeed
     }
     board.foreach { s =>
       s.labelCount must be >= 0
@@ -339,7 +339,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
       // Unlike the per-city boards, this one ranks on the value it displays, so rows are in true descending order.
       globalBoard.map(_.labelCount).sliding(2).foreach {
         case Seq(higher, lower) => higher must be >= lower
-        case _                  => ()
+        case _                  => succeed
       }
       globalBoard.foreach { s =>
         s.labelCount must be > 0 // a user whose every city is excluded is dropped, not shown with a zero
@@ -458,7 +458,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
         stats.cities.map(_.cityId).distinct.length mustBe stats.cities.length
         stats.cities.map(_.labels).sliding(2).foreach {
           case Seq(higher, lower) => higher must be >= lower
-          case _                  => ()
+          case _                  => succeed
         }
         stats.cities.foreach { city =>
           (city.labels + city.validations + city.missions) > 0 || city.distance > 0 mustBe true
@@ -614,7 +614,7 @@ class DashboardStatsInvariantSpec extends PlaySpec with GuiceOneAppPerSuite {
         rows.map(_.cityId).distinct.length mustBe rows.length
         rows.map(_.hours).sliding(2).foreach {
           case Seq(higher, lower) => higher must be >= lower
-          case _                  => ()
+          case _                  => succeed
         }
         rows.foreach { row =>
           row.hours must be >= 0d

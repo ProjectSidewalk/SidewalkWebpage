@@ -27,7 +27,7 @@ const MANAGER_SRC = fs.readFileSync(
  */
 function makeControl({ chosen = false } = {}) {
     const control = document.createElement('textarea');
-    control.classList.toggle('chosen', chosen);
+    control.classList.toggle('is-chosen', chosen);
     control.click = jest.fn();
     return control;
 }

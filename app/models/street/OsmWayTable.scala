@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsValue, Json}
@@ -50,7 +50,7 @@ class OsmWayTableDef(tag: Tag) extends Table[OsmWay](tag, "osm_way") {
   def updatedAt: Rep[OffsetDateTime]            = column[OffsetDateTime]("updated_at")
   def missingSince: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("missing_since")
 
-  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt, missingSince) <> ((OsmWay.apply _).tupled, OsmWay.unapply)
+  def * = (osmWayId, tags, maxspeed, geom, source, updatedAt, missingSince).mapTo[OsmWay]
 }
 
 @ImplementedBy(classOf[OsmWayTable])
@@ -64,7 +64,7 @@ trait OsmWayTableRepository {}
 class OsmWayTable @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     streetEdgeTable: StreetEdgeTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends OsmWayTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -83,11 +83,12 @@ class OsmWayTable @Inject() (
     val speedByStreet = osmWayStreetEdges
       .join(osmWays)
       .on(_.osmWayId === _.osmWayId)
-      .map(x => (x._1.streetEdgeId, x._2.maxspeed))
+      .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.maxspeed) }
 
-    streetEdgeTable.streetsWithTutorial.joinLeft(speedByStreet).on(_.streetEdgeId === _._1).map { case (_edge, _sp) =>
-      (_edge.streetEdgeId, _sp.flatMap(_._2))
-    }
+    streetEdgeTable.streetsWithTutorial
+      .joinLeft(speedByStreet)
+      .on { case (_edge, (speedEdgeId, _)) => _edge.streetEdgeId === speedEdgeId }
+      .map { case (_edge, _sp) => (_edge.streetEdgeId, _sp.flatMap { case (_, maxspeed) => maxspeed }) }
   }
 
   /**
@@ -100,7 +101,7 @@ class OsmWayTable @Inject() (
       .filter(_.streetEdgeId inSetBind streetEdgeIds)
       .join(osmWays)
       .on(_.osmWayId === _.osmWayId)
-      .map(x => (x._1.streetEdgeId, x._2.maxspeed))
+      .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.maxspeed) }
       .result
       .map(_.collect { case (streetEdgeId, Some(maxspeed)) => streetEdgeId -> maxspeed }.toMap)
   }
@@ -120,7 +121,7 @@ class OsmWayTable @Inject() (
         .filter(_.streetEdgeId inSet streetEdgeIds)
         .join(osmWays)
         .on(_.osmWayId === _.osmWayId)
-        .map(x => (x._1.streetEdgeId, x._2.tags.+>>("name").?))
+        .map { case (wayStreet, way) => (wayStreet.streetEdgeId, way.tags.+>>("name").?) }
         .result
         .map(_.collect { case (streetEdgeId, Some(name)) if name.trim.nonEmpty => streetEdgeId -> name.trim }.toMap)
   }
@@ -190,9 +191,9 @@ class OsmWayTable @Inject() (
     osmWays
       .filter(_.geom.isDefined)
       .map(way => (way, way.geom.distanceSphereD(makePoint(lng.bind, lat.bind).setSRID(4326))))
-      .filter(_._2 < radiusM)
-      .sortBy(_._2)
-      .map(_._1)
+      .filter { case (_, distanceM) => distanceM < radiusM }
+      .sortBy { case (_, distanceM) => distanceM }
+      .map { case (way, _) => way }
       .result
       .headOption
   }

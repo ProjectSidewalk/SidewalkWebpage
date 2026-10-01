@@ -783,6 +783,7 @@ dashboard.nav.you = Vous
 dashboard.nav.community = Communauté
 dashboard.nav.dashboard = Tableau de bord
 dashboard.nav.settings = Paramètres
+dashboard.nav.manageuser = Gérer l''utilisateur
 dashboard.toc.header = Sur cette page
 dashboard.settings.title = Paramètres
 dashboard.settings.intro = Gérez votre compte, votre équipe et ce que vous partagez avec la communauté.

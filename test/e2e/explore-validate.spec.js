@@ -13,11 +13,13 @@
  * mission" modal shows (a mission needs >= 10 validatable labels of one type). CI takes the mission branch, on
  * ci-seed.sql's seventeen CurbRamps. No GOOGLE_MAPS_SECRET is involved in getting there: the seeded panoramas are
  * expired, so the server-side imagery check never asks a provider — it answers from the backup images on disk
- * (install-media.sh). Which viewer then renders is the stub's call, and both of production's answers are covered:
- * by default the stub answers ZERO_RESULTS for a pano it has never seen, as Google does for an expired one, so the
- * page falls back to Pannellum and the committed backup; with `serveAnyPano` it resolves every id, as Google does
- * for a panorama our own metadata check has retired, and the primary viewer renders. A mission that renders no
- * panorama at all is the #4810 failure either way.
+ * (install-media.sh). Which viewer renders is then the server's call, not the stub's: a label whose pano the
+ * imagery check has retired is flagged `expired` in the payload, and Validate goes straight to Pannellum and the
+ * committed backup without asking the provider (#5561) — the round trip it would otherwise pay is seconds of dead
+ * time on a phone, and the nightly sweep reconciles a flag Google has since proved stale. Both stub answers are
+ * covered to pin that: by default it answers ZERO_RESULTS for a pano it has never seen, as Google does for an
+ * expired one; with `serveAnyPano` it would resolve every id, and the page must not take it up on that. A mission
+ * that renders no panorama at all is the #4810 failure either way.
  *
  * /mobile is the same tool under a phone UA (the server redirects a desktop one to /), loaded in both
  * orientations with the layout viewport pinned to the device width (#4891).
@@ -54,11 +56,56 @@ test('/validate falls back to Pannellum and the backup image for an expired pano
   if (onMission) await expectPanoRendered(page, '/validate', 'pannellum');
 });
 
-test('/validate renders the primary viewer when the pano is still served', async ({page, context, consoleErrors}) => {
-  await serveAnyPano(context);
+test('/validate trusts the expired flag over a provider that still answers (#5561)',
+  async ({page, context, consoleErrors}) => {
+    // Every seeded pano is flagged expired, so even a provider that would serve it is not asked: the backup is the
+    // right imagery, just older than it needed to be, and the flag is corrected by the nightly sweep rather than here.
+    await serveAnyPano(context);
+    const onMission = await loadValidate(page, '/validate');
+    expect(consoleErrors).toEqual([]);
+    if (onMission) await expectPanoRendered(page, '/validate', 'pannellum');
+  });
+
+test('/validate opens the chevron menu and the image adjustments panel', async ({page, consoleErrors}) => {
   const onMission = await loadValidate(page, '/validate');
+  // False covers both no-mission outcomes: no mission was assigned, so the tool was never built, or one was but none
+  // of its labels had imagery (#4810) and only the modal shows. Neither leaves a label to adjust.
+  test.skip(!onMission, 'Validate settled on the no-mission modal, so there is no label to adjust');
+  const chevron = page.locator('#validate-control-buttons-toggle');
+  const pill = page.locator('#validate-control-image');
+  const panel = page.locator('#pano-image-adjustments');
+  await expect(chevron).toBeAttached();
+  await expect(chevron).toHaveAttribute('aria-expanded', 'false');
+  // Clicked from the page for the same reason as the open() below: the tutorial overlay covers the corner.
+  await page.evaluate(() => document.getElementById('validate-control-buttons-toggle').click());
+  await expect(chevron).toHaveAttribute('aria-expanded', 'true');
+  await expect(pill).toBeVisible();
+  // Opened through the popover rather than a click: the mission-start tutorial overlay covers the pill, and
+  // dismissing it is pano interaction this suite stays out of.
+  await page.evaluate(() => window.svv.imageAdjustmentsPopover.open());
+  await expect(panel).toBeVisible();
+  await expect(pill).toHaveAttribute('aria-expanded', 'true');
+  // open() focuses the first slider, so this Escape also crosses KeyboardManager's scope for the panel (#5501).
+  await page.keyboard.press('Escape');
+  await expect(panel).toBeHidden();
+  await expect(pill).toHaveAttribute('aria-expanded', 'false');
   expect(consoleErrors).toEqual([]);
-  if (onMission) await expectPanoRendered(page, '/validate', 'gsv');
+});
+
+test('/validate enters and leaves immersive mode on F', async ({page, consoleErrors}) => {
+  const onMission = await loadValidate(page, '/validate');
+  test.skip(!onMission, 'Validate settled on the no-mission modal, so the tool was never built');
+  // The mission-start tutorial overlay covers the toggle, so the key is the route that stays out of pano
+  // interaction; it lands on the body, where KeyboardManager listens (#5560).
+  await expect(page.locator('#immersive-toggle-holder')).toBeAttached();
+  await page.keyboard.press('f');
+  await expect(page.locator('body')).toHaveClass(/svv-immersive/);
+  await expect(page.locator('html')).toHaveClass(/chromeless/);
+  await expect(page.locator('#immersive-toggle-button')).toHaveAttribute('aria-label', 'Exit immersive mode');
+  await page.keyboard.press('f');
+  await expect(page.locator('body')).not.toHaveClass(/svv-immersive/);
+  await expect(page.locator('html')).not.toHaveClass(/chromeless/);
+  expect(consoleErrors).toEqual([]);
 });
 
 /**

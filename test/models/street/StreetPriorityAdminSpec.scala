@@ -2,12 +2,11 @@ package models.street
 
 import models.audit.{AuditTask, AuditTaskTable, AuditTaskTableDef}
 import models.user.UserStatTableDef
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.{given, *}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 
@@ -24,10 +23,10 @@ import java.time.OffsetDateTime
  * Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI); cases cancel gracefully
  * when the connected DB lacks the rows they need. Scheduling actors are disabled so nightly jobs can't race the tests.
  */
-class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class StreetPriorityAdminSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val streetEdgePriorityTable = app.injector.instanceOf[StreetEdgePriorityTable]
   private val auditTaskTable          = app.injector.instanceOf[AuditTaskTable]
@@ -91,8 +90,12 @@ class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
         for {
           _ <- userStats.filter(_.userId === userId).map(_.highQuality).update(true)
           // Neutralize the street's pre-existing audits so the counts under test are exactly the one inserted here.
-          _      <- auditTasks.filter(t => t.streetEdgeId === streetId && t.completed).map(_.completed).update(false)
-          taskId <- auditTaskTable.insert(newCompletedTask(streetId, userId))
+          _ <- auditTasks
+            .filter(t => t.streetEdgeId === streetId)
+            .filter(t => t.completed)
+            .map(_.completed)
+            .update(false)
+          taskId     <- auditTaskTable.insert(newCompletedTask(streetId, userId))
           beforeRows <- streetEdgePriorityTable.getPriorityWithInputs
           _          <- auditTasks.filter(_.auditTaskId === taskId).map(_.outdatedImagery).update(true)
           afterRows  <- streetEdgePriorityTable.getPriorityWithInputs
@@ -119,7 +122,8 @@ class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val row = runRolledBack(
         for {
           _ <- auditTasks
-            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .filter(task => task.streetEdgeId === streetId)
+            .filter(task => task.completed)
             .map(_.completed)
             .update(false)
           _    <- userStats.filter(_.userId === userIds.head).map(_.highQuality).update(true)
@@ -144,7 +148,8 @@ class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val row = runRolledBack(
         for {
           _ <- auditTasks
-            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .filter(task => task.streetEdgeId === streetId)
+            .filter(task => task.completed)
             .map(_.completed)
             .update(false)
           _      <- userStats.filter(_.userId === userIds.head).map(_.highQuality).update(true)
@@ -166,7 +171,8 @@ class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val row = runRolledBack(
         for {
           _ <- auditTasks
-            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .filter(task => task.streetEdgeId === streetId)
+            .filter(task => task.completed)
             .map(_.completed)
             .update(false)
           _    <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head))
@@ -189,7 +195,8 @@ class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val row = runRolledBack(
         for {
           _ <- auditTasks
-            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .filter(task => task.streetEdgeId === streetId)
+            .filter(task => task.completed)
             .map(_.completed)
             .update(false)
           _    <- userStats.filter(_.userId === userIds.head).map(_.highQuality).update(true)
@@ -215,7 +222,8 @@ class StreetPriorityAdminSpec extends PlaySpec with GuiceOneAppPerSuite with Rol
       val row = runRolledBack(
         for {
           _ <- auditTasks
-            .filter(task => task.streetEdgeId === streetId && task.completed)
+            .filter(task => task.streetEdgeId === streetId)
+            .filter(task => task.completed)
             .map(_.completed)
             .update(false)
           _ <- auditTaskTable.insert(newCompletedTask(streetId, userIds.head).copy(taskEnd = newest.minusDays(400)))

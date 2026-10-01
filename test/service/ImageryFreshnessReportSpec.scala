@@ -28,8 +28,8 @@ class ImageryFreshnessReportSpec extends AnyWordSpec with Matchers {
       day: String,
       hour: Int,
       details: Map[String, Int],
-      status: JobRunStatus.Value = JobRunStatus.Succeeded,
-      trigger: JobRunTrigger.Value = JobRunTrigger.Scheduled
+      status: JobRunStatus = JobRunStatus.Succeeded,
+      trigger: JobRunTrigger = JobRunTrigger.Scheduled
   ): BackgroundJobRun = {
     BackgroundJobRun(
       0,

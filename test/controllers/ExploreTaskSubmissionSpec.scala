@@ -1,25 +1,25 @@
 package controllers
 
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, JsNull, JsObject, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 import java.time.OffsetDateTime
 import java.util.UUID
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Locks the pano/label contract of POST /task (#4587). A pano's metadata is integral to its labels: each label
@@ -48,13 +48,13 @@ import scala.concurrent.duration._
  */
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
-class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eventually with GuiceOneAppPerSuite {
+class ExploreTaskSubmissionSpec extends SidewalkSpec with BeforeAndAfterAll with Eventually with GuiceOneAppPerSuite {
 
   // Every pano this suite creates carries this prefix, so cleanup can't touch real panos.
   private val panoPrefix = "ExploreTaskSubmissionSpec-4587"
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule] // No eager background actors during tests.
       .configure("ai-enabled" -> false) // Label submission fires AI validation calls; keep the suite offline.
       .build()
@@ -238,7 +238,7 @@ class ExploreTaskSubmissionSpec extends PlaySpec with BeforeAndAfterAll with Eve
   }
 
   private def post(body: JsObject) =
-    route(app, FakeRequest(POST, "/task").withCookies(sessionCookies: _*).withJsonBody(body).withCSRFToken).get
+    route(app, FakeRequest(POST, "/task").withCookies(sessionCookies*).withJsonBody(body).withCSRFToken).get
 
   private def labelCount(panoId: String): Int =
     runDb(sql"SELECT count(*) FROM label WHERE pano_id = $panoId AND user_id = $userId".as[Int].head)

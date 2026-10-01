@@ -1,27 +1,26 @@
 package controllers
 
-import models.label.{LabelTableDef, LabelTypeEnum}
+import models.label.{LabelTableDef, LabelType}
 import models.pano.{PanoDataTableDef, PanoSource}
 import models.story.Story
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.Files.SingletonTemporaryFileCreator
 import play.api.libs.json.{JsArray, JsObject, JsValue}
 import play.api.mvc.{Cookie, MultipartFormData}
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import service.{LabelService, StoryService}
-import util.{AnonSession, RolledBackDb}
+import util.{AnonSession, RolledBackDb, SidewalkSpec}
 
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the lived-experience story endpoints (#4054). Boots the real app against Postgres (applying
@@ -34,17 +33,17 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession with GuiceOneAppPerSuite {
+class StoryControllerSpec extends SidewalkSpec with RolledBackDb with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // The suite posts well over the 20/day/IP story-submit cap from one test IP; disable that layer here so it
       // doesn't throttle the functional tests. The limiter's own behavior is covered by RateLimiterSpec.
       .configure("rate-limit.story-submit.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val labelService: LabelService = app.injector.instanceOf[LabelService]
   private val storyService: StoryService = app.injector.instanceOf[StoryService]
@@ -56,7 +55,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
   private val maxTextLength: Int       = app.configuration.get[Int]("stories.max-text-length")
   private val maxAltTextLength: Int    = app.configuration.get[Int]("stories.max-alt-text-length")
   private val maxPerDay: Int           = app.configuration.get[Int]("stories.max-per-user-per-day")
-  private val impactNames: Set[String] = LabelTypeEnum.values.map(_.accessImpact.name)
+  private val impactNames: Set[String] = LabelType.ordered.map(_.accessImpact.name).toSet
 
   private lazy val labelIds: Seq[Int] =
     Await.result(labelService.getRecentLabelMetadata(50), 60.seconds).map(_.labelId).distinct
@@ -77,7 +76,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
     val body = multipartBody(Map("label_id" -> Seq(labelId.toString), "text" -> Seq(text)) ++ extraParts, files)
     route(
       app,
-      FakeRequest(POST, "/userapi/stories").withCookies(session: _*).withMultipartFormDataBody(body).withCSRFToken
+      FakeRequest(POST, "/userapi/stories").withCookies(session*).withMultipartFormDataBody(body).withCSRFToken
     ).get
   }
 
@@ -92,30 +91,30 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
     route(
       app,
       FakeRequest(PUT, s"/userapi/stories/$storyId")
-        .withCookies(session: _*)
+        .withCookies(session*)
         .withMultipartFormDataBody(body)
         .withCSRFToken
     ).get
   }
 
   private def deleteStory(session: Seq[Cookie], storyId: Int) =
-    route(app, FakeRequest(DELETE, s"/userapi/stories/$storyId").withCookies(session: _*).withCSRFToken).get
+    route(app, FakeRequest(DELETE, s"/userapi/stories/$storyId").withCookies(session*).withCSRFToken).get
 
   private def getStories(labelId: Int, session: Seq[Cookie] = Seq.empty) =
-    route(app, FakeRequest(GET, s"/label/$labelId/stories").withCookies(session: _*)).get
+    route(app, FakeRequest(GET, s"/label/$labelId/stories").withCookies(session*)).get
 
   private def storiesArray(json: JsValue): Seq[JsValue] = (json \ "stories").as[JsArray].value.toSeq
 
   /** A real JPEG on disk, wide enough (2600px) that the ingest pipeline's 2560px edge cap must downscale it. */
   private def testJpegFilePart(): MultipartFormData.FilePart[play.api.libs.Files.TemporaryFile] = {
-    val img  = new BufferedImage(2600, 400, BufferedImage.TYPE_INT_RGB)
+    val img  = BufferedImage(2600, 400, BufferedImage.TYPE_INT_RGB)
     val temp = SingletonTemporaryFileCreator.create("story-spec", ".jpg")
     ImageIO.write(img, "jpg", temp.path.toFile) mustBe true
     MultipartFormData.FilePart(key = "photo", filename = "story-spec.jpg", contentType = Some("image/jpeg"), ref = temp)
   }
 
   /** The committed EXIF fixture (GPS ~47.6063,-122.3332 + DateTimeOriginal 2024-06-15) as an upload part. */
-  private val exifFixture = new java.io.File("test/resources/story-with-exif.jpg")
+  private val exifFixture = java.io.File("test/resources/story-with-exif.jpg")
   private def exifJpegFilePart(): MultipartFormData.FilePart[play.api.libs.Files.TemporaryFile] = {
     val temp = SingletonTemporaryFileCreator.create("story-exif", ".jpg")
     java.nio.file.Files.copy(exifFixture.toPath, temp.path, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
@@ -149,7 +148,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
           status(posted) mustBe OK
           val storyId = (contentAsJson(posted) \ "story_id").as[Int]
           try {
-            val page = route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get
+            val page = route(app, FakeRequest(GET, "/stories").withCookies(session*)).get
             status(page) mustBe OK
             contentType(page) mustBe Some("text/html")
             val body = contentAsString(page)
@@ -183,7 +182,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
             listed.get.media mustBe None
             // The GSV-static fallback needs pano/POV metadata; cancel (not fail) on a DB whose label lacks it.
             val meta = run(labelTable.getPanoMetadataForLabels(Seq(id)))
-            if (meta.isEmpty || meta.head._3 != PanoSource.Gsv) {
+            if (meta.isEmpty || meta.head.panoSource != PanoSource.Gsv) {
               cancel(s"Label $id has no GSV pano metadata in the connected test DB.")
             }
             listed.get.labelImageUrl mustBe defined
@@ -214,7 +213,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
           try {
             val updated = run(panoDataQ.filter(_.panoId === panoId).map(_.address).update(Some(specAddress)))
             if (updated == 0) cancel(s"Pano $panoId has no pano_data row in the connected test DB.")
-            val body = contentAsString(route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get)
+            val body = contentAsString(route(app, FakeRequest(GET, "/stories").withCookies(session*)).get)
             body must include(specAddress)
             body must include("story-card__location")
             body must include(s"""href="/labelMap?labelId=$id"""")
@@ -234,10 +233,10 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
           status(posted) mustBe OK
           val storyId = (contentAsJson(posted) \ "story_id").as[Int]
           try {
-            val body = contentAsString(route(app, FakeRequest(GET, "/stories").withCookies(session: _*)).get)
+            val body = contentAsString(route(app, FakeRequest(GET, "/stories").withCookies(session*)).get)
             body must include("community-chip--type")
             body must include("data-type-color=\"#")
-            body must include("button-ps button--primary button--small story-card__label-link")
+            body must include("button button--primary button--small story-card__label-link")
             // Far under the 500 cap here, so the truncation note must not render.
             body must not include "community-cap-note"
             // A raw key leaking into the page means a messages file lost one — dotted keys never appear in copy.
@@ -530,7 +529,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
         case None     => cancel("No labels in the connected test DB.")
         case Some(id) =>
           val session = freshAnonSession()
-          val img     = new BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB)
+          val img     = BufferedImage(100, 100, BufferedImage.TYPE_INT_RGB)
           val temp    = SingletonTemporaryFileCreator.create("story-spec-gif", ".jpg")
           ImageIO.write(img, "gif", temp.path.toFile) mustBe true
           val part = MultipartFormData.FilePart(
@@ -554,7 +553,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
           status(posted) mustBe OK
           val storyId = (contentAsJson(posted) \ "story_id").as[Int]
           try {
-            val resp = route(app, FakeRequest(GET, "/userapi/stories/mine").withCookies(session: _*)).get
+            val resp = route(app, FakeRequest(GET, "/userapi/stories/mine").withCookies(session*)).get
             status(resp) mustBe OK
             (contentAsJson(resp) \ "max_text_length").as[Int] mustBe maxTextLength
             val mine = storiesArray(contentAsJson(resp)).find(s => (s \ "story_id").as[Int] == storyId)
@@ -566,7 +565,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
             // The thumbnail source rides the payload; null is fine (no crop/pano), but the key must be there.
             (mine.get \ "label_image_url").toOption mustBe defined
 
-            val stranger = route(app, FakeRequest(GET, "/userapi/stories/mine").withCookies(freshAnonSession(): _*)).get
+            val stranger = route(app, FakeRequest(GET, "/userapi/stories/mine").withCookies(freshAnonSession()*)).get
             status(stranger) mustBe OK
             storiesArray(contentAsJson(stranger)) mustBe empty
           } finally { val _ = status(deleteStory(session, storyId)) }
@@ -619,7 +618,7 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
             // Even a valid signed URL serves nothing to a signed-out viewer once the story is quarantined...
             status(route(app, FakeRequest(GET, mediaUrl)).get) mustBe NOT_FOUND
             // ...but the author still sees their own photo (they keep sight of the story and the right to retract).
-            status(route(app, FakeRequest(GET, mediaUrl).withCookies(session: _*)).get) mustBe OK
+            status(route(app, FakeRequest(GET, mediaUrl).withCookies(session*)).get) mustBe OK
           } finally { val _ = status(deleteStory(session, storyId)) }
       }
     }
@@ -649,13 +648,13 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
 
     "reject the adminapi endpoints for a non-admin session" in {
       val session = freshAnonSession()
-      status(route(app, FakeRequest(GET, "/adminapi/stories").withCookies(session: _*)).get) must not be OK
+      status(route(app, FakeRequest(GET, "/adminapi/stories").withCookies(session*)).get) must not be OK
       val put = FakeRequest(PUT, "/adminapi/stories/1/visibility")
-        .withCookies(session: _*)
+        .withCookies(session*)
         .withJsonBody(play.api.libs.json.Json.obj("hidden" -> true))
         .withCSRFToken
       status(route(app, put).get) must not be OK
-      val del = FakeRequest(DELETE, "/adminapi/stories/1").withCookies(session: _*).withCSRFToken
+      val del = FakeRequest(DELETE, "/adminapi/stories/1").withCookies(session*).withCSRFToken
       status(route(app, del).get) must not be OK
     }
   }
@@ -673,10 +672,10 @@ class StoryControllerSpec extends PlaySpec with RolledBackDb with AnonSession wi
  * person — a shared NAT can trip this for someone who published nothing, so its error key differs from the per-user
  * cap's — and must say how long is left in the IP's window, in the body and on the standard Retry-After header.
  */
-class StoryControllerIpLimitSpec extends PlaySpec with AnonSession with GuiceOneAppPerSuite {
+class StoryControllerIpLimitSpec extends SidewalkSpec with AnonSession with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "rate-limit.story-submit.enabled"        -> true,
@@ -685,7 +684,7 @@ class StoryControllerIpLimitSpec extends PlaySpec with AnonSession with GuiceOne
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "POST /userapi/stories under the IP burst limit" should {
     "429 with the network-scoped error and the time left in the window" in {
@@ -696,7 +695,7 @@ class StoryControllerIpLimitSpec extends PlaySpec with AnonSession with GuiceOne
       def post() = route(
         app,
         FakeRequest(POST, "/userapi/stories")
-          .withCookies(session: _*)
+          .withCookies(session*)
           .withMultipartFormDataBody(
             MultipartFormData[play.api.libs.Files.TemporaryFile](
               dataParts = Map.empty,

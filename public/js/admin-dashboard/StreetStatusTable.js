@@ -89,8 +89,8 @@ class StreetStatusTable {
       .filter((c) => (r[c.key] || 0) > 0)
       .map((c) => {
         const pct = ((r[c.key] / total) * 100).toFixed(2);
-        const title = `${c.label}: ${(r[c.key] || 0).toLocaleString()}`;
-        return `<span style="width:${pct}%;background:${c.color}" title="${title}"></span>`;
+        const tip = `${c.label}: ${(r[c.key] || 0).toLocaleString()}`;
+        return `<span style="width:${pct}%;background:${c.color}" data-ps-tooltip="${tip}"></span>`;
       }).join('');
     return `<div class="street-status-bar" aria-hidden="true">${segments}</div>`;
   }
@@ -156,13 +156,13 @@ class StreetStatusTable {
     const set = new Set(ids.map(Number));
     const tbody = document.getElementById(this.#tableId).querySelector('tbody');
     tbody.querySelectorAll('tr[data-region-id]').forEach((tr) => {
-      tr.classList.toggle('highlighted', set.has(Number(tr.dataset.regionId)));
+      tr.classList.toggle('is-highlighted', set.has(Number(tr.dataset.regionId)));
     });
   }
 
   /** Clears all row highlights. */
   clearHighlight() {
     const tbody = document.getElementById(this.#tableId).querySelector('tbody');
-    tbody.querySelectorAll('tr.highlighted').forEach((tr) => tr.classList.remove('highlighted'));
+    tbody.querySelectorAll('tr.is-highlighted').forEach((tr) => tr.classList.remove('is-highlighted'));
   }
 }

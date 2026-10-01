@@ -13,7 +13,6 @@ class Main {
   #loadingMissionsCompleted = false;
   #loadLabelTags = false;
 
-  #onboardingHandAnimation = null;
   #onboardingStates = null;
 
   /**
@@ -206,16 +205,36 @@ class Main {
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
     // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
-    svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout?.());
+    svl.immersiveMode = new ImmersiveMode({
+      tracker: svl.tracker,
+      bodyClass: 'svl-immersive',
+      relayout: () => svl.relayout?.(),
+      isDisabled: () => svl.isOnboarding(),
+      // The hover card and context menu are anchored against the frame that is about to change shape.
+      beforeToggle: () => {
+        if (svl.contextMenu.isOpen()) svl.contextMenu.hide();
+        svl.canvas.showLabelHoverInfo(undefined);
+      },
+      frame: () => svl.CANVAS_FRAME,
+      hintReference: () => document.getElementById('pano'),
+    });
 
     // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
     // they never carry it. svl.keyboard is built later, hence the lookups at call time. Suspending the shortcuts
     // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano; the suspension is
     // only undone if the panel was what suspended them, since a pop-up can disable the keyboard while it is open.
     svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    // Settings carried in from an earlier visit (or from Validate) change what the labeler sees before they touch the
+    // panel, so the load records them; ImageAdjustments_Change only covers edits made on this page.
+    if (!svl.imageAdjustments.isDefault()) {
+      svl.tracker.push('ImageAdjustments_Restored', svl.imageAdjustments.values());
+    }
     let panelSuspendedKeyboard = false;
     svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
       document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
+        // The pills form a row, so opening to the right would cover Sound and Feedback; full screen stacks them in a
+        // column, where the right is clear and below would cover them instead.
+        placement: () => (svl.immersiveMode.isActive() ? 'right' : 'below'),
         onOpen: () => {
           svl.tracker.push('Click_ImageAdjustments_Open');
           panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');
@@ -260,7 +279,7 @@ class Main {
     // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
     const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
     svl.panoDateNote.update(
-      initialCaptureDate ? initialCaptureDate.format('YYYY-MM-DD') : null,
+      initialCaptureDate ? util.localIsoDate(initialCaptureDate) : null,
       svl.taskContainer.getCurrentTask(),
     );
 
@@ -396,15 +415,14 @@ class Main {
     // hide any alerts
     svl.alertController.hideAlert();
 
-    if (!this.#onboardingHandAnimation) {
-      this.#onboardingHandAnimation = new HandAnimation(svl.ui.onboarding);
+    if (!this.#onboardingStates) {
       this.#onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.panoManager);
     }
 
     if (!('onboarding' in svl && svl.onboarding)) {
-      svl.onboarding = new Onboarding(svl, svl.compass, this.#onboardingHandAnimation, svl.navigationService,
-        svl.missionContainer, svl.panoOverlayControls, this.#onboardingStates, svl.ribbon, svl.tracker, svl.canvas,
-        svl.ui.canvas, svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
+      svl.onboarding = new Onboarding(svl, svl.compass, svl.navigationService, svl.missionContainer,
+        svl.panoOverlayControls, this.#onboardingStates, svl.ribbon, svl.tracker, svl.canvas, svl.ui.canvas,
+        svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
     }
     svl.onboarding.start();
   }

@@ -103,7 +103,7 @@ class OverviewPage {
   #renderHvaCard(s) {
     const aiActivity = (s.ai_labels || 0) + (s.ai_validations || 0) + (s.ai_assessments || 0);
     if (aiActivity === 0) {
-      this.#setCard('hva', '—', 'no AI activity on this deployment');
+      this.#setCard('hva', '—', 'no AI activity in this city');
       return;
     }
     const labelTot = (s.human_labels || 0) + (s.ai_labels || 0);
@@ -161,7 +161,7 @@ class OverviewPage {
       const start = this.#addDays(end, -6);
       let sum = 0;
       for (let d = 0; d < 7; d++) {
-        const rec = byDate.get(this.#isoDay(this.#addDays(start, d)));
+        const rec = byDate.get(util.localIsoDate(this.#addDays(start, d)));
         if (rec) sum += get(rec);
       }
       values.push(sum);
@@ -245,7 +245,7 @@ class OverviewPage {
     if (streetsLeft > 0) {
       const pctLeft = s.total_streets > 0 ? Math.round((streetsLeft / s.total_streets) * 100) : 0;
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
-        html: `<strong>${this.#num(streetsLeft)}</strong> streets aren't audited yet (${pctLeft}% of the network)` });
+        html: `<strong>${this.#num(streetsLeft)}</strong> streets not yet audited (${pctLeft}% of all streets)` });
     }
     if (s.reaudit_streets > 0) {
       const reaudit = this.#num(s.reaudit_streets);
@@ -263,7 +263,7 @@ class OverviewPage {
     }
 
     if (!items.length) {
-      el.innerHTML = '<p class="ov-attention-clear">All clear — nothing needs attention right now. ✅</p>';
+      el.innerHTML = '<p class="ov-attention-clear">Nothing needs attention. ✅</p>';
       return;
     }
     el.innerHTML = items.map((it) => `
@@ -286,7 +286,7 @@ class OverviewPage {
     const el = document.getElementById('ov-recent');
     if (!el) return;
     if (!items.length) {
-      el.innerHTML = '<p class="dq-empty">No recent activity recorded on this deployment.</p>';
+      el.innerHTML = '<p class="dq-empty">No recent activity.</p>';
       return;
     }
     el.innerHTML = items.map((it) => {
@@ -332,7 +332,7 @@ class OverviewPage {
     const el = document.getElementById('ov-pulse');
     if (!el) return;
     if (!item) {
-      el.textContent = 'No recent activity recorded on this deployment.';
+      el.textContent = 'No recent activity.';
       return;
     }
     const who = OverviewPage.#esc(item.username || 'someone');
@@ -418,12 +418,6 @@ class OverviewPage {
     const x = new Date(d);
     x.setDate(x.getDate() + n);
     return x;
-  }
-
-  #isoDay(d) {
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${d.getFullYear()}-${m}-${day}`;
   }
 
   static #esc(s) {

@@ -24,7 +24,7 @@
      enabled-secondary language `.button--secondary` already uses.
    - Not a round pill. That treatment is `.tag-pill` (white, dark hairline, 200px radius), so at this height a fully
      round button was indistinguishable from a tag — and on the label detail card the tags sit right above these
-     actions. Every `button-ps` size uses an 8–16px radius instead, so shape is what separates the two vocabularies:
+     actions. Every `button` size uses an 8–16px radius instead, so shape is what separates the two vocabularies:
      round = tag or chip, rounded rect = button. 10px matches `.button--small`, which is the "View label" button
      sitting next to this one on a story card.
    Hosts that want a quieter treatment — Explore's hover card and context menu, the landing grid — already override

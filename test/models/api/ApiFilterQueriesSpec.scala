@@ -9,12 +9,11 @@ import models.street.{SidewalkPresenceTable, StreetEdgeTable}
 import models.user.UserStatTable
 import models.validation.LabelValidationTable
 import models.utils.{LatLngBBox, SpatialQueryType}
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -26,10 +25,10 @@ import java.time.{LocalDate, OffsetDateTime}
  * query runs; compiling can't catch it. On a database with no matching rows (CI's) the row checks pass trivially, but
  * each query still has to run.
  */
-class ApiFilterQueriesSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class ApiFilterQueriesSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private lazy val labelTable: LabelTable                       = app.injector.instanceOf[LabelTable]
   private lazy val clusterTable: ClusterTable                   = app.injector.instanceOf[ClusterTable]
@@ -240,10 +239,10 @@ class ApiFilterQueriesSpec extends PlaySpec with GuiceOneAppPerSuite with Rolled
       val (from, to)              = (LocalDate.parse("2020-01-01"), LocalDate.now())
       def inRange(day: LocalDate) = !day.isBefore(from.minusDays(1)) && !day.isAfter(to.plusDays(1))
       run(labelTable.getDailyLabelStats(Some(from), Some(to), filterLowQuality = false)).foreach(row =>
-        inRange(row._1) mustBe true
+        inRange(row.date) mustBe true
       )
       run(labelValidationTable.getDailyValidationStats(Some(from), Some(to), filterLowQuality = true)).foreach(row =>
-        inRange(row._1) mustBe true
+        inRange(row.date) mustBe true
       )
     }
   }

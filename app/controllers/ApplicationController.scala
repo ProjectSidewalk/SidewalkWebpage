@@ -1,6 +1,6 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils
 import controllers.helper.ControllerUtils.parseIntegerSeq
 import models.auth.{DefaultEnv, WithSignedIn}
@@ -8,13 +8,13 @@ import models.user.{SidewalkUserWithRole, UserUtm}
 import models.utils.IpAddress
 import play.api.Configuration
 import play.api.i18n.{Lang, Messages}
-import play.api.mvc._
+import play.api.mvc.*
 import play.silhouette.api.Silhouette
 import play.silhouette.api.actions.SecuredRequest
-import service._
+import service.*
 
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
@@ -28,15 +28,15 @@ class ApplicationController @Inject() (
     labelService: LabelService,
     validationService: ValidationService,
     partnerService: PartnerService
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   def index = cc.securityService.UserAwareAction { implicit request =>
     val user: Option[SidewalkUserWithRole] = request.identity
     val timestamp: OffsetDateTime          = OffsetDateTime.now
     val ipAddress: IpAddress               = request.ipAddress
-    val isMobile: Boolean                  = ControllerUtils.isMobile(request)
+    val isMobile: Boolean                  = ControllerUtils.isMobile
     val qString: Map[String, String]       = request.queryString.map { case (k, v) => k.mkString -> v.mkString }
 
     val referrer: Option[String] = qString.get("referrer") match {
@@ -59,7 +59,7 @@ class ApplicationController @Inject() (
           // Save UTM parameters if present, awaiting the write so failures surface to the error handler (#4229).
           // A cookie-less visitor has no user row to attach UTM params to, so they're skipped; UTM capture for
           // these visitors moves to account-mint time (#4442).
-          val utmSaved: Future[_] =
+          val utmSaved: Future[?] =
             if (ControllerUtils.hasUtmParamsFlat(qString)) {
               user match {
                 case Some(u) =>
@@ -283,7 +283,7 @@ class ApplicationController @Inject() (
    * a control drawer on one side and a four-panel band below has no phone layout.
    */
   def accessScore = cc.securityService.UserAwareAction { implicit request =>
-    if (ControllerUtils.isMobile(request)) {
+    if (ControllerUtils.isMobile) {
       cc.loggingService.insert(
         request.identity.map(_.userId),
         request.ipAddress,
@@ -308,7 +308,7 @@ class ApplicationController @Inject() (
    * Returns a page with instructions for users who want to receive community service hours.
    */
   def serviceHoursInstructions = cc.securityService.SecuredAction { implicit request =>
-    val isMobile: Boolean = ControllerUtils.isMobile(request)
+    val isMobile: Boolean = ControllerUtils.isMobile
     configService.getCommonPageData(request2Messages.lang).map { commonData =>
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_ServiceHourInstructions")
       Ok(views.html.serviceHoursInstructions(commonData, request.identity, isMobile))
@@ -320,7 +320,7 @@ class ApplicationController @Inject() (
    */
   def timeCheck = cc.securityService.SecuredAction(WithSignedIn()) {
     implicit request: SecuredRequest[DefaultEnv, AnyContent] =>
-      val isMobile: Boolean = ControllerUtils.isMobile(request)
+      val isMobile: Boolean = ControllerUtils.isMobile
       // Not cached, and started together: volunteers reload this page while logging service hours, so a stale total
       // would be worse than a slow one (#4526).
       val cityHoursF: Future[service.CrossCityHours] =
@@ -335,7 +335,7 @@ class ApplicationController @Inject() (
   }
 
   def routeBuilder = cc.securityService.UserAwareAction { implicit request =>
-    if (ControllerUtils.isMobile(request)) {
+    if (ControllerUtils.isMobile) {
       cc.loggingService.insert(
         request.identity.map(_.userId),
         request.ipAddress,

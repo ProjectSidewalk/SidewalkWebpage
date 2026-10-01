@@ -1,13 +1,15 @@
 package formats.json
 
-import models.user._
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTotals, UserSearchResult}
+import models.user.*
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
+import service.{CityHours, CrossCityHours, TeamMemberStats, TeamOverview, TeamTotals}
 
 import java.time.OffsetDateTime
 
 object UserFormats {
+  // snake_case keys for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
   /**
    * The Settings page's save (`POST /dashboard/settings`). The privacy flags are required so a body that omits one
@@ -23,54 +25,40 @@ object UserFormats {
       measurementSystem: Option[String]
   )
 
-  implicit val settingsSubmissionReads: Reads[SettingsSubmission] = (
+  given settingsSubmissionReads: Reads[SettingsSubmission] = (
     (JsPath \ "username").readNullable[String].map(_.map(_.trim)) and
       (JsPath \ "onLeaderboard").read[Boolean] and
       (JsPath \ "publicProfile").read[Boolean] and
       (JsPath \ "teamId").readNullable[Int] and
       (JsPath \ "communityService").readNullable[Boolean] and
       (JsPath \ "measurementSystem").readNullable[String]
-  )(SettingsSubmission.apply _)
+  )(SettingsSubmission.apply)
 
-  /** The canonical JSON format for a role. Other format objects import these rather than defining their own. */
-  implicit val roleReads: Reads[Role.Value] = Reads { json =>
-    json.validate[String].flatMap { role =>
-      Role.fromString(role) match {
-        case Some(parsed) => JsSuccess(parsed)
-        case None         => JsError(s"Invalid role: $role. Valid roles are: ${Role.values.mkString(", ")}.")
-      }
-    }
-  }
-  implicit val roleWrites: Writes[Role.Value] = Writes(role => JsString(role.toString))
-
-  implicit val measurementSystemReads: Reads[MeasurementSystem.Value]   = Reads.enumNameReads(MeasurementSystem)
-  implicit val measurementSystemWrites: Writes[MeasurementSystem.Value] = Writes.enumNameWrites
-
-  implicit val sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
+  given sidewalkUserWithRoleReads: Reads[SidewalkUserWithRole] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String] and
       (JsPath \ "email").read[String] and
-      (JsPath \ "role").read[Role.Value] and
+      (JsPath \ "role").read[Role] and
       (JsPath \ "community_service").read[Boolean] and
       (JsPath \ "infra3d_access").read[Boolean] and
-      (JsPath \ "measurement_system").readNullable[MeasurementSystem.Value]
-  )(SidewalkUserWithRole.apply _)
+      (JsPath \ "measurement_system").readNullable[MeasurementSystem]
+  )(SidewalkUserWithRole.apply)
 
-  implicit val sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = (
+  given sidewalkUserWithRoleWrites: Writes[SidewalkUserWithRole] = (
     (JsPath \ "user_id").write[String] and
       (JsPath \ "username").write[String] and
       (JsPath \ "email").write[String] and
-      (JsPath \ "role").write[Role.Value] and
+      (JsPath \ "role").write[Role] and
       (JsPath \ "community_service").write[Boolean] and
       (JsPath \ "infra3d_access").write[Boolean] and
-      (JsPath \ "measurement_system").writeNullable[MeasurementSystem.Value]
-  )(unlift(SidewalkUserWithRole.unapply))
+      (JsPath \ "measurement_system").writeNullable[MeasurementSystem]
+  )((o: SidewalkUserWithRole) => Tuple.fromProductTyped(o))
 
-  implicit val userStatsWrites: Writes[UserStatsForAdminPage] = (
+  given userStatsWrites: Writes[UserStatsForAdminPage] = (
     (__ \ "userId").write[String] and
       (__ \ "username").write[String] and
       (__ \ "email").write[String] and
-      (__ \ "role").write[Role.Value] and
+      (__ \ "role").write[Role] and
       (__ \ "team").writeNullable[String] and
       (__ \ "signUpTime").writeNullable[OffsetDateTime] and
       (__ \ "lastSignInTime").writeNullable[OffsetDateTime] and
@@ -82,45 +70,26 @@ object UserFormats {
       (__ \ "othersValidatedAgreedPct").write[Double] and
       (__ \ "highQuality").write[Boolean] and
       (__ \ "highQualityManual").writeNullable[Boolean]
-  )(unlift(UserStatsForAdminPage.unapply))
+  )((o: UserStatsForAdminPage) => Tuple.fromProductTyped(o))
 
-  implicit val teamWrites: Writes[Team] = (
+  given teamWrites: Writes[Team] = (
     (JsPath \ "teamId").write[Int] and
       (JsPath \ "name").write[String] and
       (JsPath \ "description").write[String] and
       (JsPath \ "open").write[Boolean] and
       (JsPath \ "visible").write[Boolean]
-  )(unlift(Team.unapply))
+  )((o: Team) => Tuple.fromProductTyped(o))
 
   /**
    * The admin team page's payload (`/adminapi/team/:teamId`, #5381), snake_case throughout. Accuracy travels as raw
    * (validated, agreed) counts, not a percentage, so the team's rate can pool its members' judged labels rather than
    * average rates that describe different amounts of work.
    */
-  implicit val teamMemberStatsWrites: Writes[TeamMemberStats] = (
-    (__ \ "user_id").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "role").write[Role.Value] and
-      (__ \ "labels").write[Int] and
-      (__ \ "validations").write[Int] and
-      (__ \ "distance_meters").write[Double] and
-      (__ \ "labels_validated").write[Int] and
-      (__ \ "labels_agreed").write[Int] and
-      (__ \ "last_active").writeNullable[OffsetDateTime] and
-      (__ \ "high_quality").write[Boolean] and
-      (__ \ "excluded").write[Boolean]
-  )(unlift(TeamMemberStats.unapply))
+  given teamMemberStatsWrites: Writes[TeamMemberStats] = Json.writes[TeamMemberStats]
 
-  implicit val teamTotalsWrites: Writes[TeamTotals] = (
-    (__ \ "members").write[Int] and
-      (__ \ "labels").write[Int] and
-      (__ \ "validations").write[Int] and
-      (__ \ "distance_meters").write[Double] and
-      (__ \ "labels_validated").write[Int] and
-      (__ \ "labels_agreed").write[Int]
-  )(unlift(TeamTotals.unapply))
+  given teamTotalsWrites: Writes[TeamTotals] = Json.writes[TeamTotals]
 
-  implicit val teamOverviewWrites: Writes[TeamOverview] = Writes { overview =>
+  given teamOverviewWrites: Writes[TeamOverview] = Writes { overview =>
     Json.obj(
       "team" -> Json.obj(
         "team_id"     -> overview.team.teamId,
@@ -134,20 +103,14 @@ object UserFormats {
     )
   }
 
-  implicit val userSearchResultWrites: Writes[UserSearchResult] = (
-    (__ \ "user_id").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "email").write[String] and
-      (__ \ "role").write[Role.Value] and
-      (__ \ "team").writeNullable[String]
-  )(unlift(UserSearchResult.unapply))
+  given userSearchResultWrites: Writes[UserSearchResult] = Json.writes[UserSearchResult]
 
-  implicit val cityHoursWrites: Writes[CityHours] = (
+  given cityHoursWrites: Writes[CityHours] = (
     (JsPath \ "city_id").write[String] and
       (JsPath \ "city_name").write[String] and
       (JsPath \ "hours").write[Double] and
       (JsPath \ "is_current_city").write[Boolean]
-  )(unlift(CityHours.unapply))
+  )((o: CityHours) => Tuple.fromProductTyped(o))
 
   /**
    * The hours the Manage user page fills its KPI and breakdown from (`/adminapi/users/:userId/crossCityHours`, #4986).
@@ -156,7 +119,7 @@ object UserFormats {
    * both straight off the same [[service.CrossCityHours]], and an admin verifying a service-hours claim against a
    * number assembled a second way is the failure this endpoint exists to prevent.
    */
-  implicit val crossCityHoursWrites: Writes[CrossCityHours] = Writes { hours =>
+  given crossCityHoursWrites: Writes[CrossCityHours] = Writes { hours =>
     Json.obj(
       "total_hours"        -> hours.totalHours,
       "cities"             -> hours.cities,

@@ -222,7 +222,7 @@ describe('ImageryPage KPIs', () => {
     // Street 2 is the only one carrying `outdated`; the tier count would agree here, and the case below is the one
     // where they diverge.
     expect(text('kpi-needs-reaudit')).toBe('1');
-    expect(text('kpi-needs-reaudit-note')).toBe('1.0 mi of audited street with newer imagery');
+    expect(text('kpi-needs-reaudit-note')).toBe('1.0 mi with newer imagery');
   });
 
   test('counts never-audited streets out of every routable street', async () => {
@@ -369,14 +369,13 @@ describe('ImageryPage legend', () => {
       ],
       features: geojson([1, 2]),
     });
-    expect(text('imagery-priority-note')).toContain('not strictly ordered by priority');
-    expect(text('imagery-priority-note')).toContain('some needs re-audit streets sit below some audited once ones');
+    expect(text('imagery-priority-note')).toContain('count a quarter');
+    expect(text('imagery-priority-note')).toContain('some needs re-audit streets rank below some audited once ones');
   });
 
   test('does not claim a crossing when the tiers are cleanly ordered', async () => {
     await renderPage();
-    expect(text('imagery-priority-note')).not.toContain('not strictly ordered');
-    expect(text('imagery-priority-note')).toContain('quarter weight');
+    expect(text('imagery-priority-note')).not.toContain('rank below');
   });
 
   test('reports the priority range without spreading one argument per street', async () => {
@@ -394,7 +393,7 @@ describe('ImageryPage legend', () => {
 
   test('explains the two re-audit counts only when they actually differ', async () => {
     await renderPage();
-    expect(text('imagery-priority-note')).not.toContain('site-wide re-audit flag');
+    expect(text('imagery-priority-note')).not.toContain('carry the flag');
 
     // A street whose only audits are low-quality carries the flag but sits in the unaudited tier: the tier counts
     // only audits with weight in the priority formula, the flag counts every completed audit.
@@ -406,7 +405,7 @@ describe('ImageryPage legend', () => {
       features: geojson([1, 2]),
     });
     const note = text('imagery-priority-note');
-    expect(note).toContain('0 streets sit in the re-audit tier while 1 carry the site-wide re-audit flag');
+    expect(note).toContain('0 streets are in the re-audit tier but 1 carry the flag');
   });
 });
 
@@ -427,7 +426,7 @@ describe('ImageryPage tables', () => {
   test('lists the highest-priority streets city-wide until a region is pinned', async () => {
     await renderPage();
     expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['1', '2', '3', '4']);
-    expect(text('imagery-street-note')).toContain('The top 4 by priority, of 4 routable streets');
+    expect(text('imagery-street-note')).toContain('The top 4 of 4 routable streets by priority');
     expect(text('imagery-street-intro')).toContain('city-wide');
   });
 
@@ -436,7 +435,7 @@ describe('ImageryPage tables', () => {
     regionRows()[1].dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
     expect(streetRows().map((tr) => tr.dataset.rowId)).toEqual(['4']);
     expect(text('imagery-street-intro')).toContain('Downtown');
-    expect(text('imagery-street-note')).toContain('The top 1 by priority, of 1 routable streets');
+    expect(text('imagery-street-note')).toContain('The top 1 of 1 routable streets by priority');
   });
 
   test('goes back to the city-wide ranking when the pinned region is clicked again', async () => {
@@ -452,13 +451,12 @@ describe('ImageryPage tables', () => {
     const many = Array.from({ length: 80 }, (_, i) => street({ street_edge_id: i + 1, priority: 1 - i / 1000 }));
     await renderPage({ streets: many, features: geojson(many.map((s) => s.street_edge_id)) });
     expect(streetRows()).toHaveLength(50);
-    expect(text('imagery-street-note')).toContain('The top 50 by priority, of 80 routable streets');
+    expect(text('imagery-street-note')).toContain('The top 50 of 80 routable streets by priority');
     // Explore picks at random among ties, so the list is a sample of the frontier rather than a running order.
-    expect(text('imagery-street-note')).toContain('sample of the frontier rather than a queue');
-    expect(text('imagery-street-note')).toContain('top-priority ties');
+    expect(text('imagery-street-note')).toContain('a sample, not a queue');
   });
 
-  test('says how many regions the scroll box holds, and that search covers all of them', async () => {
+  test('says how many regions the scroll box holds', async () => {
     await renderPage();
     const note = text('imagery-region-note');
     expect(note).toContain('2 regions');
@@ -480,7 +478,7 @@ describe('ImageryPage brushing', () => {
     regionRows()[0].dispatchEvent(new window.Event('pointerover', { bubbles: true }));
     const selected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(selected.sort()).toEqual([1, 2, 3]);
-    expect(regionRows()[0].classList.contains('highlighted')).toBe(true);
+    expect(regionRows()[0].classList.contains('is-highlighted')).toBe(true);
   });
 
   test('reverts a transient hover to the pinned region rather than to nothing', async () => {
@@ -494,7 +492,7 @@ describe('ImageryPage brushing', () => {
 
     const stillSelected = mapState.featureStates.filter((s) => s.value.selected === true).map((s) => s.target.id);
     expect(stillSelected).toContain(4);
-    const highlighted = regionRows().filter((tr) => tr.classList.contains('highlighted'));
+    const highlighted = regionRows().filter((tr) => tr.classList.contains('is-highlighted'));
     expect(highlighted.map((tr) => tr.cells[0].textContent)).toEqual(['Downtown']);
   });
 
@@ -534,7 +532,7 @@ describe('ImageryPage rotation roll-up', () => {
   test('says the rotation is not advancing rather than projecting from zero', async () => {
     await renderPage({ pipeline: report({ run_days: [] }) });
     expect(rollupRow('Full pass over audited streets').cells[1].textContent).toBe('—');
-    expect(rollupRow('Full pass over audited streets').cells[2].textContent).toContain('not advancing');
+    expect(rollupRow('Full pass over audited streets').cells[2].textContent).toContain('rotation is stalled');
   });
 
   test('finds the oldest imagery record by instant, not by comparing timestamp strings', async () => {
@@ -594,8 +592,8 @@ describe('ImageryPage freshness histogram', () => {
     await renderPage();
     const note = text('imagery-freshness-note');
     expect(note).toContain('2 audited streets have imagery newer than their last audit');
-    expect(note).toContain('1 more are still current');
-    expect(note).toContain('0 have not been polled conclusively yet');
+    expect(note).toContain('1 still current');
+    expect(note).toContain('0 not yet polled');
   });
 
   test('reports the same split in the rotation table as the chart plots', async () => {
@@ -611,9 +609,9 @@ describe('ImageryPage freshness histogram', () => {
 describe('ImageryPage loading states', () => {
   test('says a city with no routable streets has no ranking, without treating it as an error', async () => {
     await renderPage({ streets: [] });
-    expect(text('imagery-status')).toContain('No routable streets in this city yet');
+    expect(text('imagery-status')).toContain('This city has no routable streets yet');
     expect(document.getElementById('imagery-status').classList.contains('error')).toBe(false);
-    expect(document.getElementById('imagery-status').classList.contains('hidden')).toBe(false);
+    expect(document.getElementById('imagery-status').classList.contains('ps-hidden')).toBe(false);
   });
 
   test('keeps the tables when no geometry matched, rather than handing Mapbox an empty bounds box', async () => {
@@ -625,7 +623,7 @@ describe('ImageryPage loading states', () => {
 
   test('hides the status line once the page has loaded', async () => {
     await renderPage();
-    expect(document.getElementById('imagery-status').classList.contains('hidden')).toBe(true);
+    expect(document.getElementById('imagery-status').classList.contains('ps-hidden')).toBe(true);
   });
 
   test('reports a failed street fetch instead of leaving the page on "Loading"', async () => {

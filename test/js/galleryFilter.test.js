@@ -72,7 +72,7 @@ function buildFixture() {
     document.body.innerHTML = `
       <div class="gallery-filter-header">
         <h4 id="filter-header">Filter By</h4>
-        <button type="button" id="clear-filters" class="button-ps button--tiny button--secondary" hidden>
+        <button type="button" id="clear-filters" class="button button--tiny button--secondary" hidden>
           <span aria-hidden="true">&#10006;</span><span>Clear Filters</span>
         </button>
       </div>

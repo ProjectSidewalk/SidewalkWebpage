@@ -22,6 +22,13 @@ class PanoramaxViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
   static SOURCE = 'panoramax';
 
+  /**
+   * See PanoViewer.PAINTS_DURING_LOAD. PSV draws the new picture as soon as its own load resolves, still at the old
+   * heading, and setPano() resolves only after a second request for the picture's links, so the page's POV lands
+   * that request's length after the picture first painted.
+   */
+  static PAINTS_DURING_LOAD = true;
+
   /** The federated meta-catalog, which searches every Panoramax instance at once. */
   static API_BASE = 'https://api.panoramax.xyz/api';
 
@@ -153,10 +160,13 @@ class PanoramaxViewer extends PanoViewer {
   }
 
   getPanoId = () => {
-    return this.currPanoData.getPanoId();
+    // Null until the first pano's metadata has loaded: the tracker asks on every input event, including during init.
+    return this.currPanoData ? this.currPanoData.getPanoId() : null;
   };
 
   getPosition = () => {
+    // Null until the first pano's metadata has loaded.
+    if (!this.currPanoData) return null;
     return { lat: this.currPanoData.getProperty('lat'), lng: this.currPanoData.getProperty('lng') };
   };
 
@@ -525,9 +535,9 @@ class PanoramaxViewer extends PanoViewer {
     return {
       panoId: item.id,
       source: this.getViewerType(),
-      // parseZone keeps the capture's own offset: `datetime` is normalised to UTC, so a plain moment() would render
-      // it in the reader's timezone and an evening capture would show a different day in Paris than in Seattle.
-      captureDate: moment.parseZone(props.datetimetz || props.datetime),
+      // Keeps the day on the capture's own calendar: `datetime` is in UTC, so an evening capture read as an instant
+      // would show a different day in Paris than in Seattle.
+      captureDate: util.parseDate((props.datetimetz || props.datetime)?.slice(0, 10)),
       width,
       height: dims?.[1] || Math.round(width / 2),
       tileWidth: matrix.tileWidth,

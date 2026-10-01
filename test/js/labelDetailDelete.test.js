@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
 
 const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
 const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
@@ -182,7 +182,6 @@ describe('deleting a label from the card (#3591)', () => {
     });
 
     window.i18next = { t: (key) => key };
-    window.moment = () => ({ format: () => '' });
     window.logWebpageActivity = jest.fn();
     window.camelToKebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
     window.buildBackupImageData = () => null;
@@ -194,6 +193,7 @@ describe('deleting a label from the card (#3591)', () => {
       isMobile: () => false,
       lazyIdentityFetch: request,
       misc: {
+        labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
         VALID_LABEL_TYPES: ['Obstacle'],
         getRatingLevelKeys: () => ({ 1: 'low', 2: 'medium', 3: 'high' }),
         getSmileyIconPath: (sev, type, selected) => `${type}-${sev}-${selected}.svg`,
@@ -206,6 +206,7 @@ describe('deleting a label from the card (#3591)', () => {
       pano: { centeredPovToCanvasCoord: () => ({ x: 0, y: 0 }) },
       url: { replaceQuery: () => {} },
     };
+    installDateHelpers();
     window.BadgeAchievements = { seedCounts: () => {}, recordValidation: () => {} };
     window.Toast = { show: jest.fn() };
     window.ConfirmDialog = { confirm: jest.fn(async () => confirmAnswer) };

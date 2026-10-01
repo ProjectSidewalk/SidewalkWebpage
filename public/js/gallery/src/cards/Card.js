@@ -99,12 +99,7 @@ class Card {
     const panoImage = this.#panoImage;
 
     for (const attrName in param) {
-      // Add all the properties. Format the timestamps using the moment library.
-      if (attrName === 'label_timestamp' || attrName === 'image_capture_date') {
-        properties[attrName] = moment(param[attrName]);
-      } else if (Object.hasOwn(param, attrName) && Object.hasOwn(properties, attrName)) {
-        properties[attrName] = param[attrName];
-      }
+      if (Object.hasOwn(param, attrName) && Object.hasOwn(properties, attrName)) properties[attrName] = param[attrName];
     }
     properties.pov = { heading: param.heading, pitch: param.pitch, zoom: param.zoom };
     properties.original_canvas_x = param.canvas_x;
@@ -122,7 +117,7 @@ class Card {
     else if (param.agree_count + param.disagree_count + param.unsure_count > 0) properties.correctness = 'unsure';
     else properties.correctness = 'unvalidated';
 
-    const labelTypeName = i18next.t(util.camelToKebab(this.getLabelType()));
+    const labelTypeName = util.misc.labelTypeName(this.getLabelType());
 
     labelIcon.src = util.misc.getIconImagePaths(this.getLabelType()).iconImagePath;
     labelIcon.classList.add('label-icon', 'label-icon-gallery');
@@ -158,7 +153,7 @@ class Card {
       const location = document.createElement('a');
       location.className = 'card-location';
       location.href = `/labelMap?labelId=${properties.label_id}`;
-      location.title = i18next.t('labelmap:open-label-on-labelmap');
+      location.setAttribute('data-ps-tooltip', i18next.t('labelmap:open-label-on-labelmap'));
       // The visible text is the region, so the accessible name leads with it (WCAG 2.5.3) and the promise
       // the sighted user gets on hover follows.
       location.setAttribute('aria-label', `${regionName}: ${i18next.t('labelmap:open-label-on-labelmap')}`);
@@ -252,20 +247,7 @@ class Card {
    * @returns {Record<string, any>}
    */
   getProperties() {
-    return Card.#deepCopy(this.#properties);
-  }
-
-  /**
-   * Copies arrays and plain objects; moment dates are shared, since structuredClone can't copy them.
-   * @param {*} value
-   * @returns {*}
-   */
-  static #deepCopy(value) {
-    if (Array.isArray(value)) return value.map((item) => Card.#deepCopy(item));
-    if (value !== null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
-      return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, Card.#deepCopy(item)]));
-    }
-    return value;
+    return structuredClone(this.#properties);
   }
 
   /**
@@ -471,7 +453,7 @@ class Card {
   updateLabelType(labelType) {
     if (labelType === this.getLabelType()) return;
     this.#properties.label_type = labelType;
-    const labelTypeName = i18next.t(util.camelToKebab(labelType));
+    const labelTypeName = util.misc.labelTypeName(labelType);
     const icon = /** @type {HTMLImageElement} */ (this.#card.querySelector('.label-icon'));
     if (icon) icon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
     const header = this.#card.querySelector('.card-header__type');

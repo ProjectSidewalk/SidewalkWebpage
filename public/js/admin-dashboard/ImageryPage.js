@@ -81,7 +81,7 @@ class ImageryPage {
       this.#streets = priority.streets || [];
 
       if (this.#streets.length === 0) {
-        this.#setStatus('No routable streets in this city yet, so there is no priority ranking to show.', false);
+        this.#setStatus('This city has no routable streets yet, so there is no priority ranking.', false);
         return;
       }
 
@@ -107,7 +107,7 @@ class ImageryPage {
       this.#buildTables();
       this.#setStatus(joined.features.length > 0
         ? ''
-        : 'No geometry matched the routable streets, so the map is empty; the tables below still show the ranking.',
+        : 'No geometry matched the routable streets, so the map is empty. The tables still show the ranking.',
       false, joined.features.length > 0);
     } catch (err) {
       console.error('Imagery page failed to load:', err);
@@ -192,9 +192,8 @@ class ImageryPage {
 
     const regionNote = document.getElementById('imagery-region-note');
     if (regionNote) {
-      regionNote.textContent = `${this.#regions.length.toLocaleString()} regions, highest mean priority first — `
-        + 'scroll for the rest; sorting and the search box cover all of them. The top five are the pool Explore '
-        + 'draws from, so a region just below the fold is one audit away from being in it.';
+      regionNote.textContent = `${this.#regions.length.toLocaleString()} regions, highest mean priority first; `
+        + 'Explore draws from the top five.';
     }
 
     this.#streetTable = new StreetPriorityTable('imagery-street-table', {
@@ -251,18 +250,14 @@ class ImageryPage {
     const intro = document.getElementById('imagery-street-intro');
     if (intro) {
       intro.textContent = regionId === null
-        ? 'The highest-priority streets city-wide, with the audit counts that produced each value. Pin a region above'
-        + ' to narrow this to that region’s queue.'
-        : `The highest-priority streets in ${regionName}. Click the pinned region again to go back to the city-wide`
-          + ' ranking.';
+        ? 'The highest-priority streets city-wide and the audit counts behind each value. Pin a region to see only '
+        + 'its queue.'
+        : `The highest-priority streets in ${regionName}. Click the pinned region again for the city-wide ranking.`;
     }
     const note = document.getElementById('imagery-street-note');
     if (note) {
-      note.textContent = `The top ${ranked.length.toLocaleString()} by priority, of `
-        + `${pool.length.toLocaleString()} routable streets — capped so the list stays readable in a large city. `
-        + 'Read it as a sample of the frontier rather than a queue: Explore picks a region first, then a street at '
-        + 'random among that region\u2019s top-priority ties, and ties at the top are the norm (every never-audited '
-        + 'street sits at exactly 1.000). Pin a region above to see that region\u2019s own top of the list.';
+      note.textContent = `The top ${ranked.length.toLocaleString()} of ${pool.length.toLocaleString()} routable `
+        + 'streets by priority: a sample, not a queue, since Explore picks a region first.';
     }
   }
 
@@ -307,8 +302,7 @@ class ImageryPage {
     const reauditMiles = flagged.reduce((sum, street) => sum + ImageryPage.#miles(street.length_m), 0);
 
     AdminShell.setText('kpi-needs-reaudit', flagged.length.toLocaleString());
-    AdminShell.setText('kpi-needs-reaudit-note', `${reauditMiles.toFixed(1)} mi of audited street with newer `
-    + 'imagery');
+    AdminShell.setText('kpi-needs-reaudit-note', `${reauditMiles.toFixed(1)} mi with newer imagery`);
     AdminShell.setText('kpi-unaudited', counts.unaudited.toLocaleString());
     AdminShell.setText('kpi-unaudited-note', `of ${this.#streets.length.toLocaleString()} routable streets`);
 
@@ -325,7 +319,7 @@ class ImageryPage {
     const poll = (this.#report?.jobs || []).find((job) => job.job_name === this.#report?.poll_job);
     if (!poll || poll.last_status === 'never_run') {
       AdminShell.setText('kpi-last-poll', 'never');
-      AdminShell.setText('kpi-last-poll-note', 'the nightly poll has no recorded run in this deployment');
+      AdminShell.setText('kpi-last-poll-note', 'no recorded run in this city');
       return;
     }
     const polled = poll.last_details?.streets_polled;
@@ -399,21 +393,16 @@ class ImageryPage {
           && stats[tier.key].min < stats[below.key].max;
       });
       const overlap = crossing
-        ? ` Low-quality audits count too, at a quarter weight, so the tiers are not strictly ordered by priority: `
-        + `some ${crossing.label.toLowerCase()} streets sit below some `
-        + `${StreetPriorityTiers.TIERS[StreetPriorityTiers.TIERS.indexOf(crossing) + 1].label.toLowerCase()} ones.`
-        : ' Low-quality audits count too, at a quarter weight, which is why two streets in the same tier can carry '
-          + 'different values.';
+        ? `; low-quality audits count a quarter, so some ${crossing.label.toLowerCase()} streets rank below some `
+        + `${StreetPriorityTiers.TIERS[StreetPriorityTiers.TIERS.indexOf(crossing) + 1].label.toLowerCase()} ones`
+        : '';
       const flagged = this.#streets.filter((street) => street.outdated).length;
       const tierGap = counts.reaudit === flagged
         ? ''
-        : ` ${counts.reaudit.toLocaleString()} streets sit in the `
-          + `re-audit tier while ${flagged.toLocaleString()} carry the site-wide re-audit flag: the tier counts only `
-          + 'the audits that carry weight in the priority formula, the flag counts every completed audit.';
-      note.textContent = `Priority currently ranges from ${min.toFixed(3)} to ${max.toFixed(3)} across `
-        + `${this.#streets.length.toLocaleString()} routable streets.${overlap} Tier is the honest bucket for what a `
-        + 'street has been audited on; priority is what Explore actually sorts by, so read the number when the two '
-        + `disagree.${tierGap}`;
+        : ` ${counts.reaudit.toLocaleString()} streets are in the re-audit tier but ${flagged.toLocaleString()} `
+          + 'carry the flag, which counts every completed audit.';
+      note.textContent = `Priority ranges from ${min.toFixed(3)} to ${max.toFixed(3)} across `
+        + `${this.#streets.length.toLocaleString()} routable streets${overlap}.${tierGap}`;
     }
   }
 
@@ -498,25 +487,24 @@ class ImageryPage {
             ${row('Routable streets', this.#streets.length.toLocaleString(),
               `${audited.length.toLocaleString()} of them audited at least once`)}
             ${row('With any imagery record', withRow.length.toLocaleString(),
-              `${pct(withRow.length, this.#streets.length)} of routable streets, from any feeder`)}
+              `${pct(withRow.length, this.#streets.length)} of routable streets, from any source`)}
             ${row('With a polled capture date', withMedian.length.toLocaleString(),
-              'only the nightly poll writes this, and only it can raise a re-audit flag')}
+              'written only by the nightly poll, the only source of re-audit flags')}
             ${row('Audited and polled', auditedWithMedian.length.toLocaleString(),
-              `${pct(auditedWithMedian.length, audited.length)} of audited streets; the rest are unmeasured, `
-              + 'not up to date')}
+              `${pct(auditedWithMedian.length, audited.length)} of audited streets; the rest are unmeasured`)}
             ${row('Audits still current', stillCurrent.toLocaleString(),
-              'polled imagery is no newer than the last audit, so the labels still describe what is there')}
+              'imagery no newer than the last audit')}
             ${row('Audits behind the imagery', behind.toLocaleString(),
-              'the backlog charted below, by how far behind it is')}
+              'the backlog charted below')}
             ${row('Refreshed in the last 30 days', recent.toLocaleString(),
-              'streets whose imagery record was written or re-confirmed recently')}
+              'imagery record written or re-confirmed')}
             ${row('Full pass over audited streets', rotationNights === null ? '—' : `~${rotationNights} nights`,
               perNight > 0
-                ? `at ${perNight.toLocaleString()} streets a night observed, batch size ${
-                  (batchSize || 0).toLocaleString()}`
-                : 'no night in the window polled a street, so the rotation is not advancing')}
+                ? `at ${perNight.toLocaleString()} streets a night (batch size ${
+                  (batchSize || 0).toLocaleString()})`
+                : 'no street polled in this window; the rotation is stalled')}
             ${row('Oldest imagery record', oldest ? oldest.slice(0, 10) : '—',
-              'the street the rotation has left longest without a look')}
+              'the street checked longest ago')}
           </tbody>
         </table>
       </div>`;
@@ -553,10 +541,8 @@ class ImageryPage {
     const note = document.getElementById('imagery-freshness-note');
     if (note) {
       note.textContent = `${behind.length.toLocaleString()} audited streets have imagery newer than their last `
-        + `audit. ${(measured.length - behind.length).toLocaleString()} more are still current, and `
-        + `${unmeasured.toLocaleString()} have not been polled conclusively yet, so neither group is plotted here. `
-        + 'The gap is measured against each street’s most recent audit while the flag is raised per audit, so a '
-        + 'street can be absent from this chart and still have an older audit flagged.';
+        + `audit; not plotted: ${(measured.length - behind.length).toLocaleString()} still current, `
+        + `${unmeasured.toLocaleString()} not yet polled.`;
     }
   }
 
@@ -606,7 +592,7 @@ class ImageryPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   /** True if two id lists contain the same set of ids (order-independent). */

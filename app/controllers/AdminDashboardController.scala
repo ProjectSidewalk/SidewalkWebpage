@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base.{CustomBaseController, CustomControllerComponents}
-import formats.json.UserFormats._
+import formats.json.UserFormats.given
 import models.auth.{WithAdmin, WithOwner}
 import play.api.Configuration
 import models.street.StreetPriorityForAdmin
@@ -17,7 +17,7 @@ import service.{
   UserService
 }
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -32,7 +32,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class AdminDashboardController @Inject() (
     cc: CustomControllerComponents,
     val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService,
     labelService: LabelService,
     healthService: HealthService,
@@ -40,9 +39,9 @@ class AdminDashboardController @Inject() (
     imageryFreshnessReportService: ImageryFreshnessReportService,
     streetService: StreetService,
     userService: UserService
-)(implicit ec: ExecutionContext)
+)(using assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   /**
    * Renders the Overview landing page: an at-a-glance snapshot that routes into the detailed pages.
@@ -312,12 +311,12 @@ class AdminDashboardController @Inject() (
    */
   def reopenStreet(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     streetLifecycleService.reopenStreet(streetEdgeId).map {
-      case StreetLifecycleService.Reopened =>
+      case StreetLifecycleService.ReopenOutcome.Reopened =>
         cc.loggingService.insert(request.identity.userId, request.ipAddress, s"ReopenStreet_Street=$streetEdgeId")
         Ok(Json.obj("status" -> "success", "street_edge_id" -> streetEdgeId))
-      case StreetLifecycleService.NotNoImagery(current) =>
+      case StreetLifecycleService.ReopenOutcome.NotNoImagery(current) =>
         Conflict(Json.obj("status" -> "Error", "message" -> s"Street $streetEdgeId is '$current', not 'no_imagery'."))
-      case StreetLifecycleService.StreetNotFound =>
+      case StreetLifecycleService.ReopenOutcome.StreetNotFound =>
         NotFound(Json.obj("status" -> "Error", "message" -> s"No street with id $streetEdgeId."))
     }
   }
@@ -330,7 +329,7 @@ class AdminDashboardController @Inject() (
   def dismissReopenCandidate(streetEdgeId: Int) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
     streetLifecycleService.dismissReopenCandidate(streetEdgeId).map { dismissed =>
       if (dismissed > 0) {
-        cc.loggingService.insert(
+        val _ = cc.loggingService.insert(
           request.identity.userId,
           request.ipAddress,
           s"DismissReopenCandidate_Street=$streetEdgeId"

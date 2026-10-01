@@ -16,6 +16,7 @@
   },
   "validate-menu": {
     "remove-tag": "Tag verwijderen: {{tag}}",
+    "clear-verdict": "Antwoord wissen",
     "tag-search-placeholder": "Voeg hier meer tags toe",
     "tag-search-no-results": "Geen overeenkomende tags",
     "disagree-reason": {
@@ -104,6 +105,9 @@
     "title": "Beelden konden niet worden geladen",
     "body": "We konden de straatbeelden voor de labels in deze missie niet laden, dus er is nu niets om te tonen. Je afgeronde validaties zijn opgeslagen. Dit lost zichzelf meestal op — probeer het opnieuw.",
     "retry": "Opnieuw proberen"
+  },
+  "pano-loading": {
+    "skipping": "Nog steeds aan het laden, we proberen het volgende label..."
   },
   "mission-complete": {
     "title": "Goed gedaan!",

@@ -3,10 +3,9 @@ package models.audit
 import com.google.inject.ImplementedBy
 import models.mission.MissionTableDef
 import models.utils.{MyPostgresProfile, SqlFragments}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import service.TimeInterval
-import service.TimeInterval.TimeInterval
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
@@ -49,7 +48,7 @@ class AuditTaskInteractionTableDef(tag: slick.lifted.Tag)
   def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note,
-    temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
+    temporaryLabelId, timestamp).mapTo[AuditTaskInteraction]
 
   def auditTask =
     foreignKey("audit_task_interaction_audit_task_id_fkey", auditTaskId, TableQuery[AuditTaskTableDef])(_.auditTaskId)
@@ -75,7 +74,7 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag)
   def timestamp: Rep[OffsetDateTime]     = column[OffsetDateTime]("timestamp")
 
   def * = (auditTaskInteractionId, auditTaskId, missionId, action, panoId, lat, lng, heading, pitch, zoom, note,
-    temporaryLabelId, timestamp) <> ((AuditTaskInteraction.apply _).tupled, AuditTaskInteraction.unapply)
+    temporaryLabelId, timestamp).mapTo[AuditTaskInteraction]
 
   def auditTaskInteraction =
     foreignKey(
@@ -95,7 +94,7 @@ class AuditTaskInteractionSmallTableDef(tag: slick.lifted.Tag)
 trait AuditTaskInteractionTableRepository {}
 
 @Singleton
-class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class AuditTaskInteractionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends AuditTaskInteractionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {

@@ -170,7 +170,7 @@ class KeyboardManager {
         // Some keyup events (synthetic events, certain IME/compose keys) arrive with no `key`; skip the shortcut
         // match rather than throwing on undefined.toUpperCase().
         // The type list is backend-sourced but getLabelDescriptions is a local table, so a label type added to
-        // LabelTypeEnum lands here before it has a keyChar. Skip it rather than throwing on every keyup.
+        // LabelType lands here before it has a keyChar. Skip it rather than throwing on every keyup.
         if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)?.keyChar) {
           if (mode !== 'Walk') this.#closeContextMenu(e.keyCode);
           this.#ribbon.modeSwitch(mode);

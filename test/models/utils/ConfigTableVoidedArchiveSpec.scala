@@ -1,12 +1,11 @@
 package models.utils
 
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import slick.dbio.DBIO
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 /**
  * DB-backed tests for ConfigTable's voided-vote archive reads (#4842, PR #4866 review).
@@ -15,10 +14,10 @@ import util.RolledBackDb
  * contributor (aggregate data, contributor ids, and the Owner scorecard). Self-seeding inside a rolled-back
  * transaction, so it is meaningful on an empty CI schema and leaves a seeded dev DB exactly as found.
  */
-class ConfigTableVoidedArchiveSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class ConfigTableVoidedArchiveSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val configTable = app.injector.instanceOf[ConfigTable]
 

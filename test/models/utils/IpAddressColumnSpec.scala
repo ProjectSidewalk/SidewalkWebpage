@@ -1,27 +1,26 @@
 package models.utils
 
 import models.user.SidewalkUserTable
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 
 /** Checks that IP addresses save to and load from a real inet column (webpage_activity). */
-class IpAddressColumnSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSuite {
+class IpAddressColumnSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .build()
 
   private lazy val table: WebpageActivityTable = app.injector.instanceOf[WebpageActivityTable]
 
   private def activity(ip: String): WebpageActivity =
-    WebpageActivity(0, SidewalkUserTable.aiUserId, IpAddress(ip), "IpAddressColumnSpec", OffsetDateTime.now)
+    WebpageActivity(0, Some(SidewalkUserTable.aiUserId), IpAddress(ip), "IpAddressColumnSpec", OffsetDateTime.now)
 
   "The ip_address column" should {
     "save an IP and read it back in Postgres's standard spelling" in {

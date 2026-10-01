@@ -105,7 +105,10 @@ describe('mobile Validate mission screens', () => {
         global.util = {
             assetPath: assetPathStub,
             isMobile: () => isMobile,
-            misc: {getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}_small.svg`})},
+            misc: {
+                getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}_small.svg`}),
+                labelTypeName: () => 'Curb Ramp',
+            },
         };
         global.MissionStartTutorial = {
             EXAMPLE_PHOTO: {width: 658, height: 436},
@@ -118,7 +121,6 @@ describe('mobile Validate mission screens', () => {
         global.svv = {
             tracker,
             labelTypes: {1: 'CurbRamp'},
-            labelTypeNames: {1: 'Curb Ramp'},
             keyboard: null,
             zoomControl: null,
             undoValidation: {disableUndo: jest.fn()},

@@ -2,17 +2,20 @@ package formats.json
 
 import models.audit.{AuditedStreetWithTimestamp, ContributionTimeStat, GenericComment}
 import models.label.LabelCount
-import formats.json.UserFormats.roleWrites
 import models.user.UserCount
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import models.validation.{ValidationCount, ValidationOption}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import service.TimeInterval.TimeInterval
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
+import service.TimeInterval
 
 import java.time.OffsetDateTime
 
 object AdminFormats {
+  // snake_case keys, and a None written as null, for the Json.writes macros below.
+  private given jsonConfig: JsonConfiguration =
+    JsonConfiguration(JsonNaming.SnakeCase, optionHandlers = OptionHandlers.WritesNull)
+
   case class UserRoleSubmission(userId: String, roleId: String)
   case class TaskFlagsByDateSubmission(userId: String, date: OffsetDateTime, flag: String, state: Boolean)
   case class TaskFlagSubmission(auditTaskId: Int, flag: String, state: Boolean) {
@@ -39,19 +42,19 @@ object AdminFormats {
       infra3dAccess: Option[Boolean]
   )
 
-  implicit val userRoleSubmissionReads: Reads[UserRoleSubmission] = (
+  given userRoleSubmissionReads: Reads[UserRoleSubmission] = (
     (JsPath \ "user_id").read[String] and
       (JsPath \ "role_id").read[String]
-  )(UserRoleSubmission.apply _)
+  )(UserRoleSubmission.apply)
 
-  implicit val taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
+  given taskFlagsByDateSubmissionReads: Reads[TaskFlagsByDateSubmission] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "date").read[OffsetDateTime] and
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]
-  )(TaskFlagsByDateSubmission.apply _)
+  )(TaskFlagsByDateSubmission.apply)
 
-  implicit val adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] = (
+  given adminUserSettingsSubmissionReads: Reads[AdminUserSettingsSubmission] = (
     (JsPath \ "userId").read[String] and
       (JsPath \ "username").read[String].map(_.trim) and
       (JsPath \ "role").read[String] and
@@ -62,62 +65,30 @@ object AdminFormats {
       (JsPath \ "onLeaderboard").read[Boolean] and
       (JsPath \ "publicProfile").read[Boolean] and
       (JsPath \ "infra3dAccess").readNullable[Boolean]
-  )(AdminUserSettingsSubmission.apply _)
+  )(AdminUserSettingsSubmission.apply)
 
-  implicit val taskFlagSubmissionReads: Reads[TaskFlagSubmission] = (
+  given taskFlagSubmissionReads: Reads[TaskFlagSubmission] = (
     (JsPath \ "auditTaskId").read[Int] and
       (JsPath \ "flag").read[String] and
       (JsPath \ "state").read[Boolean]
-  )(TaskFlagSubmission.apply _)
+  )(TaskFlagSubmission.apply)
 
-  // Fixes the default writes now working when the keys are an Enumeration.
-  implicit def timeIntervalMapWrites[A](implicit writesA: Writes[A]): Writes[Map[TimeInterval, A]] =
-    (map: Map[TimeInterval, A]) => {
-      val stringMap = map.map { case (interval, value) => (interval.toString, value) }
-      Json.toJson(stringMap)(Writes.map[A](writesA))
-    }
+  given userCountWrites: Writes[UserCount] = Json.writes[UserCount]
 
-  implicit val userCountWrites: Writes[UserCount] = (
-    (__ \ "count").write[Int] and
-      (__ \ "tool_used").write[String] and
-      (__ \ "role").write[String] and
-      (__ \ "time_interval").write[TimeInterval] and
-      (__ \ "task_completed_only").write[Boolean] and
-      (__ \ "high_quality_only").write[Boolean]
-  )(unlift(UserCount.unapply))
+  given contributionTimeStatWrites: Writes[ContributionTimeStat] = Json.writes[ContributionTimeStat]
 
-  implicit val contributionTimeStatWrites: Writes[ContributionTimeStat] = (
-    (__ \ "time").write[Option[Double]] and
-      (__ \ "stat").write[String] and
-      (__ \ "time_interval").write[TimeInterval]
-  )(unlift(ContributionTimeStat.unapply))
+  given labelCountWrites: Writes[LabelCount] = Json.writes[LabelCount]
 
-  implicit val labelCountWrites: Writes[LabelCount] = (
-    (__ \ "count").write[Int] and
-      (__ \ "time_interval").write[TimeInterval] and
-      (__ \ "label_type").write[String]
-  )(unlift(LabelCount.unapply))
-
-  implicit val validationCountWrites: Writes[ValidationCount] = (
+  given validationCountWrites: Writes[ValidationCount] = (
     (__ \ "count").write[Int] and
       (__ \ "time_interval").write[TimeInterval] and
       (__ \ "label_type").write[String] and
       // None represents the "All" results subtotal.
-      (__ \ "result").write[String].contramap[Option[ValidationOption.Value]](_.map(_.toString).getOrElse("All")) and
+      (__ \ "result").write[String].contramap[Option[ValidationOption]](_.map(_.name).getOrElse("All")) and
       (__ \ "validator").write[String]
-  )(unlift(ValidationCount.unapply))
+  )((o: ValidationCount) => Tuple.fromProductTyped(o))
 
-  implicit val genericCommentWrites: Writes[GenericComment] = (
-    (__ \ "comment_type").write[String] and
-      (__ \ "username").write[String] and
-      (__ \ "pano_id").write[String] and
-      (__ \ "timestamp").write[OffsetDateTime] and
-      (__ \ "comment").write[String] and
-      (__ \ "heading").write[Double] and
-      (__ \ "pitch").write[Double] and
-      (__ \ "zoom").write[Double] and
-      (__ \ "label_id").write[Option[Int]]
-  )(unlift(GenericComment.unapply))
+  given genericCommentWrites: Writes[GenericComment] = Json.writes[GenericComment]
 
   def auditedStreetWithTimestampToGeoJSON(street: AuditedStreetWithTimestamp): JsObject = {
     Json.obj(

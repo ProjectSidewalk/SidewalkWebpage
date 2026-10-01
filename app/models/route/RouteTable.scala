@@ -5,7 +5,7 @@ import models.region.RegionTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTableDef}
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.lifted.Case
@@ -118,10 +118,8 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
   def streetCount: Rep[Int]          = column[Int]("street_count")
 
   def * =
-    (routeId, userId, regionId, name, slug, description, public, deleted, createdAt, distanceMeters, streetCount) <> (
-      (Route.apply _).tupled,
-      Route.unapply
-    )
+    (routeId, userId, regionId, name, slug, description, public, deleted, createdAt, distanceMeters, streetCount)
+      .mapTo[Route]
 
   def user   = foreignKey("route_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def region = foreignKey("route_region_id_fkey", regionId, TableQuery[RegionTableDef])(_.regionId)
@@ -133,7 +131,7 @@ class RouteTableDef(tag: slick.lifted.Tag) extends Table[Route](tag, "route") {
 trait RouteTableRepository {}
 
 @Singleton
-class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit ec: ExecutionContext)
+class RouteTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
     extends RouteTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 

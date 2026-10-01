@@ -317,6 +317,33 @@ describe('psTooltip retirement', () => {
 
         expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
     });
+
+    test('a trigger hiding itself takes its card with it', async () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Map key');
+        const card = open(trigger);
+
+        trigger.checkVisibility = () => false; // jsdom has no layout, so stand in for the class hiding it.
+        trigger.classList.add('hidden-by-page-css');
+        await Promise.resolve();
+
+        expect(card.classList.contains('ps-tooltip--visible')).toBe(false);
+    });
+});
+
+describe('psTooltip accessible description', () => {
+    test('describes the trigger when the card adds something to its name', () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Press Z', { 'aria-label': 'Zoom in' });
+        open(trigger);
+
+        expect(trigger.getAttribute('aria-describedby')).toBe('ps-tooltip');
+    });
+
+    test('leaves it alone when the card only repeats the name', () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'Zoom in', { 'aria-label': 'Zoom in' });
+        open(trigger);
+
+        expect(trigger.hasAttribute('aria-describedby')).toBe(false);
+    });
 });
 
 describe('psTooltip images', () => {
@@ -337,6 +364,26 @@ describe('psTooltip images', () => {
         } finally {
             Object.defineProperty(HTMLImageElement.prototype, 'complete', complete);
         }
+    });
+});
+
+describe('psTooltip top layer', () => {
+    test.each([
+        ['an open dialog', () => Object.assign(document.createElement('dialog'), { open: true })],
+        ['a popover', () => {
+            const el = document.createElement('div');
+            el.setAttribute('popover', 'manual');
+            return el;
+        }],
+    ])('moves into %s holding the trigger, and back out for one that is not', (_, makeHost) => {
+        const host = makeHost();
+        document.body.appendChild(host);
+        const inside = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'inside');
+        host.appendChild(inside);
+        const outside = addTrigger({ left: 400, top: 500, width: 100, height: 30 }, 'outside');
+
+        expect(open(inside).parentElement).toBe(host);
+        expect(open(outside).parentElement).toBe(document.body);
     });
 });
 
@@ -458,6 +505,23 @@ describe('psTooltip pinning (#5495)', () => {
 
         expect(isPinned()).toBe(true);
         expect(card().style.top).toBe(`${200 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    });
+
+    test('a card opened by keyboard focus follows its trigger through the scroll that brings it into view', () => {
+        const trigger = addTrigger({ left: 100, top: 900, width: 100, height: 30 }, 'Focused');
+        trigger.focus();
+        trigger._rect = { left: 100, top: 300, width: 100, height: 30 };
+        window.dispatchEvent(new Event('scroll'));
+
+        expect(isVisible()).toBe(true);
+        expect(card().style.top).toBe(`${300 - CARD_HEIGHT - TRIGGER_GAP}px`);
+    });
+
+    test('a card whose trigger doesn\'t hold focus still closes on scroll', () => {
+        open(addTrigger({ left: 100, top: 300, width: 100, height: 30 }, 'Hovered'));
+        window.dispatchEvent(new Event('scroll'));
+
+        expect(isVisible()).toBe(false);
     });
 
     test('a click no pointer made (a screen reader\'s Enter) moves focus into the card like a keyboard pin', () => {

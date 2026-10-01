@@ -43,14 +43,38 @@ const deviceMaxPanoWidth = () => {
 };
 
 /**
+ * The widest panorama a phone is handed, whatever its GPU advertises (#5561).
+ *
+ * `deviceMaxPanoWidth` answers "can it be textured", and on an iPhone that answer is 32768: the GPU advertises 16384,
+ * so the native 16384 x 8192 file is served untouched. What the answer leaves out is everything else the load costs.
+ * The decoded bitmap is ~512 MB of RGBA, on top of the two 8192-square textures Pannellum cuts it into (another
+ * ~512 MB), and on a phone that is the per-process ceiling: iOS kills the tab and reloads it, mid-mission. Nothing in
+ * the page sees that happen (no `error`, no `webglcontextlost`), so the #5256 ladder below, which only steps down on
+ * a failure it is told about, can never rescue it. 8192 is the largest `PanoDisplayCopyService.AllowedWidths` member,
+ * cuts the peak to about a quarter, and is already ~2x a phone's device pixels at zoom 1; only max zoom reads a
+ * little softer than the native file would.
+ */
+const MOBILE_MAX_PANO_WIDTH = 8192;
+
+/**
+ * The cap that applies on this device: the GPU's, lowered to MOBILE_MAX_PANO_WIDTH on a phone.
+ * @returns {?number} Maximum panorama width in pixels, or null when nothing bounds it.
+ */
+const effectiveMaxPanoWidth = () => {
+  const gpuCap = deviceMaxPanoWidth();
+  if (!util.isMobile()) return gpuCap;
+  return gpuCap ? Math.min(gpuCap, MOBILE_MAX_PANO_WIDTH) : MOBILE_MAX_PANO_WIDTH;
+};
+
+/**
  * The URL to hand Pannellum for a panorama, asking the server for a smaller copy only when this device can't texture
- * the stored one (#5256). Every device that can render it as stored gets it untouched.
+ * the stored one (#5256), or is a phone that shouldn't hold it (#5561). Every other device gets it untouched.
  *
  * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
  * @returns {string} The image URL, with `maxWidth` appended when a copy is needed.
  */
 const panoramaUrlFor = (metadata) => {
-  const cap = deviceMaxPanoWidth();
+  const cap = effectiveMaxPanoWidth();
   if (!cap || !metadata.width || metadata.width <= cap) return metadata.imageUrl;
   return panoUrlWithMaxWidth(metadata.imageUrl, cap);
 };
@@ -83,7 +107,7 @@ const PANO_MIN_FALLBACK_WIDTH = 2048;
  */
 const panoramaUrlCandidates = (metadata) => {
   const urls = [panoramaUrlFor(metadata)];
-  const cap = deviceMaxPanoWidth();
+  const cap = effectiveMaxPanoWidth();
   const start = Math.min(cap || Infinity, metadata.width || Infinity);
   // With neither a cap nor a width there is nothing to step down from, and a guess would ask for a width the
   // allowlist would only snap back up.
@@ -98,6 +122,12 @@ const panoramaUrlCandidates = (metadata) => {
 class PannellumViewer extends PanoViewer {
   /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
   static SOURCE = 'pannellum';
+
+  /**
+   * How long a load waits for a prefetch of the same image that is still downloading, in milliseconds. Long enough
+   * to cover a backup pano on cellular; a prefetch stalled past this is abandoned in favour of a fresh request.
+   */
+  static PREFETCH_WAIT_MS = 10000;
 
   /** @type {pannellum.Viewer} The underlying pannellum viewer instance. */
   #viewer = undefined;
@@ -119,6 +149,16 @@ class PannellumViewer extends PanoViewer {
   #lastPitch = NaN;
   #lastHfov = NaN;
 
+  /** @type {?PanoImageCache} Where a pano's bytes may already be waiting, when the page prefetches (#5562). */
+  #imageCache = null;
+
+  /**
+   * Whether the last load's first attempt came out of the image cache rather than the network. Null until a load
+   * has run with a cache attached, so a page without one reads as "not applicable" rather than as a miss.
+   * @type {?boolean}
+   */
+  lastLoadPrefetched = null;
+
   constructor() {
     super();
     this.canvasClass = 'pannellum-canvas';
@@ -135,11 +175,13 @@ class PannellumViewer extends PanoViewer {
    * @param {number} [panoOptions.startPitch=0] - Initial pitch in degrees.
    * @param {number} [panoOptions.startZoom=1] - Initial zoom level (1, 2, or 3).
    * @param {boolean} [panoOptions.zoomControl=true] - Whether mouse-wheel zoom is enabled.
+   * @param {PanoImageCache} [panoOptions.imageCache] - Prefetched pano bytes to load from before the network (#5562).
    * @returns {Promise<void>}
    */
   async initialize(canvasElem, panoOptions = {}) {
     const metadata = panoOptions.panoMetadata;
     if (!metadata) throw new Error('PannellumViewer requires panoOptions.panoMetadata');
+    this.#imageCache = panoOptions.imageCache ?? null;
 
     const panoId = panoOptions.startPanoId || metadata.panoId;
     if (!panoId) throw new Error('PannellumViewer requires startPanoId or panoMetadata.panoId');
@@ -184,37 +226,42 @@ class PannellumViewer extends PanoViewer {
       },
     };
 
-    const candidates = panoramaUrlCandidates(metadata);
-    for (let attempt = 0; attempt < candidates.length; attempt++) {
-      pannellumConfig.scenes[panoId].panorama = candidates[attempt];
-      try {
-        await new Promise((resolve, reject) => {
-          this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
-          const onLoad = () => {
-            this.#viewer.off('load', onLoad);
-            this.#viewer.off('error', onError);
-            resolve(undefined);
-          };
-          const onError = (err) => {
-            this.#viewer.off('load', onLoad);
-            this.#viewer.off('error', onError);
-            reject(new Error(err || 'Pannellum failed to load image'));
-          };
-          this.#viewer.on('load', onLoad);
-          this.#viewer.on('error', onError);
-        });
-        break;
-      } catch (e) {
-        // The viewer holds a WebGL context and a half-built scene either way, so it goes before the next attempt.
+    const { urls: candidates, cacheKey, held } = await this.#attemptUrls(metadata);
+    try {
+      for (let attempt = 0; attempt < candidates.length; attempt++) {
+        pannellumConfig.scenes[panoId].panorama = candidates[attempt];
         try {
-          this.#viewer?.destroy();
-        } catch {
-          // Already torn down by the failure itself; nothing left to release.
+          await new Promise((resolve, reject) => {
+            this.#viewer = pannellum.viewer(canvasElem, pannellumConfig);
+            const onLoad = () => {
+              this.#viewer.off('load', onLoad);
+              this.#viewer.off('error', onError);
+              resolve(undefined);
+            };
+            const onError = (err) => {
+              this.#viewer.off('load', onLoad);
+              this.#viewer.off('error', onError);
+              reject(new Error(err || 'Pannellum failed to load image'));
+            };
+            this.#viewer.on('load', onLoad);
+            this.#viewer.on('error', onError);
+          });
+          this.#recordPrefetchOutcome(held, attempt);
+          break;
+        } catch (e) {
+          // The viewer holds a WebGL context and a half-built scene either way, so it goes before the next attempt.
+          try {
+            this.#viewer?.destroy();
+          } catch {
+            // Already torn down by the failure itself; nothing left to release.
+          }
+          this.#viewer = null;
+          if (attempt === candidates.length - 1) throw e;
+          console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
         }
-        this.#viewer = null;
-        if (attempt === candidates.length - 1) throw e;
-        console.warn(`Pano ${panoId} failed to load; retrying at a smaller size.`, e);
       }
+    } finally {
+      this.#imageCache?.release(cacheKey);
     }
 
     // Tag the rendered canvas so the screenshot helper (Canvas.js) can find it via getCanvasClass().
@@ -251,7 +298,11 @@ class PannellumViewer extends PanoViewer {
     const oldSceneId = this.#currentSceneId;
 
     if (panoId === oldSceneId) {
-      // Same pano — update calibration (e.g. if metadata was re-fetched) and reposition.
+      // Same pano — update calibration (e.g. if metadata was re-fetched) and reposition. Nothing is fetched or
+      // decoded, so there is no prefetch outcome to report: without this the previous load's verdict would be
+      // logged a second time (Validate asks for the first label's pano twice at init, once from PanoManager's
+      // own start-up and once from the first render).
+      this.lastLoadPrefetched = null;
       this.#cameraHeading = metadata.cameraHeading || 0;
       this.currPanoData = this.#buildPanoData(panoId, metadata);
       this.setPov(pov);
@@ -270,8 +321,8 @@ class PannellumViewer extends PanoViewer {
     // Pause the rAF POV-tracking loop for the duration of the transition to avoid emitting pov_changed events
     // with values that mix the old scene's calibration with the new scene's yaw/pitch.
     this.#loading = true;
+    const { urls: candidates, cacheKey, held } = await this.#attemptUrls(metadata);
     try {
-      const candidates = panoramaUrlCandidates(metadata);
       for (let attempt = 0; attempt < candidates.length; attempt++) {
         this.#viewer.addScene(panoId, {
           type: 'equirectangular',
@@ -296,6 +347,7 @@ class PannellumViewer extends PanoViewer {
             this.#viewer.on('error', onError);
             this.#viewer.loadScene(panoId, pitch, yaw, hfov);
           });
+          this.#recordPrefetchOutcome(held, attempt);
           break;
         } catch (e) {
           // No teardown between rungs: addScene overwrites the entry, and removeScene would refuse anyway, since
@@ -311,6 +363,7 @@ class PannellumViewer extends PanoViewer {
       }
     } finally {
       this.#loading = false;
+      this.#imageCache?.release(cacheKey);
     }
 
     // Update instance calibration only after the new scene is fully loaded so getPov()/setPov() are consistent.
@@ -327,6 +380,44 @@ class PannellumViewer extends PanoViewer {
   };
 
   /**
+   * The URLs to try for a pano, with a prefetched copy standing in for the first (#5562).
+   *
+   * Rung 0 of the ladder is the URL the page's image cache was asked to fetch, so it is the key looked up here and
+   * the one released once the load has settled. The later rungs stay network URLs on purpose: a held copy that
+   * fails is the same bytes failing to decode or texture, so the next attempt should be a smaller copy, not the
+   * download that produced them.
+   *
+   * A download of rung 0 still in flight is waited for, up to `PREFETCH_WAIT_MS`: a second download of the same bytes
+   * beside it would only slow both down.
+   *
+   * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
+   * @returns {Promise<{urls: string[], cacheKey: string, held: boolean}>} The attempts in order, the key to release
+   *     afterwards, and whether rung 0 is a held copy.
+   */
+  async #attemptUrls(metadata) {
+    const candidates = panoramaUrlCandidates(metadata);
+    const cacheKey = candidates[0];
+    const held = this.#imageCache
+      ? await this.#imageCache.settle(cacheKey, PannellumViewer.PREFETCH_WAIT_MS)
+      : undefined;
+    return { urls: held ? [held, ...candidates.slice(1)] : candidates, cacheKey, held: held !== undefined };
+  }
+
+  /**
+   * Records what the load just made says about the prefetch: a hit only when the held copy itself rendered.
+   *
+   * A held copy that fails to decode or texture is followed by a smaller network copy, and that load paid for the
+   * network after all, so it is a miss however the bytes were obtained. Null without a cache: the question doesn't
+   * arise.
+   *
+   * @param {boolean} held - Whether rung 0 was a held copy.
+   * @param {number} attempt - The rung that rendered.
+   */
+  #recordPrefetchOutcome(held, attempt) {
+    this.lastLoadPrefetched = this.#imageCache ? held && attempt === 0 : null;
+  }
+
+  /**
    * Builds a PanoData object from a metadata blob supplied by the caller.
    * @param {string} panoId
    * @param {Record<string, any>} metadata - Fields matching PanoData's constructor params.
@@ -336,9 +427,7 @@ class PannellumViewer extends PanoViewer {
     return new PanoData({
       panoId,
       source: this.getViewerType(),
-      captureDate: metadata.captureDate instanceof moment
-        ? metadata.captureDate
-        : moment(metadata.captureDate || Date.now()),
+      captureDate: util.parseDate(metadata.captureDate || Date.now()),
       width: metadata.width,
       height: metadata.height,
       tileWidth: metadata.tileWidth || metadata.width,

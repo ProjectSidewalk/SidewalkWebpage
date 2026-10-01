@@ -108,8 +108,8 @@ class HumanVsAiPage {
     const el = document.getElementById('hva-summary');
     if (!el) return;
     el.textContent = roles.length
-      ? `On this deployment, the AI ${this.#joinList(roles)}.`
-      : 'This deployment has no AI activity yet — every comparison below is human-only.';
+      ? `Here, the AI ${this.#joinList(roles)}.`
+      : 'No AI activity in this city yet, so everything below is human-only.';
   }
 
   // --- Labeler lens. ---
@@ -146,7 +146,7 @@ class HumanVsAiPage {
     const types = this.#unionTypes(human, ai).filter((t) => validatedCount(human, t) > 0 || validatedCount(ai, t) > 0);
     const el = document.getElementById('hva-acceptance');
     if (!types.length) {
-      el.innerHTML = '<p class="hva-note">No labels have been validated here yet, so there’s nothing to compare.</p>';
+      el.innerHTML = '<p class="hva-note">No validated labels yet.</p>';
       return;
     }
     const rows = types.map((t) => ({
@@ -180,7 +180,7 @@ class HumanVsAiPage {
     const any = rows.some((r) => r.human.value || r.ai.value);
     document.getElementById('hva-severity').innerHTML = any
       ? this.#pairedBars(rows, { format: 'count' })
-      : '<p class="hva-note">Neither humans nor the AI have rated severity on their labels here.</p>';
+      : '<p class="hva-note">No severity ratings yet.</p>';
   }
 
   // --- Validator lens. ---
@@ -207,17 +207,19 @@ class HumanVsAiPage {
     const disagree = g.disagree || 0;
     const unsure = g.unsure || 0;
     const total = agree + disagree + unsure;
+    const tip = (value, label) => `${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`;
     const seg = (value, cls, label) => (value
       ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%"
-          title="${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)"></span>`
+          data-ps-tooltip="${tip(value, label)}"></span>`
       : '');
     const segsHtml = [
       seg(agree, 'is-agree', 'Agree'),
       seg(disagree, 'is-disagree', 'Disagree'),
       seg(unsure, 'is-unsure', 'Unsure'),
     ].join('');
+    const summary = [tip(agree, 'Agree'), tip(disagree, 'Disagree'), tip(unsure, 'Unsure')].join(', ');
     const bar = total
-      ? `<span class="contrib-verdictbar">${segsHtml}</span>`
+      ? `<span class="contrib-verdictbar" role="img" aria-label="${summary}">${segsHtml}</span>`
       : '<span class="dq-sub">—</span>';
     const pcts = total
       ? `<span class="contrib-verdictpct">${Math.round(agree / total * 100)}% /
@@ -378,6 +380,6 @@ class HumanVsAiPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

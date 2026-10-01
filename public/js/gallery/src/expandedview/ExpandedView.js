@@ -135,9 +135,8 @@ class ExpandedView {
       lng: p.lng,
       camera_lat: p.camera_lat,
       camera_lng: p.camera_lng,
-      // Moment objects → raw date strings so LabelDetail can reparse them uniformly.
-      image_capture_date: p.image_capture_date.toISOString(),
-      timestamp: p.label_timestamp.toISOString(),
+      image_capture_date: p.image_capture_date,
+      timestamp: p.label_timestamp,
       heading: p.heading,
       pitch: p.pitch,
       zoom: p.zoom,

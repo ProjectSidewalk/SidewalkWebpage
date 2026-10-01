@@ -41,7 +41,6 @@
 
 /* Bump only the top-3 medal emoji so they read clearly; plain rank numbers keep the table's font size. */
 .ud-lb-rank .ud-lb-medal {
-  /* px, not rem: Bootstrap sets a 10px root here, so a rem size silently renders at 62.5% of its intent. */
   font-size: 28px;
   line-height: 1;
 }
@@ -1249,8 +1248,7 @@
   margin: 0;
   font-family: var(--font-primary);
 
-  /* Sized in px, not rem: Bootstrap sets a 10px root here, so a rem clamp silently renders at 62.5% of its intent.
-     nowrap means an over-long value overflows its tile rather than breaking mid-number, so the floor is set low
+  /* nowrap means an over-long value overflows its tile rather than breaking mid-number, so the floor is set low
      enough for a five-digit distance to fit the ~108px each tile gets at 320px. */
   font-size: clamp(22px, 5vw, 30px);
   white-space: nowrap;
@@ -1810,15 +1808,10 @@
     color: var(--color-neutral-900);
   }
 
-  .page-container .page-sidebar .page-nav-item.active {
+  .page-container .page-sidebar .page-nav-item.is-active {
     background: var(--color-pine-600);
     border-color: var(--color-pine-600);
     color: var(--color-neutral-white);
-  }
-
-  .page-container .page-sidebar .page-nav-item.disabled {
-    background: var(--color-neutral-100);
-    color: var(--color-neutral-700);
   }
 }
 
@@ -1837,19 +1830,6 @@
 }
 
 /* ---- Accessibility utilities ------------------------------------------------------------------------------------ */
-
-/* Visually-hidden text for screen readers (e.g. the rank number behind a medal emoji, podium places). */
-.ud-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
-}
 
 /* The only movement on these pages is the trophy-card hover lift; drop it (and its transition) for users who
  prefer reduced motion. Color/opacity transitions stay — they don't move anything. */

@@ -1,6 +1,6 @@
 package formats.json
 
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, Reads}
 
 object CommentSubmissionFormats {
@@ -41,7 +41,7 @@ object CommentSubmissionFormats {
       lng: Double
   )
 
-  implicit val commentSubmissionReads: Reads[CommentSubmission] = (
+  given commentSubmissionReads: Reads[CommentSubmission] = (
     (JsPath \ "audit_task_id").read[Int] and
       (JsPath \ "mission_id").read[Int] and
       (JsPath \ "street_edge_id").read[Int] and
@@ -52,9 +52,9 @@ object CommentSubmissionFormats {
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
-  )(CommentSubmission.apply _)
+  )(CommentSubmission.apply)
 
-  implicit val validationCommentSubmissionReads: Reads[ValidationCommentSubmission] = (
+  given validationCommentSubmissionReads: Reads[ValidationCommentSubmission] = (
     (JsPath \ "mission_id").read[Int] and
       (JsPath \ "label_id").read[Int] and
       (JsPath \ "comment").read[String] and
@@ -64,9 +64,9 @@ object CommentSubmissionFormats {
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
-  )(ValidationCommentSubmission.apply _)
+  )(ValidationCommentSubmission.apply)
 
-  implicit val labelMapValidationCommentSubmissionReads: Reads[LabelMapValidationCommentSubmission] = (
+  given labelMapValidationCommentSubmissionReads: Reads[LabelMapValidationCommentSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "comment").read[String] and
@@ -76,5 +76,5 @@ object CommentSubmissionFormats {
       (JsPath \ "zoom").read[Double] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double]
-  )(LabelMapValidationCommentSubmission.apply _)
+  )(LabelMapValidationCommentSubmission.apply)
 }

@@ -2,7 +2,7 @@ package formats.json
 
 import models.cluster.LabelToCluster
 import models.utils.ClusteringThreshold
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.{JsPath, Reads, Writes}
 
 object ClusterFormats {
@@ -14,27 +14,27 @@ object ClusterFormats {
       clusters: Seq[ClusterSubmission]
   )
 
-  implicit val clusteredLabelSubmissionReads: Reads[ClusteredLabelSubmission] = (
+  given clusteredLabelSubmissionReads: Reads[ClusteredLabelSubmission] = (
     (JsPath \ "label_id").read[Int] and
       (JsPath \ "label_type").read[String] and
       (JsPath \ "cluster").read[Int]
-  )(ClusteredLabelSubmission.apply _)
+  )(ClusteredLabelSubmission.apply)
 
-  implicit val clusterSubmissionReads: Reads[ClusterSubmission] = (
+  given clusterSubmissionReads: Reads[ClusterSubmission] = (
     (JsPath \ "label_type").read[String] and
       (JsPath \ "cluster").read[Int] and
       (JsPath \ "lat").read[Double] and
       (JsPath \ "lng").read[Double] and
       (JsPath \ "severity").readNullable[Int]
-  )(ClusterSubmission.apply _)
+  )(ClusterSubmission.apply)
 
-  implicit val clusteringSubmissionReads: Reads[ClusteringSubmission] = (
+  given clusteringSubmissionReads: Reads[ClusteringSubmission] = (
     (JsPath \ "thresholds").read[Seq[ClusteringThreshold]] and
       (JsPath \ "labels").read[Seq[ClusteredLabelSubmission]] and
       (JsPath \ "clusters").read[Seq[ClusterSubmission]]
-  )(ClusteringSubmission.apply _)
+  )(ClusteringSubmission.apply)
 
-  implicit val labelToClusterWrites: Writes[LabelToCluster] = (
+  given labelToClusterWrites: Writes[LabelToCluster] = (
     (JsPath \ "region_id").write[Int] and
       (JsPath \ "user_id").write[String] and
       (JsPath \ "pano_id").write[String] and
@@ -43,5 +43,5 @@ object ClusterFormats {
       (JsPath \ "lat").write[Double] and
       (JsPath \ "lng").write[Double] and
       (JsPath \ "severity").write[Option[Int]]
-  )(unlift(LabelToCluster.unapply))
+  )((o: LabelToCluster) => Tuple.fromProductTyped(o))
 }

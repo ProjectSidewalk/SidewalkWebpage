@@ -4,12 +4,11 @@ import models.pano.{PanoData, PanoDataTable, PanoSource}
 import models.street.{StreetEdgeTableDef, StreetImagery, StreetImagerySource, StreetImageryTable, StreetImageryTableDef}
 import models.user.UserStatTableDef
 import models.utils.ConfigTableDef
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.{LocalDate, OffsetDateTime}
 
@@ -23,10 +22,10 @@ import java.time.{LocalDate, OffsetDateTime}
  * as in dev/CI); cases cancel gracefully when the connected DB lacks the rows they need (a user, a street).
  * Scheduling actors are disabled so the real nightly sync can't race the tests.
  */
-class OutdatedImageryFlagSyncSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class OutdatedImageryFlagSyncSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val auditTaskTable     = app.injector.instanceOf[AuditTaskTable]
   private val streetImageryTable = app.injector.instanceOf[StreetImageryTable]

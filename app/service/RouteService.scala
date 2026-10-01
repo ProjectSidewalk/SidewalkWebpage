@@ -2,9 +2,9 @@ package service
 
 import com.google.inject.ImplementedBy
 import formats.json.RouteBuilderFormats.{NewRoute, NewRouteStreet, RouteUpdate}
-import models.route._
+import models.route.*
 import models.utils.{MyPostgresProfile, PolylineEncoder, ProfanityGuard, RouteThumbnail, SlugUtils}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.locationtech.jts.geom.LineString
 import org.postgresql.util.{PSQLException, PSQLState}
 import play.api.Configuration
@@ -12,7 +12,7 @@ import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import java.util.UUID
-import javax.inject._
+import javax.inject.*
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -49,9 +49,9 @@ class RouteServiceImpl @Inject() (
     routeStreetTable: RouteStreetTable,
     routeSlugAliasTable: RouteSlugAliasTable,
     auditTaskUserRouteTable: AuditTaskUserRouteTable,
-    config: Configuration,
-    implicit val ec: ExecutionContext
-) extends RouteService
+    config: Configuration
+)(using ec: ExecutionContext)
+    extends RouteService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   /** SQLState for a Postgres unique-constraint violation, the backstop for concurrent slug generation. */
@@ -212,9 +212,10 @@ class RouteServiceImpl @Inject() (
         usage      <- usageFuture
         geometries <- geometriesFuture
       } yield {
-        val geometryByRoute: Map[Int, RouteGeometry] = geometries.groupBy(_._1).map { case (routeId, streets) =>
-          routeId -> routeGeometry(streets.map { case (_, reverse, geom) => (reverse, geom) })
-        }
+        val geometryByRoute: Map[Int, RouteGeometry] =
+          geometries.groupBy { case (routeId, _, _) => routeId }.map { case (routeId, streets) =>
+            routeId -> routeGeometry(streets.map { case (_, reverse, geom) => (reverse, geom) })
+          }
         routes.map { route =>
           val (started, completed)    = usage.getOrElse(route.routeId, (0, 0))
           val geometry: RouteGeometry = geometryByRoute.getOrElse(route.routeId, RouteGeometry("", None))

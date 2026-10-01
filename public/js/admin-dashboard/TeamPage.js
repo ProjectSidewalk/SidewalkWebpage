@@ -75,7 +75,7 @@ class TeamPage {
   // --- Members ------------------------------------------------------------------------------------------------------
 
   /**
-   * A column with no `sort` isn't sortable; `help` becomes a header tooltip.
+   * A column with no `sort` isn't sortable; `help` becomes its sort button's tooltip.
    *
    * @returns {Array<{key: string, label: string, align: string, sort?: Function, help?: string}>} The columns.
    */
@@ -88,12 +88,11 @@ class TeamPage {
       { key: 'distance_meters', label: 'Distance explored', align: 'right', sort: (m) => m.distance_meters || 0 },
       { key: 'accuracy', label: 'Labeling accuracy', align: 'right',
         sort: (m) => (m.labels_validated ? m.labels_agreed / m.labels_validated : -1),
-        help: 'Share of this member’s own labels that other people agreed with when validating them '
-          + '(with how many were judged).' },
+        help: 'Share of this member’s validated labels that validators agreed with, and how many were judged.' },
       { key: 'last_active', label: 'Last active', align: 'right', sort: (m) => AdminShell.ts(m.last_active),
         help: 'The later of their last label and their last validation.' },
       { key: 'high_quality', label: 'Quality', align: 'left', sort: (m) => (m.high_quality ? 1 : 0),
-        help: 'The user’s quality flag. An excluded user’s work is left out of this city’s stats.' },
+        help: 'The user’s quality flag. Excluded users’ work is left out of this city’s stats.' },
       // Unsortable: it holds buttons, and a header click would throw away the chosen order for no ordering.
       { key: 'actions', label: 'Remove', align: 'left' },
     ];
@@ -120,13 +119,14 @@ class TeamPage {
     }
     const cols = this.#columns();
     const headCells = cols.map((c) => {
-      const title = c.help ? ` title="${AdminShell.esc(c.help)}"` : '';
-      if (!c.sort) return `<th scope="col"${title}>${AdminShell.esc(c.label)}</th>`;
+      if (!c.sort) return `<th scope="col">${AdminShell.esc(c.label)}</th>`;
+      // On the button, not the <th>: the button is what takes focus, so only it can carry the description.
+      const tip = c.help ? ` data-ps-tooltip="${AdminShell.esc(c.help)}"` : '';
       const isSorted = c.key === this.#sort.key;
       const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
-      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}"${title}>`
-        + `<button type="button" class="mgmt-sort" data-key="${c.key}">${AdminShell.esc(c.label)}`
+      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}">`
+        + `<button type="button" class="mgmt-sort" data-key="${c.key}"${tip}>${AdminShell.esc(c.label)}`
         + `<span class="mgmt-arrow">${arrow}</span></button></th>`;
     }).join('');
 
@@ -185,8 +185,8 @@ class TeamPage {
    */
   async #removeMember(userId, username) {
     const confirmed = await ConfirmDialog.confirm({
-      message: `Remove ${username} from this team? Their labels and validations are kept, but they stop counting `
-        + 'toward the team.',
+      message: `Remove ${username} from this team? Their labels and validations are kept but stop counting toward `
+        + 'the team.',
       confirmText: 'Remove',
       cancelText: 'Cancel',
     });
@@ -286,7 +286,7 @@ class TeamPage {
   async #addMember(userId, username, currentTeam) {
     if (currentTeam) {
       const confirmed = await ConfirmDialog.confirm({
-        message: `${username} is on ${currentTeam}. Adding them here moves them off that team.`,
+        message: `${username} is on ${currentTeam}. Adding them here removes them from that team.`,
         confirmText: 'Move them',
         cancelText: 'Cancel',
       });
@@ -343,7 +343,7 @@ class TeamPage {
     const status = document.getElementById('team-status');
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   /**
@@ -390,7 +390,7 @@ class TeamPage {
       ? '<span class="contrib-badge contrib-badge--high">High</span>'
       : '<span class="contrib-badge contrib-badge--low">Low</span>';
     if (!member.excluded) return badge;
-    return `${badge} <span class="mgmt-manual-tag" `
-      + `title="This user's work is excluded from the city's stats">excluded</span>`;
+    return `${badge} <span class="mgmt-manual-tag" tabindex="0"
+      data-ps-tooltip="This user's work is excluded from the city's stats">excluded</span>`;
   }
 }

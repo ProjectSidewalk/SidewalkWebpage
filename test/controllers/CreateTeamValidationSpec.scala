@@ -2,21 +2,20 @@ package controllers
 
 import models.user.Role
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.{AnonSession, RoleSession}
+import play.api.test.Helpers.*
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for `POST /userapi/createTeam`'s name rules (#5342): no comma or all-digit name, and no duplicate
@@ -24,15 +23,15 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class CreateTeamValidationSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class CreateTeamValidationSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val NamePrefix = "spec-5342-"
 
@@ -53,7 +52,7 @@ class CreateTeamValidationSpec extends PlaySpec with RoleSession with GuiceOneAp
     route(
       app,
       FakeRequest(POST, "/userapi/createTeam")
-        .withCookies(cookies: _*)
+        .withCookies(cookies*)
         .withJsonBody(Json.obj("name" -> name, "description" -> ""))
         .withCSRFToken
     ).get

@@ -4,7 +4,7 @@
  * The per-city counterpart of the cross-city funnels on the Across Cities page (#288): it reads /adminapi/funnels
  * (this schema only) and draws the two funnels — "mapping" (the Explore onboarding flow) and "contribution" (any
  * labeling/validation contribution and finishing a mission) — as horizontal bar funnels, each step normalized to its
- * segment's visitors (= 100%) and labeled with the count and per-step drop-off. A window selector refetches; a
+ * segment's step 1 (= 100%) and labeled with the count and per-step drop-off. A window selector refetches; a
  * breakdown selector (all / registered-vs-anonymous / desktop-vs-mobile) re-renders from cached data. Reuses the
  * shared `.ac-funnel-*` / `.ac-toggle` CSS; no charting library.
  *
@@ -17,9 +17,9 @@ class FunnelsSection {
    * here but kept parallel to the Across Cities page for consistency. Covers both funnels.
    */
   static #STEP_LABELS = {
-    visited:                { full: 'Visited site' },
+    visited:                { full: 'New account, visited this city' },
     tutorial_started:       { full: 'Started tutorial' },
-    tutorial_finished:      { full: 'Finished or skipped tutorial' },
+    tutorial_finished:      { full: 'Finished or skipped tutorial, in any city' },
     took_step:              { full: 'Took a step' },
     labeled:                { full: 'Placed a label' },
     mission_completed:      { full: 'Completed a mapping mission' },
@@ -30,9 +30,9 @@ class FunnelsSection {
   /** Title + one-line description for each funnel, shown above its bars. Keyed by funnel type. */
   static #FUNNEL_META = {
     mapping:      { title: 'Mapping funnel',
-      desc: 'The Explore onboarding flow: tutorial, then walking, labeling, and completing an audit mission.' },
+      desc: 'Explore onboarding: tutorial, walking, labeling, then a completed mission.' },
     contribution: { title: 'Contribution funnel',
-      desc: 'The broad view: any contribution (labeling or validation) and finishing a mission.' },
+      desc: 'Any labeling or validation, then a completed mission.' },
   };
 
   /** Funnel display order on the page. The endpoint may include any subset of these. */
@@ -83,7 +83,7 @@ class FunnelsSection {
       win.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (this.#window === btn.dataset.window) return;
         this.#window = btn.dataset.window;
-        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        win.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
         this.#load();
       }));
     }
@@ -92,7 +92,7 @@ class FunnelsSection {
       dim.querySelectorAll('.ac-toggle-btn').forEach((btn) => btn.addEventListener('click', () => {
         if (this.#dim === btn.dataset.dim) return;
         this.#dim = btn.dataset.dim;
-        dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('active', b === btn));
+        dim.querySelectorAll('.ac-toggle-btn').forEach((b) => b.classList.toggle('is-active', b === btn));
         this.#render();
       }));
     }
@@ -121,7 +121,7 @@ class FunnelsSection {
     if (!types.length) {
       host.innerHTML = '';
       // No funnel_stat rows yet: the nightly job hasn't run for this deployment, or it was never triggered.
-      this.#setText(this.#statusId, 'No funnel data yet — an admin can recompute it via /adminapi/updateFunnelStats.');
+      this.#setText(this.#statusId, 'No funnel data yet. Recompute it at /adminapi/updateFunnelStats.');
       return;
     }
     host.innerHTML = types.map((t) => this.#funnelBlock(t, this.#funnels[t], segs)).join('');
@@ -157,11 +157,11 @@ class FunnelsSection {
         const width = base > 0 ? (v / base) * 100 : 0;
         const conv = d ? d.step_conversion[i] : 0;
         const valText = i === 0 ? this.#compact(v) : `${this.#compact(v)} · ${this.#pct(conv)}`;
-        const title = i === 0
-          ? `${FunnelsSection.#esc(full)}: ${this.#num(v)} visitors`
-          : `${FunnelsSection.#esc(full)}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
+        const tip = i === 0
+          ? `${full}: ${this.#num(v)} accounts`
+          : `${full}: ${this.#num(v)} — ${this.#pct(conv)} of previous step`;
         return `
-          <div class="ac-funnel-bar" title="${title}">
+          <div class="ac-funnel-bar" data-ps-tooltip="${AdminShell.tooltipAttr(tip)}">
             <span class="ac-funnel-bar-fill"
               style="width:${width.toFixed(1)}%;background:${palette[si] || palette[0]}"></span>
             <span class="ac-funnel-bar-val">${valText}</span>
@@ -208,7 +208,7 @@ class FunnelsSection {
   #formatDate(iso) {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString(undefined, util.SHORT_DATE);
   }
 
   static #esc(s) {

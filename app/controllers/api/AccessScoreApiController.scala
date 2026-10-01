@@ -51,7 +51,7 @@ class AccessScoreApiController @Inject() (
     accessScoreService: AccessScoreService,
     accessScoreSpotlightService: AccessScoreSpotlightService,
     apiService: ApiService
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends BaseApiController(cc) {
 
   /**
@@ -85,7 +85,7 @@ class AccessScoreApiController @Inject() (
             val streets: Seq[StreetAccessScoreForApi] =
               regionFilterId.fold(allStreets)(id => allStreets.filter(_.regionId == id))
             val baseFileName: String                             = timestampedFilename("accessScoreStreets")
-            val streetStream: Source[StreetAccessScoreForApi, _] = Source.fromIterator(() => streets.iterator)
+            val streetStream: Source[StreetAccessScoreForApi, ?] = Source.fromIterator(() => streets.iterator)
 
             filetype match {
               case Some("csv") =>
@@ -145,7 +145,7 @@ class AccessScoreApiController @Inject() (
               case _                => scores.intersections
             }
             val baseFileName: String                             = timestampedFilename("accessScoreIntersections")
-            val stream: Source[IntersectionAccessScoreForApi, _] = Source.fromIterator(() => intersections.iterator)
+            val stream: Source[IntersectionAccessScoreForApi, ?] = Source.fromIterator(() => intersections.iterator)
 
             filetype match {
               case Some("csv") =>
@@ -203,7 +203,7 @@ class AccessScoreApiController @Inject() (
             val regions: Seq[RegionAccessScoreForApi] =
               regionFilterId.fold(allRegions)(id => allRegions.filter(_.regionId == id))
             val baseFileName: String                             = timestampedFilename("accessScoreRegions")
-            val regionStream: Source[RegionAccessScoreForApi, _] = Source.fromIterator(() => regions.iterator)
+            val regionStream: Source[RegionAccessScoreForApi, ?] = Source.fromIterator(() => regions.iterator)
 
             filetype match {
               case Some("csv") =>

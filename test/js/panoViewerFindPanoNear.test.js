@@ -75,7 +75,7 @@ function metersFromHere(meters, bearing = 90) {
 /** The slice of PanoData the exclusion checks read. */
 const excludedPano = (panoId, capturedAt = 0) => ({
     getPanoId: () => panoId,
-    getProperty: (key) => (key === 'captureDate' ? { valueOf: () => capturedAt } : null),
+    getProperty: (key) => (key === 'captureDate' ? new Date(capturedAt) : null),
 });
 
 describe('PanoViewer.findPanoNear (base)', () => {

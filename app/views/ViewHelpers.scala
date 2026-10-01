@@ -27,6 +27,6 @@ object ViewHelpers {
    * @param value Value to serialize; any type with a `Writes` (a `JsValue` passes through unchanged).
    * @return      The JSON, safe to drop into a `<script>` block.
    */
-  def jsonForScript[A](value: A)(implicit writes: Writes[A]): Html =
+  def jsonForScript[A](value: A)(using writes: Writes[A]): Html =
     Html(Json.stringify(Json.toJson(value)).replace("<", "\\u003c"))
 }

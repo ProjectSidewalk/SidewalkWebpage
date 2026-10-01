@@ -56,19 +56,19 @@ case class PanoScoringParams(
 object PanoScoring {
   private val ResourcePath: String = "/pano-scoring.json"
 
-  implicit private val providerReads: Reads[PanoScoringProvider]   = Json.reads[PanoScoringProvider]
-  implicit private val paramsReads: Reads[PanoScoringParams]       = Json.reads[PanoScoringParams]
-  implicit private val providerWrites: Writes[PanoScoringProvider] = Json.writes[PanoScoringProvider]
-  implicit private val paramsWrites: Writes[PanoScoringParams]     = Json.writes[PanoScoringParams]
+  private given providerReads: Reads[PanoScoringProvider]   = Json.reads[PanoScoringProvider]
+  private given paramsReads: Reads[PanoScoringParams]       = Json.reads[PanoScoringParams]
+  private given providerWrites: Writes[PanoScoringProvider] = Json.writes[PanoScoringProvider]
+  private given paramsWrites: Writes[PanoScoringParams]     = Json.writes[PanoScoringParams]
 
   /** The parsed scoring parameters. Throws if the resource is missing or does not match the expected shape. */
   lazy val params: PanoScoringParams = {
     val stream: InputStream = Option(getClass.getResourceAsStream(ResourcePath))
-      .getOrElse(throw new IllegalStateException(s"$ResourcePath is missing from the classpath"))
+      .getOrElse(throw IllegalStateException(s"$ResourcePath is missing from the classpath"))
     val raw: String = Using.resource(stream)(Source.fromInputStream(_, "UTF-8").mkString)
     Json.parse(raw).validate[PanoScoringParams] match {
       case JsSuccess(parsed, _) => parsed
-      case JsError(errors)      => throw new IllegalStateException(s"$ResourcePath is malformed: $errors")
+      case JsError(errors)      => throw IllegalStateException(s"$ResourcePath is malformed: $errors")
     }
   }
 

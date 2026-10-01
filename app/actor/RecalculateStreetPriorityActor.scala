@@ -2,15 +2,15 @@ package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
 import models.utils.JobRunTrigger
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import play.api.libs.json.{JsNull, JsNumber, JsObject, JsValue, Json}
 import service.{ConfigService, ImageryFreshnessService, JobRunService, RegionService, StreetService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object RecalculateStreetPriorityActor {
@@ -48,10 +48,8 @@ class RecalculateStreetPriorityActor @Inject() (
     regionService: RegionService,
     imageryFreshnessService: ImageryFreshnessService,
     jobRunService: JobRunService
-)(implicit
-    ec: ExecutionContext,
-    configService: ConfigService
-) extends Actor {
+)(using ec: ExecutionContext, configService: ConfigService)
+    extends Actor {
 
   private var cancellable: Option[Cancellable] = None
   private val logger                           = Logger(this.getClass)
@@ -71,7 +69,7 @@ class RecalculateStreetPriorityActor @Inject() (
           24.hours,
           self,
           RecalculateStreetPriorityActor.Tick
-        )(context.dispatcher)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("RecalculateStreetPriorityActor created")
     }

@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.mission.MissionTableDef
 import models.utils.MyPostgresProfile
 import models.utils.IpAddress
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -47,10 +47,8 @@ class ValidationTaskEnvironmentTableDef(tag: Tag)
   def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
 
   def * = (validationTaskEnvironmentId, missionId, browser, browserVersion, browserWidth, browserHeight, availWidth,
-    availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp) <> (
-    (ValidationTaskEnvironment.apply _).tupled,
-    ValidationTaskEnvironment.unapply
-  )
+    availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp)
+    .mapTo[ValidationTaskEnvironment]
 
   def mission =
     foreignKey("validation_task_environment_mission_id_fkey", missionId, TableQuery[MissionTableDef])(_.missionId.?)

@@ -110,8 +110,7 @@ class StreetStatusTrend {
     const rows = data.reopen_candidates || [];
 
     if (rows.length === 0) {
-      container.innerHTML = '<p class="trend-note">No retired street currently shows regained imagery. '
-        + 'The nightly poll re-checks a small batch of no-imagery streets and queues any it finds panoramas on.</p>';
+      container.innerHTML = '<p class="trend-note">No retired street has regained imagery.</p>';
       return;
     }
 
@@ -193,8 +192,8 @@ class StreetStatusTrend {
     const reopen = button.dataset.action === 'reopen';
     if (reopen) {
       const ok = await ConfirmDialog.confirm({
-        message: `Reopen street ${streetEdgeId} for auditing? It returns to the labeling pool at full priority, and `
-          + 'its region\'s completion percentage drops to match.',
+        message: `Reopen street ${streetEdgeId}? It returns to the auditing pool at full priority, and `
+          + 'its region\'s completion drops to match.',
         confirmText: 'Reopen',
         cancelText: 'Cancel',
       });
@@ -346,18 +345,16 @@ class StreetStatusTrend {
     // count drains.
     const undated = data.panos_expired_undated || 0;
     if (undated > 0) {
-      notes.push(`${AdminShell.num(undated)} panos were already expired before any of this was recorded, so they `
-        + 'appear in no week above. If one regains imagery it still charts as a recovery, with no matching loss '
-        + 'before it.');
+      notes.push(`${AdminShell.num(undated)} panos expired before logging began, so if one `
+        + 'regains imagery it charts as a recovery with no matching loss.');
     }
 
     // Healed events carry the night the pass noticed, not the day the imagery moved, so charting one would put a
     // real crossing in the wrong week.
     const healed = data.panos_healed || 0;
     if (healed > 0) {
-      notes.push(`${AdminShell.num(healed)} pano${healed === 1 ? '' : 's'} crossed the boundary without the change `
-        + 'being logged, and the nightly reconciliation pass filled the event in afterwards. Those carry the date '
-        + 'they were noticed rather than the date they moved, so they are left out of the weeks above too.');
+      notes.push(`${AdminShell.num(healed)} pano${healed === 1 ? '' : 's'} changed on an unknown date and are left `
+        + 'out of the weeks above.');
     }
 
     AdminShell.setText('trend-expiry-note', notes.join(' '));
@@ -369,9 +366,8 @@ class StreetStatusTrend {
     // The threshold is the server's (StreetLifecycleService.MinCorroboratingReporters) and always travels with the
     // payload, so it is read rather than mirrored — a local default would silently disagree the day it changed.
     AdminShell.setText('trend-corroborated-intro', `
-      Streets still open for auditing that at least ${AdminShell.num(data.min_reporters)} different labeler accounts
-      independently reported as having no imagery. A report is evidence, never a verdict: these stay in the pool
-      until the offline imagery checker confirms them — run it against these streets first.`);
+      Open streets at least ${AdminShell.num(data.min_reporters)} labelers reported as imageless; they stay open
+      until the offline checker confirms them, so run it on these first.`);
 
     if (rows.length === 0) {
       AdminShell.setHtml('trend-corroborated', `
@@ -428,7 +424,7 @@ class StreetStatusTrend {
   static #weekStarts(sinceIso, weeks) {
     const start = new Date(`${String(sinceIso).slice(0, 10)}T00:00:00Z`);
     // Read the clock through Date.now() rather than `new Date()`, so "now" enters this method in one place.
-    const today = StreetStatusTrend.#localIsoDate(new Date(Date.now()));
+    const today = util.localIsoDate(new Date(Date.now()));
     const out = [];
     for (let i = 0; i <= weeks; i++) {
       const week = new Date(start.getTime() + i * 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -437,15 +433,6 @@ class StreetStatusTrend {
       out.push(week);
     }
     return out;
-  }
-
-  /**
-   * @param {Date} date - Any date.
-   * @returns {string} That date in the viewer's own zone as `YYYY-MM-DD`, not shifted into UTC.
-   */
-  static #localIsoDate(date) {
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
   }
 
   /**
@@ -478,6 +465,6 @@ class StreetStatusTrend {
     if (!el) return;
     el.textContent = message;
     el.classList.toggle('error', Boolean(isError));
-    el.classList.toggle('hidden', hide);
+    el.classList.toggle('ps-hidden', hide);
   }
 }

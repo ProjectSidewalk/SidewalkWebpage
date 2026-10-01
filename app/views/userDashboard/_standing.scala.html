@@ -1,6 +1,6 @@
 @import models.user.UserStanding
 @import service.UserService
-@(standing: Option[UserStanding], seeAllLink: Boolean)(implicit messages: Messages)
+@(standing: Option[UserStanding], seeAllLink: Boolean)(using messages: Messages)
 
 @*
 * Shared "your standing" card, used by the dashboard teaser and the leaderboard's "you vs community" section.

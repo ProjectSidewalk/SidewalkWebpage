@@ -1,7 +1,7 @@
 package forms
 
-import play.api.data.Forms._
-import play.api.data._
+import play.api.data.Forms.*
+import play.api.data.*
 
 /**
  * The `Reset Password` form.
@@ -15,7 +15,7 @@ object ResetPasswordForm {
     mapping(
       "passwordReset"        -> PasswordPolicy.newPassword,
       "passwordResetConfirm" -> nonEmptyText
-    )(PasswordData.apply)(PasswordData.unapply).verifying(
+    )(PasswordData.apply)((d: PasswordData) => Some(Tuple.fromProductTyped(d))).verifying(
       "authenticate.error.password.mismatch",
       fields => fields.password == fields.passwordConfirm
     )

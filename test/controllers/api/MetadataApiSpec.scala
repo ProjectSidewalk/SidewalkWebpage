@@ -1,14 +1,14 @@
 package controllers.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.JsObject
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * In-JVM functional tests for the metadata endpoints' output contract (labelTypes, labelTags, streetTypes, cities).
@@ -17,12 +17,12 @@ import play.api.test.Helpers._
  * snake_case. These endpoints previously emitted camelCase envelope keys (`labelTypes`) and item fields (`iconUrl`,
  * `cityId`, ...) via Play's default `Json.format` macro; the normalization is guarded here.
  */
-class MetadataApiSpec extends PlaySpec with GuiceOneAppPerSuite {
+class MetadataApiSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /v3/api/labelTypes" should {
     "use a snake_case envelope key and snake_case item fields" in {
@@ -46,7 +46,7 @@ class MetadataApiSpec extends PlaySpec with GuiceOneAppPerSuite {
         val display = (lt \ "display_name").as[String]
         display.trim must not be empty
         // An unresolved Messages key comes back as the raw key, which would silently look like a valid name.
-        display must not be LabelTypeEnum.byName((lt \ "name").as[String]).nameKey
+        display must not be LabelType.withName((lt \ "name").as[String]).nameKey
         display must not be (lt \ "description").as[String]
       }
 
@@ -60,7 +60,7 @@ class MetadataApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val types = (json \ "label_types").as[Seq[JsObject]]
 
       types.map(lt => (lt \ "name").as[String] -> (lt \ "access_impact").as[String]).toMap mustBe
-        LabelTypeEnum.values.map(lt => lt.name -> lt.accessImpact.name).toMap
+        LabelType.ordered.map(lt => lt.name -> lt.accessImpact.name).toMap
     }
 
     "publish each type's rating scale, which is a separate question from its access impact" in {
@@ -70,7 +70,7 @@ class MetadataApiSpec extends PlaySpec with GuiceOneAppPerSuite {
       val types = (json \ "label_types").as[Seq[JsObject]]
 
       types.map(lt => (lt \ "name").as[String] -> (lt \ "rating_scale").as[String]).toMap mustBe
-        LabelTypeEnum.values.map(lt => lt.name -> lt.ratingScale.name).toMap
+        LabelType.ordered.map(lt => lt.name -> lt.ratingScale.name).toMap
     }
 
     "publish icon URLs that survive a deploy, so a consumer can store one" in {

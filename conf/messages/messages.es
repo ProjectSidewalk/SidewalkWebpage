@@ -777,6 +777,7 @@ dashboard.nav.you = Tú
 dashboard.nav.community = Comunidad
 dashboard.nav.dashboard = Panel
 dashboard.nav.settings = Configuración
+dashboard.nav.manageuser = Administrar usuario
 dashboard.toc.header = En esta página
 dashboard.settings.title = Configuración
 dashboard.settings.intro = Administra tu cuenta, tu equipo y lo que compartes con la comunidad.

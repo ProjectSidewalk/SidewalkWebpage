@@ -119,19 +119,13 @@ class ApiAnalyticsPage {
       return keys;
     }
     const windowStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - (days - 1));
-    const [sy, sm, sd] = [ApiAnalyticsPage.#isoDay(windowStart), firstDataKey].sort()[0].split('-').map(Number);
     const keys = [];
-    let cur = new Date(sy, sm - 1, sd);
+    let cur = util.parseDate([util.localIsoDate(windowStart), firstDataKey].sort()[0]);
     while (cur <= today) {
-      keys.push(ApiAnalyticsPage.#isoDay(cur));
+      keys.push(util.localIsoDate(cur));
       cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1);
     }
     return keys;
-  }
-
-  /** ISO `YYYY-MM-DD` for a local Date (no UTC conversion, so no day-shift). */
-  static #isoDay(dt) {
-    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
   }
 
   /**
@@ -148,13 +142,13 @@ class ApiAnalyticsPage {
       if (!lastApiCall) return 'No v3 API calls have been recorded yet.';
       const ago = ApiAnalyticsPage.#daysAgo(lastApiCall);
       const agoText = ago === null || ago === undefined ? '' : ` (${ago} ${ago === 1 ? 'day' : 'days'} ago)`;
-      return `The selected range is ${range}, and there's been no API activity in it — the last call was on `
-        + `${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. Try a longer range.`;
+      return `No API calls in ${range}. The last was on ${ApiAnalyticsPage.#fmtDate(lastApiCall)}${agoText}. `
+        + 'Try a longer range.';
     }
     // total > 0 but a single bucket: all activity lands in one month (only reachable for the All time range), so
     // there's no second point to draw a line to yet.
     const unit = this.#days > 0 ? 'day' : 'month';
-    return `So far there's only a single ${unit} of API activity, so there's no trend to plot yet.`;
+    return `Only one ${unit} of API activity so far; no trend to plot yet.`;
   }
 
   /** Writes the active date range ("Date range: …") onto every chart so the selected window is always explicit. */
@@ -194,33 +188,29 @@ class ApiAnalyticsPage {
     return `${startStr} – ${end.toLocaleDateString(undefined, withYear)}`;
   }
 
-  /** Formats an ISO `YYYY-MM-DD` date as a localized long date, parsing parts locally to avoid a UTC day-shift. */
+  /** Formats an ISO `YYYY-MM-DD` date as a localized long date. */
   static #fmtDate(iso) {
-    const [y, m, day] = String(iso).split('-').map(Number);
-    if (!y || !m || !day) return String(iso);
-    return new Date(y, m - 1, day).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    const date = util.parseDate(iso);
+    return isNaN(date.getTime()) ? String(iso) : date.toLocaleDateString(undefined, { dateStyle: 'long' });
   }
 
   /** Whole days between an ISO `YYYY-MM-DD` date and today (local midnight to local midnight); null if unparseable. */
   static #daysAgo(iso) {
-    const [y, m, day] = String(iso).split('-').map(Number);
-    if (!y || !m || !day) return null;
-    const then = new Date(y, m - 1, day);
+    const then = util.parseDate(iso);
+    if (isNaN(then.getTime())) return null;
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     return Math.max(0, Math.round((today.getTime() - then.getTime()) / 86400000));
   }
 
-  /** Short day label, e.g. "Jun 1", from an ISO `YYYY-MM-DD` (parsed locally to avoid a UTC day-shift). */
+  /** Short day label, e.g. "Jun 1", from an ISO `YYYY-MM-DD`. */
   static #dayLabel(iso) {
-    const [y, m, day] = iso.split('-').map(Number);
-    return new Date(y, m - 1, day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return util.parseDate(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   /** Short month label, e.g. "Jun 2026", from a `YYYY-MM` bucket key. */
   static #monthLabel(ym) {
-    const [y, m] = ym.split('-').map(Number);
-    return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
+    return util.parseDate(ym).toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
   }
 
   /**
@@ -306,10 +296,10 @@ class ApiAnalyticsPage {
     const buttons = document.querySelectorAll('.api-range-btn');
     buttons.forEach((btn) => {
       btn.addEventListener('click', () => {
-        if (btn.classList.contains('active')) return;
+        if (btn.classList.contains('is-active')) return;
         buttons.forEach((b) => {
           const isTarget = b === btn;
-          b.classList.toggle('active', isTarget);
+          b.classList.toggle('is-active', isTarget);
           b.setAttribute('aria-pressed', String(isTarget));
         });
         this.#days = parseInt(btn.dataset.days, 10);
@@ -329,7 +319,7 @@ class ApiAnalyticsPage {
       const legend = input.closest('.api-docs-control').querySelector('.api-docs-legend');
       input.addEventListener('change', () => {
         this.#showDocs[chart] = input.checked;
-        if (legend) legend.classList.toggle('hidden', !input.checked);
+        if (legend) legend.classList.toggle('ps-hidden', !input.checked);
         if (!this.#data) return;
         if (chart === 'endpoints') this.#renderEndpoints(this.#data);
         else if (chart === 'formats') this.#renderFormats(this.#data);
@@ -355,6 +345,6 @@ class ApiAnalyticsPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

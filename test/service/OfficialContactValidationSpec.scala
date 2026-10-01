@@ -1,14 +1,14 @@
 package service
 
 import models.utils.OfficialContact
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 /**
  * Unit tests for [[ConfigService.validateOfficialContact]] (#5462). The URL lands in an href on the public landing
  * page, so the rules that keep a bad value out of it are pinned here without an app or a database.
  */
-class OfficialContactValidationSpec extends PlaySpec {
-  import ConfigService.{validateOfficialContact => validate}
+class OfficialContactValidationSpec extends SidewalkSpec {
+  import ConfigService.validateOfficialContact as validate
 
   private val url = "https://www.burnaby.ca/our-city/contact-us"
 
@@ -38,6 +38,13 @@ class OfficialContactValidationSpec extends PlaySpec {
         "https://www.burnaby.ca@evil.example/", "https://user:pass@example.org/"
       )
         .foreach(bad => withClue(bad)(validate("x", bad).isLeft mustBe true))
+    }
+
+    "name the punycode fix only for a URL with non-ASCII letters, which is the case that needs it" in {
+      validate("x", "https://ville.québec/contact").left.toOption.get must include("punycode")
+      validate("x", "http://example.org").left.toOption.get must not include "punycode"
+      // Non-ASCII only in the path: the failure is the http scheme, so punycode would be the wrong advice.
+      validate("x", "http://example.org/café").left.toOption.get must not include "punycode"
     }
 
     "reject values over the length caps" in {

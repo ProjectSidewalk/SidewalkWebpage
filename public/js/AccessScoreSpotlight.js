@@ -526,7 +526,7 @@ class AccessScoreSpotlight {
     // Minute precision: the run's seconds say nothing a reader wants.
     const when = feed.computed_at
       ? ` ${i18next.t('common:access-score-spotlight.updated-last', {
-        date: new Date(feed.computed_at).toLocaleString(i18next.language, { dateStyle: 'medium', timeStyle: 'short' }),
+        date: new Date(feed.computed_at).toLocaleString(i18next.language, util.SHORT_DATE_TIME),
       })}`
       : '';
     tip.textContent = `${i18next.t('common:access-score-spotlight.updated-info')}${when}`;
@@ -583,7 +583,7 @@ class AccessScoreSpotlight {
     const wrap = document.createElement('div');
     wrap.className = 'spotlight-cta';
     const link = document.createElement('a');
-    link.className = 'button-ps button--secondary button--small';
+    link.className = 'button button--secondary button--small';
     link.href = `/accessScore?unit=${this.#unit}`;
     link.textContent = i18next.t(`common:access-score-spotlight.cta-${this.#unit}`);
     link.addEventListener('click', () => {
@@ -609,14 +609,14 @@ class AccessScoreSpotlight {
    * Lights (or clears) the row and the map feature it stands for. The map never moves: a fly on every hover is
    * nauseating in a list of ten, and the point is to show where a name is, not to go there.
    *
-   * @param {HTMLElement} item - The row element, which takes the shared `.highlighted` style.
+   * @param {HTMLElement} item - The row element, which takes the shared `.is-highlighted` style.
    * @param {SpotlightRow} row - The hovered or focused row's data.
    * @param {boolean} on - Whether to light it or clear it.
    */
   #highlight(item, row, on) {
     this.#clearHighlight();
     if (!on) return;
-    item.classList.add('highlighted');
+    item.classList.add('is-highlighted');
 
     // A street row lights its neighborhood: the choropleth draws no streets, so that is the nearest true answer.
     const feature = this.#crossCity
@@ -635,8 +635,8 @@ class AccessScoreSpotlight {
 
   /** Clears whatever map feature this module last lit, and the row highlight that went with it. */
   #clearHighlight() {
-    this.#root.querySelectorAll('.spotlight-row.highlighted')
-      .forEach((row) => row.classList.remove('highlighted'));
+    this.#root.querySelectorAll('.spotlight-row.is-highlighted')
+      .forEach((row) => row.classList.remove('is-highlighted'));
     if (this.#litFeature) {
       this.#setFeatureState(this.#litFeature, false);
       this.#litFeature = null;
