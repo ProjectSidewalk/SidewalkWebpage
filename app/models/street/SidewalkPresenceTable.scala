@@ -275,7 +275,7 @@ object SidewalkPresenceTable {
    * (and `label_count`). A face whose every NoSidewalk label was rejected therefore falls through to the next rule,
    * usually `audited_no_labels` → `present`. Confirmed labels (`correct = TRUE`) are counted in
    * `validated_no_sidewalk_count`, the top confidence tier the API exposes. `correct` is the strict majority of the
-   * Agree/Disagree votes on the label ([[service.ValidationService.updateValidationCounts]]: self-votes and excluded
+   * Agree/Disagree votes on the label ([[models.label.LabelTable.addValidationVote]]: self-votes and excluded
    * users' votes never count), so one vote on an otherwise unvalidated label decides it. The tier is human-only
    * because [[models.label.LabelType.aiLabelTypes]] leaves NoSidewalk out of AI validation; AI votes reach
    * `correct` like any other, so adding it there would silently make this an AI-confirmed tier.
