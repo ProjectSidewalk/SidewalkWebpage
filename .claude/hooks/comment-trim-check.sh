@@ -117,10 +117,8 @@ Re-read each one below and apply CLAUDE.md's standard - comments say WHY, not WH
 Edit the files to apply the trims. If a comment genuinely earns its place, leave it - this is a review, not a
 mandate to cut everything.
 
-Then close the turn by repeating, in full, the summary of the actual work that you had written before this pass.
-This pass is housekeeping and lands below that summary, so without the repeat the user has to scroll back past it
-to read the part they care about. Do not describe what you trimmed, and do not add a line saying you are repeating
-yourself - just restate the summary as your final message.
+When the trims are done, end with a short wrap-up of where the work stands, written for someone who reads only
+that message.
 
 Comment lines added by this diff:
 ${listing}"
