@@ -2,15 +2,16 @@ FROM postgis/postgis:16-3.5
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# The only thing this image adds to the base is the scoped Postgres upgrade below, and every package file it fetches
-# comes from the PostgreSQL apt repo; deb.debian.org is touched only for repository indexes (#5195). That matters
-# because the Debian pool sits behind Fastly edges that intermittently 404 a file their own freshly-fetched index
-# advertises, and a build that pulls no package files from there cannot lose that lottery. Retrying only re-rolls it,
-# since apt retries against the same edge.
+# The only thing this image adds to the base is the scoped Postgres upgrade below, and it reads nothing from Debian:
+# `apt-get update` fetches only the PostgreSQL (pgdg) source list. Bullseye is past end-of-life, so Debian's indexes
+# can expire (#5232), vanish from deb.debian.org, or 404 behind its Fastly edges (#5195), and none of that can break
+# a build that never asks for them. `--no-install-recommends` keeps apt from reaching for a Debian-pool package that
+# a pgdg package merely recommends.
 #
-# `--no-install-recommends` is what keeps that true. Recommends are installed by default and a pgdg package can
-# recommend one that lives in the Debian pool, so without the flag any package added here could quietly reopen the
-# failure class.
+# The base image lists apt.postgresql.org, which dropped bullseye at end-of-life, so the source is pointed at
+# apt-archive.postgresql.org, where bullseye is frozen at its last builds (#5626). The grep fails the build here,
+# instead of at a later 404, if a rebuilt base image ever words that line differently. Leaving the bullseye image for
+# good is part of #3955.
 #
 # The upgrade names its two packages instead of running a blanket upgrade (#5176): they are all the base image
 # actually holds back, pinned to the release docker-postgis generated it against, and republishing its tag does not
@@ -24,17 +25,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 #
 # Retries go in apt.conf.d rather than in a `-o` flag, which would apply to a single invocation, so that they cover
 # the package downloads and not just the index fetch.
-#
-# Check-Valid-Until is off because the base image's bullseye-security suite reached end-of-life and its Release file
-# is now expired, which apt otherwise treats as fatal (#5232). The upgrade pulls only the two named packages from the
-# PostgreSQL apt repo's Release, nothing from debian-security, so accepting its stale index changes nothing here.
-#
-# The base image lists apt.postgresql.org, but that server dropped bullseye once it reached end-of-life, so the source
-# is pointed at apt-archive.postgresql.org, which keeps bullseye frozen at its last builds (#5626). Leaving the
-# bullseye image for good is part of #3955.
-RUN echo 'Acquire::Retries "3"; Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/80-retries && \
-  sed -i 's#http://apt.postgresql.org#https://apt-archive.postgresql.org#' /etc/apt/sources.list.d/pgdg.list && \
-  apt-get update && \
+RUN echo 'Acquire::Retries "3";' > /etc/apt/apt.conf.d/80-retries && \
+  sed -i 's#https\?://apt\.postgresql\.org#https://apt-archive.postgresql.org#' /etc/apt/sources.list.d/pgdg.list && \
+  grep -q 'apt-archive\.postgresql\.org' /etc/apt/sources.list.d/pgdg.list && \
+  apt-get update -o Dir::Etc::sourcelist=sources.list.d/pgdg.list -o Dir::Etc::sourceparts=- \
+    -o APT::Get::List-Cleanup=0 && \
   apt-get install -y --no-install-recommends --only-upgrade postgresql-16 postgresql-client-16 && \
   # Drop the cached .deb files and package lists, which would otherwise ship inside the image.
   apt-get clean && \
