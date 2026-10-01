@@ -124,10 +124,10 @@ class ExploreUrlSync {
     params.set('heading', String(heading));
     params.set('pitch', round(pov.pitch, ExploreUrlSync.#ANGLE_DECIMALS));
     params.set('zoom', round(pov.zoom, ExploreUrlSync.#ZOOM_DECIMALS));
+    // After the view, so the human-readable settings lead and the long opaque id trails them.
+    params.set('panoId', panoId);
     if (immersive) params.set('immersive', '1');
     for (const [name, value] of Object.entries(sessionParams)) params.set(name, String(value));
-    // Last, so the human-readable view settings lead and the long opaque id trails where it's easiest to ignore.
-    params.set('panoId', panoId);
     return params;
   }
 
