@@ -5,9 +5,10 @@ import play.api.data.Form
 import play.api.i18n.Messages
 import play.api.libs.json.{JsObject, JsString, Json}
 import play.api.mvc.Results.{Redirect, Unauthorized}
-import play.api.mvc.{RequestHeader, Result}
+import play.api.mvc.{Cookie, DiscardingCookie, RequestHeader, Result}
 import play.silhouette.api.actions.{SecuredRequestHeader, UserAwareRequestHeader}
 
+import java.net.{URLDecoder, URLEncoder}
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 import scala.util.Try
@@ -271,19 +272,45 @@ object ControllerUtils {
     else Unauthorized("Not authenticated")
   }
 
-  /**
-   * Checks if a query string map contains any UTM parameters.
-   */
-  def hasUtmParams(qString: Map[String, Seq[String]]): Boolean = {
-    qString.keys.exists(_.startsWith("utm_"))
-  }
+  private val UtmKeys: Set[String] = Set("utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term")
+
+  /** Holds a visitor's campaign params until they have an account to save them to; landing makes none (#5611). */
+  val UtmCookieName: String = "sidewalk_utm"
+
+  private val UtmCookieMaxAgeSeconds: Int = 7 * 24 * 60 * 60
+
+  /** @return Just the UTM keys of a query string that `user_utm` has columns for. */
+  def utmParams(qString: Map[String, String]): Map[String, String] = qString.filter((k, _) => UtmKeys.contains(k))
 
   /**
-   * Checks if a flattened query string map contains any UTM parameters.
+   * @param params  Campaign params from [[utmParams]].
+   * @param request Marks the cookie secure only over https, so it still works on local http.
+   * @return        A week-long cookie holding the params.
    */
-  def hasUtmParamsFlat(qString: Map[String, String]): Boolean = {
-    qString.keys.exists(_.startsWith("utm_"))
+  def utmCookie(params: Map[String, String])(using request: RequestHeader): Cookie = {
+    val value = params.map((k, v) => s"$k=${URLEncoder.encode(v, StandardCharsets.UTF_8)}").mkString("&")
+    Cookie(UtmCookieName, value, maxAge = Some(UtmCookieMaxAgeSeconds), secure = request.secure, httpOnly = true,
+      sameSite = Some(Cookie.SameSite.Lax))
   }
+
+  /** @return The params [[utmCookie]] saved, skipping anything unreadable since the browser can send back anything. */
+  def utmFromCookie(request: RequestHeader): Map[String, String] =
+    request.cookies
+      .get(UtmCookieName)
+      .toSeq
+      .flatMap(_.value.split('&'))
+      .flatMap { pair =>
+        pair.split("=", 2) match {
+          case Array(k, v) if UtmKeys.contains(k) => Try(k -> URLDecoder.decode(v, StandardCharsets.UTF_8)).toOption
+          case _                                  => None
+        }
+      }
+      .toMap
+
+  /** Deletes the campaign cookie once saved, so a later account in the same browser isn't credited too. */
+  def clearUtmCookie(result: Result)(using request: RequestHeader): Result =
+    if (request.cookies.get(UtmCookieName).isDefined) result.discardingCookies(DiscardingCookie(UtmCookieName))
+    else result
 
   /**
    * Form binding errors as the JSON `AuthModal.js`'s `renderAuthErrors` draws: `{"errors": {field -> message}}`, with

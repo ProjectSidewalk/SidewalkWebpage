@@ -20,6 +20,14 @@ case class UserUtm(
     timestamp: OffsetDateTime
 )
 
+object UserUtm {
+
+  /** @return An uninserted row from params keyed by their query-string names (`utm_source` etc.). */
+  def fromParams(userId: String, params: Map[String, String], cityId: String, timestamp: OffsetDateTime): UserUtm =
+    UserUtm(0, userId, params.get("utm_source"), params.get("utm_medium"), params.get("utm_campaign"),
+      params.get("utm_content"), params.get("utm_term"), cityId, timestamp)
+}
+
 class UserUtmTableDef(tag: Tag) extends Table[UserUtm](tag, "user_utm") {
   def userUtmId: Rep[Int]              = column[Int]("user_utm_id", O.PrimaryKey, O.AutoInc)
   def userId: Rep[String]              = column[String]("user_id")

@@ -30,12 +30,13 @@ trait SignedUpAccounts extends BeforeAndAfterAll { this: SidewalkSpec & GuiceOne
   protected var createdUserIds: Set[String] = Set.empty
 
   /** @return A new signed-in account's user id, email, and session cookies. */
-  protected def signUpFreshUser(): (String, String, Seq[Cookie]) = {
+  protected def signUpFreshUser(requestCookies: Seq[Cookie] = Seq.empty): (String, String, Seq[Cookie]) = {
     val tag    = UUID.randomUUID().toString.replace("-", "").take(20)
     val email  = s"spec.$tag@example.test"
     val signUp = route(
       app,
       FakeRequest(POST, "/signUp")
+        .withCookies(requestCookies*)
         .withHeaders("X-Requested-With" -> "XMLHttpRequest")
         .withFormUrlEncodedBody(
           "username"        -> s"spec$tag",

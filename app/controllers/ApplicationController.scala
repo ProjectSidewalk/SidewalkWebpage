@@ -56,23 +56,16 @@ class ApplicationController @Inject() (
         if (qString.nonEmpty) {
           // Log the query string parameters if they exist, but do a redirect to hide them.
           cc.loggingService.insert(user.map(_.userId), ipAddress, request.uri, timestamp)
-          // Save UTM parameters if present, awaiting the write so failures surface to the error handler (#4229).
-          // A cookie-less visitor has no user row to attach UTM params to, so they're skipped; UTM capture for
-          // these visitors moves to account-mint time (#4442).
-          val utmSaved: Future[?] =
-            if (ControllerUtils.hasUtmParamsFlat(qString)) {
-              user match {
-                case Some(u) =>
-                  userService.insertUserUtm(
-                    UserUtm(
-                      0, u.userId, qString.get("utm_source"), qString.get("utm_medium"), qString.get("utm_campaign"),
-                      qString.get("utm_content"), qString.get("utm_term"), configService.getCityId, timestamp
-                    )
-                  )
-                case None => Future.successful(())
-              }
-            } else Future.successful(())
-          utmSaved.map(_ => Redirect("/"))
+          // Awaited so a failed write surfaces to the error handler (#4229). No account yet: hold them in a cookie.
+          val utm: Map[String, String] = ControllerUtils.utmParams(qString)
+          (user, utm.isEmpty) match {
+            case (_, true)        => Future.successful(Redirect("/"))
+            case (Some(u), false) =>
+              userService
+                .insertUserUtm(UserUtm.fromParams(u.userId, utm, configService.getCityId, timestamp))
+                .map(_ => Redirect("/"))
+            case (None, false) => Future.successful(Redirect("/").withCookies(ControllerUtils.utmCookie(utm)))
+          }
         } else if (isMobile) {
           Future.successful(Redirect("/mobileLanding"))
         } else {
