@@ -3,15 +3,10 @@
  */
 
 /**
- * Unit tests for the `escape-in-markup` ESLint rule (tools/lint/eslint-rules/escape-in-markup.js, #5615).
+ * Tests for the `escape-in-markup` ESLint rule (#5615): what it treats as safe, and where each report lands.
  *
- * The rule blocks a value interpolated into HTML that isn't escaped and can't be shown safe. These cases pin what it
- * treats as safe, since a widening there lets an XSS through silently, and where it reports, since a report in the
- * wrong spot (a helper's argument rather than the template it lands in) pushes a contributor toward escaping text
- * that some other caller reads as plain text.
- *
- * Node environment, not the suite's usual jsdom: ESLint's RuleTester calls `structuredClone`, which jsdom's global
- * does not provide. Jest only reads that docblock when it is the file's first one, hence the split header.
+ * Runs under node, not jsdom, because RuleTester needs `structuredClone`. Jest only reads the first docblock, hence
+ * the split header.
  */
 
 const { RuleTester } = require('eslint');
@@ -22,8 +17,7 @@ const ruleTester = new RuleTester({
 });
 
 /**
- * An invalid case whose reports land on the given source texts, each found as its first occurrence right after a
- * `${`, or else its last occurrence anywhere. The code must be one line.
+ * An invalid case reporting on the given texts (found right after a `${`, or else their last occurrence).
  *
  * @param {string} code - The code under test.
  * @param {...string} texts - The source text of each reported node, in report order.
@@ -34,7 +28,7 @@ function reports(code, ...texts) {
 }
 
 /**
- * Like `reports`, for reports of text one escape short inside a tooltip attribute.
+ * Like `reports`, for tooltip-attribute reports.
  *
  * @param {string} code - The code under test.
  * @param {...string} texts - The source text of each reported node.

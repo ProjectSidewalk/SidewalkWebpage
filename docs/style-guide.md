@@ -100,25 +100,18 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
     value: a newline in `title="..."` renders literally in the tooltip.
   - `eslint --fix` can't do this conversion for you (`prefer-template` only fires when a variable is involved, not on
     literal-plus-literal chains), so convert concatenated HTML by hand as you touch it.
-  - Anything interpolated into that markup must be escaped exactly once — `util.escapeHTML(value)` (the one escape
-    helper; don't write another), or, for a translated string, `interpolation: { escapeValue: true }` on the
+  - Anything interpolated into that markup must be escaped exactly once — `util.escapeHTML(value)`, or, for a
+    translated string, `interpolation: { escapeValue: true }` on the
     `i18next.t()` call (the `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values
     verbatim by default, since most of them land in a text node: `docs/internationalization.md` → "Interpolated
     values and HTML".
-  - The `ps/escape-in-markup` rule (`tools/lint/eslint-rules/escape-in-markup.js`) blocks a `${…}` in an HTML-bound
-    template that isn't escaped and can't be shown safe: a number, a translation, an asset path, label-type data,
-    or a value of this file it can trace back to one of those. A parameter, field or helper of the same file is
-    followed to its callers or its return values; anything from another file or off API data needs the wrap.
-    HTML-bound includes an argument to a helper that renders it (`AdminShell.setHtml`, `ApiDocsMap.popup`, a local
-    `showError`). Escape where the value enters the HTML, not where it's computed, so a helper's text callers
-    don't get `&amp;`. When the value really is markup of ours (a translation with `<b>`, a cell a column formatter
-    built), say why with `// eslint-disable-next-line ps/escape-in-markup -- <why>`, or, inside a multi-line
-    template, `${value /* eslint-disable-line ps/escape-in-markup -- <why> */}`.
-  - A `data-ps-tooltip="${…}"` written into markup is unescaped twice (the attribute, then psTooltip's
-    `innerHTML`), so plain text there takes `AdminShell.tooltipAttr(…)`; `util.escapeHTML(…)` once is right only
-    around tooltip markup whose own values are escaped. `setAttribute('data-ps-tooltip', …)` skips the first
-    level, so one escape is enough there. Escaping never makes a URL safe: an API-supplied `href` also needs an
-    http(s) check.
+  - The `ps/escape-in-markup` lint rule enforces this: any `${…}` that ends up as HTML must be escaped unless it's
+    clearly safe (a number, a translation, an asset path, or a value from the same file it can trace). Escape where
+    the value goes into the HTML, not where it's computed. If a value really is our own markup, add
+    `// eslint-disable-next-line ps/escape-in-markup -- <why>` (inside a template: `${x /* eslint-disable-line … */}`).
+  - Text inside a `data-ps-tooltip="…"` attribute in markup needs escaping twice: use `AdminShell.tooltipAttr(…)`.
+    With `setAttribute('data-ps-tooltip', …)`, escaping once is enough.
+  - Escaping doesn't make a link safe: check that an API-supplied `href` starts with http(s).
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).

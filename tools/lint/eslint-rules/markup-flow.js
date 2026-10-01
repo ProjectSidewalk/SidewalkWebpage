@@ -1,31 +1,15 @@
 /**
- * Shared by the ps/ ESLint rules that care where a string ends up: follows a value forward, through the expressions
- * and local variables that just carry it along, to see whether it lands somewhere the browser parses as HTML.
- *
- * Markup-shaped, syntactically: an assignment to `.innerHTML` / `.outerHTML`; an argument to `.insertAdjacentHTML()`
- * or a MapLibre popup's `.setHTML()`; `setAttribute('data-ps-tooltip', …)`, which `psTooltip.js` renders as HTML;
- * or any of those reached through a template literal, a concatenation, a ternary, a pass-through string method, a
- * joined array or `map`/`flatMap` callback, or a local variable.
- *
- * Helpers count too: an argument to one of MARKUP_HELPERS (project functions in other files that render their
- * argument as HTML), or to a function or method of this file whose matching parameter itself reaches markup.
- *
- * It follows syntax only, so a string returned from an ordinary function or parked on an object property goes unseen.
+ * Shared by the ps/ escaping rules: works out whether a value ends up as HTML (`innerHTML`, `insertAdjacentHTML`,
+ * a tooltip attribute, or a helper that renders HTML), following it through variables, templates, `map().join()`
+ * and same-file function calls. It can't follow a value returned from a function or stored on an object.
  */
 
 'use strict';
 
-/**
- * Methods whose string argument is parsed as HTML. `Element.append`, `before`, `after` and `replaceWith` are not
- * here on purpose: they insert text, and telling someone at a text sink to turn escaping on is the very bug #5389
- * fixed.
- */
+/** Methods that parse their argument as HTML. (`append`, `before` etc. insert text, so they're left out.) */
 const MARKUP_METHODS = new Set(['insertAdjacentHTML', 'setHTML']);
 
-/**
- * Project helpers, defined in other files, that render one of their arguments as HTML: the call's source text (or,
- * for an instance method, just its name) and which arguments.
- */
+/** Helpers in other files that render an argument as HTML, by name, with which arguments. */
 const MARKUP_HELPERS = new Map([
   ['AdminShell.setHtml', [1]],
   ['ApiDocsMap.popup', [2]],
@@ -39,16 +23,16 @@ const MARKUP_PROPERTIES = new Set(['innerHTML', 'outerHTML']);
 /** Attributes this codebase renders as HTML rather than text. */
 const MARKUP_ATTRIBUTES = new Set(['data-ps-tooltip']);
 
-/** String methods that pass their receiver's or argument's text straight through to whatever consumes the result. */
+/** String methods whose result still contains the original text. */
 const PASS_THROUGH_METHODS = new Set([
   'join', 'trim', 'trimStart', 'trimEnd', 'toString', 'concat', 'toUpperCase', 'toLowerCase', 'replace',
   'replaceAll', 'slice', 'substring', 'substr', 'padStart', 'padEnd', 'normalize', 'repeat',
 ]);
 
-/** Array methods whose callback's return value ends up in the array the call produces. */
+/** Array methods whose result is built from the callback's return values. */
 const CALLBACK_RESULT_METHODS = new Set(['map', 'flatMap']);
 
-/** How many variable hops to follow before giving up; deep chains are rewritten, not linted around. */
+/** How many hops to follow before giving up. */
 const MAX_DEPTH = 6;
 
 /**
@@ -69,8 +53,7 @@ function isMarkupAttributeName(node) {
  */
 function createMarkupFlow(sourceCode) {
   /**
-   * Whether the value produced at `node` reaches an HTML sink, following it up through the expressions that just
-   * carry it along and through the local variables it is parked in.
+   * Whether the value at `node` ends up as HTML.
    *
    * @param {object} node - The expression whose destination is in question.
    * @param {number} depth - Hops spent so far; the walk stops at MAX_DEPTH.
@@ -83,7 +66,7 @@ function createMarkupFlow(sourceCode) {
     if (!parent) return false;
 
     switch (parent.type) {
-      // Carriers: the value is still on its way somewhere.
+      // The value is passed along as-is.
       case 'TemplateLiteral':
       case 'BinaryExpression':
       case 'ConditionalExpression':
@@ -108,7 +91,7 @@ function createMarkupFlow(sourceCode) {
           ? variableReachesMarkup(parent.id, depth, seen)
           : false;
 
-      // `[…].join('')` and `s.trim()`: the receiver's value carries on into whatever consumes the call.
+      // e.g. `[…].join('')` and `s.trim()`.
       case 'MemberExpression': {
         if (parent.object !== node || parent.computed || parent.property.type !== 'Identifier') return false;
         const call = parent.parent;
@@ -116,7 +99,7 @@ function createMarkupFlow(sourceCode) {
         return PASS_THROUGH_METHODS.has(parent.property.name) ? reachesMarkup(call, depth + 1, seen) : false;
       }
 
-      // `xs.map((x) => `<li>${…}</li>`).join('')`: the callback's result becomes the array the chain consumes.
+      // e.g. `xs.map((x) => `<li>${…}</li>`).join('')`.
       case 'ArrowFunctionExpression':
         return parent.body === node ? callbackResultReachesMarkup(parent, depth, seen) : false;
 
@@ -137,11 +120,11 @@ function createMarkupFlow(sourceCode) {
         }
         const method = callee.property.name;
         if (MARKUP_METHODS.has(method)) return true;
-        // `setAttribute('data-ps-tooltip', tip)`: markup only for those attributes.
+        // Only some attributes are rendered as HTML.
         if (method === 'setAttribute' && parent.arguments[1] === node) {
           return isMarkupAttributeName(parent.arguments[0]);
         }
-        // `parts.push(html)` keeps the value alive in `parts`, which is usually joined into markup next.
+        // `parts.push(html)`: follow `parts`.
         if (method === 'push' && callee.object.type === 'Identifier') {
           return variableReachesMarkup(callee.object, depth, seen);
         }
@@ -171,11 +154,7 @@ function createMarkupFlow(sourceCode) {
   }
 
   /**
-   * Whether a callback's return value reaches markup through the `map`/`flatMap` call it was passed to.
-   *
-   * Only those two: a value returned from an ordinary function goes to a caller this rule cannot see, which stays
-   * a documented blind spot. `xs.map(cb).join('')` into `innerHTML` is the codebase's idiom for building a list,
-   * so it is worth following the one hop.
+   * Whether a `map`/`flatMap` callback's return value ends up as HTML. Other functions' returns aren't followed.
    *
    * @param {object} fn - The callback function node.
    * @param {number} depth - Hops spent so far.
@@ -192,8 +171,7 @@ function createMarkupFlow(sourceCode) {
   }
 
   /**
-   * Whether any read of the variable `identifier` names reaches an HTML sink. Uses real scope analysis, so this
-   * stops at the function boundary rather than matching a same-named variable elsewhere in the file.
+   * Whether any use of this variable ends up as HTML.
    *
    * @param {object} identifier - The Identifier node the value was assigned to.
    * @param {number} depth - Hops spent so far.
@@ -210,7 +188,7 @@ function createMarkupFlow(sourceCode) {
   }
 
   /**
-   * Whether argument `index` of a call goes to a MARKUP_HELPERS helper.
+   * Whether this argument goes to a helper in MARKUP_HELPERS.
    *
    * @param {object} callee - The call's callee.
    * @param {number} index - Which argument.
@@ -224,8 +202,7 @@ function createMarkupFlow(sourceCode) {
   }
 
   /**
-   * The parameter a call's argument lands in, when the callee is a function or method of this file: a local
-   * function or `const` arrow, or a method of the enclosing class called through `this` or the class name.
+   * The parameter an argument lands in, if the called function is defined in this file.
    *
    * @param {object} callee - The call's callee.
    * @param {number} index - Which argument.

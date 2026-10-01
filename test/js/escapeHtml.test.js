@@ -1,5 +1,5 @@
 /**
- * Tests for util.escapeHTML, the one helper every page uses to put data into HTML as plain text.
+ * Tests for util.escapeHTML.
  *
  * Runs under jsdom (jest.config.js).
  */

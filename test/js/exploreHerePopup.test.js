@@ -16,7 +16,6 @@ const fs = require('fs');
 const path = require('path');
 const { installEscapeHTML } = require('./loadGlobalScript');
 
-// The markup is escaped through util.escapeHTML.
 installEscapeHTML();
 
 const SRC = fs.readFileSync(

@@ -475,7 +475,7 @@ class DesktopValidationMenu {
   #addTooltip(elem, tooltipText, img) {
     if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
     const imgHtml = img ? `<br/><img src="${util.escapeHTML(img)}" class="validate-tooltip-img"/>` : '';
-    // eslint-disable-next-line ps/escape-in-markup -- the text is a translation, some with <b> markup.
+    // eslint-disable-next-line ps/escape-in-markup -- translations can contain <b>.
     const tooltipHtml = `${tooltipText}${imgHtml}`;
     elem.setAttribute('data-ps-tooltip', tooltipHtml);
   }

@@ -15,7 +15,6 @@ const fs = require('fs');
 const path = require('path');
 const { installDateHelpers, loadGlobalScript } = require('./loadGlobalScript');
 
-// The markup is escaped through util.escapeHTML.
 loadGlobalScript('public/js/common/utilities.js');
 
 const ADMIN_USER_SRC = fs.readFileSync(

@@ -95,7 +95,7 @@ class StreetPriorityTable {
 
     tbody.innerHTML = visible.map((row) => {
       const cells = this.#columns
-        // eslint-disable-next-line ps/escape-in-markup -- a column's format returns cell markup it escaped itself.
+        // eslint-disable-next-line ps/escape-in-markup -- format() returns already-escaped markup.
         .map((c) => `<td>${c.format ? c.format(row) : StreetPriorityTable.#cell(row[c.key])}</td>`).join('');
       return `<tr data-row-id="${util.escapeHTML(row[this.#rowKey])}">${cells}</tr>`;
     }).join('');

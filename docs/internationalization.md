@@ -96,15 +96,14 @@ call that interpolates values and reaches one of those sinks without stating `in
 directly or through a template literal, a concatenation, a string method, a `map(…).join('')`, or a local variable.
 
 **It is a tripwire, not a proof.** It follows syntax only: a value returned from a function, stored on an object
-property, or handed to an HTML-rendering helper it doesn't know (it knows `AdminShell.setHtml`, `ApiDocsMap.popup`,
-`showAlert`, `notify`, and any function of the same file that puts its argument into HTML) is invisible to it, and so is a `t()` call behind an alias or a
-wrapper (don't wrap `i18next.t`, and write `el.innerHTML`, never `el['innerHTML']`). Those flows are on the author
-and the reviewer.
+property, or handed to an HTML-rendering helper it doesn't know about is invisible to it, and so is a `t()` call
+behind an alias or a wrapper (don't wrap `i18next.t`, and write `el.innerHTML`, never `el['innerHTML']`). Those
+flows are on the author and the reviewer.
 
 So when a string you build ends up as HTML somewhere the rule can't follow, escape it there or say
-`escapeValue: true` here. The sibling `ps/escape-in-markup` rule (`docs/style-guide.md`) covers every other value
-interpolated into HTML, and lets a count or an asset path through unescaped. And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with
-a comment, never `true`: turning escaping on at a text sink is the bug #5389 fixed.
+`escapeValue: true` here. Other values put into HTML are checked by `ps/escape-in-markup` (`docs/style-guide.md`).
+And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with a comment,
+never `true`: turning escaping on at a text sink is the bug #5389 fixed.
 
 Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
 and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is.

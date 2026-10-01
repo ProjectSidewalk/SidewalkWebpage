@@ -804,7 +804,7 @@ function camelToKebab(theString) {
 util.camelToKebab = camelToKebab;
 
 /**
- * Escapes a value so it shows as plain text inside HTML. The frontend's one escape helper; don't write another.
+ * Escapes a value so it shows as plain text inside HTML. Use this rather than writing another escape helper.
  * @param {*} value - Anything; null and undefined become the empty string.
  * @returns {string} The value with HTML's special characters replaced by entities.
  */

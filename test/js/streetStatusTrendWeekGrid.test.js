@@ -20,7 +20,6 @@ const path = require('path');
 
 const { installDateHelpers, loadGlobalScript } = require('./loadGlobalScript');
 
-// The markup is escaped through util.escapeHTML.
 loadGlobalScript('public/js/common/utilities.js');
 
 const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');

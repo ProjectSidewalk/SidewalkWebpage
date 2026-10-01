@@ -494,7 +494,7 @@ class ContextMenu {
               const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${util.escapeHTML(img)}"/>`;
 
               button.setAttribute(
-                // eslint-disable-next-line ps/escape-in-markup -- the header is our tag text, underline markup and all.
+                // eslint-disable-next-line ps/escape-in-markup -- our tag text, with its underline markup.
                 'data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
               );
             });

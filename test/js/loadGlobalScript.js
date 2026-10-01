@@ -93,14 +93,14 @@ function installDateHelpers() {
 }
 
 /**
- * Installs the real `util.escapeHTML` onto `window.util`, keeping whatever the suite already stubbed there.
+ * Adds the real `util.escapeHTML` to `window.util`, keeping the suite's own stubs.
  */
 function installEscapeHTML() {
     window.util = Object.assign(window.util || {}, { escapeHTML: utilitiesScratch().escapeHTML });
 }
 
 /**
- * Runs utilities.js against a throwaway `util`, so a suite can take single helpers from it without the rest.
+ * Runs utilities.js on a throwaway `util` object, so a suite can borrow single helpers from it.
  *
  * @returns {object} The `util` object utilities.js filled in.
  */

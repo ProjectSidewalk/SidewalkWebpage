@@ -14,7 +14,6 @@ const fs = require('fs');
 const path = require('path');
 const { loadGlobalScript } = require('./loadGlobalScript');
 
-// tooltipAttr escapes through util.escapeHTML.
 loadGlobalScript('public/js/common/utilities.js');
 
 const SHELL_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/AdminShell.js');

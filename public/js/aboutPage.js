@@ -21,7 +21,7 @@ class AboutPage {
   // #sanitizeCitation for why the allowlist is this narrow.
   static #CITATION_TAGS = new Set(['A', 'B', 'EM', 'I', 'STRONG', 'SPAN', 'BR', 'SUB', 'SUP']);
 
-  /** The only links this page takes from the ML API: anything else, `javascript:` above all, could run code. */
+  /** Only http(s) links from the ML API are used; others (like `javascript:`) could run code. */
   static #HTTP_URL = /^https?:\/\//i;
 
   // Every ML API `position_title` that means "student", at any level. Designers, coordinators, research staff, and
@@ -52,8 +52,7 @@ class AboutPage {
   }
 
   /**
-   * An ML API link, escaped for an `href`, or `#` when it isn't http(s): escaping keeps a URL inside its attribute
-   * but doesn't stop a `javascript:` link from running.
+   * An ML API link, escaped for an `href`, or `#` if it isn't http(s).
    *
    * @param {?string} url - The link from the API.
    * @returns {string} The escaped link, or `#`.

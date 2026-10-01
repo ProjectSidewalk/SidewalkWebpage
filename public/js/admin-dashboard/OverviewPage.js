@@ -269,7 +269,7 @@ class OverviewPage {
     el.innerHTML = items.map((it) => `
       <a class="ov-attention-item ov-attention--${util.escapeHTML(it.sev)}" href="${util.escapeHTML(it.href)}">
         <span class="ov-attention-dot" aria-hidden="true"></span>
-        <span class="ov-attention-text">${it.html /* eslint-disable-line ps/escape-in-markup -- built above. */}</span>
+        <span class="ov-attention-text">${it.html /* eslint-disable-line ps/escape-in-markup -- our markup. */}</span>
         <span class="ov-attention-go">${util.escapeHTML(it.action)} →</span>
       </a>`,
     ).join('');

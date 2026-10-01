@@ -15,7 +15,6 @@ const fs = require('fs');
 const path = require('path');
 const { loadGlobalScript } = require('./loadGlobalScript');
 
-// The markup is escaped through util.escapeHTML.
 loadGlobalScript('public/js/common/utilities.js');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');

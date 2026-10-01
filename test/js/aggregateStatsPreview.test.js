@@ -11,7 +11,6 @@
 
 const { loadGlobalScript, installEscapeHTML } = require('./loadGlobalScript');
 
-// The markup is escaped through util.escapeHTML.
 installEscapeHTML();
 
 const MODULE_PATH = 'public/js/api-docs/aggregateStatsPreview.js';

@@ -1,22 +1,10 @@
 /**
- * ESLint rule: a value interpolated into a template literal that ends up as HTML must be escaped, or be something
- * that can't carry markup (#5615).
+ * ESLint rule: every `${…}` in a template that ends up as HTML must be escaped, or be something that can't contain
+ * markup (#5615).
  *
- * "Ends up as HTML" is worked out by markup-flow.js: `innerHTML`, `insertAdjacentHTML()`, an HTML-rendering helper
- * and friends, directly or through a variable, a joined `map()`, a ternary and so on. Each `${…}` in such a template
- * has to be one of:
- * - wrapped in `util.escapeHTML(…)`, or another call SAFE_CALLS trusts (asset paths, label-type data, translations);
- * - a number, a boolean, or arithmetic;
- * - a template, ternary, `&&`/`||`/`??` or `map(…).join()` whose parts all pass;
- * - a `const`, or a parameter or private field of this file, whose every value passes;
- * - a call to a function or private method of this file whose every return value passes.
- *
- * Inside a `data-ps-tooltip="…"` attribute written in markup, text is unescaped twice (once when the attribute is
- * parsed, once when psTooltip puts it into the tooltip's innerHTML), so there `util.escapeHTML(x)` passes only when
- * x is itself safe markup; plain text needs `AdminShell.tooltipAttr(…)`.
- *
- * Anything else (a property read off API data, a call into another file) is reported. When the value really is safe,
- * say why with an `eslint-disable-next-line ps/escape-in-markup -- <why>` comment.
+ * Safe means: wrapped in `util.escapeHTML`, a trusted helper (SAFE_CALLS), a number, or a variable, parameter or
+ * helper of the same file whose every possible value is safe. Inside a `data-ps-tooltip="…"` attribute, plain text
+ * needs escaping twice (`AdminShell.tooltipAttr`), since the tooltip renders the attribute as HTML.
  */
 
 'use strict';
@@ -29,47 +17,46 @@ const SAFE_CALLS = new Set([
   'util.assetPath',
   'AdminShell.tooltipAttr',
   'encodeURIComponent',
-  // Translations are our own text; the values they interpolate are the i18n-escape-in-markup rule's job.
+  // Our own text; what a translation fills in is checked by i18n-escape-in-markup.
   'i18next.t',
   'Number', 'parseInt', 'parseFloat',
   // Shared number and date formatters from other files.
   'AdminShell.num', 'AdminShell.dur', 'AccessScoreGradeRamp.percent', 'util.monthYear',
 ]);
 
-/** Callee prefixes whose results are safe: number math, and label-type data that comes from our own backend. */
+/** Callee prefixes whose results are safe: math, and label-type data from our backend. */
 const SAFE_CALL_PREFIXES = ['Math.', 'util.misc.'];
 
-/** Calls that escape their argument once, which is one level short inside a tooltip attribute. */
+/** Escapes once: not enough for plain text inside a tooltip attribute. */
 const ESCAPE_CALLS = new Set(['util.escapeHTML']);
 
-/** Calls that escape their argument for a tooltip attribute, both levels. */
+/** Escapes twice, for a tooltip attribute. */
 const TOOLTIP_ESCAPE_CALLS = new Set(['AdminShell.tooltipAttr']);
 
 /**
- * Methods that format a number or a date, which prints no markup. `toLocaleString` is here although a string has
- * one too (handing the string back unchanged): in this codebase it is called on counts, and treating every
- * `count.toLocaleString()` as suspect would bury the real findings.
+ * Number and date formatters. `toLocaleString` also works on strings, but here it's used on counts, and flagging
+ * every count would bury the real findings.
  */
 const FORMAT_METHODS = new Set([
   'toFixed', 'toPrecision', 'toLocaleString', 'toLocaleDateString', 'toLocaleTimeString', 'toISOString',
   'toDateString',
 ]);
 
-/** String and array methods whose result is only as safe as the value they are called on. */
+/** Methods whose result is only as safe as the value they're called on. */
 const PASS_THROUGH_METHODS = new Set([
   'slice', 'substring', 'substr', 'trim', 'trimStart', 'trimEnd', 'toLowerCase', 'toUpperCase', 'repeat', 'at',
   'charAt', 'toString', 'normalize', 'reverse', 'filter', 'sort', 'flat',
 ]);
 
-/** Methods that also put (some of) their arguments into the result, by the index the arguments start at. */
+/** Methods that also copy arguments into the result, from this argument index on. */
 const ARG_CARRYING_METHODS = new Map([
   ['replace', 1], ['replaceAll', 1], ['padStart', 1], ['padEnd', 1], ['concat', 0], ['join', 0],
 ]);
 
-/** Array methods whose callback gets an element of the array they are called on, then its index. */
+/** Array methods whose callback gets (element, index). */
 const ELEMENT_CALLBACK_METHODS = new Set(['map', 'flatMap', 'forEach', 'filter', 'find', 'some', 'every']);
 
-/** Array and Map/Set methods that change the collection they are called on. */
+/** Methods that change the array, Map or Set they're called on. */
 const MUTATING_METHODS = new Set([
   'push', 'unshift', 'splice', 'fill', 'copyWithin', 'set', 'add', 'sort', 'reverse',
 ]);
@@ -83,26 +70,26 @@ const NON_STRING_OPERATORS = new Set([
   'instanceof',
 ]);
 
-/** Parents a read of a collection can sit in without the collection being handed to other code. */
+/** Places an array can be read without being handed to other code. */
 const PLAIN_READ_PARENTS = new Set([
   'TemplateLiteral', 'BinaryExpression', 'LogicalExpression', 'ConditionalExpression', 'UnaryExpression',
   'ChainExpression', 'IfStatement', 'ForOfStatement', 'ForInStatement', 'SwitchStatement', 'ExpressionStatement',
 ]);
 
-/** Functions that read a collection passed to them without changing it. */
+/** Functions that don't change an array passed to them. */
 const READ_ONLY_FUNCTIONS = new Set([
   'Object.keys', 'Object.values', 'Object.entries', 'Array.isArray', 'Array.from', 'JSON.stringify', 'Math.max',
   'Math.min',
 ]);
 
-/** How deep to follow variables, parameters and calls before giving up and calling the value unsafe. */
+/** How many hops to follow before giving up and calling a value unsafe. */
 const MAX_DEPTH = 12;
 
-/** Text before a `${…}` that leaves it inside a `data-ps-tooltip` attribute's quoted value. */
+/** Matches text that ends inside a `data-ps-tooltip="…"` value. */
 const IN_TOOLTIP_ATTRIBUTE = /data-ps-tooltip\s*=\s*(?:"[^"]*|'[^']*)$/;
 
 /**
- * Calls `visit` on every node under `node`, without crossing into nested functions when `stopAtFunctions` is set.
+ * Visits every node under `node`, optionally skipping nested functions.
  *
  * @param {object} node - Where to start.
  * @param {function(object): void} visit - Called once per node.
@@ -122,7 +109,7 @@ function walk(node, visit, stopAtFunctions) {
 }
 
 /**
- * Whether a node is a function expression or declaration.
+ * Whether a node is a function.
  *
  * @param {?object} node - Any node.
  * @returns {boolean} True for the three function node types.
@@ -132,7 +119,7 @@ function isFunction(node) {
 }
 
 /**
- * Whether a variable's initial value is an array, object or `new` collection, whose contents can change later.
+ * Whether a starting value is an array, object or `new` collection, i.e. something that can change later.
  *
  * @param {?object} init - The declaration's initial value.
  * @returns {boolean} True for a collection.
@@ -151,9 +138,7 @@ module.exports = {
     messages: {
       unescaped: 'This value goes into HTML unescaped. Wrap it in util.escapeHTML(…), or if it is markup of ours '
         + 'or can never hold markup, add `// eslint-disable-next-line ps/escape-in-markup -- <why>`.',
-      tooltip: 'This text goes into a data-ps-tooltip attribute, which is unescaped twice. Use '
-        + 'AdminShell.tooltipAttr(…) (or util.escapeHTML twice), or util.escapeHTML(…) once around markup whose own '
-        + 'values are escaped.',
+      tooltip: 'Text in a data-ps-tooltip attribute needs escaping twice: use AdminShell.tooltipAttr(…).',
     },
   },
 
@@ -161,16 +146,14 @@ module.exports = {
     const sourceCode = context.sourceCode;
     const reachesMarkup = createMarkupFlow(sourceCode);
     const reported = new Set();
-    // Per-function results, so a helper called from twenty templates is analyzed once, kept apart for the two
-    // escaping levels. `null` marks "in progress", which a recursive helper reads as safe for the moment.
+    // Cached results per helper (one map per escaping level). `null` means "still working on it".
     const returnsCache = [new Map(), new Map()];
-    // Set when a result leaned on an in-progress helper; such a result isn't cached, so it can't depend on which
-    // helper happened to be analyzed first.
+    // Set when a result depended on an unfinished helper (recursion); such results aren't cached.
     let leanedOnCycle = false;
     const classMemberCache = new Map();
 
     /**
-     * The parts of an expression that could put markup into HTML: an empty list means it is safe.
+     * The parts of an expression that aren't safe; empty means safe.
      *
      * @param {object} node - The expression.
      * @param {number} depth - Hops spent so far.
@@ -189,7 +172,7 @@ module.exports = {
         case 'ConditionalExpression':
           return [...unsafeParts(node.consequent, depth, tip), ...unsafeParts(node.alternate, depth, tip)];
         case 'LogicalExpression':
-          // `a && b` only ever yields `a` when it is falsy (empty, null, 0…), which can't hold markup.
+          // `a && b` only returns `a` when it's empty, null, 0 or false.
           if (node.operator === '&&') return unsafeParts(node.right, depth, tip);
           return [...unsafeParts(node.left, depth, tip), ...unsafeParts(node.right, depth, tip)];
         case 'BinaryExpression':
@@ -214,10 +197,8 @@ module.exports = {
     }
 
     /**
-     * Moves each report to where the fix belongs. A value found by following a variable, parameter, field or return
-     * value back to its source is reported where it was read, so the fix is a wrap at the HTML rather than a change
-     * to a value other code may use as plain text. A part that sits in a template building HTML stays put, since
-     * escaping there is the fix.
+     * Puts each report where the escape should go: inside the HTML being built, not where a value is first
+     * computed (other code may use it as plain text).
      *
      * @param {object[]} parts - The offending nodes found at the source.
      * @param {object} read - The node that brought the value into this template.
@@ -229,10 +210,8 @@ module.exports = {
     }
 
     /**
-     * Whether a node's value is what a `${…}` prints (directly or through a ternary branch, `&&`/`||`, a `+`, or a
-     * method called on it) in a template that builds HTML: one with a tag in its text, or one that is itself
-     * checked because it reaches markup. A template of plain text, like `${count} ${unit}`, doesn't count: what it
-     * builds may be shown as text too, so the escape belongs where it enters HTML.
+     * Whether a node is printed by a template that builds HTML (one with a tag in it, or one that reaches HTML).
+     * A plain-text template like `${count} ${unit}` doesn't count, since its result may also be shown as text.
      *
      * @param {object} node - Any expression.
      * @returns {boolean} True when the escape belongs on this node.
@@ -255,8 +234,8 @@ module.exports = {
     }
 
     /**
-     * A property read: safe when it is a count, a field of a trusted call's result, a lookup into an object or array
-     * literal whose values are safe, or a private field this class only ever sets to safe values.
+     * A property read: safe if it's a count, data from a trusted call, a lookup in a literal table of safe values,
+     * or a private field that's only ever set to safe values.
      *
      * @param {object} node - The MemberExpression.
      * @param {number} depth - Hops spent so far.
@@ -265,7 +244,7 @@ module.exports = {
      */
     function memberParts(node, depth, tip) {
       if (!node.computed && SAFE_PROPERTIES.has(node.property.name)) return [];
-      // `util.misc.getLabelDescriptions(t).tagInfo[tag].text`: data from a trusted call, however deep.
+      // e.g. `util.misc.getLabelDescriptions(t).tagInfo[tag].text`.
       let base = node.object;
       while (base.type === 'MemberExpression') base = base.object;
       if (base.type === 'CallExpression' && trustedCallParts(base, depth, tip)?.length === 0) return [];
@@ -285,7 +264,7 @@ module.exports = {
     }
 
     /**
-     * The callee a call names, seen through a `const esc = util.escapeHTML;` alias.
+     * The called function's name, seeing through aliases like `const esc = util.escapeHTML`.
      *
      * @param {object} node - The CallExpression.
      * @returns {?string} The callee's source text, or null when it isn't a plain dotted name like `util.misc.x`.
@@ -304,9 +283,8 @@ module.exports = {
     }
 
     /**
-     * The unsafe parts of a call SAFE_CALLS / SAFE_CALL_PREFIXES vouches for, or null when it isn't one. A trusted
-     * call is mostly safe outright; the exceptions are a translation's `defaultValue`, which is printed when the
-     * key is missing, and an escape that is one level short inside a tooltip attribute.
+     * The unsafe parts of a trusted call, or null if the call isn't trusted. Exceptions: a translation's
+     * `defaultValue` (shown when the key is missing), and a single escape inside a tooltip attribute.
      *
      * @param {object} node - The CallExpression.
      * @param {number} depth - Hops spent so far.
@@ -330,8 +308,7 @@ module.exports = {
     }
 
     /**
-     * A call: safe when trusted, a number formatter, a `map(…).join()` of safe parts, or a function of this file
-     * that only returns safe values.
+     * A call: safe if trusted, a number formatter, or a same-file function that only returns safe values.
      *
      * @param {object} node - The CallExpression.
      * @param {number} depth - Hops spent so far.
@@ -361,14 +338,14 @@ module.exports = {
       }
       const fn = resolveFunction(callee);
       if (fn) return anchor(returnParts(fn, depth, tip), node);
-      // `COLUMNS[i].format(v)`: a function stored in an object literal of this file.
+      // e.g. `COLUMNS[i].format(v)`, a function stored in a literal table.
       const fns = callee.type === 'MemberExpression' ? literalValues(callee, depth + 1) : null;
       if (fns?.length && fns.every(isFunction)) return anchor(fns.flatMap((f) => returnParts(f, depth, tip)), node);
       return [node];
     }
 
     /**
-     * The unsafe parts across everything a function can return.
+     * The unsafe parts of everything a function can return.
      *
      * @param {object} fn - The function node.
      * @param {number} depth - Hops spent so far.
@@ -401,9 +378,7 @@ module.exports = {
     }
 
     /**
-     * The values a read out of an object or array literal can produce, following `const`s to the literal:
-     * `LABELS[key]` is any of LABELS's values, `META.foo.label` is just that one. Null when the chain doesn't end
-     * in a literal.
+     * The values a lookup in a literal table can give (`LABELS[key]` is any of its values), or null if it isn't one.
      *
      * @param {object} node - The expression being read.
      * @param {number} depth - Hops spent so far.
@@ -416,7 +391,7 @@ module.exports = {
         const variable = resolveVariable(node);
         const def = variable?.defs.length === 1 ? variable.defs[0] : null;
         if (!def || isReassigned(variable, def)) return null;
-        // `[...].map((c) => c.label)`: c is one of the literal's elements.
+        // e.g. `[...].map((c) => c.label)`.
         if (def.type === 'Parameter') return elementParam(def.node, node.name, depth);
         if (def.type !== 'Variable' || !def.node.init || isMutated(variable)) return null;
         return literalValues(def.node.init, depth + 1);
@@ -449,9 +424,8 @@ module.exports = {
     }
 
     /**
-     * What one read of a collection does to it: nothing (an empty list), adds values to it (`xs.push(a)`,
-     * `xs[i] = v`, `m.set(k, v)`: the added values), or something this rule can't follow (null): a nested change
-     * like `META.a.label = v`, or handing the collection to other code, which could change it.
+     * What one use of an array (or object, Map, Set) adds to it: nothing ([]), the added values (`xs.push(a)`),
+     * or null if it's changed in a way we can't follow, or handed to other code that might change it.
      *
      * @param {object} use - The read: an Identifier, or a `this.#field` MemberExpression.
      * @returns {?object[]} The added value nodes, or null.
@@ -486,8 +460,7 @@ module.exports = {
     }
 
     /**
-     * Whether an object or array held in a variable is changed or handed to other code after it is made, so its
-     * literal is not the whole list of values it holds.
+     * Whether an array or object is changed, or handed to other code, after it's created.
      *
      * @param {object} variable - The Variable.
      * @returns {boolean} True when some reference changes it or lets it go.
@@ -497,8 +470,7 @@ module.exports = {
     }
 
     /**
-     * The function a callee names, when it is defined in this file: a local function or `const` arrow, or a private
-     * method of the enclosing class.
+     * The function being called, if it's defined in this file (a local function or a private method).
      *
      * @param {object} callee - The call's callee.
      * @returns {?object} The function node, or null when it lives elsewhere.
@@ -520,8 +492,7 @@ module.exports = {
     }
 
     /**
-     * A variable read: a `const` (or a `let` written only by `=`) is as safe as its values; a parameter is as safe
-     * as every argument this file passes for it.
+     * A variable: as safe as every value it's given. A parameter: as safe as every argument passed to it.
      *
      * @param {object} node - The Identifier.
      * @param {number} depth - Hops spent so far.
@@ -536,7 +507,7 @@ module.exports = {
       if (def.type === 'Variable') {
         const loop = def.parent.parent;
         if (/^For(Of|In)Statement$/.test(loop?.type ?? '') && loop.left === def.parent) {
-          // `for (const x of [...])`: x is one of the literal's elements. Anything else a loop hands out is unknown.
+          // Only `for (const x of [literal list])` is known.
           if (loop.type !== 'ForOfStatement' || def.node.id.type !== 'Identifier') return [node];
           const arrays = literalValues(loop.right, depth + 1);
           if (!arrays || arrays.some((a) => a.type !== 'ArrayExpression')) return [node];
@@ -558,9 +529,7 @@ module.exports = {
     }
 
     /**
-     * Every value a variable is ever given: its initial value, each `=` or `+=` after it, and, for a collection,
-     * whatever is added to it. Null when it is written some other way (destructuring, `++`), or is a collection
-     * that is changed in a way this rule can't follow or handed to other code.
+     * Every value a variable is ever given, or null if it's changed in a way we can't follow.
      *
      * @param {object} variable - The Variable.
      * @param {object} def - Its one definition.
@@ -568,7 +537,7 @@ module.exports = {
      */
     function writtenValues(variable, def) {
       const values = def.node.init ? [def.node.init] : [];
-      // A string can't be changed through another name or by a function it is passed to; a collection can.
+      // Passing a string to a function can't change it; passing an array can.
       const collection = isCollection(def.node.init);
       for (const ref of variable.references) {
         if (ref.identifier === def.name) continue;
@@ -598,10 +567,9 @@ module.exports = {
      */
     function resolveVariable(identifier) {
       const ref = sourceCode.getScope(identifier).references.find((r) => r.identifier === identifier);
-      // ESLint resolves built-ins like `String` to a variable with no declaration; those count as globals here.
+      // Built-ins like `String` resolve to a variable with no declaration; treat those as globals.
       if (ref?.resolved?.defs.length) return ref.resolved;
-      // A script's top-level names stay unresolved, since another script could redefine them; this file's own
-      // declarations are still the best guess.
+      // Top-level names in a script stay unresolved; use this file's own declaration.
       const global = sourceCode.scopeManager.globalScope.set.get(identifier.name);
       return global?.defs.length ? global : null;
     }
@@ -618,7 +586,7 @@ module.exports = {
     }
 
     /**
-     * The array-method call `fn` is the callback of (`xs.map(fn)` and friends), or null.
+     * If `fn` is the callback in `xs.map(fn)` (or similar), the `xs.map` part; otherwise null.
      *
      * @param {object} fn - The function node.
      * @returns {?object} The MemberExpression callee, e.g. `xs.map`.
@@ -632,7 +600,7 @@ module.exports = {
     }
 
     /**
-     * Whether a parameter is the index an array method hands its callback (`xs.map((x, i) => …)`), a number.
+     * Whether a parameter is the index in `xs.map((x, i) => …)`, which is always a number.
      *
      * @param {object} fn - The function node.
      * @param {string} paramName - The parameter's name.
@@ -643,9 +611,8 @@ module.exports = {
     }
 
     /**
-     * When `fn` is the callback of `[...].map(...)` (or forEach, filter, …) on an array literal and `paramName` is its
-     * element (`(x) =>` or a destructured `({ x }) =>`), the values it can take; otherwise null. Keys of an object
-     * literal (`Object.keys(LITERAL).map((k) => …)`) are names written in this file, so they come back as no values.
+     * For a callback looping over a literal list (`[...].map((x) => …)`, also `({ x }) =>`), the values `x` can
+     * take; otherwise null. Keys of a literal object (`Object.keys(LITERAL)`) are always safe, so: [].
      *
      * @param {object} fn - The function node.
      * @param {string} paramName - The parameter's name.
@@ -684,8 +651,7 @@ module.exports = {
     }
 
     /**
-     * Every value this file passes for one plain (non-destructured) parameter of `fn`, or null when the function
-     * escapes somewhere this file can't follow (passed as a callback, exported, a public method).
+     * Every argument this file passes for one parameter, or null if the function can be called from elsewhere.
      *
      * @param {object} fn - The function node.
      * @param {string} paramName - The parameter's name.
@@ -710,14 +676,14 @@ module.exports = {
     }
 
     /**
-     * Every call of a function defined in this file, or null when it is used in any other way too.
+     * Every call of a same-file function, or null if it's also used another way.
      *
      * @param {object} fn - The function node.
      * @returns {?object[]} The CallExpressions.
      */
     function callSitesOf(fn) {
       const parent = fn.parent;
-      // A private method: every use is inside its class, so the class body has them all.
+      // Private methods can only be called from inside their class.
       if (parent.type === 'MethodDefinition' && parent.key.type === 'PrivateIdentifier') {
         return privateCallSites(parent, parent.key.name);
       }
@@ -727,7 +693,7 @@ module.exports = {
       } else if (parent.type === 'VariableDeclarator' && parent.init === fn && parent.id.type === 'Identifier') {
         variable = sourceCode.getDeclaredVariables(parent)[0];
       }
-      // A top-level function in this concatenated bundle can be called from any other file.
+      // Other files in the bundle can call a top-level function.
       if (!variable || variable.scope.type === 'global') return null;
       const calls = [];
       for (const ref of variable.references) {
@@ -740,7 +706,7 @@ module.exports = {
     }
 
     /**
-     * Every call of a private method, or null when the method is also read as a value.
+     * Every call of a private method, or null if it's also used another way.
      *
      * @param {object} definition - The MethodDefinition.
      * @param {string} name - The private name, without the `#`.
@@ -760,8 +726,7 @@ module.exports = {
     }
 
     /**
-     * A private member of the class enclosing `node`: a method (with its function), or a field (with every value it
-     * is ever given, or null writes when it changes in a way this rule can't follow).
+     * A private method or field of the class around `node`.
      *
      * @param {object} node - Any node inside the class.
      * @param {string} name - The private name, without the `#`.
@@ -776,9 +741,8 @@ module.exports = {
     }
 
     /**
-     * Indexes a class body's private members by name, with every value each field is given: assigned with `=`,
-     * added to it as a collection (`this.#rows.push(v)`), or unknown (null) when it is changed some other way or,
-     * holding a collection, handed to other code (`Object.assign(this.#o, d)`).
+     * Lists a class's private members. For each field: every value it's given, or null writes if it's changed in a
+     * way we can't follow (e.g. `Object.assign(this.#o, d)`).
      *
      * @param {object} body - The ClassBody.
      * @returns {Map<string, object>} The members, as classMember describes them.
@@ -802,7 +766,7 @@ module.exports = {
           if (parent.operator === '=' || parent.operator === '+=') member.writes.push(parent.right);
           else member.writes = null;
         } else if (parent.type === 'UpdateExpression' && parent.argument === n) {
-          // `this.#n++` keeps a number a number.
+          // `this.#n++` stays a number.
         } else {
           member.reads.push(n);
         }
@@ -826,7 +790,7 @@ module.exports = {
     }
 
     /**
-     * For each `${…}` of a template, whether it sits inside a `data-ps-tooltip="…"` attribute value.
+     * For each `${…}`, whether it's inside a `data-ps-tooltip="…"` value.
      *
      * @param {object} node - The TemplateLiteral.
      * @returns {boolean[]} One flag per expression.
