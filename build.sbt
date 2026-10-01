@@ -50,9 +50,6 @@ libraryDependencies ++= Seq(
   "com.github.tminglei" %% "slick-pg_play-json" % "0.23.1",
   "org.locationtech.jts" % "jts"                % "1.20.0",
 
-  // For automatic WKT to GeoJSON and Shapefile conversion, used with slick-pg.
-  "org.n52.jackson" % "jackson-datatype-jts" % "1.2.10",
-
   // Reads EXIF (photos) and QuickTime/MP4 atoms (videos, for the later #4054 increments) from user-uploaded story
   // media. Pure Java, one small transitive dep (xmpcore). Used transiently on ingest; precise values are discarded.
   "com.drewnoakes" % "metadata-extractor" % "2.21.0",
