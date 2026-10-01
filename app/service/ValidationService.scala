@@ -87,6 +87,9 @@ class ValidationServiceImpl @Inject() (
 
   /**
    * Updates the validation counts and correctness columns in the label table given a new incoming validation.
+   *
+   * The math happens inside one UPDATE so that two votes landing on the same label at once can't both start from the
+   * same old counts and overwrite each other (#5604).
    * @param labelId label_id of the label with a new validation
    * @param newResult the new validation if there is one (Agree, Disagree, or Unsure)
    * @param oldResult the old validation if the user had validated this label in the past
@@ -96,34 +99,25 @@ class ValidationServiceImpl @Inject() (
       newResult: Option[ValidationOption],
       oldResult: Option[ValidationOption]
   ): DBIO[Int] = {
-    labelTable
-      .find(labelId)
-      .flatMap {
-        case Some(label) =>
-          // Each count gains 1 if the new vote is that option and loses 1 if the user's old vote was.
-          def change(option: ValidationOption): Int =
-            (if (newResult.contains(option)) 1 else 0) - (if (oldResult.contains(option)) 1 else 0)
-          val agreeCount: Int    = label.agreeCount + change(ValidationOption.Agree)
-          val disagreeCount: Int = label.disagreeCount + change(ValidationOption.Disagree)
-          val unsureCount: Int   = label.unsureCount + change(ValidationOption.Unsure)
+    // Each count gains 1 if the new vote is that option and loses 1 if the user's old vote was.
+    def change(option: ValidationOption): Int =
+      (if (newResult.contains(option)) 1 else 0) - (if (oldResult.contains(option)) 1 else 0)
+    val agree: Int    = change(ValidationOption.Agree)
+    val disagree: Int = change(ValidationOption.Disagree)
+    val unsure: Int   = change(ValidationOption.Unsure)
 
-          // Determine whether the label is correct. Agree > disagree = correct; disagree > agree = incorrect; o/w null.
-          val labelCorrect: Option[Boolean] = {
-            if (agreeCount > disagreeCount) Some(true)
-            else if (disagreeCount > agreeCount) Some(false)
-            else None
-          }
-
-          // Update the agree_count, disagree_count, unsure_count, and correct columns in the label table.
-          labelsUnfiltered
-            .filter(_.labelId === labelId)
-            .map(l => (l.agreeCount, l.disagreeCount, l.unsureCount, l.correct))
-            .update((agreeCount, disagreeCount, unsureCount, labelCorrect))
-
-        case None =>
-          DBIO.successful(0)
-      }
-      .transactionally
+    // Agree > disagree = correct; disagree > agree = incorrect; o/w null. Each line reads the counts from before
+    // this UPDATE, so `correct` adds the change in again.
+    sqlu"""
+      UPDATE label
+      SET agree_count = agree_count + $agree,
+          disagree_count = disagree_count + $disagree,
+          unsure_count = unsure_count + $unsure,
+          correct = CASE
+              WHEN agree_count + $agree > disagree_count + $disagree THEN TRUE
+              WHEN agree_count + $agree < disagree_count + $disagree THEN FALSE
+          END
+      WHERE label_id = $labelId"""
   }
 
   /**
