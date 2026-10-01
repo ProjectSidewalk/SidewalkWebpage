@@ -2663,7 +2663,7 @@ class LabelDetail {
     fetch('/adminapi/setTaskFlag', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json; charset=utf-8' },
-      body: JSON.stringify({ auditTaskId: this.#taskId, flag, state }),
+      body: JSON.stringify({ audit_task_id: this.#taskId, flag, state }),
     }).then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       this.#flags[flag] = state;

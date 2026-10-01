@@ -21,6 +21,9 @@ class AboutPage {
   // #sanitizeCitation for why the allowlist is this narrow.
   static #CITATION_TAGS = new Set(['A', 'B', 'EM', 'I', 'STRONG', 'SPAN', 'BR', 'SUB', 'SUP']);
 
+  /** Only http(s) links from the ML API are used; others (like `javascript:`) could run code. */
+  static #HTTP_URL = /^https?:\/\//i;
+
   // Every ML API `position_title` that means "student", at any level. Designers, coordinators, research staff, and
   // faculty hold the other titles: they count as contributors but not toward the student figure.
   static #STUDENT_TITLES = ['High School Student', 'Undergrad', 'MS Student', 'PhD Student'];
@@ -49,17 +52,14 @@ class AboutPage {
   }
 
   /**
-   * Escapes a string for safe interpolation into an HTML template literal.
+   * An ML API link, escaped for an `href`, or `#` if it isn't http(s).
    *
-   * @param {string} text - Untrusted text (API-sourced names/titles may contain quotes or angle brackets).
-   * @returns {string} HTML-escaped text; empty string for null/undefined.
+   * @param {?string} url - The link from the API.
+   * @returns {string} The escaped link, or `#`.
    */
-  #esc(text) {
-    return String(text ?? '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;');
+  static #safeHref(url) {
+    const trimmed = String(url ?? '').trim();
+    return AboutPage.#HTTP_URL.test(trimmed) ? util.escapeHTML(trimmed) : '#';
   }
 
   /**
@@ -86,7 +86,7 @@ class AboutPage {
         return;
       }
       for (const attr of [...node.attributes]) {
-        const isSafeHref = node.tagName === 'A' && attr.name === 'href' && /^https?:\/\//i.test(attr.value.trim());
+        const isSafeHref = node.tagName === 'A' && attr.name === 'href' && AboutPage.#HTTP_URL.test(attr.value.trim());
         if (!isSafeHref) node.removeAttribute(attr.name);
       }
     };
@@ -264,18 +264,18 @@ class AboutPage {
     // The team sits several sections down the page, so deferring the headshots keeps ~a dozen image requests off the
     // initial load entirely.
     const photoTag = (p) => {
-      const src = this.#esc(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO);
+      const src = util.escapeHTML(p.person.thumbnail || AboutPage.#FALLBACK_PHOTO);
       return `<img class="about-team-photo" loading="lazy" src="${src}" alt="">`;
     };
     // The project role, the position it's held from, and the institution are three separate facts, so each gets its
     // own line; running them together behind a separator reads as one compound title.
     const metaLine = (className, text) =>
-      (text ? `<span class="${className}">${this.#esc(text)}</span>` : '');
+      (text ? `<span class="${className}">${util.escapeHTML(text)}</span>` : '');
     document.getElementById('about-team-current').innerHTML = current.map((p) => `
         <li class="about-team-member">
-          <a href="${this.#esc(p.person.url)}">
+          <a href="${AboutPage.#safeHref(p.person.url)}">
             ${photoTag(p)}
-            <span class="about-team-name">${this.#esc(p.person.name)}</span>
+            <span class="about-team-name">${util.escapeHTML(p.person.name)}</span>
           </a>
           ${metaLine('about-team-role', leadLabel(p))}
           ${metaLine('about-team-title', positionTitle(p))}
@@ -298,11 +298,11 @@ class AboutPage {
       const blurb = blurbFor(p);
       return `
         <li class="about-team-member">
-          <a href="${this.#esc(p.person.url)}">
+          <a href="${AboutPage.#safeHref(p.person.url)}">
             ${photoTag(p)}
-            <span class="about-team-name">${this.#esc(p.person.name)}</span>
+            <span class="about-team-name">${util.escapeHTML(p.person.name)}</span>
           </a>
-          <span class="about-team-role">${this.#esc(p.lead_project_role)}, ${this.#esc(years(p))}</span>
+          <span class="about-team-role">${util.escapeHTML(p.lead_project_role)}, ${util.escapeHTML(years(p))}</span>
           ${blurb ? `<span class="about-team-blurb">${blurb}</span>` : ''}
         </li>`;
     }).join('');
@@ -319,8 +319,8 @@ class AboutPage {
         .filter(Boolean).join(', ');
       return `
         <li>
-          <a href="${this.#esc(p.person.url)}">${this.#esc(p.person.name)}</a>${credential
-            ? `, <span class="about-team-credential">${this.#esc(credential)}</span>`
+          <a href="${AboutPage.#safeHref(p.person.url)}">${util.escapeHTML(p.person.name)}</a>${credential
+            ? `, <span class="about-team-credential">${util.escapeHTML(credential)}</span>`
             : ''}
         </li>`;
     }).join('');
@@ -351,27 +351,29 @@ class AboutPage {
         ['DOI', pub.official_url, 'link'],
         ['Code', pub.code_repo_url, 'code'],
       ].filter(([, url]) => url).map(([label, url, icon]) => `
-              <a class="about-pub-link" href="${this.#esc(url)}">
+              <a class="about-pub-link" href="${AboutPage.#safeHref(url)}">
                 <img class="about-pub-link-icon" src="${util.assetPath(`images/icons/${icon}-feather.svg`)}" alt=""
                      aria-hidden="true">
-                ${label}
+                ${util.escapeHTML(label)}
               </a>`).join('');
       // The thumbnail is a second route to the same destination as the title, so it stays out of the tab order and
       // hidden from assistive tech rather than repeating the link. A publication without one leaves the cell empty:
       // an <img src=""> resolves against the page URL and re-requests the whole document.
       const thumb = pub.thumbnail
-        ? `<img class="about-pub-thumb" loading="lazy" src="${this.#esc(pub.thumbnail)}" alt="">`
+        ? `<img class="about-pub-thumb" loading="lazy" src="${util.escapeHTML(pub.thumbnail)}" alt="">`
         : '';
       return `
         <article class="about-pub"${initiallyVisible ? '' : ' hidden'}>
           ${thumb && titleUrl
-            ? `<a href="${this.#esc(titleUrl)}" tabindex="-1" aria-hidden="true">${thumb}</a>`
+            ? `<a href="${AboutPage.#safeHref(titleUrl)}" tabindex="-1" aria-hidden="true">${thumb}</a>`
             : thumb}
           <div>
-            <h3>${titleUrl ? `<a href="${this.#esc(titleUrl)}">${this.#esc(pub.title)}</a>` : this.#esc(pub.title)}</h3>
-            <p class="about-pub-authors">${pub.authors.map((a) => this.#esc(a.name)).join(', ')}</p>
-            <p class="about-pub-venue">${this.#esc(venue)}${pub.award
-              ? ` · <span class="about-pub-award">🏆 ${this.#esc(pub.award)}</span>`
+            <h3>${titleUrl
+              ? `<a href="${AboutPage.#safeHref(titleUrl)}">${util.escapeHTML(pub.title)}</a>`
+              : util.escapeHTML(pub.title)}</h3>
+            <p class="about-pub-authors">${pub.authors.map((a) => util.escapeHTML(a.name)).join(', ')}</p>
+            <p class="about-pub-venue">${util.escapeHTML(venue)}${pub.award
+              ? ` · <span class="about-pub-award">🏆 ${util.escapeHTML(pub.award)}</span>`
               : ''}</p>
             <p class="about-pub-links">${links}</p>
           </div>
@@ -445,14 +447,14 @@ class AboutPage {
     if (grants.length === 0) return;
 
     list.innerHTML = grants.map((grant) => {
-      const title = this.#esc(grant.title);
+      const title = util.escapeHTML(grant.title);
       // The ML admin sometimes stores the literal string 'None' (a leaked Python None) as a grant id; treat as absent.
       const hasId = grant.grant_id && grant.grant_id !== 'None';
-      const grantId = hasId ? ` (#${this.#esc(grant.grant_id)})` : '';
+      const grantId = hasId ? ` (#${util.escapeHTML(grant.grant_id)})` : '';
       return `
         <li>
-          ${grant.grant_url ? `<a href="${this.#esc(grant.grant_url)}">${title}</a>` : title}
-          — ${this.#esc(grant.sponsor.name)}${grantId}
+          ${grant.grant_url ? `<a href="${AboutPage.#safeHref(grant.grant_url)}">${title}</a>` : title}
+          — ${util.escapeHTML(grant.sponsor.name)}${grantId}
         </li>`;
     }).join('');
     list.hidden = false;
@@ -479,8 +481,8 @@ class AboutPage {
 
     list.innerHTML = sections.map(({ section, heading }) => `
         <li>
-          <a class="about-toc-link" href="#${this.#esc(section.id)}"
-             data-toc-for="${this.#esc(section.id)}">${this.#esc(heading.textContent.trim())}</a>
+          <a class="about-toc-link" href="#${util.escapeHTML(section.id)}"
+             data-toc-for="${util.escapeHTML(section.id)}">${util.escapeHTML(heading.textContent.trim())}</a>
         </li>`).join('');
     nav.hidden = false;
     list.addEventListener('click', (e) => {
@@ -552,7 +554,7 @@ class AboutPage {
    */
   async #loadDeploymentMap(holder) {
     const { mapboxCss, mapboxJs, mapboxLanguageJs, psMapJs, mapboxApiKey } = holder.dataset;
-    document.head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" href="${this.#esc(mapboxCss)}">`);
+    document.head.insertAdjacentHTML('beforeend', `<link rel="stylesheet" href="${util.escapeHTML(mapboxCss)}">`);
     // Strictly sequential, not parallel: the language plugin and the ps-map bundle both read the mapboxgl global as
     // they parse, so either one arriving first would throw.
     for (const src of [mapboxJs, mapboxLanguageJs, psMapJs]) await this.#loadScript(src);

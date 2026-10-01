@@ -10,7 +10,9 @@
  * Runs under jsdom (set in jest.config.js via testEnvironment) so `window`/`document` are available.
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, installEscapeHTML } = require('./loadGlobalScript');
+
+installEscapeHTML();
 
 const MODULE_PATH = 'public/js/api-docs/validationResultTypesPreview.js';
 const CONTAINER_ID = 'validation-result-types-preview';

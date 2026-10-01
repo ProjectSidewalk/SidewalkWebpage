@@ -293,8 +293,8 @@
         const p = f.properties;
         // The name is the OSM way's `name` tag, which anyone can edit, so it is never trusted into markup.
         const name = p.street_name ? util.escapeHTML(p.street_name) : 'Unnamed street';
-        const label = `${name} · ${percent(p.max_grade)} (street ${p.street_edge_id})`;
-        return `<option value="${p.street_edge_id}">${label}</option>`;
+        const label = `${name} · ${percent(p.max_grade)} (street ${util.escapeHTML(p.street_edge_id)})`;
+        return `<option value="${util.escapeHTML(p.street_edge_id)}">${label}</option>`;
       }).join('');
       const picker = document.createElement('div');
       picker.className = 'street-grade-picker';

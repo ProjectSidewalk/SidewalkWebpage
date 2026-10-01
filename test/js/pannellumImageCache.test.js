@@ -117,7 +117,9 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
         for (const name of ['util', 'PanoViewer', 'PanoData', 'moment', 'pannellum']) delete global[name];
     });
 
-    const metadata = (panoId, imageUrl) => ({ panoId, imageUrl, width: 16384, height: 8192, cameraHeading: 0 });
+    const metadata = (panoId, imageUrl) => ({
+        pano_id: panoId, image_url: imageUrl, width: 16384, height: 8192, camera_heading: 0,
+    });
 
     /**
      * Creates a viewer on the first pano.

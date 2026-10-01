@@ -142,7 +142,8 @@
       const toolbar = document.createElement('div');
       toolbar.className = 'map-toolbar';
       const optionsHtml = Object.keys(METRICS)
-        .map((metric) => `<option value="${metric}">${METRICS[metric].label}</option>`).join('');
+        .map((metric) => `<option value="${metric}">${METRICS[metric].label}</option>`)
+        .join('');
       toolbar.innerHTML = `<label for="as-region-metric-select">Color by</label>
         <select id="as-region-metric-select" class="ps-select">${optionsHtml}</select>`;
       container.appendChild(toolbar);
@@ -164,12 +165,12 @@
         const coverage = `${Math.round((p.coverage || 0) * 100)}%`;
 
         ApiDocsMap.popup(map, e.lngLat, `
-          <h4>${p.name || `Region ${p.region_id}`}</h4>
+          <h4>${util.escapeHTML(p.name) || `Region ${util.escapeHTML(p.region_id)}`}</h4>
           <p><span class="as-score">${score}</span> AccessScore</p>
           <p><strong>Coverage:</strong> ${coverage}
-            (${p.audited_street_count} of ${p.total_street_count} streets audited)</p>
-          <p><strong>Region ID:</strong> ${p.region_id}</p>
-          <a href="/v3/api/accessScoreRegions?regionId=${p.region_id}&inline=true"
+            (${util.escapeHTML(p.audited_street_count)} of ${util.escapeHTML(p.total_street_count)} streets audited)</p>
+          <p><strong>Region ID:</strong> ${util.escapeHTML(p.region_id)}</p>
+          <a href="/v3/api/accessScoreRegions?regionId=${util.escapeHTML(p.region_id)}&inline=true"
             class="button button--primary button--tiny" target="_blank">
             View this region's JSON
           </a>

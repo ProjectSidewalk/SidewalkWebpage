@@ -419,11 +419,11 @@ class PopupPanoManager {
     this.#pannellumCanvas.style.display = 'block';
 
     if (this.#pannellumViewer) {
-      await this.#pannellumViewer.loadPano(backupImage.panoId, backupImage, pov);
+      await this.#pannellumViewer.loadPano(backupImage.pano_id, backupImage, pov);
     } else {
       this.#pannellumViewer = await PannellumViewer.create(this.#pannellumCanvas, {
         panoMetadata: backupImage,
-        startPanoId: backupImage.panoId,
+        startPanoId: backupImage.pano_id,
         startHeading: pov.heading,
         startPitch: pov.pitch,
         startZoom: pov.zoom,

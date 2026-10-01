@@ -123,8 +123,8 @@
         const p = e.features[0].properties;
         const score = (p.score === null || p.score === undefined) ? 'N/A (unaudited)' : p.score.toFixed(3);
         const counts = ApiDocsMap.featureProp(p, 'cluster_counts') || {};
-        const breakdown = Object.keys(counts).filter((k) => counts[k] > 0).map((k) => `${k}: ${counts[k]}`).join(', ')
-          || 'no scored features';
+        const breakdown = Object.keys(counts).filter((k) => counts[k] > 0)
+          .map((k) => `${util.escapeHTML(k)}: ${util.escapeHTML(counts[k])}`).join(', ') || 'no scored features';
 
         // Slope comes from an elevation model, so an unaudited street has it too; a bridge or a gap has none (#5223).
         const percent = (grade) => `${(grade * 100).toFixed(1)}%`;
@@ -135,9 +135,10 @@
         // The name is the OSM way's `name` tag, which anyone can edit, so it is never trusted into markup.
         const name = p.street_name ? `${util.escapeHTML(p.street_name)} · ` : '';
         ApiDocsMap.popup(map, e.lngLat, `
-          <h4>${name}Street ${p.street_edge_id}</h4>
+          <h4>${name}Street ${util.escapeHTML(p.street_edge_id)}</h4>
           <p><span class="as-score">${score}</span> AccessScore</p>
-          <p><strong>Audits:</strong> ${p.audit_count} &nbsp; <strong>Labels:</strong> ${p.label_count}</p>
+          <p><strong>Audits:</strong> ${util.escapeHTML(p.audit_count)} &nbsp;
+            <strong>Labels:</strong> ${util.escapeHTML(p.label_count)}</p>
           ${slope}
           <p class="as-breakdown"><strong>Clusters:</strong> ${breakdown}</p>
         `);

@@ -267,14 +267,16 @@ window.ApiDocsMap = (function () {
     // A discrete category has no honest position on a continuous bar, so it gets its own row below the ticks.
     const noneRow = none
       ? `<div class="map-legend-item">
-           <span class="map-legend-swatch" style="background-color: ${none.color};"></span>
-           ${none.label}
+           <span class="map-legend-swatch" style="background-color: ${util.escapeHTML(none.color)};"></span>
+           ${util.escapeHTML(none.label)}
          </div>`
       : '';
     element.innerHTML = `
-      <h4>${title}</h4>
+      <h4>${util.escapeHTML(title)}</h4>
       <div class="map-legend-gradient"></div>
-      <div class="map-legend-ticks">${tickLabels.map((label) => `<span>${label}</span>`).join('')}</div>
+      <div class="map-legend-ticks">
+        ${tickLabels.map((label) => `<span>${util.escapeHTML(label)}</span>`).join('')}
+      </div>
       ${noneRow}
     `;
     // The ramp is data, so this one declaration can't live in the stylesheet with the rest of the legend's styling.
@@ -292,14 +294,14 @@ window.ApiDocsMap = (function () {
   function renderSwatchLegend(element, title, items, note) {
     const rows = items.map((item) => `
       <div class="map-legend-item">
-        <span class="map-legend-swatch" style="background-color: ${item.color};"></span>
-        ${item.label}
+        <span class="map-legend-swatch" style="background-color: ${util.escapeHTML(item.color)};"></span>
+        ${util.escapeHTML(item.label)}
       </div>
     `).join('');
     element.innerHTML = `
-      <h4>${title}</h4>
+      <h4>${util.escapeHTML(title)}</h4>
       ${rows}
-      ${note ? `<div class="map-legend-note">${note}</div>` : ''}
+      ${note ? `<div class="map-legend-note">${util.escapeHTML(note)}</div>` : ''}
     `;
   }
 
@@ -318,14 +320,15 @@ window.ApiDocsMap = (function () {
       .filter((name) => labelTypeInfo[name])
       .map((name) => `
         <div class="map-legend-item">
-          <span class="map-legend-swatch" style="background-color: ${labelTypeInfo[name].color};"></span>
-          ${labelTypeInfo[name].display || name}
+          <span class="map-legend-swatch"
+                style="background-color: ${util.escapeHTML(labelTypeInfo[name].color)};"></span>
+          ${util.escapeHTML(labelTypeInfo[name].display || name)}
         </div>
       `)
       .join('');
     element.innerHTML = `
-      <h4>${heading}</h4>
-      ${rows || `<div>${emptyMessage}</div>`}
+      <h4>${util.escapeHTML(heading)}</h4>
+      ${rows || `<div>${util.escapeHTML(emptyMessage)}</div>`}
     `;
   }
 

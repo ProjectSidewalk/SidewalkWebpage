@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub, installDateHelpers, installUtilitiesMisc } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, installUtilitiesMisc, installEscapeHTML } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -48,8 +48,7 @@ describe('LabelMiniCard', () => {
         };
         window.util = {
             assetPath: assetPathStub,
-            // The two site-wide string helpers from utilities.js the card leans on, verbatim.
-            escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
+            // The site-wide string helper from utilities.js the card leans on, verbatim.
             camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
             lazyIdentityFetch: (...args) => window.fetch(...args),
             EXPLORE_CANVAS_WIDTH: 720,
@@ -58,6 +57,7 @@ describe('LabelMiniCard', () => {
         // The real util.misc, so the marker helper under test is the shipped one and the palettes are the card's.
         installUtilitiesMisc();
         installDateHelpers();
+        installEscapeHTML();
         window.Toast = {show: jest.fn()};
         window.BadgeAchievements = {recordValidation: jest.fn()};
         window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);

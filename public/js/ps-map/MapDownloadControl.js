@@ -163,7 +163,8 @@ class MapDownloadControl {
     const formatItems = MapDownloadControl.#FORMATS.map(({ format, name, hintKey, hintFallback }) => `
         <button type="button" class="map-download-control__item" data-format="${format}">
           <span class="map-download-control__format">${name}</span>
-          <span class="map-download-control__hint" data-i18n="labelmap:download.${hintKey}">${hintFallback}</span>
+          <span class="map-download-control__hint"
+                data-i18n="labelmap:download.${hintKey}">${hintFallback}</span>
         </button>`).join('');
     this.#container.innerHTML = `
       <button type="button" class="map-download-control__button" aria-expanded="false" aria-controls="${panelId}">

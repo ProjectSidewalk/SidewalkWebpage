@@ -78,7 +78,7 @@ class MiniLineChart {
       const yy = yFrac(f).toFixed(1);
       grid += `<line class="mini-grid" x1="${m.l}" y1="${yy}" x2="${W - m.r}" y2="${yy}"/>`
         + `<text class="mini-axis" x="${m.l - MiniLineChart.#AXIS_GAP}" y="${(yFrac(f) + 3).toFixed(1)}" `
-        + `text-anchor="end">${MiniLineChart.#esc(tickText[ti])}</text>`;
+        + `text-anchor="end">${util.escapeHTML(tickText[ti])}</text>`;
     });
 
     let body = '';
@@ -109,7 +109,7 @@ class MiniLineChart {
           if (opts.barValues) {
             out += `<text class="mini-value${emph ? ' mini-value--emphasis' : ''}" x="${(bx + barW / 2).toFixed(1)}" `
               + `y="${((h > 0 ? top : yFrac(0)) - 4).toFixed(1)}" text-anchor="middle">`
-              + `${MiniLineChart.#esc(valueFormat(v))}</text>`;
+              + `${util.escapeHTML(valueFormat(v))}</text>`;
           }
           return out;
         }).join('');
@@ -145,7 +145,7 @@ class MiniLineChart {
         + `x2="${W - m.r}" y2="${refY.toFixed(1)}"/>`;
       if (refLine.label) {
         body += `<text class="mini-ref-label mini-ref-label--${refKey}" x="${W - m.r}" `
-          + `y="${(refY - 4).toFixed(1)}" text-anchor="end">${MiniLineChart.#esc(refLine.label)}</text>`;
+          + `y="${(refY - 4).toFixed(1)}" text-anchor="end">${util.escapeHTML(refLine.label)}</text>`;
       }
     }
 
@@ -153,7 +153,7 @@ class MiniLineChart {
     for (const i of xLabelIdx) {
       const emph = i === opts.emphasisIndex ? ' mini-axis--emphasis' : '';
       xlab += `<text class="mini-axis${emph}" x="${x(i).toFixed(1)}" y="${H - 8}" text-anchor="middle">`
-        + `${MiniLineChart.#esc(categories[i])}</text>`;
+        + `${util.escapeHTML(categories[i])}</text>`;
     }
     // `role="img"` makes an element's subtree presentational, which would prune the per-point roles and labels below it
     // out of the accessibility tree. So a chart whose points are individually focusable is a `group` instead, leaving
@@ -161,10 +161,10 @@ class MiniLineChart {
     const hasFocusablePoints = series.some((s) => s.tooltipsHtml?.some(Boolean));
     const svg = `<svg class="mini-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" `
       + `role="${hasFocusablePoints ? 'group' : 'img'}" `
-      + `aria-label="${MiniLineChart.#esc(opts.ariaLabel || 'Line chart')}"><g>${grid}</g>${body}<g>${xlab}</g></svg>`;
+      + `aria-label="${util.escapeHTML(opts.ariaLabel || 'Line chart')}"><g>${grid}</g>${body}<g>${xlab}</g></svg>`;
     const legendItems = series.map((s) =>
       `<span class="mini-legend-item"><span class="mini-swatch mini-swatch--${s.key}"></span>`
-      + `${MiniLineChart.#esc(s.name)}</span>`,
+      + `${util.escapeHTML(s.name)}</span>`,
     ).join('');
     const legend = series.length > 1 ? `<div class="mini-legend">${legendItems}</div>` : '';
     return svg + legend;
@@ -323,15 +323,11 @@ class MiniLineChart {
    * @returns {string} Markup closing the point's opening tag, with its `<title>` child when there is one.
    */
   static #pointTip(tip, html, pinnable = false) {
-    if (!html) return `><title>${MiniLineChart.#esc(tip)}</title>`;
+    if (!html) return `><title>${util.escapeHTML(tip)}</title>`;
     const role = pinnable
       ? 'role="button" aria-haspopup="dialog" aria-expanded="false" data-ps-tooltip-pinnable'
       : 'role="img"';
-    return ` tabindex="0" ${role} aria-label="${MiniLineChart.#esc(tip)}" `
-      + `data-ps-tooltip="${MiniLineChart.#esc(html)}">`;
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    return ` tabindex="0" ${role} aria-label="${util.escapeHTML(tip)}" `
+      + `data-ps-tooltip="${util.escapeHTML(html)}">`;
   }
 }

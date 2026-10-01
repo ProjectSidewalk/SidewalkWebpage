@@ -803,17 +803,14 @@ function camelToKebab(theString) {
 
 util.camelToKebab = camelToKebab;
 
-function escapeHTML(str) {
-  return str.replace(/[&<>"']/g, (match) => {
-    switch (match) {
-      case '&': return '&amp;';
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '"': return '&quot;';
-      case '\'': return '&#039;';
-      default: return match;
-    }
-  });
+/**
+ * Escapes a value so it shows as plain text inside HTML. Use this rather than writing another escape helper.
+ * @param {*} value - Anything; null and undefined become the empty string.
+ * @returns {string} The value with HTML's special characters replaced by entities.
+ */
+function escapeHTML(value) {
+  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' };
+  return String(value ?? '').replace(/[&<>"']/g, (c) => entities[c]);
 }
 
 util.escapeHTML = escapeHTML;

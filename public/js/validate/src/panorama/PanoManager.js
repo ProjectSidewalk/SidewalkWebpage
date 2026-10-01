@@ -415,7 +415,7 @@ class PanoManager {
    * unpainted when this resolves; renderPanoMarker reveals it once it faces the label.
    *
    * @param {string} panoId - The ID for the panorama that we want to move to.
-   * @param {?{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano, or null.
+   * @param {?{pano_id: string, camera_heading?: number, attribution?: object}} backupImage - Self-hosted pano, or null.
    * @param {object} [opts]
    * @param {boolean} [opts.expired=false] - True when the backend's imagery sweep found the provider without this pano.
    * @returns {Promise<{panoData: PanoData, reason?: undefined} | {panoData: null, reason: ('slow'|'no-imagery')}>}
@@ -589,12 +589,12 @@ class PanoManager {
    * and the swap — canvas, active viewer, logo, attribution — happens in one step afterwards; nothing here paints,
    * and the outgoing label's imagery stays up until this one is ready.
    *
-   * @param {{panoId: string, cameraHeading?: number, attribution?: object}} backupImage - Self-hosted pano data.
+   * @param {{pano_id: string, camera_heading?: number, attribution?: object}} backupImage - Self-hosted pano data.
    * @returns {Promise<PanoData>}
    */
   async #showPannellumPano(backupImage) {
     // Use a neutral POV here; renderPanoMarker will setPov to the correct heading immediately after.
-    const neutralPov = { heading: backupImage.cameraHeading || 0, pitch: 0, zoom: 1 };
+    const neutralPov = { heading: backupImage.camera_heading || 0, pitch: 0, zoom: 1 };
 
     // Put the canvas into the layout without painting it, so the viewer mounted in it can measure itself. One that
     // is already showing is left alone: it holds the outgoing label's imagery, which is what should stay up.
@@ -607,11 +607,11 @@ class PanoManager {
     }
     try {
       if (this.#pannellumViewer) {
-        await this.#pannellumViewer.loadPano(backupImage.panoId, backupImage, neutralPov);
+        await this.#pannellumViewer.loadPano(backupImage.pano_id, backupImage, neutralPov);
       } else {
         this.#pannellumViewer = await PannellumViewer.create(this.#pannellumCanvas, {
           panoMetadata: backupImage,
-          startPanoId: backupImage.panoId,
+          startPanoId: backupImage.pano_id,
           startHeading: neutralPov.heading,
           startPitch: neutralPov.pitch,
           startZoom: neutralPov.zoom,

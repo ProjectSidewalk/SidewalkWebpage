@@ -85,9 +85,9 @@ async function makeViewer() {
     const v = new window.PannellumViewer();
     await v.initialize(el, {
         panoMetadata: {
-            panoId: 'p1', imageUrl: '/backupImage/p1', width: 13312, height: 6656,
-            cameraHeading: CAMERA_HEADING, cameraPitch: CAMERA_PITCH,
-            lat: 40.9, lng: -74.0, captureDate: '2023-05', linkedPanos: [], history: [], source: 'pannellum',
+            pano_id: 'p1', image_url: '/backupImage/p1', width: 13312, height: 6656,
+            camera_heading: CAMERA_HEADING, camera_pitch: CAMERA_PITCH,
+            lat: 40.9, lng: -74.0, capture_date: '2023-05', linkedPanos: [], history: [], source: 'pannellum',
         },
         startPitch: 0,
         startZoom: 1,

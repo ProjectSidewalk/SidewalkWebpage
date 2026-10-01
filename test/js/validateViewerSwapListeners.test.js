@@ -39,7 +39,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
   let pannellumListeners; // event name -> callback captured from the Pannellum viewer
   let panoData;
   const attribution = {holder: '© jacobwhall', provider: 'Mapillary', license: 'CC BY-SA 4.0', license_url: 'x'};
-  const backupImage = {panoId: 'pano2', cameraHeading: 90, attribution};
+  const backupImage = {pano_id: 'pano2', camera_heading: 90, attribution};
   let attributionOverlay;
 
   /**

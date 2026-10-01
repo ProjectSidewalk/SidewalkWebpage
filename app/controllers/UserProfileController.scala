@@ -314,11 +314,6 @@ class UserProfileController @Inject() (
   }
 
   /**
-   * Grabs a list of all the teams in the tables, regardless of open or closed status.
-   */
-  def getTeams = Action.async { userService.getAllTeams.map(teams => Ok(Json.toJson(teams))) }
-
-  /**
    * Gets some basic stats about the logged-in user that we show across the site: distance, label count, and accuracy.
    */
   def getBasicUserStats = cc.securityService.SecuredAction { implicit request =>

@@ -115,7 +115,7 @@
     // ── Chart 1: Human labels per day ───────────────────────────────────────
     container.appendChild(makeChart(
       'Human Labels per Day',
-      `Daily new labels placed by human contributors in ${config.cityName}`,
+      `Daily new labels placed by human contributors in ${util.escapeHTML(config.cityName)}`,
       (chartContainer) => {
         const canvas = document.createElement('canvas');
         chartContainer.appendChild(canvas);
@@ -141,7 +141,7 @@
     // ── Chart 2: Validations per day (agree / disagree / unsure) ───────────
     container.appendChild(makeChart(
       'Validations per Day',
-      `Daily validation activity breakdown in ${config.cityName}`,
+      `Daily validation activity breakdown in ${util.escapeHTML(config.cityName)}`,
       (chartContainer) => {
         const canvas = document.createElement('canvas');
         chartContainer.appendChild(canvas);
@@ -283,7 +283,7 @@
           render(container, trimToRecentDays(json.data || [], 90));
         })
         .catch((err) => {
-          showError(container, `Failed to load preview: ${err.message}`);
+          showError(container, `Failed to load preview: ${util.escapeHTML(err.message)}`);
           console.error('OverallStatsByDayPreview error:', err);
         });
     },

@@ -37,12 +37,6 @@ declare var UserStatsPreview: any;
 declare var ValidationResultTypesPreview: any;
 declare var ValidationsPreview: any;
 
-// The homepage's count-up animations, created inline by index.scala.html.
-declare var percentageAnim: { start(): void } | undefined;
-declare var labelsAnim: { start(): void } | undefined;
-declare var distanceAnim: { start(): void } | undefined;
-declare var validationsAnim: { start(): void } | undefined;
-
 // Libraries loaded from public/vendor/ by <script> tag that have no type package installed.
 declare const AsyncLock: any;
 declare const bowser: any;

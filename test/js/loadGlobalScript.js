@@ -87,16 +87,33 @@ function installUtilitiesMisc() {
  * and friends) and listeners stay out of the page the suite built.
  */
 function installDateHelpers() {
+    const { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo } = utilitiesScratch();
+    window.util = Object.assign(window.util || {},
+        { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo });
+}
+
+/**
+ * Adds the real `util.escapeHTML` to `window.util`, keeping the suite's own stubs.
+ */
+function installEscapeHTML() {
+    window.util = Object.assign(window.util || {}, { escapeHTML: utilitiesScratch().escapeHTML });
+}
+
+/**
+ * Runs utilities.js on a throwaway `util` object, so a suite can borrow single helpers from it.
+ *
+ * @returns {object} The `util` object utilities.js filled in.
+ */
+function utilitiesScratch() {
     const scratch = {};
     const scratchWindow = { util: scratch, navigator: window.navigator, addEventListener: () => {} };
     const scratchDocument = { readyState: 'complete', addEventListener: () => {} };
     const src = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilities.js'), 'utf8');
     new Function('window', 'document', 'util', src)(scratchWindow, scratchDocument, scratch);
-    const { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo } = scratch;
-    window.util = Object.assign(window.util || {},
-        { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo });
+    return scratch;
 }
 
 module.exports = {
-    loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub, installUtilitiesMisc, installDateHelpers, stampLabelTypes,
+    loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub, installUtilitiesMisc, installDateHelpers, installEscapeHTML,
+    stampLabelTypes,
 };

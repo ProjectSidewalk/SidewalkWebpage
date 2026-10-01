@@ -76,17 +76,8 @@ class LabelMiniCard {
     const el = document.createElement('span');
     el.className = 'lmc__placeholder';
     el.innerHTML = `<img src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-      <span>${LabelMiniCard.esc(i18next.t('common:mini-card.no-image'))}</span>`;
+      <span>${util.escapeHTML(i18next.t('common:mini-card.no-image'))}</span>`;
     return el;
-  }
-
-  /**
-   * HTML-escapes a value for interpolation into markup.
-   * @param {*} value - Anything; stringified.
-   * @returns {string} The escaped string.
-   */
-  static esc(value) {
-    return util.escapeHTML(String(value ?? ''));
   }
 
   /** The rating word for a rated label, or null. */
@@ -107,7 +98,7 @@ class LabelMiniCard {
   #render() {
     const label = this.#label;
     const type = label.label_type;
-    const esc = LabelMiniCard.esc;
+    const esc = util.escapeHTML;
     const typeName = util.misc.labelTypeName(type);
     const rating = this.#ratingWord();
     const name = [typeName, rating].filter(Boolean).join(', ');
@@ -182,7 +173,7 @@ class LabelMiniCard {
 
   /** One vote chip: the filled icon and pressed state when it is the reader's own vote. */
   #chipHtml(action, lock) {
-    const esc = LabelMiniCard.esc;
+    const esc = util.escapeHTML;
     const mine = this.#label.user_validation === action;
     const count = this.#label[`num_${action.toLowerCase()}`] || 0;
     const variant = mine ? 'filled' : 'outline';
@@ -190,10 +181,10 @@ class LabelMiniCard {
     const word = i18next.t(`common:${action.toLowerCase()}`);
     const tip = lock ?? this.#tooltip(action, mine, count);
     return `
-      <button type="button" class="lmc__vote lmc__vote--${action.toLowerCase()}" data-action="${action}"
+      <button type="button" class="lmc__vote lmc__vote--${esc(action.toLowerCase())}" data-action="${esc(action)}"
               aria-pressed="${mine}" aria-label="${esc(word)}" data-ps-tooltip="${esc(tip)}"${lock ? ' disabled' : ''}>
         <img class="lmc__vote-icon" src="${iconSrc}" alt="">
-        <span class="lmc__vote-count">${count}</span>
+        <span class="lmc__vote-count">${esc(count)}</span>
       </button>`;
   }
 

@@ -1948,7 +1948,7 @@ class LabelTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvid
       .on(_.userId === _.userId)
       // Left join label -> label_validation -> sidewalk_user to get username & validation result of ppl who validated.
       .joinLeft(labelValidations)
-      .on { case ((label, _), validation) => label.labelId === validation.labelId }
+      .on { case ((label, _), validation) => label.labelId === validation.labelId && validation.isCurrent(label) }
       .joinLeft(usersWithoutExcluded)
       .on { case ((_, validation), validator) => validation.map(_.userId) === validator.userId }
       .map { case (((label, labeler), validation), validator) =>

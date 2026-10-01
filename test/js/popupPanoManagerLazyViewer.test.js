@@ -193,7 +193,7 @@ describe('PopupPanoManager builds its viewer lazily', () => {
             finishBuild = () => resolve(fakeViewer());
         }));
         const manager = await createManager();
-        const backupImage = { panoId: 'pano-old', width: 1, height: 1 };
+        const backupImage = { pano_id: 'pano-old', width: 1, height: 1 };
 
         manager.warmUp(); // What showLabel() does before it knows the label is expired.
         await expect(manager.setPano('pano-old', POV, null, true, backupImage)).resolves.toBe(true);

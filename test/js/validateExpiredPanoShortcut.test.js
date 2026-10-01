@@ -36,7 +36,7 @@ function loadClassFromFile(filePath, className) {
 }
 
 describe('PanoManager skips the provider for a pano it knows is gone (issue #5561)', () => {
-  const backupImage = { panoId: 'backup-pano', cameraHeading: 90 };
+  const backupImage = { pano_id: 'backup-pano', camera_heading: 90 };
   let PanoManager;
   let FakeViewerType;
   let primaryViewer;
@@ -236,7 +236,7 @@ describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () =>
   });
 
   test('each label is loaded with its own expired flag', async () => {
-    const backup = { panoId: 'panoB' };
+    const backup = { pano_id: 'panoB' };
     const labelContainer = await LabelContainer.create([
       { labelId: 1, panoId: 'panoA', backupImage: null, expired: false },
       { labelId: 2, panoId: 'panoB', backupImage: backup, expired: true },
