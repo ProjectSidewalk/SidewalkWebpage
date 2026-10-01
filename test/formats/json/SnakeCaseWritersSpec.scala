@@ -22,7 +22,7 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{Json, Writes}
-import service.{CityHours, TeamMemberStats, TeamTotals, TimeInterval, UpdatedStreets}
+import service.{CityHours, TeamMemberStats, TeamOverview, TeamTotals, TimeInterval, UpdatedStreets}
 
 import java.time.{OffsetDateTime, ZoneOffset}
 
@@ -70,6 +70,10 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
     check(
       TeamTotals(1, 2, 3, 4.5, 5, 6),
       """{"members":1,"labels":2,"validations":3,"distance_meters":4.5,"labels_validated":5,"labels_agreed":6}"""
+    )
+    check(
+      TeamOverview(Team(1, "n", "d", true, false), Seq.empty, TeamTotals(0, 0, 0, 0.0, 0, 0)),
+      """{"team":{"team_id":1,"name":"n","description":"d","open":true,"visible":false},"members":[],"totals":{"members":0,"labels":0,"validations":0,"distance_meters":0,"labels_validated":0,"labels_agreed":0}}"""
     )
     check(
       UserSearchResult("u", "n", "e", Role.Registered, Some("t")),

@@ -40,13 +40,7 @@ object UserFormats {
 
   given teamTotalsWrites: Writes[TeamTotals] = Json.writes[TeamTotals]
 
-  given teamOverviewWrites: Writes[TeamOverview] = Writes { overview =>
-    Json.obj(
-      "team"    -> Json.toJson(overview.team),
-      "members" -> Json.toJson(overview.members),
-      "totals"  -> Json.toJson(overview.totals)
-    )
-  }
+  given teamOverviewWrites: Writes[TeamOverview] = Json.writes[TeamOverview]
 
   given userSearchResultWrites: Writes[UserSearchResult] = Json.writes[UserSearchResult]
 
