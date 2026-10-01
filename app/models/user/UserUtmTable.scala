@@ -18,7 +18,18 @@ case class UserUtm(
     utmTerm: Option[String],
     cityId: String,
     timestamp: OffsetDateTime
-)
+) {
+
+  /** @return The set UTM fields; the inverse of [[UserUtm.fromParams]]. */
+  def params: Map[String, String] =
+    Seq(
+      "utm_source"   -> utmSource,
+      "utm_medium"   -> utmMedium,
+      "utm_campaign" -> utmCampaign,
+      "utm_content"  -> utmContent,
+      "utm_term"     -> utmTerm
+    ).collect { case (k, Some(v)) => k -> v }.toMap
+}
 
 object UserUtm {
 

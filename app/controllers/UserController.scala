@@ -321,9 +321,11 @@ class UserController @Inject() (
 
                               // Sign in the user.
                               silhouette.env.eventBus.publish(LoginEvent(user, request))
-                              silhouette.env.authenticatorService.init(authenticator).flatMap { v =>
-                                silhouette.env.authenticatorService.embed(v, result)
-                              }
+                              for {
+                                v      <- silhouette.env.authenticatorService.init(authenticator)
+                                signIn <- silhouette.env.authenticatorService.embed(v, result)
+                                _      <- saveUtms(user.userId)
+                              } yield clearUtmCookie(signIn, config)
                             }
                         case None =>
                           // Log failed sign-in due to a database issue.
@@ -459,7 +461,7 @@ class UserController @Inject() (
 
                   silhouette.env.eventBus.publish(SignUpEvent(user, request))
                   silhouette.env.eventBus.publish(LoginEvent(user, request))
-                  clearUtmCookie(result)
+                  clearUtmCookie(result, config)
                 }).recoverWith {
                   // Two sign-ups for one email or username at once both pass the checks above, or the account holding
                   // it has no role row and is invisible to them; either way the schema rejects the second insert.
@@ -553,7 +555,7 @@ class UserController @Inject() (
       qStringNoUtm = qString.filterNot { case (k, _) => k.startsWith("utm_") }
       result <- silhouette.env.authenticatorService.embed(value, Redirect(url, qStringNoUtm))
 
-      _ <- saveUtms(user.userId, ControllerUtils.utmParams(qString.map { case (k, v) => k -> v.mkString }))
+      _ <- saveUtms(user.userId, ControllerUtils.utmParams(qString))
     } yield {
       // Log the anon sign-up along with url and query string of the page they came from.
       val activityStr =
@@ -564,25 +566,27 @@ class UserController @Inject() (
       silhouette.env.eventBus.publish(SignUpEvent(user, request))
       silhouette.env.eventBus.publish(LoginEvent(user, request))
 
-      clearUtmCookie(result)
+      clearUtmCookie(result, config)
     }
   }
 
   /**
-   * Saves a new account's campaign params, from the link and from the landing-page cookie. Awaited so a failed write
-   * surfaces to the error handler (#4229).
+   * Credits campaign visits to an account that just signed up or in: those held in the cookie, then the link's own.
+   * Best-effort, since analytics must never block an account; rows go in oldest first so their ids follow visit order.
    *
    * @param linkUtm Campaign params on the current request's link.
+   * @return        Completes even if the write fails.
    */
   private def saveUtms(userId: String, linkUtm: Map[String, String] = Map.empty)(using
       request: RequestHeader
   ): Future[Unit] = {
-    val visits = Seq(linkUtm, ControllerUtils.utmFromCookie(request)).filter(_.nonEmpty)
-    Future
-      .traverse(visits)(p =>
-        userService.insertUserUtm(UserUtm.fromParams(userId, p, configService.getCityId, OffsetDateTime.now))
-      )
-      .map(_ => ())
+    val linkVisit = Option.when(linkUtm.nonEmpty)(
+      UserUtm.fromParams(userId, linkUtm, configService.getCityId, OffsetDateTime.now)
+    )
+    val visits = ControllerUtils.utmVisitsFromCookie(request).map(_.copy(userId = userId)) ++ linkVisit
+    visits
+      .foldLeft(Future.unit)((prev, visit) => prev.flatMap(_ => userService.insertUserUtm(visit).map(_ => ())))
+      .recover { case e => logger.error(s"Failed to save campaign visits for user $userId", e) }
   }
 
   /**
