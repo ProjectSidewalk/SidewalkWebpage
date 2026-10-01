@@ -139,8 +139,8 @@ These are the JVM libraries we talk to the database *through*; the database serv
 
 ### Geospatial
 
-- **jts: 1.20.0** — geometry types.
-  [Releases](https://mvnrepository.com/artifact/org.locationtech.jts/jts) ·
+- **jts-core: 1.20.0** — geometry types.
+  [Releases](https://mvnrepository.com/artifact/org.locationtech.jts/jts-core) ·
   [Changelog](https://projects.eclipse.org/projects/locationtech.jts)
 - **gt-shapefile / gt-epsg-hsql / gt-geopkg (GeoTools): 35.1** — Shapefile/GeoPackage generation. Served by the
   OSGeo resolver in `build.sbt`, not Maven Central. Needs Java 17. We use a tiny corner of the API, so bumps are

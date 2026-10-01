@@ -48,7 +48,7 @@ libraryDependencies ++= Seq(
   "com.github.tminglei" %% "slick-pg"           % "0.23.1",
   "com.github.tminglei" %% "slick-pg_jts_lt"    % "0.23.1",
   "com.github.tminglei" %% "slick-pg_play-json" % "0.23.1",
-  "org.locationtech.jts" % "jts"                % "1.20.0",
+  "org.locationtech.jts" % "jts-core"           % "1.20.0",
 
   // Reads EXIF (photos) and QuickTime/MP4 atoms (videos, for the later #4054 increments) from user-uploaded story
   // media. Pure Java, one small transitive dep (xmpcore). Used transiently on ingest; precise values are discarded.
