@@ -955,17 +955,8 @@
 .ud-mistake-response .ud-card-vote,
 .ud-mistake-response .ud-card-note-section { margin-top: 0; }
 
-/* On the dashboard the label popup shows the viewer's OWN labels (mistake cards + their map), so the
-   validate-on-hover overlay (Agree/Disagree/Unsure) and the add-a-comment row are never applicable and clash with the
-   mistake-response panel below — hide both. The public profile shares this rule deliberately: its popup is a
-   view-only showcase of someone's work, not a validation surface (that's LabelMap's job). */
-#label-modal .label-detail__pano-overlay,
-#label-modal .label-detail__comment-row { display: none; }
-
-/* Tighten the Comments heading so its empty "None" doesn't tower over the Description row, and give it a colon so it
-   reads like "Description :". The colon goes on the inner heading-text span so it lands before the count badge. */
-#label-modal .label-detail__comments-section .label-detail__col-title { margin: 0 0 2px; }
-#label-modal .label-detail__comments-section .label-detail__col-title > span:first-child::after { content: ":"; }
+/* A mistake card's popup is the user's own label, so the response panel's note replaces the add-a-comment row. */
+#label-modal:has(.ud-mistake-response) .label-detail__comment-row { display: none; }
 
 .ud-card-voted-msg {
   margin: 0;
