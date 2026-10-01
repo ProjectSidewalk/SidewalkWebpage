@@ -7,6 +7,7 @@ import play.api.libs.json.*
 import slick.jdbc.{JdbcType, PositionedResult}
 import slick.lifted.OptionMapperDSL
 
+import java.math.RoundingMode
 import scala.annotation.targetName
 
 trait MyPostgresProfile
@@ -57,7 +58,7 @@ trait MyPostgresProfile
 
     /** One coordinate value, rounded to 8 decimal places (about a millimeter) so responses stay small. */
     private def geoJsonNumber(value: Double): JsNumber =
-      JsNumber(BigDecimal(java.math.BigDecimal(value).setScale(8, java.math.RoundingMode.HALF_UP)))
+      JsNumber(BigDecimal(java.math.BigDecimal(value).setScale(8, RoundingMode.HALF_UP).stripTrailingZeros))
 
     /** One GeoJSON position: `[lng, lat]`. */
     private def geoJsonPosition(coord: Coordinate): JsArray =
