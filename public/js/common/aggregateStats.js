@@ -148,12 +148,14 @@ function updateStatsDisplay(stats) {
   if (mainTargetParagraph) {
     mainTargetParagraph.innerHTML = `
       Join our movement that spans the globe. Working with local community groups and governmental partners, we have
-      deployed Project Sidewalk in <strong>${stats.num_cities} cities</strong> across <strong>${stats.num_countries}
-      countries</strong> and <strong>${stats.num_languages} natively translated languages</strong>, including Spanish,
-      German, and Chinese. Together, our users have assessed over <strong>${formatDistance(stats.km_explored)}</strong>
-      of city streets, contributing <strong>${formatNumber(stats.total_labels)} labels</strong> and <strong>
-      ${formatNumber(stats.total_validations)} validations</strong>. This is more than just data; it's the foundation
-      for more inclusive and accessible cities.
+      deployed Project Sidewalk in <strong>${util.escapeHTML(stats.num_cities)} cities</strong> across
+      <strong>${util.escapeHTML(stats.num_countries)} countries</strong> and
+      <strong>${util.escapeHTML(stats.num_languages)} natively translated languages</strong>, including Spanish,
+      German, and Chinese. Together, our users have assessed over
+      <strong>${util.escapeHTML(formatDistance(stats.km_explored))}</strong> of city streets, contributing
+      <strong>${util.escapeHTML(formatNumber(stats.total_labels))} labels</strong> and
+      <strong>${util.escapeHTML(formatNumber(stats.total_validations))} validations</strong>. This is more than just
+      data; it's the foundation for more inclusive and accessible cities.
     `;
   }
 
@@ -169,9 +171,10 @@ function updateStatsDisplay(stats) {
   const citiesTargetParagraph = document.getElementById('cities-deployment-stats');
   if (citiesTargetParagraph) {
     citiesTargetParagraph.innerHTML = `
-      Project Sidewalk is deployed in <strong>${stats.num_cities} cities</strong> across <strong>${stats.num_countries}
-      countries</strong>. The Cities API lists all Project Sidewalk deployment sites, including the city's name, ID, and
-      URL as well as geographic information such as the city center point <code>lat, lng</code> and bounding box.
+      Project Sidewalk is deployed in <strong>${util.escapeHTML(stats.num_cities)} cities</strong> across
+      <strong>${util.escapeHTML(stats.num_countries)} countries</strong>. The Cities API lists all Project Sidewalk
+      deployment sites, including the city's name, ID, and URL as well as geographic information such as the city
+      center point <code>lat, lng</code> and bounding box.
     `;
   }
 }
@@ -207,7 +210,7 @@ function showErrorState(error) {
       Working with local community groups and governmental partners, we have deployed Project Sidewalk in multiple
       cities across several countries and natively translated languages, including Spanish, German, and Chinese.
       Together, our users have assessed thousands of kilometers of city streets.
-      <br><small><em>Note: Unable to load real-time statistics. ${error.message}</em></small>
+      <br><small><em>Note: Unable to load real-time statistics. ${util.escapeHTML(error.message)}</em></small>
     `;
   }
 
@@ -217,7 +220,7 @@ function showErrorState(error) {
       Project Sidewalk is deployed in multiple cities across several countries. The Cities API lists all Project
       Sidewalk deployment sites, including the city's name, ID, and URL as well as geographic information such as the
       city center point <code>lat, lng</code> and bounding box.
-      <br><small><em>Note: Unable to load real-time statistics. ${error.message}</em></small>
+      <br><small><em>Note: Unable to load real-time statistics. ${util.escapeHTML(error.message)}</em></small>
     `;
   }
 }

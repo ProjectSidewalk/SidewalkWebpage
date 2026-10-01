@@ -13,7 +13,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { installDateHelpers } = require('./loadGlobalScript');
+const { installDateHelpers, installEscapeHTML } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const CARD_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/ps-map/StreetReauditCard.js'), 'utf8');
@@ -55,6 +55,7 @@ describe('the street re-audit hover card', () => {
             },
         };
         installDateHelpers();
+        installEscapeHTML();
         // A Popup stub that renders into the document the way Mapbox does, so :hover and listeners are testable.
         window.mapboxgl = {
             Popup: class {

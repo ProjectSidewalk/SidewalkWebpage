@@ -160,7 +160,7 @@
     showError(container, error) {
       console.error('Sidewalk presence preview error:', error);
       container.innerHTML = `<div class="message message-error" role="alert">Failed to load sidewalk presence: `
-        + `${error.message}</div>`;
+        + `${util.escapeHTML(error.message)}</div>`;
     },
 
     /**
@@ -228,7 +228,8 @@
       });
 
       const regionTitle = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
-      regionTitle.innerHTML = `<strong>Region:</strong> ${regionData.properties.name || 'Sample Region'}`;
+      const regionName = regionData.properties.name || 'Sample Region';
+      regionTitle.innerHTML = `<strong>Region:</strong> ${util.escapeHTML(regionName)}`;
 
       if (!faces.features.length) {
         const message = ApiDocsMap.addOverlay(map, 'top-right', 'map-chip');
@@ -269,13 +270,14 @@
       const absent = stats.byPresence.absent || 0;
       summary.innerHTML = `
         <h4>Summary</h4>
-        <div><strong>Street sides:</strong> ${stats.faces}</div>
+        <div><strong>Street sides:</strong> ${util.escapeHTML(stats.faces)}</div>
         <div><strong>No sidewalk:</strong> ${percent(absent, stats.faces)}%</div>
         <div><strong>Sidewalk:</strong> ${percent(stats.byPresence.present, stats.faces)}%</div>
         <div><strong>Unknown:</strong> ${percent(stats.byPresence.unknown, stats.faces)}%</div>
         <div><strong>Streets missing a side:</strong> ${stats.streetsAbsent.size}</div>
-        <div><strong>By label count (1 / 2 / 3+):</strong> ${stats.tier1} / ${stats.tier2} / ${stats.tier3}</div>
-        <div><strong>Validator-confirmed:</strong> ${stats.validated}</div>
+        <div><strong>By label count (1 / 2 / 3+):</strong>
+          ${util.escapeHTML(stats.tier1)} / ${util.escapeHTML(stats.tier2)} / ${util.escapeHTML(stats.tier3)}</div>
+        <div><strong>Validator-confirmed:</strong> ${util.escapeHTML(stats.validated)}</div>
       `;
     },
 
@@ -300,24 +302,25 @@
           ? new Date(props.last_no_sidewalk_label_date).toLocaleDateString()
           : null;
         const osmLink = props.osm_way_id
-          ? `<a href="https://www.openstreetmap.org/way/${props.osm_way_id}" target="_blank"
-              rel="noopener noreferrer">${props.osm_way_id}</a>`
+          ? `<a href="https://www.openstreetmap.org/way/${util.escapeHTML(props.osm_way_id)}" target="_blank"
+              rel="noopener noreferrer">${util.escapeHTML(props.osm_way_id)}</a>`
           : 'N/A';
 
         ApiDocsMap.popup(map, e.lngLat, `
-          <h4>Street ${props.street_edge_id}, ${props.street_side} side</h4>
-          <p><strong>Verdict:</strong> ${presenceLabel(props.presence)}</p>
-          <p><strong>Basis:</strong> ${describeBasis(props)}</p>
+          <h4>Street ${util.escapeHTML(props.street_edge_id)}, ${util.escapeHTML(props.street_side)} side</h4>
+          <p><strong>Verdict:</strong> ${util.escapeHTML(presenceLabel(props.presence))}</p>
+          <p><strong>Basis:</strong> ${util.escapeHTML(describeBasis(props))}</p>
           ${firstLabel ? `<p><strong>NoSidewalk labels placed:</strong> ${firstLabel} to ${lastLabel}</p>` : ''}
           ${props.rejected_no_sidewalk_count
-    ? `<p><strong>Rejected by validators:</strong> ${plural(props.rejected_no_sidewalk_count, 'NoSidewalk label')}</p>`
+    ? `<p><strong>Rejected by validators:</strong>
+        ${util.escapeHTML(plural(props.rejected_no_sidewalk_count, 'NoSidewalk label'))}</p>`
     : ''}
-          <p><strong>Labels on this side:</strong> ${props.label_count || 0}</p>
-          <p><strong>Other side:</strong> ${other ? presenceLabel(other.presence) : 'N/A'}</p>
-          <p><strong>Type:</strong> ${props.way_type || 'Unknown'}</p>
+          <p><strong>Labels on this side:</strong> ${util.escapeHTML(props.label_count || 0)}</p>
+          <p><strong>Other side:</strong> ${other ? util.escapeHTML(presenceLabel(other.presence)) : 'N/A'}</p>
+          <p><strong>Type:</strong> ${util.escapeHTML(props.way_type || 'Unknown')}</p>
           <p><strong>OSM ID:</strong> ${osmLink}</p>
-          <a href="/explore?streetEdgeId=${props.street_edge_id}" class="button button--primary button--tiny"
-            target="_blank">
+          <a href="/explore?streetEdgeId=${util.escapeHTML(props.street_edge_id)}"
+            class="button button--primary button--tiny" target="_blank">
             Explore Street in Project Sidewalk
           </a>
         `);

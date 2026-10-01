@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML } = require('./loadGlobalScript');
 
 /**
  * Loads bare top-level declarations out of a production file into window scope.
@@ -31,6 +31,7 @@ beforeAll(() => {
     getImage: () => Promise.resolve('img'),
   };
   installUtilitiesMisc();
+  installEscapeHTML();
   window.i18next = { t: (key) => key };
   window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
   window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));

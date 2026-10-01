@@ -124,10 +124,10 @@ class CrossCityStats {
     if (!cities.length) return;
 
     const rows = cities.map((c) => {
-      const name = CrossCityStats.#esc(c.city_name);
+      const name = util.escapeHTML(c.city_name);
       // Cities that aren't publicly launched are linked here too: every row is a deployment this mapper has already
       // worked in, so its URL is nothing they don't have (#4979).
-      const nameCell = c.city_url ? `<a href="${CrossCityStats.#esc(c.city_url)}/dashboard">${name}</a>` : name;
+      const nameCell = c.city_url ? `<a href="${util.escapeHTML(c.city_url)}/dashboard">${name}</a>` : name;
       const here = c.is_current_city
         ? `<span class="ud-cities-here">${CrossCityStats.#tEsc('dashboard:cities.you-are-here')}</span>`
         : '';
@@ -137,8 +137,8 @@ class CrossCityStats {
           <td>${CrossCityStats.#num(c.labels)}</td>
           <td>${CrossCityStats.#num(c.validations)}</td>
           <td>${CrossCityStats.#num(c.missions)}</td>
-          <td>${CrossCityStats.#esc(CrossCityStats.#fmtDist(CrossCityStats.#floorDist(c.distance), unit))}</td>
-          <td>${CrossCityStats.#esc(CrossCityStats.#lastActive(c.last_activity))}</td>
+          <td>${util.escapeHTML(CrossCityStats.#fmtDist(CrossCityStats.#floorDist(c.distance), unit))}</td>
+          <td>${util.escapeHTML(CrossCityStats.#lastActive(c.last_activity))}</td>
         </tr>`;
     }).join('');
 
@@ -251,7 +251,7 @@ class CrossCityStats {
           // sqrt scaling so circle AREA (not radius) tracks the label count — perceptually honest.
           radius: n > 0 ? 6 + (Math.sqrt(n) / Math.sqrt(maxLabels)) * 18 : 6,
           popup: `
-            <div class="ud-cities-popup-name">${CrossCityStats.#esc(stat.city_name)}</div>
+            <div class="ud-cities-popup-name">${util.escapeHTML(stat.city_name)}</div>
             <div>${CrossCityStats.#tEsc('dashboard:cities.map-popup',
               { labels: CrossCityStats.#num(n), validations: CrossCityStats.#num(stat.validations || 0) })}</div>`,
         },
@@ -397,7 +397,7 @@ class CrossCityStats {
    * @returns {string} The translated string with HTML metacharacters replaced by entities.
    */
   static #tEsc(key, vars) {
-    return CrossCityStats.#esc(i18next.t(key, vars));
+    return util.escapeHTML(i18next.t(key, vars));
   }
 
   /** Thousands-separated integer in the viewer's locale. */
@@ -449,10 +449,5 @@ class CrossCityStats {
     const d = new Date(iso);
     if (isNaN(d.getTime())) return '—';
     return d.toLocaleDateString(i18next.language, { year: 'numeric', month: 'short' });
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   }
 }

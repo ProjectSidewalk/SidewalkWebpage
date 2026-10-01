@@ -108,13 +108,13 @@ class ImageryPipelinePanel {
     const nights = (report.run_days || []).filter((day) => day.poll_failures > 0 || day.sync_failures > 0);
     if (nights.length === 0) {
       AdminShell.setHtml('imagery-failure-note',
-        `No run of either job failed in the last ${report.days} days.`);
+        `No run of either job failed in the last ${util.escapeHTML(report.days)} days.`);
       return;
     }
     const dates = nights.map((night) => night.day).join(', ');
     AdminShell.setHtml('imagery-failure-note',
-      `${nights.length} of the last ${report.days} nights recorded a failed run, with empty bars `
-      + `(${AdminShell.esc(dates)}).`);
+      `${nights.length} of the last ${util.escapeHTML(report.days)} nights recorded a failed run, with empty bars `
+      + `(${util.escapeHTML(dates)}).`);
   }
 
   /**
@@ -163,7 +163,7 @@ class ImageryPipelinePanel {
     }
     const label = tone === 'good' ? 'Running' : 'Needs attention';
     AdminShell.setHtml('imagery-pipeline-status',
-      `<span class="ac-badge ac-badge--${tone}">${label}</span> ${AdminShell.esc(message)}`);
+      `<span class="ac-badge ac-badge--${tone}">${label}</span> ${util.escapeHTML(message)}`);
   }
 
   /** The three jobs' last-run state, in the order they run each night. */
@@ -178,11 +178,11 @@ class ImageryPipelinePanel {
     }
     const rows = jobs.map((job) => `
       <tr>
-        <td>${AdminShell.esc(job.label)}</td>
-        <td class="ac-muted">${AdminShell.esc(job.scheduled_at)}</td>
+        <td>${util.escapeHTML(job.label)}</td>
+        <td class="ac-muted">${util.escapeHTML(job.scheduled_at)}</td>
         <td>${AdminShell.jobStatusBadge(job)}</td>
         <td>${AdminShell.jobLastRun(job)}</td>
-        <td class="ac-muted">${AdminShell.esc(AdminShell.jobDetails(job))}</td>
+        <td class="ac-muted">${util.escapeHTML(AdminShell.jobDetails(job))}</td>
       </tr>`).join('');
     AdminShell.setHtml('imagery-jobs',
       AdminShell.tableHtml(['Job', 'Scheduled', 'Status', 'Last run', 'Result'], rows));

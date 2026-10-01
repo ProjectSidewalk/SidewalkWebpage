@@ -170,17 +170,18 @@ class AccessScoreSidebar {
       const name = util.misc.labelTypeName(type);
       const role = i18next.t(problem ? 'accessscore:row-hurts' : 'accessscore:row-helps');
       const roleTitle = i18next.t(problem ? 'accessscore:weight-problem' : 'accessscore:weight-feature');
+      const typeAttr = util.escapeHTML(type);
       return `
-        <div class="acs-weight" data-type="${type}">
+        <div class="acs-weight" data-type="${typeAttr}">
           <div class="acs-weight__head">
             <img class="acs-weight__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-            <label class="acs-weight__label" for="acs-weight-${type}">${name}</label>
+            <label class="acs-weight__label" for="acs-weight-${typeAttr}">${name}</label>
             <span class="acs-weight__role acs-weight__role--${problem ? 'problem' : 'feature'}"
                   tabindex="0" data-ps-tooltip="${roleTitle}">${role}</span>
-            <output class="acs-weight__value" for="acs-weight-${type}"></output>
+            <output class="acs-weight__value" for="acs-weight-${typeAttr}"></output>
           </div>
-          <input type="range" class="ps-range" id="acs-weight-${type}" min="0" max="${this.#maxWeight()}"
-                 step="0.05" data-type="${type}">
+          <input type="range" class="ps-range" id="acs-weight-${typeAttr}" min="0" max="${this.#maxWeight()}"
+                 step="0.05" data-type="${typeAttr}">
           <div class="acs-weight__contrib" aria-hidden="true">
             <span class="acs-weight__bar"></span><span class="acs-weight__bar-label"></span>
           </div>
@@ -194,17 +195,20 @@ class AccessScoreSidebar {
       const icon = util.assetPath(`images/icons/${AccessScorePlacesLayer.presentation(category).icon}`);
       // "Only" is the shared filter sidebar's exclusive select; its visible text gets the row's name for a screen
       // reader, since the button swaps in for the count on hover and focus and reads as a bare "Only" otherwise.
+      const categoryAttr = util.escapeHTML(category);
       return `
-        <div class="acs-check-row acs-place-row" data-category="${category}">
-          <label class="acs-check acs-place" for="acs-place-${category}">
-            <input type="checkbox" id="acs-place-${category}" data-category="${category}" checked>
+        <div class="acs-check-row acs-place-row" data-category="${categoryAttr}">
+          <label class="acs-check acs-place" for="acs-place-${categoryAttr}">
+            <input type="checkbox" id="acs-place-${categoryAttr}" data-category="${categoryAttr}" checked>
             <span class="acs-place__icon" aria-hidden="true"><img src="${icon}" alt=""></span>
-            <span class="acs-place__name">${name}</span>
+            <span class="acs-place__name">${util.escapeHTML(name)}</span>
           </label>
           <span class="acs-place__slot">
             <span class="acs-place__count"></span>
-            <button type="button" class="filter-sidebar__only" data-category="${category}"
-                    aria-label="${i18next.t('common:only')}: ${name}">${i18next.t('common:only')}</button>
+            <button type="button" class="filter-sidebar__only" data-category="${categoryAttr}"
+                    aria-label="${i18next.t('common:only')}: ${util.escapeHTML(name)}">
+              ${i18next.t('common:only')}
+            </button>
           </span>
         </div>`;
     }).join('');

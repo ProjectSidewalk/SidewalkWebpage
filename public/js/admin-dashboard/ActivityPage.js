@@ -109,15 +109,15 @@ class ActivityPage {
     let html;
     if (top) {
       // The stream is newest-first, so item 0 is the single most recent contribution — name what it was + who.
-      html = `Most recent activity: <strong>${ActivityPage.#esc(ActivityPage.#describeItem(top))}</strong> by `
-        + `<strong>${ActivityPage.#esc(top.username || 'Unknown')}</strong> `
-        + `${ActivityPage.#esc(AdminShell.relativeTime(top.timestamp, { invalid: '', withYear: false }))}.`;
+      html = `Most recent activity: <strong>${util.escapeHTML(ActivityPage.#describeItem(top))}</strong> by `
+        + `<strong>${util.escapeHTML(top.username || 'Unknown')}</strong> `
+        + `${util.escapeHTML(AdminShell.relativeTime(top.timestamp, { invalid: '', withYear: false }))}.`;
     } else {
       // No labels/validations/comments, but the series (audits/sign-ins/missions) has dates: fall back to the date.
       const latest = this.#series[this.#series.length - 1].date;
       const ago = ActivityPage.#daysAgo(latest);
       const agoText = ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago.toLocaleString()} days ago`;
-      html = `Most recent activity: <strong>${ActivityPage.#esc(ActivityPage.#fmtLongDate(latest))}</strong>`
+      html = `Most recent activity: <strong>${util.escapeHTML(ActivityPage.#fmtLongDate(latest))}</strong>`
         + ` (${agoText}).`;
     }
     // Empty window: the backend emits only days that had activity, so no in-window records ⇒ nothing happened then.
@@ -196,12 +196,12 @@ class ActivityPage {
     el.innerHTML = cards.map((c) => `
       <div class="activity-card">
         <div class="activity-card-head">
-          <span class="activity-card-title">${ActivityPage.#esc(c.metric.title)}</span>
+          <span class="activity-card-title">${util.escapeHTML(c.metric.title)}</span>
           <span class="activity-card-total">
-            <strong>${c.total.toLocaleString()}</strong> in ${ActivityPage.#esc(this.#rangeNoun())}
+            <strong>${c.total.toLocaleString()}</strong> in ${util.escapeHTML(this.#rangeNoun())}
           </span>
         </div>
-        <div class="mini-host" data-idx="${c.idx}"></div>
+        <div class="mini-host" data-idx="${util.escapeHTML(c.idx)}"></div>
       </div>`).join('');
     cards.forEach((c) => {
       MiniLineChart.renderInto(el.querySelector(`.mini-host[data-idx="${c.idx}"]`), labels,
@@ -326,18 +326,18 @@ class ActivityPage {
     const items = all.slice(0, ActivityPage.#FEED_LIMIT);
     const rows = items.map((it) => {
       const badge = ActivityPage.#BADGES[it.activity_type] || { label: 'Activity', cls: '' };
-      const who = ActivityPage.#esc(it.username || 'Unknown');
+      const who = util.escapeHTML(it.username || 'Unknown');
       // Username deep-links to the contributor's admin profile (the "what have they been doing" detail view).
       const userLink = `<a class="activity-feed-user" href="/admin/user/${encodeURIComponent(it.username || '')}">`
         + `${who}</a>`;
       const roleChip = it.user_role
-        ? `<span class="activity-feed-role">${ActivityPage.#esc(it.user_role)}</span>`
+        ? `<span class="activity-feed-role">${util.escapeHTML(it.user_role)}</span>`
         : '';
       const link = (it.label_id !== null && it.label_id !== undefined)
       // The href is a real fallback (works without JS / before the popup loads); the click handler intercepts
       // it to open the label inline once the popup is ready.
         ? `<a class="activity-label-link" href="/admin/label/${encodeURIComponent(it.label_id)}" `
-        + `data-label-id="${ActivityPage.#esc(it.label_id)}">label #${ActivityPage.#esc(it.label_id)}</a>`
+        + `data-label-id="${util.escapeHTML(it.label_id)}">label #${util.escapeHTML(it.label_id)}</a>`
         : '';
       const text = ActivityPage.#feedText(it);
       const meta = `${userLink}${roleChip}${link ? ` · ${link}` : ''}`;
@@ -349,18 +349,18 @@ class ActivityPage {
       // convenience that reuses the same delegated handler as the text link, so it opens the label popup inline.
       const thumb = it.thumbnail_url
         ? `<img class="activity-feed-thumb activity-label-link" loading="lazy" alt="" `
-        + `src="${ActivityPage.#esc(it.thumbnail_url)}" data-label-id="${ActivityPage.#esc(it.label_id)}">`
+        + `src="${util.escapeHTML(it.thumbnail_url)}" data-label-id="${util.escapeHTML(it.label_id)}">`
         : '<span class="activity-feed-thumb activity-feed-thumb--none" aria-hidden="true"></span>';
       return [
         '<div class="activity-feed-item">',
         thumb,
-        `<span class="activity-feed-badge ${badge.cls}">${ActivityPage.#esc(badge.label)}</span>`,
+        `<span class="activity-feed-badge ${util.escapeHTML(badge.cls)}">${util.escapeHTML(badge.label)}</span>`,
         '<div class="activity-feed-body">',
         `<div class="activity-feed-text">${text}</div>`,
         `<div class="activity-feed-meta">${meta}</div>`,
         summary ? `<div class="activity-feed-sub">${summary}</div>` : '',
         '</div>',
-        `<span class="activity-feed-time" title="${ActivityPage.#esc(fullDate)}">${ActivityPage.#esc(when)}</span>`,
+        `<span class="activity-feed-time" title="${util.escapeHTML(fullDate)}">${util.escapeHTML(when)}</span>`,
         '</div>',
       ].join('');
     }).join('');
@@ -383,16 +383,16 @@ class ActivityPage {
    * @returns {string} Trusted HTML (all interpolated values escaped here).
    */
   static #feedText(it) {
-    const type = it.label_type ? `<strong>${ActivityPage.#esc(it.label_type)}</strong>` : 'a label';
+    const type = it.label_type ? `<strong>${util.escapeHTML(it.label_type)}</strong>` : 'a label';
     if (it.activity_type === 'label') {
       return `Placed ${type}`;
     }
     if (it.activity_type === 'validation') {
       const verdict = { Agree: 'agreed', Disagree: 'disagreed', Unsure: 'unsure' }[it.validation_result]
-        || ActivityPage.#esc(it.validation_result || '');
+        || util.escapeHTML(it.validation_result || '');
       return `Validated ${type} — ${verdict}`;
     }
-    return `“${ActivityPage.#esc(it.comment || '')}”`;
+    return `“${util.escapeHTML(it.comment || '')}”`;
   }
 
   /**
@@ -528,10 +528,6 @@ class ActivityPage {
     return isNaN(d.getTime())
       ? String(ts)
       : d.toLocaleString(undefined, util.SHORT_DATE_TIME);
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
   #setText(id, text) {

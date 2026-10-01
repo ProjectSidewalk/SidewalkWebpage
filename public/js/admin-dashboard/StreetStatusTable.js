@@ -75,8 +75,8 @@ class StreetStatusTable {
     tbody.innerHTML = visible.map((r) => {
       const statusCells = StreetStatusTable.#STATUS_COLS
         .map((c) => `<td>${(r[c.key] || 0).toLocaleString()}</td>`).join('');
-      return `<tr data-region-id="${r.region_id}">`
-        + `<td>${r.name}</td>${statusCells}<td>${(r.total || 0).toLocaleString()}</td>`
+      return `<tr data-region-id="${util.escapeHTML(r.region_id)}">`
+        + `<td>${util.escapeHTML(r.name)}</td>${statusCells}<td>${(r.total || 0).toLocaleString()}</td>`
         + `<td>${StreetStatusTable.#barHtml(r)}</td></tr>`;
     }).join('');
   }
@@ -89,8 +89,8 @@ class StreetStatusTable {
       .filter((c) => (r[c.key] || 0) > 0)
       .map((c) => {
         const pct = ((r[c.key] / total) * 100).toFixed(2);
-        const tip = `${c.label}: ${(r[c.key] || 0).toLocaleString()}`;
-        return `<span style="width:${pct}%;background:${c.color}" data-ps-tooltip="${tip}"></span>`;
+        const tip = `${util.escapeHTML(c.label)}: ${(r[c.key] || 0).toLocaleString()}`;
+        return `<span style="width:${pct}%;background:${util.escapeHTML(c.color)}" data-ps-tooltip="${tip}"></span>`;
       }).join('');
     return `<div class="street-status-bar" aria-hidden="true">${segments}</div>`;
   }

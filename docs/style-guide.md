@@ -101,9 +101,17 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
   - `eslint --fix` can't do this conversion for you (`prefer-template` only fires when a variable is involved, not on
     literal-plus-literal chains), so convert concatenated HTML by hand as you touch it.
   - Anything interpolated into that markup must be escaped exactly once — `util.escapeHTML(value)`, or, for a
-    translated string, `interpolation: { escapeValue: true }` on the `i18next.t()` call (the
-    `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values verbatim by default,
-    since most of them land in a text node: `docs/internationalization.md` → "Interpolated values and HTML".
+    translated string, `interpolation: { escapeValue: true }` on the
+    `i18next.t()` call (the `ps/i18n-escape-in-markup` rule blocks a build that forgets). i18next interpolates values
+    verbatim by default, since most of them land in a text node: `docs/internationalization.md` → "Interpolated
+    values and HTML".
+  - The `ps/escape-in-markup` lint rule enforces this: any `${…}` that ends up as HTML must be escaped unless it's
+    clearly safe (a number, a translation, an asset path, or a value from the same file it can trace). Escape where
+    the value goes into the HTML, not where it's computed. If a value really is our own markup, add
+    `// eslint-disable-next-line ps/escape-in-markup -- <why>` (inside a template: `${x /* eslint-disable-line … */}`).
+  - Text inside a `data-ps-tooltip="…"` attribute in markup needs escaping twice: use `AdminShell.tooltipAttr(…)`.
+    With `setAttribute('data-ps-tooltip', …)`, escaping once is enough.
+  - Escaping doesn't make a link safe: check that an API-supplied `href` starts with http(s).
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).

@@ -229,16 +229,16 @@ class DataQualityPage {
         const max = tags[0].count || 1; // Bars scale within each type so each small-multiple fills well.
         const bars = tags.map((t) => `
           <div class="dq-tag-row">
-            <span class="dq-tag-name" title="${DataQualityPage.#esc(t.tag)}">${DataQualityPage.#esc(t.tag)}</span>
+            <span class="dq-tag-name" title="${util.escapeHTML(t.tag)}">${util.escapeHTML(t.tag)}</span>
             <div class="dq-bar-track">
-              <div class="dq-bar" style="width:${(t.count / max) * 100}%;background:${color}"></div>
+              <div class="dq-bar" style="width:${(t.count / max) * 100}%;background:${util.escapeHTML(color)}"></div>
             </div>
             <span class="dq-tag-count">${t.count.toLocaleString()}</span>
           </div>`).join('');
         const head = `
           <div class="dq-tag-head">
-            <img class="dq-icon" src="${this.#icon(type)}" alt="" width="20" height="20">
-            <span class="dq-name">${this.#name(type)}</span>
+            <img class="dq-icon" src="${util.escapeHTML(this.#icon(type))}" alt="" width="20" height="20">
+            <span class="dq-name">${util.escapeHTML(this.#name(type))}</span>
           </div>`;
         return `<div class="dq-tag-group">${head}<div class="dq-tag-bars">${bars}</div></div>`;
       });
@@ -279,20 +279,20 @@ class DataQualityPage {
             const opacity = (0.1 + 0.9 * (n / rowMax)).toFixed(2); // row-normalized intensity
             const tip = `${tag} · severity ${s}: ${n.toLocaleString()} (${share}% of this tag)`;
             // No tab stop per cell: a tag grid runs to hundreds of them, and the label covers screen readers.
-            return `<div class="dq-heat-cell" role="img" aria-label="${DataQualityPage.#esc(tip)}"
+            return `<div class="dq-heat-cell" role="img" aria-label="${util.escapeHTML(tip)}"
                             data-ps-tooltip="${AdminShell.tooltipAttr(tip)}"
-                            style="background:${color};opacity:${opacity}"></div>`;
+                            style="background:${util.escapeHTML(color)};opacity:${opacity}"></div>`;
           }).join('');
           return [
-            `<div class="dq-heat-rowlabel" title="${DataQualityPage.#esc(tag)}">${DataQualityPage.#esc(tag)}</div>`,
+            `<div class="dq-heat-rowlabel" title="${util.escapeHTML(tag)}">${util.escapeHTML(tag)}</div>`,
             cells,
             `<div class="dq-heat-total">${c.total.toLocaleString()}</div>`,
           ].join('');
         }).join('');
         const head = `
           <div class="dq-tag-head">
-            <img class="dq-icon" src="${this.#icon(type)}" alt="" width="20" height="20">
-            <span class="dq-name">${this.#name(type)}</span>
+            <img class="dq-icon" src="${util.escapeHTML(this.#icon(type))}" alt="" width="20" height="20">
+            <span class="dq-name">${util.escapeHTML(this.#name(type))}</span>
           </div>`;
         const colHead = `
           <div class="dq-heat-corner"></div>
@@ -466,10 +466,6 @@ class DataQualityPage {
 
   static #pct(frac) {
     return `${Math.round((frac || 0) * 100)}%`;
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
   #setText(id, text) {
