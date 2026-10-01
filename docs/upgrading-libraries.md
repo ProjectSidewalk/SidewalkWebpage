@@ -38,9 +38,10 @@ listed separately and are *expected* to differ; the goal is skew that's written 
   2.32 and 2.34 that sbt's `sbtn` needs, so `sbt --client` can't run in the container at all and everything uses
   `sbt --jvm-client` instead (#5268). Jammy (glibc 2.35, `python3` 3.10) or noble (2.39, 3.12) fixes both, but a
   move has to say what happens to 3.8 first.
-- **The `16-3.5` image line is a dead end.** apt.postgresql.org's bullseye pool stops at PostGIS 3.5.2, and
-  docker-postgis publishes no `16-3.6` tag (3.6 images start at Postgres 17) or bookworm variant for 16 — so newer
-  geospatial libraries in dev means moving the Postgres major *and* the base OS together, not a version bump.
+- **The `16-3.5` image line is a dead end.** PGDG's bullseye pool is archived (frozen at Postgres 16.15 and PostGIS
+  3.5.2, served from apt-archive.postgresql.org since #5626), and docker-postgis publishes no `16-3.6` tag (3.6
+  images start at Postgres 17) or bookworm variant for 16 — so newer geospatial libraries in dev means moving the
+  Postgres major *and* the base OS together, not a version bump.
 - **Java 17** in dev and CI, **21** on prod; moving dev to 21 is
   [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396). Dependabot deliberately ignores major
   `eclipse-temurin` bumps. **Node 24** is LTS until Apr 2028, with 26 taking over as LTS in Oct 2026.

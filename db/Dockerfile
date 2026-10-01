@@ -3,10 +3,10 @@ FROM postgis/postgis:16-3.5
 ENV DEBIAN_FRONTEND=noninteractive
 
 # The only thing this image adds to the base is the scoped Postgres upgrade below, and every package file it fetches
-# comes from apt.postgresql.org; deb.debian.org is touched only for repository indexes (#5195). That matters because
-# the Debian pool sits behind Fastly edges that intermittently 404 a file their own freshly-fetched index advertises,
-# and a build that pulls no package files from there cannot lose that lottery. Retrying only re-rolls it, since apt
-# retries against the same edge.
+# comes from the PostgreSQL apt repo; deb.debian.org is touched only for repository indexes (#5195). That matters
+# because the Debian pool sits behind Fastly edges that intermittently 404 a file their own freshly-fetched index
+# advertises, and a build that pulls no package files from there cannot lose that lottery. Retrying only re-rolls it,
+# since apt retries against the same edge.
 #
 # `--no-install-recommends` is what keeps that true. Recommends are installed by default and a pgdg package can
 # recommend one that lives in the Debian pool, so without the flag any package added here could quietly reopen the
@@ -27,8 +27,13 @@ ENV DEBIAN_FRONTEND=noninteractive
 #
 # Check-Valid-Until is off because the base image's bullseye-security suite reached end-of-life and its Release file
 # is now expired, which apt otherwise treats as fatal (#5232). The upgrade pulls only the two named packages from the
-# current apt.postgresql.org Release, nothing from debian-security, so accepting its stale index changes nothing here.
+# PostgreSQL apt repo's Release, nothing from debian-security, so accepting its stale index changes nothing here.
+#
+# The base image lists apt.postgresql.org, but that server dropped bullseye once it reached end-of-life, so the source
+# is pointed at apt-archive.postgresql.org, which keeps bullseye frozen at its last builds (#5626). Leaving the
+# bullseye image for good is part of #3955.
 RUN echo 'Acquire::Retries "3"; Acquire::Check-Valid-Until "false";' > /etc/apt/apt.conf.d/80-retries && \
+  sed -i 's#http://apt.postgresql.org#https://apt-archive.postgresql.org#' /etc/apt/sources.list.d/pgdg.list && \
   apt-get update && \
   apt-get install -y --no-install-recommends --only-upgrade postgresql-16 postgresql-client-16 && \
   # Drop the cached .deb files and package lists, which would otherwise ship inside the image.
