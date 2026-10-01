@@ -11,7 +11,8 @@
 @currentCity = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head}
 @skylineImg = @{config.get[String]("city-params.skyline-img." + currentCity.cityId)}
 @newsRibbonLink = @{config.get[Option[String]]("custom.news.ribbon.link")}
-@streetCompletionRate = @{100 * auditedDistance / streetDistance}
+@* A city with no streets loaded yet counts as 0% rather than dividing by zero. *@
+@streetCompletionRate = @{if (streetDistance > 0) 100 * auditedDistance / streetDistance else 0.0}
 @locale = @{messages.lang.toLocale}
 
 @* Organization + WebSite JSON-LD (#4237), built with the JSON library so quoting is always valid; escaping `<`
@@ -213,13 +214,13 @@
       </div>
       <script language="javascript">
         if ("@openStatus" === "partially" && @("%.0f".format(streetCompletionRate)) >= 100) {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.partial", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
         } else if ("@openStatus" === "partially") {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate), distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.partial", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, " % .1f".formatLocal(locale, streetCompletionRate), distanceUnitWords.name)";
         } else if (@("%.0f".format(streetCompletionRate)) < 100) {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, " % .1f".format(streetCompletionRate), distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.unfinished.full", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, " % .1f".formatLocal(locale, streetCompletionRate), distanceUnitWords.name)";
         } else {
-          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", " %, .0f".format(auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
+          document.getElementById('conditional-text').innerHTML = "@Messages("landing.stats.content.finished.full", " %, .0f".formatLocal(locale, auditedDistance), currentCity.cityNameFormatted, distanceUnitWords.name)";
         }
       </script>
     </div>
