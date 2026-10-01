@@ -236,7 +236,7 @@ describe('LabelContainer hands the flag to the PanoManager (issue #5561)', () =>
   });
 
   test('each label is loaded with its own expired flag', async () => {
-    const backup = { panoId: 'panoB' };
+    const backup = { pano_id: 'panoB' };
     const labelContainer = await LabelContainer.create([
       { labelId: 1, panoId: 'panoA', backupImage: null, expired: false },
       { labelId: 2, panoId: 'panoB', backupImage: backup, expired: true },
