@@ -1,9 +1,8 @@
 /**
  * Explore's keyboard shortcuts.
  *
- * Every shortcut is a row in one of the tables at the top of the class, which differ only in when they're live. Rows
- * name keys the way `KeyboardShortcuts.keyOf` does (`KeyC`, `Digit1`, `ArrowLeft`). The label-type and tag keys aren't
- * in the tables: they're the letters the UI shows, so they're read from `util.misc.getLabelDescriptions`.
+ * Each table below is a group of shortcuts that's active at different times; edit a row to add or change one.
+ * Label-type and tag keys come from `util.misc.getLabelDescriptions` instead, since the UI shows those letters.
  */
 class KeyboardManager {
   /** @type {?KeyboardShortcut[]} */
@@ -71,14 +70,14 @@ class KeyboardManager {
   };
 
   /**
-   * A key that closes the context menu stops there, so one Escape isn't also handled and logged as a second one.
+   * A key that closes the context menu stops here, so one Escape isn't handled twice.
    * @param {KeyboardEvent} e
    */
   #documentKeyUp = (e) => {
     if (this.#status.disableKeyboard) return;
     if (this.#contextMenu.isOpen() && KeyboardShortcuts.run(this.#closeMenuShortcuts, e)) return;
 
-    // A modifier makes it the browser's or the OS's shortcut (Option+C types ç on a Mac). Shift is ours: Shift+Z.
+    // Ctrl/Alt/Cmd combos belong to the browser. Shift is ours (Shift+Z).
     if (this.#status.focusOnTextField || e.ctrlKey || e.altKey || e.metaKey) return;
     this.#labelTypeRows ??= this.#labelTypeShortcuts();
     KeyboardShortcuts.run([...this.#labelTypeRows, ...this.#generalShortcuts], e);
@@ -89,13 +88,11 @@ class KeyboardManager {
   };
 
   /**
-   * One row per labeling mode, from the letter the ribbon menu shows for it. Walk's E is also a tag key, so it only
-   * means Walk with the context menu closed.
+   * One row per labeling mode. E (Walk) is also a tag key, so it only means Walk when the menu is closed.
    * @returns {KeyboardShortcut[]}
    */
   #labelTypeShortcuts() {
-    // The type list is backend-sourced but getLabelDescriptions is a local table, so a label type added to LabelType
-    // can arrive here before it has a letter; it's skipped until it gets one.
+    // A newly added label type may not have a letter yet; skip it.
     return ['Walk', ...util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER]
       .map((mode) => ({ mode, key: KeyboardManager.#keyFor(util.misc.getLabelDescriptions(mode)?.keyChar) }))
       .filter(({ key }) => key)
@@ -126,7 +123,7 @@ class KeyboardManager {
   }
 
   /**
-   * The key a letter shown in the UI sits on, on a US keyboard.
+   * Turns a letter shown in the UI into a row's key name (`C` → `KeyC`).
    * @param {string|undefined} char - A letter, digit, or one of `[ ] ; , . /`.
    * @returns {string|undefined} Its `KeyboardEvent.code`.
    */
@@ -210,13 +207,11 @@ class KeyboardManager {
   }
 
   /**
-   * Steps forward along the route. A focused checkbox or radio button (e.g. the minimap key's "My earlier labels",
-   * #4945) keeps Space instead, since that's the only key that toggles it.
+   * Steps forward along the route. Skipped on a focused checkbox or radio button, which needs Space (#4945).
    * @param {KeyboardEvent} e
    */
   #spacebar(e) {
-    // Stops the page from scrolling and stops Space from re-activating a focused button (e.g. the Stuck button right
-    // after a mouse click), which Enter still activates.
+    // Stop the page scrolling, and stop Space from re-clicking a focused button (e.g. Stuck).
     e.preventDefault();
     this.#advanceForwardAlongRoute();
   }
@@ -247,7 +242,7 @@ class KeyboardManager {
   }
 
   /**
-   * Also dismisses the label hover card, so it can be put away without moving the pointer (WCAG 1.4.13).
+   * Also hides the label hover card, so it can be dismissed without the mouse (WCAG 1.4.13).
    * @param {KeyboardEvent} e
    */
   #backToExploreMode(e) {
@@ -267,8 +262,7 @@ class KeyboardManager {
   }
 
   /**
-   * Immersive mode on/off (#5085). Not while the context menu is open, where F is a tag key, and not while typing:
-   * #status.focusOnTextField only covers the context menu's own text box.
+   * Immersive mode on/off (#5085). Not while the menu is open (F is a tag key there) or while typing.
    * @param {KeyboardEvent} e
    * @returns {boolean}
    */

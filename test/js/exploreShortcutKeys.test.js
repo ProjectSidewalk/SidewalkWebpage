@@ -1,7 +1,6 @@
 /**
- * Explore's label-type shortcuts (#5618): a Latin letter goes by what's printed on the key, so an AZERTY keyboard gets
- * the letter the UI shows, and anything else by where the key sits, so a non-Latin layout still reaches them. Escape
- * with the context menu open closes only the menu, and E there is a tag key, not Walk.
+ * Explore's shortcut keys (#5618): letters match what's printed on the key, other layouts still work, and keys pressed
+ * with the context menu open aren't also handled as menu-closed shortcuts.
  */
 
 const fs = require('fs');

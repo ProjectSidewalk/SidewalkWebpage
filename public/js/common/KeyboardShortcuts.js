@@ -1,13 +1,11 @@
 /**
  * @typedef {object} KeyboardShortcut - One row of a shortcut table in Explore's or Validate's KeyboardManager.
- * @property {string[]} keys - Any of these fires it, named as `KeyboardShortcuts.keyOf` names a key press.
+ * @property {string[]} keys - Keys that fire it, named as `keyOf` names them.
  * @property {(e: KeyboardEvent) => boolean} [when] - Only fires when this is true.
  * @property {(e: KeyboardEvent) => void} action - What it does.
  */
 
-/**
- * Matches key presses against the shortcut tables in Explore's and Validate's KeyboardManagers.
- */
+/** Runs the shortcut tables in Explore's and Validate's KeyboardManagers. */
 class KeyboardShortcuts {
   static #NAMED_KEYS = new Set(['Enter', 'Escape', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']);
 
@@ -30,10 +28,9 @@ class KeyboardShortcuts {
   }
 
   /**
-   * Which key a press counts as, in `KeyboardEvent.code` terms (`KeyA`, `Digit1`, `Enter`). A Latin letter goes by the
-   * letter printed on the key, since that's what the UI's hints show, so an AZERTY A is `KeyA`. Enter, Escape and the
-   * arrows go by name, so the numpad's arrows with NumLock off still count. Anything else goes by where the key sits,
-   * which keeps the digit row working on AZERTY and the letter shortcuts working on non-Latin layouts and IMEs.
+   * Names a key press the way shortcut rows do (`KeyA`, `Digit1`, `Enter`). Letters go by what's printed on the key, to
+   * match the hints on any layout. Enter, Escape and arrows go by name. Everything else goes by the key's position,
+   * which keeps digits and non-Latin keyboards working.
    * @param {KeyboardEvent} e
    * @returns {string}
    */

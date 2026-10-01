@@ -1,6 +1,6 @@
 /**
- * Tests for public/js/validate/src/Tracker.js — what a LowLevelEvent_keydown notes about the key (#5618): where it sits,
- * never which character, and nothing at all from a password field such as the navbar's sign-in dialog.
+ * Tests for public/js/validate/src/Tracker.js: key events log the key's position, never the character typed, and
+ * nothing for a password field (#5618).
  */
 
 const fs = require('fs');

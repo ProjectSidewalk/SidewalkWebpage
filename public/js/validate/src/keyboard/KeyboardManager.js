@@ -1,8 +1,7 @@
 /**
  * Validate's keyboard shortcuts.
  *
- * Every shortcut is a row in one of the tables at the top of the class, which differ only in when they're live. Rows
- * name keys the way `KeyboardShortcuts.keyOf` does (`KeyA`, `Digit1`, `Enter`).
+ * Each table below is a group of shortcuts that's active at different times; edit a row to add or change one.
  */
 class KeyboardManager {
   #validationMenuUi;
@@ -33,14 +32,13 @@ class KeyboardManager {
   ];
 
   /**
-   * These also work while typing in a comment box. Not in the tag picker, where Enter adds the highlighted tag, and
-   * submitting would move on to the next label before the tag is added.
+   * These also work while typing a comment. Not in the tag picker, where Enter adds the tag instead.
    */
   #whileTypingShortcuts = [
     { keys: ['Enter'], when: () => !this.#inTagPicker(), action: (e) => this.#submit(e) },
   ];
 
-  /** These also work while a modal is up, since the layout may change under one. */
+  /** These also work while a modal is open. */
   #alwaysOnShortcuts = [
     { keys: ['KeyF'], when: KeyboardManager.#canToggleImmersiveMode, action: (e) => this.#toggleImmersiveMode(e) },
   ];
@@ -67,7 +65,7 @@ class KeyboardManager {
   }
 
   /**
-   * The groups run from the narrowest scope outward, and a group that takes the key stops it there.
+   * Checks the narrowest scope first; a group that handles the key stops it there.
    * @param {KeyboardEvent} e
    */
   #documentKeyDown = (e) => {
@@ -246,8 +244,8 @@ class KeyboardManager {
   }
 
   /**
-   * Whether the key is on the label's marker or inside its card. An open popover counts as being in the card wherever
-   * the key came from, since Safari and Firefox on macOS don't focus a clicked button.
+   * Whether the key is on the label's marker or in its card. An open popover counts too, since Safari and Firefox on
+   * Mac don't focus clicked buttons.
    * @param {KeyboardEvent} e
    * @returns {boolean}
    */
@@ -276,8 +274,7 @@ class KeyboardManager {
    */
   #escapeLabelCard(e) {
     if (svv.labelCard?.closeTypeDropdown()) return;
-    // Guarded, not unconditional: Escape on a focused marker with the card already closed is a common reflex, and
-    // logging a dismissal for it would pad the event with no-ops. Focus still returns to the marker.
+    // Only log a hide if the card was showing. Focus goes back to the marker either way.
     if (svv.labelVisibilityControl.isCardVisible()) {
       svv.labelVisibilityControl.hideLabelCard();
       svv.tracker.push('KeyboardShortcut_HideLabelCard', { code: e.code });
@@ -294,8 +291,7 @@ class KeyboardManager {
   }
 
   /**
-   * Immersive mode on/off (#5560), the same key as Explore's. Not while typing, and F with a modifier belongs to the
-   * browser.
+   * Immersive mode on/off (#5560). Not while typing or with a modifier held.
    * @param {KeyboardEvent} e
    * @returns {boolean}
    */
@@ -357,9 +353,8 @@ class KeyboardManager {
   }
 
   /**
-   * Picks a fourth disagree reason, or focuses the comment box. The comment box is always the key one past the menu's
-   * last reason, so it moves from 4 to 5 on any label type that offers a fourth reason. Kept apart from 1-3 only
-   * because of the Agree verdict, where it would reach for a severity button 4 or 5 that doesn't exist.
+   * A fourth disagree reason where there is one, otherwise the comment box (always the number after the last
+   * reason). Agree has no severity 4 or 5, so it always gets the comment box.
    * @param {number} n - 4 or 5.
    * @param {KeyboardEvent} e
    */
