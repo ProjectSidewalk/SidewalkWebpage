@@ -36,7 +36,7 @@ function loadClassFromFile(filePath, className) {
 }
 
 describe('PanoManager skips the provider for a pano it knows is gone (issue #5561)', () => {
-  const backupImage = { panoId: 'backup-pano', cameraHeading: 90 };
+  const backupImage = { pano_id: 'backup-pano', camera_heading: 90 };
   let PanoManager;
   let FakeViewerType;
   let primaryViewer;

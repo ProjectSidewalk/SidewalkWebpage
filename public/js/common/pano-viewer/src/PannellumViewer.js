@@ -70,13 +70,13 @@ const effectiveMaxPanoWidth = () => {
  * The URL to hand Pannellum for a panorama, asking the server for a smaller copy only when this device can't texture
  * the stored one (#5256), or is a phone that shouldn't hold it (#5561). Every other device gets it untouched.
  *
- * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
+ * @param {Record<string, any>} metadata - Pano metadata; uses `image_url` and `width`.
  * @returns {string} The image URL, with `maxWidth` appended when a copy is needed.
  */
 const panoramaUrlFor = (metadata) => {
   const cap = effectiveMaxPanoWidth();
-  if (!cap || !metadata.width || metadata.width <= cap) return metadata.imageUrl;
-  return panoUrlWithMaxWidth(metadata.imageUrl, cap);
+  if (!cap || !metadata.width || metadata.width <= cap) return metadata.image_url;
+  return panoUrlWithMaxWidth(metadata.image_url, cap);
 };
 
 // These are top-level declarations in a file Grunt concatenates into one bundle with a dozen others, so a name that
@@ -102,7 +102,7 @@ const PANO_MIN_FALLBACK_WIDTH = 2048;
  * and the server answers those with the native file — so the "retry" re-fetches, re-decodes and re-uploads the
  * image that just failed, making the next allocation likelier to fail rather than less.
  *
- * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
+ * @param {Record<string, any>} metadata - Pano metadata; uses `image_url` and `width`.
  * @returns {string[]} Candidate URLs, in the order they should be tried.
  */
 const panoramaUrlCandidates = (metadata) => {
@@ -114,7 +114,7 @@ const panoramaUrlCandidates = (metadata) => {
   if (!Number.isFinite(start)) return urls;
   // Two retries: a device that can't hold a quarter of what it advertised is not going to be rescued by an eighth.
   for (let w = Math.floor(start / 2); w >= PANO_MIN_FALLBACK_WIDTH && urls.length < 3; w = Math.floor(w / 2)) {
-    urls.push(panoUrlWithMaxWidth(metadata.imageUrl, w));
+    urls.push(panoUrlWithMaxWidth(metadata.image_url, w));
   }
   return urls;
 };
@@ -168,10 +168,10 @@ class PannellumViewer extends PanoViewer {
   /**
    * @param {HTMLElement} canvasElem - Container element to mount the viewer into.
    * @param {object} [panoOptions]
-   * @param {string} [panoOptions.startPanoId] - The pano ID to load. Falls back to panoMetadata.panoId.
+   * @param {string} [panoOptions.startPanoId] - The pano ID to load. Falls back to panoMetadata.pano_id.
    * @param {Record<string, any>} [panoOptions.panoMetadata] - Metadata for the pano (see PanoData fields). Required:
    *     initialize() throws without it.
-   * @param {number} [panoOptions.startHeading] - Initial heading wrt true north; defaults to cameraHeading.
+   * @param {number} [panoOptions.startHeading] - Initial heading wrt true north; defaults to camera_heading.
    * @param {number} [panoOptions.startPitch=0] - Initial pitch in degrees.
    * @param {number} [panoOptions.startZoom=1] - Initial zoom level (1, 2, or 3).
    * @param {boolean} [panoOptions.zoomControl=true] - Whether mouse-wheel zoom is enabled.
@@ -183,10 +183,10 @@ class PannellumViewer extends PanoViewer {
     if (!metadata) throw new Error('PannellumViewer requires panoOptions.panoMetadata');
     this.#imageCache = panoOptions.imageCache ?? null;
 
-    const panoId = panoOptions.startPanoId || metadata.panoId;
-    if (!panoId) throw new Error('PannellumViewer requires startPanoId or panoMetadata.panoId');
+    const panoId = panoOptions.startPanoId || metadata.pano_id;
+    if (!panoId) throw new Error('PannellumViewer requires startPanoId or panoMetadata.pano_id');
 
-    this.#cameraHeading = metadata.cameraHeading || 0;
+    this.#cameraHeading = metadata.camera_heading || 0;
     this.currPanoData = this.#buildPanoData(panoId, metadata);
     this.#currentSceneId = panoId;
 
@@ -303,7 +303,7 @@ class PannellumViewer extends PanoViewer {
       // logged a second time (Validate asks for the first label's pano twice at init, once from PanoManager's
       // own start-up and once from the first render).
       this.lastLoadPrefetched = null;
-      this.#cameraHeading = metadata.cameraHeading || 0;
+      this.#cameraHeading = metadata.camera_heading || 0;
       this.currPanoData = this.#buildPanoData(panoId, metadata);
       this.setPov(pov);
       for (const listener of this.panoChangedListeners) await listener();
@@ -313,7 +313,7 @@ class PannellumViewer extends PanoViewer {
     // Compute Pannellum-space pitch/yaw/hfov using the new pano's calibration, before updating the instance fields
     // (which #headingToYaw and #yawToHeading read from). The instance fields are updated after the load resolves so
     // the rAF loop doesn't emit pov_changed with a mismatched cameraHeading during the transition.
-    const newCameraHeading = metadata.cameraHeading || 0;
+    const newCameraHeading = metadata.camera_heading || 0;
     const pitch = pov.pitch ?? 0;
     const yaw = this.#headingToYaw(pov.heading ?? newCameraHeading, newCameraHeading);
     const hfov = util.pano.zoomToFov(pov.zoom ?? 1);
@@ -390,7 +390,7 @@ class PannellumViewer extends PanoViewer {
    * A download of rung 0 still in flight is waited for, up to `PREFETCH_WAIT_MS`: a second download of the same bytes
    * beside it would only slow both down.
    *
-   * @param {Record<string, any>} metadata - Pano metadata; uses `imageUrl` and `width`.
+   * @param {Record<string, any>} metadata - Pano metadata; uses `image_url` and `width`.
    * @returns {Promise<{urls: string[], cacheKey: string, held: boolean}>} The attempts in order, the key to release
    *     afterwards, and whether rung 0 is a held copy.
    */
@@ -427,16 +427,16 @@ class PannellumViewer extends PanoViewer {
     return new PanoData({
       panoId,
       source: this.getViewerType(),
-      captureDate: util.parseDate(metadata.captureDate || Date.now()),
+      captureDate: util.parseDate(metadata.capture_date || Date.now()),
       width: metadata.width,
       height: metadata.height,
-      tileWidth: metadata.tileWidth || metadata.width,
-      tileHeight: metadata.tileHeight || metadata.height,
+      tileWidth: metadata.tile_width || metadata.width,
+      tileHeight: metadata.tile_height || metadata.height,
       lat: metadata.lat,
       lng: metadata.lng,
-      cameraHeading: metadata.cameraHeading,
-      cameraPitch: metadata.cameraPitch ?? undefined,
-      cameraRoll: metadata.cameraRoll ?? undefined,
+      cameraHeading: metadata.camera_heading,
+      cameraPitch: metadata.camera_pitch ?? undefined,
+      cameraRoll: metadata.camera_roll ?? undefined,
       address: metadata.address,
       copyright: metadata.copyright,
       linkedPanos: [],

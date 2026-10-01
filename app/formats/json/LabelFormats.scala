@@ -283,21 +283,21 @@ object LabelFormats {
    */
   def localBackupImagePayload(p: PanoData, url: String): JsObject = {
     Json.obj(
-      "panoId"        -> p.panoId,
-      "imageUrl"      -> url,
-      "width"         -> p.width,
-      "height"        -> p.height,
-      "tileWidth"     -> p.tileWidth,
-      "tileHeight"    -> p.tileHeight,
-      "lat"           -> p.lat,
-      "lng"           -> p.lng,
-      "cameraHeading" -> p.cameraHeading,
-      "cameraPitch"   -> p.cameraPitch,
-      "cameraRoll"    -> p.cameraRoll,
-      "captureDate"   -> p.captureDate,
-      "copyright"     -> p.copyright,
-      "attribution"   -> ImageryAttribution.line(p.source, p.copyright, p.license).map(_.toJson),
-      "address"       -> p.address
+      "pano_id"        -> p.panoId,
+      "image_url"      -> url,
+      "width"          -> p.width,
+      "height"         -> p.height,
+      "tile_width"     -> p.tileWidth,
+      "tile_height"    -> p.tileHeight,
+      "lat"            -> p.lat,
+      "lng"            -> p.lng,
+      "camera_heading" -> p.cameraHeading,
+      "camera_pitch"   -> p.cameraPitch,
+      "camera_roll"    -> p.cameraRoll,
+      "capture_date"   -> p.captureDate,
+      "copyright"      -> p.copyright,
+      "attribution"    -> ImageryAttribution.line(p.source, p.copyright, p.license).map(_.toJson),
+      "address"        -> p.address
     )
   }
 
@@ -309,10 +309,10 @@ object LabelFormats {
    */
   def cropImagePayload(labelId: Int, labelType: String, url: String, marker: Option[CropMarker]): JsObject = {
     Json.obj(
-      "labelId"    -> labelId,
-      "labelType"  -> labelType,
-      "imageUrl"   -> url,
-      "cropMarker" -> marker
+      "label_id"    -> labelId,
+      "label_type"  -> labelType,
+      "image_url"   -> url,
+      "crop_marker" -> marker
     )
   }
 

@@ -53,7 +53,7 @@ describe('PanoImageCache (issue #5562)', () => {
         URL.revokeObjectURL = jest.fn();
         global.fetch = fetchStub();
         // The viewer's own URL builder; the cache only needs it to be the same function the viewer uses.
-        global.panoramaUrlFor = jest.fn((metadata) => `${metadata.imageUrl}?maxWidth=8192`);
+        global.panoramaUrlFor = jest.fn((metadata) => `${metadata.image_url}?maxWidth=8192`);
         delete navigator.connection;
 
         PanoImageCache = loadCacheClass();
@@ -156,7 +156,7 @@ describe('PanoImageCache (issue #5562)', () => {
     });
 
     test('prefetchBackups asks for each backup at the URL the viewer would load it from, nearest first', async () => {
-        const backups = [{ imageUrl: '/backupImage/p1' }, { imageUrl: '/backupImage/p2' }];
+        const backups = [{ image_url: '/backupImage/p1' }, { image_url: '/backupImage/p2' }];
 
         await cache.prefetchBackups(backups);
 
@@ -171,7 +171,7 @@ describe('PanoImageCache (issue #5562)', () => {
             ? new Promise((resolve) => { finishFirst = resolve; })
             : Promise.resolve({ ok: true, status: 200, blob: () => Promise.resolve(new Blob(['p2'])) })));
 
-        const done = cache.prefetchBackups([{ imageUrl: '/backupImage/p1' }, { imageUrl: '/backupImage/p2' }]);
+        const done = cache.prefetchBackups([{ image_url: '/backupImage/p1' }, { image_url: '/backupImage/p2' }]);
         await Promise.resolve();
         expect(global.fetch).toHaveBeenCalledTimes(1);
 

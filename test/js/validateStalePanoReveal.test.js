@@ -51,7 +51,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
   let logo;         // the stubbed source/primary logo control
   let attribution;  // the stubbed imagery-attribution pill
 
-  const backupImage = { panoId: 'backup-pano', cameraHeading: 90 };
+  const backupImage = { pano_id: 'backup-pano', camera_heading: 90 };
 
   /** Build a fake viewer that resolves its loads immediately. */
   function makeFakeViewer() {
@@ -238,7 +238,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     expect(visibleCanvas()).toBe('pannellum');
 
     const load = holdPannellumLoad();
-    const inFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+    const inFlight = panoManager.setPanorama('pano3', { pano_id: 'backup-pano-2', camera_heading: 12 });
     await load.started;
 
     // Already the right canvas, and it holds the outgoing label's imagery — the honest thing to keep showing.
@@ -260,7 +260,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     await first.started;
 
     const second = holdPannellumLoad();
-    const secondInFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+    const secondInFlight = panoManager.setPanorama('pano3', { pano_id: 'backup-pano-2', camera_heading: 12 });
     await second.started;
 
     first.reject();
@@ -330,7 +330,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
 
     test('a live load that fails puts the primary canvas back out of the layout', async () => {
       const load = holdPrimaryLoad();
-      const inFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+      const inFlight = panoManager.setPanorama('pano3', { pano_id: 'backup-pano-2', camera_heading: 12 });
       await load.started;
       load.reject();
       await inFlight;
@@ -343,7 +343,7 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
 
     test('a failed live load takes the primary canvas out of the layout before the fallback loads', async () => {
       const live = holdPrimaryLoad();
-      const inFlight = panoManager.setPanorama('pano3', { panoId: 'backup-pano-2', cameraHeading: 12 });
+      const inFlight = panoManager.setPanorama('pano3', { pano_id: 'backup-pano-2', camera_heading: 12 });
       await live.started;
       const fallback = holdPannellumLoad();
       live.reject();

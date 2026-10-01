@@ -31,7 +31,7 @@ function loadClassFromFile(filePath, className) {
 
 describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => {
   let LabelContainer;
-  const backup = (panoId) => ({ panoId, imageUrl: `/backupImage/${panoId}` });
+  const backup = (panoId) => ({ pano_id: panoId, image_url: `/backupImage/${panoId}` });
   const labels = [
     { labelId: 1, panoId: 'a', expired: false, backupImage: null },
     { labelId: 2, panoId: 'b', expired: true, backupImage: backup('b') },
@@ -81,7 +81,7 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
 
   /** @returns {string[][]} The pano ids asked for on each prefetch, in order. */
   function prefetchedPanoIds() {
-    return svv.panoImageCache.prefetchBackups.mock.calls.map(([backups]) => backups.map((b) => b.panoId));
+    return svv.panoImageCache.prefetchBackups.mock.calls.map(([backups]) => backups.map((b) => b.pano_id));
   }
 
   /** @returns {string[]} The pano ids warmed in the provider, in order. */
