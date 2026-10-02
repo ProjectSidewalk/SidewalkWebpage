@@ -122,8 +122,12 @@ if [ -L node_modules ] && ! cmp -s package-lock.json /home/package-lock.json; th
 fi
 
 # 2. build/ bundles are gitignored (absent) -> build this branch's JS/CSS once up front.
-echo "==> building bundles (grunt concat concat_css)"
-node_modules/.bin/grunt concat concat_css >/dev/null
+echo "==> building bundles (grunt)"
+if ! grunt_output=$(node_modules/.bin/grunt 2>&1); then
+  echo "$grunt_output"
+  echo "error: the bundle build failed (above)."
+  exit 1
+fi
 
 # 3. A stray thin-client sbt server (or a hung task, e.g. a wedged `scalafmtAll`) whose cwd is this worktree
 #    shares target/ and deadlocks `~ run` on compile locks. Reap them.

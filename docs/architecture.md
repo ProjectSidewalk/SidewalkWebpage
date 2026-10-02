@@ -14,8 +14,8 @@ aggregated, scored, and served back out through a public API and a set of dashbo
 **Stack:**
 - **Backend** — Scala 3.9 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
-- **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenation only —
-  no transpilation/module system), with no framework: native DOM and CSS on the `main.css` design tokens.
+- **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenated, then
+  minified — no transpilation/module system), with no framework: native DOM and CSS on the `main.css` design tokens.
 - **Dev/runtime** — everything runs in Docker.
 
 ## System at a glance
@@ -520,9 +520,11 @@ corresponding Twirl view:
   `setFieldOfView` return `undefined`), so a caller that must not show the old heading waits animation frames instead,
   as Validate's reveal does.
 
-There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
-libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
-files only — bundles are generated into `public/js/*/build/`.
+There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`), and each bundle
+is then minified by esbuild. Minifying strips whitespace and comments but keeps every name, so files still reach each
+other, and the views' inline scripts, through globals, and an error message reads in the source's own words. A sourcemap beside each bundle (`build/<app>.js.map`) points devtools back at the
+`src/` files. Third-party libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or
+linted). Edit `src/` files only — bundles are generated into `public/js/*/build/`.
 
 First-party assets split by type: `public/js/` is JavaScript-only, `public/css/` holds all styles, and media lives in
 `public/images/`, `public/audio/`, and `public/videos/`. Within `public/css/`, files are organized by what they are

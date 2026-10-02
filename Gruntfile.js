@@ -5,6 +5,12 @@ module.exports = function (grunt) {
     pkg: grunt.file.readJSON('package.json'),
 
     concat: {
+      // Each bundle gets a sourcemap that links to its src/ files; the `minify` task carries it through, so devtools
+      // shows the files as written even though the browser runs the minified bundle.
+      options: {
+        sourceMap: true,
+        sourceMapStyle: 'link'
+      },
       dist_audit: {
         src: [
           // Shared deep-link query rules; the live URL (ExploreUrlSync, #5480) writes through them.
@@ -245,7 +251,7 @@ module.exports = function (grunt) {
     watch: {
       gruntfile: {
         files: ['Gruntfile.js'],
-        tasks: ['concat', 'concat_css'],
+        tasks: ['default'],
         options: {
           reload: true
         }
@@ -273,10 +279,7 @@ module.exports = function (grunt) {
           'public/css/components/pano-attribution.css',
           'public/css/components/mission-start-tutorial.css'
         ],
-        tasks: [
-          'concat',
-          'concat_css'
-        ],
+        tasks: ['default'],
         options: {
           interrupt: true
         }
@@ -289,7 +292,37 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-concat-css');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
+  // Names are kept as written (#5645): the bundles reach each other through globals, and errors stay readable.
+  grunt.registerTask('minify', 'Minify the concatenated JS bundles and their sourcemaps.', function () {
+    // Loaded here so a missing esbuild fails this one step, with a hint, once everything else is built.
+    let esbuild;
+    try {
+      esbuild = require('esbuild');
+    } catch {
+      grunt.log.error('esbuild is not installed, so the JS bundles are left unminified. Run `make npm-sync`.');
+      return false;
+    }
+    const done = this.async();
+    const concatTargets = grunt.config('concat');
+    const bundles = Object.keys(concatTargets).filter(name => name !== 'options').map(name => concatTargets[name].dest);
+    esbuild.build({
+      entryPoints: bundles,
+      // Together these write each bundle back over itself.
+      outdir: '.',
+      outbase: '.',
+      allowOverwrite: true,
+      minifyWhitespace: true,
+      minifySyntax: true,
+      // Matches the ES2022 the source is written in, so nothing gets rewritten into older or newer syntax.
+      target: 'es2022',
+      // The map names the src/ files, which the server already serves, rather than carrying a copy of each one.
+      sourcemap: 'linked',
+      sourcesContent: false,
+      logLevel: 'warning'
+    }).then(() => done(), () => done(false));
+  });
+
   // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
-  grunt.registerTask('default', ['concat', 'concat_css']);
-  grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_validate', 'concat:dist_gallery']);
+  // `minify` goes last: only it can fail, and the deploy carries on past a failed grunt.
+  grunt.registerTask('default', ['concat', 'concat_css', 'minify']);
 };

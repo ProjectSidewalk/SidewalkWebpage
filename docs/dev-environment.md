@@ -136,7 +136,7 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    npm start
    ```
 
-   `npm start` runs Grunt (JS/CSS concatenation + watch) in the background, then `sbt ~ run` for continuous
+   `npm start` runs Grunt (JS/CSS bundling + watch) in the background, then `sbt ~ run` for continuous
    recompile. The first compile takes 5+ minutes; later ones are seconds. Use `npm run debug` if you want a JVM
    debug port attached. It's ready when you see `Listening for HTTP on .../9000`.
 
@@ -259,9 +259,11 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — Grunt's `watch` re-concatenates your `src/` edits into `public/js/*/build/`
+- **JavaScript / CSS** — Grunt's `watch` rebuilds your `src/` edits into `public/js/*/build/`
   automatically. **Edit `src/` files only; never edit `build/` output**, and don't run `grunt` by hand. If a new
-  `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
+  `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`. The JS bundles are minified
+  in dev too, so a local run matches what prod serves; devtools follows each bundle's sourcemap, so you still read,
+  search, and set breakpoints in the `src/` files.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
 - **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`
