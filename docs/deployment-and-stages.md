@@ -540,6 +540,18 @@ falls back to its own backoff and still converges, just more slowly. Two checks:
   server for its exact location with `psql -c 'SHOW log_directory;'` (relative to `SHOW data_directory;`) rather than
   hardcoding a path. Members of the project's UW CSE group have command-line read access to it.
 
+## Backups
+
+UW CSE IT backs up the production database every night. The backups alternate between a full copy of the database's
+files (the fastest way to restore everything) and a SQL dump (which can restore a single city or table, and still
+works after a Postgres upgrade). Copies are also kept in a different building and periodically archived off site. The
+test database is not backed up, and the [persistent media directories](#directories-that-must-survive-a-deploy) are
+covered separately.
+
+The details are in the **Backups** section of the README in the private ops repo
+([`lab/sidewalk-tools`](https://gitlab.cs.washington.edu/lab/sidewalk-tools)). To restore from a backup, contact UW
+CSE IT.
+
 ## Runtime configuration contract
 
 At runtime the app is configured almost entirely through **environment variables** (values are injected by the
