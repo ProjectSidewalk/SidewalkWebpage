@@ -14,7 +14,8 @@
  *
  * The mode outlives a page load in its tab: finishing a route or a region sends Explore through a fresh /explore, and
  * running out of missions or reloading does the same on Validate; a person who chose the immersive layout should land
- * back in it rather than in the boxed one.
+ * back in it rather than in the boxed one. On Explore it also travels in the live URL as `immersive=1` (#5480), so a
+ * link shared from the mode opens into it.
  *
  * @example
  * svl.immersiveMode = new ImmersiveMode({
@@ -27,11 +28,13 @@ class ImmersiveMode {
 
   #active = false;
   #restored = false;
+  #restoredSource = null;
   #tracker;
   #relayout;
   #bodyClass;
   #isDisabled;
   #beforeToggle;
+  #onChange;
   #frame;
   #hintReference;
   #activeKey;
@@ -57,13 +60,19 @@ class ImmersiveMode {
    *   given.
    * @param {boolean} [opts.deferRestoreLog] - Leave ImmersiveMode_Restored to a later logRestored() call, for a tool
    *   whose tracker can't attribute a row yet at construction (Validate, before its mission exists).
+   * @param {string} [opts.urlParam] - A query param that, set to 1, asks for the mode at load (Explore's live URL,
+   *   #5480). Not given, only the tab's own stored choice restores it.
+   * @param {() => void} [opts.onChange] - Told after every toggle, once the tool is laid out; the live URL's hook.
    */
-  constructor({ tracker, bodyClass, relayout, isDisabled, beforeToggle, frame, hintReference, deferRestoreLog }) {
+  constructor({
+    tracker, bodyClass, relayout, isDisabled, beforeToggle, frame, hintReference, deferRestoreLog, urlParam, onChange,
+  }) {
     this.#tracker = tracker;
     this.#bodyClass = bodyClass;
     this.#relayout = relayout;
     this.#isDisabled = isDisabled ?? (() => false);
     this.#beforeToggle = beforeToggle ?? (() => {});
+    this.#onChange = onChange ?? (() => {});
     this.#frame = frame ?? null;
     this.#hintReference = hintReference ?? (() => null);
     // sessionStorage, not localStorage: both keys are about this tab. The hint is about this window's exit key, and a
@@ -84,13 +93,18 @@ class ImmersiveMode {
     }
     this.#button.addEventListener('click', () => this.toggle('Click'));
 
-    // Re-enter the mode this tab was in before the page load. Only the classes and the button are set here: the tool
-    // has not been laid out yet, and the first relayout reads isActive(), so the pano is born at window size.
-    if (ImmersiveMode.#readStored(this.#activeKey)) {
+    // A link's ask (#5480) is stored as this sitting's choice, so a later param-less /explore lands back in it. Only
+    // classes and button are set here: the first relayout reads isActive(), so the pano is born at window size.
+    // `source` credits the tab first, since an immersive tab's own URL always says immersive=1.
+    const stored = Boolean(ImmersiveMode.#readStored(this.#activeKey));
+    const askedByUrl = Boolean(urlParam) && new URLSearchParams(window.location.search).get(urlParam) === '1';
+    if (stored || askedByUrl) {
       this.#active = true;
       this.#applyClasses();
       this.#renderButton();
+      if (!stored) ImmersiveMode.#writeStored(this.#activeKey, '1');
       this.#restored = true;
+      this.#restoredSource = stored ? 'session' : 'url';
       if (!deferRestoreLog) this.logRestored();
     }
   }
@@ -101,7 +115,11 @@ class ImmersiveMode {
    */
   logRestored() {
     if (!this.#restored) return;
-    this.#tracker.push('ImmersiveMode_Restored', { innerWidth: window.innerWidth, innerHeight: window.innerHeight });
+    this.#tracker.push('ImmersiveMode_Restored', {
+      source: this.#restoredSource,
+      innerWidth: window.innerWidth,
+      innerHeight: window.innerHeight,
+    });
   }
 
   /**
@@ -124,6 +142,7 @@ class ImmersiveMode {
     ImmersiveMode.#writeStored(this.#activeKey, this.#active ? '1' : null);
     this.#relayout();
     this.#renderButton();
+    this.#onChange();
 
     const notes = { innerWidth: window.innerWidth, innerHeight: window.innerHeight };
     const frame = this.#frame?.();

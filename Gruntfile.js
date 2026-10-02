@@ -7,6 +7,8 @@ module.exports = function (grunt) {
     concat: {
       dist_audit: {
         src: [
+          // Shared deep-link query rules; the live URL (ExploreUrlSync, #5480) writes through them.
+          'public/js/common/urlQuery.js',
           'public/js/explore/src/*.js',
           'public/js/explore/src/*/*.js',
           'public/js/common/ProgressBar.js',

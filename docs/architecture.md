@@ -354,6 +354,17 @@ corresponding Twirl view:
   (#5560, `css/pages/validate/svv-immersive.css`): over the boxed DOM, CSS alone floats the menu column as a dock at
   the bottom-centre and the mission title and progress bar as one pill at the top-centre. Expert Validate stays boxed
   until its edit sections have an immersive placement.
+  Explore's URL follows the labeler (#5480, `src/navigation/ExploreUrlSync.js`): on pano and POV changes, at most one
+  write per 500 ms with the latest state winning, it is rewritten in place (`replaceState`, never a Back entry) with
+  `panoId`, `lat`, `lng`, `heading`, `pitch`, `zoom` and, in immersive mode, `immersive=1` — the same params
+  `ExploreController.explore` reads, so the address bar is always a shareable link to that view. To anyone else the
+  URL names a place, not a session: opening it lands in free exploration there (the `?lat&lng` drop-in of #4451),
+  never in the sharer's mission or route, so `routeId`, `resumeRoute`, `regionId`, `streetEdgeId` and `placeName`
+  are dropped from it once the page is up. To its owner it is still their session: the URL also carries the
+  `missionId` it was written from, which the controller honors only when the requesting user owns that mission,
+  so a refresh, or one of Explore's own reloads (after an hour idle, on a submit failure), resumes the mission at
+  the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
+  path already resumes the user's own open drop-in mission.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
   `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
   display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's

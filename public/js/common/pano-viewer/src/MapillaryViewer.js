@@ -56,10 +56,9 @@ class MapillaryViewer extends PanoViewer {
 
     // Used to differentiate between pano changing from Mapillary's nav arrows vs calling setPano/setLocation.
     this.changingPanoOurselves = undefined;
-
-    // Counts setPano() calls, so that only the newest one clears changingPanoOurselves. The SDK cancels a move that a
-    // newer one supersedes, and the older call finishing first must not hand the newer pano's 'image' event to
-    // updateImageData as though the user had navigated there.
+    // Counts setPano() calls, so that only the newest one clears changingPanoOurselves or announces itself to the
+    // pano_changed listeners (#5480). The SDK cancels a move that a newer one supersedes, and the older call finishing
+    // first must not hand the newer pano's 'image' event to updateImageData as though the user had navigated there.
     this.setPanoSeq = 0;
 
     // A function to update image metadata after a pano change; only used if move happens thru Mapillary nav arrows.
@@ -130,10 +129,12 @@ class MapillaryViewer extends PanoViewer {
       return this._getPanoramaCallback(e.image);
     };
     const panoChangeListener = async (e) => {
-      for (const listener of this.panoChangedListeners) {
-        // Skip the updateImageData() call if it's already happening through setPano/setLocation.
-        if (!this.changingPanoOurselves || listener !== this.updateImageData) await listener(e);
-      }
+      // A move this class started is announced from setPano instead, once the metadata behind getPanoId() and
+      // getPosition() has caught up with the new image; announced from here, on the SDK's own event, a listener
+      // asking for the pano would still be told the previous one (#5480). A user move that cancels an in-flight
+      // setPano goes unannounced, which only viewers with the SDK's own navigation on (not Explore) can hit.
+      if (this.changingPanoOurselves) return;
+      for (const listener of this.panoChangedListeners) await listener(e);
     };
     this.viewer.on('image', panoChangeListener);
 
@@ -725,7 +726,9 @@ class MapillaryViewer extends PanoViewer {
       const image = await PanoViewer._withTimeout(
         this.viewer.moveTo(panoId), MapillaryViewer.PANO_LOAD_TIMEOUT_MS, `Mapillary pano ${panoId}`,
       );
-      return await this._getPanoramaCallback(image);
+      const panoData = await this._getPanoramaCallback(image);
+      if (seq === this.setPanoSeq) this.#announcePanoChanged(image);
+      return panoData;
     } catch (err) {
       // A newer setPano() superseded this one, so there is nothing to classify: the pano was never in question.
       if (err instanceof Error && err.name === 'CancelMapillaryError') throw err;
@@ -738,6 +741,23 @@ class MapillaryViewer extends PanoViewer {
       if (seq === this.setPanoSeq) this.changingPanoOurselves = false;
     }
   };
+
+  /**
+   * Tells the pano_changed listeners about a move this class made, now that the getters answer for the new image
+   * (the SDK's own 'image' event, which fires before they do, was held back for it). Fire-and-forget: the move has
+   * succeeded, so neither a listener's failure nor its slowness (SpeedLimit's waits on a fetch) may fail or delay
+   * it. updateImageData has just run, so it is the one listener not called again.
+   * @param {object} image - The SDK Image the viewer now shows.
+   */
+  #announcePanoChanged(image) {
+    const event = { image, target: this.viewer, type: 'image' };
+    for (const listener of this.panoChangedListeners) {
+      if (listener === this.updateImageData) continue;
+      Promise.resolve()
+        .then(() => listener(event))
+        .catch((err) => console.error('pano_changed listener failed', err));
+    }
+  }
 
   getLinkedPanos = () => {
     return this.currPanoData.getProperty('linkedPanos');

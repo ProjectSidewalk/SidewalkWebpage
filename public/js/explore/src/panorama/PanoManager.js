@@ -337,6 +337,10 @@ class PanoManager {
     if (svl.minimap) svl.minimap.setMinimapLocation(panoLatLng);
     if (svl.peg) svl.peg.setLocation(panoLatLng);
 
+    // Some viewers (Infra3D) fire pano_changed before their metadata names the new pano, so the URL can still read
+    // the old one. Every viewer's metadata is current by now, so ask again from here.
+    svl.urlSync?.request();
+
     // Rerender the canvas.
     if (svl.canvas) {
       svl.canvas.clear();
