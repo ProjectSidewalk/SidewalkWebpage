@@ -521,8 +521,8 @@ corresponding Twirl view:
   as Validate's reveal does.
 
 There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`), and each bundle
-is then minified by esbuild. Minifying leaves top-level names alone, so files still reach each other, and the views'
-inline scripts, through globals. A sourcemap beside each bundle (`build/<app>.js.map`) points devtools back at the
+is then minified by esbuild. Minifying strips whitespace and comments but keeps every name, so files still reach each
+other, and the views' inline scripts, through globals, and an error message reads in the source's own words. A sourcemap beside each bundle (`build/<app>.js.map`) points devtools back at the
 `src/` files. Third-party libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or
 linted). Edit `src/` files only — bundles are generated into `public/js/*/build/`.
 

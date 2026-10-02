@@ -1,7 +1,7 @@
 # Project Sidewalk — Copilot review guidance
 
 Crowdsourced sidewalk-accessibility mapping. Backend: Scala 3.9 + Play 3.0,
-Slick over Postgres/PostGIS. Frontend: vanilla JS (Grunt concat, no transpile),
+Slick over Postgres/PostGIS. Frontend: vanilla JS (Grunt concat + minify, no transpile),
 Twirl views. Schema via Play evolutions. Two i18n systems.
 
 ## Don't duplicate the linters
