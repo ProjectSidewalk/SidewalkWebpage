@@ -78,7 +78,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
+      # Exercises the grunt concat/minify/concat_css asset build (the project's `default` grunt task).
       - name: Build assets
         run: npx grunt
 

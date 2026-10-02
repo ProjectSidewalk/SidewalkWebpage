@@ -65,8 +65,8 @@ These apply across every language in the repo.
 
 ## JavaScript
 
-The frontend is vanilla ES, organized as independent apps that Grunt concatenates (no transpiler, no module system).
-Edit files under `src/`; never edit the generated `build/` bundles. Most rules below are enforced by
+The frontend is vanilla ES, organized as independent apps that Grunt concatenates and minifies (no transpiler, no
+module system). Edit files under `src/`; never edit the generated `build/` bundles. Most rules below are enforced by
 [`eslint.config.js`](../eslint.config.js).
 
 - **Write ES2022 for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals

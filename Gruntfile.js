@@ -1,3 +1,5 @@
+const esbuild = require('esbuild');
+
 module.exports = function (grunt) {
 
   // 1. All configuration goes here
@@ -5,6 +7,12 @@ module.exports = function (grunt) {
     pkg: grunt.file.readJSON('package.json'),
 
     concat: {
+      // Each bundle gets a sourcemap that links to its src/ files; the `minify` task carries it through, so devtools
+      // shows the files as written even though the browser runs the minified bundle.
+      options: {
+        sourceMap: true,
+        sourceMapStyle: 'link'
+      },
       dist_audit: {
         src: [
           // Shared deep-link query rules; the live URL (ExploreUrlSync, #5480) writes through them.
@@ -245,7 +253,7 @@ module.exports = function (grunt) {
     watch: {
       gruntfile: {
         files: ['Gruntfile.js'],
-        tasks: ['concat', 'concat_css'],
+        tasks: ['concat', 'minify', 'concat_css'],
         options: {
           reload: true
         }
@@ -275,6 +283,7 @@ module.exports = function (grunt) {
         ],
         tasks: [
           'concat',
+          'minify',
           'concat_css'
         ],
         options: {
@@ -289,7 +298,28 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-concat-css');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
+  // Shrinks every JS bundle `concat` wrote, in place (#5645). Top-level names are left alone, which is what lets the
+  // bundles keep talking to each other, and to the views' inline scripts, through globals.
+  grunt.registerTask('minify', 'Minify the concatenated JS bundles and their sourcemaps.', function () {
+    const done = this.async();
+    const concatTargets = grunt.config('concat');
+    const bundles = Object.keys(concatTargets).filter(name => name !== 'options').map(name => concatTargets[name].dest);
+    esbuild.build({
+      entryPoints: bundles,
+      // Together these write each bundle back over itself.
+      outdir: '.',
+      outbase: '.',
+      allowOverwrite: true,
+      minify: true,
+      // Matches the ES2022 the source is written in, so nothing gets rewritten into older or newer syntax.
+      target: 'es2022',
+      // The map names the src/ files, which the server already serves, rather than carrying a copy of each one.
+      sourcemap: 'linked',
+      sourcesContent: false,
+      logLevel: 'warning'
+    }).then(() => done(), () => done(false));
+  });
+
   // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
-  grunt.registerTask('default', ['concat', 'concat_css']);
-  grunt.registerTask('dist', ['concat:dist_audit', 'concat:dist_validate', 'concat:dist_gallery']);
+  grunt.registerTask('default', ['concat', 'minify', 'concat_css']);
 };
