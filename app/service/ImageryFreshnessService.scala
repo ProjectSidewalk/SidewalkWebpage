@@ -277,11 +277,11 @@ class ImageryFreshnessServiceImpl @Inject() (
         }
       case PanoSource.Mapillary =>
         config.getOptional[String]("mapillary-access-token") match {
-          // The creator restriction (#5407) is resolved once per run too, so one night's batch is polled under one
-          // rule even if an admin edits the list midway.
+          // The creator sources (#5407) are resolved once per run too, so one night's batch is polled under one
+          // rule even if an admin edits them midway.
           case Some(token) =>
-            mapillarySourceService.getAllowedCreators.flatMap { allowedCreators =>
-              pollStreets("Mapillary")(fetchMapillaryPointObservations(token, allowedCreators))
+            mapillarySourceService.getSources.flatMap { sources =>
+              pollStreets("Mapillary")(fetchMapillaryPointObservations(token, sources))
             }
           case None =>
             Future.failed(
@@ -494,7 +494,9 @@ class ImageryFreshnessServiceImpl @Inject() (
    * that's what the Mapillary pano viewer serves to labelers; captured_at device-clock timestamps are sanity-clamped.
    * On a deployment restricted to chosen creators (#5407) only their panos count, for the same reason: another
    * contributor's newer capture is imagery no labeler here will be shown, so it must not flag a re-audit or make a
-   * no_imagery street look regained.
+   * no_imagery street look regained. A deployment that only prefers creators counts everyone's panos, since any of
+   * them can be shown where no preferred pano is close. The cost is that a stranger's newer capture can prompt a
+   * re-audit of a street whose labelers still see an older preferred pano.
    *
    * Known limitation: the endpoint takes no ordering parameter, so in a densely-covered bbox the newest image can
    * fall outside the first `limit` results and this under-reports the street's newest capture. That direction is
@@ -503,7 +505,7 @@ class ImageryFreshnessServiceImpl @Inject() (
    */
   private def fetchMapillaryPointObservations(
       accessToken: String,
-      allowedCreators: Seq[String]
+      sources: MapillarySourceService.MapillarySources
   )(lat: Double, lng: Double): Future[Option[Seq[PanoObservation]]] = {
     val (dLat, dLng) = bboxHalfWidths(lat, SampleRadiusMeters)
     val bbox         = s"${lng - dLng},${lat - dLat},${lng + dLng},${lat + dLat}"
@@ -518,7 +520,7 @@ class ImageryFreshnessServiceImpl @Inject() (
             Some(images.toSeq.collect {
               case img
                   if (img \ "is_pano").asOpt[Boolean].contains(true) && MapillarySourceService
-                    .creatorAllowed(allowedCreators, (img \ "creator" \ "username").asOpt[String]) =>
+                    .imageUsable(sources, (img \ "creator" \ "username").asOpt[String]) =>
                 val id   = (img \ "id").asOpt[String].getOrElse("")
                 val date = (img \ "captured_at").asOpt[Long].flatMap(ms => parseMapillaryCapturedAt(ms))
                 // The geometry field is a GeoJSON Point, so coordinates come as [lng, lat].

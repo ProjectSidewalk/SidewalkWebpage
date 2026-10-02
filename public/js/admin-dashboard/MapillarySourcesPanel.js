@@ -1,9 +1,10 @@
 /**
- * The Imagery page's "Imagery sources" panel (#5407): the Mapillary creators this deployment is restricted to.
+ * The Imagery page's "Imagery sources" panel (#5407): the Mapillary creators this deployment favours, and whether it
+ * prefers their 360° imagery or uses nothing else.
  *
- * Mapillary mixes imagery from every contributor. Listing creators here restricts the deployment to their 360°
- * imagery -- the list is the backend's (`/adminapi/mapillarySources`), and Explore's viewer and the nightly
- * imagery-age poll both read it from there, so this panel only ever edits and re-reads it.
+ * Mapillary mixes imagery from every contributor. The list and the mode are the backend's
+ * (`/adminapi/mapillarySources`), and Explore's viewer and the nightly imagery-age poll both read them from there, so
+ * this panel only ever edits and re-reads them.
  *
  * The page renders the panel's markup only on a Mapillary deployment, so `init()` is a no-op anywhere else.
  *
@@ -17,10 +18,13 @@ class MapillarySourcesPanel {
   #input;
   #status;
   #error;
+  #modeInputs;
+  #mode;
 
   /**
    * @param {object} params
-   * @param {string} params.sourcesUrl - The sources endpoint; creators are added and removed under `/creators`.
+   * @param {string} params.sourcesUrl - The sources endpoint; creators are added and removed under `/creators`, and the
+   *   mode is set at `/mode`.
    */
   constructor(params) {
     this.#sourcesUrl = params.sourcesUrl;
@@ -38,6 +42,7 @@ class MapillarySourcesPanel {
     this.#input = document.getElementById('imagery-sources-username');
     this.#status = document.getElementById('imagery-sources-status');
     this.#error = document.getElementById('imagery-sources-error');
+    this.#modeInputs = [...document.querySelectorAll('input[name="imagery-sources-mode"]')];
 
     this.#form.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -47,6 +52,7 @@ class MapillarySourcesPanel {
       const button = event.target.closest('button[data-action="remove"]');
       if (button) this.#remove(button);
     });
+    this.#modeInputs.forEach((input) => input.addEventListener('change', () => this.#setMode(input.value)));
     await this.#load();
   }
 
@@ -60,7 +66,10 @@ class MapillarySourcesPanel {
     try {
       const response = await fetch(this.#sourcesUrl, { headers: { Accept: 'application/json' } });
       if (!response.ok) throw new Error(await MapillarySourcesPanel.#errorMessage(response));
-      this.#render((await response.json()).sources || []);
+      const { sources, mode } = await response.json();
+      this.#mode = mode;
+      this.#checkMode(mode);
+      this.#render(sources || []);
     } catch (e) {
       console.error('Imagery sources: load failed.', e);
       this.#list.innerHTML = '';
@@ -69,30 +78,32 @@ class MapillarySourcesPanel {
   }
 
   /**
-   * Renders the creators table, and says in words which of the two states the deployment is in: a reader should not
-   * have to infer "unrestricted" from an empty table.
+   * Renders the creators table, and says in words which state the deployment is in: a reader should not have to
+   * infer "unfiltered" from an empty table, or what the listed creators do from the radio buttons.
    *
    * @param {Array<Record<string, any>>} sources - The endpoint's `sources` rows.
    */
   #render(sources) {
     const creators = sources.filter((source) => source.source_type === 'creator');
     if (creators.length === 0) {
-      this.#status.textContent = 'Unrestricted: imagery from every Mapillary contributor is used.';
+      this.#status.textContent = 'Unfiltered: imagery from every Mapillary contributor is ranked alike.';
       this.#list.innerHTML = '';
       return;
     }
-    const noun = creators.length === 1 ? 'creator' : 'creators';
-    this.#status.textContent = `Restricted to imagery from ${AdminShell.num(creators.length)} ${noun}.`;
+    const count = `${AdminShell.num(creators.length)} ${creators.length === 1 ? 'creator' : 'creators'}`;
+    this.#status.textContent = this.#mode === 'restrict'
+      ? `Restricted to imagery from ${count}.`
+      : `Preferring imagery from ${count}; everyone's imagery is used where theirs isn't nearby.`;
     const rows = creators.map((source) => {
       const username = AdminShell.esc(source.source_value);
       const profileUrl = `https://www.mapillary.com/app/user/${encodeURIComponent(source.source_value)}`;
       return `
         <tr data-username="${username}">
           <td><a href="${profileUrl}" target="_blank" rel="noopener noreferrer">${username}</a></td>
-          <td>${AdminShell.esc(source.added_by ?? 'onboarding tooling')}</td>
+          <td>${AdminShell.esc(source.added_by ?? 'not recorded')}</td>
           <td><time datetime="${AdminShell.esc(source.added_at)}">${AdminShell.dateTime(source.added_at)}</time></td>
           <td><button type="button" class="reopen-queue-btn" data-action="remove"
-            aria-label="Remove ${username} from the allowed creators">Remove</button></td>
+            aria-label="Remove ${username} from the listed creators">Remove</button></td>
         </tr>`;
     }).join('');
     this.#list.innerHTML = AdminShell.tableHtml(['Mapillary creator', 'Added by', 'Added', 'Action'], rows);
@@ -150,9 +161,9 @@ class MapillarySourcesPanel {
     const isLast = this.#list.querySelectorAll('tr[data-username]').length === 1;
     const ok = await ConfirmDialog.confirm({
       message: isLast
-        ? `Remove ${username}? They are the only allowed creator, so this deployment goes back to using imagery from `
-        + 'every Mapillary contributor.'
-        : `Remove ${username}? Explore will stop using their imagery.`,
+        ? `Remove ${username}? They are the only listed creator, so this deployment goes back to ranking imagery from `
+        + 'every Mapillary contributor alike.'
+        : `Remove ${username}? Explore will stop favouring their imagery.`,
       confirmText: 'Remove',
       cancelText: 'Cancel',
     });
@@ -175,6 +186,53 @@ class MapillarySourcesPanel {
   }
 
   /**
+   * Switches the mode. Restrict is confirmed first, because it hides other creators' imagery in Explore at once while
+   * the streets only they covered stay open until the scan is re-run. A failed switch puts the radios back, so they
+   * never show a mode the server didn't take.
+   *
+   * @param {string} mode - 'prefer' or 'restrict', the radio's value.
+   * @returns {Promise<void>}
+   */
+  async #setMode(mode) {
+    if (mode === this.#mode) return;
+    if (mode === 'restrict') {
+      const ok = await ConfirmDialog.confirm({
+        message: 'Restrict to the listed creators? Explore will stop using anyone else\'s imagery. Streets only others '
+          + 'covered stay open until the street imagery scan is re-run with --mapillary-creator.',
+        confirmText: 'Restrict',
+        cancelText: 'Cancel',
+      });
+      if (!ok) {
+        this.#checkMode(this.#mode);
+        return;
+      }
+    }
+    this.#setError('');
+    try {
+      const response = await fetch(`${this.#sourcesUrl}/mode`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ mode }),
+      });
+      if (!response.ok) throw new Error(await MapillarySourcesPanel.#errorMessage(response));
+      await this.#load();
+    } catch (e) {
+      console.error('Imagery sources: mode change failed.', e);
+      this.#setError(`Could not change how listed creators are used: ${e.message}`);
+      this.#checkMode(this.#mode);
+    }
+  }
+
+  /**
+   * @param {string} mode - The mode whose radio should be checked.
+   */
+  #checkMode(mode) {
+    this.#modeInputs.forEach((input) => {
+      input.checked = input.value === mode;
+    });
+  }
+
+  /**
    * @param {string} username - A trimmed username.
    * @returns {string|undefined} The listed spelling if the rendered list already holds it, ignoring case as
    *   Mapillary's username lookup does: the server stores Mapillary's spelling, so "ProfJFray" would only come back as
@@ -194,7 +252,7 @@ class MapillarySourcesPanel {
    * @param {string} username - The listed username.
    */
   #warnAlreadyListed(username) {
-    this.#setError(`"${username}" is already an allowed creator, so nothing changed.`);
+    this.#setError(`"${username}" is already a listed creator, so nothing changed.`);
   }
 
   /**

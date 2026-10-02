@@ -3,7 +3,7 @@ package controllers
 import controllers.base.{CustomBaseController, CustomControllerComponents}
 import formats.json.UserFormats._
 import models.auth.{WithAdmin, WithOwner}
-import models.pano.PanoSource
+import models.pano.{MapillarySourceMode, PanoSource}
 import play.api.Configuration
 import models.street.StreetPriorityForAdmin
 import play.api.libs.json.Json
@@ -382,16 +382,20 @@ class AdminDashboardController @Inject() (
   }
 
   /**
-   * The Imagery page's source-restriction endpoint: the Mapillary creators this deployment is restricted to (#5407).
+   * The Imagery page's sources endpoint: the Mapillary creators this deployment favours and how (#5407).
    *
    * `provider` rides along so the page can explain why the control is absent on a GSV or Panoramax deployment rather
    * than render a list nothing reads.
    */
   def getMapillarySources = cc.securityService.SecuredAction(WithAdmin()) { _ =>
-    mapillarySourceService.getAllowedSources.map { sources =>
+    for {
+      sources <- mapillarySourceService.getListedSources
+      current <- mapillarySourceService.getSources
+    } yield {
       Ok(
         Json.obj(
           "provider" -> configService.getPanoSource.toString,
+          "mode"     -> current.mode.name,
           "sources"  -> sources.map { case (source, addedByUsername) =>
             Json.obj(
               "source_type"  -> source.sourceType,
@@ -406,12 +410,12 @@ class AdminDashboardController @Inject() (
   }
 
   /**
-   * Adds a Mapillary creator to the deployment's allowlist (#5407), which restricts imagery discovery to the listed
-   * creators from the first one on. Body: `{"username": "..."}`.
+   * Adds a Mapillary creator to the deployment's list (#5407), whose imagery is then preferred or exclusive per the
+   * deployment's mode. Body: `{"username": "..."}`.
    *
    * Refused on a deployment whose provider isn't Mapillary (409), for text that can't be a username (400), for a
-   * username Mapillary has no 360 imagery under (422) -- accepting it would restrict the deployment to nothing -- and
-   * when Mapillary can't be asked (502). Only an add that changed something is logged.
+   * username Mapillary has no 360 imagery under (422; see [[MapillarySourceService.NoPanosFound]]), and when
+   * Mapillary can't be asked (502). Only an add that changed something is logged.
    */
   def addMapillaryCreator = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
     def error(message: String) = Json.obj("status" -> "Error", "message" -> message)
@@ -442,8 +446,8 @@ class AdminDashboardController @Inject() (
   }
 
   /**
-   * Removes a Mapillary creator from the deployment's allowlist (#5407). Removing the last one returns the deployment
-   * to unfiltered imagery. Idempotent: removing an unlisted creator succeeds with `removed = 0`, since the admin's
+   * Removes a Mapillary creator from the deployment's list (#5407). Removing the last one returns the deployment to
+   * unfiltered imagery, whatever the mode. Idempotent: removing an unlisted creator succeeds with `removed = 0`, since the admin's
    * goal -- that creator not listed -- holds. Only a removal that changed something is logged.
    */
   def removeMapillaryCreator(username: String) = cc.securityService.SecuredAction(WithAdmin()) { implicit request =>
@@ -456,6 +460,39 @@ class AdminDashboardController @Inject() (
         )
       }
       Ok(Json.obj("status" -> "success", "username" -> username.trim, "removed" -> removed))
+    }
+  }
+
+  /**
+   * Sets how the deployment's listed Mapillary creators apply (#5407). Body: `{"mode": "prefer" | "restrict"}`.
+   *
+   * Restrict hides other creators' imagery at once, but which streets are open only follows after the street imagery
+   * scan is re-run with the same creators (docs/onboarding-a-city.md); the page says so before an admin switches.
+   * Refused on a non-Mapillary deployment (409) and for an unknown mode (400). Logged only when the mode changed.
+   */
+  def setMapillarySourceMode() = cc.securityService.SecuredAction(WithAdmin(), parse.json) { implicit request =>
+    def error(message: String) = Json.obj("status" -> "Error", "message" -> message)
+    val provider               = configService.getPanoSource
+    (request.body \ "mode").asOpt[String].flatMap(MapillarySourceMode.fromName) match {
+      case _ if provider != PanoSource.Mapillary =>
+        Future.successful(Conflict(error(s"This deployment's imagery provider is $provider, not mapillary.")))
+      case None =>
+        val expected = MapillarySourceMode.all.map(_.name).mkString("' or '")
+        Future.successful(BadRequest(error(s"Expected a JSON body with a 'mode' of '$expected'.")))
+      case Some(mode) =>
+        for {
+          previous <- mapillarySourceService.getSources
+          _        <- mapillarySourceService.setMode(mode)
+        } yield {
+          if (previous.mode != mode) {
+            cc.loggingService.insert(
+              request.identity.userId,
+              request.ipAddress,
+              s"SetMapillarySourceMode_Mode=${mode.name}"
+            )
+          }
+          Ok(Json.obj("status" -> "success", "mode" -> mode.name))
+        }
     }
   }
 

@@ -86,6 +86,7 @@ GET     /adminapi/streetPriority                        controllers.AdminDashboa
 GET     /adminapi/mapillarySources                      controllers.AdminDashboardController.getMapillarySources
 POST    /adminapi/mapillarySources/creators             controllers.AdminDashboardController.addMapillaryCreator
 DELETE  /adminapi/mapillarySources/creators/:username   controllers.AdminDashboardController.removeMapillaryCreator(username: String)
+PUT     /adminapi/mapillarySources/mode                 controllers.AdminDashboardController.setMapillarySourceMode()
 GET     /adminapi/team/:teamId                          controllers.AdminDashboardController.getTeamOverview(teamId: Int)
 GET     /adminapi/userSearch                            controllers.AdminDashboardController.searchUsers(query: String ?= "", limit: Int ?= controllers.AdminDashboardController.MaxUserSearchResults)
 GET     /adminapi/auditedStreetTimes                    controllers.AdminController.getAuditedStreetsWithTimestamps

@@ -20,10 +20,10 @@ import scala.concurrent.Await
 import scala.concurrent.duration._
 
 /**
- * Functional tests for the Mapillary source-restriction endpoints (#5407): the admin Imagery page's list of creators
- * a deployment is restricted to.
+ * Functional tests for the Mapillary source endpoints (#5407): the admin Imagery page's list of creators a deployment
+ * favours, and the mode that says whether it prefers them or uses nothing else.
  *
- * Adding a creator changes which imagery every labeler is shown, so the guard is pinned first: a signed-in non-admin
+ * Adding a creator or changing the mode changes which imagery every labeler is shown, so the guard is pinned first: a signed-in non-admin
  * is refused by role (RouteAuthPostureSpec already pins the anonymous posture for every /adminapi route). The rest
  * pins the contract the page reads -- what the list carries, that a removal is idempotent, and every refusal an add
  * can earn before Mapillary is consulted. No test here reaches Mapillary: the one path that does (a plausible
@@ -65,6 +65,10 @@ class MapillarySourcesAdminSpec extends PlaySpec with RoleSession with GuiceOneA
 
   private val SourcesUrl  = "/adminapi/mapillarySources"
   private val CreatorsUrl = s"$SourcesUrl/creators"
+  private val ModeUrl     = s"$SourcesUrl/mode"
+
+  /** The connected city's mode, read straight from the DB so a test can restore what it found. */
+  private def currentMode(): String = run(sql"SELECT mapillary_source_mode FROM config".as[String].head)
 
   private def request(method: String, path: String, cookies: Seq[Cookie], body: Option[JsValue] = None) = {
     val base = FakeRequest(method, path).withHeaders(XHR).withCookies(cookies: _*)
@@ -75,12 +79,12 @@ class MapillarySourcesAdminSpec extends PlaySpec with RoleSession with GuiceOneA
   }
 
   private def seedTestCreator(): Unit = {
-    val _ = run(sqlu"""INSERT INTO mapillary_allowed_source (source_type, source_value)
+    val _ = run(sqlu"""INSERT INTO mapillary_source (source_type, source_value)
                        VALUES ('creator', $TestCreator) ON CONFLICT DO NOTHING""")
   }
 
   private def deleteTestCreator(): Unit = {
-    val _ = run(sqlu"DELETE FROM mapillary_allowed_source WHERE source_value = $TestCreator")
+    val _ = run(sqlu"DELETE FROM mapillary_source WHERE source_value = $TestCreator")
   }
 
   "the Mapillary source endpoints" should {
@@ -88,7 +92,8 @@ class MapillarySourcesAdminSpec extends PlaySpec with RoleSession with GuiceOneA
       Seq(
         (GET, SourcesUrl, None),
         (POST, CreatorsUrl, Some(Json.obj("username" -> TestCreator))),
-        (DELETE, s"$CreatorsUrl/$TestCreator", None)
+        (DELETE, s"$CreatorsUrl/$TestCreator", None),
+        (PUT, ModeUrl, Some(Json.obj("mode" -> "restrict")))
       ).foreach { case (method, path, body) =>
         val resp = request(method, path, visitorCookies, body)
         status(resp) mustBe FORBIDDEN
@@ -98,13 +103,14 @@ class MapillarySourcesAdminSpec extends PlaySpec with RoleSession with GuiceOneA
   }
 
   "GET /adminapi/mapillarySources" should {
-    "name the provider and list each source, with no adder for one the onboarding tooling seeded" in {
+    "name the provider and the mode, and list each source, with no adder for one added by hand in SQL" in {
       seedTestCreator()
       try {
         val resp = request(GET, SourcesUrl, adminCookies)
         status(resp) mustBe OK
         val json = contentAsJson(resp)
         (json \ "provider").as[String] mustBe "mapillary"
+        (json \ "mode").as[String] mustBe currentMode()
         val row = (json \ "sources").as[Seq[JsObject]].find(s => (s \ "source_value").as[String] == TestCreator)
         row.map(s => (s \ "source_type").as[String]) mustBe Some("creator")
         row.flatMap(s => (s \ "added_by").asOpt[String]) mustBe None
@@ -136,7 +142,7 @@ class MapillarySourcesAdminSpec extends PlaySpec with RoleSession with GuiceOneA
         val resp = route(gsvApp, req).get
         status(resp) mustBe CONFLICT
         (contentAsJson(resp) \ "message").as[String] must include("not mapillary")
-        run(sql"SELECT COUNT(*) FROM mapillary_allowed_source WHERE source_value = $TestCreator".as[Int].head) mustBe 0
+        run(sql"SELECT COUNT(*) FROM mapillary_source WHERE source_value = $TestCreator".as[Int].head) mustBe 0
       } finally {
         val _ = Await.result(gsvApp.stop(), 60.seconds)
       }
@@ -155,6 +161,32 @@ class MapillarySourcesAdminSpec extends PlaySpec with RoleSession with GuiceOneA
         status(second) mustBe OK
         (contentAsJson(second) \ "removed").as[Int] mustBe 0
       } finally deleteTestCreator()
+    }
+  }
+
+  "PUT /adminapi/mapillarySources/mode" should {
+    "set each mode, show it on the GET, and be restored after" in {
+      val original = currentMode()
+      try {
+        Seq("restrict", "prefer").foreach { mode =>
+          val resp = request(PUT, ModeUrl, adminCookies, Some(Json.obj("mode" -> mode)))
+          status(resp) mustBe OK
+          contentAsJson(resp) mustBe Json.obj("status" -> "success", "mode" -> mode)
+          (contentAsJson(request(GET, SourcesUrl, adminCookies)) \ "mode").as[String] mustBe mode
+        }
+      } finally {
+        val _ = run(sqlu"UPDATE config SET mapillary_source_mode = $original")
+      }
+    }
+
+    "answer 400 for an unknown or missing mode, and change nothing" in {
+      val before = currentMode()
+      Seq(Json.obj("mode" -> "exclusive"), Json.obj("mode" -> "Prefer"), Json.obj("x" -> 1)).foreach { body =>
+        val resp = request(PUT, ModeUrl, adminCookies, Some(body))
+        status(resp) mustBe BAD_REQUEST
+        (contentAsJson(resp) \ "message").as[String] must include("'prefer' or 'restrict'")
+      }
+      currentMode() mustBe before
     }
   }
 }

@@ -87,9 +87,9 @@ case class CommonPageData(
     prodUrl: String,
     imagerySource: PanoSource,
     imageryAccessToken: String,
-    // Mapillary usernames the deployment's imagery is restricted to (#5407); empty means unfiltered, and it is always
-    // empty for any other provider. Handed to the pano viewer beside the token.
-    mapillaryAllowedCreators: Seq[String],
+    // The Mapillary creators the deployment prefers or is restricted to (#5407); no creators means unfiltered, and it
+    // never has any for another provider. Handed to the pano viewer beside the token.
+    mapillarySources: MapillarySourceService.MapillarySources,
     gMapsApiKey: String,
     mapboxApiKey: String,
     versionId: String,
@@ -2325,10 +2325,10 @@ class ConfigServiceImpl @Inject() (
       envType: String           = config.get[String]("environment-type")
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
       prodUrl: String           = config.get[String](s"city-params.landing-page-url.prod.$cityId")
-      imageryAccess: ImageryAccessToken     <- getImageryAccessToken
-      mapillaryAllowedCreators: Seq[String] <-
-        if (imageryAccess.source == PanoSource.Mapillary) mapillarySourceService.getAllowedCreators
-        else Future.successful(Seq.empty)
+      imageryAccess: ImageryAccessToken                         <- getImageryAccessToken
+      mapillarySources: MapillarySourceService.MapillarySources <-
+        if (imageryAccess.source == PanoSource.Mapillary) mapillarySourceService.getSources
+        else Future.successful(MapillarySourceService.Unfiltered)
       gMapsApiKey: String         = config.get[String]("google-maps-api-key")
       mapboxApiKey: String        = config.get[String]("mapbox-api-key")
       allCityInfo: Seq[CityInfo]  = getAllCityInfo(lang)
@@ -2336,9 +2336,9 @@ class ConfigServiceImpl @Inject() (
       volunteerSupervisor: String = config.get[String]("volunteer-supervisor-name")
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
-        mapillaryAllowedCreators, gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime,
-        version.description, appStartTime, BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo,
-        volunteerEmail, volunteerSupervisor, assetManifestService.assetDigestsJson)
+        mapillarySources, gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description,
+        appStartTime, BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail,
+        volunteerSupervisor, assetManifestService.assetDigestsJson)
     }
   }
 }

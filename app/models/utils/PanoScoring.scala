@@ -13,8 +13,14 @@ import scala.util.Using
  * @param unknownDateAgeYears Age to score a pano whose capture date won't parse as, if the provider has any. Without
  *                            it the age is `NaN`, which loses every comparison, so a box of undated panos would read
  *                            as a street with no imagery at all.
+ * @param preferredCreatorMaxDistanceMeters How close a preferred creator's pano must be to the target to win outright
+ *                            (#5407), for a provider whose deployments can prefer creators (Mapillary).
  */
-case class PanoScoringProvider(maxImageWidthPx: Double, unknownDateAgeYears: Option[Double])
+case class PanoScoringProvider(
+    maxImageWidthPx: Double,
+    unknownDateAgeYears: Option[Double],
+    preferredCreatorMaxDistanceMeters: Option[Double]
+)
 
 /**
  * The weights and decay scales used to rank candidate panoramas at a location.

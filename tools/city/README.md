@@ -70,23 +70,30 @@ The token lives 60 minutes and is refreshed automatically during a long scan. In
 default `--max-qps 10` is in the range of a single busy browser session, so keep it there (or lower) rather than
 raising it.
 
-### Mapillary creators (`--mapillary-creator`)
+### Mapillary creators (`--mapillary-creator`, `--prefer-mapillary-creator`)
 
-Mapillary mixes imagery from every contributor. A deployment restricted to chosen creators (#5407, the "Imagery
-sources" list on `/admin/imagery`) must be scanned under the same restriction, or streets only *other* people drove
-stay open and labelers hit them one at a time as "no imagery":
+Mapillary mixes imagery from every contributor. A deployment can list creators on `/admin/imagery` ("Imagery
+sources", #5407) and either **prefer** them or **restrict** itself to them. Scan to match the deployment's mode:
 
 ```
+# Restrict: only these creators' imagery counts, so streets only other people covered are hidden.
 make check-imagery id=seattle-gopro-wa args="--mapillary --mapillary-creator profjfray"
+
+# Prefer: everyone's imagery counts (so the same streets have imagery as with no creators), but each point records
+# the capture date of the pano Explore will actually show, which is the creator's wherever one is close enough.
+make check-imagery id=seattle-gopro-wa args="--mapillary --prefer-mapillary-creator profjfray"
 ```
 
-The flag is repeatable and the username is spelled exactly as on Mapillary. The API's `creator_username` filter
-takes one username, so each sampled point is asked once per creator and the images are pooled before the capture
-date is ranked. Filtering on Mapillary's side also keeps a densely covered box under the API's response-size limit.
-The restriction is part of the checkpoint's file name, so a restricted scan never resumes an unrestricted one's
-verdicts (or the reverse). A restricted `--sample` preflight likewise gets its own directory
-(`preflight/mapillary_<creator>/`) and its own row in the report, beside the unrestricted `mapillary` row, so the two
-coverage figures can be compared. `make onboard-city` takes the same flag and also seeds the city's allowlist with it.
+Both flags are repeatable, and they can't be combined. The API's `creator_username` filter takes one username, so
+each sampled point is asked once per creator (plus once unscoped when preferring), and the images are pooled, each
+once, before the capture date is ranked. Asking for the creators on Mapillary's side also keeps them in reach where
+a densely covered unscoped box hits the API's response-size limit. The preferred pano wins within
+`preferredCreatorMaxDistanceMeters` of the point (`conf/pano-scoring.json`), the same rule Explore's viewer applies.
+
+The creators and the mode are part of the checkpoint's file name, so a scan never resumes verdicts reached under
+another rule. A `--sample` preflight with creators likewise gets its own directory (`preflight/mapillary_<creator>/`
+or `preflight/mapillary_prefer_<creator>/`) and its own row in the report, beside the plain `mapillary` row, so the
+coverage figures can be compared.
 
 ### Preflight (`--sample`)
 

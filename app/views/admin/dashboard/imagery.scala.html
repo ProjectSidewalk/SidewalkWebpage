@@ -92,12 +92,17 @@
     <p class="ac-note" id="imagery-freshness-note"></p>
   </div>
 
-  @* Only a Mapillary deployment mixes contributors' imagery, so only there is there anything to restrict (#5407). *@
+  @* Only a Mapillary deployment mixes contributors' imagery, so only there is there anything to favour (#5407). *@
   @if(commonData.imagerySource == PanoSource.Mapillary) {
     <div class="page-section" id="imagery-sources-section">
       <h2 class="page-heading" id="imagery-sources">Imagery sources <a href="#imagery-sources" class="permalink">#</a></h2>
-      <p>This deployment runs on Mapillary, which mixes 360° imagery from every contributor. Listing one or more Mapillary usernames here restricts the deployment to <em>their</em> imagery: Explore only places labelers on it and only walks between their panoramas, and the nightly imagery-age poll only counts it. With nobody listed, all public imagery is used. A username is checked against Mapillary before it is accepted, so a typo can't restrict the deployment to nothing.</p>
-      <p class="ac-note">A restriction does not by itself hide the streets the listed creators never drove: those are still offered, and labelers report them as having no imagery one at a time. To hide them up front, re-run the street imagery scan with <code>--mapillary-creator</code> (see <code>scripts/README.md</code>).</p>
+      <p>This deployment runs on Mapillary, which mixes 360° imagery from every contributor. List Mapillary usernames here to favour <em>their</em> imagery. With nobody listed, all public imagery is ranked alike. A username is checked against Mapillary before it is accepted, and stored as Mapillary spells it.</p>
+      <fieldset class="imagery-sources-mode" id="imagery-sources-mode">
+        <legend class="partners-form-label">How listed creators are used</legend>
+        <div><input type="radio" name="imagery-sources-mode" id="imagery-sources-mode-prefer" value="prefer"> <label for="imagery-sources-mode-prefer"><strong>Prefer</strong>: Explore shows a listed creator's panorama wherever one is close to where the labeler is, and everyone's imagery elsewhere. Which streets have imagery doesn't change.</label></div>
+        <div><input type="radio" name="imagery-sources-mode" id="imagery-sources-mode-restrict" value="restrict"> <label for="imagery-sources-mode-restrict"><strong>Restrict</strong>: only listed creators' imagery is used at all, in Explore and in the nightly imagery-age poll.</label></div>
+      </fieldset>
+      <p class="ac-note">Restrict does not by itself hide the streets the listed creators never drove: those are still offered, and labelers report them as having no imagery one at a time. To hide them up front, re-run the street imagery scan with <code>--mapillary-creator</code> (see <code>docs/onboarding-a-city.md</code>).</p>
       <div class="coverage-status" id="imagery-sources-status" role="status" aria-live="polite">Loading imagery sources…</div>
       <div id="imagery-sources-list"></div>
       <form class="imagery-sources-form" id="imagery-sources-form">

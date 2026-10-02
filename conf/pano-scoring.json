@@ -12,7 +12,10 @@
     "The weights sum to 1, so a score is always in [0, 1]. models.utils.PanoScoring parses this into a typed shape,",
     "so a typo fails loudly and this comment never reaches the browser.",
     "Not here on purpose: the milliseconds-per-Julian-year divisor that turns a timestamp delta into an age. It is a",
-    "property of the calendar rather than a tuning knob, so each consumer names it as its own constant."
+    "property of the calendar rather than a tuning knob, so each consumer names it as its own constant.",
+    "preferredCreatorMaxDistanceMeters (Mapillary only, #5407): on a deployment that prefers listed creators, one of",
+    "their panos within this distance of the target wins over any other candidate; past it, everyone's imagery is",
+    "ranked as usual. Kept to the distance decay scale so a preferred pano one street over can't win."
   ],
 
   "distanceWeight": 0.45,
@@ -25,7 +28,8 @@
 
   "providers": {
     "mapillary": {
-      "maxImageWidthPx": 16384
+      "maxImageWidthPx": 16384,
+      "preferredCreatorMaxDistanceMeters": 10
     },
     "panoramax": {
       "maxImageWidthPx": 12288,

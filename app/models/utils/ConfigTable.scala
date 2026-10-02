@@ -70,6 +70,9 @@ class ConfigTableDef(tag: Tag) extends Table[Config](tag, "config") {
   // ConfigService.OfficialContactMaxNameLength / OfficialContactMaxUrlLength.
   def officialContactName: Rep[Option[String]] = column[Option[String]]("official_contact_name")
   def officialContactUrl: Rep[Option[String]]  = column[Option[String]]("official_contact_url")
+  // Left out of `*` like the contact columns. CHECK (IN ('prefer', 'restrict')) in the DB, parsed by
+  // models.pano.MapillarySourceMode.fromName (#5407).
+  def mapillarySourceMode: Rep[String] = column[String]("mapillary_source_mode", O.Default("prefer"))
 
   override def * = (
     openStatus,
@@ -1045,6 +1048,25 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
     config
       .map(c => (c.officialContactName, c.officialContactUrl))
       .update((contact.map(_.name), contact.map(_.url)))
+  }
+
+  /**
+   * How the city's listed Mapillary sources apply (#5407), by name; see models.pano.MapillarySourceMode.
+   *
+   * @return DBIO yielding "prefer" or "restrict".
+   */
+  def getMapillarySourceMode: DBIO[String] = {
+    config.map(_.mapillarySourceMode).result.head
+  }
+
+  /**
+   * Sets how the city's listed Mapillary sources apply.
+   *
+   * @param mode "prefer" or "restrict"; the DB CHECK refuses anything else.
+   * @return     DBIO yielding the number of config rows updated.
+   */
+  def setMapillarySourceMode(mode: String): DBIO[Int] = {
+    config.map(_.mapillarySourceMode).update(mode)
   }
 
   /**

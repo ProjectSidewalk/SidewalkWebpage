@@ -867,19 +867,9 @@ def apply_evolutions(schema, city_id, verify=False, allow_running_apps=False):
         print(f'  One-shot app stopped; :{BOOT_PORT} is free again.')
 
 
-def seed_mapillary_creators(schema, creators):
-    """Restricts the new city to imagery by the given Mapillary creators (#5407): seeds the allowlist the app reads,
-    which /admin/imagery edits from then on. Idempotent, so a rerun re-asserts it harmlessly."""
-    if not creators:
-        return
-    print(f'  Restricting {schema} to Mapillary imagery by: {", ".join(creators)}')
-    docker_db('/opt/scripts/allow-mapillary-creators.sh', schema, ','.join(creators), check=True)
-
-
-def run_imagery_scan(schema, city_id, pano_type, mapillary_creators=()):
+def run_imagery_scan(schema, city_id, pano_type):
     """Scans the exported street endpoints for imagery (in the web container), hides the no-imagery streets, and
-    imports the imagery-age summary. ``mapillary_creators`` restricts a Mapillary scan to those creators' imagery, so
-    the streets they never drove are hidden rather than kept on everyone else's coverage."""
+    imports the imagery-age summary."""
     if pano_type not in PROVIDERS:
         print(f'  No imagery scan for pano type "{pano_type}"; skipping.')
         return
@@ -905,9 +895,8 @@ def run_imagery_scan(schema, city_id, pano_type, mapillary_creators=()):
           'own checkpoint if interrupted)...')
     # A TTY (when we have one to give) lets the scan's tqdm progress bar render; over a plain pipe it auto-hides.
     tty = ['-t'] if sys.stdin.isatty() else []
-    creator_flags = [arg for creator in mapillary_creators for arg in ('--mapillary-creator', creator)]
     subprocess.run(docker_argv(WEB_CONTAINER, 'python3.13', 'tools/city/check_streets_for_imagery.py',
-                               '--city-id', city_id, flag, *creator_flags, flags=('-i', *tty)), check=True)
+                               '--city-id', city_id, flag, flags=('-i', *tty)), check=True)
 
     no_imagery = city_dir / 'streets_with_no_imagery.csv'
     n_hidden = max(0, len(no_imagery.read_text().strip().split('\n')) - 1) if no_imagery.exists() else 0
@@ -991,24 +980,24 @@ def run_street_gradient(schema, city_id, sampler_args=()):
     return 'sampled'
 
 
-# The tables onboarding itself fills, and so the only ones whose rows belong in the dump: the seed rows the clone copies
-# (create-new-schema.sh), the streets and regions the fill derives (fill-new-schema.sh), the scan's imagery-age summary
-# and the status trail of the streets it hides (import-street-imagery.sh, helpers.sh), the sampled street grades
-# (import-street-gradient.sh), the Mapillary creators a city launches restricted to (helpers.sh, #5407), and
-# region_completion, which the app computes from the streets on first use — and recomputes whenever the table is empty,
-# which is why the dump leaves its data out (a QA walk moves audited_distance, which the landing page's completion
-# figure is divided by). Every other table's data stays out of the dump too: a local QA pass fills some (one walk in
-# Explore writes an audit_task and thousands of audit_task_interaction rows), the nightly jobs fill others
-# (intersection, cluster, sidewalk_presence, osm_way, background_job_run — an admin forcing them from /clustering, or an
-# app left running as the city, produces the same), and none of it belongs in a launched city. Naming what is kept
-# rather than what is left out is the point: a denylist has to know every table a QA pass or a job can reach.
-# test_setup_new_city.py pins this list against the scripts' own INSERTs, and pins the evolutions' own seed rows too: an
-# evolution applied at the boot (a donor behind the checkout) that seeded a table outside this list would have that seed
-# silently left out of the dump (#5297).
+# The tables onboarding itself fills, and so the only ones whose rows belong in the dump: the seed rows the clone
+# copies (create-new-schema.sh), the streets and regions the fill derives (fill-new-schema.sh), the scan's
+# imagery-age summary and the status trail of the streets it hides (import-street-imagery.sh, helpers.sh), the
+# sampled street grades (import-street-gradient.sh), and
+# region_completion, which the app computes from the streets on first use — and recomputes whenever the table is
+# empty, which is why the dump leaves its data out (a QA walk moves audited_distance, which the landing page's
+# completion figure is divided by). Every other table's data stays out of the dump too: a local QA pass fills some
+# (one walk in Explore writes an audit_task and thousands of audit_task_interaction rows), the nightly jobs fill
+# others (intersection, cluster, sidewalk_presence, osm_way, background_job_run — an admin forcing them from
+# /clustering, or an app left running as the city, produces the same), and none of it belongs in a launched city.
+# Naming what is kept rather than what is left out is the point: a denylist has to know every table a QA pass or a
+# job can reach. test_setup_new_city.py pins this list against the scripts' own INSERTs, and pins the evolutions'
+# own seed rows too: an evolution applied at the boot (a donor behind the checkout) that seeded a table outside this
+# list would have that seed silently left out of the dump (#5297).
 ONBOARDING_TABLES = frozenset((
     'play_evolutions', 'version', 'tag', 'survey_question', 'survey_option', 'street_edge', 'config',
     'region', 'street_edge_region', 'street_edge_priority', 'osm_way_street_edge',
-    'street_imagery', 'street_edge_status_change', 'street_gradient', 'region_completion', 'mapillary_allowed_source',
+    'street_imagery', 'street_edge_status_change', 'street_gradient', 'region_completion',
 ))
 KEPT_IN_DUMP = ONBOARDING_TABLES - {'region_completion'}
 
@@ -1211,10 +1200,6 @@ def main(argv=None):
                                           '"include:1 2 3", or "exclude:4 5".')
     parser.add_argument('--skip-scan', action='store_true',
                         help='Skip the imagery scan (step 7); a later rerun picks it up.')
-    parser.add_argument('--mapillary-creator', action='append', default=[], metavar='USERNAME',
-                        help='Launch the city restricted to this Mapillary creator\'s imagery (repeatable; Mapillary '
-                             'cities only): the scan counts only their imagery, and the app\'s allowlist is seeded '
-                             'with them. Omit for a city that uses everyone\'s imagery.')
     parser.add_argument('--skip-gradient', action='store_true',
                         help='Skip the street gradient sampling (step 8); a later rerun picks it up.')
     parser.add_argument('--dem-dir', help='Step 8, for a country with no registered elevation model: a directory of '
@@ -1296,8 +1281,6 @@ def main(argv=None):
     pano_type = args.pano_type or prompt(f'Pano viewer type ({", ".join(PROVIDERS)})', 'gsv')
     while pano_type not in PROVIDERS:
         pano_type = prompt(f'Unknown viewer type; one of {", ".join(PROVIDERS)}', 'gsv')
-    if args.mapillary_creator and pano_type != 'mapillary':
-        sys.exit(f'error: --mapillary-creator only applies to a mapillary city, and this one is {pano_type}.')
     status = prompt('Visibility status (public, private)', 'private')
     launch_date = prompt('Launch date (convention: the Friday of the following week)',
                          default_launch_date(date.today()))
@@ -1443,15 +1426,13 @@ def main(argv=None):
                     'unfilled clone: fix the cause and rerun, and the rerun comes straight back to this step.')
 
     print('\nStep 7/9 — imagery scan (finds streets with no street-view imagery and hides them)...')
-    # Seeded whether or not the scan runs: the restriction is the city's configuration, the scan only its consequence.
-    seed_mapillary_creators(schema, args.mapillary_creator)
     if args.skip_scan:
         print('  Skipped (--skip-scan); a rerun without the flag picks it up.')
     elif db_query(f"SELECT count(*) FROM {schema}.street_imagery WHERE data_source = 'imagery_scan'") not in (None,
                                                                                                              '0'):
         print('  A scan was already imported into street_imagery; skipping.')
     else:
-        run_imagery_scan(schema, city_id, pano_type, args.mapillary_creator)
+        run_imagery_scan(schema, city_id, pano_type)
 
     print('\nStep 8/9 — street gradient (samples an elevation model along every street)...')
     if args.skip_gradient:

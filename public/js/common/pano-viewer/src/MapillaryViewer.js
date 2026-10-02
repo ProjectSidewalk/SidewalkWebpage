@@ -39,9 +39,11 @@ class MapillaryViewer extends PanoViewer {
     // Call prefetchLocation() to populate, clearPrefetchCache() to reset between streets.
     this.prefetchedSearches = [];
 
-    // Mapillary usernames this deployment's imagery is restricted to (#5407); empty means unfiltered. The backend
-    // owns the list (the admin Imagery page edits it) and hands it over in panoOptions.allowedCreators.
-    this.allowedCreators = [];
+    // Mapillary usernames this deployment favours (#5407), and whether it only prefers them or uses nothing else. No
+    // creators means unfiltered. The backend owns both (the admin Imagery page edits them) and hands them over in
+    // panoOptions.mapillarySources.
+    this.creators = [];
+    this.restrictToCreators = false;
   }
 
   /**
@@ -77,13 +79,17 @@ class MapillaryViewer extends PanoViewer {
     this.viewer = new mapillary.Viewer(panoOpts);
 
     // Restrict to panoramas -- https://mapillary.github.io/mapillary-js/api/classes/viewer.Viewer/#setfilter
-    // The filter governs the SDK's own navigation graph, so adding the creator restriction here is what keeps the
-    // spatial edges behind getLinkedPanos() (Explore's arrows) and the SDK's arrows inside the allowed imagery; the
-    // location search below is filtered separately, since it queries the Graph API directly.
-    this.allowedCreators = Array.isArray(panoOptions.allowedCreators) ? panoOptions.allowedCreators : [];
+    // The filter governs the SDK's own navigation graph, so adding a creator restriction here is what keeps the
+    // spatial edges behind getLinkedPanos() (Explore's arrows) and the SDK's arrows inside the listed creators'
+    // imagery. A preference can't be expressed as a filter, so under Prefer an arrow can step onto anyone's pano; the
+    // SDK already favours staying in the current sequence, and every location search (moving forward, crumbs, jumps)
+    // applies the preference in #selectBestPano.
+    const sources = panoOptions.mapillarySources ?? {};
+    this.creators = Array.isArray(sources.creators) ? sources.creators : [];
+    this.restrictToCreators = sources.mode === 'restrict' && this.creators.length > 0;
     const sphericalOnly = ['==', 'cameraType', 'spherical'];
-    this.viewer.setFilter(this.allowedCreators.length > 0
-      ? ['all', sphericalOnly, ['in', 'creatorUsername', ...this.allowedCreators]]
+    this.viewer.setFilter(this.restrictToCreators
+      ? ['all', sphericalOnly, ['in', 'creatorUsername', ...this.creators]]
       : sphericalOnly);
 
     // Initialize pano at the desired location.
@@ -543,14 +549,15 @@ class MapillaryViewer extends PanoViewer {
    * @returns {Promise<Array>} Raw pano objects from the Mapillary API.
    */
   #fetchImages = async (centerPoint, radius) => {
-    // The API's creator filter takes one username, so a restricted deployment (#5407) asks once per allowed creator.
-    // Filtering server-side rather than discarding other creators' panos here matters in dense coverage: the
-    // unfiltered box can exceed the API's size limit and shrink (below) until it no longer reaches our imagery.
-    if (this.allowedCreators.length === 0) return this.#fetchImagesBy(centerPoint, radius, null);
-    const perCreator = await Promise.all(
-      this.allowedCreators.map((creator) => this.#fetchImagesBy(centerPoint, radius, creator)),
-    );
-    return perCreator.flat();
+    // The API's creator filter takes one username, so a deployment with listed creators (#5407) asks once per
+    // creator. Asking server-side rather than picking their panos out of the unfiltered answer matters in dense
+    // coverage: the unfiltered box can exceed the API's size limit and shrink (below) until it no longer reaches
+    // them. Restrict asks only for them; Prefer asks for everyone too, since anyone's pano is used where theirs isn't.
+    if (this.creators.length === 0) return this.#fetchImagesBy(centerPoint, radius, null);
+    const requests = this.creators.map((creator) => this.#fetchImagesBy(centerPoint, radius, creator));
+    if (!this.restrictToCreators) requests.push(this.#fetchImagesBy(centerPoint, radius, null));
+    const byId = new Map((await Promise.all(requests)).flat().map((pano) => [pano.id, pano]));
+    return [...byId.values()];
   };
 
   /**
@@ -597,12 +604,25 @@ class MapillaryViewer extends PanoViewer {
    * @returns {?Record<string, any>} The best candidate pano, or null if none are viable.
    */
   #selectBestPano = (panos, excludedPanoIds, excludedTimestamps, centerPoint, currentSequenceId) => {
-    // The creator check repeats what the creator-scoped request already guarantees. It is here so the restriction
+    // The restriction check repeats what the creator-scoped request already guarantees. It is here so the restriction
     // holds for any pano list handed in, whatever fetched it.
-    const candidates = panos.filter(
+    const isListed = (pano) => this.creators.includes(pano.creator?.username);
+    let candidates = panos.filter(
       (pano) => !excludedPanoIds.has(pano.id) && !excludedTimestamps.has(pano.captured_at)
-        && (this.allowedCreators.length === 0 || this.allowedCreators.includes(pano.creator?.username)),
+        && (!this.restrictToCreators || isListed(pano)),
     );
+
+    // Prefer (#5407) is a hard preference within a distance cap rather than a score bonus, which a stranger's pano a
+    // few meters closer could still outweigh: a listed creator's pano close enough to the target wins whatever else
+    // is nearby, and past the cap it gets no help, so it can't pull the user off the street. The scan's
+    // best_pano (check_streets_for_imagery.py) applies the same rule, so the capture date it records is this pano's.
+    if (!this.restrictToCreators && this.creators.length > 0) {
+      const maxMeters = util.pano.scoring('mapillary').preferredCreatorMaxDistanceMeters;
+      const preferred = candidates.filter((pano) => isListed(pano) && turf.distance(
+        centerPoint, turf.point((pano.computed_geometry || pano.geometry).coordinates), { units: 'meters' },
+      ) <= maxMeters);
+      if (preferred.length > 0) candidates = preferred;
+    }
 
     let bestPano = null;
     let bestScore = -1;

@@ -216,7 +216,10 @@ def _load_pano_scoring(provider: str = 'mapillary') -> dict:
     with open(os.path.join(REPO_ROOT, PANO_SCORING_FILE), encoding='utf-8') as handle:
         raw = json.load(handle)
     scoring = {**raw, **raw['providers'][provider]}
-    missing = [key for key in (*PANO_SCORING_KEYS, 'maxImageWidthPx') if key not in scoring]
+    # Only Mapillary deployments can prefer creators (#5407), so only its block carries the preference's cap.
+    required = (*PANO_SCORING_KEYS, 'maxImageWidthPx', *(('preferredCreatorMaxDistanceMeters',)
+                                                         if provider == 'mapillary' else ()))
+    missing = [key for key in required if key not in scoring]
     if missing:
         raise KeyError('%s is missing %s for %s' % (PANO_SCORING_FILE, ', '.join(missing), provider))
     return scoring
@@ -554,10 +557,12 @@ def merge_mapillary_responses(responses: list[dict]) -> dict:
     """
     Combines the responses for one point into the single response the rest of the scan reads.
 
-    A scan restricted with ``--mapillary-creator`` asks once per creator, because the API's ``creator_username``
-    filter takes one username; an unrestricted scan asks once, and that response passes through untouched. The images
-    are pooled so the point's capture date is ranked across every allowed creator, exactly as the viewer ranks them.
-    An error response is returned as-is, so ``mapillary_has_imagery`` still decides what each error code means.
+    A scan with listed creators asks once per creator, because the API's ``creator_username`` filter takes one
+    username, and a preferring scan (``--prefer-mapillary-creator``) asks for everyone too; a scan with no creators
+    asks once, and that response passes through untouched. The images are pooled, once each (a preferring scan's
+    unscoped answer repeats the creators' images), so the point's capture date is ranked across all of them exactly as
+    the viewer ranks them. An error response is returned as-is, so ``mapillary_has_imagery`` still decides what each
+    error code means.
 
     Args:
         responses: One decoded Mapillary images response per request made at the point (at least one).
@@ -567,12 +572,13 @@ def merge_mapillary_responses(responses: list[dict]) -> dict:
     """
     if len(responses) == 1:
         return responses[0]
-    images = []
+    images = {}
     for response in responses:
         if 'error' in response:
             return response
-        images.extend(response.get('data', []))
-    return {'data': images}
+        for image in response.get('data', []):
+            images.setdefault(image.get('id'), image)
+    return {'data': list(images.values())}
 
 
 def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | None:
@@ -633,7 +639,19 @@ def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | No
             + PANO_SCORING['recencyWeight'] * recency_score)
 
 
-def best_pano(response_json: dict, lat: float, lng: float, now_ms: float) -> dict | None:
+def _image_distance_m(image: dict, lat: float, lng: float) -> float | None:
+    """
+    Geodesic distance from a sampled point to a Mapillary image, by the position the viewer uses (its refined
+    ``computed_geometry``, else the raw one), or ``None`` when the image has no position.
+    """
+    coordinates = ((image.get('computed_geometry') or image.get('geometry')) or {}).get('coordinates') or ()
+    if len(coordinates) < 2:
+        return None
+    return geodesic((lat, lng), (coordinates[1], coordinates[0])).meters
+
+
+def best_pano(response_json: dict, lat: float, lng: float, now_ms: float,
+              preferred_creators: Collection[str] = ()) -> dict | None:
     """
     Picks the image in a Mapillary images response that the viewer would display at the sampled point.
 
@@ -642,6 +660,9 @@ def best_pano(response_json: dict, lat: float, lng: float, now_ms: float) -> dic
         lat:           Latitude of the sampled point.
         lng:           Longitude of the sampled point.
         now_ms:        Current time as a Unix epoch timestamp in milliseconds, for the recency term.
+        preferred_creators: Mapillary usernames a preferring deployment favours (#5407). When one of their images is
+                       within ``preferredCreatorMaxDistanceMeters`` of the point, only theirs are ranked, as
+                       ``MapillaryViewer.#selectBestPano`` does, so the date recorded is the one Explore shows.
 
     Returns:
         The highest-scoring entry of ``data``, or ``None`` if nothing in the response is scorable (an empty ``data``
@@ -650,12 +671,19 @@ def best_pano(response_json: dict, lat: float, lng: float, now_ms: float) -> dic
     scored = [(score, image) for score, image
               in ((score_pano(image, lat, lng, now_ms), image) for image in response_json.get('data', []))
               if score is not None]
+    if preferred_creators:
+        cap_m = PANO_SCORING['preferredCreatorMaxDistanceMeters']
+        preferred = [(score, image) for score, image in scored
+                     if (image.get('creator') or {}).get('username') in preferred_creators
+                     and _image_distance_m(image, lat, lng) <= cap_m]
+        scored = preferred or scored
     if not scored:
         return None
     return max(scored, key=lambda pair: pair[0])[1]
 
 
-def mapillary_pano_info(response_json: dict, lat: float, lng: float, now_ms: float | None = None) -> PanoInfo:
+def mapillary_pano_info(response_json: dict, lat: float, lng: float, now_ms: float | None = None,
+                        preferred_creators: Collection[str] = ()) -> PanoInfo:
     """
     Interprets a Mapillary images response for the point it was queried at.
 
@@ -672,6 +700,7 @@ def mapillary_pano_info(response_json: dict, lat: float, lng: float, now_ms: flo
         lat:           Latitude of the sampled point.
         lng:           Longitude of the sampled point.
         now_ms:        Current time as a Unix epoch timestamp in milliseconds; defaults to now.
+        preferred_creators: Usernames a preferring deployment favours; see ``best_pano``.
 
     Returns:
         A ``PanoInfo``: imagery presence, plus the winning image's capture date and position when one was scorable.
@@ -682,7 +711,7 @@ def mapillary_pano_info(response_json: dict, lat: float, lng: float, now_ms: flo
     if now_ms is None:
         now_ms = datetime.now(tz=timezone.utc).timestamp() * 1000
     has_imagery = mapillary_has_imagery(response_json)
-    winner = best_pano(response_json, lat, lng, now_ms)
+    winner = best_pano(response_json, lat, lng, now_ms, preferred_creators)
     if winner is None:
         return PanoInfo(has_imagery, None)
     capture_date = datetime.fromtimestamp(winner['captured_at'] / 1000, tz=timezone.utc).date().isoformat()
@@ -1134,15 +1163,16 @@ def within_search_radius(info: PanoInfo, lat: float, lng: float, radius_km: floa
 
 def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[..., dict], gsv_url: str,
                      mapillary_urls: list[str], radius_km: float, infra3d: Infra3dScan | None = None,
-                     street_geom: LineString | None = None) -> PanoInfo:
+                     street_geom: LineString | None = None, preferred_creators: Collection[str] = ()) -> PanoInfo:
     """
     Queries the configured provider at one point (via ``fetch``) and returns its ``PanoInfo``.
 
     ``radius_km`` is the Mapillary/Panoramax bbox half-extent / Infra3d max frame distance. GSV bakes its radius into
     ``gsv_url`` but treats it as a hint, so its answer is also held to ``radius_km`` of the point or of ``street_geom``
     here; the bbox providers filter server-side and Infra3d checks its own radius. ``infra3d`` is the ``Infra3dScan``
-    (token holder + campaign scope), needed only for that provider. ``mapillary_urls`` holds one base URL per allowed
-    creator, or the single unrestricted one.
+    (token holder + campaign scope), needed only for that provider. ``mapillary_urls`` holds one base URL per listed
+    creator (plus the unscoped one when preferring), or the single unscoped one; ``preferred_creators`` are the
+    creators a preferring scan favours (see ``best_pano``).
     """
     if api == 'GSV':
         info = _pano_info(api, fetch(gsv_url + '&location=' + str(lat) + ',' + str(lng)), lat, lng)
@@ -1152,17 +1182,18 @@ def _point_pano_info(api: str, lat: float, lng: float, fetch: Callable[..., dict
     if api == 'Infra3d':
         return _infra3d_point_pano_info(infra3d, lat, lng, radius_km, fetch)
     responses = [fetch(_mapillary_bbox_url(url, lat, lng, radius_km)) for url in mapillary_urls]
-    return _pano_info(api, merge_mapillary_responses(responses), lat, lng)
+    return mapillary_pano_info(merge_mapillary_responses(responses), lat, lng, preferred_creators=preferred_creators)
 
 
 def _check_endpoints(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url: str,
                      mapillary_urls: list[str], radius_km: float = SEARCH_RADIUS_KM,
-                     infra3d: Infra3dScan | None = None) -> tuple[PanoInfo, PanoInfo]:
+                     infra3d: Infra3dScan | None = None,
+                     preferred_creators: Collection[str] = ()) -> tuple[PanoInfo, PanoInfo]:
     """Checks both of a street's endpoints; returns ``(first_pano_info, second_pano_info)``."""
     first = _point_pano_info(api, street.y1, street.x1, fetch, gsv_url, mapillary_urls, radius_km, infra3d,
-                             street['geom'])
+                             street['geom'], preferred_creators)
     second = _point_pano_info(api, street.y2, street.x2, fetch, gsv_url, mapillary_urls, radius_km, infra3d,
-                              street['geom'])
+                              street['geom'], preferred_creators)
     return first, second
 
 
@@ -1183,7 +1214,8 @@ def summarize_dates(dates: Collection[str]) -> tuple[str | None, str | None, int
 
 def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_url: str,
                    mapillary_urls: list[str], radius_km: float = SEARCH_RADIUS_KM, infra3d: Infra3dScan | None = None,
-                   cross_track_limit_m: float | None = None, points: list | None = None) -> StreetResult:
+                   cross_track_limit_m: float | None = None, points: list | None = None,
+                   preferred_creators: Collection[str] = ()) -> StreetResult:
     """
     Checks one street for imagery and returns its outcome (pure of any file/checkpoint I/O, so it is pool-safe).
 
@@ -1198,13 +1230,15 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
         api:                 ``'GSV'``, ``'Mapillary'``, ``'Panoramax'``, or ``'Infra3d'``.
         fetch:               A ``fetch(url, **kwargs) -> json`` (typically from ``make_fetch``, with retry).
         gsv_url:             GSV metadata base URL with the search radius baked in (GSV only).
-        mapillary_urls:      Mapillary images base URLs, one per allowed creator or the single unrestricted one
-                             (Mapillary only).
+        mapillary_urls:      Mapillary images base URLs: one per listed creator (plus the unscoped one when
+                             preferring), or the single unscoped one (Mapillary only).
         radius_km:           How far from a sampled point a pano still counts as imagery for it.
         infra3d:             An ``Infra3dScan`` (token holder + campaign scope) (Infra3d only).
         cross_track_limit_m: How far off the centerline a pano may sit and still count (see ``pano_counts``), or
                              ``None`` for no limit.
         points:              If given, a ``PointRecord`` is appended for every point the walk visits.
+        preferred_creators:  Mapillary usernames a preferring scan favours when ranking each point (see
+                             ``best_pano``). Presence is unaffected, since anyone's imagery counts.
 
     Returns:
         A ``StreetResult`` with outcome ``NO_IMAGERY`` / ``HAS_IMAGERY`` / ``FAILED`` and, for settled streets, the
@@ -1237,7 +1271,8 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
                                           counted, info.capture_date, radius_m, limit_m))
             return counted
 
-        first, second = _check_endpoints(street, api, fetch, gsv_url, mapillary_urls, radius_km, infra3d)
+        first, second = _check_endpoints(street, api, fetch, gsv_url, mapillary_urls, radius_km, infra3d,
+                                         preferred_creators)
         first_counts = settle(street.y1, street.x1, first, True)
         second_counts = settle(street.y2, street.x2, second, True)
         coords = list(street['sample_geom'].coords)
@@ -1263,7 +1298,7 @@ def process_street(street: pd.Series, api: str, fetch: Callable[..., dict], gsv_
                     yield known
                     continue
                 info = _point_pano_info(api, coord[1], coord[0], fetch, gsv_url, mapillary_urls, radius_km, infra3d,
-                                        geom)
+                                        geom, preferred_creators)
                 yield settle(coord[1], coord[0], info, False)
 
         no_imagery = street_has_no_imagery(not first_counts, not second_counts, has_imagery_stream(),
@@ -1561,9 +1596,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('--campaign', action='append', default=[], metavar='UID',
                         help='Infra3d campaign to count imagery from (repeatable). Required only when the tenant '
                              'holds more than one campaign; the scan lists them if so.')
-    parser.add_argument('--mapillary-creator', action='append', default=[], metavar='USERNAME',
-                        help='Count only this Mapillary creator\'s imagery (repeatable), for a deployment restricted '
-                             'to chosen creators. Spelled exactly as on Mapillary. Omit to count everyone\'s.')
+    creators = parser.add_mutually_exclusive_group()
+    creators.add_argument('--mapillary-creator', action='append', default=[], metavar='USERNAME',
+                          help='Count only this Mapillary creator\'s imagery (repeatable), for a deployment restricted '
+                               'to chosen creators. Omit to count everyone\'s.')
+    creators.add_argument('--prefer-mapillary-creator', action='append', default=[], metavar='USERNAME',
+                          help='Count everyone\'s Mapillary imagery but record the capture date of this '
+                               'creator\'s pano wherever one is close enough to win in Explore (repeatable), for a '
+                               'deployment that prefers chosen creators.')
     parser.add_argument('--workers', type=int, default=DEFAULT_WORKERS,
                         help='Number of streets to check concurrently (default: %(default)s).')
     parser.add_argument('--max-qps', type=float, default=DEFAULT_MAX_QPS,
@@ -1589,8 +1629,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.sample is not None and args.sample <= 0:
         parser.error('--sample needs a positive number of streets (bare --sample checks %d).' % DEFAULT_SAMPLE)
-    if args.mapillary_creator and not args.mapillary:
-        parser.error('--mapillary-creator only applies to a --mapillary scan.')
+    if (args.mapillary_creator or args.prefer_mapillary_creator) and not args.mapillary:
+        parser.error('--mapillary-creator and --prefer-mapillary-creator only apply to a --mapillary scan.')
     # GSV takes whole metres, so the radius is held to whole metres everywhere; otherwise 12.5 would query Google at
     # 12 m while within_search_radius held its answers to 12.5 m.
     if args.search_radius_m < 1 or args.search_radius_m != int(args.search_radius_m):
@@ -1645,12 +1685,15 @@ def main(argv: list[str] | None = None) -> int:
 
     # Resolve every data file against the repo root so the script works regardless of the working directory. A
     # preflight keeps the same file names under its own preflight/<scope>/ dir.
-    # The creator restriction is part of the scope that names the checkpoint (and point log, the other file the
-    # templates name by provider), because a checkpoint settles streets for good: resuming an everyone's-imagery
-    # checkpoint under a restriction, or the reverse, would keep verdicts reached under the other rule. A restricted
-    # preflight gets its own dir for the same reason, which also gives it its own row in the report.
-    creators = sorted(set(args.mapillary_creator))
-    scope = '_'.join([api.lower()] + [quote(creator, safe='') for creator in creators])
+    # The creators and how they apply are part of the scope that names the checkpoint (and point log, the other file
+    # the templates name by provider), because a checkpoint settles streets for good: resuming an everyone's-imagery
+    # checkpoint under a restriction, or the reverse, would keep verdicts reached under the other rule, and a
+    # preferring checkpoint's dates were ranked under another. A restricted or preferring preflight gets its own dir
+    # for the same reason, which also gives it its own row in the report.
+    preferring = bool(args.prefer_mapillary_creator)
+    creators = sorted(set(args.mapillary_creator or args.prefer_mapillary_creator))
+    scope = '_'.join([api.lower()] + (['prefer'] if preferring else [])
+                     + [quote(creator, safe='') for creator in creators])
     input_path = os.path.join(REPO_ROOT, INPUT_FILE.format(args.city_id))
     if args.sample:
         scan_dir = os.path.join(REPO_ROOT, PREFLIGHT_DIR.format(args.city_id, scope))
@@ -1691,20 +1734,27 @@ def main(argv: list[str] | None = None) -> int:
     # fields= is what makes each image carry the attributes score_pano ranks on; a default response holds only `id`.
     # Same request count either way, so the ranking is free. Both geometry fields are requested because the viewer
     # prefers computed_geometry (Mapillary's refined position) and falls back to the raw one.
-    mapillary_fields = 'captured_at,geometry,computed_geometry,width'
+    # A preferring scan also needs each image's creator, to know which candidates are preferred.
+    mapillary_fields = 'captured_at,geometry,computed_geometry,width' + (',creator' if preferring else '')
     mapillary_url = 'https://graph.mapillary.com/images?is_pano=true&fields=%s&access_token=%s' % (mapillary_fields,
                                                                                                   api_key)
-    # creator_username takes one username, so a restricted scan carries one base URL per creator and asks each in
-    # turn. Filtering on Mapillary's side rather than ours also keeps a dense box under the API's response-size limit.
-    mapillary_urls = [mapillary_url + '&creator_username=' + quote(creator) for creator in creators] or [mapillary_url]
-    if creators:
+    # creator_username takes one username, so a scan with creators carries one base URL per creator and asks each in
+    # turn. Filtering on Mapillary's side rather than ours also keeps a dense box under the API's response-size limit,
+    # which is why a preferring scan asks for its creators separately rather than picking them out of the unscoped box.
+    mapillary_urls = [mapillary_url + '&creator_username=' + quote(creator) for creator in creators]
+    if preferring or not creators:
+        mapillary_urls.append(mapillary_url)
+    preferred_creators = tuple(creators) if preferring else ()
+    if preferring:
+        print('Counting everyone\'s Mapillary imagery, preferring: %s' % ', '.join(creators))
+    elif creators:
         print('Counting only Mapillary imagery by: %s' % ', '.join(creators))
     checkpoint_lock = threading.Lock()
 
     def check_and_record(street: pd.Series) -> StreetResult:
         points = [] if args.point_log else None
         result = process_street(street, api, fetch, gsv_url, mapillary_urls, args.search_radius_m / 1000, infra3d,
-                                cross_track_limit_m, points)
+                                cross_track_limit_m, points, preferred_creators)
         with checkpoint_lock:  # process_street does no file I/O; only the file appends need serializing.
             # A failed street is rescanned from scratch, so its partial walk would only be logged twice.
             if points is not None and result.outcome != FAILED:

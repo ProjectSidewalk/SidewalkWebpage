@@ -469,12 +469,16 @@ Supported languages: en, es, de, nl, zh-TW, pt-BR, fr, plus regional English var
   `application.test.conf`. Local dev runs with `application.local.conf`.
 - Per-city settings live in `conf/cityparams.conf`, selected via the `SIDEWALK_CITY_ID` env var.
 - A setting an admin should be able to change without a deploy lives in the city's schema instead, behind an admin
-  page. The Mapillary **imagery sources** are the example (#5407): `mapillary_allowed_source` lists the creators a
-  deployment's imagery is restricted to (empty = unrestricted), edited on `/admin/imagery` and read through
-  `MapillarySourceService.getAllowedCreators` by the three places that *discover* Mapillary panos — Explore's viewer
-  (`MapillaryViewer`, via `CommonPageData.mapillaryAllowedCreators`), the nightly imagery-age poll, and, as a
-  command-line flag because it runs before the schema exists, the street imagery scan. Code that opens a pano by id
-  (Validate, label popups, the existence check) is deliberately unfiltered: that pano was already chosen.
+  page. The Mapillary **imagery sources** are the example (#5407): `mapillary_source` lists the creators a deployment
+  favours (empty = unfiltered), and `config.mapillary_source_mode` says how. Under **Prefer** (the default) a listed
+  creator's pano wins wherever one is within `preferredCreatorMaxDistanceMeters` (`conf/pano-scoring.json`) of the
+  target and everyone's imagery is ranked as usual elsewhere, so which streets have imagery is unchanged; under
+  **Restrict** only their imagery is used. Both are edited on `/admin/imagery` and read through
+  `MapillarySourceService.getSources` by the places that *discover* Mapillary panos: Explore's viewer
+  (`MapillaryViewer`, via `CommonPageData.mapillarySources`), the nightly imagery-age poll (which applies only
+  Restrict), and, as command-line flags because it runs before the schema exists, the street imagery scan
+  (`--mapillary-creator` / `--prefer-mapillary-creator`). Code that opens a pano by id (Validate, label popups, the
+  existence check) is deliberately unfiltered: that pano was already chosen.
 - Secrets/keys (Mapbox, Google Maps, Gemini, Mapillary, Infra3d, Silhouette signer/crypter, DB credentials) come
   from environment variables; local values live in a `docker-compose.override.yml`.
 

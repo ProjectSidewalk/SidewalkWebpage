@@ -286,6 +286,39 @@ def test_best_pano_returns_the_highest_scorer():
     assert cs.best_pano({'data': [far, close]}, _LAT, _LNG, _NOW_MS)['id'] == 'close'
 
 
+_CAP_M = cs.PANO_SCORING['preferredCreatorMaxDistanceMeters']
+
+
+def _by(username, **image_kwargs):
+    """An `_image` credited to a Mapillary creator, as a preferring scan requests them (fields=...,creator)."""
+    return _image(creator={'username': username, 'id': username + '-id'}, **image_kwargs)
+
+
+def test_best_pano_prefers_a_listed_creator_inside_the_cap_over_a_better_scorer():
+    # The stranger's pano is on the point, newer and sharper, so it outscores ours on every term.
+    stranger = _by('stranger', image_id='stranger', captured_at=_NOW_MS, width=16384)
+    ours = _by('profjfray', image_id='ours', captured_at=_JUN_2019_MS, lat=_lat_north_of_origin(_CAP_M * 0.8))
+    response = {'data': [stranger, ours]}
+    assert cs.best_pano(response, _LAT, _LNG, _NOW_MS)['id'] == 'stranger'
+    assert cs.best_pano(response, _LAT, _LNG, _NOW_MS, ('profjfray',))['id'] == 'ours'
+
+
+def test_best_pano_gives_a_listed_creator_no_help_past_the_cap():
+    stranger = _by('stranger', image_id='stranger')
+    ours = _by('profjfray', image_id='ours', lat=_lat_north_of_origin(_CAP_M * 1.5))
+    assert cs.best_pano({'data': [stranger, ours]}, _LAT, _LNG, _NOW_MS, ('profjfray',))['id'] == 'stranger'
+
+
+def test_best_pano_ranks_everyone_when_no_listed_creator_is_present():
+    response = {'data': [_by('stranger', image_id='a'), _image(image_id='b', lat=_lat_north_of_origin(5))]}
+    assert cs.best_pano(response, _LAT, _LNG, _NOW_MS, ('profjfray',))['id'] == 'a'
+
+
+def test_image_distance_is_none_without_a_position():
+    assert cs._image_distance_m({'geometry': None}, _LAT, _LNG) is None
+    assert cs._image_distance_m(_image(lat=_lat_north_of_origin(7)), _LAT, _LNG) == pytest.approx(7, abs=0.01)
+
+
 def test_best_pano_none_when_nothing_is_scorable():
     assert cs.best_pano({'data': []}, _LAT, _LNG, _NOW_MS) is None
     assert cs.best_pano({'error': {'code': 100, 'message': 'too many'}}, _LAT, _LNG, _NOW_MS) is None
@@ -1280,6 +1313,12 @@ def test_merge_mapillary_responses_pools_images_across_creators():
     assert [image['id'] for image in merged['data']] == [1, 2]
 
 
+def test_merge_mapillary_responses_counts_an_image_once_when_two_answers_repeat_it():
+    # A preferring scan's unscoped answer repeats the creator's images; each must be ranked once, not twice.
+    responses = [{'data': [_image(image_id=1)]}, {'data': [_image(image_id=1), _image(image_id=2)]}]
+    assert [image['id'] for image in cs.merge_mapillary_responses(responses)['data']] == [1, 2]
+
+
 def test_merge_mapillary_responses_surfaces_an_error_response():
     # One creator's request erroring must not be papered over by another creator's images: mapillary_has_imagery
     # decides what each error code means, so it has to see the error.
@@ -1342,6 +1381,43 @@ def test_main_restricted_preflight_gets_its_own_report_row(monkeypatch, tmp_path
 def test_main_rejects_a_mapillary_creator_on_another_provider():
     with pytest.raises(SystemExit):
         cs.main(['--city-id', _CITY, '--gsv', '--mapillary-creator', 'alice'])
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', _CITY, '--gsv', '--prefer-mapillary-creator', 'alice'])
+
+
+def test_main_refuses_to_both_prefer_and_restrict():
+    with pytest.raises(SystemExit):
+        cs.main(['--city-id', _CITY, '--mapillary', '--mapillary-creator', 'alice',
+                 '--prefer-mapillary-creator', 'bob'])
+
+
+def test_main_prefer_flag_asks_for_everyone_and_each_creator_and_records_the_preferred_date(
+        monkeypatch, tmp_path, capsys):
+    _setup(monkeypatch, tmp_path, [(100, 1, _LINE_60)], env_var='MAPILLARY_ACCESS_TOKEN')
+    urls = []
+
+    def fake_get_json(url):
+        urls.append(url)
+        # Both panos sit on the queried point (the box's centre): a newer stranger's in everyone's box, an older one
+        # of ours in both boxes, as a real unscoped answer would repeat it.
+        west, south, east, north = (float(v) for v in url.split('bbox=')[1].split('&')[0].split(','))
+        at_point = {'lat': (south + north) / 2, 'lng': (west + east) / 2}
+        ours = _by('alice', image_id='ours', captured_at=_JUN_2019_MS, **at_point)
+        if 'creator_username=' in url:
+            return {'data': [ours]}
+        return {'data': [_by('stranger', image_id='theirs', captured_at=_JUL_2021_MS, **at_point), ours]}
+
+    monkeypatch.setattr(cs, '_get_json', fake_get_json)
+    assert cs.main(['--city-id', _CITY, '--mapillary', '--prefer-mapillary-creator', 'alice',
+                    '--max-qps', '1000']) == 0
+    assert 'preferring: alice' in capsys.readouterr().out
+    # Both kinds of request were made, and every one asked for the creator field the preference reads.
+    assert any('creator_username=alice' in url for url in urls) and any('creator_username' not in url for url in urls)
+    assert all('creator' in url.split('fields=')[1].split('&')[0].split(',') for url in urls)
+    # The street has imagery, and the date recorded is our 2019 pano's, the one Explore would show, not the newer one.
+    assert _output(tmp_path).empty
+    assert _summary(tmp_path).loc[100, 'newest_capture'] == '2019-06-08'
+    assert (tmp_path / cs.CHECKPOINT_FILE.format(_CITY, 'mapillary_prefer_alice')).is_file()
 
 
 def test_main_panoramax_branch_needs_no_key(monkeypatch, tmp_path, capsys):

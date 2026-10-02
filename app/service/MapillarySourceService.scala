@@ -1,11 +1,11 @@
 package service
 
 import com.google.inject.ImplementedBy
-import models.pano.{MapillaryAllowedSource, MapillaryAllowedSourceTable}
-import models.utils.MyPostgresProfile
+import models.pano.{MapillarySource, MapillarySourceMode, MapillarySourceTable}
+import models.utils.{ConfigTable, MyPostgresProfile}
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json.{JsArray, JsValue, Json}
+import play.api.libs.json.{JsArray, JsValue, Json, Writes}
 import play.api.libs.ws.WSClient
 import play.api.{Configuration, Logger}
 
@@ -18,34 +18,56 @@ import scala.util.Try
 trait MapillarySourceService {
 
   /**
-   * The Mapillary usernames this deployment is restricted to (#5407). Empty means unfiltered.
+   * The deployment's Mapillary sources and how they apply (#5407). No creators means unfiltered, whatever the mode.
    *
    * The one accessor every consumer reads: the pages that hand a pano viewer its options, and the nightly
-   * imagery-age poll. Cached, because it is read on every page load and changes only when an admin edits the list.
+   * imagery-age poll. Cached, because it is read on every page load and changes only when an admin edits it.
    */
-  def getAllowedCreators: Future[Seq[String]]
+  def getSources: Future[MapillarySourceService.MapillarySources]
 
   /**
-   * Every allowed source paired with the username of the admin who added it (None when the onboarding tooling seeded
-   * it), for the admin list. Uncached: the admin page is rarely loaded, and must show a just-made edit.
+   * Every listed source paired with the username of the admin who added it (None for a row added by hand in SQL),
+   * for the admin list. Uncached: the admin page is rarely loaded, and must show a just-made edit.
    */
-  def getAllowedSources: Future[Seq[(MapillaryAllowedSource, Option[String])]]
+  def getListedSources: Future[Seq[(MapillarySource, Option[String])]]
 
   /**
-   * Adds a creator to the allowlist after checking Mapillary actually has 360 imagery under that username.
+   * Adds a creator to the list after checking Mapillary actually has 360 imagery under that username.
    *
    * @param username    What the admin typed; trimmed here.
    * @param adminUserId The admin adding it.
    */
   def addCreator(username: String, adminUserId: String): Future[MapillarySourceService.AddOutcome]
 
-  /** Removes a creator from the allowlist, returning the number of rows deleted (0 or 1). */
+  /** Removes a creator from the list, returning the number of rows deleted (0 or 1). */
   def removeCreator(username: String): Future[Int]
+
+  /** Sets how the listed sources apply, returning the number of config rows updated (1). */
+  def setMode(mode: MapillarySourceMode): Future[Int]
 }
 
 object MapillarySourceService {
 
-  /** Outcome of an admin's attempt to add a creator to the allowlist. */
+  /**
+   * A deployment's Mapillary sources as the pano viewer and the nightly poll consume them.
+   *
+   * @param mode     How the creators apply.
+   * @param creators Listed Mapillary usernames, as Mapillary spells them. Empty means unfiltered.
+   */
+  case class MapillarySources(mode: MapillarySourceMode, creators: Seq[String]) {
+
+    /** Whether any other creator's imagery is excluded outright, rather than merely outranked. */
+    def restricts: Boolean = mode == MapillarySourceMode.Restrict && creators.nonEmpty
+  }
+
+  /** What a deployment with no listed creators has, and what every non-Mapillary deployment reports. */
+  val Unfiltered: MapillarySources = MapillarySources(MapillarySourceMode.Prefer, Seq.empty)
+
+  /** The shape MapillaryViewer reads from `panoOptions.mapillarySources`: `{"mode": "prefer", "creators": [...]}`. */
+  implicit val mapillarySourcesWrites: Writes[MapillarySources] = (sources: MapillarySources) =>
+    Json.obj("mode" -> sources.mode.name, "creators" -> sources.creators)
+
+  /** Outcome of an admin's attempt to add a creator to the list. */
   sealed trait AddOutcome
 
   /**
@@ -66,8 +88,9 @@ object MapillarySourceService {
   case object InvalidUsername extends AddOutcome
 
   /**
-   * Mapillary answered, and has no 360 imagery under that username. Refused rather than accepted, because a listed
-   * creator with no panos restricts the deployment to nothing: every street would read as having no imagery.
+   * Mapillary answered, and has no 360 imagery under that username. Refused rather than accepted: under Restrict a
+   * listed creator with no panos restricts the deployment to nothing, so every street would read as having no
+   * imagery, and under Prefer it is almost certainly a typo for someone who does have imagery.
    */
   case object NoPanosFound extends AddOutcome
 
@@ -82,25 +105,26 @@ object MapillarySourceService {
   def isPlausibleUsername(username: String): Boolean = username.matches("[A-Za-z0-9_.-]{1,60}")
 
   /**
-   * Whether a Mapillary image passes the creator restriction.
+   * Whether a Mapillary image may be used at all. Only Restrict excludes anything; under Prefer every image stays a
+   * candidate and the listed creators merely outrank others nearby, which the pano viewer and scan decide.
    *
    * Pure, so the rule is unit-testable without an HTTP stub, and shared so the nightly poll can't drift from it.
-   * An empty allowlist admits everything: that is the unfiltered state every deployment starts in. Usernames compare
-   * exactly, as Mapillary's own `creator_username` filter does.
+   * Usernames compare exactly: images carry Mapillary's spelling, and the list stores that same spelling
+   * ([[canonicalCreator]]).
    *
-   * @param allowedCreators The deployment's allowlist.
+   * @param sources         The deployment's sources.
    * @param creatorUsername The image's `creator.username`, or None when the API response carried no creator.
    */
-  def creatorAllowed(allowedCreators: Seq[String], creatorUsername: Option[String]): Boolean =
-    allowedCreators.isEmpty || creatorUsername.exists(allowedCreators.contains)
+  def imageUsable(sources: MapillarySources, creatorUsername: Option[String]): Boolean =
+    !sources.restricts || creatorUsername.exists(sources.creators.contains)
 
   /**
    * Mapillary's own spelling of the creator behind a Graph API `/images` response.
    *
    * The API's `creator_username` filter ignores case, but each image's `creator.username` carries the canonical
-   * spelling, and that is what [[creatorAllowed]] and the viewer's SDK filter compare against exactly. Storing what
-   * the admin typed instead would let "ProfJFray" pass verification and then match none of profjfray's images,
-   * restricting the deployment to nothing.
+   * spelling, and that is what [[imageUsable]], the viewer's preference and its SDK filter compare against exactly.
+   * Storing what the admin typed instead would let "ProfJFray" pass verification and then match none of profjfray's
+   * images, preferring nothing or restricting the deployment to nothing.
    *
    * @param response A parsed `/images` response requested with `fields=id,creator`.
    * @return Right(Some(username)) for the first image's creator, Right(None) when there are no images, and Left(why)
@@ -117,7 +141,7 @@ object MapillarySourceService {
         }
     }
 
-  private[service] val AllowedCreatorsCacheKey: String = "mapillaryAllowedCreators"
+  private[service] val SourcesCacheKey: String = "mapillarySources"
 }
 
 @Singleton
@@ -126,7 +150,8 @@ class MapillarySourceServiceImpl @Inject() (
     config: Configuration,
     cacheApi: AsyncCacheApi,
     ws: WSClient,
-    mapillaryAllowedSourceTable: MapillaryAllowedSourceTable
+    mapillarySourceTable: MapillarySourceTable,
+    configTable: ConfigTable
 )(implicit ec: ExecutionContext)
     extends MapillarySourceService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -134,15 +159,23 @@ class MapillarySourceServiceImpl @Inject() (
 
   private val logger = Logger(this.getClass)
 
-  def getAllowedCreators: Future[Seq[String]] = {
-    cacheApi.getOrElseUpdate[Seq[String]](AllowedCreatorsCacheKey) {
-      db.run(mapillaryAllowedSourceTable.all)
-        .map(_.filter(_.sourceType == MapillaryAllowedSource.Creator).map(_.sourceValue))
+  def getSources: Future[MapillarySources] = {
+    cacheApi.getOrElseUpdate[MapillarySources](SourcesCacheKey) {
+      db.run(for {
+        modeName <- configTable.getMapillarySourceMode
+        sources  <- mapillarySourceTable.all
+      } yield {
+        // The DB CHECK admits only known names, so a miss here is a code/schema mismatch worth failing loudly on.
+        val mode = MapillarySourceMode
+          .fromName(modeName)
+          .getOrElse(throw new IllegalStateException(s"Unknown config.mapillary_source_mode '$modeName'."))
+        MapillarySources(mode, sources.filter(_.sourceType == MapillarySource.Creator).map(_.sourceValue))
+      })
     }
   }
 
-  def getAllowedSources: Future[Seq[(MapillaryAllowedSource, Option[String])]] =
-    db.run(mapillaryAllowedSourceTable.allWithAdder)
+  def getListedSources: Future[Seq[(MapillarySource, Option[String])]] =
+    db.run(mapillarySourceTable.allWithAdder)
 
   def addCreator(username: String, adminUserId: String): Future[AddOutcome] = {
     val trimmed = username.trim
@@ -151,8 +184,8 @@ class MapillarySourceServiceImpl @Inject() (
       fetchCanonicalCreator(trimmed).flatMap {
         case Right(Some(canonical)) =>
           for {
-            inserted <- db.run(mapillaryAllowedSourceTable.addCreator(canonical, adminUserId))
-            _        <- cacheApi.remove(AllowedCreatorsCacheKey)
+            inserted <- db.run(mapillarySourceTable.addCreator(canonical, adminUserId))
+            _        <- cacheApi.remove(SourcesCacheKey)
           } yield if (inserted > 0) Added(canonical) else AlreadyListed(canonical)
         case Right(None)  => Future.successful(NoPanosFound)
         case Left(reason) => Future.successful(VerificationFailed(reason))
@@ -162,9 +195,16 @@ class MapillarySourceServiceImpl @Inject() (
 
   def removeCreator(username: String): Future[Int] = {
     for {
-      deleted <- db.run(mapillaryAllowedSourceTable.removeCreator(username.trim))
-      _       <- cacheApi.remove(AllowedCreatorsCacheKey)
+      deleted <- db.run(mapillarySourceTable.removeCreator(username.trim))
+      _       <- cacheApi.remove(SourcesCacheKey)
     } yield deleted
+  }
+
+  def setMode(mode: MapillarySourceMode): Future[Int] = {
+    for {
+      updated <- db.run(configTable.setMapillarySourceMode(mode.name))
+      _       <- cacheApi.remove(SourcesCacheKey)
+    } yield updated
   }
 
   /**
