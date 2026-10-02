@@ -253,7 +253,7 @@ module.exports = function (grunt) {
     watch: {
       gruntfile: {
         files: ['Gruntfile.js'],
-        tasks: ['concat', 'minify', 'concat_css'],
+        tasks: ['concat', 'concat_css', 'minify'],
         options: {
           reload: true
         }
@@ -283,8 +283,8 @@ module.exports = function (grunt) {
         ],
         tasks: [
           'concat',
-          'minify',
-          'concat_css'
+          'concat_css',
+          'minify'
         ],
         options: {
           interrupt: true
@@ -321,5 +321,6 @@ module.exports = function (grunt) {
   });
 
   // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
-  grunt.registerTask('default', ['concat', 'minify', 'concat_css']);
+  // `minify` goes last: only it can fail (a syntax error), and the deploy carries on past a failed grunt.
+  grunt.registerTask('default', ['concat', 'concat_css', 'minify']);
 };

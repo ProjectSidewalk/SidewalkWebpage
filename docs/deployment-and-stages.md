@@ -332,7 +332,7 @@ A deploy builds the app essentially the same way you do locally, in this order:
    system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
    out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.11 and is installed by hand
    into the 3.13 on whichever user account runs those scripts.
-2. `npm install`, then **Grunt** to concatenate and minify the frontend bundles. Each JS bundle gets a sourcemap
+2. `npm ci`, then **Grunt** to concatenate and minify the frontend bundles. Each JS bundle gets a sourcemap
    beside it (`build/<app>.js.map`), served like any other asset, so a stack trace from prod still reads in terms of
    the `src/` files once devtools is open. Browsers don't fetch a sourcemap otherwise.
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
