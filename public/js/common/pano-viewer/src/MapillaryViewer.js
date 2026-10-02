@@ -131,7 +131,8 @@ class MapillaryViewer extends PanoViewer {
     const panoChangeListener = async (e) => {
       // A move this class started is announced from setPano instead, once the metadata behind getPanoId() and
       // getPosition() has caught up with the new image; announced from here, on the SDK's own event, a listener
-      // asking for the pano would still be told the previous one (#5480).
+      // asking for the pano would still be told the previous one (#5480). A user move that cancels an in-flight
+      // setPano goes unannounced, which only viewers with the SDK's own navigation on (not Explore) can hit.
       if (this.changingPanoOurselves) return;
       for (const listener of this.panoChangedListeners) await listener(e);
     };
