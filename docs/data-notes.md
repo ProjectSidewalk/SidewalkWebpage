@@ -11,11 +11,10 @@ impact, add a dated, version-tagged entry here (newest first) so future analysts
 
 ### Visit-only anonymous accounts were deleted (#5612)
 
-Until v11.8.0, opening any page made an anonymous account. The ones that never did anything and never opened a tool
-(Explore, Validate, the dashboard, …), roughly 5.3 million, were deleted with
-`tools/one-off/5612-delete-visit-only-anon-accounts.sql`. Their `AnonAutoSignUp` rows are gone from
-`webpage_activity`, and their other rows there have no `user_id`. Counts of anonymous accounts or anonymous sign-ups
-for any period before that are far lower than reports made earlier show.
+Until v11.8.0, opening any page made an anonymous account. The roughly 5.3 million that never did anything and never
+opened a tool (Explore, Validate, …) were deleted. Their `AnonAutoSignUp` rows are gone from `webpage_activity` and
+their other rows there have no `user_id`, so counts of anonymous accounts and sign-ups for earlier periods are far
+lower than older reports show.
 
 ### `webpage_activity.user_id` can be empty (#4643)
 

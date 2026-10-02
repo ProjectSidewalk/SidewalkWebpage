@@ -38,10 +38,9 @@ docker exec -i projectsidewalk-db psql "dbname=sidewalk options=--search_path=si
 it, and finish with `COMMIT` or `ROLLBACK` yourself. The runner passes no psql variables: to apply the merge across
 cities, send it a copy with `\set apply 1` in place of `\set apply 0`.
 
-The runner opens every connection read-only, which blocks temp tables as well as writes, so a script that needs
-either starts with `SET default_transaction_read_only = off;`. `5612-delete-visit-only-anon-accounts.sql` has it;
-`5532-backfill-user-created-at.sql` was written before the runner did this, so add the line to the copy you send.
-`5612` also has to run as a database superuser, and its header says why.
+The runner opens connections read-only, which blocks temp tables too, so a script that needs either starts with
+`SET default_transaction_read_only = off;`. `5532-backfill-user-created-at.sql` predates that: add the line to the
+copy you send. `5612-delete-visit-only-anon-accounts.sql` must run as a database superuser; its header says why.
 
 ## `experiments/`
 
