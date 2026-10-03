@@ -192,7 +192,6 @@
              data-mapbox-api-key="@commonData.mapboxApiKey"
              data-mapbox-js='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'
              data-mapbox-language-js='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'
-             data-ps-map-js='@assets.path("js/ps-map/build/ps-map.js")'
              data-mapbox-css='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'></div>
         <p class="about-where-links">@Html(Messages("about.where.links"))</p>
       </div>
@@ -329,7 +328,6 @@
   </main>
 
   @* Hydrates the data-live-stat spans with live deployment numbers from /v3/api/aggregateStats. *@
-  <script src='@assets.path("js/common/aggregateStats.js")'></script>
   @* Hydrates team, publications, and grants from the Makeability Lab API; logs CTA clicks. *@
-  <script src='@assets.path("js/aboutPage.js")'></script>
+  <script type="module" src='@assets.path("build/js/about.js")'></script>
 }

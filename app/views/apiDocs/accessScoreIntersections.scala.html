@@ -10,11 +10,6 @@
 @intersectionTypeList = @{intersectionTypes.mkString(", ")}
 
 @content = {
-  <script>
-    // Set data attributes for API information. Used by apiDocs.js (e.g. the download buttons) to build API calls.
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'accessScoreIntersections');
-  </script>
 
   <div class="page-section" id="access-score-intersections-intro-section">
     <h1 class="page-heading" id="access-score-intersections-api">AccessScore: Intersections API <a href="#access-score-intersections-api" class="permalink">#</a></h1>
@@ -42,15 +37,7 @@
        set: the language plugin and the preview both read the mapboxgl global as they parse. *@
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
-    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
-    <script src='@assets.path("js/api-docs/accessScoreIntersectionsPreview.js")' defer></script>
-    <script>
-      // Waits on appManager so the map's language control can read the page's locale out of i18next.
-      window.appManager.ready(function() {
-        AccessScoreIntersectionsPreview.setup({ mapboxApiKey: '@commonData.mapboxApiKey' }).init();
-      });
-    </script>
+    <script type="module" id="page-entry" data-mapbox-api-key="@commonData.mapboxApiKey" src='@assets.path("build/js/api-docs/accessScoreIntersections.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">

@@ -62,15 +62,7 @@
     </div>
   </div>
 
-  <script src="@assets.path("js/admin-dashboard/HumanVsAiPage.js")"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', function () {
-      new HumanVsAiPage({
-        statsUrl: '/adminapi/humanVsAi',
-        labelTypesUrl: '/v3/api/labelTypes'
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/humansVsAi.js")'></script>
 }
 
 @common.main(commonData, "Sidewalk - Humans vs AI") {

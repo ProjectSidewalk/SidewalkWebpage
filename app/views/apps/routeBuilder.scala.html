@@ -19,7 +19,6 @@
 
   <link rel="stylesheet" href='@assets.path("css/components/toast.css")'>
   <link rel="stylesheet" href='@assets.path("css/pages/route-builder.css")'>
-  <script src='@assets.path("js/route-builder/build/route-builder.js")'></script>
 
   @* Full-viewport map. Routing is by clicking points on the map; the floating planner card (left), the on-map CTA,
      and the always-visible legend overlay it. The planner card's data-state (empty|building) drives which sections
@@ -143,18 +142,8 @@
     </div>
   </div>
 
-  <script>
-    // Gets all translations before loading the map.
-    window.appManager.ready(async function () {
-      // All three requests go out at once; the map only needs its params, and each layer draws when its data lands.
-      const loadRegions = util.fetchJson('/regions');
-      const loadStreets = util.fetchJson('/contribution/streets/all?filterLowQuality=true');
-      const mapParams = await util.fetchJson('/cityMapParams');
-      const routeBuilder = new RouteBuilder('@commonData.mapboxApiKey', mapParams, @(!isAnon), @minutesPer100m);
-      loadRegions.then((regionData) => routeBuilder.renderRegions(regionData))
-        .catch((err) => console.error('Failed to load regions:', err));
-      loadStreets.then((streetData) => routeBuilder.renderStreets(streetData))
-        .catch((err) => console.error('Failed to load streets:', err));
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/routeBuilder.js")'
+          data-mapbox-api-key="@commonData.mapboxApiKey"
+          data-signed-in="@(!isAnon)"
+          data-minutes-per-100m="@minutesPer100m"></script>
 }

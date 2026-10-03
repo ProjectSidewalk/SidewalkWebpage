@@ -90,7 +90,7 @@ async function startPage(language, { countryId = 'usa', fetch, missing = [], loc
             roundToTwentyFive: (n) => Math.round(n / 25) * 25,
         },
     };
-    loadGlobalScript('public/js/common/AppManager.js');
+    loadGlobalScript('frontend/js/common/AppManager.js');
     await window.appManager._setupI18next({
         language, supportedLanguages: LANGUAGES, localeFiles, defaultNS: 'common', namespaces: NAMESPACES, countryId,
         unitWords: UNIT_WORDS,

@@ -359,20 +359,9 @@
 
   <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/AcrossCitiesPage.js")"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', function () {
-      new AcrossCitiesPage({
-        scorecardsUrl: '/adminapi/cityScorecards',
-        citiesUrl: '/v3/api/cities',
-        funnelsUrl: '/adminapi/cityFunnels',
-        trafficUrl: '/adminapi/cityTraffic',
-        storiesPath: '@routes.AdminDashboardController.stories.url',
-        mapboxToken: '@commonData.mapboxApiKey'
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/acrossCities.js")'
+          data-mapbox-token="@commonData.mapboxApiKey"
+          data-stories-path="@routes.AdminDashboardController.stories.url"></script>
 }
 
 @common.main(commonData, "Sidewalk - Across Cities") {

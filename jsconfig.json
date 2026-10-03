@@ -1,5 +1,5 @@
-// Type information for public/js/, read by editors (hover, go-to-definition) and by `make lint-js-types` (#5278).
-// Checking stays off here: one config over all of public/js/ would flag the class names Explore, Validate, and Gallery
+// Type information for frontend/js/, read by editors (hover, go-to-definition) and by `make lint-js-types` (#5278).
+// Checking stays off here: one config over all of frontend/js/ would flag the class names Explore, Validate, and Gallery
 // reuse; tools/lint/js-types/tsconfig.*.json turn it on per bundle.
 {
   "compilerOptions": {
@@ -15,6 +15,5 @@
     // Library checks stay on so a mistake in tools/lint/js-types/globals.d.ts is reported instead of becoming `any`.
     "skipLibCheck": false
   },
-  "include": ["public/js/**/*.js", "tools/lint/js-types/*.d.ts"],
-  "exclude": ["public/js/**/build/**"]
+  "include": ["frontend/js/**/*.js", "tools/lint/js-types/*.d.ts"]
 }

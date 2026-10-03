@@ -19,11 +19,8 @@
  * compares `new.target` against.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
 
 // utilities.js builds a Bowser parser at load time; nothing here consults it.
 window.bowser = {
@@ -32,9 +29,9 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js');
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+window.util = realUtil();
+loadGlobalScript('frontend/js/common/utilitiesMath.js');
+loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 
 const util = window.util;
 const pano = util.pano;
@@ -79,18 +76,7 @@ describe('util.pano.vFovToHFov / hFovToVFov', () => {
  * @returns {{PanoViewer: Function, MapillaryViewer: Function}}
  */
 function loadViewers() {
-    const panoViewerSrc = fs.readFileSync(path.join(SRC_DIR, 'PanoViewer.js'), 'utf8');
-    const mapillarySrc = fs.readFileSync(path.join(SRC_DIR, 'MapillaryViewer.js'), 'utf8');
-    window.eval(`
-        class GsvViewer {}
-        class Infra3dViewer {}
-        class PannellumViewer {}
-        class PanoramaxViewer {}
-        ${panoViewerSrc}
-        ${mapillarySrc}
-        window.PanoViewer = PanoViewer;
-        window.MapillaryViewer = MapillaryViewer;
-    `);
+            Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
     return { PanoViewer: window.PanoViewer, MapillaryViewer: window.MapillaryViewer };
 }
 

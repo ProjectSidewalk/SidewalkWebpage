@@ -39,7 +39,7 @@ through its own frame, viewport-independent (below).
 
 | path | code | when | stamps |
 |---|---|---|---|
-| Client | `Label#toLatLng` (`public/js/explore/src/label/Label.js`), destination via the vendored turf | every crowd label, at placement, before submit | `approximation3` |
+| Client | `Label#toLatLng` (`frontend/js/explore/label/Label.js`), destination via the vendored turf | every crowd label, at placement, before submit | `approximation3` |
 | Server | `PanoDataService.toLatLng` (`app/service/PanoDataService.scala`) | AI label submissions (`ExploreService`) | `approximation3` |
 | SQL | evolution 352 (a statement-for-statement port), 366 for the rows 179 had skipped | one-off backfills of stored rows | `approximation3` |
 

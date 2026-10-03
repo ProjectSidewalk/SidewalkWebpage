@@ -1,0 +1,359 @@
+/**
+ * Shared Mapbox GL helpers for the API docs preview maps.
+ *
+ * Building the map, layering chips and legends over it, and reading GeoJSON properties back off a rendered feature
+ * live here. Data fetching, colors, and popup content belong to each page's own `*Preview.js`.
+ *
+ * @requires mapbox-gl, mapbox-gl-language, i18next, ScoreRamp (js/common/scoreRamp.js)
+ */
+
+import { ScoreRamp } from '../common/scoreRamp.js';
+import { util } from '../common/utilities.js';
+import { ApiDocsTheme } from './apiDocsTheme.js';
+
+export const ApiDocsMap = (function () {
+  // Our own Studio style, as used by RouteBuilder and the route thumbnails.
+  const STYLE_PROJECT_SIDEWALK = 'mapbox://styles/projectsidewalk/cloov4big002801rc0qw75w5g?optimize=true';
+
+  // The preview layers are small dots over a busy street grid, so the basemap is knocked back behind them.
+  const BASEMAP_DIM_OPACITY = 0.5;
+
+  /**
+   * Builds a Mapbox map in the given container and resolves once it has loaded.
+   *
+   * @param {object} options - Map options.
+   * @param {HTMLElement|string} options.container - Map container element, or its element ID.
+   * @param {string} options.mapboxApiKey - Mapbox access token.
+   * @param {string} [options.style=STYLE_PROJECT_SIDEWALK] - Mapbox style URL.
+   * @param {mapboxgl.LngLatBounds} [options.bounds] - Bounds to frame the initial view on.
+   * @param {number} [options.fitPadding] - Pixels of padding left around `bounds`. Defaults to a share of the map's
+   *                                        width, capped at 75.
+   * @param {Array<number>} [options.center] - Initial center as [lng, lat]. Used only when `bounds` is omitted.
+   * @param {number} [options.zoom] - Initial zoom. Used only when `bounds` is omitted.
+   * @param {number} [options.dim=BASEMAP_DIM_OPACITY] - Basemap dimming, 0 (none) to 1 (black).
+   * @returns {Promise<mapboxgl.Map>} Resolves with the Mapbox map once it has loaded and been dimmed.
+   */
+  function create(options) {
+    mapboxgl.accessToken = options.mapboxApiKey;
+    const element = typeof options.container === 'string'
+      ? document.getElementById(options.container)
+      : options.container;
+    // A share of the map's own width, because a flat 75px is breathing room on a desktop map and most of a phone.
+    const fitPadding = options.fitPadding ?? Math.min(75, Math.round(element.clientWidth * 0.12));
+
+    const map = new mapboxgl.Map({
+      container: element,
+      style: options.style || STYLE_PROJECT_SIDEWALK,
+      // Framed at construction rather than by a fitBounds() after load, so the reader never sees the map land
+      // somewhere else first and then jump. Mapbox fits at fractional zoom, so the padding is the only slack.
+      ...(options.bounds
+        ? { bounds: options.bounds, fitBoundsOptions: { padding: fitPadding } }
+        : { center: options.center, zoom: options.zoom }),
+      // These maps sit mid-article, so wheel-zoom would swallow the scroll of anyone reading past them.
+      scrollZoom: false,
+      // The touch counterpart: two fingers to pan instead of one.
+      cooperativeGestures: true,
+      locale: { 'TouchPanBlocker.Message': i18next.t('common:map-two-finger-pan') },
+      // Bottom-left is the legend's, so the logo joins the attribution on the right.
+      logoPosition: 'bottom-right',
+      attributionControl: true,
+    });
+    map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-left');
+    map.addControl(new MapboxLanguage({ defaultLanguage: i18next.t('common:mapbox-language-code') }));
+
+    return new Promise((resolve, reject) => {
+      // A bad token or an unreachable style is reported through `error`, and `load` never follows it. Without this
+      // the promise would hang and the caller's catch would never run, leaving the reader a blank frame.
+      const fail = (e) => reject(e.error ?? new Error('The map failed to load.'));
+      map.once('error', fail);
+
+      const finish = () => {
+        map.off('error', fail);
+        // Dimmed before the promise resolves, so every layer a caller adds afterwards lands on top of the scrim.
+        const dim = options.dim ?? BASEMAP_DIM_OPACITY;
+        if (dim > 0) {
+          // A `background` layer covers the viewport at any zoom.
+          map.addLayer({
+            id: 'basemap-dim',
+            type: 'background',
+            paint: { 'background-color': ApiDocsTheme.color('--color-neutral-black'), 'background-opacity': dim },
+          });
+        }
+        resolve(map);
+      };
+      if (map.loaded()) finish();
+      else map.on('load', finish);
+    });
+  }
+
+  /**
+   * Layers an element over the map in one of its four corners, returns it so callers can fill/refill as data arrives.
+   *
+   * @param {mapboxgl.Map} map - The Mapbox map.
+   * @param {string} position - 'top-left', 'top-right', 'bottom-left', or 'bottom-right'.
+   * @param {string} className - Class(es) to style the overlay with.
+   * @returns {HTMLElement} The overlay element, already added to the map.
+   */
+  function addOverlay(map, position, className) {
+    const element = document.createElement('div');
+    // mapboxgl-ctrl gives the overlay the same margins and pointer handling as the map's built-in controls.
+    element.className = `mapboxgl-ctrl ${className}`;
+    map.addControl({ onAdd: () => element, onRemove: () => element.remove() }, position);
+    return element;
+  }
+
+  /**
+   * Opens a popup carrying the shared `.map-popup` styling.
+   *
+   * @param {mapboxgl.Map} map - The Mapbox map.
+   * @param {object|Array<number>} lngLat - Where to anchor the popup.
+   * @param {string} html - The popup's contents.
+   * @param {{modifier?: string, [popupOption: string]: any}} [options] - Extra `mapboxgl.Popup` options, e.g.
+   *   `closeButton: false` for a hover preview; `modifier` is a class added beside `map-popup`, for a popup styled
+   *   apart from the rest.
+   * @returns {mapboxgl.Popup} The opened popup.
+   */
+  function popup(map, lngLat, html, { modifier, ...options } = {}) {
+    return new mapboxgl.Popup({
+      // Lands on the popup root, so the stylesheet can reach Mapbox's frame and our content through the one class.
+      className: modifier ? `map-popup ${modifier}` : 'map-popup',
+      // Any truthy maxWidth is written onto the frame as an inline style that no stylesheet rule can outrank — the
+      // documented 'none' included. Falsy leaves the width to CSS, where the rest of the popup's styling lives.
+      maxWidth: '',
+      focusAfterOpen: false,
+      ...options,
+    })
+      .setLngLat(lngLat)
+      .setHTML(html)
+      .addTo(map);
+  }
+
+  /**
+   * Reads a property off a rendered map feature, undoing Mapbox's flattening of non-scalar values.
+   *
+   * Mapbox GL carries only strings, numbers, and booleans through its feature pipeline, so an array or object in the
+   * source GeoJSON (a label's `tags`) arrives on `e.features[].properties` as a JSON *string* — which reads back as
+   * the string's characters rather than the array's, and looks fine until a popup renders `[` as its first tag.
+   *
+   * @param {Record<string, any>} properties - The `properties` object from a rendered feature.
+   * @param {string} name - Property name.
+   * @returns {*} The value, parsed back into an array/object where Mapbox stringified one.
+   */
+  function featureProp(properties, name) {
+    const value = properties[name];
+    if (typeof value !== 'string') return value;
+    const trimmed = value.trim();
+    if (!trimmed.startsWith('[') && !trimmed.startsWith('{')) return value;
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      return value;
+    }
+  }
+
+  /**
+   * Fetches JSON from one of our API endpoints, tagging the request as coming from the docs.
+   *
+   * A failure carries the status and, when the body is an API problem detail, its `code`, so a preview can tell a
+   * "not yet" (`STILL_COMPUTING`, #5418) from a real error without parsing the message.
+   *
+   * @param {string} url - Endpoint URL, without the utm_source marker.
+   * @returns {Promise<any>} The parsed response body.
+   * @throws {Error & {status: number, code: ?string}} On a non-2xx response.
+   */
+  async function fetchJson(url) {
+    const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}utm_source=apiDocs`);
+    if (!response.ok) {
+      // A proxy's own error page is not JSON; the code is then simply unknown.
+      const problem = await response.json().catch(() => null);
+      throw Object.assign(new Error(`HTTP error! Status: ${response.status}`), {
+        status: response.status,
+        code: problem?.code ?? null,
+      });
+    }
+    return response.json();
+  }
+
+  /**
+   * Builds a Mapbox `match` expression that colors a feature by its label type.
+   *
+   * @param {Record<string, {color: string, display: string, description: string}>} labelTypeInfo - Label type name
+   *     to its info, from /v3/api/labelTypes.
+   * @param {string} [property=label_type] - Feature property holding the label type name.
+   * @returns {Array} A Mapbox expression usable as a `circle-color` / `line-color` paint value.
+   */
+  function labelTypeColorExpression(labelTypeInfo, property = 'label_type') {
+    const expression = ['match', ['get', property]];
+    Object.entries(labelTypeInfo).forEach(([name, info]) => expression.push(name, info.color));
+    // Mapbox requires a fallback, and a type the API knows about but this page's palette doesn't should still draw.
+    expression.push(ApiDocsTheme.color('--color-neutral-500'));
+    return expression;
+  }
+
+  /**
+   * Builds a Mapbox `interpolate` expression that colors a feature by a numeric property.
+   *
+   * @param {string} property - Feature property holding the value.
+   * @param {Array<string>} ramp - Colors, from the low end of the domain to the high end.
+   * @param {object} [options] - Domain and empty-value handling.
+   * @param {number} [options.min=0] - Value mapped to the first ramp color.
+   * @param {number} [options.max=1] - Value mapped to the last ramp color.
+   * @param {string} [options.noneColor] - Color for features carrying no value. Defaults to --color-neutral-800.
+   * @param {number} [options.noneAtOrBelow] - Values at or below this get `noneColor` too. Defaults to nulls only.
+   * @returns {Array} A Mapbox expression usable as a `fill-color` / `line-color` paint value.
+   */
+  function gradientColorExpression(property, ramp, options = {}) {
+    const { min = 0, max = 1, noneColor = ApiDocsTheme.color('--color-neutral-800') } = options;
+    // A null would make `interpolate` throw, so missing values fold to a sentinel the `case` ahead of it catches.
+    const sentinel = min - 1;
+    const value = ['coalesce', ['get', property], sentinel];
+    // Every feature sharing one value — a city with no labels yet — would otherwise collapse the domain to zero.
+    const span = max > min ? max - min : 1;
+    const stops = ramp.flatMap((color, i) => [min + (span * i) / (ramp.length - 1), color]);
+    return [
+      'case',
+      ['<=', value, options.noneAtOrBelow ?? sentinel], noneColor,
+      ['interpolate', ['linear'], value, ...stops],
+    ];
+  }
+
+  /**
+   * Wraps a pair of paint values so the first applies while the feature is hovered. Needs `addHoverState` on the
+   * layer to have anything to read.
+   *
+   * @param {*} hovered - Value while hovered.
+   * @param {*} normal - Value otherwise.
+   * @returns {Array} A Mapbox expression usable as a paint value.
+   */
+  function whenHovered(hovered, normal) {
+    return ['case', ['boolean', ['feature-state', 'hover'], false], hovered, normal];
+  }
+
+  /**
+   * Tracks which of a layer's features the pointer is over as Mapbox feature-state, so `whenHovered` paint values
+   * respond to it. Feature-state is keyed by feature id, so the layer's source needs a `promoteId`.
+   *
+   * @param {mapboxgl.Map} map - The Mapbox map.
+   * @param {string} layerId - Layer to track hover on.
+   * @param {string} sourceId - Source backing that layer.
+   */
+  function addHoverState(map, layerId, sourceId) {
+    let hoveredId = null;
+    const clearHover = () => {
+      if (hoveredId !== null) map.setFeatureState({ source: sourceId, id: hoveredId }, { hover: false });
+      hoveredId = null;
+    };
+    map.on('mousemove', layerId, (e) => {
+      if (!e.features.length || e.features[0].id === hoveredId) return;
+      clearHover();
+      hoveredId = e.features[0].id;
+      map.setFeatureState({ source: sourceId, id: hoveredId }, { hover: true });
+      map.getCanvas().style.cursor = 'pointer';
+    });
+    map.on('mouseleave', layerId, () => {
+      clearHover();
+      map.getCanvas().style.cursor = '';
+    });
+  }
+
+  /**
+   * Fills a legend overlay with a continuous color bar, tick labels spread evenly beneath it, and an optional swatch
+   * row for the features the ramp doesn't cover.
+   *
+   * @param {HTMLElement} element - The overlay element to fill.
+   * @param {string} title - Legend heading.
+   * @param {Array<string>} ramp - The colors passed to the matching `gradientColorExpression`.
+   * @param {Array<string>} tickLabels - Labels under the bar, low end first.
+   * @param {{color: string, label: string}} [none] - Swatch color and name for features with no value, matching
+   *                                                 `gradientColorExpression`'s `noneColor`. Omit when every feature
+   *                                                 lands somewhere on the ramp.
+   */
+  function renderGradientLegend(element, title, ramp, tickLabels, none) {
+    // A discrete category has no honest position on a continuous bar, so it gets its own row below the ticks.
+    const noneRow = none
+      ? `<div class="map-legend-item">
+           <span class="map-legend-swatch" style="background-color: ${util.escapeHTML(none.color)};"></span>
+           ${util.escapeHTML(none.label)}
+         </div>`
+      : '';
+    element.innerHTML = `
+      <h4>${util.escapeHTML(title)}</h4>
+      <div class="map-legend-gradient"></div>
+      <div class="map-legend-ticks">
+        ${tickLabels.map((label) => `<span>${util.escapeHTML(label)}</span>`).join('')}
+      </div>
+      ${noneRow}
+    `;
+    // The ramp is data, so this one declaration can't live in the stylesheet with the rest of the legend's styling.
+    element.querySelector('.map-legend-gradient').style.background = `linear-gradient(to right, ${ramp.join(', ')})`;
+  }
+
+  /**
+   * Fills a legend overlay with one swatch-and-name row per category, plus an optional note beneath them.
+   *
+   * @param {HTMLElement} element - The overlay element to fill.
+   * @param {string} title - Legend heading.
+   * @param {Array<{color: string, label: string}>} items - One row per category, in display order.
+   * @param {string} [note] - A line of context under the rows, e.g. how to read the geometry.
+   */
+  function renderSwatchLegend(element, title, items, note) {
+    const rows = items.map((item) => `
+      <div class="map-legend-item">
+        <span class="map-legend-swatch" style="background-color: ${util.escapeHTML(item.color)};"></span>
+        ${util.escapeHTML(item.label)}
+      </div>
+    `).join('');
+    element.innerHTML = `
+      <h4>${util.escapeHTML(title)}</h4>
+      ${rows}
+      ${note ? `<div class="map-legend-note">${util.escapeHTML(note)}</div>` : ''}
+    `;
+  }
+
+  /**
+   * Fills a legend overlay with one swatch-and-name row per label type present in the rendered data.
+   *
+   * @param {HTMLElement} element - The overlay element to fill.
+   * @param {string} heading - Legend heading.
+   * @param {Array<string>} typeNames - Label type names present in the data.
+   * @param {Record<string, {color: string, display: string, description: string}>} labelTypeInfo - Label type name
+   *     to its info, from /v3/api/labelTypes.
+   * @param {string} emptyMessage - Shown in place of the rows when nothing was rendered.
+   */
+  function renderLabelTypeLegend(element, heading, typeNames, labelTypeInfo, emptyMessage) {
+    const rows = typeNames
+      .filter((name) => labelTypeInfo[name])
+      .map((name) => `
+        <div class="map-legend-item">
+          <span class="map-legend-swatch"
+                style="background-color: ${util.escapeHTML(labelTypeInfo[name].color)};"></span>
+          ${util.escapeHTML(labelTypeInfo[name].display || name)}
+        </div>
+      `)
+      .join('');
+    element.innerHTML = `
+      <h4>${util.escapeHTML(heading)}</h4>
+      ${rows || `<div>${util.escapeHTML(emptyMessage)}</div>`}
+    `;
+  }
+
+  return {
+    STYLE_PROJECT_SIDEWALK,
+    // The AccessScore ramp lives in main.css (read through ScoreRamp) so the docs and the AccessScore tool agree.
+    get ACCESS_SCORE_RAMP() {
+      return ScoreRamp.colors();
+    },
+    create,
+    popup,
+    addOverlay,
+    featureProp,
+    fetchJson,
+    labelTypeColorExpression,
+    gradientColorExpression,
+    whenHovered,
+    addHoverState,
+    renderGradientLegend,
+    renderSwatchLegend,
+    renderLabelTypeLegend,
+  };
+})();

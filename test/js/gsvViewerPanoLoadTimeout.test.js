@@ -11,20 +11,12 @@
  * live inside other methods that these tests never call.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const GSV_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src/GsvViewer.js'), 'utf8'
-);
 
 /** Loads a fresh GsvViewer class into the jsdom global scope and returns it. */
 function loadGsvViewer() {
-    window.eval(`
-        class PanoViewer {}
-        ${GSV_SRC}
-        window.GsvViewer = GsvViewer;
-    `);
+    Object.assign(window, loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
     return window.GsvViewer;
 }
 

@@ -1,5 +1,5 @@
 /**
- * Tests which image a dashboard "recent mistakes" card shows (public/js/user-dashboard/MistakeGallery.js, #4478).
+ * Tests which image a dashboard "recent mistakes" card shows (frontend/js/user-dashboard/MistakeGallery.js, #4478).
  *
  * Two sources cover the same view and the order between them is the contract: the crop is ours and free to serve,
  * `image_url` is billed per request, so the crop wins -- and stays only a preference, since its URL expires.
@@ -12,14 +12,8 @@
  * collaborators (fetch, i18next, util) stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
-
-const GALLERY_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/MistakeGallery.js'), 'utf8'
-);
+const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 
 const CROP_URL = '/cropImage/Obstacle/501?exp=1&sig=x';
 const GSV_URL = 'https://maps.googleapis.com/maps/api/streetview?pano=abc123';
@@ -64,7 +58,7 @@ describe('the dashboard mistake card\'s image', () => {
         // The imagery-credit overlays; dashboardMistakeCardAttribution.test.js checks them for real.
         window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
         window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
-        window.eval(`${GALLERY_SRC}\nwindow.MistakeGallery = MistakeGallery;`);
+        window.MistakeGallery = loadModules('frontend/js/user-dashboard/MistakeGallery.js').MistakeGallery;
     });
 
     beforeEach(() => {

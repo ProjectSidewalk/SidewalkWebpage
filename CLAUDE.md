@@ -1,8 +1,8 @@
 # CLAUDE.md
 
 Project Sidewalk is a web-based crowdsourcing tool for mapping and assessing sidewalk accessibility. Scala 3.9 +
-Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend that Grunt concatenates (no
-transpile, no minify, no module system), all run in Docker. Request flow is routes → Controller → Service → Table
+Play 3.0 (Java 17) backend, Postgres + PostGIS via Slick, and a vanilla-JS frontend of ES modules that Rolldown bundles
+per page (no framework, no transpile), all run in Docker. Request flow is routes → Controller → Service → Table
 (DAO). Architecture tour: `docs/architecture.md`. Setup, daily commands, troubleshooting: `docs/dev-environment.md`.
 
 ## 🚨 NEVER READ `docker-compose.override.yml` 🚨
@@ -49,8 +49,8 @@ file, and this table says which doc to read first:
 - End every issue, PR description, and comment you post on GitHub with `🤖 <model> · effort: <level>` (e.g.
   `🤖 Claude Opus 5.5 · effort: high`), reading the level from `$CLAUDE_EFFORT` at post time.
 - Prod deploys are tag-triggered (`vX.Y.Z` on `master`); pushing `develop` redeploys the test stage.
-- Edit `src/` files only. Never run grunt or edit `build/` output: the developer's `npm start` runs `grunt watch`.
-  A new `src/` file must match a glob in `Gruntfile.js`.
+- Never edit `public/build/` output or run the build by hand: the developer's `npm start` runs `grunt watch`, which
+  rebuilds on save. A page's JS starts at its entry in `frontend/js/pages/`, which imports what it needs.
 - Keep docs in sync in the same change. `docs/architecture.md` is the human-facing architecture reference; exact
   dependency versions live only in `docs/upgrading-libraries.md`.
 - Never browser-test anything that needs a street-view panorama (placing labels, validating). Hand the developer a

@@ -1,5 +1,5 @@
 /**
- * Tests for the shared FilterSidebar controller (public/js/common/filter-sidebar/FilterSidebar.js, issue #4585).
+ * Tests for the shared FilterSidebar controller (frontend/js/common/filter-sidebar/FilterSidebar.js, issue #4585).
  *
  * FilterSidebar is the host-agnostic half of the filter sidebar: it owns the controls and their interaction rules,
  * while hosts (LabelMap's MapSidebarFilter today, the Gallery next) apply the resulting state. These tests pin the
@@ -10,12 +10,8 @@
  * into the jsdom global scope rather than require()d.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SIDEBAR_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/filter-sidebar/FilterSidebar.js'), 'utf8'
-);
 
 /** Label types the fixture renders, mirroring the real sidebar's ids (`<LabelType>-checkbox`). */
 const LABEL_TYPES = ['CurbRamp', 'NoCurbRamp', 'Obstacle'];
@@ -107,7 +103,7 @@ function buildFixture() {
 
 /** Loads a fresh FilterSidebar class into the jsdom global scope. */
 function loadFilterSidebar() {
-    window.eval(`${SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
+    Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
     return window.FilterSidebar;
 }
 

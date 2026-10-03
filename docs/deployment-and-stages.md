@@ -332,7 +332,8 @@ A deploy builds the app essentially the same way you do locally, in this order:
    system Python (3.8), which is why `requirements.txt` stays pinned to 3.8-installable versions (#4396). The
    out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.11 and is installed by hand
    into the 3.13 on whichever user account runs those scripts.
-2. `npm install`, then **Grunt** to concatenate/build the frontend bundles.
+2. `npm install`, then `npx grunt`: the tools' CSS bundles, then **Rolldown** for every page's JS bundle (minified, with
+   a sourcemap beside it that names the source files the server already serves).
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
    present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.
@@ -416,6 +417,10 @@ check — not a comment in `application.conf` — is what holds the contract.
 assets through `controllers.Assets.versioned`, Play answers with `max-age=31536000, immutable` rather than the
 `max-age=3600` default. Changed content always arrives under a new URL, so there is no staleness risk.
 
+The one asset family that doesn't go through `assets.path` is Rolldown's shared chunks (`public/build/js/chunks/`): a
+page's bundle imports them by relative path, so they are served at their plain URL. Their file names carry a content
+hash, so `play.assets.cache` in `application.conf` gives that folder the same year-long `immutable` answer.
+
 **What the plain path costs.** `max-age=3600` means a browser re-asks about every asset it holds once an hour, so a
 returning visitor to Explore or Validate spends a conditional GET per icon, cursor, badge and tutorial frame — well
 over a hundred round trips that a fingerprinted URL makes zero of for a year. And because a plain URL doesn't change
@@ -453,7 +458,7 @@ page as `window.assetDigests`, ahead of `utilities.js`. JS then names an asset b
 `util.assetPath('images/icons/openhand.cur')` build the URL. The stamp is empty under dev `sbt run` (no digests exist),
 and a missing entry falls back to the plain `/assets/<path>`, so dev, jsdom, and any asset the pipeline skipped behave
 as they would with the path written out by hand. `make lint-asset-paths` (a blocking CI step) keeps hardcoded
-`/assets/...` URLs out of `public/js/` and checks every `util.assetPath` argument: a literal one has to name a real
+`/assets/...` URLs out of `frontend/js/` and checks every `util.assetPath` argument: a literal one has to name a real
 file in a manifest family, and an interpolated one has to open with a literal family directory that is in the manifest
 (which is also why a path is built inside one template literal rather than concatenated). It also rejects string
 surgery on an element's resolved `src`: that URL carries *its own* file's digest, so editing the filename inside it
@@ -466,7 +471,7 @@ form at stage time, deriving the name from the file's bytes as sbt-digest does. 
 stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along.
 **A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
-file that exists, by relative path: a stylesheet Grunt bundles into `public/js/*/build/` has its relative `url()`s
+file that exists, by relative path: a stylesheet Grunt bundles into `public/build/css/` has its relative `url()`s
 rewritten to `/assets/` paths first (`concat_css`'s `assetBaseUrl` in `Gruntfile.js`), which would double up an
 absolute one, so `make lint-asset-paths` (rule 6) rejects absolute ones in every stylesheet.
 
@@ -480,7 +485,7 @@ Two things about that stage are load-bearing:
   reference or an asset silently left on the one-hour cache, neither of which shows up at runtime.
   `make lint-asset-paths` applies the same rule to `public/css/` (rule 5 in
   [`tools/lint/check-asset-paths.mjs`](../tools/lint/check-asset-paths.mjs)), so in practice this fails a fast CI step instead.
-  Bundles under `public/js/*/build/` are left to the stage, which sees them on disk.
+  Bundles under `public/build/` are left to the stage, which sees them on disk.
 
 Stage/dist only: local `sbt run` serves plain paths and `no-cache` as before, so exercising the real behavior means
 staging the app and running the binary directly rather than `npm start`. That depends on `pipelineStages` in

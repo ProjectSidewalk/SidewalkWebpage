@@ -105,13 +105,8 @@
     }
   </div>
 
-  <script src="@assets.path("js/common/ConfirmDialog.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/PartnersPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new PartnersPage({ isOwner: @isOwner }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/partners.js")'
+          data-is-owner="@isOwner"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Partners") {

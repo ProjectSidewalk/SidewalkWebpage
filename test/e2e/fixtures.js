@@ -174,7 +174,7 @@ async function stubMapBaseLayers(context) {
 }
 
 /**
- * Waits until the shared AppManager (public/js/common/AppManager.js, wired into every page by
+ * Waits until the shared AppManager (frontend/js/common/AppManager.js, wired into every page by
  * app/views/common/main.scala.html) reports initialization complete.
  *
  * This is the WAIT, not the assertion: AppManager catches exceptions thrown by init tasks and ready

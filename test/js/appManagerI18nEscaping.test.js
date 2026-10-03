@@ -40,7 +40,7 @@ describe('AppManager i18next interpolation', () => {
             services: { formatter: { add: () => {} } },
         };
         window.i18nextHttpBackend = {};
-        loadGlobalScript('public/js/common/AppManager.js');
+        loadGlobalScript('frontend/js/common/AppManager.js');
         window.appManager._setupI18next({
             language: 'en', defaultNS: 'common', namespaces: ['common'], countryId: 'usa', unitWords: {},
         });

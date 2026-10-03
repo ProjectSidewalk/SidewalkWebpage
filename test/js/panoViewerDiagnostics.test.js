@@ -10,24 +10,11 @@
  * global scope alongside stubs for the subclasses its constructor names.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
-const NO_IMAGERY_ERROR_SRC = fs.readFileSync(path.join(SRC_DIR, 'NoImageryError.js'), 'utf8');
-const VIEWER_SRC = fs.readFileSync(path.join(SRC_DIR, 'PanoViewer.js'), 'utf8');
 
 function loadPanoViewer() {
-    window.eval(`
-        class GsvViewer {}
-        class MapillaryViewer {}
-        class Infra3dViewer {}
-        class PannellumViewer {}
-        class PanoramaxViewer {}
-        ${NO_IMAGERY_ERROR_SRC}
-        ${VIEWER_SRC}
-        window.PanoViewer = PanoViewer;
-    `);
+    Object.assign(window, loadModules('frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoViewer.js'));
     return window.PanoViewer;
 }
 

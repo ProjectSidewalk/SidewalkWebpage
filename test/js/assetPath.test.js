@@ -7,13 +7,13 @@
  * a character would 404 an image in dev while staging looked fine.
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { realUtil } = require('./loadGlobalScript');
 
 const MD5 = '0123456789abcdef0123456789abcdef';
 
 beforeEach(() => {
   delete window.assetDigests;
-  loadGlobalScript('public/js/common/utilities.js');
+  window.util = realUtil();
 });
 
 afterEach(() => {

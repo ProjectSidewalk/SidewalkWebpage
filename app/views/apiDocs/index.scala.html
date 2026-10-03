@@ -39,11 +39,8 @@
 }
 
 @content = {
-  <script src="@routes.Assets.versioned("js/common/aggregateStats.js")"></script>
   <link rel="stylesheet" href="@routes.Assets.versioned("css/pages/api-docs/label-tags.css")">
-  <script src="@routes.Assets.versioned("js/api-docs/labelTagsPreview.js")"></script>
   <link rel="stylesheet" href="@routes.Assets.versioned("css/pages/api-docs/label-types.css")">
-  <script src="@routes.Assets.versioned("js/api-docs/labelTypesPreview.js")"></script>
 
 
   <div class="page-section" id="introduction">
@@ -95,14 +92,7 @@
 
       <div id="label-types-preview"></div>
 
-      <script>
-        // Initialize the label types preview
-        document.addEventListener('DOMContentLoaded', function() {
-          LabelTypesPreview.setup({
-            maxWidth: 1000
-          }).init();
-        });
-      </script>
+      <script type="module" id="page-entry" src='@assets.path("build/js/api-docs/index.js")'></script>
     </div>
 
     <div class="page-section" id="label-tags-preview-section">
@@ -111,22 +101,6 @@
 
       <div id="label-tags-preview"></div>
 
-      <script>
-        document.addEventListener('DOMContentLoaded', function() {
-          LabelTagsPreview.setup({
-            maxWidth: 1000,
-            displayMode: "summary"  // Use summary mode for the index page
-          }).init()
-            .then(() => {
-              if (typeof generateTableOfContents === 'function') {
-                generateTableOfContents(); // Regenerate the TOC if needed
-              }
-            })
-            .catch(error => {
-              console.error('Error initializing label tags summary:', error);
-            });
-        });
-      </script>
     </div>
 
     <h2 class="page-heading" id="metadata-apis">Metadata APIs<a href="#metadata-apis" class="permalink">#</a></h2>

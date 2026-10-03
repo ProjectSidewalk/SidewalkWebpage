@@ -100,27 +100,8 @@
     <p class="mgmt-result dq-sub" id="mgmt-maint-result" role="status" aria-live="polite"></p>
   </div>
 
-  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
-  <script src="@assets.path("js/admin-dashboard/ManagementPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new ManagementPage({
-        userStatsUrl: '/adminapi/getUserStats',
-        setRoleUrl: '/adminapi/setRole',
-        setTeamUrl: '/userapi/setUserTeam',
-        teamStatusUrl: '/adminapi/updateTeamStatus',
-        teamVisibilityUrl: '/adminapi/updateTeamVisibility',
-        clearCacheUrl: '/adminapi/clearPlayCache',
-        recalcStatsUrl: '/adminapi/updateUserStats',
-        recalcPriorityUrl: '/adminapi/recalculateStreetPriority',
-        recalcValidationCountsUrl: '/adminapi/recalculateValidationCounts',
-        generateCropsUrl: '/adminapi/generateCrops',
-        rebuildSidewalkPresenceUrl: '/adminapi/rebuildSidewalkPresence',
-        refreshPlacesUrl: '/adminapi/refreshPlaces',
-        recountGradientStalenessUrl: '/adminapi/recountStreetGradientStaleness'
-      }, @jsonForScript(Role.ADMIN_ASSIGNABLE_ROLES.map(_.name))).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/management.js")'
+          data-assignable-roles='@jsonForScript(Role.ADMIN_ASSIGNABLE_ROLES.map(_.name))'></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Management") {

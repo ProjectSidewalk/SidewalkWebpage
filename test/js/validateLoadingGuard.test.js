@@ -1,6 +1,6 @@
 /**
  * Tests for Validate's refusal to act on the current label while that label's pano is still loading (issue #5211),
- * across public/js/validate/src/label/LabelContainer.js and the busy region public/js/validate/src/Main.js names.
+ * across frontend/js/validate/label/LabelContainer.js and the busy region frontend/js/validate/Main.js names.
  *
  * `moveToNextLabel()` advances `#currLabel` synchronously and only then awaits the load, so for the length of that
  * load — 1.7 s on average on the Pannellum fallback path, and up to 4.5 s — "the current label" and "the pano on
@@ -17,11 +17,11 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const LABEL_CONTAINER_PATH = path.join(REPO_ROOT, 'public/js/validate/src/label/LabelContainer.js');
-const MAIN_PATH = path.join(REPO_ROOT, 'public/js/validate/src/Main.js');
+const LABEL_CONTAINER_PATH = path.join(REPO_ROOT, 'frontend/js/validate/label/LabelContainer.js');
+const MAIN_PATH = path.join(REPO_ROOT, 'frontend/js/validate/Main.js');
 const DESKTOP_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
 const MOBILE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/mobileValidate.scala.html');
 
@@ -35,8 +35,7 @@ const LABEL_TYPE = 'CurbRamp';
  * @returns {*} The binding's value.
  */
 function loadBindingFromFile(filePath, name) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + name + ';\n})()');
+  return loadModules(filePath)[name];
 }
 
 /** @returns {HTMLElement} A stand-in for an element Validate dims or re-cursors. */
@@ -291,8 +290,8 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
 // be the handler's first statement, since everything after it writes.
 describe('every menu path that writes onto the current label refuses one that is still loading', () => {
   const MENU_PATHS = {
-    desktop: path.join(REPO_ROOT, 'public/js/validate/src/menu/DesktopValidationMenu.js'),
-    mobile: path.join(REPO_ROOT, 'public/js/validate/src/menu/MobileValidationMenu.js'),
+    desktop: path.join(REPO_ROOT, 'frontend/js/validate/menu/DesktopValidationMenu.js'),
+    mobile: path.join(REPO_ROOT, 'frontend/js/validate/menu/MobileValidationMenu.js'),
   };
 
   // [layout, what it is, the line that opens the handler, the source it drops under].

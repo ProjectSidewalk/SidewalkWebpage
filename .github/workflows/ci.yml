@@ -78,7 +78,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Exercises the grunt concat/concat_css asset build (the project's `default` grunt task).
+      # Exercises the asset build (the `default` grunt task: the CSS bundles, then Rolldown for the JS).
       - name: Build assets
         run: npx grunt
 
@@ -90,7 +90,7 @@ jobs:
       # sanctions long-line exceptions, so an over-limit line nags but doesn't block; every other rule is an `error`.
       - name: ESLint (blocking)
         if: always()
-        run: npx eslint public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
+        run: npx eslint frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js
 
       # Vendored/generated CSS is carved out by `.stylelintignore`. The glob is single-quoted so Stylelint's own globber
       # expands `**` (not the shell). Like ESLint, no `--max-warnings` flag: the one `warning` rule (max-line-length)
@@ -117,7 +117,7 @@ jobs:
         if: always()
         run: node tools/lint/check-css-layout.mjs
 
-      # Asset URLs in public/js/ (#4893): no hardcoded '/assets/...' outside the tool's allowlist, and every literal
+      # Asset URLs in frontend/js/ (#4893): no hardcoded '/assets/...' outside the tool's allowlist, and every literal
       # util.assetPath() argument names a real file in a family the digest manifest covers. Both halves of a mistake
       # here are silent (a missing asset resolves to its plain path rather than throwing), so nothing else would catch
       # one.
@@ -131,7 +131,7 @@ jobs:
         if: always()
         run: node tools/lint/check-vendor-versions.mjs
 
-      # TypeScript checks public/js/ against its JSDoc types (#5278).
+      # TypeScript checks frontend/js/ against its JSDoc types (#5278).
       - name: JS types (blocking)
         if: always()
         run: node tools/lint/check-js-types.mjs
@@ -395,8 +395,8 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the grunt bundles
-      # (public/js/*/build/) are git-ignored — without them every page 404s its own JS/CSS.
+      # MUST precede `sbt stage`: the staged app serves public/ from the packaged assets jar, and the built bundles
+      # (public/build/) are git-ignored — without them every page 404s its own JS/CSS.
       - name: Build frontend assets
         run: npx grunt
 

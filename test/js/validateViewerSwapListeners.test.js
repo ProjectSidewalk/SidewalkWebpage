@@ -1,7 +1,7 @@
 /**
  * Tests that Validate's startup components follow the active viewer instead of the one that happened to be showing
  * the first label (issue #4828), across
- * public/js/validate/src/panorama/PanoManager.js (`#watchViewerPov`) and public/js/common/SpeedLimit.js (`refresh`).
+ * frontend/js/validate/panorama/PanoManager.js (`#watchViewerPov`) and frontend/js/common/SpeedLimit.js (`refresh`).
  *
  * PanoManager swaps `svv.panoViewer` between the primary viewer (GSV/Mapillary/Infra3d) and the Pannellum fallback as
  * labels come and go, and the viewer that isn't showing fires no events at all. Both failures are silent — POV pans
@@ -12,12 +12,12 @@
  * involved, so none of this needs imagery.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const SPEED_LIMIT_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/SpeedLimit.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
+const SPEED_LIMIT_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/SpeedLimit.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
 
 /**
  * Load a bare `class` declaration out of a production file. The Grunt bundle concatenates these into page scope, so
@@ -27,8 +27,7 @@ const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/sr
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 describe('PanoManager logs POV changes from whichever viewer is showing (issue #4828)', () => {
@@ -76,7 +75,7 @@ describe('PanoManager logs POV changes from whichever viewer is showing (issue #
 
     global.util = {};
     global.i18next = {language: 'en'};
-    (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8')); // real throttle, the same one production wires up
+    Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
 
     global.createPanoViewerLogo = jest.fn(() => ({showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn()}));

@@ -72,19 +72,7 @@
     <div id="dq-tag-severity"></div>
   </div>
 
-  <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/DataQualityPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new DataQualityPage({
-        statsUrl: '/v3/api/overallStats',
-        tagsUrl: '/adminapi/labelTags',
-        labelTypesUrl: '/v3/api/labelTypes',
-        byDayUrl: '/v3/api/overallStatsByDay',
-        tagSeverityUrl: '/adminapi/tagSeverity'
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/quality.js")'></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Data Quality") {

@@ -1,5 +1,5 @@
 /**
- * Tests for util.labelIconRadius / util.labelHitMargin (public/js/common/utilities.js, issue #4838), and for the two
+ * Tests for util.labelIconRadius / util.labelHitMargin (frontend/js/common/utilities.js, issue #4838), and for the two
  * things in Explore that consume them: Label.isOn's click target and Label.renderLabelIcon's decorations.
  *
  * Explore draws into a fixed 720x480 logical frame that is displayed at var(--ui-scale) (0.65x-1.8x). A constant
@@ -11,26 +11,16 @@
  * the logical values are an implementation detail that moves with the scale by design.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 const { makeRecordingCtx } = require('./canvasCtxStub');
 
-const UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
-);
-const LABEL_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/label/Label.js'), 'utf8'
-);
-const CANVAS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/canvas/Canvas.js'), 'utf8'
-);
 
 /** Loads utilities.js into jsdom, the same way sizeCanvasToDisplay.test.js and anchorPanelToLabel.test.js do. */
 function loadUtil() {
     // utilities.js builds a Bowser parser at load time; none of the geometry under test consults it.
     window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    window.eval(UTILITIES_SRC);
+    window.util = realUtil();
     return window.util;
 }
 
@@ -126,11 +116,12 @@ describe('label icon sizing across the UI scale', () => {
             window.util = util;
             util.misc = { getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
                 labelTypeHasSeverity: () => true };
-            util.pano = { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }) };
             window.labelIconCache = { 'CurbRamp.svg': {} };
             window.svl = { LABEL_ICON_RADIUS: 17, CANVAS_FRAME: { width: 720, height: 480 }, renderedHFov: () => 90,
                 minimap: { getMap: () => null } };
-            window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
+            Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
+            // Set after the load: importing Label rebuilds util.pano.
+            util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
             Label = window.Label;
         });
 
@@ -236,7 +227,6 @@ describe('label icon sizing across the UI scale', () => {
             window.util = util;
             util.misc = { getIconImagePaths: () => ({ iconImagePath: 'CurbRamp.svg' }),
                 labelTypeHasSeverity: () => true };
-            util.pano = { centeredPovToCanvasCoord: () => ({ x: 100, y: 100 }) };
             window.labelIconCache = { 'CurbRamp.svg': {} };
             window.svl = {
                 CANVAS_FRAME: { width: 720, height: 480 },
@@ -245,8 +235,9 @@ describe('label icon sizing across the UI scale', () => {
                 LABEL_HIT_MARGIN: util.labelHitMargin(1),
                 minimap: { getMap: () => null },
             };
-            window.eval(`${LABEL_SRC}\nwindow.Label = Label;`);
-            window.eval(`${CANVAS_SRC}\nwindow.Canvas = Canvas;`);
+            Object.assign(window, loadModules('frontend/js/explore/label/Label.js'));
+            Object.assign(window, loadModules('frontend/js/explore/canvas/Canvas.js'));
+            util.pano.centeredPovToCanvasCoord = () => ({ x: 100, y: 100 });
             Label = window.Label;
             Canvas = window.Canvas;
             Label.createMinimapMarker = () => ({ addListener: () => {} });

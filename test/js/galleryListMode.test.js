@@ -10,16 +10,8 @@
  * into jsdom with those stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
-const URL_QUERY_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/urlQuery.js'), 'utf8');
-const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
-const GALLERY_FILTER_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/filter/GalleryFilter.js'), 'utf8');
-const CARD_BUCKET_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/cards/CardBucket.js'), 'utf8');
-const CARD_CONTAINER_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/cards/CardContainer.js'), 'utf8');
-const EXPANDED_VIEW_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/expandedview/ExpandedView.js'), 'utf8');
 
 const LIST_IDS = [42, 7, 19];
 /** Exactly one list-mode page (12), so the boundary between "one page" and "two" is pinned from both sides. */
@@ -30,12 +22,13 @@ const LONG_LIST = [...FULL_PAGE, 213, 214, 215];
 describe('the Gallery in review-list mode', () => {
     beforeAll(() => {
         window.i18next = { t: (key, opts) => `${key}:${JSON.stringify(opts ?? {})}` };
-        window.eval(URL_QUERY_SRC); // Defines util.url, which the URL writer depends on.
-        window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
-        window.eval(`${GALLERY_FILTER_SRC}\nwindow.GalleryFilter = GalleryFilter;`);
-        window.eval(`${CARD_BUCKET_SRC}\nwindow.CardBucket = CardBucket;`);
-        window.eval(`${CARD_CONTAINER_SRC}\nwindow.CardContainer = CardContainer;`);
-        window.eval(`${EXPANDED_VIEW_SRC}\nwindow.ExpandedViewClass = ExpandedView;`);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
+        Object.assign(window, loadModules('frontend/js/gallery/cards/CardBucket.js'));
+        Object.assign(window, loadModules('frontend/js/gallery/cards/CardContainer.js'));
+        window.ExpandedViewClass = loadModules('frontend/js/gallery/expandedview/ExpandedView.js').ExpandedView;
     });
 
     describe('the sidebar and the address bar', () => {

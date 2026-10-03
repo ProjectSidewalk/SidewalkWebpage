@@ -1,5 +1,5 @@
 /**
- * Tests for taking a searched place back off the map (public/js/labelMapLocationSearch.js, #5321).
+ * Tests for taking a searched place back off the map (frontend/js/labelMapLocationSearch.js, #5321).
  *
  * The pin a search drops is the state that outlives everything else: on its own, the search box's ✕ empties the input
  * and leaves the map alone, so unless something else removes the pin there is no way back to an unselected map. These
@@ -13,13 +13,8 @@
  * real EventTarget, which is what the production code listens to.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installEscapeHTML } = require('./loadGlobalScript');
+const { installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/labelMapLocationSearch.js'), 'utf8'
-);
 
 /** Markers built by the mapboxgl stub during the current test, newest last. */
 let markers = [];
@@ -126,7 +121,7 @@ const mapStub = { getLayer: () => null };
 
 /** Evals the production source fresh and returns the pieces the tests drive. */
 function loadModule() {
-    window.eval(`${SRC}\nwindow.__search = { initLabelMapLocationSearch };`);
+    window.__search = loadModules('frontend/js/labelMapLocationSearch.js');
     return window.__search;
 }
 

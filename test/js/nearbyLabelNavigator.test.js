@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/ps-map/nearbyLabelNavigator.js (`createNearbyLabelNavigator`).
+ * Tests for frontend/js/ps-map/nearbyLabelNavigator.js (`createNearbyLabelNavigator`).
  *
  * The navigator backs the LabelMap popup's prev/next arrows (#4572): "next" greedily walks to the nearest label
  * not yet visited this page-load, "prev" retraces the visited trail. These tests pin that contract:
@@ -7,15 +7,14 @@
  * trail-based prev with hasPrev gating, cross-type flattening, and the deep-link coordinate lookup.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const NAV_PATH = path.resolve(__dirname, '..', '..', 'public/js/ps-map/nearbyLabelNavigator.js');
+const NAV_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/ps-map/nearbyLabelNavigator.js');
 
 /** Loads the global script fresh and returns the factory. */
 function loadFactory() {
-    const src = fs.readFileSync(NAV_PATH, 'utf8');
-    (0, eval)(src); // Declares createNearbyLabelNavigator on the global scope.
+    Object.assign(window, loadModules(NAV_PATH));
     return global.createNearbyLabelNavigator;
 }
 

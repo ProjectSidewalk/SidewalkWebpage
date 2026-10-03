@@ -263,15 +263,8 @@
 
 
     @* Deferred: every reference below sits inside an appManager.ready callback, which runs off DOM-ready and so lands after all deferred scripts. i18next and its http backend are NOT re-included here — common/main.scala.html already loads both, deferred, on every page (#4486). *@
-    <script src='@assets.path("js/homepage.js")' defer></script>
-    <script src='@assets.path("js/common/utilitiesSidewalk.js")' defer></script>
-    <script src='@assets.path("js/common/share/ShareWidget.js")' defer></script>
     @* The grid's imagery credits, without the 170 KB pano-viewer bundle: this page shows stills, never a live viewer. *@
-    <script src='@assets.path("js/common/pano-credit/build/pano-credit.js")' defer></script>
-    <script src='@assets.path("js/LandingValidationGrid.js")' defer></script>
     @* The AccessScore ramp the Spotlight's bars are painted from, read out of the main.css tokens. *@
-    <script src='@assets.path("js/common/scoreRamp.js")' defer></script>
-    <script src='@assets.path("js/AccessScoreSpotlight.js")' defer></script>
     <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/components/deployment-map.css")' rel="stylesheet">
     <link href='@assets.path("css/components/landing-validation-grid.css")' rel="stylesheet">
@@ -279,63 +272,9 @@
     <link href='@assets.path("css/components/pano-attribution.css")' rel="stylesheet">
     @* The grid cards' share chip + popover (.label-detail__share-*) are styled by css/components/share-widget.css, which common/main.scala.html links on every page — nothing else here needs label-detail.css. *@
 
-    <script>
-      // The map stack (mapbox-gl + mapbox-gl-language + turf + ps-map) is ~600KB gz — roughly 75% of this page's JS —
-      // for two maps that both sit well below the fold, so it's kept out of the page's load path entirely but pulled
-      // in on the visitor's first interaction (#4486) so it's loaded by the time a user scrolls to the map.
-      util.onFirstInteractionOrIdle(function () {
-        const mapboxCss = document.createElement('link');
-        mapboxCss.rel = 'stylesheet';
-        mapboxCss.href = '@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")';
-        document.head.appendChild(mapboxCss);
-
-        util.loadScriptsInOrder([
-          '@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")',
-          '@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")',
-          '@assets.path("vendor/turf/turf-7.4.0.min.js")',
-          '@assets.path("js/ps-map/build/ps-map.js")'
-        ]).then(function () {
-          // createPSMap reads translated strings, so it still waits on the app's i18next setup.
-          window.appManager.ready(function () {
-            // Create the choropleth map.
-            const choroplethParams = {
-              mapName: 'landing-choropleth',
-              mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-              mapboxApiKey: '@commonData.mapboxApiKey',
-              mapboxLogoLocation: 'bottom-right',
-              scrollWheelZoom: false,
-              regionsURL: '/regions',
-              completionRatesURL: '/regions/completionRates',
-              regionFillMode: 'completionRate',
-              regionTooltip: 'completionRate'
-            };
-            createPSMap(choroplethParams).then(m => {
-              window.choropleth = m[0];
-            });
-
-            // Create the deployment cities map.
-            const deploymentMapParams = {
-              mapName: 'deployment-map',
-              mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-              mapboxApiKey: '@commonData.mapboxApiKey',
-              mapboxLogoLocation: 'bottom-left',
-              scrollWheelZoom: false,
-              loadCities: true,
-              logClicks: true
-            };
-            createPSMap(deploymentMapParams).then(m => {
-              window.deploymentMap = m[0];
-            });
-          });
-        }).catch(e => console.error('Failed to load the landing page maps', e));
-      });
-
-      // Gets all translations before setting up the grid, which reads translated strings as it builds each card. The
-      // grid renders its skeletons immediately to reserve layout, then fills itself on the first interaction.
-      window.appManager.ready(function () {
-        new LandingValidationGrid(document.getElementById('landing-validation-container'));
-        new AccessScoreSpotlight(document.getElementById('access-score-spotlight-container'));
-      });
-    </script>
+    <script type="module" id="page-entry" src='@assets.path("build/js/home.js")'
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            data-mapbox-css-url='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")'
+            data-map-script-urls='["@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")", "@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")", "@assets.path("vendor/turf/turf-7.4.0.min.js")"]'></script>
   </div>
 }

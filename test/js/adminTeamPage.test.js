@@ -6,20 +6,15 @@
  * they are eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 // The page fetches through util.fetchJson.
-loadGlobalScript('public/js/common/utilities.js');
-
-const src = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
+window.util = realUtil();
 
 let TeamPage;
 
 beforeAll(() => {
-  global.AdminShell = (0, eval)(`${src('public/js/admin-dashboard/AdminShell.js')}\nAdminShell;`);
-  TeamPage = (0, eval)(`${src('public/js/admin-dashboard/TeamPage.js')}\nTeamPage;`);
+  TeamPage = loadModules('frontend/js/admin-dashboard/TeamPage.js').TeamPage;
 });
 
 const TEAM_ID = 7;

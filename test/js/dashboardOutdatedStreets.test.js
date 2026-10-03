@@ -1,5 +1,5 @@
 /**
- * Tests for the dashboard's "Streets with newer imagery" list (public/js/user-dashboard/OutdatedStreets.js, #4896).
+ * Tests for the dashboard's "Streets with newer imagery" list (frontend/js/user-dashboard/OutdatedStreets.js, #4896).
  *
  * Three contracts matter here. The rows are server-rendered and paged client-side, so "show more" must reveal
  * exactly one page, keep its own count honest, and hand keyboard focus somewhere real when it disappears. Because a
@@ -13,10 +13,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const { installDateHelpers } = require('./loadGlobalScript');
+const { installDateHelpers, loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SECTION_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/user-dashboard/OutdatedStreets.js'), 'utf8');
 const DASHBOARD_CSS = fs.readFileSync(path.join(REPO_ROOT, 'public/css/pages/user-dashboard.css'), 'utf8');
 
 const PAGE_SIZE = 5;
@@ -99,7 +98,7 @@ describe('the dashboard\'s needs-re-audit list', () => {
     beforeAll(() => {
         window.i18next = { language: 'en' };
         installDateHelpers();
-        window.eval(`${SECTION_SRC}\nwindow.OutdatedStreets = OutdatedStreets;`);
+        window.OutdatedStreets = loadModules('frontend/js/user-dashboard/OutdatedStreets.js').OutdatedStreets;
     });
 
     beforeEach(() => {

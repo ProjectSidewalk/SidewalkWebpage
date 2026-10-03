@@ -9,12 +9,8 @@
  * this card's own pills rather than whatever else the document holds.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/gallery/src/displays/TagDisplay.js'), 'utf8'
-);
 
 /** Widths the stub reports, in the units the production code compares: CSS px. */
 const HOLDER_WIDTH = 400;
@@ -68,7 +64,7 @@ function render(tags, widths, holderWidth = HOLDER_WIDTH) {
         if (el.classList.contains('label-tags-holder')) return holderWidth;
         return widths[el.textContent] ?? el.textContent.length * CHAR_PX;
     });
-    window.eval(`${SRC}\nwindow.TagDisplay = TagDisplay;`);
+    Object.assign(window, loadModules('frontend/js/gallery/displays/TagDisplay.js'));
     new window.TagDisplay(container, tags);
     return {container, layoutReads: probe.layoutReads};
 }

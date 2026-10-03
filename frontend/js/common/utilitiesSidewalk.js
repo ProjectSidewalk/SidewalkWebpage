@@ -1,0 +1,885 @@
+import { util } from './utilities.js';
+import './pano-viewer/panoUtilities.js';
+
+export function UtilitiesMisc(JSON) {
+  const self = { className: 'UtilitiesMisc' };
+
+  // The label-type table LabelType stamps onto every page (main.scala.html), in canonical order. Every list,
+  // colour and behavior flag below is derived from it, so none of them can drift from the backend — anything else
+  // in the frontend that needs the set of label types should read util.misc rather than write its own copy.
+  // A page that doesn't stamp it (jsdom, the error pages) leaves these empty rather than serving a stale duplicate.
+  const labelTypes = Array.isArray(window.labelTypes) ? window.labelTypes : [];
+  const byName = new Map(labelTypes.map((lt) => [lt.name, lt]));
+
+  self.VALID_LABEL_TYPES = labelTypes.map((lt) => lt.name);
+  self.PRIMARY_LABEL_TYPES = labelTypes.filter((lt) => lt.isPrimary).map((lt) => lt.name);
+  self.PRIMARY_VALIDATE_LABEL_TYPES = labelTypes.filter((lt) => lt.isPrimaryValidate).map((lt) => lt.name);
+  self.VALID_LABEL_TYPES_WITHOUT_OTHER = self.VALID_LABEL_TYPES.filter((name) => name !== 'Other');
+
+  /**
+   * The marker-icon path for each label type, or for one when `category` names it.
+   *
+   * Every frontend surface — canvas, map markers, cards, cursors — uses the one scalable SVG so the icon stays crisp
+   * at whatever size it lands at; the raster `_small`/`_tiny`/full-size PNGs beside it exist only for consumers that
+   * can't take vector art (share-image compositing in ShareController, and /v3/api/labelTypes' icon URLs). Walk is
+   * Explore's cursor mode rather than a label type, so the backend knows nothing about it and it carries no icon.
+   *
+   * The filename is built here rather than read off the stamp so `make lint-asset-paths` can still see which asset
+   * family this resolves to and check it against the fingerprint manifest; a server-supplied string is opaque to it.
+   * Only the naming convention lives here — which types exist comes from the stamp — and LabelTypeSpec fails if
+   * any of these files goes missing.
+   *
+   * @param {string} [category] - A label type name, or 'Walk'. Omit for the whole map.
+   * @returns {object} `{id, iconImagePath}` for that type, or a map of them keyed by type name.
+   */
+  function getIconImagePaths(category) {
+    const imagePaths = { Walk: { id: 'Walk', iconImagePath: null } };
+    for (const labelType of labelTypes) {
+      imagePaths[labelType.name] = {
+        id: labelType.name,
+        iconImagePath: util.assetPath(`images/icons/label_type_icons/${labelType.name}_small.svg`),
+      };
+    }
+
+    return category ? imagePaths[category] : imagePaths;
+  }
+
+  /**
+   * A label type's translated name. Some (the German ones) carry soft hyphens so long words can wrap.
+   * @param {string} labelType - A label type name, e.g. 'SurfaceProblem'.
+   * @returns {string}
+   */
+  function labelTypeName(labelType) {
+    return i18next.t(`common:${util.camelToKebab(labelType)}`);
+  }
+
+  // TODO either explain why the translations aren't found programmatically, or make it programmatic.
+  function getLabelDescriptions(category) {
+    const descriptions = {
+      Walk: {
+        id: 'Walk',
+        keyChar: 'E',
+      },
+      CurbRamp: {
+        id: 'CurbRamp',
+        keyChar: 'C',
+        tagInfo: {
+          'narrow': {
+            keyChar: 'A',
+            text: i18next.t('center-ui.context-menu.tag.narrow'),
+          },
+          'points into traffic': {
+            keyChar: 'I',
+            text: i18next.t('center-ui.context-menu.tag.points-into-traffic'),
+          },
+          'missing tactile warning': {
+            keyChar: 'E',
+            text: i18next.t('center-ui.context-menu.tag.missing-tactile-warning'),
+          },
+          'tactile warning': {
+            keyChar: 'H',
+            text: i18next.t('center-ui.context-menu.tag.tactile-warning'),
+          },
+          'steep': {
+            keyChar: 'T',
+            text: i18next.t('center-ui.context-menu.tag.steep'),
+          },
+          'not enough landing space': {
+            keyChar: 'L',
+            text: i18next.t('center-ui.context-menu.tag.not-enough-landing-space'),
+          },
+          'not level with street': {
+            keyChar: 'V',
+            text: i18next.t('center-ui.context-menu.tag.not-level-with-street'),
+          },
+          'surface problem': {
+            keyChar: 'R',
+            text: i18next.t('center-ui.context-menu.tag.surface-problem'),
+          },
+          'debris / pooled water': {
+            keyChar: 'D',
+            text: i18next.t('center-ui.context-menu.tag.debris-pooled-water'),
+          },
+          'parallel lines': {
+            keyChar: 'J',
+            text: i18next.t('center-ui.context-menu.tag.parallel-lines'),
+          },
+          'not aligned with crosswalk': {
+            keyChar: 'G',
+            text: i18next.t('center-ui.context-menu.tag.not-aligned-with-crosswalk'),
+          },
+          'not visible': {
+            keyChar: '[',
+            text: i18next.t('center-ui.context-menu.tag.not-visible'),
+          },
+        },
+      },
+      NoCurbRamp: {
+        id: 'NoCurbRamp',
+        keyChar: 'M',
+        tagInfo: {
+          'alternate route present': {
+            keyChar: 'A',
+            text: i18next.t('center-ui.context-menu.tag.alternate-route-present'),
+          },
+          'no alternate route': {
+            keyChar: 'L',
+            text: i18next.t('center-ui.context-menu.tag.no-alternate-route'),
+          },
+          'unclear if needed': {
+            keyChar: 'U',
+            text: i18next.t('center-ui.context-menu.tag.unclear-if-needed'),
+          },
+        },
+      },
+      Obstacle: {
+        id: 'Obstacle',
+        keyChar: 'O',
+        tagInfo: {
+          'trash/recycling can': {
+            keyChar: 'H',
+            text: i18next.t('center-ui.context-menu.tag.trash-recycling-can'),
+          },
+          'fire hydrant': {
+            keyChar: 'F',
+            text: i18next.t('center-ui.context-menu.tag.fire-hydrant'),
+          },
+          'pole': {
+            keyChar: 'L',
+            text: i18next.t('center-ui.context-menu.tag.pole'),
+          },
+          'tree': {
+            keyChar: 'E',
+            text: i18next.t('center-ui.context-menu.tag.tree'),
+          },
+          'vegetation': {
+            keyChar: 'V',
+            text: i18next.t('center-ui.context-menu.tag.vegetation'),
+          },
+          'parked car': {
+            keyChar: 'U',
+            text: i18next.t('center-ui.context-menu.tag.parked-car'),
+          },
+          'parked bike': {
+            keyChar: 'K',
+            text: i18next.t('center-ui.context-menu.tag.parked-bike'),
+          },
+          'construction': {
+            keyChar: 'T',
+            text: i18next.t('center-ui.context-menu.tag.construction'),
+          },
+          'sign': {
+            keyChar: 'I',
+            text: i18next.t('center-ui.context-menu.tag.sign'),
+          },
+          'garage entrance': {
+            keyChar: 'G',
+            text: i18next.t('center-ui.context-menu.tag.garage-entrance'),
+          },
+          'stairs': {
+            keyChar: 'R',
+            text: i18next.t('center-ui.context-menu.tag.stairs'),
+          },
+          'street vendor': {
+            keyChar: 'J',
+            text: i18next.t('center-ui.context-menu.tag.street-vendor'),
+          },
+          'height difference': {
+            keyChar: 'D',
+            text: i18next.t('center-ui.context-menu.tag.height-difference'),
+          },
+          'narrow': {
+            keyChar: 'A',
+            text: i18next.t('center-ui.context-menu.tag.narrow'),
+          },
+          'litter/garbage': {
+            keyChar: 'X',
+            text: i18next.t('center-ui.context-menu.tag.litter-garbage'),
+          },
+          'parked scooter/motorcycle': {
+            keyChar: 'Y',
+            text: i18next.t('center-ui.context-menu.tag.parked-scooter-motorcycle'),
+          },
+          'outdoor dining area': {
+            keyChar: 'Q',
+            text: i18next.t('center-ui.context-menu.tag.outdoor-dining-area'),
+          },
+          'mailbox': {
+            keyChar: '[',
+            text: i18next.t('center-ui.context-menu.tag.mailbox'),
+          },
+          'utility cabinet': {
+            keyChar: ']',
+            text: i18next.t('center-ui.context-menu.tag.utility-cabinet'),
+          },
+          'cart': {
+            keyChar: ';',
+            text: i18next.t('center-ui.context-menu.tag.cart'),
+          },
+          'drainage': {
+            keyChar: ',',
+            text: i18next.t('center-ui.context-menu.tag.drainage'),
+          },
+          'electrical box': {
+            keyChar: '.',
+            text: i18next.t('center-ui.context-menu.tag.electrical-box'),
+          },
+          'bollard': {
+            keyChar: '/',
+            text: i18next.t('center-ui.context-menu.tag.bollard'),
+          },
+        },
+      },
+      SurfaceProblem: {
+        id: 'SurfaceProblem',
+        keyChar: 'S',
+        tagInfo: {
+          'bumpy': {
+            keyChar: 'Y',
+            text: i18next.t('center-ui.context-menu.tag.bumpy'),
+          },
+          'uneven/slanted': {
+            keyChar: 'U',
+            text: i18next.t('center-ui.context-menu.tag.uneven-slanted'),
+          },
+          'cracks': {
+            keyChar: 'K',
+            text: i18next.t('center-ui.context-menu.tag.cracks'),
+          },
+          'grass': {
+            keyChar: 'G',
+            text: i18next.t('center-ui.context-menu.tag.grass'),
+          },
+          'narrow sidewalk': {
+            keyChar: 'A',
+            text: i18next.t('center-ui.context-menu.tag.narrow'),
+          },
+          'brick/cobblestone': {
+            keyChar: 'I',
+            text: i18next.t('center-ui.context-menu.tag.brick-cobblestone'),
+          },
+          'construction': {
+            keyChar: 'T',
+            text: i18next.t('center-ui.context-menu.tag.construction'),
+          },
+          'very broken': {
+            keyChar: 'R',
+            text: i18next.t('center-ui.context-menu.tag.very-broken'),
+          },
+          'height difference': {
+            keyChar: 'D',
+            text: i18next.t('center-ui.context-menu.tag.height-difference'),
+          },
+          'rail/tram track': {
+            keyChar: 'L',
+            text: i18next.t('center-ui.context-menu.tag.rail-tram-track'),
+          },
+          'sand/gravel': {
+            keyChar: 'V',
+            text: i18next.t('center-ui.context-menu.tag.sand-gravel'),
+          },
+          'uncovered manhole': {
+            keyChar: 'Q',
+            text: i18next.t('center-ui.context-menu.tag.uncovered-manhole'),
+          },
+          'utility panel': {
+            keyChar: 'E',
+            text: i18next.t('center-ui.context-menu.tag.utility-panel'),
+          },
+          'debris': {
+            keyChar: 'F',
+            text: i18next.t('center-ui.context-menu.tag.debris'),
+          },
+        },
+      },
+      NoSidewalk: {
+        id: 'NoSidewalk',
+        keyChar: 'N',
+        tagInfo: {
+          'ends abruptly': {
+            keyChar: 'A',
+            text: i18next.t('center-ui.context-menu.tag.ends-abruptly'),
+          },
+          'street has a sidewalk': {
+            keyChar: 'R',
+            text: i18next.t('center-ui.context-menu.tag.street-has-a-sidewalk'),
+          },
+          'street has no sidewalks': {
+            keyChar: 'T',
+            text: i18next.t('center-ui.context-menu.tag.street-has-no-sidewalks'),
+          },
+          'gravel/dirt road': {
+            keyChar: 'D',
+            text: i18next.t('center-ui.context-menu.tag.gravel-dirt-road'),
+          },
+          'shared pedestrian/car space': {
+            keyChar: 'E',
+            text: i18next.t('center-ui.context-menu.tag.shared-pedestrian-car-space'),
+          },
+          'pedestrian lane marking': {
+            keyChar: 'I',
+            text: i18next.t('center-ui.context-menu.tag.pedestrian-lane-marking'),
+          },
+          'covered walkway': {
+            keyChar: 'L',
+            text: i18next.t('center-ui.context-menu.tag.covered-walkway'),
+          },
+          'too dirty/cluttered': {
+            keyChar: 'Y',
+            text: i18next.t('center-ui.context-menu.tag.too-dirty-cluttered'),
+          },
+        },
+      },
+      Crosswalk: {
+        id: 'Crosswalk',
+        keyChar: 'W',
+        tagInfo: {
+          'paint fading': {
+            keyChar: 'F',
+            text: i18next.t('center-ui.context-menu.tag.paint-fading'),
+          },
+          'broken surface': {
+            keyChar: 'R',
+            text: i18next.t('center-ui.context-menu.tag.broken-surface'),
+          },
+          'uneven surface': {
+            keyChar: 'E',
+            text: i18next.t('center-ui.context-menu.tag.uneven-surface'),
+          },
+          'brick/cobblestone': {
+            keyChar: 'I',
+            text: i18next.t('center-ui.context-menu.tag.brick-cobblestone'),
+          },
+          'bumpy': {
+            keyChar: 'Y',
+            text: i18next.t('center-ui.context-menu.tag.bumpy'),
+          },
+          'rail/tram track': {
+            keyChar: 'L',
+            text: i18next.t('center-ui.context-menu.tag.rail-tram-track'),
+          },
+          'no pedestrian priority': {
+            keyChar: 'V',
+            text: i18next.t('center-ui.context-menu.tag.no-pedestrian-priority'),
+          },
+          'very long crossing': {
+            keyChar: 'U',
+            text: i18next.t('center-ui.context-menu.tag.very-long-crossing'),
+          },
+          'level with sidewalk': {
+            keyChar: 'D',
+            text: i18next.t('center-ui.context-menu.tag.level-with-sidewalk'),
+          },
+          'too close to traffic': {
+            keyChar: 'T',
+            text: i18next.t('center-ui.context-menu.tag.too-close-to-traffic'),
+          },
+        },
+      },
+      Signal: {
+        id: 'Signal',
+        keyChar: 'P',
+        tagInfo: {
+          'button waist height': {
+            keyChar: 'H',
+            text: i18next.t('center-ui.context-menu.tag.button-waist-height'),
+          },
+          'APS': {
+            keyChar: 'A',
+            text: i18next.t('center-ui.context-menu.tag.APS'),
+          },
+          'one button': {
+            keyChar: 'E',
+            text: i18next.t('center-ui.context-menu.tag.one-button'),
+          },
+          'two buttons': {
+            keyChar: 'T',
+            text: i18next.t('center-ui.context-menu.tag.two-buttons'),
+          },
+          'hard to reach buttons': {
+            keyChar: 'R',
+            text: i18next.t('center-ui.context-menu.tag.hard-to-reach-buttons'),
+          },
+          'yellow box, accessibility features not visible': {
+            keyChar: 'Z',
+            text: i18next.t('center-ui.context-menu.tag.yellow-box-accessibility-features-not-visible'),
+          },
+        },
+      },
+      Other: {
+        id: 'Other',
+        tagInfo: {
+          'missing crosswalk': {
+            keyChar: 'I',
+            text: i18next.t('center-ui.context-menu.tag.missing-crosswalk'),
+          },
+          'no bus stop access': {
+            keyChar: 'A',
+            text: i18next.t('center-ui.context-menu.tag.no-bus-stop-access'),
+          },
+          'cycle lane: protection from traffic': {
+            keyChar: 'E',
+            text: i18next.t('center-ui.context-menu.tag.cycle-lane-protection-from-traffic'),
+          },
+          'cycle lane: no protection from traffic': {
+            keyChar: 'T',
+            text: i18next.t('center-ui.context-menu.tag.cycle-lane-no-protection-from-traffic'),
+          },
+          'cycle lane: surface problem': {
+            keyChar: 'R',
+            text: i18next.t('center-ui.context-menu.tag.cycle-lane-surface-problem'),
+          },
+          'cycle lane: faded paint': {
+            keyChar: 'F',
+            text: i18next.t('center-ui.context-menu.tag.cycle-lane-faded-paint'),
+          },
+          'cycle lane: debris / pooled water': {
+            keyChar: 'D',
+            text: i18next.t('center-ui.context-menu.tag.cycle-lane-debris-pooled-water'),
+          },
+          'cycle lane: parked car': {
+            keyChar: 'U',
+            text: i18next.t('center-ui.context-menu.tag.cycle-lane-parked-car'),
+          },
+          'cycle box': {
+            keyChar: 'X',
+            text: i18next.t('center-ui.context-menu.tag.cycle-box'),
+          },
+        },
+      },
+      Occlusion: {
+        id: 'Occlusion',
+        keyChar: 'B',
+      },
+    };
+    return category ? descriptions[category] : descriptions;
+  }
+
+  /**
+   * Whether a label type uses the "positive" rating scheme (Good/Okay/Bad) vs the "negative" (Low/Medium/High).
+   *
+   * This is the type's rating scale, NOT its access impact: Signal is a positive access feature that carries no
+   * rating at all, so reading it off the impact would put it on the wrong scheme.
+   *
+   * @param {string} labelType
+   * @returns {boolean}
+   */
+  function isPositiveLabelType(labelType) {
+    return byName.get(labelType)?.ratingScale === 'quality';
+  }
+
+  /**
+   * Whether a label type's labels carry a 1-3 rating at all.
+   *
+   * A type we have no entry for answers false, so an unstamped page hides its rating controls rather than offering
+   * a scale it can't name. Callers use the answer to decide whether to render the rating UI at all.
+   *
+   * @param {string} labelType
+   * @returns {boolean}
+   */
+  function labelTypeHasSeverity(labelType) {
+    return (byName.get(labelType)?.ratingScale ?? 'unrated') !== 'unrated';
+  }
+
+  /**
+   * A label type's rating scale name ('severity', 'quality', 'unrated'); unknown types read as unrated.
+   * @param {string} labelType
+   * @returns {string}
+   */
+  function getRatingScale(labelType) {
+    return byName.get(labelType)?.ratingScale ?? 'unrated';
+  }
+
+  /**
+   * Re-expresses a pano x-coordinate on whichever side of the image seam the camera is currently facing.
+   *
+   * An equirectangular pano wraps, so a point near one edge is also a point just past the other. Picking the wrong
+   * representation puts an annotation — or a callout anchored to one — a full pano-width away from where the user is
+   * looking. Only a point within a quarter-width of the seam is ambiguous; everything else is returned unchanged.
+   *
+   * @param {number} panoX - Tutorial annotation x-coordinate; x = 0 faces true north, so it compares directly
+   *                          against the heading (see util.pano.horizonRelativeCoordToPov).
+   * @param {number} heading - The camera's current heading, in degrees.
+   * @param {number} panoWidth - Full width of the pano image in pixels.
+   * @returns {number} The equivalent x-coordinate nearest the current view; may be negative or exceed panoWidth.
+   */
+  function unwrapPanoX(panoX, heading, panoWidth) {
+    const seamZone = panoWidth / 4;
+    // Facing the first half, a point in the far quarter sits behind the camera's left edge, and vice versa.
+    if (heading < 180) return panoX > panoWidth - seamZone ? panoX - panoWidth : panoX;
+    return panoX < seamZone ? panoX + panoWidth : panoX;
+  }
+
+  /**
+   * Re-expresses a point given as fractions of an image as fractions of the box the image is cover-fitted into.
+   * Untouched when the aspects match, so a 3:2 image in a 3:2 box keeps its fractions bit for bit.
+   *
+   * @param {number} fracX - The point's x as a fraction of the image's width.
+   * @param {number} fracY - The point's y as a fraction of the image's height.
+   * @param {number} imageAspect - Width:height of the image.
+   * @param {number} boxAspect - Width:height of the box.
+   * @returns {{x: number, y: number}} Fractions of the box's width and height.
+   */
+  function fractionInCoverBox(fracX, fracY, imageAspect, boxAspect) {
+    if (imageAspect > boxAspect) {
+      // The image is wider than the box: only boxAspect / imageAspect of its width is visible, centered.
+      return { x: (fracX - 0.5) * (imageAspect / boxAspect) + 0.5, y: fracY };
+    }
+    if (imageAspect < boxAspect) return { x: fracX, y: (fracY - 0.5) * (boxAspect / imageAspect) + 0.5 };
+    return { x: fracX, y: fracY };
+  }
+
+  /**
+   * Merges a tutorial state's own annotations with the ones carried over from earlier states, without duplicates.
+   *
+   * The carry-over list is rebuilt from this merged list on every draw, and a state is drawn many times over (once
+   * per pano move, once per animation frame while example labels pop in). Concatenating blindly would therefore
+   * re-append the same annotation objects on every pass, so the list grows for as long as the step is on screen:
+   * the icons overdraw at identical coordinates, and the arrow-blink period — derived from how many arrows are in
+   * the list — stretches out as it fills up (#4832). Annotations are shared by reference, so identity dedupes them.
+   *
+   * @param {Array<object>} savedAnnotations - Annotations carried over from previous states.
+   * @param {?Array<object>} stateAnnotations - The current state's own annotations, if it declares any.
+   * @returns {Array<object>} The union, in carry-over-then-own order, each annotation appearing once.
+   */
+  function mergeOnboardingAnnotations(savedAnnotations, stateAnnotations) {
+    return [...new Set([...savedAnnotations, ...(stateAnnotations || [])])];
+  }
+
+  /**
+   * Picks the annotations that should stay on screen after the given state, i.e. those tagged to outlive it.
+   *
+   * @param {Array<{keepUntil?: string}>} annotations - The state's merged annotation list.
+   * @param {string} stateId - Id of the state being drawn; an annotation kept "until" it expires here.
+   * @returns {Array<{keepUntil?: string}>} The subset to carry into the next state.
+   */
+  function carryOverOnboardingAnnotations(annotations, stateId) {
+    return annotations.filter((a) => a.keepUntil && a.keepUntil !== stateId);
+  }
+
+  /**
+   * Returns a map from rating level (1/2/3) to the i18n key (under the `common` namespace) for that level's label.
+   * @param {string} labelType
+   * @returns {Record<number, string>}
+   */
+  function getRatingLevelKeys(labelType) {
+    return isPositiveLabelType(labelType)
+      ? { 1: 'good', 2: 'okay', 3: 'bad' }
+      : { 1: 'low', 2: 'medium', 3: 'high' };
+  }
+
+  /**
+   * Returns the full asset path for the smiley icon at the given severity and label type.
+   * @param {number} severity - 0 (N/A), 1 (low), 2 (medium), or 3 (high).
+   * @param {string} labelType - The label type, used to pick positive vs negative icon set.
+   * @param {boolean} selected - Whether to return the filled (selected-state) variant.
+   * @returns {string}
+   */
+  function getSmileyIconPath(severity, labelType, selected) {
+    // Severity 0 (N/A) is a neutral circle; only the negative asset exists and it's reused for both sets.
+    const set = severity === 0 || !isPositiveLabelType(labelType) ? 'negative' : 'positive';
+    return util.assetPath(`images/icons/smileys/sev-${severity}-${set}${selected ? '-filled' : ''}.svg`);
+  }
+
+  // Each rating level's colours, as design-system custom properties so no hex is duplicated here. `face` mirrors
+  // the fill inside sev-<level>-*-filled.svg — recolour that artwork and these have to move with it. `edge` and
+  // `wash` are the darkened and lightened counterparts a selected control uses.
+  //
+  // Level colours, per scale. Green is a value judgement and belongs only to the quality scale: a curb ramp rated
+  // 1 is genuinely good, but a surface problem rated 1 is a mild problem, not an absence of one, and colouring it
+  // green would tell a mapper it needs no attention. Severity keeps the yellow-amber-orange heat ramp, where the
+  // colour tracks how bad rather than whether bad. Same positive/negative split getSmileyIconPath makes, and these
+  // mirror the fill inside sev-<level>-<set>-filled.svg.
+  //
+  // Edges are picked per level rather than by a fixed step offset, for two reasons. The ramps are not
+  // perceptually aligned, so the same step is not equally dark on each -- banana-700 on banana-200 is 1.68:1,
+  // invisible on its own wash, where banana-900 clears the 3:1 non-text bar. And the banana ramp has only one
+  // step dark enough to qualify, so severity's edges escalate by hue rather than by depth alone: gold, then rust,
+  // then dark rust (L* 53 / 44 / 25). Two levels sharing banana-900 made Low and Medium indistinguishable.
+  //
+  // The wash avoids -100 for the reverse reason -- jade-100 is 13/255 off the white panel behind it, too close to
+  // register as a state at all.
+  const SEVERITY_LEVEL_COLORS = {
+    positive: {
+      1: { face: 'jade-400', edge: 'jade-700', wash: 'jade-200' },
+      2: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
+      3: { face: 'orange-400', edge: 'orange-600', wash: 'orange-200' },
+    },
+    negative: {
+      1: { face: 'banana-400', edge: 'banana-900', wash: 'banana-200' },
+      2: { face: 'banana-700', edge: 'orange-600', wash: 'banana-300' },
+      3: { face: 'orange-400', edge: 'orange-800', wash: 'orange-200' },
+    },
+  };
+
+  /**
+   * Returns the colours for a rating level as CSS custom-property references.
+   *
+   * Takes the label type for the same reason getSmileyIconPath does: the two scales do not share a palette. Only
+   * quality has a "good" end worth colouring green; on severity, level 1 is a mild problem and stays yellow.
+   * @param {number} severity - 1, 2, or 3.
+   * @param {string} labelType - Picks the quality palette for positive types, the severity palette otherwise.
+   * @returns {?{face: string, edge: string, wash: string}} `var(--color-…)` references, or null for 0/N-A.
+   */
+  function getSeverityLevelColors(severity, labelType) {
+    const scale = isPositiveLabelType(labelType) ? 'positive' : 'negative';
+    const level = SEVERITY_LEVEL_COLORS[scale][severity];
+    if (!level) return null;
+    const colors = Object.fromEntries(Object.entries(level).map(([role, token]) => [role, `var(--color-${token})`]));
+    return /** @type {{face: string, edge: string, wash: string}} */ (colors);
+  }
+
+  /**
+   * Sends a POST request to the server to report that there is no street view for the given street edge.
+   *
+   * TODO it makes way more sense to have this in Form.js, but Form has a dependency on PanoViewer, and we want to
+   *      call this function if PanoViewer fails to load...
+   *
+   * @param {Record<string, any>} task - Explore's Task for the street edge that is missing imagery.
+   * @param {number} missionId - ID of the mission the user was working on when imagery was found to be missing.
+   * @returns {Promise<Response>} The fetch promise for the POST request, so callers can await completion.
+   */
+  function reportNoImagery(task, missionId) {
+    console.error(`Imagery missing for a large portion of street: ${task.getStreetEdgeId()}`);
+    const reversed = task.getProperty('startPointReversed');
+    const data = {
+      audit_task: {
+        street_edge_id: task.getStreetEdgeId(),
+        task_start: task.getProperty('taskStart'),
+        audit_task_id: task.getAuditTaskId(),
+        completed: task.isComplete(),
+        current_lat: reversed ? task.getEndCoordinate().lat : task.getStartCoordinate().lat,
+        current_lng: reversed ? task.getEndCoordinate().lng : task.getStartCoordinate().lng,
+        start_point_reversed: reversed,
+        current_mission_start: null,
+        last_priority_update_time: new Date(),
+        request_updated_street_priority: false,
+      },
+      mission_id: missionId,
+    };
+
+    return fetch('/explore/nostreetview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  }
+
+  /**
+   * Names the street nearest a coordinate, for telling a labeler where they have been taken.
+   *
+   * Street names aren't in our data — `street_edge` carries geometry and an OSM way id, no name — so this asks
+   * Mapbox, the same reverse-geocode the route builder's endpoint fields use. Purely decorative: every failure
+   * mode (no key, offline, rate limit, a coordinate the geocoder can't place) resolves to null so the caller can
+   * fall back to unnamed wording rather than to no message at all.
+   *
+   * @param {{lat: number, lng: number}} latLng - Where to look.
+   * @param {string} mapboxApiKey - Mapbox access token.
+   * @returns {Promise<string|null>} The street name, or null when it can't be determined.
+   */
+  async function getStreetNameNear(latLng, mapboxApiKey) {
+    if (!mapboxApiKey) return null;
+    try {
+      const params = new URLSearchParams({
+        longitude: String(latLng.lng),
+        latitude: String(latLng.lat),
+        types: 'address,street',
+        language: i18next.t('common:mapbox-language-code'),
+        access_token: mapboxApiKey,
+      });
+      const response = await fetch(`https://api.mapbox.com/search/geocode/v6/reverse?${params}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      const props = data.features?.[0]?.properties;
+      if (!props) return null;
+      // An address result names its street in `context`; a street result names itself.
+      const ownName = props.feature_type === 'street' ? (props.name_preferred || props.name) : null;
+      return props.context?.street?.name || ownName || null;
+    } catch {
+      return null;
+    }
+  }
+
+  // The outline each marker gets on the canvas. White for everything except the two grey meta types, which would be
+  // indistinguishable from each other with a white ring. No backend counterpart: LabelType owns the fill colour
+  // (it's the type's identity, and the API publishes it), while the outline is only ever a canvas rendering choice.
+  // TODO These colors should probably match the colors in our Design System Tokens in main.css.
+  const STROKE_STYLES = { Other: '#0000FF', Occlusion: '#009902' };
+  const DEFAULT_STROKE_STYLE = '#FFFFFF';
+
+  // Walk is Explore's cursor mode rather than a label type, so it has no backend entry and needs its colours here.
+  const colors = { Walk: { id: 'Walk', fillStyle: 'rgba(0, 0, 0, 1)', strokeStyle: DEFAULT_STROKE_STYLE } };
+  for (const labelType of labelTypes) {
+    colors[labelType.name] = {
+      id: labelType.name,
+      fillStyle: labelType.color,
+      strokeStyle: STROKE_STYLES[labelType.name] || DEFAULT_STROKE_STYLE,
+    };
+  }
+
+  /**
+   * One label type's canvas fill colour, or the whole `{fillStyle, strokeStyle}` table when no type is named.
+   * @param {string} [category] - A label type name, or 'Walk'. Omit for the whole table.
+   * @returns {string|object}
+   */
+  function getLabelColors(category) {
+    return category ? colors[category].fillStyle : colors;
+  }
+
+  /**
+   * Where a label sits in the image a card is showing, as fractions of its width and height (#2660), or of the box
+   * the image is cover-fitted into.
+   *
+   * A crop at `<crops>/<LabelType>/crop_<id>.png` is one of two things: the browser's snapshot of the Explore canvas,
+   * in which the label is at its canvas fraction, or the window the crop job cut around the label, in which it is near
+   * the center. Only a `label_crop` row tells them apart, so a crop without one falls back to the canvas fraction — as
+   * does the Street View still, which reproduces the Explore frame and where the canvas fraction is already correct.
+   *
+   * The canvas fraction is taken in the frame the label was placed in (#5085): the boxed 720x480 tool unless the
+   * payload says otherwise, the window's aspect in immersive mode. A still is 3:2 whatever the frame was and shares
+   * its width and horizontal field of view, so a frame of another aspect sits in it vertically centered. Card surfaces
+   * cover-fit the image into a fixed-aspect box, which trims a wider image's sides or a taller one's top and bottom;
+   * given `opts.boxAspect`, the fractions are re-expressed in the visible part, the identity for a 3:2 image in a 3:2
+   * box.
+   *
+   * @param {string} imageSource - Which source is on screen: 'crop' or 'api'.
+   * @param {?{x: number, y: number, width?: ?number, height?: ?number}} cropMarker - The crop's recorded position,
+   *   and its stored size, when a row exists.
+   * @param {?number} canvasX - The label's x on the labeling canvas.
+   * @param {?number} canvasY - The label's y on that canvas.
+   * @param {object} [opts] - The frame and the box; omit both for a boxed-tool label and fractions of the image.
+   * @param {number} [opts.canvasWidth=720] - Width of the frame canvasX/canvasY are expressed in.
+   * @param {number} [opts.canvasHeight=480] - Height of that frame.
+   * @param {?number} [opts.boxAspect] - Width:height of the box the image is cover-fitted into.
+   * @returns {{x: number, y: number}} Fractions of the image's width and height, or of the box's when one is given.
+   */
+  function labelMarkerFraction(imageSource, cropMarker, canvasX, canvasY, opts = {}) {
+    const {
+      canvasWidth = util.EXPLORE_CANVAS_WIDTH, canvasHeight = util.EXPLORE_CANVAS_HEIGHT, boxAspect = null,
+    } = opts;
+    const frameAspect = canvasWidth / canvasHeight;
+    // A Street View still reproduces the boxed Explore frame, so it has that frame's aspect (#3095).
+    const stillAspect = util.EXPLORE_CANVAS_WIDTH / util.EXPLORE_CANVAS_HEIGHT;
+    // Clamped to the image, as CropService.exploreFrameMarker clamps the fraction it records for the same frame: a
+    // historic row can sit outside the canvas, and an unclamped fraction puts the marker off the card entirely.
+    const clamp = (f) => Math.min(1, Math.max(0, f));
+    let x;
+    let y;
+    let imageAspect;
+    if (imageSource === 'crop' && cropMarker) {
+      ({ x, y } = cropMarker);
+      imageAspect = cropMarker.width > 0 && cropMarker.height > 0 ? cropMarker.width / cropMarker.height : frameAspect;
+    } else if (imageSource === 'crop') {
+      x = typeof canvasX === 'number' ? clamp(canvasX / canvasWidth) : 0.5;
+      y = typeof canvasY === 'number' ? clamp(canvasY / canvasHeight) : 0.5;
+      imageAspect = frameAspect;
+    } else {
+      x = typeof canvasX === 'number' ? clamp(canvasX / canvasWidth) : 0.5;
+      y = typeof canvasY === 'number' ? clamp(0.5 + (canvasY / canvasHeight - 0.5) * (stillAspect / frameAspect)) : 0.5;
+      imageAspect = stillAspect;
+    }
+    return boxAspect ? fractionInCoverBox(x, y, imageAspect, boxAspect) : { x, y };
+  }
+
+  self.labelMarkerFraction = labelMarkerFraction;
+  self.getIconImagePaths = getIconImagePaths;
+  self.labelTypeName = labelTypeName;
+  self.getLabelDescriptions = getLabelDescriptions;
+  self.isPositiveLabelType = isPositiveLabelType;
+  self.labelTypeHasSeverity = labelTypeHasSeverity;
+  self.getRatingScale = getRatingScale;
+  self.getSmileyIconPath = getSmileyIconPath;
+  self.getSeverityLevelColors = getSeverityLevelColors;
+  self.getRatingLevelKeys = getRatingLevelKeys;
+  self.getLabelColors = getLabelColors;
+  self.reportNoImagery = reportNoImagery;
+  self.getStreetNameNear = getStreetNameNear;
+  self.unwrapPanoX = unwrapPanoX;
+  self.mergeOnboardingAnnotations = mergeOnboardingAnnotations;
+  self.carryOverOnboardingAnnotations = carryOverOnboardingAnnotations;
+
+  return self;
+}
+
+// Anything already on util.misc stays: a test's stand-in for one of these helpers survives this file loading.
+util.misc = { ...UtilitiesMisc(JSON), ...util.misc };
+
+/**
+ * Fields PannellumViewer needs to render a backup pano: the subset of PanoData's `requiredParams` that a pano_data
+ * row can be missing. See the note there before changing this list.
+ *
+ * A property rather than a top-level `const` because some views load this file directly on a page whose bundle
+ * already concatenates it. Re-running it must stay harmless, and a repeated `const` is a fatal redeclaration.
+ */
+util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'];
+
+/**
+ * Whether a backup pano carries the metadata PannellumViewer needs to render it.
+ *
+ * Old pano_data rows carry nulls for these and PanoData rejects them (#4804). Guards the buildBackupImageData path
+ * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `getLocalBackupImage`.
+ *
+ * @param {?object} data - Backup pano metadata in the shape buildBackupImageData produces, or null.
+ * @returns {boolean} True when every field the viewer needs is present and numeric.
+ */
+export function backupImageDataIsComplete(data) {
+  return !!data
+    && util.misc.BACKUP_IMAGE_REQUIRED_FIELDS.every((f) => typeof data[f] === 'number' && !isNaN(data[f]));
+}
+
+/**
+ * A self-hosted backup pano, in the shape PannellumViewer takes.
+ * @typedef {object} BackupImage
+ * @property {string} pano_id
+ * @property {string} image_url
+ * @property {number} width
+ * @property {number} height
+ * @property {number} tile_width
+ * @property {number} tile_height
+ * @property {number} lat
+ * @property {number} lng
+ * @property {number} camera_heading
+ * @property {number} camera_pitch
+ * @property {number} camera_roll
+ * @property {string} capture_date
+ * @property {string} copyright
+ * @property {object} attribution
+ * @property {string} address
+ */
+
+/**
+ * Builds the backup pano data Pannellum needs from a label metadata object sent by the server.
+ *
+ * Returns null if backup_image_url is absent or null, if pano_data is missing, or if pano_data is too incomplete to
+ * render (see backupImageDataIsComplete).
+ * @param {object} meta - Label metadata object from the server.
+ * @param {string|null} [meta.backup_image_url] - URL for the self-hosted backup image, or null.
+ * @param {Record<string, any>|null} [meta.pano_data] - Nested pano viewer metadata, or null.
+ * @param {string} [meta.pano_id] - The panorama ID.
+ * @param {number} [meta.camera_lat] - Latitude of the camera.
+ * @param {number} [meta.camera_lng] - Longitude of the camera.
+ * @param {string} [meta.image_capture_date] - Date the panorama was captured.
+ * @returns {?BackupImage}
+ */
+export function buildBackupImageData(meta) {
+  if (!meta.backup_image_url || !meta.pano_data) return null;
+  const pd = meta.pano_data;
+  const backupImageData = {
+    pano_id: meta.pano_id,
+    image_url: meta.backup_image_url,
+    width: pd.width,
+    height: pd.height,
+    tile_width: pd.tile_width,
+    tile_height: pd.tile_height,
+    lat: meta.camera_lat,
+    lng: meta.camera_lng,
+    camera_heading: pd.camera_heading,
+    camera_pitch: pd.camera_pitch,
+    camera_roll: pd.camera_roll,
+    capture_date: meta.image_capture_date,
+    copyright: pd.copyright,
+    attribution: pd.attribution,
+    address: pd.address,
+  };
+  return backupImageDataIsComplete(backupImageData) ? backupImageData : null;
+}

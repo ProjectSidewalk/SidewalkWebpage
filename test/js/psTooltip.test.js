@@ -1,5 +1,5 @@
 /**
- * Tests for the shared tooltip (public/js/common/psTooltip.js).
+ * Tests for the shared tooltip (frontend/js/common/psTooltip.js).
  *
  * Covers the two behaviors that a screenshot pass would not catch, because both only show up in motion or at an
  * edge: the placement preference (above by default, below on request, each yielding to the side that has room) and
@@ -12,12 +12,8 @@
  * and triggers report the rect they were assigned.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SOURCE = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/psTooltip.js'), 'utf8'
-);
 
 // Matches the constants in psTooltip.js.
 const TRIGGER_GAP = 8;
@@ -80,7 +76,7 @@ function loadPsTooltip() {
         return original.apply(this, args);
     };
     try {
-        new Function(SOURCE)();
+        Object.assign(window, loadModules('frontend/js/common/psTooltip.js'));
     } finally {
         EventTarget.prototype.addEventListener = original;
     }

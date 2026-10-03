@@ -49,45 +49,19 @@
   }
   @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
-  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
   <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
   @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
-  <script src='@assets.path("js/common/aiLabelIndicator.js")'></script>
-  <script src='@assets.path("js/common/Toast.js")'></script>
-  <script src='@assets.path("js/common/BadgeAchievements.js")'></script>
-  <script src='@assets.path("js/common/PanoMarker.js")'></script>
-  <script src='@assets.path("js/common/LabelVisibilityToggle.js")'></script>
-  <script src='@assets.path("js/common/label-detail/PopupPanoManager.js")'></script>
-  <script src='@assets.path("js/common/ConfirmDialog.js")'></script>
-  <script src='@assets.path("js/common/label-detail/StoryComposer.js")'></script>
-  <script src='@assets.path("js/common/label-detail/StorySection.js")'></script>
-  <script src='@assets.path("js/common/share/ShareWidget.js")'></script>
-  <script src='@assets.path("js/common/label-detail/TagEditor.js")'></script>
-  <script src='@assets.path("js/common/LabelTypePicker.js")'></script>
-  <script src='@assets.path("js/common/label-detail/LabelDetail.js")'></script>
-  <script src='@assets.path("js/common/label-detail/LabelPopup.js")'></script>
 
   @* PSMap + its map dependencies (mapbox-gl, language plugin, turf). *@
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
-  <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
 
-  <script src='@assets.path("js/admin-dashboard/LabelMapPage.js")'></script>
-  <script>
-    window.appManager.ready(async function () {
-      const imagerySrc = "@commonData.imagerySource.name";
-      const viewerType = imagerySrc === 'mapillary' ? MapillaryViewer
-        : imagerySrc === 'infra3d' ? Infra3dViewer
-        : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
-      new LabelMapPage({
-        mapboxToken: '@commonData.mapboxApiKey',
-        viewerType: viewerType,
-        accessToken: "@commonData.imageryAccessToken",
-        username: "@user.username"
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/labelMap.js")'
+          data-mapbox-token="@commonData.mapboxApiKey"
+          data-imagery-source="@commonData.imagerySource.name"
+          data-imagery-access-token="@commonData.imageryAccessToken"
+          data-username="@user.username"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Label Map", i18Namespaces = Seq("common", "labelmap")) {

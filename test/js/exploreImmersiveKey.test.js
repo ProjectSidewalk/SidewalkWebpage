@@ -1,20 +1,13 @@
 /**
- * Explore's F shortcut for immersive mode (public/js/explore/src/keyboard/KeyboardManager.js, #5085).
+ * Explore's F shortcut for immersive mode (frontend/js/explore/keyboard/KeyboardManager.js, #5085).
  *
  * The key is a tag shortcut while the context menu is open, and an f typed anywhere editable is text, so the toggle
  * has to be reachable only from a bare F on the page itself. Nothing else pins that: KeyboardManager's other tests
  * cover Space and the mode letters.
  */
 
-const fs = require('fs');
-const path = require('path');
-const SHORTCUTS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
-);
+const { loadModules } = require('./loadGlobalScript');
 
-const KEYBOARD_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/keyboard/KeyboardManager.js'), 'utf8'
-);
 
 describe('Explore F shortcut for immersive mode', () => {
     let contextMenuOpen;
@@ -23,7 +16,7 @@ describe('Explore F shortcut for immersive mode', () => {
 
     beforeAll(() => {
         window.util = { misc: { VALID_LABEL_TYPES_WITHOUT_OTHER: [], getLabelDescriptions: () => ({}) } };
-        window.eval(`${SHORTCUTS_SRC}\n${KEYBOARD_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
         contextMenuOpen = false;
         // One instance for the file: the constructor adds window listeners that are never removed.
         const contextMenu = { isOpen: () => contextMenuOpen, getTargetLabel: () => null, hide: jest.fn() };

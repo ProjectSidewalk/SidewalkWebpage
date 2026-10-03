@@ -1,5 +1,5 @@
 /**
- * Tests for PannellumViewer loading from a PanoImageCache (public/js/common/pano-viewer/src/PannellumViewer.js,
+ * Tests for PannellumViewer loading from a PanoImageCache (frontend/js/common/pano-viewer/PannellumViewer.js,
  * issue #5562).
  *
  * The viewer's first attempt at a pano is the URL its width ladder (#5256) puts at rung 0, and that is the URL a
@@ -12,10 +12,10 @@
  * assertions read the URLs it was handed, in order.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const VIEWER_PATH = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src/PannellumViewer.js');
+const VIEWER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/common/pano-viewer/PannellumViewer.js');
 
 const NATIVE_URL = '/backupImage/p1';
 const NEXT_URL = '/backupImage/p2';
@@ -107,8 +107,7 @@ describe('PannellumViewer loads from the image cache first (issue #5562)', () =>
         };
         global.moment = function moment() { return {}; };
 
-        const src = fs.readFileSync(VIEWER_PATH, 'utf8');
-        PannellumViewer = (0, eval)('(() => {\n' + src + '\nreturn PannellumViewer;\n})()');
+        PannellumViewer = loadModules(VIEWER_PATH).PannellumViewer;
     });
 
     afterEach(() => {

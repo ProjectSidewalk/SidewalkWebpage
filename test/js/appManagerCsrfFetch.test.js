@@ -1,5 +1,5 @@
 /**
- * Tests for the `window.fetch` CSRF wrapper installed by public/js/common/AppManager.js (`_setupCSRF`).
+ * Tests for the `window.fetch` CSRF wrapper installed by frontend/js/common/AppManager.js (`_setupCSRF`).
  *
  * The wrapper attaches Play's `Csrf-Token` header to same-origin requests only. Cross-origin requests must be left
  * strictly alone: the token is meaningless to a third party, and adding a custom header turns a simple request into
@@ -53,7 +53,7 @@ describe('AppManager CSRF fetch wrapper', () => {
         originalFetch = jest.fn(() => Promise.resolve({ ok: true }));
         window.fetch = originalFetch;
 
-        loadGlobalScript('public/js/common/AppManager.js');
+        loadGlobalScript('frontend/js/common/AppManager.js');
         window.appManager._setupCSRF(CSRF_TOKEN);
     });
 

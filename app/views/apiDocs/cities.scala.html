@@ -6,18 +6,6 @@
 
 @content = {
   <!-- Include aggregate stats script for dynamic city/country counts -->
-  <script src="@routes.Assets.versioned("js/common/aggregateStats.js")"></script>
-  <script>
-    // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
-    // including the download buttons in apiDocs.js
-    console.log('Setting data attributes for API information');
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'cities');
-    console.log('Data attributes set:', {
-      'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
-      'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
-    });
-  </script>
 
   <div class="page-section" id="cities-intro-section">
     <h1 class="page-heading" id="cities-api">Cities API <a href="#cities-api" class="permalink">#</a></h1>
@@ -40,29 +28,8 @@
        set: the language plugin and the ps-map bundle both read the mapboxgl global as they parse. *@
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/ps-map/build/ps-map.js")' defer></script>
-    <script>
-      // The same world map of deployment cities the landing page, /about, and /cities draw.
-      window.appManager.ready(function() {
-        createPSMap({
-          mapName: 'cities-preview',
-          mapStyle: 'mapbox://styles/mapbox/light-v11?optimize=true',
-          mapboxApiKey: '@commonData.mapboxApiKey',
-          mapboxLogoLocation: 'bottom-left',
-          scrollWheelZoom: false,
-          cooperativeGestures: true,
-          loadCities: true,
-          // The reader is scrolling through docs, not watching the map come up, so it shows the world at once
-          // instead of performing a zoom-out from this city's own center.
-          animateCityFit: false,
-          logClicks: true
-        }).catch(function(error) {
-          console.error('Cities preview error:', error);
-          document.getElementById('cities-preview').innerHTML =
-            '<div class="message message-error" role="alert">Failed to load cities data.</div>';
-        });
-      });
-    </script>
+    <script type="module" id="page-entry" src='@assets.path("build/js/api-docs/cities.js")'
+            data-mapbox-api-key="@commonData.mapboxApiKey"></script>
   </div>
 
   <div class="page-section" id="endpoint-section">

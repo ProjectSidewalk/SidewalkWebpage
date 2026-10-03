@@ -11,12 +11,8 @@
  * jsdom global scope.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/mission/MissionController.js'), 'utf8',
-);
 
 /** A task in one of the two states the wrap-up distinguishes: walked to its end, or given up on for lack of imagery. */
 const makeTask = ({ givenUp = false } = {}) => ({
@@ -51,7 +47,7 @@ describe('MissionController.wrapUpRouteOrRegion', () => {
         window.svl = svl;
         window.i18next = { t: (key) => key };
 
-        window.eval(`${SRC}; window.MissionController = MissionController;`);
+        Object.assign(window, loadModules('frontend/js/explore/mission/MissionController.js'));
         controller = new window.MissionController(
             { on: jest.fn(), completeMission: jest.fn() },
             { ...svl.regionModel, currentRegion: () => ({ getRegionId: () => 22 }) },

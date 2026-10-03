@@ -13,30 +13,20 @@
  * MiniLineChart does the drawing, so both have to be present first.
  */
 
-/* global StreetStatusColors -- pulled into scope by the eval() loader below. */
 
-const fs = require('fs');
-const path = require('path');
 
-const { installDateHelpers, loadGlobalScript } = require('./loadGlobalScript');
+const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
 /** Loads the section's dependencies into global scope and returns the StreetStatusTrend class. */
 function loadPage() {
-  const read = (file) => fs.readFileSync(path.join(JS_DIR, file), 'utf8');
-  return (0, eval)(
-    `${read('MiniLineChart.js')}\nglobalThis.MiniLineChart = MiniLineChart;\n`
-    + `${read('StreetStatusMap.js')}\nglobalThis.StreetStatusColors = StreetStatusColors;\n`
-    + `${read('AdminShell.js')}\nglobalThis.AdminShell = AdminShell;\n`
-    + `${read('StreetStatusTrend.js')}\nStreetStatusTrend;`
-  );
+  return loadModules('frontend/js/admin-dashboard/StreetStatusTrend.js', 'frontend/js/admin-dashboard/StreetStatusMap.js');
 }
 
 installDateHelpers();
-const StreetStatusTrend = loadPage();
+const { StreetStatusTrend, StreetStatusColors } = loadPage();
 
 const MARKUP = `
   <div id="street-status-trend-section">

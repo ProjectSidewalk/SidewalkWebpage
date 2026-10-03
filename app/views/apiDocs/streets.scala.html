@@ -6,17 +6,6 @@
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
-  <script>
-    // Set data attributes for API information. This is used by our JavaScripts to configure API calls,
-    // including the download buttons in apiDocs.js
-    console.log('Setting data attributes for API information');
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'streets');
-    console.log('Data attributes set:', {
-      'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
-      'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
-    });
-  </script>
 
   <div class="page-section" id="streets-intro-section">
     <h1 class="page-heading" id="streets-api">Streets API <a href="#streets-api" class="permalink">#</a></h1>
@@ -53,17 +42,7 @@
        set: the language plugin and the preview both read the mapboxgl global as they parse. *@
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script src='@assets.path("js/common/geoBounds.js")' defer></script>
-    <script src='@assets.path("js/api-docs/apiDocsMap.js")' defer></script>
-    <script src='@assets.path("js/api-docs/streetsPreview.js")' defer></script>
-    <script>
-      // Waits on appManager so the maps' language controls can read the page's locale out of i18next.
-      window.appManager.ready(function() {
-        StreetsPreview.setup({
-          mapboxApiKey: '@commonData.mapboxApiKey'
-        }).init();
-      });
-    </script>
+    <script type="module" id="page-entry" data-mapbox-api-key="@commonData.mapboxApiKey" src='@assets.path("build/js/api-docs/streets.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">

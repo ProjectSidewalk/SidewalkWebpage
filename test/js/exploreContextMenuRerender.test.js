@@ -1,5 +1,5 @@
 /**
- * Tests for the canvas re-render in ContextMenu.show()/hide() (public/js/explore/src/canvas/ContextMenu.js, #4824).
+ * Tests for the canvas re-render in ContextMenu.show()/hide() (frontend/js/explore/canvas/ContextMenu.js, #4824).
  *
  * Label.render() fades the icon whose dialog is open (pinned in exploreLabelDialogFade.test.js), but the canvas is
  * only repainted when something asks it to. What makes the fade appear the instant the panel opens and clear the
@@ -15,13 +15,9 @@
  * built; the severity and tag sections are switched off through the same flags production uses.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
 const { makeContextMenuUi } = require('./contextMenuUiStub');
-const CONTEXT_MENU_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/canvas/ContextMenu.js'), 'utf8'
-);
 
 /** The label a menu opens for. Only the getters show()/hide() actually call are present. */
 function makeLabel({ labelType = 'CurbRamp' } = {}) {
@@ -76,7 +72,7 @@ describe('ContextMenu repaints the canvas when the panel opens and closes', () =
             navigationService: { setStatus: jest.fn() },
         };
 
-        window.eval(`${CONTEXT_MENU_SRC}\nwindow.ContextMenu = ContextMenu;`);
+        Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js'));
         // No #context-menu-share element and no ShareWidget global, so the share widget stays null.
         menu = new window.ContextMenu(makeContextMenuUi());
         window.svl.contextMenu = menu;

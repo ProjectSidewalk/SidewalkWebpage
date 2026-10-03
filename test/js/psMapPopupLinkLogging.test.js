@@ -1,17 +1,13 @@
 /**
- * Tests for logPopupLinkClicks (public/js/ps-map/psMapUtilities.js) and its use by addCitiesToMap.
+ * Tests for logPopupLinkClicks (frontend/js/ps-map/psMapUtilities.js) and its use by addCitiesToMap.
  *
  * Map popup links are rebuilt every time a popup opens, so the click log listens on the map container and matches
  * each click against a selector. These pin that a click anywhere inside the link logs, that clicks elsewhere don't,
  * and that the cities map wires the selector its popup template actually uses.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = ['public/js/common/geoBounds.js', 'public/js/ps-map/psMapUtilities.js', 'public/js/ps-map/addCitiesToMap.js']
-    .map((file) => fs.readFileSync(path.resolve(__dirname, '..', '..', file), 'utf8'))
-    .join('\n');
 
 /** Mirrors the link in app/views/common/cityPopupTemplate.scala.html. */
 const POPUP_TEMPLATE = `
@@ -28,9 +24,9 @@ const POPUP_TEMPLATE = `
   </template>
   <div id="cities-map"></div>`;
 
-/** Loads the sources as globals, the way the Grunt-concatenated bundle runs in the browser. */
+/** Loads the map helpers fresh. */
 function loadGlobals() {
-    return new Function(`${SRC}\nreturn { logPopupLinkClicks, addCitiesToMap };`)();
+    return loadModules('frontend/js/ps-map/psMapUtilities.js', 'frontend/js/ps-map/addCitiesToMap.js');
 }
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Tests for Form's pano staging contract (public/js/explore/src/data/Form.js, issue #4587).
+ * Tests for Form's pano staging contract (frontend/js/explore/data/Form.js, issue #4587).
  *
  * A pano's metadata is submitted at most once per session: PanoStore hands Form only panos not yet marked
  * `submitted`. That mark must therefore mean "the server accepted this pano" — if it were set when the payload is
@@ -11,17 +11,12 @@
  * ShareWidget/PanoInfoPopover pattern) rather than using loadGlobalScript.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installDateHelpers } = require('./loadGlobalScript');
+const { installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const FORM_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/data/Form.js'), 'utf8'
-);
 
 /** Loads a fresh Form class into the jsdom global scope. */
 function loadForm() {
-    window.eval(`${FORM_SRC}\nwindow.Form = Form;`);
+    Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
     return window.Form;
 }
 

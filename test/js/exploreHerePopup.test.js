@@ -1,5 +1,5 @@
 /**
- * Tests for the LabelMap search-pin "explore here" popup builder (public/js/labelMapLocationSearch.js, #4451).
+ * Tests for the LabelMap search-pin "explore here" popup builder (frontend/js/labelMapLocationSearch.js, #4451).
  *
  * The load-bearing contract: the place name, street address, and region name shown in the popup come from
  * OUTSIDE this codebase (Mapbox Search Box results are built on user-editable OSM data), so they must land in the
@@ -12,19 +12,14 @@
  * need. The pin/marker/Escape wiring around the popup is covered separately, in labelMapSearchClear.test.js.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installEscapeHTML } = require('./loadGlobalScript');
+const { installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
 installEscapeHTML();
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/labelMapLocationSearch.js'), 'utf8'
-);
 
 /** Evals the production source fresh and returns the functions under test. */
 function loadModule() {
-    window.eval(`${SRC}\nwindow.__exploreHere = { buildExploreHereContent, streetAddress };`);
+    window.__exploreHere = loadModules('frontend/js/labelMapLocationSearch.js');
     return window.__exploreHere;
 }
 

@@ -1,5 +1,5 @@
 /**
- * Where the landing page's validation grid draws its label marker (public/js/LandingValidationGrid.js, issue #2660).
+ * Where the landing page's validation grid draws its label marker (frontend/js/LandingValidationGrid.js, issue #2660).
  *
  * A card shows a crop or the Street View still it falls back to, and the label is in a different place in each: only
  * a crop's `label_crop` row says where a job-cut window put it, while the still reproduces the Explore frame. These
@@ -10,14 +10,9 @@
  * jsdom with the collaborators it touches stubbed out.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 
-const GRID_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/LandingValidationGrid.js'), 'utf8'
-);
 
 /** What the source-logo and licence-line stubs were last told: the card owes a credit on a crop and nothing else. */
 const credit = { logo: null, attribution: null };
@@ -92,7 +87,7 @@ describe('the landing validation grid\'s label marker', () => {
             show: () => { credit.attribution = 'shown'; },
             hide: () => { credit.attribution = 'hidden'; },
         });
-        window.eval(`${GRID_SRC}\nwindow.LandingValidationGrid = LandingValidationGrid;`);
+        Object.assign(window, loadModules('frontend/js/LandingValidationGrid.js'));
     });
 
     it('draws the marker where the crop says its label is', async () => {

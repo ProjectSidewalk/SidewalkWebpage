@@ -1,5 +1,5 @@
 /**
- * Tests for the region line on a Gallery card (public/js/gallery/src/cards/Card.js, issue #4585).
+ * Tests for the region line on a Gallery card (frontend/js/gallery/cards/Card.js, issue #4585).
  *
  * A card says which region its label sits in, looked up from the id -> name map the page carries. The name is
  * city data rather than ours, so it goes in as text; these tests pin that along with the absent-name case, since a
@@ -9,14 +9,9 @@
  * collaborators it touches during construction stubbed out.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 
-const CARD_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/gallery/src/cards/Card.js'), 'utf8'
-);
 
 /** One label payload, shaped like an entry from POST /label/labels. */
 function label(overrides = {}) {
@@ -60,7 +55,7 @@ describe('a Gallery card\'s location line', () => {
         window.TagDisplay = class {};
         window.createPanoViewerLogo = () => ({ showSourceLogo: () => {}, hide: () => {} });
         window.createPanoAttribution = () => ({ show: () => {}, hide: () => {} });
-        window.eval(`${CARD_SRC}\nwindow.Card = Card;`);
+        Object.assign(window, loadModules('frontend/js/gallery/cards/Card.js'));
     });
 
     beforeEach(() => {

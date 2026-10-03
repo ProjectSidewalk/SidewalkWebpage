@@ -1,5 +1,5 @@
 /**
- * Validate's F shortcut for immersive mode (public/js/validate/src/keyboard/KeyboardManager.js, #5560).
+ * Validate's F shortcut for immersive mode (frontend/js/validate/keyboard/KeyboardManager.js, #5560).
  *
  * The key is Explore's, and the same two things keep it from firing by accident: an f typed anywhere editable is text,
  * and F with a modifier belongs to the browser. What is Validate's own is where the check sits: after the marker and
@@ -8,15 +8,8 @@
  * explicit export, one instance for the file, since the constructor's window listener cannot be unregistered.
  */
 
-const fs = require('fs');
-const path = require('path');
-const SHORTCUTS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
-);
+const { loadModules } = require('./loadGlobalScript');
 
-const MANAGER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
-);
 
 /** A menu control with its click spied; a real element, since the manager compares against document.activeElement. */
 function makeControl() {
@@ -38,7 +31,7 @@ describe('Validate F shortcut for immersive mode', () => {
             noButton: makeControl(),
             unsureButton: makeControl(),
         });
-        window.eval(`${SHORTCUTS_SRC}\n${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(validationMenuUi);
     });
 

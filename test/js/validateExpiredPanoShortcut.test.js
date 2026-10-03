@@ -1,7 +1,7 @@
 /**
  * Tests that Validate goes straight to the Pannellum fallback for a label whose pano the backend already knows is
- * gone from the provider (issue #5561), across public/js/validate/src/label/Label.js (the `expired` flag),
- * public/js/validate/src/label/LabelContainer.js (passing it on) and public/js/validate/src/panorama/PanoManager.js
+ * gone from the provider (issue #5561), across frontend/js/validate/label/Label.js (the `expired` flag),
+ * frontend/js/validate/label/LabelContainer.js (passing it on) and frontend/js/validate/panorama/PanoManager.js
  * (`setPanorama` acting on it). `create` loads no pano (#5581), so the first label of a mission goes through the same
  * `setPanorama` as every other and takes the same shortcut.
  *
@@ -13,16 +13,15 @@
  * Fake viewers throughout, in the shape validateSkipUnrenderableLabel.test.js uses; no imagery is involved.
  */
 
-const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const PANO_MANAGER_PATH = path.join(REPO_ROOT, 'public/js/validate/src/panorama/PanoManager.js');
-const LABEL_CONTAINER_PATH = path.join(REPO_ROOT, 'public/js/validate/src/label/LabelContainer.js');
-const LABEL_PATH = path.join(REPO_ROOT, 'public/js/validate/src/label/Label.js');
-const THROTTLE_PATH = path.join(REPO_ROOT, 'public/js/validate/src/util/throttle.js');
+const PANO_MANAGER_PATH = path.join(REPO_ROOT, 'frontend/js/validate/panorama/PanoManager.js');
+const LABEL_CONTAINER_PATH = path.join(REPO_ROOT, 'frontend/js/validate/label/LabelContainer.js');
+const LABEL_PATH = path.join(REPO_ROOT, 'frontend/js/validate/label/Label.js');
+const THROTTLE_PATH = path.join(REPO_ROOT, 'frontend/js/validate/util/throttle.js');
 
 /**
  * Load a bare `class` declaration out of a production file, wrapped in an IIFE that returns it.
@@ -31,8 +30,7 @@ const THROTTLE_PATH = path.join(REPO_ROOT, 'public/js/validate/src/util/throttle
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 describe('PanoManager skips the provider for a pano it knows is gone (issue #5561)', () => {
@@ -47,7 +45,7 @@ describe('PanoManager skips the provider for a pano it knows is gone (issue #556
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
     global.util = {};
-    (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
+    Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
     global.createPanoViewerLogo = jest.fn(() => ({ showPrimaryLogo: jest.fn(), showSourceLogo: jest.fn() }));
     global.createPanoAttribution = jest.fn(() => ({ show: jest.fn(), hide: jest.fn() }));

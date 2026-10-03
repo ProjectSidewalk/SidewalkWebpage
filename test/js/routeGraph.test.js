@@ -1,5 +1,5 @@
 /**
- * Tests for RouteGraph (public/js/route-builder/src/RouteGraph.js, issue #4579) — the client-side street graph
+ * Tests for RouteGraph (frontend/js/route-builder/RouteGraph.js, issue #4579) — the client-side street graph
  * behind RouteBuilder's start/end auto-routing.
  *
  * RouteGraph is a top-level `class` declaration written for the Grunt-concatenation world, so (like ShareWidget's
@@ -18,16 +18,12 @@
  * routing is free to cross into).
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const GRAPH_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/route-builder/src/RouteGraph.js'), 'utf8'
-);
 
 /** Loads a fresh RouteGraph class into the jsdom global scope. */
 function loadRouteGraph() {
-    window.eval(`${GRAPH_SRC}\nwindow.RouteGraph = RouteGraph;`);
+    Object.assign(window, loadModules('frontend/js/route-builder/RouteGraph.js'));
     return window.RouteGraph;
 }
 

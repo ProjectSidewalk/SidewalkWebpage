@@ -1,5 +1,5 @@
 /**
- * Smoke tests for public/js/api-docs/validationResultTypesPreview.js.
+ * Smoke tests for frontend/js/api-docs/validationResultTypesPreview.js.
  *
  * This is part of the first frontend test layer for Project Sidewalk. The module under test is a dependency-light
  * IIFE that fetches the /v3/api/validationResultTypes endpoint and renders a small table into a container div. These
@@ -10,11 +10,11 @@
  * Runs under jsdom (set in jest.config.js via testEnvironment) so `window`/`document` are available.
  */
 
-const { loadGlobalScript, installEscapeHTML } = require('./loadGlobalScript');
+const { loadModules, mockModule, unmockModule, installEscapeHTML } = require('./loadGlobalScript');
 
 installEscapeHTML();
 
-const MODULE_PATH = 'public/js/api-docs/validationResultTypesPreview.js';
+const MODULE_PATH = 'frontend/js/api-docs/validationResultTypesPreview.js';
 const CONTAINER_ID = 'validation-result-types-preview';
 
 // A realistic, captured-shape API response: snake_case keys, per the v3 API naming convention (issue #3871).
@@ -54,13 +54,9 @@ describe('ValidationResultTypesPreview', () => {
     beforeEach(() => {
         // Fresh container per test.
         document.body.innerHTML = `<div id="${CONTAINER_ID}"></div>`;
-        // The module assigns window.ValidationResultTypesPreview as a singleton; load a clean copy each time so that
-        // config mutations from setup() in one test don't bleed into the next.
-        delete window.ValidationResultTypesPreview;
-        // apiDocs/layout.scala.html loads the theme and table-wrapper helpers ahead of every preview script.
-        loadGlobalScript('public/js/api-docs/apiDocsTheme.js');
-        loadGlobalScript('public/js/api-docs/apiTableWrapper.js');
-        loadGlobalScript(MODULE_PATH);
+        // The preview is a singleton; load a clean copy each time so config mutations from setup() in one test don't
+        // bleed into the next.
+        window.ValidationResultTypesPreview = loadModules(MODULE_PATH).ValidationResultTypesPreview;
     });
 
     afterEach(() => {
@@ -109,12 +105,15 @@ describe('ValidationResultTypesPreview', () => {
         expect(wrapper.getAttribute('aria-label')).toBe('Validation result types');
     });
 
-    // The wrapper helper arrives as a separate <script> in apiDocs/layout.scala.html, so a render-time throw is a
-    // reachable production failure, not a hypothetical. It has to land in the banner: init() is fire-and-forget at
-    // every call site, so an escaping rejection would leave "Loading..." on screen with nothing to explain it.
+    // A render-time throw has to land in the banner: init() is fire-and-forget at every call site, so an escaping
+    // rejection would leave "Loading..." on screen with nothing to explain it.
     test('a render-time throw reaches the error banner instead of escaping init()', async () => {
         stubFetch(GOOD_FIXTURE);
-        delete window.createApiTableWrapper;
+        mockModule('frontend/js/api-docs/apiTableWrapper.js', () => ({
+            createApiTableWrapper: () => { throw new Error('render failed'); },
+        }));
+        window.ValidationResultTypesPreview = loadModules(MODULE_PATH).ValidationResultTypesPreview;
+        unmockModule('frontend/js/api-docs/apiTableWrapper.js');
 
         await expect(window.ValidationResultTypesPreview.setup({}).init()).resolves.toBeUndefined();
 
