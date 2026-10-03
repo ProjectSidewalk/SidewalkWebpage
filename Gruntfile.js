@@ -26,7 +26,8 @@ module.exports = function (grunt) {
           'public/js/common/PanoImageAdjustmentsPopover.js',
           // Immersive mode (#5085, #5560): shared by Explore and Validate.
           'public/js/common/ImmersiveMode.js',
-          'public/js/common/KeyboardShortcuts.js'
+          'public/js/common/KeyboardShortcuts.js',
+          'public/js/common/WalkPlanner.js'
         ],
         dest: 'public/js/explore/build/explore.js'
       },

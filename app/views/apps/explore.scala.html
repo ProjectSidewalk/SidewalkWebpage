@@ -403,6 +403,13 @@
                 </svg>
                 <span data-i18n="audit:right-ui.minimap.legend-ahead">Route ahead</span>
               </div>
+              @* Shown only while a neighborhood mission follows a planned walk (WalkPlanLayer sets minimap-plan-mode). *@
+              <div class="minimap-legend-row minimap-legend-row-jump">
+                <svg viewBox="0 0 30 12" aria-hidden="true">
+                  <path class="minimap-legend-sample-jump" d="M2 6H28"></path>
+                </svg>
+                <span data-i18n="audit:right-ui.minimap.legend-jump">Jump to next street</span>
+              </div>
               <div class="minimap-legend-row">
                 <svg viewBox="0 0 30 12" aria-hidden="true">
                   <path class="minimap-legend-sample-cone" d="M15 7L10.5 0.5A8 8 0 0 1 19.5 0.5Z"></path>
@@ -1035,6 +1042,9 @@
        where each fitted value comes from) so the client-side copy of the estimator (Label.js) can never drift from
        the server-side one. *@
     mainParam.latLngEstimation = @jsonForScript(service.PanoDataService.LatLngEstimation.asJson);
+    @* Walk planner thresholds (#5526). Domain values, so application.conf owns them (walk-planner.*) and the
+       client-side planner and the tiny-street auto-complete read them from here rather than declaring their own. *@
+    mainParam.walkPlanner = @jsonForScript(data.walkPlanner);
     const imagerySrc = "@commonData.imagerySource.name";
     mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
       : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;

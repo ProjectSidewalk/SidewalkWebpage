@@ -185,6 +185,7 @@
       "mission-progress": "Mission progress",
       "legend-explored": "Explored",
       "legend-ahead": "Route ahead",
+      "legend-jump": "Jump to next street",
       "legend-you": "You + view direction",
       "legend-visited": "Visited location",
       "legend-unseen": "Not yet viewed",

@@ -173,6 +173,42 @@ class MinimapStyle {
   }
 
   /**
+   * An upcoming jump in a neighborhood mission's planned walk (#5526): a straight connector from the end of one street
+   * to where the labeler lands on the next, a stretch they will be moved across rather than walk. A thin dashed
+   * hairline in the chevrons' deep blue (the legend's "Jump to next street" row): no discs, since a filled disc on this
+   * map means a pano to step to, and too thin and plain to read as a street to walk.
+   *
+   * No white casing: the deep blue is dark enough to hold against the light raster basemap on its own, and a casing
+   * would thicken the hairline back into something that competes with the streets. Not clickable, since it does
+   * nothing when clicked. Just under the route casing, so where a connector meets a street the street wins.
+   * @param {google.maps.LatLng[]} path - The connector's two ends.
+   * @returns {google.maps.PolylineOptions}
+   */
+  static plannedJump(path) {
+    return {
+      path,
+      geodesic: true,
+      clickable: false,
+      // The line itself is invisible; the repeated dash symbol below draws it, since strokes can't dash.
+      strokeOpacity: 0,
+      zIndex: 9,
+      icons: [
+        {
+          icon: {
+            path: 'M 0,-1 0,1',
+            strokeColor: MinimapStyle.chevronOutlineColor(),
+            strokeOpacity: 1.0,
+            strokeWeight: 2,
+            scale: 2, // 4px dashes with 4px gaps: finer than the route-ahead's 5-on/7-off, which is a street to walk.
+          },
+          offset: '0',
+          repeat: '8px',
+        },
+      ],
+    };
+  }
+
+  /**
    * A street the user has already completed (not the current one).
    * @param {google.maps.LatLng[]} path - The polyline path.
    * @returns {google.maps.PolylineOptions}

@@ -84,8 +84,8 @@ The backend follows a consistent layering: **routes → Controller → Service �
 
 Regions (neighborhoods) organize the work: a mission is filed under one, the dashboard and LabelMap filter by one,
 and `region_completion` reports progress per region. They are **not** a boundary the streets or a route have to stay
-inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission routes
-proposed in #5526, is walks that make sense on the ground: routes that end at intersections rather than at an
+inside (#3488). The larger aim behind that, shared with the tiny-segment work (#4717) and the planned mission walks
+(#5526), is walks that make sense on the ground: routes that end at intersections rather than at an
 arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the tool can show where a walk is going.
 
 - **`street_edge_region` is an assignment, not geometry.** Every street belongs to exactly one region (UNIQUE on
@@ -109,6 +109,24 @@ arbitrary line, fewer tiny disconnected pieces, and enough of a plan that the to
   its street is: going by the mission alone would hide a route's labels from a later visit to the neighborhood they
   are actually in, and going by the street alone would drop a label placed just across a border from its mission's
   region. It is a UNION of two indexed branches on purpose; an OR across the two joins can't use either index.
+- **A neighborhood mission plans its walk on the client (#5526).** Once `/tasks` loads, `TaskContainer` hands the
+  region's unwalked streets to `WalkPlanner` (`public/js/common/`), stamps each task with its planned position and
+  direction, and `nextTask` follows that order through the same walk-order branch a route uses. It replans when a
+  street is given up for lack of imagery, when another labeler changes the priority of a street still ahead, and
+  when the labeler switches to a street other than the plan's next; a replan asked for while a jump is armed waits
+  until the jump lands. `WalkPlanLayer` previews the next few streets and their jumps on the minimap. The planner is
+  deterministic: the same streets, priorities and start street give the same plan, and a reload that resumes the
+  same street replans the same remaining walk. If planning fails, the greedy next-street rule takes over.
+  - *Why the client, and what would move it.* The next-street choice was client-side before the planner (the greedy
+    rule it replaces), the client already holds every street with its live priority and receives priority deltas
+    on every task POST, and both consumers (the next-street pick and the minimap preview) are on the client, so a
+    server plan would add a table, an endpoint and an invalidation story for no consumer. The server's part is the
+    first street of a session and the thresholds: `walk-planner.priority-tolerance` and `walk-planner.tiny-street-m`
+    in `application.conf` (env-overridable per deployment) reach the page as `mainParam.walkPlanner`, and the planner
+    has no defaults for them. Move the planning itself to the server only if a need appears that a client can't
+    meet: coordinating several labelers in one region (reservations, which today's planner would consume as excluded
+    streets), a plan that must survive a device switch, or a planned route shown outside Explore. `WalkPlanner` has
+    no DOM or map dependency so that such a port is a transcription.
 
 ### Media storage
 
@@ -364,7 +382,8 @@ corresponding Twirl view:
   `missionId` it was written from, which the controller honors only when the requesting user owns that mission,
   so a refresh, or one of Explore's own reloads (after an hour idle, on a submit failure), resumes the mission at
   the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
-  path already resumes the user's own open drop-in mission.
+  path already resumes the user's own open drop-in mission. The order in which a neighborhood mission walks its
+  streets, the client-side walk planner (#5526), is described under "Streets, regions, and routes" above.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
   `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
   display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's

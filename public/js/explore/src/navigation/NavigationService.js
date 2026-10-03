@@ -8,6 +8,13 @@ class NavigationService {
   // further to walk either way. Task.isAtEnd scales both down on short streets.
   static #NEAR_END_NO_IMAGERY_THRESHOLD = 50;
   static #MOVE_DELAY = 800; // Move delay prevents users from spamming through a mission.
+  // Below the 25 m completion radius a street is degenerate by construction (#4717): Task.isAtEnd caps its end
+  // threshold at a fraction of the length, and the end-of-street check only runs after a move, so a labeler who
+  // arrives already at its end can never finish it and is left pressing Stuck (#3682). What counts as "tiny" is the
+  // backend's walk-planner.tiny-street-m (svl.walkPlannerSettings), shared with the planner; see #tinyStreetM.
+  // A run of tiny streets that each lead into the next is completed one after another; this bounds the run, so a
+  // pathological cluster can never loop the page.
+  static #MAX_TINY_STREET_CHAIN = 5;
   // Distance between points on a street when searching it for imagery (km). Public so that PanoManager can sample
   // backup starting points at the same granularity as moveForward()'s search.
   static DIST_INCREMENT = 0.01;
@@ -34,6 +41,8 @@ class NavigationService {
   // Traversal the #stuckPanos set belongs to; see the reset in moveForward().
   #stuckPanosTraversalKey = null;
   #positionUpdateCallbacks = [];
+  // How many tiny-street auto-completions are on the stack right now; see #maybeCompleteTinyStreet.
+  #tinyStreetChainDepth = 0;
   #povSettlePoll = null; // Interval id; see #refreshHeadingViewsAfterPovSettles.
 
   /**
@@ -211,7 +220,13 @@ class NavigationService {
     // Get a new task and jump to the new task location. The task being left is deliberately not finished — finishing
     // it submits completed=true, and the regular submission path credits that as a full audit, which is exactly the
     // claim a no-imagery verdict cannot support (#4922).
+    // A planned walk is rebuilt around the dead street first (#5526): the plan's next street assumed the labeler would
+    // walk out of this one's far end, which they now never reach.
+    if (svl.taskContainer.hasWalkPlan()) svl.taskContainer.planWalk('giveUp', { exclude: currentTask });
     const newTask = svl.taskContainer.nextTask(currentTask);
+    // Held as an armed jump until setCurrentTask lands on it: the submission awaited below is the window in which a
+    // priority refresh arrives, and a replan there could turn or reorder the street already chosen and prefetched.
+    if (newTask) svl.taskContainer.setNextTaskAfterJump(newTask);
 
     // Set once the labeler is actually being moved off, not when the street is reported: a run stopped by the advance
     // ceiling above leaves them standing here, and the flag reads as "done with this street" everywhere — full length
@@ -235,7 +250,14 @@ class NavigationService {
       // already been switched out from under them, and only a page reload gets them out (#4921). jumpToANewTask()
       // re-enables walking before its own moveForward() for the same reason.
       this.enableWalking();
-      return this.moveForward();
+      const landedPanoId = await this.moveForward();
+      // The replan may hand out a tiny street once its tier has nothing longer left, and landing on one without the
+      // check below strands the labeler just as a jump landing would (#3682).
+      if (landedPanoId && this.#maybeCompleteTinyStreet(svl.taskContainer.getCurrentTask())) {
+        const region = svl.regionModel.currentRegion();
+        svl.missionModel.updateMissionProgress(svl.missionContainer.getCurrentMission(), region);
+      }
+      return landedPanoId;
     } else {
       // Nothing left to walk. This path skips #updateUiAfterMove(), so clear the flags here.
       this.#status.movingToNewLocation = false;
@@ -301,34 +323,78 @@ class NavigationService {
     svl.taskContainer.setNextTaskAfterJump(null);
     this.enableWalking();
 
-    await this.moveForward();
+    const landedPanoId = await this.moveForward();
+    // Landing is the third way onto a street without walking it, and the post-move end check shrinks its radius on a
+    // tiny street, so a jump onto one would otherwise strand the labeler exactly as a spawn does (#3682).
+    if (landedPanoId && this.#maybeCompleteTinyStreet(svl.taskContainer.getCurrentTask())) {
+      svl.missionModel.updateMissionProgress(svl.missionContainer.getCurrentMission(), svl.regionModel.currentRegion());
+    }
+    // After the tiny-street check, so a seamless switch it makes leaves the camera facing the street now being walked.
     svl.panoManager.setPovToRouteDirection();
     svl.jumpAlert.onClickJumpMessage();
   }
 
   /**
    * Get a new task and check if it's disconnected from the current task. If yes, then finish the current task after
-   * the user has finished labeling the current location.
+   * the user has finished labeling the current location. A street reached without a move is checked for being tiny.
    * @param {Task} task - The task that the user has neared the end of.
    * @param {Mission} mission - The mission that the task should be associated with.
+   * @returns {void}
    */
   #endTheCurrentTask(task, mission) {
+    const { switchedTo } = this.#endOrArmJump(task, mission);
+    // The labeler arrives on the next street without moving, so the post-move end check won't see it.
+    if (switchedTo) this.#maybeCompleteTinyStreet(switchedTo);
+  }
+
+  /**
+   * Whether finishing `task` carries the labeler straight onto `nextTask` with no jump.
+   *
+   * On a planned walk the plan fixed which end of `nextTask` is its start, so only that end (or, for a part-walked
+   * street, where the labeler left it) counts: accepting its far end as well, as isConnectedTo does, would switch
+   * seamlessly onto a street that begins a block away, and the first move would teleport the labeler there unannounced.
+   * This is the same gap WalkPlanLayer measures before drawing a jump connector.
+   *
+   * @param {Task} task - The street being finished.
+   * @param {Task} nextTask - The street chosen to follow it.
+   * @returns {boolean}
+   */
+  #continuesInto(task, nextTask) {
+    if (!svl.taskContainer.hasWalkPlan?.()) {
+      return task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' });
+    }
+    const end = task.getEndCoordinate();
+    const start = nextTask.getStartCoordinate();
+    const landing = nextTask.isResumed() ? nextTask.getFurthestPointReached() : turf.point([start.lng, start.lat]);
+    return turf.distance(turf.point([end.lng, end.lat]), landing, { units: 'kilometers' })
+      < svl.CONNECTED_TASK_THRESHOLD;
+  }
+
+  /**
+   * Ends `task` and switches to the next street when they connect; otherwise arms the label-before-jump prompt (or,
+   * with no street left, the route or region's end). Does nothing while a jump is already armed.
+   *
+   * @param {Task} task - The task that the user has neared the end of.
+   * @param {Mission} mission - The mission that the task should be associated with.
+   * @returns {{armedJump: boolean, switchedTo: ?Task}} `armedJump` when the prompt was armed rather than the street
+   *     ended; `switchedTo` the street now current after a seamless switch.
+   */
+  #endOrArmJump(task, mission) {
     if (!this.getLabelBeforeJumpState()) {
       this.#missionJump = mission;
       const nextTask = svl.taskContainer.nextTask(task);
+      const continues = Boolean(nextTask) && this.#continuesInto(task, nextTask);
 
       // Check if the user will jump to another discontinuous location or if this is the last street in their
       // route/region. If either is the case, let the user know to label the location before proceeding.
-      if (svl.regionModel.isRouteOrRegionComplete()
-        || !nextTask
-        || !task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
+      if (svl.regionModel.isRouteOrRegionComplete() || !nextTask || !continues) {
         // If we are out of streets, set the route/region as complete.
         if (!nextTask) {
           svl.regionModel.setComplete();
           // A route completes at its last reachable pano: show the finish toast and arm the 360°-gated auto-complete.
           // Regions keep the manual compass-click flow.
           if (svl.regionModel.isRoute) svl.missionController.onRouteReadyToFinish();
-        } else if (!task.isConnectedTo(nextTask, svl.CONNECTED_TASK_THRESHOLD, { units: 'kilometers' })) {
+        } else if (!continues) {
           // If jumping to a new place, record what the next task will be.
           svl.taskContainer.setNextTaskAfterJump(nextTask);
         }
@@ -343,13 +409,82 @@ class NavigationService {
         svl.tracker.push('LabelBeforeJump_ShowMsg');
         svl.compass.showLabelBeforeJumpMessage();
         this.setLabelBeforeJumpState(true);
+        return { armedJump: true, switchedTo: null };
       } else {
         // If there is another contiguous task, end the current one and show the next one.
         svl.taskContainer.endTask(task);
         mission.pushATaskToTheRoute(task);
         svl.taskContainer.setCurrentTask(nextTask);
+        return { armedJump: false, switchedTo: nextTask };
       }
     }
+    return { armedJump: false, switchedTo: null };
+  }
+
+  /**
+   * Handles a tiny street the page load puts the labeler on (#3682): see #maybeCompleteTinyStreet. Main runs it once
+   * the mission-start screen is out of the way, so a jump prompt it arms is one the labeler can see.
+   *
+   * @returns {boolean} True when the street was ended, or its label-before-jump prompt armed because the next street
+   *     is a jump away; either way the caller should refresh mission progress.
+   */
+  completeTinyStreetAtSpawn() {
+    return this.#maybeCompleteTinyStreet(svl.taskContainer.getCurrentTask());
+  }
+
+  /**
+   * The length under which a street is too short to walk: the backend's setting, the same one the planner runs with,
+   * so the two agree on the threshold and its boundary (strictly shorter). They can still differ on a resumed street,
+   * which the planner measures by its unwalked remainder and this check by its whole length; that is harmless, since
+   * the post-move end check finishes a street whose remainder is short. A page that did not receive the setting
+   * completes nothing, rather than guessing a threshold here.
+   * @returns {number} Metres.
+   */
+  static #tinyStreetM() {
+    const tinyStreetM = svl.walkPlannerSettings?.tinyStreetM;
+    return Number.isFinite(tinyStreetM) ? tinyStreetM : 0;
+  }
+
+  /**
+   * Finishes `task` through the normal end-of-street path when it is a tiny street the labeler can already see all
+   * of (#3682): it is ended and the next street taken, or, when that street is a jump away, the label-before-jump
+   * prompt is armed exactly as at the end of a walked street.
+   *
+   * Seeing the whole street is the rule #isWholeStreetInView already credits when imagery runs out (#5474); this
+   * applies it where the labeler lands on a street without walking it (page load, a seamless switch at a junction, a
+   * jump), which is where no end-of-street check can finish a tiny one. Not in the tutorial or free exploration, which
+   * never finish streets; not on a route, whose final street defers to the imagery-exhaustion path (#4640) and whose
+   * out-and-back legs are separate passes; and not while a jump is armed, since the street being ended is then no
+   * longer the one being walked.
+   *
+   * @param {Task} task - The street the labeler has just been placed on.
+   * @returns {boolean} True when the street was ended or its jump prompt armed; false when it was left alone.
+   */
+  #maybeCompleteTinyStreet(task) {
+    if (svl.isOnboarding() || svl.isExploreAddressMode() || svl.regionModel.isRoute) return false;
+    if (this.getLabelBeforeJumpState()) return false;
+    if (!task || !svl.taskContainer.tasksLoaded() || task.isComplete() || task.wasGivenUpOnImagery()) return false;
+    if (this.#tinyStreetChainDepth >= NavigationService.#MAX_TINY_STREET_CHAIN) return false;
+    const lengthM = task.lineDistance({ units: 'meters' });
+    if (!(lengthM < NavigationService.#tinyStreetM()) || !this.#isWholeStreetInView(task)) return false;
+
+    // Depth rather than a counter reset per spawn: each completion that lands on another tiny street recurses back
+    // into here, so the stack depth is exactly the length of the run.
+    this.#tinyStreetChainDepth++;
+    try {
+      const { armedJump, switchedTo } = this.#endOrArmJump(task, svl.missionContainer.getCurrentMission());
+      // Logged once the outcome is known and before any next tiny street in the run, so the log reads in order.
+      // `armedJump` marks a street not yet ended: it ends when the labeler takes the jump.
+      svl.tracker.push('TaskAutoComplete_TinyStreet', {
+        streetEdgeId: task.getStreetEdgeId(),
+        lengthM: Math.round(lengthM * 10) / 10,
+        ...(armedJump ? { armedJump: true } : {}),
+      });
+      if (switchedTo) this.#maybeCompleteTinyStreet(switchedTo);
+    } finally {
+      this.#tinyStreetChainDepth--;
+    }
+    return true;
   }
 
   /**
@@ -413,27 +548,7 @@ class NavigationService {
     svl.canvas.enableLabeling();
 
     if (!isOnboarding && 'taskContainer' in svl && svl.taskContainer.tasksLoaded()) {
-      // End of the task if the user is close enough to the end point, and we aren't in the tutorial.
-      // TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
-      // - that might be because the task was already ended before we moved them, for example...
-      // TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
-      //      UI after a move... especially when #endTheCurrentTask() can result in another move...
-      const task = svl.taskContainer.getCurrentTask();
-      // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
-      if (!isOnboarding && !svl.isExploreAddressMode() && task
-        && task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
-        // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
-        // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
-        // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
-        // really is the end, so preserve today's behavior there.
-        const finalRouteStreet = svl.regionModel.isRoute && !svl.taskContainer.nextTask(task);
-        const streetLen = task.lineDistance({ units: 'meters' });
-        const walkedMostOfStreet = streetLen > 0
-          && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
-        if (!finalRouteStreet || walkedMostOfStreet) {
-          this.#endTheCurrentTask(task, currentMission);
-        }
-      }
+      this.#endStreetIfAtEnd(newLatLng, currentMission);
       svl.taskContainer.updateCurrentTask();
     }
     svl.missionModel.updateMissionProgress(currentMission, region);
@@ -464,6 +579,37 @@ class NavigationService {
 
     // Enable moving again after a timeout.
     setTimeout(() => this.resetWalking(), NavigationService.#MOVE_DELAY);
+  }
+
+  /**
+   * Ends the current street if a move has brought the labeler to its end.
+   *
+   * TODO I wonder if ending a task should happen elsewhere? Bc some types of moves might never cause an end task?
+   * - that might be because the task was already ended before we moved them, for example...
+   * TODO I hardly understand the todo above, and idk why we would end the task in the middle of updating the
+   *      UI after a move... especially when #endTheCurrentTask() can result in another move...
+   *
+   * @param {{lat: number, lng: number}} newLatLng - Where the move landed.
+   * @param {Mission} currentMission - The mission the street is credited to.
+   * @returns {void}
+   */
+  #endStreetIfAtEnd(newLatLng, currentMission) {
+    const task = svl.taskContainer.getCurrentTask();
+    // In free exploration (#4451) reaching the end of the street must not end the task or advance to a new street.
+    if (svl.isExploreAddressMode() || !task || !task.isAtEnd(newLatLng, NavigationService.#END_OF_STREET_THRESHOLD)) {
+      return;
+    }
+    // On a route's final street, 25 m-from-endpoint can be a large fraction of a short street, firing "end of
+    // route" long before the last reachable pano (#4640 route manifestation). Defer to the imagery-exhaustion
+    // path (#handleImageryNotFound) unless they've already walked most of the street — on a long street 25 m
+    // really is the end, so the street ends there as on any other.
+    const finalRouteStreet = svl.regionModel.isRoute && !svl.taskContainer.nextTask(task);
+    const streetLen = task.lineDistance({ units: 'meters' });
+    const walkedMostOfStreet = streetLen > 0
+      && task.getDistanceFromStart(newLatLng, { units: 'meters' }) / streetLen >= 0.9;
+    if (!finalRouteStreet || walkedMostOfStreet) {
+      this.#endTheCurrentTask(task, currentMission);
+    }
   }
 
   /**

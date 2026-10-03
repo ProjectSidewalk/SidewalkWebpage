@@ -17,6 +17,7 @@ import models.utils.MyPostgresProfile.api.*
 import models.utils.{ConfigTable, IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
+import play.api.libs.json.{Json, Writes}
 import play.api.{Configuration, Logger}
 
 import java.time.format.DateTimeFormatter
@@ -36,8 +37,30 @@ case class ExplorePageData(
     nextTempLabelId: Int,
     surveyData: Seq[SurveyQuestionWithOptions],
     tutorialStreetId: Int,
-    makeCrops: Boolean
+    makeCrops: Boolean,
+    walkPlanner: WalkPlannerSettings
 )
+
+/**
+ * The thresholds the client-side walk planner runs with (WalkPlanner.js, #5526), read from `walk-planner.*` in
+ * application.conf. The planner runs on the client because the client already holds every street of the region with
+ * its live priority, but these are domain values, so the backend owns them and the page hands them over as JSON.
+ *
+ * @param priorityTolerance How far below the best remaining priority a connected street may be and still be walked
+ *                          next rather than jumped from; in units of the reciprocal-normalized street priority.
+ * @param tinyStreetM Streets strictly shorter than this (metres) are walked whenever adjacent and finished on arrival.
+ */
+case class WalkPlannerSettings(priorityTolerance: Double, tinyStreetM: Double)
+
+object WalkPlannerSettings {
+  given walkPlannerSettingsWrites: Writes[WalkPlannerSettings] = Json.writes[WalkPlannerSettings]
+
+  /** @return The settings for this deployment; a malformed value fails at startup rather than silently defaulting. */
+  def fromConfig(config: Configuration): WalkPlannerSettings = WalkPlannerSettings(
+    priorityTolerance = config.get[Double]("walk-planner.priority-tolerance"),
+    tinyStreetM = config.get[Double]("walk-planner.tiny-street-m")
+  )
+}
 
 /** Core facts about a label inserted during an Explore submission, for post-submission side effects (AI, SciStarter). */
 case class NewLabelData(
@@ -195,6 +218,8 @@ class ExploreServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
+  // Read once: a bad or blank override then fails the service at startup, not every Explore load mid-transaction.
+  private val walkPlannerSettings: WalkPlannerSettings = WalkPlannerSettings.fromConfig(config)
   // SRID 4326 is baked into the factory so points it creates match label_point.geom's lat/lng coordinate system.
   val gf: GeometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
@@ -349,7 +374,8 @@ class ExploreServiceImpl @Inject() (
         nextTempLabelId,
         surveyData,
         tutorialStreetId,
-        makeCrops
+        makeCrops,
+        walkPlannerSettings
       )
     }
     db.run(getExploreDataAction.transactionally)
@@ -388,7 +414,7 @@ class ExploreServiceImpl @Inject() (
                 Some(
                   ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
                     routeUnavailable = false, hasCompletedAMission, nextTempLabelId, surveyData, tutorialStreetId,
-                    makeCrops)
+                    makeCrops, walkPlannerSettings)
                 )
               }
           }

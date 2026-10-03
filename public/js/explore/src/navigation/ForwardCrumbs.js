@@ -322,14 +322,17 @@ class ForwardCrumbs {
   }
 
   /**
-   * Identity of the traversal a memo belongs to. Walk order separates the two passes of an out-and-back route
-   * (the same reasoning as NavigationService's stuck-pano set), and the direction flag is in because reversing a
-   * street reverses the sample grid, so the answers no longer line up with their indices.
+   * Identity of the traversal a memo belongs to. On a route, walk order separates the two passes of an out-and-back
+   * (the same reasoning, and the same route-only gate, as NavigationService's stuck-pano set); off a route it is left
+   * out, since a planned walk's positions change on every replan (#5526) and would throw the memo away for nothing.
+   * The direction flag is in because reversing a street reverses the sample grid, so the answers would not line up
+   * with their indices.
    * @param {Task} task
    * @returns {string}
    */
   static memoKeyFor(task) {
-    return `${task.getStreetEdgeId()}|${task.getWalkOrder()}|${task.getProperty('startPointReversed')}`;
+    const walkOrder = svl.regionModel?.isRoute ? task.getWalkOrder() : null;
+    return `${task.getStreetEdgeId()}|${walkOrder}|${task.getProperty('startPointReversed')}`;
   }
 
   /**

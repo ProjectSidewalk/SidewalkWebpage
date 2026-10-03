@@ -265,9 +265,20 @@ describe('ForwardCrumbs.memoKeyFor', () => {
         getProperty: (key) => (key === 'startPointReversed' ? reversed : null),
     });
 
+    afterEach(() => {
+        delete window.svl;
+    });
+
     test('separates the two passes of an out-and-back route and the two directions of a street', () => {
+        window.svl = { regionModel: { isRoute: true } };
         expect(ForwardCrumbs.memoKeyFor(task(1, false))).toBe(ForwardCrumbs.memoKeyFor(task(1, false)));
         expect(ForwardCrumbs.memoKeyFor(task(1, false))).not.toBe(ForwardCrumbs.memoKeyFor(task(3, false)));
+        expect(ForwardCrumbs.memoKeyFor(task(1, false))).not.toBe(ForwardCrumbs.memoKeyFor(task(1, true)));
+    });
+
+    test('keeps a street\'s memo across a replan that renumbers a planned walk (#5526)', () => {
+        window.svl = { regionModel: { isRoute: false } };
+        expect(ForwardCrumbs.memoKeyFor(task(1, false))).toBe(ForwardCrumbs.memoKeyFor(task(3, false)));
         expect(ForwardCrumbs.memoKeyFor(task(1, false))).not.toBe(ForwardCrumbs.memoKeyFor(task(1, true)));
     });
 });
