@@ -15,6 +15,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { installEscapeHTML } = require('./loadGlobalScript');
 
 const SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/labelMapLocationSearch.js'), 'utf8'
@@ -78,6 +79,7 @@ function setUpPage() {
 
     window.i18next = { t: (key) => key };
     window.util = { assetPath: (p) => p };
+    installEscapeHTML();
     window.logWebpageActivity = (activity) => logged.push(activity);
     // The city-extent fetch is fire-and-forget; an empty collection keeps it from touching the network or warning.
     window.fetch = () => Promise.resolve({ json: () => Promise.resolve({ type: 'FeatureCollection', features: [] }) });

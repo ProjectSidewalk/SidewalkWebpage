@@ -1,8 +1,9 @@
 /*
  * The pano image adjustments popover (shadows / brightness / contrast sliders, #3136). Opened from the Image pill in
- * the menu under Explore's Stuck button; the markup is app/views/common/panoImageAdjustments.scala.html and the
- * sliders are the shared .ps-range primitive. A component rather than a page file because the JS that drives it is
- * page-agnostic and Validate is expected to mount the same panel. Sizes scale with --ui-scale.
+ * the chevron menu beside Explore's Stuck button and from the one in the chevron menu beside desktop Validate's
+ * hide-label toggle (#5501); the markup is app/views/common/panoImageAdjustments.scala.html and the sliders are the
+ * shared .ps-range primitive. A component rather than a page file because both pages link it. Sizes scale with
+ * --ui-scale.
  */
 
 .pano-image-adjustments {
@@ -73,7 +74,6 @@
 .pano-image-adjustments__label {
   font: var(--text-small-medium);
   color: var(--color-neutral-900);
-  margin: 0;
 }
 
 /* Tabular figures so the readout doesn't jitter as the digits change under the thumb. */

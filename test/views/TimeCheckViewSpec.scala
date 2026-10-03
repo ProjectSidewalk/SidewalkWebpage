@@ -1,7 +1,7 @@
 package views
 
-import org.scalatestplus.play.PlaySpec
 import service.{CityHours, CrossCityHours}
+import util.SidewalkSpec
 
 /**
  * Renders the Time Check page directly against synthetic hour breakdowns.
@@ -13,7 +13,7 @@ import service.{CityHours, CrossCityHours}
  * Fixture hours are always multiples of 0.1, because that is the contract `UserService.getCrossCityHours` guarantees:
  * it rounds before the view sees anything, so the headline is the sum of the rows exactly as rendered.
  */
-class TimeCheckViewSpec extends PlaySpec with ViewSpecFixtures {
+class TimeCheckViewSpec extends SidewalkSpec with ViewSpecFixtures {
 
   private def render(cities: Seq[CityHours], unreachableCities: Int = 0): String =
     views.html.timeCheck(commonData, user, isMobile = false, CrossCityHours(cities, unreachableCities)).body

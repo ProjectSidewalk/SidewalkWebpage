@@ -75,7 +75,7 @@ class TeamPage {
   // --- Members ------------------------------------------------------------------------------------------------------
 
   /**
-   * A column with no `sort` isn't sortable; `help` becomes a header tooltip.
+   * A column with no `sort` isn't sortable; `help` becomes its sort button's tooltip.
    *
    * @returns {Array<{key: string, label: string, align: string, sort?: Function, help?: string}>} The columns.
    */
@@ -88,12 +88,11 @@ class TeamPage {
       { key: 'distance_meters', label: 'Distance explored', align: 'right', sort: (m) => m.distance_meters || 0 },
       { key: 'accuracy', label: 'Labeling accuracy', align: 'right',
         sort: (m) => (m.labels_validated ? m.labels_agreed / m.labels_validated : -1),
-        help: 'Share of this member’s own labels that other people agreed with when validating them '
-          + '(with how many were judged).' },
+        help: 'Share of this member’s validated labels that validators agreed with, and how many were judged.' },
       { key: 'last_active', label: 'Last active', align: 'right', sort: (m) => AdminShell.ts(m.last_active),
         help: 'The later of their last label and their last validation.' },
       { key: 'high_quality', label: 'Quality', align: 'left', sort: (m) => (m.high_quality ? 1 : 0),
-        help: 'The user’s quality flag. An excluded user’s work is left out of this city’s stats.' },
+        help: 'The user’s quality flag. Excluded users’ work is left out of this city’s stats.' },
       // Unsortable: it holds buttons, and a header click would throw away the chosen order for no ordering.
       { key: 'actions', label: 'Remove', align: 'left' },
     ];
@@ -120,32 +119,34 @@ class TeamPage {
     }
     const cols = this.#columns();
     const headCells = cols.map((c) => {
-      const title = c.help ? ` title="${AdminShell.esc(c.help)}"` : '';
-      if (!c.sort) return `<th scope="col"${title}>${AdminShell.esc(c.label)}</th>`;
+      if (!c.sort) return `<th scope="col">${util.escapeHTML(c.label)}</th>`;
+      // On the button, not the <th>: the button is what takes focus, so only it can carry the description.
+      const tip = c.help ? ` data-ps-tooltip="${util.escapeHTML(c.help)}"` : '';
       const isSorted = c.key === this.#sort.key;
       const ariaSort = isSorted ? (this.#sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
       const arrow = isSorted ? (this.#sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
-      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}"${title}>`
-        + `<button type="button" class="mgmt-sort" data-key="${c.key}">${AdminShell.esc(c.label)}`
+      return `<th scope="col" class="mgmt-th${c.align === 'right' ? ' num' : ''}" aria-sort="${ariaSort}">`
+        + `<button type="button" class="mgmt-sort" data-key="${util.escapeHTML(c.key)}"${tip}>`
+        + `${util.escapeHTML(c.label)}`
         + `<span class="mgmt-arrow">${arrow}</span></button></th>`;
     }).join('');
 
     const body = this.#sortedMembers().map((m) => {
       const cell = (html, align) => `<td${align === 'right' ? ' class="num"' : ''}>${html}</td>`;
-      const name = AdminShell.esc(m.username);
+      const name = util.escapeHTML(m.username);
       return [
-        `<tr data-user-id="${AdminShell.esc(m.user_id)}">`,
+        `<tr data-user-id="${util.escapeHTML(m.user_id)}">`,
         cell(`<a href="/admin/user/${encodeURIComponent(m.username)}">${name}</a>`, 'left'),
-        cell(AdminShell.esc(m.role), 'left'),
+        cell(util.escapeHTML(m.role), 'left'),
         cell(AdminShell.num(m.labels || 0), 'right'),
         cell(AdminShell.num(m.validations || 0), 'right'),
         cell(TeamPage.#km(m.distance_meters), 'right'),
         cell(TeamPage.#accuracyCell(m), 'right'),
-        cell(m.last_active ? AdminShell.esc(AdminShell.relativeTime(m.last_active)) : '<span class="dq-sub">—</span>',
+        cell(m.last_active ? util.escapeHTML(AdminShell.relativeTime(m.last_active)) : '<span class="dq-sub">—</span>',
           'right'),
         cell(TeamPage.#qualityBadge(m), 'left'),
         cell(`<button type="button" class="mgmt-toggle is-off team-remove" data-user-id="`
-          + `${AdminShell.esc(m.user_id)}" data-username="${name}">Remove</button>`, 'left'),
+          + `${util.escapeHTML(m.user_id)}" data-username="${name}">Remove</button>`, 'left'),
         '</tr>',
       ].join('');
     }).join('');
@@ -185,8 +186,8 @@ class TeamPage {
    */
   async #removeMember(userId, username) {
     const confirmed = await ConfirmDialog.confirm({
-      message: `Remove ${username} from this team? Their labels and validations are kept, but they stop counting `
-        + 'toward the team.',
+      message: `Remove ${username} from this team? Their labels and validations are kept but stop counting toward `
+        + 'the team.',
       confirmText: 'Remove',
       cancelText: 'Cancel',
     });
@@ -232,7 +233,7 @@ class TeamPage {
       this.#renderSearchResults(matches || []);
     } catch (err) {
       if (seq !== this.#searchSeq) return;
-      results.innerHTML = `<p class="dq-empty">Search failed: ${AdminShell.esc(err.message)}</p>`;
+      results.innerHTML = `<p class="dq-empty">Search failed: ${util.escapeHTML(err.message)}</p>`;
     }
   }
 
@@ -245,20 +246,20 @@ class TeamPage {
     }
     const onTeam = new Set(this.#members.map((m) => m.user_id));
     const rows = matches.map((m) => {
-      const name = AdminShell.esc(m.username);
+      const name = util.escapeHTML(m.username);
       const already = onTeam.has(m.user_id);
       const note = already
         ? '<span class="dq-sub">already on this team</span>'
-        : (m.team ? `<span class="team-current">on ${AdminShell.esc(m.team)}</span>` : '');
+        : (m.team ? `<span class="team-current">on ${util.escapeHTML(m.team)}</span>` : '');
       const action = already
         ? ''
-        : `<button type="button" class="mgmt-toggle is-on team-add" data-user-id="${AdminShell.esc(m.user_id)}" `
-          + `data-username="${name}" data-current-team="${AdminShell.esc(m.team || '')}">Add</button>`;
+        : `<button type="button" class="mgmt-toggle is-on team-add" data-user-id="${util.escapeHTML(m.user_id)}" `
+          + `data-username="${name}" data-current-team="${util.escapeHTML(m.team || '')}">Add</button>`;
       return `
         <tr>
           <td>${name}</td>
-          <td>${AdminShell.esc(m.email || '')}</td>
-          <td>${AdminShell.esc(m.role)}</td>
+          <td>${util.escapeHTML(m.email || '')}</td>
+          <td>${util.escapeHTML(m.role)}</td>
           <td>${note}</td>
           <td>${action}</td>
         </tr>`;
@@ -286,7 +287,7 @@ class TeamPage {
   async #addMember(userId, username, currentTeam) {
     if (currentTeam) {
       const confirmed = await ConfirmDialog.confirm({
-        message: `${username} is on ${currentTeam}. Adding them here moves them off that team.`,
+        message: `${username} is on ${currentTeam}. Adding them here removes them from that team.`,
         confirmText: 'Move them',
         cancelText: 'Cancel',
       });
@@ -343,7 +344,7 @@ class TeamPage {
     const status = document.getElementById('team-status');
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   /**
@@ -390,7 +391,7 @@ class TeamPage {
       ? '<span class="contrib-badge contrib-badge--high">High</span>'
       : '<span class="contrib-badge contrib-badge--low">Low</span>';
     if (!member.excluded) return badge;
-    return `${badge} <span class="mgmt-manual-tag" `
-      + `title="This user's work is excluded from the city's stats">excluded</span>`;
+    return `${badge} <span class="mgmt-manual-tag" tabindex="0"
+      data-ps-tooltip="This user's work is excluded from the city's stats">excluded</span>`;
   }
 }

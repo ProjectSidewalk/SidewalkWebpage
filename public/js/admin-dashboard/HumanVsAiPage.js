@@ -108,8 +108,8 @@ class HumanVsAiPage {
     const el = document.getElementById('hva-summary');
     if (!el) return;
     el.textContent = roles.length
-      ? `On this deployment, the AI ${this.#joinList(roles)}.`
-      : 'This deployment has no AI activity yet — every comparison below is human-only.';
+      ? `Here, the AI ${this.#joinList(roles)}.`
+      : 'No AI activity in this city yet, so everything below is human-only.';
   }
 
   // --- Labeler lens. ---
@@ -146,7 +146,7 @@ class HumanVsAiPage {
     const types = this.#unionTypes(human, ai).filter((t) => validatedCount(human, t) > 0 || validatedCount(ai, t) > 0);
     const el = document.getElementById('hva-acceptance');
     if (!types.length) {
-      el.innerHTML = '<p class="hva-note">No labels have been validated here yet, so there’s nothing to compare.</p>';
+      el.innerHTML = '<p class="hva-note">No validated labels yet.</p>';
       return;
     }
     const rows = types.map((t) => ({
@@ -180,7 +180,7 @@ class HumanVsAiPage {
     const any = rows.some((r) => r.human.value || r.ai.value);
     document.getElementById('hva-severity').innerHTML = any
       ? this.#pairedBars(rows, { format: 'count' })
-      : '<p class="hva-note">Neither humans nor the AI have rated severity on their labels here.</p>';
+      : '<p class="hva-note">No severity ratings yet.</p>';
   }
 
   // --- Validator lens. ---
@@ -207,17 +207,19 @@ class HumanVsAiPage {
     const disagree = g.disagree || 0;
     const unsure = g.unsure || 0;
     const total = agree + disagree + unsure;
+    const tip = (value, label) => `${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`;
     const seg = (value, cls, label) => (value
       ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%"
-          title="${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)"></span>`
+          data-ps-tooltip="${tip(value, label)}"></span>`
       : '');
     const segsHtml = [
       seg(agree, 'is-agree', 'Agree'),
       seg(disagree, 'is-disagree', 'Disagree'),
       seg(unsure, 'is-unsure', 'Unsure'),
     ].join('');
+    const summary = [tip(agree, 'Agree'), tip(disagree, 'Disagree'), tip(unsure, 'Unsure')].join(', ');
     const bar = total
-      ? `<span class="contrib-verdictbar">${segsHtml}</span>`
+      ? `<span class="contrib-verdictbar" role="img" aria-label="${summary}">${segsHtml}</span>`
       : '<span class="dq-sub">—</span>';
     const pcts = total
       ? `<span class="contrib-verdictpct">${Math.round(agree / total * 100)}% /
@@ -225,7 +227,7 @@ class HumanVsAiPage {
       : '';
     return `
       <div class="hva-verdict-row">
-        <span class="hva-verdict-name">${HumanVsAiPage.#esc(name)}</span>
+        <span class="hva-verdict-name">${util.escapeHTML(name)}</span>
         <span class="contrib-verdictwrap">${bar}${pcts}</span>
         <span class="hva-verdict-n dq-sub">${total.toLocaleString()}</span>
       </div>`;
@@ -252,20 +254,20 @@ class HumanVsAiPage {
     if (!tags.length) {
       return `
         <div class="hva-taglist">
-          <h4 class="hva-taglist-title">${HumanVsAiPage.#esc(title)}</h4>
+          <h4 class="hva-taglist-title">${util.escapeHTML(title)}</h4>
           <p class="dq-sub">No tags.</p>
         </div>`;
     }
     const max = Math.max(1, ...tags.map((t) => t.count || 0));
     const rows = tags.map((t) => `
       <div class="contrib-row">
-        <span class="contrib-row-label">${HumanVsAiPage.#esc(t.tag)}</span>
+        <span class="contrib-row-label">${util.escapeHTML(t.tag)}</span>
         <div class="dq-bar-track">
           <div class="dq-bar" style="width:${((t.count || 0) / max) * 100}%;background:${color}"></div>
         </div>
         <span class="contrib-row-count">${(t.count || 0).toLocaleString()}</span>
       </div>`).join('');
-    return `<div class="hva-taglist"><h4 class="hva-taglist-title">${HumanVsAiPage.#esc(title)}</h4>${rows}</div>`;
+    return `<div class="hva-taglist"><h4 class="hva-taglist-title">${util.escapeHTML(title)}</h4>${rows}</div>`;
   }
 
   // --- Shared paired-bar rendering (human bar above AI bar per row). ---
@@ -300,7 +302,7 @@ class HumanVsAiPage {
     const hasValue = value !== null && value !== undefined;
     const width = hasValue ? (value / max) * 100 : 0;
     const valueText = !hasValue ? '—' : (isRate ? `${value}%` : value.toLocaleString());
-    const note = datum.note ? ` <span class="dq-sub">${HumanVsAiPage.#esc(datum.note)}</span>` : '';
+    const note = datum.note ? ` <span class="dq-sub">${util.escapeHTML(datum.note)}</span>` : '';
     const muted = datum.muted ? ' hva-bar--muted' : '';
     return `
       <div class="hva-bar hva-bar--${side}${muted}">
@@ -344,7 +346,7 @@ class HumanVsAiPage {
     const icon = m.icon
       ? `<img class="dq-icon" src="${m.icon}" alt="" width="18" height="18">`
       : `<span class="hva-dot" style="background:${m.color}"></span>`;
-    return `<span class="hva-type">${icon}<span>${HumanVsAiPage.#esc(m.display)}</span></span>`;
+    return `<span class="hva-type">${icon}<span>${util.escapeHTML(m.display)}</span></span>`;
   }
 
   // --- Small utilities. ---
@@ -357,10 +359,6 @@ class HumanVsAiPage {
 
   static #pct(frac) {
     return `${Math.round((frac || 0) * 100)}%`;
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   }
 
   #toggle(id, show) {
@@ -378,6 +376,6 @@ class HumanVsAiPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

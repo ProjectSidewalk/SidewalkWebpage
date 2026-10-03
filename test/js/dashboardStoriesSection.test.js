@@ -9,13 +9,13 @@
  * label card's own delete path), which also repairs the focus the re-render drops.
  *
  * StoriesSection is a page-global `class` that reaches for globals, so the source is eval'd into jsdom with its
- * collaborators (fetch, i18next, moment, StoryComposer, ConfirmDialog) stubbed.
+ * collaborators (fetch, i18next, StoryComposer, ConfirmDialog) stubbed.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
 
 const SECTION_SRC = fs.readFileSync(
     path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/StoriesSection.js'), 'utf8'
@@ -64,9 +64,11 @@ describe('the dashboard\'s "Your stories" list', () => {
 
     beforeAll(() => {
         window.i18next = { t: (key) => key };
-        window.util = { assetPath: assetPathStub }; // The delete confirmation's icon URL.
-        window.moment = () => ({ format: () => 'Jul 1, 2026' });
-        window.camelToKebab = (s) => s.toLowerCase();
+        window.util = {
+            assetPath: assetPathStub, // The delete confirmation's icon URL.
+            camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
+        };
+        installUtilitiesMisc();
         // Records what the section asks of the shared composer; behavior itself is StoryComposer's own contract.
         window.StoryComposer = class {
             constructor(dialog, opts) {

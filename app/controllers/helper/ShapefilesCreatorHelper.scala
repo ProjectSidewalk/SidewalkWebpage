@@ -47,7 +47,7 @@ import scala.util.{Failure, Success, Try, Using}
  * https://docs.geotools.org/stable/tutorials/feature/csv2shp.html
  */
 @Singleton
-class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: Materializer) {
+class ShapefilesCreatorHelper @Inject() ()(using ec: ExecutionContext, mat: Materializer) {
   private val logger = Logger(this.getClass)
 
   private val shapefilePartExtensions = Seq(".shp", ".dbf", ".shx", ".prj", ".sbn", ".sbx", ".cpg", ".fix")
@@ -59,20 +59,20 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return The store as the SQL-backed kind gt-geopkg builds, so [[writeGeoPackageExtent]] can borrow its connection.
    */
   private def openGeoPackage(geopackagePath: Path): JDBCDataStore = {
-    val params = Map(
+    val params = Map[String, AnyRef](
       GeoPkgDataStoreFactory.DBTYPE.key   -> "geopkg",
       GeoPkgDataStoreFactory.DATABASE.key -> geopackagePath.toFile
     ).asJava
     DataStoreFinder.getDataStore(params) match {
       case store: JDBCDataStore => store
       case null                 =>
-        throw new IllegalStateException(
+        throw IllegalStateException(
           "No GeoTools DataStore factory accepted the GeoPackage params (is gt-geopkg on " +
             "the classpath with its META-INF/services entry?)"
         )
       case other =>
         other.dispose()
-        throw new IllegalStateException(
+        throw IllegalStateException(
           s"gt-geopkg returned a ${other.getClass.getName}, not a JDBCDataStore, so layer extents can't be saved"
         )
     }
@@ -87,7 +87,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return Path to the finished GeoPackage, or None if any part of it failed.
    */
   private def createGeoPackage(outputFile: String)(writeLayers: JDBCDataStore => Future[Unit]): Future[Option[Path]] = {
-    val geopackagePath: Path = new File(outputFile + ".gpkg").toPath
+    val geopackagePath: Path = File(outputFile + ".gpkg").toPath
     Future(openGeoPackage(geopackagePath))
       .flatMap(dataStore => Future.delegate(writeLayers(dataStore)).andThen(_ => dataStore.dispose()))
       .map(_ => Some(geopackagePath))
@@ -110,12 +110,12 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   private def writeGeoPackageLayer(
       dataStore: JDBCDataStore,
       featureType: SimpleFeatureType,
-      batches: Source[java.util.List[SimpleFeature], _]
+      batches: Source[java.util.List[SimpleFeature], ?]
   ): Future[Unit] = {
     dataStore.createSchema(featureType)
     val tableName    = featureType.getTypeName
     val featureStore = dataStore.getFeatureSource(tableName).asInstanceOf[SimpleFeatureStore]
-    val extent       = new Envelope()
+    val extent       = Envelope()
     batches
       .runForeach { features =>
         val batch = DataUtilities.collection(features)
@@ -169,7 +169,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return The new store, which the caller disposes.
    */
   private def newShapefileStore(shapefilePath: Path, featureType: SimpleFeatureType): DataStore = {
-    val store = new ShapefileDataStoreFactory().createNewDataStore(
+    val store = ShapefileDataStoreFactory().createNewDataStore(
       Map[String, AnyRef](
         ShapefileDataStoreFactory.URLP.key                 -> shapefilePath.toUri.toURL,
         ShapefileDataStoreFactory.CREATE_SPATIAL_INDEX.key -> java.lang.Boolean.FALSE, // So we don't run out of memory.
@@ -211,7 +211,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @param features The batch to save.
    */
   private def writeFeatureBatch(featureStore: SimpleFeatureStore, features: SimpleFeatureCollection): Unit = {
-    val transaction = new DefaultTransaction("create")
+    val transaction = DefaultTransaction("create")
     try {
       featureStore.setTransaction(transaction)
       featureStore.addFeatures(features)
@@ -233,7 +233,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    */
   final private class GeoPackageLayer[T](
       tableName: String,
-      geometryType: Class[_ <: Geometry],
+      geometryType: Class[? <: Geometry],
       apiFields: ApiFields[T],
       geometry: T => Geometry
   ) {
@@ -251,7 +251,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
     )
 
     val featureType: SimpleFeatureType = {
-      val builder = new SimpleFeatureTypeBuilder()
+      val builder = SimpleFeatureTypeBuilder()
       // The geometry column comes from a spec string, like every other export's, so it gets the same srid=4326 setup.
       builder.init(DataUtilities.createType(tableName, s"the_geom:${geometryType.getSimpleName}:srid=4326"))
       apiFields.fields.foreach(f => builder.add(f.geoPackageName, f.column.binding))
@@ -270,51 +270,51 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
   private val pointFactory: GeometryFactory = JTSFactoryFinder.getGeometryFactory
 
   private def point(longitude: Double, latitude: Double): Point =
-    pointFactory.createPoint(new Coordinate(longitude, latitude))
+    pointFactory.createPoint(Coordinate(longitude, latitude))
 
   // Lazy, so a layer with a bad field list breaks only its own export rather than this whole helper's construction.
-  private lazy val rawLabelsLayer = new GeoPackageLayer[LabelDataForApi](
+  private lazy val rawLabelsLayer = GeoPackageLayer[LabelDataForApi](
     "labels",
     classOf[Point],
     LabelDataForApi,
     l => point(l.longitude, l.latitude)
   )
-  private lazy val labelClustersLayer = new GeoPackageLayer[LabelClusterForApi](
+  private lazy val labelClustersLayer = GeoPackageLayer[LabelClusterForApi](
     "label_clusters",
     classOf[Point],
     LabelClusterForApi,
     c => point(c.avgLongitude, c.avgLatitude)
   )
-  private lazy val clusterRawLabelsLayer = new GeoPackageLayer[(Int, RawLabelInClusterDataForApi)](
+  private lazy val clusterRawLabelsLayer = GeoPackageLayer[(Int, RawLabelInClusterDataForApi)](
     "raw_labels",
     classOf[Point],
     RawLabelInClusterDataForApi.InCluster,
     { case (_, l) => point(l.longitude, l.latitude) }
   )
   private lazy val streetsLayer =
-    new GeoPackageLayer[StreetDataForApi]("streets", classOf[LineString], StreetDataForApi, _.geometry)
-  private lazy val sidewalkPresenceLayer = new GeoPackageLayer[SidewalkPresenceForApi](
+    GeoPackageLayer[StreetDataForApi]("streets", classOf[LineString], StreetDataForApi, _.geometry)
+  private lazy val sidewalkPresenceLayer = GeoPackageLayer[SidewalkPresenceForApi](
     "sidewalk_presence",
     classOf[LineString],
     SidewalkPresenceForApi,
     _.geometry
   )
   private lazy val regionsLayer =
-    new GeoPackageLayer[RegionDataForApi]("regions", classOf[MultiPolygon], RegionDataForApi, _.geometry)
-  private lazy val placesLayer = new GeoPackageLayer[PlaceForApi]("places", classOf[Point], PlaceForApi, _.geometry)
-  private lazy val accessScoreStreetsLayer = new GeoPackageLayer[StreetAccessScoreForApi](
+    GeoPackageLayer[RegionDataForApi]("regions", classOf[MultiPolygon], RegionDataForApi, _.geometry)
+  private lazy val placesLayer = GeoPackageLayer[PlaceForApi]("places", classOf[Point], PlaceForApi, _.geometry)
+  private lazy val accessScoreStreetsLayer = GeoPackageLayer[StreetAccessScoreForApi](
     "access_score_streets",
     classOf[LineString],
     StreetAccessScoreForApi,
     _.geometry
   )
-  private lazy val accessScoreIntersectionsLayer = new GeoPackageLayer[IntersectionAccessScoreForApi](
+  private lazy val accessScoreIntersectionsLayer = GeoPackageLayer[IntersectionAccessScoreForApi](
     "access_score_intersections",
     classOf[Point],
     IntersectionAccessScoreForApi,
     _.geometry
   )
-  private lazy val accessScoreRegionsLayer = new GeoPackageLayer[RegionAccessScoreForApi](
+  private lazy val accessScoreRegionsLayer = GeoPackageLayer[RegionAccessScoreForApi](
     "access_score_regions",
     classOf[MultiPolygon],
     RegionAccessScoreForApi,
@@ -323,20 +323,20 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
 
   /** @return A single-layer GeoPackage of every record in `source`, saved as `outputFile.gpkg`, or None if it failed. */
   private def createGeneralGeoPackage[A](
-      source: Source[A, _],
+      source: Source[A, ?],
       outputFile: String,
       batchSize: Int,
       layer: GeoPackageLayer[A]
   ): Future[Option[Path]] =
     createGeoPackage(outputFile) { dataStore =>
-      val featureBuilder = new SimpleFeatureBuilder(layer.featureType)
+      val featureBuilder = SimpleFeatureBuilder(layer.featureType)
       val batches        = source.grouped(batchSize).map(_.map(layer.toFeature(_, featureBuilder)).asJava)
       writeGeoPackageLayer(dataStore, layer.featureType, batches)
     }
 
   /** Creates a GeoPackage of labels (`/v3/api/rawLabels`), in a `labels` layer. */
   def createRawLabelDataGeopackage(
-      source: Source[LabelDataForApi, _],
+      source: Source[LabelDataForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, rawLabelsLayer)
@@ -348,13 +348,13 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return Path to the finished GeoPackage, or None if any part of it failed.
    */
   def createLabelClusterGeopackage(
-      source: Source[LabelClusterForApi, _],
+      source: Source[LabelClusterForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] =
     createGeoPackage(outputFile) { dataStore =>
-      val clusterBuilder = new SimpleFeatureBuilder(labelClustersLayer.featureType)
-      val labelBuilder   = new SimpleFeatureBuilder(clusterRawLabelsLayer.featureType)
+      val clusterBuilder = SimpleFeatureBuilder(labelClustersLayer.featureType)
+      val labelBuilder   = SimpleFeatureBuilder(clusterRawLabelsLayer.featureType)
 
       // Collect raw labels to write as a second layer after the clusters.
       val allRawLabels = mutable.ArrayBuffer.empty[(Int, RawLabelInClusterDataForApi)]
@@ -378,49 +378,49 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
 
   /** Creates a GeoPackage of streets (`/v3/api/streets`), in a `streets` layer. */
   def createStreetDataGeopackage(
-      source: Source[StreetDataForApi, _],
+      source: Source[StreetDataForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, streetsLayer)
 
   /** Creates a GeoPackage of street sides (`/v3/api/sidewalkPresence`, #5279), in a `sidewalk_presence` layer. */
   def createSidewalkPresenceGeopackage(
-      source: Source[SidewalkPresenceForApi, _],
+      source: Source[SidewalkPresenceForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, sidewalkPresenceLayer)
 
   /** Creates a GeoPackage of places (`/v3/api/places`, #5311), in a `places` layer. */
   def createPlacesGeopackage(
-      source: Source[PlaceForApi, _],
+      source: Source[PlaceForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, placesLayer)
 
   /** Creates a GeoPackage of regions (`/v3/api/regions`), in a `regions` layer. */
   def createRegionDataGeopackage(
-      source: Source[RegionDataForApi, _],
+      source: Source[RegionDataForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, regionsLayer)
 
   /** Creates a GeoPackage of street AccessScores (v3, #3855), in an `access_score_streets` layer. */
   def createStreetAccessScoreGeopackage(
-      source: Source[StreetAccessScoreForApi, _],
+      source: Source[StreetAccessScoreForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, accessScoreStreetsLayer)
 
   /** Creates a GeoPackage of intersection AccessScores (v3, #5095), in an `access_score_intersections` layer. */
   def createIntersectionAccessScoreGeopackage(
-      source: Source[IntersectionAccessScoreForApi, _],
+      source: Source[IntersectionAccessScoreForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, accessScoreIntersectionsLayer)
 
   /** Creates a GeoPackage of region AccessScores (v3, #3855), in an `access_score_regions` layer. */
   def createRegionAccessScoreGeopackage(
-      source: Source[RegionAccessScoreForApi, _],
+      source: Source[RegionAccessScoreForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = createGeneralGeoPackage(source, outputFile, batchSize, accessScoreRegionsLayer)
@@ -436,13 +436,13 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @tparam A The type of data in the source.
    */
   private def createGeneralShapefile[A](
-      source: Source[A, _],
+      source: Source[A, ?],
       outputFile: String,
       batchSize: Int,
       featureType: SimpleFeatureType,
       buildFeature: (A, SimpleFeatureBuilder) => SimpleFeature
   ): Future[Option[Path]] = {
-    val shapefilePath: Path     = new File(outputFile + ".shp").toPath
+    val shapefilePath: Path     = File(outputFile + ".shp").toPath
     var newDataStore: DataStore = null
 
     try {
@@ -454,8 +454,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       val typeName: String                     = newDataStore.getTypeNames()(0)
       val featureSource                        = newDataStore.getFeatureSource(typeName)
       val featureStore                         = featureSource.asInstanceOf[SimpleFeatureStore]
-      val featureBuilder: SimpleFeatureBuilder = new SimpleFeatureBuilder(featureType)
-      val features                             = new java.util.ArrayList[SimpleFeature](batchSize)
+      val featureBuilder: SimpleFeatureBuilder = SimpleFeatureBuilder(featureType)
+      val features                             = java.util.ArrayList[SimpleFeature](batchSize)
 
       // Process data in batches.
       source
@@ -501,8 +501,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return The path of the zip archive.
    */
   def zipShapefile(files: Seq[Path], baseFileName: String): Path = {
-    val zipPath = new File(s"$baseFileName.zip").toPath
-    val zipOut  = new ZipOutputStream(Files.newOutputStream(zipPath))
+    val zipPath = File(s"$baseFileName.zip").toPath
+    val zipOut  = ZipOutputStream(Files.newOutputStream(zipPath))
 
     // For each shapefile, add all component files to the zip archive.
     try {
@@ -512,12 +512,12 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         val basename  = shapefile.getName.substring(0, shapefile.getName.length - 4)
 
         shapefilePartExtensions.foreach { ext =>
-          val file = new File(directory, basename + ext)
+          val file = File(directory, basename + ext)
           if (file.exists()) {
-            zipOut.putNextEntry(new ZipEntry(file.getName))
+            zipOut.putNextEntry(ZipEntry(file.getName))
             Files.copy(file.toPath, zipOut)
             zipOut.closeEntry()
-            file.delete()
+            val _ = file.delete()
           }
         }
       }
@@ -535,13 +535,13 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return Path to the created shapefile, or None if creation failed
    */
   def createRawLabelShapefile(
-      source: Source[LabelDataForApi, _],
+      source: Source[LabelDataForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
     // Text columns are fixed width; the 254-byte default put Seattle's .dbf over 1GB (#4133). Longer values get cut off.
     val featureType: SimpleFeatureType = {
-      val builder = new SimpleFeatureTypeBuilder()
+      val builder = SimpleFeatureTypeBuilder()
       builder.init(DataUtilities.createType("Location", "the_geom:Point:srid=4326"))
       def text(name: String, width: Int): Unit = {
         builder.length(width)
@@ -591,13 +591,13 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
 
     def buildFeature(label: LabelDataForApi, featureBuilder: SimpleFeatureBuilder): SimpleFeature = {
       // Add the geometry (Point)
-      featureBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
+      featureBuilder.add(geometryFactory.createPoint(Coordinate(label.longitude, label.latitude)))
 
       // Add all attributes
       featureBuilder.add(label.labelId)
       featureBuilder.add(label.userId)
       featureBuilder.add(label.panoId)
-      featureBuilder.add(label.panoSource.toString)
+      featureBuilder.add(label.panoSource.name)
       featureBuilder.add(label.labelType)
       featureBuilder.add(label.severity.orNull)
       featureBuilder.add(label.tags.mkString("[", ",", "]"))
@@ -608,7 +608,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder.add(label.osmWayId.toString)
       featureBuilder.add(label.regionId)
       featureBuilder.add(label.regionName)
-      featureBuilder.add(label.streetSide.map(_.toString).orNull)
+      featureBuilder.add(label.streetSide.map(_.name).orNull)
       featureBuilder.add(label.centerlineOffsetM.map(Double.box).orNull)
       featureBuilder.add(label.correct.map(_.toString).orNull)
       featureBuilder.add(label.agreeCount)
@@ -675,7 +675,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       featureBuilder: SimpleFeatureBuilder,
       geometryFactory: GeometryFactory
   ): SimpleFeature = {
-    featureBuilder.add(geometryFactory.createPoint(new Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
+    featureBuilder.add(geometryFactory.createPoint(Coordinate(cluster.avgLongitude, cluster.avgLatitude)))
     featureBuilder.add(cluster.labelClusterId)
     featureBuilder.add(cluster.labelType)
     featureBuilder.add(cluster.streetEdgeId)
@@ -705,7 +705,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return Path to the created shapefile, or None if creation failed
    */
   def createLabelClusterShapefile(
-      source: Source[LabelClusterForApi, _],
+      source: Source[LabelClusterForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
@@ -729,7 +729,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return Paths to the created shapefile(s), or None if creation failed
    */
   def createLabelClusterShapefileWithLabels(
-      source: Source[LabelClusterForApi, _],
+      source: Source[LabelClusterForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Seq[Path]]] = {
@@ -747,8 +747,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
         + "imageDate:String"      // Image capture date
     )
 
-    val clusterShapefilePath: Path = new File(outputFile + ".shp").toPath
-    val labelShapefilePath: Path   = new File(outputFile + "_labels.shp").toPath
+    val clusterShapefilePath: Path = File(outputFile + ".shp").toPath
+    val labelShapefilePath: Path   = File(outputFile + "_labels.shp").toPath
     val geometryFactory            = JTSFactoryFinder.getGeometryFactory
 
     var clusterDataStore: DataStore = null
@@ -761,11 +761,11 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       clusterDataStore = newShapefileStore(clusterShapefilePath, clusterShapefileFeatureType)
       val clusterStore =
         clusterDataStore.getFeatureSource(clusterDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
-      val clusterBuilder  = new SimpleFeatureBuilder(clusterShapefileFeatureType)
-      val clusterFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
+      val clusterBuilder  = SimpleFeatureBuilder(clusterShapefileFeatureType)
+      val clusterFeatures = java.util.ArrayList[SimpleFeature](batchSize)
 
       // Collect raw labels to write a second shapefile after processing clusters.
-      val allRawLabels = new java.util.ArrayList[(Int, RawLabelInClusterDataForApi)]()
+      val allRawLabels = java.util.ArrayList[(Int, RawLabelInClusterDataForApi)]()
       var hasRawLabels = false
 
       source
@@ -792,8 +792,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
             val labelDataStore = newShapefileStore(labelShapefilePath, labelFeatureType)
             val labelStore     =
               labelDataStore.getFeatureSource(labelDataStore.getTypeNames()(0)).asInstanceOf[SimpleFeatureStore]
-            val labelBuilder  = new SimpleFeatureBuilder(labelFeatureType)
-            val labelFeatures = new java.util.ArrayList[SimpleFeature](batchSize)
+            val labelBuilder  = SimpleFeatureBuilder(labelFeatureType)
+            val labelFeatures = java.util.ArrayList[SimpleFeature](batchSize)
 
             try {
               val labelIter = allRawLabels.iterator()
@@ -803,12 +803,12 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
                 while (labelIter.hasNext && count < batchSize) {
                   val (clusterId, label) = labelIter.next()
                   labelBuilder.reset()
-                  labelBuilder.add(geometryFactory.createPoint(new Coordinate(label.longitude, label.latitude)))
+                  labelBuilder.add(geometryFactory.createPoint(Coordinate(label.longitude, label.latitude)))
                   labelBuilder.add(label.labelId)
                   labelBuilder.add(clusterId)
                   labelBuilder.add(label.userId)
                   labelBuilder.add(label.panoId)
-                  labelBuilder.add(label.panoSource.map(_.toString).orNull)
+                  labelBuilder.add(label.panoSource.map(_.name).orNull)
                   labelBuilder.add(label.severity.map(Integer.valueOf).orNull)
                   labelBuilder.add(label.timeCreated.toString)
                   labelBuilder.add(label.correct.map(_.toString).orNull)
@@ -848,7 +848,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return Path to the created shapefile, or None if creation failed
    */
   def createStreetDataShapefile(
-      source: Source[StreetDataForApi, _],
+      source: Source[StreetDataForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
@@ -909,7 +909,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * carries the canonical snake_case names.
    */
   def createSidewalkPresenceShapefile(
-      source: Source[SidewalkPresenceForApi, _],
+      source: Source[SidewalkPresenceForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
@@ -965,7 +965,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * format's 10-character limit; the GeoPackage carries the canonical snake_case names.
    */
   def createPlacesShapefile(
-      source: Source[PlaceForApi, _],
+      source: Source[PlaceForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
@@ -1018,7 +1018,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * @return Path to the created shapefile, or None if creation failed
    */
   def createRegionDataShapefile(
-      source: Source[RegionDataForApi, _],
+      source: Source[RegionDataForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
@@ -1068,7 +1068,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * `n0<code>` for unrated clusters, and tag adjustment `t<code>`. GeoJSON/CSV/GeoPackage keep the full snake_case names.
    */
   def createStreetAccessScoreShapefile(
-      source: Source[StreetAccessScoreForApi, _],
+      source: Source[StreetAccessScoreForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
@@ -1139,8 +1139,8 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
       fb.add(s.gradient.flatMap(_.descentM).map(Double.box).orNull)
       fb.add(s.gradient.flatMap(_.metersOver5pctGrade).map(Double.box).orNull)
       fb.add(s.gradient.flatMap(_.metersOver8pctGrade).map(Double.box).orNull)
-      fb.add(s.gradient.map(_.confidence.toString).orNull)
-      fb.add(s.gradient.map(_.quality.toString).orNull)
+      fb.add(s.gradient.map(_.confidence.name).orNull)
+      fb.add(s.gradient.map(_.quality.name).orNull)
       fb.add(s.gradient.map(_.demSource).orNull)
       fb.add(s.slopeTerm)
       AccessScoreApiModels.orderedTypes.foreach { t =>
@@ -1159,7 +1159,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
 
   /** Creates a shapefile from RegionAccessScoreForApi objects (v3, #3855). Per-type avg-count columns use short codes. */
   def createRegionAccessScoreShapefile(
-      source: Source[RegionAccessScoreForApi, _],
+      source: Source[RegionAccessScoreForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {
@@ -1204,7 +1204,7 @@ class ShapefilesCreatorHelper @Inject() ()(implicit ec: ExecutionContext, mat: M
    * codes as the street shapefile, over the intersection types only.
    */
   def createIntersectionAccessScoreShapefile(
-      source: Source[IntersectionAccessScoreForApi, _],
+      source: Source[IntersectionAccessScoreForApi, ?],
       outputFile: String,
       batchSize: Int
   ): Future[Option[Path]] = {

@@ -1,13 +1,13 @@
 package controllers
 
 import actor.ClusteringActor
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.internalKeyValid
-import formats.json.ClusterFormats._
+import formats.json.ClusterFormats.{given, *}
 import models.auth.{DefaultEnv, WithAdmin}
 import models.utils.JobRunTrigger
 import org.apache.pekko.stream.scaladsl.Source
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.{Action, AnyContent}
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
@@ -27,10 +27,10 @@ class ClusterController @Inject() (
     clusterService: ClusterService,
     apiService: service.ApiService,
     jobRunService: JobRunService
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
 
   /**
    * Returns the clustering webpage with GUI if the user is an admin, otherwise redirects to the landing page.
@@ -54,7 +54,7 @@ class ClusterController @Inject() (
       cc.loggingService.insert(request.identity.userId, request.ipAddress, request.toString)
 
       // Create a shared status object for clustering progress updates.
-      val statusRef = new AtomicReference[String]("Starting")
+      val statusRef = AtomicReference[String]("Starting")
 
       // Run the clustering, recorded as a `Manual` run of the nightly clustering job so a hand-run leaves the same
       // counts and error trail the scheduler's does — without being able to stand in for it (#4928).

@@ -42,7 +42,7 @@ class AccessScoreHistogram extends AccessScoreChart {
     this.#unit = data.unit;
     const N = data.bins.length;
     const c = this.container;
-    const barsLabel = AccessScoreChart.esc(i18next.t('accessscore:histogram-bars'));
+    const barsLabel = util.escapeHTML(i18next.t('accessscore:histogram-bars'));
     // The value labels live in a gutter left of the bars, so they never sit on the tallest bar at either end.
     c.innerHTML = `
       <div class="acs-histogram__plot">
@@ -102,7 +102,7 @@ class AccessScoreHistogram extends AccessScoreChart {
     data.bins.forEach((b, k) => {
       this.#els.fills[k].style.height = `${max > 0 ? Math.min(100, (b.value / max) * 100) : 0}%`;
       this.#els.bins[k].setAttribute('aria-label', this.#binLabel(b));
-      this.#els.bins[k].setAttribute('data-ps-tooltip', AccessScoreChart.esc(this.#binLabel(b)));
+      this.#els.bins[k].setAttribute('data-ps-tooltip', util.escapeHTML(this.#binLabel(b)));
     });
     this.#els.gridTop.textContent = this.#valueLabel(max);
     this.#els.gridMid.textContent = this.#valueLabel(max / 2);

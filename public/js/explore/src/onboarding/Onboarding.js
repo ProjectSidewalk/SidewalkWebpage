@@ -5,7 +5,6 @@
 class Onboarding {
   #svl;
   #compass;
-  #handAnimation;
   #navigationService;
   #missionContainer;
   #panoOverlayControls;
@@ -36,7 +35,6 @@ class Onboarding {
   /**
    * @param {Record<string, any>} svl
    * @param {Compass} compass
-   * @param {HandAnimation} handAnimation
    * @param {NavigationService} navigationService
    * @param {MissionContainer} missionContainer
    * @param {PanoOverlayControls} panoOverlayControls
@@ -49,11 +47,10 @@ class Onboarding {
    * @param {Record<string, HTMLElement>} uiOnboarding
    * @param {ZoomControl} zoomControl
    */
-  constructor(svl, compass, handAnimation, navigationService, missionContainer, panoOverlayControls, onboardingStates,
+  constructor(svl, compass, navigationService, missionContainer, panoOverlayControls, onboardingStates,
     ribbon, tracker, canvas, uiCanvas, contextMenu, uiOnboarding, zoomControl) {
     this.#svl = svl;
     this.#compass = compass;
-    this.#handAnimation = handAnimation;
     this.#navigationService = navigationService;
     this.#missionContainer = missionContainer;
     this.#panoOverlayControls = panoOverlayControls;
@@ -120,7 +117,6 @@ class Onboarding {
     this.#contextMenu.disableTagging();
 
     this.#visit(this.#getState('initialize'));
-    this.#handAnimation.initializeHandAnimation();
   }
 
   /**
@@ -695,17 +691,12 @@ class Onboarding {
     }
 
     // Reset positioning state so each message starts clean.
-    messageHolder.classList.remove('animated', 'fadeIn', 'fadeInLeft', 'fadeInRight', 'fadeInDown', 'fadeInUp',
-      'callout-floating', 'onboarding-message-takeover', 'onboarding-message-fullpage', 'onboarding-message-top-right',
-      'onboarding-message-pano-anchored', 'onboarding-message-pass-through');
+    messageHolder.classList.remove('callout-floating', 'onboarding-message-takeover', 'onboarding-message-fullpage',
+      'onboarding-message-top-right', 'onboarding-message-pano-anchored', 'onboarding-message-pass-through');
     Object.assign(messageHolder.style, { position: '', top: '', left: '', transform: '', width: '', maxWidth: '' });
     this.#uiOnboarding.background.style.visibility = 'hidden';
 
     messageHolder.style.display = '';
-
-    if ('fade-direction' in parameters) {
-      messageHolder.classList.add('animated', parameters['fade-direction']);
-    }
 
     // Width is authored in logical (pre-scale) pixels; scale it to on-screen pixels.
     if ('width' in parameters) {
@@ -982,7 +973,7 @@ class Onboarding {
   #visitAdjustHeadingAngle(state, listener) {
     const svl = this.#svl;
     let $target;
-    const interval = this.#handAnimation.showGrabAndDragAnimation({ direction: 'left-to-right' });
+    this.#uiOnboarding.handGestureHolder.classList.remove('ps-hidden');
 
     const callback = () => {
       const pov = svl.panoViewer.getPov();
@@ -990,7 +981,7 @@ class Onboarding {
       if ((360 + state.properties.heading - pov.heading) % 360 < state.properties.tolerance) {
         google.maps.event.removeListener($target);
         if (listener) google.maps.event.removeListener(listener);
-        this.#handAnimation.hideGrabAndDragAnimation(interval);
+        this.#uiOnboarding.handGestureHolder.classList.add('ps-hidden');
         this.#transitionTo(state.transition);
       }
     };
@@ -1037,10 +1028,10 @@ class Onboarding {
 
     if (!('okButton' in state) || state.okButton) {
       // Insert an ok button.
-      const okButtonText = state.okButtonText || 'Ok';
+      const okButtonText = util.escapeHTML(state.okButtonText || 'Ok');
       this.#uiOnboarding.messageHolder.insertAdjacentHTML('beforeend',
         `<div class='onboarding-ok-button-holder'>
-          <button id='onboarding-ok-button' class='button-ps button--medium button--secondary'>${okButtonText}</button>
+          <button id='onboarding-ok-button' class='button button--medium button--secondary'>${okButtonText}</button>
         </div>`);
     }
 

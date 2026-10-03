@@ -3,15 +3,14 @@ package models.label
 import com.google.inject.ImplementedBy
 import models.api.{LabelEditDataForApi, LabelEditFiltersForApi}
 import models.user.SidewalkUserTableDef
-import models.utils.CommonUtils.UiSource.UiSource
+import models.utils.CommonUtils.UiSource
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.validation.LabelValidationTableDef
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.ExecutionContext
 
 /**
  * One change to a label's type, severity and/or tags after its creation (#2575, #3671): who made it, from what, to
@@ -25,8 +24,8 @@ case class LabelEdit(
     labelEditId: Int,
     labelId: Int,
     userId: String,
-    oldLabelType: LabelTypeEnum.Base,
-    newLabelType: LabelTypeEnum.Base,
+    oldLabelType: LabelType,
+    newLabelType: LabelType,
     oldSeverity: Option[Int],
     newSeverity: Option[Int],
     oldTags: List[String],
@@ -37,11 +36,11 @@ case class LabelEdit(
 )
 
 class LabelEditTableDef(tag: slick.lifted.Tag) extends Table[LabelEdit](tag, "label_edit") {
-  def labelEditId: Rep[Int]                 = column[Int]("label_edit_id", O.PrimaryKey, O.AutoInc)
-  def labelId: Rep[Int]                     = column[Int]("label_id")
-  def userId: Rep[String]                   = column[String]("user_id")
-  def oldLabelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("old_label_type")
-  def newLabelType: Rep[LabelTypeEnum.Base] = column[LabelTypeEnum.Base]("new_label_type")
+  def labelEditId: Rep[Int]        = column[Int]("label_edit_id", O.PrimaryKey, O.AutoInc)
+  def labelId: Rep[Int]            = column[Int]("label_id")
+  def userId: Rep[String]          = column[String]("user_id")
+  def oldLabelType: Rep[LabelType] = column[LabelType]("old_label_type")
+  def newLabelType: Rep[LabelType] = column[LabelType]("new_label_type")
   // CHECK: NULL or 1-3, and NULL when the type on the same side is unrated (label_edit_unrated_no_severity_check).
   def oldSeverity: Rep[Option[Int]] = column[Option[Int]]("old_severity")
   def newSeverity: Rep[Option[Int]] = column[Option[Int]]("new_severity")
@@ -54,7 +53,7 @@ class LabelEditTableDef(tag: slick.lifted.Tag) extends Table[LabelEdit](tag, "la
   // CHECK label_edit_not_noop_check: the type differs, the severity differs, or the tag sets differ.
 
   def * = (labelEditId, labelId, userId, oldLabelType, newLabelType, oldSeverity, newSeverity, oldTags, newTags, source,
-    editTime, labelValidationId) <> ((LabelEdit.apply _).tupled, LabelEdit.unapply)
+    editTime, labelValidationId).mapTo[LabelEdit]
 
   def label           = foreignKey("label_edit_label_id_fkey", labelId, TableQuery[LabelTableDef])(_.labelId)
   def user            = foreignKey("label_edit_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
@@ -69,10 +68,8 @@ class LabelEditTableDef(tag: slick.lifted.Tag) extends Table[LabelEdit](tag, "la
 trait LabelEditTableRepository {}
 
 @Singleton
-class LabelEditTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends LabelEditTableRepository
+class LabelEditTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)
+    extends LabelEditTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val labelEdits       = TableQuery[LabelEditTableDef]
@@ -105,7 +102,7 @@ class LabelEditTable @Inject() (
   /** Extends a folded edit with a later change: its new state and time move, its old state stays. */
   def updateNewState(
       labelEditId: Int,
-      labelType: LabelTypeEnum.Base,
+      labelType: LabelType,
       severity: Option[Int],
       tags: List[String],
       editTime: OffsetDateTime
@@ -116,12 +113,7 @@ class LabelEditTable @Inject() (
       .update((labelType, severity, tags, editTime))
 
   /** Rebases an edit onto a different starting state, after the edit before it was unwound. */
-  def updateOldState(
-      labelEditId: Int,
-      labelType: LabelTypeEnum.Base,
-      severity: Option[Int],
-      tags: List[String]
-  ): DBIO[Int] =
+  def updateOldState(labelEditId: Int, labelType: LabelType, severity: Option[Int], tags: List[String]): DBIO[Int] =
     labelEdits
       .filter(_.labelEditId === labelEditId)
       .map(e => (e.oldLabelType, e.oldSeverity, e.oldTags))
@@ -136,7 +128,7 @@ class LabelEditTable @Inject() (
   /**
    * Edits for the v3 API, joined to their label.
    */
-  def getLabelEditsForApi(filters: LabelEditFiltersForApi): Query[_, (LabelEdit, Label), Seq] = {
+  def getLabelEditsForApi(filters: LabelEditFiltersForApi): Query[?, (LabelEdit, Label), Seq] = {
     for {
       edit  <- labelEdits
       label <- labelsUnfiltered if edit.labelId === label.labelId

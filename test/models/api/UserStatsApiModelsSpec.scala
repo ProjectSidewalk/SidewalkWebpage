@@ -1,6 +1,6 @@
 package models.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.user.LabelTypeStat
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
@@ -16,15 +16,15 @@ class UserStatsApiModelsSpec extends AnyFunSuite with Matchers {
 
   /** Every label type mapped to a distinct stat block so column ordering regressions are visible. */
   private def sampleStatsByLabelType: Map[String, LabelTypeStat] = Map(
-    LabelTypeEnum.CurbRamp.name       -> LabelTypeStat(10, 1, 2, 7),
-    LabelTypeEnum.NoCurbRamp.name     -> LabelTypeStat(11, 1, 2, 8),
-    LabelTypeEnum.Obstacle.name       -> LabelTypeStat(12, 1, 2, 9),
-    LabelTypeEnum.SurfaceProblem.name -> LabelTypeStat(13, 1, 2, 10),
-    LabelTypeEnum.NoSidewalk.name     -> LabelTypeStat(14, 1, 2, 11),
-    LabelTypeEnum.Crosswalk.name      -> LabelTypeStat(15, 1, 2, 12),
-    LabelTypeEnum.Signal.name         -> LabelTypeStat(16, 1, 2, 13),
-    LabelTypeEnum.Occlusion.name      -> LabelTypeStat(17, 1, 2, 14),
-    LabelTypeEnum.Other.name          -> LabelTypeStat(18, 1, 2, 15)
+    LabelType.CurbRamp.name       -> LabelTypeStat(10, 1, 2, 7),
+    LabelType.NoCurbRamp.name     -> LabelTypeStat(11, 1, 2, 8),
+    LabelType.Obstacle.name       -> LabelTypeStat(12, 1, 2, 9),
+    LabelType.SurfaceProblem.name -> LabelTypeStat(13, 1, 2, 10),
+    LabelType.NoSidewalk.name     -> LabelTypeStat(14, 1, 2, 11),
+    LabelType.Crosswalk.name      -> LabelTypeStat(15, 1, 2, 12),
+    LabelType.Signal.name         -> LabelTypeStat(16, 1, 2, 13),
+    LabelType.Occlusion.name      -> LabelTypeStat(17, 1, 2, 14),
+    LabelType.Other.name          -> LabelTypeStat(18, 1, 2, 15)
   )
 
   private def sampleUserStat: UserStatForApi = UserStatForApi(

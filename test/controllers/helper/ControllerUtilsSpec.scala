@@ -1,13 +1,13 @@
 package controllers.helper
 
-import org.scalatestplus.play.PlaySpec
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 /**
  * Unit tests for pure helpers in ControllerUtils. No application/DB boot required.
  */
-class ControllerUtilsSpec extends PlaySpec {
+class ControllerUtilsSpec extends SidewalkSpec {
 
   "ControllerUtils.regionsParam" should {
     "prefer regions over the old neighborhoods name" in {

@@ -35,8 +35,8 @@ class Settings {
   }
 
   /**
-   * @returns {{username: string, onLeaderboard: boolean, publicProfile: boolean, communityService: boolean,
-   *     measurementSystem: string, teamId: ?number}} The form's current values, in the shape the save endpoint takes.
+   * @returns {{username: string, on_leaderboard: boolean, public_profile: boolean, community_service: boolean,
+   *     measurement_system: string, team_id: ?number}} The form's current values, in the shape the save endpoint takes.
    */
   #payload() {
     const input = (id) => /** @type {?HTMLInputElement} */ (document.getElementById(id));
@@ -44,14 +44,14 @@ class Settings {
     const teamVal = teamEl?.value ?? '';
     return {
       username: (input('set-username')?.value || '').trim(),
-      onLeaderboard: input('set-on-leaderboard')?.checked ?? true,
-      publicProfile: input('set-public-profile')?.checked ?? true,
-      communityService: input('set-community-service')?.checked ?? false,
+      on_leaderboard: input('set-on-leaderboard')?.checked ?? true,
+      public_profile: input('set-public-profile')?.checked ?? true,
+      community_service: input('set-community-service')?.checked ?? false,
       // 'auto' = follow the site language, which the server saves as no choice.
-      measurementSystem: /** @type {?HTMLSelectElement} */ (document.getElementById('set-units'))?.value ?? 'auto',
+      measurement_system: /** @type {?HTMLSelectElement} */ (document.getElementById('set-units'))?.value ?? 'auto',
       // null tells the server not to touch team membership: the "Choose a team…" placeholder, or the team they're
       // already on. Leaving is the Leave button (TeamActions.js), never a save (#5147).
-      teamId: teamVal === '' || teamVal === teamEl.dataset.currentTeam ? null : parseInt(teamVal, 10),
+      team_id: teamVal === '' || teamVal === teamEl.dataset.currentTeam ? null : parseInt(teamVal, 10),
     };
   }
 
@@ -78,12 +78,12 @@ class Settings {
       if (ok) {
         this.currentUsername = payload.username || this.currentUsername;
         // Hand the written team to the controls, so a second save skips it and Leave speaks for it, not the old one.
-        if (payload.teamId !== null) TeamActions.settingsTeamSaved(payload.teamId);
-        // What was just written is the baseline now, with teamId flattened to the null a team already joined sends,
+        if (payload.team_id !== null) TeamActions.settingsTeamSaved(payload.team_id);
+        // What was just written is the baseline now, with team_id flattened to the null a team already joined sends,
         // so the save that moved onto it doesn't leave the form looking edited.
-        this.#baseline = JSON.stringify({ ...payload, teamId: null });
-        const unitsChanged = payload.measurementSystem !== this.currentUnits;
-        this.currentUnits = payload.measurementSystem;
+        this.#baseline = JSON.stringify({ ...payload, team_id: null });
+        const unitsChanged = payload.measurement_system !== this.currentUnits;
+        this.currentUnits = payload.measurement_system;
         // Units are read from a stamp the server writes into the page, so a change only takes effect on the next
         // render. Reload rather than leave every distance on screen in the units the user just moved away from.
         if (unitsChanged && reloadOnUnitsChange) {

@@ -1,6 +1,6 @@
 /**
  * Handles the compact control buttons overlaid on the top-left of the panorama on the Explore page: the Stuck button
- * and the chevron that opens/closes the menu under it (image, sound, feedback). Other classes run the menu buttons;
+ * and the chevron that opens/closes the menu beside it (image, sound, feedback). Other classes run the menu buttons;
  * this one runs the Stuck button and the chevron.
  */
 class PanoOverlayControls {
@@ -30,13 +30,15 @@ class PanoOverlayControls {
   }
 
   /**
-   * Opens/closes the menu when the chevron is clicked. CSS flips the chevron.
+   * Opens/closes the menu when the chevron is clicked. CSS flips the chevron. Logged under the same name as
+   * Validate's chevron (PanoControlMenu), so one query covers both tools.
    * @param {Event} e
    */
   #handleToggleControls = (e) => {
     e.preventDefault();
     const expanded = this.#controlButtonsToggle.getAttribute('aria-expanded') !== 'true';
     this.#controlButtonsToggle.setAttribute('aria-expanded', expanded);
+    this.tracker.push('Click_PanoControlMenu_Toggle', { expanded });
   };
 
   /**
@@ -80,10 +82,10 @@ class PanoOverlayControls {
     this.#stuckEnabled = false;
   };
 
-  /* Visually disable the stuck and control-toggle buttons (used while onboarding takes over the UI). */
+  /* Disable the stuck and control-toggle buttons (used while onboarding takes over the UI). */
   disableButtons = () => {
-    this.#stuck.classList.add('disabled');
-    this.#controlButtonsToggle.classList.add('disabled');
+    this.#stuck.disabled = true;
+    this.#controlButtonsToggle.disabled = true;
   };
 
   /* Blink the stuck button. */

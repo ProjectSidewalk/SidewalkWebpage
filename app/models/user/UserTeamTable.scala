@@ -2,7 +2,7 @@ package models.user
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -15,7 +15,7 @@ class UserTeamTableDef(tag: slick.lifted.Tag) extends Table[UserTeam](tag, "user
   def userId: Rep[String]  = column[String]("user_id")
   def teamId: Rep[Int]     = column[Int]("team_id")
 
-  def * = (userTeamId, userId, teamId) <> ((UserTeam.apply _).tupled, UserTeam.unapply)
+  def * = (userTeamId, userId, teamId).mapTo[UserTeam]
 
   def user       = foreignKey("user_team_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
   def team       = foreignKey("user_team_team_id_fkey", teamId, TableQuery[TeamTableDef])(_.teamId)
@@ -26,10 +26,8 @@ class UserTeamTableDef(tag: slick.lifted.Tag) extends Table[UserTeam](tag, "user
 trait UserTeamTableRepository {}
 
 @Singleton
-class UserTeamTable @Inject() (
-    protected val dbConfigProvider: DatabaseConfigProvider,
-    implicit val ec: ExecutionContext
-) extends UserTeamTableRepository
+class UserTeamTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using ec: ExecutionContext)
+    extends UserTeamTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   val userTeams     = TableQuery[UserTeamTableDef]
@@ -43,21 +41,29 @@ class UserTeamTable @Inject() (
    * @return The team the given user is affiliated with.
    */
   def getTeam(userId: String): DBIO[Option[Team]] = {
-    teams.join(userTeams).on(_.teamId === _.teamId).filter(_._2.userId === userId).map(_._1).result.headOption
+    teams
+      .join(userTeams)
+      .on(_.teamId === _.teamId)
+      .filter { case (_, userTeam) => userTeam.userId === userId }
+      .map { case (team, _) => team }
+      .result
+      .headOption
   }
 
   /**
    * @param teamId The id of the team.
-   * @return One entry per member: (user id, username, role).
+   * @return One entry per member.
    */
-  def getMembers(teamId: Int): DBIO[Seq[(String, String, Role.Value)]] = {
+  def getMembers(teamId: Int): DBIO[Seq[UserNameAndRole]] = {
     userTeams
       .filter(_.teamId === teamId)
       .join(sidewalkUsers)
       .on(_.userId === _.userId)
       .join(userRoles)
-      .on(_._1.userId === _.userId)
-      .map { case ((_userTeam, _user), _userRole) => (_user.userId, _user.username, _userRole.role) }
+      .on { case ((_userTeam, _), _userRole) => _userTeam.userId === _userRole.userId }
+      .map { case ((_userTeam, _user), _userRole) =>
+        (_user.userId, _user.username, _userRole.role).mapTo[UserNameAndRole]
+      }
       .result
   }
 

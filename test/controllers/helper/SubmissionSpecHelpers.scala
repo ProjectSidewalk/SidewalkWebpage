@@ -1,15 +1,14 @@
 package controllers.helper
 
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.{AnonSession, RolledBackDb}
+import play.api.test.Helpers.*
+import util.{AnonSession, RolledBackDb, SidewalkSpec}
 
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.Try
 
 /**
@@ -19,7 +18,7 @@ import scala.util.Try
  * adds what is specific to these specs: reading the JSON that the tool pages embed in their inline bootstrap script,
  * and probing for tables the dev-DB dumps may not carry.
  */
-trait SubmissionSpecHelpers extends RolledBackDb with AnonSession { this: PlaySpec with GuiceOneAppPerSuite =>
+trait SubmissionSpecHelpers extends RolledBackDb with AnonSession { this: SidewalkSpec & GuiceOneAppPerSuite =>
 
   /** Arrange/assert queries only, never the endpoint under test; 30s is plenty for those. */
   override protected def dbTimeout: FiniteDuration = 30.seconds
@@ -78,7 +77,7 @@ trait SubmissionSpecHelpers extends RolledBackDb with AnonSession { this: PlaySp
                                       WHERE region.deleted = FALSE""".as[Int]).head
     if (assignableStreets == 0) cancel("No region holds a street in the connected schema; /explore can't assign one.")
 
-    val resp = route(app, FakeRequest(GET, "/explore").withCookies(session: _*)).get
+    val resp = route(app, FakeRequest(GET, "/explore").withCookies(session*)).get
     status(resp) mustBe OK
     val html = contentAsString(resp)
     val task = embeddedPageJson(html, "mainParam.task")

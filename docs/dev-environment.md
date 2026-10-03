@@ -306,7 +306,7 @@ make compile
 ```
 
 The first call after a container boot starts the compile server (~30s); later calls are near-instant. `build.sbt`
-sets `-Xfatal-warnings`, so a `[success]` is also warning-clean.
+sets `-Werror`, so a `[success]` is also warning-clean.
 
 Use `--jvm-client`, not `--client`: the native client (`sbtn`) needs a newer glibc than the container's focal base,
 so it dies on startup, though `sbt --client --version` still prints happily (#5268). A server belongs to one project
@@ -330,8 +330,7 @@ make test-scala only=controllers.api.PublicApiSpec
 
 Only one checkout tests at a time. They share one `db` container and one city schema, and most specs commit rather
 than roll back, so simultaneous runs overwrite each other's rows and stack two multi-GB JVMs — which is how
-`earlyoom` comes to kill one mid-run. A second `make test-scala` says it's waiting, then starts when the first
-finishes.
+`earlyoom` comes to kill one mid-run. A second `make test-scala` says who it's waiting on, then starts when they finish.
 
 The `backend-tests` CI job is a required check and runs **all of `test/`** (`sbt coverage test`, since #5042), so a
 new spec file is picked up with nothing to enroll it in. Still run the suite locally before you trust it — and read
@@ -374,7 +373,7 @@ make qa-worktree wt=<worktree-name>
 A worktree needs more setup than the main repo (its `node_modules` and built asset bundles aren't checked in, and
 sbt's caches and config have to be pointed at the right places), so this target handles all of it: it links the main
 repo's `node_modules`, builds that branch's JS/CSS bundles, starts a backgrounded `grunt watch` so later edits
-rebuild automatically, frees `:9000`, kills any stray sbt server or hung sbt task sharing the worktree's `target/`
+rebuild automatically, takes `:9000`, kills any stray sbt server or hung sbt task sharing the worktree's `target/`
 (either deadlocks `~ run` on compile locks), and launches `sbt ~ run` against the worktree's own config
 while reusing the main repo's warm sbt caches. The first request triggers the dev compile; `Ctrl+C` stops it and
 reaps the grunt watch. To tear a session down out-of-band, run `make qa-worktree-stop wt=<name>` (add `clean=1` to
@@ -394,10 +393,26 @@ at one from anywhere. `make lint` opens by naming the tree it checks. Make stops
 container can't see (one outside the main checkout). This takes the worktree's own Makefile, so a branch older than
 #5291 needs `develop` merged in first. The exceptions:
 
-- `make test-e2e` runs the worktree's specs against whatever app is on `:9000`, and warns when that's another
-  checkout's. Start the worktree's app with `make qa-worktree wt=<name>` first.
+- `make test-e2e` runs the worktree's specs against whatever app is on `:9000`, and stops if another checkout holds
+  it. Start the worktree's app with `make qa-worktree wt=<name>` first.
 - `make build-city-data` and `make check-imagery` always run in the main checkout, whose `db/` the db container reads.
 - A hand-typed `docker exec … "cd /home && …"` always runs in the main checkout.
+
+### Sharing the app and the test database
+
+Only one checkout at a time can use the app on `:9000` or the Scala test database. A lease
+([`tools/dev/lease.sh`](../tools/dev/lease.sh)) records who holds each, so a busy command names the holder instead of
+stopping their work.
+
+- `make qa-worktree` and `make test-e2e` stop when another checkout holds `:9000`. `wait=1` (qa-worktree) queues for
+  it; `force=1` takes it anyway.
+- `make test-scala` always waits its turn.
+- `make lease-status` shows holders and the queue. `make lease-take res=<name>` and `make lease-release res=<name>`
+  claim anything else; one taken from your own terminal lasts until you release it.
+
+A lease ends when it's released or its process exits. An app from plain `npm start` has no lease, so `qa-worktree`
+still stops it. Hooks in `.claude/settings.json` nudge a Claude session when someone waits on what it holds, and
+release its leases when it ends.
 
 The sbt server that `make compile`, `make test-scala`, or `make scalafmt` starts for a worktree stays up until it
 idles out after an hour, or until `make qa-worktree-stop wt=<name>` or `make worktree-remove wt=<name>` stops it.
@@ -440,11 +455,12 @@ WHERE user_id = (SELECT user_id FROM sidewalk_login.sidewalk_user WHERE username
 
 ### Exercising authenticated routes
 
-Most routes need a session. Grab an anonymous cookie once, then reuse the jar:
+Public pages and the public API work without a session, so skip this for them: every session is a new account. For
+Explore, Validate, dashboards and most saves, grab an anonymous cookie once, then reuse the jar:
 
 ```bash
 curl -s -c /tmp/sidewalk_cookies.txt "http://localhost:9000/anonSignUp?url=%2F"
-curl -s -b /tmp/sidewalk_cookies.txt "http://localhost:9000/v3/api/labelTypes"
+curl -s -b /tmp/sidewalk_cookies.txt "http://localhost:9000/userapi/basicStats"
 ```
 
 ### Inspecting the database
@@ -571,7 +587,7 @@ the dump (`pg_restore -s -t <table> -f - db/<dump>`) before assuming your local 
 
 **Slick query errors while developing:**
 
-- `value transactionally is not a member of slick.dbio.DBIOAction...` → add `import models.utils.MyPostgresProfile.api._`.
+- `value transactionally is not a member of slick.dbio.DBIOAction...` → add `import models.utils.MyPostgresProfile.api.*`.
 - `type mismatch ... NoStream,Nothing ...` (often misleading) → try wrapping the queries in `.transactionally`, or
   use `DBIO.seq().andThen()`.
 

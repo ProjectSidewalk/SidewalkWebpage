@@ -346,7 +346,7 @@ and for local dev — and degrade gracefully to "unknown" elsewhere (e.g. CI's s
 the build.
 
 Because the build is identical in spirit to local dev, **a change that fails to compile or bundle locally will fail
-the deploy.** The backend is built with `-Xfatal-warnings`, so warnings block the build too. See
+the deploy.** The backend is built with `-Werror`, so warnings block the build too. See
 [`docs/testing-and-ci.md`](testing-and-ci.md) and [`docs/dev-environment.md`](dev-environment.md).
 
 ### Directories that must survive a deploy
@@ -463,8 +463,8 @@ fingerprints the wrong file. All necessary because neither half of a mistake rai
 mechanism above, so the `fingerprintCssAssetUrls` pipeline stage
 ([`project/CssAssetUrls.scala`](../project/CssAssetUrls.scala)) rewrites its `url(...)` targets to the `<md5>-<name>`
 form at stage time, deriving the name from the file's bytes as sbt-digest does. Absolute stays absolute and relative
-stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along, which
-keeps Bootstrap's `...eot?#iefix` glyphicons working. **A new reference needs nothing registered**: unlike
+stays relative (the digested copy sits in the original's directory), and a query string or fragment rides along.
+**A new reference needs nothing registered**: unlike
 `util.assetPath` and its `assetManifestPrefixes`, the stage resolves each `url()` against the file itself. Just name a
 file that exists, by relative path: a stylesheet Grunt bundles into `public/js/*/build/` has its relative `url()`s
 rewritten to `/assets/` paths first (`concat_css`'s `assetBaseUrl` in `Gruntfile.js`), which would double up an
@@ -492,7 +492,7 @@ instead, which fingerprints for no benefit and roughly triples `target/web`.
 Health checks treat an instance as up when an anonymous request to **`/anonSignUp`** returns a valid session cookie
 (`PLAY_SESSION`) — i.e. the app can boot into an anonymous session. This is the same anonymous-session trick used to
 exercise authenticated routes in local dev (see [`docs/dev-environment.md`](dev-environment.md)). Instances that
-return server errors are automatically restarted, and application logs are archived on each rebuild.
+return server errors are automatically restarted.
 
 ## Logs
 
@@ -501,7 +501,8 @@ Each running city instance writes a **rolling file log** (configured in [`conf/l
 - **File name:** `application-<SIDEWALK_CITY_ID>.log` in the instance's `logs/` directory — e.g.
   `application-newberg-or.log`. `application.home` resolves to that city's staged app directory, so **every city has its
   own `logs/` subdirectory**; the app also mirrors output to stdout.
-- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap; logs are archived on each rebuild.
+- **Rotation:** daily (`application-<city>-YYYY-MM-DD.log`), 90-day history, 3 GB cap. A deploy deletes these files;
+  older lines survive only in the stdout copy (`container-<city>.log`), which the deploy tooling archives on each rebuild.
 - **Levels:** root is `INFO`, and **successful requests are not access-logged** — a working page produces *no* log
   line. Only warnings and errors appear (client 4xx via the error handler, server-side exceptions, etc.).
 
@@ -533,11 +534,23 @@ falls back to its own backoff and still converges, just more slowly. Two checks:
   app also canonicalizes the host. A fast success on the *followed* request points at the proxy layer; a hang or error
   points at the app/DB.
 - **If the request dies inside the database** (e.g. a PostGIS/JIT segfault,
-  [#4545](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4545)), the app only sees a dropped connection — the
+  [#4376](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4376)), the app only sees a dropped connection — the
   real crash (`server process … was terminated by signal 11`) is written to the **Postgres server log**, not the
   application log. That log lives on the database host under the standard PostgreSQL data-directory layout; ask a running
   server for its exact location with `psql -c 'SHOW log_directory;'` (relative to `SHOW data_directory;`) rather than
   hardcoding a path. Members of the project's UW CSE group have command-line read access to it.
+
+## Backups
+
+UW CSE IT backs up the production database every night. The backups alternate between a full copy of the database's
+files (the fastest way to restore everything) and a SQL dump (which can restore a single city or table, and still
+works after a Postgres upgrade). Copies are also kept in a different building and periodically archived off site. The
+test database is not backed up, and the [persistent media directories](#directories-that-must-survive-a-deploy) are
+covered separately.
+
+The details are in the **Backups** section of the README in the private ops repo
+([`lab/sidewalk-tools`](https://gitlab.cs.washington.edu/lab/sidewalk-tools)). To restore from a backup, contact UW
+CSE IT.
 
 ## Runtime configuration contract
 

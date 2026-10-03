@@ -76,17 +76,8 @@ class LabelMiniCard {
     const el = document.createElement('span');
     el.className = 'lmc__placeholder';
     el.innerHTML = `<img src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
-      <span>${LabelMiniCard.esc(i18next.t('common:mini-card.no-image'))}</span>`;
+      <span>${util.escapeHTML(i18next.t('common:mini-card.no-image'))}</span>`;
     return el;
-  }
-
-  /**
-   * HTML-escapes a value for interpolation into markup.
-   * @param {*} value - Anything; stringified.
-   * @returns {string} The escaped string.
-   */
-  static esc(value) {
-    return util.escapeHTML(String(value ?? ''));
   }
 
   /** The rating word for a rated label, or null. */
@@ -107,8 +98,8 @@ class LabelMiniCard {
   #render() {
     const label = this.#label;
     const type = label.label_type;
-    const esc = LabelMiniCard.esc;
-    const typeName = i18next.t(`common:${util.camelToKebab(type)}`).replace('&shy;', '');
+    const esc = util.escapeHTML;
+    const typeName = util.misc.labelTypeName(type);
     const rating = this.#ratingWord();
     const name = [typeName, rating].filter(Boolean).join(', ');
     const src = label.crop_url || label.backup_image_url;
@@ -124,7 +115,7 @@ class LabelMiniCard {
     const tags = (label.tags || []).map((tag) =>
       `<span class="lmc__tag">${esc(i18next.t(`common:tag.${tag}`, { defaultValue: tag }))}</span>`).join('');
     const date = label.timestamp
-      ? new Intl.DateTimeFormat(i18next.language, { dateStyle: 'medium' }).format(new Date(label.timestamp))
+      ? new Date(label.timestamp).toLocaleDateString(i18next.language, util.SHORT_DATE)
       : '';
     // "Quality: Good" rather than a bare "Good": which scale a rating is on is the label card's wording too.
     const ratingHeader = rating
@@ -182,7 +173,7 @@ class LabelMiniCard {
 
   /** One vote chip: the filled icon and pressed state when it is the reader's own vote. */
   #chipHtml(action, lock) {
-    const esc = LabelMiniCard.esc;
+    const esc = util.escapeHTML;
     const mine = this.#label.user_validation === action;
     const count = this.#label[`num_${action.toLowerCase()}`] || 0;
     const variant = mine ? 'filled' : 'outline';
@@ -190,10 +181,10 @@ class LabelMiniCard {
     const word = i18next.t(`common:${action.toLowerCase()}`);
     const tip = lock ?? this.#tooltip(action, mine, count);
     return `
-      <button type="button" class="lmc__vote lmc__vote--${action.toLowerCase()}" data-action="${action}"
+      <button type="button" class="lmc__vote lmc__vote--${esc(action.toLowerCase())}" data-action="${esc(action)}"
               aria-pressed="${mine}" aria-label="${esc(word)}" data-ps-tooltip="${esc(tip)}"${lock ? ' disabled' : ''}>
         <img class="lmc__vote-icon" src="${iconSrc}" alt="">
-        <span class="lmc__vote-count">${count}</span>
+        <span class="lmc__vote-count">${esc(count)}</span>
       </button>`;
   }
 

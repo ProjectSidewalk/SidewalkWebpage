@@ -1,6 +1,6 @@
 package service
 
-import org.scalatestplus.play.PlaySpec
+import util.SidewalkSpec
 
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{CountDownLatch, TimeUnit}
@@ -14,18 +14,18 @@ import scala.concurrent.{Await, ExecutionContext, Future, Promise}
  * (Planning#8). Whether the batching actually caps what is in flight is observable with a counter, so it is checked
  * here rather than inferred from a page that happens to load.
  */
-class InBatchesSpec extends PlaySpec {
+class InBatchesSpec extends SidewalkSpec {
 
-  implicit private val ec: ExecutionContext = ExecutionContext.global
+  private given ec: ExecutionContext = ExecutionContext.global
 
   "inBatches" should {
     "never run more than a batch at once, which is the whole point of not fanning out to 52 connections" in {
       // Every item parks until released, so each future the fold has started is still in flight and countable. An
       // eager fan-out would put all 20 in flight; a batched one can only ever hold 4.
-      val inFlight     = new AtomicInteger(0)
-      val peak         = new AtomicInteger(0)
+      val inFlight     = AtomicInteger(0)
+      val peak         = AtomicInteger(0)
       val gates        = Seq.fill(20)(Promise[Int]())
-      val firstBatchUp = new CountDownLatch(4)
+      val firstBatchUp = CountDownLatch(4)
 
       val run = Batching.inBatches(gates.indices, batchSize = 4) { i =>
         peak.updateAndGet(_ max inFlight.incrementAndGet())
@@ -42,8 +42,8 @@ class InBatchesSpec extends PlaySpec {
 
     "run the batches one after another, not all at once" in {
       // Later items resolve instantly, so only sequencing can keep them from starting while item 0 is parked.
-      val started      = new AtomicInteger(0)
-      val firstBatchUp = new CountDownLatch(2)
+      val started      = AtomicInteger(0)
+      val firstBatchUp = CountDownLatch(2)
       val gate         = Promise[Int]()
 
       val run = Batching.inBatches(0 until 6, batchSize = 2) { i =>
@@ -81,7 +81,7 @@ class InBatchesSpec extends PlaySpec {
       // getCrossCityHours relies on this: it recovers per city *before* handing work here, precisely so that one
       // unreadable schema costs its own row rather than the volunteer's whole total.
       val out = Batching.inBatches(0 until 4, batchSize = 2) { i =>
-        if (i == 3) Future.failed(new RuntimeException("boom")) else Future.successful(i)
+        if (i == 3) Future.failed(RuntimeException("boom")) else Future.successful(i)
       }
       a[RuntimeException] must be thrownBy Await.result(out, 30.seconds)
     }

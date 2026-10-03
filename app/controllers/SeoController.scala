@@ -6,7 +6,7 @@ import models.utils.SeoUtils
 import play.api.Configuration
 import play.api.mvc.{Action, AnyContent}
 
-import javax.inject._
+import javax.inject.*
 
 /**
  * Serves robots.txt and sitemap.xml (issue #4237).
@@ -38,7 +38,7 @@ class SeoController @Inject() (cc: CustomControllerComponents, config: Configura
    * `ConfigService.getPanoSource` uses, so this controller keeps its build-once, no-DB property.
    */
   private val signInWalled: Boolean =
-    config.get[String](s"city-params.pano-viewer-type.$cityId") == PanoSource.Infra3d.toString
+    config.get[String](s"city-params.pano-viewer-type.$cityId") == PanoSource.Infra3d.name
 
   /**
    * Public, indexable pages promoted in the sitemap. Duplicate route aliases are excluded (see SeoUtils).

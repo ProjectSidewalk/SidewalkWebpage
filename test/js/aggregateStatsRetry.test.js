@@ -9,7 +9,7 @@
  * Runs under jsdom (set in jest.config.js via testEnvironment) so `window`/`document` are available.
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, installEscapeHTML } = require('./loadGlobalScript');
 
 // jsdom (as bundled with this Jest version) implements AbortSignal but not the static AbortSignal.timeout()
 // (Baseline 2022, present in all supported browsers). Shim it for these tests; fetch is stubbed anyway, so the
@@ -74,6 +74,7 @@ describe('aggregateStats fetch resilience', () => {
         // Globals the renderer reaches for (provided by other bundles in production).
         global.i18next = { t: (key, opts) => Number(opts.val).toLocaleString('en-US') };
         global.util = { math: { kmsToMiles: (km) => km * 0.621371 } };
+        installEscapeHTML();
 
         // Keep the retry/error logging out of Jest's output.
         jest.spyOn(console, 'warn').mockImplementation(() => {});

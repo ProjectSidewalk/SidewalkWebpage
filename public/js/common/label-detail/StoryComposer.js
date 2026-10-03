@@ -99,7 +99,7 @@ class StoryComposer {
    * Switches the intro and textarea placeholder between problem and positive-feature phrasing. Anything other than a
    * known non-problem bucket — including null while it's still unknown — keeps the default problem copy. Safe to call
    * while the dialog is open: the host re-applies it when a late /stories response lands.
-   * @param {?string} accessImpact - 'problem', 'feature' or 'neutral', from /stories (LabelTypeEnum.AccessImpact).
+   * @param {?string} accessImpact - 'problem', 'feature' or 'neutral', from /stories (AccessImpact).
    */
   setCopyVariant(accessImpact) {
     const positive = accessImpact === 'feature' || accessImpact === 'neutral';

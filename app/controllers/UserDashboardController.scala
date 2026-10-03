@@ -15,7 +15,7 @@ import play.silhouette.api.actions.SecuredRequest
 import play.silhouette.api.Silhouette
 import service.{AdminService, ConfigService, GlobalLeaderboardEntry, UserService}
 
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
@@ -30,7 +30,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class UserDashboardController @Inject() (
     cc: CustomControllerComponents,
     val config: Configuration,
-    implicit val assets: AssetsFinder,
     configService: ConfigService,
     userService: UserService,
     adminService: AdminService,
@@ -39,9 +38,9 @@ class UserDashboardController @Inject() (
     authenticationService: service.AuthenticationService,
     rateLimiter: service.RateLimiter,
     silhouette: Silhouette[DefaultEnv]
-)(implicit ec: ExecutionContext)
+)(using assets: AssetsFinder, ec: ExecutionContext)
     extends CustomBaseController(cc) {
-  implicit val implicitConfig: Configuration = config
+  given Configuration = config
 
   // The dashboard's needs-re-audit list reveals five rows at a time; it fetches three pages' worth up front so
   // "show more" is a reveal rather than a round trip, and defers the rest to the map, which draws all of them (#4896).
@@ -97,7 +96,7 @@ class UserDashboardController @Inject() (
   /** Resolves a username for the admin pages, rendering the branded 404 when it matches no account. */
   private def withUser(username: String)(
       render: SidewalkUserWithRole => Future[Result]
-  )(implicit request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
+  )(using request: SecuredRequest[DefaultEnv, AnyContent]): Future[Result] = {
     authenticationService.findByUsername(username).flatMap {
       case Some(subject) => render(subject)
       case None          => Future.successful(notFoundPage(request.path))
@@ -107,7 +106,7 @@ class UserDashboardController @Inject() (
   /**
    * Assembles and renders the dashboard for `user`, viewed by `request.identity` (the same person unless `adminView`).
    */
-  private def renderDashboard(user: SidewalkUserWithRole, adminView: Boolean)(implicit
+  private def renderDashboard(user: SidewalkUserWithRole, adminView: Boolean)(using
       request: SecuredRequest[DefaultEnv, AnyContent]
   ): Future[Result] = {
     val isMetric = ControllerUtils.isMetric
@@ -196,7 +195,7 @@ class UserDashboardController @Inject() (
   /**
    * Persists the Settings form in one save: an optional username change (validated) plus the two privacy flags, the
    * measurement-units choice, and the user's team. The body is a `SettingsSubmission` (a missing privacy flag is a
-   * 400, never a reset); `teamId` is a positive id to join/switch, or null/non-positive to leave the team alone —
+   * 400, never a reset); `team_id` is a positive id to join/switch, or null/non-positive to leave the team alone —
    * dropping a team is `UserProfileController.leaveTeam`, never something a save does by omission (#5147). A
    * username that fails validation (length, allowed characters, profanity, or already taken) refuses the whole save
    * with a 400 and a user-facing message before anything is written; the rename itself is the last write.
@@ -214,11 +213,11 @@ class UserDashboardController @Inject() (
         val usernameEdit = s.username.filter(_ != user.username)
         // An absent field means "this caller isn't touching it" (the /welcome privacy toggles post only their two
         // flags), which has to stay distinct from an explicit "auto", or those saves would wipe the user's choice.
-        val unitsEdit: Option[Option[MeasurementSystem.Value]] = s.measurementSystem
+        val unitsEdit: Option[Option[MeasurementSystem]] = s.measurementSystem
           .filter(choice =>
-            choice == MeasurementSystem.FollowLanguage || MeasurementSystem.fromString(choice).isDefined
+            choice == MeasurementSystem.FollowLanguage || MeasurementSystem.withNameOption(choice).isDefined
           )
-          .map(MeasurementSystem.fromString)
+          .map(MeasurementSystem.withNameOption)
           .filter(_ != user.measurementSystem)
         val serviceEdit: Option[Boolean] = s.communityService.filter(_ != user.communityService)
 

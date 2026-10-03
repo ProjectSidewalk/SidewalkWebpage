@@ -13,6 +13,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadGlobalScript } = require('./loadGlobalScript');
+
+loadGlobalScript('public/js/common/utilities.js');
 
 const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
@@ -294,7 +297,7 @@ describe('StreetPriorityTable row interactions', () => {
 });
 
 describe('StreetPriorityTable highlighting', () => {
-  const highlighted = () => [...document.querySelectorAll('#work tbody tr.highlighted')]
+  const highlighted = () => [...document.querySelectorAll('#work tbody tr.is-highlighted')]
     .map((tr) => tr.cells[0].textContent);
 
   test('highlights exactly the given ids and drops the rest', () => {

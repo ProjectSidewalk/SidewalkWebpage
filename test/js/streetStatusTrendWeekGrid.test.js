@@ -18,6 +18,10 @@
 const fs = require('fs');
 const path = require('path');
 
+const { installDateHelpers, loadGlobalScript } = require('./loadGlobalScript');
+
+loadGlobalScript('public/js/common/utilities.js');
+
 const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
 function loadPage() {
@@ -30,6 +34,7 @@ function loadPage() {
   );
 }
 
+installDateHelpers();
 const StreetStatusTrend = loadPage();
 
 const MARKUP = `

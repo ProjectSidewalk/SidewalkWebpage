@@ -4,7 +4,7 @@ import com.google.inject.ImplementedBy
 import models.user.SidewalkUserTableDef
 import models.utils.MyPostgresProfile
 import models.utils.{FilteredTables, IpAddress}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -14,7 +14,7 @@ import javax.inject.{Inject, Singleton}
 case class StreetEdgeIssue(
     streetEdgeIssueId: Int,
     streetEdgeId: Int,
-    issue: StreetEdgeIssueType.Value,
+    issue: StreetEdgeIssueType,
     userId: String,
     ipAddress: IpAddress,
     timestamp: OffsetDateTime
@@ -43,18 +43,15 @@ case class CorroboratedNoImageryStreet(
 )
 
 class StreetEdgeIssueTableDef(tag: Tag) extends Table[StreetEdgeIssue](tag, "street_edge_issue") {
-  def streetEdgeIssueId: Rep[Int]           = column[Int]("street_edge_issue_id", O.PrimaryKey, O.AutoInc)
-  def streetEdgeId: Rep[Int]                = column[Int]("street_edge_id")
-  def issue: Rep[StreetEdgeIssueType.Value] = column[StreetEdgeIssueType.Value]("issue")
-  def userId: Rep[String]                   = column[String]("user_id")
-  def ipAddress: Rep[IpAddress]             = column[IpAddress]("ip_address")
+  def streetEdgeIssueId: Rep[Int]     = column[Int]("street_edge_issue_id", O.PrimaryKey, O.AutoInc)
+  def streetEdgeId: Rep[Int]          = column[Int]("street_edge_id")
+  def issue: Rep[StreetEdgeIssueType] = column[StreetEdgeIssueType]("issue")
+  def userId: Rep[String]             = column[String]("user_id")
+  def ipAddress: Rep[IpAddress]       = column[IpAddress]("ip_address")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp) <> (
-    (StreetEdgeIssue.apply _).tupled,
-    StreetEdgeIssue.unapply
-  )
+  def * = (streetEdgeIssueId, streetEdgeId, issue, userId, ipAddress, timestamp).mapTo[StreetEdgeIssue]
 
   def streetEdge =
     foreignKey("street_edge_issue_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)
@@ -88,13 +85,13 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   val streetEdgeIssues = TableQuery[StreetEdgeIssueTableDef]
 
-  implicit private val getIssueWeek: GetResult[NoImageryReportWeek] =
-    GetResult(r => NoImageryReportWeek(r.nextDate().toLocalDate, r.nextInt(), r.nextInt()))
+  private given getIssueWeek: GetResult[NoImageryReportWeek] =
+    r => NoImageryReportWeek(r.nextDate().toLocalDate, r.nextInt(), r.nextInt())
 
-  implicit private val getIssueRegion: GetResult[NoImageryReportRegion] =
-    GetResult(r => NoImageryReportRegion(r.nextInt(), r.nextString(), r.nextInt(), r.nextInt()))
+  private given getIssueRegion: GetResult[NoImageryReportRegion] =
+    r => NoImageryReportRegion(r.nextInt(), r.nextString(), r.nextInt(), r.nextInt())
 
-  implicit private val getCorroboratedStreet: GetResult[CorroboratedNoImageryStreet] = GetResult { r =>
+  private given getCorroboratedStreet: GetResult[CorroboratedNoImageryStreet] = { r =>
     CorroboratedNoImageryStreet(r.nextInt(), r.nextInt(), r.nextString(), r.nextInt(), r.nextInt(),
       r.nextOffsetDateTime())
   }
@@ -124,7 +121,7 @@ class StreetEdgeIssueTable @Inject() (protected val dbConfigProvider: DatabaseCo
 
   // Spliced rather than bound because Postgres compares an enum column against an enum literal, not a bind parameter
   // typed as text. Safe to splice: it is a compile-time constant off the enum, never anything a caller supplies.
-  private val NoImageryIssue: String = StreetEdgeIssueType.PanoNotAvailable.toString
+  private val NoImageryIssue: String = StreetEdgeIssueType.PanoNotAvailable.name
 
   /**
    * Labeler reports of missing imagery, bucketed by ISO week (#4928).

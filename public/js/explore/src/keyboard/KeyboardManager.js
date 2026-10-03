@@ -1,31 +1,53 @@
 /**
- * A Keyboard module.
+ * Explore's keyboard shortcuts.
+ *
+ * Each table below is a group of shortcuts that's active at different times; edit a row to add or change one.
+ * Label-type and tag keys come from `util.misc.getLabelDescriptions` instead, since the UI shows those letters.
  */
 class KeyboardManager {
+  /** @type {?KeyboardShortcut[]} */
+  #labelTypeRows = null;
+
   #svl;
   #contextMenu;
   #navigationService;
   #ribbon;
   #zoomControl;
 
-  /**
-   * fix for the shift-getting-stuck bug.
-   * this is a documented issue, see here:
-   * https://stackoverflow.com/questions/11225694/why-are-onkeyup-events-not-firing-in-javascript-game
-   * essentially what's going on is that JS sometimes fires a final keydown after a keyup.
-   * (usually happens when multiple events are fired)
-   * so the log would look like keydown:shift, keydown: shift, keyup: shift, keydown: shift.
-   * To fix this, we note the last time that shift was let go, then
-   * ignore any keydown events that were made BEFORE shift was let go, but are executing AFTER.
-   *
-   * also, we added a buffer to the z key to fix inconsistent behavior when shift and z were pressed at the same time.
-   * sometimes, the shift up was detected before the z up. Adding the 100ms buffer fixed this issue.
-   */
   #status = {
     focusOnTextField: false,
     isOnboarding: false,
     disableKeyboard: false,
   };
+
+  /** Moving and turning, while the context menu is closed. On keydown, so holding a key keeps it going. */
+  #walkingShortcuts = [
+    { keys: ['ArrowLeft'], action: () => this.#rotatePovByDegree(-2) },
+    { keys: ['ArrowRight'], action: () => this.#rotatePovByDegree(2) },
+    { keys: ['ArrowUp'], action: () => this.#navigationService.moveToLinkedPano(0) },
+    { keys: ['ArrowDown'], action: () => this.#navigationService.moveToLinkedPano(180) },
+    { keys: ['Space'], when: (e) => !KeyboardManager.#isCheckboxOrRadio(e.target), action: (e) => this.#spacebar(e) },
+  ];
+
+  /** Closing the context menu. These also work while typing in its description box. */
+  #closeMenuShortcuts = [
+    { keys: ['Enter'], action: () => this.#saveAndCloseContextMenu() },
+    { keys: ['Escape'], action: (e) => this.#cancelContextMenu(e) },
+  ];
+
+  /** Everywhere outside a text box. The label-type keys are added to these. */
+  #generalShortcuts = [
+    { keys: ['Escape'], action: (e) => this.#backToExploreMode(e) },
+    { keys: ['KeyF'], when: (e) => this.#canToggleImmersiveMode(e), action: () => this.#toggleImmersiveMode() },
+    { keys: ['KeyZ'], action: (e) => this.#zoom(e) }, // Shift+Z zooms out.
+  ];
+
+  /** Rating the label whose context menu is open. Its tag keys run after these. */
+  #contextMenuShortcuts = [
+    { keys: ['Digit1', 'Numpad1'], when: () => this.#canRateSeverity(), action: (e) => this.#rateSeverity(1, e) },
+    { keys: ['Digit2', 'Numpad2'], when: () => this.#canRateSeverity(), action: (e) => this.#rateSeverity(2, e) },
+    { keys: ['Digit3', 'Numpad3'], when: () => this.#canRateSeverity(), action: (e) => this.#rateSeverity(3, e) },
+  ];
 
   constructor(svl, canvas, contextMenu, navigationService, ribbon, zoomControl) {
     this.#svl = svl;
@@ -34,9 +56,89 @@ class KeyboardManager {
     this.#ribbon = ribbon;
     this.#zoomControl = zoomControl;
 
-    // Add the keyboard event listeners. We need { capture: true } for keydown to overwrite pano's shortcuts.
+    // We need { capture: true } for keydown to overwrite pano's shortcuts.
     window.addEventListener('keydown', this.#documentKeyDown, { capture: true });
     window.addEventListener('keyup', this.#documentKeyUp);
+  }
+
+  /**
+   * @param {KeyboardEvent} e
+   */
+  #documentKeyDown = (e) => {
+    if (this.#status.disableKeyboard || this.#status.focusOnTextField) return;
+    if (!this.#contextMenu.isOpen()) KeyboardShortcuts.run(this.#walkingShortcuts, e);
+  };
+
+  /**
+   * A key that closes the context menu stops here, so one Escape isn't handled twice.
+   * @param {KeyboardEvent} e
+   */
+  #documentKeyUp = (e) => {
+    if (this.#status.disableKeyboard) return;
+    if (this.#contextMenu.isOpen() && KeyboardShortcuts.run(this.#closeMenuShortcuts, e)) return;
+
+    // Ctrl/Alt/Cmd combos belong to the browser. Shift is ours (Shift+Z).
+    if (this.#status.focusOnTextField || e.ctrlKey || e.altKey || e.metaKey) return;
+    this.#labelTypeRows ??= this.#labelTypeShortcuts();
+    KeyboardShortcuts.run([...this.#labelTypeRows, ...this.#generalShortcuts], e);
+    if (this.#contextMenu.isOpen()) {
+      KeyboardShortcuts.run(this.#contextMenuShortcuts, e);
+      KeyboardShortcuts.run(this.#tagShortcuts(), e);
+    }
+  };
+
+  /**
+   * One row per labeling mode. E (Walk) is also a tag key, so it only means Walk when the menu is closed.
+   * @returns {KeyboardShortcut[]}
+   */
+  #labelTypeShortcuts() {
+    // A newly added label type may not have a letter yet; skip it.
+    return ['Walk', ...util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER]
+      .map((mode) => ({ mode, key: KeyboardManager.#keyFor(util.misc.getLabelDescriptions(mode)?.keyChar) }))
+      .filter(({ key }) => key)
+      .map(({ mode, key }) => ({
+        keys: [key],
+        when: mode === 'Walk' ? () => !this.#contextMenu.isOpen() : undefined,
+        action: (e) => this.#switchMode(mode, e),
+      }));
+  }
+
+  /**
+   * One row per tag of the open label's type, from the letter underlined in the tag's name.
+   * @returns {KeyboardShortcut[]}
+   */
+  #tagShortcuts() {
+    const targetLabel = this.#contextMenu.getTargetLabel();
+    if (!targetLabel || this.#contextMenu.isTaggingDisabled()) return [];
+    const labelType = targetLabel.getProperty('labelType');
+    const tagInfo = util.misc.getLabelDescriptions(labelType)?.tagInfo;
+    return this.#contextMenu.labelTags
+      .filter((tag) => tag.label_type === labelType)
+      .map((tag) => ({ tag, key: KeyboardManager.#keyFor(tagInfo?.[tag.tag]?.keyChar) }))
+      .filter(({ key }) => key)
+      .map(({ tag, key }) => ({
+        keys: [key],
+        action: () => document.querySelector(`[data-tag-id="${tag.tag_id}"]`)?.click(),
+      }));
+  }
+
+  /**
+   * Turns a letter shown in the UI into a row's key name (`C` → `KeyC`).
+   * @param {string|undefined} char - A letter, digit, or one of `[ ] ; , . /`.
+   * @returns {string|undefined} Its `KeyboardEvent.code`.
+   */
+  static #keyFor(char) {
+    if (/^[A-Z]$/.test(char)) return `Key${char}`;
+    if (/^[0-9]$/.test(char)) return `Digit${char}`;
+    const punctuation = {
+      '[': 'BracketLeft',
+      ']': 'BracketRight',
+      ';': 'Semicolon',
+      ',': 'Comma',
+      '.': 'Period',
+      '/': 'Slash',
+    };
+    return punctuation[char];
   }
 
   disableKeyboard() {
@@ -105,149 +207,117 @@ class KeyboardManager {
   }
 
   /**
-   * This is a callback for a key down event
+   * Steps forward along the route. Skipped on a focused checkbox or radio button, which needs Space (#4945).
    * @param {KeyboardEvent} e
    */
-  #documentKeyDown = (e) => {
-    if (!this.#status.disableKeyboard && !this.#status.focusOnTextField) {
-      // Shortcuts that only apply when the context menu is closed (moving/panning).
-      if (!this.#contextMenu.isOpen()) {
-        switch (e.key) {
-          case 'ArrowLeft':
-            this.#rotatePovByDegree(-2);
-            break;
-          case 'ArrowRight':
-            this.#rotatePovByDegree(2);
-            break;
-          case 'ArrowUp':
-            this.#navigationService.moveToLinkedPano(0);
-            break;
-          case 'ArrowDown':
-            this.#navigationService.moveToLinkedPano(180);
-            break;
-          case ' ':
-            // A focused checkbox or radio button (e.g. the minimap key's "My earlier labels", #4945) has no key but
-            // Space to toggle it, so it keeps Space; cancelling it here would leave the control mouse-only.
-            if (e.target instanceof HTMLInputElement && (e.target.type === 'checkbox' || e.target.type === 'radio')) {
-              break;
-            }
-            // preventDefault stops the page from scrolling and stops space from re-activating a
-            // focused button (e.g. the Stuck/ribbon button right after a mouse click), which Enter still activates.
-            e.preventDefault();
-            this.#advanceForwardAlongRoute();
-            break;
-        }
-      }
-    }
-  };
+  #spacebar(e) {
+    // Stop the page scrolling, and stop Space from re-clicking a focused button (e.g. Stuck).
+    e.preventDefault();
+    this.#advanceForwardAlongRoute();
+  }
 
   /**
-   * This is a callback for a key up event when focus is not on ContextMenu's textbox.
+   * @param {EventTarget} target
+   * @returns {boolean}
+   */
+  static #isCheckboxOrRadio(target) {
+    return target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio');
+  }
+
+  /** Enter closes the menu, keeping what was entered. */
+  #saveAndCloseContextMenu() {
+    this.#svl.tracker.push('KeyboardShortcut_CloseContextMenu');
+    this.#contextMenu.handleSeverityPopup();
+    this.#svl.tracker.push('ContextMenu_ClosePressEnter');
+    this.#contextMenu.hide();
+  }
+
+  /**
    * @param {KeyboardEvent} e
    */
-  #documentKeyUp = (e) => {
-    const svl = this.#svl;
-    // Ways to close context menu. Separated from later code because we want these to work in description textbox.
-    if (!this.#status.disableKeyboard && this.#contextMenu.isOpen()) {
-      switch (e.key) {
-        case 'Enter':
-          svl.tracker.push('KeyboardShortcut_CloseContextMenu');
-          this.#contextMenu.handleSeverityPopup();
-          svl.tracker.push('ContextMenu_ClosePressEnter');
-          this.#contextMenu.hide();
-          break;
-        case 'Escape':
-          this.#closeContextMenu(e.keyCode);
-          this.#ribbon.backToWalk();
-          break;
-      }
-    }
+  #cancelContextMenu(e) {
+    this.#closeContextMenu(e);
+    this.#ribbon.backToWalk();
+    this.#svl.canvas.showLabelHoverInfo(undefined);
+  }
 
-    if (!this.#status.disableKeyboard && !this.#status.focusOnTextField && !e.ctrlKey) {
-      // Switch labeling mode. e: Walk, c: CurbRamp, m: NoCurbRamp, o: Obstacle, s: SurfaceProblem: n: NoSidewalk,
-      // w: Crosswalk, p: Signal, b: Occlusion.
-      for (const mode of ['Walk'].concat(util.misc.VALID_LABEL_TYPES_WITHOUT_OTHER)) {
-        // Some keyup events (synthetic events, certain IME/compose keys) arrive with no `key`; skip the shortcut
-        // match rather than throwing on undefined.toUpperCase().
-        // The type list is backend-sourced but getLabelDescriptions is a local table, so a label type added to
-        // LabelTypeEnum lands here before it has a keyChar. Skip it rather than throwing on every keyup.
-        if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(mode)?.keyChar) {
-          if (mode !== 'Walk') this.#closeContextMenu(e.keyCode);
-          this.#ribbon.modeSwitch(mode);
-          svl.tracker.push(`KeyboardShortcut_ModeSwitch_${mode}`, { keyCode: e.keyCode });
-        }
-      }
+  /**
+   * Also hides the label hover card, so it can be dismissed without the mouse (WCAG 1.4.13).
+   * @param {KeyboardEvent} e
+   */
+  #backToExploreMode(e) {
+    this.#ribbon.backToWalk();
+    this.#svl.canvas.showLabelHoverInfo(undefined);
+    this.#svl.tracker.push('KeyboardShortcut_ModeSwitch_Walk', { code: e.code });
+  }
 
-      // Escape exits Labeling Mode back to Explore Mode (context menu open case is handled above). It also
-      // dismisses the label hover card, so hover-triggered content can be dismissed without moving the pointer
-      // (WCAG 1.4.13).
-      if (e.key === 'Escape' && !this.#contextMenu.isOpen()) {
-        this.#ribbon.backToWalk();
-        svl.canvas.showLabelHoverInfo(undefined);
-        svl.tracker.push('KeyboardShortcut_ModeSwitch_Walk', { keyCode: e.keyCode });
-      }
+  /**
+   * @param {string} mode - 'Walk' or a label type.
+   * @param {KeyboardEvent} e
+   */
+  #switchMode(mode, e) {
+    this.#closeContextMenu(e);
+    this.#ribbon.modeSwitch(mode);
+    this.#svl.tracker.push(`KeyboardShortcut_ModeSwitch_${mode}`, { code: e.code });
+  }
 
-      // Immersive mode on/off (#5085). F is a tag shortcut while the context menu is open, and an f typed into a text
-      // field must not toggle the layout: #status.focusOnTextField only tracks the context menu's own textarea. The
-      // physical key, like Z for zoom, so the toggle sits where the hint's "F" is on a QWERTY layout.
-      const editing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
-        || /** @type {?HTMLElement} */ (document.activeElement)?.isContentEditable;
-      if (e.code === 'KeyF' && !e.shiftKey && !e.altKey && !e.metaKey && !this.#contextMenu.isOpen()
-        && !editing && svl.immersiveMode) {
-        svl.immersiveMode.toggle('KeyboardShortcut');
-      }
+  /**
+   * Immersive mode on/off (#5085). Not while the menu is open (F is a tag key there) or while typing.
+   * @param {KeyboardEvent} e
+   * @returns {boolean}
+   */
+  #canToggleImmersiveMode(e) {
+    const editing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)
+      || /** @type {?HTMLElement} */ (document.activeElement)?.isContentEditable;
+    return !e.shiftKey && !e.altKey && !e.metaKey && !this.#contextMenu.isOpen() && !editing
+      && Boolean(this.#svl.immersiveMode);
+  }
 
-      // Zooming in/out.
-      if (e.code === 'KeyZ') {
-        // Close the context menu whenever we zoom.
-        if (this.#contextMenu.isOpen()) {
-          svl.tracker.push('KeyboardShortcut_CloseContextMenu');
-          this.#contextMenu.hide();
-        }
+  #toggleImmersiveMode() {
+    this.#svl.immersiveMode.toggle('KeyboardShortcut');
+  }
 
-        // Zoom in or out depending on whether shift is down.
-        if (e.shiftKey) {
-          this.#zoomControl.zoomOut();
-          svl.tracker.push('KeyboardShortcut_ZoomOut', { keyCode: e.keyCode });
-        } else {
-          this.#zoomControl.zoomIn();
-          svl.tracker.push('KeyboardShortcut_ZoomIn', { keyCode: e.keyCode });
-        }
-      }
-
-      // Shortcuts that only apply when the context menu is open (like rating severity and adding/removing tags).
-      if (this.#contextMenu.isOpen()) {
-        const targetLabel = this.#contextMenu.getTargetLabel();
-
-        // Rating severity. Can use either number keys or numpad keys.
-        if (['1', '2', '3'].includes(e.key) && targetLabel && !this.#contextMenu.isRatingSeverityDisabled()) {
-          const severity = Number(e.key); // '1' - '3'
-          this.#contextMenu.checkRadioButton(severity);
-          targetLabel.setProperty('severity', severity);
-          svl.tracker.push(`KeyboardShortcut_Severity_${severity}`, { keyCode: e.keyCode });
-          svl.canvas.clear().render();
-        }
-
-        // Adding/removing tags.
-        if (targetLabel && !this.#contextMenu.isTaggingDisabled()) {
-          const labelType = targetLabel.getProperty('labelType');
-          const tags = this.#contextMenu.labelTags.filter((tag) => tag.label_type === labelType);
-          for (const tag of tags) {
-            if (e.key && e.key.toUpperCase() === util.misc.getLabelDescriptions(labelType).tagInfo[tag.tag].keyChar) {
-              document.querySelector(`[data-tag-id="${tag.tag_id}"]`)?.click();
-            }
-          }
-        }
-      }
-    }
-  };
-
-  #closeContextMenu(key) {
+  /**
+   * Zooms in, or out with Shift held. Closes the context menu first.
+   * @param {KeyboardEvent} e
+   */
+  #zoom(e) {
     if (this.#contextMenu.isOpen()) {
       this.#svl.tracker.push('KeyboardShortcut_CloseContextMenu');
-      this.#svl.tracker.push('ContextMenu_CloseKeyboardShortcut', {
-        keyCode: key,
-      });
+      this.#contextMenu.hide();
+    }
+    if (e.shiftKey) {
+      this.#zoomControl.zoomOut();
+      this.#svl.tracker.push('KeyboardShortcut_ZoomOut', { code: e.code });
+    } else {
+      this.#zoomControl.zoomIn();
+      this.#svl.tracker.push('KeyboardShortcut_ZoomIn', { code: e.code });
+    }
+  }
+
+  /** @returns {boolean} Whether the open label takes a severity rating. */
+  #canRateSeverity() {
+    return Boolean(this.#contextMenu.getTargetLabel()) && !this.#contextMenu.isRatingSeverityDisabled();
+  }
+
+  /**
+   * @param {number} severity - 1-3.
+   * @param {KeyboardEvent} e
+   */
+  #rateSeverity(severity, e) {
+    this.#contextMenu.checkRadioButton(severity);
+    this.#contextMenu.getTargetLabel().setProperty('severity', severity);
+    this.#svl.tracker.push(`KeyboardShortcut_Severity_${severity}`, { code: e.code });
+    this.#svl.canvas.clear().render();
+  }
+
+  /**
+   * @param {KeyboardEvent} e
+   */
+  #closeContextMenu(e) {
+    if (this.#contextMenu.isOpen()) {
+      this.#svl.tracker.push('KeyboardShortcut_CloseContextMenu');
+      this.#svl.tracker.push('ContextMenu_CloseKeyboardShortcut', { code: e.code });
       this.#contextMenu.hide();
     }
   }

@@ -198,7 +198,7 @@ describe('the roster controls', () => {
     await new Promise((resolve) => setTimeout(resolve, 0));
     const status = document.getElementById('team-status');
     expect(status.textContent).toBe('Removed ada from this team.');
-    expect(status.classList.contains('hidden')).toBe(false);
+    expect(status.classList.contains('ps-hidden')).toBe(false);
   });
 
   test('the status toggle flips the button and tells the server', async () => {

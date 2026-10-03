@@ -7,7 +7,7 @@
 @import formats.json.LabelFormats.tagWrites
 @import views.ViewHelpers.jsonForScript
 @(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, validatePageData: ValidatePageData
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
@@ -48,7 +48,7 @@
   </div>
 
   @* ps-invisible until loading completes (Main.js unhides), so the raw UI never flashes. *@
-  <div class="container tool-ui ps-invisible">
+  <div class="tool-ui ps-invisible">
     @components.progressBar(
       rootId = "mission-progress-bar-section",
       fillId = "mission-progress-bar-complete"
@@ -57,9 +57,21 @@
     <div id="svv-panorama-holder">
       <div id="svv-panorama"></div>
       <div id="view-control-layer"></div>
+      @* Says a slow load is a load rather than a hang (#5581). PanoLoadingStatus shows the box at once when the pano
+         area is blank for the load and after 2 s otherwise; the announcement always waits the 2 s. The element with the
+         id is the live region and is always rendered, the box is aria-hidden and is what gets shown, and the visually
+         hidden span is what the screen reader hears: changing text inside a live region already in the accessibility
+         tree is announced reliably, unhiding the region itself is not. *@
+      <div id="svv-pano-loading" class="svv-pano-loading" role="status" aria-live="polite">
+        <div class="svv-pano-loading__box ps-hidden" aria-hidden="true">
+          <img class="svv-pano-loading__img" src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt="">
+          <span class="svv-pano-loading__text" data-i18n="common:loading-imagery">Loading imagery...</span>
+        </div>
+        <span class="svv-pano-loading__announce sr-only"></span>
+      </div>
       @* Same read-only card as desktop Validate; a tap on the marker opens and closes it (LabelVisibilityControl). *@
       @components.labelCard(idPrefix = "label-card", noInfoKey = Some("validate:center-ui.no-info")) {
-        <button type="button" id="label-visibility-button-on-label" class="button-ps button--tiny label-hover-card__action-button" data-ps-tooltip-placement="bottom"></button>
+        <button type="button" id="label-visibility-button-on-label" class="button button--tiny label-hover-card__action-button" data-ps-tooltip-placement="bottom"></button>
       }
       <div id="label-visibility-control-holder" class="pano-overlay-button-group">
         <button type="button" id="label-visibility-control-button" class="pano-overlay-button"></button>
@@ -71,15 +83,15 @@
       @* The verdict buttons carry the same thumbs the mission-complete counts do. Plain labels, not the underlined
          `.shortcut` ones the desktop uses: there is no keyboard here to press the underlined letter on. *@
       <div id="validation-button-holder">
-        <button type="button" id="validate-no-button" class="validate-page-button button-ps button--small">
+        <button type="button" id="validate-no-button" class="validate-page-button button button--small">
           <img src='@assets.path("images/icons/validation/disagree-filled.svg")' class="validate-page-button__icon" alt="">
           @Messages("no.caps")
         </button>
-        <button type="button" id="validate-unsure-button" class="validate-page-button button-ps button--small">
+        <button type="button" id="validate-unsure-button" class="validate-page-button button button--small">
           <img src='@assets.path("images/icons/validation/unsure-filled.svg")' class="validate-page-button__icon" alt="">
           @Messages("unsure.caps")
         </button>
-        <button type="button" id="validate-yes-button" class="validate-page-button button-ps button--small">
+        <button type="button" id="validate-yes-button" class="validate-page-button button button--small">
           <img src='@assets.path("images/icons/validation/agree-filled.svg")' class="validate-page-button__icon" alt="">
           @Messages("yes.caps")
         </button>
@@ -88,12 +100,12 @@
       <div id="validate-why-no-section" class="validation-menu-section">
         <div id="validate-why-not-header" class="validation-menu-section-header">@Messages("validate.why.not")</div>
         <div id="no-reason-options">
-          <button type="button" id="no-button-1"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="no-button-2"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="no-button-3"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="no-button-4" class="validation-reason-button ps-button button--small"></button>
-          <div class="input-group input-group-sm validate-text-input">
-            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
+          <button type="button" id="no-button-1"class="validation-reason-button button button--small"></button>
+          <button type="button" id="no-button-2"class="validation-reason-button button button--small"></button>
+          <button type="button" id="no-button-3"class="validation-reason-button button button--small"></button>
+          <button type="button" id="no-button-4" class="validation-reason-button button button--small"></button>
+          <div class="validate-text-input">
+            <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-disagree-comment" size="36" aria-label="Add no reason input">
           </div>
         </div>
         <div id="no-submit-section">
@@ -104,11 +116,11 @@
       <div id="validate-why-unsure-section" class="validation-menu-section">
         <div id="validate-why-unsure-header" class="validation-menu-section-header">@Messages("validate.why.unsure")</div>
         <div id="unsure-reason-options">
-          <button type="button" id="unsure-button-1"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="unsure-button-2"class="validation-reason-button ps-button button--small"></button>
-          <button type="button" id="unsure-button-3"class="validation-reason-button ps-button button--small"></button>
-          <div class="input-group input-group-sm validate-text-input">
-            <input type="text" class="form-control" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
+          <button type="button" id="unsure-button-1"class="validation-reason-button button button--small"></button>
+          <button type="button" id="unsure-button-2"class="validation-reason-button button button--small"></button>
+          <button type="button" id="unsure-button-3"class="validation-reason-button button button--small"></button>
+          <div class="validate-text-input">
+            <input type="text" placeholder="@Messages("validate.add.own.reason")" id="add-unsure-comment" size="36" aria-label="Add unsure reason input">
           </div>
         </div>
         <div id="unsure-submit-section">
@@ -128,7 +140,7 @@
           @if(user.role != Role.Anonymous) {
             <span class="sign-in-up-button-mobile">@{user.username}</span>
           } else {
-            <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button-ps">@Messages("navbar.signin")</button>
+            <button type="button" data-au-open="signIn" class="sign-in-up-button-mobile button">@Messages("navbar.signin")</button>
           }
         </div>
         <div class="mv-modal__content">
@@ -140,7 +152,7 @@
           <div id="modal-mission-instruction"></div>
         </div>
         <div class="mv-modal__actions">
-          <button type="button" class="button-ps" id="modal-mission-close-button">@Messages("ok")</button>
+          <button type="button" class="button" id="modal-mission-close-button">@Messages("ok")</button>
         </div>
       </div>
     </div>
@@ -202,8 +214,10 @@
           </div>
         </div>
         <div class="mv-modal__actions">
-          <button type="button" class="button-ps btn-primary" id="modal-mission-complete-close-button-primary"></button>
-          <button type="button" class="button-ps btn-secondary" id="modal-mission-complete-close-button-secondary"></button>
+          <div class="modal-mission-complete-buttons">
+            <button type="button" class="button" id="modal-mission-complete-close-button-primary"></button>
+            <button type="button" class="button" id="modal-mission-complete-close-button-secondary"></button>
+          </div>
         </div>
       </div>
     </div>
@@ -219,7 +233,7 @@
 
       const userParam = {
         username: '@user.username',
-        role: '@user.role'
+        role: '@user.role.name'
       };
       svv.user = new User(userParam);
 
@@ -227,7 +241,7 @@
       param.hasNextMission = @validatePageData.hasNextMission;
       param.completedValidations = @validatePageData.completedValidations;
       param.language = "@messages.lang.code";
-      const imagerySrc = "@commonData.imagerySource.toString";
+      const imagerySrc = "@commonData.imagerySource.name";
       param.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
         : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
       param.viewerAccessToken = "@commonData.imageryAccessToken";

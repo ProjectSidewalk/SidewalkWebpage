@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { installUtilitiesMisc } = require('../loadGlobalScript');
+const { installDateHelpers, installUtilitiesMisc, installEscapeHTML } = require('../loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -38,13 +38,14 @@ function stubI18next() {
 function installUtil() {
     window.util = {
         assetPath: (p) => `/assets/${p}`,
-        escapeHTML: (str) => str.replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[c])),
         camelToKebab: (str) => str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
         lazyIdentityFetch: (...args) => window.fetch(...args),
         EXPLORE_CANVAS_WIDTH: 720,
         EXPLORE_CANVAS_HEIGHT: 480,
     };
     installUtilitiesMisc();
+    installDateHelpers();
+    installEscapeHTML();
     // The mini-card's side channels: a toast on a refused vote, a badge tick on a first one.
     window.Toast = {show: jest.fn()};
     window.BadgeAchievements = {recordValidation: jest.fn()};

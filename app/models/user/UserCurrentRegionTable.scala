@@ -3,7 +3,7 @@ package models.user
 import com.google.inject.ImplementedBy
 import models.region.{Region, RegionTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -16,7 +16,7 @@ class UserCurrentRegionTableDef(tag: Tag) extends Table[UserCurrentRegion](tag, 
   def userId: Rep[String]           = column[String]("user_id")
   def regionId: Rep[Int]            = column[Int]("region_id")
 
-  def * = (userCurrentRegionId, userId, regionId) <> ((UserCurrentRegion.apply _).tupled, UserCurrentRegion.unapply)
+  def * = (userCurrentRegionId, userId, regionId).mapTo[UserCurrentRegion]
 
   def user =
     foreignKey("user_current_region_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(
@@ -35,7 +35,7 @@ class UserCurrentRegionTableDef(tag: Tag) extends Table[UserCurrentRegion](tag, 
 trait UserCurrentRegionTableRepository {}
 
 @Singleton
-class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends UserCurrentRegionTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -74,7 +74,7 @@ class UserCurrentRegionTable @Inject() (protected val dbConfigProvider: Database
    * @return regionId
    */
   def insertOrUpdate(userId: String, regionId: Int): DBIO[Int] = {
-    update(userId, regionId).flatMap { rowsUpdated: Int =>
+    update(userId, regionId).flatMap { (rowsUpdated: Int) =>
       if (rowsUpdated == 0)
         (userCurrRegions returning userCurrRegions.map(_.regionId)) += UserCurrentRegion(0, userId, regionId)
       else DBIO.successful(regionId)

@@ -3,7 +3,7 @@ package models.street
 import com.google.inject.ImplementedBy
 import models.api.{SidewalkPresenceFiltersForApi, SidewalkPresenceForApi}
 import models.label.StreetSide
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import models.utils.{FilteredTables, MyPostgresProfile, SqlFragments}
 import org.locationtech.jts.geom.LineString
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
@@ -37,9 +37,9 @@ import scala.concurrent.ExecutionContext
  */
 case class SidewalkPresence(
     streetEdgeId: Int,
-    streetSide: StreetSide.Value,
-    presence: SidewalkPresenceStatus.Value,
-    presenceBasis: SidewalkPresenceBasis.Value,
+    streetSide: StreetSide,
+    presence: SidewalkPresenceStatus,
+    presenceBasis: SidewalkPresenceBasis,
     noSidewalkLabelCount: Int,
     noSidewalkUserCount: Int,
     validatedNoSidewalkCount: Int,
@@ -54,12 +54,12 @@ case class SidewalkPresence(
 case class SidewalkPresenceRebuildCounts(total: Int, inserted: Int, updated: Int, deleted: Int)
 
 class SidewalkPresenceTableDef(tag: Tag) extends Table[SidewalkPresence](tag, "sidewalk_presence") {
-  def streetEdgeId: Rep[Int]                          = column[Int]("street_edge_id")
-  def streetSide: Rep[StreetSide.Value]               = column[StreetSide.Value]("street_side")
-  def presence: Rep[SidewalkPresenceStatus.Value]     = column[SidewalkPresenceStatus.Value]("presence")
-  def presenceBasis: Rep[SidewalkPresenceBasis.Value] = column[SidewalkPresenceBasis.Value]("presence_basis")
-  def noSidewalkLabelCount: Rep[Int]                  = column[Int]("no_sidewalk_label_count") // CHECK (>= 0)
-  def noSidewalkUserCount: Rep[Int]                   = column[Int]("no_sidewalk_user_count")  // CHECK (>= 0)
+  def streetEdgeId: Rep[Int]                    = column[Int]("street_edge_id")
+  def streetSide: Rep[StreetSide]               = column[StreetSide]("street_side")
+  def presence: Rep[SidewalkPresenceStatus]     = column[SidewalkPresenceStatus]("presence")
+  def presenceBasis: Rep[SidewalkPresenceBasis] = column[SidewalkPresenceBasis]("presence_basis")
+  def noSidewalkLabelCount: Rep[Int]            = column[Int]("no_sidewalk_label_count") // CHECK (>= 0)
+  def noSidewalkUserCount: Rep[Int]             = column[Int]("no_sidewalk_user_count")  // CHECK (>= 0)
   // DEFAULT 0 in the DB (388.sql added them to populated tables); CHECK (>= 0) each.
   def validatedNoSidewalkCount: Rep[Int]                  = column[Int]("validated_no_sidewalk_count", O.Default(0))
   def rejectedNoSidewalkCount: Rep[Int]                   = column[Int]("rejected_no_sidewalk_count", O.Default(0))
@@ -76,7 +76,7 @@ class SidewalkPresenceTableDef(tag: Tag) extends Table[SidewalkPresence](tag, "s
     streetEdgeId, streetSide, presence, presenceBasis, noSidewalkLabelCount, noSidewalkUserCount,
     validatedNoSidewalkCount, rejectedNoSidewalkCount, labelCount, auditCount, firstNoSidewalkLabelAt,
     lastNoSidewalkLabelAt
-  ) <> ((SidewalkPresence.apply _).tupled, SidewalkPresence.unapply)
+  ).mapTo[SidewalkPresence]
 
   def pk = primaryKey("sidewalk_presence_pkey", (streetEdgeId, streetSide))
 
@@ -116,7 +116,7 @@ trait SidewalkPresenceTableRepository {
  * the two still agree.
  */
 @Singleton
-class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(implicit
+class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvider)(using
     ec: ExecutionContext
 ) extends SidewalkPresenceTableRepository
     with HasDatabaseConfigProvider[MyPostgresProfile] {
@@ -228,7 +228,7 @@ class SidewalkPresenceTable @Inject() (protected val dbConfigProvider: DatabaseC
       ORDER BY sidewalk_presence.street_edge_id, sidewalk_presence.street_side
     """)
 
-    implicit val getSidewalkPresenceForApi: GetResult[SidewalkPresenceForApi] = GetResult { r =>
+    given getSidewalkPresenceForApi: GetResult[SidewalkPresenceForApi] = { r =>
       SidewalkPresenceForApi(
         streetEdgeId = r.nextInt(),
         streetSide = r.nextString(),
@@ -275,9 +275,9 @@ object SidewalkPresenceTable {
    * (and `label_count`). A face whose every NoSidewalk label was rejected therefore falls through to the next rule,
    * usually `audited_no_labels` → `present`. Confirmed labels (`correct = TRUE`) are counted in
    * `validated_no_sidewalk_count`, the top confidence tier the API exposes. `correct` is the strict majority of the
-   * Agree/Disagree votes on the label ([[service.ValidationService.updateValidationCounts]]: self-votes and excluded
+   * Agree/Disagree votes on the label ([[models.label.LabelTable.addValidationVote]]: self-votes and excluded
    * users' votes never count), so one vote on an otherwise unvalidated label decides it. The tier is human-only
-   * because [[models.label.LabelTypeEnum.aiLabelTypes]] leaves NoSidewalk out of AI validation; AI votes reach
+   * because [[models.label.LabelType.aiLabelTypes]] leaves NoSidewalk out of AI validation; AI votes reach
    * `correct` like any other, so adding it there would silently make this an AI-confirmed tier.
    *
    * Labels *and* audits from `user_stat.excluded` contributors are dropped, the population [[models.label.LabelTable.labels]]

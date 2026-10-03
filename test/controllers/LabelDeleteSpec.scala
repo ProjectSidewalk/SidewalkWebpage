@@ -3,18 +3,17 @@ package controllers
 import controllers.helper.SubmissionSpecHelpers
 import models.label.LabelTable
 import models.user.UserStatTable
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.scalatest.BeforeAndAfterAll
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import _root_.util.SignedUpAccounts
+import play.api.test.Helpers.*
+import _root_.util.{SidewalkSpec, SignedUpAccounts}
 
 import java.time.OffsetDateTime
 
@@ -24,14 +23,14 @@ import java.time.OffsetDateTime
  * suite's fresh user for the duration and put back in `afterAll`. Cancels when the connected schema has no label.
  */
 class LabelDeleteSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with SubmissionSpecHelpers
     with SignedUpAccounts
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
@@ -92,10 +91,10 @@ class LabelDeleteSpec
   }
 
   private def delete(session: Seq[Cookie], labelId: Int, source: String = "UserDashboard") =
-    route(app, FakeRequest(DELETE, s"/label/$labelId?source=$source").withCookies(session: _*).withCSRFToken).get
+    route(app, FakeRequest(DELETE, s"/label/$labelId?source=$source").withCookies(session*).withCSRFToken).get
 
   private def restore(session: Seq[Cookie], labelId: Int) =
-    route(app, FakeRequest(POST, s"/label/$labelId/restore").withCookies(session: _*).withCSRFToken).get
+    route(app, FakeRequest(POST, s"/label/$labelId/restore").withCookies(session*).withCSRFToken).get
 
   override def afterAll(): Unit = {
     try {
@@ -193,7 +192,7 @@ class LabelDeleteSpec
       val (otherId, _, otherSession)                      = signUpFreshUser()
       val labelId                                         = adoptLabel(ownerId)
       def flags(session: Seq[Cookie]): (Boolean, Boolean) = {
-        val json = contentAsJson(route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session: _*)).get)
+        val json = contentAsJson(route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(session*)).get)
         ((json \ "deleted").as[Boolean], (json \ "can_restore").as[Boolean])
       }
       flags(ownerSession) mustBe ((false, false))
@@ -208,7 +207,7 @@ class LabelDeleteSpec
       val (ownerId, _, ownerSession) = signUpFreshUser()
       val (voterId, _, voterSession) = signUpFreshUser()
       val labelId                    = adoptLabel(ownerId)
-      val label = contentAsJson(route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(voterSession: _*)).get)
+      val label = contentAsJson(route(app, FakeRequest(GET, s"/label/id/$labelId").withCookies(voterSession*)).get)
       status(delete(ownerSession, labelId)) mustBe OK
       val now  = OffsetDateTime.now
       val vote = Json.obj(
@@ -231,7 +230,7 @@ class LabelDeleteSpec
       )
       val resp = route(
         app,
-        FakeRequest(POST, "/labelmap/validate").withCookies(voterSession: _*).withJsonBody(vote).withCSRFToken
+        FakeRequest(POST, "/labelmap/validate").withCookies(voterSession*).withJsonBody(vote).withCSRFToken
       ).get
       status(resp) mustBe OK
       votesBy(labelId, voterId) mustBe empty

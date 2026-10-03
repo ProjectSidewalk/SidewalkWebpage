@@ -29,12 +29,10 @@ class ModalNoNewMission {
   static #buildBody(message) {
     return `
       <figure>
-        <img src="${util.assetPath('images/icons/AccessibilityFeatures.png')}" class="modal-mission-images center-block"
+        <img src="${util.assetPath('images/icons/AccessibilityFeatures.png')}" class="modal-mission-images"
         alt="Street accessibility features" />
       </figure>
-      <div class="spacer10"></div>
-      <p>${message}</p>
-      <div class="spacer10"></div>`;
+      <p class="modal-mission-dead-end-text">${message}</p>`;
   }
 
   #handleButtonClick = () => {

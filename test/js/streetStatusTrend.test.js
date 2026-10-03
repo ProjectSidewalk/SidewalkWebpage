@@ -18,6 +18,10 @@
 const fs = require('fs');
 const path = require('path');
 
+const { installDateHelpers, loadGlobalScript } = require('./loadGlobalScript');
+
+loadGlobalScript('public/js/common/utilities.js');
+
 const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
 /** Loads the section's dependencies into global scope and returns the StreetStatusTrend class. */
@@ -31,6 +35,7 @@ function loadPage() {
   );
 }
 
+installDateHelpers();
 const StreetStatusTrend = loadPage();
 
 const MARKUP = `
@@ -221,27 +226,27 @@ describe('the expiry note', () => {
   test('says how many expired panos the chart cannot account for', async () => {
     await render(payload({ panos_expired_undated: 1234 }));
     expect(document.getElementById('trend-expiry-note').textContent)
-      .toMatch(/^1,234 panos were already expired before any of this was recorded/);
+      .toMatch(/^1,234 panos expired before logging began/);
   });
 
   test('warns that those panos can still chart a recovery with no loss before it', async () => {
     await render(payload({ panos_expired_undated: 1234 }));
     // Losses that predate the log, recoveries that don't: the page has to own the asymmetry or it reads as a bug.
     expect(document.getElementById('trend-expiry-note').textContent)
-      .toMatch(/recovery, with no matching loss before it/);
+      .toMatch(/charts as a recovery with no matching loss/);
   });
 
   test('says how many crossings were healed after the fact', async () => {
     await render(payload({ panos_healed: 7 }));
     // Healed rows are left out of the bars; dropped silently, the chart understates the losses it knows about.
     expect(document.getElementById('trend-expiry-note').textContent)
-      .toMatch(/^7 panos crossed the boundary without the change being logged/);
+      .toMatch(/^7 panos changed on an unknown date/);
   });
 
   test('reports both gaps together, undated first', async () => {
     await render(payload({ panos_expired_undated: 1234, panos_healed: 7 }));
     const note = document.getElementById('trend-expiry-note').textContent;
-    expect(note.indexOf('1,234 panos were already expired')).toBeLessThan(note.indexOf('7 panos crossed'));
+    expect(note.indexOf('1,234 panos expired before logging began')).toBeLessThan(note.indexOf('7 panos changed'));
   });
 
   test('stays silent when every expired pano is accounted for', async () => {
@@ -294,14 +299,14 @@ describe('the regained-imagery queue', () => {
     await render(payload({ reopen_candidates: [] }));
     expect(document.querySelector('#trend-reopen-candidates table')).toBeNull();
     expect(document.getElementById('trend-reopen-candidates').textContent)
-      .toMatch(/No retired street currently shows regained imagery/);
+      .toMatch(/No retired street has regained imagery/);
   });
 
   test('tolerates a payload with no reopen_candidates field at all', async () => {
     // Pre-#4929 cached payloads and older fixtures simply lack the field; the section must not throw over it.
     await render(payload());
     expect(document.getElementById('trend-reopen-candidates').textContent)
-      .toMatch(/No retired street currently shows regained imagery/);
+      .toMatch(/No retired street has regained imagery/);
   });
 
   test('escapes a region name rather than trusting it as markup', async () => {
@@ -332,7 +337,7 @@ describe('the regained-imagery queue', () => {
     // The reload after a successful action, so the queue and the status-change chart both reflect the reopen.
     expect(global.fetch).toHaveBeenLastCalledWith('/adminapi/streetStatusTrend?weeks=3', expect.anything());
     expect(document.getElementById('trend-reopen-candidates').textContent)
-      .toMatch(/No retired street currently shows regained imagery/);
+      .toMatch(/No retired street has regained imagery/);
   });
 
   test('does nothing when the confirmation is declined', async () => {
@@ -412,7 +417,7 @@ describe('the awaiting-confirmation queue', () => {
     await render(payload({ min_reporters: 4 }));
     // A local default would read correctly right up until the server's threshold changed, and then silently lie.
     expect(document.getElementById('trend-corroborated-intro').textContent)
-      .toMatch(/at least 4 different labeler accounts/);
+      .toMatch(/at least 4 labelers/);
   });
 
   test('lists each street with a link to explore it', async () => {

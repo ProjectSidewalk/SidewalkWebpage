@@ -13,7 +13,6 @@ class Main {
   #loadingMissionsCompleted = false;
   #loadLabelTags = false;
 
-  #onboardingHandAnimation = null;
   #onboardingStates = null;
 
   /**
@@ -212,17 +211,40 @@ class Main {
     svl.feedbackModal = new FeedbackModal(svl, svl.tracker, svl.ribbon, svl.taskContainer);
     svl.panoOverlayControls = new PanoOverlayControls(svl.tracker, svl.navigationService, svl.stuckAlert,
       svl.keyboardShortcutAlert);
-    // svl.relayout is assigned once the tool is laid out (below); the arrow looks it up at toggle time.
-    svl.immersiveMode = new ImmersiveMode(svl.tracker, () => svl.relayout?.());
+    // svl.relayout is assigned once the tool is laid out (below) and svl.urlSync once the URL is handed over
+    // (#syncURL, #5480); the arrows look them up at toggle time.
+    svl.immersiveMode = new ImmersiveMode({
+      tracker: svl.tracker,
+      bodyClass: 'svl-immersive',
+      relayout: () => svl.relayout?.(),
+      isDisabled: () => svl.isOnboarding(),
+      // The hover card and context menu are anchored against the frame that is about to change shape.
+      beforeToggle: () => {
+        if (svl.contextMenu.isOpen()) svl.contextMenu.hide();
+        svl.canvas.showLabelHoverInfo(undefined);
+      },
+      frame: () => svl.CANVAS_FRAME,
+      hintReference: () => document.getElementById('pano'),
+      urlParam: 'immersive',
+      onChange: () => svl.urlSync?.request(),
+    });
 
     // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
     // they never carry it. svl.keyboard is built later, hence the lookups at call time. Suspending the shortcuts
     // while the panel is open keeps Arrow keys on the focused slider instead of panning the pano; the suspension is
     // only undone if the panel was what suspended them, since a pop-up can disable the keyboard while it is open.
     svl.imageAdjustments = new PanoImageAdjustments(document.getElementById('pano'));
+    // Settings carried in from an earlier visit (or from Validate) change what the labeler sees before they touch the
+    // panel, so the load records them; ImageAdjustments_Change only covers edits made on this page.
+    if (!svl.imageAdjustments.isDefault()) {
+      svl.tracker.push('ImageAdjustments_Restored', svl.imageAdjustments.values());
+    }
     let panelSuspendedKeyboard = false;
     svl.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svl.imageAdjustments,
       document.getElementById('explore-control-image'), document.getElementById('pano-image-adjustments'), {
+        // The pills form a row, so opening to the right would cover Sound and Feedback; full screen stacks them in a
+        // column, where the right is clear and below would cover them instead.
+        placement: () => (svl.immersiveMode.isActive() ? 'right' : 'below'),
         onOpen: () => {
           svl.tracker.push('Click_ImageAdjustments_Open');
           panelSuspendedKeyboard = !!svl.keyboard && !svl.keyboard.getStatus('disableKeyboard');
@@ -267,7 +289,7 @@ class Main {
     // the corner stays empty until the labeler's first step (#4671 closed the same gap for the nav arrows).
     const initialCaptureDate = svl.panoStore.getPanoData(svl.panoViewer.getPanoId())?.getProperty('captureDate');
     svl.panoDateNote.update(
-      initialCaptureDate ? initialCaptureDate.format('YYYY-MM-DD') : null,
+      initialCaptureDate ? util.localIsoDate(initialCaptureDate) : null,
       svl.taskContainer.getCurrentTask(),
     );
 
@@ -300,8 +322,8 @@ class Main {
       toolUi.forEach((el) => el.style.opacity = '0.5');
     });
 
-    // Clean up the URL in the address bar.
-    this.#updateURL();
+    // Hand the address bar to the labeler's position from here on (#5480).
+    this.#syncURL();
   }
 
   #loadData(taskContainer, missionModel, regionModel, contextMenu) {
@@ -403,15 +425,14 @@ class Main {
     // hide any alerts
     svl.alertController.hideAlert();
 
-    if (!this.#onboardingHandAnimation) {
-      this.#onboardingHandAnimation = new HandAnimation(svl.ui.onboarding);
+    if (!this.#onboardingStates) {
       this.#onboardingStates = new OnboardingStates(svl.contextMenu, svl.compass, svl.panoManager);
     }
 
     if (!('onboarding' in svl && svl.onboarding)) {
-      svl.onboarding = new Onboarding(svl, svl.compass, this.#onboardingHandAnimation, svl.navigationService,
-        svl.missionContainer, svl.panoOverlayControls, this.#onboardingStates, svl.ribbon, svl.tracker, svl.canvas,
-        svl.ui.canvas, svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
+      svl.onboarding = new Onboarding(svl, svl.compass, svl.navigationService, svl.missionContainer,
+        svl.panoOverlayControls, this.#onboardingStates, svl.ribbon, svl.tracker, svl.canvas, svl.ui.canvas,
+        svl.contextMenu, svl.ui.onboarding, svl.zoomControl);
     }
     svl.onboarding.start();
   }
@@ -708,32 +729,34 @@ class Main {
   }
 
   /**
-   * Cleans up the URL in the address bar: normalizes /audit to /explore and drops query params that aren't needed.
-   * For a drop-in session it keeps the seed params so a refresh — or a copied/shared link — resumes at the same
-   * place and camera rather than falling back to a normal audit mission (#4451, #4637).
+   * Puts the address bar in step with the labeler (#5480): from here on ExploreUrlSync rewrites it with the current
+   * pano and view, so it is always a shareable link to this spot, and a refresh or a copied link lands on the exact
+   * view rather than only the seed the page opened with (#4451, #4637). The load-time params — the mission's own
+   * (`routeId`, `resumeRoute`, …) and the drop-in greeting's `placeName` — have done their work by now and go; what
+   * stays is this mission's id, which the server honors for its owner alone, so the labeler's own reloads resume
+   * the mission while a recipient of the link lands in free exploration. A free-exploration session writes no id:
+   * the `?lat&lng` path already resumes the user's own open drop-in mission.
+   *
+   * The tutorial is the exception: its pano is synthetic, so its URL is only pinned (ExploreUrlSync.pinTutorialUrl).
    */
-  #updateURL() {
-    let newURL = `${window.location.protocol}//${window.location.host}/explore`;
-    if (window.location.search.includes('retakeTutorial=true')) {
-      newURL += '?retakeTutorial=true';
-    } else if (svl.isExploreAddressMode()) {
-      // Carry the whole drop-in seed, not just the coordinates: the label card's "Explore here" hop (#4637) also
-      // seeds a point of view and pano, so keeping them lets a refreshed or shared link land on the exact view the
-      // card pointed at instead of only the spot. An expired pano still falls back to the lat/lng (#4635).
-      const params = this.#params;
-      const urlParams = new URLSearchParams({ lat: params.startLat, lng: params.startLng });
-      if (params.startPov) {
-        urlParams.set('heading', params.startPov.heading);
-        urlParams.set('pitch', params.startPov.pitch);
-        urlParams.set('zoom', params.startPov.zoom);
-      }
-      if (params.startPanoId) urlParams.set('panoId', params.startPanoId);
-      if (params.startPlaceName) urlParams.set('placeName', params.startPlaceName);
-      newURL += `?${urlParams.toString()}`;
+  #syncURL() {
+    if (svl.isOnboarding()) {
+      // The tutorial intro says "your route is still waiting" to a user who clicked through to one; that fact
+      // lives only in the URL about to be pinned, and a route that failed to resolve (#5156) is not waiting.
+      svl.tutorialRouteWaiting = new URLSearchParams(window.location.search).has('routeId')
+        && !this.#params.routeUnavailable;
+      ExploreUrlSync.pinTutorialUrl();
+      return;
     }
-    if (newURL !== window.location.href) {
-      window.history.pushState({ }, '', newURL);
-    }
+    // Read at write time: a mission completes and its successor arrives in-page, and the URL has to name the one
+    // the labeler is in now for the server to seed their reload.
+    const sessionParams = () => (svl.isExploreAddressMode()
+      ? {}
+      : { missionId: svl.missionContainer.getCurrentMission().getProperty('missionId') });
+    svl.urlSync = new ExploreUrlSync(
+      svl.panoViewer, () => svl.immersiveMode?.isActive() ?? false, sessionParams,
+    );
+    svl.urlSync.start();
   }
 
   /**

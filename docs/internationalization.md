@@ -96,18 +96,27 @@ call that interpolates values and reaches one of those sinks without stating `in
 directly or through a template literal, a concatenation, a string method, a `map(…).join('')`, or a local variable.
 
 **It is a tripwire, not a proof.** It follows syntax only: a value returned from a function, stored on an object
-property, or handed to a helper that renders HTML is invisible to it, and so is a `t()` call behind an alias or a
-wrapper (don't wrap `i18next.t`, and write `el.innerHTML`, never `el['innerHTML']`). Those flows are on the author
-and the reviewer.
+property, or handed to an HTML-rendering helper it doesn't know about is invisible to it, and so is a `t()` call
+behind an alias or a wrapper (don't wrap `i18next.t`, and write `el.innerHTML`, never `el['innerHTML']`). Those
+flows are on the author and the reviewer.
 
 So when a string you build ends up as HTML somewhere the rule can't follow, escape it there or say
-`escapeValue: true` here. Values we computed ourselves — a count, an id, an asset path — carry nothing to escape and
-need neither. And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with
-a comment, never `true`: turning escaping on at a text sink is the bug #5389 fixed.
+`escapeValue: true` here. Other values put into HTML are checked by `ps/escape-in-markup` (`docs/style-guide.md`).
+And if the rule fires on something that is really a text sink, the answer is `escapeValue: false` with a comment,
+never `true`: turning escaping on at a text sink is the bug #5389 fixed.
 
 Two things escaping never touches: the **translation string itself** (markup inside a locale value always renders),
-and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is — the label-type
-names use that, because the German ones carry a `&shy;`.
+and a variable written **`{{- labelType}}`**, which i18next interpolates raw whatever the setting is.
+
+Write a soft hyphen as `\u00AD`, never `&shy;`, which prints literally in plain text. Read a label type's name in JS
+with `util.misc.labelTypeName(type)`.
+
+### Dates
+
+Dates are formatted by the browser's built-in `Intl`, e.g. `date.toLocaleDateString(i18next.language, util.SHORT_DATE)`,
+so every language gets its own date style with nothing to add per language. `utilities.js` has the few helpers
+`Intl` lacks: `util.monthYear` for capture dates, `util.timeAgo` for "3 days ago", and `util.parseDate` for reading a
+bare `2024-10` as local time (`new Date` reads it as UTC, which is still September west of London).
 
 ## Measurement units
 
@@ -176,20 +185,11 @@ orphans remain.
 2. **Register the locale** by adding it to `play.i18n.langs` in [`conf/application.conf`](../conf/application.conf).
 3. **Add the translated files:** backend as `conf/messages/messages.<lang>`, frontend as
    `public/locales/<lang>/<namespace>.json` (mirror the namespaces in `public/locales/en/`).
-4. **Add the moment.js locale** (for localized dates). Skipping this fails silently — dates just render in English —
-   which is how `de` and `pt-BR` went years without one. Download the [locale file](https://github.com/moment/moment/tree/develop/locale)
-   matching our moment version into `public/vendor/moment/`, then add the lowercased language code to
-   `momentLocaleFile` in [`app/views/common/main.scala.html`](../app/views/common/main.scala.html); the filename and
-   the name the file registers with moment are both that same lowercased code. Only the active language's locale is
-   sent to the browser, so adding one costs nobody but its own speakers. Only `en` and `en-US` need no file, because
-   moment has US English built in — a new English variant still needs one, the way `en-NZ` does. (There's an open
-   ticket, [#1258](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/1258), about moving off moment.js — don't
-   take that on as part of adding a language.)
-5. **Translate both measurement systems.** The unit words live in `conf/messages/messages.<lang>` as
+4. **Translate both measurement systems.** The unit words live in `conf/messages/messages.<lang>` as
    `unit.distance.*.{metric,imperial}` (see "Measurement units" above), so a new language needs both sets — even one
    whose speakers would never pick imperial, since the choice is the reader's. Nothing unit-related goes in the
    locale JSON.
-6. **Test thoroughly.** Compare each main page against the English version (open them in adjacent tabs and flip
+5. **Test thoroughly.** Compare each main page against the English version (open them in adjacent tabs and flip
    between them) to catch layout breakage from differing text lengths. On Explore, place a label of each type and
    open the various sub-menus. Then open a PR and deploy to the test servers so the requesting partner can review the
    live result.

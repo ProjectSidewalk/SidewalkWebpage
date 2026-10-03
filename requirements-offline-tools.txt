@@ -6,7 +6,7 @@
 #   python3.13 -m pip install -r requirements-offline-tools.txt
 #
 # Self-contained rather than layered on requirements.txt: the two target different interpreters, so no shared pin.
-pandas==3.0.5
+pandas==3.0.6
 requests==2.34.2
 shapely==2.1.2
 geopy==2.5.0
@@ -15,10 +15,10 @@ tqdm==4.70.1
 
 # onboard_city.py's geo stack.
 osmnx==2.1.1
-geopandas==1.1.4
+geopandas==1.2.0
 pyogrio==0.13.0
 # osmnx imports scipy unconditionally; pinned so pip can't resolve to a build mismatched with the numpy it picks.
-scipy==1.17.1
+scipy==1.18.1
 
 # street_gradient.py's raster stack. The rasterio wheel bundles its own GDAL, so nothing is needed from the OS. pyproj
 # already arrives with geopandas and is pinned here because the script imports it directly.

@@ -5,8 +5,8 @@
 package models.api
 
 import models.api.ApiModelUtils.{labelTypeOrdering, toCsvKeyValueRows}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 
 import java.time.{Duration, OffsetDateTime}
 
@@ -18,24 +18,24 @@ case class LabelSevStats(
 )
 
 object LabelSevStats {
-  implicit val labelSevStatsWrites: Writes[LabelSevStats] = (
+  given labelSevStatsWrites: Writes[LabelSevStats] = (
     (__ \ "count").write[Int] and
       (__ \ "count_with_severity").write[Option[Int]] and
       (__ \ "severity_mean").write[Option[Double]] and
       (__ \ "severity_stddev").write[Option[Double]]
-  )(unlift(LabelSevStats.unapply))
+  )((o: LabelSevStats) => Tuple.fromProductTyped(o))
 }
 
 case class LabelAccuracy(n: Int, nAgree: Int, nDisagree: Int, accuracy: Option[Double], nWithValidation: Int)
 
 object LabelAccuracy {
-  implicit val labelAccuracyWrites: Writes[LabelAccuracy] = (
+  given labelAccuracyWrites: Writes[LabelAccuracy] = (
     (__ \ "validated").write[Int] and
       (__ \ "agreed").write[Int] and
       (__ \ "disagreed").write[Int] and
       (__ \ "accuracy").write[Option[Double]] and
       (__ \ "has_a_validation").write[Int]
-  )(unlift(LabelAccuracy.unapply))
+  )((o: LabelAccuracy) => Tuple.fromProductTyped(o))
 }
 
 case class AiConcurrence(
@@ -46,6 +46,9 @@ case class AiConcurrence(
 )
 
 object AiConcurrence {
+  // snake_case keys for the Json.writes macro below.
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+
   private val voteTypeOrder: Seq[String] = Seq("human_majority_vote", "admin_majority_vote")
 
   /**
@@ -56,12 +59,7 @@ object AiConcurrence {
     if (i < 0) Int.MaxValue else i
   }
 
-  implicit val aiConcurrenceWrites: Writes[AiConcurrence] = (
-    (__ \ "ai_yes_maj_vote_concurs").write[Int] and
-      (__ \ "ai_yes_maj_vote_differs").write[Int] and
-      (__ \ "ai_no_maj_vote_differs").write[Int] and
-      (__ \ "ai_no_maj_vote_concurs").write[Int]
-  )(unlift(AiConcurrence.unapply))
+  given aiConcurrenceWrites: Writes[AiConcurrence] = Json.writes[AiConcurrence]
 }
 
 /**
@@ -75,7 +73,9 @@ case class ValidationSourceStats(nValidations: Int, accuracyByLabelType: Map[Str
   def toJson: JsObject = JsObject(
     Seq("total_validations" -> JsNumber(nValidations)) ++
       // Turns into { "Overall" -> { "validated" -> ###, ... }, "CurbRamp" -> { "validated" -> ###, ... }, ... }.
-      accuracyByLabelType.toSeq.sorted(labelTypeOrdering).map(s => s._1 -> Json.toJson(s._2))
+      accuracyByLabelType.toSeq.sorted(using labelTypeOrdering).map { case (labelType, accuracy) =>
+        labelType -> Json.toJson(accuracy)
+      }
   )
 }
 
@@ -164,7 +164,9 @@ case class ProjectSidewalkStats(
           )
         ) ++
           // Turns into { "CurbRamp" -> { "count" -> ###, ... }, ... }.
-          severityByLabelType.toSeq.sorted(labelTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
+          severityByLabelType.toSeq.sorted(using labelTypeOrdering).map { case (labelType, stats) =>
+            labelType -> Json.toJson(stats)
+          }
       ),
       // Validation stats are split three ways. "combined" includes both human and AI votes (AI votes are baked into
       // the label table's agree/disagree/correct counts); "human" and "ai" isolate each source via the validator role.
@@ -175,9 +177,11 @@ case class ProjectSidewalkStats(
       ),
       "ai_stats" -> JsObject(
         // { "Overall" -> "human_maj_vote" -> { "ai_yes_maj_vote_concurs": ###, ... }, ... }, "CurbRamp" -> {...},...}.
-        aiPerformance.toSeq.sorted(labelTypeOrdering).map { case (lType, statsMap) =>
+        aiPerformance.toSeq.sorted(using labelTypeOrdering).map { case (lType, statsMap) =>
           lType -> JsObject(
-            statsMap.toSeq.sorted(AiConcurrence.voteTypeOrdering).map(stats => stats._1 -> Json.toJson(stats._2))
+            statsMap.toSeq.sorted(using AiConcurrence.voteTypeOrdering).map { case (voteType, stats) =>
+              voteType -> Json.toJson(stats)
+            }
           )
         }
       )

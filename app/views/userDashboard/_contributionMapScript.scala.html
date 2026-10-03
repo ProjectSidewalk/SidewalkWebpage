@@ -1,4 +1,4 @@
-@(mapId: String, mapboxApiKey: String, streetsURL: String, labelsURL: String, wireLabelPopup: Boolean = false)(implicit assets: AssetsFinder)
+@(mapId: String, mapboxApiKey: String, streetsURL: String, labelsURL: String, wireLabelPopup: Boolean = false)(using assets: AssetsFinder)
 
 @*
 * Loads the shared PSMap choropleth (audited streets + label points) into an existing holder `#@mapId`, wiring it to
@@ -56,9 +56,6 @@
         showLabel: async (labelId, uiSource) => {
           const popup = await window.udLabelPopupReady;
           if (!popup) return;
-          // A mistake card may have left its vote/note panel inside the shared dialog, and a map-clicked
-          // label isn't necessarily that card's — clear it so the popup shows only this label's details.
-          document.querySelector('#label-modal .ud-mistake-response')?.remove();
           await popup.showLabel(labelId, uiSource);
         }
       };

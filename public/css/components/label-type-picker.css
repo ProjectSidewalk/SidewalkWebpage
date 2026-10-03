@@ -94,7 +94,7 @@
 }
 
 .label-type-trigger__button[aria-disabled="true"] {
-  cursor: default;
+  cursor: not-allowed;
 }
 
 .label-type-trigger__button:not([aria-disabled="true"]):hover {

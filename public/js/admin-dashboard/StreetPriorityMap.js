@@ -19,13 +19,13 @@ class StreetPriorityTiers {
       key: 'unaudited',
       label: 'Not yet audited',
       color: '#000000',
-      description: 'No completed audit counts toward priority yet, so these are served first.',
+      description: 'No audit counts toward priority yet; served first.',
     },
     {
       key: 'reaudit',
       label: 'Needs re-audit',
       color: '#D55E00',
-      description: 'Audited, but every counted audit is on imagery that has since been replaced.',
+      description: 'Every counted audit is on since-replaced imagery.',
     },
     {
       key: 'audited_once',
@@ -246,15 +246,15 @@ class StreetPriorityMap {
       StreetPriorityTiers.colorFor(p.priority_tier)}" aria-hidden="true"></span>`;
     const priority = Number(p.priority);
     return [
-      `<div class="coverage-popup-name">Street ${AdminShell.esc(p.street_edge_id)}</div>`,
+      `<div class="coverage-popup-name">Street ${util.escapeHTML(p.street_edge_id)}</div>`,
       '<dl class="coverage-popup-dl">',
-      row('Tier', `${swatch}${AdminShell.esc(StreetPriorityTiers.labelFor(p.priority_tier))}`),
+      row('Tier', `${swatch}${util.escapeHTML(StreetPriorityTiers.labelFor(p.priority_tier))}`),
       row('Priority', Number.isFinite(priority) ? priority.toFixed(3) : '—'),
-      row('Region', AdminShell.esc(p.region_name)),
+      row('Region', util.escapeHTML(p.region_name)),
       row('Audits counted', `${AdminShell.num(p.fresh_good_count)} current, `
       + `${AdminShell.num(p.outdated_good_count)} outdated, ${AdminShell.num(p.bad_count)} low quality`),
-      row('Last audited', AdminShell.esc(p.last_audit_date || 'never')),
-      row('Imagery (median)', AdminShell.esc(p.median_newest_capture || 'not polled')),
+      row('Last audited', util.escapeHTML(p.last_audit_date || 'never')),
+      row('Imagery (median)', util.escapeHTML(p.median_newest_capture || 'not polled')),
       '</dl>',
     ].join('');
   }

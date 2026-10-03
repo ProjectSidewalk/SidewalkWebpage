@@ -4,7 +4,7 @@ util.misc = util.misc || {};
 function UtilitiesMisc(JSON) {
   const self = { className: 'UtilitiesMisc' };
 
-  // The label-type table LabelTypeEnum stamps onto every page (main.scala.html), in canonical order. Every list,
+  // The label-type table LabelType stamps onto every page (main.scala.html), in canonical order. Every list,
   // colour and behavior flag below is derived from it, so none of them can drift from the backend — anything else
   // in the frontend that needs the set of label types should read util.misc rather than write its own copy.
   // A page that doesn't stamp it (jsdom, the error pages) leaves these empty rather than serving a stale duplicate.
@@ -26,7 +26,7 @@ function UtilitiesMisc(JSON) {
    *
    * The filename is built here rather than read off the stamp so `make lint-asset-paths` can still see which asset
    * family this resolves to and check it against the fingerprint manifest; a server-supplied string is opaque to it.
-   * Only the naming convention lives here — which types exist comes from the stamp — and LabelTypeEnumSpec fails if
+   * Only the naming convention lives here — which types exist comes from the stamp — and LabelTypeSpec fails if
    * any of these files goes missing.
    *
    * @param {string} [category] - A label type name, or 'Walk'. Omit for the whole map.
@@ -42,6 +42,15 @@ function UtilitiesMisc(JSON) {
     }
 
     return category ? imagePaths[category] : imagePaths;
+  }
+
+  /**
+   * A label type's translated name. Some (the German ones) carry soft hyphens so long words can wrap.
+   * @param {string} labelType - A label type name, e.g. 'SurfaceProblem'.
+   * @returns {string}
+   */
+  function labelTypeName(labelType) {
+    return i18next.t(`common:${util.camelToKebab(labelType)}`);
   }
 
   // TODO either explain why the translations aren't found programmatically, or make it programmatic.
@@ -692,7 +701,7 @@ function UtilitiesMisc(JSON) {
   }
 
   // The outline each marker gets on the canvas. White for everything except the two grey meta types, which would be
-  // indistinguishable from each other with a white ring. No backend counterpart: LabelTypeEnum owns the fill colour
+  // indistinguishable from each other with a white ring. No backend counterpart: LabelType owns the fill colour
   // (it's the type's identity, and the API publishes it), while the outline is only ever a canvas rendering choice.
   // TODO These colors should probably match the colors in our Design System Tokens in main.css.
   const STROKE_STYLES = { Other: '#0000FF', Occlusion: '#009902' };
@@ -774,6 +783,7 @@ function UtilitiesMisc(JSON) {
 
   self.labelMarkerFraction = labelMarkerFraction;
   self.getIconImagePaths = getIconImagePaths;
+  self.labelTypeName = labelTypeName;
   self.getLabelDescriptions = getLabelDescriptions;
   self.isPositiveLabelType = isPositiveLabelType;
   self.labelTypeHasSeverity = labelTypeHasSeverity;
@@ -800,7 +810,7 @@ util.misc = UtilitiesMisc(JSON);
  * A property rather than a top-level `const` because some views load this file directly on a page whose bundle
  * already concatenates it. Re-running it must stay harmless, and a repeated `const` is a fatal redeclaration.
  */
-util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'cameraHeading', 'cameraPitch'];
+util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'];
 
 /**
  * Whether a backup pano carries the metadata PannellumViewer needs to render it.
@@ -808,7 +818,7 @@ util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'came
  * Old pano_data rows carry nulls for these and PanoData rejects them (#4804). Guards the buildBackupImageData path
  * only — the /backupImage/:panoId/metadata payload is already filtered server-side by `getLocalBackupImage`.
  *
- * @param {?object} data - Backup pano metadata in the camelCase shape buildBackupImageData produces, or null.
+ * @param {?object} data - Backup pano metadata in the shape buildBackupImageData produces, or null.
  * @returns {boolean} True when every field the viewer needs is present and numeric.
  */
 function backupImageDataIsComplete(data) {
@@ -819,18 +829,18 @@ function backupImageDataIsComplete(data) {
 /**
  * A self-hosted backup pano, in the shape PannellumViewer takes.
  * @typedef {object} BackupImage
- * @property {string} panoId
- * @property {string} imageUrl
+ * @property {string} pano_id
+ * @property {string} image_url
  * @property {number} width
  * @property {number} height
- * @property {number} tileWidth
- * @property {number} tileHeight
+ * @property {number} tile_width
+ * @property {number} tile_height
  * @property {number} lat
  * @property {number} lng
- * @property {number} cameraHeading
- * @property {number} cameraPitch
- * @property {number} cameraRoll
- * @property {string} captureDate
+ * @property {number} camera_heading
+ * @property {number} camera_pitch
+ * @property {number} camera_roll
+ * @property {string} capture_date
  * @property {string} copyright
  * @property {object} attribution
  * @property {string} address
@@ -854,18 +864,18 @@ function buildBackupImageData(meta) {
   if (!meta.backup_image_url || !meta.pano_data) return null;
   const pd = meta.pano_data;
   const backupImageData = {
-    panoId: meta.pano_id,
-    imageUrl: meta.backup_image_url,
+    pano_id: meta.pano_id,
+    image_url: meta.backup_image_url,
     width: pd.width,
     height: pd.height,
-    tileWidth: pd.tile_width,
-    tileHeight: pd.tile_height,
+    tile_width: pd.tile_width,
+    tile_height: pd.tile_height,
     lat: meta.camera_lat,
     lng: meta.camera_lng,
-    cameraHeading: pd.camera_heading,
-    cameraPitch: pd.camera_pitch,
-    cameraRoll: pd.camera_roll,
-    captureDate: meta.image_capture_date,
+    camera_heading: pd.camera_heading,
+    camera_pitch: pd.camera_pitch,
+    camera_roll: pd.camera_roll,
+    capture_date: meta.image_capture_date,
     copyright: pd.copyright,
     attribution: pd.attribution,
     address: pd.address,

@@ -376,22 +376,24 @@ class ContextMenu {
     if (svl.isOnboarding() && !this.isTaggingDisabled()) this.#showTaggingEnabled();
   }
 
-  // Removes the disabled visual effects from the severity buttons on current context menu.
+  // Switches the severity buttons on the current context menu back on.
   #showRatingSeverityEnabled() {
-    this.#severityRadioHolder.classList.remove('disabled');
+    this.#severityRadioHolder.classList.remove('is-disabled');
+    for (const radio of this.#severityRadios) radio.disabled = false;
   }
 
-  // Adds the disabled visual effects to the severity buttons on current context menu.
+  // Switches off and dims the severity buttons on the current context menu.
   #showRatingSeverityDisabled() {
-    this.#severityRadioHolder.classList.add('disabled');
+    this.#severityRadioHolder.classList.add('is-disabled');
+    for (const radio of this.#severityRadios) radio.disabled = true;
   }
 
   #showTaggingEnabled() {
-    for (const tag of this.#tags) tag.classList.remove('disabled');
+    for (const tag of this.#tags) tag.disabled = false;
   }
 
   #showTaggingDisabled() {
-    for (const tag of this.#tags) tag.classList.add('disabled');
+    for (const tag of this.#tags) tag.disabled = true;
   }
 
   /**
@@ -489,9 +491,10 @@ class ContextMenu {
               const tooltipFooter = i18next.t('center-ui.context-menu.label-popup-shortcuts', {
                 c: keyChar, interpolation: { escapeValue: true },
               });
-              const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${img}"/>`;
+              const tooltipImage = `<img class="context-menu-tooltip__img--tag" src="${util.escapeHTML(img)}"/>`;
 
               button.setAttribute(
+                // eslint-disable-next-line ps/escape-in-markup -- our tag text, with its underline markup.
                 'data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/> <i>${tooltipFooter}</i>`,
               );
             });
@@ -515,7 +518,7 @@ class ContextMenu {
         const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
         const tooltipFooter = `<i>${i18next.t('center-ui.context-menu.severity-shortcuts')}</i>`;
         // Image size (and aspect ratio) is set in CSS so it scales with the UI; see svl-context-menu.css.
-        const tooltipImage = `<img class="context-menu-tooltip__img--severity" src="${img}"/>`;
+        const tooltipImage = `<img class="context-menu-tooltip__img--severity" src="${util.escapeHTML(img)}"/>`;
         for (const button of document.querySelectorAll(`.severity-button[data-severity="${sev}"]`)) {
           button.setAttribute('data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/>${tooltipFooter}`);
         }
@@ -553,7 +556,7 @@ class ContextMenu {
       // first field and never says what it belongs to.
       if (this.#headerIcon) this.#headerIcon.src = util.misc.getIconImagePaths(labelType).iconImagePath;
       if (this.#headerType) {
-        this.#headerType.textContent = i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '');
+        this.#headerType.textContent = util.misc.labelTypeName(labelType);
       }
       // The tutorial can forbid deleting the label it just had you place.
       this.#menuWindow.classList.toggle('context-menu--no-delete', Boolean(svl.canvas.getStatus('disableLabelDelete')));
@@ -565,7 +568,7 @@ class ContextMenu {
       }
 
       // Hide the severity menu for label types that don't have a severity rating.
-      this.#severityMenu.classList.toggle('hidden', !util.misc.labelTypeHasSeverity(labelType));
+      this.#severityMenu.classList.toggle('ps-hidden', !util.misc.labelTypeHasSeverity(labelType));
       // Set the menu value if label has its value set.
       const severity = targetLabel.getProperty('severity');
       const description = targetLabel.getProperty('description');
@@ -651,7 +654,7 @@ class ContextMenu {
     if (!this.#shareWidget || !shareable) return;
 
     const id = label.getProperty('labelId');
-    const labelTypeName = i18next.t(`common:${util.camelToKebab(label.getLabelType())}`).replace('&shy;', '');
+    const labelTypeName = util.misc.labelTypeName(label.getLabelType());
     const text = i18next.t('common:share.text', { labelType: labelTypeName });
     this.#shareWidget.setTarget({
       url: Number.isInteger(id) ? `${window.location.origin}/label/${id}` : '',

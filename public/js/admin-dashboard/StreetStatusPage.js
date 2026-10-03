@@ -182,7 +182,7 @@ class StreetStatusPage {
   #renderLegend() {
     document.getElementById('street-status-legend').innerHTML = StreetStatusColors.STATUSES.map((s) =>
       `<span class="street-status-legend-item"><span class="street-status-swatch" `
-      + `style="background:${s.color}" aria-hidden="true"></span>${s.label}</span>`,
+      + `style="background:${util.escapeHTML(s.color)}" aria-hidden="true"></span>${util.escapeHTML(s.label)}</span>`,
     ).join('');
   }
 
@@ -192,7 +192,7 @@ class StreetStatusPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 
   /** True if two id lists contain the same set of ids (order-independent). */

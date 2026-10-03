@@ -11,7 +11,6 @@ this doc in sync when you change them.
 |------|----------------|
 | `OnboardingStates.js` | **The script.** An ordered list of tutorial *states* (steps) and how each advances to the next. This is what you edit most. |
 | `Onboarding.js` | **The engine.** Reads the current state, renders its message/annotations, wires up the listeners that detect the user's action, and transitions to the next state. |
-| `HandAnimation.js` | The animated hand hint shown during some steps. |
 | `InitialMissionInstruction.js` | The instructional messaging shown for the first real mission, just after onboarding. |
 
 ## How a state is shaped (`OnboardingStates.js`)

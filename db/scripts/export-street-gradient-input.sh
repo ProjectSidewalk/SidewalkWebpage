@@ -17,6 +17,7 @@ set -euo pipefail
 # street build wrote from the same OSM tags (db/onboarding/<city-id>/street_structures.csv, tools/city/onboard_city.py),
 # which is how a city is sampled during onboarding rather than a night later.
 
+# shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
 # Flags anywhere, plus optional positional args ($1 schema, $2 city id) so a caller can drive the script without its

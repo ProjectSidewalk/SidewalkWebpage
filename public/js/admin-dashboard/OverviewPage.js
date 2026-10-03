@@ -103,7 +103,7 @@ class OverviewPage {
   #renderHvaCard(s) {
     const aiActivity = (s.ai_labels || 0) + (s.ai_validations || 0) + (s.ai_assessments || 0);
     if (aiActivity === 0) {
-      this.#setCard('hva', '—', 'no AI activity on this deployment');
+      this.#setCard('hva', '—', 'no AI activity in this city');
       return;
     }
     const labelTot = (s.human_labels || 0) + (s.ai_labels || 0);
@@ -161,7 +161,7 @@ class OverviewPage {
       const start = this.#addDays(end, -6);
       let sum = 0;
       for (let d = 0; d < 7; d++) {
-        const rec = byDate.get(this.#isoDay(this.#addDays(start, d)));
+        const rec = byDate.get(util.localIsoDate(this.#addDays(start, d)));
         if (rec) sum += get(rec);
       }
       values.push(sum);
@@ -245,7 +245,7 @@ class OverviewPage {
     if (streetsLeft > 0) {
       const pctLeft = s.total_streets > 0 ? Math.round((streetsLeft / s.total_streets) * 100) : 0;
       items.push({ sev: 'info', action: 'Coverage', href: '/admin/coverage',
-        html: `<strong>${this.#num(streetsLeft)}</strong> streets aren't audited yet (${pctLeft}% of the network)` });
+        html: `<strong>${this.#num(streetsLeft)}</strong> streets not yet audited (${pctLeft}% of all streets)` });
     }
     if (s.reaudit_streets > 0) {
       const reaudit = this.#num(s.reaudit_streets);
@@ -263,14 +263,14 @@ class OverviewPage {
     }
 
     if (!items.length) {
-      el.innerHTML = '<p class="ov-attention-clear">All clear — nothing needs attention right now. ✅</p>';
+      el.innerHTML = '<p class="ov-attention-clear">Nothing needs attention. ✅</p>';
       return;
     }
     el.innerHTML = items.map((it) => `
-      <a class="ov-attention-item ov-attention--${it.sev}" href="${OverviewPage.#esc(it.href)}">
+      <a class="ov-attention-item ov-attention--${util.escapeHTML(it.sev)}" href="${util.escapeHTML(it.href)}">
         <span class="ov-attention-dot" aria-hidden="true"></span>
-        <span class="ov-attention-text">${it.html}</span>
-        <span class="ov-attention-go">${OverviewPage.#esc(it.action)} →</span>
+        <span class="ov-attention-text">${it.html /* eslint-disable-line ps/escape-in-markup -- our markup. */}</span>
+        <span class="ov-attention-go">${util.escapeHTML(it.action)} →</span>
       </a>`,
     ).join('');
   }
@@ -286,15 +286,15 @@ class OverviewPage {
     const el = document.getElementById('ov-recent');
     if (!el) return;
     if (!items.length) {
-      el.innerHTML = '<p class="dq-empty">No recent activity recorded on this deployment.</p>';
+      el.innerHTML = '<p class="dq-empty">No recent activity.</p>';
       return;
     }
     el.innerHTML = items.map((it) => {
       const thumb = it.thumbnail_url
-        ? `<img class="ov-recent-thumb" loading="lazy" alt="" src="${OverviewPage.#esc(it.thumbnail_url)}">`
+        ? `<img class="ov-recent-thumb" loading="lazy" alt="" src="${util.escapeHTML(it.thumbnail_url)}">`
         : '<span class="ov-recent-thumb ov-recent-thumb--none" aria-hidden="true"></span>';
-      const who = OverviewPage.#esc(it.username || 'someone');
-      const when = OverviewPage.#esc(AdminShell.relativeTime(it.timestamp));
+      const who = util.escapeHTML(it.username || 'someone');
+      const when = util.escapeHTML(AdminShell.relativeTime(it.timestamp));
       return [
         '<div class="ov-recent-item">',
         thumb,
@@ -311,14 +311,14 @@ class OverviewPage {
 
   /** The action phrase for a recent item, with the label type bolded. */
   #recentText(it) {
-    const type = it.label_type ? `<strong>${OverviewPage.#esc(this.#typeName(it.label_type))}</strong>` : 'a label';
+    const type = it.label_type ? `<strong>${util.escapeHTML(this.#typeName(it.label_type))}</strong>` : 'a label';
     if (it.activity_type === 'label') return `Placed ${type}`;
     if (it.activity_type === 'validation') {
       const verdict = { Agree: 'agreed', Disagree: 'disagreed', Unsure: 'unsure' }[it.validation_result]
-        || OverviewPage.#esc((it.validation_result || '').toLowerCase());
+        || util.escapeHTML((it.validation_result || '').toLowerCase());
       return `Validated ${type} — ${verdict}`;
     }
-    return `“${OverviewPage.#esc(it.comment || '')}”`;
+    return `“${util.escapeHTML(it.comment || '')}”`;
   }
 
   // --- Pulse ------------------------------------------------------------------------------------------------------
@@ -332,23 +332,23 @@ class OverviewPage {
     const el = document.getElementById('ov-pulse');
     if (!el) return;
     if (!item) {
-      el.textContent = 'No recent activity recorded on this deployment.';
+      el.textContent = 'No recent activity.';
       return;
     }
-    const who = OverviewPage.#esc(item.username || 'someone');
-    const when = OverviewPage.#esc(AdminShell.relativeTime(item.timestamp));
+    const who = util.escapeHTML(item.username || 'someone');
+    const when = util.escapeHTML(AdminShell.relativeTime(item.timestamp));
     const type = item.label_type ? this.#typeName(item.label_type) : null;
     let dot = '';
     if (type && this.#colorByType.has(item.label_type)) {
       dot = `<span class="ov-pulse-dot" `
-        + `style="background:${OverviewPage.#esc(this.#colorByType.get(item.label_type))}" aria-hidden="true"></span>`;
+        + `style="background:${util.escapeHTML(this.#colorByType.get(item.label_type))}" aria-hidden="true"></span>`;
     }
     let what;
     if (item.activity_type === 'label') {
-      what = `placed a <strong>${OverviewPage.#esc(type || 'label')}</strong> label`;
+      what = `placed a <strong>${util.escapeHTML(type || 'label')}</strong> label`;
     } else if (item.activity_type === 'validation') {
-      const verdict = item.validation_result ? ` (${OverviewPage.#esc(item.validation_result.toLowerCase())})` : '';
-      what = `validated a <strong>${OverviewPage.#esc(type || 'label')}</strong>${verdict}`;
+      const verdict = item.validation_result ? ` (${util.escapeHTML(item.validation_result.toLowerCase())})` : '';
+      what = `validated a <strong>${util.escapeHTML(type || 'label')}</strong>${verdict}`;
     } else {
       what = 'left a comment';
     }
@@ -418,16 +418,5 @@ class OverviewPage {
     const x = new Date(d);
     x.setDate(x.getDate() + n);
     return x;
-  }
-
-  #isoDay(d) {
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${d.getFullYear()}-${m}-${day}`;
-  }
-
-  static #esc(s) {
-    return String(s).replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   }
 }

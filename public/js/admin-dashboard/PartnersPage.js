@@ -91,7 +91,7 @@ class PartnersPage {
       this.#fillOfficialContact(form, await res.json());
     } catch (err) {
       console.error('Partners page: official contact failed to load.', err);
-      this.#showError(form, 'Failed to load the official contact — try reloading the page.');
+      this.#showError(form, 'Could not load the official contact. Reload to try again.');
     }
   }
 
@@ -114,7 +114,7 @@ class PartnersPage {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        this.#showError(form, data.error || 'Something went wrong — please try again.');
+        this.#showError(form, data.error || 'Something went wrong. Please try again.');
         return;
       }
       this.#fillOfficialContact(form, data);
@@ -123,7 +123,7 @@ class PartnersPage {
       statusEl.textContent = data.url ? 'Official contact notice saved.' : 'Official contact notice turned off.';
     } catch (err) {
       console.error('Partners page: official contact failed to save.', err);
-      this.#showError(form, 'Something went wrong — please try again.');
+      this.#showError(form, 'Something went wrong. Please try again.');
     }
   }
 
@@ -168,7 +168,7 @@ class PartnersPage {
       this.#setStatus(`${this.#partners.global.length} global · ${this.#partners.city.length} city`);
     } catch (err) {
       console.error('Partners page: list failed to load.', err);
-      this.#setStatus('Failed to load partners — try reloading the page.');
+      this.#setStatus('Could not load partners. Reload to try again.');
     }
   }
 
@@ -250,8 +250,8 @@ class PartnersPage {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = danger
-      ? 'button-ps button--secondary button--small partners-row-btn--danger'
-      : 'button-ps button--secondary button--small';
+      ? 'button button--secondary button--small partners-row-btn--danger'
+      : 'button button--secondary button--small';
     btn.textContent = text;
     btn.setAttribute('aria-label', label);
     btn.disabled = disabled;
@@ -368,7 +368,7 @@ class PartnersPage {
       await this.#load();
     } catch (err) {
       console.error('Partners page: save failed.', err);
-      this.#showError(form, 'Something went wrong — please try again.');
+      this.#showError(form, 'Something went wrong. Please try again.');
     } finally {
       submitBtn.disabled = false;
     }
@@ -448,8 +448,7 @@ class PartnersPage {
 
   async #deletePartner(partner) {
     const ok = await ConfirmDialog.confirm({
-      message: `Delete the "${partner.name}" logo? It disappears from the landing page immediately, `
-        + 'and this cannot be undone.',
+      message: `Delete the "${partner.name}" logo? It leaves the landing page immediately and can't be restored.`,
       confirmText: 'Delete',
       cancelText: 'Cancel',
       danger: true,
@@ -484,21 +483,21 @@ class PartnersPage {
   #errorMessage(form, code) {
     const mb = (bytes) => `${Math.round(bytes / 1048576)} MB`;
     const messages = {
-      logo_required: 'Choose a logo image (PNG, JPEG, or SVG) to upload.',
-      logo_too_large: `That image is too large — please upload a file under ${mb(form.dataset.maxUploadBytes)}.`,
+      logo_required: 'Choose a logo image (PNG, JPEG, or SVG).',
+      logo_too_large: `That image is too large. Upload a file under ${mb(form.dataset.maxUploadBytes)}.`,
       logo_encoded_too_large: `Even re-encoded, that image exceeds the ${mb(form.dataset.maxStoredBytes)} storage `
-        + 'cap — try a smaller or simpler image.',
+        + 'cap. Try a smaller or simpler image.',
       logo_invalid: 'That file could not be read as a PNG or JPEG image.',
-      svg_invalid: 'That SVG could not be read — try exporting it again, or upload a PNG instead.',
-      svg_has_text: 'That SVG sets type as live text, which needs a font this page cannot load. Convert the text '
-        + 'to outlines in your design tool, or upload a PNG instead.',
+      svg_invalid: 'That SVG could not be read. Re-export it, or upload a PNG.',
+      svg_has_text: 'That SVG uses live text, which needs a font this page can’t load. Convert the text to '
+        + 'outlines in your design tool, or upload a PNG.',
       name_invalid: `Enter a partner name (at most ${form.elements.name.maxLength} characters).`,
-      url_invalid: 'The website URL must be a full http(s) address, e.g. https://example.org.',
+      url_invalid: 'Enter a full http(s) address, e.g. https://example.org.',
       alt_text_invalid: `Alt text can be at most ${form.elements.alt_text.maxLength} characters.`,
-      bad_order: 'The list changed underneath you — reloading.',
-      not_found: 'That partner no longer exists — reloading.',
+      bad_order: 'Someone else changed the list. Reloading.',
+      not_found: 'That partner no longer exists. Reloading.',
     };
-    return messages[code] || 'Something went wrong — please try again.';
+    return messages[code] || 'Something went wrong. Please try again.';
   }
 
   /** Shows (or with null, clears) a form's inline error line. */

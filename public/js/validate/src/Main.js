@@ -85,6 +85,8 @@ class Main {
     svv.ui.busyRegion = [...document.querySelectorAll(busySelectors.join(', '))];
 
     svv.ui.validationMenu = {
+      holder: byId('validation-menu-holder'), // Desktop only; the phone lays its menu over the pano.
+      verdictClearButton: byId('validate-verdict-clear'), // Desktop only, shown in immersive mode.
       header: byId('main-validate-header'),
       yesButton: byId('validate-yes-button'),
       noButton: byId('validate-no-button'),
@@ -105,7 +107,8 @@ class Main {
       mobilePopupNotch: byId('mobile-popup-notch'),
       currentTags: byId('current-tags-list'),
       aiSuggestionSection: byId('sidewalk-ai-suggestions-block'),
-      aiSuggestedTagTemplate: document.querySelector('.sidewalk-ai-suggested-tag.template'),
+      currentTagTemplate: byId('current-tag-template'),
+      aiSuggestedTagTemplate: byId('sidewalk-ai-suggested-tag-template'),
     };
 
     svv.ui.undoValidation = { undoButton: byId('validate-undo-button') };
@@ -146,6 +149,7 @@ class Main {
     }
     svv.ui.status = {
       upperMenuTitle: byId('mission-title'),
+      upperMenuIcon: byId('mission-title-icon'),
       zoomInButton: byId('zoom-in-button'),
       zoomOutButton: byId('zoom-out-button'),
       admin: {
@@ -191,19 +195,39 @@ class Main {
     svv.statusField = new StatusField(param.completedValidations);
     svv.tracker = new Tracker();
 
+    // Immersive mode (#5560): built before the pano viewer so a mode restored from the tab's last page load has its
+    // classes on the body when the viewer measures its container. Desktop only: the phone is already full-bleed.
+    // Expert Validate keeps the boxed layout for now (the view omits the toggle there too): its edit sections have
+    // no immersive placement yet, so the mode is off limits rather than half-designed.
+    if (!util.isMobile()) {
+      svv.immersiveMode = new ImmersiveMode({
+        tracker: svv.tracker,
+        bodyClass: 'svv-immersive',
+        relayout: () => Main.relayout(),
+        isDisabled: () => svv.adminVersion,
+        // The label card is anchored against the marker, which the relayout moves; it reopens on the next hover.
+        beforeToggle: () => svv.labelVisibilityControl?.hideLabelCard(),
+        frame: () => ({ width: svv.canvasWidth(), height: svv.canvasHeight() }),
+        hintReference: () => document.getElementById('svv-panorama-holder'),
+        deferRestoreLog: true, // Logged once the mission exists, like ImageAdjustments_Restored below.
+      });
+    }
+
     BadgeAchievements.seedCounts();
     svv.labelCard = new LabelCard();
 
     svv.panoStore = new PanoStore();
+    // Backup panos fetched ahead of the label that needs them (#5562); the Pannellum fallback loads from it first.
+    svv.panoImageCache = new PanoImageCache();
 
     // Built before the first label renders because that render can need it: if none of the mission's labels have
     // usable imagery, LabelContainer drops all of them and shows this modal instead of an empty pano (#4810).
     svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
 
-    const firstLabel = param.labelList[0];
-    svv.panoManager = await PanoManager.create(
-      svv.viewerType, param.viewerAccessToken, firstLabel.pano_id, buildBackupImageData(firstLabel),
-    );
+    // Built before the first label renders so that render can report a slow load too (#5581).
+    svv.panoLoadingStatus = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
+
+    svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken);
     svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type);
 
     // There are certain features that will only make sense on desktop vs mobile.
@@ -223,6 +247,30 @@ class Main {
         { labelContainer: svv.labelContainer },
       );
       svv.zoomControl = new ZoomControl();
+
+      // Shadows/brightness/contrast as a display-only filter (#5501), the same model and panel Explore uses. Both
+      // viewer mounts get it, since PanoManager swaps a label onto the Pannellum sibling when GSV has no imagery, and
+      // by now #init has created that sibling. No keyboard hooks: KeyboardManager treats the panel as its own scope.
+      // Desktop only because mobile has neither the pill nor the panel, and the popover logs an error without them.
+      svv.imageAdjustments = new PanoImageAdjustments([
+        document.getElementById('svv-panorama'), document.getElementById('svv-panorama-pannellum'),
+      ]);
+      svv.imageAdjustmentsPopover = new PanoImageAdjustmentsPopover(svv.imageAdjustments,
+        document.getElementById('validate-control-image'), document.getElementById('pano-image-adjustments'), {
+          // Below, so the hide-label toggle and chevron in the row stay visible beside the open panel.
+          placement: 'below',
+          onOpen: () => svv.tracker.push('Click_ImageAdjustments_Open'),
+          onClose: (via) => svv.tracker.push('Click_ImageAdjustments_Close', { via }),
+          onChange: (values) => svv.tracker.push('ImageAdjustments_Change', values),
+          onReset: () => svv.tracker.push('Click_ImageAdjustments_Reset'),
+        });
+      // The Image pill waits in the chevron's menu, so the chevron carries its active dot while the menu is closed.
+      svv.panoControlMenu
+        = new PanoControlMenu(document.getElementById('validate-control-buttons-toggle'), svv.tracker);
+      svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault());
+      svv.imageAdjustments.onChange(() =>
+        svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault()));
+
       new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
     }
 
@@ -276,7 +324,22 @@ class Main {
 
     svv.modalMission = new ModalMission(svv.ui.modalMission);
     svv.missionContainer = new MissionContainer();
+
+    // Did the last page life in this tab end without a pagehide? On a phone that is the browser killing the tab for
+    // memory (#5561), which from in here is otherwise indistinguishable from a reload. Read before the first mission
+    // is created, which is what marks this life live; the tracker files the row under that mission when the buffer
+    // drains, so it still names this mission alongside the one that was cut short.
+    svv.missionLiveMarker = new MissionLiveMarker(window.sessionStorage);
+    const unexpectedUnload = svv.missionLiveMarker.takeUnexpectedUnload();
+    if (unexpectedUnload) svv.tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
+
     svv.missionContainer.createAMission(param.mission, param.progress);
+    // Logged only now: the tracker stamps each row with the current mission, and without one this row, the only
+    // record of a filter carried in from an earlier visit, could not be tied to a validator. Desktop builds the model.
+    if (svv.imageAdjustments && !svv.imageAdjustments.isDefault()) {
+      svv.tracker.push('ImageAdjustments_Restored', svv.imageAdjustments.values());
+    }
+    svv.immersiveMode?.logRestored();
 
     if (!util.isMobile()) {
       // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the
@@ -359,13 +422,29 @@ class Main {
    * @returns {void}
    */
   static applyValidateScale() {
+    // Immersive mode (#5560) sizes the pano with CSS and floats the controls over it, so the scale fits only the
+    // pano's own footprint into the whole window, with no page margins to keep clear of, as Explore's does.
+    const immersive = svv.immersiveMode?.isActive() ?? false;
     const scale = util.applyToolScale(
-      ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
+      immersive ? ['--pano-base-width'] : ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
       ['--header-base-height', '--pano-base-height'],
+      immersive ? { maxScale: 3, hMargin: 0, bottomReserve: 0 } : {},
     );
     svv.panoManager.setMarkerScale(scale);
     svv.panoViewer.resize();
     svv.panoViewer.repaint();
+  }
+
+  /**
+   * Re-lays out the desktop tool for its current box, for a layout switch rather than a window resize: the rescale
+   * and the viewer's resize and repaint, plus the toasts, which are anchored to the pano's old box and are told of a
+   * window resize but not of the tool moving under them (Toast.repositionAll). Synchronous, so the immersive toggle
+   * (#5560) lands in one frame.
+   * @returns {void}
+   */
+  static relayout() {
+    Main.applyValidateScale();
+    Toast.repositionAll();
   }
 
   /**

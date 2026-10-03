@@ -18,6 +18,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadGlobalScript } = require('./loadGlobalScript');
+
+loadGlobalScript('public/js/common/utilities.js');
 
 const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
@@ -384,7 +387,7 @@ describe('the regained-imagery rotation line', () => {
 
     const text = document.getElementById('imagery-no-imagery-note').textContent;
     expect(text).toContain('49 of 50');
-    expect(text).toContain('1 for review');
+    expect(text).toContain('1 queued for review');
     expect(text).toContain('25 a night');
   });
 

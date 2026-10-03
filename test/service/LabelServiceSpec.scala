@@ -1,15 +1,14 @@
 package service
 
-import models.label.{LabelTable, LabelTypeEnum}
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.label.{LabelTable, LabelType}
+import models.utils.MyPostgresProfile.api.given
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * DB-backed tests for LabelService tag lookups (the Gallery page's tag-filter source), for the gallery label query
@@ -19,10 +18,10 @@ import scala.concurrent.duration._
  * Read-only: requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  * Scheduling actors are disabled so background actors can't do work during the run.
  */
-class LabelServiceSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSuite {
+class LabelServiceSpec extends SidewalkSpec with RolledBackDb with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
   private val labelService                               = app.injector.instanceOf[LabelService]
   private val labelTable                                 = app.injector.instanceOf[LabelTable]
@@ -47,13 +46,12 @@ class LabelServiceSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSui
     // All correctness options = no correctness filtering, so the query returns whatever the connected DB holds.
     val allValOptions               = Set("correct", "incorrect", "unsure", "unvalidated")
     def query(recentFirst: Boolean) = labelTable.getGalleryLabelsQuery(
-      configService.getPanoSource, LabelTypeEnum.CurbRamp, Set.empty, allValOptions, Set.empty, Set.empty, Set.empty,
+      configService.getPanoSource, LabelType.CurbRamp, Set.empty, allValOptions, Set.empty, Set.empty, Set.empty,
       Set.empty, "00000000-0000-0000-0000-000000000000", recentFirst
     )
 
     "order labels newest-first when recentFirst is set" in {
-      // Tuple position 7 is the label's timestamp (see LabelValidationMetadataTuple).
-      val timestamps = run(query(recentFirst = true).take(50).result).map(_._7)
+      val timestamps = run(query(recentFirst = true).take(50).result).map(_.timestamp)
       timestamps.zip(timestamps.drop(1)).foreach { case (newer, older) => newer.isBefore(older) mustBe false }
     }
 
@@ -71,7 +69,7 @@ class LabelServiceSpec extends PlaySpec with RolledBackDb with GuiceOneAppPerSui
       labelTable
         .getGalleryLabelsQuery(
           viewer,
-          LabelTypeEnum.CurbRamp,
+          LabelType.CurbRamp,
           Set.empty,
           Set("correct", "incorrect", "unsure", "unvalidated"),
           Set.empty,

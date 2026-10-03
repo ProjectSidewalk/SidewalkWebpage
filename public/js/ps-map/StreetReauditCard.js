@@ -171,12 +171,10 @@ class StreetReauditCard {
     const card = document.createElement('div');
     card.className = 'street-reaudit';
 
-    const lastMapped = moment(new Date(summary.last_audited_at)).format('ll');
+    const lastMapped = new Date(summary.last_audited_at).toLocaleDateString(i18next.language, util.SHORT_DATE);
     // Capture dates are month-granular in practice, so a full date would over-claim precision (the dashboard's
     // re-audit list renders them the same way).
-    const newImagery = summary.new_imagery_date
-      ? moment(new Date(`${summary.new_imagery_date}T00:00:00`)).format('MMMM YYYY')
-      : null;
+    const newImagery = util.monthYear(summary.new_imagery_date);
 
     card.innerHTML = `
       <h4 class="street-reaudit__title">${i18next.t('labelmap:reaudit-card-title')}</h4>
@@ -186,8 +184,8 @@ class StreetReauditCard {
         ${newImagery ? `<dt>${i18next.t('labelmap:reaudit-card-new-imagery')}</dt><dd>${newImagery}</dd>` : ''}
       </dl>
       ${this.#labelsHtml(summary.label_counts)}
-      <a class="button-ps button--primary button--small street-reaudit__explore"
-         href="/explore?streetEdgeId=${summary.street_edge_id}">
+      <a class="button button--primary button--small street-reaudit__explore"
+         href="/explore?streetEdgeId=${util.escapeHTML(summary.street_edge_id)}">
         ${i18next.t('labelmap:reaudit-card-explore')}
       </a>`;
 
@@ -214,7 +212,7 @@ class StreetReauditCard {
       <tr>
         <td class="street-reaudit__type">
           <img src="${util.misc.getIconImagePaths(labelType).iconImagePath}" alt="" width="18" height="18">
-          ${i18next.t(`common:${util.camelToKebab(labelType)}`).replace('&shy;', '')}
+          ${util.misc.labelTypeName(labelType)}
         </td>
         <td class="street-reaudit__count">${count.toLocaleString(i18next.language)}</td>
       </tr>`).join('');

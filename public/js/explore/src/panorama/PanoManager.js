@@ -19,7 +19,7 @@ class PanoManager {
     };
     this.linksListener = null;
     this.linksClearanceObserver = null;
-    this.mapillaryAttributionObserver = null;
+    this.mapillaryAttributionArrivalObserver = null;
   }
 
   /**
@@ -305,7 +305,7 @@ class PanoManager {
       this.#makeGsvAttributionClickable();
       this.linksListener = svl.panoViewer.gsvPano.addListener('links_changed', this.#makeGsvAttributionClickable);
     } else if (panoViewerType === MapillaryViewer) {
-      this.#makeMapillaryAttributionClickable();
+      this.#liftAboveMapillaryAttribution();
     }
 
     this.resetNavArrows();
@@ -326,7 +326,7 @@ class PanoManager {
     // Draw the bottom-left imagery note for this pano: its capture date, and how that sits against the street's last
     // audit (#5413). Month-granular on the wire because that is all a capture date carries.
     svl.panoDateNote?.update(
-      panoData.getProperty('captureDate').format('YYYY-MM-DD'),
+      util.localIsoDate(panoData.getProperty('captureDate')),
       svl.taskContainer?.getCurrentTask() ?? null,
     );
 
@@ -336,6 +336,10 @@ class PanoManager {
     // Updates peg location on minimap to match current panorama location.
     if (svl.minimap) svl.minimap.setMinimapLocation(panoLatLng);
     if (svl.peg) svl.peg.setLocation(panoLatLng);
+
+    // Some viewers (Infra3D) fire pano_changed before their metadata names the new pano, so the URL can still read
+    // the old one. Every viewer's metadata is current by now, so ask again from here.
+    svl.urlSync?.request();
 
     // Rerender the canvas.
     if (svl.canvas) {
@@ -406,25 +410,32 @@ class PanoManager {
   };
 
   /**
-   * Moves Mapillary's attribution links (image credit/date/report links) to the top layer so they're clickable.
+   * Hands Mapillary's attribution pill to #liftBottomLeftAboveLinks, so the bottom-left overlays sit above it.
    *
-   * Mapillary renders these inside the pano canvas itself, where the click-handling view-control-layer covers
-   * them. We move the container up into that layer instead, the same trick used for the GSV links. Mapillary may
-   * re-render its own container back into the pano (e.g. after an image change), so we keep watching for that.
+   * The pill is left inside the SDK's DOM, where the SDK patches its creator and date per image, and svl.css positions
+   * it there (#5600). The SDK only renders it once the first image is up, which may be after this runs, so a
+   * MutationObserver waits for it. One sighting is enough: the SDK creates the container once and patches it in place
+   * from then on, even for the compact flip, and the ResizeObserver in #liftBottomLeftAboveLinks follows its height
+   * through that.
    */
-  #makeMapillaryAttributionClickable = () => {
-    const tryMove = () => {
+  #liftAboveMapillaryAttribution = () => {
+    const handOff = () => {
       const attributionContainer = this.panoCanvas.querySelector('.mapillary-attribution-container');
-      if (attributionContainer) {
-        svl.ui.streetview.viewControlLayer.append(attributionContainer);
-        this.#liftBottomLeftAboveLinks(attributionContainer);
-      }
+      if (!attributionContainer) return false;
+      this.#liftBottomLeftAboveLinks(attributionContainer);
+      return true;
     };
-    tryMove(); // Handle the case where Mapillary already rendered the container before we started observing.
 
-    if (this.mapillaryAttributionObserver) this.mapillaryAttributionObserver.disconnect();
-    this.mapillaryAttributionObserver = new MutationObserver(tryMove);
-    this.mapillaryAttributionObserver.observe(this.panoCanvas, { childList: true, subtree: true });
+    if (this.mapillaryAttributionArrivalObserver) this.mapillaryAttributionArrivalObserver.disconnect();
+    this.mapillaryAttributionArrivalObserver = null;
+    if (handOff()) return;
+
+    this.mapillaryAttributionArrivalObserver = new MutationObserver(() => {
+      if (!handOff()) return;
+      this.mapillaryAttributionArrivalObserver.disconnect();
+      this.mapillaryAttributionArrivalObserver = null;
+    });
+    this.mapillaryAttributionArrivalObserver.observe(this.panoCanvas, { childList: true, subtree: true });
   };
 
   /**

@@ -21,10 +21,6 @@ delete PHONE_DEVICE.defaultBrowserType;
 // entries are added only for observed, understood noise — never to get a red run green. `pageerror` (an
 // uncaught exception) is NEVER allowlisted.
 const CONSOLE_ERROR_ALLOWLIST = [
-  // i18next probes optional per-locale/namespace overlays (/assets/locales/{lng}/{ns}.json); a missing overlay
-  // 404s by design and i18next falls back through the locale chain. Anchored to the browser's resource-load
-  // failure line so a real app error whose text merely mentions a locale path can't hide behind it.
-  /^console\.error: Failed to load resource: .*\(.*\/assets\/locales\/.+\.json(\?[^)]*)?\)$/,
   // Mapbox telemetry; stubbed to 204 by stubMapbox but belt-and-braces for pages that skip the stub.
   /events\.mapbox\.com/,
   // The app ships CSP in REPORT-ONLY mode (conf/application.conf, reportOnly = true): the browser logs each
@@ -133,8 +129,9 @@ async function stubGoogleMaps(context, leaks) {
 
 /**
  * Makes the Google Maps stub resolve every pano id on this context's pages, instead of only ids it has seen (its
- * default, Google's contract, which sends an expired pano down the Pannellum + backup path). For a spec that wants
- * the primary-viewer path — production's when Google still serves a panorama our metadata check has retired. Must
+ * default, Google's contract, which sends an expired pano down the Pannellum + backup path). Production's shape
+ * when Google still serves a panorama our metadata check has retired — which a page that trusts the flag must
+ * not take up (Validate, #5561), and one that asks the provider first renders through the primary viewer. Must
  * run before navigation: it is an init script the stub reads at install.
  *
  * @param {import('@playwright/test').BrowserContext} context - The context whose pages should see every pano resolve.

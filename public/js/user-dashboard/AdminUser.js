@@ -58,9 +58,11 @@ class AdminUser {
       block.querySelector('.ud-admin-flag-remove').addEventListener('click', () => this.#setFlags(block, false));
     });
 
+    const shortDateTime = new Intl.DateTimeFormat(i18next.language, util.SHORT_DATE_TIME);
     document.querySelectorAll('time.ud-admin-ts').forEach((el) => {
       const at = new Date(el.getAttribute('datetime'));
-      if (!Number.isNaN(at.getTime())) el.textContent = moment(at).format('lll');
+      if (Number.isNaN(at.getTime())) return;
+      el.textContent = shortDateTime.format(at);
     });
 
     this.#loadHours();
@@ -124,7 +126,7 @@ class AdminUser {
 
     const rows = cities.map((city) => `
       <tr>
-        <th scope="row">${AdminUser.#esc(city.city_name)}${city.is_current_city ? ' (this deployment)' : ''}</th>
+        <th scope="row">${util.escapeHTML(city.city_name)}${city.is_current_city ? ' (this deployment)' : ''}</th>
         <td class="num">${Number(city.hours).toFixed(1)}</td>
       </tr>`).join('');
     holder.innerHTML = `
@@ -143,15 +145,6 @@ class AdminUser {
     if (!note) return;
     note.textContent = text;
     note.hidden = false;
-  }
-
-  /**
-   * @param {string} s - Text going into an HTML string.
-   * @returns {string} The text with HTML metacharacters escaped.
-   */
-  static #esc(s) {
-    return String(s).replace(/[&<>"']/g, (c) =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', '\'': '&#39;' }[c]));
   }
 
   /**
@@ -200,19 +193,19 @@ class AdminUser {
     if (excluded && !this.#excluded && !(await this.#confirmExclude())) return;
     /** @type {Record<string, any>} */
     const payload = {
-      userId: this.#userId,
+      user_id: this.#userId,
       username: field('au-username').value.trim(),
       role: field('au-role').value,
-      teamId: parseInt(field('au-team').value, 10) || null,
+      team_id: parseInt(field('au-team').value, 10) || null,
       // 'auto' clears the manual flag so the server recomputes quality from the user's stats.
-      highQualityManual: quality === 'auto' ? null : quality === 'true',
+      high_quality_manual: quality === 'auto' ? null : quality === 'true',
       excluded,
-      communityService: field('au-community-service').checked,
-      onLeaderboard: field('au-on-leaderboard').checked,
-      publicProfile: field('au-public-profile').checked,
+      community_service: field('au-community-service').checked,
+      on_leaderboard: field('au-on-leaderboard').checked,
+      public_profile: field('au-public-profile').checked,
     };
     // Absent on non-infra3D deployments and inert when the admin can't grant it; either way it's left alone.
-    if (infra3d && !infra3d.disabled) payload.infra3dAccess = infra3d.checked;
+    if (infra3d && !infra3d.disabled) payload.infra3d_access = infra3d.checked;
 
     this.#saveBtn.setAttribute('disabled', 'disabled');
     AdminUser.#setStatus(this.#saveStatus, 'Saving…', null);
@@ -269,7 +262,7 @@ class AdminUser {
       const res = await fetch(this.#flagsUrl, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ userId: this.#userId, date: date.toISOString(), flag, state }),
+        body: JSON.stringify({ user_id: this.#userId, date: date.toISOString(), flag, state }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

@@ -47,6 +47,8 @@ services:
     build:
       context: ./db/
     shm_size: '512mb'
+    # The image's JIT crashes heavy PostGIS queries (mismatched LLVM versions); prod has it off too (#4376).
+    command: postgres -c jit=off
     volumes:
       - "./db/scripts/init.sh:/docker-entrypoint-initdb.d/init.sh"
       - "./db:/opt"

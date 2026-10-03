@@ -4,7 +4,7 @@
 @import views.html.helper.CSRF
 @(commonData: CommonPageData, user: SidewalkUserWithRole, resumeUrl: String, resumed: Boolean,
   onLeaderboard: Boolean, publicProfile: Boolean, privateByDefault: Boolean
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * Post-registration welcome page (#4375): confirms the new account and shows what it unlocks (dashboard, badges,
@@ -55,8 +55,8 @@
         </a>
       </div>
       <div class="wl-ctas">
-        <a class="button-ps button--primary button--large" id="welcome-explore-btn" href="@resumeUrl">@Messages(if(resumed) "welcome.cta.resume" else "landing.start.exploring")</a>
-        <a class="button-ps button--secondary button--large" id="welcome-dashboard-btn" href="/dashboard">@Messages("welcome.cta.dashboard")</a>
+        <a class="button button--primary button--large" id="welcome-explore-btn" href="@resumeUrl">@Messages(if(resumed) "welcome.cta.resume" else "landing.start.exploring")</a>
+        <a class="button button--secondary button--large" id="welcome-dashboard-btn" href="/dashboard">@Messages("welcome.cta.dashboard")</a>
       </div>
       <div class="wl-service">
         <svg class="wl-service-ic" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -68,7 +68,7 @@
           <p class="wl-service-prompt">@Messages("welcome.service.prompt")</p>
           <form method="post" action="@routes.UserController.setServiceHours(true, Some("/serviceHoursInstructions"))">
             @CSRF.formField
-            <button type="submit" class="button-ps button--secondary button--medium wl-service-btn">@Messages("welcome.service.button")</button>
+            <button type="submit" class="button button--secondary button--medium wl-service-btn">@Messages("welcome.service.button")</button>
           </form>
         </div>
       </div>

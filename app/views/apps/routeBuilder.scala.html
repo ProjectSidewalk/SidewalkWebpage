@@ -2,12 +2,11 @@
 @import play.api.Configuration
 @import service.CommonPageData
 @(commonData: service.CommonPageData, user: Option[models.user.SidewalkUserWithRole], minutesPer100m: Double
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 @* A cookie-less visitor (None) gets the same treatment as an anonymous account. *@
 @isAnon = @{user.forall(_.role == Role.Anonymous)}
-@paceRounded = @{f"$minutesPer100m%.1f"}
 
 @common.main(commonData, Messages("seo.title.route.builder"), defaultI18nNamespace = "routebuilder", i18Namespaces = Seq("routebuilder", "common"), url = "/routeBuilder") {
   @common.navbar(commonData, user)
@@ -50,24 +49,25 @@
             <span aria-hidden="true">·</span>
             <span id="route-time-wrap">
               <span id="route-time-val" tabindex="0" role="button" aria-describedby="route-time-tip"></span>
-              <span id="route-time-tip" role="tooltip" hidden>@Messages("routebuilder.stat.time.tooltip", paceRounded)</span>
+              @* Filled by RouteBuilder.js on every stats update: the text names the route's own estimate. *@
+              <span id="route-time-tip" role="tooltip" hidden></span>
             </span>
           </div>
           <span id="route-stats-caption"></span>
         </div>
         <div id="creating-route-buttons" class="flex-div-row">
-          <button type="button" id="save-button" class="button-ps button--primary button--medium" disabled>@Messages("routebuilder.save")</button>
-          <button type="button" id="preview-button" class="button-ps button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.preview")" title="@Messages("routebuilder.preview")">
+          <button type="button" id="save-button" class="button button--primary button--medium" disabled>@Messages("routebuilder.save")</button>
+          <button type="button" id="preview-button" class="button button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.preview")" data-ps-tooltip="@Messages("routebuilder.preview")">
             <img src="@assets.path("images/icons/play-feather.svg")" class="button-icon-img" alt="">
           </button>
-          <button type="button" id="undo-button" class="button-ps button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.undo")" title="@Messages("routebuilder.undo")">
+          <button type="button" id="undo-button" class="button button--secondary button--medium button--icon-only" disabled aria-label="@Messages("routebuilder.undo")" data-ps-tooltip="@Messages("routebuilder.undo")">
             <img src="@assets.path("images/icons/undo-material.svg")" class="button-icon-img" alt="">
           </button>
-          <button type="button" id="cancel-button" class="button-ps button--secondary button--medium button--icon-only" aria-label="@Messages("routebuilder.delete.route")" title="@Messages("routebuilder.delete.route")">
+          <button type="button" id="cancel-button" class="button button--secondary button--medium button--icon-only" aria-label="@Messages("routebuilder.delete.route")" data-ps-tooltip="@Messages("routebuilder.delete.route")">
             <img src="@assets.path("images/icons/trash-2-feather.svg")" class="button-icon-img" alt="">
           </button>
         </div>
-        <button type="button" id="new-route-button" class="button-ps button--secondary button--medium" title="@Messages("routebuilder.new.route.tooltip")">@Messages("routebuilder.new.route")</button>
+        <button type="button" id="new-route-button" class="button button--secondary button--medium" data-ps-tooltip="@Messages("routebuilder.new.route.tooltip")">@Messages("routebuilder.new.route")</button>
       </div>
       <div id="saved-routes-panel" class="routebuilder-panel__saved" hidden>
         <span id="saved-routes-title" class="routebuilder-h2">@Messages("routebuilder.saved.routes")</span>
@@ -110,8 +110,8 @@
         <span id="delete-route-explanation">@Messages("routebuilder.not.saved.explanation")</span>
       </div>
       <div id="delete-route-buttons" class="flex-div-row">
-        <button type="button" id="delete-route-button" class="button-ps button--primary button--medium">@Messages("routebuilder.delete.route")</button>
-        <button type="button" id="cancel-delete-route-button" class="button-ps button--secondary button--medium">@Messages("back")</button>
+        <button type="button" id="delete-route-button" class="button button--primary button--medium">@Messages("routebuilder.delete.route")</button>
+        <button type="button" id="cancel-delete-route-button" class="button button--secondary button--medium">@Messages("back")</button>
       </div>
     </div>
   </div>
@@ -135,10 +135,10 @@
       }
       <div id="save-route-buttons" class="flex-div-row">
         @if(isAnon) {
-          <button type="button" id="signin-save-button" class="button-ps button--primary button--medium">@Messages("routebuilder.signin.to.save")</button>
+          <button type="button" id="signin-save-button" class="button button--primary button--medium">@Messages("routebuilder.signin.to.save")</button>
         }
-        <button type="button" id="confirm-save-button" class="button-ps button--medium @if(isAnon) {button--secondary} else {button--primary}">@if(isAnon) {@Messages("routebuilder.continue.without.account")} else {@Messages("routebuilder.save")}</button>
-        <button type="button" id="cancel-save-button" class="button-ps button--secondary button--medium">@Messages("cancel")</button>
+        <button type="button" id="confirm-save-button" class="button button--medium @if(isAnon) {button--secondary} else {button--primary}">@if(isAnon) {@Messages("routebuilder.continue.without.account")} else {@Messages("routebuilder.save")}</button>
+        <button type="button" id="cancel-save-button" class="button button--secondary button--medium">@Messages("cancel")</button>
       </div>
     </div>
   </div>

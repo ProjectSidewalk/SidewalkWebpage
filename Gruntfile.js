@@ -7,6 +7,8 @@ module.exports = function (grunt) {
     concat: {
       dist_audit: {
         src: [
+          // Shared deep-link query rules; the live URL (ExploreUrlSync, #5480) writes through them.
+          'public/js/common/urlQuery.js',
           'public/js/explore/src/*.js',
           'public/js/explore/src/*/*.js',
           'public/js/common/ProgressBar.js',
@@ -22,6 +24,9 @@ module.exports = function (grunt) {
           // The pano image adjustments: the model, then the popover that drives it.
           'public/js/common/PanoImageAdjustments.js',
           'public/js/common/PanoImageAdjustmentsPopover.js',
+          // Immersive mode (#5085, #5560): shared by Explore and Validate.
+          'public/js/common/ImmersiveMode.js',
+          'public/js/common/KeyboardShortcuts.js',
           'public/js/common/WalkPlanner.js'
         ],
         dest: 'public/js/explore/build/explore.js'
@@ -53,7 +58,12 @@ module.exports = function (grunt) {
           // Toast must be concatenated before BadgeAchievements, which builds badge-unlock toasts.
           'public/js/common/Toast.js',
           'public/js/common/BadgeAchievements.js',
-          'public/js/common/share/ShareWidget.js'
+          'public/js/common/share/ShareWidget.js',
+          // The pano image adjustments: the model, then the popover that drives it.
+          'public/js/common/PanoImageAdjustments.js',
+          'public/js/common/PanoImageAdjustmentsPopover.js',
+          'public/js/common/ImmersiveMode.js',
+          'public/js/common/KeyboardShortcuts.js'
         ],
         dest: 'public/js/validate/build/validate.js'
       },
@@ -171,13 +181,15 @@ module.exports = function (grunt) {
           'public/js/common/pano-viewer/src/PanoData.js',
           'public/js/common/pano-viewer/src/PanoStore.js',
           'public/js/common/pano-viewer/src/panoUtilities.js',
-          // NoImageryError must precede the viewers, which throw it, and PanoViewer, which classifies on it.
+          // The error types precede the viewers, which throw them, and PanoViewer, which classifies on NoImageryError.
           'public/js/common/pano-viewer/src/NoImageryError.js',
+          'public/js/common/pano-viewer/src/PanoLoadTimeoutError.js',
           'public/js/common/pano-viewer/src/PanoViewer.js',
           'public/js/common/pano-viewer/src/GsvViewer.js',
           'public/js/common/pano-viewer/src/MapillaryChunkedDataProvider.js',
           'public/js/common/pano-viewer/src/MapillaryViewer.js',
           'public/js/common/pano-viewer/src/Infra3dViewer.js',
+          'public/js/common/pano-viewer/src/PanoImageCache.js',
           'public/js/common/pano-viewer/src/PannellumViewer.js',
           'public/js/common/pano-viewer/src/PanoramaxViewer.js',
           'public/js/common/pano-viewer/src/PanoViewerLogo.js',

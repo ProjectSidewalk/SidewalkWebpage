@@ -7,7 +7,6 @@ import models.cluster.ClusterScoreRow
 import models.intersection.{IntersectionInfo, IntersectionStreetEnd, StreetEnd}
 import models.region.Region
 import models.street.{StreetEdgeInfo, StreetGradientConfidence, StreetGradientQuality, StreetGradientStats}
-import models.utils.SpatialQueryType.SpatialQueryType
 import models.utils.{LatLngBBox, SpatialQueryType}
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Sink
@@ -70,9 +69,8 @@ class AccessScoreService @Inject() (
     apiService: ApiService,
     configService: ConfigService,
     swrCache: SwrCache,
-    implicit val ec: ExecutionContext,
     cpuEc: CpuIntensiveExecutionContext
-)(implicit mat: Materializer) {
+)(using ec: ExecutionContext, mat: Materializer) {
 
   /**
    * Computes v3 AccessScores for every street intersecting the bbox and every intersection at their ends (#3855,
@@ -96,7 +94,7 @@ class AccessScoreService @Inject() (
   ): Future[AccessScores] = {
     apiService
       .selectStreetsIntersecting(spatialQueryType, bbox)
-      .flatMap { streets: Seq[StreetEdgeInfo] =>
+      .flatMap { (streets: Seq[StreetEdgeInfo]) =>
         val streetIds: Seq[Int] = streets.map(_.street.streetEdgeId)
         val lengthsFuture       = apiService.getStreetLengths(streetIds)
         val namesFuture         = apiService.getStreetNames(streetIds)
@@ -135,7 +133,7 @@ class AccessScoreService @Inject() (
             val scoreByIntersection: Map[Int, Option[Double]] =
               intersectionScores.map(i => i.intersectionId -> i.score).toMap
             val intersectionByStreetEnd: Map[(Int, String), Int] =
-              streetEnds.map { e: IntersectionStreetEnd => (e.streetEdgeId, e.streetEnd) -> e.intersectionId }.toMap
+              streetEnds.map { (e: IntersectionStreetEnd) => (e.streetEdgeId, e.streetEnd) -> e.intersectionId }.toMap
 
             val streetScores: Seq[StreetAccessScoreForApi] = streets.map { s =>
               val streetId: Int              = s.street.streetEdgeId
@@ -155,7 +153,7 @@ class AccessScoreService @Inject() (
               )
             }
             AccessScores(streetScores, intersectionScores)
-          }(cpuEc)
+          }(using cpuEc)
         }
       }
       .flatten

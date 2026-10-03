@@ -21,6 +21,7 @@
   "route-usage-tooltip": "Verkend: hoeveel mensen deze route zijn gaan verkennen. Voltooid: hoeveel mensen de hele route hebben afgerond.",
   "est-time-minutes": "{{min}} min",
   "est-time-hours": "{{hours}} u {{min}} min",
+  "est-time-tooltip": "We schatten dat het beoordelen van deze route in Project Sidewalk ongeveer {{time}} duurt. Deze labeltijd is gebaseerd op het gebruikelijke tempo van verkenners in deze stad, ongeveer {{pace}} minuten per 100 meter.",
   "street-count_one": "{{count}} straat",
   "street-count_other": "{{count}} straten",
   "street-count-in-region_one": "{{count}} straat in {{region}}",

@@ -216,11 +216,20 @@ class PopupPanoManager {
       return Promise.reject(new Error('Pano viewer build abandoned after repeated failures'));
     }
     if (!this.#primaryViewerCreation) {
+      /** @type {Record<string, any>} */
       const panoOptions = {
         accessToken: this.#viewerAccessToken,
         scrollwheel: true,
         defaultNavigation: !!this.#admin, // Only allow navigation on admin version, not on normal LabelMap.
+        // The popup never reads a pano's links (the admin arrows are the SDK's own), and waiting for Mapillary's
+        // linked-pano graph only delays the reveal (#5581).
+        linkedPanos: false,
       };
+      // Paging through labels jumps between unrelated panos, where Mapillary's animated transition only shows the
+      // wrong place turning toward the next label (#5582). The SDK global only exists on pages that load Mapillary.
+      if (typeof mapillary !== 'undefined' && this.#viewerType === MapillaryViewer) {
+        panoOptions.transitionMode = mapillary.TransitionMode.Instantaneous;
+      }
       // Starts from a resolved promise so a synchronous throw in create() rejects like any other failure.
       this.#primaryViewerCreation = Promise.resolve()
         .then(() => this.#viewerType.create(this.#panoCanvas, panoOptions))
@@ -410,11 +419,11 @@ class PopupPanoManager {
     this.#pannellumCanvas.style.display = 'block';
 
     if (this.#pannellumViewer) {
-      await this.#pannellumViewer.loadPano(backupImage.panoId, backupImage, pov);
+      await this.#pannellumViewer.loadPano(backupImage.pano_id, backupImage, pov);
     } else {
       this.#pannellumViewer = await PannellumViewer.create(this.#pannellumCanvas, {
         panoMetadata: backupImage,
-        startPanoId: backupImage.panoId,
+        startPanoId: backupImage.pano_id,
         startHeading: pov.heading,
         startPitch: pov.pitch,
         startZoom: pov.zoom,

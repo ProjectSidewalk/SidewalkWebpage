@@ -1,6 +1,6 @@
 /**
  * Tests for PanoImageAdjustments (public/js/common/PanoImageAdjustments.js), the display-only shadows / brightness /
- * contrast model behind Explore's Image pill (#3136).
+ * contrast model behind the Image pill on Explore (#3136) and Validate (#5501).
  *
  * What is worth pinning: the filter string's composition (the gamma curve runs first, default terms are omitted, an
  * all-default state removes the inline filter entirely so the untouched pano never references the SVG), the gamma
@@ -78,6 +78,59 @@ describe('filter composition', () => {
         model.set('contrast', 100);
         expect(target.style.filter).toBe('');
         expect(target.getAttribute('style')).toBe('');
+    });
+});
+
+describe('several mounts', () => {
+    let second;
+
+    beforeEach(() => {
+        second = document.createElement('div');
+        document.body.appendChild(second);
+    });
+
+    test('writes the filter onto every mount and removes it from every mount at defaults', () => {
+        const model = new PanoImageAdjustments([target, second], memoryStorage());
+        model.set('brightness', 120);
+        expect(target.style.filter).toBe('brightness(1.2)');
+        expect(second.style.filter).toBe('brightness(1.2)');
+        model.reset();
+        expect(target.style.filter).toBe('');
+        expect(second.style.filter).toBe('');
+    });
+
+    test('leaves no style attribute on any mount when constructed at defaults', () => {
+        new PanoImageAdjustments([target, second], memoryStorage());
+        expect(target.getAttribute('style')).toBeNull();
+        expect(second.getAttribute('style')).toBeNull();
+    });
+
+    test('applies restored values to every mount on construction', () => {
+        const storage = memoryStorage({
+            panoImageAdjustments: JSON.stringify({ v: 1, shadows: 0, brightness: 100, contrast: 120 }),
+        });
+        new PanoImageAdjustments([target, second], storage);
+        expect(target.style.filter).toBe('contrast(1.2)');
+        expect(second.style.filter).toBe('contrast(1.2)');
+    });
+
+    test('creates a single SVG filter shared by every mount', () => {
+        const model = new PanoImageAdjustments([target, second], memoryStorage());
+        model.set('shadows', 50);
+        expect(document.querySelectorAll('#ps-pano-tone-curve')).toHaveLength(1);
+        expect(document.querySelectorAll('svg.ps-svg-defs')).toHaveLength(1);
+        expect(target.style.filter).toBe('url(#ps-pano-tone-curve)');
+        expect(second.style.filter).toBe('url(#ps-pano-tone-curve)');
+    });
+
+    test('skips a mount that is missing from the page', () => {
+        const model = new PanoImageAdjustments([target, null], memoryStorage());
+        expect(() => model.set('contrast', 80)).not.toThrow();
+        expect(target.style.filter).toBe('contrast(0.8)');
+    });
+
+    test('refuses to construct with no mount at all', () => {
+        expect(() => new PanoImageAdjustments([null, undefined], memoryStorage())).toThrow(/no pano mount/);
     });
 });
 

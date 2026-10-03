@@ -1,20 +1,20 @@
 package controllers
 
-import controllers.base._
+import controllers.base.*
 import controllers.helper.ControllerUtils.{isAdmin, isMobile}
-import formats.json.CommentSubmissionFormats._
-import formats.json.ExploreFormats._
-import formats.json.MissionFormats._
-import models.audit._
+import formats.json.CommentSubmissionFormats.*
+import formats.json.ExploreFormats.{given, *}
+import formats.json.MissionFormats.given
+import models.audit.*
 import models.auth.DefaultEnv
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.mission.MissionType
 import models.pano.PanoSource
 import models.street.{StreetEdgeIssue, StreetEdgeIssueType}
-import models.user._
+import models.user.*
 import models.utils.IpAddress
 import play.api.i18n.Messages
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Result
 import play.api.{Configuration, Logger}
 import play.silhouette.api.Silhouette
@@ -36,11 +36,17 @@ class ExploreController @Inject() (
     rateLimiter: service.RateLimiter,
     missionService: service.MissionService,
     aiService: service.AiService
-)(implicit ec: ExecutionContext, assets: AssetsFinder)
+)(using ec: ExecutionContext, assets: AssetsFinder)
     extends CustomBaseController(cc) {
 
-  implicit val implicitConfig: Configuration = config
-  private val logger                         = Logger(this.getClass)
+  given Configuration = config
+  private val logger  = Logger(this.getClass)
+
+  /**
+   * Drops a bound Double that is NaN or infinite; the query binder lets both through (#5480).
+   * @return The value when finite, else None.
+   */
+  private def finite(value: Option[Double]): Option[Double] = value.filter(v => !v.isNaN && !v.isInfinite)
 
   /**
    * Returns an explore page.
@@ -58,18 +64,38 @@ class ExploreController @Inject() (
       placeName: Option[String],
       heading: Option[Double],
       pitch: Option[Double],
-      zoom: Option[Int]
+      zoom: Option[Double],
+      missionId: Option[Int]
   ) = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
 
     // Labeling isn't supported on phones/tablets, so send mobile users to the mobile landing page instead.
-    if (isMobile(request)) {
+    if (isMobile) {
       cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_RedirectMobileLanding")
       Future.successful(Redirect("/mobileLanding"))
     } else {
+      // Play's Double binder accepts NaN and Infinity, which the page would hand to the viewer as JS identifiers; a
+      // hand-written seed value that is not finite is dropped rather than passed on (#5480).
+      val seedLat     = finite(lat)
+      val seedLng     = finite(lng)
+      val seedHeading = finite(heading)
+      val seedPitch   = finite(pitch)
+      val seedZoom    = finite(zoom)
+
+      // Explore's live URL (#5480) carries the mission it was written from, and that id is honored only for the
+      // mission's owner: it tells the labeler's own tab -- a refresh, or one of the app's own reloads -- apart from
+      // a shared link. The owner resumes their session as a bare /explore would, with the pano seed riding along;
+      // for anyone else the id is inert and the lat/lng below is a drop-in, so a recipient never enters the sharer's
+      // mission or route.
+      val ownSessionF: Future[Boolean] = missionId match {
+        case Some(mId) => missionService.getMission(mId).map(_.exists(_.userId == user.userId))
+        case None      => Future.successful(false)
+      }
+
       // NOTE: precedence is routeId, then streetEdgeId, then regionId, then lat/lng (an address drop-in, #4451).
       for {
-        exploreData <- (routeId, streetEdgeId, regionId, lat, lng) match {
+        ownSession  <- ownSessionF
+        exploreData <- (routeId, streetEdgeId, regionId, seedLat, seedLng) match {
           case (Some(routeId), _, _, _, _) =>
             exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
               Some(routeId), resumeRoute, regionId = None, streetEdgeId = None)
@@ -79,7 +105,7 @@ class ExploreController @Inject() (
           case (_, _, Some(regionId), _, _) =>
             exploreService.getDataForExplorePage(user.userId, retakeTutorial.getOrElse(false), newRegion = false,
               routeId = None, resumeRoute = resumeRoute, Some(regionId), streetEdgeId = None)
-          case (_, _, _, Some(lt), Some(lg)) =>
+          case (_, _, _, Some(lt), Some(lg)) if !ownSession =>
             // Free exploration at a searched address under an exploreAddress mission (#4451); falls back to the
             // normal flow when no street is close enough to the requested point.
             exploreService.getDataForExploreAddressPage(user.userId, lt, lg).flatMap {
@@ -96,6 +122,12 @@ class ExploreController @Inject() (
       } yield {
         val isExploreAddress: Boolean =
           exploreData.mission.missionType == MissionType.ExploreAddress
+        // The owner's seed is only right for the mission it was written in. A resume that landed elsewhere -- the
+        // mission completed since (a modal was up, a bookmark is days old), a route ended -- opens at its own task
+        // instead of kilometres away at a stale pano; the tutorial takes no seed either.
+        val seedOwnSession: Boolean =
+          ownSession && missionId.contains(exploreData.mission.missionId) &&
+            exploreData.mission.missionType != MissionType.AuditOnboarding
         val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
 
         // Log visit to the Explore page.
@@ -103,7 +135,7 @@ class ExploreController @Inject() (
           if (exploreData.userRoute.isDefined) s"Visit_Audit_RouteId=${exploreData.userRoute.get.routeId}"
           else if (streetEdgeId.isDefined) s"Visit_Audit_StreetEdgeId=${streetEdgeId.get}"
           else if (regionId.isDefined) s"Visit_Audit_RegionId=${regionId.get}"
-          else if (isExploreAddress) s"Visit_Audit_ExploreAddress_Lat=${lat.get}_Lng=${lng.get}"
+          else if (isExploreAddress) s"Visit_Audit_ExploreAddress_Lat=${seedLat.get}_Lng=${seedLng.get}"
           else if (newRegion) "Visit_Audit_NewRegionSelected"
           else "Visit_Audit"
         cc.loggingService.insert(user.userId, request.ipAddress, activityStr)
@@ -118,25 +150,25 @@ class ExploreController @Inject() (
         }
 
         // Load the Explore page. The match statement below just passes along any extra params. The pano is seeded at
-        // panoId or lat/lng for an admin exploring a specific street, or at lat/lng for an address drop-in (any
-        // user) — where a pano + POV seed can ride along (the label card's "Explore here", #4637): the pano wins
-        // when it loads, with the lat/lng as its fallback (#4635).
-        (streetEdgeId, isAdmin(user), panoId, lat, lng) match {
+        // panoId or lat/lng for an admin exploring a specific street, at lat/lng for an address drop-in (any user)
+        // — where a pano + POV seed can ride along (the label card's "Explore here", #4637): the pano wins when it
+        // loads, with the lat/lng as its fallback (#4635) — or for the owner of a live URL's mission (#5480).
+        (streetEdgeId, isAdmin(user), panoId, seedLat, seedLng) match {
           case (Some(s), true, Some(p), _, _) =>
             Ok(
-              views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p), None, heading,
-                pitch, zoom)
+              views.html.apps.explore(commonData, pageTitle, user, exploreData, None, None, Some(p), None, seedHeading,
+                seedPitch, seedZoom)
             )
           case (Some(s), true, _, Some(lt), Some(lg)) =>
             Ok(
-              views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), None, None, heading,
-                pitch, zoom)
+              views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), None, None,
+                seedHeading, seedPitch, seedZoom)
             )
-          case (None, _, p, Some(lt), Some(lg)) if isExploreAddress =>
+          case (None, _, p, Some(lt), Some(lg)) if isExploreAddress || seedOwnSession =>
             // placeName rides along only on the drop-in path — it names the searched place in the landing greeting.
             Ok(
               views.html.apps.explore(commonData, pageTitle, user, exploreData, Some(lt), Some(lg), p, placeName,
-                heading, pitch, zoom)
+                seedHeading, seedPitch, seedZoom)
             )
           case _ => Ok(views.html.apps.explore(commonData, pageTitle, user, exploreData))
         }
@@ -158,7 +190,7 @@ class ExploreController @Inject() (
               request.ipAddress, data.panoId, data.heading, data.pitch, data.zoom, data.lat, data.lng,
               OffsetDateTime.now, data.comment)
           )
-          .map { commentId: Int => Ok(Json.obj("comment_id" -> commentId)) }
+          .map { (commentId: Int) => Ok(Json.obj("comment_id" -> commentId)) }
       }
     )
   }
@@ -239,8 +271,7 @@ class ExploreController @Inject() (
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
   }
 
-  def getTasksInARoute(userRouteId: Int) = Action.async { implicit request =>
-    logger.debug(request.toString) // Added bc scalafmt doesn't like "implicit _" & compiler needs us to use request.
+  def getTasksInARoute(userRouteId: Int) = Action.async {
     exploreService
       .selectTasksInRoute(userRouteId)
       .map(tasks => Ok(Json.obj("type" -> "FeatureCollection", "features" -> JsArray(tasks.map(Json.toJson(_))))))
@@ -325,7 +356,7 @@ class ExploreController @Inject() (
               .map { _ =>
                 // Send labels to SidewalkAI API for AI validation. Only available for some label types and imagery sources.
                 val labelsToSend = returnData.newLabels.filter { l =>
-                  LabelTypeEnum.aiLabelTypes.contains(l.labelType) && l.panoSource == PanoSource.Gsv && !l.tutorial
+                  LabelType.aiLabelTypes.contains(l.labelType) && l.panoSource == PanoSource.Gsv && !l.tutorial
                 }
                 aiService
                   .validateLabelsWithAi(labelsToSend.map(_.labelId))
@@ -344,7 +375,7 @@ class ExploreController @Inject() (
                       returnData.newLabels.map(_.labelId).min,
                       returnData.newLabels.map(_.timeCreated).max
                     )
-                    .flatMap { timeSpent: Double =>
+                    .flatMap { (timeSpent: Double) =>
                       configService.sendSciStarterContributions(user.email, returnData.newLabels.length, timeSpent)
                     }
                     .failed

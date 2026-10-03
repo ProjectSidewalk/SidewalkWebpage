@@ -15,6 +15,7 @@
 # =====================================================================================================================
 set -euo pipefail
 
+# shellcheck source=helpers.sh
 source /opt/scripts/helpers.sh
 
 # Optional positional args ($1 schema, $2 CSV path relative to the db dir) so tools/city/setup_new_city.py can drive the

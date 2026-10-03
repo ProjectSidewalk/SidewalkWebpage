@@ -1,30 +1,29 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.mvc.Cookie
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.{AnonSession, UserAgents}
+import play.api.test.Helpers.*
+import util.{AnonSession, SidewalkSpec, UserAgents}
 
 /**
  * Shared helpers for the SEO surface specs below (issue #4237): an anon session (some pages, e.g. /mobile, are still
  * SecuredActions that bounce cookie-less requests through /anonSignUp) and a page fetch that follows that flow. The
  * public pages themselves render cookie-less since #4643 — SessionlessPagesSpec pins that contract.
  */
-trait SeoSpecHelpers extends AnonSession { this: PlaySpec with GuiceOneAppPerSuite =>
+trait SeoSpecHelpers extends AnonSession { this: SidewalkSpec & GuiceOneAppPerSuite =>
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   /** Cookies from the anonymous-signup flow, giving subsequent requests an authenticated session. */
   private lazy val anonCookies: Seq[Cookie] = freshAnonSession()
 
   /** Fetches a page as an anonymous-but-authenticated user and returns (status, body). */
   def getPage(path: String): (Int, String) = {
-    val resp = route(app, FakeRequest(GET, path).withCookies(anonCookies: _*)).get
+    val resp = route(app, FakeRequest(GET, path).withCookies(anonCookies*)).get
     (status(resp), contentAsString(resp))
   }
 
@@ -34,7 +33,7 @@ trait SeoSpecHelpers extends AnonSession { this: PlaySpec with GuiceOneAppPerSui
    */
   def getMobilePage(path: String): (Int, String) = {
     val mobileCookies = freshAnonSession(UserAgents.mobile)
-    val resp = route(app, FakeRequest(GET, path).withCookies(mobileCookies: _*).withHeaders(UserAgents.mobile)).get
+    val resp = route(app, FakeRequest(GET, path).withCookies(mobileCookies*).withHeaders(UserAgents.mobile)).get
     (status(resp), contentAsString(resp))
   }
 }
@@ -44,10 +43,10 @@ trait SeoSpecHelpers extends AnonSession { this: PlaySpec with GuiceOneAppPerSui
  * everything and every page carries a noindex meta and no canonical (a canonical pointing at prod would conflict
  * with the noindex signal). Requires the Postgres+PostGIS test DB, like the other functional specs.
  */
-class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
+class SeoSpec extends SidewalkSpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("environment-type" -> "test")
       .build()
@@ -90,13 +89,13 @@ class SeoSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
  * sitemap; pages carry canonical + description + Open Graph/Twitter tags and no noindex; the landing page has an h1,
  * JSON-LD, and a viewport meta inside the real head. Requires the Postgres+PostGIS test DB.
  */
-class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
+class SeoProdSpec extends SidewalkSpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
   private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
 
   // All three inputs to indexability are pinned: on a private or Infra3D city every assertion below would invert.
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "environment-type"                      -> "prod",
@@ -239,12 +238,12 @@ class SeoProdSpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers 
  * configured city with its pano source overridden, rather than hard-coding an Infra3D city id, so the spec doesn't
  * depend on which city this environment runs.
  */
-class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
+class SeoSignInWalledSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "environment-type"                      -> "prod",
@@ -253,7 +252,7 @@ class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
       )
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   "GET /sitemap.xml on a sign-in-walled prod city" should {
     "404 rather than promote pages that bounce a crawler to the disallowed /signIn" in {
@@ -281,12 +280,12 @@ class SeoSignInWalledSpec extends PlaySpec with GuiceOneAppPerSuite {
  * launched publicly. These assertions are the whole of what keeps them out of the search index. Overrides the
  * configured city's status rather than hard-coding a private city id, so the spec runs on any city.
  */
-class SeoPrivateCitySpec extends PlaySpec with GuiceOneAppPerSuite with SeoSpecHelpers {
+class SeoPrivateCitySpec extends SidewalkSpec with GuiceOneAppPerSuite with SeoSpecHelpers {
 
   private lazy val cityId: String = com.typesafe.config.ConfigFactory.load().getString("city-id")
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure(
         "environment-type"                      -> "prod",

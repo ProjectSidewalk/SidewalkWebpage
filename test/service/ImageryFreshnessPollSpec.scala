@@ -11,7 +11,7 @@ import java.time.LocalDate
  * Pure unit tests for the imagery-age poller's parsing and geometry helpers (#4384). No DB or network.
  */
 class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
-  import ImageryFreshnessService._
+  import ImageryFreshnessService.*
 
   test("parseGsvCaptureDate handles the three GSV precisions and rejects garbage") {
     parseGsvCaptureDate("2024-06-15") shouldBe Some(LocalDate.of(2024, 6, 15))
@@ -46,9 +46,9 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
   }
 
   test("metersToStreet measures point-to-polyline distance in meters, clamped to the segment") {
-    val geometryFactory = new GeometryFactory()
+    val geometryFactory = GeometryFactory()
     // A ~111 m east-west street at the equator; JTS coordinates are (x = lng, y = lat).
-    val street = geometryFactory.createLineString(Array(new Coordinate(0.0, 0.0), new Coordinate(0.001, 0.0)))
+    val street = geometryFactory.createLineString(Array(Coordinate(0.0, 0.0), Coordinate(0.001, 0.0)))
 
     metersToStreet(0.0, 0.0005, street) shouldBe 0.0 +- 0.01     // On the line.
     metersToStreet(0.0001, 0.0005, street) shouldBe 11.13 +- 0.1 // ~11 m north of the midpoint.
@@ -63,9 +63,9 @@ class ImageryFreshnessPollSpec extends AnyFunSuite with Matchers {
     // in Syracuse, NY. The poll sends that same query and relies on pollOneStreet's metersToStreet-vs-tolerance filter,
     // not the radius, to keep such an answer off the street. This pins the measurement half of that: the distance comes
     // out beyond the tolerance however far away the answer is, with no projection artefact letting it back in.
-    val geometryFactory = new GeometryFactory()
+    val geometryFactory = GeometryFactory()
     val street          = geometryFactory.createLineString(
-      Array(new Coordinate(-122.3100703, 47.6196811), new Coordinate(-122.3100703, 47.6208411))
+      Array(Coordinate(-122.3100703, 47.6196811), Coordinate(-122.3100703, 47.6208411))
     )
     metersToStreet(43.0917906, -76.1720131, street) should be > StreetImageryTable.PanoStreetToleranceMeters
     // The milder form: a pano 77 m off a 25 m query.

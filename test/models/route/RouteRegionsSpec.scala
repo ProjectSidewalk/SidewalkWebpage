@@ -5,12 +5,11 @@ import models.label.LabelTable
 import models.region.RegionTableDef
 import models.street.{StreetEdgeRegionTableDef, StreetEdgeTable}
 import models.user.SidewalkUserTableDef
-import models.utils.MyPostgresProfile.api._
-import org.scalatestplus.play.PlaySpec
+import models.utils.MyPostgresProfile.api.*
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import util.RolledBackDb
+import util.{RolledBackDb, SidewalkSpec}
 
 import java.time.OffsetDateTime
 
@@ -24,7 +23,7 @@ import java.time.OffsetDateTime
  *
  * Everything written here is rolled back — the dev DB is shared, so residue would pollute other work.
  */
-class RouteRegionsSpec extends PlaySpec with GuiceOneAppPerSuite with RolledBackDb {
+class RouteRegionsSpec extends SidewalkSpec with GuiceOneAppPerSuite with RolledBackDb {
 
   override def fakeApplication(): Application =
     new GuiceApplicationBuilder().disable[modules.ActorModule].build()

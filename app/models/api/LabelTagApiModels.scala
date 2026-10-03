@@ -26,6 +26,6 @@ case class LabelTagForApi(
  */
 object LabelTagForApi {
   // snake_case JSON output per the v3 API convention (#3871).
-  implicit private val config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
-  implicit val format: OFormat[LabelTagForApi]   = Json.format[LabelTagForApi]
+  private given config: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  given format: OFormat[LabelTagForApi]   = Json.format[LabelTagForApi]
 }

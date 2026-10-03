@@ -116,6 +116,7 @@ class RouteBuilder {
   #deleteRouteModal;
   #streetDistanceEl;
   #routeTimeEl;
+  #routeTimeTipEl;
   #statsCaptionEl;
   #routeStatsEl;
   #saveButton;
@@ -143,6 +144,7 @@ class RouteBuilder {
     this.#deleteRouteModal = document.getElementById('delete-route-modal-backdrop');
     this.#streetDistanceEl = document.getElementById('route-length-val');
     this.#routeTimeEl = document.getElementById('route-time-val');
+    this.#routeTimeTipEl = document.getElementById('route-time-tip');
     this.#statsCaptionEl = document.getElementById('route-stats-caption');
     this.#routeStatsEl = document.getElementById('route-stats');
     this.#saveButton = document.getElementById('save-button');
@@ -341,7 +343,7 @@ class RouteBuilder {
    */
   #initEstTimeTooltip() {
     const val = this.#routeTimeEl;
-    const tip = document.getElementById('route-time-tip');
+    const tip = this.#routeTimeTipEl;
     if (!val || !tip) return;
     const show = () => {
       tip.hidden = false;
@@ -1057,6 +1059,7 @@ class RouteBuilder {
     if (!hasRoute) {
       this.#streetDistanceEl.innerText = '';
       this.#routeTimeEl.innerText = '';
+      this.#routeTimeTipEl.textContent = '';
       this.#statsCaptionEl.textContent = '';
       return;
     }
@@ -1066,7 +1069,12 @@ class RouteBuilder {
     const graph = this.#getRouteGraph();
     const km = this.#segments.flat().reduce((sum, { streetId }) => sum + graph.getLengthM(streetId), 0) / 1000;
     this.#streetDistanceEl.innerText = this.#formatDistance(km);
-    this.#routeTimeEl.innerText = this.#formatEstTime(km);
+    const estTime = this.#formatEstTime(km);
+    this.#routeTimeEl.innerText = estTime;
+    // The tip spells out what the headline number is: time labeling in the tool, not time walking the route. It
+    // names the route's own estimate rather than only the pace, since "N minutes per 100 m" alone read as vague.
+    this.#routeTimeTipEl.textContent
+      = i18next.t('est-time-tooltip', { time: estTime, pace: this.#minutesPer100m.toFixed(1) });
 
     const regionIds = this.#routeRegionIds();
     const regionName = this.#getRegionName(regionIds[0]);

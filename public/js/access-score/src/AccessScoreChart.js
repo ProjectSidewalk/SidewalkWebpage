@@ -96,25 +96,4 @@ class AccessScoreChart {
   static score(score) {
     return AccessScoreChart.number(Math.round(score * 100));
   }
-
-  /**
-   * The display name of a label type, from the common namespace ("NoCurbRamp" → common:no-curb-ramp). The soft
-   * hyphens some translations carry (`Trottoir&shy;absenkung`) are dropped, as every other card does: the name is
-   * interpolated and escaped on its way into tooltips and accessible names, where the entity would print as text.
-   * @param {string} type - A label type.
-   * @returns {string} Its translated name.
-   */
-  static typeName(type) {
-    return i18next.t(`common:${util.camelToKebab(type)}`).replace('&shy;', '');
-  }
-
-  /**
-   * Escapes text for an HTML attribute or element body. Region names come from the database, so they take this
-   * path rather than being trusted into markup.
-   * @param {*} value - The text.
-   * @returns {string} The escaped text.
-   */
-  static esc(value) {
-    return util.escapeHTML(String(value));
-  }
 }

@@ -11,7 +11,7 @@
     profileData: UserProfileData, isMetric: Boolean, tags: Seq[Tag], standing: Option[UserStanding],
     streak: StreakStats, accuracyByType: Seq[AccuracyByType], trophies: Seq[Trophy], myRoutes: Seq[RouteWithStats],
     reauditStreets: Seq[OutdatedStreetForUser], reauditTotal: Int, reauditPageSize: Int
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * The signed-in user's dashboard. `user` is whose dashboard this is and `viewer` who is looking at it — the same
@@ -46,7 +46,7 @@
 
 @heatCell(cell: Option[StreakCell]) = {
   @for(c <- cell) {
-    <span class="ud-heat ud-heat-@c.intensity" role="img" title="@cellTooltip(c)" aria-label="@cellTooltip(c)" tabindex="0"></span>
+    <span class="ud-heat ud-heat-@c.intensity" role="img" data-ps-tooltip="@cellTooltip(c)" aria-label="@cellTooltip(c)" tabindex="0"></span>
   }
   @if(cell.isEmpty) {
     <span class="ud-heat ud-heat-empty" aria-hidden="true"></span>
@@ -98,7 +98,8 @@
     .withLocale(messages.lang.toLocale))
 }
 
-@* Capture dates are month-granular in practice, so a full date would over-claim precision. *@
+@* Capture dates are month-granular in practice, so a full date would over-claim precision. Java can't word a
+   month and year the way each language does (zh-TW is 2026年3月), so OutdatedStreets rewrites this with Intl. *@
 @imageryMonthLabel(d: java.time.LocalDate) = @{
   d.format(java.time.format.DateTimeFormatter.ofPattern("LLLL yyyy", messages.lang.toLocale))
 }
@@ -163,7 +164,7 @@
    *@
   @* Outside the section, because a live region that was display:none at load isn't reliably watched — and this one
    has to announce the arrival of the very element it would otherwise sit inside. *@
-  <span id="ud-cities-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+  <span id="ud-cities-status" class="sr-only" role="status" aria-live="polite"></span>
   <div class="page-section" id="ud-cities-section" hidden
        data-stats-url="@if(adminView){/adminapi/users/@{user.userId}/crossCityStats}else{/userapi/crossCityStats}">
     <h2 class="page-heading" id="cities">@Messages("dashboard.cities.title") <a href="#cities" class="permalink">#</a></h2>
@@ -207,7 +208,7 @@
       @for(r <- myRoutes) {
         <li class="ud-route-row" data-route-id="@r.routeId" data-slug="@r.slug">
           @if(r.thumbnailUrl.nonEmpty) {
-            <a class="ud-route-view" data-route-id="@r.routeId" href="/routeBuilder?preview=@r.routeId" title="@Messages("dashboard.routes.view.title")">
+            <a class="ud-route-view" data-route-id="@r.routeId" href="/routeBuilder?preview=@r.routeId" aria-label="@Messages("dashboard.routes.view.title")" data-ps-tooltip="@Messages("dashboard.routes.view.title")">
               <img class="ud-route-thumb" src="@r.thumbnailUrl" alt="" loading="lazy" width="180" height="90">
             </a>
           }
@@ -221,7 +222,7 @@
                  MyRoutes rewrites this to the local date, leaving the UTC rendering as the no-JS fallback. *@
               <time class="ud-route-date" datetime="@r.createdAt.toInstant.toString">@mediumDateLabel(r.createdAt)</time>
             </span>
-            <span class="ud-route-usage" title="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
+            <span class="ud-route-usage" tabindex="0" data-ps-tooltip="@Messages("dashboard.routes.stats.tooltip")">@Messages("dashboard.routes.stats", r.startedCount, r.completedCount)</span>
           </div>
           <div class="ud-route-actions">
             <a class="ud-btn-secondary ud-route-explore" data-route-id="@r.routeId" href="/explore?routeId=@r.routeId">@Messages("dashboard.routes.explore")</a>
@@ -237,7 +238,7 @@
     <div class="ud-nudge" id="ud-routes-empty" @if(myRoutes.nonEmpty) {hidden}>
       @Messages("dashboard.routes.none") <a href="/routeBuilder">@Messages("dashboard.routes.build.one")</a>
     </div>
-    <span id="ud-routes-status" class="ud-sr-only" role="status" aria-live="polite"></span>
+    <span id="ud-routes-status" class="sr-only" role="status" aria-live="polite"></span>
   </div>
 
   @* ---- Streak / activity rhythm -------------------------------------------------------------------------- *@
@@ -420,7 +421,8 @@
                 <span class="ud-reaudit-meta">
                   @streetLengthLabel(street.distanceMeters)
                   @for(captured <- street.newImageryDate) {
-                    · @Messages("dashboard.reaudit.imagery", imageryMonthLabel(captured))
+                    · @Html(Messages("dashboard.reaudit.imagery",
+                      s"""<time class="ud-reaudit-imagery-date" datetime="${captured.toString.take(7)}">${imageryMonthLabel(captured)}</time>"""))
                   }
                 </span>
                 @for(audited <- street.lastAuditedAt) {
@@ -528,14 +530,23 @@
       // fails, the mistake cards still work with their inline vote/note controls.
       let labelPopup = null;
       try {
-        const src = "@commonData.imagerySource.toString";
+        const src = "@commonData.imagerySource.name";
         const viewerType = src === 'mapillary' ? MapillaryViewer : src === 'infra3d' ? Infra3dViewer : GsvViewer;
         @* The popup's username marks the viewer's own comments/stories; anonymous sessions have autogenerated
            usernames, so only a real account's name reaches it. *@
         labelPopup = await LabelPopup(@adminView, viewerType, "@commonData.imageryAccessToken",
-                                      @if(viewer.role != Role.Anonymous) {"@viewer.username"} else {null});
+                                      @if(viewer.role != Role.Anonymous) {"@viewer.username"} else {null},
+                                      { showLabelMapLink: true, showExploreHereLink: true });
       } catch (e) {
         console.error('Label popup init failed; mistake cards will use inline controls only', e);
+      }
+      @if(adminView) {
+        @* An admin's votes, comments, and edits here are recorded as the admin dashboard, whichever section opened
+           the label, so they stay separable from what users do on their own dashboards and profiles. *@
+        if (labelPopup) {
+          const showLabel = labelPopup.showLabel;
+          labelPopup.showLabel = (labelId) => showLabel(labelId, 'AdminUserDashboard');
+        }
       }
       labelPopupReadyResolve(labelPopup);
 

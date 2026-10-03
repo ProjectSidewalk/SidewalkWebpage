@@ -21,6 +21,7 @@
   "route-usage-tooltip": "Erkundet: wie viele Personen begonnen haben, diese Route zu erkunden. Abgeschlossen: wie viele die gesamte Route beendet haben.",
   "est-time-minutes": "{{min}} Min.",
   "est-time-hours": "{{hours}} Std. {{min}} Min.",
+  "est-time-tooltip": "Wir schätzen, dass die Bewertung dieser Route in Project Sidewalk etwa {{time}} dauert. Diese Beschriftungszeit basiert auf dem typischen Tempo der Erkunder in dieser Stadt, etwa {{pace}} Minuten pro 100 Meter.",
   "street-count_one": "{{count}} Straße",
   "street-count_other": "{{count}} Straßen",
   "street-count-in-region_one": "{{count}} Straße in {{region}}",

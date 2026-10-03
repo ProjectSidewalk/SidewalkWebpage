@@ -4,18 +4,18 @@
 @import models.street.StreetGradientStats
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+@(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 @ratingLabel(scoring: AccessScoreCalculator.Scoring) = @{
   scoring match {
-    case AccessScoreCalculator.PositiveQuality => "Quality (Good / Okay / Bad)"
-    case AccessScoreCalculator.NegativeSeverity => "Severity (Low / Medium / High)"
-    case AccessScoreCalculator.PresenceOnly => "Presence only, per cluster"
-    case AccessScoreCalculator.StreetCondition => "Street condition: one pooled term per street"
+    case AccessScoreCalculator.Scoring.PositiveQuality => "Quality (Good / Okay / Bad)"
+    case AccessScoreCalculator.Scoring.NegativeSeverity => "Severity (Low / Medium / High)"
+    case AccessScoreCalculator.Scoring.PresenceOnly => "Presence only, per cluster"
+    case AccessScoreCalculator.Scoring.StreetCondition => "Street condition: one pooled term per street"
   }
 }
-@noSidewalkBase = @{AccessScoreCalculator.typeWeights(models.label.LabelTypeEnum.NoSidewalk.name).baseWeight}
-@noSidewalkTag(tag: String) = @{AccessScoreCalculator.tagAdjustments((models.label.LabelTypeEnum.NoSidewalk.name, tag))}
+@noSidewalkBase = @{AccessScoreCalculator.typeWeights(models.label.LabelType.NoSidewalk.name).baseWeight}
+@noSidewalkTag(tag: String) = @{AccessScoreCalculator.tagAdjustments((models.label.LabelType.NoSidewalk.name, tag))}
 @saturation = @{AccessScoreCalculator.streetConditionSaturationCount}
 @radius = @{AccessScoreCalculator.attributionRadiusMeters.toInt}
 @perMeters = @{AccessScoreCalculator.lengthNormalizationPerMeters.toInt}
@@ -25,7 +25,7 @@
 @sigmoid(t: Double) = @{f"${1.0 / (1.0 + math.exp(-t))}%.2f"}
 @signed(x: Double) = @{f"$x%+.2f"}
 @tagAdjustmentsFor(labelType: String) = @{
-  AccessScoreCalculator.tagAdjustments.collect { case ((lt, tag), delta) if lt == labelType => (tag, delta) }.toSeq.sortBy(_._1)
+  AccessScoreCalculator.tagAdjustments.collect { case ((lt, tag), delta) if lt == labelType => (tag, delta) }.toSeq.sortBy { case (tag, _) => tag }
 }
 
 @content = {

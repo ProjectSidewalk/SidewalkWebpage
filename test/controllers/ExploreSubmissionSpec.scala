@@ -1,19 +1,19 @@
 package controllers
 
 import controllers.helper.{ExploreBootstrap, SubmissionSpecHelpers}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.Eventually
 import org.scalatest.time.{Millis, Seconds, Span}
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import _root_.util.SidewalkSpec
 
 import java.time.OffsetDateTime
 
@@ -35,14 +35,14 @@ import java.time.OffsetDateTime
 // Mixin order matters: GuiceOneAppPerSuite must be rightmost so its run() wraps BeforeAndAfterAll's — otherwise
 // afterAll's cleanup executes after the app (and its DB pool) has shut down and aborts the suite.
 class ExploreSubmissionSpec
-    extends PlaySpec
+    extends SidewalkSpec
     with BeforeAndAfterAll
     with Eventually
     with SubmissionSpecHelpers
     with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       // Submitting eligible labels fires an async AI-validation HTTP call; keep the spec off the network.
       .configure("ai-enabled" -> false)
@@ -199,7 +199,7 @@ class ExploreSubmissionSpec
 
   /** Posts a submission over HTTP as the session's user, the way the frontend does. */
   private def postTask(session: Seq[Cookie], payload: JsValue) =
-    route(app, FakeRequest(POST, "/task").withCookies(session: _*).withJsonBody(payload).withCSRFToken).get
+    route(app, FakeRequest(POST, "/task").withCookies(session*).withJsonBody(payload).withCSRFToken).get
 
   /** Reports the bootstrap's street as having no usable imagery, the way `util.misc.reportNoImagery` does. */
   private def postNoImagery(session: Seq[Cookie], b: ExploreBootstrap) = {
@@ -220,7 +220,7 @@ class ExploreSubmissionSpec
     )
     route(
       app,
-      FakeRequest(POST, "/explore/nostreetview").withCookies(session: _*).withJsonBody(payload).withCSRFToken
+      FakeRequest(POST, "/explore/nostreetview").withCookies(session*).withJsonBody(payload).withCSRFToken
     ).get
   }
 
@@ -260,7 +260,7 @@ class ExploreSubmissionSpec
       sql"""SELECT label_id, audit_task_id, mission_id, deleted, tutorial, severity
             FROM label WHERE user_id = $userId AND temporary_label_id = $tempLabelId"""
         .as[(Int, Int, Int, Boolean, Boolean, Option[Int])]
-    ).map((LabelRow.apply _).tupled)
+    ).map(LabelRow.apply.tupled)
 
   /** The street's current priority, or None when it has no `street_edge_priority` row. */
   private def streetPriority(streetEdgeId: Int): Option[Double] =
@@ -363,6 +363,16 @@ class ExploreSubmissionSpec
       val resp    = postTask(session, Json.obj("mission" -> "bogus"))
       status(resp) mustBe BAD_REQUEST
       (contentAsJson(resp) \ "status").as[String] mustBe "Error"
+    }
+
+    "400 a label whose type isn't one we know, and write nothing" in {
+      val session  = freshAnonSession()
+      val b        = fetchExploreBootstrap(session)
+      val tempId   = 777009
+      val badLabel = labelJson(tempId, b, b.missionType == "auditOnboarding") + ("label_type" -> JsString("NotAType"))
+
+      status(postTask(session, submission(b, labels = Seq(badLabel)))) mustBe BAD_REQUEST
+      labelRows(b.userId, tempId) mustBe empty
     }
 
     "write audit_task, label, and label_point rows and echo the temp-to-permanent label id mapping" in {

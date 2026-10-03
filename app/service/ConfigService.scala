@@ -2,15 +2,15 @@ package service
 
 import com.google.inject.ImplementedBy
 import com.typesafe.config.ConfigException
-import models.api.{AggregateStats, DailyStatRecord, LabelTypeStats}
+import models.api.{AggregateStats, DailyLabelStat, DailyStatRecord, DailyValidationStat, LabelTypeStats}
 import models.pano.PanoSource
-import models.pano.PanoSource.PanoSource
-import models.utils.MyPostgresProfile.api._
-import models.utils._
+import models.utils.MyPostgresProfile.api.given
+import models.utils.*
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables.*
 import play.api.{Configuration, Logger}
 import play.twirl.api.Html
 import slick.dbio.DBIO
@@ -18,7 +18,7 @@ import slick.dbio.DBIO
 import java.lang.management.ManagementFactory
 import java.time.{Instant, LocalDate, OffsetDateTime, ZoneId, ZoneOffset}
 import java.time.temporal.ChronoUnit
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.{Duration, FiniteDuration}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
@@ -102,15 +102,18 @@ case class CommonPageData(
     volunteerSupervisor: String,
     // Content-fingerprint digests for the assets JS builds URLs for, serialized once at startup by
     // AssetManifestService; stamped on every page for util.assetPath (#4893).
-    assetDigestsJson: Html
+    assetDigestsJson: Html,
+    // Every translation file under public/locales/, so i18next only asks for ones that exist (#5570).
+    localeFilesJson: Html,
+    // Every language the site offers (play.i18n.langs), so i18next only asks for translation files that exist.
+    supportedLanguages: Seq[String]
 ) {
 
   /** The deployment city's info; cityId always comes from the same config that builds allCityInfo. */
   def currentCity: CityInfo = allCityInfo.find(_.cityId == cityId).get
 
   /** Whether search engines may index this deployment (#5120); see [[models.utils.SeoUtils.isIndexable]]. */
-  def isIndexable: Boolean =
-    SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.toString)
+  def isIndexable: Boolean = SeoUtils.isIndexable(environmentType, currentCity.visibility, imagerySource.name)
 }
 
 /**
@@ -155,11 +158,13 @@ case class WeeklyPoint(weekStart: LocalDate, labels: Int, validations: Int, acti
  * String values match the labels [[models.utils.ConfigTable]]'s `account_kinds` CTE emits, which is how a row is
  * parsed back into this type.
  */
-object ContributorKind extends Enumeration {
-  val Registered: ContributorKind.Value = Value("registered")
-  val Anonymous: ContributorKind.Value  = Value("anonymous")
-  val Ai: ContributorKind.Value         = Value("ai")
+enum ContributorKind(val name: String) extends NamedEnum {
+  case Registered extends ContributorKind("registered")
+  case Anonymous  extends ContributorKind("anonymous")
+  case Ai         extends ContributorKind("ai")
 }
+
+object ContributorKind extends NamedEnumCompanion[ContributorKind]
 
 /**
  * One person's contribution to one city on one day, the grain the "this week" bar charts are built from (#4931).
@@ -175,7 +180,7 @@ case class DailyContributorActivity(
     day: LocalDate,
     userId: String,
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels: Int,
     validations: Int
 )
@@ -194,7 +199,7 @@ case class DailyContributorActivity(
 case class ContributorWindowActivity(
     userId: String,
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels7d: Int,
     labelsPrior7d: Int,
     validations7d: Int,
@@ -270,7 +275,7 @@ case class CityDayTotals(cityId: String, labels: Int, validations: Int, contribu
  */
 case class DailyContributor(
     username: String,
-    kind: ContributorKind.Value,
+    kind: ContributorKind,
     labels: Int,
     validations: Int,
     cities: Seq[ContributorCityDay] = Seq.empty
@@ -428,7 +433,7 @@ case class CrossCityActivityWindows(byCity: Map[String, CityActivityWindow], tot
  * @param totalLabels             Non-tutorial, non-excluded labels (reconciles with the city's single-city total).
  * @param aiLabels                Subset of totalLabels authored by the AI role.
  * @param labelsWithSeverity      Subset of totalLabels that have a severity rating (a data-completeness signal).
- * @param labelsSeverityEligible  Labels whose type CAN take a rating (LabelTypeEnum.ratedTypeNames) — the correct
+ * @param labelsSeverityEligible  Labels whose type CAN take a rating (LabelType.ratedTypeNames) — the correct
  *                                denominator for "% with severity".
  * @param labelsWithTags          Subset of totalLabels that have at least one tag applied.
  * @param labelsTagEligible       Labels whose type CAN take tags (types present in this deployment's tag table) — the
@@ -507,6 +512,30 @@ case class CityScorecard(
 case class CityScorecardWithFlags(scorecard: CityScorecard, anomalies: Seq[String])
 
 /**
+ * One city's lived-experience story counts, for the Across Cities Stories section (#5543).
+ *
+ * Counts every story, whoever wrote it: this feeds moderation, which has to see what excluded users post too. Story
+ * text is deliberately absent; it is moderated only on the city's own server, so the page links there instead.
+ *
+ * @param total      Every story row, visible or hidden.
+ * @param hidden     Stories an admin has quarantined (`visible = FALSE`).
+ * @param withPhoto  Stories with at least one attached photo.
+ * @param last7d     Stories submitted in the trailing 7 days.
+ * @param visible7d  Those still visible: the ones a moderator has not already hidden, and so still worth a look.
+ * @param last30d    Stories submitted in the trailing 30 days.
+ * @param newest     When the most recent story was submitted; None when the city has none.
+ */
+case class CityStoryStats(
+    total: Int,
+    hidden: Int,
+    withPhoto: Int,
+    last7d: Int,
+    visible7d: Int,
+    last30d: Int,
+    newest: Option[OffsetDateTime]
+)
+
+/**
  * One demographic slice of a city's engagement funnel: the eight monotonic step counts for that slice (#288).
  *
  * @param steps Distinct users reaching each step, index 0 = step 1 (see [[ConfigService.FunnelDefs]]), non-increasing.
@@ -580,7 +609,7 @@ object ConfigService {
     val cleanName  = name.trim
     val cleanUrl   = url.trim
     val urlIsHttps = Try {
-      val uri = new java.net.URI(cleanUrl)
+      val uri = java.net.URI(cleanUrl)
       Option(uri.getScheme).exists(_.equalsIgnoreCase("https")) && uri.getHost != null && uri.getRawUserInfo == null
     }.getOrElse(false)
     if (cleanUrl.isEmpty) Right(None)
@@ -590,7 +619,13 @@ object ConfigService {
     else if (cleanUrl.length > OfficialContactMaxUrlLength)
       Left(s"The URL can be at most $OfficialContactMaxUrlLength characters.")
     else if (!urlIsHttps)
-      Left("The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us.")
+      // java.net.URI finds no host in a non-ASCII domain, so name the fix where an admin who hit it will look.
+      Left(
+        "The URL must be a full https:// link with no user name, e.g. https://www.burnaby.ca/our-city/contact-us." +
+          (if (Try(java.net.URI(cleanUrl).getRawAuthority).toOption.flatMap(Option(_)).exists(_.exists(_ > 127)))
+             " For a domain with accented or non-Latin letters, paste its punycode (xn--) form."
+           else "")
+      )
     else Right(Some(OfficialContact(cleanName, "https" + cleanUrl.drop("https".length))))
   }
 
@@ -690,22 +725,27 @@ object ConfigService {
    * @return     The day's totals, its busiest cities, and its busiest contributors.
    */
   def summarizeDay(day: LocalDate, rows: Seq[(String, DailyContributorActivity)]): DailyActivity = {
-    val byKind     = rows.groupBy(_._2.kind).withDefaultValue(Seq.empty)
-    val aiRows     = byKind(ContributorKind.Ai)
+    def activityOf(cityRows: Seq[(String, DailyContributorActivity)]): Seq[DailyContributorActivity] =
+      cityRows.map { case (_, activity) => activity }
+    val byKind     = rows.groupBy { case (_, activity) => activity.kind }.withDefaultValue(Seq.empty)
+    val aiRows     = activityOf(byKind(ContributorKind.Ai))
     val peopleRows = byKind(ContributorKind.Registered) ++ byKind(ContributorKind.Anonymous)
+    val people     = activityOf(peopleRows)
     // Ranked and truncated below, so ties break on a stable key rather than on HashMap iteration order.
     val merged = rows
-      .groupBy(_._2.userId)
+      .groupBy { case (_, activity) => activity.userId }
       .toSeq
       .map { case (userId, userRows) =>
-        val first = userRows.head._2
+        val userActivity = activityOf(userRows)
+        val first        = userActivity.head
         // A person can have several rows in one city, so the split sums by city before ranking; ties break on city
         // id for the same reproducibility reason as the list itself.
         val cities = userRows
-          .groupBy(_._1)
+          .groupBy { case (cityId, _) => cityId }
           .toSeq
           .map { case (cityId, cityRows) =>
-            ContributorCityDay(cityId, cityRows.map(_._2.labels).sum, cityRows.map(_._2.validations).sum)
+            val cityActivity = activityOf(cityRows)
+            ContributorCityDay(cityId, cityActivity.map(_.labels).sum, cityActivity.map(_.validations).sum)
           }
           .sortBy(c => (-(c.labels + c.validations), c.cityId))
         (
@@ -713,39 +753,39 @@ object ConfigService {
           DailyContributor(
             first.username,
             first.kind,
-            userRows.map(_._2.labels).sum,
-            userRows.map(_._2.validations).sum,
+            userActivity.map(_.labels).sum,
+            userActivity.map(_.validations).sum,
             cities
           )
         )
       }
       .sortBy { case (userId, c) => (-(c.labels + c.validations), userId) }
-      .map(_._2)
-    def activeOfKind(kind: ContributorKind.Value): Int =
-      merged.count(c => c.kind == kind && c.labels + c.validations > 0)
+      .map { case (_, contributor) => contributor }
+    def activeOfKind(kind: ContributorKind): Int = merged.count(c => c.kind == kind && c.labels + c.validations > 0)
     // Anonymous contributors are counted (as sessions, on the point) but not listed: their usernames are generated
     // cookie ids, so naming them fills the card with hex and implies a person behind each one.
     val named = merged.filter(_.kind != ContributorKind.Anonymous)
     val point = DailyPoint(
       day = day,
-      labels = peopleRows.map(_._2.labels).sum,
-      validations = peopleRows.map(_._2.validations).sum,
+      labels = people.map(_.labels).sum,
+      validations = people.map(_.validations).sum,
       contributors = activeOfKind(ContributorKind.Registered),
       anonSessions = activeOfKind(ContributorKind.Anonymous),
-      aiLabels = aiRows.map(_._2.labels).sum,
-      aiValidations = aiRows.map(_._2.validations).sum,
+      aiLabels = aiRows.map(_.labels).sum,
+      aiValidations = aiRows.map(_.validations).sum,
       aiAgents = activeOfKind(ContributorKind.Ai)
     )
     // Cities are ranked and listed by what people did there; AI output belongs to the pipeline, not to a community.
     val topCities = peopleRows
-      .groupBy(_._1)
+      .groupBy { case (cityId, _) => cityId }
       .toSeq
       .map { case (cityId, cityRows) =>
+        val cityActivity = activityOf(cityRows)
         CityDayTotals(
           cityId,
-          cityRows.map(_._2.labels).sum,
-          cityRows.map(_._2.validations).sum,
-          cityRows.map(_._2.userId).distinct.size
+          cityActivity.map(_.labels).sum,
+          cityActivity.map(_.validations).sum,
+          cityActivity.map(_.userId).distinct.size
         )
       }
       .sortBy(city => (-(city.labels + city.validations), city.cityId))
@@ -909,7 +949,7 @@ object ConfigService {
   def funnelStepKeys(funnelType: String): Seq[String] = FunnelDefs.toMap.getOrElse(funnelType, Seq.empty)
 
   /** The longest funnel's step count (the mapping funnel), derived from [[FunnelDefs]] rather than hardcoded. */
-  val MaxFunnelSteps: Int = FunnelDefs.map(_._2.length).max
+  val MaxFunnelSteps: Int = FunnelDefs.map { case (_, steps) => steps.length }.max
 
   /** An all-zero funnel of the maximum length — the empty/identity input for the conversion helpers. */
   val ZeroFunnelSteps: Seq[Int] = Seq.fill(MaxFunnelSteps)(0)
@@ -1022,6 +1062,17 @@ trait ConfigService {
    * @return A Future of cityId → seconds per 100 m (lower is faster).
    */
   def getCrossCityLabelingSpeed(): Future[Map[String, Double]]
+
+  /**
+   * Returns each city's story counts (#5543), so an Owner can see which deployments have stories to moderate.
+   *
+   * Cached like the scorecards, and fetched independently of them, so a city whose heavy scorecard query fails still
+   * reports its stories. Every available city gets an entry: None when its count failed (e.g. a schema not yet at the
+   * evolution that added `story`), which the page shows as unavailable rather than as zero.
+   *
+   * @return A Future of cityId → that city's story counts, or None where the count failed.
+   */
+  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]]
 
   /**
    * Returns the current city's labeling pace as minutes of active auditing per 100 m covered.
@@ -1212,7 +1263,7 @@ class ConfigServiceImpl @Inject() (
     panoDataService: PanoDataService,
     swrCache: SwrCache,
     assetManifestService: AssetManifestService
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends ConfigService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
   private val logger = Logger(this.getClass)
@@ -1295,7 +1346,7 @@ class ConfigServiceImpl @Inject() (
         val (readyDeployments, skipped) = deployments.partition { case (_, schema) => ready.getOrElse(schema, false) }
         // A schema with *some* of the columns exists but is behind on evolutions — real, actionable drift, unlike a
         // schema that is simply absent (every dev box and single-city deployment has ~50 of those).
-        val behind = skipped.map(_._2).filter(ready.contains)
+        val behind = skipped.map { case (_, schema) => schema }.filter(ready.contains)
         if (behind.nonEmpty) {
           logger.warn(
             s"Global leaderboard excluding ${behind.size} city schema(s) missing columns it reads " +
@@ -1304,7 +1355,7 @@ class ConfigServiceImpl @Inject() (
         }
 
         val cities       = readyDeployments.filterNot { case (cityId, _) => isExcludedFromGlobalLeaderboard(cityId) }
-        val contributing = cities.map(_._2).toSet
+        val contributing = cities.map { case (_, schema) => schema }.toSet
         // Everything ready but not contributing, minus the private-by-default cities where a FALSE flag is just the
         // signup default rather than a choice. Rereading those as opt-outs would silently unlist most of their mappers.
         val optOutSchemas = readyDeployments.collect {
@@ -1373,15 +1424,16 @@ class ConfigServiceImpl @Inject() (
           val (readyDeployments, skipped) = deployments.partition { case (_, schema) =>
             ready.getOrElse(schema, false)
           }
+          val skippedSchemas = skipped.map { case (_, schema) => schema }
           // A schema with *some* of the columns is behind on evolutions — real drift, unlike a schema that is simply
           // absent. availableCityIds already dropped those, so anything here is worth a warning.
           if (skipped.nonEmpty) {
             logger.warn(
               s"Cross-city $label excluding ${skipped.size} city schema(s) missing columns they read " +
-                s"(evolutions likely not yet applied there): ${skipped.map(_._2).mkString(", ")}"
+                s"(evolutions likely not yet applied there): ${skippedSchemas.mkString(", ")}"
             )
           }
-          SelfViewScope(readyDeployments, skipped.map(_._2))
+          SelfViewScope(readyDeployments, skippedSchemas)
         }
       }
     }
@@ -1432,7 +1484,7 @@ class ConfigServiceImpl @Inject() (
    */
   private def schemasWithColumns(required: Set[(String, String)]): Future[Map[String, Boolean]] = {
     // Table names come from a hardcoded required-column set, never from a request, so splicing them is safe.
-    val tables: Set[String] = required.map(_._1)
+    val tables: Set[String] = required.map { case (table, _) => table }
     db.run(
       sql"""
         SELECT table_schema, table_name, column_name
@@ -1441,7 +1493,7 @@ class ConfigServiceImpl @Inject() (
       """.as[(String, String, String)]
     ).map { rows =>
       rows
-        .groupBy(_._1)
+        .groupBy { case (schema, _, _) => schema }
         .view
         .mapValues { schemaRows =>
           val present = schemaRows.map { case (_, table, column) => (table, column) }.toSet
@@ -1473,7 +1525,7 @@ class ConfigServiceImpl @Inject() (
         case _: Exception => Future.successful(cityId -> false)
       }
     }
-    Future.sequence(schemaExistenceChecks).map(_.filter(_._2).map(_._1))
+    Future.sequence(schemaExistenceChecks).map(_.collect { case (cityId, true) => cityId })
   }
 
   def getCityScorecards(): Future[Seq[CityScorecardWithFlags]] = {
@@ -1519,7 +1571,7 @@ class ConfigServiceImpl @Inject() (
           perCity.flatten
             .groupBy(_.weekStart)
             .toSeq
-            .sortBy(_._1)
+            .sortBy { case (week, _) => week }
             .map { case (week, pts) =>
               WeeklyPoint(
                 week,
@@ -1552,7 +1604,7 @@ class ConfigServiceImpl @Inject() (
         Future.sequence(perCityFutures).map { perCity =>
           val rowsByDay: Map[LocalDate, Seq[(String, DailyContributorActivity)]] = perCity
             .flatMap { case (cityId, rows) => rows.map(cityId -> _) }
-            .groupBy(_._2.day)
+            .groupBy { case (_, activity) => activity.day }
           // Zero-fill the exact trailing window so the page always gets `days` bars. Iterating the window (rather
           // than the query results) also drops any extra day the DAO's index-friendly coarse bound let through.
           val today = LocalDate.now(ZoneId.of("US/Pacific"))
@@ -1632,6 +1684,27 @@ class ConfigServiceImpl @Inject() (
           labelingSpeedForSchema(getCitySchema(cityId)).map(_.map(cityId -> _))
         }
         Future.sequence(perCityFutures).map(_.flatten.toMap)
+      }
+    }
+  }
+
+  def getCrossCityStoryStats(): Future[Map[String, Option[CityStoryStats]]] = {
+    swrCache.staleWhileRevalidate[Map[String, Option[CityStoryStats]]](
+      "getCrossCityStoryStats",
+      ConfigService.CrossCityFreshFor,
+      ConfigService.CrossCityMaxAge
+    ) {
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures: Seq[Future[(String, Option[CityStoryStats])]] = availableCities.map { cityId =>
+          val schema = getCitySchema(cityId)
+          db.run(configTable.getCityStoryStatsBySchema(schema))
+            .map(stats => cityId -> Option(stats))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to count stories for city $cityId (schema $schema): ${e.getMessage}")
+              cityId -> None
+            }
+        }
+        Future.sequence(perCityFutures).map(_.toMap)
       }
     }
   }
@@ -1810,7 +1883,7 @@ class ConfigServiceImpl @Inject() (
         Future.sequence(cityStatsFutures).zip(contributorIdsFut).map { case (cityStats, contributorIds) =>
           // Distinct contributors across all cities, deduped by the global `user_id` (#3976): a union of per-city
           // contributor-id sets rather than a sum of per-city counts, so a user active in multiple cities counts once.
-          val totalUsers: Int = contributorIds.flatMap(_._2).foldLeft(Set.empty[String])(_ ++ _).size
+          val totalUsers: Int = contributorIds.flatMap { case (_, ids) => ids }.foldLeft(Set.empty[String])(_ ++ _).size
 
           // A city gets a hero slice only when both of its queries succeeded, so every tile in the band is real.
           val contributorCounts: Map[String, Int] = contributorIds.collect { case (cityId, Some(ids)) =>
@@ -1827,7 +1900,7 @@ class ConfigServiceImpl @Inject() (
           }.toMap
 
           // Filter out failed requests and aggregate the successful ones.
-          val validCityStats = cityStats.flatMap(_._2)
+          val validCityStats = cityStats.flatMap { case (_, stats) => stats }
 
           if (validCityStats.isEmpty) {
             logger.warn("No valid city statistics found for aggregate calculation")
@@ -1893,7 +1966,7 @@ class ConfigServiceImpl @Inject() (
     }
 
     Future.sequence(schemaChecks).flatMap { results =>
-      val availableCities = results.filter(_._2).map(_._1)
+      val availableCities = results.collect { case (cityId, true) => cityId }
 
       if (availableCities.isEmpty) {
         Future.successful(Seq.empty)
@@ -1904,13 +1977,13 @@ class ConfigServiceImpl @Inject() (
             .run(configTable.getCityDailyLabelStatsBySchema(schema, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily label stats for city $cityId: ${e.getMessage}")
-              Seq.empty[(LocalDate, String, Int, Int)]
+              Seq.empty[DailyLabelStat]
             }
           val valsFuture = db
             .run(configTable.getCityDailyValidationStatsBySchema(schema, filterLowQuality))
             .recover { case e: Exception =>
               logger.warn(s"Failed daily validation stats for city $cityId: ${e.getMessage}")
-              Seq.empty[(LocalDate, String, Int, Int, Int, Int, Int, Int)]
+              Seq.empty[DailyValidationStat]
             }
           for {
             labels      <- labelsFuture
@@ -2143,13 +2216,13 @@ class ConfigServiceImpl @Inject() (
       val cityURL    = config.get[String](s"city-params.landing-page-url.$envType.$cityId")
       val visibility = config.get[String](s"city-params.status.$cityId")
 
-      val cityName          = messagesApi(s"city.name.$cityId")(lang)
+      val cityName          = messagesApi(s"city.name.$cityId")(using lang)
       val cityNameShort     = config.get[Option[String]](s"city-params.city-short-name.$cityId").getOrElse(cityName)
       val cityNameFormatted =
         if (currentCountryId == "usa" && stateId.isDefined && countryId == "usa")
-          messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(lang))(lang)
+          messagesApi("city.state", cityName, messagesApi(s"state.name.${stateId.get}")(using lang))(using lang)
         else
-          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(lang))(lang)
+          messagesApi("city.state", cityName, messagesApi(s"country.name.$countryId")(using lang))(using lang)
 
       CityInfo(cityId, stateId, countryId, cityNameShort, cityNameFormatted, cityURL, visibility)
     }
@@ -2158,7 +2231,7 @@ class ConfigServiceImpl @Inject() (
   def sha256Hash(text: String): String =
     String.format(
       "%064x",
-      new java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8")))
+      java.math.BigInteger(1, java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes("UTF-8")))
     )
 
   /**
@@ -2192,7 +2265,7 @@ class ConfigServiceImpl @Inject() (
 
   def getCurrentCountryId: String = config.get[String](s"city-params.country-id.$getCityId")
 
-  def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(lang)
+  def getCityName(lang: Lang): String = messagesApi(s"city.name.$getCityId")(using lang)
 
   def getAiTagSuggestionsEnabled: Boolean = config.get[Boolean](s"city-params.ai-tag-suggestions-enabled.$getCityId")
 
@@ -2248,7 +2321,7 @@ class ConfigServiceImpl @Inject() (
         Future.successful(ImageryAccessToken(source, config.get[String]("mapillary-access-token"), None))
       // Panoramax's API is public and keyless (#5185); the viewer ignores the token.
       case PanoSource.Panoramax => Future.successful(ImageryAccessToken(source, "", None))
-      case other                => Future.failed(new Exception(s"No valid imagery source specified: $other"))
+      case other                => Future.failed(Exception(s"No valid imagery source specified: $other"))
     }
   }
 
@@ -2260,16 +2333,17 @@ class ConfigServiceImpl @Inject() (
       googleAnalyticsId: String = config.get[String](s"city-params.google-analytics-4-id.$envType.$cityId")
       prodUrl: String           = config.get[String](s"city-params.landing-page-url.prod.$cityId")
       imageryAccess: ImageryAccessToken <- getImageryAccessToken
-      gMapsApiKey: String         = config.get[String]("google-maps-api-key")
-      mapboxApiKey: String        = config.get[String]("mapbox-api-key")
-      allCityInfo: Seq[CityInfo]  = getAllCityInfo(lang)
-      volunteerEmail: String      = config.get[String]("volunteer-email-address")
-      volunteerSupervisor: String = config.get[String]("volunteer-supervisor-name")
+      gMapsApiKey: String             = config.get[String]("google-maps-api-key")
+      mapboxApiKey: String            = config.get[String]("mapbox-api-key")
+      allCityInfo: Seq[CityInfo]      = getAllCityInfo(lang)
+      volunteerEmail: String          = config.get[String]("volunteer-email-address")
+      volunteerSupervisor: String     = config.get[String]("volunteer-supervisor-name")
+      supportedLanguages: Seq[String] = config.get[Seq[String]]("play.i18n.langs")
     } yield {
       CommonPageData(cityId, envType, googleAnalyticsId, prodUrl, imageryAccess.source, imageryAccess.token,
         gMapsApiKey, mapboxApiKey, version.versionId, version.versionStartTime, version.description, appStartTime,
         BuildInfo.gitSha, BuildInfo.gitDescribe, BuildInfo.gitDirty, allCityInfo, volunteerEmail, volunteerSupervisor,
-        assetManifestService.assetDigestsJson)
+        assetManifestService.assetDigestsJson, assetManifestService.localeFilesJson, supportedLanguages)
     }
   }
 }

@@ -2,7 +2,7 @@ package models.street
 
 import com.google.inject.ImplementedBy
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import javax.inject.{Inject, Singleton}
@@ -14,7 +14,7 @@ class OsmWayStreetEdgeTableDef(tag: Tag) extends Table[OsmWayStreetEdge](tag, "o
   def osmWayId: Rep[Long]          = column[Long]("osm_way_id")
   def streetEdgeId: Rep[Int]       = column[Int]("street_edge_id")
 
-  def * = (osmWayStreetEdgeId, osmWayId, streetEdgeId) <> ((OsmWayStreetEdge.apply _).tupled, OsmWayStreetEdge.unapply)
+  def * = (osmWayStreetEdgeId, osmWayId, streetEdgeId).mapTo[OsmWayStreetEdge]
 
   def streetEdge =
     foreignKey("osm_way_street_edge_street_edge_id_fkey", streetEdgeId, TableQuery[StreetEdgeTableDef])(_.streetEdgeId)

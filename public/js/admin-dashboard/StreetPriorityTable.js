@@ -95,8 +95,9 @@ class StreetPriorityTable {
 
     tbody.innerHTML = visible.map((row) => {
       const cells = this.#columns
+        // eslint-disable-next-line ps/escape-in-markup -- format() returns already-escaped markup.
         .map((c) => `<td>${c.format ? c.format(row) : StreetPriorityTable.#cell(row[c.key])}</td>`).join('');
-      return `<tr data-row-id="${row[this.#rowKey]}">${cells}</tr>`;
+      return `<tr data-row-id="${util.escapeHTML(row[this.#rowKey])}">${cells}</tr>`;
     }).join('');
 
     if (visible.length === 0) {
@@ -171,14 +172,14 @@ class StreetPriorityTable {
     const tbody = document.getElementById(this.#tableId)?.querySelector('tbody');
     if (!tbody) return;
     tbody.querySelectorAll('tr[data-row-id]').forEach((tr) => {
-      tr.classList.toggle('highlighted', set.has(Number(tr.dataset.rowId)));
+      tr.classList.toggle('is-highlighted', set.has(Number(tr.dataset.rowId)));
     });
   }
 
   /** Clears all row highlights. */
   clearHighlight() {
     const tbody = document.getElementById(this.#tableId)?.querySelector('tbody');
-    tbody?.querySelectorAll('tr.highlighted').forEach((tr) => tr.classList.remove('highlighted'));
+    tbody?.querySelectorAll('tr.is-highlighted').forEach((tr) => tr.classList.remove('is-highlighted'));
   }
 
   /**
@@ -188,6 +189,6 @@ class StreetPriorityTable {
    * @returns {string} HTML-safe text.
    */
   static #cell(value) {
-    return AdminShell.nil(value) ? '—' : AdminShell.esc(value);
+    return AdminShell.nil(value) ? '—' : util.escapeHTML(value);
   }
 }

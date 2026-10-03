@@ -1,16 +1,16 @@
 package actor
 
 import actor.ActorUtils.{dateFormatter, getTimeToNextUpdate}
-import org.apache.pekko.actor.{Actor, Cancellable}
+import org.apache.pekko.actor.{Actor, ActorRef, Cancellable}
 import play.api.Logger
 import models.utils.JobRunTrigger
 import play.api.libs.json.{JsObject, Json}
 import service.{ConfigService, JobRunService, OsmWayRefreshResult, OsmWayService}
 
 import java.time.Instant
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.ExecutionContext
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.util.{Failure, Success}
 
 object OsmWayRefreshActor {
@@ -42,7 +42,7 @@ object OsmWayRefreshActor {
  * most nights are a fast no-op; a new city's ways are backfilled on the first tick after its streets are imported.
  */
 @Singleton
-class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService: JobRunService)(implicit
+class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService: JobRunService)(using
     ec: ExecutionContext,
     configService: ConfigService
 ) extends Actor {
@@ -65,7 +65,7 @@ class OsmWayRefreshActor @Inject() (osmWayService: OsmWayService, jobRunService:
           24.hours,
           self,
           OsmWayRefreshActor.Tick
-        )(context.dispatcher)
+        )(using context.dispatcher, ActorRef.noSender)
       )
       logger.info("OsmWayRefreshActor created")
     }

@@ -1,5 +1,7 @@
 package models.street
 
+import models.utils.{NamedEnum, PgEnumCompanion}
+
 /**
  * The evidence behind a block face's [[SidewalkPresenceStatus]], backing the `sidewalk_presence_basis` Postgres enum
  * type (#5279). Listed in the order the derivation tries them; the first that applies wins.
@@ -15,13 +17,11 @@ package models.street
  *
  * NOTE: if changing these values, update the `sidewalk_presence_basis` Postgres enum type as well (see 383.sql).
  */
-object SidewalkPresenceBasis extends Enumeration {
-  type SidewalkPresenceBasis = Value
-  val NoSidewalkLabels: Value = Value("no_sidewalk_labels")
-  val OtherSideTag: Value     = Value("other_side_tag")
-  val AuditedNoLabels: Value  = Value("audited_no_labels")
-  val Unaudited: Value        = Value("unaudited")
-
-  /** Parses a string into a basis, returning None if it doesn't match a known value. */
-  def fromString(name: String): Option[Value] = values.find(_.toString == name)
+enum SidewalkPresenceBasis(val name: String) extends NamedEnum {
+  case NoSidewalkLabels extends SidewalkPresenceBasis("no_sidewalk_labels")
+  case OtherSideTag     extends SidewalkPresenceBasis("other_side_tag")
+  case AuditedNoLabels  extends SidewalkPresenceBasis("audited_no_labels")
+  case Unaudited        extends SidewalkPresenceBasis("unaudited")
 }
+
+object SidewalkPresenceBasis extends PgEnumCompanion[SidewalkPresenceBasis]("sidewalk_presence_basis")

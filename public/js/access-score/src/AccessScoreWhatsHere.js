@@ -43,10 +43,11 @@ class AccessScoreWhatsHere extends AccessScoreChart {
       li.dataset.type = type;
       // An unrated type is one segment; a rated one has a segment per bucket, the unrated bucket last.
       const segments = rated
-        ? Object.keys(buckets).map((b) => `<span class="acs-whats-here__segment" data-bucket="${b}"></span>`)
+        ? Object.keys(buckets)
+            .map((b) => `<span class="acs-whats-here__segment" data-bucket="${util.escapeHTML(b)}"></span>`)
         : ['<span class="acs-whats-here__segment acs-whats-here__segment--unrated" data-bucket="all"></span>'];
-      const longName = AccessScoreChart.esc(AccessScoreChart.typeName(type));
-      const shortName = AccessScoreChart.esc(AccessScoreWhatsHere.#shortName(type));
+      const longName = util.escapeHTML(util.misc.labelTypeName(type));
+      const shortName = util.escapeHTML(AccessScoreWhatsHere.#shortName(type));
       li.innerHTML = `
         <span class="acs-whats-here__type">
           <img class="acs-whats-here__icon" src="${util.misc.getIconImagePaths(type).iconImagePath}" alt="">
@@ -87,7 +88,7 @@ class AccessScoreWhatsHere extends AccessScoreChart {
     const max = Math.max(1, ...data.rows.map((r) => r.count));
     for (const r of data.rows) {
       const row = this.#rows.get(r.type);
-      const name = AccessScoreChart.typeName(r.type);
+      const name = util.misc.labelTypeName(r.type);
       row.li.classList.toggle('acs-whats-here__row--none', r.count === 0);
       row.bar.style.width = `${(r.count / max) * 100}%`;
       if (r.rated) {
@@ -115,7 +116,7 @@ class AccessScoreWhatsHere extends AccessScoreChart {
       else if (parts.length === 0) label = i18next.t('accessscore:whats-here-row-unrated', { type: name, count });
       else label = i18next.t('accessscore:whats-here-row', { type: name, count, parts: parts.join(', ') });
       row.track.setAttribute('aria-label', label);
-      row.track.setAttribute('data-ps-tooltip', AccessScoreChart.esc(label));
+      row.track.setAttribute('data-ps-tooltip', util.escapeHTML(label));
     }
     this.#els.empty.hidden = !data.empty;
     this.#els.list.hidden = data.empty;

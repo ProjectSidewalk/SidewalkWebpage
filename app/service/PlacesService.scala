@@ -5,7 +5,7 @@ import models.api.{PlaceFiltersForApi, PlaceForApi}
 import models.place.{FetchedPlace, PlaceCategory, PlaceTable}
 import models.utils.LatLngBBox
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.pattern.after
 import org.apache.pekko.stream.Materializer
@@ -16,11 +16,12 @@ import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables.*
 
 import java.time.OffsetDateTime
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
@@ -107,10 +108,10 @@ class PlacesServiceImpl @Inject() (
     apiService: ApiService,
     placeTable: PlaceTable,
     config: Configuration
-)(implicit ec: ExecutionContext, mat: Materializer)
+)(using ec: ExecutionContext, mat: Materializer)
     extends PlacesService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import PlacesService._
+  import PlacesService.*
 
   // Both exist for the spec that stands in a fake Overpass; production reads the defaults.
   private val overpassUrl: String =
@@ -119,13 +120,13 @@ class PlacesServiceImpl @Inject() (
     config.getOptional[FiniteDuration]("places.overpass.retry-delay").getOrElse(RetryDelay)
 
   private val logger  = Logger(this.getClass)
-  private val running = new AtomicBoolean(false)
+  private val running = AtomicBoolean(false)
 
   def isRunning: Boolean = running.get()
 
   def refresh(force: Boolean): Future[PlacesRefreshResult] = {
     if (!running.compareAndSet(false, true)) {
-      Future.failed(new IllegalStateException("A places refresh is already in progress."))
+      Future.failed(IllegalStateException("A places refresh is already in progress."))
     } else {
       // Future.delegate so a synchronous throw while building the work still releases the guard.
       Future
@@ -174,7 +175,7 @@ class PlacesServiceImpl @Inject() (
       // A query that comes back empty for a city that had places is a broken query or a truncated answer, not a
       // city whose every school closed; keeping last week's rows beats an empty map.
       _ = if (fetched.isEmpty && existing > 0)
-        throw new RuntimeException(s"Overpass returned no places for a city that has $existing; keeping them.")
+        throw RuntimeException(s"Overpass returned no places for a city that has $existing; keeping them.")
       counts <- db.run(placeTable.replaceOsmPlaces(fetched, fetchedAt).transactionally)
       // The cached full-city list is now last week's. A recompute already in flight can re-store the old rows for
       // one more fresh-window (SwrCache coalesces on the key); the next request past FullCityFreshFor corrects it.
@@ -205,11 +206,11 @@ class PlacesServiceImpl @Inject() (
       .post(Map("data" -> Seq(query)))
       .map { response =>
         if (response.status != 200) {
-          throw new RuntimeException(s"Overpass places query failed with status ${response.status}.")
+          throw RuntimeException(s"Overpass places query failed with status ${response.status}.")
         }
         val json = Json.parse(response.body)
         overpassRemark(json).foreach { remark =>
-          throw new RuntimeException(s"Overpass places query answered 200 with a remark: $remark")
+          throw RuntimeException(s"Overpass places query answered 200 with a remark: $remark")
         }
         json
       }
@@ -252,7 +253,7 @@ object PlacesService {
   val FullCityFreshFor: FiniteDuration = 10.minutes
   val FullCityMaxAge: FiniteDuration   = 24.hours
 
-  private val geometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+  private val geometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
   /**
    * The Overpass QL query for every catalog place in a bounding box: one union of `nwr` selectors, one per tag
@@ -305,17 +306,17 @@ object PlacesService {
         } yield (lat, lon))
       }
       for {
-        osmType  <- (element \ "type").asOpt[String]
-        osmId    <- (element \ "id").asOpt[Long]
-        latLon   <- position
-        category <- PlaceCategory.resolve(tags)
+        osmType    <- (element \ "type").asOpt[String]
+        osmId      <- (element \ "id").asOpt[Long]
+        (lat, lon) <- position
+        category   <- PlaceCategory.resolve(tags)
       } yield FetchedPlace(
         category = category.id,
         name = tags.get("name").map(_.trim).filter(_.nonEmpty),
         osmType = osmType,
         osmId = osmId,
         tags = Json.toJson(tags),
-        geom = geometryFactory.createPoint(new Coordinate(latLon._2, latLon._1))
+        geom = geometryFactory.createPoint(Coordinate(lon, lat))
       )
     }
   }

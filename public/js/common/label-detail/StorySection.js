@@ -206,7 +206,8 @@ class StorySection {
     who.className = 'label-detail__story-who';
     who.textContent = story.display_name || i18next.t('labelmap:story.anonymous');
     byline.appendChild(who);
-    byline.appendChild(document.createTextNode(` · ${moment(new Date(story.created_at)).format('ll')}`));
+    const posted = new Date(story.created_at).toLocaleDateString(i18next.language, util.SHORT_DATE);
+    byline.appendChild(document.createTextNode(` · ${posted}`));
 
     if (story.is_own) {
       const chip = document.createElement('span');

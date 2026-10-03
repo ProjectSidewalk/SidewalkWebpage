@@ -204,15 +204,15 @@
           : 'No labels';
 
         ApiDocsMap.popup(map, e.lngLat, `
-          <h4>${props.name || `Region ${props.region_id}`}</h4>
-          <p><strong>Region ID:</strong> ${props.region_id}</p>
-          <p><strong>Labels:</strong> ${props.label_count}</p>
-          <p><strong>Streets:</strong> ${props.street_count}</p>
-          <p><strong>Contributors:</strong> ${props.user_count}</p>
-          <p><strong>Completed audits:</strong> ${props.audit_count}</p>
+          <h4>${util.escapeHTML(props.name) || `Region ${util.escapeHTML(props.region_id)}`}</h4>
+          <p><strong>Region ID:</strong> ${util.escapeHTML(props.region_id)}</p>
+          <p><strong>Labels:</strong> ${util.escapeHTML(props.label_count)}</p>
+          <p><strong>Streets:</strong> ${util.escapeHTML(props.street_count)}</p>
+          <p><strong>Contributors:</strong> ${util.escapeHTML(props.user_count)}</p>
+          <p><strong>Completed audits:</strong> ${util.escapeHTML(props.audit_count)}</p>
           <p><strong>First Label:</strong> ${firstLabelDate}</p>
           <p><strong>Last Label:</strong> ${lastLabelDate}</p>
-          <a href="/labelmap?regions=${props.region_id}" class="button-ps button--primary button--tiny"
+          <a href="/labelmap?regions=${util.escapeHTML(props.region_id)}" class="button button--primary button--tiny"
             target="_blank">
             View region on the label map
           </a>

@@ -11,7 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const {assetPathStub} = require('./loadGlobalScript');
+const {assetPathStub, installEscapeHTML} = require('./loadGlobalScript');
 
 const SRC = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..', relativePath), 'utf8');
 
@@ -62,6 +62,7 @@ describe('DashboardBadges', () => {
         global.BadgeAchievements = BadgeAchievements;
         global.i18next = {t: (key, opts) => (opts ? `${key}|${JSON.stringify(opts)}` : key)};
         global.util = {math: {milesToKms: (mi) => mi * 1.609344}, assetPath: assetPathStub};
+        installEscapeHTML();
     });
 
     afterEach(() => {

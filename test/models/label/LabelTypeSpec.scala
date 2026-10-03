@@ -1,0 +1,129 @@
+package models.label
+
+import play.api.libs.json.{JsObject, Json}
+import util.SidewalkSpec
+
+import java.io.File
+
+/**
+ * Pure unit tests for the label-type enum's derived and declared properties. No app boot or DB required.
+ *
+ * These pin domain facts that feature code depends on: the access-impact bucketing drives share copy and severity
+ * interpretation (positive access features and problems read severity in opposite directions), `nameKey` must track
+ * `descriptionKey`, and the icon files must exist on disk because share-image compositing loads them by convention.
+ */
+class LabelTypeSpec extends SidewalkSpec {
+
+  "accessImpact" should {
+    "put every label type in the right bucket" in {
+      // A type in the wrong bucket silently inverts share copy and every severity interpretation built on this.
+      LabelType.ordered.filter(_.accessImpact == AccessImpact.Problem) must contain theSameElementsAs Seq(
+        LabelType.NoCurbRamp,
+        LabelType.Obstacle,
+        LabelType.SurfaceProblem,
+        LabelType.NoSidewalk
+      )
+      LabelType.ordered.filter(_.accessImpact == AccessImpact.Feature) must contain theSameElementsAs Seq(
+        LabelType.CurbRamp,
+        LabelType.Crosswalk,
+        LabelType.Signal
+      )
+      LabelType.ordered.filter(_.accessImpact == AccessImpact.Neutral) must contain theSameElementsAs Seq(
+        LabelType.Occlusion,
+        LabelType.Other
+      )
+    }
+
+    "publish a distinct name per bucket, since clients match on those strings" in {
+      val impacts = Seq(AccessImpact.Problem, AccessImpact.Feature, AccessImpact.Neutral)
+      impacts.map(_.name) mustBe Seq("problem", "feature", "neutral")
+    }
+  }
+
+  "ratingScale" should {
+    "put every label type on the right scale" in {
+      LabelType.ordered.filter(_.ratingScale == RatingScale.Quality) must contain theSameElementsAs Seq(
+        LabelType.CurbRamp,
+        LabelType.Crosswalk
+      )
+      LabelType.ordered.filter(_.ratingScale == RatingScale.Severity) must contain theSameElementsAs Seq(
+        LabelType.NoCurbRamp,
+        LabelType.Obstacle,
+        LabelType.SurfaceProblem,
+        LabelType.Other
+      )
+      LabelType.ordered.filter(_.ratingScale == RatingScale.Unrated) must contain theSameElementsAs Seq(
+        LabelType.Signal,
+        LabelType.NoSidewalk,
+        LabelType.Occlusion
+      )
+    }
+
+    "publish a distinct name per scale, since clients match on those strings" in {
+      Seq(RatingScale.Quality, RatingScale.Severity, RatingScale.Unrated).map(_.name) mustBe
+        Seq("quality", "severity", "unrated")
+    }
+
+    "only ever be Quality on an access feature" in {
+      // The two axes are otherwise independent — Other is Neutral but rated, NoSidewalk a Problem but unrated — but
+      // "1 is good" only makes sense for something whose presence helps. A Problem on the quality scale would read
+      // its own severity backwards.
+      for (lt <- LabelType.ordered if lt.ratingScale == RatingScale.Quality) {
+        withClue(s"${lt.name}: ") { lt.accessImpact mustBe AccessImpact.Feature }
+      }
+    }
+  }
+
+  "staticValidatableLabelTypes" should {
+    "be the primary types minus Signal" in {
+      // Signal is labeled at the base of its pole, so judging it needs a pan upward that a static image (the
+      // landing-page validation grid, #1638) can't provide.
+      LabelType.staticValidatableLabelTypes mustBe LabelType.primaryLabelTypes - LabelType.Signal
+      LabelType.staticValidatableLabelTypes must not contain LabelType.Signal
+    }
+  }
+
+  "nameKey" should {
+    "be the descriptionKey without its .description suffix for every label type" in {
+      for (lt <- LabelType.ordered) {
+        lt.nameKey mustBe lt.descriptionKey.stripSuffix(".description")
+        lt.descriptionKey mustBe s"${lt.nameKey}.description"
+      }
+    }
+  }
+
+  "label type icons" should {
+    "exist on disk in every variant for every label type" in {
+      // A missing file degrades silently — a markerless share preview, a broken chip — so pin every variant. The
+      // paths are logical (under public/), which is what makes this check a plain file lookup.
+      for (lt <- LabelType.ordered) {
+        for (path <- Seq(lt.iconPath, lt.smallIconPath, lt.tinyIconPath, lt.smallIconSvgPath)) {
+          val icon = File(s"public/$path")
+          assert(icon.exists(), s"missing icon for ${lt.name}: ${icon.getPath}")
+        }
+      }
+    }
+
+    "publish API URLs that are the logical path under /assets/, un-fingerprinted" in {
+      // A consumer that stores an icon_url expects it to survive our next deploy, so these deliberately skip the
+      // content-hashed name our own pages use.
+      LabelType.CurbRamp.iconUrl mustBe "/assets/images/icons/label_type_icons/CurbRamp.png"
+      LabelType.CurbRamp.smallIconUrl mustBe "/assets/images/icons/label_type_icons/CurbRamp_small.png"
+      LabelType.CurbRamp.tinyIconUrl mustBe "/assets/images/icons/label_type_icons/CurbRamp_tiny.png"
+    }
+  }
+
+  "the page stamp" should {
+    "match the fixture the jsdom suite builds util.misc from" in {
+      // test/js/loadGlobalScript.js stamps that fixture as window.labelTypes. If it stops matching what the pages
+      // actually stamp, the JS suite is testing a table no browser ever sees — so fail here instead, with the diff.
+      val fixture = Json.parse(File("test/resources/label-types-stamp.json").toURI.toURL.openStream())
+      Json.parse(LabelType.pageStampJson) mustBe fixture
+    }
+
+    "carry every label type, in canonical order" in {
+      Json.parse(LabelType.pageStampJson).as[Seq[JsObject]].map(t => (t \ "name").as[String]) mustBe
+        LabelType.names
+    }
+  }
+}

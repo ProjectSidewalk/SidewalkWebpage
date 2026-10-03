@@ -8,11 +8,12 @@
  * icon/type-name helpers rather than reinventing either.
  *
  * StreetReauditCard is a page-global `class` that reaches for globals, so the source is eval'd into jsdom with
- * mapboxgl, i18next, util, and moment stubbed.
+ * mapboxgl, i18next, and util stubbed.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { installDateHelpers, installEscapeHTML } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const CARD_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/ps-map/StreetReauditCard.js'), 'utf8');
@@ -45,14 +46,16 @@ describe('the street re-audit hover card', () => {
     let popupElement;
 
     beforeAll(() => {
-        window.moment = (date) => ({
-            format: (fmt) => `${fmt}:${date.toISOString().slice(0, 10)}`,
-        });
         window.i18next = { language: 'en', t: (key) => key };
         window.util = {
             camelToKebab: (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase(),
-            misc: { getIconImagePaths: (type) => ({ iconImagePath: `/assets/icons/${type}_small.svg` }) },
+            misc: {
+                getIconImagePaths: (type) => ({ iconImagePath: `/assets/icons/${type}_small.svg` }),
+                labelTypeName: (type) => window.i18next.t(`common:${window.util.camelToKebab(type)}`),
+            },
         };
+        installDateHelpers();
+        installEscapeHTML();
         // A Popup stub that renders into the document the way Mapbox does, so :hover and listeners are testable.
         window.mapboxgl = {
             Popup: class {

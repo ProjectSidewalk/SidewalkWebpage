@@ -72,6 +72,43 @@ function watchVisibility(el, onChange) {
   new IntersectionObserver((entries) => onChange(entries[entries.length - 1].isIntersecting)).observe(el);
 }
 
+/** Counts the city's stats up from zero once they scroll into view. */
+function countUpStatsWhenVisible() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const COUNT_UP_MS = 2500;
+  /** @type {HTMLElement[]} */
+  const statEls = [...document.querySelectorAll('[data-count-to]')];
+  const stats = statEls.map((el) => {
+    const decimals = Number(el.dataset.countDecimals ?? 0);
+    // useGrouping keeps Spanish writing 1.234 like the server does, not 1234.
+    const formatter = new Intl.NumberFormat(document.documentElement.lang, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+      useGrouping: true,
+    });
+    return { el, target: Number(el.dataset.countTo), formatter };
+  });
+
+  /** @param {number} progress - From 0 (start) to 1 (done). */
+  const draw = (progress) => {
+    const eased = 1 - (1 - progress) ** 7; // Quick at first, slowing down as it nears the real number.
+    for (const { el, target, formatter } of stats) el.textContent = formatter.format(target * eased);
+  };
+
+  draw(0);
+  new IntersectionObserver((entries, observer) => {
+    if (!entries.some((entry) => entry.isIntersecting)) return;
+    observer.disconnect();
+    const start = performance.now();
+    const tick = () => {
+      const progress = Math.min((performance.now() - start) / COUNT_UP_MS, 1);
+      draw(progress);
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, { threshold: 1 }).observe(statEls[0]);
+}
+
 window.appManager.ready(() => {
   howItWorksSteps = HOW_IT_WORKS_TICKS.map((_, i) => {
     const tab = document.getElementById(['firstnumbox', 'secondnumbox', 'thirdnumbox'][i]);
@@ -139,12 +176,7 @@ window.appManager.ready(() => {
   updateHeaderHeight();
   window.addEventListener('scroll', updateHeaderHeight, { passive: true });
 
-  // Count up the city's stats the first time they're fully on screen.
-  new IntersectionObserver((entries, observer) => {
-    if (!entries.some((entry) => entry.isIntersecting)) return;
-    observer.disconnect();
-    for (const anim of [percentageAnim, labelsAnim, distanceAnim, validationsAnim]) anim.start();
-  }, { threshold: 1 }).observe(document.getElementById('percentage'));
+  countUpStatsWhenVisible();
 
   // Only play the videos while they're on screen.
   const bannerVid = getVideo('bgvid');

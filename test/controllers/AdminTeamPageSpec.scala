@@ -2,22 +2,21 @@ package controllers
 
 import models.user.Role
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.given
 import org.apache.pekko.stream.Materializer
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.{JsArray, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
-import util.{AnonSession, RoleSession}
+import play.api.test.Helpers.*
+import util.{AnonSession, RoleSession, SidewalkSpec}
 
 import scala.concurrent.Await
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 
 /**
  * Functional tests for the admin team page and its endpoints (`/admin/team/:teamId`, `/adminapi/team/:teamId`,
@@ -25,15 +24,15 @@ import scala.concurrent.duration._
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */
-class AdminTeamPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
+class AdminTeamPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppPerSuite with AnonSession {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder()
+    GuiceApplicationBuilder()
       .disable[modules.ActorModule]
       .configure("rate-limit.anon-signup.enabled" -> false)
       .build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val NamePrefix = "spec-5381-"
 
@@ -49,7 +48,7 @@ class AdminTeamPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
     val resp = route(
       app,
       FakeRequest(POST, "/userapi/createTeam")
-        .withCookies(memberCookies: _*)
+        .withCookies(memberCookies*)
         .withJsonBody(Json.obj("name" -> s"$NamePrefix${System.nanoTime()}", "description" -> "A spec's team"))
         .withCSRFToken
     ).get
@@ -71,32 +70,32 @@ class AdminTeamPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
 
   /** @return The team's current member list, as an admin sees it. */
   private def members(): Seq[String] = {
-    val resp = route(app, FakeRequest(GET, s"/adminapi/team/$teamId").withCookies(adminCookies: _*)).get
+    val resp = route(app, FakeRequest(GET, s"/adminapi/team/$teamId").withCookies(adminCookies*)).get
     status(resp) mustBe OK
     (contentAsJson(resp) \ "members").as[JsArray].value.map(row => (row \ "user_id").as[String]).toSeq
   }
 
   "GET /admin/team/:teamId" should {
     "render the team for an admin" in {
-      val resp = route(app, FakeRequest(GET, s"/admin/team/$teamId").withCookies(adminCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, s"/admin/team/$teamId").withCookies(adminCookies*)).get
       status(resp) mustBe OK
       contentAsString(resp) must include("Add members")
     }
 
     "404 on a team id that matches no team" in {
-      val resp = route(app, FakeRequest(GET, s"/admin/team/$MissingTeamId").withCookies(adminCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, s"/admin/team/$MissingTeamId").withCookies(adminCookies*)).get
       status(resp) mustBe NOT_FOUND
     }
 
     "refuse a non-admin" in {
-      val resp = route(app, FakeRequest(GET, s"/admin/team/$teamId").withCookies(memberCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, s"/admin/team/$teamId").withCookies(memberCookies*)).get
       status(resp) must not be OK
     }
   }
 
   "GET /adminapi/team/:teamId" should {
     "carry the team, its members, and their totals" in {
-      val resp = route(app, FakeRequest(GET, s"/adminapi/team/$teamId").withCookies(adminCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, s"/adminapi/team/$teamId").withCookies(adminCookies*)).get
       status(resp) mustBe OK
       val json = contentAsJson(resp)
       (json \ "team" \ "team_id").as[Int] mustBe teamId
@@ -106,12 +105,12 @@ class AdminTeamPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
     }
 
     "404 on a team id that matches no team" in {
-      val resp = route(app, FakeRequest(GET, s"/adminapi/team/$MissingTeamId").withCookies(adminCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, s"/adminapi/team/$MissingTeamId").withCookies(adminCookies*)).get
       status(resp) mustBe NOT_FOUND
     }
 
     "refuse a non-admin" in {
-      val resp = route(app, FakeRequest(GET, s"/adminapi/team/$teamId").withCookies(memberCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, s"/adminapi/team/$teamId").withCookies(memberCookies*)).get
       status(resp) must not be OK
     }
   }
@@ -124,7 +123,7 @@ class AdminTeamPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
       val added = route(
         app,
         FakeRequest(PUT, s"/userapi/setUserTeam?userId=$adminUserId&teamId=$teamId")
-          .withCookies(adminCookies: _*)
+          .withCookies(adminCookies*)
           .withCSRFToken
       ).get
       status(added) mustBe OK
@@ -132,7 +131,7 @@ class AdminTeamPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
 
       val removed = route(
         app,
-        FakeRequest(PUT, s"/userapi/leaveTeam?userId=$adminUserId").withCookies(adminCookies: _*).withCSRFToken
+        FakeRequest(PUT, s"/userapi/leaveTeam?userId=$adminUserId").withCookies(adminCookies*).withCSRFToken
       ).get
       status(removed) mustBe OK
       members() must contain theSameElementsAs Seq(memberUserId)
@@ -141,17 +140,17 @@ class AdminTeamPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
 
   "GET /adminapi/userSearch" should {
     "return nothing for a blank query rather than the whole directory" in {
-      val resp = route(app, FakeRequest(GET, "/adminapi/userSearch?query=%20").withCookies(adminCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, "/adminapi/userSearch?query=%20").withCookies(adminCookies*)).get
       status(resp) mustBe OK
       contentAsJson(resp).as[JsArray].value mustBe empty
     }
 
     "find an account by a fragment of its username, with the team it's already on" in {
       val username = (contentAsJson(
-        route(app, FakeRequest(GET, s"/adminapi/team/$teamId").withCookies(adminCookies: _*)).get
+        route(app, FakeRequest(GET, s"/adminapi/team/$teamId").withCookies(adminCookies*)).get
       ) \ "members" \ 0 \ "username").as[String]
       val resp =
-        route(app, FakeRequest(GET, s"/adminapi/userSearch?query=$username").withCookies(adminCookies: _*)).get
+        route(app, FakeRequest(GET, s"/adminapi/userSearch?query=$username").withCookies(adminCookies*)).get
       status(resp) mustBe OK
       val hit = contentAsJson(resp).as[JsArray].value.find(row => (row \ "user_id").as[String] == memberUserId)
       hit.map(row => (row \ "team").asOpt[String]).flatten mustBe defined
@@ -159,13 +158,13 @@ class AdminTeamPageSpec extends PlaySpec with RoleSession with GuiceOneAppPerSui
 
     "treat a LIKE wildcard as literal text rather than matching everyone" in {
       // A bare `%` is every account if the metacharacter reaches SQL unescaped; no username contains a literal one.
-      val resp = route(app, FakeRequest(GET, "/adminapi/userSearch?query=%25").withCookies(adminCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, "/adminapi/userSearch?query=%25").withCookies(adminCookies*)).get
       status(resp) mustBe OK
       contentAsJson(resp).as[JsArray].value mustBe empty
     }
 
     "refuse a non-admin at the auth guard, not the parameter binder" in {
-      val resp = route(app, FakeRequest(GET, "/adminapi/userSearch?query=a").withCookies(memberCookies: _*)).get
+      val resp = route(app, FakeRequest(GET, "/adminapi/userSearch?query=a").withCookies(memberCookies*)).get
       status(resp) must not be OK
       status(resp) must not be BAD_REQUEST
     }

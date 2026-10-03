@@ -88,7 +88,7 @@
         })
         .catch((error) => {
           container.innerHTML = `<div class="message message-error" role="alert">Failed to load data: `
-            + `${error.message}</div>`;
+            + `${util.escapeHTML(error.message)}</div>`;
           console.error('Overall stats preview error:', error);
           // The failure is already surfaced in the container above, and init() is fire-and-forget at every call
           // site (app/views/apiDocs/*), so re-rejecting here can only ever become an unhandled rejection.
@@ -487,7 +487,8 @@
       section.appendChild(grid);
 
       // Add stat items.
-      this.addStatItem(grid, 'Launch Date', this.formatDate(data.launch_date));
+      this.addStatItem(grid, 'Launch Date',
+        util.parseDate(data.launch_date).toLocaleDateString(undefined, { dateStyle: 'long' }));
       this.addStatItem(grid, 'Total Labels', data.labels.count.toLocaleString());
       this.addStatItem(grid, 'Total Validations', data.validations.combined.total_validations.toLocaleString());
       this.addStatItem(grid, 'Overall Accuracy', `${(data.validations.combined.Overall.accuracy * 100).toFixed(1)}%`);
@@ -500,7 +501,10 @@
       // Add last activity info.
       const lastActivity = document.createElement('p');
       lastActivity.className = 'preview-note';
-      lastActivity.textContent = `Last activity: ${this.formatDateTime(data.labels.avg_timestamp_last_100_labels)}`;
+      const lastActivityAt = data.labels.avg_timestamp_last_100_labels;
+      lastActivity.textContent = `Last activity: ${lastActivityAt
+        ? new Date(lastActivityAt).toLocaleString(undefined, { dateStyle: 'long', timeStyle: 'short' })
+        : 'N/A'}`;
       section.appendChild(lastActivity);
     },
 
@@ -524,39 +528,6 @@
       labelElem.className = 'preview-stat-label';
       labelElem.textContent = label;
       item.appendChild(labelElem);
-    },
-
-    /**
-     * Format a date string (YYYY-MM-DD).
-     * @param {string} dateStr - Date string
-     * @returns {string} Formatted date
-     */
-    formatDate(dateStr) {
-      if (!dateStr) return 'N/A';
-      const date = new Date(dateStr);
-      return date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    },
-
-    /**
-     * Format a datetime string.
-     * TODO This should be using the moment.js library.
-     * @param {string} dateTimeStr - Datetime string
-     * @returns {string} Formatted datetime
-     */
-    formatDateTime(dateTimeStr) {
-      if (!dateTimeStr) return 'N/A';
-      const date = new Date(dateTimeStr);
-      return date.toLocaleString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
     },
 
     /**

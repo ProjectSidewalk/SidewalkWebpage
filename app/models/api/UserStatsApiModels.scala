@@ -6,7 +6,7 @@
  */
 package models.api
 
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import models.user.LabelTypeStat
 import play.api.libs.json.{JsObject, Writes}
 
@@ -14,7 +14,7 @@ import play.api.libs.json.{JsObject, Writes}
  * Per-user labeling and validation statistics for the User Stats API.
  *
  * Implements StreamingApiType to support streaming output formats like JSON and CSV. `statsByLabelType`
- * is keyed by `LabelTypeEnum` name and is expected to contain an entry for every label type.
+ * is keyed by `LabelType` name and is expected to contain an entry for every label type.
  *
  * @param userId Anonymized user identifier
  * @param labels Total number of labels the user has placed
@@ -82,7 +82,7 @@ object UserStatForApi extends ApiFields[UserStatForApi] {
     field("agree_validations_given")(_.agreeValidationsGiven),
     field("disagree_validations_given")(_.disagreeValidationsGiven),
     field("unsure_validations_given")(_.unsureValidationsGiven)
-  ) ++ LabelTypeEnum.orderedNames.flatMap { labelType =>
+  ) ++ LabelType.names.flatMap { labelType =>
     Seq(
       field(s"stats_by_label_type.$labelType.labels")(_.statsByLabelType(labelType).labels),
       field(s"stats_by_label_type.$labelType.validated_correct")(_.statsByLabelType(labelType).validatedCorrect),
@@ -91,5 +91,5 @@ object UserStatForApi extends ApiFields[UserStatForApi] {
     )
   }
 
-  implicit val userStatWrites: Writes[UserStatForApi] = (userStat: UserStatForApi) => userStat.toJson
+  given userStatWrites: Writes[UserStatForApi] = (userStat: UserStatForApi) => userStat.toJson
 }

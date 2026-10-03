@@ -2,7 +2,7 @@ package models.utils
 
 import com.google.inject.ImplementedBy
 import models.user.{Role, SidewalkUserTableDef, UserRoleTableDef}
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.{given, *}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.jdbc.GetResult
 
@@ -11,11 +11,14 @@ import javax.inject.{Inject, Singleton}
 
 case class WebpageActivity(
     webpageActivityId: Int,
-    userId: String,
+    userId: Option[String], // None for a visitor with no session.
     ipAddress: IpAddress,
     description: String,
     timestamp: OffsetDateTime
 )
+
+/** One day's count of sign-ins or active users, for either anonymous or registered users. */
+case class DailyCountByAnon(day: OffsetDateTime, isAnonymous: Boolean, count: Int)
 
 /** Analytics data types for the v3 API usage dashboard. */
 case class ApiEndpointCount(endpoint: String, count: Long)
@@ -31,18 +34,15 @@ case class ApiSourceIpCount(source: String, uniqueIps: Long)
 
 class WebpageActivityTableDef(tag: Tag) extends Table[WebpageActivity](tag, "webpage_activity") {
   def webpageActivityId: Rep[Int] = column[Int]("webpage_activity_id", O.PrimaryKey, O.AutoInc)
-  def userId: Rep[String]         = column[String]("user_id")
+  def userId: Rep[Option[String]] = column[Option[String]]("user_id")
   def ipAddress: Rep[IpAddress]   = column[IpAddress]("ip_address")
   def activity: Rep[String]       = column[String]("activity")
   // DEFAULT now() in the DB (O.Default holds a value, not an expression).
   def timestamp: Rep[OffsetDateTime] = column[OffsetDateTime]("timestamp")
 
-  def * = (webpageActivityId, userId, ipAddress, activity, timestamp) <> (
-    (WebpageActivity.apply _).tupled,
-    WebpageActivity.unapply
-  )
+  def * = (webpageActivityId, userId, ipAddress, activity, timestamp).mapTo[WebpageActivity]
 
-  def user = foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)
+  def user = foreignKey("webpage_activity_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId.?)
 }
 
 @ImplementedBy(classOf[WebpageActivityTable])
@@ -60,46 +60,51 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
     (activities returning activities.map(_.webpageActivityId)) += activity
   }
 
+  // Most of these have details tacked on (`AnonAutoSignUp_url="/explore"`), so they're matched by how they start.
+  private def isAnonSignUp(a: WebpageActivityTableDef): Rep[Boolean] = a.activity like "AnonAutoSignUp%"
+  private def isRealSignIn(a: WebpageActivityTableDef): Rep[Boolean] =
+    a.activity === "SignIn" || (a.activity like "SignInSuccess%")
+
+  /** Activity rows of accounts that aren't anonymous, the only ones the admin Users tab lists. */
+  private def nonAnonActivities(keep: WebpageActivityTableDef => Rep[Boolean]) =
+    activities.filter(keep).join(userRoles).on(_.userId === _.userId).filter(_._2.role =!= Role.Anonymous)
+
   /**
-   * Get the time that each user signed up (if we have it logged).
+   * Get the time that each non-anonymous user signed up (if we have it logged).
    */
   def getSignUpTimes: DBIO[Seq[(String, Option[OffsetDateTime])]] = {
-    activities
-      .filter(_.activity inSet Seq("AnonAutoSignUp", "SignUp"))
-      .groupBy(_.userId)
-      .map { case (_userId, group) => (_userId, group.map(_.timestamp).max) }
+    nonAnonActivities(_.activity === "SignUp")
+      .groupBy(_._2.userId)
+      .map { case (_userId, group) => (_userId, group.map(_._1.timestamp).max) }
       .result
   }
 
   /**
-   * For each user, gets count of number of sign ins and the timestamp of their most recent sign-in.
+   * For each non-anonymous user, gets count of number of sign ins and the timestamp of their most recent sign-in.
    */
   def getSignInTimesAndCounts: DBIO[Seq[(String, (Int, Option[OffsetDateTime]))]] = {
-    activities
-      .filter(row => row.activity === "AnonAutoSignUp" || (row.activity like "SignIn%"))
-      .groupBy(_.userId)
-      .map { case (_userId, rows) => (_userId, (rows.length, rows.map(_.timestamp).max)) }
+    nonAnonActivities(isRealSignIn)
+      .groupBy(_._2.userId)
+      .map { case (_userId, rows) => (_userId, (rows.length, rows.map(_._1.timestamp).max)) }
       .result
   }
 
   /**
    * Daily count of successful sign-in events, split by whether the signer is anonymous.
    *
-   * Registered logins log `SignIn` / `SignInSuccess`; anonymous sessions log `AnonAutoSignUp`. Failed attempts
-   * (`SignInAttempt`, `SignInFailed`) are excluded — they aren't sign-ins, and their activity strings embed the typed
-   * email address. The anon flag is derived from the activity name, which already distinguishes the two cases, so no
-   * role join is needed.
+   * Failed and throttled attempts are left out.
    *
-   * @return DBIO[Seq[(day, isAnonymous, count)]] — `day` is the timestamp truncated to the day; sorted ascending.
+   * @return One row per day and anon flag, sorted ascending; `day` is the timestamp truncated to the day.
    */
-  def getSignInCountsByDate: DBIO[Seq[(OffsetDateTime, Boolean, Int)]] = {
-    val successfulSignIns = Seq("SignIn", "SignInSuccess")
+  def getSignInCountsByDate: DBIO[Seq[DailyCountByAnon]] = {
     activities
-      .filter(a => (a.activity inSet successfulSignIns) || a.activity === "AnonAutoSignUp")
-      .map(a => (a.timestamp.trunc("day"), a.activity === "AnonAutoSignUp", a.webpageActivityId))
-      .groupBy(x => (x._1, x._2))
+      // Anyone can log an activity string without a session, but a real sign-in always has a user.
+      .filter(a => a.userId.isDefined && (isRealSignIn(a) || isAnonSignUp(a)))
+      .map(a => (a.timestamp.trunc("day"), isAnonSignUp(a), a.webpageActivityId))
+      .groupBy { case (day, isAnon, _) => (day, isAnon) }
       .map { case ((day, isAnon), group) => (day, isAnon, group.length) }
-      .sortBy(_._1)
+      .sortBy { case (day, _, _) => day }
+      .map { case (day, isAnon, count) => (day, isAnon, count).mapTo[DailyCountByAnon] }
       .result
   }
 
@@ -109,18 +114,19 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * "Active" is intentionally broad — any logged activity counts — so this measures how many people showed up, not how
    * much they did. Split on role "Anonymous" so registered engagement can be read separately from drive-by anon traffic.
    *
-   * @return DBIO[Seq[(day, isAnonymous, distinctUserCount)]] — sorted ascending by day.
+   * @return One row per day and anon flag, counting distinct users; sorted ascending by day.
    */
-  def getActiveUserCountsByDate: DBIO[Seq[(OffsetDateTime, Boolean, Int)]] = {
+  def getActiveUserCountsByDate: DBIO[Seq[DailyCountByAnon]] = {
     val activeUsers = for {
       _activity <- activities
       _userRole <- userRoles if _activity.userId === _userRole.userId
     } yield (_activity.timestamp.trunc("day"), _userRole.role === Role.Anonymous, _activity.userId)
 
     activeUsers
-      .groupBy(x => (x._1, x._2))
-      .map { case ((day, isAnon), group) => (day, isAnon, group.map(_._3).countDistinct) }
-      .sortBy(_._1)
+      .groupBy { case (day, isAnon, _) => (day, isAnon) }
+      .map { case ((day, isAnon), group) => (day, isAnon, group.map { case (_, _, userId) => userId }.countDistinct) }
+      .sortBy { case (day, _, _) => day }
+      .map { case (day, isAnon, count) => (day, isAnon, count).mapTo[DailyCountByAnon] }
       .result
   }
 
@@ -138,7 +144,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
       .map(_.timestamp.trunc("day"))
       .groupBy(x => x)
       .map { case (day, group) => (day, group.length) }
-      .sortBy(_._1)
+      .sortBy { case (day, _) => day }
       .result
   }
 
@@ -171,8 +177,8 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @return DBIO with a sequence of (endpoint, count) tuples, ordered by count descending.
    */
   def getApiEndpointCounts(excludeApiDocs: Boolean, days: Int): DBIO[Seq[ApiEndpointCount]] = {
-    implicit val gr: GetResult[ApiEndpointCount] = GetResult(r => ApiEndpointCount(r.nextString(), r.nextLong()))
-    val apiDocsFilter = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
+    given gr: GetResult[ApiEndpointCount] = r => ApiEndpointCount(r.nextString(), r.nextLong())
+    val apiDocsFilter                     = if (excludeApiDocs) "AND activity NOT LIKE '%utm_source=apiDocs%'" else ""
     sql"""
       SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint, COUNT(*) AS call_count
       FROM webpage_activity
@@ -208,8 +214,8 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiEndpointCountsBySource(days: Int): DBIO[Seq[ApiEndpointSourceCount]] = {
-    implicit val gr: GetResult[ApiEndpointSourceCount] =
-      GetResult(r => ApiEndpointSourceCount(r.nextString(), r.nextString(), r.nextLong()))
+    given gr: GetResult[ApiEndpointSourceCount] =
+      r => ApiEndpointSourceCount(r.nextString(), r.nextString(), r.nextLong())
     sql"""
       SELECT SPLIT_PART(SPLIT_PART(activity, ' ', 2), '?', 1) AS endpoint,
              #$sourceCase AS source,
@@ -226,8 +232,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiDailyCountsBySource(days: Int): DBIO[Seq[ApiDailySourceCount]] = {
-    implicit val gr: GetResult[ApiDailySourceCount] =
-      GetResult(r => ApiDailySourceCount(r.nextString(), r.nextString(), r.nextLong()))
+    given gr: GetResult[ApiDailySourceCount] = r => ApiDailySourceCount(r.nextString(), r.nextString(), r.nextLong())
     sql"""
       SELECT DATE(timestamp)::text AS date,
              #$sourceCase AS source,
@@ -244,8 +249,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiFormatCountsBySource(days: Int): DBIO[Seq[ApiFormatSourceCount]] = {
-    implicit val gr: GetResult[ApiFormatSourceCount] =
-      GetResult(r => ApiFormatSourceCount(r.nextString(), r.nextString(), r.nextLong()))
+    given gr: GetResult[ApiFormatSourceCount] = r => ApiFormatSourceCount(r.nextString(), r.nextString(), r.nextLong())
     sql"""
       SELECT COALESCE((REGEXP_MATCH(activity, '[?&]filetype=([^&\s]+)'))[1], 'json') AS format,
              #$sourceCase AS source,
@@ -264,7 +268,7 @@ class WebpageActivityTable @Inject() (protected val dbConfigProvider: DatabaseCo
    * @param days Number of past days to include (0 = all time).
    */
   def getApiUniqueIpCountsBySource(days: Int): DBIO[Seq[ApiSourceIpCount]] = {
-    implicit val gr: GetResult[ApiSourceIpCount] = GetResult(r => ApiSourceIpCount(r.nextString(), r.nextLong()))
+    given gr: GetResult[ApiSourceIpCount] = r => ApiSourceIpCount(r.nextString(), r.nextLong())
     sql"""
       SELECT #$sourceCase AS source, COUNT(DISTINCT ip_address) AS ip_count
       FROM webpage_activity

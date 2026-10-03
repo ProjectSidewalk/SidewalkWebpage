@@ -3,7 +3,7 @@ package models.user
 import com.google.inject.ImplementedBy
 import models.survey.{SurveyOptionTableDef, SurveyQuestionTableDef}
 import models.utils.MyPostgresProfile
-import models.utils.MyPostgresProfile.api._
+import models.utils.MyPostgresProfile.api.*
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 
 import java.time.OffsetDateTime
@@ -29,10 +29,8 @@ class UserSurveyOptionSubmissionTableDef(tag: Tag)
   def numMissionsCompleted: Rep[Int]     = column[Int]("num_missions_completed")
 
   def * =
-    (userSurveyOptionSubmissionId, userId, surveyQuestionId, surveyOptionId, timeSubmitted, numMissionsCompleted) <> (
-      (UserSurveyOptionSubmission.apply _).tupled,
-      UserSurveyOptionSubmission.unapply
-    )
+    (userSurveyOptionSubmissionId, userId, surveyQuestionId, surveyOptionId, timeSubmitted, numMissionsCompleted)
+      .mapTo[UserSurveyOptionSubmission]
 
   def user =
     foreignKey("user_survey_option_submission_user_id_fkey", userId, TableQuery[SidewalkUserTableDef])(_.userId)

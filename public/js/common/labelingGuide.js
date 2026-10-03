@@ -7,7 +7,7 @@ util.onDomReady(() => {
     link.textContent = question.textContent.replace(/#$/, '').trim();
     return link;
   });
-  document.querySelector('.page-nav-item.active').after(...links);
+  document.querySelector('.page-nav-item.is-active').after(...links);
 
   initSidebarDisclosure();
   new ImageLightbox('.page-content figure img');

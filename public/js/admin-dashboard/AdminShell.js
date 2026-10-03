@@ -49,11 +49,9 @@ class AdminShell {
     document.querySelectorAll('.deploy-strip time[datetime]').forEach((el) => {
       const date = new Date(el.getAttribute('datetime'));
       if (Number.isNaN(date.getTime())) return;
-      /** @type {Intl.DateTimeFormatOptions} */
-      const dateOpts = { year: 'numeric', month: 'short', day: 'numeric' };
       el.textContent = el.dataset.format === 'date'
-        ? date.toLocaleDateString(undefined, { ...dateOpts, timeZone: 'UTC' })
-        : date.toLocaleString(undefined, { ...dateOpts, hour: 'numeric', minute: '2-digit' });
+        ? date.toLocaleDateString(undefined, { ...util.SHORT_DATE, timeZone: 'UTC' })
+        : date.toLocaleString(undefined, util.SHORT_DATE_TIME);
     });
   }
 
@@ -124,7 +122,7 @@ class AdminShell {
         for (let i = 0; i < this.#headings.length; i++) {
           if (this.#headings[i].offsetTop <= scrollPos) activeIndex = i;
         }
-        this.#tocLinks.forEach((link, i) => link.classList.toggle('active', i === activeIndex));
+        this.#tocLinks.forEach((link, i) => link.classList.toggle('is-active', i === activeIndex));
         ticking = false;
       });
     };
@@ -238,16 +236,14 @@ class AdminShell {
   }
 
   /**
-   * Escapes a value for safe insertion as HTML text.
+   * Escapes plain text for a `data-ps-tooltip` attribute. psTooltip renders the attribute as HTML, so text escaped only
+   * once would come back out as live markup; see psTooltip.js for why it takes two levels.
    *
-   * @param {*} value - Anything; null and undefined render as the empty string.
-   * @returns {string} The value with HTML metacharacters replaced by entities.
+   * @param {*} value - Plain text, possibly from the data; null and undefined render as the empty string.
+   * @returns {string} The value escaped twice.
    */
-  static esc(value) {
-    if (AdminShell.nil(value)) return '';
-    return String(value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  static tooltipAttr(value) {
+    return util.escapeHTML(util.escapeHTML(value));
   }
 
   /**
@@ -347,7 +343,7 @@ class AdminShell {
     const label = job.overdue && job.last_status === 'succeeded'
       ? 'overdue'
       : (labels[job.last_status] || job.last_status);
-    return `<span class="ac-badge ac-badge--${tone}">${AdminShell.esc(label)}</span>`;
+    return `<span class="ac-badge ac-badge--${tone}">${util.escapeHTML(label)}</span>`;
   }
 
   /**
@@ -362,9 +358,9 @@ class AdminShell {
    */
   static jobLastRun(job) {
     const scheduled = job.last_started_at ? AdminShell.relativeTime(job.last_started_at) : 'never';
-    if (!job.last_manual_run_at) return AdminShell.esc(scheduled);
+    if (!job.last_manual_run_at) return util.escapeHTML(scheduled);
     const manual = `manual ${AdminShell.relativeTime(job.last_manual_run_at)}: ${job.last_manual_status}`;
-    return `${AdminShell.esc(scheduled)}<span class="ac-muted"> · ${AdminShell.esc(manual)}</span>`;
+    return `${util.escapeHTML(scheduled)}<span class="ac-muted"> · ${util.escapeHTML(manual)}</span>`;
   }
 
   /**

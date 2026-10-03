@@ -21,6 +21,7 @@
   "route-usage-tooltip": "Explorada: quantas pessoas começaram a explorar esta rota. Concluída: quantas terminaram a rota inteira.",
   "est-time-minutes": "{{min}} min",
   "est-time-hours": "{{hours}} h {{min}} min",
+  "est-time-tooltip": "Estimamos que avaliar esta rota no Project Sidewalk levaria cerca de {{time}}. Este tempo de rotulagem baseia-se no ritmo típico dos exploradores desta cidade, cerca de {{pace}} minutos por 100 metros.",
   "street-count_one": "{{count}} rua",
   "street-count_other": "{{count}} ruas",
   "street-count-in-region_one": "{{count}} rua em {{region}}",

@@ -5,13 +5,13 @@ import com.google.inject.ImplementedBy
 import models.utils.{BackgroundJobRun, BackgroundJobRunTable, HealthTable, JobRunStatus, JobRunTrigger}
 import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.{Configuration, Logger}
 import models.utils.MyPostgresProfile
 
 import java.time.temporal.ChronoUnit
 import java.time.OffsetDateTime
-import javax.inject._
+import javax.inject.*
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -189,7 +189,7 @@ class HealthServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     healthTable: HealthTable,
     backgroundJobRunTable: BackgroundJobRunTable
-)(implicit val ec: ExecutionContext)
+)(using val ec: ExecutionContext)
     extends HealthService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
@@ -319,13 +319,13 @@ class HealthServiceImpl @Inject() (
       ScheduledJobs.All.map { job =>
         val latest       = byJobAndTrigger.get((job.name, JobRunTrigger.Scheduled))
         val lastManual   = byJobAndTrigger.get((job.name, JobRunTrigger.Manual))
-        val jobCounts    = counts.filter(_._1 == job.name)
-        val runsInWindow = jobCounts.map(_._4).sum
+        val jobCounts    = counts.filter(_.jobName == job.name)
+        val runsInWindow = jobCounts.map(_.count).sum
         // An abandoned run — still open long past any plausible duration — is a failure the row never got to record,
         // so counting only `failed` here would read a job the JVM dies inside every night as a spotless record.
         val failures = jobCounts.collect {
-          case (_, JobRunStatus.Failed, _, count)     => count
-          case (_, JobRunStatus.Running, true, count) => count
+          case outcome if outcome.status == JobRunStatus.Failed                       => outcome.count
+          case outcome if outcome.status == JobRunStatus.Running && outcome.abandoned => outcome.count
         }.sum
         val hoursSince = latest.map(run => ChronoUnit.HOURS.between(run.startedAt, now))
         NightlyJobStatus(
@@ -363,7 +363,7 @@ class HealthServiceImpl @Inject() (
       case None                                            => "never_run"
       case Some(run) if run.status == JobRunStatus.Running =>
         if (hoursSinceStart.exists(_ > HealthService.JobAbandonedAfterHours)) "abandoned" else "running"
-      case Some(run) => run.status.toString
+      case Some(run) => run.status.name
     }
   }
 
@@ -408,16 +408,16 @@ object HealthService {
    */
   val JobAbandonedAfterHours: Long = 12
 
-  implicit private val jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
+  private given jsonConfig: JsonConfiguration = JsonConfiguration(JsonNaming.SnakeCase)
 
-  implicit val blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
-  implicit val idleTxnSessionWrites: Writes[IdleTxnSession]     = Json.writes[IdleTxnSession]
-  implicit val activeQueryWrites: Writes[ActiveQuery]           = Json.writes[ActiveQuery]
-  implicit val stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
-  implicit val tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
-  implicit val connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
-  implicit val panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
-  implicit val nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
-  implicit val healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]
-  implicit val dbHealthDataWrites: Writes[DbHealthData]         = Json.writes[DbHealthData]
+  given blockingSessionWrites: Writes[BlockingSession]   = Json.writes[BlockingSession]
+  given idleTxnSessionWrites: Writes[IdleTxnSession]     = Json.writes[IdleTxnSession]
+  given activeQueryWrites: Writes[ActiveQuery]           = Json.writes[ActiveQuery]
+  given stuckEvolutionWrites: Writes[StuckEvolution]     = Json.writes[StuckEvolution]
+  given tableBloatWrites: Writes[TableBloat]             = Json.writes[TableBloat]
+  given connCountWrites: Writes[ConnCount]               = Json.writes[ConnCount]
+  given panoBackupStatsWrites: Writes[PanoBackupStats]   = Json.writes[PanoBackupStats]
+  given nightlyJobStatusWrites: Writes[NightlyJobStatus] = Json.writes[NightlyJobStatus]
+  given healthThresholdsWrites: Writes[HealthThresholds] = Json.writes[HealthThresholds]
+  given dbHealthDataWrites: Writes[DbHealthData]         = Json.writes[DbHealthData]
 }

@@ -34,7 +34,7 @@ class AccessScoreClusterSheet {
           <h2 class="acs-sheet__title" id="acs-sheet-title"></h2>
           <p class="acs-sheet__meta"></p>
         </div>
-        <button type="button" class="acs-sheet__close" aria-label="${AccessScoreChart.esc(i18next.t('common:close'))}">
+        <button type="button" class="acs-sheet__close" aria-label="${util.escapeHTML(i18next.t('common:close'))}">
           <img src="${util.assetPath('images/icons/cross.svg')}" alt="">
         </button>
       </div>
@@ -73,7 +73,7 @@ class AccessScoreClusterSheet {
     this.#ids = ids;
     const token = ++this.#openToken;
     this.#els.icon.src = util.misc.getIconImagePaths(type).iconImagePath;
-    this.#els.title.textContent = i18next.t('accessscore:sheet-title', { type: AccessScoreChart.typeName(type) });
+    this.#els.title.textContent = i18next.t('accessscore:sheet-title', { type: util.misc.labelTypeName(type) });
     const rating = util.misc.labelTypeHasSeverity(type) && props.median_severity
       ? i18next.t(`common:${util.misc.getRatingLevelKeys(type)[props.median_severity]}`)
       : null;

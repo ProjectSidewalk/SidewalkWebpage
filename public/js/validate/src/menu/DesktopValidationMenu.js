@@ -46,6 +46,8 @@ class DesktopValidationMenu {
       this.#setUnsureView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Unsure');
     });
+    // Immersive mode's close control on the open dock (#5560); the boxed column never shows it.
+    menuUI.verdictClearButton?.addEventListener('click', () => this.clearVerdict());
 
     // Tag and severity sections only available with Expert Validate.
     if (svv.adminVersion) {
@@ -162,7 +164,7 @@ class DesktopValidationMenu {
     menuUI.disagreeReasonTextBox.addEventListener('input', () => {
       if (svv.labelContainer.dropInputWhileLoading('DisagreeReason')) return;
       if (menuUI.disagreeReasonTextBox.value === '') {
-        menuUI.disagreeReasonTextBox.classList.remove('chosen');
+        menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
         svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', undefined);
       } else {
         this.#setDisagreeReason('other');
@@ -171,7 +173,7 @@ class DesktopValidationMenu {
     menuUI.unsureReasonTextBox.addEventListener('input', () => {
       if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
       if (menuUI.unsureReasonTextBox.value === '') {
-        menuUI.unsureReasonTextBox.classList.remove('chosen');
+        menuUI.unsureReasonTextBox.classList.remove('is-chosen');
         svv.labelContainer.getCurrentLabel().setProperty('unsureOption', undefined);
       } else {
         this.#setUnsureReason('other');
@@ -199,8 +201,8 @@ class DesktopValidationMenu {
       menuUI.optionalCommentTextBox.value = '';
       DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
       DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
-      menuUI.disagreeReasonTextBox.classList.remove('chosen');
-      menuUI.unsureReasonTextBox.classList.remove('chosen');
+      menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
+      menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
       menuUI.unsureReasonTextBox.value = '';
       menuUI.submitButton.disabled = true;
@@ -211,23 +213,23 @@ class DesktopValidationMenu {
       const disagreeOption = label.getProperty('disagreeOption');
       DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
       if (disagreeOption === 'other') {
-        menuUI.disagreeReasonTextBox.classList.add('chosen');
+        menuUI.disagreeReasonTextBox.classList.add('is-chosen');
         menuUI.disagreeReasonTextBox.value = label.getProperty('disagreeReasonTextBox');
       } else {
-        menuUI.disagreeReasonTextBox.classList.remove('chosen');
+        menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
         menuUI.disagreeReasonTextBox.value = '';
-        this.#reasonButton(disagreeOption)?.classList.add('chosen');
+        this.#reasonButton(disagreeOption)?.classList.add('is-chosen');
       }
 
       const unsureOption = label.getProperty('unsureOption');
       DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
       if (unsureOption === 'other') {
-        menuUI.unsureReasonTextBox.classList.add('chosen');
+        menuUI.unsureReasonTextBox.classList.add('is-chosen');
         menuUI.unsureReasonTextBox.value = label.getProperty('unsureReasonTextBox');
       } else {
-        menuUI.unsureReasonTextBox.classList.remove('chosen');
+        menuUI.unsureReasonTextBox.classList.remove('is-chosen');
         menuUI.unsureReasonTextBox.value = '';
-        this.#reasonButton(unsureOption)?.classList.add('chosen');
+        this.#reasonButton(unsureOption)?.classList.add('is-chosen');
       }
 
       // An Agree carrying a new type is a "wrong label type" disagree.
@@ -250,7 +252,7 @@ class DesktopValidationMenu {
    * @param {HTMLElement[]} buttons
    */
   static #clearChosen(buttons) {
-    for (const button of buttons) button.classList.remove('chosen');
+    for (const button of buttons) button.classList.remove('is-chosen');
   }
 
   /**
@@ -313,8 +315,10 @@ class DesktopValidationMenu {
   #showVerdict(chosenButton, sections) {
     const menuUI = this.#menuUI;
     this.#wrongTypeView = sections.includes('labelTypeMenu');
+    // The dock's close control (immersive mode) shows only while there is a verdict to take back.
+    menuUI.holder?.classList.toggle('has-verdict', chosenButton !== null);
     for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]) {
-      button.classList.toggle('chosen', button === chosenButton);
+      button.classList.toggle('is-chosen', button === chosenButton);
     }
     const all = ['labelTypeMenu', 'tagsMenu', 'severityMenu', 'optionalCommentSection', 'noMenu', 'unsureMenu'];
     for (const name of all) {
@@ -367,6 +371,40 @@ class DesktopValidationMenu {
     this.#menuUI.submitButton.disabled = false;
   }
 
+  /**
+   * Takes the verdict back to no answer (#5560): the sections fold away, the buttons unchoose, and the label forgets
+   * the result and its reasons so Submit has nothing to send. The reason buttons stay rendered for the type; only
+   * what was entered for this label goes. Reachable from the dock's close control in immersive mode.
+   */
+  clearVerdict() {
+    // Mid-load the current label is already the incoming one, so a Space on the still-focused X would wipe it (#5211).
+    if (svv.labelContainer.dropInputWhileLoading('ClearVerdict')) return;
+    const menuUI = this.#menuUI;
+    const label = svv.labelContainer.getCurrentLabel();
+    const verdict = label.getProperty('validationResult');
+    if (verdict === undefined) return;
+    svv.tracker.push('Click_ClearVerdict', { verdict });
+    this.#dropPendingEdits();
+    for (const name of ['validationResult', 'disagreeOption', 'unsureOption']) label.setProperty(name, undefined);
+    // The text fields start out empty strings (Label.js), not undefined.
+    for (const name of ['agreeComment', 'disagreeReasonTextBox', 'unsureReasonTextBox']) label.setProperty(name, '');
+    // The X hides itself with the verdict, which would drop keyboard focus to the page; the answer it undid is where
+    // the validator picks up again.
+    const chosenButton = [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]
+      .find((button) => button.classList.contains('is-chosen'));
+    const refocus = document.activeElement === menuUI.verdictClearButton;
+    this.#showVerdict(null, []);
+    menuUI.optionalCommentTextBox.value = '';
+    DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
+    DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
+    menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
+    menuUI.unsureReasonTextBox.classList.remove('is-chosen');
+    menuUI.disagreeReasonTextBox.value = '';
+    menuUI.unsureReasonTextBox.value = '';
+    menuUI.submitButton.disabled = true;
+    if (refocus) (chosenButton ?? menuUI.yesButton).focus();
+  }
+
   #setUnsureView() {
     this.#dropPendingEdits();
     this.#showVerdict(this.#menuUI.unsureButton, ['unsureMenu']);
@@ -412,7 +450,7 @@ class DesktopValidationMenu {
   #startWrongType() {
     const currLabel = svv.labelContainer.getCurrentLabel();
     DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
-    this.#menuUI.disagreeReasonTextBox.classList.remove('chosen');
+    this.#menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
     currLabel.setProperty('disagreeOption', null);
     this.#setWrongTypeView();
     currLabel.setProperty('validationResult', 'Agree');
@@ -436,7 +474,9 @@ class DesktopValidationMenu {
    */
   #addTooltip(elem, tooltipText, img) {
     if (!window.matchMedia('(hover: hover)').matches) return; // A tap would pin it open on a touch device.
-    const tooltipHtml = img ? `${tooltipText}<br/><img src="${img}" class="validate-tooltip-img"/>` : tooltipText;
+    const imgHtml = img ? `<br/><img src="${util.escapeHTML(img)}" class="validate-tooltip-img"/>` : '';
+    // eslint-disable-next-line ps/escape-in-markup -- translations can contain <b>.
+    const tooltipHtml = `${tooltipText}${imgHtml}`;
     elem.setAttribute('data-ps-tooltip', tooltipHtml);
   }
 
@@ -482,7 +522,7 @@ class DesktopValidationMenu {
 
     menuUI.currentTags.replaceChildren();
     const currTags = label.getProperty('newTags');
-    const tagTemplate = document.querySelector('.current-tag.template');
+    const tagTemplate = menuUI.currentTagTemplate.content.firstElementChild;
     for (const tag of currTags) {
       const tagOption = allTagOptions.find((t) => t.tag_name === tag);
       if (!tagOption) {
@@ -490,7 +530,6 @@ class DesktopValidationMenu {
       }
 
       const tagDiv = /** @type {HTMLElement} */ (tagTemplate.cloneNode(true));
-      tagDiv.classList.remove('template');
       const translatedTagName = i18next.t(`common:tag.${tag.replace(/:/g, '-')}`);
       tagDiv.querySelector('.tag-name').textContent = translatedTagName;
 
@@ -518,8 +557,7 @@ class DesktopValidationMenu {
     this.#tagSelect.addOption(allTagOptions);
 
     // AI SUGGESTION TAGS SECTION.
-    menuUI.aiSuggestionSection.querySelectorAll('.sidewalk-ai-suggested-tag:not(.template)')
-      .forEach((el) => el.remove());
+    menuUI.aiSuggestionSection.querySelectorAll('.sidewalk-ai-suggested-tag').forEach((el) => el.remove());
 
     // Decide which tags AI is suggesting to add or remove. If null, AI suggestion disabled on this server. The AI
     // judged the original type, so its suggestions say nothing about a type the expert just picked.
@@ -554,10 +592,10 @@ class DesktopValidationMenu {
         ...aiAddTagOptions.map((t) => ({ ...t, action: 'add' })),
         ...aiRemoveTagOptions.map((t) => ({ ...t, action: 'remove' })),
       ];
+      const suggestionTemplate = menuUI.aiSuggestedTagTemplate.content.firstElementChild;
       for (const tag of aiTagOptions) {
         // Clone the template tag element, and set all appropriate classes.
-        const suggestion = /** @type {HTMLElement} */ (menuUI.aiSuggestedTagTemplate.cloneNode(true));
-        suggestion.classList.remove('template');
+        const suggestion = /** @type {HTMLElement} */ (suggestionTemplate.cloneNode(true));
         suggestion.classList.add(tag.action === 'add' ? 'to-add' : 'to-remove');
 
         const translatedTagName = i18next.t(`common:tag.${tag.tag_name.replace(/:/g, '-')}`);
@@ -653,13 +691,13 @@ class DesktopValidationMenu {
     }
     DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     if (id === 'other') {
-      menuUI.disagreeReasonTextBox.classList.add('chosen');
+      menuUI.disagreeReasonTextBox.classList.add('is-chosen');
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
     } else {
-      menuUI.disagreeReasonTextBox.classList.remove('chosen');
+      menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', id);
-      this.#reasonButton(id)?.classList.add('chosen');
+      this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
 
@@ -680,13 +718,13 @@ class DesktopValidationMenu {
     const menuUI = this.#menuUI;
     DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {
-      menuUI.unsureReasonTextBox.classList.add('chosen');
+      menuUI.unsureReasonTextBox.classList.add('is-chosen');
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
     } else {
-      menuUI.unsureReasonTextBox.classList.remove('chosen');
+      menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.unsureReasonTextBox.value = '';
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', id);
-      this.#reasonButton(id)?.classList.add('chosen');
+      this.#reasonButton(id)?.classList.add('is-chosen');
     }
   }
 
@@ -737,9 +775,13 @@ class DesktopValidationMenu {
     }
     currLabel.setProperty('comment', comment);
 
-    // If enough time has passed between validations, log the new validation.
-    if (timestamp.getTime() - svv.labelContainer.getProperty('validationTimestamp') > 800) {
+    // A verdict counts once the label has been on screen long enough to have been looked at (LabelContainer has the
+    // reasoning). Double-tap protection swallows the rest without a trace on screen, so the log is where it shows.
+    const sinceMs = timestamp.getTime() - svv.labelContainer.getProperty('renderedTimestamp');
+    if (sinceMs > LabelContainer.VERDICT_GRACE_MS) {
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
+    } else {
+      svv.tracker.push('ValidateInputDropped_Debounce', { source: `Submit=${action}`, sinceMs });
     }
   }
 }

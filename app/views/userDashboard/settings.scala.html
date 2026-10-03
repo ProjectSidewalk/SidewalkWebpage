@@ -6,7 +6,7 @@
 @import views.html.helper.CSRF
 @(commonData: CommonPageData, user: SidewalkUserWithRole, openTeams: Seq[Team], currTeam: Option[Team],
     onLeaderboard: Boolean, publicProfile: Boolean, unitsChoice: String, privateByDefault: Boolean
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @*
 * User Dashboard — Settings page. Editable username (#4373), read-only email, a measurement-units choice (#4404),
@@ -96,7 +96,7 @@
       <div class="ud-field">
         <label class="ud-label" for="set-units">@Messages("dashboard.settings.units")</label>
         <select class="ps-select ps-select--large" id="set-units">
-          @for(choice <- MeasurementSystem.FollowLanguage +: MeasurementSystem.values.toSeq.map(_.toString)) {
+          @for(choice <- MeasurementSystem.FollowLanguage +: MeasurementSystem.names) {
             <option value="@choice" @selectedIfChosen(choice)>@Messages(s"dashboard.settings.units.$choice")</option>
           }
         </select>

@@ -11,10 +11,11 @@ import play.api.cache.AsyncCacheApi
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.libs.ws.WSClient
+import play.api.libs.ws.WSBodyWritables.*
 
 import java.time.OffsetDateTime
 import javax.inject.{Inject, Singleton}
-import scala.concurrent.duration._
+import scala.concurrent.duration.*
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
@@ -104,10 +105,10 @@ class OsmWayServiceImpl @Inject() (
     cacheApi: AsyncCacheApi,
     actorSystem: ActorSystem,
     osmWayTable: OsmWayTable
-)(implicit ec: ExecutionContext)
+)(using ec: ExecutionContext)
     extends OsmWayService
     with HasDatabaseConfigProvider[MyPostgresProfile] {
-  import OsmWayService._
+  import OsmWayService.*
 
   private val logger = Logger(this.getClass)
 
@@ -157,7 +158,7 @@ class OsmWayServiceImpl @Inject() (
               // proxy), not a chunk of ids that never existed; treating it as the latter would mark a whole city
               // missing in one night. A lone bad id is a real data defect and is named.
               _ = if (chunk.size > 1 && fetched.neverHeld.size == chunk.size) {
-                throw new RuntimeException(
+                throw RuntimeException(
                   s"The OSM API answered 404 for every one of ${chunk.size} ways in a chunk; treating the API as down."
                 )
               }
@@ -166,13 +167,13 @@ class OsmWayServiceImpl @Inject() (
                   s"The OSM API has never held mapped way ids ${fetched.neverHeld.mkString(", ")}; marked missing."
                 )
               }
-              split = chunk.partition(fetched.live.contains)
-              rows  = split._1.map { wayId =>
+              (liveIds, deadIds) = chunk.partition(fetched.live.contains)
+              rows               = liveIds.map { wayId =>
                 val tags = fetched.live(wayId)
                 (wayId, tags: JsValue, maxspeedFrom(tags))
               }
-              n <- db.run(osmWayTable.upsertBatch(rows, split._2, OffsetDateTime.now))
-            } yield acc + OsmWayRefreshResult(n, split._2.size, 0, 0)
+              n <- db.run(osmWayTable.upsertBatch(rows, deadIds, OffsetDateTime.now))
+            } yield acc + OsmWayRefreshResult(n, deadIds.size, 0, 0)
           }
           .map { result =>
             // A dead way id is normal OSM churn, but a jump in this count means a re-match (#5244) is overdue.
@@ -284,7 +285,7 @@ class OsmWayServiceImpl @Inject() (
         response.status match {
           case 200   => Some(parseWaysResponse(Json.parse(response.body)))
           case 404   => None
-          case other => throw new RuntimeException(s"OSM API batch query failed with status $other.")
+          case other => throw RuntimeException(s"OSM API batch query failed with status $other.")
         }
       }
   }
@@ -322,11 +323,11 @@ class OsmWayServiceImpl @Inject() (
           case 200 =>
             val json = Json.parse(response.body)
             if ((json \ "elements").asOpt[Seq[JsValue]].isEmpty) {
-              throw new RuntimeException(s"OSM history response for way $wayId has no elements array.")
+              throw RuntimeException(s"OSM history response for way $wayId has no elements array.")
             }
             Some(json)
           case 404   => None
-          case other => throw new RuntimeException(s"OSM history query for way $wayId failed with status $other.")
+          case other => throw RuntimeException(s"OSM history query for way $wayId failed with status $other.")
         }
       }
   }
@@ -343,7 +344,7 @@ class OsmWayServiceImpl @Inject() (
       .post(Map("data" -> Seq(query)))
       .flatMap { response =>
         if (response.status != 200) {
-          throw new RuntimeException(s"Overpass point query failed with status ${response.status}.")
+          throw RuntimeException(s"Overpass point query failed with status ${response.status}.")
         }
         pickNearestRoad(Json.parse(response.body), lat, lng) match {
           case Some((wayId, tags, geom)) =>
@@ -392,9 +393,9 @@ object OsmWayService {
     WayType.Motorway, WayType.Trunk, WayType.Primary, WayType.Secondary, WayType.Tertiary, WayType.Unclassified,
     WayType.Residential, WayType.MotorwayLink, WayType.TrunkLink, WayType.PrimaryLink, WayType.SecondaryLink,
     WayType.TertiaryLink, WayType.LivingStreet, WayType.Road
-  ).map(_.toString)
+  ).map(_.name)
 
-  private val geometryFactory = new GeometryFactory(new PrecisionModel(), 4326)
+  private val geometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
   /**
    * Parses an OSM API multi-fetch (`/ways.json?ways=…`) response into a map from way id to its tag map, for the
@@ -407,7 +408,7 @@ object OsmWayService {
   def parseWaysResponse(json: JsValue): Map[Long, JsObject] = {
     (json \ "elements")
       .asOpt[Seq[JsObject]]
-      .getOrElse(throw new RuntimeException("OSM API multi-fetch response has no elements array."))
+      .getOrElse(throw RuntimeException("OSM API multi-fetch response has no elements array."))
       .filter { el => (el \ "type").asOpt[String].contains("way") && (el \ "visible").asOpt[Boolean].getOrElse(true) }
       .flatMap { el => (el \ "id").asOpt[Long].map { id => id -> (el \ "tags").asOpt[JsObject].getOrElse(Json.obj()) } }
       .toMap
@@ -437,7 +438,7 @@ object OsmWayService {
   def fetchSplittingOnNotFound(wayIds: Seq[Long])(
       fetch: Seq[Long] => Future[Option[Map[Long, JsObject]]],
       pause: () => Future[Unit] = () => Future.unit
-  )(implicit ec: ExecutionContext): Future[ChunkFetch] = {
+  )(using ec: ExecutionContext): Future[ChunkFetch] = {
     fetch(wayIds).flatMap {
       case Some(found)              => Future.successful(ChunkFetch(found, Nil))
       case None if wayIds.size <= 1 => Future.successful(ChunkFetch(Map.empty, wayIds))
@@ -474,7 +475,7 @@ object OsmWayService {
         } yield (version, tags)
       }
     val roads = tagged.filter { case (_, tags) => tags.keys.contains("highway") }
-    (if (roads.nonEmpty) roads else tagged).maxByOption(_._1).map(_._2)
+    (if (roads.nonEmpty) roads else tagged).maxByOption { case (version, _) => version }.map { case (_, tags) => tags }
   }
 
   /**
@@ -492,7 +493,7 @@ object OsmWayService {
    * @return The nearest road's (way id, tag map, geometry), or None if the response has no qualifying road.
    */
   def pickNearestRoad(json: JsValue, lat: Double, lng: Double): Option[(Long, JsObject, LineString)] = {
-    val point = geometryFactory.createPoint(new Coordinate(lng, lat))
+    val point = geometryFactory.createPoint(Coordinate(lng, lat))
 
     val roads = (json \ "elements")
       .asOpt[Seq[JsObject]]
@@ -509,7 +510,7 @@ object OsmWayService {
             for {
               pLat <- (c \ "lat").asOpt[Double]
               pLng <- (c \ "lon").asOpt[Double]
-            } yield new Coordinate(
+            } yield Coordinate(
               pLng,
               pLat
             )
@@ -521,6 +522,6 @@ object OsmWayService {
         }
       }
 
-    if (roads.isEmpty) None else Some(roads.minBy(_._3.distance(point)))
+    if (roads.isEmpty) None else Some(roads.minBy { case (_, _, line) => line.distance(point) })
   }
 }

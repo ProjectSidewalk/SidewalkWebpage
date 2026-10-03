@@ -2,7 +2,7 @@
  * Renders the admin Contributors page (#4272). Aggregates the per-user admin stats into a picture of who produces the
  * deployment's data and how trustworthy it is: counts by quality flag and role, the share of labels coming from high-
  * vs low-quality users, and the distribution of contributor accuracy. Rendered as an accessible HTML/CSS scorecard
- * (no charting library). Data is /adminapi/getUserStats (per-user highQuality, labels, ownValidatedAgreedPct, role).
+ * (no charting library). Data is /adminapi/getUserStats.
  */
 class ContributorsPage {
   /** Accuracy buckets (upper bounds, percent) for the contributor-accuracy distribution. */
@@ -65,9 +65,9 @@ class ContributorsPage {
   }
 
   #renderKpis(labelers) {
-    const highQ = labelers.filter((u) => u.highQuality).length;
+    const highQ = labelers.filter((u) => u.high_quality).length;
     const totalLabels = labelers.reduce((s, u) => s + (u.labels || 0), 0);
-    const labelsHighQ = labelers.reduce((s, u) => s + (u.highQuality ? (u.labels || 0) : 0), 0);
+    const labelsHighQ = labelers.reduce((s, u) => s + (u.high_quality ? (u.labels || 0) : 0), 0);
 
     this.#setText('kpi-contributors', labelers.length.toLocaleString());
     this.#setText('kpi-high-quality', highQ.toLocaleString());
@@ -80,7 +80,7 @@ class ContributorsPage {
 
   /** Stacked bar of high- vs low-quality contributor counts. */
   #renderQualitySplit(labelers) {
-    const high = labelers.filter((u) => u.highQuality).length;
+    const high = labelers.filter((u) => u.high_quality).length;
     const low = labelers.length - high;
     document.getElementById('contrib-quality').innerHTML = ContributorsPage.#stackedBar([
       { label: 'High-quality', value: high, cls: 'contrib-seg--high' },
@@ -90,8 +90,8 @@ class ContributorsPage {
 
   /** Stacked bar of how many labels come from high- vs low-quality contributors. */
   #renderLabelSource(labelers) {
-    const high = labelers.reduce((s, u) => s + (u.highQuality ? (u.labels || 0) : 0), 0);
-    const low = labelers.reduce((s, u) => s + (!u.highQuality ? (u.labels || 0) : 0), 0);
+    const high = labelers.reduce((s, u) => s + (u.high_quality ? (u.labels || 0) : 0), 0);
+    const low = labelers.reduce((s, u) => s + (!u.high_quality ? (u.labels || 0) : 0), 0);
     document.getElementById('contrib-label-source').innerHTML = ContributorsPage.#stackedBar([
       { label: 'From high-quality users', value: high, cls: 'contrib-seg--high' },
       { label: 'From low-quality users', value: low, cls: 'contrib-seg--low' },
@@ -124,7 +124,7 @@ class ContributorsPage {
     const rows = labelers.map((u, i) => [
       `${i + 1}`,
       ContributorsPage.#userCell(u),
-      ContributorsPage.#esc(u.role || ''),
+      util.escapeHTML(u.role || ''),
       (u.labels || 0).toLocaleString(),
       ContributorsPage.#labelTypeBar(u.label_type_counts || []),
       ContributorsPage.#severityDist(u.severity_counts || []),
@@ -158,7 +158,7 @@ class ContributorsPage {
     const rows = validators.map((u, i) => [
       `${i + 1}`,
       ContributorsPage.#userCell(u),
-      ContributorsPage.#esc(u.role || ''),
+      util.escapeHTML(u.role || ''),
       (u.validations || 0).toLocaleString(),
       ContributorsPage.#verdictBar(u.agree || 0, u.disagree || 0, u.unsure || 0),
       ContributorsPage.#accuracyCell(u.agreement_pct, u.validations, factor),
@@ -178,14 +178,14 @@ class ContributorsPage {
 
   /** Histogram of contributors by the agreement rate of their own labels (only those with validated labels). */
   #renderAccuracy(labelers) {
-    const rated = labelers.filter((u) => (u.ownValidated || 0) > 0);
-    // ownValidatedAgreedPct may be a fraction (0–1) or a percent (0–100); normalize from the observed max.
-    const maxVal = rated.reduce((m, u) => Math.max(m, u.ownValidatedAgreedPct || 0), 0);
+    const rated = labelers.filter((u) => (u.own_validated || 0) > 0);
+    // own_validated_agreed_pct may be a fraction (0–1) or a percent (0–100); normalize from the observed max.
+    const maxVal = rated.reduce((m, u) => Math.max(m, u.own_validated_agreed_pct || 0), 0);
     const factor = maxVal <= 1 ? 100 : 1;
 
     const counts = ContributorsPage.#ACCURACY_BUCKETS.map(() => 0);
     for (const u of rated) {
-      const acc = (u.ownValidatedAgreedPct || 0) * factor;
+      const acc = (u.own_validated_agreed_pct || 0) * factor;
       const idx = ContributorsPage.#ACCURACY_BUCKETS.findIndex((b) => acc < b.max);
       counts[idx >= 0 ? idx : counts.length - 1]++;
     }
@@ -224,7 +224,7 @@ class ContributorsPage {
     const legendItems = segments.map((s) => `
       <span class="contrib-legend-item">
         <span class="contrib-swatch ${s.cls || ''}"${s.color ? ` style="background:${s.color}"` : ''}></span>
-        ${ContributorsPage.#esc(s.label)} <b>${s.value.toLocaleString()}</b>
+        ${util.escapeHTML(s.label)} <b>${s.value.toLocaleString()}</b>
         <span class="dq-sub">(${ContributorsPage.#pct(s.value / total)})</span>
       </span>`).join('');
     return `<div class="dq-bar-track dq-stack">${segsHtml}</div><div class="contrib-legend">${legendItems}</div>`;
@@ -234,7 +234,7 @@ class ContributorsPage {
   static #barRow(label, count, max, color) {
     return `
       <div class="contrib-row">
-        <span class="contrib-row-label">${ContributorsPage.#esc(label)}</span>
+        <span class="contrib-row-label">${util.escapeHTML(label)}</span>
         <div class="dq-bar-track">
           <div class="dq-bar" style="width:${(count / max) * 100}%;background:${color}"></div>
         </div>
@@ -253,7 +253,7 @@ class ContributorsPage {
   static #table(columns, rows) {
     const cls = (c) => (c.align === 'right' ? ' class="num"' : '');
     const headCells = columns.map((c) =>
-      `<th scope="col"${cls(c)}>${ContributorsPage.#esc(c.label)}</th>`).join('');
+      `<th scope="col"${cls(c)}>${util.escapeHTML(c.label)}</th>`).join('');
     const head = `<tr>${headCells}</tr>`;
     const body = rows.map((cells) =>
       `<tr>${cells.map((cell, i) => `<td${cls(columns[i])}>${cell}</td>`).join('')}</tr>`).join('');
@@ -283,13 +283,15 @@ class ContributorsPage {
   static #labelTypeBar(typeCounts) {
     const total = typeCounts.reduce((s, t) => s + (t.count || 0), 0);
     if (!total) return '<span class="dq-sub">—</span>';
-    const segs = typeCounts.map((t) => {
+    const tips = typeCounts.map((t) => {
       const pct = Math.round((t.count / total) * 100);
-      const title = `${t.label_type}: ${(t.count || 0).toLocaleString()} (${pct}%)`;
-      return `<span class="contrib-typeseg" style="width:${(t.count / total) * 100}%;`
-        + `background:${ContributorsPage.#typeColor(t.label_type)}" title="${ContributorsPage.#esc(title)}"></span>`;
-    }).join('');
-    return `<span class="contrib-typebar">${segs}</span>`;
+      return `${t.label_type}: ${(t.count || 0).toLocaleString()} (${pct}%)`;
+    });
+    const segs = typeCounts.map((t, i) => `<span class="contrib-typeseg"
+      style="width:${(t.count / total) * 100}%;background:${ContributorsPage.#typeColor(t.label_type)}"
+      data-ps-tooltip="${AdminShell.tooltipAttr(tips[i])}"></span>`).join('');
+    const summary = util.escapeHTML(tips.join(', '));
+    return `<span class="contrib-typebar" role="img" aria-label="${summary}">${segs}</span>`;
   }
 
   /**
@@ -311,14 +313,13 @@ class ContributorsPage {
       byLevel.set(level, byLevel.get(level) + (s.count || 0));
     }
     const max = Math.max(1, ...byLevel.values());
-    const bars = [1, 2, 3].map((level) => {
+    const tips = [1, 2, 3].map((level) => {
       const count = byLevel.get(level);
-      const pct = Math.round((count / total) * 100);
-      const title = `Severity ${level}: ${count.toLocaleString()} (${pct}%)`;
-      return `<span class="contrib-sevbar" title="${ContributorsPage.#esc(title)}">`
-        + `<span style="height:${Math.round((count / max) * 100)}%"></span></span>`;
-    }).join('');
-    return `<span class="contrib-sevdist" aria-label="Severity distribution (1 to 3)">${bars}</span>`;
+      return `Severity ${level}: ${count.toLocaleString()} (${Math.round((count / total) * 100)}%)`;
+    });
+    const bars = [1, 2, 3].map((level, i) => `<span class="contrib-sevbar" data-ps-tooltip="${tips[i]}">
+      <span style="height:${Math.round((byLevel.get(level) / max) * 100)}%"></span></span>`).join('');
+    return `<span class="contrib-sevdist" role="img" aria-label="${tips.join(', ')}">${bars}</span>`;
   }
 
   /**
@@ -333,12 +334,14 @@ class ContributorsPage {
   static #verdictBar(agree, disagree, unsure) {
     const total = agree + disagree + unsure;
     if (!total) return '<span class="dq-sub">—</span>';
+    const tip = (value, label) => `${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)`;
     const seg = (value, cls, label) => (value
-      ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%" `
-      + `title="${label}: ${value.toLocaleString()} (${Math.round((value / total) * 100)}%)"></span>`
+      ? `<span class="contrib-verdictseg ${cls}" style="width:${(value / total) * 100}%"
+          data-ps-tooltip="${tip(value, label)}"></span>`
       : '');
+    const summary = [tip(agree, 'Agree'), tip(disagree, 'Disagree'), tip(unsure, 'Unsure')].join(', ');
     const bar = [
-      '<span class="contrib-verdictbar">',
+      `<span class="contrib-verdictbar" role="img" aria-label="${summary}">`,
       seg(agree, 'is-agree', 'Agree'),
       seg(disagree, 'is-disagree', 'Disagree'),
       seg(unsure, 'is-unsure', 'Unsure'),
@@ -351,8 +354,8 @@ class ContributorsPage {
 
   /** A username linking to the user's admin profile (username escaped; both the text and the URL path). */
   static #userCell(u) {
-    const name = u.username || u.userId || 'Unknown';
-    return `<a href="/admin/user/${encodeURIComponent(name)}">${ContributorsPage.#esc(name)}</a>`;
+    const name = u.username || u.user_id || 'Unknown';
+    return `<a href="/admin/user/${encodeURIComponent(name)}">${util.escapeHTML(name)}</a>`;
   }
 
   /** A high/low-quality pill. */
@@ -386,10 +389,6 @@ class ContributorsPage {
     return `${Math.round((frac || 0) * 100)}%`;
   }
 
-  static #esc(s) {
-    return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  }
-
   #setText(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
@@ -400,6 +399,6 @@ class ContributorsPage {
     if (!status) return;
     status.textContent = message;
     status.classList.toggle('error', !!isError);
-    status.classList.toggle('hidden', hide);
+    status.classList.toggle('ps-hidden', hide);
   }
 }

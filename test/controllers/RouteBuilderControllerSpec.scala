@@ -2,16 +2,16 @@ package controllers
 
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Assertion
-import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.i18n.{Lang, MessagesApi}
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Cookie
-import play.api.test.CSRFTokenHelper._
+import play.api.test.CSRFTokenHelper.*
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
+import util.SidewalkSpec
 
 import java.util.UUID
 
@@ -26,18 +26,18 @@ import java.util.UUID
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
+class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
-    new GuiceApplicationBuilder().disable[modules.ActorModule].build()
+    GuiceApplicationBuilder().disable[modules.ActorModule].build()
 
-  implicit lazy val mat: Materializer = app.materializer
+  given mat: Materializer = app.materializer
 
   private val XHR = "X-Requested-With" -> "XMLHttpRequest"
 
   private lazy val messagesApi: MessagesApi = app.injector.instanceOf[MessagesApi]
   // The requests below send no Accept-Language, so Play serves English.
-  implicit private val lang: Lang = Lang("en")
+  private given lang: Lang = Lang("en")
 
   /** Creates a throwaway UUID-tagged registered user and returns its session cookies (incl. the authenticator). */
   private def signUpFreshUser(): Seq[Cookie] = {
@@ -70,7 +70,7 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   private def streetsInRegion(userCookies: Seq[Cookie], n: Int): (Seq[Int], Int) = {
     val resp = route(
       app,
-      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies: _*)
+      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies*)
     ).get
     status(resp) mustBe OK
     val features = (contentAsJson(resp) \ "features").as[Seq[JsValue]]
@@ -92,7 +92,7 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
   private def streetsInTwoRegions(userCookies: Seq[Cookie]): ((Int, Int), (Int, Int)) = {
     val resp = route(
       app,
-      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies: _*)
+      FakeRequest(GET, "/contribution/streets/all?filterLowQuality=true").withCookies(userCookies*)
     ).get
     status(resp) mustBe OK
     val byRegion = (contentAsJson(resp) \ "features")
@@ -109,11 +109,11 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
   private def saveRoute(userCookies: Seq[Cookie], body: JsValue) = route(
     app,
-    FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(userCookies: _*).withJsonBody(body).withCSRFToken
+    FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(userCookies*).withJsonBody(body).withCSRFToken
   ).get
 
   private def listRoutes(userCookies: Seq[Cookie]): Seq[JsValue] = {
-    val resp = route(app, FakeRequest(GET, "/userapi/routes").withCookies(userCookies: _*)).get
+    val resp = route(app, FakeRequest(GET, "/userapi/routes").withCookies(userCookies*)).get
     status(resp) mustBe OK
     contentAsJson(resp).as[Seq[JsValue]]
   }
@@ -122,19 +122,19 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
     app,
     FakeRequest(PUT, s"/userapi/routes/$routeId")
       .withHeaders(XHR)
-      .withCookies(userCookies: _*)
+      .withCookies(userCookies*)
       .withJsonBody(body)
       .withCSRFToken
   ).get
 
   private def deleteRoute(userCookies: Seq[Cookie], routeId: Int) = route(
     app,
-    FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(userCookies: _*).withCSRFToken
+    FakeRequest(DELETE, s"/userapi/routes/$routeId").withHeaders(XHR).withCookies(userCookies*).withCSRFToken
   ).get
 
   /** Fetches a route's street list as (street_id, reverse) pairs in walking order. */
   private def getRouteStreets(userCookies: Seq[Cookie], routeId: Int): Seq[(Int, Boolean)] = {
-    val resp = route(app, FakeRequest(GET, s"/userapi/routes/$routeId/streets").withCookies(userCookies: _*)).get
+    val resp = route(app, FakeRequest(GET, s"/userapi/routes/$routeId/streets").withCookies(userCookies*)).get
     status(resp) mustBe OK
     (contentAsJson(resp) \ "streets")
       .as[Seq[JsValue]]
@@ -187,7 +187,7 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       // A different user (not the creator) sees the route on the public listing page.
       val other = signUpFreshUser()
-      val page  = route(app, FakeRequest(GET, "/routes").withCookies(other: _*)).get
+      val page  = route(app, FakeRequest(GET, "/routes").withCookies(other*)).get
       status(page) mustBe OK
       contentType(page) mustBe Some("text/html")
       val body = contentAsString(page)
@@ -195,7 +195,7 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
       body must include(name)
       // Card scaffolding (#4688): design-system buttons, the label-map link, the copy control; no truncation
       // note this far under the 500 cap, and no raw i18n key leaking (dotted keys never appear in real copy).
-      body must include("button-ps button--primary button--small route-card__explore")
+      body must include("button button--primary button--small route-card__explore")
       body must include(s"/labelMap?routes=$routeId")
       body must include("route-card__copy")
       body must not include "community-cap-note"
@@ -204,7 +204,7 @@ class RouteBuilderControllerSpec extends PlaySpec with GuiceOneAppPerSuite {
 
       // Soft-deleting removes it from the listing.
       status(deleteRoute(owner, routeId)) mustBe OK
-      val after = route(app, FakeRequest(GET, "/routes").withCookies(other: _*)).get
+      val after = route(app, FakeRequest(GET, "/routes").withCookies(other*)).get
       status(after) mustBe OK
       contentAsString(after) must not include name
     }

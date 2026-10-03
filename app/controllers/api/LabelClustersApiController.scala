@@ -3,7 +3,7 @@ package controllers.api
 import controllers.base.CustomControllerComponents
 import controllers.helper.ShapefilesCreatorHelper
 import models.api.{ApiError, LabelClusterFiltersForApi, LabelClusterForApi, RawLabelInClusterDataForApi}
-import models.label.LabelTypeEnum
+import models.label.LabelType
 import org.apache.pekko.stream.Materializer
 import org.apache.pekko.stream.scaladsl.Source
 import play.api.Logger
@@ -38,7 +38,7 @@ class LabelClustersApiController @Inject() (
     apiService: ApiService,
     configService: ConfigService,
     shapefileCreator: ShapefilesCreatorHelper
-)(implicit ec: ExecutionContext, mat: Materializer)
+)(using ec: ExecutionContext, mat: Materializer)
     extends BaseApiController(cc) {
   private val logger = Logger(this.getClass)
 
@@ -80,7 +80,7 @@ class LabelClustersApiController @Inject() (
     val parsedAvgLabelDate        = parseDateTimeParam(avgLabelDate, "avgLabelDate")
     // Allowlisted rather than split raw: the names are spliced into a comparison against the label_type enum column,
     // where an unknown name is a Postgres error mid-stream, not an empty result.
-    val parsedLabelTypes = parseAllowlistedList(labelType, LabelTypeEnum.labelTypeNames, "labelType")
+    val parsedLabelTypes = parseAllowlistedList(labelType, LabelType.labelTypeNames, "labelType")
 
     // Collect the first invalid-parameter error, if any.
     val firstError: Option[ApiError] = Seq(
@@ -116,7 +116,7 @@ class LabelClustersApiController @Inject() (
           )
 
           // Get the data stream.
-          val dbDataStream: Source[LabelClusterForApi, _] = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
+          val dbDataStream: Source[LabelClusterForApi, ?] = apiService.getLabelClusters(filters, DEFAULT_BATCH_SIZE)
           val baseFileName: String                        = timestampedFilename("labelClusters")
 
           // Output data in the appropriate file format.

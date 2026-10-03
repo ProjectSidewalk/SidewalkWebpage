@@ -1,5 +1,5 @@
-@import formats.json.MissionFormats._
-@import formats.json.ExploreFormats._
+@import formats.json.MissionFormats.given
+@import formats.json.ExploreFormats.{given, _}
 @import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
 @import play.api.libs.json.Json
@@ -10,8 +10,8 @@
   commonData: service.CommonPageData, title: String, user: models.user.SidewalkUserWithRole, data: ExplorePageData,
   lat: Option[Double] = None, lng: Option[Double] = None, panoId: Option[String] = None,
   placeName: Option[String] = None, heading: Option[Double] = None, pitch: Option[Double] = None,
-  zoom: Option[Int] = None
-)(implicit request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
+  zoom: Option[Double] = None
+)(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: play.api.Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
 
@@ -23,7 +23,6 @@
   <link rel="stylesheet" href='@assets.path("css/components/progress-bar.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/pano-image-adjustments.css")'>
-  <link rel="stylesheet" href='@assets.path("vendor/animate-css/animate.css")'>
 
   <script>
     // Setup necessary for saving crops of pano. We don't want to cause issues if this fails.
@@ -103,12 +102,12 @@
           </li>
         }
         </ol>
-        <button type="submit" class="button-ps button--primary button--small survey-dialog__submit">@Messages("submit")</button>
+        <button type="submit" class="button button--primary button--small survey-dialog__submit">@Messages("submit")</button>
       </form>
     </div>
   </dialog>
 
-  <div class="container tool-ui ps-invisible">
+  <div class="tool-ui ps-invisible">
     <div id="area-completion-overlay-wrapper">
       <div class="overlay-text">
         <div id="area-completion-overlay">
@@ -131,7 +130,9 @@
     <div class="browser-warning-holder ps-invisible" id="unsupported-browser-alert">
       <div class="browser-warning-banner">
         <span id="browser-warning-message"><strong>Disclaimer:</strong> This site is optimized for Google Chrome, with some support for Firefox and Safari. Other browsers are not fully supported yet.&nbsp;</span>
-        <span id="browser-warning-close" class="glyphicon glyphicon-remove"></span>
+        <button type="button" id="browser-warning-close" class="browser-warning-close" aria-label="Close" data-i18n-aria-label="common:close">
+          <img src='@assets.path("images/icons/cross.svg")' alt="">
+        </button>
       </div>
     </div>
     <div id="svl-application-holder">
@@ -221,7 +222,7 @@
                 <span class="explore-sidebar__stat-label">@Messages("labels")</span>
               </div>
             </div>
-            <div class="explore-sidebar__stat" id="explore-sidebar__stat-accuracy-holder">
+            <div class="explore-sidebar__stat" id="explore-sidebar__stat-accuracy-holder" tabindex="0">
               <img class="explore-sidebar__stat-icon" src='@assets.path("images/icons/noun_target_3485590_cropped.png")' alt="@Messages("accuracy.icon.alt")">
               <div class="explore-sidebar__stat-text">
                 <span class="explore-sidebar__stat-value" id="explore-sidebar__stat-accuracy">–</span>
@@ -238,7 +239,7 @@
           </div>
           <a id="explore-sidebar__leaderboard-cta" class="explore-sidebar__see-all" href="/leaderboard" target="_blank" rel="noopener">
             <span data-i18n="audit:right-ui.stats.leaderboard-cta">See the community leaderboard</span>
-            <span class="explore-sidebar__sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
+            <span class="sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
             <svg class="explore-sidebar__see-all-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
@@ -274,7 +275,7 @@
           </div>
           <a id="explore-sidebar__dashboard-cta" class="explore-sidebar__see-all" href="/dashboard#achievements" target="_blank" rel="noopener">
             <span data-i18n="audit:right-ui.badges.dashboard-cta">Check out your dashboard</span>
-            <span class="explore-sidebar__sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
+            <span class="sr-only" data-i18n="audit:right-ui.opens-new-tab">(opens in a new tab)</span>
             <svg class="explore-sidebar__see-all-icon" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
               <polyline points="15 3 21 3 21 9"></polyline>
@@ -339,12 +340,12 @@
             <canvas id="minimap-fog-of-war-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-fov-canvas" class="minimap-pane" height="200" width="200"></canvas>
             <canvas id="minimap-progress-circle-canvas" class="minimap-pane" height="200" width="200"></canvas>
-            <div id="minimap-percent-observed" class="minimap-pane" title="How much of your surroundings you've looked around"
-                 data-i18n-title="audit:right-ui.minimap.observed-tooltip"></div>
+            <div id="minimap-percent-observed" class="minimap-pane" tabindex="0" data-ps-tooltip="How much of your surroundings you've looked around"
+                 data-i18n-tooltip="audit:right-ui.minimap.observed-tooltip"></div>
             @* Mission-progress bar: fill + percent + distance explored / mission target. Updated by Minimap.updateMissionProgress. *@
             <div id="minimap-mission-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"
                  aria-label="Mission progress" data-i18n-aria-label="audit:right-ui.minimap.mission-progress"
-                 title="Mission progress" data-i18n-title="audit:right-ui.minimap.mission-progress">
+                 data-ps-tooltip="Mission progress" data-i18n-tooltip="audit:right-ui.minimap.mission-progress">
               <div id="minimap-mission-progress-bar">
                 <div id="minimap-mission-progress-fill"></div>
               </div>
@@ -361,7 +362,7 @@
             @* Always-on mini legend (Explored / Route ahead); click to expand the full key card (MinimapLegend.js). *@
             <button id="minimap-legend-toggle" type="button" aria-expanded="false" aria-controls="minimap-legend-card"
                     aria-label="Map key" data-i18n-aria-label="audit:right-ui.minimap.legend-title"
-                    title="Map key" data-i18n-title="audit:right-ui.minimap.legend-title">
+                    data-ps-tooltip="Map key" data-i18n-tooltip="audit:right-ui.minimap.legend-title">
               <span class="minimap-legend-mini-item">
                 <svg class="minimap-legend-mini-icon" viewBox="0 0 22 8" aria-hidden="true">
                   <path class="minimap-legend-sample-audited" d="M2 4H20"></path>
@@ -457,17 +458,17 @@
               </div>
             </div>
             @* Whole-route overview inset — shown only on designated routes (RouteOverview toggles the holder class). *@
-            <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" title="Route overview: tap to see the whole route" data-i18n-title="audit:right-ui.minimap.route-overview">
+            <button id="minimap-route-overview" type="button" aria-label="Route overview: tap to see the whole route" data-i18n-aria-label="audit:right-ui.minimap.route-overview" data-ps-tooltip="Route overview: tap to see the whole route" data-i18n-tooltip="audit:right-ui.minimap.route-overview">
               <canvas id="minimap-route-overview-canvas"></canvas>
             </button>
             <div id="minimap-zoom-controls" class="ps-icon-button-stack">
-              <button id="minimap-zoom-fit" class="ps-icon-button" type="button" aria-label="Show whole mission" data-i18n-aria-label="audit:right-ui.minimap.fit-mission" title="Show whole mission" data-i18n-title="audit:right-ui.minimap.fit-mission">
+              <button id="minimap-zoom-fit" class="ps-icon-button" type="button" aria-label="Show whole mission" data-i18n-aria-label="audit:right-ui.minimap.fit-mission" data-ps-tooltip="Show whole mission" data-i18n-tooltip="audit:right-ui.minimap.fit-mission" data-ps-tooltip-placement="left">
                 <img class="ps-icon-button-icon" src='@assets.path("images/icons/route-fit-white-material.svg")' alt="">
               </button>
-              <button id="minimap-zoom-in" class="ps-icon-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in" title="Zoom in" data-i18n-title="common:zoom-in">
+              <button id="minimap-zoom-in" class="ps-icon-button" type="button" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in" data-ps-tooltip="Zoom in" data-i18n-tooltip="common:zoom-in" data-ps-tooltip-placement="left">
                 <img class="ps-icon-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
               </button>
-              <button id="minimap-zoom-out" class="ps-icon-button" type="button" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out" title="Zoom out" data-i18n-title="common:zoom-out">
+              <button id="minimap-zoom-out" class="ps-icon-button" type="button" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out" data-ps-tooltip="Zoom out" data-i18n-tooltip="common:zoom-out" data-ps-tooltip-placement="left">
                 <img class="ps-icon-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
               </button>
             </div>
@@ -496,9 +497,10 @@
           <div id="svl-panorama-date-holder">
             <span id="svl-panorama-date-pill"><span id="svl-panorama-date"></span></span>
           </div>
-          @* Stuck and the menu toggle at top-left of the pano; image / sound / feedback drop down under them. *@
+          @* Stuck and the menu toggle at top-left of the pano. Opened, image / sound / feedback continue the row, or
+             drop down under it in full screen (svl-immersive.css). *@
           <div id="explore-control-buttons-holder" class="pano-overlay-button-group">
-            <button type="button" id="explore-control-stuck" class="pano-overlay-button" title="We'll try to move you back to your mission" data-i18n-title="audit:controls.stuck-tooltip">
+            <button type="button" id="explore-control-stuck" class="pano-overlay-button" data-ps-tooltip="We'll try to move you back to your mission" data-i18n-tooltip="audit:controls.stuck-tooltip">
               <img class="pano-overlay-button-icon" src='@assets.path("images/icons/stuck-white-noun.svg")' alt="">
               <span class="pano-overlay-button-label" data-i18n="audit:controls.stuck">Stuck</span>
             </button>
@@ -507,32 +509,32 @@
             </button>
             <div id="explore-control-menu">
               @* Opens the image adjustments popover (@common.panoImageAdjustments()); wired by PanoImageAdjustmentsPopover. *@
-              <button type="button" id="explore-control-image" class="pano-overlay-button" title="Adjust shadows, brightness and contrast" data-i18n-title="audit:controls.image-tooltip">
+              <button type="button" id="explore-control-image" class="pano-overlay-button" data-ps-tooltip="Adjust shadows, brightness and contrast" data-i18n-tooltip="common:image-adjustments.tooltip">
                 <img class="pano-overlay-button-icon" src='@assets.path("images/icons/sliders-white-feather.svg")' alt="">
-                <span class="pano-overlay-button-label" data-i18n="audit:controls.image">Image</span>
+                <span class="pano-overlay-button-label" data-i18n="common:image-adjustments.button">Image</span>
               </button>
               <button type="button" id="explore-control-sound" class="pano-overlay-button">
                 <img class="pano-overlay-button-icon" id="explore-control-sound-icon" src='@assets.path("images/icons/volume-on-feather.svg")' alt="">
-                <img class="pano-overlay-button-icon hidden" id="explore-control-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
+                <img class="pano-overlay-button-icon ps-hidden" id="explore-control-mute-icon" src='@assets.path("images/icons/volume-off-feather.svg")' alt="">
                 <span class="pano-overlay-button-label" data-i18n="audit:controls.sound">Sound</span>
               </button>
-              <button type="button" id="explore-control-feedback" class="pano-overlay-button" title="Share your thoughts with us" data-i18n-title="audit:controls.feedback-tooltip">
+              <button type="button" id="explore-control-feedback" class="pano-overlay-button" data-ps-tooltip="Share your thoughts with us" data-i18n-tooltip="audit:controls.feedback-tooltip" data-ps-tooltip-placement="right">
                 <img class="pano-overlay-button-icon" src='@assets.path("images/icons/comment-material.svg")' alt="">
                 <span class="pano-overlay-button-label" data-i18n="audit:controls.feedback">Feedback</span>
               </button>
             </div>
           </div>
           <div id="zoom-buttons-holder" class="ps-icon-button-stack">
-            <button type="button" id="zoom-in-button" class="ps-icon-button" title="@Messages("press.key", "Z")" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in">
+            <button type="button" id="zoom-in-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.key", "Z")" aria-label="Zoom in" data-i18n-aria-label="common:zoom-in" data-ps-tooltip-placement="left">
               <img class="ps-icon-button-icon" src='@assets.path("images/icons/plus-white-material.svg")' alt="">
             </button>
-            <button type="button" id="zoom-out-button" class="ps-icon-button" title="@Messages("press.keys", "Shift + Z")" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out">
+            <button type="button" id="zoom-out-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.keys", "Shift + Z")" aria-label="Zoom out" data-i18n-aria-label="common:zoom-out" data-ps-tooltip-placement="left">
               <img class="ps-icon-button-icon" src='@assets.path("images/icons/minus-white-material.svg")' alt="">
             </button>
           </div>
           @* Immersive mode toggle (#5085), its own holder so the zoom pair keeps its rounded bottom corner. *@
           <div id="immersive-toggle-holder" class="ps-icon-button-stack">
-            <button type="button" id="immersive-toggle-button" class="ps-icon-button" title="@Messages("press.key", "F")" aria-label="Fill the window" data-i18n-aria-label="audit:controls.immersive-enter">
+            <button type="button" id="immersive-toggle-button" class="ps-icon-button" data-ps-tooltip="@Messages("press.key", "F")" aria-label="Fill the window" data-i18n-aria-label="common:immersive-enter" data-ps-tooltip-placement="left">
               <img id="immersive-toggle-icon" class="ps-icon-button-icon" src='@assets.path("images/icons/maximize-2-white-feather.svg")' alt="">
             </button>
           </div>
@@ -540,7 +542,10 @@
           <div id="pano" class="window-streetview"></div>
           <div id="onboarding-holder" class="window-streetview">
             <canvas id="onboarding-canvas" class="window-streetview" width="720px" height="480px"></canvas>
-            <div id="hand-gesture-holder"></div>
+            <div id="hand-gesture-holder" class="ps-hidden">
+              <img id="hand-open" src='@assets.path("images/explore/onboarding/HandOpen.png")' alt="" loading="lazy">
+              <img id="hand-closed" src='@assets.path("images/explore/onboarding/HandClosed.png")' alt="" loading="lazy">
+            </div>
             <div id="onboarding-background"></div>
             <div id="onboarding-message-holder" class="audit-selectable">
               <p></p>
@@ -567,7 +572,7 @@
              buttons. Populated by LabelCardView and positioned by Label.js; clicking anywhere on the card opens the
              label's context menu — the Edit button is the visible affordance for that same action (Canvas.js). *@
           @components.labelCard(idPrefix = "label-hover-card", showNotRated = true) {
-            <button type="button" id="label-hover-card-delete" class="button-ps button--tiny label-hover-card__action-button label-hover-card__delete-button">
+            <button type="button" id="label-hover-card-delete" class="button button--tiny label-hover-card__action-button label-hover-card__delete-button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <polyline points="3 6 5 6 21 6"></polyline>
                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -576,7 +581,7 @@
               </svg>
               <span data-i18n="audit:center-ui.hover-card.delete">Delete</span>
             </button>
-            <button type="button" id="label-hover-card-edit" class="button-ps button--tiny button--primary label-hover-card__action-button label-hover-card__edit-button">
+            <button type="button" id="label-hover-card-edit" class="button button--tiny button--primary label-hover-card__action-button label-hover-card__edit-button">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
               </svg>
@@ -653,28 +658,28 @@
                which is exactly when a misplaced one needs undoing. Done replaces the description field's inline OK
                -- both ran the same path, so the inline one was a second control for what the footer already names. *@
             <div class="context-menu__actions">
-              <button type="button" id="context-menu-delete" class="button-ps button--tiny context-menu__action context-menu__delete">
+              <button type="button" id="context-menu-delete" class="button button--tiny context-menu__action context-menu__delete">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <polyline points="3 6 5 6 21 6"></polyline>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
                 <span data-i18n="common:delete">Delete</span>
               </button>
-              <button type="button" id="context-menu-done" class="button-ps button--tiny button--primary context-menu__action">
+              <button type="button" id="context-menu-done" class="button button--tiny button--primary context-menu__action">
                 <span data-i18n="common:done">Done</span>
               </button>
             </div>
           </div>
 
           @* Compass message, anchored to the bottom-right of the pano viewer (see svl-compass.css). *@
-          <div id="compass-message-holder" class="animated">
+          <div id="compass-message-holder">
             <div id="compass-message"></div>
           </div>
         </div>
       </div>
       <div id="page-overlay-holder">
       </div>
-      <div id="pop-up-message-holder" class="hidden">
+      <div id="pop-up-message-holder" class="ps-hidden">
         <div id="pop-up-message-background"></div>
         <div id="pop-up-message-foreground">
           <h2 id="pop-up-message-title">Title</h2>
@@ -683,7 +688,7 @@
           <div id="pop-up-message-button-holder"></div>
         </div>
       </div>
-      <div id="modal-comment-holder" class="hidden">
+      <div id="modal-comment-holder" class="ps-hidden">
         <div id="modal-comment-background"></div>
         <div id="modal-comment-box">
           <form id="comment-form">
@@ -692,8 +697,8 @@
               <textarea id="modal-comment-textarea" placeholder=""></textarea>
             </div>
             <div class="modal-comment-buttons">
-              <button type="button" id="modal-comment-cancel-button"class="button-ps button--secondary button--medium">@Messages("cancel")</button>
-              <button type="button" id="modal-comment-ok-button"class="button-ps button--primary button--medium">@Messages("ok")</button>
+              <button type="button" id="modal-comment-cancel-button"class="button button--secondary button--medium">@Messages("cancel")</button>
+              <button type="button" id="modal-comment-ok-button"class="button button--primary button--medium">@Messages("ok")</button>
             </div>
           </form>
         </div>
@@ -764,8 +769,8 @@
           </div>
 
           <div class="mission-complete__buttons">
-            <button type="button" class="button-ps button--medium button--secondary" id="modal-mission-complete-close-button-secondary"></button>
-            <button type="button" class="button-ps button--medium button--primary" id="modal-mission-complete-close-button-primary"></button>
+            <button type="button" class="button button--medium button--secondary" id="modal-mission-complete-close-button-secondary"></button>
+            <button type="button" class="button button--medium button--primary" id="modal-mission-complete-close-button-primary"></button>
           </div>
         </div>
       </div>
@@ -845,7 +850,7 @@
                omitted (leaving just the tagline) until/unless that fetch resolves. *@
             <p class="tutorial-intro__step-description" id="tutorial-intro-impact-desc"></p>
           </div>
-          <button type="button" id="tutorial-intro-next-btn" class="button-ps button--primary button--medium tutorial-intro__next"></button>
+          <button type="button" id="tutorial-intro-next-btn" class="button button--primary button--medium tutorial-intro__next"></button>
         </div>
       </div>
       <div class="tutorial-intro__links">
@@ -891,8 +896,8 @@
         <p>@Messages("audit.tutorial.complete.2")</p>
       </div>
       <div class="tutorial-complete__buttons">
-        <a href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener" class="button-ps button--secondary button--medium">@Messages("audit.tutorial.complete.learn-more")</a>
-        <button type="button" id="onboarding-ok-button" class="button-ps button--primary button--medium">@Messages("audit.tutorial.complete.start-contributing")</button>
+        <a href="@routes.ApplicationController.labelingGuide" target="_blank" rel="noopener" class="button button--secondary button--medium">@Messages("audit.tutorial.complete.learn-more")</a>
+        <button type="button" id="onboarding-ok-button" class="button button--primary button--medium">@Messages("audit.tutorial.complete.start-contributing")</button>
       </div>
     </div>
   </template>
@@ -912,7 +917,6 @@
   <script src='@assets.path("vendor/floating-ui/floating-ui.dom-1.8.0.umd.min.js")'></script>
   <script src='@assets.path("js/explore/build/explore.js")'></script>
   <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
-  <script src='@assets.path("vendor/kinetic/kinetic-v4.4.3.min.js")'></script>
 
   <script src='@assets.path("vendor/turf/turf-7.4.0.min.js")'></script>
   <script src='@assets.path("vendor/async-lock/async-lock-1.4.1.min.js")'></script>
@@ -984,7 +988,7 @@
 
     mainParam.user = {
       username: @jsonForScript(user.username),
-      role: '@user.role',
+      role: '@user.role.name',
       userId: '@user.userId'
     };
     mainParam.regionId = @data.region.regionId;
@@ -1021,7 +1025,7 @@
     @* A POV seed (e.g. a label's stored point of view from the label card, #4637). Heading is its required core;
        pitch/zoom just refine it, so they default rather than gate. *@
     @if(heading.isDefined) {
-    mainParam.startPov = { heading: @heading.get, pitch: @pitch.getOrElse(0.0), zoom: @zoom.getOrElse(1) };
+    mainParam.startPov = { heading: @heading.get, pitch: @pitch.getOrElse(0.0), zoom: @zoom.getOrElse(1.0) };
     }
     @* Name of the place the user searched, so the drop-in greeting can say where they landed (#4451). It arrives from
        a URL parameter, so it is JSON-serialized AND has `<` escaped: JSON quoting alone still lets a literal
@@ -1041,7 +1045,7 @@
     @* Walk planner thresholds (#5526). Domain values, so application.conf owns them (walk-planner.*) and the
        client-side planner and the tiny-street auto-complete read them from here rather than declaring their own. *@
     mainParam.walkPlanner = @jsonForScript(data.walkPlanner);
-    const imagerySrc = "@commonData.imagerySource.toString";
+    const imagerySrc = "@commonData.imagerySource.name";
     mainParam.viewerType = imagerySrc === 'mapillary' ? MapillaryViewer : imagerySrc === 'infra3d' ? Infra3dViewer
       : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
     mainParam.viewerAccessToken = "@commonData.imageryAccessToken";

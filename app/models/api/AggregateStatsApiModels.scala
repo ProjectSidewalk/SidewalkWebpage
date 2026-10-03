@@ -55,7 +55,7 @@ case class AggregateStats(
 ) {
 
   def toJson: JsObject = {
-    val labelTypeJson = JsObject(byLabelType.toSeq.sorted(labelTypeOrdering).map { case (labelType, labelStats) =>
+    val labelTypeJson = JsObject(byLabelType.toSeq.sorted(using labelTypeOrdering).map { case (labelType, labelStats) =>
       labelType -> Json.obj(
         "labels"                    -> labelStats.labels,
         "labels_validated"          -> labelStats.labelsValidated,

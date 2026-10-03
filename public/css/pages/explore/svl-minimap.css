@@ -442,7 +442,6 @@
 }
 
 .minimap-legend-row-toggle label {
-  margin: 0;
   font: inherit;
   cursor: pointer;
 }

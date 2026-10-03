@@ -233,13 +233,14 @@ class MissionStartTutorial {
     const renderLocationIndicators = () => {
       // We should clear existing indicators before rendering.
       // Explore mission screens allow re-rendering of the slides for different labels.
-      for (const el of document.querySelectorAll('.mst-carousel-location-indicator:not(.template)')) el.remove();
+      for (const el of document.querySelectorAll('.mst-carousel-location-indicator')) el.remove();
 
       const indicatorArea = document.querySelector('.mst-carousel-location-indicator-area');
-      const template = document.querySelector('.mst-carousel-location-indicator.template');
+      const templateEl = /** @type {HTMLTemplateElement} */ (
+        document.getElementById('mst-carousel-location-indicator-template'));
+      const template = templateEl.content.firstElementChild;
       for (let i = 0; i < this.#nSlides; i++) {
         const indicator = /** @type {HTMLElement} */ (template.cloneNode(true));
-        indicator.classList.remove('template');
         indicator.dataset.idx = String(i);
         indicatorArea.append(indicator);
       }
@@ -256,10 +257,10 @@ class MissionStartTutorial {
     // Show the tab bar to allow selection of different labels in explore mission screens.
     // And set up other UI.
     if (this.#missionType === MissionStartTutorial.#MISSION_TYPES.EXPLORE) {
-      for (const tab of document.querySelectorAll('.explore-mission-start-tab.label')) {
+      for (const tab of document.querySelectorAll('.explore-mission-start-tab')) {
         const lesson = MissionStartTutorial.#LABEL_TYPE_LESSONS[tab.dataset.labelType];
         tab.querySelector('.explore-mission-start-tab-text').innerHTML = i18next.t(lesson.nameKey);
-        tab.classList.toggle('active', tab.dataset.labelType === this.#labelType);
+        tab.classList.toggle('is-active', tab.dataset.labelType === this.#labelType);
       }
       document.querySelector('.explore-mission-start-tab-bar').classList.remove('ps-hidden');
     }
@@ -320,8 +321,8 @@ class MissionStartTutorial {
     mstSlide.classList.remove(...Object.values(MissionStartTutorial.#EXAMPLE_TYPES));
     mstSlideImage.src = '';
     labelTypeSubtitle.textContent = '';
-    prevButton.classList.remove('disabled');
-    nextButton.classList.remove('disabled');
+    prevButton.classList.remove('is-disabled');
+    nextButton.classList.remove('is-disabled');
     labelOnImage.style.display = 'none';
     mstDoneButton.classList.remove('focus');
 
@@ -370,7 +371,7 @@ class MissionStartTutorial {
 
     // Disable the previous/next buttons based on the current slide idx
     if (idx === 0) {
-      prevButton.classList.add('disabled');
+      prevButton.classList.add('is-disabled');
     } else if (idx === this.#nSlides - 1) {
       // We want users to explore other label types after they finish one in 'Explore Mission Screens'.
       // So we don't want to draw attention to the start button.
@@ -378,7 +379,7 @@ class MissionStartTutorial {
         mstDoneButton.classList.add('focus');
       }
 
-      nextButton.classList.add('disabled');
+      nextButton.classList.add('is-disabled');
     }
   }
 
@@ -430,20 +431,22 @@ class MissionStartTutorial {
       }
     };
 
-    document.querySelector('.previous-slide-button').addEventListener('click', () => {
+    document.querySelector('.previous-slide-button').addEventListener('click', (e) => {
+      if (/** @type {HTMLElement} */ (e.currentTarget).classList.contains('is-disabled')) return;
       this.#currentSlideIdx = Math.max(this.#currentSlideIdx - 1, 0);
       this.#renderSlide(this.#currentSlideIdx);
       this.#svvOrsvl.tracker.push('PreviousSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
     }, { signal });
 
-    document.querySelector('.next-slide-button').addEventListener('click', () => {
+    document.querySelector('.next-slide-button').addEventListener('click', (e) => {
+      if (/** @type {HTMLElement} */ (e.currentTarget).classList.contains('is-disabled')) return;
       this.#currentSlideIdx = Math.min(this.#currentSlideIdx + 1, this.#nSlides - 1);
       this.#renderSlide(this.#currentSlideIdx);
       this.#svvOrsvl.tracker.push('NextSlideButton_Click', { currentSlideIdx: this.#currentSlideIdx }, null);
     }, { signal });
 
     // Event handler to allow selecting between different label types
-    for (const tab of document.querySelectorAll('.explore-mission-start-tab.label')) {
+    for (const tab of document.querySelectorAll('.explore-mission-start-tab')) {
       tab.addEventListener('click', () => {
         // A tab switch only changes which label type is taught, so everything describing the mission has to survive it.
         new MissionStartTutorial('audit', tab.dataset.labelType, this.#data, svl, this.#language);
