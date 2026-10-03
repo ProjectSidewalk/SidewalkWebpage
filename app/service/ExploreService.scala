@@ -55,7 +55,7 @@ case class WalkPlannerSettings(priorityTolerance: Double, tinyStreetM: Double)
 object WalkPlannerSettings {
   given walkPlannerSettingsWrites: Writes[WalkPlannerSettings] = Json.writes[WalkPlannerSettings]
 
-  /** @return The settings for this deployment; a malformed value fails at page load rather than silently defaulting. */
+  /** @return The settings for this deployment; a malformed value fails at startup rather than silently defaulting. */
   def fromConfig(config: Configuration): WalkPlannerSettings = WalkPlannerSettings(
     priorityTolerance = config.get[Double]("walk-planner.priority-tolerance"),
     tinyStreetM = config.get[Double]("walk-planner.tiny-street-m")
@@ -218,6 +218,8 @@ class ExploreServiceImpl @Inject() (
     with HasDatabaseConfigProvider[MyPostgresProfile] {
 
   private val logger = Logger(this.getClass)
+  // Read once: a bad or blank override then fails the service at startup, not every Explore load mid-transaction.
+  private val walkPlannerSettings: WalkPlannerSettings = WalkPlannerSettings.fromConfig(config)
   // SRID 4326 is baked into the factory so points it creates match label_point.geom's lat/lng coordinate system.
   val gf: GeometryFactory = GeometryFactory(PrecisionModel(), 4326)
 
@@ -373,7 +375,7 @@ class ExploreServiceImpl @Inject() (
         surveyData,
         tutorialStreetId,
         makeCrops,
-        WalkPlannerSettings.fromConfig(config)
+        walkPlannerSettings
       )
     }
     db.run(getExploreDataAction.transactionally)
@@ -412,7 +414,7 @@ class ExploreServiceImpl @Inject() (
                 Some(
                   ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
                     routeUnavailable = false, hasCompletedAMission, nextTempLabelId, surveyData, tutorialStreetId,
-                    makeCrops, WalkPlannerSettings.fromConfig(config))
+                    makeCrops, walkPlannerSettings)
                 )
               }
           }

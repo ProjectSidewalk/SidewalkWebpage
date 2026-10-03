@@ -299,6 +299,29 @@ describe('Explore, when the imagery search runs out along a street', () => {
             expect(svl.taskContainer.setCurrentTask).toHaveBeenCalledWith(live);
         });
 
+        it('finishes a tiny street the give-up move lands on, as a jump landing would (#3682, #5526)', async () => {
+            // The replan can hand out a street under the tiny threshold once its tier has nothing longer left, and
+            // nothing after the landing would finish it: the end-of-street check shrinks its radius on a short street.
+            const [dead, tiny, live] = [makeTask(101), makeTask(102, { lengthKm: 0.015 }), makeTask(103)];
+            assignStreets(dead, tiny, live);
+            [tiny, live].forEach((task) => { task.isComplete = () => task.complete === true; });
+            // The planned walk continues from the tiny street's far end, so its completion is a seamless switch.
+            live.getStartCoordinate = () => tiny.getEndCoordinate();
+            live.isResumed = () => false;
+            svl.walkPlannerSettings = { priorityTolerance: 0.15, tinyStreetM: 20 };
+            svl.taskContainer.tasksLoaded = () => true;
+            svl.taskContainer.endTask.mockImplementation((task) => { task.complete = true; });
+            svl.taskContainer.hasWalkPlan.mockReturnValue(true);
+            respondToSearch = () => (svl.taskContainer.getCurrentTask() === dead ? emptyGround() : foundImagery());
+
+            await nav.moveForward();
+
+            expect(svl.taskContainer.endTask).toHaveBeenCalledWith(tiny);
+            expect(svl.taskContainer.getCurrentTask()).toBe(live);
+            expect(svl.tracker.push.mock.calls.map(([name]) => name)).toContain('TaskAutoComplete_TinyStreet');
+            expect(svl.missionModel.updateMissionProgress).toHaveBeenCalled();
+        });
+
         it('leaves a walk without a plan to the greedy choice', async () => {
             const [dead, live] = [makeTask(101), makeTask(102)];
             assignStreets(dead, live);

@@ -250,7 +250,14 @@ class NavigationService {
       // already been switched out from under them, and only a page reload gets them out (#4921). jumpToANewTask()
       // re-enables walking before its own moveForward() for the same reason.
       this.enableWalking();
-      return this.moveForward();
+      const landedPanoId = await this.moveForward();
+      // The replan may hand out a tiny street once its tier has nothing longer left, and landing on one without the
+      // check below strands the labeler just as a jump landing would (#3682).
+      if (landedPanoId && this.#maybeCompleteTinyStreet(svl.taskContainer.getCurrentTask())) {
+        const region = svl.regionModel.currentRegion();
+        svl.missionModel.updateMissionProgress(svl.missionContainer.getCurrentMission(), region);
+      }
+      return landedPanoId;
     } else {
       // Nothing left to walk. This path skips #updateUiAfterMove(), so clear the flags here.
       this.#status.movingToNewLocation = false;
@@ -427,8 +434,10 @@ class NavigationService {
 
   /**
    * The length under which a street is too short to walk: the backend's setting, the same one the planner runs with,
-   * so the two agree on which streets are tiny and on the boundary (strictly shorter). A page that did not receive
-   * the setting completes nothing, rather than guessing a threshold here.
+   * so the two agree on the threshold and its boundary (strictly shorter). They can still differ on a resumed street,
+   * which the planner measures by its unwalked remainder and this check by its whole length; that is harmless, since
+   * the post-move end check finishes a street whose remainder is short. A page that did not receive the setting
+   * completes nothing, rather than guessing a threshold here.
    * @returns {number} Metres.
    */
   static #tinyStreetM() {

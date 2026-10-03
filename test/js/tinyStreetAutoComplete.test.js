@@ -4,7 +4,7 @@
  * The scenario: a labeler is put on a street shorter than the 25 m completion radius without walking it — by the page
  * load, a seamless switch at a junction, or a jump landing. The end-of-street check runs only after a move, and on a
  * short street Task.isAtEnd shrinks its radius to a fraction of the length, so nothing else would finish it. The rule
- * under test: at those arrival points only, a street under WalkPlanner.TINY_STREET_M whose every vertex is within the
+ * under test: at those arrival points only, a street under the backend's `walk-planner.tiny-street-m` whose every vertex is within the
  * pano search radius goes through the normal end-of-street path (ended, or its jump prompt armed); a run of such
  * streets is bounded; and a route, whose final street defers to the imagery-exhaustion path (#4640), is left alone.
  *

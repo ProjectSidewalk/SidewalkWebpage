@@ -382,7 +382,8 @@ corresponding Twirl view:
   `missionId` it was written from, which the controller honors only when the requesting user owns that mission,
   so a refresh, or one of Explore's own reloads (after an hour idle, on a submit failure), resumes the mission at
   the same pano and view while the id is inert for a recipient. Free exploration writes no id, since the drop-in
-  path already resumes the user's own open drop-in mission.
+  path already resumes the user's own open drop-in mission. The order in which a neighborhood mission walks its
+  streets, the client-side walk planner (#5526), is described under "Streets, regions, and routes" above.
   The Image pill in the chevron menu beside Stuck (#3136, `common/PanoImageAdjustments.js` +
   `PanoImageAdjustmentsPopover.js`) lifts shadows and adjusts brightness/contrast as a CSS `filter` on the pano mount —
   display-only, for the labeler's eyes: the mount is a sibling of every overlay, and crops are cut from the provider's
