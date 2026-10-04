@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/validate/src/Tracker.js — logging an action before the viewer has loaded any pano.
+ * Tests for frontend/js/validate/Tracker.js — logging an action before the viewer has loaded any pano.
  *
  * GsvViewer.getPosition() and getPov() answer null until the first pano's metadata has arrived, and the first push
  * can land before then: when the first label's pano is expired, the primary viewer never loads one and Pannellum
@@ -8,10 +8,10 @@
  * instead.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/Tracker.js');
+const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
 
 /**
  * Loads the `Tracker` class out of the production file — a bare `class` the Grunt bundle concatenates into page
@@ -19,8 +19,7 @@ const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src
  * @returns {Function} The Tracker class.
  */
 function loadTrackerClass() {
-    const src = fs.readFileSync(TRACKER_PATH, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn Tracker;\n})()');
+    return loadModules(TRACKER_PATH).Tracker;
 }
 
 const Tracker = loadTrackerClass();

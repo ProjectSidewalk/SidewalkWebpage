@@ -10,15 +10,11 @@
  * and a stub would let the shared formatter drift from what the toast actually prints (#5413).
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/alert/ReauditNotice.js'), 'utf8');
 
-window.eval(`${SRC}; window.ReauditNotice = ReauditNotice;`);
+Object.assign(window, loadModules('frontend/js/explore/alert/ReauditNotice.js'));
 const { ReauditNotice } = window;
 
 /** A stand-in for Task exposing the reads the notice makes. */
@@ -45,7 +41,7 @@ describe('ReauditNotice.showForTask', () => {
             language: 'en',
             t: (key, opts) => (opts ? `${key}|${opts.lastMapped}|${opts.newImagery}` : key),
         };
-        loadGlobalScript('public/js/common/utilities.js');
+        window.util = realUtil();
         document.body.innerHTML = '<div id="pano"></div>';
     });
 

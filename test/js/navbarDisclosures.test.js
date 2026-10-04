@@ -10,12 +10,8 @@
  * DOM before constructing a controller.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const NAVBAR_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/Navbar.js'), 'utf8'
-);
 
 /** Builds a navbar with one quick item (the account control) and one panel-only dropdown (language). */
 function buildNavbar() {
@@ -69,7 +65,7 @@ const press = (el) => el.dispatchEvent(new Event('pointerdown', { bubbles: true 
 
 describe('Navbar disclosures', () => {
     beforeAll(() => {
-        window.eval(`${NAVBAR_SRC}\nwindow.NavbarController = NavbarController;`);
+        Object.assign(window, loadModules('frontend/js/common/Navbar.js'));
     });
 
     beforeEach(() => {

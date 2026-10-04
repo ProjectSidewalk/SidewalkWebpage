@@ -6,17 +6,6 @@
 @cityName = @{commonData.allCityInfo.filter(c => c.cityId == commonData.cityId).head.cityNameFormatted}
 
 @content = {
-  <script>
-    // Set data attributes for API information. This is used by our JavaScripts to configure API calls, including
-    // the download buttons in apiDocs.js
-    console.log('Setting data attributes for API information');
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'userStats');
-    console.log('Data attributes set:', {
-      'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
-      'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
-    });
-  </script>
 
   <div class="page-section" id="user-stats-intro-section">
     <h1 class="page-heading" id="user-stats-api">User Stats API <a href="#user-stats-api" class="permalink">#</a></h1>
@@ -30,17 +19,7 @@
     <div id="user-stats-preview">Loading user stats data...</div>
 
     <script src='@assets.path("vendor/chart-js/chart-4.5.1.min.js")'></script>
-    <script src="@routes.Assets.versioned("js/api-docs/userStatsPreview.js")"></script>
-    <script>
-      // Initialize the user stats preview visualization
-      document.addEventListener('DOMContentLoaded', function() {
-        UserStatsPreview.setup({
-          containerHeight: 500,
-          apiBaseUrl: document.documentElement.getAttribute('data-api-base-url') || 'http://localhost:9000/v3/api',
-          cityName: '@cityName'
-        }).init();
-      });
-    </script>
+    <script type="module" id="page-entry" data-city-name="@cityName" src='@assets.path("build/js/api-docs/userStats.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">

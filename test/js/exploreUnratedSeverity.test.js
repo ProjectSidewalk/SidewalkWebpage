@@ -5,18 +5,9 @@
  * backend's label-type table rather than a copy of it.
  */
 
-const fs = require('fs');
-const path = require('path');
-const SHORTCUTS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
-);
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 const { makeContextMenuUi } = require('./contextMenuUiStub');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const read = (file) => fs.readFileSync(path.join(REPO_ROOT, file), 'utf8');
-const CONTEXT_MENU_SRC = read('public/js/explore/src/canvas/ContextMenu.js');
-const KEYBOARD_MANAGER_SRC = read('public/js/explore/src/keyboard/KeyboardManager.js');
 
 /**
  * @param {string} labelType
@@ -61,8 +52,8 @@ describe('Explore severity shortcuts', () => {
       isOnboarding: () => false, LABEL_ICON_RADIUS: 17,
     };
 
-    window.eval(`${SHORTCUTS_SRC}\n${CONTEXT_MENU_SRC}\n${KEYBOARD_MANAGER_SRC}\n`
-      + 'window.ContextMenu = ContextMenu; window.KeyboardManager = KeyboardManager;');
+    Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js',
+      'frontend/js/explore/keyboard/KeyboardManager.js'));
     menu = new window.ContextMenu(makeContextMenuUi());
     menu.labelTags = [];
     window.svl.contextMenu = menu;

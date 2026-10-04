@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/admin-dashboard/MiniLineChart.js axis-label fitting (#4855).
+ * Tests for frontend/js/admin-dashboard/MiniLineChart.js axis-label fitting (#4855).
  *
  * Anything drawn outside the SVG's viewBox is clipped, so the chart's margins have to be sized to the labels they
  * host: the cumulative all-time charts on /admin/across-cities reach seven-digit y ticks, and multi-year x axes carry
@@ -11,22 +11,17 @@
  * detached container and assert on the resulting DOM.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
-const CHART_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/MiniLineChart.js');
 
 /** Lower bound on rendered width, in px, of an axis label at the chart's 11px font. */
 const MIN_PX_PER_CHAR = 5.2;
 
-/** Load MiniLineChart.js (a plain top-level class declaration, concatenation-style) and return the class. */
+/** Loads a fresh MiniLineChart class. */
 function loadMiniLineChart() {
-    const src = fs.readFileSync(CHART_PATH, 'utf8');
-    // Indirect eval runs the script in global scope; the trailing expression hands the class binding back out.
-    return (0, eval)(`${src}\nMiniLineChart;`);
+    return loadModules('frontend/js/admin-dashboard/MiniLineChart.js').MiniLineChart;
 }
 
 describe('MiniLineChart axis labels', () => {

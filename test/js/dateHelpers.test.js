@@ -1,5 +1,5 @@
 /**
- * Tests for the date helpers in public/js/common/utilities.js that fill the gaps in the browser's `Intl` (#5549).
+ * Tests for the date helpers in frontend/js/common/utilities.js that fill the gaps in the browser's `Intl` (#5549).
  *
  * jest.config.js pins the clock to Los Angeles, which is exactly where reading a bare month as UTC goes wrong.
  */

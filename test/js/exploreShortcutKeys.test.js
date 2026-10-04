@@ -3,15 +3,8 @@
  * with the context menu open aren't also handled as menu-closed shortcuts.
  */
 
-const fs = require('fs');
-const path = require('path');
-const SHORTCUTS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
-);
+const { loadModules } = require('./loadGlobalScript');
 
-const KEYBOARD_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/keyboard/KeyboardManager.js'), 'utf8'
-);
 
 describe('Explore shortcut keys', () => {
     const svl = {};
@@ -26,7 +19,7 @@ describe('Explore shortcut keys', () => {
                 getLabelDescriptions: (type) => ({ keyChar: keyChars[type] }),
             },
         };
-        window.eval(`${SHORTCUTS_SRC}\n${KEYBOARD_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
         // One instance for the file: the constructor adds window listeners that are never removed.
         const contextMenu = { isOpen: () => menuOpen, getTargetLabel: () => null, hide: () => { menuOpen = false; } };
         new window.KeyboardManager(svl, {}, contextMenu, { getStatus: () => true }, ribbon, {});

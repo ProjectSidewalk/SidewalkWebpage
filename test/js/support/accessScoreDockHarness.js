@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const { installDateHelpers, installUtilitiesMisc, installEscapeHTML } = require('../loadGlobalScript');
+const { installDateHelpers, installUtilitiesMisc, installEscapeHTML, loadModules } = require('../loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..', '..');
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
@@ -31,7 +31,7 @@ function stubI18next() {
 }
 
 /**
- * `window.util` as the views see it: the real `util.misc` (public/js/common/utilitiesSidewalk.js, over the stamped
+ * `window.util` as the views see it: the real `util.misc` (frontend/js/common/utilitiesSidewalk.js, over the stamped
  * label types) so the rating palettes, their words, the icon paths and the shared marker helper are the shipped ones,
  * plus the handful of utilities.js helpers the views lean on, verbatim.
  */
@@ -54,14 +54,14 @@ function installUtil() {
 /** Evaluates the production sources into the jsdom global scope, exporting the bare classes onto window. */
 function loadSources() {
     RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
-    window.eval(read('public/js/common/scoreRamp.js'));
-    window.eval(`${read('public/js/common/LabelMiniCard.js')}\nwindow.LabelMiniCard = LabelMiniCard;`);
+    Object.assign(window, loadModules('frontend/js/common/scoreRamp.js'));
+    Object.assign(window, loadModules('frontend/js/common/LabelMiniCard.js'));
     const classes = ['AccessScoreModel', 'AccessScoreGradeRamp', 'AccessScoreChart', 'AccessScoreHistogram',
         'AccessScoreWhatsHere', 'AccessScoreRankBars', 'AccessScoreClusterSheet', 'AccessScorePhotoStrip',
         'AccessScoreDock'];
     for (const name of classes) {
-        const dir = name === 'AccessScoreGradeRamp' ? 'common' : 'access-score/src';  // Shared with the API docs.
-        window.eval(`${read(`public/js/${dir}/${name}.js`)}\nwindow.${name} = ${name};`);
+        const dir = name === 'AccessScoreGradeRamp' ? 'common' : 'access-score';  // Shared with the API docs.
+        Object.assign(window, loadModules(`frontend/js/${dir}/${name}.js`));
     }
 }
 

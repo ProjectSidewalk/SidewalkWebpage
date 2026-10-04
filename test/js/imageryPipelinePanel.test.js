@@ -16,25 +16,20 @@
  * UTC-only worker would make every "does the axis line up with the server's nights" assertion vacuous.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, mockModule, realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
 /** Chart calls, recorded instead of drawn — MiniLineChart has its own tests. */
 const charts = [];
 
 /** Loads AdminShell + the panel into global scope, with MiniLineChart stubbed. */
 function loadPanel() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const panel = fs.readFileSync(path.join(JS_DIR, 'ImageryPipelinePanel.js'), 'utf8');
-  globalThis.MiniLineChart = {
-    renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }),
-  };
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${panel}\nImageryPipelinePanel;`);
+  mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
+    MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
+  }));
+  return loadModules('frontend/js/admin-dashboard/ImageryPipelinePanel.js').ImageryPipelinePanel;
 }
 
 const ImageryPipelinePanel = loadPanel();

@@ -70,12 +70,6 @@
     <link rel="stylesheet" href='@assets.path("css/pages/homepage.css")'>
     <link rel="stylesheet" href='@assets.path("css/pages/auth.css")'>
 
-    @* Auth dialog (#4375): Modal.js must precede AuthModal.js; both no-op on pages without the dialog. *@
-    <script src='@assets.path("js/common/Modal.js")' defer></script>
-    <script src='@assets.path("js/common/AuthModal.js")' defer></script>
-    @* Navbar interactivity (dropdowns, city search, hamburger, click logging); no-ops on pages without the navbar. *@
-    <script src='@assets.path("js/common/Navbar.js")' defer></script>
-
     @* Deferred: utilities.js only touches the bowser global lazily, from DOMContentLoaded-or-later callers. *@
     <script src='@assets.path("vendor/bowser/bowser-2.14.1.min.js")' defer></script>
     @* Content-fingerprint digests for assets whose URLs JS builds at runtime (#4893): logicalPath -> md5, read by
@@ -95,42 +89,37 @@
        literals that can drift from the backend. Must precede the tool bundles, which read it at load time. A page
        that never stamps it (jsdom, the error pages) leaves util.misc with an empty table. *@
     <script>window.labelTypes = @Html(LabelType.pageStampJson);</script>
-    <script src='@assets.path("js/common/utilities.js")'></script>
-    <script src='@assets.path("js/common/utilitiesMath.js")'></script>
-    <script src='@assets.path("js/common/i18nDom.js")'></script>
-    <script src='@assets.path("js/common/psTooltip.js")'></script>
-    <script src='@assets.path("js/common/AppManager.js")'></script>
+    @* What frontend/js/pages/main.js needs from the server, then the bundle itself (shared helpers, app manager, navbar,
+       auth dialog, test-server banner). A module script runs after parsing and before the page's own entry below. *@
+    <script type="application/json" id="page-config">{
+      "csrfToken": "@CSRF.getToken.map(_.value)",
+      "i18next": {
+        "language": "@messages.lang.code",
+        "supportedLanguages": @Html(Json.stringify(Json.toJson(commonData.supportedLanguages))),
+        "localeFiles": @commonData.localeFilesJson,
+        "defaultNS": "@defaultI18nNamespace",
+        "namespaces": @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
+        "countryId": "@currentCity.countryId",
+        @* The distance words for this request's language and measurement system, resolved once on the server so the
+           locale files don't carry a second copy of them. AppManager makes them i18next interpolation defaults. *@
+        "unitWords": @Html(Json.stringify(Json.toJson(Map(
+          "unitAbbr" -> unitWords.abbr, "unitAbbrSmall" -> unitWords.abbrSmall,
+          "unitName" -> unitWords.name, "unitNameSingular" -> unitWords.nameSingular
+        ))))
+      },
+      "globals": {
+        "cityId": "@commonData.cityId",
+        "cityName": "@currentCity.cityNameFormatted",
+        "cityNameShort": "@currentCity.cityNameShort"
+      }
+    }</script>
+    <script type="module" src='@assets.path("build/js/main.js")'></script>
   </head>
   <body class="@bodyClass">
-    <script>
-      // Set up AppManager to initialize stuff that we need on every page (CSRF token, i18next, etc.).
-      util.onDomReady(function() {
-        const csrfToken = "@CSRF.getToken.map(_.value)";
-        const i18nextParams = {
-          language: "@messages.lang.code",
-          supportedLanguages: @Html(Json.stringify(Json.toJson(commonData.supportedLanguages))),
-          localeFiles: @commonData.localeFilesJson,
-          defaultNS: "@defaultI18nNamespace",
-          namespaces: @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
-          countryId: "@currentCity.countryId",
-          // The distance words for this request's language and measurement system, resolved once on the server so the
-          // locale files don't carry a second copy of them. AppManager makes them i18next interpolation defaults.
-          unitWords: @Html(Json.stringify(Json.toJson(Map(
-            "unitAbbr" -> unitWords.abbr, "unitAbbrSmall" -> unitWords.abbrSmall,
-            "unitName" -> unitWords.name, "unitNameSingular" -> unitWords.nameSingular
-          ))))
-        };
-        const globals = {
-          cityId: "@commonData.cityId",
-          cityName: "@currentCity.cityNameFormatted",
-          cityNameShort: "@currentCity.cityNameShort"
-        };
-        window.appManager.init(csrfToken, i18nextParams, globals);
-      });
-    </script>
       <!-- Banner is only visible if user is on local/test server-->
     @if(commonData.environmentType != "prod") {
-      <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
+      <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")"
+             data-storage-key="hideTestServerWarningBanner">
         <div class="test-server-banner-content">
           <span class="test-server-banner-icon ps-mask-icon" aria-hidden="true"></span>
           <p class="test-server-banner-text">
@@ -144,8 +133,16 @@
           </div>
         </div>
       </aside>
-
-      <script src='@assets.path("js/common/TestServerBanner.js")'></script>
+      @* Inline and right after the banner, so a saved "don't show again" takes effect before first paint: the module
+         that owns the banner (TestServerBanner.js) runs after parsing, which would flash it on every page. *@
+      <script>
+        try {
+          const banner = document.querySelector('.test-server-banner');
+          if (JSON.parse(localStorage.getItem(banner.dataset.storageKey)) === true) banner.classList.add('ps-hidden');
+        } catch (e) {
+          // No localStorage (private mode): the banner shows, and the module's close button still hides it.
+        }
+      </script>
     }
     <div id="wrap" class='@if(fullWindow){wrap--full-window}'>
       @content
@@ -208,43 +205,5 @@
     </footer>
     }
 
-    <script>
-      window.appManager.ready(function () {
-        // Log clicks on links in the footer to WebpageActivityTable.
-        // Depending on column, form of log varies by the following:
-        // Column is 'Project Sidewalk' or 'Developer',
-        //    log is of form: "Click_module=Footer_section=<"sidewalk" or "developer">_target=<link>"
-        // Column is 'Connect',
-        //    log is of form: "Click_module=Footer_section=connect_platform=<"github", "twitter", or "email">"
-        // Pages with noFooter have neither footer.
-        document.getElementById('footer-container')?.addEventListener('click', function(e) {
-          const link = e.target.closest('a');
-          if (!link) return;
-          const currentRoute = window.location.pathname;
-          const [column, target] = link.id.split('-');
-
-          let activity = 'Click_module=Footer_section=' + column + '_';
-          if (column === 'sidewalk' || column === 'developer') {
-            activity = activity + 'target=' + target;
-          } else {
-            activity = activity + 'platform=' + target;
-          }
-          activity = activity + '_route=' + currentRoute;
-
-          window.logWebpageActivity(activity);
-        });
-
-        // Log clicks on links in the information footer to WebpageActivityTable.
-        // Log is of form: "Click_module=InfoFooter_target=<link>_route=</|/explore|/labelingGuide|...>"
-        document.getElementById('info-footer')?.addEventListener('click', function(e) {
-          const link = e.target.closest('a');
-          if (!link) return;
-          const currentRoute = window.location.pathname;
-          const target = link.id.split('-')[0];
-          const activity = 'Click_module=InfoFooter_' + 'target=' + target + '_route=' + currentRoute;
-          window.logWebpageActivity(activity);
-        });
-      });
-    </script>
   </body>
 </html>

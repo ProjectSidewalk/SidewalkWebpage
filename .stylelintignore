@@ -7,5 +7,5 @@
 # file whose parent directory is excluded, so the `!public/css/*` line reached only the direct children of css/ and
 # every pages/<family>/ subdirectory (explore/, validate/, gallery/, api-docs/) went unlinted in silence. A denylist
 # names nothing under public/css/, so moving files around in there can't drop them from the lint again.
-public/js/**/build/
 public/vendor/
+public/build/

@@ -1,5 +1,5 @@
 /**
- * Tests for PopupPanoManager's lazily built primary viewer (public/js/common/label-detail/PopupPanoManager.js, #5128).
+ * Tests for PopupPanoManager's lazily built primary viewer (frontend/js/common/label-detail/PopupPanoManager.js, #5128).
  *
  * Google bills every StreetViewPanorama constructed, visible or not, and most visits to a page hosting the label
  * popup never open a label. So the manager must not build its viewer until a label needs live imagery; once built it
@@ -10,11 +10,8 @@
  * jsdom global scope with the rest of its collaborators stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const MANAGER_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/label-detail/PopupPanoManager.js'), 'utf8');
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
 
@@ -69,7 +66,7 @@ describe('PopupPanoManager builds its viewer lazily', () => {
             preloadLibrary: jest.fn(() => Promise.resolve()),
         };
 
-        window.eval(`${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
         PopupPanoManager = window.PopupPanoManager;
     });
 

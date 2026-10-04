@@ -292,7 +292,7 @@ describe('nothing in the render path comes from a third party we have not chosen
         // Only the file types that can name an origin — public/vendor/ also carries fonts, images and source maps,
         // and reading those in as text is megabytes of work per run for something that could never match.
         const TEXT = /\.(js|mjs|cjs|css|html|scala\.html|json|svg)$/;
-        const haystack = ['app/views', 'public/js', 'public/css', 'public/vendor']
+        const haystack = ['app/views', 'frontend/js', 'public/css', 'public/vendor']
             .flatMap(function walk(rel) {
                 const full = path.join(REPO_ROOT, rel);
                 return fs.readdirSync(full, { withFileTypes: true }).flatMap((entry) => {

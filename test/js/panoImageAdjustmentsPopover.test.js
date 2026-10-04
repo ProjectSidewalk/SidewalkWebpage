@@ -1,5 +1,5 @@
 /**
- * Tests for PanoImageAdjustmentsPopover (public/js/common/PanoImageAdjustmentsPopover.js), the slider panel behind
+ * Tests for PanoImageAdjustmentsPopover (frontend/js/common/PanoImageAdjustmentsPopover.js), the slider panel behind
  * the Image pill on Explore (#3136) and desktop Validate (#5501).
  *
  * Pins the contract the page relies on: the trigger's ARIA state, sliders taking their range from the model's SPECS
@@ -10,12 +10,7 @@
  * Popover API nor `:popover-open`, so the test stands up showPopover/hidePopover the way panoInfoViewLink.test.js does.
  */
 
-const fs = require('fs');
-const path = require('path');
-
-const ROOT = path.resolve(__dirname, '..', '..');
-const MODEL_SRC = fs.readFileSync(path.join(ROOT, 'public/js/common/PanoImageAdjustments.js'), 'utf8');
-const POPOVER_SRC = fs.readFileSync(path.join(ROOT, 'public/js/common/PanoImageAdjustmentsPopover.js'), 'utf8');
+const { loadModules } = require('./loadGlobalScript');
 
 // The parts of app/views/common/panoImageAdjustments.scala.html and the Explore pill the class actually reads.
 const MARKUP = `
@@ -37,8 +32,8 @@ const MARKUP = `
 </div>`;
 
 function loadClasses() {
-    (0, eval)(`${MODEL_SRC}\nwindow.PanoImageAdjustments = PanoImageAdjustments;`);
-    (0, eval)(`${POPOVER_SRC}\nwindow.PanoImageAdjustmentsPopover = PanoImageAdjustmentsPopover;`);
+    Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustments.js'));
+    Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustmentsPopover.js'));
 }
 
 function memoryStorage() {

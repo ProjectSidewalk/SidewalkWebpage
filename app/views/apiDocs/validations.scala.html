@@ -5,17 +5,6 @@
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-  <script>
-    // Set data attributes for API information. This is used by our JavaScripts to configure API calls, including the
-    // download buttons in apiDocs.js.
-    console.log('Setting data attributes for API information');
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'validations');
-    console.log('Data attributes set:', {
-      'data-api-base-url': document.documentElement.getAttribute('data-api-base-url'),
-      'data-api-endpoint': document.documentElement.getAttribute('data-api-endpoint')
-    });
-  </script>
 
   <div class="page-section" id="validations-intro-section">
     <h1 class="page-heading" id="validations-api">Validations API <a href="#validations-api" class="permalink">#</a></h1>
@@ -32,16 +21,7 @@
 
     <script src='@assets.path("vendor/chart-js/chart-4.5.1.min.js")'></script>
     <link rel="stylesheet" href="@assets.path("css/pages/api-docs/validations.css")">
-    <script src="@routes.Assets.versioned("js/api-docs/validationsPreview.js")"></script>
-    <script>
-      // Initialize the validations preview.
-      document.addEventListener('DOMContentLoaded', function() {
-        ValidationsPreview.setup({
-          maxChartsToShow: 6,
-          minValidationsToShow: 10
-        }).init();
-      });
-    </script>
+    <script type="module" id="page-entry" src='@assets.path("build/js/api-docs/validations.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">

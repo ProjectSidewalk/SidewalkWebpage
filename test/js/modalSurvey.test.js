@@ -1,15 +1,13 @@
 /**
- * Tests the Explore survey dialog (public/js/explore/src/modal/ModalSurvey.js): where focus lands on open, which
+ * Tests the Explore survey dialog (frontend/js/explore/modal/ModalSurvey.js): where focus lands on open, which
  * closes count as a skip, and what a submit posts.
  *
  * jsdom has no <dialog> implementation, so showModal/close are stubbed on the prototype to flip `open` and fire
  * `close` the way a browser does (asynchronously).
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(path.resolve(__dirname, '../../public/js/explore/src/modal/ModalSurvey.js'), 'utf8');
 
 function installDialogStub() {
   HTMLDialogElement.prototype.showModal = function () {
@@ -54,7 +52,7 @@ beforeEach(() => {
     ribbon: { disableModeSwitch: noop, enableModeSwitch: noop },
     zoomControl: { disableZoomIn: noop, disableZoomOut: noop, enableZoomIn: noop, enableZoomOut: noop },
   };
-  window.eval(`${SRC}\nwindow.ModalSurvey = ModalSurvey;`);
+  Object.assign(window, loadModules('frontend/js/explore/modal/ModalSurvey.js'));
   survey = new window.ModalSurvey();
 });
 

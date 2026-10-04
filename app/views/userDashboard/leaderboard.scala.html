@@ -404,7 +404,7 @@
 
   @if(isSignedIn) {
     @userDashboard._createTeamDialog()
-    <script src="@assets.path("js/user-dashboard/TeamActions.js")"></script>
+    <script type="module" src='@assets.path("build/js/dashboard/leaderboard.js")'></script>
   }
 }
 

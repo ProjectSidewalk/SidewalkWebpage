@@ -62,10 +62,10 @@ VS Code is excellent for the **vanilla-JS frontend** and works well for Scala wi
   the project it will import the build (it uses your local Java 17 JDK) and then provide navigation, inline errors,
   and formatting. Metals reads `.scalafmt.conf` directly — run **Format Document** (or enable
   `"editor.formatOnSave": true`) to keep Scala files formatted.
-- **Frontend:** no build tooling is needed in the editor — files are plain ES concatenated by Grunt. Edit under
-  `src/` and let the `grunt watch` from `npm start` rebuild the `build/` bundles (don't edit `build/` directly).
+- **Frontend:** no build tooling is needed in the editor — files are plain ES modules that Rolldown bundles. Let the
+  `grunt watch` from `npm start` rebuild `public/build/` on save (don't edit it directly).
   An ESLint extension will pick up [`eslint.config.js`](../eslint.config.js) so you see our JS rules inline, and
-  [`jsconfig.json`](../jsconfig.json) gives hover types and go-to-definition across the concatenated files.
+  [`jsconfig.json`](../jsconfig.json) gives hover types and go-to-definition across the modules.
 
 ## See also
 

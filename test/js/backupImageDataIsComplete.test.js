@@ -1,5 +1,5 @@
 /**
- * Tests for `backupImageDataIsComplete` / `buildBackupImageData` in public/js/common/utilitiesSidewalk.js, which keep
+ * Tests for `backupImageDataIsComplete` / `buildBackupImageData` in frontend/js/common/utilitiesSidewalk.js, which keep
  * a pano_data row with null width/height from reaching PannellumViewer and throwing (#4804).
  *
  * The last block pins the guard's field list against PanoData, the authority it and two backend copies answer to.
@@ -7,19 +7,14 @@
  * Runs under jsdom (jest.config.js).
  */
 
-/* global PanoData, backupImageDataIsComplete, buildBackupImageData -- pulled into scope by the eval() loader below. */
+/* global PanoData, backupImageDataIsComplete, buildBackupImageData -- put on global by loadScript below. */
 
-const fs = require('fs');
 const path = require('path');
-
-// jest-environment-jsdom doesn't expose these, and jsdom's own dependencies need them when required from within a
-// test (the "runs twice" case below drives a second jsdom instance to get real <script> semantics).
-global.TextEncoder = global.TextEncoder ?? require('node:util').TextEncoder;
-global.TextDecoder = global.TextDecoder ?? require('node:util').TextDecoder;
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const UTILITIES_PATH = path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js');
-const PANO_DATA_PATH = path.join(REPO_ROOT, 'public/js/common/pano-viewer/src/PanoData.js');
+const UTILITIES_PATH = path.join(REPO_ROOT, 'frontend/js/common/utilitiesSidewalk.js');
+const PANO_DATA_PATH = path.join(REPO_ROOT, 'frontend/js/common/pano-viewer/PanoData.js');
 
 /**
  * Execute a production global script in the jsdom global scope, then hoist the named bindings onto `global`.
@@ -27,12 +22,9 @@ const PANO_DATA_PATH = path.join(REPO_ROOT, 'public/js/common/pano-viewer/src/Pa
  * Indirect eval puts top-level `function` declarations on globalThis, but not `const`/`class` — hence the epilogue.
  *
  * @param {string} filePath Absolute path to the script.
- * @param {string[]} names Bindings to expose on `global`.
  */
-function loadScript(filePath, names) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  const epilogue = names.map((n) => `global.${n} = ${n};`).join('\n');
-  (0, eval)(`${src}\n${epilogue}`);
+function loadScript(filePath) {
+  Object.assign(global, loadModules(filePath));
 }
 
 /** A backup pano whose metadata is complete — the shape buildBackupImageData produces. */
@@ -79,30 +71,9 @@ function labelMetadata(panoDataOverrides = {}) {
 }
 
 beforeAll(() => {
-  loadScript(UTILITIES_PATH, []);
-  loadScript(PANO_DATA_PATH, ['PanoData']);
-});
-
-test('the script can run twice on one page', () => {
-  // Some views load this file directly on a page whose bundle already concatenates it, so it executes twice. A
-  // top-level `const` made the second execution a fatal redeclaration that took /labelMap down.
-  //
-  // Driven through real <script> tags rather than the eval() loader above, which cannot catch this: eval puts its
-  // lexical declarations in a scope it throws away, so a repeated `const` there is harmless.
-  const { JSDOM, VirtualConsole } = require('jsdom');
-  const virtualConsole = new VirtualConsole();
-  const errors = [];
-  virtualConsole.on('jsdomError', (e) => errors.push(e.message));
-  const dom = new JSDOM('<!doctype html><body>', { runScripts: 'dangerously', virtualConsole });
-
-  const src = fs.readFileSync(UTILITIES_PATH, 'utf8');
-  for (let i = 0; i < 2; i++) {
-    const script = dom.window.document.createElement('script');
-    script.textContent = src;
-    dom.window.document.body.appendChild(script);
-  }
-
-  expect(errors).toEqual([]);
+  window.util = realUtil();
+  loadScript(UTILITIES_PATH);
+  loadScript(PANO_DATA_PATH);
 });
 
 describe('backupImageDataIsComplete', () => {

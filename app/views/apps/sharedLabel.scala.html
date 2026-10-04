@@ -143,7 +143,6 @@
   <link href='@assets.path("css/components/tag-pills.css")' rel="stylesheet">
   <link href='@assets.path("css/pages/shared-label.css")' rel="stylesheet">
 
-  <script src='@assets.path("js/common/utilitiesSidewalk.js")'></script>
   <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
   @if(commonData.imagerySource == PanoSource.Infra3d) {
     <script src='@assets.path("vendor/proj4/proj4-2.22.0.js")'></script>
@@ -158,18 +157,11 @@
   }
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <link rel="stylesheet" href='@assets.path("vendor/pannellum/pannellum-2.5.7.css")'>
-  <script src='@assets.path("js/common/pano-viewer/build/pano-viewer.js")'></script>
 
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")'></script>
   <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")'></script>
   <link href='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")' rel="stylesheet">
-  <script src='@assets.path("js/ps-map/build/ps-map.js")'></script>
-  <script src='@assets.path("js/shared-label/build/shared-label.js")'></script>
 
-  <script>
-    window.sharedLabelData = @jsonForScript(configJson);
-    window.appManager.ready(() => {
-      new SharedLabelPage(window.sharedLabelData);
-    });
-  </script>
+  <script type="application/json" id="page-data">@jsonForScript(configJson)</script>
+  <script type="module" src='@assets.path("build/js/sharedLabel.js")'></script>
 }

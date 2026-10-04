@@ -18,16 +18,9 @@
  * into the jsdom global scope alongside the two collaborators it names as bare globals.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installDateHelpers } = require('./loadGlobalScript');
+const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const readSrc = (relativePath) => fs.readFileSync(path.join(REPO_ROOT, relativePath), 'utf8');
 
-const NO_IMAGERY_ERROR_SRC = readSrc('public/js/common/pano-viewer/src/NoImageryError.js');
-const FLAG_GUARD_SRC = readSrc('public/js/explore/src/panorama/NoImageryFlagGuard.js');
-const NAVIGATION_SERVICE_SRC = readSrc('public/js/explore/src/navigation/NavigationService.js');
 
 // Fixtures put every street on one latitude so a street is a straight west-to-east segment and "distance along the
 // street" is unambiguous. Real turf isn't a dependency of the JS test layer, and the sweep only needs lengths and
@@ -220,9 +213,9 @@ describe('Explore, when the imagery search runs out along a street', () => {
         };
         installDateHelpers();
 
-        window.eval(`${NO_IMAGERY_ERROR_SRC}; window.NoImageryError = NoImageryError;`);
-        window.eval(`${FLAG_GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`);
-        window.eval(`${NAVIGATION_SERVICE_SRC}; window.NavigationService = NavigationService;`);
+        Object.assign(window, loadModules('frontend/js/common/pano-viewer/NoImageryError.js'));
+        Object.assign(window, loadModules('frontend/js/explore/panorama/NoImageryFlagGuard.js'));
+        Object.assign(window, loadModules('frontend/js/explore/navigation/NavigationService.js'));
 
         const el = () => document.createElement('div');
         nav = new window.NavigationService({}, { modeSwitchWalk: el(), viewControlLayer: el(), drawingLayer: el() });
@@ -704,7 +697,8 @@ describe('Explore, when the imagery search runs out along a street', () => {
 
         beforeEach(() => {
             // GsvViewer measures replies with the real haversine; loading utilitiesMath swaps in the full util.math.
-            window.eval(readSrc('public/js/common/utilitiesMath.js'));
+            window.util ??= realUtil();
+            loadModules('frontend/js/common/utilitiesMath.js');
             window.google = {
                 maps: {
                     importLibrary: async () => ({ LatLng: FakeLatLng }),
@@ -725,12 +719,7 @@ describe('Explore, when the imagery search runs out along a street', () => {
                     return this.params[key];
                 }
             };
-            const stubs = ['MapillaryViewer', 'Infra3dViewer', 'PannellumViewer', 'PanoramaxViewer']
-                .map((name) => `class ${name} {}`).join('\n');
-            window.eval(`${stubs}
-                ${readSrc('public/js/common/pano-viewer/src/PanoViewer.js')}
-                ${readSrc('public/js/common/pano-viewer/src/GsvViewer.js')}
-                window.GsvViewer = GsvViewer;`);
+            Object.assign(window, loadModules('frontend/js/common/pano-viewer/GsvViewer.js'));
             viewer = new window.GsvViewer();
             getPanorama = jest.fn();
             viewer.streetViewService = { getPanorama };

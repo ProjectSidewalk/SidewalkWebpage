@@ -11,22 +11,15 @@
  * eval'd into global scope rather than required; MiniLineChart has to be present first, since the page draws with it.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
 // The page fetches through util.fetchJson.
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js');
 
 /** Loads MiniLineChart into global scope and returns the AcrossCitiesPage class. */
 function loadPage() {
-  const chart = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/MiniLineChart.js'), 'utf8');
-  const shell = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/AdminShell.js'), 'utf8');
-  const page = fs.readFileSync(path.join(JS_DIR, 'admin-dashboard/AcrossCitiesPage.js'), 'utf8');
-  return (0, eval)(`${chart}\nglobalThis.MiniLineChart = MiniLineChart;\n`
-    + `${shell}\nglobalThis.AdminShell = AdminShell;\n${page}\nAcrossCitiesPage;`);
+  return loadModules('frontend/js/admin-dashboard/AcrossCitiesPage.js').AcrossCitiesPage;
 }
 
 const MARKUP = `

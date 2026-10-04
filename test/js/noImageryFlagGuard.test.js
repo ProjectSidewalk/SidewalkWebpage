@@ -14,16 +14,12 @@
  * jsdom global scope.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const GUARD_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/panorama/NoImageryFlagGuard.js'), 'utf8'
-);
 
 /** Loads a fresh NoImageryFlagGuard class into the jsdom global scope and returns it. */
 function loadGuard() {
-    window.eval(`${GUARD_SRC}; window.NoImageryFlagGuard = NoImageryFlagGuard;`);
+    Object.assign(window, loadModules('frontend/js/explore/panorama/NoImageryFlagGuard.js'));
     return window.NoImageryFlagGuard;
 }
 

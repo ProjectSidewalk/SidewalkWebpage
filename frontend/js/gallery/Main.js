@@ -1,0 +1,89 @@
+/** @namespace */
+
+import { sg } from './sg.js';
+import { BadgeAchievements } from '../common/BadgeAchievements.js';
+import { wireSidebarDisclosure } from '../common/sidebarDisclosure.js';
+import { CardContainer } from './cards/CardContainer.js';
+import { Form } from './data/Form.js';
+import { Tracker } from './data/Tracker.js';
+import { GalleryFilter } from './filter/GalleryFilter.js';
+import { KeyboardManager } from './keyboard/KeyboardManager.js';
+
+window.sg = window.sg || {};
+
+/**
+ * Main module for Gallery.
+ *
+ * Construct instances via the `static async create()` factory, which initializes the gallery before resolving.
+ */
+export class Main {
+  /**
+   * Creates and initializes the Gallery Main module.
+   * @param {object} params - Object passed from gallery.scala.html containing initial values pulled from the database
+   *              on page load.
+   * @returns {Promise<Main>}
+   */
+  static async create(params) {
+    const main = new Main();
+    main.#initUI();
+    await main.#init(params);
+    return main;
+  }
+
+  #initUI() {
+    sg.ui = {};
+
+    // Initialize card container component.
+    sg.ui.cardContainer = {};
+    sg.ui.cardContainer.holder = document.getElementById('image-card-container');
+    sg.ui.cardContainer.prevPage = document.getElementById('prev-page');
+    sg.ui.cardContainer.pageNumber = document.getElementById('page-number');
+    sg.ui.cardContainer.nextPage = document.getElementById('next-page');
+
+    // Initialize expanded view component.
+    sg.ui.expandedView = {};
+    sg.ui.expandedView.container = document.querySelector('.gallery-expanded-view');
+
+    // Keep track of some other elements whose status or dimensions are useful.
+    sg.ui.pageControl = document.querySelector('.page-control');
+    sg.pageLoading = document.getElementById('page-loading');
+    sg.labelsNotFound = document.getElementById('labels-not-found-text');
+  }
+
+  async #init(params) {
+    // Seed the all-time counts so validating a card can celebrate a newly unlocked validation badge.
+    BadgeAchievements.seedCounts();
+
+    // Region names for the cards' location line, keyed by the region id each label carries.
+    sg.regionNames = params.regionNames ?? {};
+
+    // Initialize functional components of UI elements. Review-list mode (#5444) renders neither the sidebar nor the
+    // reset, so both lookups come back null; GalleryFilter is still built, because it owns the address bar and the
+    // filter state CardContainer reads, and it runs sidebar-less.
+    sg.cardFilter = new GalleryFilter(
+      document.getElementById('card-filter'),
+      /** @type {?HTMLButtonElement} */ (document.getElementById('clear-filters')),
+      params.initialFilters,
+    );
+    sg.cardContainer = await CardContainer.create(
+      sg.ui.cardContainer, params.initialFilters, params.viewerType, params.viewerAccessToken, params.currUsername,
+    );
+    sg.expandedView = () => sg.cardContainer.getExpandedView();
+
+    // Initialize KeyboardManager to activate keyboard shortcuts.
+    sg.keyboard = new KeyboardManager(sg.expandedView());
+
+    // Initialize data collection.
+    sg.form = new Form(params.dataStoreUrl);
+    sg.tracker = new Tracker();
+
+    // Narrow-layout filter disclosure (button in gallery.scala.html; filter.css shows it under the breakpoint).
+    const filterToggle = document.getElementById('gallery-filter-toggle');
+    if (filterToggle) {
+      wireSidebarDisclosure(filterToggle, filterToggle.closest('.sidebar'), {
+        controlled: document.getElementById('gallery-filter-sections'),
+        onToggle: (open) => sg.tracker.push(open ? 'FilterDisclosureOpen' : 'FilterDisclosureClose'),
+      });
+    }
+  }
+}

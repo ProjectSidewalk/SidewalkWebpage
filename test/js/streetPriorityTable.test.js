@@ -11,19 +11,14 @@
  * eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
 /** Loads AdminShell (the table escapes through it) and returns the table class. */
 function loadTable() {
-  const shell = fs.readFileSync(path.join(JS_DIR, 'AdminShell.js'), 'utf8');
-  const table = fs.readFileSync(path.join(JS_DIR, 'StreetPriorityTable.js'), 'utf8');
-  return (0, eval)(`${shell}\nglobalThis.AdminShell = AdminShell;\n${table}\nStreetPriorityTable;`);
+  return loadModules('frontend/js/admin-dashboard/StreetPriorityTable.js').StreetPriorityTable;
 }
 
 const StreetPriorityTable = loadTable();

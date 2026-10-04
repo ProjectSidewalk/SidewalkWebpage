@@ -10,12 +10,10 @@
  * into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PAGE_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/PartnersPage.js');
 
-const PartnersPage = (0, eval)(`${fs.readFileSync(PAGE_PATH, 'utf8')}\nPartnersPage;`);
+const PartnersPage = loadModules('frontend/js/admin-dashboard/PartnersPage.js').PartnersPage;
 
 /** The Twirl page's containers and per-scope add forms, reduced to what the class touches. */
 function buildDom({ ownerForms }) {

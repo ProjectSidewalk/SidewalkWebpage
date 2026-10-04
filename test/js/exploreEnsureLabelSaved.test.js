@@ -1,5 +1,5 @@
 /**
- * Tests for Canvas#ensureLabelSaved (public/js/explore/src/canvas/Canvas.js, issue #4726).
+ * Tests for Canvas#ensureLabelSaved (frontend/js/explore/canvas/Canvas.js, issue #4726).
  *
  * This is the step the share button runs before it opens: a label placed this session has no server-side id until
  * the next form submit, so clicking share submits first and then shares. The method is small but every branch is a
@@ -10,16 +10,12 @@
  * it reads is a *static* private field, resolved through the class binding rather than the instance.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const CANVAS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/canvas/Canvas.js'), 'utf8'
-);
 
 /** Loads a fresh Canvas class into the jsdom global scope (a class declaration is not a globalThis property). */
 function loadCanvas() {
-    window.eval(`${CANVAS_SRC}\nwindow.Canvas = Canvas;`);
+    Object.assign(window, loadModules('frontend/js/explore/canvas/Canvas.js'));
     return window.Canvas;
 }
 

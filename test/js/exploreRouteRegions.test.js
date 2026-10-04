@@ -12,13 +12,8 @@
  * tests eval each source into the jsdom global scope.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/explore/src');
-const LABEL_CONTAINER_SRC = fs.readFileSync(path.join(SRC_DIR, 'label/LabelContainer.js'), 'utf8');
-const FORM_SRC = fs.readFileSync(path.join(SRC_DIR, 'data/Form.js'), 'utf8');
-const TASK_CONTAINER_SRC = fs.readFileSync(path.join(SRC_DIR, 'task/TaskContainer.js'), 'utf8');
 
 /** Stubs fetch to answer every request with `body`, and returns the mock so the URL it was called with can be read. */
 function fetchAnswering(body) {
@@ -34,7 +29,7 @@ describe('LabelContainer.fetchLabelsToResumeMission', () => {
 
     beforeEach(() => {
         window.svl = { tracker: { push: jest.fn() } };
-        window.eval(`${LABEL_CONTAINER_SRC}\nwindow.LabelContainer = LabelContainer;`);
+        Object.assign(window, loadModules('frontend/js/explore/label/LabelContainer.js'));
         container = new window.LabelContainer(1);
     });
 
@@ -85,7 +80,7 @@ describe('Form.submitData street-priority refresh on a route walk', () => {
 
     /** Builds a Form with no labels or panos staged, posting to a fetch that records each request body. */
     function buildForm() {
-        window.eval(`${FORM_SRC}\nwindow.Form = Form;`);
+        Object.assign(window, loadModules('frontend/js/explore/data/Form.js'));
         const missionProps = { missionId: 5, distanceProgress: 0, distance: 100, isComplete: false, skipped: false };
         const mission = { getProperty: (k) => missionProps[k], updateDistanceProgress: jest.fn() };
         return new window.Form(
@@ -156,7 +151,7 @@ describe('TaskContainer.updateTaskPriorities', () => {
     let container;
 
     beforeEach(() => {
-        window.eval(`${TASK_CONTAINER_SRC}\nwindow.TaskContainer = TaskContainer;`);
+        Object.assign(window, loadModules('frontend/js/explore/task/TaskContainer.js'));
         const regionModel = { isRoute: true };
         container = new window.TaskContainer(regionModel, { regionModel }, { push: jest.fn() });
     });

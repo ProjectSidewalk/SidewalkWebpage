@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/admin-dashboard/MiniLineChart.js reference lines (#4908).
+ * Tests for frontend/js/admin-dashboard/MiniLineChart.js reference lines (#4908).
  *
  * The Imagery page's "streets polled per night" chart is unreadable without one: a 400-street bar is most of a
  * 500-street batch and a twelfth of a 5,000-street batch, and only the target says which. So the contract worth
@@ -10,18 +10,14 @@
  * detached container and assert on the resulting DOM.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
-const CHART_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/MiniLineChart.js');
 
-/** Load MiniLineChart.js (a plain top-level class declaration, concatenation-style) and return the class. */
+/** Loads a fresh MiniLineChart class. */
 function loadMiniLineChart() {
-  const src = fs.readFileSync(CHART_PATH, 'utf8');
-  return (0, eval)(`${src}\nMiniLineChart;`);
+  return loadModules('frontend/js/admin-dashboard/MiniLineChart.js').MiniLineChart;
 }
 
 describe('MiniLineChart reference line', () => {

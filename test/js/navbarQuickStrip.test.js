@@ -12,12 +12,8 @@
  * stubbing the hamburger's offsetParent, which is what the real code tests.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const NAVBAR_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/Navbar.js'), 'utf8'
-);
 
 const LOGO_WIDTH = 110;
 const HAMBURGER_WIDTH = 44;
@@ -130,7 +126,7 @@ describe('Navbar quick strip', () => {
     beforeAll(() => {
         // The source self-instantiates on load; with no #header in the document that constructor returns immediately,
         // so each test can build its own DOM and construct explicitly.
-        window.eval(`${NAVBAR_SRC}\nwindow.NavbarController = NavbarController;`);
+        Object.assign(window, loadModules('frontend/js/common/Navbar.js'));
     });
 
     /**

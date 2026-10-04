@@ -104,10 +104,10 @@ class ShareControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
           val body = contentAsString(route(app, FakeRequest(GET, s"/label/$id")).get)
           // The whole point of the spotlight pivot (#456, Mikey review): the share landing must NOT pull `/labels/all`,
           // a city's single most expensive endpoint, on every bot-crawled hit. The nearby-labels map uses the cheap,
-          // bbox-bounded /v3/api/rawLabels instead — wired client-side from the SharedLabel bundle + config below.
+          // bbox-bounded /v3/api/rawLabels instead — wired client-side from the SharedLabel entry + the page-data block.
           body must not include "/labels/all"
-          body must include("js/shared-label/build/shared-label.js")
-          body must include("window.sharedLabelData")
+          body must include("build/js/sharedLabel.js")
+          body must include("id=\"page-data\"")
           // The hero reuses the shared LabelDetail component mounted inline; plus the label legend and Explore CTA.
           body must include("label-detail--inline")
           body must include("spotlight-legend")

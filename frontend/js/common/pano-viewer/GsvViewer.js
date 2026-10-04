@@ -1,0 +1,622 @@
+/**
+ * Google Street View implementation of the panorama viewer.
+ * Docs: https://developers.google.com/maps/documentation/javascript/reference/street-view
+ */
+
+import { svl } from '../../explore/svl.js';
+import { NoImageryError } from './NoImageryError.js';
+import { PanoData } from './PanoData.js';
+import { PanoViewer } from './PanoViewer.js';
+import { util } from '../utilities.js';
+import './panoUtilities.js';
+import '../utilitiesMath.js';
+
+export class GsvViewer extends PanoViewer {
+  /** The `pano_data.source` value, so code outside the viewer can name this source without holding the class. */
+  static SOURCE = 'gsv';
+  /** The class the provider's library puts on the canvas it draws into. */
+  static CANVAS_CLASS = 'widget-scene-canvas';
+
+  // If GSV's internal pano load never fires position_changed (e.g. its metadata RPC 502s), fail the load after this
+  // long so the in-flight move can recover instead of hanging the UI forever. Generous, so it won't abort slow loads.
+  static #PANO_LOAD_TIMEOUT_MS = 10000;
+
+  // How far repaint() moves the camera. Invisible at any zoom (the pano is ~360° across a few hundred px), but big
+  // enough that GSV won't round it away; it is the value the 2021 fix for #2468 was verified with.
+  static #REPAINT_NUDGE_DEGREES = 0.01;
+
+  // Direction of the next repaint() nudge, flipped on each call so that a pair of them nets out to no movement.
+  #repaintSign = 1;
+
+  // Far panos already reported through the FarPanoRejected diagnostic. Google tends to answer every point near a bad
+  // spot with the same far pano, and the crumb sampler asks about dozens of such points, so one row per pano keeps
+  // the log a count of distinct far answers rather than of how often we happened to ask.
+  #farPanosReported = new Set();
+
+  constructor() {
+    super();
+    this.streetViewService = undefined;
+    this.gsvPano = undefined;
+    this.prevPanoData = undefined;
+    this.currPanoData = undefined;
+
+    // Location searches memoised by rounded lat/lng: key -> Promise<StreetViewPanoramaData>. Filled by
+    // findPanoNear() and cleared by clearPrefetchCache(). The Street View Metadata SKU these calls fall under is
+    // free and unmetered (docs/google-cloud.md), so the memo is about latency and burst, not cost: a minimap crumb
+    // sampler re-asks about the same street points on every move, and each answer only needs fetching once.
+    this.locationSearches = new Map();
+    // Pano lookups by id, memoised the same way: panoId -> Promise<StreetViewResponse>. A minimap crumb for a
+    // linked pano and the move to it are the same request, so one warms the other.
+    this.panoLookups = new Map();
+  }
+
+  /**
+   * Entries either memo may hold before the oldest are dropped. Caches only empty on a jump to a disconnected
+   * street, so a long contiguous walk would otherwise keep every reply it ever fetched, each a whole
+   * StreetViewPanoramaData; a few hundred covers the streets in play and bounds the rest.
+   */
+  static #MEMO_CAP = 300;
+
+  /**
+   * Stores a reply promise in a memo, evicting the oldest entries past the cap (a Map iterates in insertion order).
+   * @param {Map<string, Promise<google.maps.StreetViewResponse>>} memo - locationSearches or panoLookups.
+   * @param {string} key - The memo key.
+   * @param {Promise<google.maps.StreetViewResponse>} promise - The reply to remember.
+   */
+  static #remember(memo, key, promise) {
+    memo.set(key, promise);
+    while (memo.size > GsvViewer.#MEMO_CAP) memo.delete(memo.keys().next().value);
+  }
+
+  /**
+   * Pulls in the Maps JS core + Street View modules without building a panorama. Google bills the
+   * StreetViewPanorama constructor, not the library download, so this is free to run for visitors who never
+   * open a pano — it just takes the ~400 KB script chain off the click path when they do (#5128).
+   * @returns {Promise<void>}
+   */
+  static async preloadLibrary() {
+    await google.maps.importLibrary('core');
+    await google.maps.importLibrary('streetView');
+  }
+
+  /**
+   * See PanoViewer.initialize().
+   * @param {HTMLElement} canvasElem
+   * @param {Record<string, any>} [panoOptions]
+   * @returns {Promise<void>}
+   */
+  async initialize(canvasElem, panoOptions = {}) {
+    // The core library must be loaded for the google.maps.LatLng/Size constructors used in #getCustomPanoData.
+    await google.maps.importLibrary('core');
+    const { StreetViewService, StreetViewPanorama } = await google.maps.importLibrary('streetView');
+    this.streetViewService = await new StreetViewService();
+
+    // Set GSV panorama options.
+    const defaultNavigation = 'defaultNavigation' in panoOptions ? panoOptions.defaultNavigation : false;
+    const defaults = {
+      addressControl: false,
+      clickToGo: defaultNavigation,
+      disableDefaultUI: true,
+      motionTracking: false,
+      motionTrackingControl: false,
+      panControl: false,
+      scrollwheel: false,
+      showRoadLabels: false,
+      zoomControl: false,
+
+      defaultNavigation, // If true, we show Google's clickToGo navigation.
+    };
+    const panoOpts = { ...defaults, ...panoOptions };
+    this.gsvPano = await new StreetViewPanorama(canvasElem, panoOpts);
+
+    // Add support for the tutorial panos that we have supplied locally.
+    this.gsvPano.registerPanoProvider((pano) => {
+      if (util.pano.TUTORIAL_PANO_IDS.has(pano)) {
+        return this.#getCustomPanoData(pano);
+      }
+      return null;
+    });
+
+    // Initialize pano at the desired location.
+    await this._moveToInitialLocation(panoOpts);
+
+    // Prevent keyboard shortcuts from moving the pano.
+    const preventShortcuts = (e) => {
+      // Let the keys through in a text field, where they move the cursor rather than the pano.
+      const t = e.target;
+      if (t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && t.type === 'text')) return;
+      if (['ArrowUp', 'ArrowLeft', 'ArrowDown', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].indexOf(e.code) > -1) {
+        e.stopPropagation();
+      }
+    };
+    window.addEventListener('keydown', preventShortcuts, { capture: true });
+
+    // Set up event listeners. We hold a list and go through each listener ourselves to control their ordering.
+    const panoChangeListener = async () => {
+      for (const listener of this.panoChangedListeners) await listener();
+    };
+    this.gsvPano.addListener('pano_changed', panoChangeListener);
+    const povChangeListener = async () => {
+      for (const listener of this.povChangedListeners) await listener();
+    };
+    this.gsvPano.addListener('pov_changed', povChangeListener);
+
+    // If defaultNavigation is enabled, we need a pano_changed listener to record the pano metadata after moving.
+    if (panoOpts.defaultNavigation) {
+      this.addListener('pano_changed', () => {
+        return this.streetViewService.getPanorama({ pano: this.gsvPano.getPano() })
+          .then(this.#updateCurrPanoData)
+          .catch((err) => console.error('Failed to refresh pano metadata after navigation:', err));
+      });
+    }
+  };
+
+  getPanoId = () => {
+    // Null until the first pano's metadata has loaded (callers like Tracker log on every input event).
+    return this.currPanoData ? this.currPanoData.getPanoId() : null;
+  };
+
+  getPosition = () => {
+    // Null until the first pano's metadata has loaded.
+    if (!this.currPanoData) return null;
+    return { lat: this.currPanoData.getProperty('lat'), lng: this.currPanoData.getProperty('lng') };
+  };
+
+  /**
+   * Packages data the pano's data from Google into a PanoData object, saving it in this.currPanoData.
+   * @param {Record<string, any>} newPanoData - The pano data returned from StreetViewService.getPanorama()
+   */
+  #updateCurrPanoData = (newPanoData) => {
+    // Add the nearby (linked) panos.
+    const linkedPanos = newPanoData.data.links.map((link) => {
+      return {
+        panoId: link.pano,
+        heading: link.heading,
+        description: link.description,
+      };
+    });
+
+    // Add the list of prior images at this location (history).
+    const history = [];
+    for (const prevPano of newPanoData.data.time) {
+      // Try to find the date since this is an internal API and the property name can change.
+      const prevPanoDate = Object.values(prevPano).find((value) => value instanceof Date);
+      if (prevPanoDate) {
+        history.push({
+          panoId: prevPano.pano,
+          captureDate: prevPanoDate,
+        });
+      } else {
+        console.error('Could not find date in pano history object:', prevPano);
+      }
+    }
+
+    // Putting the data returned from Google into the format for our generic PanoData object.
+    const panoDataParams = {
+      panoId: newPanoData.data.location.pano,
+      source: this.getViewerType(),
+      captureDate: util.parseDate(newPanoData.data.imageDate),
+      width: newPanoData.data.tiles.worldSize.width,
+      height: newPanoData.data.tiles.worldSize.height,
+      tileWidth: newPanoData.data.tiles.tileSize.width,
+      tileHeight: newPanoData.data.tiles.tileSize.height,
+      lat: newPanoData.data.location.latLng.lat(),
+      lng: newPanoData.data.location.latLng.lng(),
+      cameraHeading: newPanoData.data.tiles.originHeading,
+      cameraPitch: -newPanoData.data.tiles.originPitch,
+      // TODO can we find a camera roll?
+      address: newPanoData.data.location.shortDescription,
+      copyright: newPanoData.data.copyright,
+      history,
+      linkedPanos,
+    };
+
+    // Create the new PanoData object.
+    this.currPanoData = new PanoData(panoDataParams);
+  };
+
+  /**
+   * A callback to getPanorama() that packages the data into a PanoData object. Resolves when pano has done loading.
+   * @param {Record<string, any>} newPanoData - The pano data returned from StreetViewService.getPanorama()
+   * @param {Set<PanoData>} [excludedPanos=new Set()] - Set of PanoData objects that are not valid images to move to.
+   * @returns {Promise<PanoData>} The PanoData object created from newPanoData
+   */
+  #getPanoramaCallback = async (newPanoData, excludedPanos = new Set()) => {
+    // If the pano given is in the excluded list, treat it as if the API call itself had returned nothing. This is a
+    // NoImageryError because the search itself succeeded — the caller asked for imagery it hasn't used yet and there
+    // is none here. A caller deciding whether a street ran out of imagery needs that to count, or a real dead end
+    // whose last panos the user already stood on could never be recognized (#4918).
+    const excludedPanoIds = new Set([...excludedPanos].map((p) => p.getPanoId()));
+    if (excludedPanoIds.has(newPanoData.data.location.pano)) {
+      throw new NoImageryError(`Excluded pano: ${newPanoData.data.location.pano}`);
+    }
+
+    // Package the data into a PanoData object and save it in this.currPanoData.
+    this.#updateCurrPanoData(newPanoData);
+
+    // If the pano didn't actually change, nothing needs to load.
+    const newPano = this.currPanoData.getPanoId();
+    const prevPano = this.prevPanoData ? this.prevPanoData.getPanoId() : undefined;
+    if (newPano === prevPano) return this.currPanoData;
+
+    // Otherwise set it and wait until it's finished loading (with a hang guard — see _loadPanoWithTimeout).
+    return await this._loadPanoWithTimeout(newPano, this.currPanoData);
+  };
+
+  /**
+   * Sets the GSV panorama to `newPano` and resolves once it has finished loading (its position_changed event).
+   *
+   * Guards against a load that never fires position_changed — e.g. GSV's internal metadata RPC 502s — by rejecting
+   * after #PANO_LOAD_TIMEOUT_MS. Without the guard the promise hangs forever and the in-flight move
+   * (NavigationService.moveToPano) never restores the UI it disabled, wedging the tool (frozen pano, dead
+   * minimap/nav); rejecting instead lets moveToPano's catch restore interaction. Underscore-prefixed (not `#private`)
+   * so it can be unit-tested.
+   *
+   * @param {string} newPano       - Id of the pano to load.
+   * @param {PanoData} resolveValue - Value to resolve with once the pano has loaded (the current PanoData).
+   * @returns {Promise<PanoData>}   Resolves with resolveValue on load; rejects if the load times out.
+   */
+  _loadPanoWithTimeout(newPano, resolveValue) {
+    return new Promise((resolve, reject) => {
+      let timeoutId;
+      const listener = this.gsvPano.addListener('position_changed', () => {
+        clearTimeout(timeoutId);
+        google.maps.event.removeListener(listener);
+        resolve(resolveValue);
+      });
+      timeoutId = setTimeout(() => {
+        google.maps.event.removeListener(listener);
+        reject(new Error(`Timed out loading pano ${newPano} (position_changed never fired)`));
+      }, GsvViewer.#PANO_LOAD_TIMEOUT_MS);
+      this.gsvPano.setPano(newPano);
+    });
+  }
+
+  /**
+   * Translates a getPanorama() rejection into our own vocabulary.
+   *
+   * Google answers a search that completed and found nothing with `ZERO_RESULTS`; every other status
+   * (`UNKNOWN_ERROR`, an over-quota reply, a transport failure) means the question never got answered. Only the
+   * former may end up recorded against a street, so everything else passes through untyped (#4918). The status is
+   * compared as a string literal — that is the documented `StreetViewStatus` value, and it is readable here without
+   * depending on the maps enum having loaded, which is exactly the case some of these failures represent.
+   *
+   * @param {Error & {code?: string}} err - What `getPanorama()` rejected with; a real API reply carries a `code`.
+   * @param {{lat: number, lng: number}} latLng - The location that was searched, for the message.
+   * @returns {Error} A NoImageryError for `ZERO_RESULTS`, otherwise the original error unchanged.
+   */
+  static #asImageryError(err, latLng) {
+    if (err?.code !== 'ZERO_RESULTS') return err;
+    const radius = GsvViewer.#searchRadiusM();
+    return new NoImageryError(
+      `No outdoor GSV imagery within ${radius}m of ${latLng.lat},${latLng.lng}.`, { cause: err },
+    );
+  }
+
+  /**
+   * The radius, in meters, every location search asks Google for and every reply is held to. Explore's
+   * svl.STREETVIEW_MAX_DISTANCE is the one definition (the imagery scan mirrors it); it is read at call time because
+   * svl is assembled after this file loads, and only Explore searches GSV by location.
+   * @returns {number}
+   */
+  static #searchRadiusM() {
+    return svl.STREETVIEW_MAX_DISTANCE;
+  }
+
+  /**
+   * Whether a pano a location search returned lies within the radius that search asked for (#5114).
+   *
+   * Google treats `radius` as a hint, not a bound: a 25 m query in Seattle has come back with a user photosphere in
+   * Syracuse, NY, about 3,590 km away, and another with a pano 77 m off while a wider query at the same point found
+   * one at 46 m. Holding the reply to the radius is the only enforcement there is, and the reply already carries the
+   * position, so it costs no extra request.
+   *
+   * A point test, not the imagery scan's street-aware one (tools/city/check_streets_for_imagery.py), because a location
+   * search here has no street attached. Explore gets the street-aware behaviour anyway from how it samples: the walk
+   * (moveForward) and the start-of-street backups step along the street every NavigationService.DIST_INCREMENT
+   * (10 m), and a seed off the street falls back to its projection onto it first (PanoManager.backupPointsAlongStreet),
+   * so an on-street pano too far along from one sample point is within the radius of the next one. The forward crumbs
+   * step coarser on long streets, but never wider than ForwardCrumbs.maxSampleStepKm, which is chosen so the same
+   * holds for every pano they would draw. No slack is added at the edge for the same reason: a pano rejected at
+   * 25.1 m costs one more step, not a street.
+   *
+   * @param {{lat: number, lng: number}} searched - The point the search was made around.
+   * @param {{lat: number, lng: number}} found - The returned pano's position.
+   * @param {number} radiusM - The radius the search asked for, in meters.
+   * @returns {boolean} True when the pano is within `radiusM` of `searched` (the edge counts as within).
+   * @example
+   * GsvViewer.isWithinSearchRadius({ lat: 47.61968, lng: -122.31007 }, { lat: 43.09179, lng: -76.17201 }, 25); // false
+   */
+  static isWithinSearchRadius(searched, found, radiusM) {
+    return util.math.haversine(searched, found) <= radiusM;
+  }
+
+  /**
+   * Holds a location search's reply to the search radius, reporting each distinct far pano once through the
+   * `FarPanoRejected` diagnostic so the rate Google does this at can be read from the logs.
+   * @param {{lat: number, lng: number}} searched - The point the search was made around.
+   * @param {google.maps.StreetViewPanoramaData} data - The reply's data.
+   * @returns {boolean} True when the reply may be used as imagery at `searched`.
+   */
+  #acceptSearchReply(searched, data) {
+    const radiusM = GsvViewer.#searchRadiusM();
+    const found = { lat: data.location.latLng.lat(), lng: data.location.latLng.lng() };
+    if (GsvViewer.isWithinSearchRadius(searched, found, radiusM)) return true;
+
+    const panoId = data.location.pano;
+    if (!this.#farPanosReported.has(panoId)) {
+      this.#farPanosReported.add(panoId);
+      this._fireDiagnostic('FarPanoRejected', {
+        panoId,
+        distanceM: Math.round(util.math.haversine(searched, found)),
+        radiusM,
+        // Whether it is Google's own imagery or a user-contributed photosphere, which `source=outdoor` lets through and
+        // which the #5114 answer was; it sizes the photosphere question (#5463). The contributor's name stays out.
+        google: /google/i.test(data.copyright ?? ''),
+      });
+    }
+    return false;
+  }
+
+  /**
+   * Memo key for a location search. Rounded to 5 decimals (~1.1 m) rather than matched by distance because turf is
+   * not loaded on every page that builds a GsvViewer; the callers that sample a street do so on a fixed grid
+   * (NavigationService.DIST_INCREMENT along the street geometry), so identical points produce identical keys.
+   * @param {{lat: number, lng: number}} latLng
+   * @returns {string}
+   */
+  static #searchKey(latLng) {
+    return `${latLng.lat.toFixed(5)},${latLng.lng.toFixed(5)}`;
+  }
+
+  /**
+   * The getPanorama({location}) request for a point, memoised. A ZERO_RESULTS rejection is kept (it is an answer);
+   * any other rejection is evicted so the next caller retries rather than inheriting a transient failure.
+   * @param {{lat: number, lng: number}} latLng - The point to search around.
+   * @returns {Promise<google.maps.StreetViewResponse>} Rejects as getPanorama does (see #asImageryError).
+   */
+  #searchLocation = (latLng) => {
+    const key = GsvViewer.#searchKey(latLng);
+    const cached = this.locationSearches.get(key);
+    if (cached) return cached;
+    const promise = google.maps.importLibrary('core').then(({ LatLng }) => this.streetViewService.getPanorama({
+      location: new LatLng(latLng.lat, latLng.lng),
+      radius: GsvViewer.#searchRadiusM(),
+      source: google.maps.StreetViewSource.OUTDOOR,
+    }));
+    promise.catch((err) => {
+      if (err?.code !== 'ZERO_RESULTS') this.locationSearches.delete(key);
+    });
+    GsvViewer.#remember(this.locationSearches, key, promise);
+    return promise;
+  };
+
+  /**
+   * The getPanorama({pano}) request for a pano id, memoised with the same policy as #searchLocation. The two
+   * locally-served tutorial panos answer from their stored data, never the network.
+   * @param {string} panoId - The pano to look up.
+   * @returns {Promise<google.maps.StreetViewResponse>} Rejects as getPanorama does (see #asImageryError).
+   */
+  #searchPano = (panoId) => {
+    const cached = this.panoLookups.get(panoId);
+    if (cached) return cached;
+    const promise = util.pano.TUTORIAL_PANO_IDS.has(panoId)
+      ? Promise.resolve({ data: this.#getCustomPanoData(panoId) })
+      : this.streetViewService.getPanorama({ pano: panoId });
+    promise.catch((err) => {
+      if (err?.code !== 'ZERO_RESULTS') this.panoLookups.delete(panoId);
+    });
+    GsvViewer.#remember(this.panoLookups, panoId, promise);
+    return promise;
+  };
+
+  clearPrefetchCache = () => {
+    this.locationSearches.clear();
+    this.panoLookups.clear();
+  };
+
+  /**
+   * See PanoViewer.lookupPanoPosition(). Reads the position off the same metadata reply setPano() moves with, so a
+   * crumb at a linked pano costs nothing extra once the user steps there (or vice versa).
+   */
+  lookupPanoPosition = async (panoId) => {
+    let data;
+    try {
+      ({ data } = await this.#searchPano(panoId));
+    } catch (err) {
+      if (err?.code === 'ZERO_RESULTS') return null; // No such pano: an answer, not a failure.
+      throw err;
+    }
+    return { lat: data.location.latLng.lat(), lng: data.location.latLng.lng() };
+  };
+
+  supportsLocationSearch = () => true;
+
+  /**
+   * See PanoViewer.findPanoNear(). Same nearest-outdoor-pano query as setLocation(), read straight off the metadata
+   * reply: #getPanoramaCallback is deliberately not involved, since it records the reply as the current pano and
+   * loads it into the viewer.
+   */
+  findPanoNear = async (latLng, excludedPanos = new Set()) => {
+    let data;
+    try {
+      ({ data } = await PanoViewer._withTimeout(
+        this.#searchLocation(latLng), PanoViewer.FIND_PANO_TIMEOUT_MS, `GSV metadata near ${latLng.lat},${latLng.lng}`,
+      ));
+    } catch (err) {
+      // ZERO_RESULTS is "nothing here"; anything else (UNKNOWN_ERROR, over-quota, transport, the timeout) means the
+      // question went unanswered, which the caller must not mistake for empty ground (#4918).
+      if (GsvViewer.#asImageryError(err, latLng) instanceof NoImageryError) return null;
+      throw err;
+    }
+    // A far pano is no pano here, the same null a ZERO_RESULTS gives, so a crumb is never drawn somewhere else.
+    if (!this.#acceptSearchReply(latLng, data)) return null;
+    const panoId = data.location.pano;
+    if ([...excludedPanos].some((pano) => pano.getPanoId() === panoId)) return null;
+    return { panoId, lat: data.location.latLng.lat(), lng: data.location.latLng.lng() };
+  };
+
+  /**
+   * See PanoViewer.setLocation(). A reply beyond the search radius rejects with the same NoImageryError a
+   * ZERO_RESULTS does (#5114), so every caller's existing no-imagery path (moveForward stepping on down the street,
+   * the next start-of-street backup, the street being given up on) handles it, and the user is never moved somewhere
+   * other than where they asked to go.
+   */
+  setLocation = async (latLng, excludedPanos = new Set()) => {
+    const { LatLng } = await google.maps.importLibrary('core');
+    const gLatLng = new LatLng(latLng.lat, latLng.lng);
+    this.prevPanoData = this.currPanoData;
+    return this.streetViewService.getPanorama(
+      { location: gLatLng, radius: GsvViewer.#searchRadiusM(), source: google.maps.StreetViewSource.OUTDOOR },
+    ).then(
+      (panoData) => {
+        if (!this.#acceptSearchReply(latLng, panoData.data)) {
+          throw new NoImageryError(
+            `Nearest GSV pano ${panoData.data.location.pano} is beyond ${GsvViewer.#searchRadiusM()}m of `
+            + `${latLng.lat},${latLng.lng}.`,
+          );
+        }
+        return this.#getPanoramaCallback(panoData, excludedPanos);
+      },
+      (err) => {
+        throw GsvViewer.#asImageryError(err, latLng);
+      },
+    );
+  };
+
+  setPano = async (panoId) => {
+    this.prevPanoData = this.currPanoData;
+    if (util.pano.TUTORIAL_PANO_IDS.has(panoId)) {
+      // For locally stored tutorial panos, skip the getPanorama step and continue w/ our saved data.
+      return this.#getPanoramaCallback({ data: this.#getCustomPanoData(panoId) }, new Set());
+    } else {
+      const panoData = await this.#searchPano(panoId);
+      return this.#getPanoramaCallback(panoData);
+    }
+  };
+
+  /**
+   * Returns the stored pano data for either of the two tutorial panos.
+   * @param {string} pano - The pano ID/name of the wanted custom panorama.
+   * @returns {google.maps.StreetViewPanoramaData|undefined} The custom Street View panorama, if one matches.
+   */
+  #getCustomPanoData = (pano) => {
+    // time, tiles.originHeading, and tiles.originPitch aren't in Google's types, but #updateCurrPanoData reads them.
+    if (pano === 'tutorial') {
+      return /** @type {google.maps.StreetViewPanoramaData} */ ({
+        location: {
+          pano: 'tutorial',
+          latLng: new google.maps.LatLng(38.94042608, -77.06766133),
+        },
+        links: [{
+          description: 'afterWalkTutorial',
+          heading: 340,
+          pano: 'afterWalkTutorial',
+        }],
+        imageDate: '2014-05',
+        copyright: 'Imagery (c) 2010 Google',
+        tiles: {
+          tileSize: new google.maps.Size(2048, 1024),
+          worldSize: new google.maps.Size(4096, 2048),
+          centerHeading: 50.3866,
+          originHeading: 50.3866,
+          originPitch: -1.13769,
+          getTileUrl(_pano, zoom, tileX, tileY) {
+            return util.assetPath(`images/pano-tutorial/tutorial/${zoom}-${tileX}-${tileY}.jpg`);
+          },
+        },
+        time: [],
+      });
+    } else if (pano === 'afterWalkTutorial') {
+      return /** @type {google.maps.StreetViewPanoramaData} */ ({
+        location: {
+          pano: 'afterWalkTutorial',
+          latLng: new google.maps.LatLng(38.94061618, -77.06768201),
+        },
+        links: [],
+        imageDate: '2014-05',
+        copyright: 'Imagery (c) 2010 Google',
+        tiles: {
+          tileSize: new google.maps.Size(1700, 850),
+          worldSize: new google.maps.Size(3400, 1700),
+          centerHeading: 344,
+          originHeading: 344,
+          originPitch: 0,
+          getTileUrl(_pano, zoom, tileX, tileY) {
+            return util.assetPath(`images/pano-tutorial/afterwalktutorial/${zoom}-${tileX}-${tileY}.jpg`);
+          },
+        },
+        time: [],
+      });
+    }
+  };
+
+  getLinkedPanos = () => {
+    return this.currPanoData.getProperty('linkedPanos');
+  };
+
+  getPov = () => {
+    // GSV's getPov() returns undefined until the first pano finishes loading, and input-event logging can fire
+    // before then — report null rather than throwing. The pov does carry zoom, though Google's types leave it out.
+    const pov = /** @type {{heading: number, pitch: number, zoom: number}} */ (this.gsvPano?.getPov());
+    if (!pov || typeof pov.heading !== 'number') return null;
+    // Adjust heading to be between 0 and 360.
+    while (pov.heading < 0) pov.heading += 360;
+    while (pov.heading > 360) pov.heading -= 360;
+    return pov;
+  };
+
+  setPov = (pov) => {
+    return this.gsvPano.setPov(pov);
+  };
+
+  hideNavigationArrows = () => {
+    return this.gsvPano.set('linksControl', false);
+  };
+
+  showNavigationArrows = () => {
+    return this.gsvPano.set('linksControl', true);
+  };
+
+  resize = () => {
+    google.maps.event.trigger(this.gsvPano, 'resize');
+  };
+
+  /**
+   * See PanoViewer.repaint(). GSV's renderer can stop painting after its container changes size — a window drag, a
+   * Ctrl +/- browser zoom — and stay black until something moves the camera, which is why the glitch clears as soon
+   * as the user drags the image (#2468). Moving the camera by a fraction of a degree forces that frame without
+   * moving anything the user can see.
+   *
+   * The sign alternates so that consecutive nudges cancel: a long session of window drags would otherwise walk the
+   * heading away from the one the label was recorded at. The POV is deliberately *not* restored by a second setPov
+   * in the same tick — two sets can coalesce into no repaint at all, which is the one outcome this must not have.
+   *
+   * GSV gets a new object rather than the one its getPov() handed back: if that is its live state, editing it in
+   * place would make the set look like a no-op and skip the very frame this exists to force.
+   * @returns {void}
+   */
+  repaint = () => {
+    const pov = this.getPov();
+    if (!pov) return; // No pano has painted yet, so there is no frame to force.
+    this.#repaintSign = -this.#repaintSign;
+    const delta = GsvViewer.#REPAINT_NUDGE_DEGREES * this.#repaintSign;
+    // Cast for the same reason getPov() does: the pov carries zoom, and Google's StreetViewPov type leaves it out.
+    this.gsvPano.setPov(/** @type {google.maps.StreetViewPov} */ ({
+      heading: pov.heading + delta, pitch: pov.pitch + delta, zoom: pov.zoom,
+    }));
+  };
+
+  /**
+   * See PanoViewer.publicViewerLink().
+   * @param {string} panoId
+   * @param {{heading?: number, pitch?: number}} [opts]
+   * @returns {{url: string, i18nKey: string}}
+   */
+  publicViewerLink(panoId, { heading, pitch } = {}) {
+    return {
+      url: `https://www.google.com/maps/@?api=1&map_action=pano&pano=${panoId}&heading=${heading}&pitch=${pitch}`,
+      i18nKey: 'common:pano-info.view-in-gsv',
+    };
+  }
+}

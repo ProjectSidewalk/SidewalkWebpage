@@ -1,5 +1,5 @@
 /**
- * Tests for the page-level behavior in public/js/mobileValidate.js.
+ * Tests for the page-level behavior in frontend/js/mobileValidate.js.
  *
  * The page suppresses double-tap zoom over the imagery by cancelling a touchstart that lands on a pano canvas within
  * half a second of another. Cancelling a touchstart also cancels that touch's scrolling and its click, so everything
@@ -8,12 +8,8 @@
  * second finger lands inside the same window, and cancelling it would cancel the page's pinch zoom.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const MOBILE_VALIDATE_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/mobileValidate.js'), 'utf8'
-);
 
 describe('mobile Validate page behavior', () => {
     let modalForeground;
@@ -24,7 +20,7 @@ describe('mobile Validate page behavior', () => {
         // The DOM-ready handler is a no-op here; the subject is the touchstart listener beside it.
         const ready = [];
         window.util = { onDomReady: (fn) => ready.push(fn) };
-        window.eval(MOBILE_VALIDATE_SRC);
+        Object.assign(window, loadModules('frontend/js/mobileValidate.js'));
         ready.forEach((fn) => fn());
     }
 

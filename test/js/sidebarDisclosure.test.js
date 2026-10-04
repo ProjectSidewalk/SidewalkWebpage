@@ -9,18 +9,12 @@
  * Loaded the same way as navbarDisclosures.test.js: eval'd with an explicit export.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/sidebarDisclosure.js'), 'utf8'
-);
 
 /** Evaluates the production file and hands back the two entry points the pages use. */
 function load() {
-    window.eval(`${SRC}
-    window.wireSidebarDisclosure = wireSidebarDisclosure;
-    window.initSidebarDisclosure = initSidebarDisclosure;`);
+    Object.assign(window, loadModules('frontend/js/common/sidebarDisclosure.js'));
     return {
         wire: window.wireSidebarDisclosure,
         init: window.initSidebarDisclosure,

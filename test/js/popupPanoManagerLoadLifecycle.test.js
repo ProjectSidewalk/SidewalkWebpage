@@ -1,6 +1,6 @@
 /**
  * Tests for PopupPanoManager's per-load lifecycle: the loading overlay, the abandoned-load guard, and the
- * zero-size guard on the deferred resize (public/js/common/label-detail/PopupPanoManager.js, #5128).
+ * zero-size guard on the deferred resize (frontend/js/common/label-detail/PopupPanoManager.js, #5128).
  *
  * All three exist because the viewer is now built on the first open, which put a visible wait on the card and made
  * a load outlive the label that started it. Every one of them mutates the single shared `.label-detail__pano`
@@ -10,11 +10,8 @@
  * class written for Grunt concatenation.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const MANAGER_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/label-detail/PopupPanoManager.js'), 'utf8');
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
 
@@ -70,7 +67,7 @@ describe('PopupPanoManager load lifecycle', () => {
         viewer = deferredViewer();
         viewerType = { create: jest.fn(() => Promise.resolve(viewer)), preloadLibrary: jest.fn() };
 
-        window.eval(`${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
         PopupPanoManager = window.PopupPanoManager;
     });
 

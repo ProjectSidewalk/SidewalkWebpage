@@ -1,5 +1,5 @@
 /**
- * Tests for the canvas↔POV↔pano projection in public/js/common/pano-viewer/src/panoUtilities.js.
+ * Tests for the canvas↔POV↔pano projection in frontend/js/common/pano-viewer/panoUtilities.js.
  *
  * These pin one property that is invisible in the math but load-bearing across the whole app (#4851): the canvas
  * coordinate is projected exactly as given, with no vertical or horizontal anchor offset. Explore computes a label's
@@ -15,11 +15,10 @@
  * PanoDataServiceSpec's, so both ports are pinned to the same pov_replay.py values rather than to each other.
  */
 
-const fs = require('fs');
 const path = require('path');
-const {loadGlobalScript} = require('./loadGlobalScript');
+const {loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 
-const VALIDATE_LABEL_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/label/Label.js');
+const VALIDATE_LABEL_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/label/Label.js');
 
 // utilities.js builds a Bowser parser at load time; nothing here consults it.
 window.bowser = {
@@ -28,10 +27,10 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 // renderedHFov's aspect bridges use util.math.to{Degrees,Radians}.
-loadGlobalScript('public/js/common/utilitiesMath.js');
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+loadGlobalScript('frontend/js/common/utilitiesMath.js');
+loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 
 const pano = window.util.pano;
 
@@ -225,8 +224,7 @@ describe('util.pano projection', () => {
     // So pin the consumer too: a label stored at the canvas center must read back as the POV it was authored at.
     describe('consumer call sites pass the stored canvas coordinate through unchanged', () => {
         it('Validate: getOriginalPov returns the authored POV for a center-canvas label', () => {
-            const src = fs.readFileSync(VALIDATE_LABEL_PATH, 'utf8');
-            const ValidateLabel = (0, eval)(`(() => {\n${src}\nreturn Label;\n})()`);
+            const ValidateLabel = loadModules(VALIDATE_LABEL_PATH).Label;
             // Label's init reaches for the backup-image helper the Grunt bundle concatenates alongside it.
             global.buildBackupImageData = () => null;
             const authored = {heading: 212.75, pitch: -9.5, zoom: 2};
@@ -247,8 +245,7 @@ describe('util.pano projection', () => {
         // click (y = 202) decodes to the authored pitch only through that frame. A payload without the frame is a
         // label that predates the columns, so it decodes through the boxed 720x480.
         it('Validate: getOriginalPov projects through the label\'s own frame, defaulting to 720x480', () => {
-            const src = fs.readFileSync(VALIDATE_LABEL_PATH, 'utf8');
-            const ValidateLabel = (0, eval)(`(() => {\n${src}\nreturn Label;\n})()`);
+            const ValidateLabel = loadModules(VALIDATE_LABEL_PATH).Label;
             global.buildBackupImageData = () => null;
             const authored = {heading: 212.75, pitch: -9.5, zoom: 2};
             const common = {canvas_x: 360, canvas_y: 202, heading: authored.heading, pitch: authored.pitch, zoom: 2};

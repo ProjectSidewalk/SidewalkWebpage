@@ -35,7 +35,7 @@ const PAGES = [
   {path: '/v3/api-docs'},
   {path: '/v3/api-docs/labelTypes'},
   // Every api-docs page below that carries `mapbox` builds a live preview map (in its own Twirl view for
-  // /cities, in public/js/api-docs/*Preview.js for the rest), so each needs the style/tile stub.
+  // /cities, in frontend/js/api-docs/*Preview.js for the rest), so each needs the style/tile stub.
   {path: '/v3/api-docs/cities', mapbox: true},
   {path: '/v3/api-docs/labelTags'},
   {path: '/v3/api-docs/rawLabels', mapbox: true},

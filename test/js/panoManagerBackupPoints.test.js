@@ -11,15 +11,14 @@
  * global scope with real turf; nothing it touches at class-definition time needs more.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/panorama/PanoManager.js'), 'utf8');
 
 window.turf = require(path.join(REPO_ROOT, 'public/vendor/turf/turf-7.4.0.min.js'));
 window.NavigationService = { DIST_INCREMENT: 0.01 }; // 10 m, as in NavigationService.
-window.eval(`${SRC}; window.PanoManager = PanoManager;`);
+Object.assign(window, loadModules('frontend/js/explore/panorama/PanoManager.js'));
 const { PanoManager, turf } = window;
 
 // A straight ~400 m street running east along one latitude, so "along" is plain metres east of the start.

@@ -8,9 +8,9 @@
  * against the real API was ~20 billable events — and the suite's job is to catch *our* runtime errors, not Google's.
  * With this file routed in, the CI project needs no key at all and the suite is deterministic offline.
  *
- * What it implements: only the surface `public/js` touches, so a member found here is known to be load-bearing and
+ * What it implements: only the surface `frontend/js` touches, so a member found here is known to be load-bearing and
  * a new Google call in the app fails here first rather than "working" against a fake the real API doesn't match.
- * The inventory is `grep -rn 'google\.maps\.' public/js app/views | grep -v /build/` plus the methods called on what
+ * The inventory is `grep -rn 'google\.maps\.' frontend/js app/views` plus the methods called on what
  * those return (`gsvPano.*`, `getMap().*`, the marker properties); re-run it before adding anything. Events arrive
  * on the next macrotask, as the real API's do. Nothing renders; each widget mounts an empty, labelled `<div>`.
  *

@@ -1,5 +1,5 @@
 /**
- * Tests for the label card's edit gating (public/js/common/label-detail/LabelDetail.js, issue #5047).
+ * Tests for the label card's edit gating (frontend/js/common/label-detail/LabelDetail.js, issue #5047).
  *
  * Two behaviors ride on the same render pass, so they are pinned together here.
  *
@@ -28,11 +28,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
 
 const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
-const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
-const TAG_EDITOR_SRC = readSrc('public/js/common/label-detail/TagEditor.js');
 /** The shipped English copy, so the wording tests read the strings a user sees rather than the keys. */
 const EN_LABELMAP = JSON.parse(readSrc('public/locales/en/labelmap.json'));
 
@@ -303,6 +301,8 @@ describe('LabelDetail edit gating (#5047)', () => {
             svHolder: document.createElement('div'),
         };
         window.PopupPanoManager = { create: async () => panoManager };
+        // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
+        window.StorySection = class { setLabel() {} };
 
         // TagEditor fetches the city's tag catalog on first open; nothing else here goes to the network, so an
         // unexpected call shows up as an unmatched URL rather than a silent pass.
@@ -313,7 +313,7 @@ describe('LabelDetail edit gating (#5047)', () => {
             return Promise.resolve({ ok: true, json: async () => ({}) });
         });
 
-        window.eval(`${TAG_EDITOR_SRC}\n${LABEL_DETAIL_SRC}\nwindow.LabelDetail = LabelDetail;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
         LabelDetail = window.LabelDetail;
 
         card.detail = await LabelDetail.create(card, {

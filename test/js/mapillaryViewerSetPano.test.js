@@ -1,6 +1,6 @@
 /**
  * Tests for how MapillaryViewer.setPano tells a pano that is gone from one that is only slow (issue #5581), in
- * public/js/common/pano-viewer/src/MapillaryViewer.js.
+ * frontend/js/common/pano-viewer/MapillaryViewer.js.
  *
  * A single 12 s race over the move *and* the linked-pano wait, whose every failure comes out as the same untyped
  * Error, reads to Validate as "no imagery" and drops labels whose panos the Graph API still serves. So the
@@ -12,11 +12,8 @@
  * MapillaryViewer is a top-level `class` written for Grunt concatenation, so the sources are eval'd into jsdom with
  * stubs for the sibling classes PanoViewer's constructor compares `new.target` against. The SDK and fetch are fakes.
  */
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadGlobalScript, realUtil, loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
 
 // The linked-pano headings convert through util.math; utilities.js builds a Bowser parser at load time.
 window.bowser = {
@@ -25,9 +22,9 @@ window.bowser = {
     getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
   }),
 };
-loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js');
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+window.util = realUtil();
+loadGlobalScript('frontend/js/common/utilitiesMath.js');
+loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 
 /**
  * Loads fresh copies of the viewer classes and both error types into the jsdom global scope.
@@ -35,22 +32,7 @@ loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
  *     PanoLoadTimeoutError: Function}}
  */
 function loadViewer() {
-  const read = (file) => fs.readFileSync(path.join(SRC_DIR, file), 'utf8');
-  window.eval(`
-    class GsvViewer {}
-    class Infra3dViewer {}
-    class PannellumViewer {}
-    class PanoramaxViewer {}
-    ${read('PanoData.js')}
-    ${read('NoImageryError.js')}
-    ${read('PanoLoadTimeoutError.js')}
-    ${read('PanoViewer.js')}
-    ${read('MapillaryViewer.js')}
-    window.PanoViewer = PanoViewer;
-    window.MapillaryViewer = MapillaryViewer;
-    window.NoImageryError = NoImageryError;
-    window.PanoLoadTimeoutError = PanoLoadTimeoutError;
-  `);
+    Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoData.js', 'frontend/js/common/pano-viewer/NoImageryError.js', 'frontend/js/common/pano-viewer/PanoLoadTimeoutError.js', 'frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/MapillaryViewer.js'));
   return {
     PanoViewer: window.PanoViewer,
     MapillaryViewer: window.MapillaryViewer,

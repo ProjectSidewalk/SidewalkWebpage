@@ -1,13 +1,13 @@
 /**
- * Tests for public/js/validate/src/Tracker.js: key events log the key's position, never the character typed, and
+ * Tests for frontend/js/validate/Tracker.js: key events log the key's position, never the character typed, and
  * nothing for a password field (#5618).
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/Tracker.js');
-const Tracker = (0, eval)(`(() => {\n${fs.readFileSync(TRACKER_PATH, 'utf8')}\nreturn Tracker;\n})()`);
+const TRACKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Tracker.js');
+const Tracker = loadModules(TRACKER_PATH).Tracker;
 
 describe('Tracker key notes', () => {
     let tracker;

@@ -1,5 +1,5 @@
 /**
- * Tests for the map's street re-audit hover card (public/js/ps-map/StreetReauditCard.js, #5258).
+ * Tests for the map's street re-audit hover card (frontend/js/ps-map/StreetReauditCard.js, #5258).
  *
  * Four contracts matter. The card must not fetch what it already has, or a pointer sweeping a city's streets fires a
  * request per street it crosses. It must not open for a street the pointer has already left, since its data arrives
@@ -11,12 +11,8 @@
  * mapboxgl, i18next, and util stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installDateHelpers, installEscapeHTML } = require('./loadGlobalScript');
+const { installDateHelpers, installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const CARD_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/ps-map/StreetReauditCard.js'), 'utf8');
 
 const STREET_ID = 776;
 
@@ -75,7 +71,7 @@ describe('the street re-audit hover card', () => {
                 remove() { popupElement.remove(); }
             },
         };
-        window.eval(`${CARD_SRC}\nwindow.StreetReauditCard = StreetReauditCard;`);
+        Object.assign(window, loadModules('frontend/js/ps-map/StreetReauditCard.js'));
     });
 
     beforeEach(() => {

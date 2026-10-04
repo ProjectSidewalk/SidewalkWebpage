@@ -5,11 +5,6 @@
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @content = {
-  <script>
-    // Set data attributes for API information, used by apiDocs.js (e.g. the download buttons).
-    document.documentElement.setAttribute('data-api-base-url', '/v3/api');
-    document.documentElement.setAttribute('data-api-endpoint', 'aggregateStats');
-  </script>
 
   <div class="page-section" id="aggregate-stats-intro-section">
     <h1 class="page-heading" id="aggregate-stats-api">Aggregate Stats API <a href="#aggregate-stats-api" class="permalink">#</a></h1>
@@ -23,12 +18,7 @@
 
     <div id="aggregate-stats-preview">Loading aggregate statistics...</div>
 
-    <script src="@routes.Assets.versioned("js/api-docs/aggregateStatsPreview.js")"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        AggregateStatsPreview.setup({ maxWidth: 1000 }).init();
-      });
-    </script>
+    <script type="module" id="page-entry" src='@assets.path("build/js/api-docs/aggregateStats.js")'></script>
   </div>
 
   <div class="page-section" id="endpoint-section">

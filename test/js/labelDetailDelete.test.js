@@ -1,5 +1,5 @@
 /**
- * Tests for deleting a label from the label card (public/js/common/label-detail/LabelDetail.js, issue #3591).
+ * Tests for deleting a label from the label card (frontend/js/common/label-detail/LabelDetail.js, issue #3591).
  *
  * Covers who sees Delete, the confirm, the card staying open with Restore, Ctrl+Z as undo only for a delete made in
  * the same card, and the lock a deleted label puts on validating and editing.
@@ -8,15 +8,9 @@
  * collaborators LabelDetail reaches for as bare globals stubbed on `window` first.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const readSrc = (rel) => fs.readFileSync(path.resolve(__dirname, '..', '..', rel), 'utf8');
-const LABEL_DETAIL_SRC = readSrc('public/js/common/label-detail/LabelDetail.js');
-const TAG_EDITOR_SRC = readSrc('public/js/common/label-detail/TagEditor.js');
-const PICKER_SRC = readSrc('public/js/common/LabelTypePicker.js');
 
 /**
  * The card markup as views/common/labelDetail.scala.html renders it, reduced to what #cacheElements() looks up.
@@ -226,6 +220,8 @@ describe('deleting a label from the card (#3591)', () => {
       svHolder: [document.createElement('div')],
     };
     window.PopupPanoManager = { create: async () => panoManager };
+    // The stories disclosure is not what these tests exercise, and its real section wants the composer's markup.
+    window.StorySection = class { setLabel() {} };
     // The tag catalog, and the label itself for the vote re-read after an admin's delete.
     window.fetch = jest.fn((url) => {
       if (String(url).includes('/label/id/')) {
@@ -236,7 +232,7 @@ describe('deleting a label from the card (#3591)', () => {
       return Promise.resolve({ ok: true, json: async () => [] });
     });
 
-    window.eval(`${PICKER_SRC}\n${TAG_EDITOR_SRC}\n${LABEL_DETAIL_SRC}\nwindow.LabelDetail = LabelDetail;`);
+    Object.assign(window, loadModules('frontend/js/common/LabelTypePicker.js', 'frontend/js/common/label-detail/TagEditor.js', 'frontend/js/common/label-detail/LabelDetail.js'));
     card.detail = await window.LabelDetail.create(card, {
       admin: false, viewerType: 'Default', currUsername: 'tester', panoOverlaySource: 'test',
       voteColumnSource: 'test', onDelete,

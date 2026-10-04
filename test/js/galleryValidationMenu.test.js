@@ -1,16 +1,11 @@
 /**
- * Tests the vote buttons on a Gallery card (public/js/gallery/src/validation/ValidationMenu.js, #5517).
+ * Tests the vote buttons on a Gallery card (frontend/js/gallery/validation/ValidationMenu.js, #5517).
  *
  * Each button keeps its own color class for its whole life, and a vote only adds or removes `is-selected` and flips
  * `aria-pressed`. Overwriting the class list instead would wipe the color class and turn the button white.
  */
 
-const fs = require('fs');
-const path = require('path');
-
-const { REPO_ROOT } = require('./loadGlobalScript');
-
-const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/gallery/src/validation/ValidationMenu.js'), 'utf8');
+const { loadModules } = require('./loadGlobalScript');
 
 /**
  * @param {?string} userValidation - The vote the viewer already had on this label when the page loaded.
@@ -39,7 +34,7 @@ const button = (option) => document.querySelector(`.gallery-card-${option}-butto
 describe('Gallery card vote buttons', () => {
   beforeAll(() => {
     window.i18next = { t: (key) => key };
-    window.eval(`${SRC}\nwindow.ValidationMenu = ValidationMenu;`);
+    Object.assign(window, loadModules('frontend/js/gallery/validation/ValidationMenu.js'));
   });
 
   it('starts with nothing pressed', () => {

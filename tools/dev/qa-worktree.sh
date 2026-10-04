@@ -122,8 +122,8 @@ if [ -L node_modules ] && ! cmp -s package-lock.json /home/package-lock.json; th
 fi
 
 # 2. build/ bundles are gitignored (absent) -> build this branch's JS/CSS once up front.
-echo "==> building bundles (grunt concat concat_css)"
-node_modules/.bin/grunt concat concat_css >/dev/null
+echo "==> building bundles (grunt)"
+node_modules/.bin/grunt >/dev/null
 
 # 3. A stray thin-client sbt server (or a hung task, e.g. a wedged `scalafmtAll`) whose cwd is this worktree
 #    shares target/ and deadlocks `~ run` on compile locks. Reap them.
@@ -147,7 +147,7 @@ if port_9000_in_use; then
   exit 1
 fi
 
-# 5. Start a backgrounded `grunt watch` so `public/js/**` / `public/css/**` edits rebuild the bundles automatically —
+# 5. Start a backgrounded `grunt watch` so `frontend/js/**` / `public/css/**` edits rebuild the bundles automatically —
 #    a plain hard-reload then always reflects the latest source (no manual reconcat). The trap tears it down on exit
 #    (Ctrl-C, sbt quitting, an error) so it never outlives the app it was serving.
 GRUNT_WATCH_PID=""

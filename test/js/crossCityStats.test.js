@@ -7,19 +7,16 @@
  * cases cover the other direction: i18next escapes interpolated values by default, which is wrong both for a string
  * going into textContent and for one this file escapes itself.
  *
- * Runs under jsdom (jest.config.js). CrossCityStats is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required.
+ * Runs under jsdom (jest.config.js).
  */
 
 const fs = require('fs');
 const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const STATS_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/user-dashboard/CrossCityStats.js'), 'utf8');
-const MATH_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilitiesMath.js'), 'utf8');
 
 /** The subset of dashboard.json this section reads, verbatim, so the tests break if a placeholder is renamed. */
 const STRINGS = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'public/locales/en/dashboard.json'), 'utf8')).cities;
@@ -103,9 +100,10 @@ const payloadOf = (cities, extra = {}) => ({
 let CrossCityStats;
 
 beforeAll(() => {
-  (0, eval)(MATH_SRC);
+  window.util ??= realUtil();
+  loadModules('frontend/js/common/utilitiesMath.js');
   global.i18next = i18nextStub;
-  CrossCityStats = (0, eval)(`${STATS_SRC}\nCrossCityStats;`);
+  CrossCityStats = loadModules('frontend/js/user-dashboard/CrossCityStats.js').CrossCityStats;
 });
 
 const text = (section, id) => section.querySelector(`#${id}`).textContent;

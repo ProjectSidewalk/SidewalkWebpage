@@ -1,15 +1,6 @@
 /**
- * Test helper: load a production "global script" IIFE into the current jsdom context.
- *
- * Project Sidewalk's frontend has no module system — files under public/js are plain scripts that are
- * concatenated by Grunt and assign their public surface onto `window` (e.g. `window.AggregateStatsPreview = {...}`).
- *
- * Under Jest's jsdom test environment, `window`, `document`, `fetch`, `console`, `Promise`, etc. are exposed as Node
- * globals to every module Jest loads, AND jsdom's `window` is wired so that bare `window`/`document` references inside
- * a required file resolve to the page's window. So the simplest faithful way to "run a <script>" is to `require()` the
- * file: its top-level IIFE executes and performs its `window.X = ...` assignment, which the test then reads off the
- * global `window`. We bust Jest's module cache each load so config mutations from one test's setup() don't leak into
- * the next (these modules keep a module-scoped `config` singleton).
+ * Loads frontend/js source files into jsdom. The Jest transform (test/js/moduleTransform.js) makes them requirable
+ * and lets an import defer to a fake on `window`; the module registry is reset per load so state can't leak.
  */
 
 const fs = require('fs');
@@ -19,16 +10,40 @@ const path = require('path');
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 
 /**
- * Read a production JS file (relative to repo root) and execute it in the jsdom global scope, returning fresh.
- * @param {string} relativePath - Path to the script relative to the repo root, e.g.
- *   "public/js/api-docs/aggregateStatsPreview.js".
+ * Loads a source file fresh for its side effects alone (what it sets on `window`, listeners it registers).
+ * @param {string} relativePath - Repo-relative path, e.g. "frontend/js/api-docs/aggregateStatsPreview.js".
  */
 function loadGlobalScript(relativePath) {
-    const absPath = path.join(REPO_ROOT, relativePath);
-    // Jest maintains its own module registry (Node's require.cache is bypassed), so jest.resetModules() is what forces
-    // the IIFE to re-run on the next require — giving each test a fresh module-scoped `config` singleton.
     jest.resetModules();
-    require(absPath);
+    require(path.join(REPO_ROOT, relativePath));
+}
+
+/**
+ * Loads source files fresh and merges their exports.
+ * @param {...string} paths - Repo-relative (or absolute) paths, e.g. "frontend/js/community/RouteListPage.js".
+ * @returns {object} Their exports, merged.
+ */
+function loadModules(...paths) {
+    // A fresh registry each time, so state a module keeps between calls doesn't leak from one test into the next.
+    jest.resetModules();
+    return Object.assign({}, ...paths.map((p) => require(path.isAbsolute(p) ? p : path.join(REPO_ROOT, p))));
+}
+
+/**
+ * Replaces a source module with a fake for whatever `loadModules` loads next.
+ * @param {string} relativePath - Repo-relative path, e.g. "frontend/js/common/Toast.js".
+ * @param {() => object} factory - Builds the fake's exports.
+ */
+function mockModule(relativePath, factory) {
+    jest.doMock(path.join(REPO_ROOT, relativePath), factory);
+}
+
+/**
+ * Undoes `mockModule`, so later loads get the real file again.
+ * @param {string} relativePath - The path given to `mockModule`.
+ */
+function unmockModule(relativePath) {
+    jest.dontMock(path.join(REPO_ROOT, relativePath));
 }
 
 /**
@@ -68,26 +83,23 @@ function stampLabelTypes() {
 }
 
 /**
- * Installs the real `util.misc` (public/js/common/utilitiesSidewalk.js) onto an already-stubbed `window.util`.
+ * Installs the real `util.misc` (frontend/js/common/utilitiesSidewalk.js) onto the suite's `window.util`.
  *
  * For suites that want the genuine helper rather than a copy of its logic — `labelMarkerFraction` above all, which
  * three separate card surfaces share, so a stub in each would be three chances to drift from the thing they call.
- * `window.util = window.util || {}` at the top of the source means the caller's own fields survive; `util.assetPath`
- * must already be set, since `getIconImagePaths` builds its paths through it.
+ * `util.assetPath` must already be set, since `getIconImagePaths` builds its paths through it.
  */
 function installUtilitiesMisc() {
     stampLabelTypes();
-    window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilitiesSidewalk.js'), 'utf8'));
+    // A fresh evaluation, so util.misc lands on the `util` the suite has on window right now.
+    jest.isolateModules(() => require(path.join(REPO_ROOT, 'frontend/js/common/utilitiesSidewalk.js')));
 }
 
 /**
  * Copies the real date helpers from utilities.js onto `window.util`, leaving the suite's own stubs alone.
- *
- * The file runs inside a function with stand-in `window` and `document`, so its top-level functions (camelToKebab
- * and friends) and listeners stay out of the page the suite built.
  */
 function installDateHelpers() {
-    const { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo } = utilitiesScratch();
+    const { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo } = realUtil();
     window.util = Object.assign(window.util || {},
         { SHORT_DATE, SHORT_DATE_TIME, yearMonth, monthYear, parseDate, localIsoDate, timeAgo });
 }
@@ -96,24 +108,18 @@ function installDateHelpers() {
  * Adds the real `util.escapeHTML` to `window.util`, keeping the suite's own stubs.
  */
 function installEscapeHTML() {
-    window.util = Object.assign(window.util || {}, { escapeHTML: utilitiesScratch().escapeHTML });
+    window.util = Object.assign(window.util || {}, { escapeHTML: realUtil().escapeHTML });
 }
 
 /**
- * Runs utilities.js on a throwaway `util` object, so a suite can borrow single helpers from it.
- *
- * @returns {object} The `util` object utilities.js filled in.
+ * The `util` object utilities.js builds, untouched by any fake a suite has put on window.
+ * @returns {object} The real util.
  */
-function utilitiesScratch() {
-    const scratch = {};
-    const scratchWindow = { util: scratch, navigator: window.navigator, addEventListener: () => {} };
-    const scratchDocument = { readyState: 'complete', addEventListener: () => {} };
-    const src = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/utilities.js'), 'utf8');
-    new Function('window', 'document', 'util', src)(scratchWindow, scratchDocument, scratch);
-    return scratch;
+function realUtil() {
+    return jest.requireActual(path.join(REPO_ROOT, 'frontend/js/common/utilities.js')).util;
 }
 
 module.exports = {
-    loadGlobalScript, loadVendored, REPO_ROOT, assetPathStub, installUtilitiesMisc, installDateHelpers, installEscapeHTML,
-    stampLabelTypes,
+    loadGlobalScript, loadModules, mockModule, unmockModule, loadVendored, REPO_ROOT, assetPathStub, installUtilitiesMisc, installDateHelpers, installEscapeHTML,
+    stampLabelTypes, realUtil,
 };

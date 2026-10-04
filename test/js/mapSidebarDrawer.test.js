@@ -10,12 +10,8 @@
  * width. Loaded the same way as navbarDisclosures.test.js: eval'd with an explicit export.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/ps-map/MapSidebarDrawer.js'), 'utf8'
-);
 
 const SIDEBAR_WIDTH = 350;
 
@@ -80,7 +76,7 @@ function build({narrow = false, startCollapsed = false} = {}) {
     viewport.setNarrow(narrow);
     window.logWebpageActivity = jest.fn();
 
-    window.eval(`${SRC}\nwindow.MapSidebarDrawer = MapSidebarDrawer;`);
+    Object.assign(window, loadModules('frontend/js/ps-map/MapSidebarDrawer.js'));
     const map = fakeMap();
     const drawer = new window.MapSidebarDrawer(map, sidebar, {startCollapsed});
 

@@ -1,5 +1,5 @@
 /**
- * Tests util.misc.labelMarkerFraction (public/js/common/utilitiesSidewalk.js), the rule three card surfaces share for
+ * Tests util.misc.labelMarkerFraction (frontend/js/common/utilitiesSidewalk.js), the rule three card surfaces share for
  * where a label sits in the image they are showing: the Gallery card, the landing validation grid, and the dashboard's
  * mistake cards.
  *

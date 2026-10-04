@@ -1,5 +1,5 @@
 /**
- * Tests for PanoImageAdjustments (public/js/common/PanoImageAdjustments.js), the display-only shadows / brightness /
+ * Tests for PanoImageAdjustments (frontend/js/common/PanoImageAdjustments.js), the display-only shadows / brightness /
  * contrast model behind the Image pill on Explore (#3136) and Validate (#5501).
  *
  * What is worth pinning: the filter string's composition (the gamma curve runs first, default terms are omitted, an
@@ -10,16 +10,12 @@
  * explicit `window.X = X` epilogue rather than require()-d, as with ShareWidget.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/PanoImageAdjustments.js'), 'utf8'
-);
 
 /** Loads the class fresh into the global scope. */
 function loadClass() {
-    (0, eval)(`${SRC}\nwindow.PanoImageAdjustments = PanoImageAdjustments;`);
+    Object.assign(window, loadModules('frontend/js/common/PanoImageAdjustments.js'));
     return window.PanoImageAdjustments;
 }
 
