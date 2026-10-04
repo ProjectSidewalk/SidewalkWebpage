@@ -1,6 +1,6 @@
 import { util } from '../common/utilities.js';
 
-export function hideBrowserVersionAlert() {
+function hideBrowserVersionAlert() {
   document.getElementById('unsupported-browser-alert').classList.add('ps-invisible');
 }
 

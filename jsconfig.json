@@ -1,6 +1,5 @@
 // Type information for frontend/js/, read by editors (hover, go-to-definition) and by `make lint-js-types` (#5278).
-// Checking stays off here: one config over all of frontend/js/ would flag the class names Explore, Validate, and Gallery
-// reuse; tools/lint/js-types/tsconfig.*.json turn it on per bundle.
+// Checking stays off here so editors don't double-report; tools/lint/js-types/tsconfig.json turns it on for the lint.
 {
   "compilerOptions": {
     "allowJs": true,

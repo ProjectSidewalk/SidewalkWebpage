@@ -13,14 +13,14 @@ import { util } from '../common/utilities.js';
 import { ApiDocsMap } from './apiDocsMap.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 
-export const REGION_SOURCE = 'preview-region';
-export const STREET_SOURCE = 'streets';
-export const STREET_LAYER = 'street-lines';
-export const REGION_COLOR = ApiDocsTheme.color('--color-neutral-white');
-export const DAY_MS = 24 * 60 * 60 * 1000;
+const REGION_SOURCE = 'preview-region';
+const STREET_SOURCE = 'streets';
+const STREET_LAYER = 'street-lines';
+const REGION_COLOR = ApiDocsTheme.color('--color-neutral-white');
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 // A street with no labels has no age to place on the ramp, so it's drawn thinner and fainter than one that has.
-export const UNAUDITED = ['<', ['coalesce', ['get', 'days_since_label'], -1], 0];
+const UNAUDITED = ['<', ['coalesce', ['get', 'days_since_label'], -1], 0];
 
 export let config = {
   apiBaseUrl: '/v3/api',
@@ -30,7 +30,7 @@ export let config = {
 };
 
 /** Widens a line by 2px while it's hovered, whatever its base width expression works out to. */
-export function hoverWidth(base) {
+function hoverWidth(base) {
   return ['+', base, ApiDocsMap.whenHovered(2, 0)];
 }
 
@@ -42,21 +42,21 @@ export function hoverWidth(base) {
  * @param {number} midThreshold - Range width above which a midpoint tick is added.
  * @returns {Array<string>} Tick labels, low to high.
  */
-export function countTicks(min, max, midThreshold) {
+function countTicks(min, max, midThreshold) {
   if (max <= min) return [String(min)];
   if (max - min > midThreshold) return [String(min), String(Math.round((min + max) / 2)), String(max)];
   return [String(min), String(max)];
 }
 
 /** Compact age for a legend tick: days, then months, then years. */
-export function formatDaysLabel(days) {
+function formatDaysLabel(days) {
   if (days < 30) return `${Math.round(days)}d`;
   if (days < 365) return `${Math.round(days / 30)}m`;
   return `${Math.round(days / 365)}y`;
 }
 
 /** Spelled-out age for the summary panel. */
-export function formatAvgAge(days) {
+function formatAvgAge(days) {
   if (days === null) return 'N/A';
   if (days < 30) return `${days} days`;
   if (days < 365) return `${Math.round(days / 30)} months`;
@@ -69,7 +69,7 @@ export function formatAvgAge(days) {
  * @param {string|null} lastLabelDate - ISO date of the last label, or null if never labeled.
  * @returns {string} A relative date, e.g. 'Today', '3 weeks ago', 'Never audited'.
  */
-export function formatAuditAge(lastLabelDate) {
+function formatAuditAge(lastLabelDate) {
   if (!lastLabelDate) return 'Never audited';
 
   const daysDiff = (Date.now() - new Date(lastLabelDate).getTime()) / DAY_MS;
@@ -92,7 +92,7 @@ export function formatAuditAge(lastLabelDate) {
 
 // What each of the three maps colors and scales its lines by. `domain` and `ticks` read the summary built by
 // summarize(), since both ends of a ramp depend on what this region actually contains.
-export const METRICS = [
+const METRICS = [
   {
     containerId: 'streets-user-count-preview',
     loadingText: 'Loading user count data...',
@@ -165,7 +165,7 @@ export const METRICS = [
  * @param {GeoJSON.FeatureCollection} streets - The GeoJSON FeatureCollection from the API.
  * @returns {GeoJSON.FeatureCollection} The same collection with `days_since_label` on every feature.
  */
-export function withAge(streets) {
+function withAge(streets) {
   const now = Date.now();
   return {
     ...streets,
@@ -187,7 +187,7 @@ export function withAge(streets) {
  * @param {Array<Record<string, any>>} features - The street features, after withAge().
  * @returns {Record<string, any>} Totals, maxima, and the way types present.
  */
-export function summarize(features) {
+function summarize(features) {
   const stats = {
     total: features.length, audited: 0, totalLabels: 0, wayTypes: new Set(),
     maxUserCount: 0, maxLabelCount: 0, maxDays: 0, totalDays: 0, datedCount: 0,

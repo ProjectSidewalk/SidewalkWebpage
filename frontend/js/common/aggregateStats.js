@@ -47,7 +47,7 @@ export const CONFIG = {
  * @example
  * const data = await fetchWithRetry('/v3/api/aggregateStats');
  */
-export async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = CONFIG.RETRY_ATTEMPTS) {
+async function fetchWithRetry(url, timeout = CONFIG.REQUEST_TIMEOUT, retries = CONFIG.RETRY_ATTEMPTS) {
   try {
     const response = await fetch(url, {
       signal: AbortSignal.timeout(timeout),
@@ -117,7 +117,7 @@ export async function fetchAggregateStats() {
  * formatNumber(1234567) // "1,234,567"
  * formatNumber(1234.5, 'km') // "1,235 km"
  */
-export function formatNumber(value, unit = '') {
+function formatNumber(value, unit = '') {
   const roundedValue = Math.round(value);
   const formattedValue = i18next.t('common:format-number', { val: roundedValue });
   return unit ? `${formattedValue} ${unit}` : formattedValue;
@@ -132,7 +132,7 @@ export function formatNumber(value, unit = '') {
  * @example
  * formatDistance(1000) // "1,000 km (621 mi)"
  */
-export function formatDistance(kilometers) {
+function formatDistance(kilometers) {
   const miles = util.math.kmsToMiles(kilometers);
   return `${formatNumber(kilometers, 'km')} (${formatNumber(miles, 'mi')})`;
 }
@@ -145,7 +145,7 @@ export function formatDistance(kilometers) {
  * @example
  * updateStatsDisplay(aggregatedStats);
  */
-export function updateStatsDisplay(stats) {
+function updateStatsDisplay(stats) {
   // Update main stats paragraph (API landing page).
   const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
   if (mainTargetParagraph) {
@@ -185,7 +185,7 @@ export function updateStatsDisplay(stats) {
 /**
  * Displays a loading state in target paragraphs.
  */
-export function showLoadingState() {
+function showLoadingState() {
   const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
   if (mainTargetParagraph) {
     mainTargetParagraph.innerHTML = `<em>Loading Project Sidewalk statistics...</em>`;
@@ -206,7 +206,7 @@ export function showLoadingState() {
  *
  * @param {Error} error - The error object
  */
-export function showErrorState(error) {
+function showErrorState(error) {
   const mainTargetParagraph = document.getElementById('project-sidewalk-aggregate-stats');
   if (mainTargetParagraph) {
     mainTargetParagraph.innerHTML = `

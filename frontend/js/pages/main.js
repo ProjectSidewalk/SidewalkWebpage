@@ -5,7 +5,6 @@
  */
 import { util } from '../common/utilities.js';
 import '../common/utilitiesMath.js';
-import '../common/utilitiesSidewalk.js';
 import '../common/psTooltip.js';
 import '../common/AppManager.js';
 import '../common/AuthModal.js';

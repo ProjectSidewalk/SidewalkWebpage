@@ -1,3 +1,5 @@
+import { util } from '../utilities.js';
+
 /**
  * Creates an imagery-source logo overlay at the bottom-left of the given pano container.
  *
@@ -20,9 +22,6 @@
  *     exposes its own as the static SOURCE.
  * @returns {{ showPrimaryLogo: Function, showSourceLogo: Function, hide: Function }}
  */
-
-import { util } from '../utilities.js';
-
 export function createPanoViewerLogo(container, primarySource) {
   /**
    * The logo art per imagery source. paddingLeft is hand-tuned per logo, in unscaled px. A `label` is a wordmark

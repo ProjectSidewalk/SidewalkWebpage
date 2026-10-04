@@ -1,3 +1,8 @@
+import { util } from '../common/utilities.js';
+import { CreateMapLayerTracker, filterLabelLayers } from './psMapUtilities.js';
+import '../common/utilitiesSidewalk.js';
+/** @typedef {import('./psMapUtilities.js').MapLayerTracker} MapLayerTracker */
+
 /**
  * Adds labels to the map, creating one Mapbox layer per label type. Resolves once all layers have loaded.
  *
@@ -10,12 +15,6 @@
  * @param {{showLabel: Function}} [params.popupLabelViewer] - Shows a validation popup on labels on the map.
  * @returns {Promise<MapLayerTracker>} Promise that resolves with the mapData object.
  */
-
-import { util } from '../common/utilities.js';
-import { CreateMapLayerTracker, filterLabelLayers } from './psMapUtilities.js';
-import '../common/utilitiesSidewalk.js';
-/** @typedef {import('./psMapUtilities.js').MapLayerTracker} MapLayerTracker */
-
 export function addLabelsToMap(map, labelData, params) {
   const colorMapping = util.misc.getLabelColors();
   const mapData = CreateMapLayerTracker();
@@ -119,7 +118,7 @@ export function addLabelsToMap(map, labelData, params) {
  * @param {number} labelId
  * @param {string} labelType - The label's new type.
  */
-export function updateLabelType(map, mapData, labelId, labelType) {
+function updateLabelType(map, mapData, labelId, labelType) {
   for (const [oldType, features] of Object.entries(mapData.sortedLabels)) {
     const i = features.findIndex((f) => f.properties.label_id === labelId);
     if (i === -1) continue;
@@ -146,7 +145,7 @@ export function updateLabelType(map, mapData, labelId, labelType) {
  * @param {number} labelId
  * @param {boolean} deleted
  */
-export function setLabelDeleted(map, mapData, labelId, deleted) {
+function setLabelDeleted(map, mapData, labelId, deleted) {
   mapData.deletedFeatures ??= new Map();
   const redraw = (type) => {
     const layerName = mapData.layerNames[type];

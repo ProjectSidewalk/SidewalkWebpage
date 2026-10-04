@@ -27,7 +27,7 @@ function loadTestServerBanner() {
 /** Inserts the banner markup and returns the `.test-server-banner` element. */
 function insertBanner() {
     document.body.innerHTML = `
-        <aside class="test-server-banner" aria-label="Test server notice">
+        <aside class="test-server-banner" aria-label="Test server notice" data-storage-key="${STORAGE_KEY}">
           <div class="test-server-banner-content">
             <p class="test-server-banner-text">You're on a test server.</p>
             <div class="test-server-banner-actions">

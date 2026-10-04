@@ -1,3 +1,7 @@
+import { util } from '../common/utilities.js';
+import { logPopupLinkClicks } from './psMapUtilities.js';
+import '../common/utilitiesMath.js';
+
 /**
  * Adds cities to the map as circles and returns a promise.
  *
@@ -9,11 +13,6 @@
  * @param {boolean} [params.animateCityFit=true] - Whether the fit to all deployment cities is animated.
  * @returns {Promise<void>} Promise that resolves when the cities have been added to the map.
  */
-
-import { util } from '../common/utilities.js';
-import { logPopupLinkClicks } from './psMapUtilities.js';
-import '../common/utilitiesMath.js';
-
 export function addCitiesToMap(map, citiesData, params) {
   const CITIES_LAYER_NAME = 'cities';
 

@@ -14,9 +14,9 @@ import { util } from '../common/utilities.js';
 import { ApiDocsMap } from './apiDocsMap.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 
-export const REGION_SOURCE = 'regions';
-export const FILL_LAYER = 'region-fill';
-export const OUTLINE_LAYER = 'region-outline';
+const REGION_SOURCE = 'regions';
+const FILL_LAYER = 'region-fill';
+const OUTLINE_LAYER = 'region-outline';
 
 export let config = {
   apiBaseUrl: '/v3/api',
@@ -26,8 +26,8 @@ export let config = {
 };
 
 // Keyed by the GeoJSON property each one colors by. The ramps are picked to read against the dimmed basemap.
-export const NONE_COLOR = ApiDocsTheme.color('--color-neutral-800');
-export const METRICS = {
+const NONE_COLOR = ApiDocsTheme.color('--color-neutral-800');
+const METRICS = {
   label_count: {
     label: 'Label count', legendTitle: 'Labels per region',
     none: { color: NONE_COLOR, label: 'No labels' }, ramp: ['#440154', '#f0f921'],

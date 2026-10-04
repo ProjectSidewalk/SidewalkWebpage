@@ -12,10 +12,7 @@
  */
 
 import { LabelDetail } from '../common/label-detail/LabelDetail.js';
-import { GsvViewer } from '../common/pano-viewer/GsvViewer.js';
-import { Infra3dViewer } from '../common/pano-viewer/Infra3dViewer.js';
-import { MapillaryViewer } from '../common/pano-viewer/MapillaryViewer.js';
-import { PanoramaxViewer } from '../common/pano-viewer/PanoramaxViewer.js';
+import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import { util } from '../common/utilities.js';
 import { addLabelsToMap } from '../ps-map/addLabelsToMap.js';
 import { createPSMap } from '../ps-map/createPSMap.js';
@@ -55,11 +52,7 @@ export class SharedLabelPage {
    * @returns {typeof PanoViewer}
    */
   #viewerType() {
-    const src = this.#data.imagerySource;
-    if (src === 'mapillary') return MapillaryViewer;
-    if (src === 'infra3d') return Infra3dViewer;
-    if (src === 'panoramax') return PanoramaxViewer;
-    return GsvViewer;
+    return viewerClassFor(this.#data.imagerySource);
   }
 
   /** Mounts LabelDetail inline in the hero host and shows this label. */

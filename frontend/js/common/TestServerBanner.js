@@ -11,27 +11,27 @@
  * absent.
  */
 export class TestServerBanner {
-  /** localStorage key remembering a permanent "don't show again" dismissal. */
-  static STORAGE_KEY = 'hideTestServerWarningBanner';
-
   /** CSS custom property (set on :root) carrying the banner's reserved height, in px. */
   static HEIGHT_VAR = '--test-banner-height';
 
   /** @type {HTMLElement} The `.test-server-banner` root element. */
   #banner;
+  /** @type {string} localStorage key of a permanent "don't show again" dismissal; the view's inline hider reads it. */
+  #storageKey;
 
   /**
    * @param {HTMLElement} banner - The `.test-server-banner` element.
    */
   constructor(banner) {
     this.#banner = banner;
+    this.#storageKey = banner.dataset.storageKey;
 
-    // Apply a permanent dismissal before the first paint so the banner never flashes for users who hid it.
+    // The view's inline script already did this before first paint; repeated for a page without it (jsdom).
     if (this.#dismissedForever()) this.#banner.classList.add('ps-hidden');
 
     this.#banner.querySelector('.test-server-banner-dont-show-again')?.addEventListener('click', () => {
       try {
-        window.localStorage.setItem(TestServerBanner.STORAGE_KEY, 'true');
+        window.localStorage.setItem(this.#storageKey, 'true');
       } catch {
         // localStorage can be unavailable (e.g. private mode); hiding for this visit still works.
       }
@@ -51,7 +51,7 @@ export class TestServerBanner {
    */
   #dismissedForever() {
     try {
-      return JSON.parse(window.localStorage.getItem(TestServerBanner.STORAGE_KEY)) === true;
+      return JSON.parse(window.localStorage.getItem(this.#storageKey)) === true;
     } catch {
       return false;
     }
@@ -80,7 +80,7 @@ export class TestServerBanner {
 }
 
 /** Wires up the banner if it is present on the page. */
-export function initTestServerBanner() {
+function initTestServerBanner() {
   const banner = document.querySelector('.test-server-banner');
   if (banner) new TestServerBanner(banner);
 }

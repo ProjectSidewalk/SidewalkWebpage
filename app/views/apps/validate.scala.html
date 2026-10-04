@@ -1,7 +1,7 @@
 @import controllers.helper.ValidateHelper.ValidateParams
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
-@import play.api.libs.json.{JsArray, Json}
+@import play.api.libs.json.{JsArray, JsString, Json}
 @import service.CommonPageData
 @import models.pano.PanoSource
 @import formats.json.LabelFormats.tagWrites
@@ -338,9 +338,9 @@
       "triage": @validateParams.triage
     },
     "tagList": @jsonForScript(JsArray(validatePageData.tagList.map(t => Json.toJson(t))))@if(validatePageData.hasNextMission) {,
-    "mission": @Html(validatePageData.mission.getOrElse("\"\"").toString),
-    "labelList": @Html(validatePageData.labelList.getOrElse("\"\"").toString),
-    "progress": @Html(validatePageData.missionProgress.getOrElse("\"\"").toString)}
+    "mission": @jsonForScript(validatePageData.mission.getOrElse(JsString(""))),
+    "labelList": @jsonForScript(validatePageData.labelList.getOrElse(JsString(""))),
+    "progress": @jsonForScript(validatePageData.missionProgress.getOrElse(JsString("")))}
   }</script>
   <script type="module" src='@assets.path("build/js/validate.js")'></script>
 }

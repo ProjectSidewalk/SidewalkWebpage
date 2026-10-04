@@ -1,3 +1,6 @@
+import { util } from '../common/utilities.js';
+import { logPopupLinkClicks } from './psMapUtilities.js';
+
 /**
  * Adds regions to the map and returns a promise.
  *
@@ -13,10 +16,6 @@
  * @param {number} [params.regionFillOpacity] - Fill opacity to use if regionFillMode='singleColor'
  * @returns {Promise<void>} Promise that resolves when the regions have been added to the map.
  */
-
-import { util } from '../common/utilities.js';
-import { logPopupLinkClicks } from './psMapUtilities.js';
-
 export function addRegionsToMap(map, regionGeoJSON, completionRates, params) {
   const REGION_LAYER_NAME = 'region-polygons';
   const REGION_OUTLINE_LAYER_NAME = 'region-polygons-outline';

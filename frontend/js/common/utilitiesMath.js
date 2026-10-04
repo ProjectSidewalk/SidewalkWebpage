@@ -88,11 +88,11 @@ export function ceilTo(value, decimals) {
 
 util.math.ceilTo = ceilTo;
 
-export function metersToMiles(dist) {
+function metersToMiles(dist) {
   return dist / 1609.34;
 }
 
-export function metersToKms(dist) {
+function metersToKms(dist) {
   return dist / 1000;
 }
 
@@ -100,7 +100,7 @@ export function metersToFeet(dist) {
   return dist * 3.28084;
 }
 
-export function milesToMeters(dist) {
+function milesToMeters(dist) {
   return dist * 1609.34;
 }
 
@@ -108,7 +108,7 @@ export function milesToKms(dist) {
   return dist * 1.60934;
 }
 
-export function milesToFeet(dist) {
+function milesToFeet(dist) {
   return dist * 5280;
 }
 
@@ -120,19 +120,19 @@ export function kmsToMiles(dist) {
   return dist / 1.609344; // Exact: a mile is defined as 1609.344 m.
 }
 
-export function kmsToFeet(dist) {
+function kmsToFeet(dist) {
   return dist * 3280.84;
 }
 
-export function feetToMeters(dist) {
+function feetToMeters(dist) {
   return dist / 3.28084;
 }
 
-export function feetToMiles(dist) {
+function feetToMiles(dist) {
   return dist / 5280;
 }
 
-export function feetToKms(dist) {
+function feetToKms(dist) {
   return dist / 3280.84;
 }
 

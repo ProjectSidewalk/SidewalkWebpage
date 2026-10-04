@@ -14,8 +14,8 @@ import { util } from '../common/utilities.js';
 import { ApiDocsMap } from './apiDocsMap.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 
-export const PLACE_SOURCE = 'places';
-export const PLACE_LAYER = 'place-points';
+const PLACE_SOURCE = 'places';
+const PLACE_LAYER = 'place-points';
 
 export let config = {
   apiBaseUrl: '/v3/api',
@@ -24,8 +24,8 @@ export let config = {
   endpoint: '/places',
 };
 
-export const MARKER_COLOR = ApiDocsTheme.color('--color-place-marker');
-export const HALO_COLOR = ApiDocsTheme.color('--color-place-marker-halo');
+const MARKER_COLOR = ApiDocsTheme.color('--color-place-marker');
+const HALO_COLOR = ApiDocsTheme.color('--color-place-marker-halo');
 
 export const PlacesPreview = {
   /** Apply caller config overrides. */

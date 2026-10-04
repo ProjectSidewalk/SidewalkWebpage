@@ -14,29 +14,29 @@ import { util } from '../common/utilities.js';
 import { ApiDocsMap } from './apiDocsMap.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 
-export const REGION_SOURCE = 'preview-region';
-export const FACE_SOURCE = 'sidewalk-presence';
-export const FACE_LAYER = 'face-lines';
-export const REGION_COLOR = ApiDocsTheme.color('--color-neutral-white');
+const REGION_SOURCE = 'preview-region';
+const FACE_SOURCE = 'sidewalk-presence';
+const FACE_LAYER = 'face-lines';
+const REGION_COLOR = ApiDocsTheme.color('--color-neutral-white');
 
 // How far each face sits from its street's centerline, in pixels so the gap holds at any zoom. Mapbox's line-offset
 // is positive to the right of the line's coordinate direction, the same frame `street_side` is defined in, so the
 // left face takes the negative offset.
-export const FACE_OFFSET_PX = 3.5;
+const FACE_OFFSET_PX = 3.5;
 
 // Swatches keyed by the API's `presence` values. Absent takes the NoSidewalk label's own color, since that label is
 // what produces the call. These three strings are the backend's sidewalk_presence_status enum; the legend is built
 // from whichever of them the response actually contains, so a value added there still draws (in the fallback
 // color) and shows up in the legend as itself.
-export const PRESENCE = {
+const PRESENCE = {
   absent: { color: ApiDocsTheme.color('--color-label-no-sidewalk'), label: 'No sidewalk' },
   present: { color: ApiDocsTheme.color('--color-success-200'), label: 'Sidewalk' },
   unknown: { color: ApiDocsTheme.color('--color-neutral-400'), label: 'Unknown (street not audited)' },
 };
-export const FALLBACK_COLOR = ApiDocsTheme.color('--color-neutral-500');
+const FALLBACK_COLOR = ApiDocsTheme.color('--color-neutral-500');
 
 // An unaudited face has nothing to say, so it's drawn thinner and fainter than one that does.
-export const UNKNOWN = ['==', ['get', 'presence'], 'unknown'];
+const UNKNOWN = ['==', ['get', 'presence'], 'unknown'];
 
 export let config = {
   apiBaseUrl: '/v3/api',
@@ -52,7 +52,7 @@ export let config = {
  * @param {GeoJSON.FeatureCollection} faces - The GeoJSON FeatureCollection from the API.
  * @returns {GeoJSON.FeatureCollection} The same collection with `face_id` on every feature.
  */
-export function withFaceIds(faces) {
+function withFaceIds(faces) {
   return {
     ...faces,
     features: (faces.features || []).map((feature) => ({
@@ -72,7 +72,7 @@ export function withFaceIds(faces) {
  * @returns {Record<string, any>} Face counts by verdict, streets with a face called absent, absent faces by label
  *   tier, and absent faces a validator has confirmed.
  */
-export function summarize(features) {
+function summarize(features) {
   const stats = {
     faces: features.length, byPresence: {}, streetsAbsent: new Set(), tier1: 0, tier2: 0, tier3: 0, validated: 0,
   };
@@ -104,7 +104,7 @@ export function plural(count, noun) {
  * @param {Record<string, any>} props - A face feature's properties.
  * @returns {string} A summary, e.g. '3 NoSidewalk labels from 2 users, 1 validator-confirmed'.
  */
-export function describeBasis(props) {
+function describeBasis(props) {
   switch (props.presence_basis) {
     case 'no_sidewalk_labels': {
       const validated = props.validated_no_sidewalk_count || 0;
@@ -121,7 +121,7 @@ export function describeBasis(props) {
   }
 }
 
-export function presenceLabel(presence) {
+function presenceLabel(presence) {
   return PRESENCE[presence] ? PRESENCE[presence].label : presence;
 }
 

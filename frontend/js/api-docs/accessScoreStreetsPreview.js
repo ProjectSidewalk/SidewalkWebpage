@@ -14,8 +14,8 @@ import { util } from '../common/utilities.js';
 import { ApiDocsMap } from './apiDocsMap.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 
-export const STREET_SOURCE = 'access-score-streets';
-export const STREET_LAYER = 'access-score-street-lines';
+const STREET_SOURCE = 'access-score-streets';
+const STREET_LAYER = 'access-score-street-lines';
 
 export let config = {
   apiBaseUrl: '/v3/api',
@@ -24,10 +24,10 @@ export let config = {
   endpoint: '/accessScoreStreets',
 };
 
-export const NONE_COLOR = ApiDocsTheme.color('--color-neutral-600'); // Unaudited streets (null score).
+const NONE_COLOR = ApiDocsTheme.color('--color-neutral-600'); // Unaudited streets (null score).
 
 // An unaudited street has no score to read, so it's drawn thinner and fainter than one that does.
-export const UNAUDITED = ['<', ['coalesce', ['get', 'score'], -1], 0];
+const UNAUDITED = ['<', ['coalesce', ['get', 'score'], -1], 0];
 
 export const AccessScoreStreetsPreview = {
   /** Apply caller config overrides. */

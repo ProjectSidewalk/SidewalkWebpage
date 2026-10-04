@@ -1,3 +1,6 @@
+import { StreetReauditCard } from './StreetReauditCard.js';
+import { logPopupLinkClicks, streetLineWidth } from './psMapUtilities.js';
+
 /**
  * Adds streets to the map and returns a promise.
  *
@@ -11,10 +14,6 @@
  * @returns {Promise<{audited: number, outdated: number, unaudited: number}>} Resolves once the streets are on the
  *      map, with how many fall in each audit-status bucket (#4384) — the numbers the sidebar's street rows report.
  */
-
-import { StreetReauditCard } from './StreetReauditCard.js';
-import { logPopupLinkClicks, streetLineWidth } from './psMapUtilities.js';
-
 export function addStreetsToMap(map, streetData, params) {
   const STREET_LAYER_NAME = 'streets';
   const rootStyle = getComputedStyle(document.documentElement);

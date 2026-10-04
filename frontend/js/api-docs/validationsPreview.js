@@ -32,8 +32,8 @@ export let config = {
 };
 
 // Label type colors and mapping (will be populated from API).
-export const labelTypeColors = {};
-export const labelTypeMapping = {};
+const labelTypeColors = {};
+const labelTypeMapping = {};
 
 // Public API
 export const ValidationsPreview = {

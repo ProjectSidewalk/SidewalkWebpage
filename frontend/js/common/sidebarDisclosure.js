@@ -48,7 +48,7 @@ export function wireSidebarDisclosure(toggle, root, options = {}) {
  * @param {HTMLElement} sidebar - The `.page-sidebar` whose `.page-nav` the button discloses.
  * @returns {HTMLButtonElement} The wired-up button, not yet inserted into the document.
  */
-export function buildSidebarDisclosure(sidebar) {
+function buildSidebarDisclosure(sidebar) {
   // The active item names the current page; the first group header is the fallback on a page with no active item. An
   // item that also carries a description or badge marks its name with .page-nav-label, so the toggle reads just that.
   const active = sidebar.querySelector('.page-nav-item.is-active');

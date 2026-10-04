@@ -2,10 +2,7 @@
 
 import { LabelDetail } from '../common/label-detail/LabelDetail.js';
 import { LabelPopup } from '../common/label-detail/LabelPopup.js';
-import { GsvViewer } from '../common/pano-viewer/GsvViewer.js';
-import { Infra3dViewer } from '../common/pano-viewer/Infra3dViewer.js';
-import { MapillaryViewer } from '../common/pano-viewer/MapillaryViewer.js';
-import { PanoramaxViewer } from '../common/pano-viewer/PanoramaxViewer.js';
+import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import { initLabelMapLocationSearch } from '../labelMapLocationSearch.js';
 import { MapDownloadControl } from '../ps-map/MapDownloadControl.js';
 import { MapLoadingOverlay } from '../ps-map/MapLoadingOverlay.js';
@@ -19,11 +16,7 @@ import { setRegionFocus } from '../ps-map/psMapUtilities.js';
 
 const data = document.getElementById('page-entry').dataset;
 const imagerySrc = data.imagerySource;
-const viewerType = imagerySrc === 'mapillary'
-  ? MapillaryViewer
-  : imagerySrc === 'infra3d'
-    ? Infra3dViewer
-    : imagerySrc === 'panoramax' ? PanoramaxViewer : GsvViewer;
+const viewerType = viewerClassFor(imagerySrc);
 const accessToken = data.imageryAccessToken;
 
 // Shared with /admin/label-map so both label maps report loading and failure identically. Retry re-issues

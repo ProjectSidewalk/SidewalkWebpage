@@ -24,6 +24,21 @@
   <link rel="stylesheet" href='@assets.path("css/components/pano-overlay-buttons.css")'>
   <link rel="stylesheet" href='@assets.path("css/components/pano-image-adjustments.css")'>
 
+  @* Inline, in the head: label crops read the pano canvas back, so every WebGL context must keep its drawing buffer,
+     and a module script would only patch getContext after the vendor libraries below have loaded. *@
+  <script>
+    try {
+      HTMLCanvasElement.prototype.getContext = (function (origFn) {
+        return function (type, attributes) {
+          if (type === 'webgl' || type === 'webgl2') attributes = { ...attributes, preserveDrawingBuffer: true };
+          return origFn.call(this, type, attributes);
+        };
+      }(HTMLCanvasElement.prototype.getContext));
+    } catch (e) {
+      console.log(e);
+    }
+  </script>
+
 
   @common.missionStartTutorial()
   @common.panoInfoPopover()

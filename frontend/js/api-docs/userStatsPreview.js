@@ -24,7 +24,7 @@ export let config = {
 };
 
 // Label type name -> localized display name (populated from the labelTypes API).
-export const labelTypeMapping = {};
+const labelTypeMapping = {};
 
 // Public API.
 export const UserStatsPreview = {

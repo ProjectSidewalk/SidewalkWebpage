@@ -31,9 +31,9 @@ export let config = {
   labelTypesEndpoint: '/labelTypes',
 };
 
-export const labelTypeMapping = {}; // Machine name -> localized display name (populated from the labelTypes API).
-export const labelTypeColors = {};  // Colors map (will be populated from labelTypes API).
-export const labelTypeIcons = {};   // Icons map (will be populated from labelTypes API).
+const labelTypeMapping = {}; // Machine name -> localized display name (populated from the labelTypes API).
+const labelTypeColors = {};  // Colors map (will be populated from labelTypes API).
+const labelTypeIcons = {};   // Icons map (will be populated from labelTypes API).
 
 // Public API.
 export const OverallStatsPreview = {

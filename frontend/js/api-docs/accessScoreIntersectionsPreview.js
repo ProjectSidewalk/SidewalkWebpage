@@ -15,8 +15,8 @@ import { util } from '../common/utilities.js';
 import { ApiDocsMap } from './apiDocsMap.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 
-export const INTERSECTION_SOURCE = 'access-score-intersections';
-export const INTERSECTION_LAYER = 'access-score-intersection-points';
+const INTERSECTION_SOURCE = 'access-score-intersections';
+const INTERSECTION_LAYER = 'access-score-intersection-points';
 
 export let config = {
   apiBaseUrl: '/v3/api',
@@ -25,11 +25,11 @@ export let config = {
   endpoint: '/accessScoreIntersections',
 };
 
-export const NONE_COLOR = ApiDocsTheme.color('--color-neutral-600'); // Unscored intersections (null score).
+const NONE_COLOR = ApiDocsTheme.color('--color-neutral-600'); // Unscored intersections (null score).
 
 // An unscored intersection has no score to read, so it's drawn smaller and fainter than one that does.
-export const UNSCORED = ['<', ['coalesce', ['get', 'score'], -1], 0];
-export const GRADE_SEPARATED = ['==', ['get', 'grade_separated'], true];
+const UNSCORED = ['<', ['coalesce', ['get', 'score'], -1], 0];
+const GRADE_SEPARATED = ['==', ['get', 'grade_separated'], true];
 
 export const AccessScoreIntersectionsPreview = {
   /** Apply caller config overrides. */

@@ -10,7 +10,7 @@ window.appManager.ready(async () => {
   const loadStreets = util.fetchJson('/contribution/streets/all?filterLowQuality=true');
   const mapParams = await util.fetchJson('/cityMapParams');
   const routeBuilder = new RouteBuilder(data.mapboxApiKey, mapParams, data.signedIn === 'true',
-    Number(data.minutesPer100m));
+    Number(data.minutesPerHundredM));
   loadRegions.then((regionData) => routeBuilder.renderRegions(regionData))
     .catch((err) => console.error('Failed to load regions:', err));
   loadStreets.then((streetData) => routeBuilder.renderStreets(streetData))

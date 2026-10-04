@@ -33,8 +33,8 @@ import './panoUtilities.js';
  *
  * @returns {?number} Maximum renderable panorama width in pixels, or null when WebGL is unavailable.
  */
-export let cachedMaxPanoWidth;
-export const deviceMaxPanoWidth = () => {
+let cachedMaxPanoWidth;
+const deviceMaxPanoWidth = () => {
   if (cachedMaxPanoWidth !== undefined) return cachedMaxPanoWidth;
   cachedMaxPanoWidth = null;
   try {
@@ -61,13 +61,13 @@ export const deviceMaxPanoWidth = () => {
  * cuts the peak to about a quarter, and is already ~2x a phone's device pixels at zoom 1; only max zoom reads a
  * little softer than the native file would.
  */
-export const MOBILE_MAX_PANO_WIDTH = 8192;
+const MOBILE_MAX_PANO_WIDTH = 8192;
 
 /**
  * The cap that applies on this device: the GPU's, lowered to MOBILE_MAX_PANO_WIDTH on a phone.
  * @returns {?number} Maximum panorama width in pixels, or null when nothing bounds it.
  */
-export const effectiveMaxPanoWidth = () => {
+const effectiveMaxPanoWidth = () => {
   const gpuCap = deviceMaxPanoWidth();
   if (!util.isMobile()) return gpuCap;
   return gpuCap ? Math.min(gpuCap, MOBILE_MAX_PANO_WIDTH) : MOBILE_MAX_PANO_WIDTH;
@@ -90,10 +90,10 @@ export const panoramaUrlFor = (metadata) => {
 // reads generically here is a site-wide SyntaxError if any of them ever declares it too. Hence the pano- prefixes.
 
 /** @returns {string} `url` with a maxWidth the server will honour. */
-export const panoUrlWithMaxWidth = (url, width) => `${url}${url.includes('?') ? '&' : '?'}maxWidth=${width}`;
+const panoUrlWithMaxWidth = (url, width) => `${url}${url.includes('?') ? '&' : '?'}maxWidth=${width}`;
 
 /** The narrowest copy worth asking for; below this the server's allowlist snaps up anyway. */
-export const PANO_MIN_FALLBACK_WIDTH = 2048;
+const PANO_MIN_FALLBACK_WIDTH = 2048;
 
 /**
  * The URLs to try for a panorama, widest first.

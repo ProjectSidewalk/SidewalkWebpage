@@ -261,10 +261,6 @@
 
     @landing._partners(partners, officialContact, currentCity.cityNameShort)
 
-
-    @* Deferred: every reference below sits inside an appManager.ready callback, which runs off DOM-ready and so lands after all deferred scripts. i18next and its http backend are NOT re-included here — common/main.scala.html already loads both, deferred, on every page (#4486). *@
-    @* The grid's imagery credits, without the 170 KB pano-viewer bundle: this page shows stills, never a live viewer. *@
-    @* The AccessScore ramp the Spotlight's bars are painted from, read out of the main.css tokens. *@
     <link href='@assets.path("css/components/choropleth.css")' rel="stylesheet">
     <link href='@assets.path("css/components/deployment-map.css")' rel="stylesheet">
     <link href='@assets.path("css/components/landing-validation-grid.css")' rel="stylesheet">

@@ -23,7 +23,7 @@ export let config = {
 const RESULT_TOKENS = { Agree: '--color-pine-500', Disagree: '--color-orange-500', Unsure: '--color-banana-500' };
 
 /** Builds a right-aligned numeric cell. */
-export function numCell(value) {
+function numCell(value) {
   const cell = document.createElement('td');
   cell.className = 'num';
   cell.textContent = (value ?? 0).toLocaleString();

@@ -1,9 +1,7 @@
 /** Entry point for the user dashboard, and the admin's view of a user's dashboard (bundled by rolldown.config.mjs). */
 
 import { LabelPopup } from '../../common/label-detail/LabelPopup.js';
-import { GsvViewer } from '../../common/pano-viewer/GsvViewer.js';
-import { Infra3dViewer } from '../../common/pano-viewer/Infra3dViewer.js';
-import { MapillaryViewer } from '../../common/pano-viewer/MapillaryViewer.js';
+import { viewerClassFor } from '../../common/pano-viewer/viewerClassFor.js';
 import { DashboardBadges } from '../../user-dashboard/DashboardBadges.js';
 import { CrossCityStats } from '../../user-dashboard/CrossCityStats.js';
 import { MyRoutes } from '../../user-dashboard/MyRoutes.js';
@@ -52,7 +50,7 @@ window.appManager.ready(async () => {
   let labelPopup = null;
   try {
     const src = data.imagerySource;
-    const viewerType = src === 'mapillary' ? MapillaryViewer : src === 'infra3d' ? Infra3dViewer : GsvViewer;
+    const viewerType = viewerClassFor(src);
     // The popup's username marks the viewer's own comments/stories; the view sends it only for a real account.
     labelPopup = await LabelPopup(adminView, viewerType, data.imageryAccessToken, data.viewerUsername || null,
       { showLabelMapLink: true, showExploreHereLink: true });

@@ -28,7 +28,7 @@ export let config = {
  * @param {string} labelType - Display name of the label type.
  * @returns {string} The anchor id.
  */
-export function labelTypeAnchorId(labelType) {
+function labelTypeAnchorId(labelType) {
   return `label-type-${labelType.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
 }
 

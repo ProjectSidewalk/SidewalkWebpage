@@ -38,11 +38,11 @@ import { ApiDocsTheme } from './apiDocsTheme.js';
  * @property {StreetGradeProperties} properties - Its fields.
  */
 
-export const STREET_SOURCE = 'street-grade-streets';
-export const STREET_LAYER = 'street-grade-lines';
+const STREET_SOURCE = 'street-grade-streets';
+const STREET_LAYER = 'street-grade-lines';
 
 /** Long enough that sweeping the pointer across a block does not fetch a profile for every street it crosses. */
-export const HOVER_DELAY_MS = 150;
+const HOVER_DELAY_MS = 150;
 
 export let config = {
   apiBaseUrl: '/v3/api',
@@ -53,11 +53,11 @@ export let config = {
 const NONE_COLOR = ApiDocsTheme.color('--color-neutral-600'); // Streets with no grade: structures, gaps, unsampled.
 
 // "No grade" coalesced to a negative, which AccessScoreGradeRamp.expression colors with the fallback.
-export const GRADE = ['coalesce', ['get', 'max_grade'], -1];
+const GRADE = ['coalesce', ['get', 'max_grade'], -1];
 export const NO_GRADE = ['<', GRADE, 0];
 
 /** Each street's /v3/api/streetGrade answer, as a promise, so hovering a street again never refetches it. */
-export const profiles = new Map();
+const profiles = new Map();
 
 /**
  * A grade as a percentage, in the docs' own words.

@@ -16,7 +16,7 @@ import { util } from './common/utilities.js';
 // Fraction of the region's own span to pad the search bbox by on each edge, so places just outside the audited
 // footprint (e.g. a hospital across a boundary road) still surface, without opening the search up to the surrounding
 // metro. A small buffer — the DB config pan-bounds are far too loose to use here (e.g. Seattle's spans ~300 km).
-export const CITY_BBOX_BUFFER_FRACTION = 0.1;
+const CITY_BBOX_BUFFER_FRACTION = 0.1;
 
 /**
  * Compute a slightly-buffered bounding box of a GeoJSON FeatureCollection (or single Feature).
@@ -25,7 +25,7 @@ export const CITY_BBOX_BUFFER_FRACTION = 0.1;
  * @returns {number[][]|null} bbox as [[minLng, minLat], [maxLng, maxLat]] (Mapbox LngLatBounds order),
  *                            padded by CITY_BBOX_BUFFER_FRACTION per edge, or null if no coordinates found.
  */
-export function cityBoundingBox(geojson) {
+function cityBoundingBox(geojson) {
   let minLng = Infinity;
   let minLat = Infinity;
   let maxLng = -Infinity;
@@ -54,7 +54,7 @@ export function cityBoundingBox(geojson) {
 
 // Layer id the region polygons are rendered under. Must match REGION_LAYER_NAME in
 // `frontend/js/ps-map/addRegionsToMap.js`, which owns the layer and attaches `completionRate` to each feature.
-export const REGION_LAYER_ID = 'region-polygons';
+const REGION_LAYER_ID = 'region-polygons';
 
 /**
  * Find the region the given point falls in, reading the polygon the map already renders.
@@ -68,7 +68,7 @@ export const REGION_LAYER_ID = 'region-polygons';
  * @returns {{name: string, completionRate: number}|null} Region name and 0-100 completion, or null if the
  *          point isn't inside a rendered region (outside the deployment, or the layer hasn't loaded).
  */
-export function regionAt(map, lat, lng) {
+function regionAt(map, lat, lng) {
   if (!map.getLayer(REGION_LAYER_ID)) return null;
   const hits = map.queryRenderedFeatures(map.project([lng, lat]), { layers: [REGION_LAYER_ID] });
   const props = hits?.[0]?.properties;

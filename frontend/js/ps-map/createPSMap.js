@@ -1,3 +1,13 @@
+import { featureCollectionBounds } from '../common/geoBounds.js';
+import { util } from '../common/utilities.js';
+import { MapSidebarDrawer } from './MapSidebarDrawer.js';
+import { ViewportLabelLoader } from './ViewportLabelLoader.js';
+import { addCitiesToMap } from './addCitiesToMap.js';
+import { addLabelsToMap, setLabelData } from './addLabelsToMap.js';
+import { addRegionsToMap } from './addRegionsToMap.js';
+import { addStreetsToMap } from './addStreetsToMap.js';
+import { fetchLabelFeed } from './psMapUtilities.js';
+
 /**
  * Central function that handles the creation of choropleths and maps.
  *
@@ -42,17 +52,6 @@
  *     early (e.g. the LabelMap search box) instead of waiting on the returned all-loaded promise.
  * @returns {Promise} - Promise that resolves once all components of the map have loaded.
  */
-
-import { featureCollectionBounds } from '../common/geoBounds.js';
-import { util } from '../common/utilities.js';
-import { MapSidebarDrawer } from './MapSidebarDrawer.js';
-import { ViewportLabelLoader } from './ViewportLabelLoader.js';
-import { addCitiesToMap } from './addCitiesToMap.js';
-import { addLabelsToMap, setLabelData } from './addLabelsToMap.js';
-import { addRegionsToMap } from './addRegionsToMap.js';
-import { addStreetsToMap } from './addStreetsToMap.js';
-import { fetchLabelFeed } from './psMapUtilities.js';
-
 export function createPSMap(params) {
   // Set default parameters.
   params.logClicks = params.logClicks === undefined ? true : params.logClicks;

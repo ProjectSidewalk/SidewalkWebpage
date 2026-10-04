@@ -333,7 +333,7 @@ A deploy builds the app essentially the same way you do locally, in this order:
    out-of-band utilities are **not** deployed: `requirements-offline-tools.txt` needs ≥ 3.11 and is installed by hand
    into the 3.13 on whichever user account runs those scripts.
 2. `npm install`, then `npx grunt`: the tools' CSS bundles, then **Rolldown** for every page's JS bundle (minified, with
-   a sourcemap beside it that names the source files the server already serves).
+   a sourcemap beside it that carries the sources, since `frontend/js/` itself is not served).
 3. **sbt** `clean stage` to compile the Scala/Play backend into a runnable package. This also bundles the `scripts/`
    directory into the staged app (via `Universal / mappings` in `build.sbt`) so the in-band `label_clustering.py` is
    present at runtime — the staged app runs from the stage dir, not the repo root, so an unbundled script can't be found.

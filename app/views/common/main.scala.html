@@ -118,7 +118,8 @@
   <body class="@bodyClass">
       <!-- Banner is only visible if user is on local/test server-->
     @if(commonData.environmentType != "prod") {
-      <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")">
+      <aside class="test-server-banner" aria-label="@Messages("test.server.warning.label")"
+             data-storage-key="hideTestServerWarningBanner">
         <div class="test-server-banner-content">
           <span class="test-server-banner-icon ps-mask-icon" aria-hidden="true"></span>
           <p class="test-server-banner-text">
@@ -132,7 +133,16 @@
           </div>
         </div>
       </aside>
-
+      @* Inline and right after the banner, so a saved "don't show again" takes effect before first paint: the module
+         that owns the banner (TestServerBanner.js) runs after parsing, which would flash it on every page. *@
+      <script>
+        try {
+          const banner = document.querySelector('.test-server-banner');
+          if (JSON.parse(localStorage.getItem(banner.dataset.storageKey)) === true) banner.classList.add('ps-hidden');
+        } catch (e) {
+          // No localStorage (private mode): the banner shows, and the module's close button still hides it.
+        }
+      </script>
     }
     <div id="wrap" class='@if(fullWindow){wrap--full-window}'>
       @content

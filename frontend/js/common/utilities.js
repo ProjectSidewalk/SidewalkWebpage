@@ -343,8 +343,8 @@ util.placePopover = function (popover, anchor, gapPx = 6) {
 
 // Browser detection helpers backed by Bowser 2.x. The vendor script loads deferred (this file does not), so the
 // parser must be built lazily: every caller runs at DOMContentLoaded or later, by which point bowser exists.
-export let _bowserParser;
-export const bowserParser = () => (_bowserParser ??= bowser.getParser(window.navigator.userAgent));
+let _bowserParser;
+const bowserParser = () => (_bowserParser ??= bowser.getParser(window.navigator.userAgent));
 util.getBrowserName = () => bowserParser().getBrowserName();
 util.getBrowser = () => util.getBrowserName();
 util.getBrowserVersion = () => bowserParser().getBrowserVersion();
@@ -557,7 +557,7 @@ util.getURLParameter = getURLParameter;
  * @param {Blob} blob - The image blob to convert.
  * @returns {Promise<string>} Resolves with the image as a base64 data URL.
  */
-export function convertBlobToBase64(blob) {
+function convertBlobToBase64(blob) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = reject;
@@ -590,7 +590,7 @@ export function getImage(imageUrl) {
 util.getImage = getImage;
 
 /** The anonymous-session mint currently in flight, if any, so simultaneous first writes share one. */
-export let anonSessionMint = null;
+let anonSessionMint = null;
 
 /**
  * Mints the shared anonymous session, joining a mint already in flight instead of starting a second one.
@@ -603,7 +603,7 @@ export let anonSessionMint = null;
  * @returns {Promise<Response>} The mint response; `redirect: 'manual'` keeps it cheap, storing the Set-Cookie on the
  *   redirect without fetching the page it points at.
  */
-export function mintAnonSession() {
+function mintAnonSession() {
   if (!anonSessionMint) {
     anonSessionMint = fetch('/anonSignUp?url=%2F', { redirect: 'manual' }).finally(() => {
       anonSessionMint = null;
@@ -718,12 +718,12 @@ util.fetchJson = async function (url, init = {}) {
 
 // Any of these means a human is present. pointermove is the earliest of them by a wide margin — a single mouse
 // twitch — which is the point: the gate has to clear long before the visitor could scroll to the deferred content.
-export const INTERACTION_EVENTS = ['pointermove', 'pointerdown', 'scroll', 'keydown', 'touchstart', 'wheel'];
+const INTERACTION_EVENTS = ['pointermove', 'pointerdown', 'scroll', 'keydown', 'touchstart', 'wheel'];
 
 // Latched at module level, not per caller: an interaction that happened before a caller registered still counts. The
 // callers here register at very different times (parse time vs. inside an appManager.ready callback, i.e. after
 // i18next's fetches resolve), and a single early mouse twitch has to satisfy all of them.
-export const firstInteraction = new Promise((resolve) => {
+const firstInteraction = new Promise((resolve) => {
   const onInteraction = () => resolve(undefined);
   for (const type of INTERACTION_EVENTS) window.addEventListener(type, onInteraction, { once: true, passive: true });
 });
@@ -769,7 +769,7 @@ util.onFirstInteractionOrIdle = onFirstInteractionOrIdle;
  * @param {string[]} srcs - Script URLs, in the order they must execute.
  * @returns {Promise} Resolves once all of them have run; rejects on the first that fails to load.
  */
-export function loadScriptsInOrder(srcs) {
+function loadScriptsInOrder(srcs) {
   return Promise.all(srcs.map((src) => new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = src;

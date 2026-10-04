@@ -1,3 +1,7 @@
+import { LabelDetail } from './LabelDetail.js';
+import { PopupPanoManager } from './PopupPanoManager.js';
+import { PanoViewer } from '../pano-viewer/PanoViewer.js';
+
 /**
  * LabelPopup — thin <dialog> wrapper around LabelDetail.
  *
@@ -38,10 +42,6 @@
  *     onRefresh: (listener: () => void) => void}) => void}>} Resolves once the dialog is wired, with the LabelDetail
  *     whose showLabel() now takes an id only and opens the dialog first; the pano viewer is built on the first call.
  */
-
-import { LabelDetail } from './LabelDetail.js';
-import { PopupPanoManager } from './PopupPanoManager.js';
-
 export async function LabelPopup(admin, viewerType, viewerAccessToken, currUsername, opts = {}) {
   const dialog = /** @type {HTMLDialogElement} */ (document.getElementById('label-modal'));
   if (!dialog) {

@@ -1,6 +1,6 @@
 /** The "Download BibTeX" button in the API docs' citation box. */
 
-export const BIBTEX = `
+const BIBTEX = `
 @inproceedings{Saha_ProjectSidewalk_CHI2019,
 author = {Saha, Manaswi and Saugstad, Michael and Maddali, Hanuma Teja and Zeng, Aileen and Holland, Ryan and
 Bower, Steven and Dash, Aditya and Chen, Sage and Li, Anthony and Hara, Kotaro and Froehlich, Jon},

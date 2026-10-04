@@ -80,8 +80,6 @@
   @* Pannellum is loaded everywhere the label popup is, since any expired pano may have a self-hosted fallback. *@
   <script src='@assets.path("vendor/pannellum/pannellum-2.5.7.js")'></script>
   <script src='@assets.path("vendor/panzoom/panzoom-9.4.4.min.js")'></script>
-  @* Label-detail modules (order matters: PopupPanoManager + LabelDetail precede LabelPopup; Toast precedes Badges). *@
-
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/activity.js")'
           data-imagery-source="@commonData.imagerySource.name"
           data-imagery-access-token="@commonData.imageryAccessToken"

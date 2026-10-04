@@ -1,3 +1,5 @@
+import { util } from './utilities.js';
+
 /**
  * Creates the reusable AI indicator icon with an optional "AI can make mistakes" tooltip.
  *
@@ -6,9 +8,6 @@
  * @param {boolean} [options.tooltip] - Attach the tooltip; off where the surroundings already say it (#5359).
  * @returns {HTMLElement} Configured AI indicator element.
  */
-
-import { util } from './utilities.js';
-
 export function aiLabelIndicator(extraClasses = [], { tooltip = true } = {}) {
   const icon = document.createElement('img');
   icon.src = util.assetPath('images/icons/ai-icon-black-filled-white-circle.png');

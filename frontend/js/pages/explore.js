@@ -1,27 +1,10 @@
 /** Entry point for the Explore tool (bundled by rolldown.config.mjs). */
 
-import { GsvViewer } from '../common/pano-viewer/GsvViewer.js';
-import { Infra3dViewer } from '../common/pano-viewer/Infra3dViewer.js';
-import { MapillaryViewer } from '../common/pano-viewer/MapillaryViewer.js';
-import { PanoramaxViewer } from '../common/pano-viewer/PanoramaxViewer.js';
+import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import { Main } from '../explore/Main.js';
+import '../explore/detectUnsupportedBrowser.js';
 import { svl } from '../explore/svl.js';
 import { util } from '../common/utilities.js';
-
-// Setup necessary for saving crops of the pano. Done before anything creates a WebGL context; if it fails, nothing
-// else should.
-try {
-  HTMLCanvasElement.prototype.getContext = (function (origFn) {
-    return function (type, attributes) {
-      if (type === 'webgl' || type === 'webgl2') {
-        attributes = { ...attributes, preserveDrawingBuffer: true };
-      }
-      return origFn.call(this, type, attributes);
-    };
-  }(HTMLCanvasElement.prototype.getContext));
-} catch (e) {
-  console.log(e);
-}
 
 util.onDomReady(() => {
   // Prevents text selection with cursor. Fixes https://github.com/ProjectSidewalk/SidewalkWebpage/issues/121.
@@ -75,11 +58,7 @@ if (!mainParam.task) {
 }
 // TODO I think that we can replace this with Json.toJson(data.region.geom).toString after back end upgrades.
 mainParam.regionGeoJSON = /** @type {any} */ (window).betterknown.wktToGeoJSON(mainParam.regionWkt);
-mainParam.viewerType = mainParam.imagerySource === 'mapillary'
-  ? MapillaryViewer
-  : mainParam.imagerySource === 'infra3d'
-    ? Infra3dViewer
-    : mainParam.imagerySource === 'panoramax' ? PanoramaxViewer : GsvViewer;
+mainParam.viewerType = viewerClassFor(mainParam.imagerySource);
 
 // Console and e2e handle; the app reaches the registry by import.
 window.svl = svl;

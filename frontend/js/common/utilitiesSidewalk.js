@@ -1,7 +1,7 @@
 import { util } from './utilities.js';
 import './pano-viewer/panoUtilities.js';
 
-export function UtilitiesMisc(JSON) {
+function UtilitiesMisc(JSON) {
   const self = { className: 'UtilitiesMisc' };
 
   // The label-type table LabelType stamps onto every page (main.scala.html), in canonical order. Every list,

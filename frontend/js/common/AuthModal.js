@@ -14,7 +14,7 @@ import { Modal } from './Modal.js';
  *
  * @returns {HTMLSpanElement} A decorative icon span.
  */
-export const auIcon = () => {
+const auIcon = () => {
   const icon = document.createElement('span');
   icon.className = 'au-icon ps-mask-icon';
   icon.setAttribute('aria-hidden', 'true');
@@ -26,7 +26,7 @@ export const auIcon = () => {
  *
  * @param {HTMLButtonElement} btn - An .au-eye button whose data-eye names the input it toggles.
  */
-export function wireEyeToggle(btn) {
+function wireEyeToggle(btn) {
   btn.addEventListener('click', () => {
     const input = /** @type {HTMLInputElement} */ (document.getElementById(btn.dataset.eye));
     if (!input) return;
@@ -40,10 +40,10 @@ export function wireEyeToggle(btn) {
 }
 
 /** Long enough that typing a password straight through costs one request rather than one per character. */
-export const AU_BREACH_DEBOUNCE_MS = 500;
+const AU_BREACH_DEBOUNCE_MS = 500;
 
 /** A padded range response runs to ~80KB, so the cache below is capped rather than left to grow with typing. */
-export const AU_BREACH_RANGE_CACHE_MAX = 8;
+const AU_BREACH_RANGE_CACHE_MAX = 8;
 
 /**
  * In-flight and settled range requests, keyed by the 5-character hash prefix that fetched them — both already
@@ -51,7 +51,7 @@ export const AU_BREACH_RANGE_CACHE_MAX = 8;
  * is the password to anyone with a wordlist, and a top-level `const` in a classic script is readable by name from
  * every other script on the page. Promises rather than text, so two lookups sharing a prefix share one request.
  */
-export const auBreachRanges = new Map();
+const auBreachRanges = new Map();
 
 /**
  * Fetches one k-anonymity range, reusing an in-flight or recent request for the same prefix.
@@ -60,7 +60,7 @@ export const auBreachRanges = new Map();
  * @param {string} rangeUrl - The range endpoint, from PasswordPolicy.
  * @returns {Promise<string>} The response body, or an empty string if the request failed.
  */
-export function fetchBreachRange(prefix, rangeUrl) {
+function fetchBreachRange(prefix, rangeUrl) {
   const cached = auBreachRanges.get(prefix);
   if (cached) return cached;
   const pending = fetch(rangeUrl + prefix, { headers: { 'Add-Padding': 'true' } })
@@ -83,7 +83,7 @@ export function fetchBreachRange(prefix, rangeUrl) {
  * @param {string} rangeUrl - The range endpoint, from PasswordPolicy.
  * @returns {Promise<boolean>} True only if the password was positively found in the corpus.
  */
-export async function isBreachedPassword(password, rangeUrl) {
+async function isBreachedPassword(password, rangeUrl) {
   try {
     const digest = await crypto.subtle.digest('SHA-1', new TextEncoder().encode(password));
     const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('').toUpperCase();
@@ -104,7 +104,7 @@ export async function isBreachedPassword(password, rangeUrl) {
  *
  * @param {HTMLElement} group - An .au-pw-group rendered by common/authPasswordFields.scala.html.
  */
-export function wirePasswordGroup(group) {
+function wirePasswordGroup(group) {
   const pw = /** @type {HTMLInputElement} */ (group.querySelector('.au-pw'));
   const pw2 = /** @type {HTMLInputElement} */ (group.querySelector('.au-pw-confirm'));
   if (!pw) return;
@@ -200,7 +200,7 @@ export function wirePasswordGroup(group) {
  * Wires every new-password group on the page plus the username-rule indicator, all from backend-injected
  * data-rule-regex attributes. No-ops on surfaces without those fields (e.g. the sign-in-only ones).
  */
-export function wireLiveValidation() {
+function wireLiveValidation() {
   document.querySelectorAll('.au-pw-group').forEach(wirePasswordGroup);
 
   const username = /** @type {HTMLInputElement} */ (document.getElementById('sign-up-username'));
@@ -220,7 +220,7 @@ export function wireLiveValidation() {
  *
  * @param {HTMLFormElement} form - The form to reset.
  */
-export function clearAuthErrors(form) {
+function clearAuthErrors(form) {
   form.parentElement.querySelectorAll(':scope > .au-summary:not(.au-summary--info)').forEach((el) => el.remove());
   form.querySelectorAll('.au-field-error').forEach((el) => el.remove());
   form.querySelectorAll('.au-input--error').forEach((el) => {
@@ -237,7 +237,7 @@ export function clearAuthErrors(form) {
  * @param {HTMLFormElement} form - The form the errors belong to.
  * @param {Record<string, string>} errors - Field name (or `_summary`) to localized message.
  */
-export function renderAuthErrors(form, errors) {
+function renderAuthErrors(form, errors) {
   Object.entries(errors).forEach(([field, message]) => {
     if (field === '_summary') {
       const banner = document.createElement('div');

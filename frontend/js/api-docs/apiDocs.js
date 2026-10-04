@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * Finds related static nav items (e.g., 'page' and 'page#section') and groups them into an accordion structure in HTML.
  * Does NOT add event listeners here.
  */
-export function setupStaticNavAccordions() {
+function setupStaticNavAccordions() {
   console.log('Setting up static navigation accordions structure');
   const navContainer = document.querySelector('.page-nav');
   if (!navContainer) return;
@@ -143,7 +143,7 @@ export function setupStaticNavAccordions() {
  * Finds the primary active nav item, scans content for H1/H2, and generates an expanded submenu structure in the HTML.
  * Does NOT add event listeners here.
  */
-export function generateDynamicSidebarSubmenu() {
+function generateDynamicSidebarSubmenu() {
   console.log('Generating dynamic sidebar submenu for active page');
   const activeNavItem = document.querySelector('.page-sidebar .page-nav-item.is-active');
 
@@ -217,7 +217,7 @@ export function generateDynamicSidebarSubmenu() {
  * Sets up a single event listener on the navigation container to handle clicks on all accordion triggers using event
  * delegation.
  */
-export function setupAccordionListener() {
+function setupAccordionListener() {
   const navContainer = document.querySelector('.page-sidebar .page-nav');
   if (!navContainer) {
     console.error('Navigation container .page-nav not found for accordion listener.');
@@ -381,7 +381,7 @@ export function setupScrollSpy() {
  * Sets up smooth scrolling for TOC and sidebar hash links. Does NOT update left sidebar highlighting on click.
  * @returns {void}
  */
-export function setupSmoothScrolling() {
+function setupSmoothScrolling() {
   // Target both TOC and Sidebar nav container.
   const scrollContainers = document.querySelectorAll('.page-toc, .page-sidebar .page-nav');
   if (scrollContainers.length === 0) return;
@@ -428,7 +428,7 @@ export function setupSmoothScrolling() {
  * Sets up click functionality for permalink icons to copy the URL.
  * @returns {void}
  */
-export function setupPermalinkCopying() {
+function setupPermalinkCopying() {
   // Use event delegation on the content area for potentially dynamic headings.
   const contentArea = document.querySelector('.page-content');
   if (!contentArea) return;
@@ -477,7 +477,7 @@ export function setupPermalinkCopying() {
  * Sets up the download buttons. Each one fetches the file itself instead of handing the URL to the browser, since
  * only then can the page see the server's answer, the download's progress, and when it finishes.
  */
-export function setupDownloadButtons() {
+function setupDownloadButtons() {
   const downloadButtonsContainer = document.querySelector('.download-buttons');
   if (!downloadButtonsContainer) return;
 
@@ -668,10 +668,10 @@ export function setupDownloadButtons() {
 }
 
 /** How much is held as loose buffers before being folded into the Blob. */
-export const BLOB_FOLD_BYTES = 32 * 1024 * 1024;
+const BLOB_FOLD_BYTES = 32 * 1024 * 1024;
 
 /** Extensions for a file the server didn't name, keyed by the `filetype` the button asks for. */
-export const FILE_EXTENSIONS = {
+const FILE_EXTENSIONS = {
   csv: 'csv',
   json: 'json',
   geojson: 'geojson',
@@ -686,7 +686,7 @@ export const FILE_EXTENSIONS = {
  * @param {Blob} blob - The downloaded file.
  * @returns {Promise<boolean>} False only when the file is provably incomplete.
  */
-export async function endsCompletely(blob) {
+async function endsCompletely(blob) {
   if (!blob.type.includes('json')) return true;
   const tail = (await blob.slice(-16).text()).trimEnd();
   return tail.endsWith('}') || tail.endsWith(']');
@@ -696,7 +696,7 @@ export async function endsCompletely(blob) {
  * @param {number} bytes - A size in bytes.
  * @returns {string} The size in KB or MB, like "12.3 MB".
  */
-export function formatBytes(bytes) {
+function formatBytes(bytes) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
@@ -705,7 +705,7 @@ export function formatBytes(bytes) {
  * @param {?string} disposition - A Content-Disposition header.
  * @returns {?string} The filename the server gave the file, if any.
  */
-export function filenameFromDisposition(disposition) {
+function filenameFromDisposition(disposition) {
   const match = disposition?.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
   if (!match) return null;
   // A stray % is not an escape, and decoding it throws.
@@ -719,7 +719,7 @@ export function filenameFromDisposition(disposition) {
 /**
  * Initialize permalink clipboard functionality. Call this function when the DOM is ready.
  */
-export function initPermalinkClipboard() {
+function initPermalinkClipboard() {
   // Find all permalink anchors (# links).
   const permalinks = document.querySelectorAll('.permalink');
 
@@ -755,7 +755,7 @@ export function initPermalinkClipboard() {
  * Copy permalink URL to clipboard with modern API and fallback.
  * @param {HTMLElement} permalinkElement - The clicked permalink anchor
  */
-export function copyPermalinkToClipboard(permalinkElement) {
+function copyPermalinkToClipboard(permalinkElement) {
   // Get the full URL including the hash.
   const currentUrl = window.location.href.split('#')[0];
   const hash = permalinkElement.getAttribute('href');
@@ -782,7 +782,7 @@ export function copyPermalinkToClipboard(permalinkElement) {
  * @param {string} text - Text to copy
  * @param {HTMLElement} permalinkElement - The permalink element for feedback
  */
-export function fallbackCopyToClipboard(text, permalinkElement) {
+function fallbackCopyToClipboard(text, permalinkElement) {
   // Create temporary textarea.
   const textArea = document.createElement('textarea');
   textArea.value = text;
@@ -814,7 +814,7 @@ export function fallbackCopyToClipboard(text, permalinkElement) {
  * @param {HTMLElement} permalinkElement - The permalink element
  * @param {string} status - 'success' or 'error'
  */
-export function showCopyFeedback(permalinkElement, status) {
+function showCopyFeedback(permalinkElement, status) {
   // Create toast notification.
   const toast = document.createElement('div');
   toast.className = `copy-toast copy-toast-${status}`;

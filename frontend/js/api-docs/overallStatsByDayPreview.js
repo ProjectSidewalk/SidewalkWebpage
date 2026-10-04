@@ -23,7 +23,7 @@ export let config = {
  * @param {HTMLElement} container
  * @param {string} msg
  */
-export function showError(container, msg) {
+function showError(container, msg) {
   container.innerHTML = `<div class="message message-error" role="alert">${msg}</div>`;
 }
 
@@ -32,7 +32,7 @@ export function showError(container, msg) {
  * @param {Array<Record<string, any>>} data
  * @returns {Map<string, Map<string, Record<string, any>>>}
  */
-export function buildDailyMap(data) {
+function buildDailyMap(data) {
   const map = new Map();
   data.forEach((row) => {
     if (!map.has(row.date)) map.set(row.date, new Map());
@@ -48,7 +48,7 @@ export function buildDailyMap(data) {
  * @param {string} field
  * @returns {number[]}
  */
-export function dailyTotals(dates, byDay, field) {
+function dailyTotals(dates, byDay, field) {
   return dates.map((d) => {
     let total = 0;
     (byDay.get(d) || new Map()).forEach((row) => {
@@ -64,7 +64,7 @@ export function dailyTotals(dates, byDay, field) {
  * @param {number} maxDays
  * @returns {Array<Record<string, any>>}
  */
-export function trimToRecentDays(data, maxDays) {
+function trimToRecentDays(data, maxDays) {
   const dates = Array.from(new Set(data.map((r) => r.date))).sort();
   const cutoff = dates.length > maxDays ? dates[dates.length - maxDays] : dates[0];
   return data.filter((r) => r.date >= cutoff);
@@ -214,7 +214,7 @@ export function render(container, data) {
  * @param {{stacked?: boolean}} [opts]
  * @returns {object}
  */
-export function chartOptions(yLabel, opts = {}) {
+function chartOptions(yLabel, opts = {}) {
   return {
     responsive: true,
     maintainAspectRatio: false,
@@ -240,7 +240,7 @@ export function chartOptions(yLabel, opts = {}) {
  * @param {Function} builder - Receives the inner div and should append a canvas.
  * @returns {HTMLElement}
  */
-export function makeChart(title, description, builder) {
+function makeChart(title, description, builder) {
   const wrap = document.createElement('div');
   wrap.className = 'preview-section';
   wrap.innerHTML = `

@@ -14,9 +14,9 @@ import { util } from '../common/utilities.js';
 import { ApiDocsMap } from './apiDocsMap.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 
-export const REGION_SOURCE = 'access-score-regions';
-export const FILL_LAYER = 'access-score-region-fill';
-export const OUTLINE_LAYER = 'access-score-region-outline';
+const REGION_SOURCE = 'access-score-regions';
+const FILL_LAYER = 'access-score-region-fill';
+const OUTLINE_LAYER = 'access-score-region-outline';
 
 export let config = {
   apiBaseUrl: '/v3/api',
@@ -26,14 +26,14 @@ export let config = {
 };
 
 // Metrics that can be visualized. Both are already normalized to [0, 1], so the ramp domain is fixed.
-export const METRICS = {
+const METRICS = {
   score: { label: 'AccessScore', legendTitle: 'AccessScore (0 = low, 1 = high)' },
   // Unlike score, coverage is never null: a region with nothing audited comes back as 0, so zero is what marks it
   // as the "none" category rather than the bottom of the ramp.
   coverage: { label: 'Audit coverage', legendTitle: 'Fraction of streets audited', noneAtOrBelow: 0 },
 };
 
-export const NONE_COLOR = ApiDocsTheme.color('--color-neutral-800'); // Regions with no audited streets (null score).
+const NONE_COLOR = ApiDocsTheme.color('--color-neutral-800'); // Regions with no audited streets (null score).
 
 export const AccessScoreRegionsPreview = {
   _legend: null,

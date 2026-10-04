@@ -1,3 +1,8 @@
+import { geometryBounds } from '../common/geoBounds.js';
+import { util } from '../common/utilities.js';
+import '../common/utilitiesSidewalk.js';
+/** @typedef {import('./ViewportLabelLoader.js').ViewportLabelLoader} ViewportLabelLoader */
+
 /**
  * Logs clicks on a link inside a map popup. The link is built fresh every time its popup opens, so the listener
  * sits on the map's container (which is always there) and checks each click for the link.
@@ -5,12 +10,6 @@
  * @param {string} selector - CSS selector matching the popup link.
  * @param {(link: Element) => string} activityFor - Builds the webpage_activity string for the clicked link.
  */
-
-import { geometryBounds } from '../common/geoBounds.js';
-import { util } from '../common/utilities.js';
-import '../common/utilitiesSidewalk.js';
-/** @typedef {import('./ViewportLabelLoader.js').ViewportLabelLoader} ViewportLabelLoader */
-
 export function logPopupLinkClicks(map, selector, activityFor) {
   const container = map.getContainer();
   container.addEventListener('click', (event) => {
@@ -138,7 +137,7 @@ export function filterLabelLayers(checkbox, map, mapData, highQualityFilter) {
  * imagery), outdated (audited before, but newer imagery exists), or unaudited (neither property set). Held in one
  * place because both the layer's filter and its width read them, and a street matching two would be a contradiction.
  */
-export const STREET_STATE_FILTERS = {
+const STREET_STATE_FILTERS = {
   audited: ['==', ['get', 'audited'], true],
   outdated: ['==', ['get', 'outdated'], true],
   unaudited: ['all', ['!=', ['get', 'audited'], true], ['!=', ['get', 'outdated'], true]],

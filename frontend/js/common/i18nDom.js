@@ -43,7 +43,7 @@ export function localizeSubtree(root) {
  * Apply any data-i18n* attributes on a single element.
  * @param {Element} el
  */
-export function localizeElement(el) {
+function localizeElement(el) {
   const textKey = el.getAttribute('data-i18n');
   if (textKey) el.textContent = i18next.t(textKey);
 

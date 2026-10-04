@@ -1,3 +1,8 @@
+import { util } from '../common/utilities.js';
+import { filterLabelLayers } from './psMapUtilities.js';
+import '../common/utilitiesSidewalk.js';
+/** @typedef {import('./psMapUtilities.js').MapLayerTracker} MapLayerTracker */
+
 /**
  * The map center that makes `coords` render `dx`/`dy` pixels from the viewport center at `zoom`, via plain
  * web-mercator math. Computed by hand because mapbox's instant camera moves silently drop CameraOptions.offset
@@ -9,13 +14,7 @@
  * @param {number} zoom - Target zoom (the mercator world size depends on it).
  * @returns {Array<number>} The [lng, lat] to pass as the map center.
  */
-
-import { util } from '../common/utilities.js';
-import { filterLabelLayers } from './psMapUtilities.js';
-import '../common/utilitiesSidewalk.js';
-/** @typedef {import('./psMapUtilities.js').MapLayerTracker} MapLayerTracker */
-
-export function centerShowingLabelAt(coords, dx, dy, zoom) {
+function centerShowingLabelAt(coords, dx, dy, zoom) {
   const worldSize = 512 * (2 ** zoom); // Mapbox GL's tile size is 512px.
   const sinLat = Math.sin(coords[1] * Math.PI / 180);
   const pxX = ((coords[0] + 180) / 360) * worldSize - dx;

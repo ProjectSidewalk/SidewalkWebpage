@@ -12,12 +12,12 @@ import { util } from '../common/utilities.js';
 import { ApiDocsMap } from './apiDocsMap.js';
 import { ApiDocsTheme } from './apiDocsTheme.js';
 
-export const LABELS_LAYER = 'raw-labels';
-export const REGION_SOURCE = 'preview-region';
+const LABELS_LAYER = 'raw-labels';
+const REGION_SOURCE = 'preview-region';
 
 // Presentational only — it mirrors no backend value, and is picked to stay distinct from every label type color
 // against the dimmed basemap.
-export const REGION_COLOR = ApiDocsTheme.color('--color-link-200');
+const REGION_COLOR = ApiDocsTheme.color('--color-link-200');
 
 export let config = {
   apiBaseUrl: '/v3/api',
@@ -28,7 +28,7 @@ export let config = {
   regionWithMostLabelsEndpoint: '/regionWithMostLabels',
 };
 
-export let labelTypeInfo = {};
+let labelTypeInfo = {};
 
 export const RawLabelsPreview = {
   /**
