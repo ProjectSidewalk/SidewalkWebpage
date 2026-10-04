@@ -57,8 +57,8 @@ class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
   /** An id no city's `label` serial has reached, so a review list naming it is always short one label. */
   private val missingLabelId: Int = Int.MaxValue
 
-  /** The `labelIds: [...]` array the page carries into its card query, as rendered. */
-  private val renderedLabelIds                     = """labelIds: \[([^\]]*)\]""".r
+  /** The `"labelIds": [...]` array the page carries into its card query, as rendered in its page-data block. */
+  private val renderedLabelIds                     = """"labelIds": \[([^\]]*)\]""".r
   private def pageLabelIds(body: String): Seq[Int] =
     renderedLabelIds.findFirstMatchIn(body).map(_.group(1)).filter(_.nonEmpty).toSeq.flatMap(_.split(",").map(_.toInt))
 
@@ -107,8 +107,8 @@ class GalleryPageSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       assume(regionIds.nonEmpty, "connected database has no regions")
 
       val regionId = regionIds.head.as[Int]
-      galleryPage(s"?regions=$regionId") must include(s"regionIds: [$regionId]")
-      galleryPage(s"?neighborhoods=$regionId") must include(s"regionIds: [$regionId]")
+      galleryPage(s"?regions=$regionId") must include(s""""regionIds": [$regionId]""")
+      galleryPage(s"?neighborhoods=$regionId") must include(s""""regionIds": [$regionId]""")
     }
 
     "carry a label list to the page in the order it was given, deduped" in {

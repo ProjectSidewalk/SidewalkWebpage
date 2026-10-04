@@ -5,7 +5,7 @@ const data = document.getElementById('page-entry').dataset;
 new ImageryPage({
   mapboxToken: data.mapboxToken,
   streetsUrl: '/v3/api/streets?filetype=geojson',
-  priorityUrl: '/adminapi/streetPriority',
-  pipelineUrl: '/adminapi/imageryFreshness',
+  priorityUrl: data.priorityUrl,
+  pipelineUrl: data.pipelineUrl,
   pipelineDays: Number(data.pipelineDays),
 }).init();
