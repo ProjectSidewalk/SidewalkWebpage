@@ -13,28 +13,15 @@
  * compares `new.target` against, following panoViewerMountAlignment.test.js.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src');
 
 /**
  * Loads PanoViewer + GsvViewer fresh into the jsdom global scope.
  * @returns {{PanoViewer: Function, GsvViewer: Function}}
  */
 function loadViewers() {
-    const panoViewerSrc = fs.readFileSync(path.join(SRC_DIR, 'PanoViewer.js'), 'utf8');
-    const gsvSrc = fs.readFileSync(path.join(SRC_DIR, 'GsvViewer.js'), 'utf8');
-    window.eval(`
-        class MapillaryViewer {}
-        class Infra3dViewer {}
-        class PannellumViewer {}
-        class PanoramaxViewer {}
-        ${panoViewerSrc}
-        ${gsvSrc}
-        window.PanoViewer = PanoViewer;
-        window.GsvViewer = GsvViewer;
-    `);
+            Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoViewer.js', 'frontend/js/common/pano-viewer/GsvViewer.js'));
     return { PanoViewer: window.PanoViewer, GsvViewer: window.GsvViewer };
 }
 

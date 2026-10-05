@@ -75,23 +75,7 @@
     <div class="dq-rows" id="contrib-roles"></div>
   </div>
 
-  <script src="@assets.path("js/admin-dashboard/ContributorsPage.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/FunnelsSection.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new ContributorsPage({
-        userStatsUrl: '/adminapi/getUserStats',
-        leaderboardsUrl: '/adminapi/contributorLeaderboards'
-      }).init();
-      new FunnelsSection({
-        funnelsUrl: '/adminapi/funnels',
-        hostId: 'funnel-blocks',
-        statusId: 'funnel-status',
-        windowToggleId: 'funnel-window',
-        dimToggleId: 'funnel-dim'
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/contributors.js")'></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Contributors") {

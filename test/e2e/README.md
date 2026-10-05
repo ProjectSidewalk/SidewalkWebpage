@@ -184,7 +184,7 @@ read, not a second city dump to maintain. Three things about it shape this suite
   (`fixtures/google-maps-stub.js`, routed in for every context by `fixtures.js`; #5129). Google bills every
   `StreetViewPanorama` and `Map` instantiation — local tiles or not — and the label-detail popup instantiates a
   panorama on each `/labelMap`, `/gallery`, `/dashboard` and `/stories` load (#5128), so a suite run against the
-  real API was ~20 billable events. The stub implements just the surface `public/js` uses (grep-verified; the
+  real API was ~20 billable events. The stub implements just the surface `frontend/js` uses (grep-verified; the
   file says how) and fires the events the app awaits. Its pano contract is Google's: a location search always
   finds a pano, a lookup by id succeeds only for an id the stub has seen or a registered provider vouches for
   (Explore's tutorial), and any other id is `ZERO_RESULTS` — which is what an expired pano answers in production,

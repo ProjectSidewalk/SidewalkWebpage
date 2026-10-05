@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/validate/src/util/MissionLiveMarker.js (issue #5561).
+ * Tests for frontend/js/validate/util/MissionLiveMarker.js (issue #5561).
  *
  * iOS ends a tab it wants memory back from by killing the page and reloading it when the user next looks, and
  * nothing fires on the way out. The marker is how the next page life finds out: `sessionStorage` survives that
@@ -9,10 +9,10 @@
  * the middle of Validate's startup.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const MARKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/MissionLiveMarker.js');
+const MARKER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/MissionLiveMarker.js');
 
 /**
  * Load the bare `class MissionLiveMarker` declaration out of the production file: the Grunt bundle concatenates it
@@ -20,8 +20,7 @@ const MARKER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/
  * @returns {Function} The class.
  */
 function loadMarkerClass() {
-    const src = fs.readFileSync(MARKER_PATH, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn MissionLiveMarker;\n})()');
+    return loadModules(MARKER_PATH).MissionLiveMarker;
 }
 
 /** @returns {Storage} An in-memory stand-in for sessionStorage, shared across the "page lives" of one tab. */

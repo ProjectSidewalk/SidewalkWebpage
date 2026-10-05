@@ -1,5 +1,5 @@
 /**
- * Tests for util.cappedMarkerDiameter (public/js/common/utilities.js, issue #4838), the rule that sizes Validate's
+ * Tests for util.cappedMarkerDiameter (frontend/js/common/utilities.js, issue #4838), the rule that sizes Validate's
  * pano label marker.
  *
  * Validate's marker is a DOM element (PanoMarker) sized directly in screen px as `(svv.labelRadius * 2 + 2) *
@@ -15,14 +15,10 @@
  * svv-panorama.css), because the mark must stay the size it was drawn while only the target grows.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { realUtil } = require('./loadGlobalScript');
 
-const UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
-);
 
-// public/js/validate/src/Main.js: svv.labelRadius = util.isMobile() ? 25 : 10, and the marker adds 2px of ring.
+// frontend/js/validate/Main.js: svv.labelRadius = util.isMobile() ? 25 : 10, and the marker adds 2px of ring.
 const DESKTOP_BASE = 10 * 2 + 2;   // 22
 const MOBILE_BASE = 25 * 2 + 2;    // 52
 
@@ -35,7 +31,7 @@ function loadUtil() {
     // utilities.js builds a Bowser parser at load time; the sizing under test never consults it.
     window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-    window.eval(UTILITIES_SRC);
+    window.util = realUtil();
     return window.util;
 }
 

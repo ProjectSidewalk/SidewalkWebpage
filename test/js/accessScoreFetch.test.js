@@ -1,5 +1,5 @@
 /**
- * Tests for AccessScoreFetch (public/js/access-score/src/AccessScoreFetch.js, #5418): the retry a cold AccessScore
+ * Tests for AccessScoreFetch (frontend/js/access-score/AccessScoreFetch.js, #5418): the retry a cold AccessScore
  * server asks for. A `503` with `Retry-After` is waited out on the server's schedule, a proxy `502` on the built-in
  * backoff, a `4xx` is never retried, and the page hears about each wait through `onWait`.
  *
@@ -8,11 +8,8 @@
  * (`Date.now`, `performance.now`), so advancing the timers is what moves the wall clock the total-wait cap reads.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
 /**
  * A minimal `Response` stand-in: status, headers and a JSON body.
@@ -37,8 +34,7 @@ describe('AccessScoreFetch.fetchJsonWithRetry', () => {
     const URL = '/v3/api/accessScoreStreets';
 
     beforeAll(() => {
-        const source = read('public/js/access-score/src/AccessScoreFetch.js');
-        window.eval(`${source}\nwindow.AccessScoreFetch = AccessScoreFetch;`);
+                Object.assign(window, loadModules('frontend/js/access-score/AccessScoreFetch.js'));
         AccessScoreFetch = window.AccessScoreFetch;
     });
 

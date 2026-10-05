@@ -241,7 +241,7 @@ class PanoDataServiceSpec extends AnyFunSuite with Matchers {
     // The still is only the Explore frame if both sides render the same fov for a zoom, and nothing but this holds
     // the Scala copy to the JS one: read the curve's constants out of the JS source, the way gsvFovContract.test.js
     // reads the analyzer's copy. A refit that changes the curve's shape fails the match, which is the point.
-    val js    = Files.readString(Path.of("public/js/common/pano-viewer/src/panoUtilities.js"))
+    val js    = Files.readString(Path.of("frontend/js/common/pano-viewer/panoUtilities.js"))
     val curve = """(?s)util\.pano\.zoomToFov = \(zoom\) => \{\s*return zoom <= 2\s*""" +
       """\?\s*([\d.]+) - zoom \* ([\d.]+)\s*(?://[^\n]*)?\s*""" +
       """:\s*([\d.]+) / Math\.pow\(([\d.]+), zoom\)"""

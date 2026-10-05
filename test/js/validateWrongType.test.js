@@ -11,16 +11,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
 /**
  * Loads bare top-level declarations out of a production file into window scope.
  * @param {string} relPath - Path under the repo root.
  * @param {...string} names - The classes or functions the file declares.
  */
-function loadClass(relPath, ...names) {
-  const src = fs.readFileSync(path.join(REPO_ROOT, relPath), 'utf8');
-  window.eval(`${src}\n${names.map((n) => `window.${n} = ${n};`).join('\n')}`);
+function loadClass(relPath) {
+  Object.assign(window, loadModules(relPath));
 }
 
 const TAGS_BY_TYPE = {
@@ -40,9 +39,9 @@ beforeAll(() => {
   installEscapeHTML();
   // i18next echoes its key so assertions can name the key they expect rather than an English string.
   window.i18next = { t: (key, opts) => (opts?.labelType ? `${key}:${opts.labelType}` : key) };
-  loadClass('public/js/common/LabelTypePicker.js', 'LabelTypePicker', 'LabelTypeDropdown');
-  loadClass('public/js/validate/src/label/Label.js', 'Label');
-  loadClass('public/js/validate/src/label/LabelContainer.js', 'LabelContainer');
+  loadClass('frontend/js/common/LabelTypePicker.js');
+  loadClass('frontend/js/validate/label/Label.js');
+  loadClass('frontend/js/validate/label/LabelContainer.js');
 });
 
 beforeEach(() => {
@@ -458,7 +457,7 @@ describe('the disagree reasons (#5409)', () => {
   }
 
   beforeAll(() => {
-    loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
+    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'defineValidateConstants');
   });
 
   beforeEach(() => {
@@ -502,8 +501,8 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
     window.util.getImage = () => Promise.resolve('img');
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
-    loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
-    loadClass('public/js/validate/src/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
+    loadClass('frontend/js/validate/util/ConstantsValidate.js', 'defineValidateConstants');
+    loadClass('frontend/js/validate/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
   });
 
   beforeEach(() => {

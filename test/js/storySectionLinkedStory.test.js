@@ -8,13 +8,8 @@
  * collaborators (fetch, i18next, StoryComposer) stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installDateHelpers } = require('./loadGlobalScript');
+const { installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const SECTION_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/label-detail/StorySection.js'), 'utf8'
-);
 
 /** One story payload, shaped like an entry from GET /label/:labelId/stories. */
 function story(overrides = {}) {
@@ -57,7 +52,7 @@ describe("StorySection's linked-story reveal (#4722)", () => {
     let composerCalls;
 
     beforeEach(() => {
-        window.eval(`${SECTION_SRC}\nwindow.StorySection = StorySection;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/StorySection.js'));
         composerCalls = { setLabelType: [] };
         window.StoryComposer = class {
             open() {}

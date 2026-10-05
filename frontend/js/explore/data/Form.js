@@ -1,0 +1,305 @@
+/**
+ * Handles compiling and submitting Explore/Audit interaction data to the back end.
+ */
+
+import { svl } from '../svl.js';
+import { util } from '../../common/utilities.js';
+import '../../common/pano-viewer/panoUtilities.js';
+import '../../common/utilitiesMath.js';
+/** @typedef {import('../label/LabelContainer.js').LabelContainer} LabelContainer */
+/** @typedef {import('../mission/MissionContainer.js').MissionContainer} MissionContainer */
+/** @typedef {import('../mission/MissionModel.js').MissionModel} MissionModel */
+/** @typedef {import('../../common/pano-viewer/PanoData.js').PanoData} PanoData */
+/** @typedef {import('../../common/pano-viewer/PanoStore.js').PanoStore} PanoStore */
+/** @typedef {import('../task/Task.js').Task} Task */
+/** @typedef {import('../task/TaskContainer.js').TaskContainer} TaskContainer */
+/** @typedef {import('./Tracker.js').Tracker} Tracker */
+
+export class Form {
+  #labelContainer;
+  #missionModel;
+  #missionContainer;
+  #panoStore;
+  #taskContainer;
+  #tracker;
+  #dataStoreUrl;
+  #lastPriorityUpdateTime;
+  #compileDataLock;
+
+  /**
+   * @param {LabelContainer} labelContainer - Holds the labels placed during the current session.
+   * @param {MissionModel} missionModel - Emits mission lifecycle events (e.g. progress completion).
+   * @param {MissionContainer} missionContainer - Tracks the current mission and its progress.
+   * @param {PanoStore} panoStore - Holds metadata for the panoramas seen this session.
+   * @param {TaskContainer} taskContainer - Tracks the current audit task.
+   * @param {Tracker} tracker - Buffers the interaction log to be flushed to the back end.
+   * @param {string} dataStoreUrl - URL to POST submission data to.
+   */
+  constructor(labelContainer, missionModel, missionContainer, panoStore, taskContainer, tracker, dataStoreUrl) {
+    this.#labelContainer = labelContainer;
+    this.#missionModel = missionModel;
+    this.#missionContainer = missionContainer;
+    this.#panoStore = panoStore;
+    this.#taskContainer = taskContainer;
+    this.#tracker = tracker;
+    this.#dataStoreUrl = dataStoreUrl;
+    this.#lastPriorityUpdateTime = new Date(); // Assumes that priorities are up-to-date when the page loads.
+    this.#compileDataLock = new AsyncLock();
+
+    this.#missionModel.on('MissionProgress:complete', () => {
+      this.submitData(this.#taskContainer.getCurrentTask());
+    });
+
+    // Flush any remaining logs when the page is being dismissed. `pagehide` is the reliable, bfcache-compatible
+    // unload signal; `keepalive` lets the POST outlive the page while still routing through AppManager's fetch
+    // wrapper, which attaches the `Csrf-Token` header Play's CSRF filter requires (#3935).
+    window.addEventListener('pagehide', () => {
+      this.#tracker.push('Unload');
+      const task = this.#taskContainer.getCurrentTask();
+      const data = this.#compileSubmissionData(task);
+      fetch(this.#dataStoreUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(data),
+        keepalive: true,
+      });
+    });
+  }
+
+  /**
+   * Serializes a pano's metadata into the block the back end expects (both in `data.panos` and on each label).
+   *
+   * @param {PanoData} panoData - The pano metadata held by the PanoStore.
+   * @returns {object} The pano metadata in the submission's wire format.
+   */
+  #compilePanoData(panoData) {
+    const props = panoData.getProperties();
+    return {
+      pano_id: props.panoId,
+      source: props.source,
+      capture_date: util.localIsoDate(props.captureDate).slice(0, 7),
+      width: props.width,
+      height: props.height,
+      tile_width: props.tileWidth,
+      tile_height: props.tileHeight,
+      lat: props.lat,
+      lng: props.lng,
+      camera_heading: props.cameraHeading,
+      camera_pitch: props.cameraPitch,
+      camera_roll: props.cameraRoll,
+      links: props.linkedPanos.map((link) => ({
+        target_pano_id: link.panoId,
+        yaw_deg: link.heading,
+        description: link.description || null,
+      })),
+      copyright: props.copyright || null,
+      license: props.license || null,
+      address: props.address || null,
+      history: props.history.map((prevPano) => ({
+        pano_id: prevPano.panoId,
+        date: util.localIsoDate(prevPano.captureDate).slice(0, 7),
+      })),
+    };
+  }
+
+  /**
+   * Gathers all the data needed to submit logs to the back end.
+   *
+   * @param {Task} task - The audit task to compile submission data for.
+   * @returns {Record<string, any>} The JSON data to submit to the back end.
+   */
+  #compileSubmissionData(task) {
+    const mission = this.#missionContainer.getCurrentMission();
+    const missionId = mission.getProperty('missionId');
+    mission.updateDistanceProgress();
+
+    const data = {
+      timestamp: new Date(),
+      user_route_id: svl.userRouteId,
+      mission: {
+        mission_id: missionId,
+        distance_progress: Math.min(mission.getProperty('distanceProgress'), mission.getProperty('distance')),
+        region_id: svl.regionId,
+        completed: mission.getProperty('isComplete'),
+        audit_task_id: task.getAuditTaskId(),
+        skipped: mission.getProperty('skipped'),
+      },
+      audit_task: {
+        street_edge_id: task.getStreetEdgeId(),
+        task_start: task.getProperty('taskStart'),
+        audit_task_id: task.getAuditTaskId(),
+        completed: task.isComplete(),
+        current_lat: svl.panoViewer.getPosition().lat,
+        current_lng: svl.panoViewer.getPosition().lng,
+        start_point_reversed: task.getProperty('startPointReversed'),
+        current_mission_start: task.getMissionStart(missionId),
+        last_priority_update_time: this.#lastPriorityUpdateTime,
+        // Request updated street priorities if we are at least 60% of the way through the current street. Not on a
+        // route walk: priorities choose the next street, and a route's next street is fixed by its walking order.
+        request_updated_street_priority: !svl.isOnboarding() && !svl.userRouteId
+          && (task.getAuditedDistance() / task.lineDistance()) > 0.6,
+        // How far along the street the user has gotten, measured from the street's start. The server reads it to
+        // derive street completion for free-exploration sessions (#4451); it also accumulates real partial-audit data
+        // so a future fractional-coverage model has history to build on.
+        audited_distance_m: util.math.kmsToMeters(task.getAuditedDistance()),
+        // Which route_street row this task was served for. An out-and-back route walks one street twice, so the
+        // server can't re-derive the traversal from street_edge_id alone. Null outside a route session.
+        route_street_id: task.getProperty('routeStreetId'),
+      },
+      environment: {
+        browser: util.getBrowser(),
+        browser_version: util.getBrowserVersion(),
+        browser_width: document.documentElement.clientWidth,
+        browser_height: document.documentElement.clientHeight,
+        screen_width: screen.width,
+        screen_height: screen.height,
+        avail_width: screen.availWidth,              // total width - interface (taskbar)
+        avail_height: screen.availHeight,            // total height - interface
+        operating_system: util.getOperatingSystem(),
+        language: i18next.language,
+        css_zoom: 100, // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
+      },
+    };
+
+    data.interactions = this.#tracker.getActions();
+    this.#tracker.refresh();
+
+    data.labels = [];
+    const labels = this.#labelContainer.getLabelsToLog();
+    for (let i = 0, labelLen = labels.length; i < labelLen; i += 1) {
+      const label = labels[i];
+      const prop = label.getProperties();
+      const labelLatLng = label.toLatLng();
+      const tempLabelId = label.getProperty('temporaryLabelId');
+      const panoData = this.#panoStore.getPanoData(prop.panoId);
+
+      // If this label is a new label, get the timestamp of its creation from the corresponding interaction.
+      const associatedInteraction = data.interactions.find((interaction) =>
+        interaction.action === 'LabelingCanvas_FinishLabeling'
+        && interaction.temporary_label_id === tempLabelId);
+      const timeCreated = associatedInteraction ? associatedInteraction.timestamp : null;
+
+      const temp = {
+        deleted: label.isDeleted(),
+        label_type: label.getLabelType(),
+        temporary_label_id: tempLabelId,
+        pano_id: prop.panoId,
+        pano_source: panoData.getProperty('source'),
+        severity: label.getProperty('severity'),
+        tag_ids: label.getProperty('tagIds'),
+        description: label.getProperty('description') || null,
+        time_created: timeCreated,
+        tutorial: prop.tutorial,
+        label_point: {
+          pano_x: Math.round(prop.panoXY.x),
+          pano_y: Math.round(prop.panoXY.y),
+          canvas_x: prop.originalCanvasXY.x,
+          canvas_y: prop.originalCanvasXY.y,
+          canvas_width: prop.originalCanvasFrame.width,
+          canvas_height: prop.originalCanvasFrame.height,
+          heading: prop.originalPov.heading,
+          pitch: prop.originalPov.pitch,
+          zoom: prop.originalPov.zoom,
+          lat: null,
+          lng: null,
+        },
+      };
+
+      if (labelLatLng) {
+        temp.label_point.lat = labelLatLng.lat;
+        temp.label_point.lng = labelLatLng.lng;
+        temp.label_point.computation_method = labelLatLng.latLngComputationMethod;
+      }
+
+      // Tutorial panos are locally served with fabricated metadata, so their labels lean on the seeded pano_data rows.
+      if (!util.pano.TUTORIAL_PANO_IDS.has(prop.panoId)) {
+        temp.pano = this.#compilePanoData(panoData);
+      }
+
+      data.labels.push(temp);
+    }
+
+    // Keep metadata for every pano viewed this session, labeled or not.
+    data.panos = this.#panoStore.getStagedPanoData().map((panoData) => this.#compilePanoData(panoData));
+    return data;
+  }
+
+  /**
+   * Submit the compiled data to the back end and apply the server's response.
+   *
+   * @param {Record<string, any>} data - The compiled submission data.
+   * @param {Task} task - The audit task the data belongs to.
+   * @returns {Promise<void>}
+   */
+  #submit(data, task) {
+    this.#labelContainer.clearLabelsToLog();
+
+    return fetch(this.#dataStoreUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(data),
+    })
+      .then((response) => {
+        // A failed submission (e.g. the server's JSON 500) must not fall through to the success handler below, which
+        // would clobber the task's audit_task_id with undefined and desync the next submission.
+        if (!response.ok) throw new Error(`Explore submission failed with status ${response.status}.`);
+
+        // Mark panos as submitted only once the server has accepted them, so that after a failed POST their metadata
+        // stays staged and rides along with the next submission instead of being lost (#4587).
+        for (const pano of data.panos) {
+          this.#panoStore.getPanoData(pano.pano_id)?.setProperty('submitted', true);
+        }
+        return response.json();
+      })
+      .then((result) => {
+        task.setProperty('auditTaskId', result.audit_task_id);
+        // Only if this submission's street is still the one being walked. endTask() submits without awaiting and the
+        // caller switches streets immediately, so a response landing after the switch would file every following
+        // interaction under the street the labeler just left (#5370).
+        const currentTask = this.#taskContainer.getCurrentTask();
+        if (!currentTask || currentTask.getStreetEdgeId() === task.getStreetEdgeId()) {
+          svl.tracker.setAuditTaskID(result.audit_task_id);
+        }
+
+        // If the back-end says that something is messed up and that we should refresh page, do that now.
+        if (result.refresh_page) window.location.reload();
+
+        // If a new mission was sent and we aren't in onboarding, create an object for it on the front-end.
+        if (result.mission && !svl.isOnboarding()) this.#missionModel.createAMission(result.mission);
+
+        // Update the priority of streets audited by other users that are auditing at the same time.
+        if (result.updated_streets) {
+          this.#lastPriorityUpdateTime = result.updated_streets.last_priority_update_time;
+          this.#taskContainer.updateTaskPriorities(result.updated_streets.updated_street_priorities);
+        }
+
+        // Update labels with their official label_id from the server.
+        if (!svl.isOnboarding()) {
+          for (const lab of result.label_ids) {
+            this.#labelContainer.getAllLabels()
+              .find((l) => l.getProperty('temporaryLabelId') === lab.temporary_label_id)
+              .updateLabelIdAndUploadCrop(lab.label_id);
+          }
+        }
+      })
+      .catch(() => {
+        window.location.reload(); // Refresh the page in case the server has gone down.
+      });
+  }
+
+  /**
+   * Compile and submit existing logs to the server. Uses a lock to prevent duplicate logging.
+   *
+   * @param {Task} [task] - The task to submit data for. If not provided, the current task is used.
+   * @returns {Promise<void>}
+   */
+  async submitData(task) {
+    return await this.#compileDataLock.acquire('submitData', async () => {
+      if (typeof task === 'undefined') {
+        task = this.#taskContainer.getCurrentTask();
+      }
+      const data = this.#compileSubmissionData(task);
+      await this.#submit(data, task);
+    });
+  }
+}

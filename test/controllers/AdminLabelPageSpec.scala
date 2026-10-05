@@ -62,8 +62,8 @@ class AdminLabelPageSpec extends SidewalkSpec with RoleSession with GuiceOneAppP
           val resp = as(adminCookies, s"/admin/label/$id")
           status(resp) mustBe OK
           val body = contentAsString(resp)
-          // Same page as /label/:id (the shared-label bundle drives it), plus the card's admin section.
-          body must include("js/shared-label/build/shared-label.js")
+          // Same page as /label/:id (the shared-label entry drives it), plus the card's admin section.
+          body must include("build/js/sharedLabel.js")
           body must include("label-detail--inline")
           body must include("label-detail__details--admin")
           body must include("\"admin\":true")

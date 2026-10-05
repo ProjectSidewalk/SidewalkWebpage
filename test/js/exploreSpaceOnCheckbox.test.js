@@ -1,27 +1,20 @@
 /**
  * Explore's spacebar route-advance shortcut must leave Space to a focused checkbox
- * (public/js/explore/src/keyboard/KeyboardManager.js, #4945).
+ * (frontend/js/explore/keyboard/KeyboardManager.js, #4945).
  *
  * The shortcut listens on window in the capture phase and cancels Space so it can't re-activate a focused button. A
  * checkbox has no other key that toggles it, so cancelling Space there made the minimap key's "My earlier labels"
  * toggle unreachable from the keyboard and walked the user down the street instead.
  */
 
-const fs = require('fs');
-const path = require('path');
-const SHORTCUTS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
-);
+const { loadModules } = require('./loadGlobalScript');
 
-const KEYBOARD_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/explore/src/keyboard/KeyboardManager.js'), 'utf8'
-);
 
 describe('Explore spacebar shortcut and focused form controls', () => {
     let navigationService;
 
     beforeAll(() => {
-        window.eval(`${SHORTCUTS_SRC}\n${KEYBOARD_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/explore/keyboard/KeyboardManager.js'));
         navigationService = {
             // Walking disabled makes the route advance a no-op, so the test sees only whether it was attempted.
             getStatus: jest.fn(() => true),

@@ -4,9 +4,9 @@
  * Runs under jsdom (jest.config.js).
  */
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
 describe('util.escapeHTML', () => {
   test('escapes every character that could break out of markup', () => {

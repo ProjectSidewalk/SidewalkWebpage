@@ -1,6 +1,6 @@
 /**
  * Integration test for the POV_Changed logging throttle wired up in
- * public/js/validate/src/panorama/PanoManager.js, which subscribes the primary viewer on its first load (issue #2745).
+ * frontend/js/validate/panorama/PanoManager.js, which subscribes the primary viewer on its first load (issue #2745).
  *
  * Dragging the pano fires `pov_changed` on every frame; before #2745 each one was logged, flooding the Tracker's
  * interaction buffer and forcing its 200-action mid-mission flush every few validations. This test drives the REAL
@@ -11,11 +11,11 @@
  * Runs under jsdom (jest.config.js) with fake timers (which also mock Date.now for the throttle's elapsed-time math).
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/panorama/PanoManager.js');
-const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/util/throttle.js');
+const PANO_MANAGER_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/panorama/PanoManager.js');
+const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/util/throttle.js');
 
 /**
  * Load the `PanoManager` class out of the production file. Like Form.js, it is a bare `class` declaration that the
@@ -23,8 +23,7 @@ const THROTTLE_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/sr
  * @returns {Function} The PanoManager class.
  */
 function loadPanoManagerClass() {
-    const src = fs.readFileSync(PANO_MANAGER_PATH, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn PanoManager;\n})()');
+    return loadModules(PANO_MANAGER_PATH).PanoManager;
 }
 
 describe('PanoManager POV_Changed throttling (issue #2745)', () => {
@@ -43,7 +42,7 @@ describe('PanoManager POV_Changed throttling (issue #2745)', () => {
         // Real throttle implementation — the unit under integration here.
         global.util = {};
         global.i18next = { language: 'en' };
-        (0, eval)(fs.readFileSync(THROTTLE_PATH, 'utf8'));
+        Object.assign(window, loadModules(THROTTLE_PATH));
 
         // Globals PanoManager's init path reads.
         util.isMobile = () => false;

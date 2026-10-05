@@ -7,25 +7,19 @@
  * instead of marking the total as a floor. The failure path matters for the same reason — a KPI left on its loading
  * placeholder reads as "zero hours" to an admin verifying a claim.
  *
- * Runs under jsdom (jest.config.js). AdminUser is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
+ * Runs under jsdom (jest.config.js).
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installDateHelpers, loadGlobalScript } = require('./loadGlobalScript');
+const { installDateHelpers, loadModules, realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
-
-const ADMIN_USER_SRC = fs.readFileSync(
-  path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/AdminUser.js'), 'utf8');
+window.util = realUtil();
 
 let AdminUser;
 
 beforeAll(() => {
   window.i18next = { language: 'en' };
   installDateHelpers();
-  AdminUser = (0, eval)(`${ADMIN_USER_SRC}\nAdminUser;`);
+  AdminUser = loadModules('frontend/js/user-dashboard/AdminUser.js').AdminUser;
 });
 
 /** The stats section of adminUser.scala.html, trimmed to what the hours code touches. */

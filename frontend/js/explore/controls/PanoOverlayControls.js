@@ -1,0 +1,110 @@
+/** @typedef {import('../alert/KeyboardShortcutAlert.js').KeyboardShortcutAlert} KeyboardShortcutAlert */
+/** @typedef {import('../navigation/NavigationService.js').NavigationService} NavigationService */
+/** @typedef {import('../alert/StuckAlert.js').StuckAlert} StuckAlert */
+/** @typedef {import('../data/Tracker.js').Tracker} Tracker */
+
+/**
+ * Handles the compact control buttons overlaid on the top-left of the panorama on the Explore page: the Stuck button
+ * and the chevron that opens/closes the menu beside it (image, sound, feedback). Other classes run the menu buttons;
+ * this one runs the Stuck button and the chevron.
+ */
+
+export class PanoOverlayControls {
+  #blinkInterval = null;
+  #stuckEnabled = true;
+  #stuck;
+  #controlButtonsToggle;
+
+  /**
+   * @param {Tracker} tracker
+   * @param {NavigationService} navigationService
+   * @param {StuckAlert} stuckAlert
+   * @param {KeyboardShortcutAlert} keyboardShortcutAlert
+   */
+  constructor(tracker, navigationService, stuckAlert, keyboardShortcutAlert) {
+    this.tracker = tracker;
+    this.navigationService = navigationService;
+    this.stuckAlert = stuckAlert;
+    this.keyboardShortcutAlert = keyboardShortcutAlert;
+
+    this.#stuck = document.getElementById('explore-control-stuck');
+    this.#controlButtonsToggle = document.getElementById('explore-control-buttons-toggle');
+
+    // The stuck handler is attached once and gated by #stuckEnabled; enable/disable just flip the flag.
+    this.#stuck.addEventListener('click', this.#handleClickStuck);
+    this.#controlButtonsToggle.addEventListener('click', this.#handleToggleControls);
+  }
+
+  /**
+   * Opens/closes the menu when the chevron is clicked. CSS flips the chevron. Logged under the same name as
+   * Validate's chevron (PanoControlMenu), so one query covers both tools.
+   * @param {Event} e
+   */
+  #handleToggleControls = (e) => {
+    e.preventDefault();
+    const expanded = this.#controlButtonsToggle.getAttribute('aria-expanded') !== 'true';
+    this.#controlButtonsToggle.setAttribute('aria-expanded', expanded);
+    this.tracker.push('Click_PanoControlMenu_Toggle', { expanded });
+  };
+
+  /**
+   * Callback for clicking the stuck button.
+   *
+   * The algorithm searches for available imagery along the street you are assigned to. If the pano you are put in
+   * doesn't help, you can click the Stuck button again; we save the attempted panos so we'll try something new. If we
+   * can't find anything along the street, we just mark it as complete and move you to a new street.
+   * @param {Event} e
+   */
+  #handleClickStuck = (e) => {
+    e.preventDefault();
+    if (!this.#stuckEnabled) return;
+    this.stuckAlert.compassOrStuckClicked();
+    this.keyboardShortcutAlert.stuckButtonClicked();
+    this.tracker.push('ModalStuck_ClickStuck');
+    this.navigationService.moveForward()
+      .then(() => {
+        this.tracker.push('ModalStuck_Unstuck');
+        this.stuckAlert.stuckClicked();
+      })
+      .catch(() => this.tracker.push('ModalStuck_PanoNotAvailable'));
+  };
+
+  /**
+   * Badges the chevron toggle while a control hidden behind it (the Image adjustments) is off its default, so a
+   * persisted filter is visible with the menu closed. The CSS hides the badge once the menu is open.
+   * @param {boolean} active
+   */
+  setCollapsedIndicator = (active) => {
+    this.#controlButtonsToggle.classList.toggle('pano-overlay-button--active', active);
+  };
+
+  /* Enable the stuck button. */
+  enableStuckButton = () => {
+    this.#stuckEnabled = true;
+  };
+
+  /* Disable the stuck button. */
+  disableStuckButton = () => {
+    this.#stuckEnabled = false;
+  };
+
+  /* Disable the stuck and control-toggle buttons (used while onboarding takes over the UI). */
+  disableButtons = () => {
+    this.#stuck.disabled = true;
+    this.#controlButtonsToggle.disabled = true;
+  };
+
+  /* Blink the stuck button. */
+  blinkStuckButton = () => {
+    this.stopBlinkingStuckButton();
+    this.#blinkInterval = window.setInterval(() => {
+      this.#stuck.classList.toggle('highlight-100');
+    }, 500);
+  };
+
+  /* Stop blinking the stuck button. */
+  stopBlinkingStuckButton = () => {
+    window.clearInterval(this.#blinkInterval);
+    this.#stuck.classList.remove('highlight-100');
+  };
+}

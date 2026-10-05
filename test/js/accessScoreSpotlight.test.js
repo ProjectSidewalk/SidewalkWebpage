@@ -1,5 +1,5 @@
 /**
- * The AccessScore Spotlight module's state logic (public/js/AccessScoreSpotlight.js, issue #5215).
+ * The AccessScore Spotlight module's state logic (frontend/js/AccessScoreSpotlight.js, issue #5215).
  *
  * Almost every Project Sidewalk city is short of the data needed to rank five neighborhoods, so which of the module's
  * states a visitor sees is decided by the feed far more often than by the happy path. These pin that decision table —
@@ -11,12 +11,9 @@
  * collaborators stubbed out.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { installDateHelpers } = require('./loadGlobalScript');
+const { installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(path.resolve(__dirname, '..', '..', 'public/js/AccessScoreSpotlight.js'), 'utf8');
 
 /** Every feature-state call the module made, in order, as `source:id -> hover`. */
 let featureStates = [];
@@ -157,7 +154,7 @@ describe('the AccessScore Spotlight', () => {
         });
         window.choropleth = fakeMap(['region-polygons']);
         window.citiesMap = fakeMap(['cities']);
-        window.eval(`${SRC}\nwindow.AccessScoreSpotlight = AccessScoreSpotlight;`);
+        Object.assign(window, loadModules('frontend/js/AccessScoreSpotlight.js'));
     });
 
     describe('which unit it opens on', () => {

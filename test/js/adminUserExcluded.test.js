@@ -2,23 +2,17 @@
  * Tests for how the Manage user page's Excluded box drives the quality dropdown (#3956), chiefly that a stray
  * check-and-uncheck restores the admin's earlier choice.
  *
- * Runs under jsdom (jest.config.js). AdminUser is a bare top-level class in a concatenated bundle, so it is eval'd
- * into global scope rather than required.
+ * Runs under jsdom (jest.config.js).
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installDateHelpers } = require('./loadGlobalScript');
-
-const ADMIN_USER_SRC = fs.readFileSync(
-  path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/AdminUser.js'), 'utf8');
+const { installDateHelpers, loadModules } = require('./loadGlobalScript');
 
 let AdminUser;
 
 beforeAll(() => {
   window.i18next = { language: 'en' };
   installDateHelpers();
-  AdminUser = (0, eval)(`${ADMIN_USER_SRC}\nAdminUser;`);
+  AdminUser = loadModules('frontend/js/user-dashboard/AdminUser.js').AdminUser;
 });
 
 /**

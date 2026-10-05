@@ -77,15 +77,7 @@
     <p class="ac-note" id="health-panos-note"></p>
   </div>
 
-  <script src="@assets.path("js/admin-dashboard/HealthPage.js")"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', function () {
-      new HealthPage({
-        healthUrl: '/adminapi/dbHealth',
-        pollSeconds: 20
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/health.js")'></script>
 }
 
 @common.main(commonData, "Sidewalk - Health") {

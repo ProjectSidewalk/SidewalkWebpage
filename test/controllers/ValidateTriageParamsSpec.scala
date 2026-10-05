@@ -32,9 +32,9 @@ class ValidateTriageParamsSpec extends SidewalkSpec with RoleSession with GuiceO
 
   given mat: Materializer = app.materializer
 
-  /** The Twirl views embed `param.validateParams` as a JS object literal, so the flag is read back as text. */
+  /** The Twirl views embed `validateParams` in the page-data JSON block, so the flag is read back as text. */
   private def embeddedTriage(body: String): Option[Boolean] =
-    """triage:\s*(true|false)""".r.findFirstMatchIn(body).map(_.group(1).toBoolean)
+    """"triage":\s*(true|false)""".r.findFirstMatchIn(body).map(_.group(1).toBoolean)
 
   private def getPage(path: String, cookies: Seq[Cookie]): (Int, String) = {
     val resp = route(app, FakeRequest(GET, path).withCookies(cookies*)).get

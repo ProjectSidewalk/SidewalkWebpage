@@ -10,18 +10,14 @@
  * into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
-const SHELL_PATH = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/AdminShell.js');
 
 /** Load AdminShell.js and return the class binding. */
 function loadShell() {
-  const src = fs.readFileSync(SHELL_PATH, 'utf8');
-  return (0, eval)(`${src}\nAdminShell;`);
+  return loadModules('frontend/js/admin-dashboard/AdminShell.js').AdminShell;
 }
 
 const AdminShell = loadShell();

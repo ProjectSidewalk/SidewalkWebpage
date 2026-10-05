@@ -63,19 +63,8 @@
   <script src="@assets.path("vendor/vega/vega-lite-5.23.0.min.js")"></script>
   <script src="@assets.path("vendor/vega/vega-embed-6.29.0.min.js")"></script>
 
-  <script src="@assets.path("js/admin-dashboard/CoverageMap.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/CoverageBars.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/CoverageHistogram.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/CoverageTable.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/CoveragePage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new CoveragePage({
-        mapboxToken: '@commonData.mapboxApiKey',
-        regionsUrl: '/v3/api/regions?filetype=geojson'
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/coverage.js")'
+          data-mapbox-token="@commonData.mapboxApiKey"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Coverage") {

@@ -81,7 +81,7 @@ BOLD  := \033[1m
 RESET := \033[0m
 # What each linter checks: everything by default, or just dir=. stylelint needs file patterns, so a folder gets
 # /**/*.css added.
-eslint-paths   = $(if $(filter ./,$(dir)),public/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
+eslint-paths   = $(if $(filter ./,$(dir)),frontend/js/ public/locales/ test/js/ test/e2e/ playwright.config.js,$(dir))
 htmlhint-paths = $(if $(filter ./,$(dir)),./app/views,$(dir))
 css-glob       = $(if $(filter ./,$(dir)),public/**/*.css,$(if $(filter %.css,$(dir)),$(dir),$(dir)/**/*.css))
 
@@ -401,7 +401,7 @@ lint-css-layout:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-css-layout.mjs"
 	@echo "Finished checking CSS layout";
 
-# Asset URLs in public/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
+# Asset URLs in frontend/js/ (#4893): no hardcoded '/assets/' outside the allowlist, and every util.assetPath()
 # argument checkable — a literal one naming a real file in a fingerprinted family, an interpolated one opening with a
 # literal family directory. Pure node, run in the web container so node is present. Also a blocking CI step.
 lint-asset-paths:
@@ -418,7 +418,7 @@ lint-vendor-versions:
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-vendor-versions.mjs"
 	@echo "Finished checking vendor versions";
 
-# Type-checks public/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
+# Type-checks frontend/js/ from its JSDoc with TypeScript (#5278). Also a blocking CI step.
 lint-js-types:
 	@echo "Checking JS types...";
 	@docker exec $(web-container) bash -lc "cd $(container-dir) && node tools/lint/check-js-types.mjs"

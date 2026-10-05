@@ -11,15 +11,11 @@
  * asserted here.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/panorama/PanoDateNote.js'), 'utf8');
 
-window.eval(`${SRC}; window.PanoDateNote = PanoDateNote;`);
+Object.assign(window, loadModules('frontend/js/explore/panorama/PanoDateNote.js'));
 const { PanoDateNote } = window;
 
 /** A stand-in for Task exposing the reads the note makes. */
@@ -59,7 +55,7 @@ describe('PanoDateNote', () => {
                 return key;
             },
         };
-        loadGlobalScript('public/js/common/utilities.js');
+        window.util = realUtil();
         // Mirrors explore.scala.html, including the pill starting hidden. PanoInfoPopover's button would be a second
         // child of the pill on the real page; nothing here reads it.
         document.body.innerHTML =

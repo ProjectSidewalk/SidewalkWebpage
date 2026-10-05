@@ -319,7 +319,7 @@ The flag rides `ValidateHelper.ValidateParams` as `triage`, which `require`s `ad
 and `userIds` do; the JSON reader checks the same constraint before building the params, so a body that breaks it is
 a 400 rather than the 500 the constructor's exception would be. `ValidateController.paramsAllowedFor` rebuilds a
 non-admin's params without the admin-only fields — so a non-admin who posts `triage: true` gets the crowd cascade. The Twirl views embed it in
-`param.validateParams`, and `public/js/validate/src/data/Form.js` sends it back as `validate_params.triage`; the JSON
+`param.validateParams`, and `frontend/js/validate/data/Form.js` sends it back as `validate_params.triage`; the JSON
 reader defaults a missing field to `false`, so a tab opened before the field existed still submits successfully.
 
 The mode is visible only in the URL and in the embedded params — there is no user-facing string for it, so there is

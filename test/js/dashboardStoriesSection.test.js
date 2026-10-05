@@ -1,5 +1,5 @@
 /**
- * Tests for the "Your stories" list on the user dashboard (public/js/user-dashboard/StoriesSection.js, issues #4054
+ * Tests for the "Your stories" list on the user dashboard (frontend/js/user-dashboard/StoriesSection.js, issues #4054
  * and #4656).
  *
  * Two contracts matter here beyond rendering: an author can edit a story from the list (the row's Edit hands the
@@ -12,14 +12,8 @@
  * collaborators (fetch, i18next, StoryComposer, ConfirmDialog) stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
-
-const SECTION_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/user-dashboard/StoriesSection.js'), 'utf8'
-);
+const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 
 /** One story payload, shaped like an entry from GET /userapi/stories/mine. */
 function story(overrides = {}) {
@@ -80,7 +74,7 @@ describe('the dashboard\'s "Your stories" list', () => {
             }
         };
         window.ConfirmDialog = { confirm: jest.fn(() => Promise.resolve(confirmResult)) };
-        window.eval(`${SECTION_SRC}\nwindow.StoriesSection = StoriesSection;`);
+        window.StoriesSection = loadModules('frontend/js/user-dashboard/StoriesSection.js').StoriesSection;
     });
 
     beforeEach(() => {

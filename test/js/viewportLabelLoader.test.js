@@ -1,5 +1,5 @@
 /**
- * Tests for public/js/ps-map/ViewportLabelLoader.js (#5002): the viewport-scoped label feed's fetch policy —
+ * Tests for frontend/js/ps-map/ViewportLabelLoader.js (#5002): the viewport-scoped label feed's fetch policy —
  * padded-bbox construction and maxBounds clamping, the containment skip, moveend debouncing, the in-flight /
  * stale-response guards, the zoom floor, failure/retry recovery, and late-subscriber replay.
  *
@@ -7,11 +7,8 @@
  * the source is eval'd into jsdom with those stubbed. The map is a four-method stub; no mapbox-gl involved.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const LOADER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/ps-map/ViewportLabelLoader.js'), 'utf8');
 
 const DEBOUNCE_MS = 350;
 
@@ -53,7 +50,7 @@ describe('ViewportLabelLoader', () => {
     let fetches;
 
     beforeAll(() => {
-        window.eval(`${LOADER_SRC}\nwindow.ViewportLabelLoader = ViewportLabelLoader;`);
+        Object.assign(window, loadModules('frontend/js/ps-map/ViewportLabelLoader.js'));
     });
 
     beforeEach(() => {

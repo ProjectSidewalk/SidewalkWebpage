@@ -1,5 +1,5 @@
 /**
- * Tests for the immersive-mode toggle shared by Explore and Validate (public/js/common/ImmersiveMode.js, #5085,
+ * Tests for the immersive-mode toggle shared by Explore and Validate (frontend/js/common/ImmersiveMode.js, #5085,
  * #5560), built here with Explore's wiring; validateImmersiveKey.test.js covers Validate's key path.
  *
  * The layout is CSS keyed on two classes, so what the module has to get right is the bookkeeping around a toggle:
@@ -11,14 +11,9 @@
  * eval'd into jsdom with those stubbed; the tool-specific collaborators arrive through its options.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub } = require('./loadGlobalScript');
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/ImmersiveMode.js'), 'utf8'
-);
 
 describe('ImmersiveMode', () => {
     let ImmersiveMode;
@@ -67,7 +62,7 @@ describe('ImmersiveMode', () => {
             canvas: { showLabelHoverInfo: jest.fn() },
             CANVAS_FRAME: { width: 720, height: 480 },
         };
-        window.eval(`${SRC}\nwindow.ImmersiveMode = ImmersiveMode;`);
+        Object.assign(window, loadModules('frontend/js/common/ImmersiveMode.js'));
         ImmersiveMode = window.ImmersiveMode;
     });
 

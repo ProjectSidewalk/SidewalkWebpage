@@ -16,11 +16,8 @@
  * its own `hashchange` rather than waiting for jsdom's.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SHELL_SRC = fs.readFileSync(
-  path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard/AdminShell.js'), 'utf8');
 
 let AdminShell;
 /** The callbacks handed to `new ResizeObserver(cb)`, so a test can simulate the content column changing height. */
@@ -30,7 +27,7 @@ let observed = [];
 
 beforeAll(() => {
   global.initSidebarDisclosure = () => {};
-  AdminShell = (0, eval)(`${SHELL_SRC}\nAdminShell;`);
+  AdminShell = loadModules('frontend/js/admin-dashboard/AdminShell.js').AdminShell;
 });
 
 beforeEach(() => {

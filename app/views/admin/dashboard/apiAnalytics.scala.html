@@ -68,13 +68,7 @@
     <div class="dq-rows" id="api-formats"></div>
   </div>
 
-  <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/ApiAnalyticsPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new ApiAnalyticsPage({ dataUrl: '/adminapi/apiAnalyticsBySource' }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/apiAnalytics.js")'></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin API Analytics") {

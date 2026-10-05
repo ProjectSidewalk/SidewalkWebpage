@@ -1,5 +1,5 @@
 /* The share control (#456): a quiet trigger button and the accessible popover it opens. Wired up by
-   public/js/common/share/ShareWidget.js.
+   frontend/js/common/share/ShareWidget.js.
  *
  * Extracted from label-detail.css so Explore and Validate can use it too (#4726) — those tools carry the label card,
  * not the label-detail popup, and never loaded that stylesheet. Linked globally from main.scala.html rather than

@@ -1,5 +1,5 @@
 /**
- * Tests for PanoInfoPopover's "view in <provider>" link (public/js/common/pano-viewer/src/PanoInfoPopover.js).
+ * Tests for PanoInfoPopover's "view in <provider>" link (frontend/js/common/pano-viewer/PanoInfoPopover.js).
  *
  * Regression coverage for #4813. Validate (and the Gallery/LabelMap label card) swap the active pano viewer from
  * label to label: the provider's own viewer for live imagery, Pannellum for our self-hosted copy of imagery the
@@ -12,14 +12,9 @@
  * than require()-d.
  */
 
-const fs = require('fs');
-const path = require('path');
 
-const { assetPathStub, installDateHelpers } = require('./loadGlobalScript');
+const { assetPathStub, installDateHelpers, loadModules } = require('./loadGlobalScript');
 
-const POPOVER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/pano-viewer/src/PanoInfoPopover.js'), 'utf8'
-);
 
 // The parts of app/views/common/panoInfoPopover.scala.html the class actually reads. Kept minimal on purpose: if a
 // selector is renamed there without being renamed here, these tests fail, which is the point.
@@ -132,7 +127,7 @@ describe('PanoInfoPopover view-in-pano link', () => {
             configurable: true,
         });
 
-        window.eval(`${POPOVER_SRC}\nwindow.PanoInfoPopover = PanoInfoPopover;`);
+        Object.assign(window, loadModules('frontend/js/common/pano-viewer/PanoInfoPopover.js'));
         PanoInfoPopover = window.PanoInfoPopover;
 
         activeViewer = makeGsvViewer();

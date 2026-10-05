@@ -1,5 +1,5 @@
 /**
- * Tests for desktop Validate's window-resize response, wired up in public/js/validate/src/Main.js (#5367).
+ * Tests for desktop Validate's window-resize response, wired up in frontend/js/validate/Main.js (#5367).
  *
  * A resize is when GSV is most likely to stop painting (#2468), so the tool both re-measures the viewer and asks it
  * to force a frame, and records that the viewport moved — the `Window_Resized` line is what later says whether a
@@ -13,18 +13,17 @@
  * inside an IIFE that returns the class, following validatePanoPovThrottle.test.js.
  */
 
-const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const MAIN_PATH = path.resolve(__dirname, '..', '..', 'public/js/validate/src/Main.js');
+const MAIN_PATH = path.resolve(__dirname, '..', '..', 'frontend/js/validate/Main.js');
 
 /**
  * Loads the `Main` class out of the production file.
  * @returns {Function} The Main class.
  */
 function loadMainClass() {
-    const src = fs.readFileSync(MAIN_PATH, 'utf8');
-    return (0, eval)('(() => {\n' + src + '\nreturn Main;\n})()');
+    return loadModules(MAIN_PATH).Main;
 }
 
 describe('desktop Validate resize handling (#5367)', () => {

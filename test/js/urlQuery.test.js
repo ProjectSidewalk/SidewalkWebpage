@@ -1,21 +1,18 @@
 /**
- * Tests for util.url (public/js/common/urlQuery.js, issues #4782 / #4783).
+ * Tests for util.url (frontend/js/common/urlQuery.js, issues #4782 / #4783).
  *
  * The deep-link query rules the page's several URL writers share. They matter twice over: the writers run side by
  * side on one page and have to serialize identically or they rewrite each other's params, and the tag params carry
  * free-form label text whose commas and colons must survive a round trip.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const URL_QUERY_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/urlQuery.js'), 'utf8'
-);
 
 describe('util.url', () => {
     beforeAll(() => {
-        window.eval(URL_QUERY_SRC);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
     });
 
     describe('serialize', () => {

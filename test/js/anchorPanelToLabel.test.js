@@ -1,5 +1,5 @@
 /**
- * Tests for util.anchorPanelToLabel (public/js/common/utilities.js).
+ * Tests for util.anchorPanelToLabel (frontend/js/common/utilities.js).
  *
  * This routine places every panel that hangs off a label icon in a pano: Explore's hover card and context menu
  * (#4719/#4724) and Validate's label card (#4726). It is pure geometry over measured rects, which makes it exactly
@@ -11,12 +11,8 @@
  * anyway. The bounding elements are stubbed the same way.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { realUtil } = require('./loadGlobalScript');
 
-const UTILITIES_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/utilities.js'), 'utf8'
-);
 
 // Explore's frame, as the defaults expect to find it. The pano is 720x480 at scale 1 and sits 100px from the
 // viewport's left edge; the whole tool (pano + gap + sidebar) runs to x=1136.
@@ -55,7 +51,7 @@ describe('util.anchorPanelToLabel', () => {
         // utilities.js builds a Bowser parser at load time; the geometry under test never consults it.
         window.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
             getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
-        window.eval(UTILITIES_SRC);
+        window.util = realUtil();
         util = window.util;
 
         // Explore's frame: the display-scale probe, the coordinate origin, and the horizontal bound.

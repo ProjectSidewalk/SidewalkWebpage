@@ -1,6 +1,6 @@
 /**
  * Tests for the status Validate shows over a pano that is slow to load (issue #5581), in
- * public/js/validate/src/panorama/PanoLoadingStatus.js and the markup both Validate views carry for it.
+ * frontend/js/validate/panorama/PanoLoadingStatus.js and the markup both Validate views carry for it.
  *
  * Without a status, a slow load reads as a hang: a dimmed tool and a wait cursor on desktop, nothing at all on mobile.
  * The status only helps if it stays out of the way of the fast loads most labels get, so the assertions cover both
@@ -12,9 +12,10 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const STATUS_PATH = path.join(REPO_ROOT, 'public/js/validate/src/panorama/PanoLoadingStatus.js');
+const STATUS_PATH = path.join(REPO_ROOT, 'frontend/js/validate/panorama/PanoLoadingStatus.js');
 const DESKTOP_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/validate.scala.html');
 const MOBILE_VIEW_PATH = path.join(REPO_ROOT, 'app/views/apps/mobileValidate.scala.html');
 const CSS_PATH = path.join(REPO_ROOT, 'public/css/pages/validate/svv-panorama.css');
@@ -26,8 +27,7 @@ const CSS_PATH = path.join(REPO_ROOT, 'public/css/pages/validate/svv-panorama.cs
  * @returns {Function} The class.
  */
 function loadClassFromFile(filePath, className) {
-  const src = fs.readFileSync(filePath, 'utf8');
-  return (0, eval)('(() => {\n' + src + '\nreturn ' + className + ';\n})()');
+  return loadModules(filePath)[className];
 }
 
 /**

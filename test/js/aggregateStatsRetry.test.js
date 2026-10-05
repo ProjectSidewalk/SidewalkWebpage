@@ -1,5 +1,5 @@
 /**
- * Behavior tests for public/js/common/aggregateStats.js (#4600).
+ * Behavior tests for frontend/js/common/aggregateStats.js (#4600).
  *
  * The API-docs landing page fell back to its error state whenever /v3/api/aggregateStats took longer than the fetch
  * timeout, because timeout aborts were exempted from the retry logic. These tests pin the fixed contract: a timed-out
@@ -18,7 +18,7 @@ if (typeof AbortSignal.timeout !== 'function') {
     AbortSignal.timeout = () => new AbortController().signal;
 }
 
-const MODULE_PATH = 'public/js/common/aggregateStats.js';
+const MODULE_PATH = 'frontend/js/common/aggregateStats.js';
 const STATS_PARAGRAPH_ID = 'project-sidewalk-aggregate-stats';
 
 // Minimal snake_case /v3/api/aggregateStats response (v3 naming convention, issue #3871).

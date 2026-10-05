@@ -136,7 +136,7 @@ Make sure Docker is running (you'll see the whale icon in your tray; you can set
    npm start
    ```
 
-   `npm start` runs Grunt (JS/CSS concatenation + watch) in the background, then `sbt ~ run` for continuous
+   `npm start` runs the asset build (Rolldown for the JS, Grunt for the CSS bundles) with a watch in the background, then `sbt ~ run` for continuous
    recompile. The first compile takes 5+ minutes; later ones are seconds. Use `npm run debug` if you want a JVM
    debug port attached. It's ready when you see `Listening for HTTP on .../9000`.
 
@@ -259,9 +259,10 @@ Password: sidewalk
 The dev server hot-reloads, so you rarely restart it.
 
 - **Scala / Twirl views** — `sbt ~ run` recompiles on save; reload the browser once compilation finishes.
-- **JavaScript / CSS** — Grunt's `watch` re-concatenates your `src/` edits into `public/js/*/build/`
-  automatically. **Edit `src/` files only; never edit `build/` output**, and don't run `grunt` by hand. If a new
-  `src/` file isn't picked up, check that its path matches a glob in `Gruntfile.js`.
+- **JavaScript / CSS** — the `grunt watch` behind `npm start` rebuilds `public/build/` on every save: Rolldown
+  bundles each page's entry in `frontend/js/pages/` and what it imports, Grunt concatenates the tools' stylesheets.
+  **Never edit `public/build/` output**, and don't run the build by hand. A new JS file is picked up as soon as
+  something imports it; a new page needs an entry file in `frontend/js/pages/`.
 - **`build.sbt` or config changes** — these aren't hot-reloaded. In the Docker shell press `Ctrl+D`, then run
   `sbt clean`, then `npm start` again.
 - **Python** (the standalone scripts in `scripts/` and `tools/`) — the container has **two** interpreters. `python3`
@@ -525,7 +526,7 @@ Roughly ordered by when you'd hit them during setup.
 | Can't connect to the database | The db container may not be listening on all addresses. `make ssh target=db`, edit `/var/lib/postgresql/data/postgresql.conf`, set `listen_addresses = '*'`. |
 | `make` commands "just don't work" | Reinstall `make`. As a fallback, run the underlying command from the `Makefile` directly (e.g. `make ssh target=web` ≈ `docker exec -it projectsidewalk-web /bin/bash`). |
 | `relation "role" does not exist` while a schema is applying evolutions | That schema is behind evolution 372, which dropped the shared `sidewalk_login.role` lookup table that evolutions 270, 295, 337 and 355 all read. Recoverable with the data intact: [Recovering a schema stranded below evolution 372](#recovering-a-schema-stranded-below-evolution-372). |
-| A new `src/` JS file isn't bundled | Make sure its path matches a glob in `Gruntfile.js`. |
+| A new JS file isn't in the bundle | Nothing imports it yet: import it from the page's entry in `frontend/js/pages/` or from a file that entry reaches. |
 | First compile seems stuck | It isn't — initial dependency resolution is genuinely slow. Watch the container logs. |
 | Compiles are slow on Apple Silicon | Your `projectsidewalk/web` image may predate [#5069](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/5069) and still be x86_64 — Compose reuses a locally tagged image instead of rebuilding it, so pulling that change alone doesn't help. Check with `docker image inspect projectsidewalk/web --format '{{.Architecture}}'` (expect `arm64`); if it says `amd64`, rebuild with `make docker-stop && docker compose build web`. Also make sure `platform` is commented out in your `docker-compose.override.yml`. |
 

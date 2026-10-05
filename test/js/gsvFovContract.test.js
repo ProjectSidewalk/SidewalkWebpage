@@ -1,6 +1,6 @@
 /**
  * Pins the recorded GSV FOV-vs-aspect measurements (issue #5083) against the projection code in
- * public/js/common/pano-viewer/src/panoUtilities.js. The fixture (test/js/fixtures/gsvFovMeasurements.json)
+ * frontend/js/common/pano-viewer/panoUtilities.js. The fixture (test/js/fixtures/gsvFovMeasurements.json)
  * holds focal lengths measured from live GSV rendering by test/js/gsv-fov-probe/; its README has the protocol,
  * the regeneration steps, and when a re-record is called for.
  *
@@ -14,7 +14,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const {loadGlobalScript} = require('./loadGlobalScript');
+const {loadGlobalScript, realUtil } = require('./loadGlobalScript');
 
 // utilities.js builds a Bowser parser at load time; nothing here consults it.
 window.bowser = {
@@ -23,9 +23,9 @@ window.bowser = {
         getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
     }),
 };
-loadGlobalScript('public/js/common/utilities.js');
-loadGlobalScript('public/js/common/utilitiesMath.js'); // hFovToVFov/vFovToHFov use util.math.to{Degrees,Radians}.
-loadGlobalScript('public/js/common/pano-viewer/src/panoUtilities.js');
+window.util = realUtil();
+loadGlobalScript('frontend/js/common/utilitiesMath.js'); // hFovToVFov/vFovToHFov use util.math.to{Degrees,Radians}.
+loadGlobalScript('frontend/js/common/pano-viewer/panoUtilities.js');
 const pano = window.util.pano;
 
 const FIXTURE_PATH = path.resolve(__dirname, 'fixtures', 'gsvFovMeasurements.json');

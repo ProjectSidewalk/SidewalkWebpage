@@ -1,5 +1,5 @@
 /**
- * Tests for AccessScoreHistogram (public/js/access-score/src/AccessScoreHistogram.js, #5217): the score
+ * Tests for AccessScoreHistogram (frontend/js/access-score/AccessScoreHistogram.js, #5217): the score
  * distribution as twenty named buttons — bar heights and ramp colors, the city needle and the two carets, and the
  * brush by keyboard (Arrow/Shift+Arrow/Enter/Escape) and by pointer (click to toggle, drag to sweep).
  */

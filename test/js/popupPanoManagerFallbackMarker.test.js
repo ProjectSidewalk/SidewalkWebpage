@@ -1,6 +1,6 @@
 /**
  * Tests for where the label popup draws its marker on the static crop it falls back to when no pano can be shown
- * (public/js/common/label-detail/PopupPanoManager.js, issue #2660).
+ * (frontend/js/common/label-detail/PopupPanoManager.js, issue #2660).
  *
  * The crop behind the fallback is either the browser's snapshot of the Explore canvas, where the label is at its
  * canvas fraction, or the window the nightly crop job cut around the label, where it is wherever `label_crop` says
@@ -13,12 +13,8 @@
  * dropped.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { installUtilitiesMisc } = require('./loadGlobalScript');
+const { installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const MANAGER_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/common/label-detail/PopupPanoManager.js'), 'utf8');
 
 const POV = { heading: 10, pitch: 0, zoom: 1 };
 
@@ -65,7 +61,7 @@ describe('PopupPanoManager fallback marker', () => {
         window.fetch = jest.fn(() => Promise.resolve({ ok: false }));
         jest.spyOn(console, 'error').mockImplementation(() => {});
 
-        window.eval(`${MANAGER_SRC}\nwindow.PopupPanoManager = PopupPanoManager;`);
+        Object.assign(window, loadModules('frontend/js/common/label-detail/PopupPanoManager.js'));
         PopupPanoManager = window.PopupPanoManager;
     });
 

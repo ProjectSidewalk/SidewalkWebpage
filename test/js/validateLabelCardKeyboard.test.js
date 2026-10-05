@@ -1,5 +1,5 @@
 /**
- * Tests for the label-card keyboard scope in Validate's KeyboardManager (public/js/validate/src/keyboard/
+ * Tests for the label-card keyboard scope in Validate's KeyboardManager (frontend/js/validate/keyboard/
  * KeyboardManager.js), added for #4729.
  *
  * The manager listens on window with capture and treats most keys as global shortcuts — Enter submits the current
@@ -14,15 +14,8 @@
  * window listener that cannot be unregistered — and each test swaps the svv/menu stubs it reads at event time.
  */
 
-const fs = require('fs');
-const path = require('path');
-const SHORTCUTS_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/KeyboardShortcuts.js'), 'utf8'
-);
+const { loadModules } = require('./loadGlobalScript');
 
-const MANAGER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/validate/src/keyboard/KeyboardManager.js'), 'utf8'
-);
 
 /** A stand-in for one of the menu's controls, with its click spied. */
 function makeControl() {
@@ -52,7 +45,7 @@ describe('KeyboardManager label-card scope', () => {
             noButton: makeControl(),
             unsureButton: makeControl(),
         });
-        window.eval(`${SHORTCUTS_SRC}\n${MANAGER_SRC}\nwindow.KeyboardManager = KeyboardManager;`);
+        Object.assign(window, loadModules('frontend/js/common/KeyboardShortcuts.js', 'frontend/js/validate/keyboard/KeyboardManager.js'));
         new window.KeyboardManager(validationMenuUi);
     });
 

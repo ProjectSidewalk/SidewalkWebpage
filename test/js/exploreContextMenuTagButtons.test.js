@@ -1,15 +1,11 @@
 /**
- * The context menu builds a button per tag of the label's type (public/js/explore/src/canvas/ContextMenu.js), so
+ * The context menu builds a button per tag of the label's type (frontend/js/explore/canvas/ContextMenu.js), so
  * every tag shows however long a city's list is.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { assetPathStub, installUtilitiesMisc } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc, loadModules } = require('./loadGlobalScript');
 const { makeContextMenuUi } = require('./contextMenuUiStub');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const CONTEXT_MENU_SRC = fs.readFileSync(path.join(REPO_ROOT, 'public/js/explore/src/canvas/ContextMenu.js'), 'utf8');
 
 /**
  * @param {string} labelType
@@ -47,7 +43,7 @@ describe('ContextMenu tag buttons', () => {
             keyboard: { setStatus: jest.fn() }, isOnboarding: () => false, LABEL_ICON_RADIUS: 17,
         };
 
-        window.eval(`${CONTEXT_MENU_SRC}\nwindow.ContextMenu = ContextMenu;`);
+        Object.assign(window, loadModules('frontend/js/explore/canvas/ContextMenu.js'));
         ui = makeContextMenuUi();
         menu = new window.ContextMenu(ui);
         window.svl.contextMenu = menu;

@@ -95,22 +95,12 @@
   <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
 
-  <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetPriorityMap.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetPriorityTable.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/ImageryPipelinePanel.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/ImageryPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new ImageryPage({
-        mapboxToken: '@commonData.mapboxApiKey',
-        streetsUrl: '/v3/api/streets?filetype=geojson',
-        priorityUrl: '/adminapi/streetPriority',
-        pipelineUrl: '/adminapi/imageryFreshness',
-        pipelineDays: @service.ImageryFreshnessReportService.DefaultDays
-      }).init();
-    });
-  </script>
+  @* The endpoints come from the router, so a renamed route fails the view's compile rather than the page. *@
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/imagery.js")'
+          data-mapbox-token="@commonData.mapboxApiKey"
+          data-priority-url="@routes.AdminDashboardController.getStreetPriority"
+          data-pipeline-url="@routes.AdminDashboardController.getImageryFreshness()"
+          data-pipeline-days="@service.ImageryFreshnessReportService.DefaultDays"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Imagery") {

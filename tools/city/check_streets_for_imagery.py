@@ -554,7 +554,7 @@ def score_pano(image: dict, lat: float, lng: float, now_ms: float) -> float | No
     """
     Scores one candidate Mapillary image for a location, the way Explore's pano viewer does.
 
-    This is a port of ``MapillaryViewer.#scorePano`` (``public/js/common/pano-viewer/src/MapillaryViewer.js``); the
+    This is a port of ``MapillaryViewer.#scorePano`` (``frontend/js/common/pano-viewer/MapillaryViewer.js``); the
     weights and decay scales come from ``conf/pano-scoring.json`` so the two can't drift. Recency is only a
     quarter of the decision and distance dominates it, so the newest image at a point is frequently *not* the one the
     viewer shows — which is the whole reason this port exists (#4411).

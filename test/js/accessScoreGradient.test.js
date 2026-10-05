@@ -9,9 +9,11 @@
 
 const fs = require('fs');
 const path = require('path');
-
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const { loadModules } = require('./loadGlobalScript');
+
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
+
 const FIXTURE = JSON.parse(read('test/fixtures/accessScoreParity.json'));
 
 const GRADIENT = {
@@ -65,13 +67,12 @@ describe('street slope in the AccessScore tool', () => {
                 .filter(([k]) => k !== 'interpolation').map(([k, v]) => `${k}=${v}`)].join(' '),
         };
         window.util = { escapeHTML: (t) => String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;') };
-        window.eval(read('public/js/common/scoreRamp.js'));
+        Object.assign(window, loadModules('frontend/js/common/scoreRamp.js'));
         for (const name of ['Model', 'GradeRamp', 'ElevationProfile', 'MapLegend', 'UrlSync']) {
-            if (name === 'UrlSync') window.eval(read('public/js/common/urlQuery.js'));
+            if (name === 'UrlSync') loadModules('frontend/js/common/urlQuery.js');
             // The ramp and the chart are shared with the API docs, so they live in common/.
-            const dir = ['GradeRamp', 'ElevationProfile'].includes(name) ? 'common' : 'access-score/src';
-            window.eval(`${read(`public/js/${dir}/AccessScore${name}.js`)}
-                window.AccessScore${name} = AccessScore${name};`);
+            const dir = ['GradeRamp', 'ElevationProfile'].includes(name) ? 'common' : 'access-score';
+            Object.assign(window, loadModules(`frontend/js/${dir}/AccessScore${name}.js`));
         }
         ({ AccessScoreModel, AccessScoreGradeRamp, AccessScoreElevationProfile, AccessScoreUrlSync } = window);
         for (let i = 1; i <= 5; i++) {

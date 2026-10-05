@@ -9,7 +9,7 @@
  * than as "no session".
  */
 
-const {loadGlobalScript} = require('./loadGlobalScript');
+const { realUtil } = require('./loadGlobalScript');
 
 beforeEach(() => {
     // utilities.js builds a Bowser parser at load time; this helper never touches it, but the file needs the global.
@@ -19,7 +19,7 @@ beforeEach(() => {
             getOSName: () => 'TestOS', getPlatformType: () => 'desktop',
         }),
     };
-    loadGlobalScript('public/js/common/utilities.js');
+    window.util = realUtil();
 });
 
 afterEach(() => {

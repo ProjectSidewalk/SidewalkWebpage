@@ -14,8 +14,8 @@ aggregated, scored, and served back out through a public API and a set of dashbo
 **Stack:**
 - **Backend** — Scala 3.9 + Play Framework 3.0 (Java 17).
 - **Database** — Postgres + PostGIS, accessed via Slick (with slick-pg for spatial/JSON types).
-- **Frontend** — vanilla JavaScript, organized as several independent apps bundled by Grunt (concatenation only —
-  no transpilation/module system), with no framework: native DOM and CSS on the `main.css` design tokens.
+- **Frontend** — vanilla JavaScript ES modules, bundled per page by Rolldown (no transpilation), with no framework:
+  native DOM and CSS on the `main.css` design tokens.
 - **Dev/runtime** — everything runs in Docker.
 
 ## System at a glance
@@ -344,8 +344,8 @@ to anonymous access.
 
 ## Frontend
 
-Each major UI is a self-contained app under `public/js/`, bundled separately by Grunt and loaded by the
-corresponding Twirl view:
+Each major UI is a self-contained app under `frontend/js/`, started from its page's entry in `frontend/js/pages/` and
+loaded by the corresponding Twirl view:
 
 - **`explore/`** — the Explore/Audit tool (label accessibility issues on street-view panoramas). The largest app.
   Its immersive mode (#5085, the shared `common/ImmersiveMode.js` + `css/pages/explore/svl-immersive.css`) fills
@@ -376,14 +376,14 @@ corresponding Twirl view:
 - **`validate/`** — the Validate tool (confirm/reject others' labels). Which labels it serves, in what order,
   and why: [`docs/validation-queue.md`](validation-queue.md).
   Desktop Validate mounts Explore's image adjustments panel (#5501) from an Image pill in a chevron menu beside the
-  hide-label toggle (`validate/src/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
+  hide-label toggle (`validate/panorama/PanoControlMenu.js`), the same arrangement as Explore's beside Stuck.
   The model takes a list of mounts there, `#svv-panorama` and the `#svv-panorama-pannellum` sibling PanoManager
   swaps in when GSV has no imagery, so the filter is already on whichever viewer shows the label. Validate scopes
   the keyboard for the panel in `KeyboardManager` rather than suspending it with `disableKeyboard()`, a single flag
   that the modals and the loading lock also set, and the partial sits outside `#svv-application-holder` so the busy
   state's `pointer-events: none` can't freeze the sliders. Mobile Validate has no panel.
   **A viewer canvas is painted only while it holds the current label's pano at that label's POV**
-  (`validate/src/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
+  (`validate/panorama/PanoManager.js`). The Pannellum fallback is revealed only once its image has loaded (#5206),
   the primary canvas rejoins the layout unpainted after a fallback label (#5453), and on a primary viewer that paints
   during a load (`PanoViewer.PAINTS_DURING_LOAD`: Mapillary, Panoramax) the canvas and marker are hidden for every load
   and revealed by `renderPanoMarker` two animation frames after it sets the label's POV (#5582), capped at 100 ms for
@@ -442,16 +442,16 @@ corresponding Twirl view:
   `pekko.http.server.parsing.max-uri-length` to 8k (Pekko's 2k default 414'd at about 290 ids). The imagery check
   runs in chunks of `LabelServiceImpl.ImageryCheckChunkSize` so a 500-id list can't open 500 provider lookups at
   once. The page's "labels are sorted randomly" footer is not rendered in list mode: the order is the caller's.
-- **`admin-dashboard/`** — the admin dashboard (#4272), served file-by-file rather than bundled: one
-  `<PageName>Page.js` per route, loaded by that page's Twirl template. `AdminShell.js` loads on every one of those
+- **`admin-dashboard/`** — the admin dashboard (#4272): one `<PageName>Page.js` per route, started by that page's entry
+  in `pages/admin/`. `AdminShell.js` loads on every one of those
   pages (and the user dashboard's) and holds the shared shell behaviors — the "On this page" list and its
   scroll-spy, and keeping a deep link's target in place while sections above it are still loading — plus the shared
   formatting helpers (escaping, numbers, durations, relative times, the standard table markup).
-- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Served file-by-file like `admin-dashboard/` — no Grunt bundle.
+- **`user-dashboard/`** — the redesigned user dashboard, settings, leaderboard, and public profiles, plus the admin's view of a user's dashboard (`/admin/user/:username`). Entries in `pages/dashboard/`.
 - **`api-docs/`** — the `/api-docs` reference pages: one `<endpoint>Preview.js` per page renders a live sample of
   that endpoint, alongside `apiDocs.js` (shell behavior), `apiTableWrapper.js`, and `apiDocsTheme.js`
   (`ApiDocsTheme.color(token, alpha?)`, the one way preview code reads a CSS color token for Chart.js/Mapbox so
-  chart colors follow the design system). Served file-by-file — no Grunt bundle.
+  chart colors follow the design system). Entries in `pages/api-docs/`, one per page plus `layout.js` for the chrome.
 - **`access-score/`** — the AccessScore tool (`/accessScore`, #5217): a pure scoring model that re-runs the engine's
   math in the browser (`AccessScoreModel.js`, pinned to the Scala engine through `test/fixtures/accessScoreParity.json`;
   it ingests `/v3/api/accessScoreStreets` and `/v3/api/accessScoreIntersections` and reproduces a street's
@@ -478,9 +478,8 @@ corresponding Twirl view:
   map). An optional dark basemap (`?dark=1`, or the sidebar toggle, which is a live `map.setStyle` followed by a
   `remount()` of the map view and the cluster layer on `style.load`) reads the ramp in its dark stepping
   (`--color-score-ramp-dark-*`, passed per call as `{ mode: 'dark' }`) with a second chrome palette; the band and
-  popups stay light and keep the light ramp. Grunt-bundled to `access-score/build/`; the shared score ramp is
-  `common/scoreRamp.js`.
-- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module (no Grunt bundle) that the
+  popups stay light and keep the light ramp. The shared score ramp is `common/scoreRamp.js`.
+- **`AccessScoreSpotlight.js`** — the AccessScore Spotlight (#5215), a standalone module that the
   landing page and `/cities` both mount: the highest- and lowest-scoring neighborhoods, or streets, as two ranked
   lists whose bars are painted by `common/scoreRamp.js`. It reads one feed, `/v3/api/accessScoreSpotlight`, which
   answers from the nightly snapshot tables; nothing is fetched until the visitor's first interaction, and the
@@ -520,11 +519,32 @@ corresponding Twirl view:
   `setFieldOfView` return `undefined`), so a caller that must not show the old heading waits animation frames instead,
   as Validate's reveal does.
 
-There is **no module system**: files are concatenated in a hand-specified order (see `Gruntfile.js`). Third-party
-libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted). Edit `src/`
-files only — bundles are generated into `public/js/*/build/`.
+### Modules and the build
 
-First-party assets split by type: `public/js/` is JavaScript-only, `public/css/` holds all styles, and media lives in
+Every first-party file is an **ES module** (#4467): it `import`s what it needs and `export`s what others use, so
+the imports decide load order, not a hand-kept list. Each tool keeps its shared state in one exported object
+(`explore/svl.js`, `validate/svv.js`, `gallery/sg.js`). `util` is the object `common/utilities.js` exports; a file
+that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
+`utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)
+stay `<script>`-tag globals, declared for the type checker in `tools/lint/js-types/globals.d.ts`.
+
+**One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …): it imports
+the page's code and runs the start-up that used to be an inline `<script>`. **Rolldown** (`rolldown.config.mjs`)
+builds every file in that folder to `public/build/js/<same path>.js`, minified, with code that several pages share
+split into `public/build/js/chunks/` so a visitor downloads it once; a new page is just a new file there. A view loads
+its entry with `<script type="module" src='@assets.path("build/js/<page>.js")'>`, after `pages/main.js`, which
+`main.scala.html` loads on every page (shared helpers, app manager, navbar, auth dialog). Because a bundled module can't
+be templated and runs only after the page is parsed, a view hands its entry the server's values on that tag as
+`data-*` attributes (`id="page-entry"`) or, for the tools' larger sets, in a `<script type="application/json"
+id="page-data">` block the entry parses.
+
+The JS source lives in `frontend/js/`, outside `public/`, because Play serves everything under `public/`: only the
+bundles ship (their sourcemaps carry the sources for the browser's debugger). The three tools' stylesheets are still
+concatenated by Grunt (`concat_css`) into `public/build/css/`; `npm start` runs `grunt watch`, which reruns both it and
+Rolldown on save. Everything under `public/build/` is generated and git-ignored. Third-party libraries live under
+`public/vendor/<lib>/`, one self-contained folder each (never edited or linted).
+
+First-party assets split by type: `frontend/js/` is JavaScript-only, `public/css/` holds all styles, and media lives in
 `public/images/`, `public/audio/`, and `public/videos/`. Within `public/css/`, files are organized by what they are
 (#5030): `main.css` and `fonts.css` at the root (tokens and `.ps-*` primitives), `css/components/` for anything more
 than one page links (one component per file — the `page-shell.css` sidebar + content + TOC template, `kpi.css`,
@@ -544,7 +564,7 @@ tool bundles resolve icon URLs in module-level constants at script-eval time. Fr
 `util.assetPath('images/icons/openhand.cur')`, building the whole path inside one template literal when part of it
 varies. Under dev `sbt run` nothing is fingerprinted, so the stamp is empty and every lookup falls back to the plain
 `/assets/<path>`. Neither half of a mistake fails at runtime, so `tools/lint/check-asset-paths.mjs`
-(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `public/js/`, every
+(`make lint-asset-paths`, a blocking CI step) is the gate: no hardcoded `/assets/` URLs under `frontend/js/`, every
 `util.assetPath` argument names a real file in a manifest family, and no code edits an element's resolved `src` as a
 string. Full caching contract: [`deployment-and-stages.md`](deployment-and-stages.md) → "Asset caching".
 

@@ -9,7 +9,7 @@ architecture. This page explains the conventions a linter can't, and the *why* b
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
 ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
-check, the `public/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `scalafmtCheckAll` for
+check, the `frontend/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `scalafmtCheckAll` for
 Scala. The trees are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)),
 so run the relevant linter — or `make lint` for all of them — and get to zero before you push: `make lint-fix`
 autofixes the mechanical JS/CSS findings, hand-fix the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
@@ -65,8 +65,8 @@ These apply across every language in the repo.
 
 ## JavaScript
 
-The frontend is vanilla ES, organized as independent apps that Grunt concatenates (no transpiler, no module system).
-Edit files under `src/`; never edit the generated `build/` bundles. Most rules below are enforced by
+The frontend is vanilla ES modules, bundled per page by Rolldown (no transpiler, no framework). Never edit the
+generated `public/build/` output. Most rules below are enforced by
 [`eslint.config.js`](../eslint.config.js).
 
 - **Write ES2022 for new and modernized code:** `const`/`let` (`no-var`), arrow functions, template literals
@@ -151,7 +151,7 @@ Edit files under `src/`; never edit the generated `build/` bundles. Most rules b
 The `public/` static-asset tree follows an industry-standard layout, settled in the #2292 reorg. Keep new files
 consistent with it.
 
-- **First-party assets split by type.** `public/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
+- **First-party assets split by type.** `frontend/js/` is **JavaScript only** — no `css/`, `img/`, or `audio/` dirs
   nested inside an app dir. Styles live in `public/css/`; media lives in `public/images/`, `public/audio/`, and
   `public/videos/`. App-private styles go to `css/pages/`, app-private images to `images/<app>/`.
 - **`public/css/` is organized by what each file is** (#5030), and its root has exactly four entries. `main.css` and
@@ -163,7 +163,7 @@ consistent with it.
   files (`pages/explore/`, `pages/validate/`, `pages/gallery/`, `pages/api-docs/`). Two rules keep the split honest,
   both enforced by `make lint-css-layout` (`tools/lint/check-css-layout.mjs`, a blocking CI step): every entry under
   `pages/` is registered in the lint's `PAGES` map with the views that may link it — its own page, or for the
-  Grunt-bundled tools its own bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the
+  three bundled tools its own CSS bundle (the two legacy exceptions, `homepage.css` and `auth.css`, are registered to the
   site-wide layout) — and an unregistered file fails the lint, so when a second page needs a rule, it moves to
   `css/components/`; and a page's class prefix (`ud-`, `ac-`/`ov-`/`dq-`/…, `svl-`, `svv-`, `gallery-`) is defined only
   in that page's stylesheet(s). Layouts link the shell plus only the component files their pages use; never `@import`
@@ -174,7 +174,7 @@ consistent with it.
   in the URL what a reader would otherwise have to diff for, and keeps two versions installable side by side during
   an upgrade (see [`docs/upgrading-libraries.md`](upgrading-libraries.md)).
 - **Never hardcode an `/assets/...` URL in JavaScript** (#4893). Name the asset by its logical path under `public/`
-  and resolve it with **`util.assetPath('images/icons/openhand.cur')`** (defined in `public/js/common/utilities.js`,
+  and resolve it with **`util.assetPath('images/icons/openhand.cur')`** (defined in `frontend/js/common/utilities.js`,
   loaded on every page). Staged builds content-fingerprint assets and serve the fingerprinted copy `immutable` for a
   year; a hardcoded path gets the one-hour default, so a returning visitor re-asks about every asset once an hour and
   a swapped file reaches a cached client only after that hour. Twirl's equivalent is `assets.path(...)` — also
@@ -321,7 +321,7 @@ Rules:
 ### JavaScript (JSDoc)
 
 Use `/** ... */` for all JSDoc. Every `class` and every non-trivial method gets one, including `#private` methods.
-The types are checked: `make lint-js-types` runs TypeScript over `public/js/`
+The types are checked: `make lint-js-types` runs TypeScript over `frontend/js/`
 ([`tools/lint/check-js-types.mjs`](../tools/lint/check-js-types.mjs)), so a type that doesn't match the code fails the build.
 
 **Method / function:**
@@ -370,7 +370,7 @@ Rules:
   params from a view, log notes) is `Record<string, any>`.
 - When you know more than TypeScript can see, cast in place: `/** @type {HTMLInputElement} */ (el)`. Selector lookups
   (`querySelector`, `closest`) already return `HTMLElement`; `event.target` and `getElementById` often need a cast.
-- Every file in `public/js/` is type-checked. Globals that no file in `public/js/` declares (vendor libraries,
+- Every file in `frontend/js/` is type-checked. Globals that no file in `frontend/js/` declares (vendor libraries,
   values a view sets on `window`) go in [`tools/lint/js-types/globals.d.ts`](../tools/lint/js-types/globals.d.ts).
 - Use `{Type} [paramName]` (square brackets) for optional parameters, and `{Type} [paramName=default]` when a
   default exists and is non-obvious.

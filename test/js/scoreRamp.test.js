@@ -1,12 +1,10 @@
 /**
- * Tests for ScoreRamp (public/js/common/scoreRamp.js, #5217): the AccessScore color ramp every consumer reads from
+ * Tests for ScoreRamp (frontend/js/common/scoreRamp.js, #5217): the AccessScore color ramp every consumer reads from
  * the main.css tokens, so the api-docs maps, the AccessScore tool's layers, and its charts paint one score one color.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(path.resolve(__dirname, '..', '..', 'public/js/common/scoreRamp.js'), 'utf8');
 
 // jsdom resolves custom properties set on the root element, which is exactly how the tokens reach the browser.
 const RAMP = ['#a74d32', '#eb724e', '#c2c2c2', '#62c0ac', '#5f9e7b'];
@@ -14,7 +12,7 @@ const RAMP = ['#a74d32', '#eb724e', '#c2c2c2', '#62c0ac', '#5f9e7b'];
 describe('ScoreRamp', () => {
     beforeAll(() => {
         RAMP.forEach((hex, i) => document.documentElement.style.setProperty(`--color-score-ramp-${i + 1}`, hex));
-        window.eval(SRC);
+        Object.assign(window, loadModules('frontend/js/common/scoreRamp.js'));
     });
 
     it('reads the five ramp tokens in order, low score first', () => {

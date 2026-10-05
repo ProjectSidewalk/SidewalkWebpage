@@ -10,16 +10,15 @@
 const fs = require('fs');
 const path = require('path');
 
-const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML } = require('./loadGlobalScript');
+const { assetPathStub, installUtilitiesMisc, REPO_ROOT, installEscapeHTML, loadModules } = require('./loadGlobalScript');
 
 /**
  * Loads bare top-level declarations out of a production file into window scope.
  * @param {string} relPath - Path under the repo root.
  * @param {...string} names - The classes or functions the file declares.
  */
-function loadClass(relPath, ...names) {
-  const src = fs.readFileSync(path.join(REPO_ROOT, relPath), 'utf8');
-  window.eval(`${src}\n${names.map((n) => `window.${n} = ${n};`).join('\n')}`);
+function loadClass(relPath) {
+  Object.assign(window, loadModules(relPath));
 }
 
 beforeAll(() => {
@@ -35,9 +34,9 @@ beforeAll(() => {
   window.i18next = { t: (key) => key };
   window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
   window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
-  loadClass('public/js/validate/src/util/ConstantsValidate.js', 'defineValidateConstants');
-  loadClass('public/js/validate/src/label/Label.js', 'Label');
-  loadClass('public/js/validate/src/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
+  loadClass('frontend/js/validate/util/ConstantsValidate.js');
+  loadClass('frontend/js/validate/label/Label.js');
+  loadClass('frontend/js/validate/menu/DesktopValidationMenu.js');
 });
 
 describe('DesktopValidationMenu.clearVerdict', () => {

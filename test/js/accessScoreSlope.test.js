@@ -6,9 +6,11 @@
 
 const fs = require('fs');
 const path = require('path');
-
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const { loadModules, realUtil } = require('./loadGlobalScript');
+
 const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
+
 const FIXTURE = JSON.parse(read('test/fixtures/accessScoreParity.json'));
 
 const GRADIENT = {
@@ -53,11 +55,11 @@ describe('slope in the AccessScore scoring controls', () => {
                 ?? [key, ...Object.entries(values).map(([k, v]) => `${k}=${v}`)].join(' '),
         };
         window.util = { escapeHTML: (text) => String(text) };
-        window.eval(read('public/js/common/urlQuery.js'));
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
         for (const name of ['Model', 'GradeRamp', 'SlopePanel', 'UrlSync']) {
-            const dir = name === 'GradeRamp' ? 'common' : 'access-score/src';  // The ramp is shared with the API docs.
-            window.eval(`${read(`public/js/${dir}/AccessScore${name}.js`)}
-                window.AccessScore${name} = AccessScore${name};`);
+            const dir = name === 'GradeRamp' ? 'common' : 'access-score';  // The ramp is shared with the API docs.
+            Object.assign(window, loadModules(`frontend/js/${dir}/AccessScore${name}.js`));
         }
         ({ AccessScoreModel, AccessScoreSlopePanel, AccessScoreUrlSync } = window);
     });

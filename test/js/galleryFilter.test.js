@@ -1,5 +1,5 @@
 /**
- * Tests for GalleryFilter (public/js/gallery/src/filter/GalleryFilter.js, issue #4585).
+ * Tests for GalleryFilter (frontend/js/gallery/filter/GalleryFilter.js, issue #4585).
  *
  * GalleryFilter is the Gallery's adapter for the shared FilterSidebar: it turns the sidebar's state into a card
  * query — the URL the page can be reloaded from, the refetch, and the tracker events — and keeps the severity block
@@ -10,13 +10,8 @@
  * into jsdom with those stubbed.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const SRC_DIR = path.resolve(__dirname, '..', '..', 'public/js');
-const URL_QUERY_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/urlQuery.js'), 'utf8');
-const FILTER_SIDEBAR_SRC = fs.readFileSync(path.join(SRC_DIR, 'common/filter-sidebar/FilterSidebar.js'), 'utf8');
-const GALLERY_FILTER_SRC = fs.readFileSync(path.join(SRC_DIR, 'gallery/src/filter/GalleryFilter.js'), 'utf8');
 
 const LABEL_TYPES = ['CurbRamp', 'Crosswalk', 'Obstacle', 'NoSidewalk'];
 const VALIDATIONS = ['correct', 'incorrect', 'unsure', 'unvalidated'];
@@ -133,7 +128,7 @@ describe('GalleryFilter', () => {
 
     beforeAll(() => {
         window.i18next = { t: (key) => key, language: 'en' };
-        // Mirrors util.misc's rating rules (public/js/common/utilitiesSidewalk.js), which the real page supplies.
+        // Mirrors util.misc's rating rules (frontend/js/common/utilitiesSidewalk.js), which the real page supplies.
         window.util = {
             misc: {
                 labelTypeHasSeverity: (t) => !['NoSidewalk', 'Signal', 'Occlusion'].includes(t),
@@ -153,9 +148,10 @@ describe('GalleryFilter', () => {
         window.LabelDetail = {
             urlLabelId: () => parseInt(new URLSearchParams(window.location.search).get('labelId'), 10) || null,
         };
-        window.eval(URL_QUERY_SRC); // Defines util.url, which the URL readers/writers depend on.
-        window.eval(`${FILTER_SIDEBAR_SRC}\nwindow.FilterSidebar = FilterSidebar;`);
-        window.eval(`${GALLERY_FILTER_SRC}\nwindow.GalleryFilter = GalleryFilter;`);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, loadModules('frontend/js/common/filter-sidebar/FilterSidebar.js'));
+        Object.assign(window, loadModules('frontend/js/gallery/filter/GalleryFilter.js'));
     });
 
     beforeEach(() => {

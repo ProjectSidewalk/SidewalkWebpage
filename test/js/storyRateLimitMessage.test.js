@@ -7,12 +7,8 @@
  * 429 body the controller produces, and the rendered error text is asserted.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const COMPOSER_SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/label-detail/StoryComposer.js'), 'utf8'
-);
 
 /** The elements StoryComposer's constructor looks up, in a <dialog> host. */
 function setupDom() {
@@ -76,7 +72,7 @@ async function submitAndFail(body) {
 }
 
 beforeEach(() => {
-    window.eval(`${COMPOSER_SRC}\nwindow.StoryComposer = StoryComposer;`);
+    Object.assign(window, loadModules('frontend/js/common/label-detail/StoryComposer.js'));
     // #postForm posts through util.lazyIdentityFetch (#4442). The real helper passes a non-auth failure like this
     // suite's 429 through unchanged, so a pass-through stub is faithful; the mint/retry path has its own suite
     // (lazyIdentityFetch.test.js).

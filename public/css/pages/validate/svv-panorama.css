@@ -150,7 +150,7 @@
    z-index keeps it under the icon and the AI badge; it takes the pointer for the marker either way, since all three
    are the same element as far as the hover handlers are concerned. */
 #validate-pano-marker::after {
-  /* Mirrors util.LABEL_MIN_SCREEN_TARGET (public/js/common/utilities.js), which floors Explore's label target. One
+  /* Mirrors util.LABEL_MIN_SCREEN_TARGET (frontend/js/common/utilities.js), which floors Explore's label target. One
      WCAG number for both tools, so keep the two in step — CSS can't read the JS constant. */
   --label-min-target: 24px;
 

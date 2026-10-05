@@ -18,9 +18,9 @@ Each interactive tool has its own `Tracker` that buffers events and periodically
 
 | Tool | Tracker (frontend) | Backend table | Table model (Slick) |
 |------|--------------------|---------------|---------------------|
-| **Explore / Audit** (`explore`) | `public/js/explore/src/data/Tracker.js` | `audit_task_interaction` | `app/models/audit/AuditTaskInteractionTable.scala` |
-| **Validate** (`validate`, incl. mobile) | `public/js/validate/src/Tracker.js` | `validation_task_interaction` | `app/models/validation/ValidationTaskInteractionTable.scala` |
-| **Gallery** (`gallery`) | `public/js/gallery/src/data/Tracker.js` | `gallery_task_interaction` | `app/models/gallery/GalleryTaskInteractionTable.scala` |
+| **Explore / Audit** (`explore`) | `frontend/js/explore/data/Tracker.js` | `audit_task_interaction` | `app/models/audit/AuditTaskInteractionTable.scala` |
+| **Validate** (`validate`, incl. mobile) | `frontend/js/validate/Tracker.js` | `validation_task_interaction` | `app/models/validation/ValidationTaskInteractionTable.scala` |
+| **Gallery** (`gallery`) | `frontend/js/gallery/data/Tracker.js` | `gallery_task_interaction` | `app/models/gallery/GalleryTaskInteractionTable.scala` |
 
 The core call is **`tracker.push(action, note)`** (see `Tracker.push` in each Tracker file):
 
@@ -118,7 +118,7 @@ The LabelMap's "Download" control (`ps-map/MapDownloadControl.js`, #4095) logs t
 `/v3/api/rawLabels` request, so it also appears in the API request log), and `MapDownload_DocsLink` when the panel's
 API-documentation link is followed.
 
-The AccessScore tool (`/accessScore`, `public/js/access-score/`, #5217) logs its sidebar and map interactions as the
+The AccessScore tool (`/accessScore`, `frontend/js/access-score/`, #5217) logs its sidebar and map interactions as the
 **`Click_module=AccessScore_<Action>`** family, on a control's settled `change` (never per slider tick):
 `AccessScore_Unit_value=<streets|regions>`, `AccessScore_Weight_value=<labelType>_value=<magnitude>`,
 `AccessScore_ShowUnaudited_value=<bool>`, `AccessScore_ShowClusters_value=<bool>` (the evidence layer),
@@ -159,7 +159,7 @@ street leaderboard; it selects the street, so `AccessScore_Select_streetId` foll
 `AccessScore_RankOrder_value=<best|worst>` (which end of that leaderboard is on show). The drawer's `MapSidebar_Open` /
 `MapSidebar_Close` fire here too (shared chrome); the server logs `Visit_AccessScore` per page load, or `Visit_AccessScore_RedirectMobileLanding` when a mobile UA is bounced to `/mobileLanding` instead (the tool is desktop-only, like the Route Builder, and its Tools-menu entry is not rendered on a phone).
 
-The Gallery renders the same sidebar (`gallery/src/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
+The Gallery renders the same sidebar (`gallery/filter/GalleryFilter.js`) and logs to `gallery_task_interaction`
 under its own names, one `<Section>Apply` / `<Section>Unapply` pair per section with the toggled value in the notes:
 `LabelTypeApply` with `Label_Type:<type>`, `SeverityApply` with `Severity:<null|1|2|3>`, `ValidationOptionApply` with
 `ValidationOption:<option>`, and `TagApply` with `Tag:<tag>,Label_Type:<type>`. The batch affordances follow the same
@@ -181,14 +181,14 @@ Most events are fixed, transparently-named strings (`ContextMenu_Open`, `Onboard
 worth knowing about are the **families assembled at runtime**, which you won't find as full string literals:
 
 - **`LowLevelEvent_<domType>`** — raw DOM events. `Tracker.trackWindowEvents()` (in
-  `explore/src/data/Tracker.js`) binds `mousedown`, `mouseup`, `mouseover`, `mouseout`, `mousemove`, `click`,
+  `explore/data/Tracker.js`) binds `mousedown`, `mouseup`, `mouseover`, `mouseout`, `mousemove`, `click`,
   `contextmenu`, `dblclick`, `keydown`, `keyup` and pushes `"LowLevelEvent_" + e.type`, with `cursorX`/`cursorY` or
   `code` in the note. A click made by a keyboard shortcut logs `cursorX`/`cursorY` as `null`, since no pointer
   was involved.
 - **`ModeSwitch_<LabelType>`**, **`Click_ModeSwitch_<LabelType>`**, **`KeyboardShortcut_ModeSwitch_<LabelType>`** —
   labeling-mode changes; suffix is the label type (`CurbRamp`, `NoSidewalk`, …) or `Walk`. The prefix encodes *how*
-  the switch happened: programmatic vs. a mouse click (emitted in `explore/src/menu/RibbonMenu.js`) vs. a keyboard
-  shortcut (`explore/src/keyboard/KeyboardManager.js`).
+  the switch happened: programmatic vs. a mouse click (emitted in `explore/menu/RibbonMenu.js`) vs. a keyboard
+  shortcut (`explore/keyboard/KeyboardManager.js`).
 - **`Click_Subcategory_<Subcategory>`**, **`KeyboardShortcut_Severity_<n>`** — suffix is the chosen subcategory /
   severity value (also `RibbonMenu.js` / `KeyboardManager.js`); the severity one never fires for unrated label
   types.
@@ -302,7 +302,7 @@ ones whose meaning, parameters, or history aren't obvious:
 | `Visit_Admin_Team_Team=<teamId>` | Server-logged when an admin opens a team's own admin page (`/admin/team/:teamId`, #5381); the suffix is the team. Adding or removing a member from that page goes through the shared `/userapi/setUserTeam` and `/userapi/leaveTeam` endpoints, so it logs what those already log (`Click_module=LeaveTeam` for a removal) under the **admin's** user id rather than the member's — the same as assigning a team from the Management directory. |
 | `ReopenStreet_Street=<streetEdgeId>` / `DismissReopenCandidate_Street=<streetEdgeId>` | Server-logged in `AdminDashboardController` for the two judgements an admin can make in the "Regained imagery" queue on `/admin/street-status` (#4929): returning a retired street to the auditing pool, or ruling that the poll's evidence isn't good enough. Both log only when they changed something, so a refused reopen (the street is already open) and a dismiss of an already-dismissed street leave no row — the counts are judgements, not clicks. |
 | `Click_module=AdminSaveUserSettings_User=<userId>` | Server-logged in `AdminController.saveUserSettings` when an admin saves a user's account settings from that Manage user page. A role or manual-quality change in the same save also logs `UpdateRole_User=<userId>_Old=<role>_New=<role>` / `UpdateUserManualQuality_User=<userId>_Manual=<Some(bool)\|None>_New=<bool>`, the same events `/adminapi/setRole` logs from the Management page. Excluding or un-excluding the user logs `UpdateUserExcluded_User=<userId>_New=<bool>`. |
-| `TutorialIntro_Start` / `TutorialIntro_Next` / `TutorialIntro_StartMission` / `TutorialIntro_Skip` | The pre-tutorial intro walkthrough shown before the Explore onboarding (`explore/src/onboarding/TutorialIntro.js`): shown, advanced a step (`step` note = new index), finished into the tutorial, or skipped. `TutorialIntro_Skip` precedes the same `Onboarding_Skip` the onboarding itself emits, so a skip logs both. |
+| `TutorialIntro_Start` / `TutorialIntro_Next` / `TutorialIntro_StartMission` / `TutorialIntro_Skip` | The pre-tutorial intro walkthrough shown before the Explore onboarding (`explore/onboarding/TutorialIntro.js`): shown, advanced a step (`step` note = new index), finished into the tutorial, or skipped. `TutorialIntro_Skip` precedes the same `Onboarding_Skip` the onboarding itself emits, so a skip logs both. |
 | `TutorialIntro_PauseAnimation` / `TutorialIntro_PlayAnimation` / `Onboarding_PauseAnimation` / `Onboarding_PlayAnimation` | The pause control on the looping tutorial illustration clips — the intro walkthrough's per-step clip and the tutorial-complete celebration clip. Only a click on the control logs; a visitor whose `prefers-reduced-motion` setting starts the clips paused logs nothing. |
 | `MinimapOverview_End` / `Click_MinimapFitRoute` | The minimap's fitted whole-route overview (#4639): ended (the `trigger` note says how — `pano-changed`, `zoom`, `fit-button`, or `route-inset`), and the manual toggle from the ⛶ button or the route-overview inset (`mode` note = the resulting state, `trigger` note = which control). |
 | `Click_MinimapRouteOverview` | Click/tap on the whole-route overview inset shown on designated (RouteBuilder) routes (#4639); precedes the `Click_MinimapFitRoute` it triggers (`trigger=route-inset`), fitting the minimap to the whole route. |
@@ -359,12 +359,12 @@ The reference above is intentionally partial. To get the **authoritative, curren
 literals):
 
 ```bash
-# Literal event names emitted by the Explore tool (swap in validate/src or gallery/src for the others):
-grep -rhoE "push\(\s*['\"][A-Za-z0-9_]+" public/js/explore/src --include=*.js | sort -u
+# Literal event names emitted by the Explore tool (swap in validate or gallery for the others):
+grep -rhoE "push\(\s*['\"][A-Za-z0-9_]+" frontend/js/explore --include=*.js | sort -u
 ```
 
 Then read each tool's `Tracker.js` for the generated families (start with `trackWindowEvents()` in
-`explore/src/data/Tracker.js`), and `explore/src/menu/RibbonMenu.js` + `explore/src/keyboard/KeyboardManager.js` for
+`explore/data/Tracker.js`), and `explore/menu/RibbonMenu.js` + `explore/keyboard/KeyboardManager.js` for
 the `ModeSwitch_`/`Severity_`/`Subcategory_` suffixes. The backend table models (table above) define the columns each
 event is stored in.
 

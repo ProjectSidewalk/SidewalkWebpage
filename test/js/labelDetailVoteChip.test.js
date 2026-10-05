@@ -1,5 +1,5 @@
 /**
- * Tests for LabelDetail.voteChipFor (public/js/common/label-detail/LabelDetail.js, issue #5015).
+ * Tests for LabelDetail.voteChipFor (frontend/js/common/label-detail/LabelDetail.js, issue #5015).
  *
  * Each validator comment is drawn with a chip naming its author's vote on the label. The vote is joined server-side
  * per (label_id, user_id) rather than stored with the comment, so the field is absent for a commenter who never
@@ -17,10 +17,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const { loadModules } = require('./loadGlobalScript');
 
-const SRC = fs.readFileSync(
-    path.resolve(__dirname, '..', '..', 'public/js/common/label-detail/LabelDetail.js'), 'utf8'
-);
 
 /** The two globals voteChipFor reaches for, stubbed so the assertions read against known strings. */
 function stubGlobals() {
@@ -33,7 +31,7 @@ function stubGlobals() {
 /** Loads a fresh LabelDetail class into the jsdom global scope. */
 function loadLabelDetail() {
     stubGlobals();
-    window.eval(`${SRC}\nwindow.LabelDetail = LabelDetail;`);
+    Object.assign(window, loadModules('frontend/js/common/label-detail/LabelDetail.js'));
     return window.LabelDetail;
 }
 

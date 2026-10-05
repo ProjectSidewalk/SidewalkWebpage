@@ -11,14 +11,9 @@
  * The classes are top-level declarations concatenated into page scope by Grunt, so the tests evaluate the sources.
  */
 
-/* global MissionStartTutorial -- pulled into scope by the eval() loader below. */
+const { assetPathStub, loadModules } = require('./loadGlobalScript');
 
-const fs = require('fs');
-const path = require('path');
-
-const {assetPathStub} = require('./loadGlobalScript');
-
-const SRC = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..', relativePath), 'utf8');
+/* global MissionStartTutorial -- put on global by the suite's setup. */
 
 /**
  * Load a bare `class` declaration out of a production file.
@@ -27,16 +22,16 @@ const SRC = (relativePath) => fs.readFileSync(path.resolve(__dirname, '..', '..'
  * @returns {Function} The class.
  */
 function loadClass(relativePath, className) {
-    return (0, eval)('(() => {\n' + SRC(relativePath) + '\nreturn ' + className + ';\n})()');
+    return loadModules(relativePath)[className];
 }
 
-const ModalMission = loadClass('public/js/validate/src/modal/ModalMission.js', 'ModalMission');
+const ModalMission = loadClass('frontend/js/validate/modal/ModalMission.js', 'ModalMission');
 const ModalMissionComplete = loadClass(
-    'public/js/validate/src/modal/ModalMissionComplete.js', 'ModalMissionComplete'
+    'frontend/js/validate/modal/ModalMissionComplete.js', 'ModalMissionComplete'
 );
-const ModalNoNewMission = loadClass('public/js/validate/src/modal/ModalNoNewMission.js', 'ModalNoNewMission');
-const BadgeAchievements = loadClass('public/js/common/BadgeAchievements.js', 'BadgeAchievements');
-const ProgressBar = loadClass('public/js/common/ProgressBar.js', 'ProgressBar');
+const ModalNoNewMission = loadClass('frontend/js/validate/modal/ModalNoNewMission.js', 'ModalNoNewMission');
+const BadgeAchievements = loadClass('frontend/js/common/BadgeAchievements.js', 'BadgeAchievements');
+const ProgressBar = loadClass('frontend/js/common/ProgressBar.js', 'ProgressBar');
 
 /** The two slides MissionStartTutorial hands the briefing for a label type: the right example, then a wrong one. */
 const SLIDES = [

@@ -61,10 +61,10 @@ class ExploreRoutesSpec extends SidewalkSpec with RoleSession with GuiceOneAppPe
       // The same mission as the bare visit, not a drop-in, and the seed rode along.
       html must include(s""""mission_id":$missionId""")
       html must include(""""mission_type":"audit"""")
-      html must include("mainParam.startPanoId = \"abc-123\"")
-      html must include("mainParam.startLat = 47.615")
+      html must include("\"startPanoId\": \"abc-123\"")
+      html must include("\"startLat\": 47.615")
       // A POV whose heading is not a number is no POV.
-      html must not include "mainParam.startPov"
+      html must not include "startPov"
 
       // With a real heading, the non-finite refinements fall back to their defaults instead of reaching the page.
       val refined = route(
@@ -73,7 +73,7 @@ class ExploreRoutesSpec extends SidewalkSpec with RoleSession with GuiceOneAppPe
           .withCookies(cookies*)
       ).get
       status(refined) mustBe OK
-      contentAsString(refined) must include("mainParam.startPov = { heading: 90.0, pitch: 0.0, zoom: 1.0 }")
+      contentAsString(refined) must include("\"startPov\": {\"heading\": 90.0, \"pitch\": 0.0, \"zoom\": 1.0}")
     }
 
     "treat another user's missionId as inert: the recipient never enters that mission" in {

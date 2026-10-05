@@ -15,32 +15,21 @@
  * they are eval'd into global scope rather than required.
  */
 
-const fs = require('fs');
-const path = require('path');
-const { loadGlobalScript } = require('./loadGlobalScript');
+const { loadModules, mockModule, realUtil } = require('./loadGlobalScript');
 
 // The page fetches through util.fetchJson.
-loadGlobalScript('public/js/common/utilities.js');
+window.util = realUtil();
 
-const JS_DIR = path.resolve(__dirname, '..', '..', 'public/js/admin-dashboard');
 
 /** Chart calls, recorded instead of drawn. */
 const charts = [];
 
 /** Loads the page and every class it collaborates with into global scope. */
 function loadPage() {
-  const read = (file) => fs.readFileSync(path.join(JS_DIR, file), 'utf8');
-  globalThis.MiniLineChart = {
-    renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }),
-  };
-  return (0, eval)([
-    read('AdminShell.js'), 'globalThis.AdminShell = AdminShell;',
-    read('StreetPriorityMap.js'), 'globalThis.StreetPriorityTiers = StreetPriorityTiers;',
-    'globalThis.StreetPriorityMap = StreetPriorityMap;',
-    read('StreetPriorityTable.js'), 'globalThis.StreetPriorityTable = StreetPriorityTable;',
-    read('ImageryPipelinePanel.js'), 'globalThis.ImageryPipelinePanel = ImageryPipelinePanel;',
-    read('ImageryPage.js'), 'ImageryPage;',
-  ].join('\n'));
+  mockModule('frontend/js/admin-dashboard/MiniLineChart.js', () => ({
+    MiniLineChart: { renderInto: (host, labels, series, options) => charts.push({ host, labels, series, options }) },
+  }));
+  return loadModules('frontend/js/admin-dashboard/ImageryPage.js').ImageryPage;
 }
 
 const ImageryPage = loadPage();

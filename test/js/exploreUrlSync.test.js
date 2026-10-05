@@ -1,5 +1,5 @@
 /**
- * Tests for Explore's live URL (public/js/explore/src/navigation/ExploreUrlSync.js, #5480): the address bar follows
+ * Tests for Explore's live URL (frontend/js/explore/navigation/ExploreUrlSync.js, #5480): the address bar follows
  * the labeler's pano, view and immersive state, through `replaceState` and under a write budget.
  *
  * What the module has to get right is the contract with the read side (ExploreController binds these names), that
@@ -8,11 +8,8 @@
  * `class` reaching for `util.url`, so the source is eval'd into jsdom with urlQuery.js loaded first.
  */
 
-const fs = require('fs');
-const path = require('path');
+const { loadModules, realUtil } = require('./loadGlobalScript');
 
-const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const read = (p) => fs.readFileSync(path.join(REPO_ROOT, p), 'utf8');
 
 describe('ExploreUrlSync', () => {
     let ExploreUrlSync;
@@ -37,8 +34,9 @@ describe('ExploreUrlSync', () => {
     const currentUrl = () => `${window.location.pathname}${window.location.search}`;
 
     beforeAll(() => {
-        window.eval(read('public/js/common/urlQuery.js'));
-        window.eval(`${read('public/js/explore/src/navigation/ExploreUrlSync.js')}\nwindow.ExploreUrlSync = ExploreUrlSync;`);
+        window.util ??= realUtil();
+        loadModules('frontend/js/common/urlQuery.js');
+        Object.assign(window, loadModules('frontend/js/explore/navigation/ExploreUrlSync.js'));
         ExploreUrlSync = window.ExploreUrlSync;
     });
 

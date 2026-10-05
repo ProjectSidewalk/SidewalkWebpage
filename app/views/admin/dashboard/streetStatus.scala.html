@@ -83,22 +83,9 @@
   <link rel="stylesheet" href="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.css")">
   <script src="@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")"></script>
 
-  <script src="@assets.path("js/common/ConfirmDialog.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/MiniLineChart.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetStatusMap.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetStatusTable.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetStatusTrend.js")"></script>
-  <script src="@assets.path("js/admin-dashboard/StreetStatusPage.js")"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', () => {
-      new StreetStatusPage({
-        mapboxToken: '@commonData.mapboxApiKey',
-        streetsUrl: '/v3/api/streets?filetype=geojson',
-        trendUrl: '/adminapi/streetStatusTrend',
-        trendWeeks: @service.StreetLifecycleService.DefaultTrendWeeks
-      }).init();
-    });
-  </script>
+  <script type="module" id="page-entry" src='@assets.path("build/js/admin/streetStatus.js")'
+          data-mapbox-token="@commonData.mapboxApiKey"
+          data-trend-weeks="@service.StreetLifecycleService.DefaultTrendWeeks"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Street Status") {
