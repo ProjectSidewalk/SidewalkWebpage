@@ -18,7 +18,7 @@ import models.route.RouteWithStats
 import models.user.*
 import models.utils.{AiTagConfidence, ClusteringThreshold, ExcludedTag}
 import models.utils.CommonUtils.UiSource
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory, MultiPolygon}
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers
 import play.api.libs.json.{Json, Writes}
@@ -61,19 +61,12 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
       Mission(2, MissionType.Audit, "u", t, t, true, 0.5, false, None, None, None, None, None, None, true, None, None)
     val bareMissionJson =
       """{"mission_id":2,"mission_type":"audit","user_id":"u","mission_start":"2026-09-29T12:30:00Z","mission_end":"2026-09-29T12:30:00Z","completed":true,"pay":0.5,"paid":false,"skipped":true}"""
-    val square: MultiPolygon = {
-      val gf   = GeometryFactory()
-      val ring = gf.createLinearRing(Array(Coordinate(0, 0), Coordinate(1, 0), Coordinate(1, 1), Coordinate(0, 0)))
-      gf.createMultiPolygon(Array(gf.createPolygon(ring)))
-    }
     check(
       ExploreSession(
         None,
         bareMission,
         3,
-        "Downtown",
-        square,
-        4,
+        "Downtown", 4,
         true,
         Some(5),
         Some(6),
@@ -86,12 +79,12 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
         Some(POV(90.0, 0.0, 1.0)),
         Some("Town Hall")
       ),
-      s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","region_geom":{"type":"MultiPolygon","coordinates":[[[[0,0],[1,0],[1,1],[0,0]]]]},"next_temporary_label_id":4,"has_completed_mission":true,"route_id":5,"user_route_id":6,"route_name":"Walk","route_resumed":true,"route_unavailable":false,"start_lat":1.5,"start_lng":2.5,"start_pano_id":"p","start_pov":{"heading":90,"pitch":0,"zoom":1},"start_place_name":"Town Hall"}"""
+      s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","next_temporary_label_id":4,"has_completed_mission":true,"route_id":5,"user_route_id":6,"route_name":"Walk","route_resumed":true,"route_unavailable":false,"start_lat":1.5,"start_lng":2.5,"start_pano_id":"p","start_pov":{"heading":90,"pitch":0,"zoom":1},"start_place_name":"Town Hall"}"""
     )
     check(
-      ExploreSession(None, bareMission, 3, "Downtown", square, 4, false, None, None, None, false, true, None, None,
+      ExploreSession(None, bareMission, 3, "Downtown", 4, false, None, None, None, false, true, None, None,
         None, None, None),
-      s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","region_geom":{"type":"MultiPolygon","coordinates":[[[[0,0],[1,0],[1,1],[0,0]]]]},"next_temporary_label_id":4,"has_completed_mission":false,"route_resumed":false,"route_unavailable":true}"""
+      s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","next_temporary_label_id":4,"has_completed_mission":false,"route_resumed":false,"route_unavailable":true}"""
     )
     check(
       TeamMemberStats("u", "n", Role.Registered, 1, 2, 3.5, 4, 5, Some(t), true, false),

@@ -712,7 +712,9 @@ util.onDomReady = onDomReady;
  */
 util.fetchJson = async function (url, init = {}) {
   const response = await fetch(url, { ...init, headers: { Accept: 'application/json', ...init.headers } });
-  if (!response.ok) throw new Error(`Request failed (${response.status}): ${url}`);
+  if (!response.ok) {
+    throw Object.assign(new Error(`Request failed (${response.status}): ${url}`), { status: response.status });
+  }
   return response.json();
 };
 

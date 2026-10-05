@@ -161,9 +161,16 @@ class ExploreRoutesSpec extends SidewalkSpec with RoleSession with GuiceOneAppPe
     "bind a fractional zoom, since the live URL writes the wheel's continuous value (#5480)" in {
       val result =
         route(app, FakeRequest(GET, "/explore?lat=47.615&lng=-122.332&panoId=abc-123&heading=90&zoom=1.75")).get
-      // An Int binder would answer 400 here before any redirect.
       status(result) must (be >= 300 and be < 400)
       redirectLocation(result).value must include("zoom=1.75")
+
+      // The session endpoint is where the value is bound; an Int binder would answer 400 here.
+      val cookies = freshAnonSession()
+      completeTutorial(cookies)
+      val missionId = (exploreSession(cookies, "") \ "mission" \ "mission_id").as[Int]
+      val seeded    =
+        exploreSession(cookies, s"?lat=47.615&lng=-122.332&panoId=abc-123&heading=90&zoom=1.75&missionId=$missionId")
+      (seeded \ "start_pov" \ "zoom").as[Double] mustBe 1.75
     }
   }
 }

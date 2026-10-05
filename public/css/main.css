@@ -1445,6 +1445,11 @@ kbd {
   display: block;
 }
 
+/* "Chargement impossible" at the heading's 45px would spill past the box; a smaller title still reads as one. */
+.page-loading--failed .loading-text {
+  font-size: 28px;
+}
+
 /*
  * CSS for the footer header
 */

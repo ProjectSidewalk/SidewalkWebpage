@@ -8,20 +8,18 @@ import { svl } from '../svl.js';
 
 export class Region {
   #properties = {
-    geoJSON: null,
     name: null,
     regionId: null,
   };
 
   /**
-   * @param {object} parameters - May contain regionId, geoJSON, and name.
+   * @param {object} parameters - May contain regionId and name.
    */
   constructor(parameters) {
     if ('regionId' in parameters) {
       this.setProperty('regionId', parameters.regionId);
       this.regionId = parameters.regionId; // Exposed publicly for debugging in the console.
     }
-    if ('geoJSON' in parameters) this.setProperty('geoJSON', parameters.geoJSON);
     if ('name' in parameters) this.setProperty('name', parameters.name);
   }
 
@@ -72,12 +70,5 @@ export class Region {
    */
   getRegionId() {
     return this.getProperty('regionId');
-  }
-
-  /**
-   * @returns {?object} The region's GeoJSON, or null if not set.
-   */
-  getGeoJSON() {
-    return this.#properties.geoJSON ? this.#properties.geoJSON : null;
   }
 }

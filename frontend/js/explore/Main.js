@@ -232,7 +232,7 @@ export class Main {
     svl.audioEffect = new AudioEffect(svl.storage);
 
     const region = new Region({
-      regionId: session.region_id, geoJSON: session.region_geom, name: session.region_name,
+      regionId: session.region_id, name: session.region_name,
     });
     svl.regionModel.setCurrentRegion(region);
 

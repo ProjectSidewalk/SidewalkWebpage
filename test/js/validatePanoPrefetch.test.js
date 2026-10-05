@@ -61,7 +61,7 @@ describe('LabelContainer prefetches upcoming backup panos (issue #5562)', () => 
       undoValidation: { enableUndo: jest.fn() },
       labelVisibilityControl: { hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true },
       modalNoNewMission: { show: jest.fn() },
-      form: { getValidateParams: () => ({}) },
+      validateParams: {},
       ui: { holder: el(), busyRegion: [el()], viewer: { controlLayer: el() } },
       panoManager: {
         renderPanoMarker: jest.fn(),

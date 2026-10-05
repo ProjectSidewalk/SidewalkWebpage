@@ -24,8 +24,8 @@ import util.SidewalkSpec
  * pauses every active walk — so a typo knocked a labeler out of a route they were legitimately in. That exit path is
  * asserted here too, since the fix works by keeping it reachable only through the explicit parameter.
  *
- * Boots the real app against Postgres so routing, Silhouette, the DAO layer, and the page's bootstrap script all run;
- * the flag is read back the way the client does, out of the inline `mainParam` assignments. Everything written is
+ * Boots the real app against Postgres so routing, Silhouette and the DAO layer all run; the flag is read back the way
+ * the client does, out of the /explore/session answer. Everything written is
  * keyed to the throwaway anon users the suite mints and is deleted in `afterAll`, so a failed assertion can't leave
  * the shared dev DB altered.
  */
@@ -53,7 +53,7 @@ class ExploreRouteRequestSpec
   /** Users minted by this suite; the routes and walks written under them are deleted in `afterAll`. */
   private var createdUserIds: Set[String] = Set.empty
 
-  /** Resolves an Explore visit's session through /explore/session, as the page does for the query it was opened with. */
+  /** Resolves an Explore visit's session through /explore/session, as the page does for the query it opened with. */
   private def exploreSession(session: Seq[Cookie], query: String): JsValue = {
     val resp = route(app, FakeRequest(GET, s"/explore/session$query").withCookies(session*)).get
     withClue(s"/explore/session$query: ") { status(resp) mustBe OK }

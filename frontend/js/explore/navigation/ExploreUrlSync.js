@@ -2,7 +2,7 @@
  * Keeps Explore's address bar in step with the labeler, so the URL is always a link to where they are and what they
  * are looking at (#5480): the current pano, its position, the point of view, and whether the pano fills the window.
  *
- * This is the write side of `/explore`'s seed params. The read side already existed — `ExploreController.explore`
+ * This is the write side of `/explore`'s seed params. The read side already existed — `ExploreController.getSession`
  * binds `panoId`, `lat`, `lng`, `heading`, `pitch` and `zoom`, and the mission-complete "keep exploring here" and the
  * label card's "Explore here" build that URL — so the two have to agree on names and meaning. The rules:
  *

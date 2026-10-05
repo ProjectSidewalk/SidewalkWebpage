@@ -369,7 +369,8 @@
   "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw.",
   "session-load-failed": {
     "title": "Laden mislukt",
-    "body": "We konden je missie niet laden. Herlaad de pagina om het opnieuw te proberen."
+    "body": "We konden je missie niet laden. Herlaad de pagina om het opnieuw te proberen.",
+    "bad-link": "Deze link is niet geldig. Controleer het adres en probeer het opnieuw."
   },
   "label-type-picker": {
     "current": "{{labelType}} (huidig type)",

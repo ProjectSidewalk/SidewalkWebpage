@@ -67,6 +67,7 @@ window.appManager.ready(async () => {
     // The user has finished their assigned region, so there is nothing to explore until they pick a new one.
     document.querySelectorAll('.tool-ui').forEach((el) => el.classList.remove('ps-invisible'));
     document.getElementById('already-completed-region-overlay').style.display = 'block';
+    return;
   }
   new Main(mainParam, exploreSession);
 });

@@ -67,10 +67,7 @@ class ExploreController @Inject() (
         makeCrops        <- configService.getMakeCrops
       } yield {
         val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
-        // Never cached: a back/forward navigation that re-rendered an old copy of the page would still fetch the
-        // session afresh, but a stale copy of the markup itself is nothing a deploy wants to live with either.
-        Ok(views.html.apps.explore(commonData, pageTitle, user, surveyData, tutorialStreetId, makeCrops))
-          .withHeaders(CACHE_CONTROL -> "no-store")
+        noStore(Ok(views.html.apps.explore(commonData, pageTitle, user, surveyData, tutorialStreetId, makeCrops)))
       }
     }
   }
@@ -188,17 +185,14 @@ class ExploreController @Inject() (
       val startPov: Option[POV] =
         if (seeded) seedHeading.map(h => POV(h, seedPitch.getOrElse(0.0), seedZoom.getOrElse(1.0))) else None
 
-      Ok(
-        Json.toJson(
-          ExploreSession(
-            exploreData.task, exploreData.mission, exploreData.region.regionId, exploreData.region.name,
-            exploreData.region.geom, exploreData.nextTempLabelId, exploreData.hasCompletedAMission,
-            exploreData.userRoute.map(_.routeId), exploreData.userRoute.map(_.userRouteId),
-            exploreData.route.map(_.name), exploreData.routeResumed, exploreData.routeUnavailable, startLat, startLng,
-            startPanoId, startPov, startPlaceName
-          )
+      noStore(Ok(Json.toJson(
+        ExploreSession(
+          exploreData.task, exploreData.mission, exploreData.region.regionId, exploreData.region.name,
+          exploreData.nextTempLabelId, exploreData.hasCompletedAMission, exploreData.userRoute.map(_.routeId),
+          exploreData.userRoute.map(_.userRouteId), exploreData.route.map(_.name), exploreData.routeResumed,
+          exploreData.routeUnavailable, startLat, startLng, startPanoId, startPov, startPlaceName
         )
-      ).withHeaders(CACHE_CONTROL -> "no-store")
+      )))
     }
   }
 

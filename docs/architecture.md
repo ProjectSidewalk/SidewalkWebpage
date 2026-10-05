@@ -357,7 +357,7 @@ loaded by the corresponding Twirl view:
   Explore's URL follows the labeler (#5480, `src/navigation/ExploreUrlSync.js`): on pano and POV changes, at most one
   write per 500 ms with the latest state winning, it is rewritten in place (`replaceState`, never a Back entry) with
   `panoId`, `lat`, `lng`, `heading`, `pitch`, `zoom` and, in immersive mode, `immersive=1` — the same params
-  `ExploreController.explore` reads, so the address bar is always a shareable link to that view. To anyone else the
+  `ExploreController.getSession` reads, so the address bar is always a shareable link to that view. To anyone else the
   URL names a place, not a session: opening it lands in free exploration there (the `?lat&lng` drop-in of #4451),
   never in the sharer's mission or route, so `routeId`, `resumeRoute`, `regionId`, `streetEdgeId` and `placeName`
   are dropped from it once the page is up. To its owner it is still their session: the URL also carries the

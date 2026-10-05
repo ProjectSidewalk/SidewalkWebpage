@@ -9,7 +9,7 @@ import models.mission.Mission
 import models.pano.PanoSource
 import models.street.StreetEdgePriority
 import models.utils.MyPostgresProfile.api.given
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory, MultiPolygon, Point}
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import play.api.libs.functional.syntax.*
 import play.api.libs.json.*
 import service.UpdatedStreets
@@ -156,7 +156,6 @@ object ExploreFormats {
       mission: Mission,
       regionId: Int,
       regionName: String,
-      regionGeom: MultiPolygon,
       nextTemporaryLabelId: Int,
       hasCompletedMission: Boolean,
       routeId: Option[Int],

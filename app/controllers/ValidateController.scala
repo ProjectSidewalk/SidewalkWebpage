@@ -30,7 +30,6 @@ import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
 import play.api.libs.json.*
 import play.api.mvc.Result
-import play.twirl.api.Html
 import service.{ValidationSubmission, ValidationTaskPostReturnValue}
 
 import java.time.OffsetDateTime
@@ -88,10 +87,10 @@ class ValidateController @Inject() (
               commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
-              toolPage(
+              noStore(Ok(
                 views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
                   validateParams, tags)
-              )
+              ))
             }
           } else {
             Future.successful(response)
@@ -140,10 +139,10 @@ class ValidateController @Inject() (
               commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
-              toolPage(
+              noStore(Ok(
                 views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"), user,
                   validateParams, tags)
-              )
+              ))
             }
           } else {
             Future.successful(response)
@@ -180,10 +179,10 @@ class ValidateController @Inject() (
               Redirect("/")
             } else {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
-              toolPage(
+              noStore(Ok(
                 views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
                   tags)
-              )
+              ))
             }
           }
         } else {
@@ -303,9 +302,9 @@ class ValidateController @Inject() (
   /**
    * Serves the mission a Validate page starts on (#5650): the one the user left unfinished, or a fresh one.
    *
-   * The page's HTML no longer carries a mission, so a cached copy of it can never show labels the user has already
-   * judged; the page asks here instead, and the answer has the same shape as the mission-complete response of
-   * [[post]], so the client builds a mission one way. The body carries the page's filters, cut down by
+   * The page asks here rather than carrying the mission in its HTML, so a cached copy of the page can never show
+   * labels the user has already judged; the answer has the same shape as the mission-complete response of [[post]],
+   * so the client builds a mission one way. The body carries the page's filters, cut down by
    * [[paramsAllowedFor]] like every other body that claims them.
    */
   def getMission = cc.securityService.SecuredAction(parse.json) { implicit request =>
@@ -316,9 +315,10 @@ class ValidateController @Inject() (
         missionRequest => {
           val user: SidewalkUserWithRole = request.identity
           val safeParams: ValidateParams = paramsAllowedFor(missionRequest.validateParams, user)
+          val completedValidationsF      = validationService.countValidations(user.userId)
           for {
             returnValue          <- labelService.getDataForValidationPages(user, labelCount = 10, safeParams)
-            completedValidations <- validationService.countValidations(user.userId)
+            completedValidations <- completedValidationsF
             maxSpeeds <- osmWayService.getMaxSpeedsForStreets(returnValue.labels.map(_.streetEdgeId).distinct)
           } yield {
             val mission: JsObject = missionJson(returnValue, safeParams.adminVersion, maxSpeeds)
@@ -327,9 +327,6 @@ class ValidateController @Inject() (
         }
       )
   }
-
-  /** A tool page's response: never cached, so a back/forward navigation can't resurrect a stale copy (#5650). */
-  private def toolPage(html: Html): Result = Ok(html).withHeaders(CACHE_CONTROL -> "no-store")
 
   /**
    * The JSON a mission is handed over as, shared by the first-mission and mission-complete responses.
