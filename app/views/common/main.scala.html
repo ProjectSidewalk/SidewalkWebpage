@@ -2,7 +2,7 @@
 @import models.label.LabelType
 @import models.pano.ImageryAttribution
 @import models.utils.PanoScoring
-@import play.api.libs.json.Json
+@import views.ViewHelpers.jsonForScript
 @import service.CommonPageData
 @import play.filters.csrf.CSRF
 @(commonData: CommonPageData, title: String, defaultI18nNamespace: String = "common", i18Namespaces: Seq[String] = Seq("common"), url: String = "/", extraHead: Html = Html(""), pageMeta: service.PageMeta = service.PageMeta()
@@ -95,17 +95,17 @@
       "csrfToken": "@CSRF.getToken.map(_.value)",
       "i18next": {
         "language": "@messages.lang.code",
-        "supportedLanguages": @Html(Json.stringify(Json.toJson(commonData.supportedLanguages))),
+        "supportedLanguages": @jsonForScript(commonData.supportedLanguages),
         "localeFiles": @commonData.localeFilesJson,
         "defaultNS": "@defaultI18nNamespace",
-        "namespaces": @Html(i18Namespaces.map(namespace => s""""$namespace"""").mkString("[", ",", "]")),
+        "namespaces": @jsonForScript(i18Namespaces),
         "countryId": "@currentCity.countryId",
         @* The distance words for this request's language and measurement system, resolved once on the server so the
            locale files don't carry a second copy of them. AppManager makes them i18next interpolation defaults. *@
-        "unitWords": @Html(Json.stringify(Json.toJson(Map(
+        "unitWords": @jsonForScript(Map(
           "unitAbbr" -> unitWords.abbr, "unitAbbrSmall" -> unitWords.abbrSmall,
           "unitName" -> unitWords.name, "unitNameSingular" -> unitWords.nameSingular
-        ))))
+        ))
       },
       "globals": {
         "cityId": "@commonData.cityId",
