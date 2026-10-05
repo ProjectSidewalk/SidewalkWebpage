@@ -618,6 +618,22 @@
 .mini-ref-label {
   fill: var(--color-neutral-700);
   font: var(--text-caption-semibold);
+
+  /* The label sits over the plot, so bars and gridlines can run behind it; a translucent halo in the card color keeps
+     it legible there. paint-order draws the halo under the glyphs, not over them. */
+  paint-order: stroke;
+  stroke: var(--color-neutral-white);
+  stroke-linejoin: round;
+  stroke-opacity: 0.85;
+  stroke-width: 4px;
+}
+
+/* The trailing-year average on the Across Cities per-day charts (#5653): a 0.5pt hairline, so the bars stay the
+   figure and the average reads as background. Anti-aliasing renders a line that thin below 3:1 on a 1x screen even
+   at full opacity, so the on-chart text label, not the stroke, is what carries the value for WCAG 1.4.11. */
+.mini-ref--baseline {
+  opacity: 1;
+  stroke-width: 0.67px;
 }
 
 .mini-value--emphasis {

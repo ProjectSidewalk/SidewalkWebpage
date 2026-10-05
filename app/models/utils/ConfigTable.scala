@@ -11,6 +11,7 @@ import service.{
   CityStoryStats,
   ContributorKind,
   ContributorWindowActivity,
+  DailyBaselineRow,
   DailyContributorActivity,
   WeeklyPoint
 }
@@ -756,7 +757,8 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
    * driving CTE's name rather than being a constant.** `user_role` runs to millions of rows and is ~99.9% `Anonymous`
    * (5.73M of 5.74M in prod), so a body that grouped every user — or even filtered on the role names — would aggregate
    * millions of rows, and these queries run once per city schema across ~56 schemas per cache refresh. Restricting to
-   * the handful of users active in the window keeps it index lookups on `user_role_user_id_key` instead.
+   * the users active in the window keeps it index lookups on `user_role_user_id_key` instead — a handful for a week,
+   * tens of thousands (mostly anonymous cookies) for the trailing-year baseline, still far short of the whole table.
    *
    * `BOOL_OR` + `GROUP BY` rather than a join on role name, so each user yields exactly one row here whatever the
    * role table holds.
@@ -787,15 +789,16 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
                   ELSE 'registered' END"""
 
   /**
-   * Per-person daily label/validation volume for one city's trailing window, for the "this week" bar charts (#4686)
+   * Per-person daily label/validation volume for one city's trailing window, for the per-day bar charts (#4686)
    * and their hover breakdowns (#4931).
    *
    * The daily counterpart of [[getCityWeeklyTrendBySchema]]: identical activity definition and exclusions, bucketed by
    * calendar day in Pacific time. Reporting at (day, person) grain rather than as day totals lets the service derive
    * the bars, the human/AI split, and the named contributor list from one scan, so a bar can never disagree with the
    * card that explains it. Days with no activity are absent (the service zero-fills the window). The time bound is a
-   * raw-timestamp comparison one day wider than the window so it stays index-friendly (no per-row time-zone conversion
-   * in the WHERE); the service trims to the exact Pacific-day window.
+   * raw-timestamp comparison wider than the window so it stays index-friendly (no per-row time-zone conversion in the
+   * WHERE); the service trims to the exact Pacific-day window. Two days wider, not one: on the 25-hour fall-back day,
+   * `NOW()` minus whole days can land past the window's first Pacific midnight and clip the oldest day.
    *
    * The username join is a LEFT JOIN so a person missing from `sidewalk_user` still contributes their counts to the
    * day's totals (which the service sums from these rows) instead of vanishing from them.
@@ -816,11 +819,11 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       WITH activity AS (
           SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
           FROM #${FilteredTables.labels(Some(schema))}
-          WHERE label.time_created >= NOW() - ((${days} + 1) * INTERVAL '1 day')
+          WHERE label.time_created >= NOW() - ((${days} + 2) * INTERVAL '1 day')
           UNION ALL
           SELECT label_validation.end_timestamp AS activity_ts, label_validation.user_id AS activity_user_id, 'validation' AS kind
           FROM #${FilteredTables.votesCast(Some(schema))}
-          WHERE label_validation.end_timestamp >= NOW() - ((${days} + 1) * INTERVAL '1 day')
+          WHERE label_validation.end_timestamp >= NOW() - ((${days} + 2) * INTERVAL '1 day')
       ),
       per_day_user AS (
           SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS day, activity_user_id,
@@ -838,6 +841,62 @@ class ConfigTable @Inject() (protected val dbConfigProvider: DatabaseConfigProvi
       LEFT JOIN account_kinds ON per_day_user.activity_user_id = account_kinds.user_id
       ORDER BY per_day_user.day ASC, per_day_user.activity_user_id ASC;
     """.as[DailyContributorActivity]
+  }
+
+  /**
+   * One city's trailing-year daily activity for the per-day charts' reference averages (#5653).
+   *
+   * Same activity union, exclusions, Pacific-day bucketing and index-friendly raw-timestamp bound (two days wider than
+   * the window) as [[getCityDailyActivityByUserBySchema]], so the averages are counted exactly like the bars they sit
+   * under. Registered people keep one row per (day, person) because the service deduplicates them across cities;
+   * anonymous and AI activity is summed to one row per (day, kind), since neither is counted as a person across
+   * cities and a year of per-cookie anonymous rows would multiply the result size for nothing. No username join: the
+   * baseline never names anyone.
+   *
+   * @param schema The database schema to query.
+   * @param days   Trailing calendar days the caller averages over; the service trims to the exact window.
+   * @return       DBIO yielding one row per (day, registered person) plus one per (day, collapsed kind), ascending by
+   *               day; collapsed rows carry an empty user id.
+   */
+  def getCityDailyBaselineBySchema(schema: String, days: Int): DBIO[Seq[DailyBaselineRow]] = {
+    given getResult: GetResult[DailyBaselineRow] =
+      r =>
+        DailyBaselineRow(
+          LocalDate.parse(r.nextString()), r.nextString(), ContributorKind.withName(r.nextString()), r.nextInt(),
+          r.nextInt()
+        )
+
+    sql"""
+      WITH activity AS (
+          SELECT label.time_created AS activity_ts, label.user_id AS activity_user_id, 'label' AS kind
+          FROM #${FilteredTables.labels(Some(schema))}
+          WHERE label.time_created >= NOW() - ((${days} + 2) * INTERVAL '1 day')
+          UNION ALL
+          SELECT label_validation.end_timestamp AS activity_ts, label_validation.user_id AS activity_user_id, 'validation' AS kind
+          FROM #${FilteredTables.votesCast(Some(schema))}
+          WHERE label_validation.end_timestamp >= NOW() - ((${days} + 2) * INTERVAL '1 day')
+      ),
+      per_day_user AS (
+          SELECT DATE_TRUNC('day', activity_ts AT TIME ZONE 'US/Pacific')::date AS day, activity_user_id,
+                 COUNT(*) FILTER (WHERE kind = 'label')      AS labels,
+                 COUNT(*) FILTER (WHERE kind = 'validation') AS validations
+          FROM activity
+          GROUP BY day, activity_user_id
+      ),
+      #${accountKindsCte("per_day_user")},
+      kinded AS (
+          SELECT per_day_user.day, per_day_user.labels, per_day_user.validations, #$accountKindSelect AS account_kind,
+                 CASE WHEN account_kinds.is_ai OR account_kinds.is_anonymous THEN ''
+                      ELSE per_day_user.activity_user_id END AS baseline_user_id
+          FROM per_day_user
+          LEFT JOIN account_kinds ON per_day_user.activity_user_id = account_kinds.user_id
+      )
+      SELECT CAST(kinded.day AS TEXT), kinded.baseline_user_id, kinded.account_kind,
+             SUM(kinded.labels)::int, SUM(kinded.validations)::int
+      FROM kinded
+      GROUP BY kinded.day, kinded.baseline_user_id, kinded.account_kind
+      ORDER BY kinded.day ASC, kinded.baseline_user_id ASC;
+    """.as[DailyBaselineRow]
   }
 
   /**
