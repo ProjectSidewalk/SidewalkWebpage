@@ -3,4 +3,5 @@ paths-ignore:
   - public/vendor
   - test
   - tools
-  - scripts
+  # Translation files; .es (Spanish) is also a JavaScript file extension, so they fail to parse as code.
+  - conf

@@ -1,7 +1,7 @@
 name: CodeQL
 
-# Security scan of our frontend JS and workflow files. Never blocks a merge. Python is skipped (internal tools only),
-# and CodeQL can't read Scala.
+# Security scan of our frontend JS, page templates and workflow files. Never blocks a merge. CodeQL can't read Scala.
+# Python is skipped: the tools are run by hand, and the one script the server runs only talks to the app on localhost.
 
 on:
   pull_request:
@@ -40,5 +40,3 @@ jobs:
           config-file: ./.github/codeql/codeql-config.yml
       - name: Analyze
         uses: github/codeql-action/analyze@v4
-        with:
-          category: /language:${{ matrix.language }}
