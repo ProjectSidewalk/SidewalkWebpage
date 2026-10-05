@@ -88,6 +88,48 @@ describe('MiniLineChart reference line', () => {
     expect(render({ refLine }).querySelector('line.mini-ref')).toBeNull();
   });
 
+  test('moves the label below the line when a bar\'s value label would sit under it', () => {
+    // The last bar meets the target, so its value text sits at the label's height; the label is long enough to reach
+    // across that bar's band from the right edge.
+    const label = 'trailing average across every deployment: 250 a day';
+    const div = render({ barValues: true, refLine: { value: 250, label } });
+    const lineY = +div.querySelector('line.mini-ref').getAttribute('y1');
+    expect(+div.querySelector('text.mini-ref-label').getAttribute('y')).toBeGreaterThan(lineY);
+    // Without bar values there is nothing to dodge, so the same label stays above.
+    const plain = render({ refLine: { value: 250, label } });
+    expect(+plain.querySelector('text.mini-ref-label').getAttribute('y')).toBeLessThan(lineY);
+  });
+
+  test('keeps the label above the line when nothing is in its way', () => {
+    const div = render({ refLine: { value: 50, label: 'avg: 50/day' } });
+    const lineY = +div.querySelector('line.mini-ref').getAttribute('y1');
+    expect(+div.querySelector('text.mini-ref-label').getAttribute('y')).toBeLessThan(lineY);
+  });
+
+  test('marks the label aria-hidden only when the caller says the text alternative carries it', () => {
+    expect(render({ refLine: { value: 50, label: 'x' } }).querySelector('text.mini-ref-label')
+      .hasAttribute('aria-hidden')).toBe(false);
+    expect(render({ refLine: { value: 50, label: 'x', labelInAriaLabel: true } }).querySelector('text.mini-ref-label')
+      .getAttribute('aria-hidden')).toBe('true');
+  });
+
+  test('counts x labels back from the emphasized index so it is always labeled', () => {
+    const cats = Array.from({ length: 30 }, (_, i) => `d${i}`);
+    const div = document.createElement('div');
+    div.innerHTML = MiniLineChart.svg(cats, [{ name: 'N', key: 'n', values: cats.map(() => 1) }],
+      { kind: 'bar', maxXLabels: 6, emphasisIndex: 29 });
+    const labels = [...div.querySelectorAll('text.mini-axis')].map((t) => t.textContent)
+      .filter((t) => t.startsWith('d'));
+    expect(labels).toContain('d29');
+    expect(labels.length).toBe(6);
+  });
+
+  test('draws no x labels for an empty series, even with the emphasis on its (nonexistent) last point', () => {
+    const div = document.createElement('div');
+    div.innerHTML = MiniLineChart.svg([], [{ name: 'N', key: 'n', values: [] }], { kind: 'bar', emphasisIndex: -1 });
+    expect([...div.querySelectorAll('text.mini-axis')].some((t) => t.getAttribute('y') === '212')).toBe(false);
+  });
+
   test('leaves line charts free to use one too', () => {
     const div = render({ kind: 'line', refLine: { value: 400 } });
     expect(div.querySelector('line.mini-ref')).not.toBeNull();
