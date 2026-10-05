@@ -620,6 +620,13 @@
   font: var(--text-caption-semibold);
 }
 
+/* The trailing-year average on the Across Cities per-day charts (#5653) is what every bar there is read against, the
+   chart's primary reference rather than a secondary target, so it drops the fade that leaves .mini-ref at ~3.2:1 on
+   white and sits at full contrast instead of just above the 3:1 floor for graphical objects (WCAG 1.4.11). */
+.mini-ref--baseline {
+  opacity: 1;
+}
+
 .mini-value--emphasis {
   fill: var(--color-neutral-900);
   font-weight: 700;

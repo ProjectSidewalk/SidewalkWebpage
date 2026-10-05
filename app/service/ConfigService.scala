@@ -186,6 +186,44 @@ case class DailyContributorActivity(
 )
 
 /**
+ * One day's activity in one city at the grain the trailing-year baseline needs (#5653).
+ *
+ * Registered people keep their user id so the service can count each person once per day across cities, the way the
+ * daily bars do. Anonymous and AI rows are collapsed to one row per (day, kind): neither feeds a cross-city headcount,
+ * and per-cookie anonymous accounts would otherwise dominate a 365-day result set from every schema.
+ *
+ * @param day         Calendar day (Pacific).
+ * @param userId      The registered contributor's user id; empty for a collapsed anonymous or AI row.
+ * @param kind        How this activity is attributed — a person, a cookie identity, or the pipeline.
+ * @param labels      Non-tutorial, non-excluded labels created that day.
+ * @param validations Validations submitted that day.
+ */
+case class DailyBaselineRow(day: LocalDate, userId: String, kind: ContributorKind, labels: Int, validations: Int)
+
+/**
+ * Trailing-year per-day averages that the Across Cities per-day charts are read against (#5653).
+ *
+ * Counted on the bars' own basis (see [[DailyPoint]]), so a bar and the reference line under it measure the same
+ * thing: volumes are people's work with AI excluded, and contributors are distinct registered people per day across
+ * cities. Today is outside the window because its bar is still filling in and would drag the average down.
+ *
+ * @param days               How many days the averages are taken over; quiet days count as zero.
+ * @param windowStart        First day of the window (Pacific).
+ * @param windowEnd          Last day of the window (Pacific), which is yesterday.
+ * @param labelsPerDay       Mean labels people created per day.
+ * @param validationsPerDay  Mean validations people submitted per day.
+ * @param contributorsPerDay Mean distinct registered contributors per day.
+ */
+case class DailyBaseline(
+    days: Int,
+    windowStart: LocalDate,
+    windowEnd: LocalDate,
+    labelsPerDay: Double,
+    validationsPerDay: Double,
+    contributorsPerDay: Double
+)
+
+/**
  * One person's contribution to one city across both rolling weekly windows (#4931).
  *
  * @param userId              The contributor's user id.
@@ -672,6 +710,25 @@ object ConfigService {
   val LabelingSpeedMaxAge: FiniteDuration = Duration(7, "days")
 
   /**
+   * How many days the per-day charts' reference averages cover (#5653).
+   *
+   * A trailing year rather than all time, so early sparse years and the pre-AI-labeling era don't skew what "a normal
+   * day" means now, while still spanning every season.
+   */
+  val DailyBaselineDays: Int = 365
+
+  /**
+   * Age beyond which the trailing-year baseline is refreshed in the background when served (#5653).
+   *
+   * Its own pair, far longer than [[CrossCityFreshFor]], because it scans a year of activity per city yet one more day
+   * moves a 365-day mean by well under 1%; refreshing it every ten minutes would buy nothing visible.
+   */
+  val DailyBaselineFreshFor: FiniteDuration = Duration(12, "hours")
+
+  /** How long the trailing-year baseline may be served at all; see [[DailyBaselineFreshFor]]. */
+  val DailyBaselineMaxAge: FiniteDuration = Duration(3, "days")
+
+  /**
    * How many contributors each city ships for its "Most active cities" hover cards (#4931).
    *
    * Sized to what the cards can draw, not to the population. The untruncated count travels separately as
@@ -791,6 +848,43 @@ object ConfigService {
       .sortBy(city => (-(city.labels + city.validations), city.cityId))
       .take(DayTopCityLimit)
     DailyActivity(point, topCities, named.take(DayContributorLimit), named.size)
+  }
+
+  /**
+   * Averages a trailing window of per-city daily rows into the per-day reference values the charts draw (#5653).
+   *
+   * Mirrors [[summarizeDay]]'s definitions so the line and the bars agree: volumes sum registered and anonymous rows
+   * (AI excluded), and contributors are distinct (day, registered user) pairs, so a person active in three cities on
+   * one day counts once for that day. Every total is divided by `days` rather than by the number of days with data,
+   * because a day nobody mapped is a real zero, not a missing sample.
+   *
+   * @param today The current Pacific day, which is excluded because its bar is still partial.
+   * @param days  Window length; the window is `[today - days, today - 1]`.
+   * @param rows  (cityId, row) pairs from every city; rows outside the window are ignored, since the DAO's
+   *              index-friendly bound lets an extra day through at each end.
+   * @return      The window and its per-day means.
+   */
+  def summarizeBaseline(today: LocalDate, days: Int, rows: Seq[(String, DailyBaselineRow)]): DailyBaseline = {
+    val windowStart = today.minusDays(days.toLong)
+    val windowEnd   = today.minusDays(1)
+    val inWindow    = rows.collect {
+      case (_, row) if !row.day.isBefore(windowStart) && !row.day.isAfter(windowEnd) => row
+    }
+    val people          = inWindow.filter(_.kind != ContributorKind.Ai)
+    val contributorDays = inWindow
+      .filter(row => row.kind == ContributorKind.Registered && row.labels + row.validations > 0)
+      .map(row => (row.day, row.userId))
+      .distinct
+      .size
+    def perDay(total: Long): Double = if (days > 0) total.toDouble / days else 0.0
+    DailyBaseline(
+      days = days,
+      windowStart = windowStart,
+      windowEnd = windowEnd,
+      labelsPerDay = perDay(people.map(_.labels.toLong).sum),
+      validationsPerDay = perDay(people.map(_.validations.toLong).sum),
+      contributorsPerDay = perDay(contributorDays.toLong)
+    )
   }
 
   /**
@@ -1030,16 +1124,26 @@ trait ConfigService {
   def getCrossCityWeeklyTrend(weeks: Option[Int]): Future[Seq[WeeklyPoint]]
 
   /**
-   * Returns the daily label/validation/active-user volume summed across all available cities for the trailing window
-   * (#4686), plus the busiest cities and named contributors behind each day (#4931), for the "this week" bar charts
-   * and their hover cards. Same definitions and exclusions as [[getCrossCityWeeklyTrend]]; active users are summed per
-   * city, so a person active in multiple cities is counted in each (documented on the page), while the contributor
-   * list merges their cities so each person appears once.
+   * Returns the daily label/validation/contributor volume across all available cities for the trailing window
+   * (#4686), plus the busiest cities and named contributors behind each day (#4931), for the rolling 7- and 30-day
+   * bar charts and their hover cards (#5653). Same activity definitions and exclusions as [[getCrossCityWeeklyTrend]];
+   * each day is rolled up by [[ConfigService.summarizeDay]], which merges a person's cities so they count once per day.
    *
    * @param days Trailing calendar days (Pacific) to include; the last day is today, so its counts are partial.
    * @return     Exactly `days` days, zero-filled and ascending by day.
    */
   def getCrossCityDailyTrend(days: Int): Future[Seq[DailyActivity]]
+
+  /**
+   * Returns the trailing-year per-day averages the per-day bar charts draw as reference lines (#5653).
+   *
+   * Counted on the bars' own basis ([[ConfigService.summarizeBaseline]]) over the [[ConfigService.DailyBaselineDays]]
+   * days ending yesterday. Cached on its own long stale-while-revalidate pair because it scans a year per city and
+   * barely moves day to day, so page loads never wait on it once warm.
+   *
+   * @return The window and its labels, validations and contributors per day.
+   */
+  def getCrossCityDailyBaseline(): Future[DailyBaseline]
 
   /**
    * Returns rolling week-over-week activity across all available cities (#4758): the trailing 7 days vs the 7 before,
@@ -1612,6 +1716,29 @@ class ConfigServiceImpl @Inject() (
             val day = today.minusDays((days - 1 - i).toLong)
             ConfigService.summarizeDay(day, rowsByDay.getOrElse(day, Seq.empty))
           }
+        }
+      }
+    }
+  }
+
+  def getCrossCityDailyBaseline(): Future[DailyBaseline] = {
+    val days = ConfigService.DailyBaselineDays
+    swrCache.staleWhileRevalidate[DailyBaseline](
+      "getCrossCityDailyBaseline",
+      ConfigService.DailyBaselineFreshFor,
+      ConfigService.DailyBaselineMaxAge
+    ) {
+      availableCityIds().flatMap { availableCities =>
+        val perCityFutures = availableCities.map { cityId =>
+          db.run(configTable.getCityDailyBaselineBySchema(getCitySchema(cityId), days))
+            .recover { case e: Exception =>
+              logger.warn(s"Failed to fetch daily baseline for city $cityId: ${e.getMessage}")
+              Seq.empty[DailyBaselineRow]
+            }
+            .map(rows => rows.map(cityId -> _))
+        }
+        Future.sequence(perCityFutures).map { perCity =>
+          ConfigService.summarizeBaseline(LocalDate.now(ZoneId.of("US/Pacific")), days, perCity.flatten)
         }
       }
     }

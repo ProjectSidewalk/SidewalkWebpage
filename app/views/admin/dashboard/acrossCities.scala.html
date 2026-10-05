@@ -16,7 +16,7 @@
   else unratedTypeNames.mkString
 }
 
-@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles, a top-cities table, and daily bar charts (#4758), a GA-backed web-traffic table (Planning#8), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards (traffic from /adminapi/cityTraffic). *@
+@* Across Cities page for the redesigned admin dashboard (#4329). A cross-deployment overview comparing every Project Sidewalk city across four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix, city vs city), and data quality (how trustworthy the data is) — plus a "Today & this week" band of current-activity tiles, a top-cities table, and rolling 7- and 30-day daily bar charts with a trailing-year average line (#4758, #5653), a GA-backed web-traffic table (Planning#8), a "needs attention" panel of server-computed anomalies, and overview line charts of labels / validations / active users over time. Owner-only. Driven entirely client-side from /adminapi/cityScorecards (traffic from /adminapi/cityTraffic). *@
 
 @content = {
   <div class="page-section" id="ac-intro-section">
@@ -77,7 +77,23 @@
         <div class="mini-chart" id="ac-chart-week-users"></div>
       </div>
     </div>
-    <p class="ac-note">The Contributors bar counts registered people once across cities; anonymous work is in the label and validation bars, AI work isn't, and today's is still filling in.</p>
+
+    <h3 class="ac-chart-group-title" id="this-month">This month (rolling 30 days)</h3>
+    <div class="ac-charts">
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Labels per day</h4>
+        <div class="mini-chart" id="ac-chart-month-labels"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Validations per day</h4>
+        <div class="mini-chart" id="ac-chart-month-validations"></div>
+      </div>
+      <div class="ac-chart">
+        <h4 class="ac-chart-title">Contributors per day</h4>
+        <div class="mini-chart" id="ac-chart-month-users"></div>
+      </div>
+    </div>
+    <p class="ac-note">The Contributors bar counts registered people once across cities; anonymous work is in the label and validation bars, AI work isn't, and today's is still filling in. The dashed line is the average per day over the trailing 365 days, ending yesterday, counted the same way. The 7-day charts are the last seven bars of the 30-day ones.</p>
 
     <h3 class="ac-chart-group-title" id="most-active-cities">Most active cities</h3>
     <p>The five busiest cities this week, with each change from the week before; Contributors are counted per city, so the column can sum past the tile above.</p>

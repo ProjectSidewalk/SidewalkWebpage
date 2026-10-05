@@ -90,6 +90,9 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     "execute getCityDailyActivityByUserBySchema" in {
       run(configTable.getCityDailyActivityByUserBySchema(schema, 7)) mustBe a[Seq[?]]
     }
+    "execute getCityDailyBaselineBySchema" in {
+      run(configTable.getCityDailyBaselineBySchema(schema, 365)) mustBe a[Seq[?]]
+    }
     "execute getCityContributorOutputBySchema" in {
       run(configTable.getCityContributorOutputBySchema(schema)) mustBe a[Product] // 7-tuple
     }

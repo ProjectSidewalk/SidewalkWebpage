@@ -7,8 +7,8 @@
  * counted beside them rather than folded in. Third, the cards that explain those counts name the contributors behind
  * them, which means they carry user-supplied text into markup and must escape it twice (see psTooltip's header).
  *
- * Runs under jsdom (jest.config.js). AcrossCitiesPage is a bare top-level class in a concatenated bundle, so it is
- * eval'd into global scope rather than required; MiniLineChart has to be present first, since the page draws with it.
+ * Runs under jsdom (jest.config.js). AcrossCitiesPage is loaded fresh per test through loadModules, which brings its
+ * MiniLineChart import with it, so the bars are drawn by the real renderer.
  */
 
 const { loadModules, realUtil } = require('./loadGlobalScript');
@@ -36,6 +36,9 @@ const MARKUP = `
   <div class="mini-chart" id="ac-chart-week-labels"></div>
   <div class="mini-chart" id="ac-chart-week-validations"></div>
   <div class="mini-chart" id="ac-chart-week-users"></div>
+  <div class="mini-chart" id="ac-chart-month-labels"></div>
+  <div class="mini-chart" id="ac-chart-month-validations"></div>
+  <div class="mini-chart" id="ac-chart-month-users"></div>
   <table id="ac-top-table">
     <thead>
       <tr>
@@ -123,10 +126,11 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
   /**
    * Renders the page against a fixture and returns the initialized instance.
    *
-   * @param {{cities?: Array, daily?: Array, summary?: ?object}} fixture - Any subset of the endpoint's payload.
+   * @param {{cities?: Array, daily?: Array, summary?: ?object, baseline?: ?object}} fixture - Any subset of the
+   *   endpoint's payload; `baseline` is its `daily_baseline` block, left out of the payload when absent.
    * @returns {Promise<object>} The initialized AcrossCitiesPage.
    */
-  async function render({ cities = [], daily = [], summary = null } = {}) {
+  async function render({ cities = [], daily = [], summary = null, baseline = undefined } = {}) {
     document.body.innerHTML = MARKUP;
     const windowByCity = {};
     cities.forEach((c) => { windowByCity[c.city.city_id] = c.window; });
@@ -139,6 +143,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
         over_time_daily: daily,
         window_summary: summary,
         window_by_city: windowByCity,
+        ...(baseline === undefined ? {} : { daily_baseline: baseline }),
       }),
     }));
     const page = new AcrossCitiesPage({ scorecardsUrl: '/adminapi/cityScorecards' });
@@ -684,6 +689,85 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       const cells = [...document.querySelectorAll('#ac-top-tbody tr')[0].cells];
 
       expect(cells.filter((td) => td.querySelector('[tabindex="0"][data-ps-tooltip]')).length).toBe(4);
+    });
+  });
+
+  describe('rolling 7- and 30-day charts with the trailing-year average (#5653)', () => {
+    const GROUPS = ['week', 'month'];
+    const CHARTS = ['labels', 'validations', 'users'];
+
+    /** Ten consecutive days, each with distinct volumes so a bar can be traced back to its day. */
+    const TEN_DAYS = Array.from({ length: 10 }, (_, i) => makeDay(`2026-09-${String(i + 1).padStart(2, '0')}`, {
+      labels: (i + 1) * 10, validations: i + 1, contributors: 1, contributor_total: 1,
+      contributor_list: [dayContributor(`person${i}`, (i + 1) * 10, i + 1)],
+    }));
+
+    const BASELINE = {
+      days: 365, window_start: '2025-09-05', window_end: '2026-09-04',
+      labels_per_day: 1239.6, validations_per_day: 512.2, contributors_per_day: 2.43,
+    };
+
+    /** The bar hover targets of one chart, in day order. */
+    function bars(group, chart) {
+      return [...document.querySelectorAll(`#ac-chart-${group}-${chart} rect.mini-bar-hit`)];
+    }
+
+    it('draws the week from the last seven days of the month', async () => {
+      await render({ daily: TEN_DAYS });
+
+      expect(bars('week', 'labels').length).toBe(7);
+      expect(bars('month', 'labels').length).toBe(10);
+      // Cards are keyed by day, so the week's bar i and the month's bar i + 3 explain the same day identically.
+      bars('week', 'labels').forEach((bar, i) => {
+        expect(bar.getAttribute('data-ps-tooltip')).toBe(bars('month', 'labels')[i + 3].getAttribute('data-ps-tooltip'));
+      });
+    });
+
+    it('labels each week bar with its value but leaves thirty to the cards', async () => {
+      await render({ daily: TEN_DAYS });
+
+      expect(document.querySelectorAll('#ac-chart-week-labels .mini-value').length).toBe(7);
+      expect(document.querySelectorAll('#ac-chart-month-labels .mini-value').length).toBe(0);
+    });
+
+    it('emphasizes today, the last bar, in both groups', async () => {
+      await render({ daily: TEN_DAYS });
+
+      GROUPS.forEach((group) => {
+        const drawn = [...document.querySelectorAll(`#ac-chart-${group}-labels rect.mini-bar`)];
+        expect(drawn[drawn.length - 1].classList.contains('mini-bar--emphasis')).toBe(true);
+        expect(drawn.filter((r) => r.classList.contains('mini-bar--emphasis')).length).toBe(1);
+      });
+    });
+
+    it('draws the average as a labeled reference line on all six charts', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      GROUPS.forEach((group) => CHARTS.forEach((chart) => {
+        expect(document.querySelectorAll(`#ac-chart-${group}-${chart} line.mini-ref--baseline`).length).toBe(1);
+      }));
+      expect(document.querySelector('#ac-chart-week-labels .mini-ref-label--baseline').textContent)
+        .toBe('365-day avg: 1,240/day');
+      // One decimal below 10, where rounding would hide most of the signal.
+      expect(document.querySelector('#ac-chart-month-users .mini-ref-label--baseline').textContent)
+        .toBe('365-day avg: 2.4/day');
+    });
+
+    it('puts the average in each chart\'s text alternative', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      expect(document.querySelector('#ac-chart-month-validations svg').getAttribute('aria-label'))
+        .toBe('Validations per day, last 10 days; 365-day avg: 512/day');
+      expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('aria-label'))
+        .toBe('Labels per day, last 7 days; 365-day avg: 1,240/day');
+    });
+
+    it('draws no reference line when the payload has no baseline', async () => {
+      await render({ daily: TEN_DAYS });
+
+      expect(document.querySelectorAll('.mini-ref').length).toBe(0);
+      expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('aria-label'))
+        .toBe('Labels per day, last 7 days');
     });
   });
 });

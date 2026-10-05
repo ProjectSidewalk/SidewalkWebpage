@@ -11,8 +11,9 @@ import scala.concurrent.duration.DurationInt
 
 /**
  * DB-backed invariant tests for the cross-city over-time series behind the Across Cities admin page (#4329, #4686):
- * the weekly trend (with the new-users column feeding the cumulative-users chart), the trailing-7-day daily trend
- * (feeding the "this week" bar charts), and the week-over-week window summary (feeding the "Today & this week"
+ * the weekly trend (with the new-users column feeding the cumulative-users chart), the trailing-30-day daily trend
+ * (feeding the rolling 7- and 30-day bar charts), the trailing-year baseline drawn on them (#5653), and the
+ * week-over-week window summary (feeding the "Today & this week"
  * tiles, #4758) together with the breakdowns their hover cards read (#4931).
  *
  * The human/AI split those breakdowns turn on is pinned in [[ActivityBreakdownSpec]] against synthetic rows, since a
@@ -68,15 +69,16 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
   }
 
-  "getCrossCityDailyTrend(7)" should {
-    lazy val daily = await(configService.getCrossCityDailyTrend(7))
+  "getCrossCityDailyTrend(30)" should {
+    // 30 is what the page requests (the week is its last seven days), so this exercises the cached key it reads.
+    lazy val daily = await(configService.getCrossCityDailyTrend(30))
 
-    "return exactly 7 consecutive Pacific days ending today, zero-filled" in {
+    "return exactly 30 consecutive Pacific days ending today, zero-filled" in {
       val before = LocalDate.now(ZoneId.of("US/Pacific"))
-      val days   = await(configService.getCrossCityDailyTrend(7)).map(_.point)
+      val days   = await(configService.getCrossCityDailyTrend(30)).map(_.point)
       val after  = LocalDate.now(ZoneId.of("US/Pacific"))
 
-      days.length mustBe 7
+      days.length mustBe 30
       days.zip(days.tail).foreach { case (a, b) => b.day mustBe a.day.plusDays(1) }
       // The run may legitimately cross midnight Pacific between the call and this assertion.
       Seq(before, after) must contain(days.last.day)
@@ -137,6 +139,31 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
         d.contributors.map(c => -(c.labels + c.validations)) mustBe
           d.contributors.map(c => -(c.labels + c.validations)).sorted
       }
+    }
+  }
+
+  "getCrossCityDailyBaseline" should {
+    "average the trailing year ending yesterday, on the bars' basis" in {
+      val before   = LocalDate.now(ZoneId.of("US/Pacific"))
+      val baseline = await(configService.getCrossCityDailyBaseline())
+      val after    = LocalDate.now(ZoneId.of("US/Pacific"))
+
+      baseline.days mustBe ConfigService.DailyBaselineDays
+      // The run may legitimately cross midnight Pacific between the call and this assertion.
+      Seq(before.minusDays(1), after.minusDays(1)) must contain(baseline.windowEnd)
+      baseline.windowStart mustBe baseline.windowEnd.minusDays((ConfigService.DailyBaselineDays - 1).toLong)
+      baseline.labelsPerDay must be >= 0.0
+      baseline.validationsPerDay must be >= 0.0
+      baseline.contributorsPerDay must be >= 0.0
+      // Each person-day takes at least one label or validation, so there can't be more of them than of those.
+      baseline.contributorsPerDay must be <= (baseline.labelsPerDay + baseline.validationsPerDay)
+    }
+
+    "serve a warmed key without recomputing it" in {
+      val first  = await(configService.getCrossCityDailyBaseline())
+      val second = await(configService.getCrossCityDailyBaseline())
+
+      assert(second eq first)
     }
   }
 
