@@ -8,6 +8,7 @@
  */
 
 import { util } from './common/utilities.js';
+import { sanitizeHtml } from './common/sanitizeHtml.js';
 
 export class AboutPage {
   static #ML_API_BASE = 'https://makeabilitylab.cs.washington.edu/api/v1';
@@ -72,29 +73,18 @@ export class AboutPage {
    * `citation_html` is the one ML API string this page injects as markup rather than escaping — it carries the `<i>`
    * and `<a>` that make a citation readable, and formatting it here instead would duplicate the lab's own citation
    * renderer and drift from it. That injection crosses a trust boundary into a separate application with its own
-   * admin UI, though, and `innerHTML` runs `<img onerror>` and `<svg onload>` even though it ignores `<script>`. So
-   * the markup is parsed inert (DOMParser never loads resources or runs handlers) and rebuilt from an allowlist:
-   * anything unrecognized is unwrapped to its text, so a mangled citation still reads correctly.
+   * admin UI, so it goes through the shared cleaner with a narrow allowlist: anything unrecognized is unwrapped to its
+   * text, so a mangled citation still reads correctly.
    *
    * @param {string} html - Citation markup from the ML API.
-   * @returns {string} Markup containing only allowlisted tags, with only `href` surviving on links.
+   * @returns {DocumentFragment} Only allowlisted tags, with only an http(s) `href` surviving on links.
    */
   #sanitizeCitation(html) {
-    const body = new DOMParser().parseFromString(String(html ?? ''), 'text/html').body;
-    const clean = (node) => {
-      // Depth-first so a node's children are already clean by the time unwrapping hoists them into its place.
-      for (const child of [...node.children]) clean(child);
-      if (!AboutPage.#CITATION_TAGS.has(node.tagName)) {
-        node.replaceWith(...node.childNodes);
-        return;
-      }
-      for (const attr of [...node.attributes]) {
-        const isSafeHref = node.tagName === 'A' && attr.name === 'href' && AboutPage.#HTTP_URL.test(attr.value.trim());
-        if (!isSafeHref) node.removeAttribute(attr.name);
-      }
-    };
-    for (const child of [...body.children]) clean(child);
-    return body.innerHTML;
+    const fragment = sanitizeHtml(html, { tags: AboutPage.#CITATION_TAGS, attributes: new Set(['href']) });
+    for (const el of fragment.querySelectorAll('[href]')) {
+      if (el.tagName !== 'A' || !AboutPage.#HTTP_URL.test(el.getAttribute('href').trim())) el.removeAttribute('href');
+    }
+    return fragment;
   }
 
   /**
@@ -417,7 +407,7 @@ export class AboutPage {
     const detail = await this.#fetchJson(`${AboutPage.#ML_API_BASE}/publications/${paper.id}/?format=json`);
     if (!detail.citation_html || !detail.bibtex) return;
 
-    document.getElementById('about-cite-plain').innerHTML = this.#sanitizeCitation(detail.citation_html);
+    document.getElementById('about-cite-plain').replaceChildren(this.#sanitizeCitation(detail.citation_html));
     document.getElementById('about-cite-bibtex').textContent = detail.bibtex;
 
     block.querySelectorAll('.about-cite-copy').forEach((button) => {
