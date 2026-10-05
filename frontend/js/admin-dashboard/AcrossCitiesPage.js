@@ -2,9 +2,10 @@
  * Renders the admin "Across Cities" page (#4329): a cross-deployment overview of every Project Sidewalk city across
  * four lenses — coverage (how much is left), activity (what's happening and when), data patterns (the label-type mix,
  * city vs city), and data quality (how trustworthy the data is). Adds a "Today & this week" band (#4758) of
- * current-activity tiles (with week-over-week deltas) and rolling-7-day bar charts, a "needs attention" panel from
- * server-computed anomaly flags, and an over-time section (#4686): weekly line charts (labels / validations / active
- * users, summed across cities) and cumulative all-time totals. A Traffic section (Planning#8) joins per-city web
+ * current-activity tiles (with week-over-week deltas) and rolling 7- and 30-day bar charts read against a trailing-year
+ * average line (#5653), a "needs attention" panel from server-computed anomaly flags, and an over-time section
+ * (#4686): weekly line charts (labels / validations / active users, summed across cities) and cumulative all-time
+ * totals. A Traffic section (Planning#8) joins per-city web
  * analytics from /adminapi/cityTraffic — sessions/visitors with week-over-week deltas, device mix, and
  * baseline-relative anomaly flags — degrading to "unavailable" when GA isn't configured or reachable.
  *
@@ -96,7 +97,8 @@ export class AcrossCitiesPage {
   #cities = [];          // The latest scorecard rows, as returned by the endpoint.
   #summary = {};         // The summary block (thresholds + cross-city median + hero totals).
   #allTimeTrend = [];    // Cross-city weekly series for the full project history (the "All time" toggle).
-  #dailyTrend = [];      // Cross-city daily series for the trailing 7 days (the "this week" bar charts, #4686).
+  #dailyTrend = [];      // Cross-city daily series for the trailing 30 days (the per-day bar charts, #4686, #5653).
+  #dailyBaseline = null; // Trailing-year per-day averages drawn on those charts, or null when absent (#5653).
   #dayTipCards = new Map(); // day → its built hover card, shared by all three per-day charts (#4931).
   #tipLinkCount = 0;     // Links written into the card being built; decides whether it gets the pin hint (#5495).
   #windowSummary = null; // Rolling 7d-vs-prior-7d totals for the "Today & this week" tiles (#4758).
@@ -149,6 +151,7 @@ export class AcrossCitiesPage {
       this.#summary = (data && data.summary) || {};
       this.#allTimeTrend = (data && data.over_time_all_time) || [];
       this.#dailyTrend = (data && data.over_time_daily) || [];
+      this.#dailyBaseline = (data && data.daily_baseline) || null;
       this.#dayTipCards.clear(); // Cards are keyed by day, and a reload can bring new numbers for the same day.
       this.#windowSummary = (data && data.window_summary) || null;
       this.#windowByCity = (data && data.window_by_city) || {};
@@ -703,7 +706,25 @@ export class AcrossCitiesPage {
     }
     this.#drawTrends();
     this.#drawCumulative();
-    this.#drawWeekBars();
+    this.#drawDayBars();
+    this.#describeBaseline();
+  }
+
+  /**
+   * Names the baseline's exact window in the charts' note (#5653). The average is cached for hours, so its window can
+   * end a day or two before yesterday; stating the dates the server averaged over keeps the note true either way.
+   */
+  #describeBaseline() {
+    const note = document.getElementById('ac-baseline-note');
+    if (!note) return;
+    const baseline = this.#dailyBaseline;
+    // No baseline means no line on the charts, so a sentence explaining one would describe nothing.
+    note.hidden = !baseline;
+    if (!baseline) return;
+    const start = AcrossCitiesPage.#shortDateYearFull(baseline.window_start);
+    const end = AcrossCitiesPage.#shortDateYearFull(baseline.window_end);
+    note.textContent = `The dashed line is the average per day over the ${this.#num(baseline.days)} days from `
+      + `${start} to ${end}, counted the same way.`;
   }
 
   /** Sums a flat list of weekly points into one cross-city series, ascending by week. */
@@ -759,32 +780,75 @@ export class AcrossCitiesPage {
   }
 
   /**
-   * Draws the "Today & this week" section's rolling-7-day bar charts (#4686) from the server's zero-filled daily
-   * series. A rolling 7-day window holds exactly one of each weekday, so short weekday names are unambiguous x
-   * labels; the hover card carries the full date.
+   * Draws the "Today & this week" section's rolling 7-day (#4686) and 30-day (#5653) bar charts from the server's
+   * zero-filled 30-day daily series. The week is the series' last seven days rather than a separate fetch, so the two
+   * groups can never disagree about a day they share.
    *
-   * All three charts share one card per day (#4931): the three volumes move together, so someone asking why Tuesday's
-   * labels spiked wants that day's validations, cities, and people in the same breath — not three separate hovers.
-   * Each chart leans on its own line so the shared card still answers the bar under the cursor first.
+   * A rolling 7-day window holds exactly one of each weekday, so short weekday names are unambiguous x labels there;
+   * thirty days repeat every weekday, so the month uses short dates. The week keeps its per-bar value labels, while
+   * thirty of them would crowd into an unreadable row, so the month leaves exact counts to the hover cards.
    */
-  #drawWeekBars() {
-    const series = this.#dailyTrend;
-    const cats = series.map((d) => AcrossCitiesPage.#weekday(d.day));
-    const draw = (id, key, jsonKey, name) => {
-      const host = document.getElementById(id);
+  #drawDayBars() {
+    const all = this.#dailyTrend;
+    this.#drawDayGroup('week', all.slice(-7), 'last 7 days',
+      { categoryOf: AcrossCitiesPage.#weekday, maxXLabels: 7, barValues: true });
+    this.#drawDayGroup('month', all, `last ${all.length} days`,
+      { categoryOf: AcrossCitiesPage.#shortDate, maxXLabels: 6, barValues: false });
+  }
+
+  /**
+   * Draws one group of per-day bar charts (labels, validations, contributors), each with the trailing-year average
+   * as a dashed reference line when the server sent one (#5653).
+   *
+   * All three charts share one card per day (#4931), and so do the week and month groups, since cards are keyed by
+   * day: the three volumes move together, so someone asking why Tuesday's labels spiked wants that day's validations,
+   * cities, and people in the same breath — not three separate hovers. Each chart leans on its own line so the shared
+   * card still answers the bar under the cursor first.
+   *
+   * @param {string} group - Element id infix: 'week' or 'month' (`ac-chart-<group>-labels`, …).
+   * @param {Array<Record<string, any>>} series - `over_time_daily` entries, ascending; the last is today, still
+   *   filling in.
+   * @param {string} period - How the screen-reader label names the span, e.g. "last 7 days".
+   * @param {{categoryOf: (iso: string) => string, maxXLabels: number, barValues: boolean}} opts - How each day is
+   *   named on the x axis, how many of those names fit, and whether each bar gets its value drawn above it.
+   */
+  #drawDayGroup(group, series, period, opts) {
+    const cats = series.map((d) => opts.categoryOf(d.day));
+    const draw = (field, key, jsonKey, name) => {
+      const host = document.getElementById(`ac-chart-${group}-${field}`);
       if (!host) return;
       const values = series.map((d) => d[jsonKey] || 0);
       const tooltipsHtml = series.map((d) => this.#dayTipHtml(d, jsonKey));
       const tooltips = series.map((d, i) => `${AcrossCitiesPage.#shortDate(d.day)} · ${name}: ${this.#num(values[i])}`);
-      // Compact value labels above each bar (exact counts stay in the cards); the last bar is today, still
-      // filling in, so it gets the emphasis treatment.
+      const refLine = this.#baselineRefLine(jsonKey);
+      // The SVG's label is the chart's text alternative, so it carries the average the dashed line shows.
+      const average = refLine ? `; ${refLine.label}` : '';
+      // The last bar is today, still filling in, so it gets the emphasis treatment.
       MiniLineChart.renderInto(host, cats, [{ name, key, values, tooltips, tooltipsHtml }],
-        { ariaLabel: name, kind: 'bar', maxXLabels: 7, barValues: true, valueFormat: (v) => this.#compact(v),
-          emphasisIndex: series.length - 1, pinnableTips: true });
+        { ariaLabel: `${name} per day, ${period}${average}`, kind: 'bar', maxXLabels: opts.maxXLabels,
+          barValues: opts.barValues, valueFormat: (v) => this.#compact(v), emphasisIndex: series.length - 1,
+          pinnableTips: true, refLine });
     };
-    draw('ac-chart-week-labels', 'aclabels', 'labels', 'Labels');
-    draw('ac-chart-week-validations', 'acvals', 'validations', 'Validations');
-    draw('ac-chart-week-users', 'acusers', 'contributors', 'Contributors');
+    draw('labels', 'aclabels', 'labels', 'Labels');
+    draw('validations', 'acvals', 'validations', 'Validations');
+    draw('users', 'acusers', 'contributors', 'Contributors');
+  }
+
+  /**
+   * The trailing-year average for one per-day metric, as a MiniLineChart reference line (#5653).
+   *
+   * @param {string} jsonKey - The daily point's field: 'labels', 'validations' or 'contributors'.
+   * @returns {{value: number, key: string, label: string, labelInAriaLabel: boolean}|undefined} The line, or
+   *   undefined when the server sent no baseline (an older payload, or a failed read) so the chart draws without one.
+   */
+  #baselineRefLine(jsonKey) {
+    const baseline = this.#dailyBaseline;
+    const value = baseline ? baseline[`${jsonKey}_per_day`] : undefined;
+    if (!Number.isFinite(value)) return undefined;
+    return {
+      value, key: 'baseline', label: `${baseline.days}-day avg: ${AcrossCitiesPage.#perDay(value)}/day`,
+      labelInAriaLabel: true,
+    };
   }
 
   // --- Scorecard table --------------------------------------------------------------------------------------------
@@ -1855,6 +1919,27 @@ export class AcrossCitiesPage {
     const d = util.parseDate(iso);
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+
+  /**
+   * Formats a per-day average: one decimal below 10, where a whole number would hide most of the signal (2.4
+   * contributors a day is not 2), and a rounded whole number with thousands separators above it.
+   *
+   * @param {number} v - The average.
+   * @returns {string} e.g. "2.4", "1,240".
+   * @example AcrossCitiesPage.#perDay(1239.6) // "1,240"
+   */
+  static #perDay(v) {
+    return v < 10
+      ? v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+      : Math.round(v).toLocaleString();
+  }
+
+  /** "Oct 4, 2026"-style date from an ISO date string, for a span that can cross a year boundary. */
+  static #shortDateYearFull(iso) {
+    const d = util.parseDate(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   /** "Jun '19"-style month + year from an ISO date string, for multi-year x-axes. */

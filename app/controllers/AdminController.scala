@@ -680,11 +680,20 @@ class AdminController @Inject() (
 
     // Fetch the per-city scorecards and the all-time cross-city weekly series in parallel; the page's "over time" charts
     // default to the last 12 weeks (derived client-side from each city's weekly_trend) and toggle to this all-time set.
-    // The trailing-7-day daily series drives the "this week" bar charts (#4686), and the window summary the
-    // week-over-week deltas on the "Today & this week" tiles (#4758).
+    // The trailing daily series drives the rolling "this week" (#4686) and "this month" (#5653) bar charts, the
+    // trailing-year baseline their average lines, and the window summary the week-over-week deltas on the "Today &
+    // this week" tiles (#4758). One 30-day read rather than a 7- and a 30-day one: the page takes the week from its
+    // last seven days, so the two groups can't disagree about a shared day and the fan-out runs once.
+    val dailyTrendDays = 30
     val scorecardsF    = configService.getCityScorecards()
     val allTimeF       = configService.getCrossCityWeeklyTrend(None)
-    val dailyF         = configService.getCrossCityDailyTrend(7)
+    val dailyF         = configService.getCrossCityDailyTrend(dailyTrendDays)
+    // A failed or still-computing baseline only costs the charts their average line; it must not take the rest of the
+    // page down with it, nor hold it (the read's own cold wait bounds the latter).
+    val baselineF = configService.getCrossCityDailyBaseline().recover { case e: Exception =>
+      logger.warn(s"Daily baseline unavailable: ${e.getMessage}")
+      None
+    }
     val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
     val storyStatsF    = configService.getCrossCityStoryStats()
@@ -693,6 +702,7 @@ class AdminController @Inject() (
       withFlags     <- scorecardsF
       allTimeTrend  <- allTimeF
       dailyTrend    <- dailyF
+      dailyBaseline <- baselineF
       windowSummary <- windowSummaryF
       labelingSpeed <- labelingSpeedF
       storyStats    <- storyStatsF
@@ -709,6 +719,21 @@ class AdminController @Inject() (
           "stories"            -> storyStatsJson(storyStats, cityInfoById),
           "over_time_all_time" -> allTimeTrendJson(allTimeTrend),
           "over_time_daily"    -> dailyTrendJson(dailyTrend, cityInfoById),
+          // Trailing-year per-day averages drawn as a reference line on every per-day chart (#5653), on the bars'
+          // own basis so the line and the bars are comparable. Null when the baseline couldn't be computed, which the
+          // page reads as "draw no line".
+          "daily_baseline" -> dailyBaseline
+            .map { b =>
+              Json.obj(
+                "days"                 -> b.days,
+                "window_start"         -> b.windowStart.toString,
+                "window_end"           -> b.windowEnd.toString,
+                "labels_per_day"       -> b.labelsPerDay,
+                "validations_per_day"  -> b.validationsPerDay,
+                "contributors_per_day" -> b.contributorsPerDay
+              )
+            }
+            .getOrElse(JsNull),
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
           // (#4758). Headcounts here are distinct across every city, so they can come out below the same column
           // summed down `window_by_city` — someone who mapped in three cities is one contributor here.
@@ -850,7 +875,8 @@ class AdminController @Inject() (
     })
 
   /**
-   * The last seven days, project-wide, for the "this week" bar charts (#4686): zero-filled, today partial. Each day
+   * The trailing days, project-wide, for the rolling 7- and 30-day bar charts (#4686, #5653): zero-filled, today
+   * partial, the week being the last seven of them. Each day
    * also carries what its hover card shows (#4931), so the card and the bar come from the same rows.
    *
    * @param cityInfoById Each city's config, for names and URLs.
