@@ -12,7 +12,9 @@
  * and triggers report the rect they were assigned.
  */
 
-const { loadModules } = require('./loadGlobalScript');
+const { loadModules, loadVendored } = require('./loadGlobalScript');
+
+loadVendored('dompurify');
 
 
 // Matches the constants in psTooltip.js.
@@ -96,6 +98,17 @@ beforeEach(() => {
 
 afterEach(() => {
     unloadPsTooltip();
+});
+
+describe('psTooltip markup', () => {
+    test('keeps formatting but never anything that could run script', () => {
+        const trigger = addTrigger({ left: 400, top: 400, width: 40, height: 20 },
+            '<b>Bold</b><img src="x" onerror="alert(1)"><script>alert(2)</script>');
+        const card = open(trigger);
+        expect(card.querySelector('b').textContent).toBe('Bold');
+        expect(card.querySelector('img').hasAttribute('onerror')).toBe(false);
+        expect(card.querySelector('script')).toBeNull();
+    });
 });
 
 describe('psTooltip placement', () => {

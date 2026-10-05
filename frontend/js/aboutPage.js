@@ -8,7 +8,6 @@
  */
 
 import { util } from './common/utilities.js';
-import { sanitizeHtml } from './common/sanitizeHtml.js';
 
 export class AboutPage {
   static #ML_API_BASE = 'https://makeabilitylab.cs.washington.edu/api/v1';
@@ -20,10 +19,6 @@ export class AboutPage {
   // The CHI 2019 paper is the one we ask people to cite; identified by DOI so an id or title edit can't break it.
   static #CITATION_DOI = '10.1145/3290605.3300292';
   static #FALLBACK_PHOTO = util.assetPath('images/logos/ProjectSidewalkLogo_NoText_100x100.png');
-
-  // Inline formatting a citation can legitimately carry: emphasis for the venue, a link to the paper. See
-  // #sanitizeCitation for why the allowlist is this narrow.
-  static #CITATION_TAGS = new Set(['A', 'B', 'EM', 'I', 'STRONG', 'SPAN', 'BR', 'SUB', 'SUP']);
 
   /** Only http(s) links from the ML API are used; others (like `javascript:`) could run code. */
   static #HTTP_URL = /^https?:\/\//i;
@@ -64,27 +59,6 @@ export class AboutPage {
   static #safeHref(url) {
     const trimmed = String(url ?? '').trim();
     return AboutPage.#HTTP_URL.test(trimmed) ? util.escapeHTML(trimmed) : '#';
-  }
-
-  /**
-   * Reduces a citation string to the inline formatting a citation actually needs, dropping every other element and
-   * every attribute but an http(s) `href`.
-   *
-   * `citation_html` is the one ML API string this page injects as markup rather than escaping — it carries the `<i>`
-   * and `<a>` that make a citation readable, and formatting it here instead would duplicate the lab's own citation
-   * renderer and drift from it. That injection crosses a trust boundary into a separate application with its own
-   * admin UI, so it goes through the shared cleaner with a narrow allowlist: anything unrecognized is unwrapped to its
-   * text, so a mangled citation still reads correctly.
-   *
-   * @param {string} html - Citation markup from the ML API.
-   * @returns {DocumentFragment} Only allowlisted tags, with only an http(s) `href` surviving on links.
-   */
-  #sanitizeCitation(html) {
-    const fragment = sanitizeHtml(html, { tags: AboutPage.#CITATION_TAGS, attributes: new Set(['href']) });
-    for (const el of fragment.querySelectorAll('[href]')) {
-      if (el.tagName !== 'A' || !AboutPage.#HTTP_URL.test(el.getAttribute('href').trim())) el.removeAttribute('href');
-    }
-    return fragment;
   }
 
   /**
@@ -407,7 +381,9 @@ export class AboutPage {
     const detail = await this.#fetchJson(`${AboutPage.#ML_API_BASE}/publications/${paper.id}/?format=json`);
     if (!detail.citation_html || !detail.bibtex) return;
 
-    document.getElementById('about-cite-plain').replaceChildren(this.#sanitizeCitation(detail.citation_html));
+    // Shown as markup for its <i> and <a>, but it comes from a separate app with its own admin UI.
+    const citation = DOMPurify.sanitize(detail.citation_html, { RETURN_DOM_FRAGMENT: true });
+    document.getElementById('about-cite-plain').replaceChildren(citation);
     document.getElementById('about-cite-bibtex').textContent = detail.bibtex;
 
     block.querySelectorAll('.about-cite-copy').forEach((button) => {

@@ -6,7 +6,6 @@
 
 import { svl } from '../svl.js';
 import { util } from '../../common/utilities.js';
-import { htmlToText } from '../../common/sanitizeHtml.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesSidewalk.js';
 
@@ -422,7 +421,7 @@ export class Label {
       .map((tagId) => allTags.find((tag) => tag.tag_id === tagId))
       .filter(Boolean)
       // The localized tag texts embed <tag-underline> keyboard-shortcut markup; the pills show plain text.
-      .map((tag) => htmlToText(tagInfo[tag.tag]?.text ?? tag.tag));
+      .map((tag) => util.htmlToText(tagInfo[tag.tag]?.text ?? tag.tag));
   }
 
   /**

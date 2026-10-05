@@ -6,7 +6,6 @@
 import { svl } from '../svl.js';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { util } from '../../common/utilities.js';
-import { htmlToText } from '../../common/sanitizeHtml.js';
 import '../../common/utilitiesMath.js';
 
 export class OverallStats {
@@ -149,6 +148,6 @@ export class OverallStats {
     }
     // The tooltip can't be clicked, so the dashboard link in the text is flattened to plain words.
     const tip = i18next.t(hasAccuracy ? 'right-ui.accuracy-tooltip' : 'right-ui.no-accuracy-tooltip');
-    this.#accuracyHolderEl.setAttribute('data-ps-tooltip', util.escapeHTML(htmlToText(tip)));
+    this.#accuracyHolderEl.setAttribute('data-ps-tooltip', util.escapeHTML(util.htmlToText(tip)));
   }
 }

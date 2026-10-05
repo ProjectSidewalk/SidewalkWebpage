@@ -12,6 +12,7 @@ interface Window {
 declare const AsyncLock: any;
 declare const bowser: any;
 declare const Chart: any;
+declare const DOMPurify: any;
 declare const FloatingUIDOM: any;
 declare const i18next: any;
 declare const i18nextHttpBackend: any;

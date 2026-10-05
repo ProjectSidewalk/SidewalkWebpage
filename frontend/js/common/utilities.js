@@ -843,3 +843,9 @@ export function escapeHTML(value) {
 }
 
 util.escapeHTML = escapeHTML;
+
+/**
+ * @param {?string} html - Markup, e.g. a translation that carries inline formatting.
+ * @returns {string} The text a reader would see, with entities like `&amp;` decoded. DOMParser never runs scripts.
+ */
+util.htmlToText = (html) => new DOMParser().parseFromString(String(html ?? ''), 'text/html').body.textContent;
