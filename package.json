@@ -42,5 +42,10 @@
     "test:js": "jest --config jest.config.js",
     "test:js:coverage": "jest --config jest.config.js --coverage",
     "test:e2e": "playwright test"
+  },
+  "overrides": {
+    "globule": {
+      "minimatch": "^3.1.5"
+    }
   }
 }

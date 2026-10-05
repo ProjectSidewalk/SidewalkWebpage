@@ -94,6 +94,8 @@ Parallel jobs:
 
 **Dependency automation:** **Scala Steward** (VirtusLab's hosted instance, `.scala-steward.conf`) for sbt deps — Dependabot has no native sbt updater — plus **`.github/dependabot.yml`** for `npm`, `github-actions`, `docker`, and `pip`, monthly. Dependabot groups each ecosystem's patch & minor bumps into one PR and its majors into another. [`dependency-auto-merge.yml`](../.github/workflows/dependency-auto-merge.yml) turns on auto-merge for patch & minor PRs from both bots, so GitHub merges each once its required checks pass (#4395). Majors, Dependabot's pip PRs (their only test leg is advisory) and Steward PRs with extra generated commits wait for a human.
 
+**Security scanning (CodeQL, #5614):** [`codeql.yml`](../.github/workflows/codeql.yml) checks our frontend JS, Twirl page templates and workflow files for security bugs on every PR into `develop`, every push to `develop`, and weekly. [`codeql-config.yml`](../.github/codeql/codeql-config.yml) skips `public/vendor/`, `test/`, `tools/` and `conf/`. CodeQL can't read Scala, so the backend isn't scanned. Python is skipped too: the tools are run by hand, and `scripts/label_clustering.py` only talks to the app on localhost. Results are in the **Security → Code scanning** tab and flagged on the PR that causes them. It is **not a required check**.
+
 ## Coverage
 
 Scala and JS hold **ratchets** — a floor just under the measured number, raised in whichever PR earns the headroom.
