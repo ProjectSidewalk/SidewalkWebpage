@@ -109,8 +109,8 @@
       },
       "globals": {
         "cityId": "@commonData.cityId",
-        "cityName": "@currentCity.cityNameFormatted",
-        "cityNameShort": "@currentCity.cityNameShort"
+        "cityName": @jsonForScript(currentCity.cityNameFormatted),
+        "cityNameShort": @jsonForScript(currentCity.cityNameShort)
       }
     }</script>
     <script type="module" src='@assets.path("build/js/main.js")'></script>

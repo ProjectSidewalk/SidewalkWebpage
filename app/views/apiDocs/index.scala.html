@@ -1,16 +1,17 @@
 @import play.api.Configuration
 @import play.api.libs.json.Json
+@import views.ViewHelpers.jsonForScript
 @import service.CommonPageData
 @import models.user.SidewalkUserWithRole
 @(commonData: CommonPageData, user: Option[SidewalkUserWithRole])(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @* schema.org Dataset JSON-LD (#4237) so each city's open data is discoverable in Google Dataset Search. Built with
-   the JSON library so quoting is always valid; escaping `<` blocks a `</script>` breakout. `license` is CC0: the
+   the JSON library so quoting is always valid; jsonForScript stops a `</script>` breakout. `license` is CC0: the
    data is public domain (MIT in LICENSE.md covers the code); see the Data License & Provenance section below. *@
 @datasetJsonLd = @{
   val base = commonData.prodUrl.stripSuffix("/")
   val city = commonData.currentCity.cityNameFormatted
-  Json.stringify(Json.obj(
+  jsonForScript(Json.obj(
     "@context"    -> "https://schema.org",
     "@type"       -> "Dataset",
     "name"        -> s"Project Sidewalk Sidewalk Accessibility Data — $city",
@@ -32,10 +33,10 @@
       Json.obj("@type" -> "DataDownload", "encodingFormat" -> "application/geopackage+sqlite3",
         "contentUrl" -> s"$base/v3/api/rawLabels?filetype=geopackage")
     )
-  )).replace("<", "\\u003c")
+  ))
 }
 @structuredData = {
-  <script type="application/ld+json">@Html(datasetJsonLd)</script>
+  <script type="application/ld+json">@datasetJsonLd</script>
 }
 
 @content = {

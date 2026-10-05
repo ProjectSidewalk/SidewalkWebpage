@@ -2,6 +2,7 @@
 @import models.user.SidewalkUserWithRole
 @import play.api.Configuration
 @import play.api.libs.json.Json
+@import views.ViewHelpers.jsonForScript
 @import service.CommonPageData
 @(title: String, commonData: CommonPageData, user: Option[SidewalkUserWithRole], openStatus: String,
   mapathonLink: Option[String], streetDistance: Double, auditedDistance: Double, labelCount: Int, valCount: Int,
@@ -15,10 +16,10 @@
 @streetCompletionRate = @{if (streetDistance > 0) 100 * auditedDistance / streetDistance else 0.0}
 @locale = @{messages.lang.toLocale}
 
-@* Organization + WebSite JSON-LD (#4237), built with the JSON library so quoting is always valid; escaping `<`
-   blocks a `</script>` breakout from any interpolated string. *@
+@* Organization + WebSite JSON-LD (#4237), built with the JSON library so quoting is always valid, and through
+   jsonForScript so no interpolated string can close the block with `</script>`. *@
 @jsonLd = @{
-  Json.stringify(Json.obj(
+  jsonForScript(Json.obj(
     "@context" -> "https://schema.org",
     "@graph" -> Json.arr(
       Json.obj(
@@ -38,10 +39,10 @@
         "url"   -> commonData.prodUrl
       )
     )
-  )).replace("<", "\\u003c")
+  ))
 }
 @structuredData = {
-  <script type="application/ld+json">@Html(jsonLd)</script>
+  <script type="application/ld+json">@jsonLd</script>
 }
 
 @common.main(commonData, title, i18Namespaces = Seq("common", "validate"), extraHead = structuredData,
