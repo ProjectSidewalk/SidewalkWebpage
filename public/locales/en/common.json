@@ -367,6 +367,7 @@
     "vote-failed": "Your vote didn't save. Please try again."
   },
   "download-already-preparing": "This file is already being prepared for another request. Please try again shortly.",
+  "session-load-failed": "We couldn't load your mission. Please reload the page to try again.",
   "label-type-picker": {
     "current": "{{labelType}} (current type)",
     "change": "change",

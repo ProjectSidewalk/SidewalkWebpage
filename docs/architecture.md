@@ -536,7 +536,11 @@ its entry with `<script type="module" src='@assets.path("build/js/<page>.js")'>`
 `main.scala.html` loads on every page (shared helpers, app manager, navbar, auth dialog). Because a bundled module can't
 be templated and runs only after the page is parsed, a view hands its entry the server's values on that tag as
 `data-*` attributes (`id="page-entry"`) or, for the tools' larger sets, in a `<script type="application/json"
-id="page-data">` block the entry parses.
+id="page-data">` block the entry parses. That block holds session scalars only (user, language, imagery source,
+keys, Validate's filters): the mission or task a tool opens on is fetched by the entry (`common/pageSession.js`) from
+`POST /validationTask/mission` or `GET /explore/session`, the latter with the page's own query string, so a copy of
+the page the browser cached can never show labels the user already judged, and the first mission arrives in the same
+shape as the next one (#5650). The tool pages also answer `Cache-Control: no-store` for the same reason.
 
 The JS source lives in `frontend/js/`, outside `public/`, because Play serves everything under `public/`: only the
 bundles ship (their sourcemaps carry the sources for the browser's debugger). The three tools' stylesheets are still

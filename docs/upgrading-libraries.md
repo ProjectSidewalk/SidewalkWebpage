@@ -192,9 +192,6 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
 - **async-lock: 1.4.1** — **note:** a fresh download probably needs the trailing `module.export` line removed.
   [Download](https://cdn.jsdelivr.net/npm/async-lock@1.4.1/lib/index.min.js) ·
   [Versions](https://github.com/rogierschouten/async-lock/releases)
-- **betterknown: 1.2.0** — [Download](https://unpkg.com/betterknown) ·
-  [Versions](https://www.npmjs.com/package/betterknown?activeTab=versions) ·
-  [Changelog](https://github.com/placemark/betterknown/releases)
 - **bowser: 2.14.1** — browser detection.
   [Versions](https://www.npmjs.com/package/bowser?activeTab=versions) ·
   [Changelog](https://github.com/bowser-js/bowser/releases)

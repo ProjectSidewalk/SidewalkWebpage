@@ -78,6 +78,9 @@ export class Main {
 
   #params;
 
+  // The session this visit opens on, as /explore/session answered: the task, mission, region, route and pano seed.
+  #session;
+
   // Initialize things that need data loading.
   #loadingTasksCompleted = false;
   #loadingMissionsCompleted = false;
@@ -86,16 +89,18 @@ export class Main {
   #onboardingStates = null;
 
   /**
-   * @param {Record<string, any>} params - Page params injected by explore.scala.html.
+   * @param {Record<string, any>} params - The page's session scalars, from the view's page-data block.
+   * @param {Record<string, any>} session - The visit's session, as /explore/session answered.
    */
-  constructor(params) {
+  constructor(params, session) {
     this.#params = params;
+    this.#session = session;
 
     svl.onboarding = null;
-    svl.isOnboarding = () => this.#params.mission.mission_type === 'auditOnboarding';
+    svl.isOnboarding = () => this.#session.mission.mission_type === 'auditOnboarding';
     // Free exploration at a searched address (#4451): labeling works normally, but the task/mission never complete.
-    svl.isExploreAddressMode = () => this.#params.mission.mission_type === 'exploreAddress';
-    svl.regionId = params.regionId;
+    svl.isExploreAddressMode = () => this.#session.mission.mission_type === 'exploreAddress';
+    svl.regionId = session.region_id;
 
     // All three are derived from the displayed pano's size and refreshed by applyExploreScale() below. They start at
     // their scale-1, boxed values because the tool renders at scale 1 until that first call (#4838, #5085).
@@ -130,13 +135,14 @@ export class Main {
 
   async #init() {
     const params = this.#params;
+    const session = this.#session;
 
     // Record any params that are important enough to attach directly to the svl object.
     svl.missionsCompleted = 0; // Just since loading the page.
-    svl.userHasCompletedAMission = params.hasCompletedAMission;
-    svl.routeId = params.routeId;
-    svl.userRouteId = params.userRouteId;
-    svl.routeName = params.routeName;
+    svl.userHasCompletedAMission = session.has_completed_mission;
+    svl.routeId = session.route_id;
+    svl.userRouteId = session.user_route_id;
+    svl.routeName = session.route_name;
     svl.makeCrops = params.makeCrops;
     // Lat/lng estimator constants, owned by the backend (PanoDataService.LatLngEstimation) and used by Label.toLatLng.
     svl.latLngEstimation = params.latLngEstimation;
@@ -157,18 +163,18 @@ export class Main {
     // The task's current position is the default start; an explicit seed (an admin auditing a street from a given
     // pano/lat-lng, or an address drop-in per #4451) takes precedence. A pano seed keeps the lat/lng alongside it as
     // the fallback for a pano that fails to load (#4635).
-    const startLat = params.startLat ?? params.task.properties.current_lat;
-    const startLng = params.startLng ?? params.task.properties.current_lng;
+    const startLat = session.start_lat ?? session.task.properties.current_lat;
+    const startLng = session.start_lng ?? session.task.properties.current_lng;
     svl.panoStore = new PanoStore();
     svl.viewerType = svl.isOnboarding() ? GsvViewer : params.viewerType;
 
     // Set up the PanoManager and PanoViewer.
-    const isTutorialTask = params.task.properties.street_edge_id === params.tutorialStreetId;
-    const newTask = new Task(params.task, isTutorialTask);
+    const isTutorialTask = session.task.properties.street_edge_id === params.tutorialStreetId;
+    const newTask = new Task(session.task, isTutorialTask);
     let initParams;
     if (isTutorialTask) initParams = { startPanoId: 'tutorial' };
-    else initParams = { startPanoId: params.startPanoId, startLat, startLng, startPov: params.startPov };
-    const errorParams = { task: newTask, missionId: params.mission.mission_id };
+    else initParams = { startPanoId: session.start_pano_id, startLat, startLng, startPov: session.start_pov };
+    const errorParams = { task: newTask, missionId: session.mission.mission_id };
     svl.panoManager = await PanoManager.create(svl.viewerType, params.viewerAccessToken, initParams, errorParams);
     // No viewer means PanoManager found no usable imagery and has already scheduled a redirect; stop initializing
     // so nothing dereferences the missing viewer while the navigation lands.
@@ -202,7 +208,7 @@ export class Main {
     svl.taskContainer = new TaskContainer(svl.regionModel, svl, svl.tracker);
     svl.taskContainer._tasks.push(newTask);
     svl.taskContainer.setCurrentTask(newTask);
-    svl.labelContainer = new LabelContainer(params.nextTemporaryLabelId);
+    svl.labelContainer = new LabelContainer(session.next_temporary_label_id);
 
     // Set map parameters and instantiate it.
     svl.compass = new Compass(svl.navigationService, svl.taskContainer);
@@ -226,7 +232,7 @@ export class Main {
     svl.audioEffect = new AudioEffect(svl.storage);
 
     const region = new Region({
-      regionId: params.regionId, geoJSON: params.regionGeoJSON, name: params.regionName,
+      regionId: session.region_id, geoJSON: session.region_geom, name: session.region_name,
     });
     svl.regionModel.setCurrentRegion(region);
 
@@ -239,13 +245,13 @@ export class Main {
     svl.missionContainer = new MissionContainer(svl.missionPanel, svl.missionModel);
     svl.missionController = new MissionController(svl.missionModel, svl.regionModel,
       svl.missionContainer, svl.tracker);
-    svl.missionModel.createAMission(params.mission); // create current mission and set as current
+    svl.missionModel.createAMission(session.mission); // create current mission and set as current
     svl.form = new Form(svl.labelContainer, svl.missionModel, svl.missionContainer, svl.panoStore,
       svl.taskContainer, svl.tracker, params.dataStoreUrl);
-    if (params.mission.current_audit_task_id) {
+    if (session.mission.current_audit_task_id) {
       const currTask = svl.taskContainer.getCurrentTask();
       const currTaskId = currTask.getProperty('auditTaskId');
-      if (!currTaskId) currTask.setProperty('auditTaskId', params.mission.current_audit_task_id);
+      if (!currTaskId) currTask.setProperty('auditTaskId', session.mission.current_audit_task_id);
     } else {
       await svl.form.submitData(); // Get an audit_task_id from the back end.
     }
@@ -441,7 +447,7 @@ export class Main {
    * notice never outlives the browsing session that earned it.
    */
   #parkRouteUnavailableNotice() {
-    if (!this.#params.routeUnavailable) return;
+    if (!this.#session.route_unavailable) return;
     try {
       window.sessionStorage.setItem(Main.#ROUTE_UNAVAILABLE_KEY, '1');
     } catch {
@@ -461,11 +467,11 @@ export class Main {
    * @returns {boolean} True when the toast should be shown.
    */
   #takeRouteUnavailableNotice() {
-    const asked = Boolean(this.#params.routeUnavailable);
+    const asked = Boolean(this.#session.route_unavailable);
     try {
       const parked = window.sessionStorage.getItem(Main.#ROUTE_UNAVAILABLE_KEY) === '1';
       if (parked) window.sessionStorage.removeItem(Main.#ROUTE_UNAVAILABLE_KEY);
-      return asked || (parked && !this.#params.routeId);
+      return asked || (parked && !this.#session.route_id);
     } catch {
       return asked;
     }
@@ -544,7 +550,7 @@ export class Main {
 
       // Set up a few initial views now that everything has loaded. A seeded POV (the labeler's stored view from the
       // label card's "Explore here" hop, #4637) wins over the default route-facing camera.
-      if (this.#params.startPov) {
+      if (this.#session.start_pov) {
         // The seed set the pano zoom straight on the viewer, before ZoomControl existed — sync its buttons to that
         // zoom so zoom-out isn't left dead (#4637).
         svl.zoomControl.syncButtonsToZoom(svl.panoViewer.getPov().zoom);
@@ -584,7 +590,7 @@ export class Main {
           // Name the place when the search supplied one — "dropped near Teaneck High School" orients the user far
           // better than a generic greeting. The name comes from a URL param and the alert banner renders its
           // message as HTML, so the value is escaped here while the <b> in the string itself renders.
-          const placeName = this.#params.startPlaceName;
+          const placeName = this.#session.start_place_name;
           const startMessage = placeName
             ? i18next.t('popup.free-explore-start-named', { placeName, interpolation: { escapeValue: true } })
             : i18next.t('popup.free-explore-start');
@@ -600,7 +606,7 @@ export class Main {
           // A pre-existing in-progress street also counts as resuming — the server sets audit_task_id on the task
           // only when handing one back — since a labeler mid-street may have zero mission distance banked.
           const resuming = currentMission.getProperty('missionType') === 'audit'
-            && (missionProgressM > 0 || Boolean(this.#params.task.properties.audit_task_id));
+            && (missionProgressM > 0 || Boolean(this.#session.task.properties.audit_task_id));
           new MissionStartTutorial('audit', labelType, {
             nLength: currentMission.getDistance('miles'),
             region: currentRegion.getProperty('name'),
@@ -622,7 +628,7 @@ export class Main {
                 duration: 10000,
               });
             }, { once: true });
-          } else if (svl.userRouteId && this.#params.routeResumed) {
+          } else if (svl.userRouteId && this.#session.route_resumed) {
             document.addEventListener('ps:mission-start-tutorial:done', () => {
               svl.tracker.push('RouteResumeToast_Shown');
               Toast.show({
@@ -771,7 +777,7 @@ export class Main {
       // The tutorial intro says "your route is still waiting" to a user who clicked through to one; that fact
       // lives only in the URL about to be pinned, and a route that failed to resolve (#5156) is not waiting.
       svl.tutorialRouteWaiting = new URLSearchParams(window.location.search).has('routeId')
-        && !this.#params.routeUnavailable;
+        && !this.#session.route_unavailable;
       ExploreUrlSync.pinTutorialUrl();
       return;
     }

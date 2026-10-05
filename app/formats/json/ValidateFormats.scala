@@ -85,6 +85,10 @@ object ValidateFormats {
       excludedLabelIds: Seq[Int],
       validateParams: ValidateParams
   )
+
+  /** What a Validate page sends to be handed the mission it starts on (#5650): just its filters. */
+  case class MissionRequest(validateParams: ValidateParams)
+
   // No `skipped`, unlike AuditMissionProgress: only Explore's onboarding can skip a mission.
   case class ValidationMissionProgress(
       missionId: Int,
@@ -180,4 +184,6 @@ object ValidateFormats {
   given labelEditSubmissionReads: Reads[LabelEditSubmission] = Json.reads[LabelEditSubmission]
 
   given moreLabelsRequestReads: Reads[MoreLabelsRequest] = Json.reads[MoreLabelsRequest]
+
+  given missionRequestReads: Reads[MissionRequest] = Json.reads[MissionRequest]
 }

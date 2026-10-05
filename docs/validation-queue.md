@@ -152,10 +152,10 @@ every other such face, still servable, never certain.
 `getLabelTypeToValidate` picks the mission's label type before any labels are drawn.
 `getAvailableValidationsLabelsByType` returns, per label type, how many labels the user could validate at all and how
 many of those each queue holds — computed with the *same* predicates as the label query, so type selection and label
-selection cannot disagree about what "needs validation" means. It runs on every Validate page load and mission
-completion, so the two dearer counts are only taken for a cascade that can read them: the `Triage` count (which joins
-the AI's vote onto every servable label) only when the cascade has a `Triage` queue, and the `NoSidewalk` face count
-only when the cascade has `NeedsVotes` and the mission is not pinned to another type.
+selection cannot disagree about what "needs validation" means. It runs on every Validate first-mission request (one
+per page load) and mission completion, so the two dearer counts are only taken for a cascade that can read them: the
+`Triage` count (which joins the AI's vote onto every servable label) only when the cascade has a `Triage` queue, and
+the `NoSidewalk` face count only when the cascade has `NeedsVotes` and the mission is not pinned to another type.
 
 1. Keep types with at least one full mission's worth of available labels, honoring a requested type if there is one.
    The counts apply `unvalidatedOnly` and Expert Validate's `?users=`, `?regions=`, and `?teams=` filters

@@ -367,6 +367,7 @@
     "vote-failed": "Je stem is niet opgeslagen. Probeer het opnieuw."
   },
   "download-already-preparing": "Dit bestand wordt al voorbereid voor een andere aanvraag. Probeer het zo opnieuw.",
+  "session-load-failed": "We konden je missie niet laden. Herlaad de pagina om het opnieuw te proberen.",
   "label-type-picker": {
     "current": "{{labelType}} (huidig type)",
     "change": "wijzigen",
