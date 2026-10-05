@@ -25,7 +25,10 @@
        set: the language plugin and the preview both read the mapboxgl global as they parse. *@
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-3.24.1.js")' defer></script>
     <script src='@assets.path("vendor/mapbox-gl/mapbox-gl-language-1.0.1.js")' defer></script>
-    <script type="module" id="page-entry" data-mapbox-api-key="@commonData.mapboxApiKey" src='@assets.path("build/js/api-docs/rawLabels.js")'></script>
+    <script type="module"
+            id="page-entry"
+            data-mapbox-api-key="@commonData.mapboxApiKey"
+            src='@assets.path("build/js/api-docs/rawLabels.js")'></script>
 
     <p class="download-note">Note: In this example, we are visualizing Project Sidewalk data only in a single region; however, the Raw Labels API can return data from all regions in the city or just a selected region—see the API query parameters below.</p>
   </div>

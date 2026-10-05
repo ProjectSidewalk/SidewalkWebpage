@@ -304,7 +304,7 @@ export class PanoMarker {
 
       // The Validate card is anchored to the marker, so it has to move with it. This runs on every pov_changed and
       // resize, but re-anchoring costs nothing while the card is hidden, which is the whole time on other pages.
-      if (this.id_ === 'validate-pano-marker' && typeof svv !== 'undefined') {
+      if (this.id_ === 'validate-pano-marker') {
         svv.labelVisibilityControl?.reanchorLabelCard();
       }
     }

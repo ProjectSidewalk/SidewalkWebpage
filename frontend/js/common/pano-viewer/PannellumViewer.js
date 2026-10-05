@@ -86,9 +86,6 @@ export const panoramaUrlFor = (metadata) => {
   return panoUrlWithMaxWidth(metadata.image_url, cap);
 };
 
-// These are top-level declarations in a file Grunt concatenates into one bundle with a dozen others, so a name that
-// reads generically here is a site-wide SyntaxError if any of them ever declares it too. Hence the pano- prefixes.
-
 /** @returns {string} `url` with a maxWidth the server will honour. */
 const panoUrlWithMaxWidth = (url, width) => `${url}${url.includes('?') ? '&' : '?'}maxWidth=${width}`;
 

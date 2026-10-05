@@ -62,7 +62,7 @@ export class OverviewPage {
     for (const lt of list) {
       let color = lt.color || '#999999';
       try {
-        color = util.misc?.getLabelColors(lt.name) ?? color;
+        color = util.misc.getLabelColors(lt.name) ?? color;
       } catch { /* fall back to the API color */ }
       this.#colorByType.set(lt.name, color);
       this.#displayByType.set(lt.name, lt.display_name || lt.name);

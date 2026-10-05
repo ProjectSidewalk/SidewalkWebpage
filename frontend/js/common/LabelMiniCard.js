@@ -10,8 +10,6 @@
  * thumbnail's own size. Counts
  * update optimistically and roll back with a toast if the server refuses.
  *
- * Reads `util.misc`, `util.assetPath`, `util.lazyIdentityFetch`, `i18next`, `Toast` and `BadgeAchievements`, all
- * loaded before it on every host page.
  */
 
 import { BadgeAchievements } from './BadgeAchievements.js';

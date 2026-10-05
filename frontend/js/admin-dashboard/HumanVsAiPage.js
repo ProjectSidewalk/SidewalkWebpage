@@ -71,7 +71,7 @@ export class HumanVsAiPage {
   /** Canonical label-type color via util.misc (falls back to null so the caller can use the API's color). */
   #canonicalColor(labelType) {
     try {
-      return util.misc?.getLabelColors(labelType) || null;
+      return util.misc.getLabelColors(labelType) || null;
     } catch {
       return null;
     }

@@ -49,10 +49,13 @@ module.exports = function (grunt) {
           reload: true
         }
       },
-      scripts: {
+      // No `interrupt`: a save during a build waits for it, so two builds never write public/build/ at once.
+      js: {
+        files: ['frontend/js/**/*.js'],
+        tasks: ['rolldown']
+      },
+      css: {
         files: [
-          // Any file can end up in a bundle, so all of them are watched.
-          'frontend/js/**/*.js',
           'public/css/pages/explore/*.css',
           'public/css/pages/validate/*.css',
           'public/css/pages/gallery/*.css',
@@ -61,13 +64,7 @@ module.exports = function (grunt) {
           'public/css/components/pano-attribution.css',
           'public/css/components/mission-start-tutorial.css'
         ],
-        tasks: [
-          'concat_css',
-          'rolldown'
-        ],
-        options: {
-          interrupt: true
-        }
+        tasks: ['concat_css']
       }
     }
   });

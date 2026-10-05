@@ -211,7 +211,7 @@ export class Label {
     const frameHeight = this.getAuditProperty('canvasHeight') ?? util.EXPLORE_CANVAS_HEIGHT;
     // The imagery the click was made on decides the fov it was projected with (#5083): the label's own source,
     // with the page's viewer as the fallback for a payload that predates the field.
-    const viewerType = this.getAuditProperty('panoSource') ?? window.svv?.panoViewer?.getViewerType();
+    const viewerType = this.getAuditProperty('panoSource') ?? svv.panoViewer?.getViewerType();
     return util.pano.canvasCoordToCenteredPov(origPov, this.getAuditProperty('canvasX'),
       this.getAuditProperty('canvasY'), frameWidth, frameHeight,
       util.pano.renderedHFov(origPov.zoom, frameWidth / frameHeight, viewerType));

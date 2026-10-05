@@ -244,7 +244,7 @@ export class LabelDetail {
   async #init() {
     this.#cacheElements();
     this.#tagEditor = new TagEditor(this.#els.tags);
-    if (this.#els.typePopover && typeof LabelTypeDropdown !== 'undefined') {
+    if (this.#els.typePopover) {
       this.#typeDropdown = new LabelTypeDropdown(this.#els.title, this.#els.typePopover, {
         onOpen: () => this.#prepareTypePicker(),
         onPick: (labelType) => this.#submitEdit({ labelType, severity: this.#severityAfterTypeChange(labelType) }),
@@ -309,7 +309,7 @@ export class LabelDetail {
    */
   #initShareWidget() {
     const trigger = this.#q('.label-detail__share-trigger');
-    if (trigger && typeof ShareWidget !== 'undefined') {
+    if (trigger) {
       this.#shareWidget = new ShareWidget(/** @type {HTMLButtonElement} */ (trigger));
     }
   }

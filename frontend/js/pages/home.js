@@ -17,7 +17,7 @@ util.onFirstInteractionOrIdle(() => {
   document.head.appendChild(mapboxCss);
   Promise.all([
     util.loadScriptsInOrder(JSON.parse(data.mapScriptUrls)),
-    import('../ps-map/createPSMap.js'),
+    util.importOrReload(() => import('../ps-map/createPSMap.js')),
   ]).then(([, { createPSMap }]) => {
     // createPSMap reads translated strings, so it still waits on the app's i18next setup.
     window.appManager.ready(() => {

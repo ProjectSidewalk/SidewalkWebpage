@@ -807,9 +807,6 @@ util.misc = { ...UtilitiesMisc(JSON), ...util.misc };
 /**
  * Fields PannellumViewer needs to render a backup pano: the subset of PanoData's `requiredParams` that a pano_data
  * row can be missing. See the note there before changing this list.
- *
- * A property rather than a top-level `const` because some views load this file directly on a page whose bundle
- * already concatenates it. Re-running it must stay harmless, and a repeated `const` is a fatal redeclaration.
  */
 util.misc.BACKUP_IMAGE_REQUIRED_FIELDS = ['width', 'height', 'lat', 'lng', 'camera_heading', 'camera_pitch'];
 

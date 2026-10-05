@@ -85,12 +85,4 @@ function initTestServerBanner() {
   if (banner) new TestServerBanner(banner);
 }
 
-// The banner's <script> tag sits right after its markup, so the element is already parsed: init synchronously to keep
-// the pre-paint dismissal. Fall back to DOMContentLoaded if this ever loads before the element exists.
-if (document.querySelector('.test-server-banner')) {
-  initTestServerBanner();
-} else if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initTestServerBanner);
-} else {
-  initTestServerBanner();
-}
+initTestServerBanner();

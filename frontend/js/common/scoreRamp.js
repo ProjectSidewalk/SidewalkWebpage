@@ -8,8 +8,7 @@
  * `--color-score-ramp-dark-*` set) rather than global state; every consumer defaults to the light set.
  *
  * Interpolation matches Mapbox GL's default `interpolate` (linear in sRGB), so a histogram bar colored with `at()`
- * agrees with the map feature it summarizes. Loaded as a plain script; the api-docs layout includes it directly and
- * the AccessScore bundle concatenates it.
+ * agrees with the map feature it summarizes.
  */
 export const ScoreRamp = (function () {
   /** The five token names for a surface, worst score first: `-N`, or the `-dark-N` set for a dark basemap. */

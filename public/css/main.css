@@ -146,7 +146,7 @@
      at the midpoint rather than a grey because the grey vanished against the basemap's grey land. Validated with
      the dataviz palette checks: every adjacent pair clears the CVD floor (worst ΔE 14.5, protan) and the
      normal-vision floor (16.2); yellow-500 is only 1.4:1 against the basemap, so anything colored by this ramp also
-     carries its value as text (tooltip, legend, table). Read through public/js/common/scoreRamp.js — a chart or map
+     carries its value as text (tooltip, legend, table). Read through frontend/js/common/scoreRamp.js — a chart or map
      layer never lists these hexes itself. */
   --color-score-ramp-1: var(--color-orange-600);
   --color-score-ramp-2: var(--color-orange-500);

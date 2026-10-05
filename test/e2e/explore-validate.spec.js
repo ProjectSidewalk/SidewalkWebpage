@@ -65,11 +65,14 @@ test('/validate trusts the expired flag over a provider that still answers (#556
     const onMission = await loadValidate(page, '/validate');
     expect(consoleErrors).toEqual([]);
     if (!onMission) return;
-    const expired = await page.evaluate(() => {
+    const {expired, imagerySource} = await page.evaluate(() => {
       const label = window.svv.labelContainer.getCurrentLabel();
-      return label.getAuditProperty('expired') === true && Boolean(label.getAuditProperty('backupImage'));
+      return {
+        expired: label.getAuditProperty('expired') === true && Boolean(label.getAuditProperty('backupImage')),
+        imagerySource: JSON.parse(document.getElementById('page-data').textContent).imagerySource,
+      };
     });
-    await expectPanoRendered(page, '/validate', expired ? 'pannellum' : 'gsv');
+    await expectPanoRendered(page, '/validate', expired ? 'pannellum' : imagerySource);
   });
 
 test('/validate opens the chevron menu and the image adjustments panel', async ({page, consoleErrors}) => {
@@ -136,7 +139,7 @@ async function loadValidate(page, path) {
  * path it shouldn't have. Callers skip this on the no-mission modal, which has nothing to render.
  * @param {import('@playwright/test').Page} page The page under test, settled on the mission path.
  * @param {string} path The page's path, for the failure message.
- * @param {'gsv'|'pannellum'} viewerType The PanoViewer.viewerType expected to have rendered the pano.
+ * @param {string} viewerType The PanoViewer.viewerType expected to have rendered the pano ('gsv', 'pannellum', …).
  */
 async function expectPanoRendered(page, path, viewerType) {
   const state = await page.evaluate(() => ({

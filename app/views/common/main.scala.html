@@ -133,14 +133,17 @@
           </div>
         </div>
       </aside>
-      @* Inline and right after the banner, so a saved "don't show again" takes effect before first paint: the module
-         that owns the banner (TestServerBanner.js) runs after parsing, which would flash it on every page. *@
+      @* Inline, right after the banner: the module that owns it (TestServerBanner.js) runs only after parsing, so a
+         saved "don't show again" and the banner's reserved height have to be applied here to land before first paint. *@
       <script>
+        const banner = document.querySelector('.test-server-banner');
         try {
-          const banner = document.querySelector('.test-server-banner');
           if (JSON.parse(localStorage.getItem(banner.dataset.storageKey)) === true) banner.classList.add('ps-hidden');
         } catch (e) {
           // No localStorage (private mode): the banner shows, and the module's close button still hides it.
+        }
+        if (!banner.classList.contains('ps-hidden') && getComputedStyle(banner).position === 'fixed') {
+          document.documentElement.style.setProperty('--test-banner-height', `${banner.offsetHeight}px`);
         }
       </script>
     }

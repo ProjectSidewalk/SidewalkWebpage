@@ -404,7 +404,7 @@ export class Canvas {
    */
   #initShareWidget() {
     const trigger = svl.ui.canvas.hoverCardShare;
-    if (!trigger || typeof ShareWidget === 'undefined') return;
+    if (!trigger) return;
 
     // The card as a whole opens the context menu; nothing in the share control may also do that. The listener goes
     // on the wrapper, not the trigger: ShareWidget builds its popover inside the wrapper, so the menu items are

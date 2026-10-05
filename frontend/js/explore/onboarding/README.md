@@ -48,7 +48,7 @@ that interaction.
 
 ## Tips
 
-- Edit `src/` files only — Grunt rebuilds the `build/` bundle (see [`CONTRIBUTING.md`](../../../../../CONTRIBUTING.md)).
+- Never edit `public/build/`; `npm start`'s watch rebuilds the Explore bundle on save (see [`CONTRIBUTING.md`](../../../../CONTRIBUTING.md)).
 - The tutorial can't be exercised by automated GSV testing; step through it manually in the browser after changes.
 - For worked examples of tutorial-flow changes, see PRs
   [#1493](https://github.com/ProjectSidewalk/SidewalkWebpage/pull/1493) and

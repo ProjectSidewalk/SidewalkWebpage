@@ -1786,12 +1786,8 @@ export class AcrossCitiesPage {
 
   /** Canonical label-type color via the shared helper, with a gray fallback. */
   #color(labelType) {
-    try {
-      if (util.misc?.getLabelColors) {
-        const c = util.misc.getLabelColors(labelType);
-        if (c) return c;
-      }
-    } catch { /* fall through to default */ }
+    const c = util.misc.getLabelColors(labelType);
+    if (c) return c;
     return '#b3b3b3';
   }
 

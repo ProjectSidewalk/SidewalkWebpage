@@ -37,8 +37,6 @@ import { PinchZoomDetector } from './zoom/PinchZoomDetector.js';
 import { ZoomControl } from './zoom/ZoomControl.js';
 import './util/throttle.js';
 
-window.svv = window.svv || {};
-
 /**
  * The elements the busy state covers while a label loads (LabelContainer's `#setUiBusy`, #5211), per layout.
  *

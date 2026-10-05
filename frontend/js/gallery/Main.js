@@ -9,8 +9,6 @@ import { Tracker } from './data/Tracker.js';
 import { GalleryFilter } from './filter/GalleryFilter.js';
 import { KeyboardManager } from './keyboard/KeyboardManager.js';
 
-window.sg = window.sg || {};
-
 /**
  * Main module for Gallery.
  *

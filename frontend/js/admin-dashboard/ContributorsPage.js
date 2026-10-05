@@ -272,7 +272,7 @@ export class ContributorsPage {
   /** Canonical label-type color via util.misc, with a grey fallback for unknown/odd types. */
   static #typeColor(labelType) {
     try {
-      return util.misc?.getLabelColors(labelType) || '#999999';
+      return util.misc.getLabelColors(labelType) || '#999999';
     } catch {
       return '#999999';
     }

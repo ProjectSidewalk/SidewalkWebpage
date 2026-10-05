@@ -561,7 +561,7 @@ export class AboutPage {
     // Strictly sequential, not parallel: the language plugin reads the mapboxgl global as it parses, so arriving
     // first would throw. ps-map only reads it when the map is created, so it loads alongside as a chunk of its own.
     const [{ createPSMap }] = await Promise.all([
-      import('./ps-map/createPSMap.js'),
+      util.importOrReload(() => import('./ps-map/createPSMap.js')),
       (async () => {
         for (const src of [mapboxJs, mapboxLanguageJs]) await this.#loadScript(src);
       })(),

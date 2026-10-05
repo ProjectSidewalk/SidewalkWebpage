@@ -631,7 +631,7 @@ export class ContextMenu {
    */
   #initShareWidget() {
     const trigger = /** @type {HTMLButtonElement} */ (document.getElementById('context-menu-share'));
-    if (!trigger || typeof ShareWidget === 'undefined') return;
+    if (!trigger) return;
     trigger.addEventListener('click', () => {
       // Only the opening click. The same handler runs on the click that dismisses the popover, which is not a share.
       if (this.#shareWidget?.isOpen()) return;

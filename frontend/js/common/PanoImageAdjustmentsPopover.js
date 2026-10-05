@@ -277,9 +277,7 @@ export class PanoImageAdjustmentsPopover {
    * the viewport either way.
    */
   #position() {
-    const uiScale = typeof util !== 'undefined' && util.uiScale
-      ? util.uiScale()
-      : parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+    const uiScale = util.uiScale();
     const gap = 6 * uiScale;
     const margin = 8;
     const btn = this.#button.getBoundingClientRect();

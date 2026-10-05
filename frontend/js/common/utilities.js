@@ -783,6 +783,33 @@ function loadScriptsInOrder(srcs) {
 util.loadScriptsInOrder = loadScriptsInOrder;
 
 /**
+ * Runs a lazy `import()`, reloading the page once if it fails: a tab opened before a deploy asks for chunk names the
+ * new build no longer has.
+ *
+ * @param {() => Promise<any>} load - The import, e.g. `() => import('./ps-map/createPSMap.js')`.
+ * @returns {Promise<any>} The module.
+ */
+async function importOrReload(load) {
+  try {
+    return await load();
+  } catch (e) {
+    const key = 'reloadedForNewBuild';
+    try {
+      if (!window.sessionStorage.getItem(key)) {
+        window.sessionStorage.setItem(key, '1');
+        window.location.reload();
+        return new Promise(() => {}); // The page is going away; nothing should run after this.
+      }
+    } catch {
+      // No sessionStorage to guard against a reload loop, so report the failure instead.
+    }
+    throw e;
+  }
+}
+
+util.importOrReload = importOrReload;
+
+/**
  * Whether the visitor asked the browser to conserve data, in which case optional prefetching should be skipped.
  * @returns {boolean} True only if Save-Data is explicitly on; unsupported browsers report false.
  */

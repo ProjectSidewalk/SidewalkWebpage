@@ -54,8 +54,7 @@ util.pano.jwtExpiryMs = (token) => {
  * old imagery (#4411). Mapillary and Panoramax share every term but the resolution cap, so they share this file too.
  *
  * The stamp is parsed on first call, not at load, so these files can also be evaluated outside a rendered page (the
- * jsdom suite does exactly that). The memo lives in a closure because the bundle is concatenated, not modularized —
- * a bare top-level binding here would be a global.
+ * jsdom suite does exactly that).
  *
  * @param {string} provider - Lowercase provider name, a key of the file's `providers` object (e.g. 'mapillary').
  * @returns {object} The shared weights and decay scales, with the provider's own parameters merged over them.
