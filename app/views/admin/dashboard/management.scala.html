@@ -1,6 +1,6 @@
 @import service.CommonPageData
 @import models.user.{Role, SidewalkUserWithRole}
-@import views.ViewHelpers.jsonForScript
+@import play.api.libs.json.Json
 @import play.api.Configuration
 @(commonData: CommonPageData, user: SidewalkUserWithRole
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
@@ -101,7 +101,7 @@
   </div>
 
   <script type="module" id="page-entry" src='@assets.path("build/js/admin/management.js")'
-          data-assignable-roles='@jsonForScript(Role.ADMIN_ASSIGNABLE_ROLES.map(_.name))'></script>
+          data-assignable-roles="@Json.stringify(Json.toJson(Role.ADMIN_ASSIGNABLE_ROLES.map(_.name)))"></script>
 }
 
 @common.main(commonData, "Sidewalk - Admin Management") {
