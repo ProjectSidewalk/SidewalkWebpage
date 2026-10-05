@@ -22,16 +22,19 @@ export class MiniLineChart {
    * @param {{yMax?: number, tickFormat?: (value: number) => string, valueFormat?: (value: number) => string,
    *          ariaLabel?: string, dotRadius?: number, kind?: string, maxXLabels?: number, barValues?: boolean,
    *          emphasisIndex?: number, minMarginL?: number, minMarginR?: number, width?: number,
-   *          refLine?: {value: number, label?: string, key?: string}, pinnableTips?: boolean}} [opts] - yMax
+   *          refLine?: {value: number, label?: string, key?: string, labelInAriaLabel?: boolean},
+   *          pinnableTips?: boolean}} [opts] - yMax
    *   defaults to a nice rounded max above the data; tickFormat labels the y-axis (abbreviated by default, e.g. "1.6M")
    *   while valueFormat formats values in the default tooltip and in bar value labels, so hovering still gives the
    *   exact count; dotRadius sizes the point markers (default 3); kind 'bar' draws bars instead of lines; maxXLabels
    *   caps how many x labels are drawn (default 6); barValues draws each bar's value above it (meant for single-series
    *   bar charts — grouped bars would collide); emphasisIndex marks that index's bar and labels with `--emphasis`
-   *   classes (e.g. an in-progress "today" bar); minMarginL/minMarginR raise the axis margins, which renderInto uses to
-   *   redraw at measured label widths; refLine draws a labeled horizontal target the bars are read against, and is
-   *   included in the y scale; width is the SVG's pixel width (default 760); pinnableTips lets a click (or Enter) pin a
-   *   point's rich card open so links inside it can be followed (psTooltip's `data-ps-tooltip-pinnable`, #5495).
+   *   classes (e.g. an in-progress "today" bar), and the x labels are counted back from it so that index is always
+   *   labeled; minMarginL/minMarginR raise the axis margins, which renderInto uses to redraw at measured label widths;
+   *   refLine draws a labeled horizontal target the bars are read against, and is included in the y scale (set
+   *   labelInAriaLabel when ariaLabel already states the label, so it isn't read twice); width is the SVG's pixel width
+   *   (default 760); pinnableTips lets a click (or Enter) pin a point's rich card open so links inside it can be
+   *   followed (psTooltip's `data-ps-tooltip-pinnable`, #5495).
    * @returns {string} SVG markup plus an optional HTML legend.
    */
   static svg(categories, series, opts = {}) {
@@ -55,8 +58,11 @@ export class MiniLineChart {
     const tickFracs = [0, 0.25, 0.5, 0.75, 1];
     const tickText = tickFracs.map((f) => tickFormat(f * yMax));
     const step = Math.max(1, Math.ceil(n / (opts.maxXLabels || 6)));
+    // Stepping from the emphasized index (usually the newest point) guarantees it a label; stepping from 0 can skip it
+    // (30 days at step 5 labels day 25 but not today, day 29).
+    const anchor = Number.isInteger(opts.emphasisIndex) && opts.emphasisIndex < n ? opts.emphasisIndex : 0;
     const xLabelIdx = [];
-    for (let i = 0; i < n; i += step) xLabelIdx.push(i);
+    for (let i = anchor % step; i < n; i += step) xLabelIdx.push(i);
 
     // Margins are sized to the labels rather than fixed: anything drawn outside the viewBox is clipped by the SVG, so
     // a fixed left margin beheaded seven-digit y ticks ("1,400,146" → "400,146") and a fixed right margin cut the last
@@ -85,6 +91,8 @@ export class MiniLineChart {
     });
 
     let body = '';
+    // Bar value labels' boxes, so the reference label can be moved off any it would land on.
+    const valueBoxes = [];
     if (isBar) {
       // With multiple series, each band is split into side-by-side bars (grouped, not stacked).
       const band = iw / n;
@@ -110,9 +118,12 @@ export class MiniLineChart {
             + `width="${barW.toFixed(1)}" height="${ih.toFixed(1)}"`
             + `${MiniLineChart.#pointTip(tip, s.tooltipsHtml?.[i], opts.pinnableTips)}</rect>`;
           if (opts.barValues) {
+            const text = valueFormat(v);
+            const vy = (h > 0 ? top : yFrac(0)) - 4;
+            const vw = MiniLineChart.#labelWidth(text);
+            valueBoxes.push({ x1: bx + barW / 2 - vw / 2, x2: bx + barW / 2 + vw / 2, y: vy });
             out += `<text class="mini-value${emph ? ' mini-value--emphasis' : ''}" x="${(bx + barW / 2).toFixed(1)}" `
-              + `y="${((h > 0 ? top : yFrac(0)) - 4).toFixed(1)}" text-anchor="middle">`
-              + `${util.escapeHTML(valueFormat(v))}</text>`;
+              + `y="${vy.toFixed(1)}" text-anchor="middle">${util.escapeHTML(text)}</text>`;
           }
           return out;
         }).join('');
@@ -147,8 +158,17 @@ export class MiniLineChart {
       body += `<line class="mini-ref mini-ref--${refKey}" x1="${m.l}" y1="${refY.toFixed(1)}" `
         + `x2="${W - m.r}" y2="${refY.toFixed(1)}"/>`;
       if (refLine.label) {
+        // Above the line by default. When a bar sits near the target its value label lands in the same spot, and the
+        // reference label (drawn later, with its halo) would erase it, so it drops just below the line instead.
+        const labelW = MiniLineChart.#labelWidth(refLine.label);
+        const collides = (y) => valueBoxes.some((b) => b.x2 > W - m.r - labelW && b.x1 < W - m.r
+          && Math.abs(b.y - y) < MiniLineChart.#AXIS_FONT_PX + 2);
+        const above = refY - 4;
+        const below = refY + MiniLineChart.#AXIS_FONT_PX + 3;
+        const labelY = collides(above) && below <= m.t + ih && !collides(below) ? below : above;
+        const hidden = refLine.labelInAriaLabel ? ' aria-hidden="true"' : '';
         body += `<text class="mini-ref-label mini-ref-label--${refKey}" x="${W - m.r}" `
-          + `y="${(refY - 4).toFixed(1)}" text-anchor="end">${util.escapeHTML(refLine.label)}</text>`;
+          + `y="${labelY.toFixed(1)}" text-anchor="end"${hidden}>${util.escapeHTML(refLine.label)}</text>`;
       }
     }
 

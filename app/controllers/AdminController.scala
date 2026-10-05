@@ -688,7 +688,11 @@ class AdminController @Inject() (
     val scorecardsF    = configService.getCityScorecards()
     val allTimeF       = configService.getCrossCityWeeklyTrend(None)
     val dailyF         = configService.getCrossCityDailyTrend(dailyTrendDays)
-    val baselineF      = configService.getCrossCityDailyBaseline()
+    // A failed baseline only costs the charts their average line; it must not take the rest of the page down with it.
+    val baselineF = configService.getCrossCityDailyBaseline().map(Option(_)).recover { case e: Exception =>
+      logger.warn(s"Daily baseline unavailable: ${e.getMessage}")
+      None
+    }
     val windowSummaryF = configService.getCrossCityActivitySummary()
     val labelingSpeedF = configService.getCrossCityLabelingSpeed()
     val storyStatsF    = configService.getCrossCityStoryStats()
@@ -715,15 +719,20 @@ class AdminController @Inject() (
           "over_time_all_time" -> allTimeTrendJson(allTimeTrend),
           "over_time_daily"    -> dailyTrendJson(dailyTrend, cityInfoById),
           // Trailing-year per-day averages drawn as a reference line on every per-day chart (#5653), on the bars'
-          // own basis so the line and the bars are comparable; the window ends yesterday because today is partial.
-          "daily_baseline" -> Json.obj(
-            "days"                 -> dailyBaseline.days,
-            "window_start"         -> dailyBaseline.windowStart.toString,
-            "window_end"           -> dailyBaseline.windowEnd.toString,
-            "labels_per_day"       -> dailyBaseline.labelsPerDay,
-            "validations_per_day"  -> dailyBaseline.validationsPerDay,
-            "contributors_per_day" -> dailyBaseline.contributorsPerDay
-          ),
+          // own basis so the line and the bars are comparable. Null when the baseline couldn't be computed, which the
+          // page reads as "draw no line".
+          "daily_baseline" -> dailyBaseline
+            .map { b =>
+              Json.obj(
+                "days"                 -> b.days,
+                "window_start"         -> b.windowStart.toString,
+                "window_end"           -> b.windowEnd.toString,
+                "labels_per_day"       -> b.labelsPerDay,
+                "validations_per_day"  -> b.validationsPerDay,
+                "contributors_per_day" -> b.contributorsPerDay
+              )
+            }
+            .getOrElse(JsNull),
           // Rolling week-over-week windows (trailing 7 days vs the 7 before) for the "Today & this week" tiles
           // (#4758). Headcounts here are distinct across every city, so they can come out below the same column
           // summed down `window_by_city` — someone who mapped in three cities is one contributor here.

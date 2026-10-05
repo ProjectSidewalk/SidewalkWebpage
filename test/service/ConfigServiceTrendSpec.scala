@@ -169,9 +169,10 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   "the cross-city reads" should {
     // Each of these fires a query per city schema — ~56 apiece against a 25-connection pool — and one page request
-    // triggers five of them, so how often that fan-out runs is the page's whole cost story. These two pin the sharing
-    // properties; what `staleWhileRevalidate` adds on top (never making a *request* wait on a refresh) turns on a
-    // 10-minute clock this suite can't advance, and is documented on ConfigService.CrossCityFreshFor.
+    // triggers five of them (plus two on longer clocks), so how often that fan-out runs is the page's whole cost story.
+    // These two pin the sharing properties; what `staleWhileRevalidate` adds on top (never making a *request* wait on a
+    // refresh) turns on a 10-minute clock this suite can't advance, and is documented on
+    // ConfigService.CrossCityFreshFor.
     "give concurrent callers of a cold key one shared computation" in {
       // `days = 5` is a key nothing else in the suite requests, so this is the genuinely-cold path. Identity is the
       // observable proof of sharing: a layer that recomputed per caller would hand back equal-but-distinct values.

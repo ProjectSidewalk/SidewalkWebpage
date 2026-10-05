@@ -37,6 +37,7 @@ const MARKUP = `
   <div class="mini-chart" id="ac-chart-week-validations"></div>
   <div class="mini-chart" id="ac-chart-week-users"></div>
   <div class="mini-chart" id="ac-chart-month-labels"></div>
+  <span id="ac-baseline-note">The dashed line is the average per day over the trailing year.</span>
   <div class="mini-chart" id="ac-chart-month-validations"></div>
   <div class="mini-chart" id="ac-chart-month-users"></div>
   <table id="ac-top-table">
@@ -719,7 +720,8 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
       expect(bars('month', 'labels').length).toBe(10);
       // Cards are keyed by day, so the week's bar i and the month's bar i + 3 explain the same day identically.
       bars('week', 'labels').forEach((bar, i) => {
-        expect(bar.getAttribute('data-ps-tooltip')).toBe(bars('month', 'labels')[i + 3].getAttribute('data-ps-tooltip'));
+        const monthBar = bars('month', 'labels')[i + 3];
+        expect(bar.getAttribute('data-ps-tooltip')).toBe(monthBar.getAttribute('data-ps-tooltip'));
       });
     });
 
@@ -762,9 +764,37 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
         .toBe('Labels per day, last 7 days; 365-day avg: 1,240/day');
     });
 
+    it('hides the on-chart label from screen readers, since the text alternative already says it', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      const labels = [...document.querySelectorAll('.mini-ref-label--baseline')];
+      expect(labels.length).toBe(6);
+      labels.forEach((label) => expect(label.getAttribute('aria-hidden')).toBe('true'));
+    });
+
+    it('names the window the server averaged over, not an assumed "ending yesterday"', async () => {
+      await render({ daily: TEN_DAYS, baseline: BASELINE });
+
+      const note = document.getElementById('ac-baseline-note').textContent;
+      expect(note).toContain('365 days');
+      expect(note).toContain('2025');
+      expect(note).toContain('2026');
+    });
+
+    it('labels today on the month axis even when thirty days skip most labels', async () => {
+      const month = Array.from({ length: 30 }, (_, i) => makeDay(`2026-09-${String(i + 1).padStart(2, '0')}`, {
+        labels: i + 1, validations: 0, contributors: 0, contributor_total: 0, contributor_list: [],
+      }));
+      await render({ daily: month });
+
+      expect(document.querySelector('#ac-chart-month-labels .mini-axis--emphasis')).not.toBeNull();
+    });
+
     it('draws no reference line when the payload has no baseline', async () => {
       await render({ daily: TEN_DAYS });
 
+      expect(document.getElementById('ac-baseline-note').textContent)
+        .toBe('The dashed line is the average per day over the trailing year.');
       expect(document.querySelectorAll('.mini-ref').length).toBe(0);
       expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('aria-label'))
         .toBe('Labels per day, last 7 days');

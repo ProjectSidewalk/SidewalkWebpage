@@ -707,6 +707,21 @@ export class AcrossCitiesPage {
     this.#drawTrends();
     this.#drawCumulative();
     this.#drawDayBars();
+    this.#describeBaseline();
+  }
+
+  /**
+   * Names the baseline's exact window in the charts' note (#5653). The average is cached for hours, so its window can
+   * end a day or two before yesterday; stating the dates the server averaged over keeps the note true either way.
+   */
+  #describeBaseline() {
+    const note = document.getElementById('ac-baseline-note');
+    const baseline = this.#dailyBaseline;
+    if (!note || !baseline) return;
+    const start = AcrossCitiesPage.#shortDateYearFull(baseline.window_start);
+    const end = AcrossCitiesPage.#shortDateYearFull(baseline.window_end);
+    note.textContent = `The dashed line is the average per day over the ${this.#num(baseline.days)} days from `
+      + `${start} to ${end}, counted the same way.`;
   }
 
   /** Sums a flat list of weekly points into one cross-city series, ascending by week. */
@@ -820,14 +835,17 @@ export class AcrossCitiesPage {
    * The trailing-year average for one per-day metric, as a MiniLineChart reference line (#5653).
    *
    * @param {string} jsonKey - The daily point's field: 'labels', 'validations' or 'contributors'.
-   * @returns {{value: number, key: string, label: string}|undefined} The line, or undefined when the server sent no
-   *   baseline (an older payload, or a failed read) so the chart simply draws without one.
+   * @returns {{value: number, key: string, label: string, labelInAriaLabel: boolean}|undefined} The line, or
+   *   undefined when the server sent no baseline (an older payload, or a failed read) so the chart draws without one.
    */
   #baselineRefLine(jsonKey) {
     const baseline = this.#dailyBaseline;
     const value = baseline ? baseline[`${jsonKey}_per_day`] : undefined;
     if (!Number.isFinite(value)) return undefined;
-    return { value, key: 'baseline', label: `${baseline.days}-day avg: ${AcrossCitiesPage.#perDay(value)}/day` };
+    return {
+      value, key: 'baseline', label: `${baseline.days}-day avg: ${AcrossCitiesPage.#perDay(value)}/day`,
+      labelInAriaLabel: true,
+    };
   }
 
   // --- Scorecard table --------------------------------------------------------------------------------------------
@@ -1912,6 +1930,13 @@ export class AcrossCitiesPage {
     return v < 10
       ? v.toLocaleString(undefined, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
       : Math.round(v).toLocaleString();
+  }
+
+  /** "Oct 4, 2026"-style date from an ISO date string, for a span that can cross a year boundary. */
+  static #shortDateYearFull(iso) {
+    const d = util.parseDate(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
   }
 
   /** "Jun '19"-style month + year from an ISO date string, for multi-year x-axes. */

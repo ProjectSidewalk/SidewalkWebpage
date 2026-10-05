@@ -7,9 +7,11 @@ import play.api.db.slick.DatabaseConfigProvider
 import play.api.inject.guice.GuiceApplicationBuilder
 import models.utils.MyPostgresProfile.api.*
 import models.api.AggregateStats
-import service.CityScorecard
+import service.{CityScorecard, ConfigService}
 import util.SidewalkSpec
 
+import java.time.{LocalDate, ZoneId}
+import java.time.temporal.ChronoUnit
 import scala.concurrent.Await
 import scala.concurrent.duration.*
 
@@ -92,6 +94,24 @@ class CityScorecardSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
     "execute getCityDailyBaselineBySchema" in {
       run(configTable.getCityDailyBaselineBySchema(schema, 365)) mustBe a[Seq[?]]
+    }
+    // The baseline's SQL collapses anonymous and AI rows that the bars' query keeps per person, so the only proof the
+    // two still count the same things is running both over the same data. A window reaching back to 2010 covers the
+    // whole seeded history, and the guard below keeps an empty schema from passing this vacuously.
+    "count the baseline on exactly the daily bars' basis" in {
+      val today = LocalDate.now(ZoneId.of("US/Pacific"))
+      val days  = ChronoUnit.DAYS.between(LocalDate.of(2010, 1, 1), today).toInt
+      val bars  = run(configTable.getCityDailyActivityByUserBySchema(schema, days)).map(currentCityId -> _)
+      val base  = run(configTable.getCityDailyBaselineBySchema(schema, days)).map(currentCityId -> _)
+      bars must not be empty
+
+      val window   = (1 to days).map(i => today.minusDays(i.toLong))
+      val byDay    = bars.groupBy(_._2.day)
+      val points   = window.map(day => ConfigService.summarizeDay(day, byDay.getOrElse(day, Seq.empty)).point)
+      val baseline = ConfigService.summarizeBaseline(today, days, base)
+      baseline.labelsPerDay * days mustBe points.map(_.labels).sum.toDouble +- 1e-6
+      baseline.validationsPerDay * days mustBe points.map(_.validations).sum.toDouble +- 1e-6
+      baseline.contributorsPerDay * days mustBe points.map(_.contributors).sum.toDouble +- 1e-6
     }
     "execute getCityContributorOutputBySchema" in {
       run(configTable.getCityContributorOutputBySchema(schema)) mustBe a[Product] // 7-tuple

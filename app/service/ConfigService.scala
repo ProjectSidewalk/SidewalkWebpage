@@ -167,7 +167,7 @@ enum ContributorKind(val name: String) extends NamedEnum {
 object ContributorKind extends NamedEnumCompanion[ContributorKind]
 
 /**
- * One person's contribution to one city on one day, the grain the "this week" bar charts are built from (#4931).
+ * One person's contribution to one city on one day, the grain the per-day bar charts are built from (#4931).
  *
  * @param day         Calendar day (Pacific).
  * @param userId      The contributor's user id, which identifies them across cities when their days are merged.
@@ -245,7 +245,7 @@ case class ContributorWindowActivity(
 )
 
 /**
- * One day's contribution volume across cities, for the Across Cities "this week" bar charts (#4686, #4931).
+ * One day's contribution volume across cities, for the Across Cities per-day bar charts (#4686, #4931, #5653).
  *
  * Counted on the same two bases as [[ActivityWindowSummary]] — volumes are human work with pipeline work beside it,
  * headcounts are distinct and split registered / anonymous / AI. One AI account can out-produce every person in the
@@ -679,7 +679,8 @@ object ConfigService {
   /**
    * Age beyond which a cross-city read is refreshed in the background when served (#4931).
    *
-   * One `/admin/across-cities` request triggers five of these reads, and each fans a query out to every city schema —
+   * One `/admin/across-cities` request triggers five of these reads (plus two more on their own longer clocks:
+   * labeling speed and the trailing-year baseline), and each fans a query out to every city schema —
    * ~280 queries against a 25-connection pool at ~56 deployments. What `staleWhileRevalidate` buys over a plain
    * expiring cache is that **no request ever waits on that fan-out**: past this age the cached copy is still served
    * immediately and the refresh runs behind it, whereas an expiring entry makes whichever request arrives first pay
@@ -860,8 +861,8 @@ object ConfigService {
    *
    * @param today The current Pacific day, which is excluded because its bar is still partial.
    * @param days  Window length; the window is `[today - days, today - 1]`.
-   * @param rows  (cityId, row) pairs from every city; rows outside the window are ignored, since the DAO's
-   *              index-friendly bound lets an extra day through at each end.
+   * @param rows  (cityId, row) pairs from every city; rows outside the window are ignored, since the DAO's coarse
+   *              lower bound reaches past the window's first day and it has no upper bound, so today arrives too.
    * @return      The window and its per-day means.
    */
   def summarizeBaseline(today: LocalDate, days: Int, rows: Seq[(String, DailyBaselineRow)]): DailyBaseline = {
@@ -1140,6 +1141,10 @@ trait ConfigService {
    * Counted on the bars' own basis ([[ConfigService.summarizeBaseline]]) over the [[ConfigService.DailyBaselineDays]]
    * days ending yesterday. Cached on its own long stale-while-revalidate pair because it scans a year per city and
    * barely moves day to day, so page loads never wait on it once warm.
+   *
+   * Fails as a whole if any city's query fails, rather than counting that city as idle: a partial mean would be cached
+   * for hours. A failed background refresh keeps serving the last good value; a failed cold compute is the caller's to
+   * degrade.
    *
    * @return The window and its labels, validations and contributors per day.
    */
@@ -1732,8 +1737,7 @@ class ConfigServiceImpl @Inject() (
         val perCityFutures = availableCities.map { cityId =>
           db.run(configTable.getCityDailyBaselineBySchema(getCitySchema(cityId), days))
             .recover { case e: Exception =>
-              logger.warn(s"Failed to fetch daily baseline for city $cityId: ${e.getMessage}")
-              Seq.empty[DailyBaselineRow]
+              throw new RuntimeException(s"Daily baseline query failed for city $cityId", e)
             }
             .map(rows => rows.map(cityId -> _))
         }

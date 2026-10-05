@@ -620,7 +620,7 @@
   font: var(--text-caption-semibold);
 
   /* The label sits over the plot, so bars and gridlines can run behind it; a translucent halo in the card color keeps
-     it legible there without hiding what it covers. paint-order draws the halo under the glyphs, not over them. */
+     it legible there. paint-order draws the halo under the glyphs, not over them. */
   paint-order: stroke;
   stroke: var(--color-neutral-white);
   stroke-linejoin: round;
@@ -628,13 +628,11 @@
   stroke-width: 4px;
 }
 
-/* The trailing-year average on the Across Cities per-day charts (#5653) is what every bar there is read against, the
-   chart's primary reference rather than a secondary target, so it drops the fade that leaves .mini-ref at ~3.2:1 on
-   white and sits at full contrast instead of just above the 3:1 floor for graphical objects (WCAG 1.4.11). */
+/* The trailing-year average on the Across Cities per-day charts (#5653): a 0.5pt hairline, so the bars stay the
+   figure and the average reads as background. Anti-aliasing renders a line that thin below 3:1 on a 1x screen even
+   at full opacity, so the on-chart text label, not the stroke, is what carries the value for WCAG 1.4.11. */
 .mini-ref--baseline {
   opacity: 1;
-
-  /* 0.5pt: a hairline, so the bars stay the figure and the average reads as background; the label carries the value. */
   stroke-width: 0.67px;
 }
 
