@@ -618,6 +618,14 @@
 .mini-ref-label {
   fill: var(--color-neutral-700);
   font: var(--text-caption-semibold);
+
+  /* The label sits over the plot, so bars and gridlines can run behind it; a translucent halo in the card color keeps
+     it legible there without hiding what it covers. paint-order draws the halo under the glyphs, not over them. */
+  paint-order: stroke;
+  stroke: var(--color-neutral-white);
+  stroke-linejoin: round;
+  stroke-opacity: 0.85;
+  stroke-width: 4px;
 }
 
 /* The trailing-year average on the Across Cities per-day charts (#5653) is what every bar there is read against, the
@@ -625,6 +633,9 @@
    white and sits at full contrast instead of just above the 3:1 floor for graphical objects (WCAG 1.4.11). */
 .mini-ref--baseline {
   opacity: 1;
+
+  /* 0.5pt: a hairline, so the bars stay the figure and the average reads as background; the label carries the value. */
+  stroke-width: 0.67px;
 }
 
 .mini-value--emphasis {
