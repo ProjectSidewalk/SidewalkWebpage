@@ -51,7 +51,7 @@ module.exports = function (grunt) {
       },
       scripts: {
         files: [
-          // Any file can end up in a page's bundle, so all of them are watched.
+          // Any file can end up in a bundle, so all of them are watched.
           'frontend/js/**/*.js',
           'public/css/pages/explore/*.css',
           'public/css/pages/validate/*.css',
