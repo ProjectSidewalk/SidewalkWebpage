@@ -144,8 +144,9 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
 
   "getCrossCityDailyBaseline" should {
     "average the trailing year ending yesterday, on the bars' basis" in {
-      val before   = LocalDate.now(ZoneId.of("US/Pacific"))
-      val baseline = await(configService.getCrossCityDailyBaseline())
+      val before = LocalDate.now(ZoneId.of("US/Pacific"))
+      // A wait longer than any test-DB compute, so the cold call returns the value rather than None.
+      val baseline = await(configService.getCrossCityDailyBaseline(1.minute)).value
       val after    = LocalDate.now(ZoneId.of("US/Pacific"))
 
       baseline.days mustBe ConfigService.DailyBaselineDays
@@ -160,8 +161,8 @@ class ConfigServiceTrendSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     }
 
     "serve a warmed key without recomputing it" in {
-      val first  = await(configService.getCrossCityDailyBaseline())
-      val second = await(configService.getCrossCityDailyBaseline())
+      val first  = await(configService.getCrossCityDailyBaseline(1.minute)).value
+      val second = await(configService.getCrossCityDailyBaseline(1.minute)).value
 
       assert(second eq first)
     }

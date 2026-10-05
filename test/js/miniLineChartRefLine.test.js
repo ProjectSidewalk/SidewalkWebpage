@@ -118,9 +118,16 @@ describe('MiniLineChart reference line', () => {
     const div = document.createElement('div');
     div.innerHTML = MiniLineChart.svg(cats, [{ name: 'N', key: 'n', values: cats.map(() => 1) }],
       { kind: 'bar', maxXLabels: 6, emphasisIndex: 29 });
-    const labels = [...div.querySelectorAll('text.mini-axis')].map((t) => t.textContent).filter((t) => t.startsWith('d'));
+    const labels = [...div.querySelectorAll('text.mini-axis')].map((t) => t.textContent)
+      .filter((t) => t.startsWith('d'));
     expect(labels).toContain('d29');
     expect(labels.length).toBe(6);
+  });
+
+  test('draws no x labels for an empty series, even with the emphasis on its (nonexistent) last point', () => {
+    const div = document.createElement('div');
+    div.innerHTML = MiniLineChart.svg([], [{ name: 'N', key: 'n', values: [] }], { kind: 'bar', emphasisIndex: -1 });
+    expect([...div.querySelectorAll('text.mini-axis')].some((t) => t.getAttribute('y') === '212')).toBe(false);
   });
 
   test('leaves line charts free to use one too', () => {

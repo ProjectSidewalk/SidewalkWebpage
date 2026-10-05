@@ -775,6 +775,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
     it('names the window the server averaged over, not an assumed "ending yesterday"', async () => {
       await render({ daily: TEN_DAYS, baseline: BASELINE });
 
+      expect(document.getElementById('ac-baseline-note').hidden).toBe(false);
       const note = document.getElementById('ac-baseline-note').textContent;
       expect(note).toContain('365 days');
       expect(note).toContain('2025');
@@ -793,8 +794,7 @@ describe('Across Cities — attribution split and hover breakdowns', () => {
     it('draws no reference line when the payload has no baseline', async () => {
       await render({ daily: TEN_DAYS });
 
-      expect(document.getElementById('ac-baseline-note').textContent)
-        .toBe('The dashed line is the average per day over the trailing year.');
+      expect(document.getElementById('ac-baseline-note').hidden).toBe(true);
       expect(document.querySelectorAll('.mini-ref').length).toBe(0);
       expect(document.querySelector('#ac-chart-week-labels svg').getAttribute('aria-label'))
         .toBe('Labels per day, last 7 days');

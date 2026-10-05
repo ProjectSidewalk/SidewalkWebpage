@@ -60,7 +60,8 @@ export class MiniLineChart {
     const step = Math.max(1, Math.ceil(n / (opts.maxXLabels || 6)));
     // Stepping from the emphasized index (usually the newest point) guarantees it a label; stepping from 0 can skip it
     // (30 days at step 5 labels day 25 but not today, day 29).
-    const anchor = Number.isInteger(opts.emphasisIndex) && opts.emphasisIndex < n ? opts.emphasisIndex : 0;
+    const ei = opts.emphasisIndex;
+    const anchor = Number.isInteger(ei) && ei >= 0 && ei < n ? ei : 0;
     const xLabelIdx = [];
     for (let i = anchor % step; i < n; i += step) xLabelIdx.push(i);
 
@@ -120,7 +121,7 @@ export class MiniLineChart {
           if (opts.barValues) {
             const text = valueFormat(v);
             const vy = (h > 0 ? top : yFrac(0)) - 4;
-            const vw = MiniLineChart.#labelWidth(text);
+            const vw = MiniLineChart.#labelWidth(text, MiniLineChart.#LABEL_FONT_PX);
             valueBoxes.push({ x1: bx + barW / 2 - vw / 2, x2: bx + barW / 2 + vw / 2, y: vy });
             out += `<text class="mini-value${emph ? ' mini-value--emphasis' : ''}" x="${(bx + barW / 2).toFixed(1)}" `
               + `y="${vy.toFixed(1)}" text-anchor="middle">${util.escapeHTML(text)}</text>`;
@@ -160,11 +161,12 @@ export class MiniLineChart {
       if (refLine.label) {
         // Above the line by default. When a bar sits near the target its value label lands in the same spot, and the
         // reference label (drawn later, with its halo) would erase it, so it drops just below the line instead.
-        const labelW = MiniLineChart.#labelWidth(refLine.label);
+        const fontPx = MiniLineChart.#LABEL_FONT_PX;
+        const labelW = MiniLineChart.#labelWidth(refLine.label, fontPx);
         const collides = (y) => valueBoxes.some((b) => b.x2 > W - m.r - labelW && b.x1 < W - m.r
-          && Math.abs(b.y - y) < MiniLineChart.#AXIS_FONT_PX + 2);
+          && Math.abs(b.y - y) < fontPx + 2);
         const above = refY - 4;
-        const below = refY + MiniLineChart.#AXIS_FONT_PX + 3;
+        const below = refY + fontPx + 3;
         const labelY = collides(above) && below <= m.t + ih && !collides(below) ? below : above;
         const hidden = refLine.labelInAriaLabel ? ' aria-hidden="true"' : '';
         body += `<text class="mini-ref-label mini-ref-label--${refKey}" x="${W - m.r}" `
@@ -306,6 +308,9 @@ export class MiniLineChart {
   /** Font size of `.mini-axis` / `.mini-value` in px — keep in sync with admin-dashboard.css. */
   static #AXIS_FONT_PX = 11;
 
+  /** Font size of `.mini-value` / `.mini-ref-label` (`--text-caption-semibold`) in px, for the overlap check. */
+  static #LABEL_FONT_PX = 12;
+
   /** Gap in px between a y-axis tick label and the axis it labels. */
   static #AXIS_GAP = 6;
 
@@ -316,9 +321,10 @@ export class MiniLineChart {
    * up on purpose — a few px of over-reserved margin is invisible, an underestimate clips the label.
    *
    * @param {string} s - The label text.
+   * @param {number} [fontPx] - Font size the text renders at; defaults to the axis labels'.
    * @returns {number} Estimated width in px.
    */
-  static #labelWidth(s) {
+  static #labelWidth(s, fontPx = MiniLineChart.#AXIS_FONT_PX) {
     let em = 0;
     for (const ch of String(s)) {
       if (ch >= '0' && ch <= '9') em += 0.56;
@@ -327,7 +333,7 @@ export class MiniLineChart {
       else if (ch >= 'A' && ch <= 'Z') em += 0.72;
       else em += 0.58;
     }
-    return em * MiniLineChart.#AXIS_FONT_PX;
+    return em * fontPx;
   }
 
   /**

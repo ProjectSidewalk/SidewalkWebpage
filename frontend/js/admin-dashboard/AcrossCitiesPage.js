@@ -716,8 +716,11 @@ export class AcrossCitiesPage {
    */
   #describeBaseline() {
     const note = document.getElementById('ac-baseline-note');
+    if (!note) return;
     const baseline = this.#dailyBaseline;
-    if (!note || !baseline) return;
+    // No baseline means no line on the charts, so a sentence explaining one would describe nothing.
+    note.hidden = !baseline;
+    if (!baseline) return;
     const start = AcrossCitiesPage.#shortDateYearFull(baseline.window_start);
     const end = AcrossCitiesPage.#shortDateYearFull(baseline.window_end);
     note.textContent = `The dashed line is the average per day over the ${this.#num(baseline.days)} days from `

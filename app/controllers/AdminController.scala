@@ -688,8 +688,9 @@ class AdminController @Inject() (
     val scorecardsF    = configService.getCityScorecards()
     val allTimeF       = configService.getCrossCityWeeklyTrend(None)
     val dailyF         = configService.getCrossCityDailyTrend(dailyTrendDays)
-    // A failed baseline only costs the charts their average line; it must not take the rest of the page down with it.
-    val baselineF = configService.getCrossCityDailyBaseline().map(Option(_)).recover { case e: Exception =>
+    // A failed or still-computing baseline only costs the charts their average line; it must not take the rest of the
+    // page down with it, nor hold it (the read's own cold wait bounds the latter).
+    val baselineF = configService.getCrossCityDailyBaseline().recover { case e: Exception =>
       logger.warn(s"Daily baseline unavailable: ${e.getMessage}")
       None
     }

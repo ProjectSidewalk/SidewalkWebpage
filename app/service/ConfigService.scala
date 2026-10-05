@@ -730,6 +730,13 @@ object ConfigService {
   val DailyBaselineMaxAge: FiniteDuration = Duration(3, "days")
 
   /**
+   * How long a page load waits for the trailing-year baseline when nothing is cached. The year-long fan-out is the
+   * page's heaviest read, and the line is a nicety on top of the bars, so a cold (or repeatedly failing) baseline
+   * costs the page its average line for one load rather than holding the whole response.
+   */
+  val DailyBaselineColdWait: FiniteDuration = Duration(5, "seconds")
+
+  /**
    * How many contributors each city ships for its "Most active cities" hover cards (#4931).
    *
    * Sized to what the cards can draw, not to the population. The untruncated count travels separately as
@@ -1146,9 +1153,14 @@ trait ConfigService {
    * for hours. A failed background refresh keeps serving the last good value; a failed cold compute is the caller's to
    * degrade.
    *
-   * @return The window and its labels, validations and contributors per day.
+   * @param coldWait How long to wait for the compute when nothing is cached; it keeps running past this and fills
+   *                 the cache for the next load.
+   * @return         The window and its labels, validations and contributors per day, or None when nothing was
+   *                 cached and the compute didn't finish within `coldWait`.
    */
-  def getCrossCityDailyBaseline(): Future[DailyBaseline]
+  def getCrossCityDailyBaseline(
+      coldWait: FiniteDuration = ConfigService.DailyBaselineColdWait
+  ): Future[Option[DailyBaseline]]
 
   /**
    * Returns rolling week-over-week activity across all available cities (#4758): the trailing 7 days vs the 7 before,
@@ -1726,18 +1738,19 @@ class ConfigServiceImpl @Inject() (
     }
   }
 
-  def getCrossCityDailyBaseline(): Future[DailyBaseline] = {
+  def getCrossCityDailyBaseline(coldWait: FiniteDuration): Future[Option[DailyBaseline]] = {
     val days = ConfigService.DailyBaselineDays
-    swrCache.staleWhileRevalidate[DailyBaseline](
+    swrCache.staleWhileRevalidateWithin[DailyBaseline](
       "getCrossCityDailyBaseline",
       ConfigService.DailyBaselineFreshFor,
-      ConfigService.DailyBaselineMaxAge
+      ConfigService.DailyBaselineMaxAge,
+      coldWait
     ) {
       availableCityIds().flatMap { availableCities =>
         val perCityFutures = availableCities.map { cityId =>
           db.run(configTable.getCityDailyBaselineBySchema(getCitySchema(cityId), days))
-            .recover { case e: Exception =>
-              throw new RuntimeException(s"Daily baseline query failed for city $cityId", e)
+            .recoverWith { case e: Exception =>
+              Future.failed(new RuntimeException(s"Daily baseline query failed for city $cityId", e))
             }
             .map(rows => rows.map(cityId -> _))
         }
