@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's partners page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's partners page. */
 import { PartnersPage } from '../../admin-dashboard/PartnersPage.js';
 
 const data = document.getElementById('page-entry').dataset;

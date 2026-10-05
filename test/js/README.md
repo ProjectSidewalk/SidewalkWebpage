@@ -134,17 +134,12 @@ npm run test:js:coverage    # the same, plus the coverage report (what CI runs)
 
 ## How a suite loads its subject
 
-Every file under `frontend/js` is an ES module, and a suite loads one with `loadModules('frontend/js/…')` from
-`loadGlobalScript.js`: it `jest.resetModules()`, `require`s each path given, and returns their exports merged (so
-`loadModules('frontend/js/common/Toast.js').Toast` is a fresh class with fresh module state). The `require` goes through
-`moduleTransform.js` (jest.config.js `transform`), which has Babel turn the module into CommonJS on the way in, dynamic
-`import()` included, and which makes every import the subject does defer to a **same-named fake the suite has put on
-`window`**: `window.Toast = { show: jest.fn() }` before `loadModules(...)` reaches a subject that imports `Toast`, and
-the real one is used where no fake was set. That is how the pages used to share everything, so a suite fakes a
-collaborator exactly as before. For a fake that has to replace a whole module (an import that throws, say) there is
-`mockModule(path, factory)` / `unmockModule(path)`; `realUtil()` hands back the real `util` for a suite that wants
-`window.util` populated rather than faked. Going through `require` is also what lets Jest instrument the files for
-coverage. **No production-code changes are required.**
+A suite loads its subject with `loadModules('frontend/js/…')` from `loadGlobalScript.js`, which returns the file's
+exports fresh (module state reset) — `loadModules('frontend/js/common/Toast.js').Toast`, say. Under the hood,
+`moduleTransform.js` turns the ES module into CommonJS for Jest and makes each import the subject does **defer to a
+same-named fake on `window`**, so faking a collaborator is `window.Toast = { show: jest.fn() }` before the load; where
+no fake is set the real import is used. To replace a whole module instead, use `mockModule(path, factory)` /
+`unmockModule(path)`; `realUtil()` gives a suite the real `util` when it wants `window.util` populated rather than faked.
 
 Each preview test:
 
@@ -196,13 +191,11 @@ grows.
 
 ## Coverage
 
-`npm run test:js:coverage` reports over the whole first-party frontend: `frontend/js/**/*.js` minus the Grunt `build/`
-bundles, with `frontend/js` as one of Jest's `roots` so a file **no test loads** still counts against the ratio. The
-console shows totals only; open `coverage/lcov-report/index.html` for per-file detail.
+`npm run test:js:coverage` reports over all of `frontend/js/**/*.js`, with `frontend/js` as one of Jest's `roots` so a
+file **no test loads** still counts against the ratio. The console shows totals only; open
+`coverage/lcov-report/index.html` for per-file detail.
 
-**No floor on it yet (#5112).** Every suite loads its subject through `require` (`loadModules`), so each tested file
-is instrumented and the number is honest; it is a baseline to grow from before a `coverageThreshold` turns it into a
-gate.
+**No floor on it yet (#5112):** the number is a baseline to grow from before a `coverageThreshold` turns it into a gate.
 
 ## Complementary E2E
 

@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's labelMap page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's labelMap page. */
 
 import { viewerClassFor } from '../../common/pano-viewer/viewerClassFor.js';
 import { LabelMapPage } from '../../admin-dashboard/LabelMapPage.js';

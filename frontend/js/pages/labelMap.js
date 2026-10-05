@@ -1,4 +1,4 @@
-/** Entry point for the LabelMap (bundled by rolldown.config.mjs). */
+/** Entry point for the LabelMap. */
 
 import { LabelDetail } from '../common/label-detail/LabelDetail.js';
 import { LabelPopup } from '../common/label-detail/LabelPopup.js';

@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's team page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's team page. */
 import { TeamPage } from '../../admin-dashboard/TeamPage.js';
 
 const data = document.getElementById('page-entry').dataset;

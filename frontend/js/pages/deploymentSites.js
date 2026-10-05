@@ -1,4 +1,4 @@
-/** Entry point for the /cities deployment dashboard (bundled by rolldown.config.mjs). */
+/** Entry point for the /cities deployment dashboard. */
 import { AccessScoreSpotlight } from '../AccessScoreSpotlight.js';
 import { createPSMap } from '../ps-map/createPSMap.js';
 import { util } from '../common/utilities.js';

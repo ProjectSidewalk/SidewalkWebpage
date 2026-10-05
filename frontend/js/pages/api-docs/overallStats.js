@@ -1,4 +1,4 @@
-/** Entry point for the /v3/api-docs/overallStats page (bundled by rolldown.config.mjs). */
+/** Entry point for the /v3/api-docs/overallStats page. */
 import { OverallStatsPreview } from '../../api-docs/overallStatsPreview.js';
 
 // apiDocs.js reads these for the download buttons; a preview or two read the base URL as well.

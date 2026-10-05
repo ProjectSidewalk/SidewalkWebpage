@@ -521,30 +521,28 @@ loaded by the corresponding Twirl view:
 
 ### Modules and the build
 
-Every first-party file is an **ES module** (#4467): it `export`s what others use and `import`s what it needs, so the
-dependency graph, not a hand-kept list, decides load order. The tools' shared state lives in one exported object per
-tool (`explore/svl.js`, `validate/svv.js`, `gallery/sg.js`), and `util` is the object
-`common/utilities.js` exports; the files that extend it (`utilitiesSidewalk.js` → `util.misc`, `utilitiesMath.js`
-→ `util.math`, `urlQuery.js` → `util.url`, `pano-viewer/panoUtilities.js` → `util.pano`) are imported by the
-files that read those namespaces. Vendor libraries (`mapboxgl`, `i18next`, `turf`, …) stay `<script>`-tag globals,
-declared for the type checker in `tools/lint/js-types/globals.d.ts`.
+Every first-party file is an **ES module** (#4467): it `import`s what it needs and `export`s what others use, so
+the imports decide load order, not a hand-kept list. Each tool keeps its shared state in one exported object
+(`explore/svl.js`, `validate/svv.js`, `gallery/sg.js`). `util` is the object `common/utilities.js` exports; a file
+that reads `util.misc`, `util.math`, `util.url` or `util.pano` imports the file that adds it (`utilitiesSidewalk.js`,
+`utilitiesMath.js`, `urlQuery.js`, `pano-viewer/panoUtilities.js`). Vendor libraries (`mapboxgl`, `i18next`, `turf`, …)
+stay `<script>`-tag globals, declared for the type checker in `tools/lint/js-types/globals.d.ts`.
 
-**One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …); it imports the
-page's code and runs the start-up that used to be an inline `<script>`. `rolldown.config.mjs` globs that folder, so a
-new page is a new file there, and **Rolldown** writes `public/build/js/<same path>.js` (minified, with a sourcemap),
-splitting code that several pages share into `public/build/js/chunks/` so a visitor downloads it once. A view loads
-its entry with `<script type="module" src='@assets.path("build/js/<page>.js")'>`; `pages/main.js`, which
-`main.scala.html` loads on every page ahead of it, carries the shared helpers, the app manager, navbar and auth
-dialog. What the server has to tell a page rides on that tag as `data-*` attributes (`id="page-entry"`), or for the
-tools' larger parameter sets in a `<script type="application/json" id="page-data">` block the entry parses; module
-scripts can't be templated, and they run after the document is parsed, so a classic inline script can no longer reach
-anything the bundle defines.
+**One entry per page** lives in `frontend/js/pages/` (`pages/explore.js`, `pages/admin/overview.js`, …): it imports
+the page's code and runs the start-up that used to be an inline `<script>`. **Rolldown** (`rolldown.config.mjs`)
+builds every file in that folder to `public/build/js/<same path>.js`, minified, with code that several pages share
+split into `public/build/js/chunks/` so a visitor downloads it once; a new page is just a new file there. A view loads
+its entry with `<script type="module" src='@assets.path("build/js/<page>.js")'>`, after `pages/main.js`, which
+`main.scala.html` loads on every page (shared helpers, app manager, navbar, auth dialog). Because a bundled module can't
+be templated and runs only after the page is parsed, a view hands its entry the server's values on that tag as
+`data-*` attributes (`id="page-entry"`) or, for the tools' larger sets, in a `<script type="application/json"
+id="page-data">` block the entry parses.
 
-The three tools' stylesheets are still concatenated by Grunt (`concat_css`) into `public/build/css/`; its `grunt watch`
-reruns both it and Rolldown on save, which is what `npm start` runs. Everything under `public/build/` is generated and
-git-ignored. The JS source sits in `frontend/js/`, outside `public/`, because Play packages and serves all of
-`public/` as assets: only the bundles ship, and their sourcemaps carry the sources for the browser's debugger.
-Third-party libraries live under `public/vendor/<lib>/`, one self-contained folder each (never edited or linted).
+The JS source lives in `frontend/js/`, outside `public/`, because Play serves everything under `public/`: only the
+bundles ship (their sourcemaps carry the sources for the browser's debugger). The three tools' stylesheets are still
+concatenated by Grunt (`concat_css`) into `public/build/css/`; `npm start` runs `grunt watch`, which reruns both it and
+Rolldown on save. Everything under `public/build/` is generated and git-ignored. Third-party libraries live under
+`public/vendor/<lib>/`, one self-contained folder each (never edited or linted).
 
 First-party assets split by type: `frontend/js/` is JavaScript-only, `public/css/` holds all styles, and media lives in
 `public/images/`, `public/audio/`, and `public/videos/`. Within `public/css/`, files are organized by what they are

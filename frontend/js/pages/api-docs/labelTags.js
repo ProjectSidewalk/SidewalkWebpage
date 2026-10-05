@@ -1,4 +1,4 @@
-/** Entry point for the /v3/api-docs/labelTags page (bundled by rolldown.config.mjs). */
+/** Entry point for the /v3/api-docs/labelTags page. */
 import { LabelTagsPreview } from '../../api-docs/labelTagsPreview.js';
 import { generateTableOfContents, setupScrollSpy } from '../../api-docs/apiDocs.js';
 

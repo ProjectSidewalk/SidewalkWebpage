@@ -1,4 +1,4 @@
-/** Entry point for the API docs index (bundled by rolldown.config.mjs). */
+/** Entry point for the API docs index. */
 import '../../common/aggregateStats.js';
 import { LabelTypesPreview } from '../../api-docs/labelTypesPreview.js';
 import { LabelTagsPreview } from '../../api-docs/labelTagsPreview.js';

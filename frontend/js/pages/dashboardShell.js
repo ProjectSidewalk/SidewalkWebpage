@@ -1,2 +1,2 @@
-/** Entry point for the shell both dashboards share (bundled by rolldown.config.mjs). */
+/** Entry point for the shell both dashboards share. */
 import '../admin-dashboard/AdminShell.js';

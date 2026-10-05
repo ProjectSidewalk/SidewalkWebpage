@@ -1,2 +1,2 @@
-/** Entry point for the leaderboard page (bundled by rolldown.config.mjs). */
+/** Entry point for the leaderboard page. */
 import '../../user-dashboard/TeamActions.js';

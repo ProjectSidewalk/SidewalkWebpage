@@ -51,7 +51,7 @@ module.exports = function (grunt) {
       },
       scripts: {
         files: [
-          // Every first-party script: the ES-module pages can import from anywhere under frontend/js.
+          // Any file can end up in a page's bundle, so all of them are watched.
           'frontend/js/**/*.js',
           'public/css/pages/explore/*.css',
           'public/css/pages/validate/*.css',
@@ -77,8 +77,8 @@ module.exports = function (grunt) {
   grunt.loadNpmTasks('grunt-contrib-watch');
 
   // 4. Where we tell Grunt what to do when we type "grunt" into the terminal.
-  // The ES-module pages (#4467). Run from here rather than `rolldown --watch`, which only watches files already in its
-  // graph and so misses a new page entry; this watch globs, so it sees one.
+  // Run from here rather than `rolldown --watch`: Rolldown only watches files it already knows, so it would miss a
+  // new page entry. `grunt watch` globs, so it doesn't.
   grunt.registerTask('rolldown', 'Bundle the ES-module pages (rolldown.config.mjs).', function () {
     execFileSync('node_modules/.bin/rolldown', ['-c'], { stdio: 'inherit' });
   });

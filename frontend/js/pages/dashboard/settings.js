@@ -1,4 +1,4 @@
-/** Entry point for the user settings page (bundled by rolldown.config.mjs). */
+/** Entry point for the user settings page. */
 import { Settings } from '../../user-dashboard/Settings.js';
 import { AccountForm } from '../../user-dashboard/AccountForm.js';
 import '../../user-dashboard/TeamActions.js';

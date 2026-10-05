@@ -1,7 +1,7 @@
 /**
- * Entry point for what every page needs (bundled by rolldown.config.mjs): the shared helpers, the app manager that
- * sets up CSRF and translations, and the navbar, auth dialog and test-server banner, each of which no-ops on a page
- * without its markup. main.scala.html loads it ahead of the page's own entry.
+ * Entry point for what every page needs: the shared helpers, the app manager (CSRF, translations), and the navbar,
+ * auth dialog and test-server banner, which each no-op on a page without their markup. main.scala.html loads it
+ * ahead of the page's own entry.
  */
 import { util } from '../common/utilities.js';
 import '../common/utilitiesMath.js';

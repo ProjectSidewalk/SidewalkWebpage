@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's health page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's health page. */
 import { HealthPage } from '../../admin-dashboard/HealthPage.js';
 
 new HealthPage({

@@ -1,4 +1,4 @@
-/** Entry point for a shared label's page (bundled by rolldown.config.mjs). */
+/** Entry point for a shared label's page. */
 import { SharedLabelPage } from '../shared-label/SharedLabel.js';
 
 // What the server knows about the label, written into the page as JSON by sharedLabel.scala.html.

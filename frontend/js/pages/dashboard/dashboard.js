@@ -1,4 +1,4 @@
-/** Entry point for the user dashboard, and the admin's view of a user's dashboard (bundled by rolldown.config.mjs). */
+/** Entry point for the user dashboard, and the admin's view of a user's dashboard. */
 
 import { LabelPopup } from '../../common/label-detail/LabelPopup.js';
 import { viewerClassFor } from '../../common/pano-viewer/viewerClassFor.js';

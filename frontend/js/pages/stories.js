@@ -1,4 +1,4 @@
-/** Entry point for the public /stories page (bundled by rolldown.config.mjs). */
+/** Entry point for the public /stories page. */
 
 import { LabelPopup } from '../common/label-detail/LabelPopup.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';

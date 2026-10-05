@@ -11,11 +11,9 @@ import util.SidewalkSpec
 /**
  * The AccessScore Spotlight is actually mounted on the two pages it belongs to (#5215).
  *
- * The module builds its own markup, so the only thing the templates owe it is a place to build into, the page entry
- * that constructs it (frontend/js/pages/home.js and deploymentSites.js), its stylesheet, and a translated section
- * title. None of that fails loudly: a container renamed on one page leaves a blank gap where the lists should be, and
- * a missing entry leaves the container hidden forever — both of which look exactly like "this city has nothing ranked
- * yet", which is the module's own commonest state. These pin the wiring so that ambiguity can't hide a broken page.
+ * The module builds its own markup, so a template owes it only a container, the page entry that constructs it, its
+ * stylesheet, and a translated title. None of that fails loudly: a renamed container or a missing entry just leaves
+ * the section hidden, which is also what "this city has nothing ranked yet" looks like. These pin the wiring.
  *
  * Requires a Postgres+PostGIS database (DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD, as in dev/CI).
  */

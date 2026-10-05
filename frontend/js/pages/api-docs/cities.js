@@ -1,4 +1,4 @@
-/** Entry point for the /v3/api-docs/cities page (bundled by rolldown.config.mjs). */
+/** Entry point for the /v3/api-docs/cities page. */
 import '../../common/aggregateStats.js';
 import { createPSMap } from '../../ps-map/createPSMap.js';
 

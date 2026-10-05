@@ -1,4 +1,4 @@
-/** Entry point for the RouteBuilder (bundled by rolldown.config.mjs). */
+/** Entry point for the RouteBuilder. */
 import { RouteBuilder } from '../route-builder/RouteBuilder.js';
 import { util } from '../common/utilities.js';
 

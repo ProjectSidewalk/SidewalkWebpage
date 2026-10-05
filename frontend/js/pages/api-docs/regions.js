@@ -1,4 +1,4 @@
-/** Entry point for the /v3/api-docs/regions page (bundled by rolldown.config.mjs). */
+/** Entry point for the /v3/api-docs/regions page. */
 import { RegionsPreview } from '../../api-docs/regionsPreview.js';
 
 // apiDocs.js reads these for the download buttons; a preview or two read the base URL as well.

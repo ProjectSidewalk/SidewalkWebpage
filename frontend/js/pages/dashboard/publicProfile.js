@@ -1,4 +1,4 @@
-/** Entry point for a user's public profile (bundled by rolldown.config.mjs). */
+/** Entry point for a user's public profile. */
 
 import { LabelPopup } from '../../common/label-detail/LabelPopup.js';
 import { viewerClassFor } from '../../common/pano-viewer/viewerClassFor.js';

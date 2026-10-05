@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's overview page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's overview page. */
 import { OverviewPage } from '../../admin-dashboard/OverviewPage.js';
 
 new OverviewPage({

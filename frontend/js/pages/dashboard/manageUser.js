@@ -1,4 +1,4 @@
-/** Entry point for the admin's manage-user page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin's manage-user page. */
 import { AdminUser } from '../../user-dashboard/AdminUser.js';
 
 const data = document.getElementById('page-entry').dataset;

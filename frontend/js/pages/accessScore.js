@@ -1,4 +1,4 @@
-/** Entry point for the AccessScore tool (bundled by rolldown.config.mjs). */
+/** Entry point for the AccessScore tool. */
 import { AccessScoreApp } from '../access-score/main.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 

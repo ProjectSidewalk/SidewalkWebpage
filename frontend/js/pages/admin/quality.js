@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's quality page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's quality page. */
 import { DataQualityPage } from '../../admin-dashboard/DataQualityPage.js';
 
 new DataQualityPage({

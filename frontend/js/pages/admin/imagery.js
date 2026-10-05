@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's imagery page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's imagery page. */
 import { ImageryPage } from '../../admin-dashboard/ImageryPage.js';
 
 const data = document.getElementById('page-entry').dataset;

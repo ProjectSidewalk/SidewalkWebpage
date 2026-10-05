@@ -1,2 +1,2 @@
-/** Entry point for the Validate tool (bundled by rolldown.config.mjs). */
+/** Entry point for the Validate tool. */
 import '../validate/start.js';

@@ -1,4 +1,4 @@
-/** Entry point for the welcome page a new account lands on (bundled by rolldown.config.mjs). */
+/** Entry point for the welcome page a new account lands on. */
 import { WelcomePrivacy } from '../common/WelcomePrivacy.js';
 
 const data = document.getElementById('page-entry').dataset;

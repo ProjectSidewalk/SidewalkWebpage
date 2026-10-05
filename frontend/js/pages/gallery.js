@@ -1,4 +1,4 @@
-/** Entry point for the Gallery (bundled by rolldown.config.mjs). */
+/** Entry point for the Gallery. */
 import { Main } from '../gallery/Main.js';
 import { sg } from '../gallery/sg.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';

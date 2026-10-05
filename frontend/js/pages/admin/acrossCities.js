@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's acrossCities page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's acrossCities page. */
 import { AcrossCitiesPage } from '../../admin-dashboard/AcrossCitiesPage.js';
 
 const data = document.getElementById('page-entry').dataset;

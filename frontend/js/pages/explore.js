@@ -1,4 +1,4 @@
-/** Entry point for the Explore tool (bundled by rolldown.config.mjs). */
+/** Entry point for the Explore tool. */
 
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import { Main } from '../explore/Main.js';

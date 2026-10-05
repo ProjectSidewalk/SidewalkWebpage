@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's streetStatus page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's streetStatus page. */
 import { StreetStatusPage } from '../../admin-dashboard/StreetStatusPage.js';
 
 const data = document.getElementById('page-entry').dataset;

@@ -1,4 +1,4 @@
-/** Entry point for the mobile landing page (bundled by rolldown.config.mjs). */
+/** Entry point for the mobile landing page. */
 
 window.appManager.ready(() => {
   document.getElementById('mobile-hero-cta-btn').addEventListener('click', () => {

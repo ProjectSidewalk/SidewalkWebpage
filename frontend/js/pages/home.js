@@ -1,4 +1,4 @@
-/** Entry point for the landing page (bundled by rolldown.config.mjs). */
+/** Entry point for the landing page. */
 import '../homepage.js';
 import { LandingValidationGrid } from '../LandingValidationGrid.js';
 import { AccessScoreSpotlight } from '../AccessScoreSpotlight.js';

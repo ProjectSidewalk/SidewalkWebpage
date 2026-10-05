@@ -22,8 +22,8 @@ module.exports = {
   roots: ['<rootDir>/test/js', '<rootDir>/frontend/js'],
   testMatch: ['<rootDir>/test/js/**/*.test.js'],
 
-  // Suites `require` their subjects, so ES-module source files (#4467) are turned into CommonJS on the way in, and
-  // an import defers to a fake the suite has put on `window`; see test/js/moduleTransform.js.
+  // Turns each ES-module source into CommonJS so a suite can `require` it, and lets an import defer to a fake the
+  // suite put on `window` (test/js/moduleTransform.js).
   transform: {
     '/frontend/js/.+\\.js$': '<rootDir>/test/js/moduleTransform.js'
   },
@@ -35,8 +35,7 @@ module.exports = {
   // The default per-file table is 229 rows of mostly zeroes, which buries the totals; lcov keeps the detail.
   coverageReporters: ['text-summary', 'lcov'],
 
-  // No `coverageThreshold` yet, deliberately: every suite now loads its subject through `require` (#4467), so the
-  // number is honest, but it is a baseline to grow from before it becomes a floor (#5112).
+  // No `coverageThreshold` yet: the number is a baseline to grow from before it becomes a floor (#5112).
 
   verbose: true
 };

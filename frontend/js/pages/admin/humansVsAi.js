@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's humansVsAi page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's humansVsAi page. */
 import { HumanVsAiPage } from '../../admin-dashboard/HumanVsAiPage.js';
 
 new HumanVsAiPage({

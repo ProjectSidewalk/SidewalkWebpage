@@ -1,4 +1,4 @@
-/** Entry point for the /about page (bundled by rolldown.config.mjs). */
+/** Entry point for the /about page. */
 import '../common/aggregateStats.js';
 import { AboutPage } from '../aboutPage.js';
 

@@ -1,4 +1,4 @@
-/** Entry point for the admin dashboard's contributors page (bundled by rolldown.config.mjs). */
+/** Entry point for the admin dashboard's contributors page. */
 import { ContributorsPage } from '../../admin-dashboard/ContributorsPage.js';
 import { FunnelsSection } from '../../admin-dashboard/FunnelsSection.js';
 

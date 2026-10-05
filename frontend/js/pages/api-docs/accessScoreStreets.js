@@ -1,4 +1,4 @@
-/** Entry point for the /v3/api-docs/accessScoreStreets page (bundled by rolldown.config.mjs). */
+/** Entry point for the /v3/api-docs/accessScoreStreets page. */
 import { AccessScoreStreetsPreview } from '../../api-docs/accessScoreStreetsPreview.js';
 
 // apiDocs.js reads these for the download buttons; a preview or two read the base URL as well.
