@@ -185,14 +185,18 @@ class ExploreController @Inject() (
       val startPov: Option[POV] =
         if (seeded) seedHeading.map(h => POV(h, seedPitch.getOrElse(0.0), seedZoom.getOrElse(1.0))) else None
 
-      noStore(Ok(Json.toJson(
-        ExploreSession(
-          exploreData.task, exploreData.mission, exploreData.region.regionId, exploreData.region.name,
-          exploreData.nextTempLabelId, exploreData.hasCompletedAMission, exploreData.userRoute.map(_.routeId),
-          exploreData.userRoute.map(_.userRouteId), exploreData.route.map(_.name), exploreData.routeResumed,
-          exploreData.routeUnavailable, startLat, startLng, startPanoId, startPov, startPlaceName
+      noStore(
+        Ok(
+          Json.toJson(
+            ExploreSession(
+              exploreData.task, exploreData.mission, exploreData.region.regionId, exploreData.region.name,
+              exploreData.nextTempLabelId, exploreData.hasCompletedAMission, exploreData.userRoute.map(_.routeId),
+              exploreData.userRoute.map(_.userRouteId), exploreData.route.map(_.name), exploreData.routeResumed,
+              exploreData.routeUnavailable, startLat, startLng, startPanoId, startPov, startPlaceName
+            )
+          )
         )
-      )))
+      )
     }
   }
 

@@ -66,7 +66,8 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
         None,
         bareMission,
         3,
-        "Downtown", 4,
+        "Downtown",
+        4,
         true,
         Some(5),
         Some(6),
@@ -82,8 +83,8 @@ class SnakeCaseWritersSpec extends AnyFunSuite with Matchers {
       s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","next_temporary_label_id":4,"has_completed_mission":true,"route_id":5,"user_route_id":6,"route_name":"Walk","route_resumed":true,"route_unavailable":false,"start_lat":1.5,"start_lng":2.5,"start_pano_id":"p","start_pov":{"heading":90,"pitch":0,"zoom":1},"start_place_name":"Town Hall"}"""
     )
     check(
-      ExploreSession(None, bareMission, 3, "Downtown", 4, false, None, None, None, false, true, None, None,
-        None, None, None),
+      ExploreSession(None, bareMission, 3, "Downtown", 4, false, None, None, None, false, true, None, None, None, None,
+        None),
       s"""{"mission":$bareMissionJson,"region_id":3,"region_name":"Downtown","next_temporary_label_id":4,"has_completed_mission":false,"route_resumed":false,"route_unavailable":true}"""
     )
     check(

@@ -87,10 +87,12 @@ class ValidateController @Inject() (
               commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Validate")
-              noStore(Ok(
-                views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
-                  validateParams, tags)
-              ))
+              noStore(
+                Ok(
+                  views.html.apps.validate(commonPageData, "/validate", Messages("seo.title.validate"), user,
+                    validateParams, tags)
+                )
+              )
             }
           } else {
             Future.successful(response)
@@ -139,10 +141,12 @@ class ValidateController @Inject() (
               commonPageData <- configService.getCommonPageData(request2Messages.lang)
             } yield {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_ExpertValidate")
-              noStore(Ok(
-                views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"), user,
-                  validateParams, tags)
-              ))
+              noStore(
+                Ok(
+                  views.html.apps.validate(commonPageData, "/expertValidate", Messages("seo.title.expert.validate"),
+                    user, validateParams, tags)
+                )
+              )
             }
           } else {
             Future.successful(response)
@@ -179,10 +183,12 @@ class ValidateController @Inject() (
               Redirect("/")
             } else {
               cc.loggingService.insert(user.userId, request.ipAddress, "Visit_MobileValidate")
-              noStore(Ok(
-                views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
-                  tags)
-              ))
+              noStore(
+                Ok(
+                  views.html.apps.mobileValidate(commonPageData, Messages("seo.title.validate"), user, validateParams,
+                    tags)
+                )
+              )
             }
           }
         } else {
