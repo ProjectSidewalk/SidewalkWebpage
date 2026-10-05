@@ -4,7 +4,7 @@
  */
 
 /**
- * Fetches the page's session as JSON. A failure leaves the loading overlay up with a message that says to reload,
+ * Fetches the page's session as JSON. A failure turns the loading overlay into a failure notice that says to reload,
  * since without a session there is nothing to build the tool on.
  * @param {string} url - The endpoint that resolves the session.
  * @param {RequestInit} [init] - Request options, for a POST that carries the page's filters.
@@ -18,8 +18,11 @@ export async function loadPageSession(url, init = {}) {
   } catch (error) {
     // The request can fail before the translations are in; the app manager runs the callback once they are.
     window.appManager.ready(() => {
-      const note = document.querySelector('#page-loading .loading-sub-text');
-      if (note) note.textContent = i18next.t('common:session-load-failed');
+      const overlay = document.getElementById('page-loading');
+      if (!overlay) return;
+      overlay.classList.add('page-loading--failed');
+      overlay.querySelector('.loading-text').textContent = i18next.t('common:session-load-failed.title');
+      overlay.querySelector('.loading-sub-text').textContent = i18next.t('common:session-load-failed.body');
     });
     throw error;
   }

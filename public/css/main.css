@@ -1424,6 +1424,26 @@ kbd {
   margin-top: 5px;
 }
 
+/* The session request failed (#5650): the animation would promise progress that isn't coming, so the warning
+   triangle takes its place and the text says to reload. */
+.loading-failed-icon {
+  display: none;
+  width: 120px;
+  height: 120px;
+  margin: 40px auto;
+  color: var(--color-error-200);
+  -webkit-mask-image: url("../images/icons/alert-triangle-feather.svg");
+  mask-image: url("../images/icons/alert-triangle-feather.svg");
+}
+
+.page-loading--failed img {
+  display: none;
+}
+
+.page-loading--failed .loading-failed-icon {
+  display: block;
+}
+
 /*
  * CSS for the footer header
 */

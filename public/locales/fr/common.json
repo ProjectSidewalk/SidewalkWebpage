@@ -367,7 +367,10 @@
     "vote-failed": "Votre vote n'a pas été enregistré. Veuillez réessayer."
   },
   "download-already-preparing": "Ce fichier est déjà en cours de préparation pour une autre demande. Veuillez réessayer dans un instant.",
-  "session-load-failed": "Nous n'avons pas pu charger votre mission. Veuillez recharger la page pour réessayer.",
+  "session-load-failed": {
+    "title": "Chargement impossible",
+    "body": "Nous n'avons pas pu charger votre mission. Veuillez recharger la page pour réessayer."
+  },
   "label-type-picker": {
     "current": "{{labelType}} (type actuel)",
     "change": "modifier",
