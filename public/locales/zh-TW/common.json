@@ -365,6 +365,11 @@
     "vote-failed": "您的投票未儲存，請再試一次。"
   },
   "download-already-preparing": "此檔案已在為另一個請求準備中，請稍後再試。",
+  "session-load-failed": {
+    "title": "無法載入",
+    "body": "無法載入您的任務。請重新整理頁面再試一次。",
+    "bad-link": "此連結無效。請檢查網址後再試一次。"
+  },
   "label-type-picker": {
     "current": "{{labelType}}（目前類型）",
     "change": "更改",

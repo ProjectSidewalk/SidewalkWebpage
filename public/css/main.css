@@ -1424,6 +1424,32 @@ kbd {
   margin-top: 5px;
 }
 
+/* The session request failed (#5650): the animation would promise progress that isn't coming, so the warning
+   triangle takes its place and the text says to reload. */
+.loading-failed-icon {
+  display: none;
+  width: 120px;
+  height: 120px;
+  margin: 40px auto;
+  color: var(--color-error-200);
+  -webkit-mask-image: url("../images/icons/alert-triangle-feather.svg");
+  mask-image: url("../images/icons/alert-triangle-feather.svg");
+}
+
+/* Keyed on the id too, to outrank the id-scoped rule that sizes and shows the animation. */
+#page-loading.page-loading--failed img {
+  display: none;
+}
+
+.page-loading--failed .loading-failed-icon {
+  display: block;
+}
+
+/* "Chargement impossible" at the heading's 45px would spill past the box; a smaller title still reads as one. */
+.page-loading--failed .loading-text {
+  font-size: 28px;
+}
+
 /*
  * CSS for the footer header
 */

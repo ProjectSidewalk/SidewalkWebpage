@@ -1,12 +1,13 @@
 @import controllers.helper.ValidateHelper.ValidateParams
 @import models.user.{Role, SidewalkUserWithRole}
 @import play.api.Configuration
-@import play.api.libs.json.{JsArray, JsString, Json}
+@import play.api.libs.json.{JsArray, Json}
 @import service.CommonPageData
+@import models.label.Tag
 @import models.pano.PanoSource
 @import formats.json.LabelFormats.tagWrites
 @import views.ViewHelpers.jsonForScript
-@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, validatePageData: ValidatePageData
+@(commonData: CommonPageData, title: String, user: SidewalkUserWithRole, validateParams: ValidateParams, tagList: Seq[Tag]
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @currentCity = @{commonData.allCityInfo.filter(_.cityId == commonData.cityId).head}
@@ -40,6 +41,7 @@
     <div id="loading-animation">
       <p class="loading-text">@Messages("loading")</p>
       <img src='@assets.path("videos/ProjectSidewalk_LoadingAnimation_WithArmMovement_Medium.webp")' alt='@Messages("loading")'>
+      <span class="ps-mask-icon loading-failed-icon" aria-hidden="true"></span>
       <p class="loading-sub-text">@Messages("loading.encouragement")</p>
     </div>
   </div>
@@ -224,28 +226,26 @@
      for signed-in users neither the dialog nor any opener renders. *@
   @common.authDialog(Some(user))
 
-  @* What the Validate entry (frontend/js/pages/validate.js) needs from the server, as JSON. *@
+  @* What the Validate entry (frontend/js/validate/start.js) needs from the server, as JSON. Session scalars only: the
+     mission is fetched from /validationTask/mission, so a cached copy of this page can never carry stale labels
+     (#5650). validateParams is in the shape the backend reads back, so the entry can send it as it is. *@
   <script type="application/json" id="page-data">{
     "user": {"username": @jsonForScript(user.username), "role": "@user.role.name"},
     "dataStoreUrl": "@routes.ValidateController.post",
-    "hasNextMission": @validatePageData.hasNextMission,
-    "completedValidations": @validatePageData.completedValidations,
+    "missionUrl": "@routes.ValidateController.getMission",
     "language": "@messages.lang.code",
     "imagerySource": "@commonData.imagerySource.name",
     "viewerAccessToken": "@commonData.imageryAccessToken",
     "validateParams": {
-      "adminVersion": @validateParams.adminVersion,
-      "labelType": @if(validateParams.labelType.isDefined) {@jsonForScript(validateParams.labelType.get.name)} else {null},
-      "userIds": @if(validateParams.userIds.isDefined) {@jsonForScript(validateParams.userIds.get)} else {null},
-      "regionIds": @if(validateParams.regionIds.isDefined) {@jsonForScript(validateParams.regionIds.get)} else {null},
-      "teamIds": @if(validateParams.teamIds.isDefined) {@jsonForScript(validateParams.teamIds.get)} else {null},
-      "unvalidatedOnly": @validateParams.unvalidatedOnly,
+      "admin_version": @validateParams.adminVersion,
+      "label_type": @if(validateParams.labelType.isDefined) {@jsonForScript(validateParams.labelType.get.name)} else {null},
+      "user_ids": @if(validateParams.userIds.isDefined) {@jsonForScript(validateParams.userIds.get)} else {null},
+      "region_ids": @if(validateParams.regionIds.isDefined) {@jsonForScript(validateParams.regionIds.get)} else {null},
+      "team_ids": @if(validateParams.teamIds.isDefined) {@jsonForScript(validateParams.teamIds.get)} else {null},
+      "unvalidated_only": @validateParams.unvalidatedOnly,
       "triage": @validateParams.triage
     },
-    "tagList": @jsonForScript(JsArray(validatePageData.tagList.map(t => Json.toJson(t))))@if(validatePageData.hasNextMission) {,
-    "mission": @jsonForScript(validatePageData.mission.getOrElse(JsString(""))),
-    "labelList": @jsonForScript(validatePageData.labelList.getOrElse(JsString(""))),
-    "progress": @jsonForScript(validatePageData.missionProgress.getOrElse(JsString("")))}
+    "tagList": @jsonForScript(JsArray(tagList.map(t => Json.toJson(t))))
   }</script>
   <script type="module" src='@assets.path("build/js/mobileValidate.js")'></script>
 }

@@ -300,5 +300,9 @@ class SnakeCaseReadersSpec extends AnyFunSuite with Matchers {
         |"validate_params":{"admin_version":false,"unvalidated_only":false}}""".stripMargin,
       MoreLabelsRequest(LabelType.CurbRamp, 3, Seq(1, 2), ValidateParams(false))
     )
+    check(
+      """{"validate_params":{"admin_version":false,"unvalidated_only":true}}""",
+      MissionRequest(ValidateParams(false, unvalidatedOnly = true))
+    )
   }
 }

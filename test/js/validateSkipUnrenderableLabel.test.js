@@ -234,7 +234,7 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
       undoValidation: {enableUndo: jest.fn(), disableUndo: jest.fn()},
       labelVisibilityControl: {hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true},
       modalNoNewMission: {show: jest.fn()},
-      form: {getValidateParams: () => ({admin_version: false, unvalidated_only: false})},
+      validateParams: {admin_version: false, unvalidated_only: false},
       ui: {
         holder: fakeElement(),
         busyRegion: [fakeElement(), fakeElement()],
@@ -531,7 +531,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
       undoValidation: {enableUndo: jest.fn(), disableUndo: jest.fn()},
       labelVisibilityControl: {hideLabelCard: jest.fn(), unhideLabel: jest.fn(), isVisible: () => true},
       modalNoNewMission: {show: jest.fn()},
-      form: {getValidateParams: () => ({admin_version: false, unvalidated_only: false})},
+      validateParams: {admin_version: false, unvalidated_only: false},
       ui: {
         holder: fakeElement(),
         busyRegion: [fakeElement(), fakeElement()],

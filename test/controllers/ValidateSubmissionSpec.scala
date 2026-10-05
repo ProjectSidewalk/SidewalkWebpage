@@ -24,8 +24,8 @@ import java.time.OffsetDateTime
  * validation into a `label_validation` row and the label's updated agree/disagree/unsure counts (#4777), and the one
  * that keeps a user to a single comment per label (#4942).
  *
- * Follows the real client bootstrap: GET /validate embeds the assigned mission and label batch as inline page JS
- * (`param.*`), and the spec validates the first label of that real batch. Both tests run the endpoint's own undo flow
+ * Follows the real client bootstrap: the page asks POST /validationTask/mission for its mission and label batch
+ * (#5650), and the spec validates the first label of that real batch. Both tests run the endpoint's own undo flow
  * (#4653) and assert it restores what the validation changed.
  *
  * Unlike Explore, these endpoints write against *real* labels that the dev DB inherited from production, so the suite
@@ -75,11 +75,12 @@ class ValidateSubmissionSpec
       tags: List[String]
   )
 
-  /** The validate-page values a submission payload is built from, as the real client reads them. */
+  /** The first-mission values a submission payload is built from, as the real client reads them. */
   private case class ValidateBootstrap(userId: String, missionId: Int, mission: JsObject, labels: Seq[JsObject])
 
   /**
-   * Loads /validate for the session and pulls the assigned mission and label batch out of the bootstrap script.
+   * Asks for the session's first mission, as the Validate page does on load, and pulls out the mission and label
+   * batch the server assigned.
    *
    * @param session Cookies from an anonymous session.
    * @return        The mission and label batch the server assigned.
@@ -88,16 +89,13 @@ class ValidateSubmissionSpec
     val labelCount = run(sql"SELECT count(*) FROM label WHERE deleted = false".as[Int]).head
     if (labelCount == 0) cancel("No labels in the connected schema; /validate can't assign a mission.")
 
-    val resp = route(app, FakeRequest(GET, "/validate").withCookies(session*)).get
+    val resp = ValidateSpecSupport.postMission(app, ValidateSpecSupport.CrowdParams, session)
     status(resp) mustBe OK
-    val html    = contentAsString(resp)
-    val mission = embeddedPageJson(html, "param.mission")
-      .collect { case obj: JsObject => obj }
+    val body    = contentAsJson(resp)
+    val mission = (body \ "mission")
+      .asOpt[JsObject]
       .getOrElse(cancel("No validation mission available (needs >= 10 validatable labels of one type)."))
-    val labels = embeddedPageJson(html, "param.labelList")
-      .collect { case arr: JsArray => arr.value.toSeq }
-      .getOrElse(fail("No label batch in the validate bootstrap."))
-      .map(_.as[JsObject])
+    val labels    = (body \ "labels").asOpt[Seq[JsObject]].getOrElse(fail("No label batch in the first mission."))
     val missionId = (mission \ "mission_id").as[Int]
     // The mission was just minted for this session's user, so it resolves the anon user's id for row assertions.
     val userId = run(sql"SELECT user_id FROM mission WHERE mission_id = $missionId".as[String]).head

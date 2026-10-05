@@ -138,22 +138,6 @@ export class Form {
   }
 
   /**
-   * The page's label filters, in the shape the backend's `ValidateParams` reads.
-   * @returns {object} The filters, ready to drop into a request body as `validate_params`.
-   */
-  getValidateParams() {
-    return {
-      admin_version: svv.adminVersion,
-      label_type: svv.validateParams.labelType,
-      user_ids: svv.validateParams.userIds,
-      region_ids: svv.validateParams.regionIds,
-      team_ids: svv.validateParams.teamIds,
-      unvalidated_only: svv.validateParams.unvalidatedOnly,
-      triage: svv.validateParams.triage,
-    };
-  }
-
-  /**
    * Compiles data into a format that can be parsed by our back end.
    *
    * @param {boolean} missionComplete - Whether the mission is complete. Ensures we only send once per mission.
@@ -202,7 +186,7 @@ export class Form {
       css_zoom: 100, // Sent for back-end compatibility; UI scaling is done via real layout sizes (--ui-scale).
     };
 
-    data.validate_params = this.getValidateParams();
+    data.validate_params = svv.validateParams;
 
     data.interactions = svv.tracker.getActions();
 

@@ -14,7 +14,7 @@ import models.survey.{SurveyQuestionTable, SurveyQuestionWithOptions}
 import models.user.SidewalkUserTable.aiUserId
 import models.user.*
 import models.utils.MyPostgresProfile.api.*
-import models.utils.{ConfigTable, IpAddress, MyPostgresProfile, WebpageActivityTable}
+import models.utils.{IpAddress, MyPostgresProfile, WebpageActivityTable}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point, PrecisionModel}
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import play.api.{Configuration, Logger}
@@ -24,6 +24,7 @@ import java.time.{LocalDate, OffsetDateTime, ZoneOffset}
 import javax.inject.*
 import scala.concurrent.{ExecutionContext, Future}
 
+/** An Explore session as the page starts it: the task to walk, the mission it counts toward, and where it sits. */
 case class ExplorePageData(
     task: Option[NewTask],
     mission: Mission,
@@ -33,10 +34,7 @@ case class ExplorePageData(
     routeResumed: Boolean,
     routeUnavailable: Boolean,
     hasCompletedAMission: Boolean,
-    nextTempLabelId: Int,
-    surveyData: Seq[SurveyQuestionWithOptions],
-    tutorialStreetId: Int,
-    makeCrops: Boolean
+    nextTempLabelId: Int
 )
 
 /** Core facts about a label inserted during an Explore submission, for post-submission side effects (AI, SciStarter). */
@@ -100,6 +98,7 @@ trait ExploreService {
    * @return None if no street is within range of the point (caller should fall back to the normal explore flow).
    */
   def getDataForExploreAddressPage(userId: String, lat: Double, lng: Double): Future[Option[ExplorePageData]]
+  def listSurveyQuestions: Future[Seq[SurveyQuestionWithOptions]]
   def selectTasksInARegion(regionId: Int, userId: String): Future[Seq[NewTask]]
   def insertEnvironment(env: AuditTaskEnvironment): Future[Int]
   def insertMultipleInteractions(interactions: Seq[AuditTaskInteraction]): Future[Unit]
@@ -161,7 +160,6 @@ trait ExploreService {
 class ExploreServiceImpl @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     val config: Configuration,
-    configTable: ConfigTable,
     missionService: MissionService,
     regionTable: RegionTable,
     labelTable: LabelTable,
@@ -326,10 +324,6 @@ class ExploreServiceImpl @Inject() (
 
       // Check if they've already completed an explore mission. Used to suggest Validate/Explore missions on front-end.
       hasCompletedAMission: Boolean <- missionTable.countCompletedMissions(userId, MissionType.Audit).map(_ > 0)
-
-      surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
-      tutorialStreetId: Int                      <- configTable.getTutorialStreetId
-      makeCrops: Boolean                         <- configTable.getMakeCrops
     } yield {
       // The tutorial takes over the whole session, so a resumable route must not surface mid-tutorial: shipping its
       // id flips the client into route mode and draws the route over the tutorial map (#4816). Only the page payload
@@ -346,14 +340,13 @@ class ExploreServiceImpl @Inject() (
         routeResumed = pageUserRoute.isDefined && routeSetup.resumed,
         routeSetup.routeUnavailable,
         hasCompletedAMission,
-        nextTempLabelId,
-        surveyData,
-        tutorialStreetId,
-        makeCrops
+        nextTempLabelId
       )
     }
     db.run(getExploreDataAction.transactionally)
   }
+
+  def listSurveyQuestions: Future[Seq[SurveyQuestionWithOptions]] = db.run(surveyQuestionTable.listAllWithOptions)
 
   def getDataForExploreAddressPage(userId: String, lat: Double, lng: Double): Future[Option[ExplorePageData]] = {
     val exploreAddressAction = lockUserForExploreAddress(userId)
@@ -381,14 +374,10 @@ class ExploreServiceImpl @Inject() (
                 nextTempLabelId: Int          <- labelTable.nextTempLabelId(userId)
                 hasCompletedAMission: Boolean <-
                   missionTable.countCompletedMissions(userId, missionType = MissionType.Audit).map(_ > 0)
-                surveyData: Seq[SurveyQuestionWithOptions] <- surveyQuestionTable.listAllWithOptions
-                tutorialStreetId: Int                      <- configTable.getTutorialStreetId
-                makeCrops: Boolean                         <- configTable.getMakeCrops
               } yield {
                 Some(
                   ExplorePageData(task, updatedMission, region, userRoute = None, route = None, routeResumed = false,
-                    routeUnavailable = false, hasCompletedAMission, nextTempLabelId, surveyData, tutorialStreetId,
-                    makeCrops)
+                    routeUnavailable = false, hasCompletedAMission, nextTempLabelId)
                 )
               }
           }

@@ -69,6 +69,26 @@ class ValidateTriageParamsSpec extends SidewalkSpec with RoleSession with GuiceO
       assume(code == OK, s"/validate answered $code, so this schema cannot serve a mission")
       embeddedTriage(body) mustBe Some(false)
     }
+
+    "carry no mission, and tell the browser never to cache the page (#5650)" in {
+      val resp = route(app, FakeRequest(GET, "/validate").withCookies(freshAnonSession()*)).get
+      status(resp) mustBe OK
+      header(CACHE_CONTROL, resp) mustBe Some("no-store")
+      contentAsString(resp) must not include "mission_id"
+    }
+  }
+
+  "GET /mobile" should {
+    "tell the browser never to cache the page (#5650)" in {
+      val resp = route(
+        app,
+        FakeRequest(GET, "/mobile")
+          .withHeaders("User-Agent" -> "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile/15E148")
+          .withCookies(freshAnonSession()*)
+      ).get
+      status(resp) mustBe OK
+      header(CACHE_CONTROL, resp) mustBe Some("no-store")
+    }
   }
 
   "POST /validationTask/moreLabels" should {

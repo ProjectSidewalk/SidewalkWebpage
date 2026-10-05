@@ -24,6 +24,35 @@ object ValidateSpecSupport {
     "triage"           -> true
   )
 
+  /** `validate_params` as plain /validate sends them: no filters, the crowd queue. */
+  val CrowdParams: JsObject = Json.obj(
+    "admin_version"    -> false,
+    "label_type"       -> JsNull,
+    "user_ids"         -> JsNull,
+    "region_ids"       -> JsNull,
+    "team_ids"         -> JsNull,
+    "unvalidated_only" -> false,
+    "triage"           -> false
+  )
+
+  /**
+   * Posts to /validationTask/mission for the mission a Validate page would start on under the given `validate_params`.
+   *
+   * @param app     The application under test.
+   * @param params  The `validate_params` the page would post.
+   * @param cookies The session making the request.
+   */
+  def postMission(app: Application, params: JsObject, cookies: Seq[Cookie]): Future[Result] = {
+    route(
+      app,
+      FakeRequest(POST, "/validationTask/mission")
+        .withHeaders(XHR)
+        .withCookies(cookies*)
+        .withJsonBody(Json.obj("validate_params" -> params))
+        .withCSRFToken
+    ).get
+  }
+
   /**
    * Posts to /validationTask/moreLabels for a few Curb Ramp labels under the given `validate_params`.
    *

@@ -1,8 +1,11 @@
 package formats.json
 
+import formats.json.LabelFormats.POVWrites
+import formats.json.MissionFormats.given
 import formats.json.PanoFormats.PanoDate
 import models.audit.{AuditTask, AuditTaskInteraction, NewTask}
-import models.label.{ComputationMethod, LabelPointTable, LabelType}
+import models.label.{ComputationMethod, LabelPointTable, LabelType, POV}
+import models.mission.Mission
 import models.pano.PanoSource
 import models.street.StreetEdgePriority
 import models.utils.MyPostgresProfile.api.given
@@ -141,6 +144,32 @@ object ExploreFormats {
   )
   case class AiLabelDetection(panoX: Int, panoY: Int, confidence: Double)
 
+  /**
+   * What /explore/session hands the page (#5650): the task and mission to start on, the region and route they sit in,
+   * and the pano the page should open at when the URL asked for one. `task` is None once the region is fully mapped.
+   * @param routeResumed     Whether a walk already in progress was picked back up, so the page can say so.
+   * @param routeUnavailable Whether a `?routeId=` named no live route and was dropped (#5156).
+   * @param startPov         A heading, pitch and zoom to open the pano at; only ever set alongside a pano or lat/lng.
+   */
+  case class ExploreSession(
+      task: Option[NewTask],
+      mission: Mission,
+      regionId: Int,
+      regionName: String,
+      nextTemporaryLabelId: Int,
+      hasCompletedMission: Boolean,
+      routeId: Option[Int],
+      userRouteId: Option[Int],
+      routeName: Option[String],
+      routeResumed: Boolean,
+      routeUnavailable: Boolean,
+      startLat: Option[Double],
+      startLng: Option[Double],
+      startPanoId: Option[String],
+      startPov: Option[POV],
+      startPlaceName: Option[String]
+  )
+
   given pointWrites: Writes[Point] = Writes { point =>
     Json.obj(
       "lat" -> point.getX,
@@ -191,6 +220,8 @@ object ExploreFormats {
   }
 
   given updatedStreetsWrites: Writes[UpdatedStreets] = Json.writes[UpdatedStreets]
+
+  given exploreSessionWrites: Writes[ExploreSession] = Json.writes[ExploreSession]
 
   given pointReads: Reads[Point] = (
     (JsPath \ "lat").read[Double] and

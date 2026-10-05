@@ -20,8 +20,8 @@ import java.time.OffsetDateTime
 /**
  * Functional tests for the Explore submission endpoint (`POST /task`) — the write path that turns a labeling session
  * into `audit_task` / `label` / `label_point` rows (#4777). Boots the real app against Postgres and follows the real
- * client bootstrap: GET /explore embeds the assigned mission and task as inline page JS (`mainParam.*`), and the spec
- * submits payloads shaped like the frontend's compiled submission data.
+ * client bootstrap: GET /explore/session hands the page its assigned mission and task (#5650), and the spec submits
+ * payloads shaped like the frontend's compiled submission data.
  *
  * A fresh anonymous user deterministically starts on the audit tutorial, so the tutorial-mission submission needs no
  * particular seed data beyond a servable /explore page; the post-tutorial test completes the tutorial mission over

@@ -448,7 +448,7 @@ export class LabelContainer {
           label_type: this.#labelType,
           labels_needed: this.#labelsOwed,
           excluded_label_ids: [...this.#seenLabelIds],
-          validate_params: svv.form.getValidateParams(),
+          validate_params: svv.validateParams,
         }),
       });
       if (!response.ok) throw new Error(`Replacement labels request failed with HTTP ${response.status}`);

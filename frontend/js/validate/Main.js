@@ -68,23 +68,29 @@ export class Main {
 
   #param;
 
-  /**
-   * @param {Record<string, any>} param - Object passed from validation.scala.html containing data from the back end.
-   */
-  constructor(param) {
-    this.#param = param;
+  // The mission the page opens on, as /validationTask/mission answered.
+  #firstMission;
 
-    svv.adminVersion = param.validateParams.adminVersion;
+  /**
+   * @param {Record<string, any>} param - The page's session scalars, from the view's page-data block.
+   * @param {Record<string, any>} firstMission - The mission to start on: `mission`, its `labels` and `progress`,
+   *                                             `has_mission_available`, and the user's `completed_validations`.
+   */
+  constructor(param, firstMission) {
+    this.#param = param;
+    this.#firstMission = firstMission;
+
+    svv.adminVersion = param.validateParams.admin_version;
     svv.validateParams = param.validateParams;
     svv.viewerType = param.viewerType;
-    svv.missionLength = param.mission?.labels_validated ?? 0;
+    svv.missionLength = firstMission.mission?.labels_validated ?? 0;
     svv.missionsCompleted = 0;
 
     // Finally, do the actual initialization of the UI and other components.
     defineValidateConstants();
     this.#initUI();
 
-    if (param.hasNextMission) {
+    if (firstMission.has_mission_available) {
       this.#init();
     } else {
       if (!util.isMobile()) svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
@@ -208,6 +214,7 @@ export class Main {
    */
   async #init() {
     const param = this.#param;
+    const { mission, labels, progress } = this.#firstMission;
 
     // Measured live off the layer the imagery is actually drawn in, on both platforms: desktop scales the pano to
     // fit the viewport and mobile sizes it to the screen below the header, and either can change under a resize.
@@ -218,7 +225,7 @@ export class Main {
     // target at 44px. The mark itself stays 32px across (2 * radius + 2): bigger hides the imagery being judged.
     svv.labelRadius = util.isMobile() ? 15 : 10;
 
-    const labelType = param.mission.label_type;
+    const labelType = mission.label_type;
 
     svv.validationMenu = util.isMobile()
       ? new MobileValidationMenu(svv.ui.validationMenu)
@@ -228,7 +235,7 @@ export class Main {
 
     if (svv.adminVersion) svv.adminInfo = new AdminInfo(svv.ui.status.admin);
 
-    svv.statusField = new StatusField(param.completedValidations);
+    svv.statusField = new StatusField(this.#firstMission.completed_validations);
     svv.tracker = new Tracker();
 
     // Immersive mode (#5560): built before the pano viewer so a mode restored from the tab's last page load has its
@@ -264,7 +271,7 @@ export class Main {
     svv.panoLoadingStatus = new PanoLoadingStatus(document.getElementById('svv-pano-loading'));
 
     svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken);
-    svv.labelContainer = await LabelContainer.create(param.labelList, param.mission.label_type);
+    svv.labelContainer = await LabelContainer.create(labels, labelType);
 
     // There are certain features that will only make sense on desktop vs mobile.
     if (util.isMobile()) {
@@ -307,7 +314,7 @@ export class Main {
       svv.imageAdjustments.onChange(() =>
         svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault()));
 
-      new MissionStartTutorial('validate', labelType, { nLabels: param.mission.labels_validated }, svv, param.language);
+      new MissionStartTutorial('validate', labelType, { nLabels: mission.labels_validated }, svv, param.language);
     }
 
     // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
@@ -369,7 +376,7 @@ export class Main {
     const unexpectedUnload = svv.missionLiveMarker.takeUnexpectedUnload();
     if (unexpectedUnload) svv.tracker.push('Validate_UnexpectedUnload', unexpectedUnload);
 
-    svv.missionContainer.createAMission(param.mission, param.progress);
+    svv.missionContainer.createAMission(mission, progress);
     // Logged only now: the tracker stamps each row with the current mission, and without one this row, the only
     // record of a filter carried in from an earlier visit, could not be tied to a validator. Desktop builds the model.
     if (svv.imageAdjustments && !svv.imageAdjustments.isDefault()) {
