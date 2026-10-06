@@ -361,6 +361,22 @@ Nothing to install: the runner is a container, so it behaves the same on macOS, 
 Silicon, where it runs a native browser. CI runs the same suite on every PR as the `e2e-smoke` job. Full
 details, including how to watch a test run headed, are in [`test/e2e/README.md`](../test/e2e/README.md).
 
+### Testing on a phone or tablet
+
+Desktop Chrome's device mode emulates `pointer: coarse` and a phone's viewport, which covers most layout and
+touch-target work. A real device is for what emulation can't fake: the on-screen keyboard, pinch and double-tap,
+rotation, and memory. To reach your dev app from one on the same Wi-Fi:
+
+1. Start the app with your machine's LAN address allowed, e.g. `DEV_LAN_HOST=192.168.1.20:9000 npm start`
+   (`conf/application.local.conf` reads it; unset, only `localhost:9000` is allowed and anything else gets a 400).
+2. Open `http://192.168.1.20:9000` on the device. On macOS, allow the incoming connection if the firewall asks.
+   WSL2's default NAT networking doesn't expose the port to the LAN; macOS or Linux is the easy host for this.
+3. Street View won't load from that address: the dev Maps key accepts only `localhost` referrers. Test in a city
+   with other imagery (Mapillary in `richmond-va`, for one), or add your LAN address to the key's referrers.
+
+Debug the page from a Mac: Safari's Develop menu lists a USB-connected iPhone or iPad once Web Inspector is turned
+on in the device's Safari settings.
+
 ### Running a branch from a git worktree
 
 If you keep in-progress branches in **git worktrees** (`.claude/worktrees/<name>`) — for example to review a
