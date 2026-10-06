@@ -409,12 +409,28 @@ body.svv-immersive .modal-mission-complete-counts {
     width: calc(56px * var(--ui-scale));
   }
 
-  /* Anchored right, so opening the chevron's menu grows the row leftward instead of off the screen. */
   body.svv-immersive #label-visibility-control-holder {
     left: auto;
     right: calc(4px * var(--ui-scale));
     top: calc(4px * var(--ui-scale));
     gap: 0;
+  }
+
+  /* The chevron's menu drops below the row rather than extending it, so the glyphs never move under Back, which is
+     placed on its own. Right-aligned under the chevron, with the row's 44px height and the scrim for its fill. */
+  body.svv-immersive #validate-control-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: calc(4px * var(--ui-scale));
+  }
+
+  body.svv-immersive #validate-control-image {
+    height: 44px;
+    padding: 0 calc(14px * var(--ui-scale));
+    border-radius: 22px;
+    background: var(--svv-scrim);
+    font: var(--text-small-bold);
   }
 
   /* Back, Hide Label and the chevron as glyphs on the imagery: each paints only a 36px disc of the scrim, which keeps
@@ -535,11 +551,17 @@ body.svv-immersive .modal-mission-complete-counts {
     margin-bottom: calc(4px * var(--ui-scale));
   }
 
+  /* A 44px target in the dock's corner, its glyph pinned to the target's own top-right: level with the question, and
+     inset by the dock's padding, so it reads as the panel's close box rather than floating beside the heading. */
   body.svv-immersive #validate-verdict-clear {
     top: 0;
     right: 0;
     width: 44px;
     height: 44px;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: calc(10px * var(--ui-scale)) calc(10px * var(--ui-scale)) 0 0;
+    border-radius: 0 12px 0 0;
   }
 
   body.svv-immersive .validation-reason-button {
@@ -553,6 +575,38 @@ body.svv-immersive .modal-mission-complete-counts {
   body.svv-immersive #no-reason-options,
   body.svv-immersive #unsure-reason-options {
     gap: calc(8px * var(--ui-scale));
+  }
+
+  /* The write-in reason is the list's last row, not a form below it: the buttons' 8px gap (the boxed menu's own
+     margin-top is dropped), their height and corners, but drawn as an open outline on the scrim so it reads as
+     "type here" rather than as a fourth button or a white form field. Solid once chosen or focused. Exactly 16px
+     type, below which iOS zooms the page on focus. */
+  body.svv-immersive .validate-text-input {
+    margin-top: 0;
+  }
+
+  body.svv-immersive .validate-text-input input {
+    height: 44px;
+    padding: 0 calc(12px * var(--ui-scale));
+    border: 1px dashed rgb(from var(--color-neutral-white) r g b / 60%);
+    border-radius: calc(10px * var(--ui-scale));
+    background: rgb(from var(--color-neutral-white) r g b / 8%);
+    color: var(--color-neutral-white);
+    font: var(--text-small-medium);
+    font-size: 16px;
+  }
+
+  body.svv-immersive .validate-text-input input::placeholder {
+    color: rgb(from var(--color-neutral-white) r g b / 80%);
+  }
+
+  body.svv-immersive .validate-text-input input:focus,
+  body.svv-immersive #add-disagree-comment.is-chosen,
+  body.svv-immersive #add-unsure-comment.is-chosen {
+    border-style: solid;
+    border-color: var(--color-neutral-white);
+    background: rgb(from var(--color-neutral-white) r g b / 14%);
+    outline: none;
   }
 
   /* Submit takes one verdict column under Unsure, at the verdicts' height and type, so the dock reads as one grid
