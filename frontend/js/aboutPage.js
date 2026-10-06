@@ -20,9 +20,7 @@ export class AboutPage {
   static #CITATION_DOI = '10.1145/3290605.3300292';
   static #FALLBACK_PHOTO = util.assetPath('images/logos/ProjectSidewalkLogo_NoText_100x100.png');
 
-  // Inline formatting a citation can legitimately carry: emphasis for the venue, a link to the paper. See
-  // #sanitizeCitation for why the allowlist is this narrow.
-  static #CITATION_TAGS = new Set(['A', 'B', 'EM', 'I', 'STRONG', 'SPAN', 'BR', 'SUB', 'SUP']);
+  static #CITATION_TAGS = ['a', 'b', 'em', 'i', 'strong', 'span', 'br', 'sub', 'sup'];
 
   /** Only http(s) links from the ML API are used; others (like `javascript:`) could run code. */
   static #HTTP_URL = /^https?:\/\//i;
@@ -63,38 +61,6 @@ export class AboutPage {
   static #safeHref(url) {
     const trimmed = String(url ?? '').trim();
     return AboutPage.#HTTP_URL.test(trimmed) ? util.escapeHTML(trimmed) : '#';
-  }
-
-  /**
-   * Reduces a citation string to the inline formatting a citation actually needs, dropping every other element and
-   * every attribute but an http(s) `href`.
-   *
-   * `citation_html` is the one ML API string this page injects as markup rather than escaping — it carries the `<i>`
-   * and `<a>` that make a citation readable, and formatting it here instead would duplicate the lab's own citation
-   * renderer and drift from it. That injection crosses a trust boundary into a separate application with its own
-   * admin UI, though, and `innerHTML` runs `<img onerror>` and `<svg onload>` even though it ignores `<script>`. So
-   * the markup is parsed inert (DOMParser never loads resources or runs handlers) and rebuilt from an allowlist:
-   * anything unrecognized is unwrapped to its text, so a mangled citation still reads correctly.
-   *
-   * @param {string} html - Citation markup from the ML API.
-   * @returns {string} Markup containing only allowlisted tags, with only `href` surviving on links.
-   */
-  #sanitizeCitation(html) {
-    const body = new DOMParser().parseFromString(String(html ?? ''), 'text/html').body;
-    const clean = (node) => {
-      // Depth-first so a node's children are already clean by the time unwrapping hoists them into its place.
-      for (const child of [...node.children]) clean(child);
-      if (!AboutPage.#CITATION_TAGS.has(node.tagName)) {
-        node.replaceWith(...node.childNodes);
-        return;
-      }
-      for (const attr of [...node.attributes]) {
-        const isSafeHref = node.tagName === 'A' && attr.name === 'href' && AboutPage.#HTTP_URL.test(attr.value.trim());
-        if (!isSafeHref) node.removeAttribute(attr.name);
-      }
-    };
-    for (const child of [...body.children]) clean(child);
-    return body.innerHTML;
   }
 
   /**
@@ -417,7 +383,10 @@ export class AboutPage {
     const detail = await this.#fetchJson(`${AboutPage.#ML_API_BASE}/publications/${paper.id}/?format=json`);
     if (!detail.citation_html || !detail.bibtex) return;
 
-    document.getElementById('about-cite-plain').innerHTML = this.#sanitizeCitation(detail.citation_html);
+    // From a separate app with its own admin UI, so held to the inline formatting a citation needs.
+    const citation = util.sanitizeHtml(detail.citation_html, { ALLOWED_TAGS: AboutPage.#CITATION_TAGS,
+      ALLOWED_ATTR: ['href'] });
+    document.getElementById('about-cite-plain').replaceChildren(citation);
     document.getElementById('about-cite-bibtex').textContent = detail.bibtex;
 
     block.querySelectorAll('.about-cite-copy').forEach((button) => {

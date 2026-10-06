@@ -10,16 +10,16 @@
  * directly, or via i18nDom's `data-i18n-tooltip="ns:key"` so the text stays translated. `data-ps-tooltip-theme="light"`
  * gives a white card, for content styled for a light ground (Gallery's overflow tag pills).
  *
- * **The attribute value renders as HTML** (`innerHTML`), so translation strings can carry inline emphasis (<b>, <i>)
- * and a caller can build a small rich card. That makes escaping the caller's responsibility, and the requirement is
- * *double* escaping for anything user-supplied — a username, a label description, any third-party text:
+ * **The attribute value renders as HTML**, so translation strings can carry inline emphasis (<b>, <i>) and a caller
+ * can build a small rich card. Anything user-supplied — a username, a label description, any third-party text — must
+ * therefore be escaped *twice*:
  *
  *   1. Escape the value, and interpolate it into the card markup.
  *   2. Escape that whole markup string again when writing it into the `data-ps-tooltip` attribute.
  *
- * Parsing the attribute consumes one level and `innerHTML` here consumes the other, so a username of
- * `<img onerror=...>` arrives as text. One level of escaping is a stored-XSS hole, not a cosmetic bug: skip step 2 and
- * the attribute closes early, letting the value inject arbitrary markup into the host page.
+ * Parsing the attribute consumes one level and rendering the card the other. A missed step 2 in markup lets the value
+ * close the attribute and inject into the host page, which nothing here can clean. The card goes through
+ * `util.sanitizeHtml`, so a missed step 1 can't run script, but can still show a stranger's images and links.
  * `AcrossCitiesPage.#dayTipHtml` is the worked example, and `test/js/acrossCitiesBreakdowns.test.js` pins it.
  * Plain-text callers need none of this — pass first-party text and it renders as-is.
  *
@@ -35,6 +35,9 @@
  * Loaded globally from main.scala.html (like i18nDom.js); no per-app setup needed — listeners are delegated on the
  * document, so triggers added at any time just work.
  */
+
+import { util } from './utilities.js';
+
 (() => {
   const SHOW_DELAY_MS = 250;
   // Trigger-to-card gap. The tail is drawn into it, so this has to stay above the tail's height below.
@@ -119,9 +122,7 @@
     // A closed popover isn't rendered, so any [popover] match is an open one.
     const host = trigger.closest('dialog[open], [popover]') ?? document.body;
     if (card.parentElement !== host) host.appendChild(card);
-    // Rendered as HTML per the header contract, which is also why that contract requires callers to double-escape any
-    // user-supplied text they interpolate: this is the second of the two levels being consumed.
-    card.innerHTML = trigger.getAttribute('data-ps-tooltip');
+    card.replaceChildren(util.sanitizeHtml(trigger.getAttribute('data-ps-tooltip')));
     // An image still loading has no height yet, so the card measured below is short and, once the image lands,
     // grows down over its trigger; place it again at its final size.
     card.querySelectorAll('img').forEach((img) => {

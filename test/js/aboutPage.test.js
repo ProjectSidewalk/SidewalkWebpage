@@ -9,7 +9,9 @@
  * Runs under jsdom (set in jest.config.js via testEnvironment).
  */
 
-const { loadGlobalScript, mockModule, unmockModule, realUtil } = require('./loadGlobalScript');
+const { loadGlobalScript, loadVendored, mockModule, unmockModule, realUtil } = require('./loadGlobalScript');
+
+loadVendored('dompurify');
 
 const MODULE_PATH = 'frontend/js/pages/about.js';
 const ML_API = 'https://makeabilitylab.cs.washington.edu/api/v1';
@@ -768,7 +770,7 @@ describe('AboutPage', () => {
       expect(document.getElementById('about-cite-bibtex').textContent).toBe(DETAIL.bibtex);
     });
 
-    test('keeps the citation\'s emphasis and link, dropping every other attribute', async () => {
+    test('keeps the citation\'s emphasis and link, dropping its event handlers', async () => {
       stubFetch({
         '/projects/sidewalk/publications/': page([CITED]),
         '/publications/605/': { ...DETAIL,
@@ -784,7 +786,6 @@ describe('AboutPage', () => {
       expect(document.querySelector('#about-cite-plain i').textContent).toBe('CHI 2019');
       expect(link.getAttribute('href')).toBe('https://doi.org/10.1145/3290605.3300292');
       expect(link.getAttribute('onclick')).toBeNull();
-      expect(link.getAttribute('target')).toBeNull();
     });
 
     test('strips markup that could run script, keeping the citation text readable', async () => {
@@ -793,7 +794,8 @@ describe('AboutPage', () => {
         // A publication title edited on the ML side flows into citation_html verbatim, so this page treats that
         // string as untrusted even though the two sites are run by the same lab.
         '/publications/605/': { ...DETAIL,
-          citation_html: 'Saha, M. <img src=x onerror="alert(1)"><svg onload="alert(2)"></svg>'
+          citation_html: 'Saha, M. <img src=x onerror="alert(1)"><svg onload="alert(2)"></svg><style>p{}</style>'
+            + '<form><input type="password"></form>'
             + '<a href="javascript:alert(3)">CHI</a> <b>2019</b>.' },
         '/people/?format=json': page([]),
         '/grants/': page([]),
@@ -802,10 +804,9 @@ describe('AboutPage', () => {
       await hydrate();
 
       const pane = document.getElementById('about-cite-plain');
-      expect(pane.querySelector('img, svg')).toBeNull();
+      expect(pane.querySelector('img, svg, style, form, input')).toBeNull();
       expect(pane.innerHTML).not.toContain('onerror');
       expect(pane.innerHTML).not.toContain('onload');
-      // The <a> is allowlisted but a javascript: href is not, so the anchor keeps its text and loses its target.
       expect(pane.querySelector('a').hasAttribute('href')).toBe(false);
       expect(pane.textContent).toBe('Saha, M. CHI 2019.');
       expect(pane.querySelector('b').textContent).toBe('2019');

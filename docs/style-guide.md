@@ -112,6 +112,7 @@ generated `public/build/` output. Most rules below are enforced by
   - Text inside a `data-ps-tooltip="…"` attribute in markup needs escaping twice: use `AdminShell.tooltipAttr(…)`.
     With `setAttribute('data-ps-tooltip', …)`, escaping once is enough.
   - Escaping doesn't make a link safe: check that an API-supplied `href` starts with http(s).
+  - Markup you didn't write (an outside API's HTML) goes through `util.sanitizeHtml`, appended as nodes. To turn markup into plain text, use `util.htmlToText`, never a tag-stripping regex.
 - **Semicolons required** (`semi`); always parenthesize arrow-function params (`arrow-parens`).
 - **No space between a function name and its `(`**; **do** put a space before a block's `{` and around operators and
   keywords (`if`, `for`). Blank line before and after function declarations (`padding-line-between-statements`).

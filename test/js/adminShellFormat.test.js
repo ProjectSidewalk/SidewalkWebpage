@@ -35,7 +35,7 @@ describe('AdminShell.nil', () => {
 });
 
 describe('AdminShell.tooltipAttr', () => {
-  test('survives both the attribute parse and psTooltip\'s innerHTML as plain text', () => {
+  test('survives both the attribute parse and psTooltip\'s HTML render as plain text', () => {
     const host = document.createElement('div');
     host.innerHTML = `<span data-ps-tooltip="${AdminShell.tooltipAttr('<img src=x onerror="bad()"> & co')}"></span>`;
     const card = document.createElement('div');

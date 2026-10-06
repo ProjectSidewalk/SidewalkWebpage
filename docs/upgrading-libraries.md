@@ -197,6 +197,9 @@ blocking CI step) fails if the two disagree, or if a folder under `vendor/` isn'
   [Changelog](https://github.com/bowser-js/bowser/releases)
 - **chart.js: 4.5.1** — check the running version with `Chart.version`.
   [Download](https://unpkg.com/chart.js) · [Changelog](https://github.com/chartjs/Chart.js/releases)
+- **dompurify: 3.4.16** — cleans HTML from outside sources before it's shown (`purify-3.4.16.min.js`).
+  [Download](https://cdn.jsdelivr.net/npm/dompurify@3.4.16/dist/purify.min.js) ·
+  [Changelog](https://github.com/cure53/DOMPurify/releases)
 - **floating-ui: 1.8.0 (`@floating-ui/dom`), 1.8.0 (`@floating-ui/core`)** — **note:** start from the newest `dom`
   version, then pick a `core` version that satisfies its dependency.
   [Changelog](https://github.com/floating-ui/floating-ui/releases) ·

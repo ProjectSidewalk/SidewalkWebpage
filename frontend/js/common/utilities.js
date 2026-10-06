@@ -843,3 +843,31 @@ export function escapeHTML(value) {
 }
 
 util.escapeHTML = escapeHTML;
+
+/**
+ * @param {?string} html - Markup, e.g. a translation that carries inline formatting.
+ * @returns {string} The text a reader would see, with entities like `&amp;` decoded. DOMParser never runs scripts.
+ */
+util.htmlToText = (html) => new DOMParser().parseFromString(String(html ?? ''), 'text/html').body.textContent;
+
+// DOMPurify's defaults drop `target` (pinned tooltip cards open links in a new tab) and Explore's <tag-underline>
+// shortcut letter, yet keep page-wide <style> and form fields, which nothing we show needs and a fake login could use.
+const PURIFY_OPTIONS = {
+  ADD_TAGS: ['tag-underline'],
+  ADD_ATTR: ['target'],
+  FORBID_TAGS: ['style', 'form', 'input', 'textarea', 'select', 'button'],
+  RETURN_DOM_FRAGMENT: true,
+};
+
+/**
+ * Cleans HTML from a source we don't fully control so it can be shown without running anyone's code.
+ * @param {?string} html - Markup to clean.
+ * @param {object} [options] - Extra DOMPurify settings, e.g. a narrower `ALLOWED_TAGS`.
+ * @returns {DocumentFragment} Nodes to append; never re-serialize them, since parsing twice can change their meaning.
+ */
+util.sanitizeHtml = function (html, options = {}) {
+  const fragment = DOMPurify.sanitize(String(html ?? ''), { ...PURIFY_OPTIONS, ...options });
+  // A page opened in a new tab must not get a handle back to this one.
+  for (const link of fragment.querySelectorAll('a[target]')) link.relList.add('noopener');
+  return fragment;
+};

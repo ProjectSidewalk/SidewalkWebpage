@@ -37,6 +37,7 @@ module.exports = [
         AsyncLock: 'readonly',
         bowser: 'readonly',
         Chart: 'readonly',
+        DOMPurify: 'readonly',
         FloatingUIDOM: 'readonly',
         google: 'readonly',
         i18next: 'readonly',
