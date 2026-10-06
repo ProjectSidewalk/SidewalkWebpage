@@ -76,6 +76,8 @@
   "rate-quality": "Qualität bewerten",
   "rate-severity-info": "Versuchen Sie nach Möglichkeit zu beurteilen, wie stark das gekennzeichnete Hindernis oder Merkmal den Zugang für Fußgänger behindert.",
   "rate-quality-info": "Versuchen Sie nach Möglichkeit die Qualität des gekennzeichneten Merkmals zu beurteilen.",
+  "rate-severity-examples": "Beispiele für Schweregrade",
+  "rate-quality-examples": "Beispiele für Qualität",
   "update-severity-level": "Schweregrad aktualisieren",
   "update-quality-level": "Qualitätsstufe aktualisieren",
   "severity-example-tooltip-1": "Beispiel mit geringem Schweregrad",

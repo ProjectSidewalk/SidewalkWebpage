@@ -76,6 +76,8 @@
   "rate-quality": "Rate quality",
   "rate-severity-info": "Do your best to assess how severely the labeled obstacle or feature hinders pedestrian access.",
   "rate-quality-info": "Do your best to assess the quality of the labeled feature.",
+  "rate-severity-examples": "Severity examples",
+  "rate-quality-examples": "Quality examples",
   "update-severity-level": "Update severity level",
   "update-quality-level": "Update quality level",
   "severity-example-tooltip-1": "Low severity example",

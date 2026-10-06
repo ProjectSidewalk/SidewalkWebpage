@@ -81,6 +81,9 @@ export class KeyboardManager {
    */
   #documentKeyUp = (e) => {
     if (this.#status.disableKeyboard) return;
+    // Enter and Escape on a pinnable tooltip (the rating info icon) or inside its pinned card already pinned or closed
+    // that card on keydown (psTooltip); letting their keyup through would also save-and-close the menu around it.
+    if ((e.key === 'Enter' || e.key === 'Escape') && KeyboardManager.#isOnPinnableTooltip(e.target)) return;
     if (this.#contextMenu.isOpen() && KeyboardShortcuts.run(this.#closeMenuShortcuts, e)) return;
 
     // Ctrl/Alt/Cmd combos belong to the browser. Shift is ours (Shift+Z).
@@ -228,6 +231,16 @@ export class KeyboardManager {
    */
   static #isCheckboxOrRadio(target) {
     return target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio');
+  }
+
+  /**
+   * Whether a key landed on a pinnable tooltip trigger or inside the shared tooltip card (psTooltip.js), where Enter
+   * and Escape belong to the card.
+   * @param {EventTarget} target
+   * @returns {boolean}
+   */
+  static #isOnPinnableTooltip(target) {
+    return target instanceof Element && target.closest('[data-ps-tooltip-pinnable], #ps-tooltip') !== null;
   }
 
   /** Enter closes the menu, keeping what was entered. */

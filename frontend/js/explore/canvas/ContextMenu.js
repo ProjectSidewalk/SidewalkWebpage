@@ -60,6 +60,23 @@ export class ContextMenu {
       ?.addEventListener('click', () => this.#handleDoneButtonClick());
     this.#menuWindow.querySelector('#context-menu-delete')
       ?.addEventListener('click', () => this.#handleDeleteButtonClick());
+    const severityInfo = document.getElementById('severity-header-info');
+    severityInfo?.addEventListener('click', () => this.#logSeverityInfoToggle(severityInfo));
+    severityInfo?.addEventListener('keydown', (e) => {
+      if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) this.#logSeverityInfoToggle(severityInfo);
+    });
+  }
+
+  /**
+   * Logs a click, tap, or Enter/Space on the rating info icon, which pins or unpins its examples card (psTooltip).
+   * Runs before psTooltip's document-level handler toggles the card, so `aria-expanded` still holds the old state.
+   * @param {HTMLElement} icon - The `#severity-header-info` trigger.
+   */
+  #logSeverityInfoToggle(icon) {
+    svl.tracker.push('ContextMenu_SeverityInfoToggle', {
+      LabelType: this.#status.targetLabel?.getLabelType(),
+      Pinned: icon.getAttribute('aria-expanded') !== 'true',
+    });
   }
 
   /**
@@ -99,6 +116,9 @@ export class ContextMenu {
    * @param {Event} e
    */
   #handleMouseDown(e) {
+    // A pinned tooltip card (the rating examples) belongs to the menu even though psTooltip hangs it off <body>, so a
+    // tap on it, the natural way to look closer on a tablet, must not close the menu it explains.
+    if (e.target instanceof Element && e.target.closest('#ps-tooltip')) return;
     const clickedOut = !this.#menuWindow.contains(/** @type {Node} */ (e.target));
     if (this.isOpen()) {
       if (clickedOut) {
@@ -240,10 +260,14 @@ export class ContextMenu {
     const info = document.getElementById('severity-header-info');
     // The alt rides along because it is this icon's accessible name, and the markup's static one says "severity"
     // whichever dimension is on screen.
+    // The card starts as the bare sentence; #setSeverityTooltips adds the example images once they load. The icon is a
+    // pinnable button (explore.scala.html), so it gets a short name of its own, and that name is also what a screen
+    // reader announces for the pinned card.
     if (info) {
-      const infoText = i18next.t(`common:${infoKey}`);
-      info.setAttribute('data-ps-tooltip', infoText);
-      info.setAttribute('alt', infoText);
+      info.setAttribute('data-ps-tooltip', i18next.t(`common:${infoKey}`));
+      const name = i18next.t(`common:${positive ? 'rate-quality-examples' : 'rate-severity-examples'}`);
+      info.setAttribute('aria-label', name);
+      info.setAttribute('alt', name);
     }
     for (let sev = 1; sev <= 3; sev++) {
       const labels = document.querySelectorAll(`.severity-button[data-severity="${sev}"] .severity-button__label`);
@@ -528,10 +552,9 @@ export class ContextMenu {
    * @param {string} labelType
    */
   #setSeverityTooltips(labelType) {
-    const tooltipKey = util.misc.isPositiveLabelType(labelType)
-      ? 'quality-example-tooltip'
-      : 'severity-example-tooltip';
-    for (let sev = 1; sev < 4; sev++) {
+    const positive = util.misc.isPositiveLabelType(labelType);
+    const tooltipKey = positive ? 'quality-example-tooltip' : 'severity-example-tooltip';
+    const images = [1, 2, 3].map((sev) =>
       // Add severity tooltips for the current label type if we have images for them.
       util.getImage(util.assetPath(`images/examples/severity/${labelType}_Severity${sev}.png`)).then((img) => {
         const tooltipHeader = i18next.t(`common:${tooltipKey}-${sev}`);
@@ -541,8 +564,47 @@ export class ContextMenu {
         for (const button of document.querySelectorAll(`.severity-button[data-severity="${sev}"]`)) {
           button.setAttribute('data-ps-tooltip', `${tooltipHeader}<br/>${tooltipImage}<br/>${tooltipFooter}`);
         }
-      });
-    }
+        return img;
+      }));
+
+    // The info icon's card shows all three at once. On a screen with no hover the per-segment cards above never open,
+    // so this pinnable card is where a touch user sees what each level looks like (#5664).
+    Promise.allSettled(images).then((results) => {
+      // A slow load can land after the menu has moved on to another label type; that type's call owns the card.
+      if (this.#status.targetLabel?.getLabelType() !== labelType) return;
+      const info = document.getElementById('severity-header-info');
+      const levelKeys = util.misc.getRatingLevelKeys(labelType);
+      const examples = results.flatMap((result, i) => (result.status === 'fulfilled'
+        ? [{
+            src: result.value,
+            alt: i18next.t(`common:${tooltipKey}-${i + 1}`),
+            caption: i18next.t(`common:${levelKeys[i + 1]}`),
+          }]
+        : []));
+      if (!info || examples.length === 0) return;
+      const infoText = i18next.t(`common:${positive ? 'rate-quality-info' : 'rate-severity-info'}`);
+      info.setAttribute('data-ps-tooltip', ContextMenu.severityInfoHtml(infoText, examples));
+    });
+  }
+
+  /**
+   * Markup for the rating info icon's card: the explanatory sentence over the example images, side by side, each
+   * captioned with its level's name as the rating segments show it.
+   * @param {string} infoText - The translated sentence explaining the rating.
+   * @param {Array<{src: string, alt: string, caption: string}>} examples - One per level that has an image, in order.
+   * @returns {string} HTML for `data-ps-tooltip`, which psTooltip sanitizes before rendering.
+   * @example
+   * ContextMenu.severityInfoHtml('Rate how severe it is.', [
+   *   { src: 'data:image/png;base64,…', alt: 'Low severity example', caption: 'Low' },
+   * ]);
+   */
+  static severityInfoHtml(infoText, examples) {
+    const figures = examples.map(({ src, alt, caption }) => `
+      <figure class="severity-examples__item">
+        <img class="severity-examples__img" src="${util.escapeHTML(src)}" alt="${util.escapeHTML(alt)}">
+        <figcaption>${util.escapeHTML(caption)}</figcaption>
+      </figure>`).join('');
+    return `${infoText}<div class="severity-examples">${figures}</div>`;
   }
 
   /**

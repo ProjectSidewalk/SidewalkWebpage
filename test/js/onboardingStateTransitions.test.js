@@ -25,6 +25,7 @@ describe('OnboardingStates transitions', () => {
                 getSmileyIconPath: () => '',
             },
             pano: { horizonRelativeCoordToPov: () => ({ heading: 0, pitch: 0 }) },
+            inputProfile: () => ({ coarse: false, hover: true }),
         };
         Object.assign(window, loadModules('frontend/js/explore/onboarding/OnboardingStates.js'));
         const stub = new Proxy({}, { get: () => () => undefined });

@@ -74,6 +74,8 @@
   "rate-quality": "評分品質",
   "rate-severity-info": "盡力評估標記的障礙物或特徵對行人通行的阻礙程度。",
   "rate-quality-info": "盡力評估所標記特徵的品質。",
+  "rate-severity-examples": "嚴重程度範例",
+  "rate-quality-examples": "品質範例",
   "update-severity-level": "更新嚴重程度",
   "update-quality-level": "更新品質等級",
   "severity-example-tooltip-1": "低嚴重性範例",
