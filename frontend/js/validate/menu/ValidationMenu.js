@@ -348,6 +348,11 @@ export class ValidationMenu {
       // The type picker's section is only in Expert Validate's markup.
       if (menuUI[name]) menuUI[name].style.display = sections.includes(name) ? 'block' : 'none';
     }
+    // A dock that grew over the label (a phone's reasons, #5580) pans the label up into view, once it has laid out.
+    if (open && sections.length > 0 && menuUI.holder) {
+      requestAnimationFrame(() => svv.panoManager?.revealMarkerAbove(menuUI.holder,
+        document.getElementById('mission-status')));
+    }
   }
 
   /**

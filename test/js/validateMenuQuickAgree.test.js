@@ -100,7 +100,7 @@ describe('ValidationMenu quickAgree', () => {
         getProperty: (key) => (key === 'renderedTimestamp' ? renderedAt : undefined),
         validateCurrentLabel,
       },
-      panoManager: { styleMarkerForLabel: jest.fn() },
+      panoManager: { styleMarkerForLabel: jest.fn(), revealMarkerAbove: jest.fn() },
       labelCard: { render: jest.fn() },
     };
     window.defineValidateConstants();
@@ -196,5 +196,22 @@ describe('ValidationMenu quickAgree', () => {
     expect(byId('validate-yes-button').classList.contains('is-chosen')).toBe(true);
     expect(byId('validate-optional-comment-section').style.display).toBe('none');
     expect(byId('validation-menu-holder').classList.contains('has-verdict')).toBe(false);
+  });
+
+  // The phone dock grows over the label when reasons open (#5580); a one-tap Agree opens nothing, so pans nothing.
+  it('asks the pano to clear the label when the dock opens its reasons, and not for a one-tap Agree', async () => {
+    build({ quickAgree: true });
+    const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    // Earlier tests' docks queued frames of their own, which read the current svv when they fire.
+    await nextFrame();
+    window.svv.panoManager.revealMarkerAbove.mockClear();
+
+    byId('validate-yes-button').click();
+    await nextFrame();
+    expect(window.svv.panoManager.revealMarkerAbove).not.toHaveBeenCalled();
+
+    byId('validate-no-button').click();
+    await nextFrame();
+    expect(window.svv.panoManager.revealMarkerAbove).toHaveBeenCalledWith(byId('validation-menu-holder'), null);
   });
 });

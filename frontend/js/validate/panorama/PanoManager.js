@@ -25,6 +25,9 @@ export class PanoManager {
     panoLoaded: false,
   };
 
+  // The pending frame of a revealMarkerAbove glide, so a newer reveal or a new label can cancel it.
+  #revealFrame = 0;
+
   /** @type {HTMLElement} The primary viewer's canvas element (GSV/Mapillary/Infra3d). */
   #panoCanvas;
 
@@ -265,6 +268,7 @@ export class PanoManager {
    */
   #aimAndDrawMarker(currentLabel) {
     const labelPov = currentLabel.getOriginalPov();
+    cancelAnimationFrame(this.#revealFrame); // A reveal still panning toward the last label would pull this one away.
 
     // Set to user's POV when labeling, except on a phone-portrait screen (/mobile, or the narrow layout), which centers
     // the label: a tall, thin frame can leave the labeler's wide view with the label off its edge.
@@ -745,6 +749,62 @@ export class PanoManager {
     if (!this.labelMarker) return;
     const markerDiameter = this.#markerDiameter(scale);
     this.labelMarker.setSize({ width: markerDiameter, height: markerDiameter });
+  }
+
+  /**
+   * Pans the view so the label's marker sits in the part of the pano a floating panel leaves uncovered, when that
+   * panel has grown over it (#5580). On a phone the label is centred and the dock below it is short, until a No or
+   * Unsure opens its reasons and the dock climbs past the middle of the screen; without this the validator chooses a
+   * reason with the label hidden under the list. Does nothing while the marker is clear of the panel or hidden.
+   *
+   * The pan is a pitch change only (util.pano.pitchShiftForScreenMove, exact for the rectilinear projection), centring
+   * the marker in the uncovered strip. Eased over a short glide, or applied at once for a visitor who asked for less
+   * motion.
+   *
+   * @param {Element} panel - The panel that may cover the marker (the immersive dock).
+   * @param {?Element} [above] - A control floating over the top of the pano (the mission pill) the marker must also
+   *   clear; the window's top edge when absent.
+   * @returns {void}
+   */
+  revealMarkerAbove(panel, above = null) {
+    const marker = document.getElementById('validate-pano-marker');
+    const layer = svv.ui.viewer.controlLayer;
+    if (!marker || !layer || getComputedStyle(marker).visibility === 'hidden') return;
+    const mark = marker.getBoundingClientRect();
+    const frame = layer.getBoundingClientRect();
+    if (mark.height === 0 || frame.height === 0) return;
+
+    const MARGIN = 12; // CSS px of imagery kept between the marker and the panel, so the two don't touch.
+    const cover = panel.getBoundingClientRect();
+    const coverTop = cover.top;
+    // Beside the marker (the boxed layout's menu column) or below it: nothing to clear.
+    if (mark.right < cover.left || mark.left > cover.right || mark.bottom + MARGIN <= coverTop) return;
+    const clearTop = Math.max(frame.top, above ? above.getBoundingClientRect().bottom : frame.top);
+    if (coverTop - clearTop < mark.height + 2 * MARGIN) return; // No room to show it whole; leave the view alone.
+
+    const pov = svv.panoViewer.getPov();
+    const aspect = frame.width / frame.height;
+    const hFov = util.pano.renderedHFov(pov.zoom, aspect, svv.panoViewer.getViewerType?.());
+    const centreY = frame.top + frame.height / 2;
+    const dPitch = util.pano.pitchShiftForScreenMove(mark.top + mark.height / 2 - centreY,
+      (clearTop + coverTop) / 2 - centreY, frame.height, util.pano.hFovToVFov(hFov, aspect));
+    const startPitch = pov.pitch;
+    const endPitch = Math.max(-90, Math.min(90, startPitch - dPitch));
+
+    cancelAnimationFrame(this.#revealFrame);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      svv.panoViewer.setPov({ ...pov, pitch: endPitch });
+      return;
+    }
+    const GLIDE_MS = 250;
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / GLIDE_MS);
+      const eased = 1 - (1 - t) ** 3; // Ease-out: moves at once, settles gently.
+      svv.panoViewer.setPov({ ...svv.panoViewer.getPov(), pitch: startPitch + (endPitch - startPitch) * eased });
+      if (t < 1) this.#revealFrame = requestAnimationFrame(step);
+    };
+    this.#revealFrame = requestAnimationFrame(step);
   }
 
   /**

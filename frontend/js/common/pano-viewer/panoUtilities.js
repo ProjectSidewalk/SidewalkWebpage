@@ -140,6 +140,26 @@ util.pano.hFovToVFov = (horizontalFov, aspect) => {
 };
 
 /**
+ * The pitch change that moves a point on screen from one height to another, in a rectilinear view. A point dy px below
+ * the view centre sits atan(dy / f) degrees below it, where f is the focal length in px, so the change is the
+ * difference of the two angles: exact at any zoom, where a linear px-to-degree ratio overshoots near the edges.
+ * Validate uses it to pan a label up out from under the phone dock (#5580).
+ *
+ * @param {number} fromY - The point's current offset below the view centre, in CSS px (negative above it).
+ * @param {number} toY - Where it should be, measured the same way.
+ * @param {number} frameHeight - The view's height, in CSS px.
+ * @param {number} vFov - The view's vertical field of view, in degrees.
+ * @returns {number} Degrees to subtract from the pitch; positive when the point moves up the screen.
+ * @example
+ * // A point at the centre of a 90° view 800 px tall, moved to the top edge: the camera looks 45° lower.
+ * util.pano.pitchShiftForScreenMove(0, -400, 800, 90); // 45
+ */
+util.pano.pitchShiftForScreenMove = (fromY, toY, frameHeight, vFov) => {
+  const focal = (frameHeight / 2) / Math.tan(util.math.toRadians(vFov / 2));
+  return util.math.toDegrees(Math.atan(fromY / focal) - Math.atan(toY / focal));
+};
+
+/**
  * GSV's hidden vertical field-of-view limit, in degrees, measured in #5083 (test/js/gsv-fov-probe/README.md).
  *
  * GSV spans zoomToFov(zoom) across the container's width at every aspect ratio, except that the vertical field this
