@@ -16,8 +16,9 @@ export class LabelVisibilityControl {
   #cardVisible = false;
   #hideCardTimer = null;
   // Infra3d cities (Zurich, Winterthur) asked for each label's tags and description to be on screen as soon as it
-  // loads (#5675). Desktop only: on a phone the card would cover much of the small pano.
-  #opensOnLoad = !util.isMobile() && svv.viewerType === Infra3dViewer;
+  // loads (#5675). Not on a phone, where the card would cover much of the small pano: keyed on the page rather than
+  // util.isMobile(), which a phone on the unified page also answers (#5580).
+  #opensOnLoad = !svv.legacyMobile && svv.viewerType === Infra3dViewer;
   // True while a card opened on load is up. Mouse movement and keypresses leave it alone; only a press on the pano,
   // hiding the label, Escape, or the next label closes it.
   #heldOpen = false;

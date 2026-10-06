@@ -23,13 +23,14 @@ describe('LabelVisibilityControl opening the card on load', () => {
      */
     function build(viewerType, mobile = false) {
         window.svv = {
+            legacyMobile: mobile,
             viewerType,
             tracker: { push: jest.fn() },
             labelCard: { closePopovers: jest.fn(), isPopoverOpen: () => false },
             panoManager: { getPanoMarker: () => null },
             ui: { viewer: { controlLayer: document.getElementById('view-control-layer') } },
         };
-        window.util = { isMobile: () => mobile, anchorPanelToLabel: jest.fn() };
+        window.util = { anchorPanelToLabel: jest.fn() };
         window.Infra3dViewer = FakeInfra3dViewer;
         const { LabelVisibilityControl } = loadModules('frontend/js/validate/label/LabelVisibilityControl.js');
         control = new LabelVisibilityControl();
