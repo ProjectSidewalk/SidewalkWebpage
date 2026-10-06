@@ -14,6 +14,7 @@ export class ZoomShortcutAlert extends Alert {
    * Tracks zoom-button clicks and shows the zoom shortcut alert once clicked enough times.
    */
   zoomClicked() {
+    if (!this._hasMouseAndKeyboard()) return;
     if (this.#zoomCount > 0) {
       this.#zoomCount++;
     } else {

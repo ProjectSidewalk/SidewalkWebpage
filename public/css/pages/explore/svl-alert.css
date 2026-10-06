@@ -148,3 +148,15 @@
   width: calc(16px * var(--ui-scale, 1));
   height: calc(16px * var(--ui-scale, 1));
 }
+
+/* Touch (#5664): fingertip-sized targets for the alert's buttons. */
+@media (pointer: coarse) {
+  #alert-dont-show,
+  #alert-close {
+    min-height: var(--target-min-touch);
+  }
+
+  #alert-close {
+    min-width: var(--target-min-touch);
+  }
+}

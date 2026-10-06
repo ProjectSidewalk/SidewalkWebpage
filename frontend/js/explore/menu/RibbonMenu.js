@@ -77,10 +77,29 @@ export class RibbonMenu {
 
     this.#setLabelTypeButtonBorderColors(this.#status.mode);
 
+    // Without hover (#5664) the Other popover can't open on mouseenter: a tap on Other opens it instead, and the
+    // browser's replayed mouseenter would otherwise open it and then never close it. Read once, so the menu's
+    // behaviour doesn't change under the user mid-task.
+    const canHover = window.matchMedia?.('(hover: hover)').matches ?? true;
     for (const button of this.#uiRibbonMenu.buttons) {
-      button.addEventListener('click', (e) => this.#handleModeSwitchClickCallback(e.currentTarget));
-      button.addEventListener('mouseenter', (e) => this.#handleModeSwitchMouseEnter(e.currentTarget));
-      button.addEventListener('mouseleave', () => this.#handleModeSwitchMouseLeave());
+      button.addEventListener('click', (e) => {
+        const target = /** @type {Element} */ (e.currentTarget);
+        if (!canHover && target.getAttribute('val') === 'Other') this.#toggleSubcategoriesByTap(target);
+        else this.#handleModeSwitchClickCallback(target);
+      });
+      if (canHover) {
+        button.addEventListener('mouseenter', (e) => this.#handleModeSwitchMouseEnter(e.currentTarget));
+        button.addEventListener('mouseleave', () => this.#handleModeSwitchMouseLeave());
+      }
+    }
+    if (!canHover) {
+      // A tap anywhere but the popover or its Other button closes it, as moving the mouse away does.
+      document.addEventListener('pointerdown', (e) => {
+        const target = /** @type {Node} */ (e.target);
+        const otherButton = this.#uiRibbonMenu.buttons.find((b) => b.getAttribute('val') === 'Other');
+        if (this.#uiRibbonMenu.subcategoryHolder.contains(target) || otherButton?.contains(target)) return;
+        this.#hideSubcategories();
+      });
     }
     for (const subcategory of this.#uiRibbonMenu.subcategories) {
       subcategory.addEventListener('click', (e) => this.#handleSubcategoryClick(e));
@@ -198,6 +217,24 @@ export class RibbonMenu {
       if (labelType === 'Other') {
         this.#showSubcategories();
       }
+    }
+  }
+
+  /**
+   * Opens or closes the Other popover on a tap, for screens without hover (#5664). Picking a row is what switches
+   * the mode, as with the mouse.
+   * @param {Element} target - The Other label-type button.
+   */
+  #toggleSubcategoriesByTap(target) {
+    if (this.#uiRibbonMenu.subcategoryHolder.style.visibility === 'visible') {
+      this.#hideSubcategories();
+      this.#setLabelTypeButtonBorderColors(this.#status.mode);
+      return;
+    }
+    const modeDisabled = svl.isOnboarding() ? this.#status.disableMode.OuterOther : this.#status.disableMode.Other;
+    if (this.#status.disableModeSwitch === false || !modeDisabled) {
+      this.#tracker.push('Click_SubcategoryMenu_Open');
+      this.#handleModeSwitchMouseEnter(target);
     }
   }
 

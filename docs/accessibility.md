@@ -235,8 +235,15 @@ elements (`<button>`, `<a>`, `<input>`) with names and keyboard handlers, never 
 
 Immersive mode (Explore #5085, Validate #5560) moves controls on screen but not in the DOM, so the tab order and
 the shortcuts are the boxed page's; the toggle button carries the state in its name ("Enter" / "Exit immersive
-mode") and a one-time toast names the <kbd>F</kbd> key that leaves it. Everything floating over imagery sits on the
+mode") and a one-time toast names the <kbd>F</kbd> key that leaves it (or, on a screen without hover, the button). Everything floating over imagery sits on the
 asphalt scrim or a white pill, never as bare text.
+
+Touch (#5664): under `@media (pointer: coarse)` every tool control is floored at `--target-min-touch` (44 px, unscaled,
+since it is a fingertip rather than part of the layout), and a placed label's hit target follows
+(`util.LABEL_MIN_SCREEN_TARGET_TOUCH`). Keyed on the primary pointer, not `any-pointer`, so a touch laptop driven by
+its mouse keeps the mouse sizes. Nothing is hover-only on touch: `psTooltip` ignores mouse hover where there is none
+and opens on keyboard focus only (`:focus-visible`), the Other subcategory popover opens on a tap, and every drag
+(pan, pinch) has a button alternative (2.5.7, 2.5.1).
 
 ## Reporting a problem
 

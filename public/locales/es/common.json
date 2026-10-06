@@ -410,5 +410,6 @@
   },
   "immersive-enter": "Entrar en el modo inmersivo",
   "immersive-exit": "Salir del modo inmersivo",
-  "immersive-exit-hint": "Modo inmersivo. Pulsa F para salir."
+  "immersive-exit-hint": "Modo inmersivo. Pulsa F para salir.",
+  "immersive-exit-hint-touch": "Modo inmersivo. Toca el botón de salida de la esquina para salir."
 }

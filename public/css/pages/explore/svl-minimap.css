@@ -698,3 +698,12 @@ gmp-advanced-marker:has(> .minimap-peg) {
     transition: none;
   }
 }
+
+/* Touch (#5664): fingertip-sized targets for the minimap's own buttons. */
+@media (pointer: coarse) {
+  #minimap-coach-dismiss,
+  #minimap-legend-close {
+    min-width: var(--target-min-touch);
+    min-height: var(--target-min-touch);
+  }
+}

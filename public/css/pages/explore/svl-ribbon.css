@@ -130,3 +130,10 @@
 .ribbon-menu-other-subcategory:hover {
   background-color: var(--color-neutral-200);
 }
+
+/* Touch (#5664): the "Other" subcategory rows are tapped, so each is a full fingertip tall. */
+@media (pointer: coarse) {
+  .ribbon-menu-other-subcategory {
+    min-height: var(--target-min-touch);
+  }
+}

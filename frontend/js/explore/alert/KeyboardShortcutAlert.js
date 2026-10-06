@@ -20,7 +20,7 @@ export class KeyboardShortcutAlert extends Alert {
    * @param {string} labelType - The label type whose mode button was clicked.
    */
   modeSwitchButtonClicked(labelType) {
-    if (labelType === 'Walk') return;
+    if (labelType === 'Walk' || !this._hasMouseAndKeyboard()) return;
 
     if (labelType in this.#clickCount) {
       this.#clickCount[labelType]++;
@@ -44,6 +44,7 @@ export class KeyboardShortcutAlert extends Alert {
    * no such link exists (see Keyboard._advanceForwardAlongRoute).
    */
   stuckButtonClicked() {
+    if (!this._hasMouseAndKeyboard()) return;
     if ('Stuck' in this.#clickCount) {
       this.#clickCount.Stuck++;
     } else {

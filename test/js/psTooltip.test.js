@@ -641,3 +641,41 @@ describe('psTooltip pinning (#5495)', () => {
         expect(isVisible()).toBe(false);
     });
 });
+
+describe('psTooltip on a screen without hover (#5664)', () => {
+    const shown = () => document.getElementById('ps-tooltip')?.classList.contains('ps-tooltip--visible') ?? false;
+
+    beforeEach(() => {
+        window.matchMedia = (query) => ({ matches: !query.includes('hover: hover') });
+    });
+
+    afterEach(() => {
+        delete window.matchMedia;
+        jest.useRealTimers();
+    });
+
+    test('a tap, replayed as a mouseover, opens nothing', () => {
+        jest.useFakeTimers();
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'zoom');
+        trigger.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+        jest.runAllTimers();
+
+        expect(shown()).toBe(false);
+    });
+
+    test('focus from a tap opens nothing, so the card cannot stick on a touched button', () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'zoom');
+        trigger.matches = () => false; // Not :focus-visible: the browser judged it pointer focus.
+        open(trigger);
+
+        expect(shown()).toBe(false);
+    });
+
+    test('keyboard focus still opens it, for a tablet with a keyboard', () => {
+        const trigger = addTrigger({ left: 400, top: 300, width: 100, height: 30 }, 'zoom');
+        trigger.matches = (selector) => selector === ':focus-visible';
+        open(trigger);
+
+        expect(shown()).toBe(true);
+    });
+});

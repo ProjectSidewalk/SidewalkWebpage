@@ -296,6 +296,8 @@ export class Main {
       hintReference: () => document.getElementById('pano'),
       urlParam: 'immersive',
       onChange: () => svl.urlSync?.request(),
+      // The boxed layout shrinks every control below a fingertip on a tablet, so touch starts immersive (#5664).
+      defaultActive: () => util.isTouchPrimary(),
     });
 
     // Shadows/brightness/contrast as a display-only filter on the pano mount (#3136); crops read the raw canvas, so
@@ -726,7 +728,12 @@ export class Main {
       // Attached below the synthetic resize above, so page load never logs one: nothing was resized there, and the
       // rescale, re-raster and repaint that event stands in for have just been run inline.
       let resizeRasterTimer;
+      let lastSize = { width: window.innerWidth, height: window.innerHeight };
+      const descriptionBox = document.getElementById('context-menu-description-text-box');
       window.addEventListener('resize', () => {
+        // A browser that shrinks the layout for an on-screen keyboard would otherwise reshape the pano mid-sentence
+        // (#5664). Only a height change while typing is the keyboard; anything else is a real resize.
+        if (document.activeElement === descriptionBox && window.innerWidth === lastSize.width) return;
         applyExploreScale();
         clearTimeout(resizeRasterTimer);
         resizeRasterTimer = setTimeout(() => {
@@ -739,11 +746,20 @@ export class Main {
           if (svl.canvas) svl.canvas.resize();
           if (svl.onboarding) svl.onboarding.resize();
           if (svl.observedArea) svl.observedArea.update();
+          // A rotated tablet moves every label (#5664): the open menu follows its label, and a hover card is dropped.
+          svl.contextMenu?.reanchor();
+          svl.canvas?.hideHoverCard();
           // Logged on the settled size rather than per event, so a window drag is one line (#5367). The repaint
-          // above bypasses the POV path that logs POV_Changed, so none follows this one.
+          // above bypasses the POV path that logs POV_Changed, so none follows this one. Orientation as mobile
+          // Validate logs it, so a rotation reads apart from a window drag.
+          const size = { width: window.innerWidth, height: window.innerHeight };
+          const rotated = (size.width > size.height) !== (lastSize.width > lastSize.height);
+          lastSize = size;
           svl.tracker.push('Window_Resized', {
             width: document.documentElement.clientWidth,
             height: document.documentElement.clientHeight,
+            orientation: size.width > size.height ? 'landscape' : 'portrait',
+            rotated,
           });
         }, 150);
       });

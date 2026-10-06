@@ -359,6 +359,16 @@ export class ContextMenu {
     return this.#getStatus('visibility') === 'visible';
   }
 
+  /**
+   * Moves the open menu back beside its label, after the canvas has re-rendered the label at its new position (a
+   * tablet rotated with the menu open, #5664). A no-op when closed.
+   */
+  reanchor() {
+    const label = this.#getStatus('targetLabel');
+    if (!this.isOpen() || !label) return;
+    util.anchorPanelToLabel(this.#menuWindow, label.getCanvasXY(), svl.LABEL_ICON_RADIUS);
+  }
+
   // Disable rating severity.
   disableRatingSeverity() {
     this.#setStatus('ratingSeverityEnabledForTutorialLabel', null);

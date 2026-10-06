@@ -42,3 +42,10 @@
   background: var(--color-pine-300);
   outline: 1px solid var(--color-pine-500);
 }
+
+/* A finger needs a 44 px target (#5664). */
+@media (pointer: coarse) {
+  .tag-pill--interactive {
+    min-height: var(--target-min-touch);
+  }
+}

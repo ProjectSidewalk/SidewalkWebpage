@@ -410,5 +410,6 @@
   },
   "immersive-enter": "Entrer en mode immersif",
   "immersive-exit": "Quitter le mode immersif",
-  "immersive-exit-hint": "Mode immersif. Appuyez sur F pour quitter."
+  "immersive-exit-hint": "Mode immersif. Appuyez sur F pour quitter.",
+  "immersive-exit-hint-touch": "Mode immersif. Touchez le bouton de sortie dans le coin pour quitter."
 }

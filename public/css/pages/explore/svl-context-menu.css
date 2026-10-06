@@ -270,3 +270,28 @@ tag-underline {
   text-decoration: underline;
   pointer-events: none;
 }
+
+/* Touch (#5664): 44 px targets for a finger, and a 16 px description field, the size below which iOS Safari zooms the
+   whole page into the field on focus and leaves the fixed tool layout zoomed afterwards. */
+@media (pointer: coarse) {
+  .severity-segments .severity-button,
+  .context-menu__action {
+    min-height: var(--target-min-touch);
+  }
+
+  /* The X keeps its small glyph; an invisible margin around it is what the finger hits. */
+  .context-menu__close {
+    position: relative;
+  }
+
+  .context-menu__close::after {
+    content: "";
+    position: absolute;
+    inset: calc((var(--target-min-touch) - 18px * var(--ui-scale)) / -2);
+  }
+
+  #context-menu-description-text-box {
+    min-height: var(--target-min-touch);
+    font-size: 16px;
+  }
+}

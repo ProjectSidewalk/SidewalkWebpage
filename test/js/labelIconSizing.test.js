@@ -33,7 +33,12 @@ describe('label icon sizing across the UI scale', () => {
     /** On-screen width in CSS px of the square click target Label.isOn tests (2 * margin) at this scale. */
     const targetScreenSize = (scale) => 2 * util.labelHitMargin(scale) * scale;
 
+    // A mouse unless a test says otherwise; the hit target's floor depends on the primary pointer (#5664).
+    let coarse = false;
+
     beforeEach(() => {
+        coarse = false;
+        window.matchMedia = (query) => ({ matches: query.includes('coarse') ? coarse : !coarse });
         util = loadUtil();
     });
 
@@ -89,6 +94,12 @@ describe('label icon sizing across the UI scale', () => {
             // At 0.65x the icon is only ~20 screen px, so the floor is what keeps the label clickable.
             expect(iconScreenDiameter(0.65)).toBeLessThan(util.LABEL_MIN_SCREEN_TARGET);
             expect(targetScreenSize(0.65)).toBeCloseTo(util.LABEL_MIN_SCREEN_TARGET, 5);
+        });
+
+        test('floors at a fingertip-sized 44 px when the primary pointer is a finger (#5664)', () => {
+            coarse = true;
+            expect(targetScreenSize(0.65)).toBeCloseTo(util.LABEL_MIN_SCREEN_TARGET_TOUCH, 5);
+            expect(targetScreenSize(1.3)).toBeGreaterThanOrEqual(util.LABEL_MIN_SCREEN_TARGET_TOUCH - 1e-9);
         });
 
         test('is never below the WCAG minimum at any scale in range', () => {
