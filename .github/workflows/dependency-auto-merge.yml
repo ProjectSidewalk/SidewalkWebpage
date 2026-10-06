@@ -42,10 +42,12 @@ jobs:
   scala-steward:
     # The hosted Steward opens PRs from a fork, so it can't apply GitHub labels; it writes them into the PR body
     # instead. Early-semver is the Scala convention: a 0.x minor counts as breaking. A PR with more than one commit
-    # carries generated edits (e.g. a scalafmt reformat of the whole codebase), so it waits for a human.
+    # carries generated edits (e.g. a scalafmt reformat of the whole codebase), so it waits for a human. A grouped PR
+    # lists every update's labels, so one major in the group must hold the whole PR back.
     if: >-
       github.actor == 'scala-steward' &&
       contains(github.event.pull_request.body, 'commit-count:1') &&
+      !contains(github.event.pull_request.body, 'early-semver-major') &&
       (contains(github.event.pull_request.body, 'early-semver-patch') ||
        contains(github.event.pull_request.body, 'early-semver-minor'))
     runs-on: ubuntu-latest

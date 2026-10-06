@@ -2,7 +2,7 @@ name: CI
 
 # Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
 #
-#   - backend:         `sbt compile` + `scalafmtCheckAll`.
+#   - backend:         `sbt compile` + `scalafmtCheckAll scalafmtSbtCheck`.
 #   - frontend:        asset build (grunt) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks, CSS layout,
 #                      asset paths, vendor versions, JS types, spec base class) + the jsdom `jest` suite in test/js/.
 #                      Jest reports JS coverage but has no floor — the number can't support one yet, see #5112.
@@ -59,10 +59,10 @@ jobs:
           INTERNAL_API_KEY: dummy-ci-internal-key
 
       # `if: always()` runs this even when the compile step failed, so compile and format problems show up in one
-      # run. Auto-format locally with `make scalafmt-fix`.
+      # run. The second check covers build.sbt and project/*.scala. Auto-format locally with `make scalafmt-fix`.
       - name: scalafmt check (blocking)
         if: always()
-        run: sbt scalafmtCheckAll
+        run: sbt scalafmtCheckAll scalafmtSbtCheck
 
   frontend:
     name: Frontend (build)
