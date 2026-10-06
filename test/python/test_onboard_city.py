@@ -6,7 +6,7 @@ short-segment and region-stats QA logic, boundary-coverage, and the COPY/EWKB se
 load file — plus the I/O layer (fetches, geopackage/SQL/report writers, the CLI, and ``main``) with the network and
 osmnx mocked out.
 
-The geo stack (requirements-offline-tools.txt) needs >= 3.11, so the whole module skips on the in-band 3.8 half.
+The geo stack (requirements-offline-tools.txt) needs >= 3.12, so the whole module skips on the in-band 3.8 half.
 """
 
 import hashlib
@@ -18,7 +18,7 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-gpd = pytest.importorskip('geopandas', reason='the geo stack (requirements-offline-tools.txt) needs Python >= 3.11')
+gpd = pytest.importorskip('geopandas', reason='the geo stack (requirements-offline-tools.txt) needs Python >= 3.12')
 
 import shapely  # noqa: E402
 from shapely.geometry import LineString, MultiPolygon, Point, Polygon, mapping  # noqa: E402

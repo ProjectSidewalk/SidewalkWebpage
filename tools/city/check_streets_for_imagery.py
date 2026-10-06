@@ -18,7 +18,7 @@ This is a standalone, manually-run utility (it is not invoked by the app). Workf
      ``INFRA3D_CLIENT_ID`` and ``INFRA3D_CLIENT_SECRET`` (one city's pair — the same OAuth client-credentials the app
      holds per city as ``INFRA3D_CLIENT_ID_<CITY>``), plus ``--campaign <uid>`` if the city's tenant holds more than
      one campaign. It is ``python3.13`` rather than the container's default ``python3`` because this tool's libraries
-     need Python >= 3.11.
+     need Python >= 3.12.
   3. It writes streets without imagery to ``streets_with_no_imagery.csv`` and a per-street imagery summary (presence +
      capture-date range) to ``street_imagery_summary.csv``, both in the same dir.
   4. Run ``make hide-streets-without-imagery`` to mark those streets in the database.

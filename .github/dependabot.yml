@@ -5,10 +5,10 @@ version: 2
 #
 # Cadence is monthly so version-currency PRs arrive as one predictable batch for a two-person team, rather
 # than a weekly trickle. This throttles *version* noise only — Dependabot *security* updates (GHSA/CVE-driven)
-# are a separate channel and still fire immediately (enable them in Settings → Code security). Green patch &
-# minor bumps auto-merge via `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need
-# a human. Each ecosystem gets two groups so a red major can't hold the safe patch & minor bumps hostage in the
-# same PR (#4395). See issue #4385 for the standing dependency/platform maintenance strategy.
+# are a separate channel and still fire immediately. Green patch & minor bumps auto-merge via
+# `.github/workflows/dependency-auto-merge.yml`; majors and deliberate freezes need a human. Each ecosystem gets
+# two groups so a red major can't hold the safe patch & minor bumps hostage in the same PR (#4395).
+# See issue #4385 for the standing dependency/platform maintenance strategy.
 updates:
   - package-ecosystem: npm
     directory: "/"
@@ -104,6 +104,6 @@ updates:
         patterns: ["*"]
         update-types: ["major"]
     # requirements.txt is frozen for the app's Python 3.8 (docs/upgrading-libraries.md): every bump fails CI and no
-    # security fix can install there either. Retiring 3.8 (#4385) brings it back.
+    # security fix can install there either. Retiring 3.8 (#4396) brings it back.
     exclude-paths:
       - "requirements.txt"
