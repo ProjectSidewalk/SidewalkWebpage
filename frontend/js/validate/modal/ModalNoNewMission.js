@@ -18,6 +18,7 @@ export class ModalNoNewMission {
   constructor(uiModalMission) {
     this.#uiModalMission = uiModalMission;
 
+    // Explore is offered only where the server would serve it rather than bounce a mobile UA (#5665 retires that).
     const instructions = util.isMobile()
       ? i18next.t('mobile.no-new-mission-body')
       : i18next.t('mission-complete.no-new-mission-body');
@@ -95,7 +96,7 @@ export class ModalNoNewMission {
     this.#uiModalMission.closeButton.innerHTML = buttonLabel;
 
     // Widen the button to fit more text. The mobile page's button is already full-width (mobile-validate.css).
-    if (!util.isMobile()) {
+    if (!svv.legacyMobile) {
       this.#uiModalMission.closeButton.style.width = 'fit-content';
     }
 

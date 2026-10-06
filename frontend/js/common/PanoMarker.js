@@ -173,17 +173,18 @@ export class PanoMarker {
       marker.setAttribute('aria-expanded', 'false');
       marker.setAttribute('aria-describedby', 'label-card');
 
-      if (util.isMobile()) {
+      // The touch control variant (#5580): /mobile, or a touch-primary device on /validate. Fixed per page load.
+      if (svv.touchControls) {
         // Three ways in, one path out: a finger, an assistive technology's activate gesture (which arrives as a
-        // click, never as a touch), and Enter/Space for a keyboard on a tablet. Mobile Validate builds no
-        // KeyboardManager (Main.js), so unlike desktop the keys are handled right here.
+        // click, never as a touch), and Enter/Space for a keyboard on a tablet. /mobile builds no KeyboardManager
+        // (Main.js), so there the keys are handled right here; /validate's KeyboardManager handles them itself.
         //
         // A touch is the marker's from the moment it lands, so a drag beginning on it can't pan the pano — the same
         // trade the desktop marker makes with the mouse, over a target this small. Answering on touchend, and only
         // when the finger stayed put, at least keeps such a drag from opening the card on its way past.
-        // (mobile-validate.css is what lets the touch reach the marker at all: the layer around it is
-        // click-through so the pano gets every pan.)
-        const TAP_SLOP = 25; // In this page's oversized px — it draws at ~2.5x the screen, so this is ~10 real px.
+        // (On /mobile, mobile-validate.css makes the layer around the marker click-through so the pano gets every
+        // pan; the marker itself takes the touch.)
+        const TAP_SLOP = 25; // CSS px: ~10 real px on /mobile, which draws at ~2.5x the screen; looser elsewhere.
         const CLICK_AFTER_TOUCH_MS = 700;
         let touchStart = null;
         let lastTouchEndAt = 0;
@@ -226,7 +227,9 @@ export class PanoMarker {
         });
 
         marker.addEventListener('keydown', (e) => {
-          // role=button brings no native key handling, and there is no KeyboardManager here to supply it.
+          // role=button brings no native key handling. Where a KeyboardManager exists it has these keys already
+          // (it listens on window with capture), and answering here too would toggle the card twice.
+          if (svv.keyboard) return;
           if (e.key !== 'Enter' && e.key !== ' ') return;
           e.preventDefault(); // Space would otherwise scroll the page.
           activate();

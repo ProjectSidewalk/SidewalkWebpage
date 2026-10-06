@@ -125,13 +125,18 @@ export class Form {
 
   /**
    * Returns the source label identifying which Validate UI produced the data.
+   *
+   * `ValidateMobile` names the touch control variant (#5580, Decision 3): the /mobile page, or a touch-primary device
+   * on /validate, so a touch laptop counts too. Expert Validate stays itself on any device.
    * @returns {string} One of 'ValidateMobile', 'ExpertValidate', or 'Validate'.
    */
   getSource() {
-    if (util.isMobile()) {
+    if (svv.legacyMobile) {
       return 'ValidateMobile';
     } else if (svv.adminVersion) {
       return 'ExpertValidate';
+    } else if (svv.touchControls) {
+      return 'ValidateMobile';
     } else {
       return 'Validate';
     }

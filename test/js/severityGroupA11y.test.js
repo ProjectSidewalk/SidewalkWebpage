@@ -93,7 +93,7 @@ describe('the severity rating group is operable and announced', () => {
   // Source-level because the renderer is a #private method on a class with more dependencies than are worth building here.
   test('Expert Validate writes the checked state alongside the smiley it swaps', () => {
     const lines = fs.readFileSync(
-      path.join(REPO_ROOT, 'frontend/js/validate/menu/DesktopValidationMenu.js'), 'utf8',
+      path.join(REPO_ROOT, 'frontend/js/validate/menu/ValidationMenu.js'), 'utf8',
     ).split('\n');
     const iconSwap = lines.findIndex((line) => line.includes('getSmileyIconPath('));
 

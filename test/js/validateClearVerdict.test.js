@@ -1,5 +1,5 @@
 /**
- * Tests for taking a verdict back from immersive Validate's dock (DesktopValidationMenu.clearVerdict, #5560).
+ * Tests for taking a verdict back from immersive Validate's dock (ValidationMenu.clearVerdict, #5560).
  *
  * The X in the dock's corner is the only way to un-answer a label without submitting it, so what must hold is that
  * nothing of the answer survives it: not the verdict, not a reason, not typed text, and not an enabled Submit that
@@ -25,7 +25,6 @@ beforeAll(() => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
   window.util = {
     assetPath: assetPathStub,
-    isMobile: () => false,
     camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
     getImage: () => Promise.resolve('img'),
   };
@@ -36,10 +35,10 @@ beforeAll(() => {
   window.eval(fs.readFileSync(path.join(REPO_ROOT, 'public/vendor/tom-select/tom-select-2.6.2.base.min.js'), 'utf8'));
   loadClass('frontend/js/validate/util/ConstantsValidate.js');
   loadClass('frontend/js/validate/label/Label.js');
-  loadClass('frontend/js/validate/menu/DesktopValidationMenu.js');
+  loadClass('frontend/js/validate/menu/ValidationMenu.js');
 });
 
-describe('DesktopValidationMenu.clearVerdict', () => {
+describe('ValidationMenu.clearVerdict', () => {
   let label;
   let loading;
   const byId = (id) => document.getElementById(id);
@@ -95,7 +94,7 @@ describe('DesktopValidationMenu.clearVerdict', () => {
     };
     window.defineValidateConstants();
 
-    const menu = new window.DesktopValidationMenu({
+    const menu = new window.ValidationMenu({
       holder: byId('validation-menu-holder'),
       verdictClearButton: byId('validate-verdict-clear'),
       yesButton: byId('validate-yes-button'),

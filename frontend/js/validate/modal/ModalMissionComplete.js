@@ -29,14 +29,16 @@ export class ModalMissionComplete {
    * @param {'primary'|'secondary'} button - Which of the two close buttons was clicked.
    */
   #handleButtonClick = (button) => {
-    // If they've done three missions and clicked the audit button, load the explore page.
+    // If they've done three missions and clicked the audit button, load the explore page. Keyed on the server's device
+    // verdict, not on the layout: Explore is offered exactly when the server would serve it rather than bounce a
+    // mobile UA to /mobileLanding (#5665 retires that bounce, and this gate with it).
     if (button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
       window.location.replace('/explore');
     } else {
       // If there is a new validate mission available, show the mission screens. Desktop only: the phone's briefing is
       // ModalMission's carousel, and this tutorial's markup isn't on that page.
       const newMission = svv.missionContainer.getCurrentMission();
-      if (!util.isMobile() && newMission && newMission.getProperty('missionType') === 'validation') {
+      if (!svv.legacyMobile && newMission && newMission.getProperty('missionType') === 'validation') {
         new MissionStartTutorial(
           'validate', newMission.getProperty('labelType'),
           { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language,
@@ -76,7 +78,7 @@ export class ModalMissionComplete {
    */
   #showStanding(total) {
     const ui = this.#uiModalMissionComplete;
-    ui.yourOverallTotalCount.innerHTML = util.isMobile()
+    ui.yourOverallTotalCount.innerHTML = svv.legacyMobile
       ? i18next.t('mission-complete.all-time', { count: total, interpolation: { escapeValue: true } })
       : String(total);
     if (!ui.badgeIcon) return;
@@ -152,7 +154,8 @@ export class ModalMissionComplete {
     ui.foreground.scrollTop = 0;
     ModalMissionComplete.#celebrate();
 
-    // Set primary button text to Explore if they've completed 3 validation missions (and are on a laptop/desktop).
+    // Set primary button text to Explore if they've completed 3 validation missions and the server would serve Explore
+    // to this device (see #handleButtonClick).
     if (svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
       ui.closeButtonPrimary.innerHTML = i18next.t('mission-complete.explore');
       ui.closeButtonPrimary.style.visibility = 'visible';

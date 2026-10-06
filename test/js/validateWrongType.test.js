@@ -32,7 +32,6 @@ beforeAll(() => {
   window.matchMedia = () => /** @type {MediaQueryList} */ ({ matches: true }); // jsdom has none; act as a mouse.
   window.util = {
     assetPath: assetPathStub,
-    isMobile: () => false,
     camelToKebab: (s) => s.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase(),
   };
   installUtilitiesMisc();
@@ -493,7 +492,7 @@ describe('the disagree reasons (#5409)', () => {
   });
 });
 
-describe('DesktopValidationMenu on Expert Validate', () => {
+describe('ValidationMenu on Expert Validate', () => {
   let menu;
   let label;
 
@@ -502,7 +501,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     window.util.getImage = () => Promise.resolve('img');
     window.structuredClone ??= (v) => JSON.parse(JSON.stringify(v)); // Missing from this jsdom.
     loadClass('frontend/js/validate/util/ConstantsValidate.js', 'defineValidateConstants');
-    loadClass('frontend/js/validate/menu/DesktopValidationMenu.js', 'DesktopValidationMenu');
+    loadClass('frontend/js/validate/menu/ValidationMenu.js', 'ValidationMenu');
   });
 
   beforeEach(() => {
@@ -546,7 +545,7 @@ describe('DesktopValidationMenu on Expert Validate', () => {
     window.defineValidateConstants();
 
     const byId = (id) => document.getElementById(id);
-    menu = new window.DesktopValidationMenu({
+    menu = new window.ValidationMenu({
       yesButton: byId('validate-yes-button'),
       noButton: byId('validate-no-button'),
       unsureButton: byId('validate-unsure-button'),

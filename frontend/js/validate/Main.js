@@ -18,9 +18,9 @@ import { KeyboardManager } from './keyboard/KeyboardManager.js';
 import { LabelCard } from './label/LabelCard.js';
 import { LabelContainer } from './label/LabelContainer.js';
 import { LabelVisibilityControl } from './label/LabelVisibilityControl.js';
-import { DesktopValidationMenu } from './menu/DesktopValidationMenu.js';
 import { MobileValidationMenu } from './menu/MobileValidationMenu.js';
 import { UndoValidation } from './menu/UndoValidation.js';
+import { ValidationMenu } from './menu/ValidationMenu.js';
 import { MissionContainer } from './mission/MissionContainer.js';
 import { ModalMission } from './modal/ModalMission.js';
 import { ModalMissionComplete } from './modal/ModalMissionComplete.js';
@@ -93,6 +93,10 @@ export class Main {
     // The old phone page (/mobile) stamps itself in its page data. Keyed on that rather than util.isMobile() because a
     // phone can reach /validate too, and must get the unified UI there (#5580); every branch on it goes with the page.
     svv.legacyMobile = param.layout === 'mobile';
+    // The touch control variant (#5580): a finger is the primary pointer. Read once per page load, so a hybrid
+    // device's controls (marker, one-tap Agree, the submitted `source`) don't change under the user mid-mission
+    // (#4875 Decision 3). /mobile is always touch.
+    svv.touchControls = svv.legacyMobile || util.isTouchPrimary();
     svv.missionLength = firstMission.mission?.labels_validated ?? 0;
     svv.missionsCompleted = 0;
 
@@ -103,7 +107,7 @@ export class Main {
     if (firstMission.has_mission_available) {
       this.#init();
     } else {
-      if (!util.isMobile()) svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
+      if (!svv.legacyMobile) svv.keyboard = new KeyboardManager(svv.ui.validationMenu);
       svv.form = new Form(param.dataStoreUrl);
       svv.tracker = new Tracker();
       svv.modalNoNewMission = new ModalNoNewMission(svv.ui.modalMission);
@@ -133,7 +137,7 @@ export class Main {
 
     svv.ui = {};
     svv.ui.holder = document.querySelector('.tool-ui');
-    const busySelectors = util.isMobile() ? VALIDATE_BUSY_SELECTORS.mobile : VALIDATE_BUSY_SELECTORS.desktop;
+    const busySelectors = svv.legacyMobile ? VALIDATE_BUSY_SELECTORS.mobile : VALIDATE_BUSY_SELECTORS.desktop;
     svv.ui.busyRegion = [...document.querySelectorAll(busySelectors.join(', '))];
 
     svv.ui.validationMenu = {
@@ -231,15 +235,16 @@ export class Main {
     // Label projection math and the canvas_width/height submitted with each validation follow the on-screen size.
     svv.canvasWidth = () => Math.round(svv.ui.viewer.controlLayer.getBoundingClientRect().width);
     svv.canvasHeight = () => Math.round(svv.ui.viewer.controlLayer.getBoundingClientRect().height);
-    // A phone activates the marker by pointer — it is what opens the label card — so mobile-validate.css floors its
-    // target at 44px. The mark itself stays 32px across (2 * radius + 2): bigger hides the imagery being judged.
-    svv.labelRadius = util.isMobile() ? 15 : 10;
+    // A finger activates the marker by tapping it — it is what opens the label card — so touch CSS floors its target
+    // at 44px. The mark itself stays 32px across (2 * radius + 2): bigger hides the imagery being judged.
+    svv.labelRadius = svv.touchControls ? 15 : 10;
 
     const labelType = mission.label_type;
 
-    svv.validationMenu = util.isMobile()
+    // One tap per Agree on touch (#5580, Decision 2), except in Expert Validate, whose Agree is where the edits live.
+    svv.validationMenu = svv.legacyMobile
       ? new MobileValidationMenu(svv.ui.validationMenu)
-      : new DesktopValidationMenu(svv.ui.validationMenu);
+      : new ValidationMenu(svv.ui.validationMenu, { quickAgree: svv.touchControls && !svv.adminVersion });
 
     svv.form = new Form(param.dataStoreUrl);
 
@@ -249,10 +254,10 @@ export class Main {
     svv.tracker = new Tracker();
 
     // Immersive mode (#5560): built before the pano viewer so a mode restored from the tab's last page load has its
-    // classes on the body when the viewer measures its container. Desktop only: the phone is already full-bleed.
+    // classes on the body when the viewer measures its container. Not on /mobile: that page is already full-bleed.
     // Expert Validate keeps the boxed layout for now (the view omits the toggle there too): its edit sections have
     // no immersive placement yet, so the mode is off limits rather than half-designed.
-    if (!util.isMobile()) {
+    if (!svv.legacyMobile) {
       svv.immersiveMode = new ImmersiveMode({
         tracker: svv.tracker,
         bodyClass: 'svv-immersive',
@@ -283,8 +288,8 @@ export class Main {
     svv.panoManager = await PanoManager.create(svv.viewerType, param.viewerAccessToken);
     svv.labelContainer = await LabelContainer.create(labels, labelType);
 
-    // There are certain features that will only make sense on desktop vs mobile.
-    if (util.isMobile()) {
+    // /mobile's markup has none of the unified page's controls, so it gets only the pinch logger.
+    if (svv.legacyMobile) {
       svv.pinchZoom = new PinchZoomDetector();
     } else {
       svv.panoOverlay = new PanoOverlay();
@@ -337,7 +342,7 @@ export class Main {
 
     // Uniformly scale the whole tool to fit the viewport (like browser zoom) using var(--ui-scale). Mobile
     // instead fills the screen via PanoManager's own sizing.
-    if (!util.isMobile()) {
+    if (!svv.legacyMobile) {
       Main.applyValidateScale();
       window.addEventListener('resize', Main.createDesktopResizeHandler());
     } else {
@@ -394,7 +399,7 @@ export class Main {
     }
     svv.immersiveMode?.logRestored();
 
-    if (!util.isMobile()) {
+    if (!svv.legacyMobile) {
       // Read svv.panoViewer through closures rather than capturing it here: PanoManager swaps it between the
       // primary viewer and Pannellum as labels come and go, and a captured viewer keeps reporting the pano from
       // the last label it showed (#4813).
@@ -545,7 +550,7 @@ export class Main {
    * that imagery readable. It names the two mouse gestures rather than the zoom buttons or the Z shortcut, since a
    * mouse is what someone who hasn't found either will already have their hand on.
    *
-   * Desktop only, for that same reason: the gestures it names are a mouse's, where touch pans with a drag and zooms
+   * Not on touch, for that same reason: the gestures it names are a mouse's, where touch pans with a drag and zooms
    * with a pinch. A phone also has nowhere to put it — the toast would cover a strip of the very pano the validator
    * is being asked to judge, on a screen where that pano is the whole page.
    *
@@ -553,7 +558,7 @@ export class Main {
    * A mission that doesn't open with one gets the hint immediately.
    */
   #showPanoInteractiveHint() {
-    if (util.isMobile()) return;
+    if (svv.touchControls) return;
 
     const show = () => Toast.show({
       message: i18next.t('center-ui.pano-interactive-message'),

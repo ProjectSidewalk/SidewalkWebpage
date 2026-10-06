@@ -55,11 +55,11 @@ function makeMission(props = {}) {
 }
 
 describe('mobile Validate mission screens', () => {
-    let isMobile;
+    let onMobilePage;
     let tracker;
 
     beforeEach(() => {
-        isMobile = true;
+        onMobilePage = true;
         tracker = {push: jest.fn()};
         document.body.innerHTML = `
             <div id="modal-mission-holder">
@@ -99,7 +99,7 @@ describe('mobile Validate mission screens', () => {
         };
         global.util = {
             assetPath: assetPathStub,
-            isMobile: () => isMobile,
+            isMobile: () => onMobilePage,
             misc: {
                 getIconImagePaths: (type) => ({iconImagePath: `/assets/icons/${type}_small.svg`}),
                 labelTypeName: () => 'Curb Ramp',
@@ -114,6 +114,7 @@ describe('mobile Validate mission screens', () => {
         global.ProgressBar = ProgressBar;
         global.Confetti = {burst: jest.fn()};
         global.svv = {
+            get legacyMobile() { return onMobilePage; },
             tracker,
             labelTypes: {1: 'CurbRamp'},
             keyboard: null,
@@ -212,7 +213,7 @@ describe('mobile Validate mission screens', () => {
 
     describe('the briefing on desktop, which shows this same markup only to announce a dead end', () => {
         test('builds no carousel, so no tutorial photo is fetched for markup nobody sees', () => {
-            isMobile = false;
+            onMobilePage = false;
 
             new ModalMission(missionUI()).setMissionMessage(makeMission());
 
@@ -222,7 +223,7 @@ describe('mobile Validate mission screens', () => {
         });
 
         test('leaves no shrunk-to-one-line sizing on a heading it never measured', () => {
-            isMobile = false;
+            onMobilePage = false;
 
             new ModalMission(missionUI()).setMissionMessage(makeMission());
 
@@ -456,7 +457,7 @@ describe('mobile Validate mission screens', () => {
         });
 
         test('desktop, whose screen has none of these elements, keeps the bare number its table column expects', () => {
-            isMobile = false;
+            onMobilePage = false;
 
             showWith(1234);
 

@@ -205,7 +205,7 @@ export class ModalMission {
     // Desktop reaches here too — MissionContainer starts every mission the same way — but shows this screen only to
     // announce a dead end (ModalNoNewMission). Building the briefing there would cost a tutorial photo fetched per
     // mission for markup nobody sees.
-    this.show(title, util.isMobile() ? ModalMission.#buildExamples(labelType) : '', labelType);
+    this.show(title, svv.legacyMobile ? ModalMission.#buildExamples(labelType) : '', labelType);
   }
 
   /**
@@ -239,7 +239,7 @@ export class ModalMission {
     this.#uiModalMission.missionTitle.innerHTML = title;
     // Only the phone screen is tight enough to need it, and only it is visible: desktop's copy of this modal is
     // display:none, so a fit measured there would size the title against a box of zero width.
-    if (util.isMobile()) ModalMission.#fitTitleWhenReady(this.#uiModalMission.missionTitle);
+    if (svv.legacyMobile) ModalMission.#fitTitleWhenReady(this.#uiModalMission.missionTitle);
     this.#uiModalMission.holder.style.visibility = 'visible';
     this.#uiModalMission.foreground.style.visibility = 'visible';
     // Hiding this screen only makes it invisible, which preserves how far it was scrolled — and briefings routinely

@@ -1,5 +1,7 @@
 /**
- * Initializes the primary validation UI on the right side, including validation of tags/severity.
+ * The verdict menu: Agree / Disagree / Unsure, their reasons, Submit, and Expert Validate's tag, severity and type
+ * editors. One menu for every pointer (#5580); the one behavioural difference between a finger and a mouse is
+ * `quickAgree`, below. The legacy /mobile page still builds its own MobileValidationMenu until that page is deleted.
  */
 
 import { svv } from '../svv.js';
@@ -9,7 +11,7 @@ import { LabelContainer } from '../label/LabelContainer.js';
 import '../../common/utilitiesSidewalk.js';
 /** @typedef {import('../label/Label.js').Label} Label */
 
-export class DesktopValidationMenu {
+export class ValidationMenu {
   #menuUI;
   #disagreeReasonButtons;
   #unsureReasonButtons;
@@ -18,14 +20,23 @@ export class DesktopValidationMenu {
   /** @type {LabelTypePicker|null} Expert Validate only (#3671). */
   #labelTypePicker = null;
   #wrongTypeView = false;
+  #quickAgree;
 
   /**
    * @param {Record<string, HTMLElement>} menuUI - Validation menu UI elements.
+   * @param {object} [opts]
+   * @param {boolean} [opts.quickAgree=false] - Agree submits at once, with no comment box and no Submit, and every
+   *   submitted verdict floats its thumb off its button. For a touch-primary device, where it keeps /mobile's pace:
+   *   one tap per label rather than two, and Back covers a slip. Disagree and Unsure still wait for Submit, since
+   *   their reasons are the point; a Submit with no reason chosen is mobile's Skip.
+   * @example
+   * new ValidationMenu(svv.ui.validationMenu, { quickAgree: util.isTouchPrimary() && !svv.adminVersion });
    */
-  constructor(menuUI) {
+  constructor(menuUI, { quickAgree = false } = {}) {
     this.#menuUI = menuUI;
-    this.#disagreeReasonButtons = DesktopValidationMenu.#reasonButtonsIn(menuUI.disagreeReasonOptions);
-    this.#unsureReasonButtons = DesktopValidationMenu.#reasonButtonsIn(menuUI.unsureReasonOptions);
+    this.#quickAgree = quickAgree;
+    this.#disagreeReasonButtons = ValidationMenu.#reasonButtonsIn(menuUI.disagreeReasonOptions);
+    this.#unsureReasonButtons = ValidationMenu.#reasonButtonsIn(menuUI.unsureReasonOptions);
 
     this.#init();
   }
@@ -41,6 +52,7 @@ export class DesktopValidationMenu {
       svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Agree' : 'ValidationKeyboardShortcut_Agree');
       this.#setYesView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
+      if (this.#quickAgree) this.#validateLabel('Agree', !e.isTrusted);
     });
     menuUI.noButton.addEventListener('click', (e) => {
       if (svv.labelContainer.dropInputWhileLoading('Disagree')) return;
@@ -207,8 +219,8 @@ export class DesktopValidationMenu {
       // This is a new label (not returning from an undo), so reset everything: no verdict chosen, no section showing.
       this.#showVerdict(null, []);
       menuUI.optionalCommentTextBox.value = '';
-      DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
-      DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
+      ValidationMenu.#clearChosen(this.#disagreeReasonButtons);
+      ValidationMenu.#clearChosen(this.#unsureReasonButtons);
       menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
       menuUI.unsureReasonTextBox.classList.remove('is-chosen');
       menuUI.disagreeReasonTextBox.value = '';
@@ -219,7 +231,7 @@ export class DesktopValidationMenu {
       menuUI.optionalCommentTextBox.value = label.getProperty('agreeComment');
 
       const disagreeOption = label.getProperty('disagreeOption');
-      DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
+      ValidationMenu.#clearChosen(this.#disagreeReasonButtons);
       if (disagreeOption === 'other') {
         menuUI.disagreeReasonTextBox.classList.add('is-chosen');
         menuUI.disagreeReasonTextBox.value = label.getProperty('disagreeReasonTextBox');
@@ -230,7 +242,7 @@ export class DesktopValidationMenu {
       }
 
       const unsureOption = label.getProperty('unsureOption');
-      DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
+      ValidationMenu.#clearChosen(this.#unsureReasonButtons);
       if (unsureOption === 'other') {
         menuUI.unsureReasonTextBox.classList.add('is-chosen');
         menuUI.unsureReasonTextBox.value = label.getProperty('unsureReasonTextBox');
@@ -350,7 +362,10 @@ export class DesktopValidationMenu {
 
   #setYesView() {
     this.#dropPickedType();
-    this.#showVerdict(this.#menuUI.yesButton, [...this.#editSections(), 'optionalCommentSection']);
+    // Under quickAgree the verdict is already on its way, so a comment box would only flash open for a frame. An undo
+    // back to an Agree lands here too and shows just the chosen button, as /mobile always has.
+    const sections = this.#quickAgree ? [] : [...this.#editSections(), 'optionalCommentSection'];
+    this.#showVerdict(this.#menuUI.yesButton, sections);
     this.#menuUI.submitButton.disabled = false;
   }
 
@@ -403,8 +418,8 @@ export class DesktopValidationMenu {
     const refocus = document.activeElement === menuUI.verdictClearButton;
     this.#showVerdict(null, []);
     menuUI.optionalCommentTextBox.value = '';
-    DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
-    DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
+    ValidationMenu.#clearChosen(this.#disagreeReasonButtons);
+    ValidationMenu.#clearChosen(this.#unsureReasonButtons);
     menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
     menuUI.unsureReasonTextBox.classList.remove('is-chosen');
     menuUI.disagreeReasonTextBox.value = '';
@@ -457,7 +472,7 @@ export class DesktopValidationMenu {
    */
   #startWrongType() {
     const currLabel = svv.labelContainer.getCurrentLabel();
-    DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
+    ValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     this.#menuUI.disagreeReasonTextBox.classList.remove('is-chosen');
     currLabel.setProperty('disagreeOption', null);
     this.#setWrongTypeView();
@@ -697,7 +712,7 @@ export class DesktopValidationMenu {
       this.#startWrongType();
       return;
     }
-    DesktopValidationMenu.#clearChosen(this.#disagreeReasonButtons);
+    ValidationMenu.#clearChosen(this.#disagreeReasonButtons);
     if (id === 'other') {
       menuUI.disagreeReasonTextBox.classList.add('is-chosen');
       svv.labelContainer.getCurrentLabel().setProperty('disagreeOption', 'other');
@@ -724,7 +739,7 @@ export class DesktopValidationMenu {
   #setUnsureReason(id) {
     if (svv.labelContainer.dropInputWhileLoading('UnsureReason')) return;
     const menuUI = this.#menuUI;
-    DesktopValidationMenu.#clearChosen(this.#unsureReasonButtons);
+    ValidationMenu.#clearChosen(this.#unsureReasonButtons);
     if (id === 'other') {
       menuUI.unsureReasonTextBox.classList.add('is-chosen');
       svv.labelContainer.getCurrentLabel().setProperty('unsureOption', 'other');
@@ -787,9 +802,40 @@ export class DesktopValidationMenu {
     // reasoning). Double-tap protection swallows the rest without a trace on screen, so the log is where it shows.
     const sinceMs = timestamp.getTime() - svv.labelContainer.getProperty('renderedTimestamp');
     if (sinceMs > LabelContainer.VERDICT_GRACE_MS) {
+      if (this.#quickAgree) ValidationMenu.#floatVerdict(action);
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
     } else {
       svv.tracker.push('ValidateInputDropped_Debounce', { source: `Submit=${action}`, sinceMs });
     }
+  }
+
+  /**
+   * Sends the verdict's own thumb floating up off the button that cast it, confirming the tap where the thumb already
+   * is. The icon is cloned from the button so the two can never drift apart, and it takes itself off the page when
+   * the animation ends. Nothing happens for a visitor who asked for less motion — the button's chosen state, which
+   * they keep, already says what was picked. Touch only (quickAgree): a mouse user's Submit is a separate button,
+   * and the thumb would rise off a verdict button the pointer isn't on.
+   *
+   * @param {string} action - The verdict cast: 'Agree', 'Disagree', or 'Unsure'.
+   */
+  static #floatVerdict(action) {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const buttonIds = {
+      Agree: 'validate-yes-button', Disagree: 'validate-no-button', Unsure: 'validate-unsure-button',
+    };
+    const button = document.getElementById(buttonIds[action]);
+    const icon = button?.querySelector('.validate-page-button__icon');
+    if (!icon) return;
+
+    // One at a time: a quick second verdict should replace the last one's thumb, not race it up the screen.
+    document.querySelectorAll('.validate-verdict-float').forEach((stale) => stale.remove());
+
+    const floater = /** @type {HTMLElement} */ (icon.cloneNode());
+    floater.className = 'validate-verdict-float';
+    const box = button.getBoundingClientRect();
+    floater.style.left = `${box.left + box.width / 2}px`;
+    floater.style.top = `${box.top}px`;
+    floater.addEventListener('animationend', () => floater.remove());
+    document.body.appendChild(floater);
   }
 }

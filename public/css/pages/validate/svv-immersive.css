@@ -7,7 +7,7 @@
 
    The DOM is the boxed page's: the menu column becomes the dock at the bottom-centre and the mission title and
    progress bar become one pill at the top-centre (#mission-status, layout-free in the boxed page) by position alone,
-   so DesktopValidationMenu and StatusField know nothing about the mode. Expert Validate never enters it (Main.js),
+   so ValidationMenu and StatusField know nothing about the mode. Expert Validate never enters it (Main.js),
    so the edit sections have no rules here yet. */
 body.svv-immersive .tool-ui {
   position: fixed;
@@ -197,7 +197,7 @@ body.svv-immersive .validate-undo-button__icon {
 }
 
 /* The close control in the dock's top-right corner, once a verdict has opened it: an X takes the answer back so the
-   dock folds to the three buttons again. Shown by the has-verdict class DesktopValidationMenu keeps on the holder. */
+   dock folds to the three buttons again. Shown by the has-verdict class ValidationMenu keeps on the holder. */
 body.svv-immersive #validation-menu-holder.has-verdict #validate-verdict-clear {
   display: inline-flex;
 }

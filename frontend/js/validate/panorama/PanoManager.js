@@ -135,12 +135,12 @@ export class PanoManager {
     this.#logo.showPrimaryLogo();
     this.#attribution = createPanoAttribution(this.#panoCanvas.parentElement);
 
-    if (util.isMobile()) {
+    if (svv.legacyMobile) {
       this.sizePano();
       svv.panoViewer.resize(); // Necessary for PannellumViewer for correct vertical position of the label.
     }
 
-    if (panoViewerType === GsvViewer && !util.isMobile()) {
+    if (panoViewerType === GsvViewer && !svv.legacyMobile) {
       this.#makeGsvAttributionClickable();
       this.#linksListener = /** @type {GsvViewer} */ (this.#primaryViewer).gsvPano
         .addListener('links_changed', this.#makeGsvAttributionClickable.bind(this));
@@ -208,7 +208,7 @@ export class PanoManager {
     const panoId = panoData.getPanoId();
     svv.panoStore.addPanoMetadata(panoId, panoData);
 
-    if (!util.isMobile()) {
+    if (!svv.legacyMobile) {
       // Add the capture date of the image to the bottom-right corner of the UI.
       const captureDate = panoData.getProperty('captureDate');
       svv.ui.viewer.date.textContent = Number.isNaN(captureDate.getTime())
@@ -265,8 +265,8 @@ export class PanoManager {
   #aimAndDrawMarker(currentLabel) {
     const labelPov = currentLabel.getOriginalPov();
 
-    // Set to user's POV when labeling if on desktop. If on mobile, center the label on the screen.
-    if (util.isMobile()) {
+    // Set to user's POV when labeling, except on /mobile, which centers the label on the screen.
+    if (svv.legacyMobile) {
       svv.panoViewer.setPov(labelPov);
     } else {
       svv.panoViewer.setPov({

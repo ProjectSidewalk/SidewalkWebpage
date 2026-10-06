@@ -48,7 +48,7 @@ const touch = (identifier, clientX, clientY) => ({identifier, clientX, clientY})
 
 describe('Validate pano marker activation', () => {
     let toggleLabelCard;
-    let isMobile;
+    let touchControls;
 
     /** @returns {HTMLElement} The marker element PanoMarker created. */
     const markerEl = () => document.getElementById('validate-pano-marker');
@@ -56,11 +56,10 @@ describe('Validate pano marker activation', () => {
     beforeEach(() => {
         jest.useFakeTimers().setSystemTime(new Date('2026-08-15T12:00:00Z'));
         document.body.innerHTML = '<div id="view-control-layer"></div><div id="label-card"></div>';
-        isMobile = true;
+        touchControls = true;
         toggleLabelCard = jest.fn();
 
         global.util = {
-            isMobile: () => isMobile,
             pano: {
                 centeredPovToCanvasCoord2d: () => ({x: 0, y: 0}),
                 centeredPovToCanvasCoord: () => ({x: 0, y: 0}),
@@ -71,6 +70,7 @@ describe('Validate pano marker activation', () => {
         // here. Returning null directly keeps that deterministic without jsdom's "not implemented" noise.
         jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null);
         global.svv = {
+            get touchControls() { return touchControls; },
             labelVisibilityControl: {
                 toggleLabelCard,
                 showLabelCard: jest.fn(),
@@ -107,7 +107,7 @@ describe('Validate pano marker activation', () => {
         fireTouch(markerEl(), 'touchend', [touch(id, x, y)], []);
     }
 
-    describe('on mobile', () => {
+    describe('with touch controls', () => {
         beforeEach(() => {
             createMarker();
         });
@@ -215,6 +215,16 @@ describe('Validate pano marker activation', () => {
             expect(toggleLabelCard).toHaveBeenCalledTimes(2);
         });
 
+        // A touch device on /validate (#5580) has a KeyboardManager, which already answers these keys on the marker.
+        test('leaves Enter and Space to the KeyboardManager where there is one, so the card toggles once', () => {
+            svv.keyboard = {};
+            const event = new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true});
+            markerEl().dispatchEvent(event);
+
+            expect(toggleLabelCard).not.toHaveBeenCalled();
+            expect(event.defaultPrevented).toBe(false);
+        });
+
         test('other keys are left to the page', () => {
             const event = new KeyboardEvent('keydown', {key: 'a', bubbles: true, cancelable: true});
             markerEl().dispatchEvent(event);
@@ -234,9 +244,9 @@ describe('Validate pano marker activation', () => {
         });
     });
 
-    describe('on desktop', () => {
+    describe('with mouse controls', () => {
         beforeEach(() => {
-            isMobile = false;
+            touchControls = false;
             createMarker();
         });
 

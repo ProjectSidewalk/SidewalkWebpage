@@ -66,7 +66,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
     holdNextLoad = false;
     releaseLoad = null;
 
-    global.util = {assetPath: assetPathStub, isMobile: () => false};
+    global.util = {assetPath: assetPathStub};
 
     // Only the surface LabelContainer reaches for: it stamps a timestamp on the label it is about to load, reads the
     // pano to load off it, and hands it to the UI. `validate` stands in for the real submission path.
@@ -290,7 +290,7 @@ describe('input aimed at a label whose pano is still loading is dropped (issue #
 // be the handler's first statement, since everything after it writes.
 describe('every menu path that writes onto the current label refuses one that is still loading', () => {
   const MENU_PATHS = {
-    desktop: path.join(REPO_ROOT, 'frontend/js/validate/menu/DesktopValidationMenu.js'),
+    desktop: path.join(REPO_ROOT, 'frontend/js/validate/menu/ValidationMenu.js'),
     mobile: path.join(REPO_ROOT, 'frontend/js/validate/menu/MobileValidationMenu.js'),
   };
 
