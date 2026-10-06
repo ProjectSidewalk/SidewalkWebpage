@@ -29,10 +29,15 @@ class RouteBuilderController @Inject() (
   def routesPage = cc.securityService.SecuredAction { implicit request =>
     for {
       commonData <- configService.getCommonPageData(request2Messages.lang)
-      cityRoutes <- routeService.getRoutesForCity(RouteBuilderController.ListingMax)
+      // One past the cap, so a city with exactly ListingMax routes isn't told some are hidden.
+      cityRoutes <- routeService.getRoutesForCity(RouteBuilderController.ListingMax + 1)
     } yield {
       cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Routes")
-      Ok(views.html.apps.routeList(commonData, request.identity, cityRoutes))
+      val truncated = cityRoutes.size > RouteBuilderController.ListingMax
+      Ok(
+        views.html.apps
+          .routeList(commonData, request.identity, cityRoutes.take(RouteBuilderController.ListingMax), truncated)
+      )
     }
   }
 

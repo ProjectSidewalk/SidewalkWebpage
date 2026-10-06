@@ -300,7 +300,7 @@ import-street-gradient:
 
 # Python utility tests (test/python/) in the web container; extra pytest flags via args=, e.g. args="-k bbox -v".
 # Split by interpreter because the scripts are: label_clustering.py runs in-band on prod's `python3` (3.8), while the
-# offline tooling needs >= 3.11. Each half runs the whole directory minus the files only the other's interpreter can
+# offline tooling needs >= 3.12. Each half runs the whole directory minus the files only the other's interpreter can
 # import, so a new test file runs in both by default instead of silently in neither. The COVERAGE_OMIT* slots are
 # explained in pyproject.toml.
 pytest-args-app   = test/python --ignore=test/python/test_check_streets_for_imagery.py \
@@ -441,9 +441,10 @@ lint-shellcheck:
 # The sbt targets below go through tools/dev/sbt-run.sh; its header says what that guards against.
 #
 # Scala formatting (.scalafmt.conf), covering the build files too. `scalafmt` checks (the blocking CI gate);
-# `scalafmt-fix` reformats in place.
+# `scalafmt-fix` reformats in place. The two checks run separately because sbt stops at its first failing command,
+# and one failure shouldn't hide the other.
 scalafmt:
-	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) 'scalafmtCheckAll; scalafmtSbtCheck'"
+	@echo "Checking Scala formatting..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && { bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtCheckAll; s=\$$?; bash tools/dev/sbt-run.sh --dir $(container-dir) scalafmtSbtCheck && exit \$$s; }"
 
 scalafmt-fix:
 	@echo "Formatting Scala..."; docker exec $(tty-flags) -e SBT_OPTS="$(sbt-opts)" $(web-container) bash -lc "cd $(self-container-dir) && bash tools/dev/sbt-run.sh --dir $(container-dir) 'scalafmtAll; scalafmtSbt'"

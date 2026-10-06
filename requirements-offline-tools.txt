@@ -1,7 +1,9 @@
 # Dependencies for the offline tooling in tools/city/ — check_streets_for_imagery.py and onboard_city.py (see
-# tools/city/README.md). Kept out of requirements.txt, which is pinned to what the app's in-band Python (3.8) can install.
+# tools/city/README.md). Kept out of requirements.txt, which is pinned to what the app's in-band Python (3.8) can
+# install.
 #
-# These need Python >= 3.12 (scipy, rasterio and pyproj set the floor), so they install into the container's second interpreter:
+# These need Python >= 3.12 (scipy, rasterio and pyproj set the floor), so they install into the container's second
+# interpreter:
 #
 #   python3.13 -m pip install -r requirements-offline-tools.txt
 #

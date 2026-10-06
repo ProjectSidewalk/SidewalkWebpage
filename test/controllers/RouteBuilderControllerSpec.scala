@@ -1,7 +1,7 @@
 package controllers
 
 import org.apache.pekko.stream.Materializer
-import org.scalatest.Assertion
+import org.scalatest.{Assertion, BeforeAndAfterAll}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
@@ -14,6 +14,7 @@ import play.api.test.Helpers.*
 import util.SidewalkSpec
 
 import java.util.UUID
+import scala.collection.mutable
 
 /**
  * In-JVM functional tests for the RouteBuilder route CRUD (#3343/#3342): saving a named route (with its URL slug
@@ -26,7 +27,8 @@ import java.util.UUID
  *
  * Requires a Postgres+PostGIS database (via DATABASE_URL / DATABASE_USER / DATABASE_PASSWORD env, as in dev/CI).
  */
-class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
+// BeforeAndAfterAll comes before GuiceOneAppPerSuite so afterAll runs while the app is still up.
+class RouteBuilderControllerSpec extends SidewalkSpec with BeforeAndAfterAll with GuiceOneAppPerSuite {
 
   override def fakeApplication(): Application =
     GuiceApplicationBuilder().disable[modules.ActorModule].build()
@@ -107,10 +109,24 @@ class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
     (picks.head, picks(1))
   }
 
-  private def saveRoute(userCookies: Seq[Cookie], body: JsValue) = route(
-    app,
-    FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(userCookies*).withJsonBody(body).withCSRFToken
-  ).get
+  // Deleted in afterAll; left behind, they pile up in a dev database until the public listing hits its cap.
+  private val savedRoutes = mutable.Buffer.empty[(Seq[Cookie], Int)]
+
+  /** Saves a route as the given user, remembering it for cleanup when the save succeeds. */
+  private def saveRoute(userCookies: Seq[Cookie], body: JsValue) = {
+    val resp = route(
+      app,
+      FakeRequest(POST, "/saveRoute").withHeaders(XHR).withCookies(userCookies*).withJsonBody(body).withCSRFToken
+    ).get
+    if (status(resp) == OK) savedRoutes += ((userCookies, (contentAsJson(resp) \ "route_id").as[Int]))
+    resp
+  }
+
+  // A route a case already deleted answers 404 here, which is fine.
+  override def afterAll(): Unit = {
+    try savedRoutes.foreach { case (userCookies, routeId) => val _ = status(deleteRoute(userCookies, routeId)) }
+    finally super.afterAll()
+  }
 
   private def listRoutes(userCookies: Seq[Cookie]): Seq[JsValue] = {
     val resp = route(app, FakeRequest(GET, "/userapi/routes").withCookies(userCookies*)).get
@@ -198,9 +214,9 @@ class RouteBuilderControllerSpec extends SidewalkSpec with GuiceOneAppPerSuite {
       body must include("button button--primary button--small route-card__explore")
       body must include(s"/labelMap?routes=$routeId")
       body must include("route-card__copy")
-      // A long-lived dev database can hold more routes than the listing shows, so tie the note to the card count.
-      val cards = "<li class=\"community-card route-card\"".r.findAllMatchIn(body).size
-      body.contains("community-cap-note") mustBe (cards >= RouteBuilderController.ListingMax)
+      // Only a page short of the cap is sure to have no note, and a dev database can fill it.
+      val cards = """<li class="[^"]*\broute-card\b""".r.findAllMatchIn(body).size
+      if (cards < RouteBuilderController.ListingMax) body must not include "community-cap-note"
       body must not include "routes.page."
       body must not include "community.page."
 

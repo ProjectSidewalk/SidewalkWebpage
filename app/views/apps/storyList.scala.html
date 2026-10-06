@@ -13,8 +13,9 @@
  * @param commonData Per-page config (imagery source/token, city info).
  * @param user       The signed-in or anonymous display user (navbar + story composer username).
  * @param stories    The city's visible stories, newest first, capped at StoryController.ListingMax.
+ * @param truncated  Whether the city has more visible stories than the cap, so some are left off the page.
  *@
-@(commonData: CommonPageData, user: SidewalkUserWithRole, stories: Seq[StoryForListing]
+@(commonData: CommonPageData, user: SidewalkUserWithRole, stories: Seq[StoryForListing], truncated: Boolean
 )(using request: RequestHeader, messages: Messages, assets: AssetsFinder, config: Configuration)
 
 @dateLabel(dt: java.time.OffsetDateTime) = @{
@@ -96,7 +97,7 @@
         }
       </ul>
       <p class="community-no-results" id="community-no-results" hidden>@Messages("community.page.no.results")</p>
-      @if(stories.size >= controllers.StoryController.ListingMax) {
+      @if(truncated) {
         <p class="community-cap-note">@Messages("community.page.cap.note", controllers.StoryController.ListingMax)</p>
       }
     }

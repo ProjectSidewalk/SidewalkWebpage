@@ -164,7 +164,7 @@ These are the JVM libraries we talk to the database *through*; the database serv
 
 - **sbt-plugin (Play): 3.0.12** — tracks the Play version above (`project/plugins.sbt`).
 - **scalafmt: 3.11.5** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.6.2**,
-  `project/plugins.sbt`) fetches it. `scalafmtCheckAll` is a blocking CI gate.
+  `project/plugins.sbt`) fetches it. `scalafmtCheckAll` and `scalafmtSbtCheck` are blocking CI gates.
   [Releases](https://github.com/scalameta/scalafmt/releases)
 - **sbt-scoverage: 2.4.4** — coverage, for a later CI phase with a ratcheting threshold.
   [Releases](https://github.com/scoverage/sbt-scoverage/releases)
