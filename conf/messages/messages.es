@@ -376,6 +376,7 @@ audit.survey.feedback.question = ¿Tienes algún comentario, ideas de diseño o 
 validate.comment.placeholder = Añadir comentario opcional
 validate.why.not = ¿Por qué no?
 validate.why.unsure = ¿Por qué “Inseguro”?
+validate.reason.optional = (opcional)
 validate.add.own.reason = O añade tu propia razón
 validate.skip.reason = Motivo de omisión
 validate.suggestions = Sugerencias

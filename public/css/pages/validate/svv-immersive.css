@@ -249,6 +249,11 @@ body.svv-immersive #main-validate-header {
   padding-right: calc(28px * var(--ui-scale));
 }
 
+/* On the scrim, the quiet part of a header is the white text faded, still past 4.5:1. */
+body.svv-immersive .validation-menu-section-header__optional {
+  color: rgb(from var(--color-neutral-white) r g b / 75%);
+}
+
 body.svv-immersive .validation-menu-section-header {
   margin-bottom: calc(8px * var(--ui-scale));
 }

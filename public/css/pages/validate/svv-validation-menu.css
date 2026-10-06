@@ -36,6 +36,14 @@
   margin-bottom: calc(10px * var(--ui-scale));
 }
 
+/* "(optional)" after the reason headers: a reason helps, but Submit sends the verdict without one, so the header
+   says so quietly rather than leaving a validator to think the list is a required step (#5580). */
+.validation-menu-section-header__optional {
+  margin-inline-start: calc(4px * var(--ui-scale));
+  font: var(--text-small-regular);
+  color: var(--color-neutral-600);
+}
+
 #validation-button-holder {
   display: flex;
   justify-content: space-between;
