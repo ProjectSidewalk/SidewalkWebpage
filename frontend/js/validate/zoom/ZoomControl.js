@@ -23,8 +23,11 @@ export class ZoomControl {
 
     this.#zoomInButton.addEventListener('click', this.#clickZoomIn);
     this.#zoomOutButton.addEventListener('click', this.#clickZoomOut);
-    // Not passive, so preventDefault can stop the wheel from scrolling the page.
-    svv.ui.viewer.controlLayer.addEventListener('wheel', this.#wheelZoom, { passive: false });
+    // On the pano's holder, which every wheel over the pano bubbles to: the control layer above the imagery goes
+    // click-through on a touch screen (svv-panorama.css) so a finger pans the viewer, which would hand a trackpad's
+    // or a mouse's wheel to GSV, whose own wheel zoom is off (#5580). Not passive, so preventDefault can stop the
+    // wheel from scrolling the page.
+    svv.ui.viewer.controlLayer.parentElement.addEventListener('wheel', this.#wheelZoom, { passive: false });
   }
 
   /**
