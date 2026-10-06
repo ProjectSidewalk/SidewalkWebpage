@@ -13,6 +13,10 @@
   top: 0;
   height: var(--pano-height);
   width: var(--pano-width);
+
+  /* A long press over the pano would otherwise raise iOS's callout and text-selection loupe (#5664). */
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 /* The panorama viewport. It fills the full street-view area (no border) so the label canvas, which is the same size,
@@ -282,12 +286,6 @@
    would cancel the pointer mid-drag. The context menu is not inside this element, so its tag list can still scroll. */
 #user-control-layer {
   touch-action: none;
-}
-
-/* A long press over the pano would otherwise raise iOS's callout and text-selection loupe. */
-.window-streetview {
-  -webkit-touch-callout: none;
-  user-select: none;
 }
 
 /* Elsewhere in the tool a quick double tap (two fast label placements, or a button tapped twice) must not zoom the
