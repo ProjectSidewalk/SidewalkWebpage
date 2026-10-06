@@ -96,6 +96,8 @@ Parallel jobs:
 
 **Security scanning (CodeQL, #5614):** [`codeql.yml`](../.github/workflows/codeql.yml) checks our frontend JS, Twirl page templates and workflow files for security bugs on every PR into `develop`, every push to `develop`, and weekly. [`codeql-config.yml`](../.github/codeql/codeql-config.yml) skips `public/vendor/`, `test/`, `tools/` and `conf/`. CodeQL can't read Scala, so the backend isn't scanned. Python is skipped too: the tools are run by hand, and `scripts/label_clustering.py` only talks to the app on localhost. Results are in the **Security → Code scanning** tab and flagged on the PR that causes them. It is **not a required check**.
 
+**Vulnerable dependencies (#5614):** Dependabot alerts are in **Security → Dependabot**, and Dependabot security updates open a fix PR as soon as a fixed version exists, without waiting for the monthly batch. The **`Dependency review`** job in `ci.yml` runs on PRs and goes red when the PR adds or changes a dependency with a known vulnerability. It is **not a required check**, because some fixes can't install on the app's Python 3.8 (#4396). Alerts stuck on 3.8 are dismissed as "tolerable risk" with a comment naming #4396; reopen them once it lands. Secret scanning and its push protection are on, so a push containing a recognized secret is refused.
+
 ## Coverage
 
 Scala and JS hold **ratchets** — a floor just under the measured number, raised in whichever PR earns the headroom.
