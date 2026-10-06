@@ -114,6 +114,9 @@ describe('ValidationMenu quickAgree', () => {
     expect(validateCurrentLabel).toHaveBeenCalledWith('Agree', expect.any(Date), '');
     expect(byId('validate-optional-comment-section').style.display).toBe('none');
     expect(byId('validate-yes-button').classList.contains('is-chosen')).toBe(true);
+    // Nothing in the immersive dock opens for the frames before the next label: no Submit row, no close control.
+    expect(byId('validation-menu-holder').classList.contains('has-verdict')).toBe(false);
+    expect(byId('validate-submit-button').disabled).toBe(true);
   });
 
   it('waits for Submit without quickAgree, with the comment box open', () => {
@@ -138,6 +141,7 @@ describe('ValidationMenu quickAgree', () => {
   it('still waits for Submit on Disagree, and a Submit with no reason sends it without one', () => {
     build({ quickAgree: true });
     byId('validate-no-button').click();
+    expect(byId('validation-menu-holder').classList.contains('has-verdict')).toBe(true);
 
     expect(validateCurrentLabel).not.toHaveBeenCalled();
     expect(byId('validate-why-no-section').style.display).toBe('block');
@@ -191,6 +195,6 @@ describe('ValidationMenu quickAgree', () => {
     build({ quickAgree: true });
     expect(byId('validate-yes-button').classList.contains('is-chosen')).toBe(true);
     expect(byId('validate-optional-comment-section').style.display).toBe('none');
-    expect(byId('validate-submit-button').disabled).toBe(false);
+    expect(byId('validation-menu-holder').classList.contains('has-verdict')).toBe(false);
   });
 });

@@ -331,12 +331,15 @@ export class ValidationMenu {
    * Every view routes through here so a section can't be left showing from the previous verdict.
    * @param {HTMLElement|null} chosenButton - The verdict button to mark chosen, or null for none.
    * @param {string[]} sections - Names of the `menuUI` sections to show; the rest are hidden.
+   * @param {object} [opts]
+   * @param {boolean} [opts.open] - Whether the immersive dock opens its Submit row and close control; by default
+   *   whenever a verdict is chosen.
    */
-  #showVerdict(chosenButton, sections) {
+  #showVerdict(chosenButton, sections, { open = chosenButton !== null } = {}) {
     const menuUI = this.#menuUI;
     this.#wrongTypeView = sections.includes('labelTypeMenu');
     // The dock's close control (immersive mode) shows only while there is a verdict to take back.
-    menuUI.holder?.classList.toggle('has-verdict', chosenButton !== null);
+    menuUI.holder?.classList.toggle('has-verdict', open);
     for (const button of [menuUI.yesButton, menuUI.noButton, menuUI.unsureButton]) {
       button.classList.toggle('is-chosen', button === chosenButton);
     }
@@ -362,10 +365,14 @@ export class ValidationMenu {
 
   #setYesView() {
     this.#dropPickedType();
-    // Under quickAgree the verdict is already on its way, so a comment box would only flash open for a frame. An undo
-    // back to an Agree lands here too and shows just the chosen button, as /mobile always has.
-    const sections = this.#quickAgree ? [] : [...this.#editSections(), 'optionalCommentSection'];
-    this.#showVerdict(this.#menuUI.yesButton, sections);
+    // Under quickAgree the verdict is already on its way, so the comment box, the dock's Submit row and its close
+    // control would only flash open while the next label loads: Agree shows just its chosen fill. An undo back to an
+    // Agree lands here too, and tapping Agree again is how it is resubmitted, as /mobile always has.
+    if (this.#quickAgree) {
+      this.#showVerdict(this.#menuUI.yesButton, [], { open: false });
+      return;
+    }
+    this.#showVerdict(this.#menuUI.yesButton, [...this.#editSections(), 'optionalCommentSection']);
     this.#menuUI.submitButton.disabled = false;
   }
 
