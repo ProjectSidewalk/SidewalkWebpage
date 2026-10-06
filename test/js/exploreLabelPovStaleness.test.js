@@ -183,6 +183,7 @@ describe('Explore label POV staleness (#4842 regression)', () => {
             getBrowser: () => 'chrome',
             getBrowserVersion: () => '1',
             getOperatingSystem: () => 'linux',
+            getPrimaryPointer: () => 'coarse',
             math: { kmsToMeters: (km) => km * 1000 },
         });
         installDateHelpers();

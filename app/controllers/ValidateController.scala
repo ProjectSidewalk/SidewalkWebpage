@@ -18,7 +18,7 @@ import models.auth.WithAdmin
 import models.label.{AdminValidationData, LabelType, LabelValidationMetadata}
 import models.mission.MissionType
 import models.user.*
-import models.utils.IpAddress
+import models.utils.{IpAddress, PrimaryPointer}
 import models.validation.{
   LabelValidation,
   ValidationOption,
@@ -453,7 +453,8 @@ class ValidateController @Inject() (
       .insertEnvironment(
         ValidationTaskEnvironment(0, env.missionId, env.browser, env.browserVersion, env.browserWidth,
           env.browserHeight, env.availWidth, env.availHeight, env.screenWidth, env.screenHeight, env.operatingSystem,
-          ipAddress, env.language, env.cssZoom, Some(currTime))
+          ipAddress, env.language, env.cssZoom, Some(currTime), env.maxTouchPoints,
+          PrimaryPointer.sanitize(env.primaryPointer))
       )
       .failed
       .foreach(e => logger.error("Error saving validation environment data.", e))

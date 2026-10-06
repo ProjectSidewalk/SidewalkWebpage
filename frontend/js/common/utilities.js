@@ -349,6 +349,20 @@ util.getBrowserName = () => bowserParser().getBrowserName();
 util.getBrowser = () => util.getBrowserName();
 util.getBrowserVersion = () => bowserParser().getBrowserVersion();
 util.getOperatingSystem = () => bowserParser().getOSName();
+
+/**
+ * The primary pointing device per the `pointer` media feature, stored with each task's environment row (#5664). Unlike
+ * the OS name, this tells an iPad from a Mac: Safari on an iPad sends a Mac user agent but reports a coarse pointer
+ * (fine again once a trackpad is attached, which is the point: that user is then working with a mouse).
+ * @returns {'coarse'|'fine'|'none'|null} null where `matchMedia` is missing (jsdom), so the row reads as unknown
+ *   and the submission it rides on never throws.
+ */
+util.getPrimaryPointer = () => {
+  if (typeof window.matchMedia !== 'function') return null;
+  if (window.matchMedia('(pointer: coarse)').matches) return 'coarse';
+  if (window.matchMedia('(pointer: fine)').matches) return 'fine';
+  return 'none';
+};
 util.isSafari = () => util.getBrowserName() === 'Safari';
 util.isChrome = () => util.getBrowserName() === 'Chrome';
 util.isFirefox = () => util.getBrowserName() === 'Firefox';

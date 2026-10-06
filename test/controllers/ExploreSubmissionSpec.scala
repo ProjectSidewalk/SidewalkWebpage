@@ -190,7 +190,8 @@ class ExploreSubmissionSpec
         Json.obj("action" -> "TaskStart", "pano_id"                     -> specPanoId, "timestamp" -> now),
         Json.obj("action" -> "LabelingCanvas_FinishLabeling", "pano_id" -> specPanoId, "timestamp" -> now)
       ),
-      "environment"   -> Json.obj("browser" -> "spec", "language" -> "en", "css_zoom" -> 100),
+      "environment" -> Json.obj("browser" -> "spec", "language" -> "en", "css_zoom" -> 100, "max_touch_points" -> 5,
+        "primary_pointer" -> "coarse"),
       "panos"         -> Json.arr(panoJson(b)),
       "user_route_id" -> JsNull,
       "timestamp"     -> now
@@ -420,7 +421,10 @@ class ExploreSubmissionSpec
 
       // The async writes that ride the same submission: environment and pano metadata.
       eventually(timeout(Span(15, Seconds)), interval(Span(250, Millis))) {
-        run(sql"SELECT count(*) FROM audit_task_environment WHERE audit_task_id = $auditTaskId".as[Int]).head mustBe 1
+        run(
+          sql"""SELECT max_touch_points, primary_pointer FROM audit_task_environment
+                WHERE audit_task_id = $auditTaskId""".as[(Option[Int], Option[String])]
+        ) mustBe Seq((Some(5), Some("coarse"))) // Touch capability is stored (#5664).
         run(sql"SELECT count(*) FROM pano_data WHERE pano_id = $specPanoId".as[Int]).head mustBe 1
       }
       if (interactionsLogged) {

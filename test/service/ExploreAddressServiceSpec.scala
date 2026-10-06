@@ -199,7 +199,7 @@ class ExploreAddressServiceSpec
         routeStreetId = None),
       labels = labels,
       interactions = Seq.empty,
-      environment = EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100),
+      environment = EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100, None, None),
       panos = Seq.empty,
       userRouteId = None,
       timestamp = now

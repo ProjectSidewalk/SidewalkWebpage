@@ -141,6 +141,7 @@ describe('Form pano submission staging', () => {
             getBrowser: () => 'chrome',
             getBrowserVersion: () => '1',
             getOperatingSystem: () => 'linux',
+            getPrimaryPointer: () => 'coarse',
             math: { kmsToMeters: (km) => km * 1000 },
             pano: { TUTORIAL_PANO_IDS: new Set(['tutorial', 'afterWalkTutorial']) },
         };
@@ -240,6 +241,17 @@ describe('Form pano submission staging', () => {
         expect(sent.pano).toMatchObject({ pano_id: 'pano-A', source: 'gsv', capture_date: '2024-06', width: 8192 });
         // The same pano still rides the viewed-panos batch; the server's writes are idempotent.
         expect(bodies[0].panos.map((p) => p.pano_id)).toContain('pano-A');
+    });
+
+    test('sends the touch capability with the environment, so an iPad is not counted as a Mac (#5664)', async () => {
+        // jsdom has no maxTouchPoints; an iPad reports 5.
+        Object.defineProperty(navigator, 'maxTouchPoints', { value: 5, configurable: true });
+        const bodies = acceptingFetch();
+
+        await form.submitData(taskStub());
+
+        expect(bodies[0].environment).toMatchObject({ primary_pointer: 'coarse', max_touch_points: 5 });
+        delete navigator.maxTouchPoints;
     });
 
     test('omits the pano block for labels on the locally-served tutorial panos', async () => {

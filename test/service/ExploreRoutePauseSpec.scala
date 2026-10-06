@@ -173,7 +173,8 @@ class ExploreRoutePauseSpec
             startPointReversed = false, None, now, requestUpdatedStreetPriority = false, None, task.routeStreetId),
           labels = Seq.empty,
           interactions = Seq.empty,
-          environment = EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100),
+          environment =
+            EnvironmentSubmission(None, None, None, None, None, None, None, None, None, "en", 100, None, None),
           panos = Seq.empty,
           userRouteId = data.userRoute.map(_.userRouteId),
           timestamp = now

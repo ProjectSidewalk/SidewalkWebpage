@@ -26,7 +26,9 @@ case class AuditTaskEnvironment(
     ipAddress: IpAddress,
     language: String,
     cssZoom: Int,
-    timestamp: Option[OffsetDateTime]
+    timestamp: Option[OffsetDateTime],
+    maxTouchPoints: Option[Int],
+    primaryPointer: Option[String]
 )
 
 class AuditTaskEnvironmentTableDef(tag: Tag) extends Table[AuditTaskEnvironment](tag, "audit_task_environment") {
@@ -46,9 +48,12 @@ class AuditTaskEnvironmentTableDef(tag: Tag) extends Table[AuditTaskEnvironment]
   def language: Rep[String]                  = column[String]("language", O.Default("en"))
   def cssZoom: Rep[Int]                      = column[Int]("css_zoom", O.Default(100))
   def timestamp: Rep[Option[OffsetDateTime]] = column[Option[OffsetDateTime]]("timestamp")
+  def maxTouchPoints: Rep[Option[Int]]       = column[Option[Int]]("max_touch_points")
+  def primaryPointer: Rep[Option[String]]    = column[Option[String]]("primary_pointer")
 
   def * = (auditTaskEnvironmentId, auditTaskId, missionId, browser, browserVersion, browserWidth, browserHeight,
-    availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp)
+    availWidth, availHeight, screenWidth, screenHeight, operatingSystem, ipAddress, language, cssZoom, timestamp,
+    maxTouchPoints, primaryPointer)
     .mapTo[AuditTaskEnvironment]
 
   def auditTask =

@@ -31,7 +31,9 @@ object ExploreFormats {
       screenHeight: Option[Int],
       operatingSystem: Option[String],
       language: String,
-      cssZoom: Int
+      cssZoom: Int,
+      maxTouchPoints: Option[Int],
+      primaryPointer: Option[String]
   )
   case class InteractionSubmission(
       action: String,
