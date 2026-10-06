@@ -9,8 +9,8 @@ architecture. This page explains the conventions a linter can't, and the *why* b
 [`.htmlhintrc`](../.htmlhintrc); Scala formatting lives in [`.scalafmt.conf`](../.scalafmt.conf). When this guide and a
 config disagree, the config wins — fix the config and this doc together. **The linters are all blocking CI gates** —
 ESLint (JS + translation JSON), Stylelint (CSS), HTMLHint (HTML), cross-locale key parity, the `public/css/` layout
-check, the `frontend/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `scalafmtCheckAll` for
-Scala. The trees are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)),
+check, the `frontend/js/` asset-path check, the JSDoc type check (`make lint-js-types`), and `make scalafmt` for
+Scala (source and build files). The trees are kept fully lint-clean ([#2487](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/2487)),
 so run the relevant linter — or `make lint` for all of them — and get to zero before you push: `make lint-fix`
 autofixes the mechanical JS/CSS findings, hand-fix the rest. CI wiring is in [`docs/testing-and-ci.md`](testing-and-ci.md).
 
@@ -236,8 +236,8 @@ refactor touching nearly every source line of those apps. Don't "fix" the mismat
 
 ## Scala
 
-Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run it before pushing (`scalafmtCheckAll`
-is a blocking CI gate). Conventions scalafmt doesn't cover:
+Formatting is handled by **scalafmt** ([`.scalafmt.conf`](../.scalafmt.conf)) — run `make scalafmt-fix` before
+pushing (`make scalafmt` is a blocking CI gate). Conventions scalafmt doesn't cover:
 
 - **Follow the request flow** `routes → Controller → Service → Table (DAO)`; keep controllers thin and put business
   logic in services. (See [`CLAUDE.md`](../CLAUDE.md) / [`docs/architecture.md`](architecture.md).)
