@@ -84,6 +84,7 @@ describe('KeyboardManager image adjustments scope', () => {
             imageAdjustmentsPopover: { isOpen: () => panelOpen },
             labelVisibilityControl: {
                 hideLabelCard: jest.fn(),
+                isCardHeldOpen: () => false,
                 toggleLabelCard: jest.fn(),
                 isCardVisible: () => true,
                 isVisible: () => true,
