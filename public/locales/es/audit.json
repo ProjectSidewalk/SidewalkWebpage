@@ -377,5 +377,13 @@
     "label-on-image-title-incorrect": "Error común",
     "label-on-image-description-correct": "Coloque una etiqueta",
     "label-on-image-description-incorrect": "<b>No</b> coloque la etiqueta"
+  },
+  "small-screen": {
+    "rotate-title": "Gira tu teléfono para etiquetar",
+    "rotate-body": "Para etiquetar se necesita una vista amplia de la calle. También puedes validar etiquetas con tu teléfono en cualquier orientación.",
+    "notice-title": "Etiquetar funciona mejor en una pantalla más grande",
+    "notice-body": "Si puedes, usa una tableta o una computadora. También puedes validar etiquetas en tu teléfono.",
+    "continue": "Continuar de todos modos",
+    "validate": "Validar etiquetas"
   }
 }

@@ -377,5 +377,13 @@
     "label-on-image-title-incorrect": "Erro comum",
     "label-on-image-description-correct": "Coloque um rótulo",
     "label-on-image-description-incorrect": "<b>Não</b> coloque rótulo"
+  },
+  "small-screen": {
+    "rotate-title": "Gire o celular para rotular",
+    "rotate-body": "Rotular exige uma visão ampla da rua. Você também pode validar rótulos no celular em qualquer orientação.",
+    "notice-title": "Rotular funciona melhor em uma tela maior",
+    "notice-body": "Se puder, use um tablet ou computador. Você também pode validar rótulos no celular.",
+    "continue": "Continuar mesmo assim",
+    "validate": "Validar rótulos"
   }
 }

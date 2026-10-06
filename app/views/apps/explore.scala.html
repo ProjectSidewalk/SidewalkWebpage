@@ -103,6 +103,23 @@
     </div>
   </dialog>
 
+  @* Shown instead of the tool on a touch screen too small to label on (#5664); SmallScreenGate.js picks the panel. *@
+  <section id="explore-small-screen" class="explore-small-screen" hidden>
+    <div id="explore-rotate-prompt" class="explore-small-screen__panel" hidden>
+      <h1 class="explore-small-screen__title" tabindex="-1" data-i18n="audit:small-screen.rotate-title">Turn your phone sideways to label</h1>
+      <p data-i18n="audit:small-screen.rotate-body">Labeling needs a wide view of the street. You can also validate labels with your phone in either direction.</p>
+      <a class="button button--primary button--large" href="@routes.ValidateController.validate()" data-i18n="audit:small-screen.validate">Validate labels instead</a>
+    </div>
+    <div id="explore-small-screen-notice" class="explore-small-screen__panel" hidden>
+      <h1 class="explore-small-screen__title" tabindex="-1" data-i18n="audit:small-screen.notice-title">Labeling works best on a larger screen</h1>
+      <p data-i18n="audit:small-screen.notice-body">Try a tablet or computer if you have one. You can also validate labels on your phone.</p>
+      <div class="explore-small-screen__actions">
+        <button type="button" id="explore-small-screen-continue" class="button button--primary button--large" data-i18n="audit:small-screen.continue">Continue anyway</button>
+        <a class="button button--secondary button--large" href="@routes.ValidateController.validate()" data-i18n="audit:small-screen.validate">Validate labels instead</a>
+      </div>
+    </div>
+  </section>
+
   <div class="tool-ui ps-invisible">
     <div id="area-completion-overlay-wrapper">
       <div class="overlay-text">

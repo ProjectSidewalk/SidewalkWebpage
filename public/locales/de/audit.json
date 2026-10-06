@@ -377,5 +377,13 @@
     "label-on-image-title-incorrect": "Häufiger Fehler",
     "label-on-image-description-correct": "Fügen Sie eine Beschriftung hinzu",
     "label-on-image-description-incorrect": "Fügen Sie <b>keine</b> Beschriftung hinzu"
+  },
+  "small-screen": {
+    "rotate-title": "Drehen Sie Ihr Telefon quer, um Beschriftungen zu setzen",
+    "rotate-body": "Zum Beschriften brauchen Sie einen breiten Blick auf die Straße. Beschriftungen validieren können Sie mit Ihrem Telefon in jeder Ausrichtung.",
+    "notice-title": "Beschriften funktioniert am besten auf einem größeren Bildschirm",
+    "notice-body": "Nutzen Sie nach Möglichkeit ein Tablet oder einen Computer. Beschriftungen validieren können Sie auch auf Ihrem Telefon.",
+    "continue": "Trotzdem fortfahren",
+    "validate": "Stattdessen Beschriftungen validieren"
   }
 }

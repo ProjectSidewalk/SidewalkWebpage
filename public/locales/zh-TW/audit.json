@@ -376,5 +376,13 @@
     "label-on-image-title-incorrect": "$t(audit:mission-start-tutorial.example-type-label-incorrect)",
     "label-on-image-description-correct": "應設置標籤",
     "label-on-image-description-incorrect": "<b>不要</b>設置標籤"
+  },
+  "small-screen": {
+    "rotate-title": "請將手機橫放以進行標記",
+    "rotate-body": "標記需要寬廣的街景視野。您也可以用手機以任何方向驗證標籤。",
+    "notice-title": "在較大的螢幕上標記效果最佳",
+    "notice-body": "如有平板或電腦，建議改用。您也可以在手機上驗證標籤。",
+    "continue": "仍要繼續",
+    "validate": "改為驗證標籤"
   }
 }

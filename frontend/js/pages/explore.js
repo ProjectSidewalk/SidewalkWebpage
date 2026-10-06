@@ -3,6 +3,7 @@
 import { loadPageSession } from '../common/pageSession.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
 import { Main } from '../explore/Main.js';
+import { smallScreenGate, waitForLabelableScreen } from '../explore/SmallScreenGate.js';
 import '../explore/detectUnsupportedBrowser.js';
 import { svl } from '../explore/svl.js';
 import { util } from '../common/utilities.js';
@@ -56,13 +57,16 @@ mainParam.viewerType = viewerClassFor(mainParam.imagerySource);
 
 // The task, mission, region and route this visit opens on, resolved from the same query string the page was asked
 // for (a route, a region, a street, an address, a live URL's pano seed). Started before the app's own setup so the
-// two overlap (#5650).
-const session = loadPageSession(`${mainParam.sessionUrl}${window.location.search}`);
+// two overlap (#5650), except behind the small-screen gate (#5664), where the visitor may never label and so must not
+// open a task.
+const loadSession = () => loadPageSession(`${mainParam.sessionUrl}${window.location.search}`);
+const earlySession = smallScreenGate() ? null : loadSession();
 
 // Console and e2e handle; the app reaches the registry by import.
 window.svl = svl;
 window.appManager.ready(async () => {
-  const exploreSession = await session;
+  await waitForLabelableScreen();
+  const exploreSession = await (earlySession ?? loadSession());
   if (!exploreSession.task) {
     // The user has finished their assigned region, so there is nothing to explore until they pick a new one.
     document.querySelectorAll('.tool-ui').forEach((el) => el.classList.remove('ps-invisible'));

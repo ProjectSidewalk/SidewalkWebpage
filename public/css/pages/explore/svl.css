@@ -261,3 +261,41 @@ input[type="radio"] {
   margin-top: calc(4.5px * var(--ui-scale));
   height: calc(16px * var(--ui-scale));
 }
+
+/* Shown instead of the tool on a touch screen too small to label on (#5664, SmallScreenGate.js). A phone-sized page,
+   so sizes are plain px rather than tool-UI --ui-scale: the tool's scale is never computed when this shows. */
+.explore-small-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100dvh - var(--navbar-height));
+  padding: var(--space-xl) var(--space-lg);
+  box-sizing: border-box;
+}
+
+.explore-small-screen[hidden] {
+  display: none;
+}
+
+.explore-small-screen__panel {
+  max-width: 420px;
+  text-align: center;
+  color: var(--color-neutral-900);
+  font: var(--text-body-regular);
+}
+
+.explore-small-screen__title {
+  margin: 0 0 var(--space-md);
+  font: var(--text-h2-bold);
+}
+
+.explore-small-screen__title:focus {
+  outline: none;
+}
+
+.explore-small-screen__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}

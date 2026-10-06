@@ -384,6 +384,28 @@ util.inputProfile = () => ({
  */
 util.isTouchPrimary = () => util.inputProfile().coarse;
 
+// The shorter window edge, in CSS px, below which a touch screen is too small to label on (#5664). Phones top out
+// around 430–480 on the short side; the smallest tablets (8-inch Android, iPad mini at 744) start at 600. One constant,
+// so slice 1's touch telemetry can retune it in one place.
+util.SMALL_TOUCH_SHORT_SIDE = 600;
+
+/**
+ * Whether this is a touch-primary screen too small to label on, judged by shape and size rather than device class
+ * (#5664: there is no phone/tablet concept in the code). A large phone in landscape and a small tablet differ only in
+ * these numbers.
+ * @returns {boolean}
+ */
+util.isSmallTouchScreen = () => {
+  const profile = util.inputProfile();
+  return profile.coarse && profile.shortSide < util.SMALL_TOUCH_SHORT_SIDE;
+};
+
+/**
+ * Whether this is a small touch screen held upright, where the pano would be too narrow to label at all (#5664).
+ * @returns {boolean}
+ */
+util.isPortraitSmallTouch = () => util.isSmallTouchScreen() && window.innerHeight > window.innerWidth;
+
 // Whether distances on this page are shown in kilometers and meters rather than miles and feet. The server resolves
 // it (ControllerUtils.measurementSystem: the user's Settings override if they set one, else the site language's
 // default) and main.scala.html stamps the answer on <html>, so client and server can't disagree about units the way

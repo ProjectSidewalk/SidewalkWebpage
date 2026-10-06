@@ -377,5 +377,13 @@
     "label-on-image-title-incorrect": "Veel voorkomende fout",
     "label-on-image-description-correct": "Plaats een etiket",
     "label-on-image-description-incorrect": "Plaats <b>geen</b> label"
+  },
+  "small-screen": {
+    "rotate-title": "Draai uw telefoon om te labelen",
+    "rotate-body": "Om te labelen heeft u een breed beeld van de straat nodig. U kunt ook labels valideren met uw telefoon, in elke richting.",
+    "notice-title": "Labelen werkt het best op een groter scherm",
+    "notice-body": "Gebruik een tablet of computer als u die heeft. U kunt ook labels valideren op uw telefoon.",
+    "continue": "Toch doorgaan",
+    "validate": "Labels valideren"
   }
 }
