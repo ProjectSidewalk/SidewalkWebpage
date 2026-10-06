@@ -276,3 +276,22 @@
 .explore-labeling .ps-toast[data-anchor="pano"] .ps-toast__button {
   pointer-events: auto;
 }
+
+/* Touch input over the pano (#5664). The two interaction layers own every gesture over the imagery: the tool pans,
+   pinches and places labels itself (PointerInput), so the browser must not scroll, zoom or pan on their behalf, or it
+   would cancel the pointer mid-drag. The context menu is not inside this element, so its tag list can still scroll. */
+#user-control-layer {
+  touch-action: none;
+}
+
+/* A long press over the pano would otherwise raise iOS's callout and text-selection loupe. */
+.window-streetview {
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+/* Elsewhere in the tool a quick double tap (two fast label placements, or a button tapped twice) must not zoom the
+   page. Pinch-zooming the page stays available (WCAG 1.4.4). */
+.tool-ui {
+  touch-action: manipulation;
+}

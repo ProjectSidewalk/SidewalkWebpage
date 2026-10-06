@@ -47,8 +47,10 @@ export class ContextMenu {
     this.#tagHolder = uiContextMenu.tagHolder;
     this.#initShareWidget();
 
-    document.addEventListener('mousedown', (e) => this.#handleMouseDown(e));
-    this.#menuWindow.addEventListener('mousedown', (e) => this.#handleMenuWindowMouseDown(e));
+    // pointerdown, not mousedown: a tap on the pano cancels its own pointerdown so the browser replays no mouse events
+    // from it (PointerInput), and that tap must still close the menu.
+    document.addEventListener('pointerdown', (e) => this.#handleMouseDown(e));
+    this.#menuWindow.addEventListener('pointerdown', (e) => this.#handleMenuWindowMouseDown(e));
     for (const radio of this.#severityRadios) radio.addEventListener('change', (e) => this.#handleSeverityChange(e));
     this.#descriptionTextBox.addEventListener('change', (e) => this.#handleDescriptionTextBoxChange(e));
     this.#descriptionTextBox.addEventListener('focus', () => this.#handleDescriptionTextBoxFocus());
@@ -84,7 +86,7 @@ export class ContextMenu {
   }
 
   /**
-   * Combined with the document mousedown listener, closes the context menu window when the user clicks somewhere
+   * Combined with the document pointerdown listener, closes the context menu window when the user clicks somewhere
    * outside the context menu window.
    * @param {Event} e
    */

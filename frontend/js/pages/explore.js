@@ -15,7 +15,6 @@ util.onDomReady(() => {
     const el = e.target instanceof Element ? e.target : /** @type {Node} */ (e.target).parentElement;
     return Boolean(el?.closest('.audit-selectable'));
   };
-  enableTouchSupport();
 
   // Region Completion Overlay
   document.getElementById('continue-current').addEventListener('click', () => {
@@ -29,26 +28,6 @@ util.onDomReady(() => {
     window.location.href = '/explore';
   });
 });
-
-/** Replays touches as mouse events, so the tool's mouse handlers work on a touch screen. */
-function enableTouchSupport() {
-  const mouseTypeForTouch = { touchstart: 'mousedown', touchmove: 'mousemove', touchend: 'mouseup' };
-  for (const touchType of Object.keys(mouseTypeForTouch)) {
-    document.addEventListener(touchType, (event) => {
-      const first = /** @type {TouchEvent} */ (event).changedTouches[0];
-      first.target.dispatchEvent(new MouseEvent(mouseTypeForTouch[touchType], {
-        screenX: first.screenX,
-        screenY: first.screenY,
-        clientX: first.clientX,
-        clientY: first.clientY,
-      }));
-    });
-  }
-  // Not passive: this is what stops a drag on the pano from scrolling the page.
-  document.getElementById('interaction-area-holder').addEventListener('touchmove', (event) => {
-    event.preventDefault();
-  }, { passive: false });
-}
 
 // The page's session scalars, written into the page as JSON by explore.scala.html.
 const mainParam = JSON.parse(document.getElementById('page-data').textContent);

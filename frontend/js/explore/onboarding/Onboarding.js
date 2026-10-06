@@ -1126,7 +1126,7 @@ export class Onboarding {
       this.#ribbon.enableMode('Walk');
 
       // Disable only when the user places the label
-      this.#uiCanvas.drawingLayer.addEventListener('mousedown', this.#mouseDownCanvasDrawingHandler);
+      this.#uiCanvas.drawingLayer.addEventListener('pointerdown', this.#mouseDownCanvasDrawingHandler);
 
       this.#ribbon.stopBlinking();
       document.removeEventListener(`ModeSwitch_${labelType}`, callback);
@@ -1220,7 +1220,7 @@ export class Onboarding {
         // Disable labeling mode.
         this.#ribbon.disableMode(label.getLabelType());
         this.#ribbon.enableMode('Walk');
-        this.#uiCanvas.drawingLayer.removeEventListener('mousedown', this.#mouseDownCanvasDrawingHandler);
+        this.#uiCanvas.drawingLayer.removeEventListener('pointerdown', this.#mouseDownCanvasDrawingHandler);
 
         this.#transitionTo(transition[0], { accurate: true });
       } else {

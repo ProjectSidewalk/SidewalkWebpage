@@ -527,8 +527,8 @@ util.localIsoDate = function (date) {
 };
 
 /**
- * Where a mouse event landed, in whole pixels from the element's top-left corner.
- * @param {MouseEvent} e
+ * Where a mouse event (or any viewport point) landed, in whole pixels from the element's top-left corner.
+ * @param {{clientX: number, clientY: number}} e - A MouseEvent, PointerEvent, or a bare viewport point.
  * @param {Element|EventTarget} dom - Usually the event's currentTarget.
  * @returns {{x: number, y: number}}
  */
