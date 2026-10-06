@@ -199,6 +199,10 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         expect(markerEl().classList.contains('label-marker--arriving')).toBe(true);
         jest.advanceTimersByTime(1);
         expect(markerEl().classList.contains('label-marker--arriving')).toBe(false);
+        // The slower arrival fade runs, then hands the Hide toggle its own pace back.
+        expect(markerEl().classList.contains('label-marker--arrival-fade')).toBe(true);
+        jest.advanceTimersByTime(1200);
+        expect(markerEl().classList.contains('label-marker--arrival-fade')).toBe(false);
         jest.useRealTimers();
     });
 

@@ -2023,7 +2023,11 @@ kbd {
 /* A label marker on a panorama (PanoMarker). The type icon is drawn by ::before from --label-icon rather than as
    the element's own background, so hiding the label can fade the icon independently of the ring around it. */
 .label-marker {
-  transition: border-color 0.5s ease, outline-color 0.5s ease, outline-width 0.5s ease;
+  /* The fade between shown and hidden. Validate slows it for a new label's arrival (PanoManager, #5580). */
+  --label-marker-fade: 0.5s;
+
+  transition: border-color var(--label-marker-fade) ease, outline-color var(--label-marker-fade) ease,
+    outline-width var(--label-marker-fade) ease;
 }
 
 .label-marker::before {
@@ -2033,12 +2037,12 @@ kbd {
   border-radius: 50%;
   background-image: var(--label-icon);
   background-size: 100% 100%;
-  transition: opacity 0.5s ease;
+  transition: opacity var(--label-marker-fade) ease;
 }
 
 /* Hidden state, from the Hide-label toggle on Validate and on the label detail card (#2477). Validate also shows a
-   newly arrived label this way for a beat before its icon fades in (--arriving, PanoManager, #5580); --instant enters
-   either state without the fade. */
+   newly arrived label this way for a beat before its icon fades in, more slowly than the toggle's (--arriving,
+   PanoManager, #5580); --instant enters either state without the fade. */
 .label-marker--hidden::before,
 .label-marker--arriving::before {
   opacity: 0;
@@ -2047,6 +2051,11 @@ kbd {
 .label-marker--instant,
 .label-marker--instant::before {
   transition: none;
+}
+
+/* Set from leaving --arriving until the slower fade has run, then dropped so the toggle fades at its own pace. */
+.label-marker--arrival-fade {
+  --label-marker-fade: 1.2s;
 }
 
 .label-marker--hidden,
