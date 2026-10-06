@@ -52,7 +52,7 @@ export class ValidationMenu {
       svv.tracker.push(e.isTrusted ? 'ValidationButtonClick_Agree' : 'ValidationKeyboardShortcut_Agree');
       this.#setYesView();
       svv.labelContainer.getCurrentLabel().setProperty('validationResult', 'Agree');
-      if (this.#quickAgree) this.#validateLabel('Agree', !e.isTrusted);
+      if (this.#quickAgree) this.#validateLabel('Agree', !e.isTrusted, menuUI.yesButton);
     });
     menuUI.noButton.addEventListener('click', (e) => {
       if (svv.labelContainer.dropInputWhileLoading('Disagree')) return;
@@ -203,7 +203,8 @@ export class ValidationMenu {
     // Add onclick for submit button.
     menuUI.submitButton.addEventListener('click', (e) => {
       if (menuUI.submitButton.disabled) return;
-      this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), !e.isTrusted);
+      this.#validateLabel(svv.labelContainer.getCurrentLabel().getProperty('validationResult'), !e.isTrusted,
+        menuUI.submitButton);
     });
   }
 
@@ -775,8 +776,9 @@ export class ValidationMenu {
    * Validates a single label from a button click.
    * @param {string} action - Validation action - must be one of Agree, Disagree, or Unsure.
    * @param {boolean} keyboardShortcut - Whether or not the validation was triggered by a keyboard shortcut.
+   * @param {HTMLElement} pressed - The button that submitted it, which the verdict's thumb floats off.
    */
-  #validateLabel(action, keyboardShortcut) {
+  #validateLabel(action, keyboardShortcut, pressed) {
     // Everything below writes to whatever getCurrentLabel() returns, which mid-load is already the next label (#5211).
     if (svv.labelContainer.dropInputWhileLoading(`Submit=${action}`)) return;
 
@@ -814,7 +816,7 @@ export class ValidationMenu {
     // reasoning). Double-tap protection swallows the rest without a trace on screen, so the log is where it shows.
     const sinceMs = timestamp.getTime() - svv.labelContainer.getProperty('renderedTimestamp');
     if (sinceMs > LabelContainer.VERDICT_GRACE_MS) {
-      if (this.#quickAgree) ValidationMenu.#floatVerdict(action);
+      if (this.#quickAgree) ValidationMenu.#floatVerdict(action, pressed);
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
     } else {
       svv.tracker.push('ValidateInputDropped_Debounce', { source: `Submit=${action}`, sinceMs });
@@ -822,15 +824,18 @@ export class ValidationMenu {
   }
 
   /**
-   * Sends the verdict's own thumb floating up off the button that cast it, confirming the tap where the thumb already
-   * is. The icon is cloned from the button so the two can never drift apart, and it takes itself off the page when
-   * the animation ends. Nothing happens for a visitor who asked for less motion — the button's chosen state, which
-   * they keep, already says what was picked. Touch only (quickAgree): a mouse user's Submit is a separate button,
-   * and the thumb would rise off a verdict button the pointer isn't on.
+   * Sends the verdict's own thumb floating up off the button that submitted it, confirming the tap where the finger
+   * already is: Agree's own button for a one-tap Agree, Submit for a verdict with reasons. Not off the verdict
+   * button in that second case: with the dock open it sits mid-screen, right where the next label's marker arrives,
+   * so the thumb read as a verdict cast on the new label (#5580). The icon is cloned from the verdict button so the
+   * two can never drift apart, and it takes itself off the page when the animation ends. Nothing happens for a
+   * visitor who asked for less motion — the button's chosen state, which they keep, already says what was picked.
+   * Touch only (quickAgree).
    *
    * @param {string} action - The verdict cast: 'Agree', 'Disagree', or 'Unsure'.
+   * @param {HTMLElement} pressed - The button that submitted it, where the thumb starts.
    */
-  static #floatVerdict(action) {
+  static #floatVerdict(action, pressed) {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const buttonIds = {
       Agree: 'validate-yes-button', Disagree: 'validate-no-button', Unsure: 'validate-unsure-button',
@@ -844,7 +849,7 @@ export class ValidationMenu {
 
     const floater = /** @type {HTMLElement} */ (icon.cloneNode());
     floater.className = 'validate-verdict-float';
-    const box = button.getBoundingClientRect();
+    const box = pressed.getBoundingClientRect();
     floater.style.left = `${box.left + box.width / 2}px`;
     floater.style.top = `${box.top}px`;
     floater.addEventListener('animationend', () => floater.remove());

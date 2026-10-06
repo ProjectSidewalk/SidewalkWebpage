@@ -159,11 +159,17 @@ describe('ValidationMenu quickAgree', () => {
     expect(floats[0].getAttribute('src')).toBe('/t.svg');
   });
 
-  it('floats the Disagree thumb too, once its Submit counts', () => {
+  it('floats the Disagree thumb off Submit, the button pressed, not off the mid-screen No (#5580)', () => {
     build({ quickAgree: true });
+    byId('validate-no-button').getBoundingClientRect = () => ({ left: 100, top: 400, width: 80, height: 44 });
+    byId('validate-submit-button').getBoundingClientRect = () => ({ left: 260, top: 780, width: 110, height: 44 });
     byId('validate-no-button').click();
     byId('validate-submit-button').click();
-    expect(document.querySelectorAll('.validate-verdict-float')).toHaveLength(1);
+
+    const floats = document.querySelectorAll('.validate-verdict-float');
+    expect(floats).toHaveLength(1);
+    expect(floats[0].style.left).toBe('315px');
+    expect(floats[0].style.top).toBe('780px');
   });
 
   it('never floats for a mouse', () => {
