@@ -3,6 +3,7 @@
  */
 
 import { svv } from '../svv.js';
+import { ValidateLayout } from '../util/ValidateLayout.js';
 import { BadgeAchievements } from '../../common/BadgeAchievements.js';
 import { Confetti } from '../../common/Confetti.js';
 import { MissionStartTutorial } from '../../common/MissionStartTutorial.js';
@@ -35,10 +36,12 @@ export class ModalMissionComplete {
     if (button === 'primary' && svv.missionsCompleted % 3 === 0 && !util.isMobile()) {
       window.location.replace('/explore');
     } else {
-      // If there is a new validate mission available, show the mission screens. Desktop only: the phone's briefing is
-      // ModalMission's carousel, and this tutorial's markup isn't on that page.
+      // If there is a new validate mission available, show the mission screens. Not on a phone-sized window: the
+      // compact briefing is ModalMission's own, this tutorial's overlay can't shrink to a phone, and /mobile lacks
+      // its markup.
       const newMission = svv.missionContainer.getCurrentMission();
-      if (!svv.legacyMobile && newMission && newMission.getProperty('missionType') === 'validation') {
+      const briefable = !svv.legacyMobile && !ValidateLayout.isCompact();
+      if (briefable && newMission && newMission.getProperty('missionType') === 'validation') {
         new MissionStartTutorial(
           'validate', newMission.getProperty('labelType'),
           { nLabels: newMission.getProperty('labelsValidated') }, svv, this.#language,

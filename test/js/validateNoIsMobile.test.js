@@ -3,7 +3,7 @@
  *
  * `util.isMobile()` is the server's user-agent verdict, and a phone can reach /validate, so in Validate it answers
  * neither question the code actually asks. Which page this is reads `svv.legacyMobile`; which controls to build reads
- * `svv.touchControls`; which layout is showing reads `Main.isNarrowLayout()`. A new call would quietly reintroduce
+ * `svv.touchControls`; which layout is showing reads `ValidateLayout.isNarrow()`. A new call would quietly reintroduce
  * the user-agent fork this issue removes, so any one outside the allow-list fails here.
  *
  * The allow-list is the one honest device-class gate: offering Explore exactly when the server would serve it rather

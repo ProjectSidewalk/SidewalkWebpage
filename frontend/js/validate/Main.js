@@ -33,6 +33,7 @@ import { AdminInfo } from './status/AdminInfo.js';
 import { StatusField } from './status/StatusField.js';
 import { defineValidateConstants } from './util/ConstantsValidate.js';
 import { MissionLiveMarker } from './util/MissionLiveMarker.js';
+import { ValidateLayout } from './util/ValidateLayout.js';
 import { PinchZoomDetector } from './zoom/PinchZoomDetector.js';
 import { ZoomControl } from './zoom/ZoomControl.js';
 import './util/throttle.js';
@@ -65,13 +66,6 @@ export class Main {
   // settles. Coalescing at about a frame's worth keeps the pano tracking the screen without doing it every event.
   // Desktop, which rescales on every event, uses the same span as the quiet period before it logs Window_Resized.
   static #RESIZE_THROTTLE_MS = 150;
-
-  // The breakpoints of the unified phone layout (#5580). CSS keyed on the same layouts must use these exact queries,
-  // or JS and CSS disagree about which layout is showing. Narrow is phone portrait, the width main.css already drops
-  // the test-server banner at; short is phone landscape.
-  // A tablet matches neither and keeps the wide layout, with touch controls from (pointer: coarse) alone.
-  static NARROW_LAYOUT_QUERY = '(width <= 600px)';
-  static SHORT_LAYOUT_QUERY = '(height <= 500px)';
 
   #param;
 
@@ -257,12 +251,16 @@ export class Main {
     // classes on the body when the viewer measures its container. Not on /mobile: that page is already full-bleed.
     // Expert Validate keeps the boxed layout for now (the view omits the toggle there too): its edit sections have
     // no immersive placement yet, so the mode is off limits rather than half-designed.
+    // On a phone-sized window, either way up, the boxed layout has no room to exist, so immersive is the layout there
+    // rather than a choice (#5580): forced on, toggle hidden, and handed back to the user's own choice if the window
+    // grows past it.
     if (!svv.legacyMobile) {
       svv.immersiveMode = new ImmersiveMode({
         tracker: svv.tracker,
         bodyClass: 'svv-immersive',
         relayout: () => Main.relayout(),
         isDisabled: () => svv.adminVersion,
+        forced: () => ValidateLayout.isCompact(),
         // The label card is anchored against the marker, which the relayout moves; it reopens on the next hover.
         beforeToggle: () => svv.labelVisibilityControl?.hideLabelCard(),
         frame: () => ({ width: svv.canvasWidth(), height: svv.canvasHeight() }),
@@ -329,7 +327,11 @@ export class Main {
       svv.imageAdjustments.onChange(() =>
         svv.panoControlMenu.setCollapsedIndicator(!svv.imageAdjustments.isDefault()));
 
-      new MissionStartTutorial('validate', labelType, { nLabels: mission.labels_validated }, svv, param.language);
+      // Its overlay is laid out for a 1095px reference and can't shrink to a phone; the compact layout's briefing is
+      // ModalMission's own screen instead.
+      if (!ValidateLayout.isCompact()) {
+        new MissionStartTutorial('validate', labelType, { nLabels: mission.labels_validated }, svv, param.language);
+      }
     }
 
     // Now that mission start tutorial has loaded, can unhide the UI under it and remove the loading icon.
@@ -344,7 +346,14 @@ export class Main {
     // instead fills the screen via PanoManager's own sizing.
     if (!svv.legacyMobile) {
       Main.applyValidateScale();
-      window.addEventListener('resize', Main.createDesktopResizeHandler());
+      window.addEventListener('resize', Main.createResizeHandler());
+      // Crossing a phone-size breakpoint (a window dragged small, or grown back) forces immersive on or hands it
+      // back. The resize handler relays out as well; this runs only when the layout itself changed.
+      for (const query of [ValidateLayout.NARROW_QUERY, ValidateLayout.SHORT_QUERY]) {
+        window.matchMedia(query).addEventListener('change', () => {
+          if (svv.immersiveMode?.refreshForced()) Main.relayout();
+        });
+      }
     } else {
       // The pano is sized to the viewport, so a rotation (or an on-screen keyboard opening) leaves it the wrong
       // shape. Re-size it in place: a reload would be the only alternative, and it would cost the validator their
@@ -481,30 +490,20 @@ export class Main {
    */
   static applyValidateScale() {
     // Immersive mode (#5560) sizes the pano with CSS and floats the controls over it, so the scale fits only the
-    // pano's own footprint into the whole window, with no page margins to keep clear of, as Explore's does.
+    // pano's own footprint into the whole window, with no page margins to keep clear of, as Explore's does. On a
+    // phone-sized window the controls are laid out for the window itself (svv-immersive.css's compact blocks), so
+    // they keep their authored sizes: a fit to the desktop footprint would shrink them to an unusable 0.65 (#5580).
     const immersive = svv.immersiveMode?.isActive() ?? false;
+    let fit = {};
+    if (immersive) fit = ValidateLayout.isCompact() ? { scale: 1 } : { maxScale: 3, hMargin: 0, bottomReserve: 0 };
     const scale = util.applyToolScale(
       immersive ? ['--pano-base-width'] : ['--pano-base-width', '--menu-base-gap', '--menu-base-width'],
       ['--header-base-height', '--pano-base-height'],
-      immersive ? { maxScale: 3, hMargin: 0, bottomReserve: 0 } : {},
+      fit,
     );
     svv.panoManager.setMarkerScale(scale);
     svv.panoViewer.resize();
     svv.panoViewer.repaint();
-  }
-
-  /**
-   * @returns {boolean} Whether the window is phone-portrait narrow (NARROW_LAYOUT_QUERY). Live: re-read per call.
-   */
-  static isNarrowLayout() {
-    return window.matchMedia(Main.NARROW_LAYOUT_QUERY).matches;
-  }
-
-  /**
-   * @returns {boolean} Whether the window is phone-landscape short (SHORT_LAYOUT_QUERY). Live: re-read per call.
-   */
-  static isShortLayout() {
-    return window.matchMedia(Main.SHORT_LAYOUT_QUERY).matches;
   }
 
   /**
@@ -520,23 +519,37 @@ export class Main {
   }
 
   /**
-   * Builds the desktop `resize` listener: re-scale the tool, and record that the viewport changed shape.
+   * Builds the `resize` listener: re-scale the tool, and record that the viewport changed shape.
    *
    * The logging lives here rather than in applyValidateScale() because that also runs at startup, where nothing was
    * resized — a `Window_Resized` then would read as a user action that never happened. Logged on the settled size,
-   * once the events have stopped for a window, rather than throttled like mobile's: a throttle keeps emitting for as
-   * long as a drag lasts, and a drag is one act, so it gets one line carrying the size that stuck.
+   * once the events have stopped for a window, rather than throttled: a throttle keeps emitting for as long as a drag
+   * lasts, and a drag (or a rotation settling over several events) is one act, so it gets one line carrying the size
+   * that stuck, and whether it turned the screen.
+   *
+   * A pinch fires resize on iOS but only moves the *visual* viewport: the layout is the shape it always was, so an
+   * event that leaves the layout viewport's size alone is skipped rather than relaid out.
    * @returns {() => void} The listener to attach to the window's `resize` event.
    */
-  static createDesktopResizeHandler() {
+  static createResizeHandler() {
+    const size = () => ({
+      width: document.documentElement.clientWidth, height: document.documentElement.clientHeight,
+    });
+    let laidOut = size();
+    let logged = laidOut;
     let logTimer;
     return () => {
+      const now = size();
+      if (now.width === laidOut.width && now.height === laidOut.height) return;
+      laidOut = now;
       Main.applyValidateScale();
       clearTimeout(logTimer);
       logTimer = setTimeout(() => {
+        const { width, height } = size();
+        const rotated = (width > height) !== (logged.width > logged.height);
+        logged = { width, height };
         svv.tracker.push('Window_Resized', {
-          width: document.documentElement.clientWidth,
-          height: document.documentElement.clientHeight,
+          width, height, orientation: width > height ? 'landscape' : 'portrait', rotated,
         });
       }, Main.#RESIZE_THROTTLE_MS);
     };

@@ -22,11 +22,14 @@
  * that renders no panorama at all is the #4810 failure either way.
  *
  * /mobile is the same tool under a phone UA (the server redirects a desktop one to /), loaded in both
- * orientations with the layout viewport pinned to the device width (#4891).
+ * orientations with the layout viewport pinned to the device width (#4891). /validate?layout=immersive is the
+ * responsive page that replaces it, under the same phone (#5580): forced immersive, touch-sized, no overflow.
  *
  * Both are landing-state checks: the page reaches its ready state and the console, no pano interaction.
  */
-const {test, expect, stubMapbox, serveAnyPano, waitForAppReady, PHONE_DEVICE} = require('./fixtures');
+const {
+  test, expect, stubMapbox, serveAnyPano, waitForAppReady, horizontalOverflowReport, PHONE_DEVICE,
+} = require('./fixtures');
 
 test('/explore loads the tutorial without console errors', async ({page, context, consoleErrors}) => {
   // Explore's mission-complete map is Mapbox, built at init — stubbed like every other map page.
@@ -200,6 +203,50 @@ test.describe('/mobile', () => {
 
     test('loads in landscape without console errors', async ({page, consoleErrors}) => {
       await loadMobileValidate(page, consoleErrors, 844);
+    });
+  });
+});
+
+test.describe('/validate on a phone (#5580)', () => {
+  test.use(PHONE_DEVICE);
+
+  /**
+   * Loads the unified page under the phone profile (`?layout=immersive` stops the server redirecting it to /mobile)
+   * and asserts the phone layout: immersive is forced with no toggle to leave it, the controls are touch-sized, and
+   * nothing overflows the window.
+   * @param {import('@playwright/test').Page} page The page under test.
+   * @param {string[]} consoleErrors The collected uncaught/console errors, asserted empty.
+   */
+  async function checkPhoneValidate(page, consoleErrors) {
+    const path = '/validate?layout=immersive';
+    const onMission = await loadValidate(page, path);
+    expect(consoleErrors).toEqual([]);
+
+    await expect(page.locator('body')).toHaveClass(/svv-immersive/);
+    await expect(page.locator('html')).toHaveClass(/chromeless/);
+    await expect(page.locator('#immersive-toggle-holder')).toBeHidden();
+    expect(await page.evaluate(() => window.svv.touchControls)).toBe(true);
+
+    const report = await horizontalOverflowReport(page);
+    expect(report.offenders, `${report.offenderCount} element(s) overflow the ${report.viewportWidth}px viewport`)
+      .toEqual([]);
+
+    if (!onMission) return;
+    await expectPanoRendered(page, path, 'pannellum');
+    for (const button of await page.locator('#validation-button-holder .validate-page-button').all()) {
+      expect((await button.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    }
+  }
+
+  test('portrait: forced immersive, touch-sized, no overflow', async ({page, consoleErrors}) => {
+    await checkPhoneValidate(page, consoleErrors);
+  });
+
+  test.describe('held sideways', () => {
+    test.use({viewport: {width: 844, height: 390}});
+
+    test('landscape: forced immersive, touch-sized, no overflow', async ({page, consoleErrors}) => {
+      await checkPhoneValidate(page, consoleErrors);
     });
   });
 });

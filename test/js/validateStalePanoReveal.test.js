@@ -119,6 +119,8 @@ describe('Validate only paints a viewer canvas once it holds this label\'s pano 
     document.body.innerHTML = '<div id="pano-holder"><div id="svv-panorama"></div></div>';
 
     global.util = {};
+
+    global.ValidateLayout = {isNarrow: () => false}; // jsdom has no matchMedia; the wide layout.
     Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
     global.i18next = { language: 'en' };
@@ -455,6 +457,8 @@ describe('a viewer that paints during a load stays unpainted until it faces the 
     global.requestAnimationFrame = (cb) => { frames.push(cb); return frames.length; };
 
     global.util = {};
+
+    global.ValidateLayout = {isNarrow: () => false}; // jsdom has no matchMedia; the wide layout.
     Object.assign(window, loadModules(THROTTLE_PATH));
     util.isMobile = () => false;
     util.uiScale = () => 1;

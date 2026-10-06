@@ -60,6 +60,8 @@ describe('PanoManager clears the pano when no viewer can render it (issue #4810)
       = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
     global.util = {};
+
+    global.ValidateLayout = {isNarrow: () => false}; // jsdom has no matchMedia; the wide layout.
     // utilities.js builds a Bowser parser at load time; the overrides below replace everything read from it.
     global.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
         getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };
@@ -213,6 +215,8 @@ describe('LabelContainer drops labels it cannot show (issue #4810)', () => {
     });
 
     global.util = {isMobile: () => false, assetPath: assetPathStub};
+
+    global.ValidateLayout = {isNarrow: () => false}; // jsdom has no matchMedia; the wide layout.
     global.i18next = {t: jest.fn((key) => key)};
     // The bundle's Label class; only the accessors LabelContainer and its collaborators touch.
     global.Label = class Label {
@@ -512,6 +516,7 @@ describe('LabelContainer defers a label whose pano is slow rather than dropping 
       return Promise.resolve({ok: true, json: () => Promise.resolve({labels: []})});
     });
     global.util = {isMobile: () => false, assetPath: assetPathStub};
+    global.ValidateLayout = {isNarrow: () => false}; // jsdom has no matchMedia; the wide layout.
     global.i18next = {t: jest.fn((key) => key)};
     global.Label = class Label {
       constructor(params) {

@@ -164,8 +164,11 @@ body.svv-immersive #validate-undo-button {
   font: var(--text-small-regular);
 }
 
-body.svv-immersive #validate-undo-button:hover:not(:disabled) {
-  text-decoration: underline;
+/* Hover-only: a tap leaves :hover stuck on a touch screen until the next tap lands somewhere else. */
+@media (hover: hover) {
+  body.svv-immersive #validate-undo-button:hover:not(:disabled) {
+    text-decoration: underline;
+  }
 }
 
 body.svv-immersive #validate-undo-button:focus-visible {
@@ -228,8 +231,10 @@ body.svv-immersive .validation-reason-button:focus-visible {
   outline-offset: 2px;
 }
 
-body.svv-immersive #validate-verdict-clear:hover {
-  background: rgb(from var(--color-neutral-white) r g b / 15%);
+@media (hover: hover) {
+  body.svv-immersive #validate-verdict-clear:hover {
+    background: rgb(from var(--color-neutral-white) r g b / 15%);
+  }
 }
 
 body.svv-immersive .validate-verdict-clear__icon {
@@ -277,7 +282,8 @@ body.svv-immersive #modal-mission-complete-foreground {
 
 /* The boxed backdrop overshoots its holder to cover the page margins; the holder is now the window. It also has to
    cover the pill, the corner controls and the dock, which float above an unstacked backdrop (z-index 3 and 4). */
-body.svv-immersive .modal-background {
+body.svv-immersive .modal-background,
+body.svv-immersive #modal-mission-background {
   left: 0;
   width: 100%;
   z-index: 5;
@@ -320,4 +326,209 @@ body.svv-immersive #modal-mission-complete-table {
 
 body.svv-immersive .modal-mission-complete-counts {
   width: 100%;
+}
+
+/* ---- Phone-sized windows (#5580) -------------------------------------------------------------------------------
+   Validate on a phone is this layout, forced on (Main.js) wherever the window is too small in either direction for
+   the boxed one. The breakpoints are ValidateLayout's queries (frontend/js/validate/util/ValidateLayout.js); change
+   them together; no --breakpoint-* token matches (600px sits between --breakpoint-xs and -sm), as with main.css's
+   banner rule at the same width. --ui-scale is pinned to 1 here (Main.applyValidateScale), so every
+   calc(N * var(--ui-scale)) reads at its authored size and the --text-* tokens at their native ones. The 44px touch
+   floors are raw px on purpose: a thumb doesn't scale. The reference device is 390x844, with floors
+   checked at 360 and 320; landscape is 844x390. */
+@media (width <= 600px), (height <= 500px) {
+  /* The strip along the bottom edge stays clear: Google's Street View logo sits there and the Maps Platform terms
+     require it visible; the capture date and the Mapillary pill share it. */
+  body.svv-immersive .tool-ui {
+    --svv-bottom-clear: calc(30px * var(--ui-scale) + env(safe-area-inset-bottom));
+  }
+
+  body.svv-immersive #validation-menu-holder {
+    bottom: var(--svv-bottom-clear);
+  }
+
+  /* A pinch zooms the pano, as on /mobile, which has no zoom buttons either. */
+  body.svv-immersive #zoom-buttons-holder {
+    display: none;
+  }
+
+  body.svv-immersive #label-visibility-control-holder {
+    top: calc(8px * var(--ui-scale));
+    left: calc(8px * var(--ui-scale));
+  }
+
+  body.svv-immersive .speed-limit-sign {
+    top: calc(8px * var(--ui-scale));
+    right: calc(8px * var(--ui-scale));
+  }
+
+  /* Desktop panels reaching a phone for the first time. */
+  body.svv-immersive #pano-image-adjustments,
+  body.svv-immersive #pano-info-popover {
+    max-width: calc(100vw - 16px * var(--ui-scale));
+  }
+
+  /* The mission and dead-end screens are sized to the 720px desktop pano; on a phone they take the window instead,
+     scrolling if their content runs long. */
+  body.svv-immersive .modal-foreground {
+    width: calc(100vw - 16px * var(--ui-scale));
+    height: auto;
+    max-height: calc(100dvh - 16px * var(--ui-scale));
+    overflow-y: auto;
+  }
+
+  body.svv-immersive .modal-mission-images {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* Portrait: the corner row along the top, the pill on its own line beneath it, and the dock edge to edge above the
+   logo strip, its height capped below the pill so a long reason list scrolls rather than covers it. */
+@media (width <= 600px) {
+  body.svv-immersive #mission-status {
+    top: calc(60px * var(--ui-scale));
+    left: calc(8px * var(--ui-scale));
+    right: calc(8px * var(--ui-scale));
+    transform: none;
+    max-width: none;
+    justify-content: center;
+  }
+
+  body.svv-immersive #mission-progress-bar-section {
+    width: calc(60px * var(--ui-scale));
+  }
+
+  body.svv-immersive #validation-menu-holder {
+    left: calc(8px * var(--ui-scale));
+    right: calc(8px * var(--ui-scale));
+    transform: none;
+    width: auto;
+    max-height: calc(100dvh - (60px + 44px + 16px) * var(--ui-scale) - var(--svv-bottom-clear));
+    padding: calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale)) calc(12px * var(--ui-scale));
+    gap: calc(10px * var(--ui-scale));
+    border-radius: calc(12px * var(--ui-scale));
+  }
+
+  body.svv-immersive #validation-button-holder {
+    gap: calc(8px * var(--ui-scale));
+  }
+
+  body.svv-immersive .validate-page-button {
+    flex: 1 1 0;
+    width: auto;
+    min-height: 48px;
+    font: var(--text-small-bold);
+  }
+
+  body.svv-immersive .validate-page-button__icon {
+    width: calc(18px * var(--ui-scale));
+    height: calc(18px * var(--ui-scale));
+  }
+
+  /* Clears the close control, now a 44px target in the corner. */
+  body.svv-immersive #main-validate-header {
+    padding-right: calc(40px * var(--ui-scale));
+    font: var(--text-body-bold);
+  }
+
+  body.svv-immersive #validate-verdict-clear {
+    top: 0;
+    right: 0;
+    width: 44px;
+    height: 44px;
+  }
+
+  body.svv-immersive .validation-reason-button {
+    min-height: 44px;
+    height: auto;
+    padding: calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale));
+    font: var(--text-small-medium);
+    white-space: normal;
+  }
+
+  body.svv-immersive #no-reason-options,
+  body.svv-immersive #unsure-reason-options {
+    gap: calc(8px * var(--ui-scale));
+  }
+
+  body.svv-immersive #validate-submit-section {
+    gap: calc(12px * var(--ui-scale));
+  }
+
+  body.svv-immersive #validate-undo-button {
+    min-height: 44px;
+    padding: 0 calc(8px * var(--ui-scale));
+  }
+
+  body.svv-immersive #validate-submit-button {
+    flex: 1;
+    max-width: calc(220px * var(--ui-scale));
+    min-height: 44px;
+  }
+}
+
+/* The narrowest phones: the type icon and the dock's question still name the type, so the pill drops the title, and
+   the verdicts step their type down so pt-BR's "Não tenho certeza" still fits its third of the row. */
+@media (width <= 360px) {
+  body.svv-immersive #mission-title {
+    display: none;
+  }
+
+  body.svv-immersive .validate-page-button {
+    font: var(--text-caption-semibold);
+  }
+}
+
+/* Landscape: the corner controls are short, so the pill goes back between them; the dock keeps its column width and
+   lays the reasons in two columns, since height is what runs out. */
+@media (height <= 500px) {
+  body.svv-immersive #mission-status {
+    top: calc(8px * var(--ui-scale));
+    max-width: calc(100vw - 240px * var(--ui-scale));
+  }
+
+  body.svv-immersive #validation-menu-holder {
+    max-height: calc(100dvh - 60px * var(--ui-scale) - var(--svv-bottom-clear));
+  }
+
+  body.svv-immersive #no-reason-options,
+  body.svv-immersive #unsure-reason-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  body.svv-immersive #no-reason-options .validate-text-input,
+  body.svv-immersive #unsure-reason-options .validate-text-input {
+    grid-column: 1 / -1;
+  }
+}
+
+/* The label card at arm's length: authored for a desktop pointer, where its smallest type (--text-tiny-*, 10px) is
+   fine. --ui-scale alone would only grow the geometry, since the --text-* tokens bake in :root's scale where they
+   are declared, so each token the card uses steps up a size too (as /mobile's card does). */
+@media (width <= 600px) and (pointer: coarse) {
+  body.svv-immersive #label-card {
+    --ui-scale: 1.2;
+
+    max-width: min(calc(240px * var(--ui-scale)), calc(100vw - 24px));
+  }
+
+  body.svv-immersive #label-card .label-hover-card__type {
+    font: var(--text-small-bold);
+  }
+
+  body.svv-immersive #label-card .label-hover-card__severity,
+  body.svv-immersive #label-card .label-hover-card__tags .tag-pill__label {
+    font: var(--text-caption-medium);
+  }
+
+  body.svv-immersive #label-card .label-hover-card__no-info {
+    font: var(--text-caption-regular);
+  }
+
+  body.svv-immersive #label-card .label-hover-card__description {
+    font: var(--text-caption-regular);
+    line-height: 1.45;
+  }
 }

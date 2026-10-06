@@ -3,6 +3,7 @@
  */
 
 import { svv } from '../svv.js';
+import { ValidateLayout } from '../util/ValidateLayout.js';
 import { PanoMarker } from '../../common/PanoMarker.js';
 import { aiLabelIndicator } from '../../common/aiLabelIndicator.js';
 import { GsvViewer } from '../../common/pano-viewer/GsvViewer.js';
@@ -265,8 +266,9 @@ export class PanoManager {
   #aimAndDrawMarker(currentLabel) {
     const labelPov = currentLabel.getOriginalPov();
 
-    // Set to user's POV when labeling, except on /mobile, which centers the label on the screen.
-    if (svv.legacyMobile) {
+    // Set to user's POV when labeling, except on a phone-portrait screen (/mobile, or the narrow layout), which centers
+    // the label: a tall, thin frame can leave the labeler's wide view with the label off its edge.
+    if (svv.legacyMobile || ValidateLayout.isNarrow()) {
       svv.panoViewer.setPov(labelPov);
     } else {
       svv.panoViewer.setPov({

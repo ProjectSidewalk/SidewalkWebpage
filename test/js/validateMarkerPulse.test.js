@@ -73,6 +73,8 @@ describe('Validate marker halo pulse (issue #4790)', () => {
             = '<div id="pano-holder"><div id="svv-panorama"></div></div><div id="view-control-layer"></div>';
 
         global.util = {};
+
+        global.ValidateLayout = {isNarrow: () => false}; // jsdom has no matchMedia; the wide layout.
         // utilities.js builds a Bowser parser at load time; the overrides below replace everything read from it.
         global.bowser = { getParser: () => ({ getBrowserName: () => 'Chrome', getBrowserVersion: () => '1',
             getOSName: () => 'Linux', getPlatformType: () => 'desktop' }) };

@@ -359,3 +359,26 @@
 #label-card {
   z-index: 4;
 }
+
+/* ---- Touch (#5580) ------------------------------------------------------------------------------------------------
+   A finger pans the viewer directly, as on /mobile: the control layer, which takes the mouse for PanoOverlay's drag,
+   goes click-through so every touch reaches the imagery. The marker is the one thing in it a finger has to hit (a tap
+   opens its card, PanoMarker), so it takes the touch back, and its target floor rises to the 44px a thumb wants.
+   The mark itself stays 32px across (svv.labelRadius), since a bigger one hides the imagery being judged. */
+@media (pointer: coarse) {
+  #view-control-layer {
+    pointer-events: none;
+  }
+
+  #validate-pano-marker {
+    pointer-events: auto;
+  }
+
+  #validate-pano-marker::after {
+    --label-min-target: 44px;
+  }
+
+  #label-card .label-hover-card__action-button {
+    min-height: 44px;
+  }
+}

@@ -258,12 +258,16 @@ util.anchorPanelToLabel = function (panel, labelCanvasXY, iconRadius, opts = {})
  * @param {number} [opts.maxScale=1.8] - Cap past which text and controls balloon.
  * @param {number} [opts.hMargin=40] - Breathing room on each side of the tool, in CSS px.
  * @param {number} [opts.bottomReserve=60] - Space kept below the tool for the footer and a little margin, in CSS px.
+ * @param {number} [opts.scale] - Write exactly this scale instead of fitting one: a layout whose controls are laid
+ *   out for the window directly (Validate at phone width, #5580) wants its authored sizes, not a fit to a reference
+ *   footprint it doesn't use.
  * @returns {number} The applied scale factor.
  */
 util.applyToolScale = function (widthVarNames, heightVarNames, opts = {}) {
-  const { maxScale = 1.8, hMargin = 40, bottomReserve = 60 } = opts;
+  const { maxScale = 1.8, hMargin = 40, bottomReserve = 60, scale: fixedScale } = opts;
   const toolUI = document.querySelector('.tool-ui');
   if (!toolUI) return 1;
+  if (fixedScale !== undefined) return util.writeToolScale(toolUI, fixedScale);
 
   // Reference layout size at --ui-scale = 1, read from the unscaled base dimensions in the tool's CSS.
   const styles = getComputedStyle(toolUI);
@@ -271,7 +275,6 @@ util.applyToolScale = function (widthVarNames, heightVarNames, opts = {}) {
   const refWidth = widthVarNames.reduce((sum, name) => sum + cssPx(name), 0);
   const refHeight = heightVarNames.reduce((sum, name) => sum + cssPx(name), 0);
   if (!refWidth || !refHeight) return 1; // Base vars missing (page doesn't define them); leave --ui-scale at 1.
-  const MIN_SCALE = 0.65;
 
   // Everything above the tool (the navbar) is fixed chrome that does not scale, so reserve it.
   const topOffset = Math.max(0, toolUI.getBoundingClientRect().top + window.scrollY);
@@ -279,7 +282,22 @@ util.applyToolScale = function (widthVarNames, heightVarNames, opts = {}) {
   const availHeight = window.innerHeight - topOffset - bottomReserve;
 
   let scale = Math.min(availWidth / refWidth, availHeight / refHeight);
-  scale = Math.max(MIN_SCALE, Math.min(maxScale, scale));
+  scale = Math.max(util.MIN_TOOL_SCALE, Math.min(maxScale, scale));
+  return util.writeToolScale(toolUI, scale);
+};
+
+// Below this a fitted tool's text and targets get too small to use; the window scrolls instead.
+util.MIN_TOOL_SCALE = 0.65;
+
+/**
+ * Writes a tool scale where the CSS reads it: on the tool, on the root for overlays outside the tool, and on the
+ * mission-start tutorial's overlay, capped so that overlay's wider content still fits the window.
+ * @param {HTMLElement} toolUI - The page's `.tool-ui` element.
+ * @param {number} scale - The scale to write.
+ * @returns {number} The scale written.
+ */
+util.writeToolScale = function (toolUI, scale) {
+  const MIN_SCALE = util.MIN_TOOL_SCALE;
   const scaleStr = scale.toFixed(4);
   toolUI.style.setProperty('--ui-scale', scaleStr);
   // Also expose the scale at the document root so self-contained overlays rendered outside .tool-ui (e.g. the
