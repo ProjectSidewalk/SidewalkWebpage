@@ -29,7 +29,7 @@ import models.validation.{
 import play.api.{Configuration, Logger}
 import play.api.i18n.Messages
 import play.api.libs.json.*
-import play.api.mvc.Result
+import play.api.mvc.{RequestHeader, Result}
 import service.{ValidationSubmission, ValidationTaskPostReturnValue}
 
 import java.time.OffsetDateTime
@@ -66,7 +66,7 @@ class ValidateController @Inject() (
    */
   def validate(regions: Option[String], unvalidatedOnly: Option[Boolean], neighborhoods: Option[String]) =
     cc.securityService.SecuredAction { implicit request =>
-      if (isMobile) {
+      if (isMobile && !immersiveLayoutRequested) {
         // mobileValidate takes the same query params, so forward them along with the redirect.
         cc.loggingService.insert(request.identity.userId, request.ipAddress, "Visit_Validate_RedirectMobile")
         Future.successful(Redirect("/mobile", request.queryString))
@@ -100,6 +100,17 @@ class ValidateController @Inject() (
         }
       }
     }
+
+  /**
+   * Whether the request asks for the unified Validate page with `?layout=immersive`, which serves it to a phone that
+   * would otherwise be redirected to /mobile. A QA override for #5580: it lets the responsive layout be tested on
+   * real devices before the redirect is deleted, and it goes away with the redirect.
+   *
+   * @param request The request whose query string is read.
+   * @return        True if `layout=immersive` is among its query params.
+   */
+  private def immersiveLayoutRequested(using request: RequestHeader): Boolean =
+    request.queryString.get("layout").exists(_.contains("immersive"))
 
   /**
    * Returns the Expert Validate page, optionally with some admin filters.
