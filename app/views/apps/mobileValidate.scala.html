@@ -230,6 +230,7 @@
      mission is fetched from /validationTask/mission, so a cached copy of this page can never carry stale labels
      (#5650). validateParams is in the shape the backend reads back, so the entry can send it as it is. *@
   <script type="application/json" id="page-data">{
+    "layout": "mobile",
     "user": {"username": @jsonForScript(user.username), "role": "@user.role.name"},
     "dataStoreUrl": "@routes.ValidateController.post",
     "missionUrl": "@routes.ValidateController.getMission",

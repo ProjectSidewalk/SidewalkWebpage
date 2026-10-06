@@ -96,7 +96,9 @@ export class PanoManager {
     const panoOptions = {
       accessToken: viewerAccessToken,
       defaultNavigation: false,
-      scrollwheel: util.isMobile(),
+      // Only PanoramaxViewer reads this (GSV hardcodes it off). ZoomControl owns the wheel over the pano, so the
+      // viewer's own wheel zoom stays off; a touch screen sends no wheel events, so it needs no other value.
+      scrollwheel: false,
       // Nothing in Validate follows a pano's links, and Mapillary reports them in a graph request that can trail the
       // image by seconds; a load that waited for them kept the canvas hidden that much longer (#5581).
       linkedPanos: false,

@@ -359,6 +359,31 @@ util.isFirefox = () => util.getBrowserName() === 'Firefox';
 // is (#4887). For touch-vs-hover behavior questions, prefer a capability query (`pointer: coarse`) over this flag.
 util.isMobile = () => document.documentElement.dataset.mobileDevice === 'true';
 
+/**
+ * What the device's input hardware can do, read from media queries rather than the UA, so a touch laptop, an iPad
+ * sending a desktop UA, and a phone all answer by what they actually are (#5580, #5664). One capability helper shared
+ * by every page; the predicates built on it name what they test, never a device class.
+ * @returns {{coarse: boolean, hover: boolean, shortSide: number, maxTouchPoints: number}} `coarse` when the primary
+ *   pointer is a finger, `hover` when the primary pointer can hover, `shortSide` the window's shorter edge in CSS px,
+ *   `maxTouchPoints` as the browser reports it (0 without touch).
+ * @example
+ * if (util.inputProfile().coarse) marker.style.setProperty('--label-min-target', '44px');
+ */
+util.inputProfile = () => ({
+  coarse: window.matchMedia('(pointer: coarse)').matches,
+  hover: window.matchMedia('(hover: hover)').matches,
+  shortSide: Math.min(window.innerWidth, window.innerHeight),
+  maxTouchPoints: navigator.maxTouchPoints ?? 0,
+});
+
+/**
+ * Whether the primary pointer is a finger: the question behind every touch-vs-mouse control variant (44 px targets,
+ * tap-to-open markers, one-tap Agree). Callers that pick a control variant read it once per construction, so a
+ * hybrid device's controls don't change under the user mid-task (#4875 Decision 3).
+ * @returns {boolean}
+ */
+util.isTouchPrimary = () => util.inputProfile().coarse;
+
 // Whether distances on this page are shown in kilometers and meters rather than miles and feet. The server resolves
 // it (ControllerUtils.measurementSystem: the user's Settings override if they set one, else the site language's
 // default) and main.scala.html stamps the answer on <html>, so client and server can't disagree about units the way

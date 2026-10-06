@@ -66,6 +66,13 @@ export class Main {
   // Desktop, which rescales on every event, uses the same span as the quiet period before it logs Window_Resized.
   static #RESIZE_THROTTLE_MS = 150;
 
+  // The breakpoints of the unified phone layout (#5580). CSS keyed on the same layouts must use these exact queries,
+  // or JS and CSS disagree about which layout is showing. Narrow is phone portrait, the width main.css already drops
+  // the test-server banner at; short is phone landscape.
+  // A tablet matches neither and keeps the wide layout, with touch controls from (pointer: coarse) alone.
+  static NARROW_LAYOUT_QUERY = '(width <= 600px)';
+  static SHORT_LAYOUT_QUERY = '(height <= 500px)';
+
   #param;
 
   // The mission the page opens on, as /validationTask/mission answered.
@@ -83,6 +90,9 @@ export class Main {
     svv.adminVersion = param.validateParams.admin_version;
     svv.validateParams = param.validateParams;
     svv.viewerType = param.viewerType;
+    // The old phone page (/mobile) stamps itself in its page data. Keyed on that rather than util.isMobile() because a
+    // phone can reach /validate too, and must get the unified UI there (#5580); every branch on it goes with the page.
+    svv.legacyMobile = param.layout === 'mobile';
     svv.missionLength = firstMission.mission?.labels_validated ?? 0;
     svv.missionsCompleted = 0;
 
@@ -476,6 +486,20 @@ export class Main {
     svv.panoManager.setMarkerScale(scale);
     svv.panoViewer.resize();
     svv.panoViewer.repaint();
+  }
+
+  /**
+   * @returns {boolean} Whether the window is phone-portrait narrow (NARROW_LAYOUT_QUERY). Live: re-read per call.
+   */
+  static isNarrowLayout() {
+    return window.matchMedia(Main.NARROW_LAYOUT_QUERY).matches;
+  }
+
+  /**
+   * @returns {boolean} Whether the window is phone-landscape short (SHORT_LAYOUT_QUERY). Live: re-read per call.
+   */
+  static isShortLayout() {
+    return window.matchMedia(Main.SHORT_LAYOUT_QUERY).matches;
   }
 
   /**

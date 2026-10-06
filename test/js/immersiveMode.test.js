@@ -265,6 +265,86 @@ describe('ImmersiveMode', () => {
         expect(() => build()).not.toThrow();
     });
 
+    // Validate at phone width (#5580): the mode is the layout there, not a choice the user can make or keep.
+    describe('forced', () => {
+        let forced;
+        const buildForced = (extra = {}) => build({ urlParam: undefined, forced: () => forced, ...extra });
+
+        beforeEach(() => {
+            forced = true;
+        });
+
+        it('at construction hides the button, sets both classes, stores nothing, and ignores the toggle', () => {
+            const mode = buildForced();
+            expect(mode.isActive()).toBe(true);
+            expect(mode.isForced()).toBe(true);
+            expect(document.getElementById('immersive-toggle-holder').hidden).toBe(true);
+            expect(document.body.classList.contains('svl-immersive')).toBe(true);
+            expect(document.documentElement.classList.contains('chromeless')).toBe(true);
+            expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+            // Not a restore, so nothing to report even when asked.
+            mode.logRestored();
+            expect(tracker.push).not.toHaveBeenCalled();
+
+            mode.toggle('KeyboardShortcut');
+            document.getElementById('immersive-toggle-button').click();
+            expect(mode.isActive()).toBe(true);
+            expect(relayout).not.toHaveBeenCalled();
+            expect(tracker.push).not.toHaveBeenCalled();
+            expect(window.Toast.show).not.toHaveBeenCalled();
+        });
+
+        it('refreshForced() off restores the stored choice and shows the button', () => {
+            const mode = buildForced();
+            forced = false;
+            expect(mode.refreshForced()).toBe(true);
+            expect(mode.isForced()).toBe(false);
+            expect(mode.isActive()).toBe(false);
+            expect(document.getElementById('immersive-toggle-holder').hidden).toBe(false);
+            expect(document.body.classList.contains('svl-immersive')).toBe(false);
+            expect(document.getElementById('immersive-toggle-button').getAttribute('aria-label'))
+                .toBe('common:immersive-enter');
+
+            // The toggle works again once the user owns the mode.
+            mode.toggle('Click');
+            expect(mode.isActive()).toBe(true);
+            expect(window.sessionStorage.getItem('svl-immersive-active')).toBe('1');
+        });
+
+        it('refreshForced() off keeps the mode when the tab had chosen it, and reports no layout change', () => {
+            window.sessionStorage.setItem('svl-immersive-active', '1');
+            const mode = buildForced();
+            forced = false;
+            expect(mode.refreshForced()).toBe(false);
+            expect(mode.isActive()).toBe(true);
+            expect(document.getElementById('immersive-toggle-holder').hidden).toBe(false);
+            expect(window.sessionStorage.getItem('svl-immersive-active')).toBe('1');
+        });
+
+        it('refreshForced() on enters the mode without storing it, and is a no-op when nothing changed', () => {
+            forced = false;
+            const mode = buildForced();
+            expect(mode.refreshForced()).toBe(false);
+
+            forced = true;
+            expect(mode.refreshForced()).toBe(true);
+            expect(mode.isActive()).toBe(true);
+            expect(document.getElementById('immersive-toggle-holder').hidden).toBe(true);
+            expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+            expect(mode.refreshForced()).toBe(false);
+            // The caller lays out once for the resize that prompted this; the module doesn't.
+            expect(relayout).not.toHaveBeenCalled();
+        });
+
+        it('yields to isDisabled (Expert Validate stays boxed)', () => {
+            onboarding = true;
+            const mode = buildForced();
+            expect(mode.isActive()).toBe(false);
+            expect(mode.refreshForced()).toBe(false);
+            expect(document.body.classList.contains('svl-immersive')).toBe(false);
+        });
+    });
+
     it('keeps each tool\'s mode and hint under its own body class', () => {
         const validate = new ImmersiveMode({ tracker, bodyClass: 'svv-immersive', relayout });
         validate.toggle('Click');

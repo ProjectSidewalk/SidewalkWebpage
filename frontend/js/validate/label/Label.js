@@ -35,7 +35,6 @@ export class Label {
     tags: undefined,
     aiTags: undefined,
     aiTagsNotPresent: undefined,
-    isMobile: undefined,
     aiGenerated: false,
     expired: false,
     backupImage: null,
@@ -64,7 +63,6 @@ export class Label {
     unsureReasonTextBox: '',
     comment: undefined,
     zoom: undefined,
-    isMobile: undefined,
   };
 
   #adminProperties = {
@@ -133,7 +131,6 @@ export class Label {
           }
         }
       }
-      this.setAuditProperty('isMobile', util.isMobile());
     }
   }
 
@@ -295,7 +292,6 @@ export class Label {
     this.setProperty('heading', userPov.heading);
     this.setProperty('pitch', userPov.pitch);
     this.setProperty('zoom', userPov.zoom);
-    this.setProperty('isMobile', util.isMobile());
     this.setProperty('comment', comment);
 
     if (this.getProperty('comment')) {
