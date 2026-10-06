@@ -461,10 +461,15 @@ body.svv-immersive .modal-mission-complete-counts {
     padding: 0 calc(8px * var(--ui-scale));
   }
 
+  /* Submit takes one verdict column under Unsure, at the verdicts' height and type, so the dock reads as one grid
+     rather than a row of buttons and a slab of a different size. The column width is the verdict row's: three
+     equal buttons across two gaps. */
   body.svv-immersive #validate-submit-button {
-    flex: 1;
-    max-width: calc(220px * var(--ui-scale));
-    min-height: 44px;
+    flex: none;
+    width: calc((100% - 2 * 8px * var(--ui-scale)) / 3);
+    min-width: 0;
+    min-height: 48px;
+    font: var(--text-small-bold);
   }
 }
 
@@ -475,7 +480,8 @@ body.svv-immersive .modal-mission-complete-counts {
     display: none;
   }
 
-  body.svv-immersive .validate-page-button {
+  body.svv-immersive .validate-page-button,
+  body.svv-immersive #validate-submit-button {
     font: var(--text-caption-semibold);
   }
 }
