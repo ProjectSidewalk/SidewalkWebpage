@@ -244,9 +244,20 @@ export class PanoMarker {
         // reach it and an instant hide would make the button inside it unclickable.
         marker.addEventListener('mouseout', () => svv.labelVisibilityControl.scheduleHideLabelCard());
 
+        // A click focuses the marker too, and that focus must not reopen the card the same press just closed.
+        let pressing = false;
+        marker.addEventListener('mousedown', () => {
+          pressing = true;
+          // On the window, since a drag that starts here can end anywhere.
+          window.addEventListener('mouseup', () => {
+            pressing = false;
+          }, { once: true });
+        });
+
         // Keyboard focus opens the card the way hovering does, with the same grace timer on the way out so Tab
         // can travel from the marker onto the card's controls before the hide fires.
         marker.addEventListener('focus', (e) => {
+          if (pressing) return;
           // Focus returning from inside the card is not an open request: it is either Escape closing the card
           // (which must stay closed) or Shift+Tab walking back out (whose focusout just scheduled a hide that
           // this cancel undoes).

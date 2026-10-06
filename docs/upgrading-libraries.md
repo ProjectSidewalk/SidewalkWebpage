@@ -100,9 +100,9 @@ download and the build re-resolves (a running sbt, which `make compile` reuses, 
   (Compose won't rebuild on its own). sbt **2.x** is gated on Play: its `sbt-plugin` has no sbt 2 build outside the
   3.1.0 milestones, and sbt 2 build definitions are Scala 3, so it's a tracked migration rather than a bump. You may
   need to bump Play at the same time for major sbt updates. [Releases](https://github.com/sbt/sbt/releases)
-- **Play Framework: 3.0.11** — to update: (1) change the version in `project/plugins.sbt` (the `sbt-plugin`
-  dependency), and (2) change it in `build.sbt` for the Play-provided libraries that share Play's versioning scheme
-  (`play-guice`, `play-cache`, `play-ws`, `play-caffeine-cache`).
+- **Play Framework: 3.0.12** — to update, change the `sbt-plugin` version in `project/plugins.sbt`. The Play libraries
+  in `build.sbt` that share its version (`play-guice`, `play-cache`, `play-ws`, `play-caffeine-cache`) read it from
+  the plugin through `PlayVersion.current`, so they follow on their own.
   [Releases](https://github.com/playframework/playframework/releases) ·
   [Changelog](https://www.playframework.com/changelog)
 
@@ -162,7 +162,7 @@ These are the JVM libraries we talk to the database *through*; the database serv
 
 ### Build plugins & test (`project/plugins.sbt`, `.scalafmt.conf`, test deps)
 
-- **sbt-plugin (Play): 3.0.11** — tracks the Play version above (`project/plugins.sbt`).
+- **sbt-plugin (Play): 3.0.12** — tracks the Play version above (`project/plugins.sbt`).
 - **scalafmt: 3.11.5** — pinned in [`.scalafmt.conf`](../.scalafmt.conf); the **sbt-scalafmt** plugin (**2.6.2**,
   `project/plugins.sbt`) fetches it. `scalafmtCheckAll` is a blocking CI gate.
   [Releases](https://github.com/scalameta/scalafmt/releases)
@@ -289,8 +289,8 @@ The web image carries two, and **which one a package targets decides which file 
 
 - **Python 3.8** (`python3`) — the base image's own, and past EOL. **Note:** kept only because the deployed app
   shells out to it for in-band clustering (prod runs on Rocky's system Python).
-  Retiring it means changing the base image, gated on the prod-environment audit
-  ([#4385](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4385)) — until then, don't add libraries to
+  Retiring it means changing the base image, tracked in
+  [#4396](https://github.com/ProjectSidewalk/SidewalkWebpage/issues/4396) — until then, don't add libraries to
   `requirements.txt`, because current releases have all dropped 3.8.
 - **Python 3.13** (`python3.13`) — a [python-build-standalone](https://github.com/astral-sh/python-build-standalone)
   CPython fetched by **uv 0.12.15** at image build time, since no PPA carries 3.13 for focal. Where offline tooling
@@ -307,12 +307,12 @@ The web image carries two, and **which one a package targets decides which file 
   [scipy](https://docs.scipy.org/doc/scipy/release.html) ·
   [haversine](https://github.com/mapado/haversine/releases) · [requests](https://github.com/psf/requests/releases)
 - **`requirements-offline-tools.txt`** (3.13, `check_streets_for_imagery.py` + `onboard_city.py` +
-  `street_gradient.py`) — **pandas 3.0.5**, **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**,
-  **tenacity 9.1.4**, **tqdm 4.70.1**, plus the onboarding geo stack: **osmnx 2.1.1**, **geopandas 1.1.4**,
-  **pyogrio 0.13.0**, **scipy 1.17.1**, and the street-gradient raster stack: **rasterio 1.5.1** (its wheel bundles
+  `street_gradient.py`) — **pandas 3.0.6**, **requests 2.34.2**, **shapely 2.1.2**, **geopy 2.5.0**,
+  **tenacity 9.1.4**, **tqdm 4.70.1**, plus the onboarding geo stack: **osmnx 2.1.1**, **geopandas 1.2.0**,
+  **pyogrio 0.13.0**, **scipy 1.18.1**, and the street-gradient raster stack: **rasterio 1.5.2** (its wheel bundles
   GDAL, so nothing comes from the OS), **pyproj 3.8.0**. Self-contained rather than layered on `requirements.txt`,
   since the two files target different interpreters and so can't share a pin.
-  **Note:** requires **Python ≥ 3.11**, and pandas is what sets that floor — re-check it when bumping pandas, and
+  **Note:** requires **Python ≥ 3.12**, set by scipy, rasterio and pyproj — re-check it when bumping any of them, and
   update the docs that quote it. [shapely](https://github.com/shapely/shapely/releases) ·
   [geopy](https://github.com/geopy/geopy/releases) · [tenacity](https://github.com/jd/tenacity/releases) ·
   [tqdm](https://github.com/tqdm/tqdm/releases) · [osmnx](https://github.com/gboeing/osmnx/releases) ·

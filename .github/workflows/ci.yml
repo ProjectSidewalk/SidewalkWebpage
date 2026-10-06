@@ -1,8 +1,8 @@
 name: CI
 
-# Every job blocks a merge except the offline-tooling leg of python-tests.
+# Every job blocks a merge except the offline-tooling leg of python-tests and dependency-review.
 #
-#   - backend:         `sbt compile` + `scalafmtCheckAll`.
+#   - backend:         `sbt compile` + `scalafmtCheckAll` + `scalafmtSbtCheck`.
 #   - frontend:        asset build (grunt) + the lint steps (ESLint, Stylelint, HTMLHint, locale checks, CSS layout,
 #                      asset paths, vendor versions, JS types, spec base class) + the jsdom `jest` suite in test/js/.
 #                      Jest reports JS coverage but has no floor — the number can't support one yet, see #5112.
@@ -18,6 +18,8 @@ name: CI
 #   - python-tests:    pytest unit tests for the Python scripts in scripts/ and tools/. One leg per interpreter the web
 #                      container ships — 3.8 for the in-band script, 3.13 for the offline tooling (advisory: it covers
 #                      an operator utility that never runs on the server).
+#   - dependency-review: PRs only. Flags a dependency the PR adds or changes that has a known vulnerability (advisory:
+#                      the app's Python is stuck on 3.8, where some fixes can't install, #4396).
 
 on:
   pull_request:
@@ -56,11 +58,15 @@ jobs:
           SIDEWALK_APPLICATION_SECRET: dummy-ci-secret
           INTERNAL_API_KEY: dummy-ci-internal-key
 
-      # `if: always()` runs this even when the compile step failed, so compile and format problems show up in one
-      # run. Auto-format locally with `make scalafmt-fix`.
+      # `if: always()` runs these even when an earlier step failed, so compile and format problems show up in one
+      # run (sbt stops at its first failing command). Auto-format locally with `make scalafmt-fix`.
       - name: scalafmt check (blocking)
         if: always()
         run: sbt scalafmtCheckAll
+
+      - name: scalafmt check, build files (blocking)
+        if: always()
+        run: sbt scalafmtSbtCheck
 
   frontend:
     name: Frontend (build)
@@ -515,7 +521,7 @@ jobs:
       fail-fast: false
       # One leg per interpreter the web container ships, testing each script on the Python that runs it (#4396):
       # label_clustering.py is shelled out to by the app, so it stays on prod's EOL 3.8; the offline tooling needs
-      # >= 3.11. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
+      # >= 3.12. Mirrors the `pytest-args-*` and `cov-omit-*` variables in the Makefile — each leg takes the whole
       # directory minus the files only the other's interpreter can import (shapely/geopandas are 3.13-only here), so a
       # new test file runs in both rather than in neither.
       # `half` also spells the check name, and `Python tests (in-band script)` is a required check — renaming a half
@@ -556,3 +562,11 @@ jobs:
           COVERAGE_OMIT: ${{ matrix['coverage-omit'] }}
           COVERAGE_OMIT2: ${{ matrix['coverage-omit-2'] }}
           COVERAGE_OMIT3: ${{ matrix['coverage-omit-3'] }}
+
+  dependency-review:
+    name: Dependency review
+    runs-on: ubuntu-latest
+    # Only a PR has a before and after to compare.
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/dependency-review-action@v5
