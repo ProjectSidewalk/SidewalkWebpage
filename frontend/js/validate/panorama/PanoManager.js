@@ -28,6 +28,11 @@ export class PanoManager {
   // The pending frame of a revealMarkerAbove glide, so a newer reveal or a new label can cancel it.
   #revealFrame = 0;
 
+  // How long a new label shows as its outline alone before its icon fades in (#arrive). Long enough to take in the
+  // scene; short next to the seconds a verdict takes, and the outline already marks the spot.
+  static #ARRIVAL_HOLD_MS = 600;
+  #arrivalTimer;
+
   /** @type {HTMLElement} The primary viewer's canvas element (GSV/Mapillary/Infra3d). */
   #panoCanvas;
 
@@ -430,6 +435,28 @@ export class PanoManager {
     marker.classList.remove('label-marker-pulse');
     void marker.offsetWidth;
     marker.classList.add('label-marker-pulse');
+    this.#arrive(marker);
+  }
+
+  /**
+   * Shows a newly arrived label as its dashed outline alone for a beat, then fades its icon in (#5580): the validator
+   * sees the scene the label sits in before the icon covers part of it, and the outline already says where to look.
+   * Runs wherever the pulse does, i.e. the moment a new label becomes visible.
+   *
+   * The outline is the Hide-label look (main.css), under its own class so the toggle's state is untouched: a label
+   * the validator hid stays hidden when the arrival ends. Entering it skips the transition, so the last label's icon
+   * doesn't visibly fade out on the new one; leaving it uses the toggle's own fade.
+   *
+   * @param {HTMLElement} marker - The marker element.
+   */
+  #arrive(marker) {
+    clearTimeout(this.#arrivalTimer);
+    marker.classList.add('label-marker--arriving', 'label-marker--instant');
+    void marker.offsetWidth;
+    marker.classList.remove('label-marker--instant');
+    this.#arrivalTimer = setTimeout(
+      () => marker.classList.remove('label-marker--arriving'), PanoManager.#ARRIVAL_HOLD_MS,
+    );
   }
 
   /**

@@ -186,6 +186,44 @@ describe('Validate marker halo pulse (issue #4790)', () => {
         expect(markerEl().classList.contains('label-marker-pulse')).toBe(false);
     });
 
+    // #5580: a new label shows as its dashed outline alone for a beat, then its icon fades in.
+    test('a new label arrives as its outline, without the fade, and its icon comes back after the hold', () => {
+        jest.useFakeTimers();
+        panoManager.renderPanoMarker(makeLabel());
+
+        expect(markerEl().classList.contains('label-marker--arriving')).toBe(true);
+        // Entered at once: the class that turns the transition off is only on for the flush.
+        expect(markerEl().classList.contains('label-marker--instant')).toBe(false);
+
+        jest.advanceTimersByTime(599);
+        expect(markerEl().classList.contains('label-marker--arriving')).toBe(true);
+        jest.advanceTimersByTime(1);
+        expect(markerEl().classList.contains('label-marker--arriving')).toBe(false);
+        jest.useRealTimers();
+    });
+
+    test('a label answered mid-arrival restarts the hold for the next one rather than cutting it short', () => {
+        jest.useFakeTimers();
+        panoManager.renderPanoMarker(makeLabel());
+        jest.advanceTimersByTime(400);
+        panoManager.renderPanoMarker(makeLabel({ labelType: 'Obstacle' }));
+
+        jest.advanceTimersByTime(400);
+        expect(markerEl().classList.contains('label-marker--arriving')).toBe(true);
+        jest.advanceTimersByTime(200);
+        expect(markerEl().classList.contains('label-marker--arriving')).toBe(false);
+        jest.useRealTimers();
+    });
+
+    test('the arrival leaves the Hide-label state alone', () => {
+        jest.useFakeTimers();
+        panoManager.renderPanoMarker(makeLabel());
+        markerEl().classList.add('label-marker--hidden'); // The validator hid the label meanwhile.
+        jest.advanceTimersByTime(600);
+        expect(markerEl().classList.contains('label-marker--hidden')).toBe(true);
+        jest.useRealTimers();
+    });
+
     test('setSize republishes --marker-diameter so the halo tracks setMarkerScale', () => {
         panoManager.renderPanoMarker(makeLabel());
 

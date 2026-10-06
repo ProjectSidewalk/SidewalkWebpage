@@ -2036,12 +2036,21 @@ kbd {
   transition: opacity 0.5s ease;
 }
 
-/* Hidden state, from the Hide-label toggle on Validate and on the label detail card (#2477). */
-.label-marker--hidden::before {
+/* Hidden state, from the Hide-label toggle on Validate and on the label detail card (#2477). Validate also shows a
+   newly arrived label this way for a beat before its icon fades in (--arriving, PanoManager, #5580); --instant enters
+   either state without the fade. */
+.label-marker--hidden::before,
+.label-marker--arriving::before {
   opacity: 0;
 }
 
-.label-marker--hidden {
+.label-marker--instant,
+.label-marker--instant::before {
+  transition: none;
+}
+
+.label-marker--hidden,
+.label-marker--arriving {
   border-color: transparent;
   outline: calc(2px * var(--ui-scale, 1)) dashed rgb(from var(--label-color, #ffffff) r g b / 70%);
   outline-offset: calc(1px * var(--ui-scale, 1));
