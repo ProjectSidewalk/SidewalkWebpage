@@ -17,6 +17,10 @@ export class Mission {
     unsureCount: 0,
   };
 
+  // The verdicts cast in this mission during this page load, in order (#5580's progress dots). A mission resumed
+  // from an earlier page load started before these were kept, so its first labelsProgress may outnumber them.
+  #verdicts = [];
+
   /**
    * @param {object} params - Mission metadata passed in from MissionContainer.js.
    */
@@ -113,6 +117,18 @@ export class Mission {
     const labelsInMission = this.getProperty('labelsValidated');
     svv.statusField.setProgressBar(labelsProgress, labelsInMission);
     svv.statusField.setProgressText(labelsProgress, labelsInMission);
+    svv.statusField.setProgressDots(this.getVerdicts(), labelsInMission);
+  }
+
+  /**
+   * The verdict behind each label validated so far in this mission, in order: one entry per label of
+   * `labelsProgress`, null for one validated before this page load, whose verdict this page never saw.
+   * @returns {Array<?('Agree'|'Disagree'|'Unsure')>}
+   */
+  getVerdicts() {
+    const progress = this.getProperty('labelsProgress') ?? 0;
+    const known = progress > 0 ? this.#verdicts.slice(-progress) : [];
+    return [...Array(progress - known.length).fill(null), ...known];
   }
 
   /**
@@ -123,6 +139,8 @@ export class Mission {
    */
   updateValidationResult(result, removeValidation) {
     const change = removeValidation ? -1 : 1;
+    if (removeValidation) this.#verdicts.pop();
+    else this.#verdicts.push(result);
     switch (result) {
       case 'Agree':
         this.setProperty('agreeCount', this.getProperty('agreeCount') + change);

@@ -39,3 +39,7 @@
 
 .normal { font-weight: normal; }
 
+/* The phone pill's progress dots (svv-immersive.css draws them); nowhere else. */
+.svv-mission-dots {
+  display: none;
+}

@@ -821,7 +821,8 @@ export class ValidationMenu {
         const chosen = { Agree: this.#menuUI.yesButton, Disagree: this.#menuUI.noButton,
           Unsure: this.#menuUI.unsureButton }[action];
         this.#showVerdict(chosen, [], { open: false });
-        ValidationMenu.#floatVerdict(action);
+        // Only a one-tap Agree floats its thumb: a verdict with reasons was already confirmed by its Submit step.
+        if (action === 'Agree') ValidationMenu.#floatVerdict(action);
       }
       svv.labelContainer.validateCurrentLabel(action, timestamp, comment);
     } else {

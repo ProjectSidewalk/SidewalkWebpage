@@ -371,8 +371,6 @@ validate.add.own.reason = Oder fügen Sie Ihren eigenen Grund hinzu
 validate.skip.reason = Grund zum Überspringen
 validate.suggestions = Vorschläge
 validate.ai.disclaimer = Tag-Vorschläge werden von der KI erstellt, sind nicht umfassend und können falsch sein
-validate.mission.complete.category = Kategorie
-validate.mission.complete.your.overall.total = Ihr Gesamtwert
 
 authenticate.email = E-Mail-Adresse
 authenticate.identifier = E-Mail oder Benutzername

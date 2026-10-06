@@ -273,10 +273,9 @@ body.svv-immersive .mission-start-tutorial-overlay {
   height: 100%;
 }
 
-/* The modals are sized to the boxed pano (svv-modal.css): keep them that size and centre them over the window rather
-   than stretching a mission summary across a whole monitor. The ids out-rank the class, so both are named. */
-body.svv-immersive .modal-foreground,
-body.svv-immersive #modal-mission-complete-foreground {
+/* The mission and dead-end screens are sized to the boxed pano (svv-modal.css): keep them that size and centre them
+   over the window rather than stretching them across a whole monitor. */
+body.svv-immersive .modal-foreground {
   top: 50%;
   left: 50%;
   right: auto;
@@ -294,43 +293,12 @@ body.svv-immersive #modal-mission-background {
   z-index: 5;
 }
 
-/* The pano's footprint is nearly the whole window here, far too big for a few counts, so this is sized to content. */
-body.svv-immersive #modal-mission-complete-foreground {
+/* The mission-complete card (svv-modal.css) centres on the window rather than on the boxed pano's footprint. */
+body.svv-immersive #modal-mission-complete-foreground.svv-mc {
+  top: 50%;
+  left: 50%;
   width: min(calc(440px * var(--ui-scale)), calc(100vw - 32px));
   height: auto;
-  max-height: calc(100dvh - 32px);
-  overflow-y: auto;
-  padding: calc(28px * var(--ui-scale)) calc(32px * var(--ui-scale));
-  border: none;
-  border-radius: calc(12px * var(--ui-scale));
-  box-shadow: var(--box-shadow-lg);
-}
-
-body.svv-immersive #modal-mission-complete-title {
-  margin-top: 0;
-}
-
-/* At this width the side-by-side 3:2 row leaves the primary about 150px of text once .button--large's padding is paid,
-   so "Start an exploration mission" wrapped to three lines and stretched its neighbour to match. Stacked full-width,
-   each label fits on one line in every locale (the French one is the longest), primary on top. */
-body.svv-immersive .modal-mission-complete-buttons {
-  flex-direction: column;
-}
-
-body.svv-immersive #modal-mission-complete-close-button-primary,
-body.svv-immersive #modal-mission-complete-close-button-secondary {
-  flex: none;
-  width: 100%;
-}
-
-body.svv-immersive #modal-mission-complete-table {
-  height: auto;
-  padding-left: 0;
-  margin-top: calc(20px * var(--ui-scale));
-}
-
-body.svv-immersive .modal-mission-complete-counts {
-  width: 100%;
 }
 
 /* ---- Phone-sized windows (#5580) -------------------------------------------------------------------------------
@@ -373,6 +341,39 @@ body.svv-immersive .modal-mission-complete-counts {
     max-width: calc(100vw - 16px * var(--ui-scale));
   }
 
+  /* The mission-complete card takes the whole screen on a phone, as /mobile's did: its content centred in what the
+     pinned buttons leave, scrolling under them when a long translation runs past the fold. */
+  body.svv-immersive #modal-mission-complete-foreground.svv-mc {
+    inset: 0;
+    transform: none;
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    padding: calc(24px * var(--ui-scale)) calc(24px * var(--ui-scale)) 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body.svv-immersive .svv-mc__content {
+    flex: 1 0 auto;
+    justify-content: center;
+  }
+
+  /* Pinned and painted, so content scrolling past never shows through around the buttons; the padding is the
+     screen's own bottom edge. */
+  body.svv-immersive .svv-mc__actions {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: calc(24px * var(--ui-scale) + env(safe-area-inset-bottom));
+    background: var(--color-neutral-white);
+  }
+
+  body.svv-immersive #modal-mission-complete-close-button-primary,
+  body.svv-immersive #modal-mission-complete-close-button-secondary {
+    min-height: 48px;
+    font: var(--text-subtitle-bold);
+  }
+
   /* The mission and dead-end screens are sized to the 720px desktop pano; on a phone they take the window instead,
      scrolling if their content runs long. */
   body.svv-immersive .modal-foreground {
@@ -411,7 +412,48 @@ body.svv-immersive .modal-mission-complete-counts {
   }
 
   body.svv-immersive #mission-progress-bar-section {
-    width: calc(56px * var(--ui-scale));
+    width: auto;
+  }
+
+  /* A dot per label in place of the bar (StatusField): each validated one in its verdict button's chosen colour,
+     the rest an empty ring. The bar's track stays for a mission too long for dots, which hides the row. */
+  body.svv-immersive .svv-mission-dots:not([hidden]) {
+    display: flex;
+    align-items: center;
+    gap: calc(4px * var(--ui-scale));
+  }
+
+  body.svv-immersive #mission-status:has(.svv-mission-dots:not([hidden])) .ps-progress-bar__track {
+    display: none;
+  }
+
+  body.svv-immersive .svv-mission-dot {
+    flex: 0 0 auto;
+    width: calc(9px * var(--ui-scale));
+    height: calc(9px * var(--ui-scale));
+    border: calc(1.5px * var(--ui-scale)) solid rgb(from var(--color-neutral-white) r g b / 55%);
+    border-radius: 50%;
+  }
+
+  body.svv-immersive .svv-mission-dot--agree {
+    border-color: var(--color-pine-500);
+    background: var(--color-pine-500);
+  }
+
+  body.svv-immersive .svv-mission-dot--disagree {
+    border-color: var(--color-orange-400);
+    background: var(--color-orange-400);
+  }
+
+  body.svv-immersive .svv-mission-dot--unsure {
+    border-color: var(--color-asphalt-200);
+    background: var(--color-asphalt-200);
+  }
+
+  /* Validated before this page load, verdict unknown: filled, but in no verdict's colour. */
+  body.svv-immersive .svv-mission-dot--done {
+    border-color: var(--color-neutral-white);
+    background: var(--color-neutral-white);
   }
 
   body.svv-immersive #label-visibility-control-holder {

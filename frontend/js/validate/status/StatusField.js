@@ -13,6 +13,10 @@ export class StatusField {
   #completedValidations;
   #statusUI;
   #progressBar;
+  #dots;
+
+  // Past this many labels the dots won't fit the phone's pill; the plain bar stands in.
+  static #MAX_DOTS = 20;
 
   /**
    * @param {number} completedValidationsParam - The number of validations the user has completed all time.
@@ -21,6 +25,7 @@ export class StatusField {
     this.#completedValidations = completedValidationsParam;
     this.#statusUI = svv.ui.status;
     this.#progressBar = new ProgressBar('mission-progress-bar-complete', 'mission-progress-bar-text');
+    this.#dots = document.getElementById('mission-progress-dots');
   }
 
   /**
@@ -33,6 +38,7 @@ export class StatusField {
     const total = currentMission.getProperty('labelsValidated');
     this.setProgressText(progress, total);
     this.setProgressBar(progress, total);
+    this.setProgressDots(currentMission.getVerdicts(), total);
   }
 
   /**
@@ -93,6 +99,28 @@ export class StatusField {
    */
   setProgressBar(progress, total) {
     this.#progressBar.setFraction(progress / total);
+  }
+
+  /**
+   * Draws the mission as a row of dots, one per label, each validated one in its verdict's colour (#5580): the phone
+   * pill's progress, where the bar told only how far along the mission was and not how it was going. CSS shows the
+   * row only where the pill uses it; a mission too long to fit hides it and keeps the bar. Decorative to a screen
+   * reader, which already has the count beside it.
+   *
+   * @param {Array<?string>} verdicts - The verdict per validated label, null where this page never saw it.
+   * @param {number} total - The mission's length.
+   */
+  setProgressDots(verdicts, total) {
+    if (!this.#dots) return;
+    this.#dots.hidden = total > StatusField.#MAX_DOTS;
+    if (this.#dots.hidden) return;
+    const modifier = { Agree: 'agree', Disagree: 'disagree', Unsure: 'unsure' };
+    this.#dots.replaceChildren(...Array.from({ length: total }, (_, i) => {
+      const dot = document.createElement('span');
+      dot.className = 'svv-mission-dot';
+      if (i < verdicts.length) dot.classList.add(`svv-mission-dot--${modifier[verdicts[i]] ?? 'done'}`);
+      return dot;
+    }));
   }
 
   /**

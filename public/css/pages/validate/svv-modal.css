@@ -83,59 +83,247 @@
   top: var(--header-height);
 }
 
+/* ---- Mission complete (#4886; one card at every width since #5580) ---------------------------------------------
+   A centred card over the tool on a wide window (boxed or immersive), and the whole screen on a phone, where it
+   scrolls with its buttons pinned (svv-immersive.css's compact block). Every size scales with the tool, so on a
+   phone, where the scale is pinned to 1, it is /mobile's card exactly. */
+#modal-mission-complete-foreground.svv-mc {
+  top: calc(var(--header-height) + var(--pano-height) / 2);
+  left: calc(var(--pano-width) / 2);
+  right: auto;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: calc(20px * var(--ui-scale));
+  width: min(calc(440px * var(--ui-scale)), calc(100vw - 32px));
+  height: auto;
+  max-height: calc(100dvh - 32px);
+  padding: calc(24px * var(--ui-scale)) calc(28px * var(--ui-scale));
+  border: none;
+  border-radius: calc(12px * var(--ui-scale));
+  box-shadow: var(--box-shadow-lg);
+  text-align: center;
+  overflow-y: auto;
+}
+
+.svv-mc__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: calc(14px * var(--ui-scale));
+  width: 100%;
+}
+
+/* The end of a mission is the one heading on this page worth setting in the display face — and it carries no digits,
+   which is what the accent font can't set. */
 #modal-mission-complete-title {
-  margin-top: calc(70px * var(--ui-scale));
-  text-align: center;
+  margin: 0;
+  font: var(--text-h1-bold);
+  color: var(--color-neutral-900);
 }
 
-#modal-mission-complete-message {
-  text-align: center;
+/* Fireworks flanking the congratulations, as on the tutorial's "You did it!" screen. */
+.svv-mc-celebrate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: calc(10px * var(--ui-scale));
 }
 
-#modal-mission-complete-table {
-  height: calc(190px * var(--ui-scale));
-  padding-left: calc(175px * var(--ui-scale));
+.svv-mc-celebrate__burst {
+  width: calc(46px * var(--ui-scale));
+  height: calc(46px * var(--ui-scale));
 }
 
-#modal-mission-complete-table h3 {
-  margin: 0 0 calc(8px * var(--ui-scale, 1));
-  font: var(--text-title-bold);
+/* ModalMissionComplete adds the class on every mission, which is what restarts the burst. It leaves the class off
+   entirely for a visitor who asked for less motion, who gets the fireworks sitting still. */
+@media (prefers-reduced-motion: no-preference) {
+  .svv-mc-celebrate--play .svv-mc-celebrate__burst {
+    animation: svv-mc-burst 0.7s ease-out;
+  }
+
+  .svv-mc-celebrate--play .svv-mc-celebrate__burst--right {
+    animation-delay: 0.12s;
+  }
+
+  @keyframes svv-mc-burst {
+    0% {
+      opacity: 0;
+      transform: scale(0.4) rotate(-12deg);
+    }
+
+    60% {
+      opacity: 1;
+      transform: scale(1.12) rotate(4deg);
+    }
+
+    100% {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
 }
 
-.modal-mission-complete-counts {
-  width: 80%;
-  margin-bottom: calc(20px * var(--ui-scale, 1));
-  border-collapse: collapse;
+/* What was validated, read as one unit: the label type's marker, then the sentence, in a column narrow enough to
+   break evenly rather than spanning the card. */
+.svv-mc-summary {
+  display: flex;
+  align-items: center;
+  gap: calc(10px * var(--ui-scale));
+  max-width: calc(300px * var(--ui-scale));
+  margin: 0 auto;
 }
 
-.modal-mission-complete-counts th,
-.modal-mission-complete-counts td {
-  padding: calc(8px * var(--ui-scale, 1));
-  border-top: calc(1px * var(--ui-scale, 1)) solid var(--color-neutral-300);
+.svv-mc-summary__icon {
+  flex: 0 0 auto;
+  width: calc(34px * var(--ui-scale));
+  height: calc(34px * var(--ui-scale));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.svv-mc-summary__text {
+  flex: 1;
+  min-width: 0;
+  font: var(--text-subtitle-regular);
   text-align: left;
 }
 
-.modal-mission-complete-counts td {
-  text-align: right;
+.svv-mc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(12px * var(--ui-scale));
+  width: 100%;
 }
 
-.modal-mission-complete-counts tr:first-child > * {
-  border-top: 0;
-}
-
-.modal-mission-complete-counts #your-overall-total > * {
-  border-top-width: calc(3px * var(--ui-scale, 1));
-}
-
-.modal-mission-complete-buttons {
+.svv-mc-stat {
   display: flex;
-  gap: calc(8px * var(--ui-scale, 1));
+  flex-direction: column;
+  align-items: center;
+  gap: calc(2px * var(--ui-scale));
+  padding: calc(12px * var(--ui-scale)) calc(6px * var(--ui-scale));
+  border-radius: calc(14px * var(--ui-scale));
 }
 
-#modal-mission-complete-close-button-primary {
-  flex: 3;
+/* The same thumb the validation button carried, in the same color it was drawn in. */
+.svv-mc-stat__icon {
+  width: calc(22px * var(--ui-scale));
+  height: calc(22px * var(--ui-scale));
 }
 
+.svv-mc-stat__count {
+  font: var(--text-h3-bold);
+}
+
+.svv-mc-stat__label {
+  font: var(--text-small-medium);
+  color: var(--color-neutral-800);
+}
+
+.svv-mc-stat--agree {
+  background: var(--color-pine-100);
+}
+
+.svv-mc-stat--agree .svv-mc-stat__count {
+  color: var(--color-pine-800);
+}
+
+.svv-mc-stat--disagree {
+  background: var(--color-orange-100);
+}
+
+.svv-mc-stat--disagree .svv-mc-stat__count {
+  color: var(--color-orange-700);
+}
+
+.svv-mc-stat--unsure {
+  background: var(--color-neutral-100);
+}
+
+.svv-mc-stat--unsure .svv-mc-stat__count {
+  color: var(--color-neutral-800);
+}
+
+/* Where the mission leaves them: the badge their validations have earned, and how many that is in total. The badge
+   half is empty until someone has earned one, so the row centers on whatever it holds. Squared off with the counts
+   above it, rather than shrunk to its contents. */
+.svv-mc-standing {
+  display: flex;
+  align-items: center;
+  gap: calc(12px * var(--ui-scale));
+  width: 100%;
+  padding: calc(10px * var(--ui-scale)) calc(16px * var(--ui-scale));
+  border-radius: calc(14px * var(--ui-scale));
+  background: var(--color-neutral-100);
+}
+
+.svv-mc-standing__badge {
+  flex: 0 0 auto;
+  width: calc(38px * var(--ui-scale));
+  height: calc(38px * var(--ui-scale));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.svv-mc-standing__text {
+  flex: 1;
+  min-width: 0; /* Lets a long "N more to …" line wrap instead of stretching the row. */
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.svv-mc-standing__level {
+  font: var(--text-body-bold);
+  color: var(--color-neutral-900);
+}
+
+/* Empty for anyone without a badge, which leaves the count alone in the row — so it can't sit on a stray line. */
+.svv-mc-standing__level:empty {
+  display: none;
+}
+
+.svv-mc-standing__total {
+  font: var(--text-small-regular);
+  color: var(--color-neutral-700);
+}
+
+/* How far along the next badge is, and what it is — what makes the badge read as a level rather than a decoration. */
+.svv-mc-standing #mission-complete-badge-progress {
+  --ps-progress-bar-height: calc(7px * var(--ui-scale));
+
+  width: 100%;
+  margin: calc(6px * var(--ui-scale)) 0 calc(4px * var(--ui-scale));
+}
+
+.svv-mc-standing__next {
+  font: var(--text-caption-medium);
+  color: var(--color-neutral-700);
+}
+
+/* Stacked full-width, primary on top: side by side, "Start an exploration mission" wrapped to three lines in the
+   card's width, and every label fits on one line stacked in every locale (French is the longest). Centered, which a
+   .button's inline-flex otherwise isn't across the full width. */
+.svv-mc__actions {
+  display: flex;
+  flex-direction: column;
+  gap: calc(10px * var(--ui-scale));
+  width: 100%;
+}
+
+#modal-mission-complete-close-button-primary,
 #modal-mission-complete-close-button-secondary {
-  flex: 2;
+  justify-content: center;
+  width: 100%;
+  border-radius: calc(14px * var(--ui-scale));
+}
+
+/* Waiting on the next mission to load, which the primary button starts every mission-complete screen doing. */
+#modal-mission-complete-close-button-primary:disabled {
+  background: var(--color-neutral-200);
+  color: var(--color-neutral-700);
+  cursor: wait;
+  opacity: 1;
 }

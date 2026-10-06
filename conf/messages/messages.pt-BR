@@ -376,8 +376,6 @@ validate.add.own.reason = Ou adicione seu próprio motivo
 validate.skip.reason = Motivo para pular
 validate.suggestions = Sugestões
 validate.ai.disclaimer = As sugestões de etiquetas são feitas por IA, não são completas e podem estar incorretas
-validate.mission.complete.category = Categoria
-validate.mission.complete.your.overall.total = Seu total no geral
 
 authenticate.email = Endereço de e-mail
 authenticate.identifier = E-mail ou nome de usuário

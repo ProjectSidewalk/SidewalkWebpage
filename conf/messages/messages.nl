@@ -368,8 +368,6 @@ validate.add.own.reason = Of voeg je eigen reden toe.
 validate.skip.reason = Reden overslaan
 validate.suggestions = Suggesties
 validate.ai.disclaimer = Tag-suggesties worden door AI gedaan, zijn niet volledig en kunnen onjuist zijn
-validate.mission.complete.category = Categorie
-validate.mission.complete.your.overall.total = Je Totaal
 
 authenticate.email = Email-adres
 authenticate.identifier = E-mailadres of gebruikersnaam

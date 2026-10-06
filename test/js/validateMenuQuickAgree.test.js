@@ -159,19 +159,15 @@ describe('ValidationMenu quickAgree', () => {
     expect(floats[0].getAttribute('src')).toBe('/t.svg');
   });
 
-  it('folds the dock as a Disagree counts and floats its thumb off No in the resting row (#5580)', () => {
+  it('folds the dock as a Disagree counts, with no thumb: its Submit step was the confirmation (#5580)', () => {
     build({ quickAgree: true });
-    byId('validate-no-button').getBoundingClientRect = () => ({ left: 140, top: 760, width: 110, height: 44 });
     byId('validate-no-button').click();
     expect(byId('validation-menu-holder').classList.contains('has-verdict')).toBe(true);
     byId('validate-submit-button').click();
 
     expect(byId('validation-menu-holder').classList.contains('has-verdict')).toBe(false);
     expect(byId('validate-why-no-section').style.display).toBe('none');
-    const floats = document.querySelectorAll('.validate-verdict-float');
-    expect(floats).toHaveLength(1);
-    expect(floats[0].style.left).toBe('195px');
-    expect(floats[0].style.top).toBe('760px');
+    expect(document.querySelector('.validate-verdict-float')).toBeNull();
   });
 
   it('never floats for a mouse', () => {

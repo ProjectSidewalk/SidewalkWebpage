@@ -75,16 +75,14 @@ export class ModalMissionComplete {
    * Says where this mission leaves the validator overall: the badge their all-time validation count has earned, if
    * they have earned one, and the count itself.
    *
-   * The badge and its wording are mobile's; the desktop screen has no badge and keeps the bare number.
+   * The badge and its wording are /mobile's #4886 card, which every width has shown since #5580.
    *
    * @param {number} total - The validator's all-time validation count.
    */
   #showStanding(total) {
     const ui = this.#uiModalMissionComplete;
-    ui.yourOverallTotalCount.innerHTML = svv.legacyMobile
-      ? i18next.t('mission-complete.all-time', { count: total, interpolation: { escapeValue: true } })
-      : String(total);
-    if (!ui.badgeIcon) return;
+    ui.yourOverallTotalCount.innerHTML
+      = i18next.t('mission-complete.all-time', { count: total, interpolation: { escapeValue: true } });
 
     const { badge, next, fraction, remaining } = BadgeAchievements.getProgress('validations', total);
     ui.badgeIcon.classList.toggle('ps-hidden', !badge);
@@ -104,14 +102,15 @@ export class ModalMissionComplete {
    *
    * The animation rides a class rather than the screen's own visibility because `visibility: hidden` doesn't rewind
    * one, and this screen is shown over and over. Both are pure celebration, so a visitor who asked for less motion
-   * gets neither. Mobile only: the desktop screen has no fireworks to play.
+   * gets neither. Each page names the class in its own prefix: /mobile's stylesheet until that page is deleted.
    */
   static #celebrate() {
     const celebration = document.getElementById('mission-complete-celebration');
     if (!celebration || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    celebration.classList.remove('mv-celebrate--play');
+    const playClass = svv.legacyMobile ? 'mv-celebrate--play' : 'svv-mc-celebrate--play';
+    celebration.classList.remove(playClass);
     celebration.getBoundingClientRect(); // Forces the reflow that lets the same animation play again.
-    celebration.classList.add('mv-celebrate--play');
+    celebration.classList.add(playClass);
     navigator.vibrate?.([40, 60, 40]);
     Confetti.burst();
   }

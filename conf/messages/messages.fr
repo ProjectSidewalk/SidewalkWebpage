@@ -384,8 +384,6 @@ validate.add.own.reason = Ou indiquez votre propre raison
 validate.skip.reason = Passer la raison
 validate.suggestions = Suggestions
 validate.ai.disclaimer = Les suggestions de tags sont générées par une IA ; elles ne sont pas exhaustives et peuvent être erronées
-validate.mission.complete.category = Catégorie
-validate.mission.complete.your.overall.total = Votre total général
 
 authenticate.email = Adresse e-mail
 authenticate.identifier = E-mail ou nom d''utilisateur

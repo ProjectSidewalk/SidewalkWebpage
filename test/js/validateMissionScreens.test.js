@@ -456,13 +456,19 @@ describe('mobile Validate mission screens', () => {
             expect(line).toContain('"count":1234');
         });
 
-        test('desktop, whose screen has none of these elements, keeps the bare number its table column expects', () => {
+        // #5580: one card at every width, so the unified page says the same sentence, and celebrates the same way
+        // under its own class prefix.
+        test('the unified page writes the same all-time sentence and plays its own celebration class', () => {
             onMobilePage = false;
+            window.matchMedia = () => ({ matches: false });
 
             showWith(1234);
 
             expect(document.getElementById('modal-mission-complete-your-overall-total-count').textContent)
-                .toBe('1234');
+                .toContain('mission-complete.all-time');
+            const celebration = document.getElementById('mission-complete-celebration');
+            expect(celebration.classList.contains('svv-mc-celebrate--play')).toBe(true);
+            expect(celebration.classList.contains('mv-celebrate--play')).toBe(false);
         });
     });
 });
