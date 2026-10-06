@@ -191,8 +191,13 @@ class ValidateSubmissionSpec
         Json.obj("action" -> "ValidationButtonClick_Agree", "mission_id" -> b.missionId, "timestamp" -> now)
       ),
       // An unknown pointer value is dropped rather than failing the row on its CHECK constraint (#5664).
-      "environment" -> Json.obj("mission_id" -> b.missionId, "language" -> "en", "css_zoom" -> 100,
-        "max_touch_points" -> 0, "primary_pointer" -> "bogus"),
+      "environment" -> Json.obj(
+        "mission_id"       -> b.missionId,
+        "language"         -> "en",
+        "css_zoom"         -> 100,
+        "max_touch_points" -> 0,
+        "primary_pointer"  -> "bogus"
+      ),
       "validations"      -> validations,
       "mission_progress" -> missionProgress.getOrElse[JsValue](JsNull),
       "validate_params"  -> Json.obj(

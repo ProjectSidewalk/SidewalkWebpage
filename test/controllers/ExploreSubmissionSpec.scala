@@ -190,8 +190,13 @@ class ExploreSubmissionSpec
         Json.obj("action" -> "TaskStart", "pano_id"                     -> specPanoId, "timestamp" -> now),
         Json.obj("action" -> "LabelingCanvas_FinishLabeling", "pano_id" -> specPanoId, "timestamp" -> now)
       ),
-      "environment" -> Json.obj("browser" -> "spec", "language" -> "en", "css_zoom" -> 100, "max_touch_points" -> 5,
-        "primary_pointer" -> "coarse"),
+      "environment" -> Json.obj(
+        "browser"          -> "spec",
+        "language"         -> "en",
+        "css_zoom"         -> 100,
+        "max_touch_points" -> 5,
+        "primary_pointer"  -> "coarse"
+      ),
       "panos"         -> Json.arr(panoJson(b)),
       "user_route_id" -> JsNull,
       "timestamp"     -> now
