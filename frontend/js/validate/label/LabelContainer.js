@@ -214,6 +214,11 @@ export class LabelContainer {
   async renderCurrentLabel({ undo = false } = {}) {
     try {
       this.#setUiBusy(true);
+      // The card is anchored to the marker of the label we're leaving, so it can't carry over to the next one. Closed
+      // now rather than once the next pano is up: a card opened on load would otherwise sit over the loading pano, and
+      // the busy lock blocks every way of closing it. (Undefined on the very first render, which happens while
+      // LabelContainer itself is still being constructed.)
+      svv.labelVisibilityControl?.hideLabelCard();
       // A mission modal covering the pano is its own loading state (the "Great job!" button stays disabled until the
       // next mission's first label is up), so a status under it would only show through the backdrop as clutter.
       const coveredByModal = svv.modalMissionComplete?.isShowing?.() === true
@@ -249,9 +254,6 @@ export class LabelContainer {
         return;
       }
 
-      // The card is anchored to the marker of the label we're leaving, so it can't carry over to the next one.
-      // (Undefined on the very first render, which happens while LabelContainer itself is still being constructed.)
-      svv.labelVisibilityControl?.hideLabelCard();
       svv.labelCard.render(this.#currLabel);
       svv.validationMenu.resetMenu(this.#currLabel);
       if (svv.adminVersion) svv.adminInfo.updateAdminInfo(this.#currLabel);
@@ -265,6 +267,7 @@ export class LabelContainer {
       // Every label starts visible. Without this the toggle keeps saying "Show Label" over a marker that
       // renderPanoMarker just drew in full — you'd have to hide and re-show to get the two back in agreement.
       svv.labelVisibilityControl?.unhideLabel();
+      svv.labelVisibilityControl?.openCardOnLoad();
 
       this.setProperty('renderedTimestamp', Date.now());
       // Now that this label's imagery is on screen and the connection is idle, start on the next ones' (#5562, #5581).
