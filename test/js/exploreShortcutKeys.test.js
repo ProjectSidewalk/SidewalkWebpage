@@ -74,4 +74,20 @@ describe('Explore shortcut keys', () => {
         release({ key: 'Escape', code: 'Escape' });
         expect(svl.tracker.push).toHaveBeenCalledWith('KeyboardShortcut_ModeSwitch_Walk', { code: 'Escape' });
     });
+
+    // The rating info icon pins its examples card on Enter's keydown and Escape closes it (psTooltip, #5664); the
+    // keyup of the same press must not then close the menu the card belongs to.
+    it.each([
+        ['on the pinnable info icon', '<img id="info" role="button" tabindex="0" data-ps-tooltip-pinnable>', 'info'],
+        ['inside the pinned card', '<div id="ps-tooltip" tabindex="-1"><span id="inner"></span></div>', 'inner'],
+    ])('leaves Enter and Escape %s to the tooltip, with the menu left open', (_where, html, id) => {
+        document.body.innerHTML = html;
+        menuOpen = true;
+        for (const key of ['Enter', 'Escape']) {
+            document.getElementById(id).dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key, code: key }));
+        }
+        expect(menuOpen).toBe(true);
+        expect(svl.tracker.push).not.toHaveBeenCalled();
+        document.body.innerHTML = '';
+    });
 });

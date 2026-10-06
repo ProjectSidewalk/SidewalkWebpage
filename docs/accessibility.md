@@ -242,8 +242,11 @@ Touch (#5664): under `@media (pointer: coarse)` every tool control is floored at
 since it is a fingertip rather than part of the layout), and a placed label's hit target follows
 (`util.LABEL_MIN_SCREEN_TARGET_TOUCH`). Keyed on the primary pointer, not `any-pointer`, so a touch laptop driven by
 its mouse keeps the mouse sizes. Nothing is hover-only on touch: `psTooltip` ignores mouse hover where there is none
-and opens on keyboard focus only (`:focus-visible`), the Other subcategory popover opens on a tap, and every drag
-(pan, pinch) has a button alternative (2.5.7, 2.5.1).
+and opens on keyboard focus only (`:focus-visible`), the Other subcategory popover opens on a tap, the rating info
+icon is a pinnable trigger (`role="button"`) whose card carries the severity example images the hover-only segment
+cards show on desktop, and every drag (pan, pinch) has a button alternative (2.5.7, 2.5.1). The tutorial's copy follows
+the same rule: on a screen without hover each step that names a click on the pano, a hover, or a key reads its `-touch`
+twin from `audit.json` instead (`OnboardingStates.js`, `TOUCH_TUTORIAL_KEYS`).
 
 ## Reporting a problem
 

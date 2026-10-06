@@ -29,6 +29,9 @@ Each entry in the states array describes one step. The common fields:
 - **`message`** — the text shown in the tutorial speech bubble. Use `i18next.t('tutorial.<key>')` — **tutorial text is
   internationalized**, so add the corresponding key to the `tutorial` namespace for every supported language rather
   than hardcoding a string (see [`CONTRIBUTING.md`](../../../../../CONTRIBUTING.md) → Internationalization).
+  A message that names a click on the pano, a hover, or a key also needs a `<key>-touch` twin with that wording
+  removed (#5664): list the desktop key in `TOUCH_TUTORIAL_KEYS` and look it up through `copy(...)`, not `i18next.t`,
+  which picks the twin on a screen without hover.
 - **`panoId`** — the GSV pano used for the tutorial. It's the same shared value (`"tutorial"`) for all states.
 - **`annotations`** — optional visual overlays (arrows, etc.) with pixel `x`/`y` positions on the pano. Easiest to
   copy and tweak from a nearby state.

@@ -76,6 +76,8 @@
   "rate-quality": "Évaluer la qualité",
   "rate-severity-info": "Évaluez au mieux dans quelle mesure l'obstacle ou l'aménagement étiqueté gêne le passage des piétons.",
   "rate-quality-info": "Évaluez au mieux la qualité de l'aménagement étiqueté.",
+  "rate-severity-examples": "Exemples de gravité",
+  "rate-quality-examples": "Exemples de qualité",
   "update-severity-level": "Modifier le niveau de gravité",
   "update-quality-level": "Modifier le niveau de qualité",
   "severity-example-tooltip-1": "Exemple de gravité faible",

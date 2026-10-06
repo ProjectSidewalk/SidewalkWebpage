@@ -160,6 +160,34 @@
   height: calc(125px * var(--ui-scale, 1));
 }
 
+/* The rating info icon's card (ContextMenu.severityInfoHtml): the three example images side by side under the
+   sentence, each captioned with its level. Wider than the 280 px a one-line tooltip is capped at, so the images stay
+   big enough to read the problem in; :has() scopes the wider cap to this one card. */
+.ps-tooltip:has(.severity-examples) {
+  max-width: calc(440px * var(--ui-scale, 1));
+}
+
+.severity-examples {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(6px * var(--ui-scale, 1));
+  margin-top: calc(6px * var(--ui-scale, 1));
+}
+
+.severity-examples__item {
+  margin: 0;
+  text-align: center;
+}
+
+.ps-tooltip .severity-examples__img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 138 / 110;
+  object-fit: cover;
+  margin: 0 0 calc(3px * var(--ui-scale, 1));
+}
+
 #context-menu-tag-holder {
   margin: 0;
   display: flex;
@@ -293,5 +321,13 @@ tag-underline {
   #context-menu-description-text-box {
     min-height: var(--target-min-touch);
     font-size: 16px;
+  }
+
+  /* The rating info icon pins its examples card on a tap, so it needs a finger-sized target too. An <img> takes no
+     ::after, so padding grows the hit area and an equal negative margin keeps the header row from growing with it. */
+  .context-menu-info-icon {
+    box-sizing: content-box;
+    padding: calc((var(--target-min-touch) - 15px * var(--ui-scale)) / 2);
+    margin: calc((var(--target-min-touch) - 15px * var(--ui-scale)) / -2);
   }
 }

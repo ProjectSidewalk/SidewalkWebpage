@@ -3,7 +3,47 @@ import { util } from '../../common/utilities.js';
 import '../../common/pano-viewer/panoUtilities.js';
 import '../../common/utilitiesSidewalk.js';
 
+/**
+ * Tutorial strings that name a mouse, hover, or key, each of which has a `-touch` twin in audit.json written for a
+ * screen with no hover (#5664): "tap" for a click on the pano, Delete from the label's menu rather than its hover card,
+ * and no keyboard shortcut. Strings that only say "click" on a button keep one wording, since that reads fine on touch.
+ * @type {ReadonlySet<string>}
+ */
+export const TOUCH_TUTORIAL_KEYS = new Set([
+  ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `tutorial.label-attribute-${n}`),
+  'tutorial.zoom-in',
+  'tutorial.zoom-out',
+  'tutorial.select-label-type-8',
+  'tutorial.select-label-type-9',
+  'tutorial.common.label-too-far-generic',
+  'tutorial.common.label-too-far-crosswalk',
+  'tutorial.common.label-too-far-signal',
+]);
+
+/**
+ * The translation key to show for a tutorial string on this kind of screen.
+ * @param {string} key - The desktop key, e.g. `tutorial.zoom-in`.
+ * @param {boolean} touch - True on a screen with no hover, where mouse and keyboard wording means nothing.
+ * @returns {string} `key` with `-touch` appended when it has a touch twin and `touch` is set, else `key` unchanged.
+ * @example
+ * tutorialCopyKey('tutorial.zoom-in', true);   // 'tutorial.zoom-in-touch'
+ * tutorialCopyKey('tutorial.walk-1', true);    // 'tutorial.walk-1' (no mouse or key wording, so no twin)
+ */
+export function tutorialCopyKey(key, touch) {
+  return touch && TOUCH_TUTORIAL_KEYS.has(key) ? `${key}-touch` : key;
+}
+
 export function OnboardingStates(contextMenu, compass, panoManager) {
+  // Read once, so a hybrid device that gains a mouse mid-tutorial doesn't switch wording between steps. `hover` rather
+  // than `coarse`, because what the twins replace is wording that assumes a hovering pointer.
+  const touch = !util.inputProfile().hover;
+  /**
+   * `i18next.t` for a string that may have a touch twin (see TOUCH_TUTORIAL_KEYS).
+   * @param {string} key
+   * @param {object} [options]
+   * @returns {string}
+   */
+  const copy = (key, options) => i18next.t(tutorialCopyKey(key, touch), options);
   const panoId = 'tutorial';
   const afterWalkPanoId = 'afterWalkTutorial';
   const headingRanges = {
@@ -132,7 +172,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       }],
-      message: { message: i18next.t('tutorial.label-attribute-1') },
+      message: { message: copy('tutorial.label-attribute-1') },
       panoId,
       annotations: [
         {
@@ -163,7 +203,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
+        message: `${copy('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -356,7 +396,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-1'][0],
         maxHeading: headingRanges['stage-1'][1],
       }],
-      message: { message: i18next.t('tutorial.label-attribute-2') },
+      message: { message: copy('tutorial.label-attribute-2') },
       panoId,
       annotations: [
         {
@@ -387,7 +427,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-1'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} ${deleteIconHtml}`,
+        message: `${copy('tutorial.common.label-too-far-crosswalk')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -509,7 +549,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: i18next.t('tutorial.zoom-in'),
+        message: copy('tutorial.zoom-in'),
         anchor: '#zoom-in-button',
         placement: 'left',
       },
@@ -554,7 +594,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       }],
-      message: { message: i18next.t('tutorial.label-attribute-3') },
+      message: { message: copy('tutorial.label-attribute-3') },
       panoId,
       annotations: [
         {
@@ -585,7 +625,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
+        message: `${copy('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -779,7 +819,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       }],
-      message: { message: i18next.t('tutorial.label-attribute-4') },
+      message: { message: copy('tutorial.label-attribute-4') },
       panoId,
       annotations: [
         {
@@ -810,7 +850,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
+        message: `${copy('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1012,7 +1052,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-2'][0],
         maxHeading: headingRanges['stage-2'][1],
       }],
-      message: { message: i18next.t('tutorial.label-attribute-5') },
+      message: { message: copy('tutorial.label-attribute-5') },
       panoId,
       annotations: [
         {
@@ -1051,7 +1091,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-signal')} ${deleteIconHtml}`,
+        message: `${copy('tutorial.common.label-too-far-signal')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1114,7 +1154,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-2'][1],
       },
       message: {
-        message: i18next.t('tutorial.zoom-out'),
+        message: copy('tutorial.zoom-out'),
         anchor: '#zoom-out-button',
         placement: 'left',
       },
@@ -1173,7 +1213,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-3'][0],
         maxHeading: headingRanges['stage-3'][1],
       }],
-      message: { message: i18next.t('tutorial.label-attribute-6') },
+      message: { message: copy('tutorial.label-attribute-6') },
       panoId,
       annotations: [
         {
@@ -1204,7 +1244,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-3'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-crosswalk')} ${deleteIconHtml}`,
+        message: `${copy('tutorial.common.label-too-far-crosswalk')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1408,7 +1448,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-4'][0],
         maxHeading: headingRanges['stage-4'][1],
       }],
-      message: { message: i18next.t('tutorial.label-attribute-7') },
+      message: { message: copy('tutorial.label-attribute-7') },
       panoId,
       annotations: [
         {
@@ -1439,7 +1479,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-4'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
+        message: `${copy('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1576,7 +1616,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: i18next.t('tutorial.select-label-type-8', {
+        message: copy('tutorial.select-label-type-8', {
           key: kbdHtml('C'),
           interpolation: { escapeValue: false },
         }),
@@ -1607,7 +1647,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       }],
-      message: { message: i18next.t('tutorial.label-attribute-8') },
+      message: { message: copy('tutorial.label-attribute-8') },
       panoId,
       annotations: [
         {
@@ -1638,7 +1678,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
+        message: `${copy('tutorial.common.label-too-far-generic')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [
@@ -1748,7 +1788,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: i18next.t('tutorial.select-label-type-9', {
+        message: copy('tutorial.select-label-type-9', {
           key: kbdHtml('P'),
           interpolation: { escapeValue: false },
         }),
@@ -1785,7 +1825,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         minHeading: headingRanges['stage-5'][0],
         maxHeading: headingRanges['stage-5'][1],
       }],
-      message: { message: i18next.t('tutorial.label-attribute-9') },
+      message: { message: copy('tutorial.label-attribute-9') },
       panoId,
       annotations: [
         {
@@ -1824,7 +1864,7 @@ export function OnboardingStates(contextMenu, compass, panoManager) {
         maxHeading: headingRanges['stage-5'][1],
       },
       message: {
-        message: `${i18next.t('tutorial.common.label-too-far-signal')} ${deleteIconHtml}`,
+        message: `${copy('tutorial.common.label-too-far-signal')} ${deleteIconHtml}`,
       },
       panoId,
       annotations: [

@@ -76,6 +76,8 @@
   "rate-quality": "Avaliar qualidade",
   "rate-severity-info": "Faça o possível para avaliar o quanto o obstáculo ou característica identificada dificulta o acesso de pedestres.",
   "rate-quality-info": "Faça o possível para avaliar a qualidade da característica identificada.",
+  "rate-severity-examples": "Exemplos de gravidade",
+  "rate-quality-examples": "Exemplos de qualidade",
   "update-severity-level": "Atualizar nível de gravidade",
   "update-quality-level": "Atualizar nível de qualidade",
   "severity-example-tooltip-1": "Exemplo de gravidade baixa",

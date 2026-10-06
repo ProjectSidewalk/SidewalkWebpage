@@ -618,7 +618,11 @@
                 <div class="context-menu-header">
                   @* Header text and info tooltip are swapped between the severity/quality strings by ContextMenu JS based on the current label type (positive vs negative). *@
                   <span id="severity-header-text"></span>
-                  <img id="severity-header-info" src='@assets.path("images/icons/info-button.svg")' class="context-menu-info-icon" alt="More information about severity">
+                  @* A pinnable tooltip trigger (psTooltip): hover or focus shows the explanation, and a click, tap, or
+                     Enter pins a card with the three example images, the one way to see them on a screen with no
+                     hover (#5664). role="button" on the image rather than a button element, as psTooltip asks of
+                     pinnable triggers. *@
+                  <img id="severity-header-info" src='@assets.path("images/icons/info-button.svg")' class="context-menu-info-icon" alt="Severity examples" role="button" tabindex="0" aria-haspopup="dialog" aria-expanded="false" data-ps-tooltip-pinnable>
                 </div>
                 @* Radios, not toggle buttons: a rating is pick-one where tags are pick-any, and the segmented
                    enclosure in CSS is the visual half of that same statement. *@
