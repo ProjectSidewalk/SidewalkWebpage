@@ -21,13 +21,13 @@ resolvers ++= Seq(
   "OSGeo" at "https://repo.osgeo.org/repository/release/"
 )
 
-// Play: https://mvnrepository.com/artifact/com.typesafe.play/play?repo=central
+// Play: https://mvnrepository.com/artifact/org.playframework/play?repo=central
 libraryDependencies ++= Seq(
-  // General Play stuff.
-  "org.playframework" %% "play-guice"          % "3.0.11",
-  "org.playframework" %% "play-cache"          % "3.0.11",
-  "org.playframework" %% "play-ws"             % "3.0.11",
-  "org.playframework" %% "play-caffeine-cache" % "3.0.11",
+  // General Play stuff. These take their version from the Play sbt plugin, so a plugin bump moves them all together.
+  "org.playframework" %% "play-guice"          % play.core.PlayVersion.current,
+  "org.playframework" %% "play-cache"          % play.core.PlayVersion.current,
+  "org.playframework" %% "play-ws"             % play.core.PlayVersion.current,
+  "org.playframework" %% "play-caffeine-cache" % play.core.PlayVersion.current,
   "org.playframework" %% "play-mailer" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-mailer-guice" % "10.1.0", // play-mailer is on a different versioning scheme than Play itself.
   "org.playframework" %% "play-json" % "3.0.6", // play-json is on a different versioning scheme than Play itself.
@@ -144,19 +144,11 @@ Compile / sourceGenerators += Def.task {
 // `util.assetPath` (#4893). Everything under these prefixes goes into the generated inventory below, which
 // AssetManifestService turns into the `window.assetDigests` stamp main.scala.html puts on every page.
 //
-// tools/lint/check-asset-paths.mjs parses this Seq to decide which logical paths `util.assetPath` may name, so keep the
-// literal shape — one quoted prefix per line.
+// tools/lint/check-asset-paths.mjs parses this Seq to decide which logical paths `util.assetPath` may name, so keep
+// each prefix a plain quoted string.
 val assetManifestPrefixes = Seq(
-  "audio",
-  "images/badges",
-  "images/examples",
-  "images/explore",
-  "images/icons",
-  "images/logos",
-  "images/pano-tutorial",
-  "images/tutorials",
-  "images/validate",
-  "locales"
+  "audio", "images/badges", "images/examples", "images/explore", "images/icons", "images/logos", "images/pano-tutorial",
+  "images/tutorials", "images/validate", "locales"
 )
 
 // Generate models.utils.AssetInventory: the sorted logical paths of every file under the prefixes above, so the app
@@ -169,12 +161,14 @@ val assetManifestPrefixes = Seq(
 // Output is sorted and deterministic so the generated source is byte-identical between compiles and zinc has nothing
 // to recompile.
 Compile / sourceGenerators += Def.task {
-  val publicDir = baseDirectory.value / "public"
+  val publicDir          = baseDirectory.value / "public"
   val paths: Seq[String] = assetManifestPrefixes.flatMap { prefix =>
     val dir = publicDir / prefix
     if (!dir.isDirectory) {
-      sys.error(s"build.sbt: asset manifest prefix 'public/$prefix' is not a directory. If the asset family moved, " +
-        "update assetManifestPrefixes (and the util.assetPath call sites naming it).")
+      sys.error(
+        s"build.sbt: asset manifest prefix 'public/$prefix' is not a directory. If the asset family moved, " +
+          "update assetManifestPrefixes (and the util.assetPath call sites naming it)."
+      )
     }
     (dir ** "*")
       .get()
@@ -235,23 +229,25 @@ scalacOptions ++= Seq(
   // Play's sbt plugin already passes -deprecation and -unchecked, and Scala 3 rejects a flag that's set twice.
   "-feature", // Emit warning and location for usages of features that should be imported explicitly.
 
-  // Fail the compilation if there are any warnings, except in generated code: Twirl templates (.scala.html) and the
-  // routes file, whose warnings we can't fix. The paths name sbt's output folders, so no checkout path matches.
-  "-Werror", "-Wconf:src=.*/twirl/main/.*:s", "-Wconf:src=.*/routes/main/.*:s",
-  "-Wshadow:all",           // Warn when a name hides one from a parent class or an outer scope.
-  "-Wrecurse-with-default", // Warn when a method calls itself with a default argument.
-  "-Wunused:nowarn",        // Warn if a @nowarn annotation silences nothing.
-  "-Wunused:imports",   // Warn if an import is unused.
-  "-Wunused:explicits", // Warn if an explicit parameter is unused.
-  "-Wunused:implicits", // Warn if an implicit parameter is unused.
-  "-Wunused:privates",  // Warn if a private member is unused.
-  "-Wunused:locals",    // Warn if a local definition is unused.
-  "-Wvalue-discard",    // Warn when non-Unit expression results are unused.
-  "-Wsafe-init",             // Warn when a field could be read before it is set.
-  "-Winfer-union",           // Warn when a type comes out as `A | B`, usually because two branches disagree.
-  "-Wimplausible-patterns",  // Warn when a `case` compares against a value it can never equal.
-  "-Wenum-comment-discard",  // Warn when a doc comment between enum cases is dropped.
-  "-Wwrong-arrow"            // Warn when `=>` is used where `?=>` was meant.
+  // Generated code gets a pass on -Werror, since we can't fix its warnings. The -Wconf paths name sbt's output folders,
+  // so no checkout path matches.
+  "-Werror",                        // Fail the compilation if there are any warnings...
+  "-Wconf:src=.*/twirl/main/.*:s",  // ...except in Twirl templates (.scala.html)...
+  "-Wconf:src=.*/routes/main/.*:s", // ...and the routes file.
+  "-Wshadow:all",                   // Warn when a name hides one from a parent class or an outer scope.
+  "-Wrecurse-with-default",         // Warn when a method calls itself with a default argument.
+  "-Wunused:nowarn",                // Warn if a @nowarn annotation silences nothing.
+  "-Wunused:imports",               // Warn if an import is unused.
+  "-Wunused:explicits",             // Warn if an explicit parameter is unused.
+  "-Wunused:implicits",             // Warn if an implicit parameter is unused.
+  "-Wunused:privates",              // Warn if a private member is unused.
+  "-Wunused:locals",                // Warn if a local definition is unused.
+  "-Wvalue-discard",                // Warn when non-Unit expression results are unused.
+  "-Wsafe-init",                    // Warn when a field could be read before it is set.
+  "-Winfer-union",                  // Warn when a type comes out as `A | B`, usually because two branches disagree.
+  "-Wimplausible-patterns",         // Warn when a `case` compares against a value it can never equal.
+  "-Wenum-comment-discard",         // Warn when a doc comment between enum cases is dropped.
+  "-Wwrong-arrow"                   // Warn when `=>` is used where `?=>` was meant.
 )
 
 // A test often ends on `if (hasData) result mustBe expected`, which the value-discard check would flag.

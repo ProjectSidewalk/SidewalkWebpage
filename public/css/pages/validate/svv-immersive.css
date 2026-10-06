@@ -120,6 +120,12 @@ body.svv-immersive #validation-menu-holder {
   z-index: 3;
 }
 
+/* A card opened on load (#5675) isn't transient, so it gives way to the dock: matching the card's z-index (4) puts the
+   dock on top, since it comes later in the page. */
+body.svv-immersive:has(#label-card.label-card--held) #validation-menu-holder {
+  z-index: 4;
+}
+
 /* The dock is sized to its content, so the boxed column's push-to-bottom has nothing to push against. */
 body.svv-immersive #validate-submit-section {
   align-items: center;
