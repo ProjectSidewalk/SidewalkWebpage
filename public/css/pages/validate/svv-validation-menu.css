@@ -402,8 +402,10 @@
 
 /* ---- Touch (#5580) ------------------------------------------------------------------------------------------------
    Every control in the menu is at least the 44px a thumb wants, whatever --ui-scale has made of its authored size.
-   Text inputs are exactly 16px, below which iOS zooms the page on focus. A pressed verdict pops, since a finger hides
-   the button it is pressing and the chosen fill lands only as the next label does. */
+   Text inputs are exactly 16px, below which iOS zooms the page on focus. A pressed verdict's thumb pops, since a
+   finger hides the button it is pressing and the chosen fill lands only as the next label does. The thumb, never the
+   button: scaling the button shrank its hit area under the finger, so a tap near its edge lifted off outside it and
+   the click went to the dock instead (#5580). */
 @media (pointer: coarse) {
   .validate-page-button,
   .validation-reason-button,
@@ -417,13 +419,13 @@
     font-size: 16px;
   }
 
-  .validate-page-button:active {
+  .validate-page-button:active .validate-page-button__icon {
     animation: svv-confirm-press 0.4s ease-in;
   }
 }
 
 @media (pointer: coarse) and (prefers-reduced-motion: reduce) {
-  .validate-page-button:active {
+  .validate-page-button:active .validate-page-button__icon {
     animation: none;
   }
 }
