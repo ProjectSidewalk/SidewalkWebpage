@@ -410,5 +410,6 @@
   },
   "immersive-enter": "Immersieve modus openen",
   "immersive-exit": "Immersieve modus verlaten",
-  "immersive-exit-hint": "Immersieve modus. Druk op F om te verlaten."
+  "immersive-exit-hint": "Immersieve modus. Druk op F om te verlaten.",
+  "immersive-exit-hint-touch": "Immersieve modus. Tik op de verlaatknop in de hoek om te verlaten."
 }

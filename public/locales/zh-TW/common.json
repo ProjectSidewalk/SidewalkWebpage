@@ -408,5 +408,6 @@
   },
   "immersive-enter": "進入沉浸模式",
   "immersive-exit": "離開沉浸模式",
-  "immersive-exit-hint": "沉浸模式。按 F 離開。"
+  "immersive-exit-hint": "沉浸模式。按 F 離開。",
+  "immersive-exit-hint-touch": "沉浸模式。點按角落的離開按鈕即可離開。"
 }

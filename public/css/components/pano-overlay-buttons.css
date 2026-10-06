@@ -133,3 +133,19 @@
   padding: 0;
   justify-content: center;
 }
+
+/* Touch-target floor for a finger (#5664), shared by Explore and Validate. Floors rather than new sizes, so a scale
+   that already makes a button big enough leaves it alone. Keyed on the primary pointer, so a touch laptop driven by
+   its mouse keeps the mouse sizes. */
+@media (pointer: coarse) {
+  .ps-icon-button {
+    min-width: var(--target-min-touch);
+    min-height: var(--target-min-touch);
+  }
+
+  .pano-overlay-button,
+  .pano-overlay-toggle {
+    min-width: var(--target-min-touch);
+    min-height: var(--target-min-touch);
+  }
+}

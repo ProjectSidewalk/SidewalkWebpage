@@ -1,7 +1,7 @@
 package controllers
 
 import controllers.base.*
-import controllers.helper.ControllerUtils.{isAdmin, isMobile}
+import controllers.helper.ControllerUtils.isAdmin
 import formats.json.CommentSubmissionFormats.*
 import formats.json.ExploreFormats.{given, *}
 import formats.json.MissionFormats.given
@@ -55,20 +55,16 @@ class ExploreController @Inject() (
   def explore = cc.securityService.SecuredAction { implicit request =>
     val user: SidewalkUserWithRole = request.identity
 
-    // Labeling isn't supported on phones/tablets, so send mobile users to the mobile landing page instead.
-    if (isMobile) {
-      cc.loggingService.insert(user.userId, request.ipAddress, "Visit_Audit_RedirectMobileLanding")
-      Future.successful(Redirect("/mobileLanding"))
-    } else {
-      for {
-        commonData       <- configService.getCommonPageData(request2Messages.lang)
-        surveyData       <- exploreService.listSurveyQuestions
-        tutorialStreetId <- configService.getTutorialStreetId
-        makeCrops        <- configService.getMakeCrops
-      } yield {
-        val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
-        noStore(Ok(views.html.apps.explore(commonData, pageTitle, user, surveyData, tutorialStreetId, makeCrops)))
-      }
+    // Served to every device (#5664). Whether the screen is big enough to label on is a question of its shape and size,
+    // which only the browser knows, so the page answers it itself (SmallScreenGate.js) rather than redirecting by UA.
+    for {
+      commonData       <- configService.getCommonPageData(request2Messages.lang)
+      surveyData       <- exploreService.listSurveyQuestions
+      tutorialStreetId <- configService.getTutorialStreetId
+      makeCrops        <- configService.getMakeCrops
+    } yield {
+      val pageTitle: String = Messages("seo.title.explore", commonData.currentCity.cityNameShort)
+      noStore(Ok(views.html.apps.explore(commonData, pageTitle, user, surveyData, tutorialStreetId, makeCrops)))
     }
   }
 

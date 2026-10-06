@@ -583,7 +583,9 @@ for the sidebar + content + TOC layout and the base type, so a change there reac
 
 **Mobile detection has exactly one definition:** `ControllerUtils.isMobile`, a server-side User-Agent check that
 decides which UI a request is served (mobile visitors get `/mobileLanding`, the mobile Validate page at `/mobile`,
-and the shared auth pages; other pages redirect them). The shared layout stamps that verdict on every page as
+and the shared auth pages; other pages redirect them). Explore is the exception: it is served to every device, and the
+page itself decides whether the screen is large enough to label on, by shape and size (`util.isSmallTouchScreen`,
+`SmallScreenGate.js`, #5664). The shared layout stamps that verdict on every page as
 `<html data-mobile-device>`, and client code reads it back through `util.isMobile()` — never re-sniff the UA in JS,
 or client and server can disagree about which UI variant is running. Where the real question is touch-vs-hover
 capability rather than "which variant is this page", use a media query (`pointer: coarse`) instead. The device

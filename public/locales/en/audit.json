@@ -377,5 +377,13 @@
     "label-on-image-title-incorrect": "Common mistake",
     "label-on-image-description-correct": "Place a label",
     "label-on-image-description-incorrect": "Do <b>not</b> place label"
+  },
+  "small-screen": {
+    "rotate-title": "Turn your phone sideways to label",
+    "rotate-body": "Labeling needs a wide view of the street. You can also validate labels with your phone in either direction.",
+    "notice-title": "Labeling works best on a larger screen",
+    "notice-body": "Try a tablet or computer if you have one. You can also validate labels on your phone.",
+    "continue": "Continue anyway",
+    "validate": "Validate labels instead"
   }
 }

@@ -270,6 +270,10 @@
   --space-xxl:  calc(48px * var(--ui-scale, 1));
   --space-xxxl: calc(64px * var(--ui-scale, 1));
 
+  /* Smallest a control may be when the primary pointer is a finger (#5664). WCAG 2.5.8 asks for 24 px; 44 is the size
+     mobile Validate already uses. Deliberately unscaled: it is a physical fingertip, not part of the tool's layout. */
+  --target-min-touch: 44px;
+
   /* Corner radii. These are the values the docs/dashboard surfaces settled on; the DST buttons use larger ones
        (8–16px, see .button--*), so the set still needs reconciling against the Figma file (#4300). */
   --border-radius-sm: calc(3px * var(--ui-scale, 1));

@@ -382,13 +382,32 @@ import { util } from './utilities.js';
     }
   };
 
-  document.addEventListener('mouseover', (event) => onEnter(event.target, false));
+  // On a screen without hover (#5664) a tap replays as a mouseover that never gets its mouseout, so a tooltip would
+  // open on every tapped button and stay. There, only keyboard focus and a pinnable trigger's tap open one; this
+  // replaces the per-page stripping Validate used to do.
+  const canHover = () => window.matchMedia?.('(hover: hover)').matches ?? true;
+  /**
+   * @param {EventTarget} target - Where focus landed.
+   * @returns {boolean} Whether focus arrived from a keyboard rather than a tap.
+   */
+  const isKeyboardFocus = (target) => {
+    try {
+      return target instanceof Element && target.matches(':focus-visible');
+    } catch {
+      return true; // A browser without :focus-visible: keep the tooltip rather than lose it for keyboard users.
+    }
+  };
+  document.addEventListener('mouseover', (event) => {
+    if (canHover()) onEnter(event.target, false);
+  });
   // Pointer left the page entirely; mouseover alone would miss it. A pinned card stays, since it was asked for.
   document.addEventListener('mouseleave', () => {
     if (!pinned) hide();
   });
   document.addEventListener('focusin', (event) => {
-    if (!refocusing) onEnter(event.target, true);
+    if (refocusing) return;
+    if (!canHover() && !isKeyboardFocus(event.target)) return;
+    onEnter(event.target, true);
   });
   // Focus moving from the trigger into its pinned card fires this first; the focusin that follows decides instead.
   document.addEventListener('focusout', () => {

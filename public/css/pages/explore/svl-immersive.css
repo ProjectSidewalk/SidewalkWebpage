@@ -175,3 +175,14 @@ body.svl-immersive #explore-control-buttons-toggle .pano-overlay-button-icon {
 body.svl-immersive #explore-control-buttons-toggle[aria-expanded="true"] .pano-overlay-button-icon {
   transform: rotate(-90deg);
 }
+
+/* Tablet portrait (#5664): at a 768 px window the strip (9 slots of 76px x --ui-scale) runs into the Stuck pill on its
+   left and the zoom stack on its right. Shrinking the whole strip, rather than resizing its parts, keeps the icon, ring
+   and pill geometry intact; at 0.8 the circles still measure over 44 px on an iPad. Keyed on width, not pointer: an
+   equally narrow desktop window has the same collision. 899px because --breakpoint-* can't be used in a media query. */
+@media (width <= 899px) {
+  body.svl-immersive #ribbon-menu-holder {
+    transform: translateX(-50%) scale(0.8);
+    transform-origin: top center;
+  }
+}

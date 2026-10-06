@@ -17,6 +17,10 @@
  * back in it rather than in the boxed one. On Explore it also travels in the live URL as `immersive=1` (#5480), so a
  * link shared from the mode opens into it.
  *
+ * A tool can also ask for the mode by default (#5664): Explore does on a touch-primary screen, where the boxed layout
+ * shrinks every control below a fingertip. Leaving the mode is then remembered for the tab as an explicit '0', or the
+ * default would put the user straight back in on the next load.
+ *
  * A tool can also force the mode (#5580): Validate at phone width has no boxed layout to offer, so there the mode is
  * the layout rather than a choice. A forced mode hides the button, ignores the toggle, and stores nothing, so the
  * window growing back past the breakpoint returns the tab to whatever its user last chose.
@@ -43,6 +47,7 @@ export class ImmersiveMode {
   #bodyClass;
   #isDisabled;
   #isForced;
+  #defaultActive;
   #beforeToggle;
   #onChange;
   #frame;
@@ -75,16 +80,19 @@ export class ImmersiveMode {
    * @param {() => void} [opts.onChange] - Told after every toggle, once the tool is laid out; the live URL's hook.
    * @param {() => boolean} [opts.forced] - When true the mode is on and not the user's to turn off: the button is
    *   hidden and toggle() does nothing. Read at construction and on each refreshForced(); isDisabled wins over it.
+   * @param {() => boolean} [opts.defaultActive] - Whether to start in the mode when the tab has made no choice yet and
+   *   no link asked (#5664). A choice stored in the tab, either way, wins over it.
    */
   constructor({
     tracker, bodyClass, relayout, isDisabled, beforeToggle, frame, hintReference, deferRestoreLog, urlParam, onChange,
-    forced,
+    forced, defaultActive,
   }) {
     this.#tracker = tracker;
     this.#bodyClass = bodyClass;
     this.#relayout = relayout;
     this.#isDisabled = isDisabled ?? (() => false);
     this.#isForced = forced ?? (() => false);
+    this.#defaultActive = defaultActive ?? (() => false);
     this.#beforeToggle = beforeToggle ?? (() => {});
     this.#onChange = onChange ?? (() => {});
     this.#frame = frame ?? null;
@@ -115,16 +123,22 @@ export class ImmersiveMode {
 
     // A link's ask (#5480) is stored as this sitting's choice, so a later param-less /explore lands back in it. Only
     // classes and button are set here: the first relayout reads isActive(), so the pano is born at window size.
-    // `source` credits the tab first, since an immersive tab's own URL always says immersive=1.
-    const stored = Boolean(ImmersiveMode.#readStored(this.#activeKey));
+    // `source` credits the tab first, since an immersive tab's own URL always says immersive=1. A link still beats a
+    // tab that left the mode: following one is a fresh ask. The capability default (#5664) comes last and is not
+    // stored, so it keeps tracking the screen until the user makes a choice.
+    const stored = ImmersiveMode.#readStored(this.#activeKey);
     const askedByUrl = Boolean(urlParam) && new URLSearchParams(window.location.search).get(urlParam) === '1';
-    if (stored || askedByUrl) {
+    let source = null;
+    if (stored === '1') source = 'session';
+    else if (askedByUrl) source = 'url';
+    else if (stored !== '0' && this.#defaultActive()) source = 'capability';
+    if (source) {
       this.#active = true;
       this.#applyClasses();
       this.#renderButton();
-      if (!stored) ImmersiveMode.#writeStored(this.#activeKey, '1');
+      if (source === 'url') ImmersiveMode.#writeStored(this.#activeKey, '1');
       this.#restored = true;
-      this.#restoredSource = stored ? 'session' : 'url';
+      this.#restoredSource = source;
       if (!deferRestoreLog) this.logRestored();
     }
   }
@@ -182,7 +196,8 @@ export class ImmersiveMode {
 
     this.#active = !this.#active;
     this.#applyClasses();
-    ImmersiveMode.#writeStored(this.#activeKey, this.#active ? '1' : null);
+    // '0' rather than clearing the key, so a tool's defaultActive can't put the user back in on the next load.
+    ImmersiveMode.#writeStored(this.#activeKey, this.#active ? '1' : '0');
     this.#relayout();
     this.#renderButton();
     this.#onChange();
@@ -195,12 +210,14 @@ export class ImmersiveMode {
   }
 
   /**
-   * Enters or leaves the forced state. Leaving it falls back to the tab's stored choice, which forcing never wrote.
+   * Enters or leaves the forced state. Leaving it falls back to the tab's stored choice, which forcing never wrote, or
+   * to the tool's default when the tab has none.
    * @param {boolean} forced - The new state.
    */
   #applyForced(forced) {
     this.#forced = forced;
-    this.#active = forced || Boolean(ImmersiveMode.#readStored(this.#activeKey));
+    const stored = ImmersiveMode.#readStored(this.#activeKey);
+    this.#active = forced || stored === '1' || (stored !== '0' && this.#defaultActive());
     this.#holder.hidden = forced;
     this.#applyClasses();
     this.#renderButton();
@@ -229,8 +246,10 @@ export class ImmersiveMode {
     ImmersiveMode.#writeStored(this.#exitHintSeenKey, '1');
     // Anchored to the pano (which fills the window here) so it clears whatever the tool floats along the top, queues
     // behind the other pano toasts, and goes click-through while a label type is armed like they do (#5496).
+    // Without hover there is no keyboard to press F on, so the hint points at the button instead (#5664).
+    const touch = !window.matchMedia?.('(hover: hover)').matches;
     Toast.show({
-      message: i18next.t('common:immersive-exit-hint'),
+      message: i18next.t(touch ? 'common:immersive-exit-hint-touch' : 'common:immersive-exit-hint'),
       reference: this.#hintReference() ?? undefined,
       dark: true,
       compact: true,

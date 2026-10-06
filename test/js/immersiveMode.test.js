@@ -166,9 +166,9 @@ describe('ImmersiveMode', () => {
             innerWidth: expect.any(Number), innerHeight: expect.any(Number),
         }));
 
-        // Leaving the mode forgets it, so the next load is boxed.
+        // Leaving the mode is remembered, so the next load is boxed.
         restored.toggle('Click');
-        expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBe('0');
         expect(build().isActive()).toBe(false);
     });
 
@@ -195,7 +195,7 @@ describe('ImmersiveMode', () => {
         const restored = build({ deferRestoreLog: true });
         restored.toggle('Click');
         restored.toggle('Click');
-        expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+        expect(window.sessionStorage.getItem('svl-immersive-active')).toBe('0');
         expect(build().isActive()).toBe(false);
     });
 
@@ -230,6 +230,56 @@ describe('ImmersiveMode', () => {
         expect(document.body.classList.contains('svl-immersive')).toBe(false);
         expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
         expect(tracker.push).not.toHaveBeenCalled();
+    });
+
+    describe('default for touch-primary screens (#5664)', () => {
+        it('starts in the mode when the tool asks by default, and says the screen asked', () => {
+            const mode = build({ defaultActive: () => true });
+            expect(mode.isActive()).toBe(true);
+            expect(document.body.classList.contains('svl-immersive')).toBe(true);
+            expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored',
+                expect.objectContaining({ source: 'capability' }));
+            // Not stored, so it keeps following the screen until the user chooses.
+            expect(window.sessionStorage.getItem('svl-immersive-active')).toBeNull();
+        });
+
+        it('stays boxed on the next load once the user has left the mode', () => {
+            build({ defaultActive: () => true }).toggle('Click');
+            expect(window.sessionStorage.getItem('svl-immersive-active')).toBe('0');
+            expect(build({ defaultActive: () => true }).isActive()).toBe(false);
+        });
+
+        it('lets a link ask for the mode even after the tab left it', () => {
+            window.sessionStorage.setItem('svl-immersive-active', '0');
+            window.history.replaceState(null, '', '/explore?immersive=1');
+            expect(build().isActive()).toBe(true);
+            expect(tracker.push).toHaveBeenCalledWith('ImmersiveMode_Restored',
+                expect.objectContaining({ source: 'url' }));
+        });
+
+        it('keeps the tutorial boxed whatever the default says', () => {
+            onboarding = true;
+            expect(build({ defaultActive: () => true }).isActive()).toBe(false);
+        });
+
+        it('reads a stored exit as boxed when a forced mode lets go', () => {
+            let forced = true;
+            window.sessionStorage.setItem('svl-immersive-active', '0');
+            const mode = build({ forced: () => forced, defaultActive: () => true });
+            expect(mode.isActive()).toBe(true);
+            forced = false;
+            mode.refreshForced();
+            expect(mode.isActive()).toBe(false);
+        });
+
+        it('points the exit hint at the button on a screen with no hover', () => {
+            window.matchMedia = () => ({ matches: false });
+            build().toggle('Click');
+            expect(window.Toast.show).toHaveBeenCalledWith(expect.objectContaining({
+                message: 'common:immersive-exit-hint-touch',
+            }));
+            delete window.matchMedia;
+        });
     });
 
     it('tells its onChange hook after every toggle, once the tool is laid out (#5480)', () => {

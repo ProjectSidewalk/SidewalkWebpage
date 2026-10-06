@@ -377,5 +377,13 @@
     "label-on-image-title-incorrect": "Erreur fréquente",
     "label-on-image-description-correct": "Placer une étiquette",
     "label-on-image-description-incorrect": "Ne <b>pas</b> placer d'étiquette"
+  },
+  "small-screen": {
+    "rotate-title": "Tournez votre téléphone pour étiqueter",
+    "rotate-body": "L'étiquetage demande une vue large de la rue. Vous pouvez aussi valider des étiquettes avec votre téléphone, dans n'importe quel sens.",
+    "notice-title": "L'étiquetage fonctionne mieux sur un écran plus grand",
+    "notice-body": "Utilisez une tablette ou un ordinateur si vous en avez un. Vous pouvez aussi valider des étiquettes sur votre téléphone.",
+    "continue": "Continuer quand même",
+    "validate": "Valider des étiquettes"
   }
 }

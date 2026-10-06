@@ -193,10 +193,6 @@ export class Main {
       yourOverallTotalCount: byId('modal-mission-complete-your-overall-total-count'),
     };
 
-    // A tap would pin the markup's tooltips open on a touch device; the ones added by script check the same query.
-    if (!window.matchMedia('(hover: hover)').matches) {
-      document.querySelectorAll('[data-ps-tooltip]').forEach((el) => el.removeAttribute('data-ps-tooltip'));
-    }
     svv.ui.status = {
       upperMenuTitle: byId('mission-title'),
       upperMenuIcon: byId('mission-title-icon'),

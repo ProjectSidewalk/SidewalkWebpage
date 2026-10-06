@@ -18,6 +18,15 @@ export class Alert {
   }
 
   /**
+   * Whether this screen is driven by a mouse and keyboard, the only setup a keyboard-shortcut nudge makes sense on
+   * (#5664): on a tablet, "press Z" names a key that isn't there.
+   * @returns {boolean}
+   */
+  _hasMouseAndKeyboard() {
+    return window.matchMedia?.('(hover: hover) and (pointer: fine)').matches ?? true;
+  }
+
+  /**
    * Renders a translated message through the shared alert banner.
    * @param {string} translationKey - i18next key for the message.
    * @param {string} type - Message type identifier, used for the "don't show again" opt-out list.
