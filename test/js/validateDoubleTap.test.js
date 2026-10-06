@@ -1,5 +1,6 @@
 /**
- * Tests for the page-level behavior in frontend/js/mobileValidate.js.
+ * Tests for frontend/js/validate/panorama/DoubleTapSuppressor.js, which every Validate page installs at start-up
+ * (#5580; it was /mobile's page script).
  *
  * The page suppresses double-tap zoom over the imagery by cancelling a touchstart that lands on a pano canvas within
  * half a second of another. Cancelling a touchstart also cancels that touch's scrolling and its click, so everything
@@ -11,17 +12,15 @@
 const { loadModules } = require('./loadGlobalScript');
 
 
-describe('mobile Validate page behavior', () => {
+describe('Validate page behavior', () => {
     let modalForeground;
     let panoCanvas;
+    let uninstall;
 
-    /** Loads mobileValidate.js into jsdom with the globals it reaches for at load time. */
+    /** Installs the suppressor on the test's document, as validate/start.js does on the page's. */
     function loadPage() {
-        // The DOM-ready handler is a no-op here; the subject is the touchstart listener beside it.
-        const ready = [];
-        window.util = { onDomReady: (fn) => ready.push(fn) };
-        Object.assign(window, loadModules('frontend/js/mobileValidate.js'));
-        ready.forEach((fn) => fn());
+        const { installDoubleTapSuppressor } = loadModules('frontend/js/validate/panorama/DoubleTapSuppressor.js');
+        uninstall = installDoubleTapSuppressor(document);
     }
 
     /**
@@ -61,7 +60,7 @@ describe('mobile Validate page behavior', () => {
             <div id="modal-mission-holder">
               <div id="modal-mission-foreground">
                 <div id="modal-mission-instruction">
-                  <div class="mv-examples"><figure class="mv-example"></figure></div>
+                  <div class="svv-brief-examples"><figure class="svv-brief-example"></figure></div>
                 </div>
                 <div class="mv-modal__actions"><button type="button" id="modal-mission-close-button"></button></div>
               </div>
@@ -73,22 +72,12 @@ describe('mobile Validate page behavior', () => {
                 </div>
               </div>
             </div>`;
-        // Every control the page's ready handler decorates with .animate-button; absent, it throws before it can
-        // install the listener under test.
-        ['validate-no-button', 'validate-unsure-button', 'validate-yes-button', 'no-menu-submit-button',
-            'unsure-menu-submit-button', 'modal-mission-complete-close-button-primary',
-            'modal-mission-complete-close-button-secondary', 'label-visibility-control-button'].forEach((id) => {
-            if (!document.getElementById(id)) {
-                const el = document.createElement('button');
-                el.id = id;
-                document.body.appendChild(el);
-            }
-        });
         modalForeground = document.getElementById('modal-mission-foreground');
         panoCanvas = document.getElementById('svv-panorama');
     });
 
     afterEach(() => {
+        uninstall?.();
         jest.useRealTimers();
         document.body.innerHTML = '';
     });
@@ -111,7 +100,7 @@ describe('mobile Validate page behavior', () => {
 
         test('never cancels a swipe of the briefing’s examples carousel', () => {
             loadPage();
-            const carousel = document.querySelector('.mv-examples');
+            const carousel = document.querySelector('.svv-brief-examples');
 
             expect(touchStartOn(carousel)).toBe(false);
             expect(touchStartOn(carousel)).toBe(false); // The second flick to the next example must still scroll.

@@ -553,27 +553,6 @@ body {
   right: 8px;
 }
 
-.animate-button:active {
-  transition: all 0.3s ease-in;
-  animation-name: confirm-press;
-  animation-duration: 0.4s;
-  animation-timing-function: ease-in;
-}
-
-@keyframes confirm-press {
-  0% {
-    transform: scale(0.7);
-  }
-
-  50% {
-    transform: scale(1.2);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
 /* ---- The verdict row -------------------------------------------------------------------------------------------
    Full-bleed in both orientations rather than capped and centered: on a wide landscape screen that puts Agree and
    Disagree under the thumbs of a two-handed grip, and it keeps the notch's arithmetic below exact — the first

@@ -7,6 +7,9 @@ import { User } from './user/User.js';
 import { svv } from './svv.js';
 import { loadPageSession } from '../common/pageSession.js';
 import { viewerClassFor } from '../common/pano-viewer/viewerClassFor.js';
+import { installDoubleTapSuppressor } from './panorama/DoubleTapSuppressor.js';
+
+installDoubleTapSuppressor();
 
 const param = JSON.parse(document.getElementById('page-data').textContent);
 param.viewerType = viewerClassFor(param.imagerySource);
